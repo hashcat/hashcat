@@ -21,6 +21,13 @@
 #endif // __APPLE__
 #endif // _WIN
 
+#if !defined (_WIN) && !defined (__CYGWIN__) && !defined (__MSYS__)
+#include <sys/utsname.h>
+#if !defined (__linux__)
+#include <sys/sysctl.h>
+#endif // ! __linux__
+#endif // ! _WIN && | __CYGWIN__ && ! __MSYS__
+
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag);
 void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const time_t proc_stop);
 

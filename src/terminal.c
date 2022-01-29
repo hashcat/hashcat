@@ -801,6 +801,62 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
+  event_log_info (hashcat_ctx, "System Info:");
+  event_log_info (hashcat_ctx, "============");
+  event_log_info (hashcat_ctx, NULL);
+
+  #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+  // TODO
+  event_log_info (hashcat_ctx, "OS.Name......: N/A");
+  event_log_info (hashcat_ctx, "OS.Release...: N/A");
+  event_log_info (hashcat_ctx, "HW.Platform..: N/A");
+  event_log_info (hashcat_ctx, "HW.Model.....: N/A");
+  #else
+  struct utsname utsbuf;
+
+  bool   rc_uname  = false;
+  bool   rc_sysctl = false;
+
+  char  *hw_model = NULL;
+  size_t hw_model_len = 0;
+
+  #if !defined (__linux__)
+
+  if (sysctlbyname ("hw.model", NULL, &hw_model_len, NULL, 0) == 0 && hw_model_len > 0)
+  {
+    hw_model = (char *) hcmalloc (hw_model_len);
+
+    if (sysctlbyname ("hw.model", hw_model, &hw_model_len, NULL, 0) != 0)
+    {
+      hw_model = NULL;
+      hw_model_len = 0;
+
+      hcfree (hw_model);
+    }
+    else
+    {
+      rc_sysctl = true;
+    }
+  }
+  #endif // ! __linux__
+
+  if (uname (&utsbuf) == 0)
+  {
+    rc_uname = true;
+  }
+
+  event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
+  event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
+  event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model       : "N/A");
+  event_log_info (hashcat_ctx, "HW.Platform..: %s", (rc_uname  == true) ? utsbuf.machine : "N/A");
+  event_log_info (hashcat_ctx, NULL);
+
+  if (rc_sysctl == true)
+  {
+    hcfree (hw_model);
+  }
+  #endif // _WIN || __CYGWIN__ || __MSYS__
+
   if (backend_ctx->cuda)
   {
     event_log_info (hashcat_ctx, "CUDA Info:");
