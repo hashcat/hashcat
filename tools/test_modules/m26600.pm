@@ -58,12 +58,12 @@ sub module_generate_hash
     }
     else
     {
-      $pt = "\xff" x ($ct_min_len + int(rand($ct_max_len - $ct_min_len)) + 1);
+      $pt = "\xff" x ($ct_min_len + int (rand ($ct_max_len - $ct_min_len)) + 1);
     }
   }
   else
   {
-    $pt = "\xff" x ($ct_min_len + int(rand($ct_max_len - $ct_min_len)) + 1);
+    $pt = "\xff" x ($ct_min_len + int (rand ($ct_max_len - $ct_min_len)) + 1);
   }
 
   my $aes = Crypt::AuthEnc::GCM->new ("AES", $key, $iv_bin);

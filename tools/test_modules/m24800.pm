@@ -9,9 +9,9 @@ use strict;
 use warnings;
 
 use Digest::SHA1 qw (sha1);
-use Digest::HMAC qw (hmac hmac_hex);
-use Encode qw (encode decode);
-use MIME::Base64;
+use Digest::HMAC qw (hmac);
+use Encode       qw (encode);
+use MIME::Base64 qw (encode_base64);
 
 sub module_constraints { [[0, 256], [0, 256], [0, 27], [0, 27], [0, 27]] }
 

@@ -8,12 +8,9 @@
 use strict;
 use warnings;
 
-use MIME::Base64 qw (encode_base64 decode_base64);
 use Crypt::PBKDF2;
 
 sub module_constraints { [[0, 256], [1, 15], [-1, -1], [-1, -1], [-1, -1]] }
-
-#pbkdf2(1000,20,sha512)$a2a2ca127df6bc19$77bb5a3d129e2ce710daaefeefef8356c4c827ff";
 
 sub module_generate_hash
 {
@@ -36,8 +33,6 @@ sub module_generate_hash
 
   return $hash;
 }
-
-#pbkdf2(1000,20,sha512)$a2a2ca127df6bc19$77bb5a3d129e2ce710daaefeefef8356c4c827ff";
 
 sub module_verify_hash
 {

@@ -8,8 +8,8 @@
 use strict;
 use warnings;
 
-use Digest::SHA qw (sha224 sha224_hex);
-use Digest::HMAC qw (hmac hmac_hex);
+use Digest::SHA  qw (sha224 sha224_hex);
+use Digest::HMAC qw (hmac_hex);
 
 sub module_constraints { [[8, 256], [32, 3000], [-1, -1], [-1, -1], [-1, -1]] }
 
@@ -17,12 +17,12 @@ sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
-  my $pkt_num = shift // int(rand(100000000));
-  my $engineID = shift // random_hex_string(26, 34);
+  my $pkt_num = shift // int (rand (100000000));
+  my $engineID = shift // random_hex_string (26, 34);
 
   # make even if needed
 
-  if (length($salt) %2 == 1)
+  if (length ($salt) % 2 == 1)
   {
     $salt = $salt . "8";
   }
@@ -35,9 +35,9 @@ sub module_generate_hash
 
   my $buf = join '', $sha224_digest1, $engineID, $sha224_digest1;
 
-  my $sha224_digest2 = sha224(pack("H*", $buf));
+  my $sha224_digest2 = sha224 (pack ("H*", $buf));
 
-  my $digest = hmac_hex (pack("H*", $salt), $sha224_digest2, \&sha224);
+  my $digest = hmac_hex (pack ("H*", $salt), $sha224_digest2, \&sha224);
 
   $digest = substr ($digest, 0, 32);
 

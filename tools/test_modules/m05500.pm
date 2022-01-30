@@ -9,10 +9,8 @@ use strict;
 use warnings;
 
 use Authen::Passphrase::NTHash;
-use Digest::HMAC qw (hmac hmac_hex);
-use Digest::MD5  qw (md5);
-use Encode       qw (encode);
-use Crypt::ECB   qw (encrypt);
+use Digest::MD5 qw (md5);
+use Crypt::ECB;
 
 sub setup_des_key
 {
