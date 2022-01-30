@@ -11,8 +11,6 @@ use warnings;
 use Digest::SHA qw (hmac_sha1);
 use Crypt::Mode::CBC;
 use Crypt::PBKDF2;
-use Encode;
-use POSIX            qw (strftime);
 
 sub byte2hex
 {

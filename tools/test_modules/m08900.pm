@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 use Crypt::ScryptKDF qw (scrypt_hash);
-use MIME::Base64 qw (decode_base64);
+use MIME::Base64     qw (decode_base64);
 
 sub module_constraints { [[0, 256], [1, 15], [-1, -1], [-1, -1], [-1, -1]] }
 

@@ -9,7 +9,6 @@ use strict;
 use warnings;
 
 use Digest::SHA qw (sha1_hex);
-use Encode;
 
 sub module_constraints { [[0, 256], [9, 9], [0, 46], [9, 9], [-1, -1]] }
 

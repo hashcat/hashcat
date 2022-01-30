@@ -87,4 +87,3 @@ sub random_client_challenge
 }
 
 1;
-

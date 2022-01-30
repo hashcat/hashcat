@@ -10,7 +10,7 @@ use warnings;
 
 use Crypt::PBKDF2;
 use Digest::HMAC qw (hmac_hex);
-use Digest::SHA qw (sha256);
+use Digest::SHA  qw (sha256);
 
 sub module_constraints { [[0, 256], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 

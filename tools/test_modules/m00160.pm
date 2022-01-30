@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 use Digest::SHA1 qw (sha1);
-use Digest::HMAC qw (hmac hmac_hex);
+use Digest::HMAC qw (hmac_hex);
 
 sub module_constraints { [[0, 256], [0, 256], [0, 55], [0, 55], [-1, -1]] }
 

@@ -12,7 +12,6 @@ use Encode;
 use Crypt::RC4;
 use Digest::HMAC_MD5 qw (hmac_md5);
 use Digest::MD4      qw (md4);
-use Digest::MD5      qw (md5_hex);
 use POSIX            qw (strftime);
 
 sub get_random_kerberos5_salt

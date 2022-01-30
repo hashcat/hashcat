@@ -8,7 +8,6 @@
 use strict;
 use warnings;
 
-use Digest::MD5 qw (md5_hex);
 use Digest::MD5 qw (md5);
 
 sub module_constraints { [[0, 256], [-1, -1], [0, 55], [-1, -1], [-1, -1]] }

@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 use Digest::MD5 qw (md5);
-use POSIX qw (strftime ceil);
+use POSIX qw (ceil);
 
 sub module_constraints { [[-1, -1], [-1, -1], [1, 55], [-1, -1], [-1, -1]] }
 

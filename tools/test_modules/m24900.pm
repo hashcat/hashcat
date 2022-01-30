@@ -7,7 +7,6 @@
 
 use strict;
 use warnings;
-use MIME::Base64 qw (encode_base64 decode_base64);
 
 use Digest::MD5 qw (md5);
 
