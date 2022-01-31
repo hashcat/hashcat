@@ -807,7 +807,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
   #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
   // TODO
-  event_log_info (hashcat_ctx, "OS.Name......: N/A");
+  event_log_info (hashcat_ctx, "OS.Name......: Windows");
   event_log_info (hashcat_ctx, "OS.Release...: N/A");
   event_log_info (hashcat_ctx, "HW.Platform..: N/A");
   event_log_info (hashcat_ctx, "HW.Model.....: N/A");
@@ -849,13 +849,14 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
   event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model       : "N/A");
   event_log_info (hashcat_ctx, "HW.Platform..: %s", (rc_uname  == true) ? utsbuf.machine : "N/A");
-  event_log_info (hashcat_ctx, NULL);
 
   if (rc_sysctl == true)
   {
     hcfree (hw_model);
   }
   #endif // _WIN || __CYGWIN__ || __MSYS__
+
+  event_log_info (hashcat_ctx, NULL);
 
   if (backend_ctx->cuda)
   {
