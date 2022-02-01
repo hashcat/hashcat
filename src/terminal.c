@@ -812,26 +812,28 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   event_log_info (hashcat_ctx, "HW.Platform..: N/A");
   event_log_info (hashcat_ctx, "HW.Model.....: N/A");
   #else
+
   struct utsname utsbuf;
 
-  bool   rc_uname  = false;
-  bool   rc_sysctl = false;
+  bool rc_uname  = false;
+  bool rc_sysctl = false;
 
-  char  *hw_model = NULL;
-  size_t hw_model_len = 0;
+  char *hw_model_buf = NULL;
 
   #if !defined (__linux__)
 
+  size_t hw_model_len = 0;
+
   if (sysctlbyname ("hw.model", NULL, &hw_model_len, NULL, 0) == 0 && hw_model_len > 0)
   {
-    hw_model = (char *) hcmalloc (hw_model_len);
+    hw_model_buf = (char *) hcmalloc (hw_model_len);
 
-    if (sysctlbyname ("hw.model", hw_model, &hw_model_len, NULL, 0) != 0)
+    if (sysctlbyname ("hw.model", hw_model_buf, &hw_model_len, NULL, 0) != 0)
     {
-      hw_model = NULL;
+      hw_model_buf = NULL;
       hw_model_len = 0;
 
-      hcfree (hw_model);
+      hcfree (hw_model_buf);
     }
     else
     {
@@ -847,12 +849,12 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
   event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
   event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
-  event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model       : "N/A");
+  event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model_buf   : "N/A");
   event_log_info (hashcat_ctx, "HW.Platform..: %s", (rc_uname  == true) ? utsbuf.machine : "N/A");
 
   if (rc_sysctl == true)
   {
-    hcfree (hw_model);
+    hcfree (hw_model_buf);
   }
   #endif // _WIN || __CYGWIN__ || __MSYS__
 
