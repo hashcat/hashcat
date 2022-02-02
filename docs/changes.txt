@@ -22,12 +22,11 @@
 ## Bugs
 ##
 
-- Fixed bug on benchmark engine, avoid skipping all devices in case of "kernel create error" in one of them
-- Fixed bug on benchmark engine, from now it will not stop at the first error detected
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed false negative on Unit Test with hash-type 25400
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
 - Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
+- Fixed handling of devices in benchmark mode for "kernel build error". Instead of canceling, skip the device and move on to the next
 - Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
 - Fixed method of how OPTS_TYPE_AUX* kernels are called in an association attack, for example in WPA/WPA2 kernel
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
