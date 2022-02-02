@@ -8,8 +8,8 @@
 use strict;
 use warnings;
 
-use MIME::Base64 qw (encode_base64 decode_base64);
-use Digest::SHA qw (sha512);
+use MIME::Base64 qw (encode_base64);
+use Digest::SHA  qw (sha512);
 use Encode;
 
 sub module_constraints { [[0, 64], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }

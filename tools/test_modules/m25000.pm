@@ -8,9 +8,9 @@
 use strict;
 use warnings;
 
-use Digest::MD5 qw (md5 md5_hex);
-use Digest::SHA qw (sha1 sha1_hex);
-use Digest::HMAC qw (hmac hmac_hex);
+use Digest::MD5  qw (md5 md5_hex);
+use Digest::SHA  qw (sha1 sha1_hex);
+use Digest::HMAC qw (hmac_hex);
 
 sub module_constraints { [[8, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]] }
 
@@ -18,13 +18,13 @@ sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
-  my $pkt_num = shift // int(rand(100000000));
-  my $engineID = shift // random_hex_string(26, 34);
-  my $mode = shift // int(rand(1)) + 1;
+  my $pkt_num = shift // int (rand (100000000));
+  my $engineID = shift // random_hex_string (26, 34);
+  my $mode = shift // int (rand (1)) + 1;
 
   # make even if needed
 
-  if (length($salt) %2 == 1)
+  if (length ($salt) % 2 == 1)
   {
     $salt = $salt . "8";
   }
@@ -50,15 +50,15 @@ sub module_generate_hash
 
   if ($mode eq 2)
   {
-    my $digest2 = sha1(pack("H*", $buf));
+    my $digest2 = sha1 (pack ("H*", $buf));
 
-    $digest = hmac_hex (pack("H*", $salt), $digest2, \&sha1);
+    $digest = hmac_hex (pack ("H*", $salt), $digest2, \&sha1);
   }
   elsif ($mode eq 1)
   {
-    my $digest2 = md5(pack("H*", $buf));
+    my $digest2 = md5 (pack ("H*", $buf));
 
-    $digest = hmac_hex (pack("H*", $salt), $digest2, \&md5);
+    $digest = hmac_hex (pack ("H*", $salt), $digest2, \&md5);
   }
 
   $digest = substr ($digest, 0, 24);

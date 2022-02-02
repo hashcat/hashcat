@@ -8,9 +8,9 @@
 use strict;
 use warnings;
 
-use MIME::Base64 qw (encode_base64 decode_base64);
+use MIME::Base64 qw (encode_base64);
+use Digest::SHA  qw (sha512);
 use Crypt::PBKDF2;
-use Digest::SHA qw (sha512);
 use Encode;
 
 sub module_constraints { [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]] }

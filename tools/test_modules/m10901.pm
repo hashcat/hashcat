@@ -7,8 +7,9 @@
 
 use strict;
 use warnings;
+
 use Crypt::PBKDF2;
-use MIME::Base64;
+use MIME::Base64 qw (encode_base64 decode_base64);
 
 sub module_constraints { [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]] }
 

@@ -16,8 +16,8 @@ sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
-  my $pkt_num = shift // int(rand(100000000));
-  my $engineID = shift // random_hex_string(26, 34);
+  my $pkt_num = shift // int (rand (100000000));
+  my $engineID = shift // random_hex_string (26, 34);
 
   # padding engineID: fill with zero
 
@@ -27,7 +27,7 @@ sub module_generate_hash
 
   # make salt even if needed
 
-  if (length($salt) %2 == 1)
+  if (length ($salt) % 2 == 1)
   {
     $salt = $salt . "8";
   }
@@ -40,9 +40,9 @@ sub module_generate_hash
 
   my $buf = join '', $sha512_digest1, $engineID, $sha512_digest1;
 
-  my $sha512_digest2 = sha512(pack("H*", $buf));
+  my $sha512_digest2 = sha512 (pack ("H*", $buf));
 
-  my $digest = hmac_sha512_hex (pack("H*", $salt), $sha512_digest2);
+  my $digest = hmac_sha512_hex (pack ("H*", $salt), $sha512_digest2);
 
   $digest = substr ($digest, 0, 96);
 

@@ -9,7 +9,6 @@ use strict;
 use warnings;
 
 use Digest::MD4 qw (md4_hex);
-use Encode;
 
 sub module_constraints { [[0, 256], [-1, -1], [0, 27], [-1, -1], [-1, -1]] }
 
