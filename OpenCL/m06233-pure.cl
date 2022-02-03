@@ -5,16 +5,19 @@
 
 #define NEW_SIMD_CODE
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 #ifdef KERNEL_STATIC
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
-#include "inc_simd.cl"
-#include "inc_hash_whirlpool.cl"
-#include "inc_cipher_aes.cl"
-#include "inc_cipher_twofish.cl"
-#include "inc_cipher_serpent.cl"
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
+#include STR(INCLUDE_PATH/inc_simd.cl)
+#include STR(INCLUDE_PATH/inc_hash_whirlpool.cl)
+#include STR(INCLUDE_PATH/inc_cipher_aes.cl)
+#include STR(INCLUDE_PATH/inc_cipher_twofish.cl)
+#include STR(INCLUDE_PATH/inc_cipher_serpent.cl)
 #endif
 
 typedef struct tc
@@ -32,9 +35,9 @@ typedef struct tc
 } tc_t;
 
 #ifdef KERNEL_STATIC
-#include "inc_truecrypt_crc32.cl"
-#include "inc_truecrypt_xts.cl"
-#include "inc_truecrypt_keyfile.cl"
+#include STR(INCLUDE_PATH/inc_truecrypt_crc32.cl)
+#include STR(INCLUDE_PATH/inc_truecrypt_xts.cl)
+#include STR(INCLUDE_PATH/inc_truecrypt_keyfile.cl)
 #endif
 
 typedef struct tc_tmp

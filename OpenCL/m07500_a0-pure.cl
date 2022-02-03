@@ -6,16 +6,19 @@
 //shared mem too small
 //#define NEW_SIMD_CODE
 
+#define XSTR(x) #x
+#define STR(x) XSTR(x)
+
 #ifdef KERNEL_STATIC
-#include "inc_vendor.h"
-#include "inc_types.h"
-#include "inc_platform.cl"
-#include "inc_common.cl"
-#include "inc_rp.h"
-#include "inc_rp.cl"
-#include "inc_hash_md4.cl"
-#include "inc_hash_md5.cl"
-#include "inc_cipher_rc4.cl"
+#include STR(INCLUDE_PATH/inc_vendor.h)
+#include STR(INCLUDE_PATH/inc_types.h)
+#include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_common.cl)
+#include STR(INCLUDE_PATH/inc_rp.h)
+#include STR(INCLUDE_PATH/inc_rp.cl)
+#include STR(INCLUDE_PATH/inc_hash_md4.cl)
+#include STR(INCLUDE_PATH/inc_hash_md5.cl)
+#include STR(INCLUDE_PATH/inc_cipher_rc4.cl)
 #endif
 
 typedef struct krb5pa

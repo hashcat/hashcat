@@ -4130,8 +4130,9 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 
 int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
-  backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
 
   if (backend_ctx->enabled == false) return 0;
 
@@ -5436,9 +5437,16 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->device_local_mem_size = device_local_mem_size;
 
-        // older POCL version and older LLVM versions are known to fail compiling kernels
-        // we need to inform the user to update
+        // handling known bugs on POCL
+
+        // POCL < 1.9 doesn't like quotes in the include path, see:
+        // https://github.com/hashcat/hashcat/issues/2950
+        // https://github.com/pocl/pocl/issues/962
+
+        // POCL < 1.5 and older LLVM versions are known to fail compiling kernels
         // https://github.com/hashcat/hashcat/issues/2344
+
+        // we need to inform the user to update
 
         if (opencl_platform_vendor_id == VENDOR_ID_POCL)
         {
@@ -5452,15 +5460,28 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             int pocl_maj = 0;
             int pocl_min = 0;
 
+            int pocl_bug_whitespace_on_path = 0;
+            int pocl_bug_kernel_compiling_failure = 0;
+
             const int res1 = sscanf (pocl_version_ptr, "pocl %d.%d", &pocl_maj, &pocl_min);
 
             if (res1 == 2)
             {
               const int pocl_version = (pocl_maj * 100) + pocl_min;
 
-              if (pocl_version < 105)
+              if (pocl_version < 109)
               {
-                pocl_skip = true;
+                if (strchr (folder_config->cpath_real, ' ') != NULL)
+                {
+                  pocl_skip = true;
+                  pocl_bug_whitespace_on_path = 1;
+                }
+
+                if (pocl_version < 105)
+                {
+                  pocl_skip = true;
+                  pocl_bug_kernel_compiling_failure = 1;
+                }
               }
             }
 
@@ -5485,9 +5506,22 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               {
                 event_log_error (hashcat_ctx, "* Device #%u: Outdated POCL OpenCL driver detected!", device_id + 1);
 
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "This OpenCL driver may fail kernel compilation or produce false negatives.");
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, "You can use --force to override, but do not report related errors.");
-                if (user_options->quiet == false) event_log_warning (hashcat_ctx, NULL);
+                if (user_options->quiet == false)
+                {
+                  if (pocl_bug_kernel_compiling_failure == 1)
+                  {
+                    event_log_warning (hashcat_ctx, "This OpenCL driver may fail kernel compilation or produce false negatives.");
+                  }
+
+                  if (pocl_bug_whitespace_on_path == 1)
+                  {
+                    event_log_warning (hashcat_ctx, "Consider moving hashcat to a path with no spaces if you want to use this POCL version.");
+                  }
+
+                  event_log_warning (hashcat_ctx, "We recommend using a version of POCL >= 1.9");
+                  event_log_warning (hashcat_ctx, "You can use --force to override, but do not report related errors.");
+                  event_log_warning (hashcat_ctx, NULL);
+                }
 
                 device_param->skipped = true;
               }
@@ -6712,7 +6746,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
 
-      char **nvrtc_options = (char **) hccalloc (6 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+      char **nvrtc_options = (char **) hccalloc (5 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
       nvrtc_options[0] = "--restrict";
       nvrtc_options[1] = "--device-as-default-execution-space";
@@ -6720,12 +6754,17 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
-      nvrtc_options[4] = "-I";
-      nvrtc_options[5] = folder_config->cpath_real;
+      // untested on windows, but it should work
+      hc_asprintf (&nvrtc_options[4], "-D INCLUDE_PATH=%s",
+      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+        "OpenCL");
+      #else
+        folder_config->cpath_real);
+      #endif
 
       char *nvrtc_options_string = hcstrdup (build_options_buf);
 
-      const int num_options = 6 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 6);
+      const int num_options = 5 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 5);
 
       const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
 
@@ -6947,7 +6986,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (hc_hiprtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
 
-      char **hiprtc_options = (char **) hccalloc (7 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+      char **hiprtc_options = (char **) hccalloc (6 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
       //hiprtc_options[0] = "--restrict";
       //hiprtc_options[1] = "--device-as-default-execution-space";
@@ -6967,12 +7006,18 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       hiprtc_options[2] = "-nocudalib";
       hiprtc_options[3] = "";
       hiprtc_options[4] = "";
-      hiprtc_options[5] = "-I";
-      hiprtc_options[6] = folder_config->cpath_real;
+
+      // untested but it should work
+      hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s",
+      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+        "OpenCL");
+      #else
+        folder_config->cpath_real);
+      #endif
 
       char *hiprtc_options_string = hcstrdup (build_options_buf);
 
-      const int num_options = 7 + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + 7);
+      const int num_options = 6 + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + 6);
 
       const int rc_hiprtcCompileProgram = hc_hiprtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) hiprtc_options);
 
@@ -8012,23 +8057,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // using a path with a space will break nvrtc_make_options_array_from_string()
       // we add it to options array in a clean way later
 
-      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL ");
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC ");
     }
     else
     {
-      if (device_param->opencl_platform_vendor_id == VENDOR_ID_POCL)
-      {
-        // POCL doesn't like quotes in the include path, see:
-        //   https://github.com/hashcat/hashcat/issues/2950
-        // Maybe related:
-        //   https://github.com/pocl/pocl/issues/962
-
-        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I %s ", folder_config->cpath_real);
-      }
-      else
-      {
-        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -I OpenCL -I \"%s\" ", folder_config->cpath_real);
-      }
+      // tested on windows, linux, apple intel, apple silicon
+      // when is builded with cygwin and msys, cpath_real doesn't work
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=\"%s\" ",
+      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+        "OpenCL");
+      #else
+        folder_config->cpath_real);
+      #endif
 
       #if defined (__APPLE__)
       if (is_apple_silicon() == true)
