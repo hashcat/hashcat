@@ -10,12 +10,12 @@
 #include "inc_cipher_aes.h"
 #include "inc_cipher_aes-gcm.h"
 
-DECLSPEC void AES_GCM_inc32 (u32 *block)
+DECLSPEC void AES_GCM_inc32 (PRIVATE_AS u32 *block)
 {
   block[3] += 1;
 }
 
-DECLSPEC void AES_GCM_xor_block (u32 *dst, const u32 *src)
+DECLSPEC void AES_GCM_xor_block (PRIVATE_AS u32 *dst, PRIVATE_AS const u32 *src)
 {
   dst[0] ^= src[0];
   dst[1] ^= src[1];
@@ -23,7 +23,7 @@ DECLSPEC void AES_GCM_xor_block (u32 *dst, const u32 *src)
   dst[3] ^= src[3];
 }
 
-DECLSPEC void AES_GCM_gf_mult (const u32 *x, const u32 *y, u32 *z)
+DECLSPEC void AES_GCM_gf_mult (PRIVATE_AS const u32 *x, PRIVATE_AS const u32 *y, PRIVATE_AS u32 *z)
 {
   z[0] = 0;
   z[1] = 0;
@@ -63,7 +63,7 @@ DECLSPEC void AES_GCM_gf_mult (const u32 *x, const u32 *y, u32 *z)
   }
 }
 
-DECLSPEC void AES_GCM_ghash (const u32 *subkey, const u32 *in, int in_len, u32 *out)
+DECLSPEC void AES_GCM_ghash (PRIVATE_AS const u32 *subkey, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out)
 {
   int i;
   int j;
@@ -113,7 +113,7 @@ DECLSPEC void AES_GCM_ghash (const u32 *subkey, const u32 *in, int in_len, u32 *
   }
 }
 
-DECLSPEC void AES_GCM_ghash_global (const u32 *subkey, GLOBAL_AS const u32 *in, int in_len, u32 *out)
+DECLSPEC void AES_GCM_ghash_global (PRIVATE_AS const u32 *subkey, GLOBAL_AS const u32 *in, int in_len, PRIVATE_AS u32 *out)
 {
   int i;
   int j;
@@ -163,7 +163,7 @@ DECLSPEC void AES_GCM_ghash_global (const u32 *subkey, GLOBAL_AS const u32 *in, 
   }
 }
 
-DECLSPEC void AES_GCM_Init (const u32 *ukey, int key_len, u32 *key, u32 *subkey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES_GCM_Init (PRIVATE_AS  const u32 *ukey, int key_len, PRIVATE_AS u32 *key, PRIVATE_AS u32 *subkey, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   if (key_len == 128)
   {
@@ -185,7 +185,7 @@ DECLSPEC void AES_GCM_Init (const u32 *ukey, int key_len, u32 *key, u32 *subkey,
   }
 }
 
-DECLSPEC void AES_GCM_Prepare_J0 (const u32 *iv, int iv_len, const u32 *subkey, u32 *J0)
+DECLSPEC void AES_GCM_Prepare_J0 (PRIVATE_AS const u32 *iv, int iv_len, PRIVATE_AS const u32 *subkey, PRIVATE_AS u32 *J0)
 {
   if (iv_len == 12)
   {
@@ -206,11 +206,10 @@ DECLSPEC void AES_GCM_Prepare_J0 (const u32 *iv, int iv_len, const u32 *subkey, 
   }
 }
 
-DECLSPEC void AES_GCM_gctr (const u32 *key, const u32 *iv, const u32 *in, int in_len, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES_GCM_gctr (PRIVATE_AS const u32 *key, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
-  const u32 *xpos = in;
-
-  u32 *ypos = out;
+  PRIVATE_AS const u32 *xpos = (PRIVATE_AS u32 *) in;
+  PRIVATE_AS       u32 *ypos = (PRIVATE_AS u32 *) out;
 
   u32 iv_buf[4];
 
@@ -249,7 +248,7 @@ DECLSPEC void AES_GCM_gctr (const u32 *key, const u32 *iv, const u32 *in, int in
   }
 }
 
-DECLSPEC void AES_GCM_GCTR (u32 *key, u32 *J0, const u32 *in, int in_len, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void AES_GCM_GCTR (PRIVATE_AS u32 *key, PRIVATE_AS u32 *J0, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 J0_incr[4];
 
@@ -261,7 +260,7 @@ DECLSPEC void AES_GCM_GCTR (u32 *key, u32 *J0, const u32 *in, int in_len, u32 *o
   AES_GCM_gctr (key, J0_incr, in, in_len, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-DECLSPEC void AES_GCM_GHASH (const u32 *subkey, const u32 *aad_buf, int aad_len, const u32 *enc_buf, int enc_len, u32 *out)
+DECLSPEC void AES_GCM_GHASH (PRIVATE_AS const u32 *subkey, PRIVATE_AS const u32 *aad_buf, int aad_len, PRIVATE_AS const u32 *enc_buf, int enc_len, PRIVATE_AS u32 *out)
 {
   out[0] = 0;
   out[1] = 0;
@@ -282,7 +281,7 @@ DECLSPEC void AES_GCM_GHASH (const u32 *subkey, const u32 *aad_buf, int aad_len,
   AES_GCM_ghash (subkey, len_buf, 16, out);
 }
 
-DECLSPEC void AES_GCM_GHASH_GLOBAL (const u32 *subkey, const u32 *aad_buf, int aad_len, GLOBAL_AS const u32 *enc_buf, int enc_len, u32 *out)
+DECLSPEC void AES_GCM_GHASH_GLOBAL (PRIVATE_AS const u32 *subkey, PRIVATE_AS const u32 *aad_buf, int aad_len, GLOBAL_AS const u32 *enc_buf, int enc_len, PRIVATE_AS u32 *out)
 {
   out[0] = 0;
   out[1] = 0;

@@ -317,9 +317,9 @@ KERNEL_FQ void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
       tmp[2] = digest[2] ^ xv;
       tmp[3] = digest[3] ^ xv;
 
-      rc4_init_128 (S, tmp);
+      rc4_init_128 (S, tmp, lid);
 
-      rc4_next_16 (S, 0, 0, out, out);
+      rc4_next_16 (S, 0, 0, out, out, lid);
     }
   }
 

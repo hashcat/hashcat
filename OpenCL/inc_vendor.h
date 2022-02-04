@@ -12,8 +12,16 @@
 #define IS_CUDA
 #elif defined __HIPCC__
 #define IS_HIP
+#elif defined __METAL_MACOS__
+#define IS_METAL
 #else
 #define IS_OPENCL
+#endif
+
+#if defined IS_METAL
+#include <metal_stdlib>
+
+using namespace metal;
 #endif
 
 #if defined IS_NATIVE
@@ -22,6 +30,7 @@
 #define GLOBAL_AS
 #define LOCAL_VK
 #define LOCAL_AS
+#define PRIVATE_AS
 #define KERNEL_FQ
 #elif defined IS_CUDA
 #define CONSTANT_VK __constant__
@@ -29,6 +38,7 @@
 #define GLOBAL_AS
 #define LOCAL_VK    __shared__
 #define LOCAL_AS
+#define PRIVATE_AS
 #define KERNEL_FQ   extern "C" __global__
 #elif defined IS_HIP
 #define CONSTANT_VK __constant__
@@ -36,13 +46,23 @@
 #define GLOBAL_AS
 #define LOCAL_VK    __shared__
 #define LOCAL_AS
+#define PRIVATE_AS
 #define KERNEL_FQ   extern "C" __global__
+#elif defined IS_METAL
+#define CONSTANT_VK constant
+#define CONSTANT_AS constant
+#define GLOBAL_AS   device
+#define LOCAL_VK    threadgroup
+#define LOCAL_AS    threadgroup
+#define PRIVATE_AS  thread
+#define KERNEL_FQ   kernel
 #elif defined IS_OPENCL
 #define CONSTANT_VK __constant
 #define CONSTANT_AS __constant
 #define GLOBAL_AS   __global
 #define LOCAL_VK    __local
 #define LOCAL_AS    __local
+#define PRIVATE_AS
 #define KERNEL_FQ   __kernel
 #endif
 

@@ -17,7 +17,7 @@
 #include STR(INCLUDE_PATH/inc_hash_md5.cl)
 #endif
 
-DECLSPEC void cram_md5_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
+DECLSPEC void cram_md5_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest)
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -117,7 +117,7 @@ DECLSPEC void cram_md5_transform (const u32 *w0, const u32 *w1, const u32 *w2, c
   digest[3] += d;
 }
 
-DECLSPEC void cram_md5_update_64 (md5_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
+DECLSPEC void cram_md5_update_64 (PRIVATE_AS md5_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
 {
   if (len == 0) return;
 
@@ -145,7 +145,7 @@ DECLSPEC void cram_md5_update_64 (md5_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32
   ctx->w3[3] |= w3[3];
 }
 
-DECLSPEC void cram_md5_update_global (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void cram_md5_update_global (PRIVATE_AS md5_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -172,7 +172,7 @@ DECLSPEC void cram_md5_update_global (md5_ctx_t *ctx, GLOBAL_AS const u32 *w, co
   cram_md5_update_64 (ctx, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void cram_md5_final (md5_ctx_t *ctx)
+DECLSPEC void cram_md5_final (PRIVATE_AS md5_ctx_t *ctx)
 {
   cram_md5_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }

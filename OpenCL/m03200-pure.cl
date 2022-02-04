@@ -408,10 +408,10 @@ DECLSPEC inline void SET_KEY32 (LOCAL_AS u32 *S, const u64 key, const u32 val)
 extern __shared__ u32 S[];
 #endif
 
-DECLSPEC void expand_key (u32 *E, u32 *W, const int len)
+DECLSPEC void expand_key (PRIVATE_AS u32 *E, PRIVATE_AS u32 *W, const int len)
 {
-  u8 *E_ptr = (u8 *) E;
-  u8 *W_ptr = (u8 *) W;
+  PRIVATE_AS u8 *E_ptr = (PRIVATE_AS u8 *) E;
+  PRIVATE_AS u8 *W_ptr = (PRIVATE_AS u8 *) W;
 
   for (int pos = 0; pos < 72; pos++) // pos++ is not a bug, we actually want that zero byte here
   {

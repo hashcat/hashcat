@@ -42,7 +42,7 @@ typedef struct chacha20
     x[b] = hc_rotl32 (x[b] ^ x[c], 7);  \
   } while (0);
 
-DECLSPEC void chacha20_transform (const u32x *w0, const u32x *w1, const u32 *position, const u32 offset, const u32 *iv, const u32 *plain, u32x *digest)
+DECLSPEC void chacha20_transform (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32 *position, const u32 offset, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *plain, PRIVATE_AS u32x *digest)
 {
   /**
    * Key expansion

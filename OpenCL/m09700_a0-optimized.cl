@@ -30,7 +30,7 @@ typedef struct oldoffice01
 
 } oldoffice01_t;
 
-DECLSPEC void gen336 (u32 *digest_pre, u32 *salt_buf, u32 *digest)
+DECLSPEC void gen336 (PRIVATE_AS u32 *digest_pre, PRIVATE_AS u32 *salt_buf, PRIVATE_AS u32 *digest)
 {
   u32 digest_t0[2];
   u32 digest_t1[2];
@@ -515,11 +515,11 @@ KERNEL_FQ void m09700_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
     key[2] = digest[2];
     key[3] = digest[3];
 
-    rc4_init_128 (S, key);
+    rc4_init_128 (S, key, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     w0[0] = out[0];
     w0[1] = out[1];
@@ -545,7 +545,7 @@ KERNEL_FQ void m09700_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 
     md5_transform (w0, w1, w2, w3, digest);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
@@ -712,11 +712,11 @@ KERNEL_FQ void m09700_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
     key[2] = digest[2];
     key[3] = digest[3];
 
-    rc4_init_128 (S, key);
+    rc4_init_128 (S, key, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     w0[0] = out[0];
     w0[1] = out[1];
@@ -742,7 +742,7 @@ KERNEL_FQ void m09700_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 
     md5_transform (w0, w1, w2, w3, digest);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }

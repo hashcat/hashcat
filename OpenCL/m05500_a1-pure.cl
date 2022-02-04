@@ -357,7 +357,7 @@ CONSTANT_VK u32a c_skb[8][64] =
 #define BOX(i,n,S) make_u32x ((S)[(n)][(i).s0], (S)[(n)][(i).s1], (S)[(n)][(i).s2], (S)[(n)][(i).s3], (S)[(n)][(i).s4], (S)[(n)][(i).s5], (S)[(n)][(i).s6], (S)[(n)][(i).s7], (S)[(n)][(i).s8], (S)[(n)][(i).s9], (S)[(n)][(i).sa], (S)[(n)][(i).sb], (S)[(n)][(i).sc], (S)[(n)][(i).sd], (S)[(n)][(i).se], (S)[(n)][(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (PRIVATE_AS u32 *iv, PRIVATE_AS u32 *data, PRIVATE_AS u32 *Kc, PRIVATE_AS u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
   u32 r = data[0];
   u32 l = data[1];
@@ -399,7 +399,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 *data, u32 *Kc, u32 *Kd, SHM_TYPE
   iv[1] = r;
 }
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, PRIVATE_AS u32 *Kc, PRIVATE_AS u32 *Kd, SHM_TYPE u32 (*s_skb)[64])
 {
   u32 tt;
 
@@ -468,7 +468,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 
   }
 }
 
-DECLSPEC void transform_netntlmv1_key (const u32 w0, const u32 w1, u32 *out)
+DECLSPEC void transform_netntlmv1_key (const u32 w0, const u32 w1, PRIVATE_AS u32 *out)
 {
   u32 t[8];
 

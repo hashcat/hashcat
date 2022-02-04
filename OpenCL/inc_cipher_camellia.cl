@@ -64,7 +64,7 @@ CONSTANT_VK u32a c_sbox[256] =
 
 #define cam_rotate(a,b,n) hc_swap32_S ((u[(a)] << (n)) ^ (u[(b)] >> (32 - (n))))
 
-DECLSPEC void cam_feistel (const u32 *x, const u32 *k, u32 *y)
+DECLSPEC void cam_feistel (PRIVATE_AS const u32 *x, PRIVATE_AS const u32 *k, PRIVATE_AS u32 *y)
 {
   const u32 xk0 = x[0] ^ k[0];
   const u32 xk1 = x[1] ^ k[1];
@@ -131,7 +131,7 @@ DECLSPEC void cam_feistel (const u32 *x, const u32 *k, u32 *y)
   y[1] ^= t1;
 }
 
-DECLSPEC void cam_fl (u32 *x, const u32 *kl, const u32 *kr)
+DECLSPEC void cam_fl (PRIVATE_AS u32 *x, PRIVATE_AS const u32 *kl, PRIVATE_AS const u32 *kr)
 {
   u32 t[4];
   u32 u[4];
@@ -167,7 +167,7 @@ DECLSPEC void cam_fl (u32 *x, const u32 *kl, const u32 *kr)
   x[3] = hc_swap32_S (t[3]);
 }
 
-DECLSPEC void camellia256_set_key (u32 *ks, const u32 *ukey)
+DECLSPEC void camellia256_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey)
 {
   const u32 sigma[12] =
   {
@@ -302,7 +302,7 @@ DECLSPEC void camellia256_set_key (u32 *ks, const u32 *ukey)
   ks[67] = cam_rotate (14, 15, 15);
 }
 
-DECLSPEC void camellia256_encrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void camellia256_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   out[0] = in[0] ^ ks[0];
   out[1] = in[1] ^ ks[1];
@@ -354,7 +354,7 @@ DECLSPEC void camellia256_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = tmp[1] ^ ks[67];
 }
 
-DECLSPEC void camellia256_decrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void camellia256_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   out[0] = in[0] ^ ks[64];
   out[1] = in[1] ^ ks[65];

@@ -58,7 +58,7 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
   return out.v64;
 }
 
-#endif
+#endif // IS_AMD
 
 #if defined IS_CUDA
 
@@ -81,9 +81,9 @@ CONSTANT_VK u32 generic_constant[8192]; // 32k
 #define bfs_buf     ((const bf_t *)      generic_constant)
 #define words_buf_s ((const bs_word_t *) generic_constant)
 #define words_buf_r ((const u32x *)      generic_constant)
-#endif
+#endif // ATTACK_KERN
 
-#endif
+#endif // ATTACK_EXEC
 
 DECLSPEC u32 hc_atomic_dec (GLOBAL_AS u32 *p)
 {
@@ -162,7 +162,7 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 
 #define FIXED_THREAD_COUNT(n) __launch_bounds__((n), 0)
 #define SYNC_THREADS() __syncthreads ()
-#endif
+#endif // IS_CUDA
 
 #if defined IS_HIP
 
@@ -185,9 +185,9 @@ CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
 #define bfs_buf     ((const bf_t *)      generic_constant)
 #define words_buf_s ((const bs_word_t *) generic_constant)
 #define words_buf_r ((const u32x *)      generic_constant)
-#endif
+#endif // ATTACK_KERN
 
-#endif
+#endif // ATTACK_EXEC
 
 DECLSPEC u32 hc_atomic_dec (GLOBAL_AS u32 *p)
 {
@@ -299,7 +299,76 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 
 #define FIXED_THREAD_COUNT(n) __launch_bounds__((n), 0)
 #define SYNC_THREADS() __syncthreads ()
-#endif
+#endif // IS_HIP
+
+#ifdef IS_METAL
+
+DECLSPEC u32 hc_atomic_dec (volatile GLOBAL_AS u32 *p)
+{
+  volatile const u32 val = 1;
+  volatile GLOBAL_AS atomic_int *pd = (volatile GLOBAL_AS atomic_int *) p;
+
+  return atomic_fetch_sub_explicit (pd, val, memory_order_relaxed);
+}
+
+DECLSPEC u32 hc_atomic_inc (volatile GLOBAL_AS u32 *p)
+{
+  volatile const u32 val = 1;
+  volatile GLOBAL_AS atomic_int *pd = (volatile GLOBAL_AS atomic_int *) p;
+
+  return atomic_fetch_add_explicit (pd, val, memory_order_relaxed);
+}
+
+DECLSPEC u32 hc_atomic_or (volatile GLOBAL_AS u32 *p, volatile const u32 val)
+{
+  volatile GLOBAL_AS atomic_int *pd = (volatile GLOBAL_AS atomic_int *) p;
+
+  return atomic_fetch_or_explicit (pd, val, memory_order_relaxed);
+}
+
+DECLSPEC u32x rotl32 (const u32x a, const int n)
+{
+  return ((a << n) | ((a >> (32 - n))));
+}
+
+DECLSPEC u32x rotr32 (const u32x a, const int n)
+{
+  return ((a >> n) | ((a << (32 - n))));
+}
+
+DECLSPEC u32 rotl32_S (const u32 a, const int n)
+{
+  return ((a << n) | ((a >> (32 - n))));
+}
+
+DECLSPEC u32 rotr32_S (const u32 a, const int n)
+{
+  return ((a >> n) | ((a << (32 - n))));
+}
+
+DECLSPEC u64x rotl64 (const u64x a, const int n)
+{
+  return ((a << n) | ((a >> (64 - n))));
+}
+
+DECLSPEC u64x rotr64 (const u64x a, const int n)
+{
+  return ((a >> n) | ((a << (64 - n))));
+}
+
+DECLSPEC u64 rotl64_S (const u64 a, const int n)
+{
+  return ((a << n) | ((a >> (64 - n))));
+}
+
+DECLSPEC u64 rotr64_S (const u64 a, const int n)
+{
+  return ((a >> n) | ((a << (64 - n))));
+}
+
+#define FIXED_THREAD_COUNT(n)
+#define SYNC_THREADS() threadgroup_barrier (mem_flags::mem_threadgroup)
+#endif // IS_METAL
 
 #ifdef IS_OPENCL
 
@@ -324,4 +393,4 @@ DECLSPEC u32 hc_atomic_or (volatile GLOBAL_AS u32 *p, volatile const u32 val)
 
 #define FIXED_THREAD_COUNT(n) __attribute__((reqd_work_group_size((n), 1, 1)))
 #define SYNC_THREADS() barrier (CLK_LOCAL_MEM_FENCE)
-#endif
+#endif // IS_OPENCL

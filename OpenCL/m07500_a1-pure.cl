@@ -29,19 +29,19 @@ typedef struct krb5pa
 
 } krb5pa_t;
 
-DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, u32 *timestamp_ct)
+DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, PRIVATE_AS u32 *timestamp_ct, const u64 lid)
 {
-  rc4_init_128 (S, data);
+  rc4_init_128 (S, data, lid);
 
   u32 out[4];
 
   u8 j = 0;
 
-  j = rc4_next_16 (S,  0, j, timestamp_ct + 0, out);
+  j = rc4_next_16 (S,  0, j, timestamp_ct + 0, out, lid);
 
   if ((out[3] & 0xffff0000) != 0x30320000) return 0;
 
-  j = rc4_next_16 (S, 16, j, timestamp_ct + 4, out);
+  j = rc4_next_16 (S, 16, j, timestamp_ct + 4, out, lid);
 
   if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
   if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
@@ -59,7 +59,7 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, u32 *timestamp_ct)
   return 1;
 }
 
-DECLSPEC void kerb_prepare (const u32 *K, const u32 *checksum, u32 *digest)
+DECLSPEC void kerb_prepare (PRIVATE_AS const u32 *K, PRIVATE_AS const u32 *checksum, PRIVATE_AS u32 *digest)
 {
   // K1=MD5_HMAC(K,1); with 1 encoded as little indian on 4 bytes (01000000 in hexa);
 
@@ -215,7 +215,7 @@ KERNEL_FQ void m07500_mxx (KERN_ATTR_ESALT (krb5pa_t))
 
     kerb_prepare (ctx.h, checksum, digest);
 
-    if (decrypt_and_check (S, digest, timestamp_ct) == 1)
+    if (decrypt_and_check (S, digest, timestamp_ct, lid) == 1)
     {
       if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
@@ -282,7 +282,7 @@ KERNEL_FQ void m07500_sxx (KERN_ATTR_ESALT (krb5pa_t))
 
     kerb_prepare (ctx.h, checksum, digest);
 
-    if (decrypt_and_check (S, digest, timestamp_ct) == 1)
+    if (decrypt_and_check (S, digest, timestamp_ct, lid) == 1)
     {
       if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {

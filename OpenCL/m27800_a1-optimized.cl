@@ -22,7 +22,7 @@ DECLSPEC u32 Murmur32_Scramble(u32 k)
   return (k * 0x1B873593);
 }
 
-DECLSPEC u32 MurmurHash3(const u32 seed, const u32* data, const u32 size)
+DECLSPEC u32 MurmurHash3(const u32 seed, PRIVATE_AS const u32 *data, const u32 size)
 {
   u32 checksum = seed;
 

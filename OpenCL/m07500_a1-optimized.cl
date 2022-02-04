@@ -30,19 +30,19 @@ typedef struct krb5pa
 
 } krb5pa_t;
 
-DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, u32 *timestamp_ct)
+DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, PRIVATE_AS u32 *timestamp_ct, const u64 lid)
 {
-  rc4_init_128 (S, data);
+  rc4_init_128 (S, data, lid);
 
   u32 out[4];
 
   u8 j = 0;
 
-  j = rc4_next_16 (S,  0, j, timestamp_ct + 0, out);
+  j = rc4_next_16 (S,  0, j, timestamp_ct + 0, out, lid);
 
   if ((out[3] & 0xffff0000) != 0x30320000) return 0;
 
-  j = rc4_next_16 (S, 16, j, timestamp_ct + 4, out);
+  j = rc4_next_16 (S, 16, j, timestamp_ct + 4, out, lid);
 
   if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
   if (((out[0] & 0xff) < '0') || ((out[0] & 0xff) > '9')) return 0; out[0] >>= 8;
@@ -60,7 +60,7 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, u32 *timestamp_ct)
   return 1;
 }
 
-DECLSPEC void hmac_md5_pad (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad)
+DECLSPEC void hmac_md5_pad (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *ipad, PRIVATE_AS u32 *opad)
 {
   w0[0] = w0[0] ^ 0x36363636;
   w0[1] = w0[1] ^ 0x36363636;
@@ -111,7 +111,7 @@ DECLSPEC void hmac_md5_pad (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *
   md5_transform (w0, w1, w2, w3, opad);
 }
 
-DECLSPEC void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *opad, u32 *digest)
+DECLSPEC void hmac_md5_run (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *ipad, PRIVATE_AS u32 *opad, PRIVATE_AS u32 *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -145,7 +145,7 @@ DECLSPEC void hmac_md5_run (u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *ipad, u32 *
   md5_transform (w0, w1, w2, w3, digest);
 }
 
-DECLSPEC void kerb_prepare (const u32 *w0, const u32 *w1, const u32 pw_len, const u32 *checksum, u32 *digest)
+DECLSPEC void kerb_prepare (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, const u32 pw_len, PRIVATE_AS const u32 *checksum, PRIVATE_AS u32 *digest)
 {
   /**
    * pads
@@ -410,7 +410,7 @@ KERNEL_FQ void m07500_m04 (KERN_ATTR_ESALT (krb5pa_t))
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (S, tmp, timestamp_ct) == 1)
+    if (decrypt_and_check (S, tmp, timestamp_ct, lid) == 1)
     {
       if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
@@ -564,7 +564,7 @@ KERNEL_FQ void m07500_s04 (KERN_ATTR_ESALT (krb5pa_t))
     tmp[2] = digest[2];
     tmp[3] = digest[3];
 
-    if (decrypt_and_check (S, tmp, timestamp_ct) == 1)
+    if (decrypt_and_check (S, tmp, timestamp_ct, lid) == 1)
     {
       if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {

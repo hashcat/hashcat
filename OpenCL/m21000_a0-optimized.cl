@@ -19,7 +19,7 @@
 #include STR(INCLUDE_PATH/inc_hash_sha512.cl)
 #endif
 
-DECLSPEC void sha512_transform_opt (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
+DECLSPEC void sha512_transform_opt (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u64x *digest)
 {
   u32x wend = 0x80000000;
   u32x wlen = 64*8;

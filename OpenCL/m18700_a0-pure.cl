@@ -19,7 +19,7 @@
 #include STR(INCLUDE_PATH/inc_hash_md5.cl)
 #endif
 
-DECLSPEC u32 hashCode (const u32 init, const u32 *w, const u32 pw_len)
+DECLSPEC u32 hashCode (const u32 init, PRIVATE_AS const u32 *w, const u32 pw_len)
 {
   u32 hash = init;
 

@@ -82,7 +82,7 @@ typedef struct
 
 } ctx_t;
 
-DECLSPEC void orig_sha256_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
+DECLSPEC void orig_sha256_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest)
 {
   u32 t0[4];
   u32 t1[4];
@@ -109,7 +109,7 @@ DECLSPEC void orig_sha256_transform (const u32 *w0, const u32 *w1, const u32 *w2
   sha256_transform (t0, t1, t2, t3, digest);
 }
 
-DECLSPEC void orig_sha384_transform (const u64 *w0, const u64 *w1, const u64 *w2, const u64 *w3, u64 *digest)
+DECLSPEC void orig_sha384_transform (PRIVATE_AS const u64 *w0, PRIVATE_AS const u64 *w1, PRIVATE_AS const u64 *w2, PRIVATE_AS const u64 *w3, PRIVATE_AS u64 *digest)
 {
   u32 t0[4];
   u32 t1[4];
@@ -156,7 +156,7 @@ DECLSPEC void orig_sha384_transform (const u64 *w0, const u64 *w1, const u64 *w2
   sha384_transform (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
 
-DECLSPEC void orig_sha512_transform (const u64 *w0, const u64 *w1, const u64 *w2, const u64 *w3, u64 *digest)
+DECLSPEC void orig_sha512_transform (PRIVATE_AS const u64 *w0, PRIVATE_AS const u64 *w1, PRIVATE_AS const u64 *w2, PRIVATE_AS const u64 *w3, PRIVATE_AS u64 *digest)
 {
   u32 t0[4];
   u32 t1[4];
@@ -222,7 +222,7 @@ DECLSPEC void orig_sha512_transform (const u64 *w0, const u64 *w1, const u64 *w2
 #define WORDMAXSZ4  (WORDMAXSZ  / 4)
 #define AESSZ4      (AESSZ      / 4)
 
-DECLSPEC void make_sc (LOCAL_AS u32 *sc, const u32 *pw, const u32 pw_len, const u32 *bl, const u32 bl_len)
+DECLSPEC void make_sc (LOCAL_AS u32 *sc, PRIVATE_AS const u32 *pw, const u32 pw_len, PRIVATE_AS const u32 *bl, const u32 bl_len)
 {
   const u32 bd = bl_len / 4;
 
@@ -274,7 +274,7 @@ DECLSPEC void make_sc (LOCAL_AS u32 *sc, const u32 *pw, const u32 pw_len, const 
   }
 }
 
-DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, LOCAL_AS const u32 *sc, const u32 pwbl_len)
+DECLSPEC void make_pt_with_offset (PRIVATE_AS u32 *pt, const u32 offset, LOCAL_AS const u32 *sc, const u32 pwbl_len)
 {
   const u32 m = offset % pwbl_len;
 
@@ -304,7 +304,7 @@ DECLSPEC void make_pt_with_offset (u32 *pt, const u32 offset, LOCAL_AS const u32
   #endif
 }
 
-DECLSPEC void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset, LOCAL_AS const u32 *sc, const u32 pwbl_len, u32 *iv, const u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void make_w_with_offset (PRIVATE_AS ctx_t *ctx, const u32 W_len, const u32 offset, LOCAL_AS const u32 *sc, const u32 pwbl_len, PRIVATE_AS u32 *iv, PRIVATE_AS const u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   for (u32 k = 0, wk = 0; k < W_len; k += AESSZ, wk += AESSZ4)
   {
@@ -326,7 +326,7 @@ DECLSPEC void make_w_with_offset (ctx_t *ctx, const u32 W_len, const u32 offset,
   }
 }
 
-DECLSPEC HC_INLINE u32 do_round (LOCAL_AS u32 *sc, const u32 *pw, const u32 pw_len, ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC HC_INLINE u32 do_round (LOCAL_AS u32 *sc, PRIVATE_AS const u32 *pw, const u32 pw_len, PRIVATE_AS ctx_t *ctx, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   // make scratch buffer
 

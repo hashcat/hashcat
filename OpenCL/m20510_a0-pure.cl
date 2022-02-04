@@ -336,7 +336,7 @@ CONSTANT_VK int lsbk0_count1[256] =
   249, 250, 252, 253, 253, 254, 255, 256
 };
 
-DECLSPEC int derivelast6bytes (const u32x k0, const u32x k1, const u32x k2, u32 *password, LOCAL_AS u32 *l_crc32tab, LOCAL_AS u32 *l_icrc32tab, LOCAL_AS u32 *l_lsbk0, LOCAL_AS int *l_lsbk0_count0, LOCAL_AS int *l_lsbk0_count1)
+DECLSPEC int derivelast6bytes (const u32x k0, const u32x k1, const u32x k2, PRIVATE_AS u32 *password, LOCAL_AS u32 *l_crc32tab, LOCAL_AS u32 *l_icrc32tab, LOCAL_AS u32 *l_lsbk0, LOCAL_AS int *l_lsbk0_count0, LOCAL_AS int *l_lsbk0_count1)
 {
   // step 1
   const u32 k2_1 = INVCRC32 (k2,   (k1   >> 24), l_icrc32tab);

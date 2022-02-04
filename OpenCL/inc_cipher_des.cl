@@ -313,7 +313,7 @@ CONSTANT_VK u32a c_skb[8][64] =
   }
 };
 
-DECLSPEC void _des_crypt_encrypt (u32 *out, const u32 *in, const u32 *Kc, const u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (PRIVATE_AS u32 *out, PRIVATE_AS const u32 *in, PRIVATE_AS const u32 *Kc, PRIVATE_AS const u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
   u32 r = in[0];
   u32 l = in[1];
@@ -365,7 +365,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *out, const u32 *in, const u32 *Kc, const 
   out[1] = r;
 }
 
-DECLSPEC void _des_crypt_decrypt (u32 *out, const u32 *in, const u32 *Kc, const u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_decrypt (PRIVATE_AS u32 *out, PRIVATE_AS const u32 *in, PRIVATE_AS const u32 *Kc, PRIVATE_AS const u32 *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
   u32 r = in[0];
   u32 l = in[1];
@@ -417,7 +417,7 @@ DECLSPEC void _des_crypt_decrypt (u32 *out, const u32 *in, const u32 *Kc, const 
   out[1] = r;
 }
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, PRIVATE_AS u32 *Kc, PRIVATE_AS u32 *Kd, SHM_TYPE u32 (*s_skb)[64])
 {
   PERM_OP_S  (d, c, 4, 0x0f0f0f0f);
   HPERM_OP_S (c,    2, 0xcccc0000);
@@ -487,7 +487,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, SHM_TYPE u32 
   }
 }
 
-DECLSPEC void _des_crypt_encrypt_vect (u32x *out, const u32x *in, const u32x *Kc, const u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt_vect (PRIVATE_AS u32x *out, PRIVATE_AS const u32x *in, PRIVATE_AS const u32x *Kc, PRIVATE_AS const u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
   u32x r = in[0];
   u32x l = in[1];
@@ -539,7 +539,7 @@ DECLSPEC void _des_crypt_encrypt_vect (u32x *out, const u32x *in, const u32x *Kc
   out[1] = r;
 }
 
-DECLSPEC void _des_crypt_decrypt_vect (u32x *out, const u32x *in, const u32x *Kc, const u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_decrypt_vect (PRIVATE_AS u32x *out, PRIVATE_AS const u32x *in, PRIVATE_AS const u32x *Kc, PRIVATE_AS const u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64])
 {
   u32x r = in[0];
   u32x l = in[1];
@@ -591,7 +591,7 @@ DECLSPEC void _des_crypt_decrypt_vect (u32x *out, const u32x *in, const u32x *Kc
   out[1] = r;
 }
 
-DECLSPEC void _des_crypt_keysetup_vect (u32x c, u32x d, u32x *Kc, u32x *Kd, SHM_TYPE u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup_vect (u32x c, u32x d, PRIVATE_AS u32x *Kc, PRIVATE_AS u32x *Kd, SHM_TYPE u32 (*s_skb)[64])
 {
   PERM_OP  (d, c, 4, 0x0f0f0f0f);
   HPERM_OP (c,    2, 0xcccc0000);

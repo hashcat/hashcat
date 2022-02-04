@@ -34,7 +34,7 @@ DECLSPEC u32 u8add (const u32 a, const u32 b)
   return r;
 }
 
-DECLSPEC u32 hc_apply_keyfile_tc (u32 *w, const int pw_len, const GLOBAL_AS tc_t *tc)
+DECLSPEC u32 hc_apply_keyfile_tc (PRIVATE_AS u32 *w, const int pw_len, const GLOBAL_AS tc_t *tc)
 {
   if (tc->keyfile_enabled == 0) return pw_len;
 

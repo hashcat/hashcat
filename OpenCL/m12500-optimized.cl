@@ -20,11 +20,11 @@
 
 #define ROUNDS 0x40000
 
-#define PUTCHAR(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
-#define GETCHAR(a,p)   ((u8 *)(a))[(p)]
+#define PUTCHAR(a,p,c) ((PRIVATE_AS u8 *)(a))[(p)] = (u8) (c)
+#define GETCHAR(a,p)   ((PRIVATE_AS u8 *)(a))[(p)]
 
-#define PUTCHAR_BE(a,p,c) ((u8 *)(a))[(p) ^ 3] = (u8) (c)
-#define GETCHAR_BE(a,p)   ((u8 *)(a))[(p) ^ 3]
+#define PUTCHAR_BE(a,p,c) ((PRIVATE_AS u8 *)(a))[(p) ^ 3] = (u8) (c)
+#define GETCHAR_BE(a,p)   ((PRIVATE_AS u8 *)(a))[(p) ^ 3]
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 

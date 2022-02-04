@@ -45,7 +45,7 @@ typedef struct bitlocker_tmp
 #define SHM_TYPE2 GLOBAL_AS const
 #endif
 
-DECLSPEC void sha256_transform_vector_pc (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE2 u32 *s_wb_ke_pc)
+DECLSPEC void sha256_transform_vector_pc (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u32x *digest, SHM_TYPE2 u32 *s_wb_ke_pc)
 {
   u32x a = digest[0];
   u32x b = digest[1];

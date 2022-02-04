@@ -85,13 +85,13 @@ KERNEL_FQ void m25000_init (KERN_ATTR_TMPS_ESALT (hmac_md5_tmp_t, snmpv3_t))
     w[idx] = pws[gid].i[idx];
   }
 
-  u8 *src_ptr = (u8 *) w;
+  PRIVATE_AS u8 *src_ptr = (PRIVATE_AS u8 *) w;
 
   // password 64 times, also swapped
 
   u32 dst_buf[16];
 
-  u8 *dst_ptr = (u8 *) dst_buf;
+  PRIVATE_AS u8 *dst_ptr = (PRIVATE_AS u8 *) dst_buf;
 
   int tmp_idx = 0;
 

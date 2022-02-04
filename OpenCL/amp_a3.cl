@@ -10,9 +10,10 @@
 #include STR(INCLUDE_PATH/inc_vendor.h)
 #include STR(INCLUDE_PATH/inc_types.h)
 #include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_amp.h)
 #endif
 
-KERNEL_FQ void amp (GLOBAL_AS pw_t *pws, GLOBAL_AS pw_t *pws_amp, GLOBAL_AS const kernel_rule_t *rules_buf, GLOBAL_AS const pw_t *combs_buf, CONSTANT_AS bf_t *bfs_buf, const u32 combs_mode, const u64 gid_max)
+KERNEL_FQ void amp (KERN_ATTR_AMP)
 {
   const u64 gid = get_global_id (0);
 

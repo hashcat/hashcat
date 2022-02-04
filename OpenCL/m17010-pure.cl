@@ -70,7 +70,7 @@ DECLSPEC u32 hc_bytealign_le_S (const u32 a, const u32 b, const int c)
   return r;
 }
 
-DECLSPEC void memcat_le_S (u32 *block, const u32 offset, const u32 *append, u32 len)
+DECLSPEC void memcat_le_S (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const u32 *append, u32 len)
 {
   const u32 start_index = (offset - 1) >> 2;
   const u32 count = ((offset + len + 3) >> 2) - start_index;
@@ -85,7 +85,7 @@ DECLSPEC void memcat_le_S (u32 *block, const u32 offset, const u32 *append, u32 
   }
 }
 
-DECLSPEC void memzero_le_S (u32 *block, const u32 start_offset, const u32 end_offset)
+DECLSPEC void memzero_le_S (PRIVATE_AS u32 *block, const u32 start_offset, const u32 end_offset)
 {
   const u32 start_idx = start_offset / 4;
 
@@ -102,7 +102,7 @@ DECLSPEC void memzero_le_S (u32 *block, const u32 start_offset, const u32 end_of
   }
 }
 
-DECLSPEC void memzero_be_S (u32 *block, const u32 start_offset, const u32 end_offset)
+DECLSPEC void memzero_be_S (PRIVATE_AS u32 *block, const u32 start_offset, const u32 end_offset)
 {
   const u32 start_idx = start_offset / 4;
 
@@ -119,7 +119,7 @@ DECLSPEC void memzero_be_S (u32 *block, const u32 start_offset, const u32 end_of
   }
 }
 
-DECLSPEC void aes128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, const u32 *iv, const u32 *key, u32 *decrypted_data,
+DECLSPEC void aes128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data,
                                   SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ks[44];
@@ -151,7 +151,7 @@ DECLSPEC void aes128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_
   }
 }
 
-DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, const u32 *iv, const u32 *key, u32 *decrypted_data,
+DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data,
                                   SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ks[60];
@@ -183,7 +183,7 @@ DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_
   }
 }
 
-DECLSPEC int check_decoded_data (u32 *decoded_data, const u32 decoded_data_size)
+DECLSPEC int check_decoded_data (PRIVATE_AS u32 *decoded_data, const u32 decoded_data_size)
 {
   // Check the SHA-1 of the decrypted data which is stored at the end of the decrypted data
   const u32 sha1_byte_off = (decoded_data_size - 20);

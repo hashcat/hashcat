@@ -17,7 +17,7 @@
 #include STR(INCLUDE_PATH/inc_hash_sha512.cl)
 #endif
 
-DECLSPEC void sha512_transform_full (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
+DECLSPEC void sha512_transform_full (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u64x *digest)
 {
   u64x w0_t = hl32_to_64 (w0[0], w0[1]);
   u64x w1_t = hl32_to_64 (w0[2], w0[3]);
@@ -112,7 +112,7 @@ DECLSPEC void sha512_transform_full (const u32x *w0, const u32x *w1, const u32x 
   digest[7] += h;
 }
 
-DECLSPEC void sha512_transform_opt (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u64x *digest)
+DECLSPEC void sha512_transform_opt (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u64x *digest)
 {
   u32x wend = 0x80000000;
   u32x wlen = 64*8;

@@ -49,7 +49,7 @@ DECLSPEC u32 u64_to_u32 (const u64 in)
   return out;
 }
 
-DECLSPEC int replace_u32_le (const u32 input, u32 *output, int cur_len)
+DECLSPEC int replace_u32_le (const u32 input, PRIVATE_AS u32 *output, int cur_len)
 {
   // expand to keep 9th bit consistent
 
@@ -90,7 +90,7 @@ DECLSPEC int replace_u32_le (const u32 input, u32 *output, int cur_len)
   return cur_len;
 }
 
-DECLSPEC u32 replace_dot_by_len (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len)
+DECLSPEC u32 replace_dot_by_len (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len)
 {
   // loop over w3...w0 (4 * 16 = 64 bytes):
 

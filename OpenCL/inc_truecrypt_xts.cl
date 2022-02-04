@@ -13,7 +13,7 @@
 #include "inc_truecrypt_crc32.h"
 #include "inc_truecrypt_xts.h"
 
-DECLSPEC void xts_mul2 (u32 *in, u32 *out)
+DECLSPEC void xts_mul2 (PRIVATE_AS u32 *in, PRIVATE_AS u32 *out)
 {
   const u32 c = in[3] >> 31;
 
@@ -25,7 +25,7 @@ DECLSPEC void xts_mul2 (u32 *in, u32 *out)
   out[0] ^= c * 0x87;
 }
 
-DECLSPEC void aes256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_decrypt_xts_first (PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *S, PRIVATE_AS u32 *T, PRIVATE_AS u32 *ks, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   out[0] = in[0];
   out[1] = in[1];
@@ -49,7 +49,7 @@ DECLSPEC void aes256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, cons
   out[3] ^= T[3];
 }
 
-DECLSPEC void aes256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *ks, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC void aes256_decrypt_xts_next (PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *T, PRIVATE_AS u32 *ks, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   out[0] = in[0];
   out[1] = in[1];
@@ -71,7 +71,7 @@ DECLSPEC void aes256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *ks,
   out[3] ^= T[3];
 }
 
-DECLSPEC void serpent256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *ks)
+DECLSPEC void serpent256_decrypt_xts_first (PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *S, PRIVATE_AS u32 *T, PRIVATE_AS u32 *ks)
 {
   out[0] = in[0];
   out[1] = in[1];
@@ -95,7 +95,7 @@ DECLSPEC void serpent256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, 
   out[3] ^= T[3];
 }
 
-DECLSPEC void serpent256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *ks)
+DECLSPEC void serpent256_decrypt_xts_next (PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *T, PRIVATE_AS u32 *ks)
 {
   out[0] = in[0];
   out[1] = in[1];
@@ -117,7 +117,7 @@ DECLSPEC void serpent256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 
   out[3] ^= T[3];
 }
 
-DECLSPEC void twofish256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, const u32 *in, u32 *out, u32 *S, u32 *T, u32 *sk, u32 *lk)
+DECLSPEC void twofish256_decrypt_xts_first (PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *S, PRIVATE_AS u32 *T, PRIVATE_AS u32 *sk, PRIVATE_AS u32 *lk)
 {
   out[0] = in[0];
   out[1] = in[1];
@@ -141,7 +141,7 @@ DECLSPEC void twofish256_decrypt_xts_first (const u32 *ukey1, const u32 *ukey2, 
   out[3] ^= T[3];
 }
 
-DECLSPEC void twofish256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 *sk, u32 *lk)
+DECLSPEC void twofish256_decrypt_xts_next (PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *T, PRIVATE_AS u32 *sk, PRIVATE_AS u32 *lk)
 {
   out[0] = in[0];
   out[1] = in[1];
@@ -165,7 +165,7 @@ DECLSPEC void twofish256_decrypt_xts_next (const u32 *in, u32 *out, u32 *T, u32 
 
 // 512 bit
 
-DECLSPEC int verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_aes[60];
 
@@ -219,7 +219,7 @@ DECLSPEC int verify_header_aes (GLOBAL_AS const u32 *data_buf, const u32 signatu
   return 1;
 }
 
-DECLSPEC int verify_header_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2)
+DECLSPEC int verify_header_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2)
 {
   u32 ks_serpent[140];
 
@@ -273,7 +273,7 @@ DECLSPEC int verify_header_serpent (GLOBAL_AS const u32 *data_buf, const u32 sig
   return 1;
 }
 
-DECLSPEC int verify_header_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2)
+DECLSPEC int verify_header_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2)
 {
   u32 sk_twofish[4];
   u32 lk_twofish[40];
@@ -330,7 +330,7 @@ DECLSPEC int verify_header_twofish (GLOBAL_AS const u32 *data_buf, const u32 sig
 
 // 1024 bit
 
-DECLSPEC int verify_header_aes_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_aes_twofish (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_aes[60];
 
@@ -391,7 +391,7 @@ DECLSPEC int verify_header_aes_twofish (GLOBAL_AS const u32 *data_buf, const u32
   return 1;
 }
 
-DECLSPEC int verify_header_serpent_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_serpent_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_serpent[140];
   u32 ks_aes[60];
@@ -450,7 +450,7 @@ DECLSPEC int verify_header_serpent_aes (GLOBAL_AS const u32 *data_buf, const u32
   return 1;
 }
 
-DECLSPEC int verify_header_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4)
+DECLSPEC int verify_header_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4)
 {
   u32 sk_twofish[4];
   u32 lk_twofish[40];
@@ -513,7 +513,7 @@ DECLSPEC int verify_header_twofish_serpent (GLOBAL_AS const u32 *data_buf, const
 
 // 1536 bit
 
-DECLSPEC int verify_header_aes_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_aes_twofish_serpent (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, PRIVATE_AS const u32 *ukey5, PRIVATE_AS const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_aes[60];
 
@@ -580,7 +580,7 @@ DECLSPEC int verify_header_aes_twofish_serpent (GLOBAL_AS const u32 *data_buf, c
   return 1;
 }
 
-DECLSPEC int verify_header_serpent_twofish_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, const u32 *ukey1, const u32 *ukey2, const u32 *ukey3, const u32 *ukey4, const u32 *ukey5, const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
+DECLSPEC int verify_header_serpent_twofish_aes (GLOBAL_AS const u32 *data_buf, const u32 signature, PRIVATE_AS const u32 *ukey1, PRIVATE_AS const u32 *ukey2, PRIVATE_AS const u32 *ukey3, PRIVATE_AS const u32 *ukey4, PRIVATE_AS const u32 *ukey5, PRIVATE_AS const u32 *ukey6, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4, SHM_TYPE u32 *s_td0, SHM_TYPE u32 *s_td1, SHM_TYPE u32 *s_td2, SHM_TYPE u32 *s_td3, SHM_TYPE u32 *s_td4)
 {
   u32 ks_serpent[140];
 

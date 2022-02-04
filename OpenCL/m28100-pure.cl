@@ -49,7 +49,7 @@ typedef struct winhello_tmp
 
 } winhello_tmp_t;
 
-DECLSPEC void hmac_sha256_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_sha256_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -114,7 +114,7 @@ KERNEL_FQ void m28100_init (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
     w[idx] = pws[gid].i[idx];
   }
 
-  u8 *w_ptr = (u8 *) w;
+  PRIVATE_AS u8 *w_ptr = (PRIVATE_AS u8 *) w;
 
   #ifdef _unroll
   #pragma unroll
@@ -335,7 +335,7 @@ KERNEL_FQ void m28100_comp (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
   w[6] = hc_swap32_S (tmps[gid].out[6]);
   w[7] = hc_swap32_S (tmps[gid].out[7]);
 
-  u8 *w_ptr = (u8 *) w;
+  PRIVATE_AS u8 *w_ptr = (PRIVATE_AS u8 *) w;
 
   #ifdef _unroll
   #pragma unroll

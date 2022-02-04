@@ -636,7 +636,7 @@ CONSTANT_VK u64a MT7[256] =
   S7 = L7 ^ K7;                                   \
 }
 
-DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   u64 W0 = hl32_to_64_S (w0[0], w0[1]);
   u64 W1 = hl32_to_64_S (w0[2], w0[3]);
@@ -712,7 +712,7 @@ DECLSPEC void whirlpool_transform (const u32 *w0, const u32 *w1, const u32 *w2, 
   digest[15] = l32_from_64_S (D7);
 }
 
-DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_init (PRIVATE_AS whirlpool_ctx_t *ctx, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   ctx->h[ 0] = 0;
   ctx->h[ 1] = 0;
@@ -760,7 +760,7 @@ DECLSPEC void whirlpool_init (whirlpool_ctx_t *ctx, SHM_TYPE u64 *s_MT0, SHM_TYP
   ctx->s_MT7 = s_MT7;
 }
 
-DECLSPEC void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
+DECLSPEC void whirlpool_update_64 (PRIVATE_AS whirlpool_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
 {
   if (len == 0) return;
 
@@ -880,7 +880,7 @@ DECLSPEC void whirlpool_update_64 (whirlpool_ctx_t *ctx, u32 *w0, u32 *w1, u32 *
   }
 }
 
-DECLSPEC void whirlpool_update (whirlpool_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_update (PRIVATE_AS whirlpool_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -932,7 +932,7 @@ DECLSPEC void whirlpool_update (whirlpool_ctx_t *ctx, const u32 *w, const int le
   whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void whirlpool_update_swap (whirlpool_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_update_swap (PRIVATE_AS whirlpool_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1018,7 +1018,7 @@ DECLSPEC void whirlpool_update_swap (whirlpool_ctx_t *ctx, const u32 *w, const i
   whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void whirlpool_update_utf16le (whirlpool_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_update_utf16le (PRIVATE_AS whirlpool_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   if (hc_enc_scan (w, len))
   {
@@ -1078,7 +1078,7 @@ DECLSPEC void whirlpool_update_utf16le (whirlpool_ctx_t *ctx, const u32 *w, cons
   whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void whirlpool_update_utf16le_swap (whirlpool_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_update_utf16le_swap (PRIVATE_AS whirlpool_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   if (hc_enc_scan (w, len))
   {
@@ -1189,7 +1189,7 @@ DECLSPEC void whirlpool_update_utf16le_swap (whirlpool_ctx_t *ctx, const u32 *w,
   whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void whirlpool_update_global (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void whirlpool_update_global (PRIVATE_AS whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1241,7 +1241,7 @@ DECLSPEC void whirlpool_update_global (whirlpool_ctx_t *ctx, GLOBAL_AS const u32
   whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void whirlpool_update_global_swap (PRIVATE_AS whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1327,7 +1327,7 @@ DECLSPEC void whirlpool_update_global_swap (whirlpool_ctx_t *ctx, GLOBAL_AS cons
   whirlpool_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void whirlpool_update_global_utf16le (PRIVATE_AS whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   if (hc_enc_scan_global (w, len))
   {
@@ -1387,7 +1387,7 @@ DECLSPEC void whirlpool_update_global_utf16le (whirlpool_ctx_t *ctx, GLOBAL_AS c
   whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void whirlpool_update_global_utf16le_swap (PRIVATE_AS whirlpool_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   if (hc_enc_scan_global (w, len))
   {
@@ -1498,7 +1498,7 @@ DECLSPEC void whirlpool_update_global_utf16le_swap (whirlpool_ctx_t *ctx, GLOBAL
   whirlpool_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void whirlpool_final (whirlpool_ctx_t *ctx)
+DECLSPEC void whirlpool_final (PRIVATE_AS whirlpool_ctx_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -1534,7 +1534,7 @@ DECLSPEC void whirlpool_final (whirlpool_ctx_t *ctx)
 
 // whirlpool_hmac
 
-DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_hmac_init_64 (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   u32 a0[4];
   u32 a1[4];
@@ -1593,7 +1593,7 @@ DECLSPEC void whirlpool_hmac_init_64 (whirlpool_hmac_ctx_t *ctx, const u32 *w0, 
   whirlpool_update_64 (&ctx->opad, b0, b1, b2, b3, 64);
 }
 
-DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_hmac_init (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1650,7 +1650,7 @@ DECLSPEC void whirlpool_hmac_init (whirlpool_hmac_ctx_t *ctx, const u32 *w, cons
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 }
 
-DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_hmac_init_swap (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1707,7 +1707,7 @@ DECLSPEC void whirlpool_hmac_init_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w,
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 }
 
-DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_hmac_init_global (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1764,7 +1764,7 @@ DECLSPEC void whirlpool_hmac_init_global (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS c
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 }
 
-DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_hmac_init_global_swap (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1821,52 +1821,52 @@ DECLSPEC void whirlpool_hmac_init_global_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL
   whirlpool_hmac_init_64 (ctx, w0, w1, w2, w3, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 }
 
-DECLSPEC void whirlpool_hmac_update_64 (whirlpool_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
+DECLSPEC void whirlpool_hmac_update_64 (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
 {
   whirlpool_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void whirlpool_hmac_update (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   whirlpool_update (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_swap (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   whirlpool_update_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_utf16le (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_utf16le (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   whirlpool_update_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_utf16le_swap (whirlpool_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_utf16le_swap (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   whirlpool_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_global (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   whirlpool_update_global (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_global_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global_swap (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   whirlpool_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_global_utf16le (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global_utf16le (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   whirlpool_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_global_utf16le_swap (whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void whirlpool_hmac_update_global_utf16le_swap (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   whirlpool_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx)
+DECLSPEC void whirlpool_hmac_final (PRIVATE_AS whirlpool_hmac_ctx_t *ctx)
 {
   whirlpool_final (&ctx->ipad);
 
@@ -1991,7 +1991,7 @@ DECLSPEC void whirlpool_hmac_final (whirlpool_hmac_ctx_t *ctx)
   S7 = L7 ^ K7;                                   \
 }
 
-DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u32x *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   u64x W0 = hl32_to_64 (w0[0], w0[1]);
   u64x W1 = hl32_to_64 (w0[2], w0[3]);
@@ -2067,7 +2067,7 @@ DECLSPEC void whirlpool_transform_vector (const u32x *w0, const u32x *w1, const 
   digest[15] = l32_from_64 (D7);
 }
 
-DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_init_vector (PRIVATE_AS whirlpool_ctx_vector_t *ctx, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   ctx->h[ 0] = 0;
   ctx->h[ 1] = 0;
@@ -2115,7 +2115,7 @@ DECLSPEC void whirlpool_init_vector (whirlpool_ctx_vector_t *ctx, SHM_TYPE u64 *
   ctx->s_MT7 = s_MT7;
 }
 
-DECLSPEC void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, whirlpool_ctx_t *ctx0)
+DECLSPEC void whirlpool_init_vector_from_scalar (PRIVATE_AS whirlpool_ctx_vector_t *ctx, PRIVATE_AS whirlpool_ctx_t *ctx0)
 {
   ctx->h[ 0] = ctx0->h[ 0];
   ctx->h[ 1] = ctx0->h[ 1];
@@ -2163,7 +2163,7 @@ DECLSPEC void whirlpool_init_vector_from_scalar (whirlpool_ctx_vector_t *ctx, wh
   ctx->s_MT7 = ctx0->s_MT7;
 }
 
-DECLSPEC void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
+DECLSPEC void whirlpool_update_vector_64 (PRIVATE_AS whirlpool_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const int len)
 {
   if (len == 0) return;
 
@@ -2283,7 +2283,7 @@ DECLSPEC void whirlpool_update_vector_64 (whirlpool_ctx_vector_t *ctx, u32x *w0,
   }
 }
 
-DECLSPEC void whirlpool_update_vector (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_update_vector (PRIVATE_AS whirlpool_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2335,7 +2335,7 @@ DECLSPEC void whirlpool_update_vector (whirlpool_ctx_vector_t *ctx, const u32x *
   whirlpool_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void whirlpool_update_vector_swap (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_update_vector_swap (PRIVATE_AS whirlpool_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2421,7 +2421,7 @@ DECLSPEC void whirlpool_update_vector_swap (whirlpool_ctx_vector_t *ctx, const u
   whirlpool_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void whirlpool_update_vector_utf16le (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_update_vector_utf16le (PRIVATE_AS whirlpool_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2463,7 +2463,7 @@ DECLSPEC void whirlpool_update_vector_utf16le (whirlpool_ctx_vector_t *ctx, cons
   whirlpool_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void whirlpool_update_vector_utf16le_swap (whirlpool_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_update_vector_utf16le_swap (PRIVATE_AS whirlpool_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2539,7 +2539,7 @@ DECLSPEC void whirlpool_update_vector_utf16le_swap (whirlpool_ctx_vector_t *ctx,
   whirlpool_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx)
+DECLSPEC void whirlpool_final_vector (PRIVATE_AS whirlpool_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -2575,7 +2575,7 @@ DECLSPEC void whirlpool_final_vector (whirlpool_ctx_vector_t *ctx)
 
 // HMAC + Vector
 
-DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_hmac_init_vector_64 (PRIVATE_AS whirlpool_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   u32x a0[4];
   u32x a1[4];
@@ -2634,7 +2634,7 @@ DECLSPEC void whirlpool_hmac_init_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, c
   whirlpool_update_vector_64 (&ctx->opad, b0, b1, b2, b3, 64);
 }
 
-DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_hmac_init_vector (PRIVATE_AS whirlpool_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2691,17 +2691,17 @@ DECLSPEC void whirlpool_hmac_init_vector (whirlpool_hmac_ctx_vector_t *ctx, cons
   whirlpool_hmac_init_vector_64 (ctx, w0, w1, w2, w3, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 }
 
-DECLSPEC void whirlpool_hmac_update_vector_64 (whirlpool_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
+DECLSPEC void whirlpool_hmac_update_vector_64 (PRIVATE_AS whirlpool_hmac_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const int len)
 {
   whirlpool_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void whirlpool_hmac_update_vector (whirlpool_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void whirlpool_hmac_update_vector (PRIVATE_AS whirlpool_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   whirlpool_update_vector (&ctx->ipad, w, len);
 }
 
-DECLSPEC void whirlpool_hmac_final_vector (whirlpool_hmac_ctx_vector_t *ctx)
+DECLSPEC void whirlpool_hmac_final_vector (PRIVATE_AS whirlpool_hmac_ctx_vector_t *ctx)
 {
   whirlpool_final_vector (&ctx->ipad);
 

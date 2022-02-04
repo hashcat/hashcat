@@ -17,7 +17,7 @@
 #include STR(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
 
-DECLSPEC const u32 replace_dot_by_len (pw_t *out, GLOBAL_AS const pw_t *in, const u32 old_len)
+DECLSPEC const u32 replace_dot_by_len (PRIVATE_AS pw_t *out, GLOBAL_AS const pw_t *in, const u32 old_len)
 {
   // first make out a copy of in:
 

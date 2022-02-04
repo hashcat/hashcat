@@ -284,12 +284,12 @@ KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
     tmp[2] = o_rc4_decryption_key[2] ^ xv;
     tmp[3] = o_rc4_decryption_key[3] ^ xv;
 
-    rc4_init_128 (S, tmp);
-    rc4_next_16 (S, 0, 0, out, out);
+    rc4_init_128 (S, tmp, lid);
+    rc4_next_16 (S, 0, 0, out, out, lid);
   }
 
-  rc4_init_128 (S, o_rc4_decryption_key);
-  rc4_next_16 (S, 0, 0, out, out); // output of the rc4 decrypt of the o-value should be the padded user-password
+  rc4_init_128 (S, o_rc4_decryption_key, lid);
+  rc4_next_16 (S, 0, 0, out, out, lid); // output of the rc4 decrypt of the o-value should be the padded user-password
 
   tmps[gid].digest[0] = digest[0];
   tmps[gid].digest[1] = digest[1];
@@ -357,14 +357,12 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   for (int i = 0; i < 16; i++)
   {
     // cast out buffer to byte such that we can do a byte per byte comparison
-    const u32 *u32OutBufPtr = out;
-    const u8 *u8OutBufPtr;
-    u8OutBufPtr = (u8*) u32OutBufPtr;
+    PRIVATE_AS const u32 *u32OutBufPtr = (PRIVATE_AS u32 *) out;
+    PRIVATE_AS const u8  *u8OutBufPtr  = (PRIVATE_AS u8  *) u32OutBufPtr;
 
     // cast padding buffer to byte such that we can do a byte per byte comparison
-    const u32 *u32OutPadPtr = padding;
-    const u8 *u8OutPadPtr;
-    u8OutPadPtr = (u8*) u32OutPadPtr;
+    PRIVATE_AS const u32 *u32OutPadPtr = (PRIVATE_AS u32 *) padding;
+    PRIVATE_AS const u8  *u8OutPadPtr  = (PRIVATE_AS u8  *) u32OutPadPtr;
 
     // we don't use the user-password in the attack now (as we don't need it),
     //  however we could use it in the comparison of the decrypted o-value,

@@ -23,12 +23,12 @@ typedef struct win8phone
 
 } win8phone_t;
 
-DECLSPEC void sha256_transform_transport_vector (const u32x *w, u32x *digest)
+DECLSPEC void sha256_transform_transport_vector (PRIVATE_AS const u32x *w, PRIVATE_AS u32x *digest)
 {
   sha256_transform_vector (w + 0, w + 4, w + 8, w + 12, digest);
 }
 
-DECLSPEC void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
+DECLSPEC void memcat64c_be (PRIVATE_AS u32x *block, const u32 offset, PRIVATE_AS u32x *carry)
 {
   const u32 mod = offset & 3;
   const u32 div = offset / 4;
@@ -410,14 +410,11 @@ DECLSPEC void memcat64c_be (u32x *block, const u32 offset, u32x *carry)
   }
 }
 
-DECLSPEC void m13800m (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
+DECLSPEC void m13800m (LOCAL_AS u32 *s_esalt, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR_ESALT (win8phone_t))
 {
   /**
-   * modifier
+   * modifiers are taken from args
    */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   /**
    * loop
@@ -558,14 +555,11 @@ DECLSPEC void m13800m (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATT
   }
 }
 
-DECLSPEC void m13800s (LOCAL_AS u32 *s_esalt, u32 *w, const u32 pw_len, KERN_ATTR_VECTOR_ESALT (win8phone_t))
+DECLSPEC void m13800s (LOCAL_AS u32 *s_esalt, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR_ESALT (win8phone_t))
 {
   /**
-   * modifier
+   * modifiers are taken from args
    */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   /**
    * digest
@@ -724,8 +718,8 @@ KERNEL_FQ void m13800_m04 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
   /**
@@ -772,7 +766,7 @@ KERNEL_FQ void m13800_m04 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * main
    */
 
-  m13800m (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m13800m (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m13800_m08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
@@ -781,8 +775,8 @@ KERNEL_FQ void m13800_m08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
   /**
@@ -829,7 +823,7 @@ KERNEL_FQ void m13800_m08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * main
    */
 
-  m13800m (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m13800m (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m13800_m16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
@@ -838,8 +832,8 @@ KERNEL_FQ void m13800_m16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
   /**
@@ -886,7 +880,7 @@ KERNEL_FQ void m13800_m16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * main
    */
 
-  m13800m (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m13800m (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m13800_s04 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
@@ -895,8 +889,8 @@ KERNEL_FQ void m13800_s04 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
   /**
@@ -943,7 +937,7 @@ KERNEL_FQ void m13800_s04 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * main
    */
 
-  m13800s (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m13800s (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m13800_s08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
@@ -952,8 +946,8 @@ KERNEL_FQ void m13800_s08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
   /**
@@ -1000,7 +994,7 @@ KERNEL_FQ void m13800_s08 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * main
    */
 
-  m13800s (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m13800s (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m13800_s16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
@@ -1009,8 +1003,8 @@ KERNEL_FQ void m13800_s16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
   /**
@@ -1057,5 +1051,5 @@ KERNEL_FQ void m13800_s16 (KERN_ATTR_VECTOR_ESALT (win8phone_t))
    * main
    */
 
-  m13800s (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m13800s (s_esalt, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }

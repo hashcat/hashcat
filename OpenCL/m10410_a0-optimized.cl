@@ -111,11 +111,11 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10410_m04 (KERN_ATTR_RULES_
      * pdf
      */
 
-    rc4_init_40 (S, w0);
+    rc4_init_40 (S, w0, lid);
 
     u32 out[4];
 
-    rc4_next_16 (S, 0, 0, padding, out);
+    rc4_next_16 (S, 0, 0, padding, out, lid);
 
     COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
@@ -210,11 +210,11 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m10410_s04 (KERN_ATTR_RULES_
      * pdf
      */
 
-    rc4_init_40 (S, w0);
+    rc4_init_40 (S, w0, lid);
 
     u32 out[4];
 
-    rc4_next_16 (S, 0, 0, padding, out);
+    rc4_next_16 (S, 0, 0, padding, out, lid);
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }

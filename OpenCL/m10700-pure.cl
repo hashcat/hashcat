@@ -20,11 +20,11 @@
 #define COMPARE_S STR(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi.cl)
 
-#define PUTCHAR(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
-#define GETCHAR(a,p)   ((u8 *)(a))[(p)]
+#define PUTCHAR(a,p,c)    ((PRIVATE_AS u8 *)(a))[(p)] = (u8) (c)
+#define GETCHAR(a,p)      ((PRIVATE_AS u8 *)(a))[(p)]
 
-#define PUTCHAR_BE(a,p,c) ((u8 *)(a))[(p) ^ 3] = (u8) (c)
-#define GETCHAR_BE(a,p)   ((u8 *)(a))[(p) ^ 3]
+#define PUTCHAR_BE(a,p,c) ((PRIVATE_AS u8 *)(a))[(p) ^ 3] = (u8) (c)
+#define GETCHAR_BE(a,p)   ((PRIVATE_AS u8 *)(a))[(p) ^ 3]
 
 typedef struct pdf
 {
@@ -60,7 +60,7 @@ typedef struct pdf17l8_tmp
 
 } pdf17l8_tmp_t;
 
-DECLSPEC void aes128_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in, u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes128_encrypt_cbc (PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 data[4];
 
@@ -87,7 +87,7 @@ DECLSPEC void aes128_encrypt_cbc (const u32 *aes_ks, u32 *aes_iv, const u32 *in,
   out[3] = hc_swap32_S (out[3]);
 }
 
-DECLSPEC u32 sha256_update_aes_64 (sha256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha256_update_aes_64 (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ex = 0;
 
@@ -172,7 +172,7 @@ DECLSPEC u32 sha256_update_aes_64 (sha256_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2,
   return ex;
 }
 
-DECLSPEC void sha256_update_aes (sha256_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha256_update_aes (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 w0[4];
   u32 w1[4];
@@ -224,7 +224,7 @@ DECLSPEC void sha256_update_aes (sha256_ctx_t *ctx, const u32 *w, const int len,
   sha256_update_aes_64 (ctx, w0, w1, w2, w3, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-DECLSPEC void sha256_final_aes (sha256_ctx_t *ctx, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha256_final_aes (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   int pos = ctx->len & 63;
 
@@ -260,7 +260,7 @@ DECLSPEC void sha256_final_aes (sha256_ctx_t *ctx, const u32 *aes_ks, u32 *aes_i
   sha256_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
-DECLSPEC u32 sha384_update_aes_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha384_update_aes_128 (PRIVATE_AS sha384_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, const int len, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ex = 0;
 
@@ -401,7 +401,7 @@ DECLSPEC u32 sha384_update_aes_128 (sha384_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2
   return ex;
 }
 
-DECLSPEC void sha384_update_aes (sha384_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha384_update_aes (PRIVATE_AS sha384_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 w0[4];
   u32 w1[4];
@@ -489,7 +489,7 @@ DECLSPEC void sha384_update_aes (sha384_ctx_t *ctx, const u32 *w, const int len,
   sha384_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-DECLSPEC u32 sha384_final_aes (sha384_ctx_t *ctx, const u32 ex, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha384_final_aes (PRIVATE_AS sha384_ctx_t *ctx, const u32 ex, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ret = ex;
 
@@ -553,7 +553,7 @@ DECLSPEC u32 sha384_final_aes (sha384_ctx_t *ctx, const u32 ex, const u32 *aes_k
   return ret;
 }
 
-DECLSPEC u32 sha512_update_aes_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha512_update_aes_128 (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, const int len, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ex = 0;
 
@@ -694,7 +694,7 @@ DECLSPEC u32 sha512_update_aes_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2
   return ex;
 }
 
-DECLSPEC void sha512_update_aes (sha512_ctx_t *ctx, const u32 *w, const int len, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void sha512_update_aes (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 w0[4];
   u32 w1[4];
@@ -782,7 +782,7 @@ DECLSPEC void sha512_update_aes (sha512_ctx_t *ctx, const u32 *w, const int len,
   sha512_update_aes_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, aes_ks, aes_iv, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-DECLSPEC u32 sha512_final_aes (sha512_ctx_t *ctx, const u32 ex, const u32 *aes_ks, u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 sha512_final_aes (PRIVATE_AS sha512_ctx_t *ctx, const u32 ex, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ret = ex;
 
@@ -846,7 +846,7 @@ DECLSPEC u32 sha512_final_aes (sha512_ctx_t *ctx, const u32 ex, const u32 *aes_k
   return ret;
 }
 
-DECLSPEC int find_sum (const u32 *w, const u32 pw_len, u32 *bb, const u32 *aes_ks, const u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC int find_sum (PRIVATE_AS const u32 *w, const u32 pw_len, PRIVATE_AS u32 *bb, PRIVATE_AS const u32 *aes_ks, PRIVATE_AS const u32 *aes_iv, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 data[4];
 
@@ -887,7 +887,7 @@ DECLSPEC int find_sum (const u32 *w, const u32 pw_len, u32 *bb, const u32 *aes_k
   return sum;
 }
 
-DECLSPEC u32 do_round (const u32 *w, const u32 pw_len, pdf17l8_tmp_t *tmp, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC u32 do_round (PRIVATE_AS const u32 *w, const u32 pw_len, PRIVATE_AS pdf17l8_tmp_t *tmp, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   // get previous hash (already padded)
 
