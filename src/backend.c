@@ -6755,11 +6755,10 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
       // untested on windows, but it should work
-      hc_asprintf (&nvrtc_options[4], "-D INCLUDE_PATH=%s",
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-        "OpenCL");
+      hc_asprintf (&nvrtc_options[4], "-D INCLUDE_PATH=%s", "OpenCL");
       #else
-        folder_config->cpath_real);
+      hc_asprintf (&nvrtc_options[4], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
       #endif
 
       char *nvrtc_options_string = hcstrdup (build_options_buf);
@@ -7008,11 +7007,10 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       hiprtc_options[4] = "";
 
       // untested but it should work
-      hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s",
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-        "OpenCL");
+      hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s", "OpenCL");
       #else
-        folder_config->cpath_real);
+      hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
       #endif
 
       char *hiprtc_options_string = hcstrdup (build_options_buf);
@@ -8063,11 +8061,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       // tested on windows, linux, apple intel, apple silicon
       // when is builded with cygwin and msys, cpath_real doesn't work
-      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=\"%s\" ",
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-        "OpenCL");
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=\"%s\" ", "OpenCL");
       #else
-        folder_config->cpath_real);
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=\"%s\" ", folder_config->cpath_real);
       #endif
 
       #if defined (__APPLE__)
