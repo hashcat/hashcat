@@ -7,7 +7,6 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
-#include "locking.h"
 #include "shared.h"
 #include "logfile.h"
 

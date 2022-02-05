@@ -91,7 +91,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   for (u32 i = 0; i < rd->argc; i++)
   {
-    if (hc_fgets (buf, HCBUFSIZ_LARGE - 1, &fp) == NULL)
+    if (hc_fgets (buf, HCBUFSIZ_LARGE, &fp) == NULL)
     {
       event_log_error (hashcat_ctx, "Cannot read %s", eff_restore_file);
 
@@ -102,6 +102,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
+    /* TODO: replace this with hc_string_trim_newline (buf, strlen (buf)) and check HCBUFSIZ_LARGE overflow ??? */
     size_t len = strlen (buf);
 
     if (len) buf[len - 1] = 0;

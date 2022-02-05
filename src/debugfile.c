@@ -7,7 +7,6 @@
 #include "types.h"
 #include "event.h"
 #include "shared.h"
-#include "locking.h"
 #include "debugfile.h"
 
 static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const u32 plain_len)
@@ -133,15 +132,7 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    HCFILE *fp = &debugfile_ctx->fp;
-
-    fp->fd       = fileno (stdout);
-    fp->pfp      = stdout;
-    fp->gfp      = NULL;
-    fp->ufp      = NULL;
-    fp->bom_size = 0;
-    fp->path     = NULL;
-    fp->mode     = NULL;
+    hc_fopen_stdout (&debugfile_ctx->fp);
   }
 
   return 0;

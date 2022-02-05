@@ -65,7 +65,9 @@ int load_segment (hashcat_ctx_t *hashcat_ctx, HCFILE *fp)
 
   if (wl_data->buf[wl_data->cnt - 1] == '\n') return 0;
 
-  while (!hc_feof (fp))
+  int c;
+
+  do
   {
     if (wl_data->cnt == wl_data->avail)
     {
@@ -74,25 +76,22 @@ int load_segment (hashcat_ctx_t *hashcat_ctx, HCFILE *fp)
       wl_data->avail += wl_data->incr;
     }
 
-    const int c = hc_fgetc (fp);
+    c = hc_fgetc (fp);
 
-    if (c == EOF) break;
+    if (c == EOF)
+    {
+      // ensure stream ends with a newline
+      wl_data->buf[wl_data->cnt] = '\n';
+
+      wl_data->cnt++;
+
+      break;
+    }
 
     wl_data->buf[wl_data->cnt] = (char) c;
 
     wl_data->cnt++;
-
-    if (c == '\n') break;
-  }
-
-  // ensure stream ends with a newline
-
-  if (wl_data->buf[wl_data->cnt - 1] != '\n')
-  {
-    wl_data->cnt++;
-
-    wl_data->buf[wl_data->cnt - 1] = '\n';
-  }
+  } while (c != '\n');
 
   return 0;
 }

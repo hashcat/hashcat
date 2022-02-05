@@ -12,7 +12,6 @@
 #include "filehandling.h"
 #include "loopback.h"
 #include "outfile.h"
-#include "locking.h"
 #include "shared.h"
 #include "potfile.h"
 
@@ -513,10 +512,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  while (!hc_feof (&potfile_ctx->fp))
-  {
-    size_t line_len = fgetl (&potfile_ctx->fp, line_buf, HCBUFSIZ_LARGE);
+  int line_len;
 
+  while ((line_len = fgetl (&potfile_ctx->fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+  {
     if (line_len == 0) continue;
 
     char *last_separator = strrchr (line_buf, hashconfig->separator);

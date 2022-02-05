@@ -15,18 +15,19 @@
 #include <Xz.h>
 #include <XzCrc64.h>
 
+/*
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
+*/
+
 /* Maybe _LZMA_NO_SYSTEM_SIZE_T defined? */
 #if defined (__clang__) || defined (__GNUC__)
 #include <assert.h>
 _Static_assert(sizeof (size_t) == sizeof (SizeT), "Check why sizeof(size_t) != sizeof(SizeT)");
-#endif
-
-#ifndef HCFILE_BUFFER_SIZE
-#define HCFILE_BUFFER_SIZE 256 * 1024
-#endif
-
-#ifndef HCFILE_CHUNK_SIZE
-#define HCFILE_CHUNK_SIZE 4 * 1024 * 1024
 #endif
 
 static bool xz_initialized = false;
@@ -61,7 +62,7 @@ int _wopen (const char *path, int oflag, ...)
 }
 #endif
 
-bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
+bool hc_fopen (HCFILE * restrict fp, const char * restrict path, const char * restrict mode)
 {
   if (fp == NULL || path == NULL || mode == NULL) return false;
 
@@ -79,36 +80,25 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
   int fmode = S_IRUSR|S_IWUSR;
 
-  if (strncmp (mode, "a", 1) == 0 || strncmp (mode, "ab", 2) == 0)
+  switch (mode[0])
   {
+  case 'a':
     oflag = O_WRONLY | O_CREAT | O_APPEND;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "ab", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else if (strncmp (mode, "r", 1) == 0 || strncmp (mode, "rb", 2) == 0)
-  {
+    break;
+  case 'r':
     oflag = O_RDONLY;
     fmode = -1;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "rb", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else if (strncmp (mode, "w", 1) == 0 || strncmp (mode, "wb", 2) == 0)
-  {
+    break;
+  case 'w':
     oflag = O_WRONLY | O_CREAT | O_TRUNC;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "wb", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else
-  {
-    // ADD more strncmp to handle more "mode"
+    break;
+  default:
     return false;
   }
+
+#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+  if (mode[1] == 'b') oflag |= O_BINARY;
+#endif
 
   unsigned char check[8] = { 0 };
 
@@ -280,13 +270,13 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     }
   }
 
-  fp->path = path;
-  fp->mode = mode;
+  fp->path = hcstrdup (path);
+  fp->mode = hcstrdup (mode);
 
   return true;
 }
 
-bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
+bool hc_fopen_raw (HCFILE * restrict fp, const char * restrict path, const char * restrict mode)
 {
   if (fp == NULL || path == NULL || mode == NULL) return false;
 
@@ -304,36 +294,26 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 
   int fmode = S_IRUSR|S_IWUSR;
 
-  if (strncmp (mode, "a", 1) == 0 || strncmp (mode, "ab", 2) == 0)
-  {
-    oflag = O_WRONLY | O_CREAT | O_APPEND;
 
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "ab", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else if (strncmp (mode, "r", 1) == 0 || strncmp (mode, "rb", 2) == 0)
+  switch (mode[0])
   {
+  case 'a':
+    oflag = O_WRONLY | O_CREAT | O_APPEND;
+    break;
+  case 'r':
     oflag = O_RDONLY;
     fmode = -1;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "rb", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else if (strncmp (mode, "w", 1) == 0 || strncmp (mode, "wb", 2) == 0)
-  {
+    break;
+  case 'w':
     oflag = O_WRONLY | O_CREAT | O_TRUNC;
-
-    #if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
-    if (strncmp (mode, "wb", 2) == 0) oflag |= O_BINARY;
-    #endif
-  }
-  else
-  {
-    // ADD more strncmp to handle more "mode"
+    break;
+  default:
     return false;
   }
+
+#if defined(MSDOS) || defined(OS2) || defined(WIN32) || defined(_WIN32) || defined(__CYGWIN__)
+  if (mode[1] == 'b') oflag |= O_BINARY;
+#endif
 
   if (fmode == -1)
   {
@@ -348,19 +328,34 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 
   if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
 
-  fp->path = path;
-  fp->mode = mode;
+  fp->path = hcstrdup (path);
+  fp->mode = hcstrdup (mode);
 
   return true;
 }
 
-size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
+bool hc_fopen_stdout (HCFILE * restrict fp)
 {
-  size_t n = (size_t) -1;
+  if (fp == NULL) return false;
 
-  if (ptr == NULL || fp == NULL) return n;
+  /* assign */
+  fp->fd       = fileno (stdout);
+  fp->pfp      = stdout;
+  fp->gfp      = NULL;
+  fp->ufp      = NULL;
+  fp->xfp      = NULL;
+  fp->bom_size = 0;
+  fp->path     = NULL;
+  fp->mode     = NULL;
 
-  if (size == 0 || nmemb == 0) return 0;
+  return true;
+}
+
+size_t hc_fread (void * restrict ptr, size_t size, size_t nmemb, HCFILE * restrict fp)
+{
+  size_t n = 0;
+
+  if (ptr == NULL || size == 0 || nmemb == 0 || fp == NULL) return n;
 
   if (fp->pfp)
   {
@@ -423,9 +418,16 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
     {
       unsigned chunk = (len > INT_MAX) ? INT_MAX : (unsigned) len;
       int result = unzReadCurrentFile (fp->ufp, (unsigned char *) ptr + pos, chunk);
-      if (result < 0) return (size_t) -1;
-      pos += (u64) result;
-      len -= (u64) result;
+      if (result <= 0)
+      {
+        /* EOF or error */
+        result = 0;
+      }
+      else
+      {
+        pos += (u64) result;
+        len -= (u64) result;
+      }
       if (chunk != (unsigned) result)
       {
         /* partial read */
@@ -468,8 +470,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
       res = XzUnpacker_Code (&xfp->state, outBuf + outPos, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
       xfp->inPos += inLeft;
       xfp->inProcessed += inLeft;
-      if (res != SZ_OK) return (size_t) -1;
-      if (inLeft == 0 && outLeft == 0)
+      if (res != SZ_OK || (inLeft == 0 && outLeft == 0))
       {
         /* partial read */
         n = (size_t) (outPos / size);
@@ -483,13 +484,11 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   return n;
 }
 
-size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
+size_t hc_fwrite (const void * restrict ptr, size_t size, size_t nmemb, HCFILE * restrict fp)
 {
-  size_t n = -1;
+  size_t n = 0;
 
-  if (ptr == NULL || fp == NULL) return n;
-
-  if (size == 0 || nmemb == 0) return 0;
+  if (ptr == NULL || size == 0 || nmemb == 0 || fp == NULL) return n;
 
   if (fp->pfp)
   {
@@ -498,10 +497,7 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
     #ifndef _WIN64
     /* check 2 GB limit with 32 bit build */
-    if (len >= INT32_MAX)
-    {
-      return n;
-    }
+    if (len >= INT32_MAX) return n;
     #endif
 
     if (len <= HCFILE_CHUNK_SIZE)
@@ -522,7 +518,12 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
         size_t bytes = fwrite ((unsigned char *) ptr + pos, 1, chunk, fp->pfp);
         pos += bytes;
         left -= bytes;
-        if (chunk != bytes) return -1;
+        if (chunk != bytes)
+        {
+          /* partial write */
+          n = pos / size;
+          break;
+        }
       } while (left);
     }
     #else
@@ -631,7 +632,7 @@ void hc_rewind (HCFILE *fp)
   }
 }
 
-int hc_fstat (HCFILE *fp, struct stat *buf)
+int hc_fstat (HCFILE * restrict fp, struct stat * restrict buf)
 {
   int r = -1;
 
@@ -758,7 +759,7 @@ int hc_fgetc (HCFILE *fp)
   return r;
 }
 
-char *hc_fgets (char *buf, int len, HCFILE *fp)
+char *hc_fgets (char * restrict buf, int len, HCFILE * restrict fp)
 {
   char *r = NULL;
 
@@ -774,7 +775,33 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
   }
   else if (fp->ufp)
   {
-    if (unzReadCurrentFile (fp->ufp, buf, len) > 0) r = buf;
+    char *p = buf;
+
+    /* leave space for NULL */
+    while (--len != 0)
+    {
+      int ret = unzReadCurrentFile (fp->ufp, p, 1);
+
+      if (ret != 1)
+      {
+        /* check if error or EOF is seen before any characters */
+        if (ret < 0 || p == buf) return r;
+
+        /* success */
+        r = buf;
+        break;
+      }
+
+      if (*p++ == '\n')
+      {
+        /* success */
+        r = buf;
+        break;
+      }
+    }
+
+    /* always NULL terminate */
+    *p = 0;
   }
   else if (fp->xfp)
   {
@@ -799,10 +826,23 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
       SizeT inLeft = xfp->inLen - xfp->inPos;
       SizeT outLeft = 1;
       res = XzUnpacker_Code (&xfp->state, outBuf, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
-      if (inLeft == 0 && outLeft == 0) break;
       xfp->inPos += inLeft;
       xfp->inProcessed += inLeft;
-      if (res != SZ_OK) break;
+
+      /* check for errors */
+      if (res != SZ_OK) return r;
+
+      /* check for EOF */
+      if (inLeft == 0 && outLeft == 0)
+      {
+        /* check if EOF is seen before any characters */
+        if (outBuf == (Byte *) buf) return r;
+
+        /* success */
+        r = buf;
+        break;
+      }
+
       xfp->outProcessed++;
       if (*outBuf++ == '\n')
       {
@@ -821,7 +861,7 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
   return r;
 }
 
-int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
+int hc_vfprintf (HCFILE * restrict fp, const char * restrict format, va_list ap)
 {
   int r = -1;
 
@@ -839,7 +879,7 @@ int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
   return r;
 }
 
-int hc_fprintf (HCFILE *fp, const char *format, ...)
+int hc_fprintf (HCFILE * restrict fp, const char * restrict format, ...)
 {
   int r = -1;
 
@@ -863,22 +903,26 @@ int hc_fprintf (HCFILE *fp, const char *format, ...)
   return r;
 }
 
-int hc_fscanf (HCFILE *fp, const char *format, void *ptr)
+int hc_fscanf (HCFILE * restrict fp, const char * restrict format, ...)
 {
-  if (fp == NULL) return -1;
+  int r = -1;
+
+  if (fp == NULL || format == NULL) return r;
 
   char buf[HCBUFSIZ_TINY];
 
-  char *b = hc_fgets (buf, HCBUFSIZ_TINY - 1, fp);
-
-  if (b == NULL)
+  if (hc_fgets (buf, HCBUFSIZ_TINY, fp))
   {
-    return -1;
-  }
+    va_list ap;
 
-  sscanf (b, format, ptr);
+    va_start (ap, format);
 
-  return 1;
+    r = vsscanf (buf, format, ap);
+
+    va_end (ap);
+  }  
+
+  return r;
 }
 
 int hc_feof (HCFILE *fp)
@@ -944,7 +988,7 @@ void hc_fclose (HCFILE *fp)
 
   if (fp->pfp)
   {
-    fclose (fp->pfp);
+    if (fp->pfp != stdout) fclose (fp->pfp);
   }
   else if (fp->gfp)
   {
@@ -976,134 +1020,180 @@ void hc_fclose (HCFILE *fp)
   fp->ufp = NULL;
   fp->xfp = NULL;
 
-  fp->path = NULL;
-  fp->mode = NULL;
-}
-
-size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
-{
-  int c;
-
-  size_t line_len = 0;
-
-  size_t line_truncated = 0;
-
-  while ((c = hc_fgetc (fp)) != EOF)
+  if (fp->path)
   {
-    if (c == '\n') break;
-
-    if (line_len == line_sz)
-    {
-      line_truncated++;
-    }
-    else
-    {
-      line_buf[line_len] = (char) c;
-
-      line_len++;
-    }
+    hcfree (fp->path);
+    fp->path = NULL;
   }
 
-  if (line_truncated > 0)
+  if (fp->mode)
   {
-    fprintf (stderr, "\nOversized line detected! Truncated %" PRIu64 " bytes\n", (u64) line_truncated);
+    hcfree (fp->mode);
+    fp->mode = NULL;
+  }
+}
+
+#if defined (F_SETLKW)
+
+int hc_lockfile (HCFILE *fp)
+{
+  if (fp == NULL) return -1;
+
+  struct flock lock;
+
+  memset (&lock, 0, sizeof (struct flock));
+
+  lock.l_type = F_WRLCK;
+
+  /* Needs this loop because a signal may interrupt a wait for lock */
+  while (fcntl (fp->fd, F_SETLKW, &lock))
+  {
+    if (errno != EINTR) return -1;
+  }
+
+  return 0;
+}
+
+int hc_unlockfile (HCFILE *fp)
+{
+  if (fp == NULL) return -1;
+
+  struct flock lock;
+
+  memset (&lock, 0, sizeof (struct flock));
+
+  lock.l_type = F_UNLCK;
+
+  if (fcntl (fp->fd, F_SETLK, &lock)) return -1;
+
+  return 0;
+}
+
+#else
+
+int hc_lockfile (MAYBE_UNUSED HCFILE *fp)
+{
+  // we should put windows specific code here
+
+  return 0;
+}
+
+int hc_unlockfile (MAYBE_UNUSED HCFILE *fp)
+{
+  // we should put windows specific code here
+
+  return 0;
+}
+
+#endif // F_SETLKW
+
+int fgetl (HCFILE * restrict fp, char * restrict buf, int len)
+{
+  char *end;
+
+  if (hc_fgets (buf, len, fp) == NULL)
+  {
+    /* check for errors */
+    if (!hc_feof (fp))
+    {
+      fprintf (stderr, "\nError reading file %s\n", fp->path);
+    }
+
+    return -1;
+  }
+
+  /* check for empty case */
+  if (len == 1)
+  {
+    return 0;
+  }
+
+  /* check for EOF */
+  if (hc_feof (fp))
+  {
+    /* last line */
+    end = buf + strlen (buf);
   }
   else
   {
-    while (line_len > 0 && line_buf[line_len - 1] == '\r')
+    /* find newline */
+    end = memchr (buf, '\n', len);
+    if (end == NULL)
     {
-      line_len--;
+      /* buffer full */
+      end = buf + len - 1;
+
+      /* read until newline */
+      u64 line_truncated = 1;
+      int c = hc_fgetc (fp);
+      if (c == '\n')
+      {
+        /* trim carriage returns */
+        while (end > buf && *(end - 1) == '\r')
+        {
+          end--;
+        }
+
+        /* always NULL terminate */
+        *end = 0;
+      }
+      else
+      {
+        while (c != EOF)
+        {
+          c = hc_fgetc (fp);
+          line_truncated++;
+          if (c == '\n') break;
+        }
+
+        /* check for errors */
+        if (!hc_feof (fp))
+        {
+          fprintf (stderr, "\nError reading file %s\n", fp->path);
+          return -1;
+        }
+      }
+
+      fprintf(stderr, "\nOversized line detected! Truncated %" PRIu64 " bytes\n", line_truncated);
+    }
+    else
+    {
+      /* trim carriage returns */
+      while (end > buf && *(end - 1) == '\r')
+      {
+        end--;
+      }
+
+      /* always NULL terminate */
+      *end = 0;
     }
   }
 
-  line_buf[line_len] = 0;
-
-  return line_len;
+  return end - buf;
 }
 
 u64 count_lines (HCFILE *fp)
 {
   u64 cnt = 0;
 
-  char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE + 1);
+  size_t nread;
 
-  char prev = '\n';
+  char *buf = (char *) hcmalloc (HCFILE_CHUNK_SIZE);
 
-  while (!hc_feof (fp))
+  while ((nread = hc_fread (buf, sizeof (char), HCFILE_CHUNK_SIZE, fp)) > 0)
   {
-    size_t nread = hc_fread (buf, sizeof (char), HCBUFSIZ_LARGE, fp);
-
-    if (nread < 1) continue;
-
     for (size_t i = 0; i < nread; i++)
     {
-      if (prev == '\n') cnt++;
-
-      prev = buf[i];
+      if (buf[i] == '\n') cnt++;
     }
   }
 
   hcfree (buf);
 
+  if (!hc_feof(fp))
+  {
+    fprintf(stderr, "\nError reading file %s\n", fp->path);
+  }
+
   return cnt;
-}
-
-size_t in_superchop (char *buf)
-{
-  size_t len = strlen (buf);
-
-  while (len)
-  {
-    if (buf[len - 1] == '\n')
-    {
-      len--;
-
-      buf[len] = 0;
-
-      continue;
-    }
-
-    if (buf[len - 1] == '\r')
-    {
-      len--;
-
-      buf[len] = 0;
-
-      continue;
-    }
-
-    break;
-  }
-
-  return len;
-}
-
-size_t superchop_with_length (char *buf, const size_t len)
-{
-  size_t new_len = len;
-
-  while (new_len)
-  {
-    if (buf[new_len - 1] == '\n')
-    {
-      new_len--;
-
-      buf[new_len] = 0;
-
-      continue;
-    }
-
-    if (buf[new_len - 1] == '\r')
-    {
-      new_len--;
-
-      buf[new_len] = 0;
-
-      continue;
-    }
-
-    break;
-  }
-
-  return new_len;
 }

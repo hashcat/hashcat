@@ -8,7 +8,6 @@
 #include "memory.h"
 #include "event.h"
 #include "shared.h"
-#include "locking.h"
 #include "loopback.h"
 
 static void loopback_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const unsigned int plain_len)

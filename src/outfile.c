@@ -14,7 +14,6 @@
 #include "emu_inc_rp_optimized.h"
 #include "backend.h"
 #include "shared.h"
-#include "locking.h"
 #include "outfile.h"
 
 u32 outfile_format_parse (const char *format_string)

@@ -738,7 +738,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   char *rule_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-  u32 rule_len = 0;
+  int rule_len = 0;
 
   for (u32 i = 0; i < user_options->rp_files_cnt; i++)
   {
@@ -766,10 +766,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       return -1;
     }
 
-    while (!hc_feof (&fp))
+    while ((rule_len = fgetl (&fp, rule_buf, HCBUFSIZ_LARGE)) >= 0)
     {
-      rule_len = (u32) fgetl (&fp, rule_buf, HCBUFSIZ_LARGE);
-
       rule_line++;
 
       if (rule_len == 0) continue;
@@ -798,7 +796,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
         continue;
       }
 
-      if (cpu_rule_to_kernel_rule (rule_buf, rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1)
+      if (cpu_rule_to_kernel_rule (rule_buf, (u32) rule_len, &kernel_rules_buf[kernel_rules_cnt]) == -1)
       {
         event_log_warning (hashcat_ctx, "Cannot convert rule for use on OpenCL device in file %s on line %u: %s", rp_file, rule_line, rule_buf);
 

@@ -181,14 +181,10 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   if (r == true)
   {
-    char *in = (char *) hcmalloc (sizeof (hccapx_t));
+    hccapx_t hccapx;
 
-    while (!hc_feof (&fp))
+    while (hc_fread (&hccapx, sizeof (hccapx_t), 1, &fp) == 1)
     {
-      const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, &fp);
-
-      if (nread == 0) break;
-
       memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));
 
       memset (hashes_buf[hashes_cnt].esalt, 0, sizeof (wpa_t));
@@ -205,23 +201,21 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
       hash_t *hash = &hashes_buf[hashes_cnt];
 
-      const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, in, sizeof (hccapx_t));
+      const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, (const char *) &hccapx, sizeof (hccapx_t));
 
       if (parser_status != PARSER_OK) continue;
 
       hashes_cnt++;
     }
-
-    hcfree (in);
   }
   else
   {
     char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-    while (!hc_feof (&fp))
-    {
-      const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
+    int line_len;
 
+    while ((line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+    {
       if (line_len == 0) continue;
 
       memset (hashes_buf[hashes_cnt].salt, 0, sizeof (salt_t));

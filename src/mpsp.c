@@ -602,7 +602,7 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
   {
     char mp_file[1024];
 
-    const size_t nread = hc_fread (mp_file, 1, sizeof (mp_file) - 1, &fp);
+    const size_t nread = hc_fread (mp_file, 1, sizeof (mp_file), &fp);
 
     if (!hc_feof (&fp))
     {
@@ -622,9 +622,7 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
       return -1;
     }
 
-    mp_file[nread] = 0;
-
-    const size_t len = superchop_with_length (mp_file, nread);
+    size_t len = hc_string_trim_newline (mp_file, nread);
 
     if (len == 0)
     {
@@ -732,18 +730,16 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   SizeT inlen = (SizeT) hc_fread (inbuf, 1, s.st_size, &fp);
 
+  hc_fclose (&fp);
+
   if (inlen != (SizeT) s.st_size)
   {
     event_log_error (hashcat_ctx, "%s: Could not read data.", hcstat);
-
-    hc_fclose (&fp);
 
     hcfree (inbuf);
 
     return -1;
   }
-
-  hc_fclose (&fp);
 
   u8 *outbuf = (u8 *) hcmalloc (SP_FILESZ);
 
@@ -1476,15 +1472,15 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-              while (!hc_feof (&mask_fp))
-              {
-                const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
+              int line_len;
 
+              while ((line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+              {
                 if (line_len == 0) continue;
 
                 if (line_buf[0] == '#') continue;
 
-                char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, line_len);
+                char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, (const size_t) line_len);
 
                 char *prepend_buf = NULL;
 
@@ -1561,15 +1557,15 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-        while (!hc_feof (&mask_fp))
-        {
-          const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
+        int line_len;
 
+        while ((line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+        {
           if (line_len == 0) continue;
 
           if (line_buf[0] == '#') continue;
 
-          char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, line_len);
+          char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, (const size_t) line_len);
 
           char *prepend_buf = NULL;
 
@@ -1631,15 +1627,15 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-        while (!hc_feof (&mask_fp))
-        {
-          const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
+        int line_len;
 
+        while ((line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+        {
           if (line_len == 0) continue;
 
           if (line_buf[0] == '#') continue;
 
-          char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, line_len);
+          char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, (const size_t) line_len);
 
           char *prepend_buf = NULL;
 

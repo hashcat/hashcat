@@ -20,7 +20,6 @@
 #include "rp.h"
 #include "shared.h"
 #include "thread.h"
-#include "locking.h"
 #include "hashes.h"
 
 #ifdef WITH_BRAIN
@@ -1310,11 +1309,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       time_t prev = 0;
       time_t now  = 0;
 
-      while (!hc_feof (&fp))
+      int line_len;
+
+      while ((line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
       {
         line_num++;
-
-        const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
         if (line_len == 0) continue;
 

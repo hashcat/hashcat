@@ -81,26 +81,18 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   int line_num = 0;
 
-  char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+  char line[HCBUFSIZ_TINY];
 
-  while (!hc_feof (&fp))
+  while (hc_fgets (line, HCBUFSIZ_TINY, &fp))
   {
-    char *line_buf = hc_fgets (buf, HCBUFSIZ_LARGE - 1, &fp);
-
-    if (line_buf == NULL) break;
-
     line_num++;
 
-    const size_t line_len = in_superchop (line_buf);
+    size_t line_len = hc_string_trim_newline (line, strlen (line));
 
-    if (line_len == 0) continue;
+    if (line_len == 0 || line[0] == '#') continue;
 
-    if (line_buf[0] == '#') continue;
-
-    tuning_db_process_line (hashcat_ctx, line_buf, line_num);
+    tuning_db_process_line (hashcat_ctx, line, line_num);
   }
-
-  hcfree (buf);
 
   hc_fclose (&fp);
 
@@ -143,7 +135,7 @@ void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (tuning_db, 0, sizeof (tuning_db_t));
 }
 
-bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, const int line_num)
+bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, char *line_buf, int line_num)
 {
   tuning_db_t           *tuning_db          = hashcat_ctx->tuning_db;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
@@ -162,15 +154,13 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
     tuning_db->entry_alloc += ADD_DB_ENTRIES;
   }
 
-  char *buf = hcstrdup (line_buf);
-
   char *token_ptr[7] = { NULL };
 
   int token_cnt = 0;
 
   char *saveptr = NULL;
 
-  char *next = strtok_r (buf, "\t ", &saveptr);
+  char *next = strtok_r (line_buf, "\t ", &saveptr);
 
   token_ptr[token_cnt] = next;
 
@@ -205,8 +195,6 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
     {
       event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_mode '%c' in Line '%d'", token_ptr[1][0], line_num);
 
-      hcfree (buf);
-
       return false;
     }
 
@@ -217,8 +205,6 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
         (token_ptr[3][0] != 'N'))
     {
       event_log_warning (hashcat_ctx, "Tuning-db: Invalid vector_width '%c' in Line '%d'", token_ptr[3][0], line_num);
-
-      hcfree (buf);
 
       return false;
     }
@@ -255,8 +241,6 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
       {
         event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_accel '%d' in Line '%d'", kernel_accel, line_num);
 
-        hcfree (buf);
-
         return false;
       }
     }
@@ -288,16 +272,12 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
       {
         event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
 
-        hcfree (buf);
-
         return false;
       }
 
       if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) && (kernel_loops > KERNEL_RULES))
       {
         event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
-
-        hcfree (buf);
 
         return false;
       }
@@ -306,16 +286,12 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
       {
         event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
 
-        hcfree (buf);
-
         return false;
       }
 
       if ((user_options_extra->attack_kern == ATTACK_KERN_BF) && (kernel_loops > KERNEL_BFS))
       {
         event_log_warning (hashcat_ctx, "Tuning-db: Invalid kernel_loops '%d' in Line '%d'", kernel_loops, line_num);
-
-        hcfree (buf);
 
         return false;
       }
@@ -336,12 +312,8 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
   {
     event_log_warning (hashcat_ctx, "Tuning-db: Invalid number of token in Line '%d'", line_num);
 
-    hcfree (buf);
-
     return false;
   }
-
-  hcfree (buf);
 
   return true;
 }

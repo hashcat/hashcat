@@ -614,50 +614,58 @@ u32 get_random_num (const u32 min, const u32 max)
   #endif
 }
 
-void hc_string_trim_leading (char *s)
+size_t hc_string_trim_leading (char *s, size_t len)
 {
-  int skip = 0;
+  if (!s) return 0;
 
-  const int len = (int) strlen (s);
-
-  for (int i = 0; i < len; i++)
+  if (len > 0)
   {
-    const int c = (const int) s[i];
+    size_t skip = 0;
 
-    if (isspace (c) == 0) break;
+    do
+    {
+      if (isspace ((int) s[skip]) == 0) break;
+    } while (++skip < len);
 
-    skip++;
+    if (skip > 0)
+    {
+      len -= skip;
+
+      memmove (s, s + skip, len);
+    }
   }
 
-  if (skip == 0) return;
+  s[len] = 0;
 
-  const int new_len = len - skip;
-
-  memmove (s, s + skip, new_len);
-
-  s[new_len] = 0;
+  return len;
 }
 
-void hc_string_trim_trailing (char *s)
+size_t hc_string_trim_trailing (char *s, size_t len)
 {
-  int skip = 0;
+  if (!s) return 0;
 
-  const int len = (int) strlen (s);
-
-  for (int i = len - 1; i >= 0; i--)
+  while (len > 0 && isspace ((int) s[len - 1]))
   {
-    const int c = (const int) s[i];
-
-    if (isspace (c) == 0) break;
-
-    skip++;
+    len--;
   }
 
-  if (skip == 0) return;
+  s[len] = 0;
 
-  const size_t new_len = len - skip;
+  return len;
+}
 
-  s[new_len] = 0;
+size_t hc_string_trim_newline (char *buf, size_t len)
+{
+  if (!buf) return 0;
+
+  while (len > 0 && (buf[len - 1] == '\n' || buf[len - 1] == '\r'))
+  {
+    len--;
+  }
+
+  buf[len] = 0;
+
+  return len;
 }
 
 int hc_get_processor_count ()

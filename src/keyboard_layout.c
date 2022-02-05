@@ -28,10 +28,10 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
   int maps_cnt = 0;
 
-  while (!hc_feof (&fp))
-  {
-    const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
+  int line_len;
 
+  while ((line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE)) >= 0)
+  {
     if (line_len == 0) continue;
 
     hc_token_t token;
@@ -48,7 +48,7 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
     token.sep[1]     = 0x09;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-    if (input_tokenizer ((const u8 *) line_buf, (const int) line_len, &token) != PARSER_OK)
+    if (input_tokenizer ((const u8 *) line_buf, line_len, &token) != PARSER_OK)
     {
       hc_fclose (&fp);
 

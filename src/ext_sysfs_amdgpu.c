@@ -255,23 +255,19 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_sclk (void *hashcat_ctx, const int backend_device
 
   int clockfreq = 0;
 
-  while (!hc_feof (&fp))
+  char buf[HCBUFSIZ_TINY];
+
+  while (hc_fgets (buf, sizeof (buf), &fp))
   {
-    char buf[HCBUFSIZ_TINY] = { 0 };
-
-    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
-
-    if (ptr == NULL) continue;
-
-    size_t len = strlen (ptr);
+    size_t len = strlen (buf);
 
     if (len < 2) continue;
 
-    if (ptr[len - 2] != '*') continue;
+    if (buf[len - 2] != '*') continue;
 
     int profile = 0;
 
-    int rc = sscanf (ptr, "%d: %dMHz", &profile, &clockfreq);
+    int rc = sscanf (buf, "%d: %dMHz", &profile, &clockfreq);
 
     if (rc == 2) break;
   }
@@ -310,23 +306,19 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_mclk (void *hashcat_ctx, const int backend_device
 
   int clockfreq = 0;
 
-  while (!hc_feof (&fp))
+  char buf[HCBUFSIZ_TINY];
+
+  while (hc_fgets (buf, sizeof (buf), &fp))
   {
-    char buf[HCBUFSIZ_TINY];
-
-    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
-
-    if (ptr == NULL) continue;
-
-    size_t len = strlen (ptr);
+    size_t len = strlen (buf);
 
     if (len < 2) continue;
 
-    if (ptr[len - 2] != '*') continue;
+    if (buf[len - 2] != '*') continue;
 
     int profile = 0;
 
-    int rc = sscanf (ptr, "%d: %dMHz", &profile, &clockfreq);
+    int rc = sscanf (buf, "%d: %dMHz", &profile, &clockfreq);
 
     if (rc == 2) break;
   }
@@ -365,19 +357,15 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_pcie (void *hashcat_ctx, const int backend_device
 
   int lanes = 0;
 
-  while (!hc_feof (&fp))
+  char buf[HCBUFSIZ_TINY];
+
+  while (hc_fgets (buf, sizeof (buf), &fp))
   {
-    char buf[HCBUFSIZ_TINY];
-
-    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
-
-    if (ptr == NULL) continue;
-
-    size_t len = strlen (ptr);
+    size_t len = strlen (buf);
 
     if (len < 2) continue;
 
-    int rc = sscanf (ptr, "%d", &lanes);
+    int rc = sscanf (buf, "%d", &lanes);
 
     if (rc == 1) break;
   }
@@ -416,19 +404,15 @@ int hm_SYSFS_AMDGPU_get_gpu_busy_percent (void *hashcat_ctx, const int backend_d
 
   int util = 0;
 
-  while (!hc_feof (&fp))
+  char buf[HCBUFSIZ_TINY];
+
+  while (hc_fgets (buf, sizeof (buf), &fp))
   {
-    char buf[HCBUFSIZ_TINY];
-
-    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
-
-    if (ptr == NULL) continue;
-
-    size_t len = strlen (ptr);
+    size_t len = strlen (buf);
 
     if (len < 1) continue;
 
-    int rc = sscanf (ptr, "%d", &util);
+    int rc = sscanf (buf, "%d", &util);
 
     if (rc == 1) break;
   }
