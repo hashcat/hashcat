@@ -9,7 +9,7 @@
 #include "inc_common.h"
 #include "inc_luks_xts.h"
 
-DECLSPEC void xts_mul2 (u32 *in, u32 *out)
+DECLSPEC void xts_mul2 (PRIVATE_AS u32 *in, PRIVATE_AS u32 *out)
 {
   const u32 c = in[3] >> 31;
 

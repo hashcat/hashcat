@@ -84,7 +84,7 @@ DECLSPEC u8 hex_convert (const u8 c)
   return (c & 15) + (c >> 6) * 9;
 }
 
-DECLSPEC u8 hex_to_u8 (const u8 *hex)
+DECLSPEC u8 hex_to_u8 (PRIVATE_AS const u8 *hex)
 {
   u8 v = 0;
 
@@ -95,7 +95,7 @@ DECLSPEC u8 hex_to_u8 (const u8 *hex)
 }
 #endif
 
-DECLSPEC void make_kn (u32 *k)
+DECLSPEC void make_kn (PRIVATE_AS u32 *k)
 {
   u32 kl[4];
   u32 kr[4];
@@ -125,7 +125,7 @@ DECLSPEC void make_kn (u32 *k)
   k[3] ^= c * 0x87000000;
 }
 
-DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -186,11 +186,10 @@ KERNEL_FQ void m22001_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
   in[14] = pws[gid].i[14];
   in[15] = pws[gid].i[15];
 
-  u8 *in_ptr = (u8 *) in;
-
   u32 out[8];
 
-  u8 *out_ptr = (u8 *) out;
+  PRIVATE_AS u8 *in_ptr  = (PRIVATE_AS u8 *) in;
+  PRIVATE_AS u8 *out_ptr = (PRIVATE_AS u8 *) out;
 
   for (int i = 0, j = 0; i < 32; i += 1, j += 2)
   {

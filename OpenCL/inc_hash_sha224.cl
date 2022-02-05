@@ -34,7 +34,7 @@ CONSTANT_VK u32a k_sha224[64] =
 // input buf needs to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
 // input buf needs to be 64 byte aligned when using sha224_update()
 
-DECLSPEC void sha224_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest)
+DECLSPEC void sha224_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest)
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -125,7 +125,7 @@ DECLSPEC void sha224_transform (const u32 *w0, const u32 *w1, const u32 *w2, con
   digest[7] += h;
 }
 
-DECLSPEC void sha224_init (sha224_ctx_t *ctx)
+DECLSPEC void sha224_init (PRIVATE_AS sha224_ctx_t *ctx)
 {
   ctx->h[0] = SHA224M_A;
   ctx->h[1] = SHA224M_B;
@@ -156,7 +156,7 @@ DECLSPEC void sha224_init (sha224_ctx_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha224_update_64 (sha224_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
+DECLSPEC void sha224_update_64 (PRIVATE_AS sha224_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
 {
   if (len == 0) return;
 
@@ -276,7 +276,7 @@ DECLSPEC void sha224_update_64 (sha224_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u3
   }
 }
 
-DECLSPEC void sha224_update (sha224_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_update (PRIVATE_AS sha224_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -328,7 +328,7 @@ DECLSPEC void sha224_update (sha224_ctx_t *ctx, const u32 *w, const int len)
   sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha224_update_swap (sha224_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_update_swap (PRIVATE_AS sha224_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -414,7 +414,7 @@ DECLSPEC void sha224_update_swap (sha224_ctx_t *ctx, const u32 *w, const int len
   sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha224_update_utf16le (sha224_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_update_utf16le (PRIVATE_AS sha224_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   if (hc_enc_scan (w, len))
   {
@@ -474,7 +474,7 @@ DECLSPEC void sha224_update_utf16le (sha224_ctx_t *ctx, const u32 *w, const int 
   sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha224_update_utf16le_swap (sha224_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_update_utf16le_swap (PRIVATE_AS sha224_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   if (hc_enc_scan (w, len))
   {
@@ -585,7 +585,7 @@ DECLSPEC void sha224_update_utf16le_swap (sha224_ctx_t *ctx, const u32 *w, const
   sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha224_update_global (sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_update_global (PRIVATE_AS sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -637,7 +637,7 @@ DECLSPEC void sha224_update_global (sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, c
   sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha224_update_global_swap (sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_update_global_swap (PRIVATE_AS sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -723,7 +723,7 @@ DECLSPEC void sha224_update_global_swap (sha224_ctx_t *ctx, GLOBAL_AS const u32 
   sha224_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha224_update_global_utf16le (sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_update_global_utf16le (PRIVATE_AS sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   if (hc_enc_scan_global (w, len))
   {
@@ -783,7 +783,7 @@ DECLSPEC void sha224_update_global_utf16le (sha224_ctx_t *ctx, GLOBAL_AS const u
   sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_update_global_utf16le_swap (PRIVATE_AS sha224_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   if (hc_enc_scan_global (w, len))
   {
@@ -894,7 +894,7 @@ DECLSPEC void sha224_update_global_utf16le_swap (sha224_ctx_t *ctx, GLOBAL_AS co
   sha224_update_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha224_final (sha224_ctx_t *ctx)
+DECLSPEC void sha224_final (PRIVATE_AS sha224_ctx_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -930,7 +930,7 @@ DECLSPEC void sha224_final (sha224_ctx_t *ctx)
 
 // sha224_hmac
 
-DECLSPEC void sha224_hmac_init_64 (sha224_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3)
+DECLSPEC void sha224_hmac_init_64 (PRIVATE_AS sha224_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3)
 {
   u32 a0[4];
   u32 a1[4];
@@ -989,7 +989,7 @@ DECLSPEC void sha224_hmac_init_64 (sha224_hmac_ctx_t *ctx, const u32 *w0, const 
   sha224_update_64 (&ctx->opad, b0, b1, b2, b3, 64);
 }
 
-DECLSPEC void sha224_hmac_init (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init (PRIVATE_AS sha224_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1046,7 +1046,7 @@ DECLSPEC void sha224_hmac_init (sha224_hmac_ctx_t *ctx, const u32 *w, const int 
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha224_hmac_init_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init_swap (PRIVATE_AS sha224_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1103,7 +1103,7 @@ DECLSPEC void sha224_hmac_init_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha224_hmac_init_global (sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init_global (PRIVATE_AS sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1160,7 +1160,7 @@ DECLSPEC void sha224_hmac_init_global (sha224_hmac_ctx_t *ctx, GLOBAL_AS const u
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha224_hmac_init_global_swap (sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_hmac_init_global_swap (PRIVATE_AS sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1217,52 +1217,52 @@ DECLSPEC void sha224_hmac_init_global_swap (sha224_hmac_ctx_t *ctx, GLOBAL_AS co
   sha224_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha224_hmac_update_64 (sha224_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int len)
+DECLSPEC void sha224_hmac_update_64 (PRIVATE_AS sha224_hmac_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
 {
   sha224_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void sha224_hmac_update (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update (PRIVATE_AS sha224_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha224_update (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_swap (PRIVATE_AS sha224_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha224_update_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_utf16le (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_utf16le (PRIVATE_AS sha224_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha224_update_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_utf16le_swap (sha224_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_utf16le_swap (PRIVATE_AS sha224_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha224_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_global (sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global (PRIVATE_AS sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   sha224_update_global (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_global_swap (sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global_swap (PRIVATE_AS sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   sha224_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_global_utf16le (sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global_utf16le (PRIVATE_AS sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   sha224_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_update_global_utf16le_swap (sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha224_hmac_update_global_utf16le_swap (PRIVATE_AS sha224_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   sha224_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_final (sha224_hmac_ctx_t *ctx)
+DECLSPEC void sha224_hmac_final (PRIVATE_AS sha224_hmac_ctx_t *ctx)
 {
   sha224_final (&ctx->ipad);
 
@@ -1290,7 +1290,7 @@ DECLSPEC void sha224_hmac_final (sha224_hmac_ctx_t *ctx)
 
 // while input buf can be a vector datatype, the length of the different elements can not
 
-DECLSPEC void sha224_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, u32x *digest)
+DECLSPEC void sha224_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u32x *digest)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -1381,7 +1381,7 @@ DECLSPEC void sha224_transform_vector (const u32x *w0, const u32x *w1, const u32
   digest[7] += h;
 }
 
-DECLSPEC void sha224_init_vector (sha224_ctx_vector_t *ctx)
+DECLSPEC void sha224_init_vector (PRIVATE_AS sha224_ctx_vector_t *ctx)
 {
   ctx->h[0] = SHA224M_A;
   ctx->h[1] = SHA224M_B;
@@ -1412,7 +1412,7 @@ DECLSPEC void sha224_init_vector (sha224_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha224_init_vector_from_scalar (sha224_ctx_vector_t *ctx, sha224_ctx_t *ctx0)
+DECLSPEC void sha224_init_vector_from_scalar (PRIVATE_AS sha224_ctx_vector_t *ctx, PRIVATE_AS sha224_ctx_t *ctx0)
 {
   ctx->h[0] = ctx0->h[0];
   ctx->h[1] = ctx0->h[1];
@@ -1443,7 +1443,7 @@ DECLSPEC void sha224_init_vector_from_scalar (sha224_ctx_vector_t *ctx, sha224_c
   ctx->len = ctx0->len;
 }
 
-DECLSPEC void sha224_update_vector_64 (sha224_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
+DECLSPEC void sha224_update_vector_64 (PRIVATE_AS sha224_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const int len)
 {
   if (len == 0) return;
 
@@ -1563,7 +1563,7 @@ DECLSPEC void sha224_update_vector_64 (sha224_ctx_vector_t *ctx, u32x *w0, u32x 
   }
 }
 
-DECLSPEC void sha224_update_vector (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector (PRIVATE_AS sha224_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1615,7 +1615,7 @@ DECLSPEC void sha224_update_vector (sha224_ctx_vector_t *ctx, const u32x *w, con
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha224_update_vector_swap (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector_swap (PRIVATE_AS sha224_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1701,7 +1701,7 @@ DECLSPEC void sha224_update_vector_swap (sha224_ctx_vector_t *ctx, const u32x *w
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha224_update_vector_utf16le (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector_utf16le (PRIVATE_AS sha224_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1743,7 +1743,7 @@ DECLSPEC void sha224_update_vector_utf16le (sha224_ctx_vector_t *ctx, const u32x
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha224_update_vector_utf16le_swap (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector_utf16le_swap (PRIVATE_AS sha224_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1819,7 +1819,7 @@ DECLSPEC void sha224_update_vector_utf16le_swap (sha224_ctx_vector_t *ctx, const
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha224_update_vector_utf16beN (sha224_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_update_vector_utf16beN (PRIVATE_AS sha224_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -1861,7 +1861,7 @@ DECLSPEC void sha224_update_vector_utf16beN (sha224_ctx_vector_t *ctx, const u32
   sha224_update_vector_64 (ctx, w0, w1, w2, w3, (len - pos1) * 2);
 }
 
-DECLSPEC void sha224_final_vector (sha224_ctx_vector_t *ctx)
+DECLSPEC void sha224_final_vector (PRIVATE_AS sha224_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 63;
 
@@ -1897,7 +1897,7 @@ DECLSPEC void sha224_final_vector (sha224_ctx_vector_t *ctx)
 
 // HMAC + Vector
 
-DECLSPEC void sha224_hmac_init_vector_64 (sha224_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3)
+DECLSPEC void sha224_hmac_init_vector_64 (PRIVATE_AS sha224_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3)
 {
   u32x a0[4];
   u32x a1[4];
@@ -1956,7 +1956,7 @@ DECLSPEC void sha224_hmac_init_vector_64 (sha224_hmac_ctx_vector_t *ctx, const u
   sha224_update_vector_64 (&ctx->opad, b0, b1, b2, b3, 64);
 }
 
-DECLSPEC void sha224_hmac_init_vector (sha224_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_hmac_init_vector (PRIVATE_AS sha224_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2013,17 +2013,17 @@ DECLSPEC void sha224_hmac_init_vector (sha224_hmac_ctx_vector_t *ctx, const u32x
   sha224_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha224_hmac_update_vector_64 (sha224_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, const int len)
+DECLSPEC void sha224_hmac_update_vector_64 (PRIVATE_AS sha224_hmac_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const int len)
 {
   sha224_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void sha224_hmac_update_vector (sha224_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha224_hmac_update_vector (PRIVATE_AS sha224_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   sha224_update_vector (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha224_hmac_final_vector (sha224_hmac_ctx_vector_t *ctx)
+DECLSPEC void sha224_hmac_final_vector (PRIVATE_AS sha224_hmac_ctx_vector_t *ctx)
 {
   sha224_final_vector (&ctx->ipad);
 

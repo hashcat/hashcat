@@ -35,7 +35,7 @@ typedef struct telegram
 
 } telegram_t;
 
-DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, u64x *ipad, u64x *opad, u64x *digest)
+DECLSPEC void hmac_sha512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, PRIVATE_AS u64x *ipad, PRIVATE_AS u64x *opad, PRIVATE_AS u64x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];
@@ -93,7 +93,7 @@ DECLSPEC void hmac_sha512_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-DECLSPEC void sha1_run (u32 *w, u32 *res)
+DECLSPEC void sha1_run (PRIVATE_AS u32 *w, PRIVATE_AS u32 *res)
 {
   u32 w0[4];
   u32 w1[4];

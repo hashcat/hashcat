@@ -29,7 +29,7 @@ DECLSPEC u8 hex_convert (const u8 c)
   return (c & 15) + (c >> 6) * 9;
 }
 
-DECLSPEC u8 hex_to_u8 (const u8 *hex)
+DECLSPEC u8 hex_to_u8 (PRIVATE_AS const u8 *hex)
 {
   u8 v = 0;
 
@@ -85,11 +85,10 @@ KERNEL_FQ void m27100_init (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
   in[ 6] = pws[gid].i[ 6];
   in[ 7] = pws[gid].i[ 7];
 
-  u8 *in_ptr = (u8 *) in;
-
   u32 out[4];
 
-  u8 *out_ptr = (u8 *) out;
+  PRIVATE_AS u8 *in_ptr  = (PRIVATE_AS u8 *) in;
+  PRIVATE_AS u8 *out_ptr = (PRIVATE_AS u8 *) out;
 
   for (int i = 0, j = 0; i < 16; i += 1, j += 2)
   {

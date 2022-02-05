@@ -317,7 +317,7 @@ CONSTANT_VK code distfix[32] = {
     {22,5,193},{64,5,0}
 };
 
-DECLSPEC int check_inflate_code2 (u8 *next)
+DECLSPEC int check_inflate_code2 (PRIVATE_AS u8 *next)
 {
   u32 bits, hold, thisget, have, i;
   int left;
@@ -404,7 +404,7 @@ DECLSPEC int check_inflate_code2 (u8 *next)
 }
 
 
-DECLSPEC int check_inflate_code1 (u8 *next, int left)
+DECLSPEC int check_inflate_code1 (PRIVATE_AS u8 *next, int left)
 {
   u32 whave = 0, op, bits, hold,len;
   code here1;

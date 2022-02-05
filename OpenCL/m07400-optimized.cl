@@ -29,7 +29,7 @@ typedef struct sha256crypt_tmp
 
 } sha256crypt_tmp_t;
 
-DECLSPEC void init_ctx (u32 *digest)
+DECLSPEC void init_ctx (PRIVATE_AS u32 *digest)
 {
   digest[0] = SHA256M_A;
   digest[1] = SHA256M_B;
@@ -41,7 +41,7 @@ DECLSPEC void init_ctx (u32 *digest)
   digest[7] = SHA256M_H;
 }
 
-DECLSPEC u32 memcat16 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
+DECLSPEC u32 memcat16 (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const u32 *append, const u32 append_len)
 {
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -168,7 +168,7 @@ DECLSPEC u32 memcat16 (u32 *block, const u32 offset, const u32 *append, const u3
   return new_len;
 }
 
-DECLSPEC u32 memcat16c (u32 *block, const u32 offset, const u32 *append, const u32 append_len, u32 *digest)
+DECLSPEC u32 memcat16c (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const u32 *append, const u32 append_len, PRIVATE_AS u32 *digest)
 {
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -331,7 +331,7 @@ DECLSPEC u32 memcat16c (u32 *block, const u32 offset, const u32 *append, const u
   return new_len;
 }
 
-DECLSPEC u32 memcat16s (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
+DECLSPEC u32 memcat16s (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const u32 *append, const u32 append_len)
 {
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -472,7 +472,7 @@ DECLSPEC u32 memcat16s (u32 *block, const u32 offset, const u32 *append, const u
   return new_len;
 }
 
-DECLSPEC u32 memcat16sc (u32 *block, const u32 offset, const u32 *append, const u32 append_len, u32 *digest)
+DECLSPEC u32 memcat16sc (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const u32 *append, const u32 append_len, PRIVATE_AS u32 *digest)
 {
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -654,7 +654,7 @@ DECLSPEC u32 memcat16sc (u32 *block, const u32 offset, const u32 *append, const 
   return new_len;
 }
 
-DECLSPEC void truncate_block_5x4_be_S (u32 *w0, const u32 len)
+DECLSPEC void truncate_block_5x4_be_S (PRIVATE_AS u32 *w0, const u32 len)
 {
   switch (len)
   {
@@ -780,7 +780,7 @@ DECLSPEC void truncate_block_5x4_be_S (u32 *w0, const u32 len)
   }
 }
 
-DECLSPEC u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
+DECLSPEC u32 memcat20 (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const u32 *append, const u32 append_len)
 {
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -945,7 +945,7 @@ DECLSPEC u32 memcat20 (u32 *block, const u32 offset, const u32 *append, const u3
   return offset + append_len;
 }
 
-DECLSPEC u32 memcat20_x80 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
+DECLSPEC u32 memcat20_x80 (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const u32 *append, const u32 append_len)
 {
   u32 in0 = append[0];
   u32 in1 = append[1];
@@ -1111,7 +1111,7 @@ DECLSPEC u32 memcat20_x80 (u32 *block, const u32 offset, const u32 *append, cons
   return offset + append_len;
 }
 
-DECLSPEC u32 memcat24 (u32 *block, const u32 offset, const u32 *append, const u32 append_len)
+DECLSPEC u32 memcat24 (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const u32 *append, const u32 append_len)
 {
   u32 in0 = append[0];
   u32 in1 = append[1];

@@ -30,14 +30,11 @@ typedef struct oldoffice34
 
 } oldoffice34_t;
 
-DECLSPEC void m09810m (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
+DECLSPEC void m09810m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (oldoffice34_t))
 {
   /**
-   * modifier
+   * modifiers are taken from args
    */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   /**
    * esalt
@@ -69,11 +66,11 @@ DECLSPEC void m09810m (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
     key[2] = 0;
     key[3] = 0;
 
-    rc4_init_128 (S, key);
+    rc4_init_128 (S, key, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     u32 w0_t[4];
     u32 w1_t[4];
@@ -112,20 +109,17 @@ DECLSPEC void m09810m (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
-DECLSPEC void m09810s (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_ESALT (oldoffice34_t))
+DECLSPEC void m09810s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (oldoffice34_t))
 {
   /**
-   * modifier
+   * modifiers are taken from args
    */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   /**
    * esalt
@@ -169,11 +163,11 @@ DECLSPEC void m09810s (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
     key[2] = 0;
     key[3] = 0;
 
-    rc4_init_128 (S, key);
+    rc4_init_128 (S, key, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     u32 w0_t[4];
     u32 w1_t[4];
@@ -212,7 +206,7 @@ DECLSPEC void m09810s (LOCAL_AS u32 *S, u32 *w0, u32 *w1, u32 *w2, u32 *w3, cons
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
@@ -224,7 +218,9 @@ KERNEL_FQ void m09810_m04 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -264,7 +260,7 @@ KERNEL_FQ void m09810_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09810m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m09810m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m09810_m08 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -273,7 +269,9 @@ KERNEL_FQ void m09810_m08 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -313,7 +311,7 @@ KERNEL_FQ void m09810_m08 (KERN_ATTR_ESALT (oldoffice34_t))
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09810m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m09810m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m09810_m16 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -322,7 +320,9 @@ KERNEL_FQ void m09810_m16 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -362,7 +362,7 @@ KERNEL_FQ void m09810_m16 (KERN_ATTR_ESALT (oldoffice34_t))
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09810m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m09810m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m09810_s04 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -371,7 +371,9 @@ KERNEL_FQ void m09810_s04 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -411,7 +413,7 @@ KERNEL_FQ void m09810_s04 (KERN_ATTR_ESALT (oldoffice34_t))
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09810s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m09810s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m09810_s08 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -420,7 +422,9 @@ KERNEL_FQ void m09810_s08 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -460,7 +464,7 @@ KERNEL_FQ void m09810_s08 (KERN_ATTR_ESALT (oldoffice34_t))
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09810s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m09810s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m09810_s16 (KERN_ATTR_ESALT (oldoffice34_t))
@@ -469,7 +473,9 @@ KERNEL_FQ void m09810_s16 (KERN_ATTR_ESALT (oldoffice34_t))
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -509,5 +515,5 @@ KERNEL_FQ void m09810_s16 (KERN_ATTR_ESALT (oldoffice34_t))
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m09810s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m09810s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }

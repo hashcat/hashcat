@@ -184,11 +184,11 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
       digest[3]  = 0;
     }
 
-    rc4_init_128 (S, digest);
+    rc4_init_128 (S, digest, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     w0[0] = hc_swap32 (out[0]);
     w0[1] = hc_swap32 (out[1]);
@@ -220,7 +220,7 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     // initial compare
 
@@ -264,7 +264,7 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
       // second block decrypt:
 
-      rc4_init_128 (S, digest);
+      rc4_init_128 (S, digest, lid);
 
       u32 secondBlockData[4];
 
@@ -273,7 +273,7 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
       secondBlockData[2] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[2];
       secondBlockData[3] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[3];
 
-      j = rc4_next_16 (S, 0, 0, secondBlockData, out);
+      j = rc4_next_16 (S, 0, 0, secondBlockData, out, lid);
 
       int null_bytes = 0;
 
@@ -290,7 +290,7 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
       secondBlockData[2] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[6];
       secondBlockData[3] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[7];
 
-      rc4_next_16 (S, 16, j, secondBlockData, out);
+      rc4_next_16 (S, 16, j, secondBlockData, out, lid);
 
       for (int k = 0; k < 4; k++)
       {
@@ -482,11 +482,11 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
       digest[3]  = 0;
     }
 
-    rc4_init_128 (S, digest);
+    rc4_init_128 (S, digest, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     w0[0] = hc_swap32 (out[0]);
     w0[1] = hc_swap32 (out[1]);
@@ -518,7 +518,7 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     // initial compare
 
@@ -563,7 +563,7 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
       // second block decrypt:
 
-      rc4_init_128 (S, digest);
+      rc4_init_128 (S, digest, lid);
 
       u32 secondBlockData[4];
 
@@ -572,7 +572,7 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
       secondBlockData[2] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[2];
       secondBlockData[3] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[3];
 
-      j = rc4_next_16 (S, 0, 0, secondBlockData, out);
+      j = rc4_next_16 (S, 0, 0, secondBlockData, out, lid);
 
       int null_bytes = 0;
 
@@ -589,7 +589,7 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
       secondBlockData[2] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[6];
       secondBlockData[3] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[7];
 
-      rc4_next_16 (S, 16, j, secondBlockData, out);
+      rc4_next_16 (S, 16, j, secondBlockData, out, lid);
 
       for (int k = 0; k < 4; k++)
       {

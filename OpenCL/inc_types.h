@@ -45,6 +45,14 @@ typedef unsigned long       ulong;
 typedef unsigned long long  ullong;
 #endif
 
+#ifdef IS_METAL
+typedef unsigned char  uchar;
+typedef unsigned short ushort;
+typedef unsigned int   uint;
+typedef unsigned long  ulong;
+#define ullong ulong
+#endif
+
 #ifdef IS_OPENCL
 typedef ulong   ullong;
 typedef ulong2  ullong2;
@@ -57,7 +65,11 @@ typedef ulong16 ullong16;
 typedef uchar  u8;
 typedef ushort u16;
 typedef uint   u32;
+#ifdef IS_METAL
+typedef ulong  u64;
+#else
 typedef ullong u64;
+#endif
 #else
 typedef uint8_t  u8;
 typedef uint16_t u16;

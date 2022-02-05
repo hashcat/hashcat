@@ -396,7 +396,7 @@ CONSTANT_VK u32a c_skb[8][64] =
 #define BOX1(i,S) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-DECLSPEC void _des_crypt_encrypt (u32 *iv, u32x *data, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (PRIVATE_AS u32 *iv, PRIVATE_AS u32x *data, PRIVATE_AS u32x *Kc, PRIVATE_AS u32x *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
 {
   u32 r = data[0];
   u32 l = data[1];
@@ -438,7 +438,7 @@ DECLSPEC void _des_crypt_encrypt (u32 *iv, u32x *data, u32x *Kc, u32x *Kd, LOCAL
   iv[1] = r;
 }
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32x d, u32x *Kc, u32x *Kd, LOCAL_AS u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32x d, PRIVATE_AS u32x *Kc, PRIVATE_AS u32x *Kd, LOCAL_AS u32 (*s_skb)[64])
 {
   u32 tt;
 
@@ -510,7 +510,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32x d, u32x *Kc, u32x *Kd, LOCAL_AS u
   }
 }
 
-DECLSPEC void transform_racf_key (const u32 w0, const u32x w1, u32x *key)
+DECLSPEC void transform_racf_key (const u32 w0, const u32x w1, PRIVATE_AS u32x *key)
 {
   key[0] = BOX1 (((w0 >>  0) & 0xff), c_ascii_to_ebcdic_pc) <<  0
          | BOX1 (((w0 >>  8) & 0xff), c_ascii_to_ebcdic_pc) <<  8

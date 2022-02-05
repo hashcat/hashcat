@@ -210,7 +210,7 @@ DECLSPEC u64x blake2b_rot32 (const u64x a)
   return r;
 }
 
-DECLSPEC void blake2b_transform (u64 *h, const u64 *m, const int len, const u64 f0)
+DECLSPEC void blake2b_transform (PRIVATE_AS u64 *h, PRIVATE_AS const u64 *m, const int len, const u64 f0)
 {
   const u64 t0 = hl32_to_64_S (0, len);
 
@@ -256,7 +256,7 @@ DECLSPEC void blake2b_transform (u64 *h, const u64 *m, const int len, const u64 
   h[7] = h[7] ^ v[7] ^ v[15];
 }
 
-DECLSPEC void blake2b_init (blake2b_ctx_t *ctx)
+DECLSPEC void blake2b_init (PRIVATE_AS blake2b_ctx_t *ctx)
 {
   ctx->h[0] = BLAKE2B_IV_00 ^ 0x01010040; // default output length: 0x40 = 64 bytes
   ctx->h[1] = BLAKE2B_IV_01;
@@ -287,7 +287,7 @@ DECLSPEC void blake2b_init (blake2b_ctx_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void blake2b_update_128 (blake2b_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
+DECLSPEC void blake2b_update_128 (PRIVATE_AS blake2b_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, const int len)
 {
   if (len == 0) return;
 
@@ -398,7 +398,7 @@ DECLSPEC void blake2b_update_128 (blake2b_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2,
   ctx->len += len;
 }
 
-DECLSPEC void blake2b_update (blake2b_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void blake2b_update (PRIVATE_AS blake2b_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -488,7 +488,7 @@ DECLSPEC void blake2b_update (blake2b_ctx_t *ctx, const u32 *w, const int len)
   blake2b_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - (u32) pos1);
 }
 
-DECLSPEC void blake2b_update_global (blake2b_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void blake2b_update_global (PRIVATE_AS blake2b_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -578,12 +578,12 @@ DECLSPEC void blake2b_update_global (blake2b_ctx_t *ctx, GLOBAL_AS const u32 *w,
   blake2b_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - (u32) pos1);
 }
 
-DECLSPEC void blake2b_final (blake2b_ctx_t *ctx)
+DECLSPEC void blake2b_final (PRIVATE_AS blake2b_ctx_t *ctx)
 {
   blake2b_transform (ctx->h, ctx->m, ctx->len, BLAKE2B_FINAL);
 }
 
-DECLSPEC void blake2b_transform_vector (u64x *h, const u64x *m, const u32x len, const u64 f0)
+DECLSPEC void blake2b_transform_vector (PRIVATE_AS u64x *h, PRIVATE_AS const u64x *m, const u32x len, const u64 f0)
 {
   const u64x t0 = hl32_to_64 (0, len);
 
@@ -629,7 +629,7 @@ DECLSPEC void blake2b_transform_vector (u64x *h, const u64x *m, const u32x len, 
   h[7] = h[7] ^ v[7] ^ v[15];
 }
 
-DECLSPEC void blake2b_init_vector (blake2b_ctx_vector_t *ctx)
+DECLSPEC void blake2b_init_vector (PRIVATE_AS blake2b_ctx_vector_t *ctx)
 {
   ctx->h[0] = BLAKE2B_IV_00 ^ 0x01010040; // default output length: 0x40 = 64 bytes
   ctx->h[1] = BLAKE2B_IV_01;
@@ -660,7 +660,7 @@ DECLSPEC void blake2b_init_vector (blake2b_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void blake2b_update_vector_128 (blake2b_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len)
+DECLSPEC void blake2b_update_vector_128 (PRIVATE_AS blake2b_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, const int len)
 {
   if (len == 0) return;
 
@@ -771,7 +771,7 @@ DECLSPEC void blake2b_update_vector_128 (blake2b_ctx_vector_t *ctx, u32x *w0, u3
   ctx->len += len;
 }
 
-DECLSPEC void blake2b_update_vector (blake2b_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void blake2b_update_vector (PRIVATE_AS blake2b_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -861,7 +861,7 @@ DECLSPEC void blake2b_update_vector (blake2b_ctx_vector_t *ctx, const u32x *w, c
   blake2b_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - (u32) pos1);
 }
 
-DECLSPEC void blake2b_final_vector (blake2b_ctx_vector_t *ctx)
+DECLSPEC void blake2b_final_vector (PRIVATE_AS blake2b_ctx_vector_t *ctx)
 {
   blake2b_transform_vector (ctx->h, ctx->m, (u32x) ctx->len, BLAKE2B_FINAL);
 }

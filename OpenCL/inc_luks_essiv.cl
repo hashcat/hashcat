@@ -10,7 +10,7 @@
 #include "inc_hash_sha256.h"
 #include "inc_luks_essiv.h"
 
-DECLSPEC void ESSIV_sha256_init128 (u32 *key, u32 *essivhash)
+DECLSPEC void ESSIV_sha256_init128 (PRIVATE_AS u32 *key, PRIVATE_AS u32 *essivhash)
 {
   essivhash[0] = SHA256M_A;
   essivhash[1] = SHA256M_B;
@@ -55,7 +55,7 @@ DECLSPEC void ESSIV_sha256_init128 (u32 *key, u32 *essivhash)
   essivhash[7] = hc_swap32_S (essivhash[7]);
 }
 
-DECLSPEC void ESSIV_sha256_init256 (u32 *key, u32 *essivhash)
+DECLSPEC void ESSIV_sha256_init256 (PRIVATE_AS u32 *key, PRIVATE_AS u32 *essivhash)
 {
   essivhash[0] = SHA256M_A;
   essivhash[1] = SHA256M_B;

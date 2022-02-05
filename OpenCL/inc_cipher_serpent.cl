@@ -410,7 +410,7 @@
 
 // 128 bit key
 
-DECLSPEC void serpent128_set_key (u32 *ks, const u32 *ukey)
+DECLSPEC void serpent128_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey)
 {
   ks[  0] = ukey[0];
   ks[  1] = ukey[1];
@@ -591,7 +591,7 @@ DECLSPEC void serpent128_set_key (u32 *ks, const u32 *ukey)
   k_set(32,a,b,c,d); sb3(a,b,c,d,e,f,g,h); k_get(32,e,f,g,h);
 }
 
-DECLSPEC void serpent128_encrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void serpent128_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
   u32  t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16;
@@ -641,7 +641,7 @@ DECLSPEC void serpent128_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = d;
 }
 
-DECLSPEC void serpent128_decrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void serpent128_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
   u32  t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16;
@@ -693,7 +693,7 @@ DECLSPEC void serpent128_decrypt (const u32 *ks, const u32 *in, u32 *out)
 
 // 192 bit key
 
-DECLSPEC void serpent192_set_key (u32 *ks, const u32 *ukey)
+DECLSPEC void serpent192_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey)
 {
   ks[  0] = ukey[0];
   ks[  1] = ukey[1];
@@ -874,7 +874,7 @@ DECLSPEC void serpent192_set_key (u32 *ks, const u32 *ukey)
   k_set(32,a,b,c,d); sb3(a,b,c,d,e,f,g,h); k_get(32,e,f,g,h);
 }
 
-DECLSPEC void serpent192_encrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void serpent192_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
   u32  t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16;
@@ -924,7 +924,7 @@ DECLSPEC void serpent192_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = d;
 }
 
-DECLSPEC void serpent192_decrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void serpent192_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
   u32  t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16;
@@ -976,7 +976,7 @@ DECLSPEC void serpent192_decrypt (const u32 *ks, const u32 *in, u32 *out)
 
 // 256 bit key
 
-DECLSPEC void serpent256_set_key (u32 *ks, const u32 *ukey)
+DECLSPEC void serpent256_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey)
 {
   ks[  0] = ukey[0];
   ks[  1] = ukey[1];
@@ -1157,7 +1157,7 @@ DECLSPEC void serpent256_set_key (u32 *ks, const u32 *ukey)
   k_set(32,a,b,c,d); sb3(a,b,c,d,e,f,g,h); k_get(32,e,f,g,h);
 }
 
-DECLSPEC void serpent256_encrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void serpent256_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
   u32  t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16;
@@ -1207,7 +1207,7 @@ DECLSPEC void serpent256_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] = d;
 }
 
-DECLSPEC void serpent256_decrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void serpent256_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   u32  a,b,c,d,e,f,g,h;
   u32  t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15,t16;

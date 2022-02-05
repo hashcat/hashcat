@@ -22,7 +22,8 @@ DECLSPEC u32x Murmur32_Scramble(u32x k)
   return (k * 0x1B873593);
 }
 
-DECLSPEC u32x MurmurHash3(const u32 seed, const u32x w0, const u32* data, const u32 size) {
+DECLSPEC u32x MurmurHash3(const u32 seed, const u32x w0, PRIVATE_AS const u32 *data, const u32 size)
+{
   u32x checksum = seed;
 
   if (size >= 4)
@@ -44,7 +45,7 @@ DECLSPEC u32x MurmurHash3(const u32 seed, const u32x w0, const u32* data, const 
 
     if (size % 4)
     {
-      const u8* remainder = (u8*)(data + nBlocks);
+      PRIVATE_AS const u8 *remainder = (PRIVATE_AS u8 *)(data + nBlocks);
       u32x val = 0;
 
       switch(size & 3) //Hash remaining bytes as size isn't always aligned by 4
@@ -66,7 +67,7 @@ DECLSPEC u32x MurmurHash3(const u32 seed, const u32x w0, const u32* data, const 
   {
     if (size % 4)
     {
-      const u8* remainder = (u8*)(&w0);
+      PRIVATE_AS const u8 *remainder = (PRIVATE_AS u8 *)(&w0);
       u32x val = 0;
 
       switch(size & 3)
@@ -92,14 +93,11 @@ DECLSPEC u32x MurmurHash3(const u32 seed, const u32x w0, const u32* data, const 
   return checksum ^ (checksum >> 16);
 }
 
-DECLSPEC void m27800m (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m27800m (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
-   * modifier
+   * modifiers are taken from args
    */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   /**
    * seed
@@ -130,14 +128,11 @@ DECLSPEC void m27800m (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
   }
 }
 
-DECLSPEC void m27800s (const u32 *w, const u32 pw_len, KERN_ATTR_VECTOR ())
+DECLSPEC void m27800s (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
-   * modifier
+   * modifiers are taken from args
    */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   /**
    * digest
@@ -186,7 +181,9 @@ KERNEL_FQ void m27800_m04 (KERN_ATTR_VECTOR ())
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -215,7 +212,7 @@ KERNEL_FQ void m27800_m04 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m27800m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m27800m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m27800_m08 (KERN_ATTR_VECTOR ())
@@ -224,7 +221,9 @@ KERNEL_FQ void m27800_m08 (KERN_ATTR_VECTOR ())
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -253,7 +252,7 @@ KERNEL_FQ void m27800_m08 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m27800m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m27800m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m27800_m16 (KERN_ATTR_VECTOR ())
@@ -262,7 +261,9 @@ KERNEL_FQ void m27800_m16 (KERN_ATTR_VECTOR ())
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -291,7 +292,7 @@ KERNEL_FQ void m27800_m16 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m27800m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m27800m (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m27800_s04 (KERN_ATTR_VECTOR ())
@@ -300,7 +301,9 @@ KERNEL_FQ void m27800_s04 (KERN_ATTR_VECTOR ())
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -329,7 +332,7 @@ KERNEL_FQ void m27800_s04 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m27800s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m27800s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m27800_s08 (KERN_ATTR_VECTOR ())
@@ -338,7 +341,9 @@ KERNEL_FQ void m27800_s08 (KERN_ATTR_VECTOR ())
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -367,7 +372,7 @@ KERNEL_FQ void m27800_s08 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m27800s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m27800s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m27800_s16 (KERN_ATTR_VECTOR ())
@@ -376,7 +381,9 @@ KERNEL_FQ void m27800_s16 (KERN_ATTR_VECTOR ())
    * base
    */
 
+  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
@@ -405,5 +412,5 @@ KERNEL_FQ void m27800_s16 (KERN_ATTR_VECTOR ())
    * main
    */
 
-  m27800s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m27800s (w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }

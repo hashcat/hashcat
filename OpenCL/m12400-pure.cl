@@ -361,7 +361,7 @@ CONSTANT_VK u32a c_skb[8][64] =
 
 #define BOX(i,n,S) (S)[(n)][(i)]
 
-DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, LOCAL_AS u32 (*s_skb)[64])
+DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, PRIVATE_AS u32 *Kc, PRIVATE_AS u32 *Kd, LOCAL_AS u32 (*s_skb)[64])
 {
   u32 tt;
 
@@ -430,7 +430,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, u32 *Kc, u32 *Kd, LOCAL_AS u32 
   }
 }
 
-DECLSPEC void _des_crypt_encrypt (u32 *iv, u32 mask, u32 rounds, u32 *Kc, u32 *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
+DECLSPEC void _des_crypt_encrypt (PRIVATE_AS u32 *iv, u32 mask, u32 rounds, PRIVATE_AS u32 *Kc, PRIVATE_AS u32 *Kd, LOCAL_AS u32 (*s_SPtrans)[64])
 {
   const u32 E0 = ((mask >>  0) & 0x003f)
                | ((mask >>  4) & 0x3f00);

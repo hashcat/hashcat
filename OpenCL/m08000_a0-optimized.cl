@@ -19,7 +19,7 @@
 #include STR(INCLUDE_PATH/inc_hash_sha256.cl)
 #endif
 
-DECLSPEC void sha256_transform_m (u32x *digest, const u32x *w)
+DECLSPEC void sha256_transform_m (PRIVATE_AS u32x *digest, PRIVATE_AS const u32x *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -113,7 +113,7 @@ DECLSPEC void sha256_transform_m (u32x *digest, const u32x *w)
   digest[7] += h;
 }
 
-DECLSPEC void sha256_transform_z (u32x *digest)
+DECLSPEC void sha256_transform_z (PRIVATE_AS u32x *digest)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -170,7 +170,7 @@ DECLSPEC void sha256_transform_z (u32x *digest)
   digest[7] += h;
 }
 
-DECLSPEC void sha256_transform_s (u32x *digest, LOCAL_AS u32 *w)
+DECLSPEC void sha256_transform_s (PRIVATE_AS u32x *digest, LOCAL_AS u32 *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];

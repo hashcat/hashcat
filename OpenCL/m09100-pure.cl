@@ -118,7 +118,7 @@ CONSTANT_VK u32a lotus_magic_table[256] =
 
 #define BOX1(S,i) (S)[(i)]
 
-DECLSPEC void lotus_mix (u32 *in, SHM_TYPE const u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (PRIVATE_AS u32 *in, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   u8 p = 0;
 
@@ -141,7 +141,7 @@ DECLSPEC void lotus_mix (u32 *in, SHM_TYPE const u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (const u32 *in, u32 *out, SHM_TYPE const u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   u8 t = (u8) (out[3] >> 24);
 
@@ -159,7 +159,7 @@ DECLSPEC void lotus_transform_password (const u32 *in, u32 *out, SHM_TYPE const 
   }
 }
 
-DECLSPEC void pad (u32 *w, const u32 len)
+DECLSPEC void pad (PRIVATE_AS u32 *w, const u32 len)
 {
   const u32 val = 16 - len;
 
@@ -238,7 +238,7 @@ DECLSPEC void pad (u32 *w, const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, SHM_TYPE const u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (PRIVATE_AS u32 *state, PRIVATE_AS const u32 *block, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -263,14 +263,14 @@ DECLSPEC void mdtransform_norecalc (u32 *state, const u32 *block, SHM_TYPE const
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32 *state, u32 *checksum, const u32 *block, SHM_TYPE const u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (PRIVATE_AS u32 *state, PRIVATE_AS u32 *checksum, PRIVATE_AS const u32 *block, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32 *state, SHM_TYPE const u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (PRIVATE_AS const u32 *saved_key, const u32 size, PRIVATE_AS u32 *state, SHM_TYPE const u32 *s_lotus_magic_table)
 {
   u32 checksum[4];
 
@@ -309,10 +309,10 @@ DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32 *state, S
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_plain)
+DECLSPEC void base64_encode (PRIVATE_AS u8 *base64_hash, const u32 len, PRIVATE_AS const u8 *base64_plain)
 {
-  u8 *out_ptr = (u8 *) base64_hash;
-  u8 *in_ptr  = (u8 *) base64_plain;
+  PRIVATE_AS u8 *out_ptr = (PRIVATE_AS u8 *) base64_hash;
+  PRIVATE_AS u8 *in_ptr  = (PRIVATE_AS u8 *) base64_plain;
 
   u32 i;
 
@@ -333,7 +333,7 @@ DECLSPEC void base64_encode (u8 *base64_hash, const u32 len, const u8 *base64_pl
   }
 }
 
-DECLSPEC void lotus6_base64_encode (u8 *base64_hash, const u32 salt0, const u32 salt1, const u32 a, const u32 b, const u32 c)
+DECLSPEC void lotus6_base64_encode (PRIVATE_AS u8 *base64_hash, const u32 salt0, const u32 salt1, const u32 a, const u32 b, const u32 c)
 {
   u8 tmp[24]; // size 22 (=pw_len) is needed but base64 needs size divisible by 4
 
@@ -391,7 +391,7 @@ DECLSPEC void lotus6_base64_encode (u8 *base64_hash, const u32 salt0, const u32 
   base64_hash[21] = ')';
 }
 
-DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
+DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
 {
   digest[0] = ipad[0];
   digest[1] = ipad[1];

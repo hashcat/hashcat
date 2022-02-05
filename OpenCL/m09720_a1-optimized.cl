@@ -26,7 +26,7 @@ typedef struct oldoffice01
 
 } oldoffice01_t;
 
-DECLSPEC void gen336 (u32x *digest_pre, u32 *salt_buf, u32x *digest)
+DECLSPEC void gen336 (PRIVATE_AS u32x *digest_pre, PRIVATE_AS u32 *salt_buf, PRIVATE_AS u32x *digest)
 {
   u32x digest_t0[2];
   u32x digest_t1[2];

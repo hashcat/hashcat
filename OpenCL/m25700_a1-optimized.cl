@@ -17,7 +17,7 @@
 #include STR(INCLUDE_PATH/inc_simd.cl)
 #endif
 
-DECLSPEC u32 MurmurHash (const u32 seed, const u32 *w, const int pw_len)
+DECLSPEC u32 MurmurHash (const u32 seed, PRIVATE_AS const u32 *w, const int pw_len)
 {
   u32 hash = seed;
 

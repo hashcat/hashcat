@@ -38,7 +38,7 @@ CONSTANT_VK u64a k_sha512[80] =
 // input buf needs to be in algorithm native byte order (md5 = LE, sha1 = BE, etc)
 // input buf needs to be 128 byte aligned when using sha512_update()
 
-DECLSPEC void sha512_transform (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7, u64 *digest)
+DECLSPEC void sha512_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS const u32 *w4, PRIVATE_AS const u32 *w5, PRIVATE_AS const u32 *w6, PRIVATE_AS const u32 *w7, PRIVATE_AS u64 *digest)
 {
   u64 a = digest[0];
   u64 b = digest[1];
@@ -129,7 +129,7 @@ DECLSPEC void sha512_transform (const u32 *w0, const u32 *w1, const u32 *w2, con
   digest[7] += h;
 }
 
-DECLSPEC void sha512_init (sha512_ctx_t *ctx)
+DECLSPEC void sha512_init (PRIVATE_AS sha512_ctx_t *ctx)
 {
   ctx->h[0] = SHA512M_A;
   ctx->h[1] = SHA512M_B;
@@ -176,7 +176,7 @@ DECLSPEC void sha512_init (sha512_ctx_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha512_update_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
+DECLSPEC void sha512_update_128 (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, const int len)
 {
   if (len == 0) return;
 
@@ -380,7 +380,7 @@ DECLSPEC void sha512_update_128 (sha512_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u
   }
 }
 
-DECLSPEC void sha512_update (sha512_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_update (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -468,7 +468,7 @@ DECLSPEC void sha512_update (sha512_ctx_t *ctx, const u32 *w, const int len)
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_swap (sha512_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_update_swap (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -622,7 +622,7 @@ DECLSPEC void sha512_update_swap (sha512_ctx_t *ctx, const u32 *w, const int len
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_utf16le (sha512_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_update_utf16le (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   if (hc_enc_scan (w, len))
   {
@@ -706,7 +706,7 @@ DECLSPEC void sha512_update_utf16le (sha512_ctx_t *ctx, const u32 *w, const int 
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_utf16le_swap (sha512_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_update_utf16le_swap (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   if (hc_enc_scan (w, len))
   {
@@ -889,7 +889,7 @@ DECLSPEC void sha512_update_utf16le_swap (sha512_ctx_t *ctx, const u32 *w, const
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_global (sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_update_global (PRIVATE_AS sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -977,7 +977,7 @@ DECLSPEC void sha512_update_global (sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, c
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_global_swap (sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_update_global_swap (PRIVATE_AS sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1131,7 +1131,7 @@ DECLSPEC void sha512_update_global_swap (sha512_ctx_t *ctx, GLOBAL_AS const u32 
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_global_utf16le (sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_update_global_utf16le (PRIVATE_AS sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   if (hc_enc_scan_global (w, len))
   {
@@ -1215,7 +1215,7 @@ DECLSPEC void sha512_update_global_utf16le (sha512_ctx_t *ctx, GLOBAL_AS const u
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_global_utf16le_swap (sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_update_global_utf16le_swap (PRIVATE_AS sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   if (hc_enc_scan_global (w, len))
   {
@@ -1398,7 +1398,7 @@ DECLSPEC void sha512_update_global_utf16le_swap (sha512_ctx_t *ctx, GLOBAL_AS co
   sha512_update_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_final (sha512_ctx_t *ctx)
+DECLSPEC void sha512_final (PRIVATE_AS sha512_ctx_t *ctx)
 {
   const int pos = ctx->len & 127;
 
@@ -1450,7 +1450,7 @@ DECLSPEC void sha512_final (sha512_ctx_t *ctx)
 
 // sha512_hmac
 
-DECLSPEC void sha512_hmac_init_128 (sha512_hmac_ctx_t *ctx, const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, const u32 *w4, const u32 *w5, const u32 *w6, const u32 *w7)
+DECLSPEC void sha512_hmac_init_128 (PRIVATE_AS sha512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS const u32 *w4, PRIVATE_AS const u32 *w5, PRIVATE_AS const u32 *w6, PRIVATE_AS const u32 *w7)
 {
   u32 a0[4];
   u32 a1[4];
@@ -1549,7 +1549,7 @@ DECLSPEC void sha512_hmac_init_128 (sha512_hmac_ctx_t *ctx, const u32 *w0, const
   sha512_update_128 (&ctx->opad, b0, b1, b2, b3, b4, b5, b6, b7, 128);
 }
 
-DECLSPEC void sha512_hmac_init (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_hmac_init (PRIVATE_AS sha512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1642,7 +1642,7 @@ DECLSPEC void sha512_hmac_init (sha512_hmac_ctx_t *ctx, const u32 *w, const int 
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_init_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_hmac_init_swap (PRIVATE_AS sha512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1735,7 +1735,7 @@ DECLSPEC void sha512_hmac_init_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_init_global (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_hmac_init_global (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1828,7 +1828,7 @@ DECLSPEC void sha512_hmac_init_global (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_init_global_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_hmac_init_global_swap (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1921,7 +1921,7 @@ DECLSPEC void sha512_hmac_init_global_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS co
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_init_global_utf16le_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_hmac_init_global_utf16le_swap (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   if (hc_enc_scan_global (w, len))
   {
@@ -2137,52 +2137,52 @@ DECLSPEC void sha512_hmac_init_global_utf16le_swap (sha512_hmac_ctx_t *ctx, GLOB
   sha512_hmac_init_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_update_128 (sha512_hmac_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, u32 *w4, u32 *w5, u32 *w6, u32 *w7, const int len)
+DECLSPEC void sha512_hmac_update_128 (PRIVATE_AS sha512_hmac_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, const int len)
 {
   sha512_update_128 (&ctx->ipad, w0, w1, w2, w3, w4, w5, w6, w7, len);
 }
 
-DECLSPEC void sha512_hmac_update (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_hmac_update (PRIVATE_AS sha512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha512_update (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_hmac_update_swap (PRIVATE_AS sha512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha512_update_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_utf16le (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_hmac_update_utf16le (PRIVATE_AS sha512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha512_update_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_utf16le_swap (sha512_hmac_ctx_t *ctx, const u32 *w, const int len)
+DECLSPEC void sha512_hmac_update_utf16le_swap (PRIVATE_AS sha512_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha512_update_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_global (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_hmac_update_global (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   sha512_update_global (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_global_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_hmac_update_global_swap (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   sha512_update_global_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_global_utf16le (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_hmac_update_global_utf16le (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   sha512_update_global_utf16le (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_update_global_utf16le_swap (sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+DECLSPEC void sha512_hmac_update_global_utf16le_swap (PRIVATE_AS sha512_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   sha512_update_global_utf16le_swap (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_final (sha512_hmac_ctx_t *ctx)
+DECLSPEC void sha512_hmac_final (PRIVATE_AS sha512_hmac_ctx_t *ctx)
 {
   sha512_final (&ctx->ipad);
 
@@ -2226,7 +2226,7 @@ DECLSPEC void sha512_hmac_final (sha512_hmac_ctx_t *ctx)
 
 // while input buf can be a vector datatype, the length of the different elements can not
 
-DECLSPEC void sha512_transform_vector (const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7, u64x *digest)
+DECLSPEC void sha512_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS const u32x *w4, PRIVATE_AS const u32x *w5, PRIVATE_AS const u32x *w6, PRIVATE_AS const u32x *w7, PRIVATE_AS u64x *digest)
 {
   u64x a = digest[0];
   u64x b = digest[1];
@@ -2317,7 +2317,7 @@ DECLSPEC void sha512_transform_vector (const u32x *w0, const u32x *w1, const u32
   digest[7] += h;
 }
 
-DECLSPEC void sha512_init_vector (sha512_ctx_vector_t *ctx)
+DECLSPEC void sha512_init_vector (PRIVATE_AS sha512_ctx_vector_t *ctx)
 {
   ctx->h[0] = SHA512M_A;
   ctx->h[1] = SHA512M_B;
@@ -2364,7 +2364,7 @@ DECLSPEC void sha512_init_vector (sha512_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void sha512_init_vector_from_scalar (sha512_ctx_vector_t *ctx, sha512_ctx_t *ctx0)
+DECLSPEC void sha512_init_vector_from_scalar (PRIVATE_AS sha512_ctx_vector_t *ctx, PRIVATE_AS sha512_ctx_t *ctx0)
 {
   ctx->h[0] = ctx0->h[0];
   ctx->h[1] = ctx0->h[1];
@@ -2411,7 +2411,7 @@ DECLSPEC void sha512_init_vector_from_scalar (sha512_ctx_vector_t *ctx, sha512_c
   ctx->len = ctx0->len;
 }
 
-DECLSPEC void sha512_update_vector_128 (sha512_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len)
+DECLSPEC void sha512_update_vector_128 (PRIVATE_AS sha512_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, const int len)
 {
   if (len == 0) return;
 
@@ -2615,7 +2615,7 @@ DECLSPEC void sha512_update_vector_128 (sha512_ctx_vector_t *ctx, u32x *w0, u32x
   }
 }
 
-DECLSPEC void sha512_update_vector (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha512_update_vector (PRIVATE_AS sha512_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2703,7 +2703,7 @@ DECLSPEC void sha512_update_vector (sha512_ctx_vector_t *ctx, const u32x *w, con
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_vector_swap (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha512_update_vector_swap (PRIVATE_AS sha512_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2857,7 +2857,7 @@ DECLSPEC void sha512_update_vector_swap (sha512_ctx_vector_t *ctx, const u32x *w
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1);
 }
 
-DECLSPEC void sha512_update_vector_utf16le (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha512_update_vector_utf16le (PRIVATE_AS sha512_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -2923,7 +2923,7 @@ DECLSPEC void sha512_update_vector_utf16le (sha512_ctx_vector_t *ctx, const u32x
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_vector_utf16le_swap (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha512_update_vector_utf16le_swap (PRIVATE_AS sha512_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -3055,7 +3055,7 @@ DECLSPEC void sha512_update_vector_utf16le_swap (sha512_ctx_vector_t *ctx, const
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_update_vector_utf16beN (sha512_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha512_update_vector_utf16beN (PRIVATE_AS sha512_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -3121,7 +3121,7 @@ DECLSPEC void sha512_update_vector_utf16beN (sha512_ctx_vector_t *ctx, const u32
   sha512_update_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7, (len - pos1) * 2);
 }
 
-DECLSPEC void sha512_final_vector (sha512_ctx_vector_t *ctx)
+DECLSPEC void sha512_final_vector (PRIVATE_AS sha512_ctx_vector_t *ctx)
 {
   const int pos = ctx->len & 127;
 
@@ -3173,7 +3173,7 @@ DECLSPEC void sha512_final_vector (sha512_ctx_vector_t *ctx)
 
 // HMAC + Vector
 
-DECLSPEC void sha512_hmac_init_vector_128 (sha512_hmac_ctx_vector_t *ctx, const u32x *w0, const u32x *w1, const u32x *w2, const u32x *w3, const u32x *w4, const u32x *w5, const u32x *w6, const u32x *w7)
+DECLSPEC void sha512_hmac_init_vector_128 (PRIVATE_AS sha512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS const u32x *w4, PRIVATE_AS const u32x *w5, PRIVATE_AS const u32x *w6, PRIVATE_AS const u32x *w7)
 {
   u32x a0[4];
   u32x a1[4];
@@ -3272,7 +3272,7 @@ DECLSPEC void sha512_hmac_init_vector_128 (sha512_hmac_ctx_vector_t *ctx, const 
   sha512_update_vector_128 (&ctx->opad, b0, b1, b2, b3, b4, b5, b6, b7, 128);
 }
 
-DECLSPEC void sha512_hmac_init_vector (sha512_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha512_hmac_init_vector (PRIVATE_AS sha512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   u32x w0[4];
   u32x w1[4];
@@ -3365,17 +3365,17 @@ DECLSPEC void sha512_hmac_init_vector (sha512_hmac_ctx_vector_t *ctx, const u32x
   sha512_hmac_init_vector_128 (ctx, w0, w1, w2, w3, w4, w5, w6, w7);
 }
 
-DECLSPEC void sha512_hmac_update_vector_128 (sha512_hmac_ctx_vector_t *ctx, u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *w4, u32x *w5, u32x *w6, u32x *w7, const int len)
+DECLSPEC void sha512_hmac_update_vector_128 (PRIVATE_AS sha512_hmac_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, const int len)
 {
   sha512_update_vector_128 (&ctx->ipad, w0, w1, w2, w3, w4, w5, w6, w7, len);
 }
 
-DECLSPEC void sha512_hmac_update_vector (sha512_hmac_ctx_vector_t *ctx, const u32x *w, const int len)
+DECLSPEC void sha512_hmac_update_vector (PRIVATE_AS sha512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
   sha512_update_vector (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha512_hmac_final_vector (sha512_hmac_ctx_vector_t *ctx)
+DECLSPEC void sha512_hmac_final_vector (PRIVATE_AS sha512_hmac_ctx_vector_t *ctx)
 {
   sha512_final_vector (&ctx->ipad);
 

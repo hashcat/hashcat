@@ -10,11 +10,12 @@
 #include STR(INCLUDE_PATH/inc_vendor.h)
 #include STR(INCLUDE_PATH/inc_types.h)
 #include STR(INCLUDE_PATH/inc_platform.cl)
+#include STR(INCLUDE_PATH/inc_markov.h)
 #endif
 
 #define CHARSIZ 256
 
-DECLSPEC void generate_pw (u32 *pw_buf, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val)
+DECLSPEC void generate_pw (PRIVATE_AS u32 *pw_buf, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, u64 val)
 {
   GLOBAL_AS const cs_t *cs = &root_css_buf[pw_r_len];
 
@@ -49,7 +50,7 @@ DECLSPEC void generate_pw (u32 *pw_buf, GLOBAL_AS const cs_t *root_css_buf, GLOB
   if (bits15) pw_buf[15] = (pw_l_len + pw_r_len) * 8;
 }
 
-KERNEL_FQ void l_markov (GLOBAL_AS pw_t *pws_buf_l, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u64 off, const u32 pw_l_len, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
+KERNEL_FQ void l_markov (KERN_ATTR_L_MARKOV)
 {
   const u64 gid = get_global_id (0);
 
@@ -130,7 +131,7 @@ KERNEL_FQ void l_markov (GLOBAL_AS pw_t *pws_buf_l, GLOBAL_AS const cs_t *root_c
   pws_buf_l[gid] = pw;
 }
 
-KERNEL_FQ void r_markov (GLOBAL_AS bf_t *pws_buf_r, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u64 off, const u32 pw_r_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
+KERNEL_FQ void r_markov (KERN_ATTR_R_MARKOV)
 {
   const u64 gid = get_global_id (0);
 
@@ -208,7 +209,7 @@ KERNEL_FQ void r_markov (GLOBAL_AS bf_t *pws_buf_r, GLOBAL_AS const cs_t *root_c
   pws_buf_r[gid].i = pw.i[0];
 }
 
-KERNEL_FQ void C_markov (GLOBAL_AS pw_t *pws_buf, GLOBAL_AS const cs_t *root_css_buf, GLOBAL_AS const cs_t *markov_css_buf, const u64 off, const u32 pw_len, const u32 mask80, const u32 bits14, const u32 bits15, const u64 gid_max)
+KERNEL_FQ void C_markov (KERN_ATTR_C_MARKOV)
 {
   const u64 gid = get_global_id (0);
 

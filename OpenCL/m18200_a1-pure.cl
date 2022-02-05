@@ -28,9 +28,9 @@ typedef struct krb5asrep
 
 } krb5asrep_t;
 
-DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, const u32 *K2, const u32 *checksum)
+DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, PRIVATE_AS u32 *data, GLOBAL_AS const u32 *edata2, const u32 edata2_len, PRIVATE_AS const u32 *K2, PRIVATE_AS const u32 *checksum, const u64 lid)
 {
-  rc4_init_128 (S, data);
+  rc4_init_128 (S, data, lid);
 
   u32 out0[4];
 
@@ -48,14 +48,14 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, GLOBAL_AS const u32 
         length is on 3 bytes, the first byte is 0x82, and the fourth byte is 0x30 (class=SEQUENCE)
   */
 
-  rc4_next_16_global (S, 0, 0, edata2 + 0, out0);
+  rc4_next_16_global (S, 0, 0, edata2 + 0, out0, lid);
 
   if (((out0[2] & 0x00ff80ff) != 0x00300079) &&
       ((out0[2] & 0xFF00FFFF) != 0x30008179) &&
       ((out0[2] & 0x0000FFFF) != 0x00008279 || (out0[3] & 0x000000FF) != 0x00000030))
       return 0;
 
-  rc4_init_128 (S, data);
+  rc4_init_128 (S, data, lid);
 
   u8 i = 0;
   u8 j = 0;
@@ -92,10 +92,10 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, GLOBAL_AS const u32 
 
   for (edata2_left = edata2_len; edata2_left >= 64; edata2_left -= 64)
   {
-    j = rc4_next_16_global (S, i, j, edata2, w0); i += 16; edata2 += 4;
-    j = rc4_next_16_global (S, i, j, edata2, w1); i += 16; edata2 += 4;
-    j = rc4_next_16_global (S, i, j, edata2, w2); i += 16; edata2 += 4;
-    j = rc4_next_16_global (S, i, j, edata2, w3); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w0, lid); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w1, lid); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w2, lid); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w3, lid); i += 16; edata2 += 4;
 
     md5_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
   }
@@ -119,31 +119,31 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, GLOBAL_AS const u32 
 
   if (edata2_left < 16)
   {
-    j = rc4_next_16_global (S, i, j, edata2, w0); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w0, lid); i += 16; edata2 += 4;
 
     truncate_block_4x4_le_S (w0, edata2_left & 0xf);
   }
   else if (edata2_left < 32)
   {
-    j = rc4_next_16_global (S, i, j, edata2, w0); i += 16; edata2 += 4;
-    j = rc4_next_16_global (S, i, j, edata2, w1); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w0, lid); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w1, lid); i += 16; edata2 += 4;
 
     truncate_block_4x4_le_S (w1, edata2_left & 0xf);
   }
   else if (edata2_left < 48)
   {
-    j = rc4_next_16_global (S, i, j, edata2, w0); i += 16; edata2 += 4;
-    j = rc4_next_16_global (S, i, j, edata2, w1); i += 16; edata2 += 4;
-    j = rc4_next_16_global (S, i, j, edata2, w2); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w0, lid); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w1, lid); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w2, lid); i += 16; edata2 += 4;
 
     truncate_block_4x4_le_S (w2, edata2_left & 0xf);
   }
   else
   {
-    j = rc4_next_16_global (S, i, j, edata2, w0); i += 16; edata2 += 4;
-    j = rc4_next_16_global (S, i, j, edata2, w1); i += 16; edata2 += 4;
-    j = rc4_next_16_global (S, i, j, edata2, w2); i += 16; edata2 += 4;
-    j = rc4_next_16_global (S, i, j, edata2, w3); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w0, lid); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w1, lid); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w2, lid); i += 16; edata2 += 4;
+    j = rc4_next_16_global (S, i, j, edata2, w3, lid); i += 16; edata2 += 4;
 
     truncate_block_4x4_le_S (w3, edata2_left & 0xf);
   }
@@ -160,7 +160,7 @@ DECLSPEC int decrypt_and_check (LOCAL_AS u32 *S, u32 *data, GLOBAL_AS const u32 
   return 1;
 }
 
-DECLSPEC void kerb_prepare (const u32 *K, const u32 *checksum, u32 *digest, u32 *K2)
+DECLSPEC void kerb_prepare (PRIVATE_AS const u32 *K, PRIVATE_AS const u32 *checksum, PRIVATE_AS u32 *digest, PRIVATE_AS u32 *K2)
 {
   // K1=MD5_HMAC(K,1); with 1 encoded as little indian on 4 bytes (01000000 in hexa);
 
@@ -312,7 +312,7 @@ KERNEL_FQ void m18200_mxx (KERN_ATTR_ESALT (krb5asrep_t))
 
     kerb_prepare (ctx.h, checksum, digest, K2);
 
-    if (decrypt_and_check (S, digest, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (S, digest, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, K2, checksum, lid) == 1)
     {
       if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {
@@ -370,7 +370,7 @@ KERNEL_FQ void m18200_sxx (KERN_ATTR_ESALT (krb5asrep_t))
 
     kerb_prepare (ctx.h, checksum, digest, K2);
 
-    if (decrypt_and_check (S, digest, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, K2, checksum) == 1)
+    if (decrypt_and_check (S, digest, esalt_bufs[DIGESTS_OFFSET_HOST].edata2, esalt_bufs[DIGESTS_OFFSET_HOST].edata2_len, K2, checksum, lid) == 1)
     {
       if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
       {

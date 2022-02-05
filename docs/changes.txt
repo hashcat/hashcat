@@ -49,7 +49,8 @@
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
 - Kernels: Refactored standard kernel declaration to use a structure holding u32/u64 attributes to reduce the number of attributes
-- Kernels: Refactored standard kernel includes in order to support Apple Metal runtime
+- Kernels: Refactored standard kernel includes, KERN_ATTR macros and rc4 cipher functions, in order to support Apple Metal runtime
+- Kernels: Set the default Address Space Qualifier for any pointer, in order to support Apple Metal runtime
 - Makefile: updated MACOSX_DEPLOYMENT_TARGET to 10.15 and removed OpenCL framework from LFLAGS_NATIVE on MacOS
 - OpenCL Backend: added workaround to make optimized kernels work on Apple Silicon
 - OpenCL Backend: moved functions to ext_OpenCL.c and includes to ext_OpenCL.h

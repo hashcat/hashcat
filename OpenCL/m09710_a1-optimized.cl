@@ -166,11 +166,11 @@ KERNEL_FQ void m09710_m04 (KERN_ATTR_ESALT (oldoffice01_t))
 
     // now the RC4 part
 
-    rc4_init_128 (S, digest);
+    rc4_init_128 (S, digest, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     w0[0] = out[0];
     w0[1] = out[1];
@@ -196,7 +196,7 @@ KERNEL_FQ void m09710_m04 (KERN_ATTR_ESALT (oldoffice01_t))
 
     md5_transform (w0, w1, w2, w3, digest);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
@@ -360,11 +360,11 @@ KERNEL_FQ void m09710_s04 (KERN_ATTR_ESALT (oldoffice01_t))
 
     // now the RC4 part
 
-    rc4_init_128 (S, digest);
+    rc4_init_128 (S, digest, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     w0[0] = out[0];
     w0[1] = out[1];
@@ -390,7 +390,7 @@ KERNEL_FQ void m09710_s04 (KERN_ATTR_ESALT (oldoffice01_t))
 
     md5_transform (w0, w1, w2, w3, digest);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }

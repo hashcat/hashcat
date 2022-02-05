@@ -170,7 +170,7 @@ DECLSPEC u64 round_crc64jones (u64 a, const u64 v, SHM_TYPE u64 *s_crc64jonestab
   return a;
 }
 
-DECLSPEC u64 crc64jones (const u32 *w, const u32 pw_len, const u64 iv, SHM_TYPE u64 *s_crc64jonestab)
+DECLSPEC u64 crc64jones (PRIVATE_AS const u32 *w, const u32 pw_len, const u64 iv, SHM_TYPE u64 *s_crc64jonestab)
 {
   u64 a = iv;
 

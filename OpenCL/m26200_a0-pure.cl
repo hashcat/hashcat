@@ -69,7 +69,7 @@ KERNEL_FQ void m26200_mxx (KERN_ATTR_RULES ())
 
     u8  scratch[16] = { 0 };
 
-    u8 *input = (u8 *) tmp.i;
+    PRIVATE_AS u8 *input = (PRIVATE_AS u8 *) tmp.i;
 
     for (u32 i = 0; i < 5; i++)
     {
@@ -120,7 +120,7 @@ KERNEL_FQ void m26200_mxx (KERN_ATTR_RULES ())
       }
     }
 
-    u32 *digest = (u32 *) target;
+    PRIVATE_AS u32 *digest = (PRIVATE_AS u32 *) target;
 
     const u32 r0 = digest[DGST_R0];
     const u32 r1 = digest[DGST_R1];
@@ -174,7 +174,7 @@ KERNEL_FQ void m26200_sxx (KERN_ATTR_RULES ())
 
     u8  scratch[16] = { 0 };
 
-    u8 *input = (u8 *) tmp.i;
+    PRIVATE_AS u8 *input = (PRIVATE_AS u8 *) tmp.i;
 
     for (u32 i = 0; i < 5; i++)
     {
@@ -225,7 +225,7 @@ KERNEL_FQ void m26200_sxx (KERN_ATTR_RULES ())
       }
     }
 
-    u32 *digest = (u32 *) target;
+    PRIVATE_AS u32 *digest = (PRIVATE_AS u32 *) target;
 
     const u32 r0 = digest[DGST_R0];
     const u32 r1 = digest[DGST_R1];

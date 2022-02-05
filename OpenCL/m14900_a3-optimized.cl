@@ -53,7 +53,7 @@ CONSTANT_VK u8a c_ftable[256] =
   0xbd, 0xa8, 0x3a, 0x01, 0x05, 0x59, 0x2a, 0x46
 };
 
-DECLSPEC void g (LOCAL_AS u8 *s_ftable, const u32 *key, const int k, const u32 *wx, u32 *out)
+DECLSPEC void g (LOCAL_AS u8 *s_ftable, PRIVATE_AS const u32 *key, const int k, PRIVATE_AS const u32 *wx, PRIVATE_AS u32 *out)
 {
   const u32 g1 = wx[1];
   const u32 g2 = wx[0];
@@ -66,7 +66,7 @@ DECLSPEC void g (LOCAL_AS u8 *s_ftable, const u32 *key, const int k, const u32 *
   out[1] = g5;
 }
 
-DECLSPEC u32 skip32 (LOCAL_AS u8 *s_ftable, const u32 KP, const u32 *key)
+DECLSPEC u32 skip32 (LOCAL_AS u8 *s_ftable, const u32 KP, PRIVATE_AS const u32 *key)
 {
   u32 wl[2];
   u32 wr[2];
@@ -106,14 +106,11 @@ DECLSPEC u32 skip32 (LOCAL_AS u8 *s_ftable, const u32 KP, const u32 *key)
   return r;
 }
 
-DECLSPEC void m14900m (LOCAL_AS u8 *s_ftable, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m14900m (LOCAL_AS u8 *s_ftable, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_BASIC ())
 {
   /**
-   * modifier
+   * modifiers are taken from args
    */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   /**
    * salt
@@ -154,14 +151,11 @@ DECLSPEC void m14900m (LOCAL_AS u8 *s_ftable, u32 *w0, u32 *w1, u32 *w2, u32 *w3
   }
 }
 
-DECLSPEC void m14900s (LOCAL_AS u8 *s_ftable, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 pw_len, KERN_ATTR_BASIC ())
+DECLSPEC void m14900s (LOCAL_AS u8 *s_ftable, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_BASIC ())
 {
   /**
-   * modifier
+   * modifiers are taken from args
    */
-
-  const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
 
   /**
    * salt
@@ -220,8 +214,8 @@ KERNEL_FQ void m14900_m04 (KERN_ATTR_BASIC ())
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
   /**
@@ -277,7 +271,7 @@ KERNEL_FQ void m14900_m04 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m14900m (s_ftable, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m14900m (s_ftable, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m14900_m08 (KERN_ATTR_BASIC ())
@@ -294,8 +288,8 @@ KERNEL_FQ void m14900_s04 (KERN_ATTR_BASIC ())
    * modifier
    */
 
-  const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
   /**
@@ -351,7 +345,7 @@ KERNEL_FQ void m14900_s04 (KERN_ATTR_BASIC ())
    * main
    */
 
-  m14900s (s_ftable, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param);
+  m14900s (s_ftable, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ void m14900_s08 (KERN_ATTR_BASIC ())

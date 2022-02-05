@@ -50,7 +50,7 @@ DECLSPEC int is_valid_bitcoinj_8 (const u8 v)
   return 1;
 }
 
-DECLSPEC int is_valid_bitcoinj (const u32 *w)
+DECLSPEC int is_valid_bitcoinj (PRIVATE_AS const u32 *w)
 {
   if ((w[0] & 0x000000ff) != 0x0000000a) return 0;
 
@@ -130,6 +130,27 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
   X2 = make_uint4 (X2.z, X2.w, X2.x, X2.y); \
   X3 = make_uint4 (X3.w, X3.x, X3.y, X3.z); \
 }
+#elif defined IS_METAL
+#define SALSA20_2R()                        \
+{                                           \
+  ADD_ROTATE_XOR (X1, X0, X3,  7);          \
+  ADD_ROTATE_XOR (X2, X1, X0,  9);          \
+  ADD_ROTATE_XOR (X3, X2, X1, 13);          \
+  ADD_ROTATE_XOR (X0, X3, X2, 18);          \
+                                            \
+  X1 = X1.wxyz;                             \
+  X2 = X2.zwxy;                             \
+  X3 = X3.yzwx;                             \
+                                            \
+  ADD_ROTATE_XOR (X3, X0, X1,  7);          \
+  ADD_ROTATE_XOR (X2, X3, X0,  9);          \
+  ADD_ROTATE_XOR (X1, X2, X3, 13);          \
+  ADD_ROTATE_XOR (X0, X1, X2, 18);          \
+                                            \
+  X1 = X1.yzwx;                             \
+  X2 = X2.zwxy;                             \
+  X3 = X3.wxyz;                             \
+}
 #else
 #define SALSA20_2R()                        \
 {                                           \
@@ -156,7 +177,7 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
 #define CO Coord(xd4,y,z)
 
-DECLSPEC void salsa_r (uint4 *TI)
+DECLSPEC void salsa_r (PRIVATE_AS uint4 *TI)
 {
   uint4 R0 = TI[STATE_CNT4 - 4];
   uint4 R1 = TI[STATE_CNT4 - 3];
@@ -227,12 +248,12 @@ DECLSPEC void salsa_r (uint4 *TI)
   #endif
 }
 
-DECLSPEC void scrypt_smix_init (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
+DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
 {
   const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
-  const u32 x = get_global_id (0);
+  const u32 x = (u32) gid;
 
   const u32 xd4 = x / 4;
   const u32 xm4 = x & 3;
@@ -255,12 +276,12 @@ DECLSPEC void scrypt_smix_init (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *
   }
 }
 
-DECLSPEC void scrypt_smix_loop (uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3)
+DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
 {
   const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
-  const u32 x = get_global_id (0);
+  const u32 x = (u32) gid;
 
   const u32 xd4 = x / 4;
   const u32 xm4 = x & 3;
@@ -450,7 +471,7 @@ KERNEL_FQ void m22700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
 
-  scrypt_smix_init (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
+  scrypt_smix_init (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid);
 
   for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
@@ -475,7 +496,7 @@ KERNEL_FQ void m22700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
 
-  scrypt_smix_loop (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf);
+  scrypt_smix_loop (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid);
 
   for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }

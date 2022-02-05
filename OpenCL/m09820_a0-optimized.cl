@@ -206,7 +206,7 @@ KERNEL_FQ void m09820_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
       // second block decrypt:
 
-      rc4_init_128 (S, digest);
+      rc4_init_128 (S, digest, lid);
 
       u32 secondBlockData[4];
 
@@ -217,7 +217,7 @@ KERNEL_FQ void m09820_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
       u32 out[4];
 
-      u32 j = rc4_next_16 (S, 0, 0, secondBlockData, out);
+      u32 j = rc4_next_16 (S, 0, 0, secondBlockData, out, lid);
 
       int null_bytes = 0;
 
@@ -234,7 +234,7 @@ KERNEL_FQ void m09820_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
       secondBlockData[2] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[6];
       secondBlockData[3] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[7];
 
-      rc4_next_16 (S, 16, j, secondBlockData, out);
+      rc4_next_16 (S, 16, j, secondBlockData, out, lid);
 
       for (int k = 0; k < 4; k++)
       {
@@ -447,7 +447,7 @@ KERNEL_FQ void m09820_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
       // second block decrypt:
 
-      rc4_init_128 (S, digest);
+      rc4_init_128 (S, digest, lid);
 
       u32 secondBlockData[4];
 
@@ -458,7 +458,7 @@ KERNEL_FQ void m09820_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
       u32 out[4];
 
-      u32 j = rc4_next_16 (S, 0, 0, secondBlockData, out);
+      u32 j = rc4_next_16 (S, 0, 0, secondBlockData, out, lid);
 
       int null_bytes = 0;
 
@@ -475,7 +475,7 @@ KERNEL_FQ void m09820_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
       secondBlockData[2] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[6];
       secondBlockData[3] = esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockData[7];
 
-      rc4_next_16 (S, 16, j, secondBlockData, out);
+      rc4_next_16 (S, 16, j, secondBlockData, out, lid);
 
       for (int k = 0; k < 4; k++)
       {

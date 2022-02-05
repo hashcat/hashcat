@@ -100,7 +100,7 @@ CONSTANT_VK u32a lotus_magic_table[512] =
 #define BOX1(S,i) make_u32x ((S)[(i).s0], (S)[(i).s1], (S)[(i).s2], (S)[(i).s3], (S)[(i).s4], (S)[(i).s5], (S)[(i).s6], (S)[(i).s7], (S)[(i).s8], (S)[(i).s9], (S)[(i).sa], (S)[(i).sb], (S)[(i).sc], (S)[(i).sd], (S)[(i).se], (S)[(i).sf])
 #endif
 
-DECLSPEC void lotus_mix (u32 *in, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void lotus_mix (PRIVATE_AS u32 *in, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 p = 0;
 
@@ -123,7 +123,7 @@ DECLSPEC void lotus_mix (u32 *in, LOCAL_AS u32 *s_lotus_magic_table)
   }
 }
 
-DECLSPEC void lotus_transform_password (const u32 *in, u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void lotus_transform_password (PRIVATE_AS const u32 *in, PRIVATE_AS u32x *out, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 t = out[3] >> 24;
 
@@ -141,7 +141,7 @@ DECLSPEC void lotus_transform_password (const u32 *in, u32x *out, LOCAL_AS u32 *
   }
 }
 
-DECLSPEC void pad (u32 *w, const u32 len)
+DECLSPEC void pad (PRIVATE_AS u32 *w, const u32 len)
 {
   const u32 val = 16 - len;
 
@@ -220,7 +220,7 @@ DECLSPEC void pad (u32 *w, const u32 len)
   }
 }
 
-DECLSPEC void mdtransform_norecalc (u32 *state, const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform_norecalc (PRIVATE_AS u32 *state, PRIVATE_AS const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 x[12];
 
@@ -245,14 +245,14 @@ DECLSPEC void mdtransform_norecalc (u32 *state, const u32x *block, LOCAL_AS u32 
   state[3] = x[3];
 }
 
-DECLSPEC void mdtransform (u32 *state, u32x *checksum, const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void mdtransform (PRIVATE_AS u32 *state, PRIVATE_AS u32x *checksum, PRIVATE_AS const u32x *block, LOCAL_AS u32 *s_lotus_magic_table)
 {
   mdtransform_norecalc (state, block, s_lotus_magic_table);
 
   lotus_transform_password (block, checksum, s_lotus_magic_table);
 }
 
-DECLSPEC void domino_big_md (const u32 *saved_key, const u32 size, u32x *state, LOCAL_AS u32 *s_lotus_magic_table)
+DECLSPEC void domino_big_md (PRIVATE_AS const u32 *saved_key, const u32 size, PRIVATE_AS u32x *state, LOCAL_AS u32 *s_lotus_magic_table)
 {
   u32 checksum[4];
 

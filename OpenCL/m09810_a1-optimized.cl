@@ -147,11 +147,11 @@ KERNEL_FQ void m09810_m04 (KERN_ATTR_ESALT (oldoffice34_t))
     key[2] = 0;
     key[3] = 0;
 
-    rc4_init_128 (S, key);
+    rc4_init_128 (S, key, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     w0[0] = hc_swap32 (out[0]);
     w0[1] = hc_swap32 (out[1]);
@@ -185,7 +185,7 @@ KERNEL_FQ void m09810_m04 (KERN_ATTR_ESALT (oldoffice34_t))
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
@@ -328,11 +328,11 @@ KERNEL_FQ void m09810_s04 (KERN_ATTR_ESALT (oldoffice34_t))
     key[2] = 0;
     key[3] = 0;
 
-    rc4_init_128 (S, key);
+    rc4_init_128 (S, key, lid);
 
     u32 out[4];
 
-    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out);
+    u8 j = rc4_next_16 (S, 0, 0, encryptedVerifier, out, lid);
 
     w0[0] = hc_swap32 (out[0]);
     w0[1] = hc_swap32 (out[1]);
@@ -366,7 +366,7 @@ KERNEL_FQ void m09810_s04 (KERN_ATTR_ESALT (oldoffice34_t))
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    rc4_next_16 (S, 16, j, digest, out);
+    rc4_next_16 (S, 16, j, digest, out, lid);
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }

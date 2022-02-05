@@ -30,7 +30,7 @@ typedef struct rar3_tmp
 
 } rar3_tmp_t;
 
-DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, const u32 append, u32 *digest)
+DECLSPEC void memcat8c_be (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 len, const u32 append, PRIVATE_AS u32 *digest)
 {
   const u32 func_len = len & 63;
 
@@ -109,7 +109,7 @@ DECLSPEC void memcat8c_be (u32 *w0, u32 *w1, u32 *w2, u32 *w3, const u32 len, co
 // only change in this function compared to OpenCL/inc_hash_sha1.cl is that it returns
 // the expanded 64 byte buffer w0_t..wf_t in t[]:
 
-DECLSPEC void sha1_transform_rar29 (const u32 *w0, const u32 *w1, const u32 *w2, const u32 *w3, u32 *digest, u32 *t)
+DECLSPEC void sha1_transform_rar29 (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest, PRIVATE_AS u32 *t)
 {
   u32 a = digest[0];
   u32 b = digest[1];
@@ -458,7 +458,7 @@ DECLSPEC void sha1_transform_rar29 (const u32 *w0, const u32 *w1, const u32 *w2,
 // only change in this function compared to OpenCL/inc_hash_sha1.cl is that
 // it calls our modified sha1_transform_rar29 () function
 
-DECLSPEC void sha1_update_64_rar29 (sha1_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, u32 *w3, const int bytes, u32 *t)
+DECLSPEC void sha1_update_64_rar29 (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int bytes, PRIVATE_AS u32 *t)
 {
   if (bytes == 0) return;
 
@@ -588,7 +588,7 @@ DECLSPEC void sha1_update_64_rar29 (sha1_ctx_t *ctx, u32 *w0, u32 *w1, u32 *w2, 
 // main change in this function compared to OpenCL/inc_hash_sha1.cl is that
 // we call sha1_update_64_rar29 () and sometimes replace w[]
 
-DECLSPEC void sha1_update_rar29 (sha1_ctx_t *ctx, u32 *w, const int len)
+DECLSPEC void sha1_update_rar29 (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];

@@ -118,7 +118,7 @@ CONSTANT_VK u32a k_sbox_inv[256] =
     x &= 0xff;                        \
   }
 
-DECLSPEC void kuznyechik_linear (u32 *w)
+DECLSPEC void kuznyechik_linear (PRIVATE_AS u32 *w)
 {
   // used in k_xor macro
   u32 x;
@@ -154,7 +154,7 @@ DECLSPEC void kuznyechik_linear (u32 *w)
   }
 }
 
-DECLSPEC void kuznyechik_linear_inv (u32 *w)
+DECLSPEC void kuznyechik_linear_inv (PRIVATE_AS u32 *w)
 {
   // used in k_xor macro
   u32 x;
@@ -191,7 +191,7 @@ DECLSPEC void kuznyechik_linear_inv (u32 *w)
   }
 }
 
-DECLSPEC void kuznyechik_set_key (u32 *ks, const u32 *ukey)
+DECLSPEC void kuznyechik_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey)
 {
   u32 counter[4];
   u32 x[4];
@@ -265,7 +265,7 @@ DECLSPEC void kuznyechik_set_key (u32 *ks, const u32 *ukey)
   }
 }
 
-DECLSPEC void kuznyechik_encrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void kuznyechik_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   out[0] = in[0];
   out[1] = in[1];
@@ -290,7 +290,7 @@ DECLSPEC void kuznyechik_encrypt (const u32 *ks, const u32 *in, u32 *out)
   out[3] ^= ks[4 * 9 + 3];
 }
 
-DECLSPEC void kuznyechik_decrypt (const u32 *ks, const u32 *in, u32 *out)
+DECLSPEC void kuznyechik_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out)
 {
   out[0] = in[0];
   out[1] = in[1];

@@ -17,8 +17,8 @@
 #define COMPARE_S STR(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi.cl)
 
-#define PUTCHAR64_BE(a,p,c) ((u8 *)(a))[(p) ^ 7] = (u8) (c)
-#define GETCHAR64_BE(a,p)   ((u8 *)(a))[(p) ^ 7]
+#define PUTCHAR64_BE(a,p,c) ((PRIVATE_AS u8 *)(a))[(p) ^ 7] = (u8) (c)
+#define GETCHAR64_BE(a,p)   ((PRIVATE_AS u8 *)(a))[(p) ^ 7]
 
 typedef struct sha512crypt_tmp
 {
@@ -42,7 +42,7 @@ typedef struct
 
 } orig_sha512_ctx_t;
 
-DECLSPEC void sha512_transform_transport (const u64 *w, u64 *digest)
+DECLSPEC void sha512_transform_transport (PRIVATE_AS const u64 *w, PRIVATE_AS u64 *digest)
 {
   u32 t0[4];
   u32 t1[4];
@@ -89,7 +89,7 @@ DECLSPEC void sha512_transform_transport (const u64 *w, u64 *digest)
   sha512_transform (t0, t1, t2, t3, t4, t5, t6, t7, digest);
 }
 
-DECLSPEC void orig_sha512_init (orig_sha512_ctx_t *sha512_ctx)
+DECLSPEC void orig_sha512_init (PRIVATE_AS orig_sha512_ctx_t *sha512_ctx)
 {
   sha512_ctx->state[0] = SHA512M_A;
   sha512_ctx->state[1] = SHA512M_B;
@@ -103,7 +103,7 @@ DECLSPEC void orig_sha512_init (orig_sha512_ctx_t *sha512_ctx)
   sha512_ctx->len = 0;
 }
 
-DECLSPEC void orig_sha512_update (orig_sha512_ctx_t *sha512_ctx, const u64 *buf, int len)
+DECLSPEC void orig_sha512_update (PRIVATE_AS orig_sha512_ctx_t *sha512_ctx, PRIVATE_AS const u64 *buf, int len)
 {
   int pos = sha512_ctx->len & 0x7f;
 
@@ -136,7 +136,7 @@ DECLSPEC void orig_sha512_update (orig_sha512_ctx_t *sha512_ctx, const u64 *buf,
   }
 }
 
-DECLSPEC void orig_sha512_final (orig_sha512_ctx_t *sha512_ctx)
+DECLSPEC void orig_sha512_final (PRIVATE_AS orig_sha512_ctx_t *sha512_ctx)
 {
   int pos = sha512_ctx->len & 0x7f;
 

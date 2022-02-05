@@ -20,11 +20,11 @@
 
 #define ROUNDS 0x40000
 
-#define PUTCHAR(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
-#define GETCHAR(a,p)   ((u8 *)(a))[(p)]
+#define PUTCHAR(a,p,c) ((PRIVATE_AS u8 *)(a))[(p)] = (u8) (c)
+#define GETCHAR(a,p)   ((PRIVATE_AS u8 *)(a))[(p)]
 
-#define PUTCHAR_BE(a,p,c) ((u8 *)(a))[(p) ^ 3] = (u8) (c)
-#define GETCHAR_BE(a,p)   ((u8 *)(a))[(p) ^ 3]
+#define PUTCHAR_BE(a,p,c) ((PRIVATE_AS u8 *)(a))[(p) ^ 3] = (u8) (c)
+#define GETCHAR_BE(a,p)   ((PRIVATE_AS u8 *)(a))[(p) ^ 3]
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
@@ -120,7 +120,7 @@ DECLSPEC u32 round_crc32 (const u32 a, const u32 v, LOCAL_AS u32 *l_crc32tab)
   return l_crc32tab[k] ^ s;
 }
 
-DECLSPEC u32 round_crc32_16 (const u32 crc32, const u32 *buf, const u32 len, LOCAL_AS u32 *l_crc32tab)
+DECLSPEC u32 round_crc32_16 (const u32 crc32, PRIVATE_AS const u32 *buf, const u32 len, LOCAL_AS u32 *l_crc32tab)
 {
   const int crc_len = MIN (len, 16);
 

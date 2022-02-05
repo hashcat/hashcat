@@ -20,8 +20,8 @@
 #include STR(INCLUDE_PATH/inc_hash_md5.cl)
 #endif
 
-#define GETCHAR(a,p)   ((u8 *)(a))[(p)]
-#define PUTCHAR(a,p,c) ((u8 *)(a))[(p)] = (u8) (c)
+#define GETCHAR(a,p)   ((PRIVATE_AS u8 *)(a))[(p)]
+#define PUTCHAR(a,p,c) ((PRIVATE_AS u8 *)(a))[(p)] = (u8) (c)
 
 #define SETSHIFTEDINT(a,n,v)                  \
 {                                             \
@@ -72,7 +72,7 @@ DECLSPEC u32 sapb_trans (const u32 in)
   return out;
 }
 
-DECLSPEC u32 walld0rf_magic (const u32 *w0, const u32 pw_len, const u32 *salt_buf0, const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, u32 *t)
+DECLSPEC u32 walld0rf_magic (PRIVATE_AS const u32 *w0, const u32 pw_len, PRIVATE_AS const u32 *salt_buf0, const u32 salt_len, const u32 a, const u32 b, const u32 c, const u32 d, PRIVATE_AS u32 *t)
 {
   t[ 0] = 0;
   t[ 1] = 0;
