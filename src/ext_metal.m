@@ -1251,21 +1251,8 @@ int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_com
 
 int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, size_t global_work_size, size_t local_work_size, double *ms)
 {
-/*
-  #define MTL_OPTS 3
-
-  #if MTL_OPTS == 0
-  local_work_size = 1;
-  MTLSize threadsGroup = {global_work_size, 1, 1};
-  MTLSize numThreadgroups = {local_work_size, 1, 1};
-  #elif MTL_OPTS == 1
-  MTLSize numThreadgroups = {local_work_size, 1, 1};
-  MTLSize threadsGroup = { (global_work_size + local_work_size)/local_work_size, 1, 1};
-  #else
-*/
   MTLSize numThreadgroups = {local_work_size, 1, 1};
   MTLSize threadsGroup = {global_work_size, 1, 1};
-//  #endif
 
   if (metal_command_encoder == nil)
   {
@@ -1281,11 +1268,7 @@ int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_com
     return -1;
   }
 
-//  #if MTL_OPTS == 0
-//  [metal_command_encoder dispatchThreads: threadsGroup threadsPerThreadgroup: numThreadgroups];
-//  #else
   [metal_command_encoder dispatchThreadgroups: threadsGroup threadsPerThreadgroup: numThreadgroups];
-//  #endif
 
   [metal_command_encoder endEncoding];
   [metal_command_buffer commit];
