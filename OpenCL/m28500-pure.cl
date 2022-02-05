@@ -47,8 +47,8 @@ KERNEL_FQ void m28500_init (KERN_ATTR_TMPS (btcprv_tmp_t))
    * prepare
    */
   // check if enough space to work - it should be exactly 52 chars (but maybe +-1 char)
-  if (pw_len > 200) return;
-  char b58[200]={0};
+  if (pw_len > 52) return;
+  char b58[52]={0};
   // copy password to b58
   size_t b58sz = pw_len;
   char * pass = (char*) (pws[gid].i); 
@@ -58,12 +58,28 @@ KERNEL_FQ void m28500_init (KERN_ATTR_TMPS (btcprv_tmp_t))
     b58[i] = pass[i];
   }
   // convert password from b58 to bin
-  u8 bin[200];
-  size_t binsz = 200;
+  u8 bin[52];
+  size_t binsz = 52;
 
-  b58tobin(bin, &binsz, b58, b58sz);
+  if (pw_len==51)
+  {
+    bool res = b58dec_51((u32*)bin,(char*)b58);
+    if (res)
+      binsz = 37;
+  }
+  else if (pw_len==52)
+  {
+    bool res = b58dec_52((u32*)bin,(char*)b58);
+    if (res){
+      binsz = 38;
+      if (bin[33] != 1)  // not valid compressed address indicator
+      {
+        tmps[gid].status = 0; // already error
+        return;
+      }  
+    }
+  }
 
-  
   // store binary prv key in tmps
   if ((binsz < 39)&&(binsz > 36)) // should be 37 or 38 bytes in WIF format
   {
@@ -72,7 +88,10 @@ KERNEL_FQ void m28500_init (KERN_ATTR_TMPS (btcprv_tmp_t))
     u32 * bin32 = (u32*) bin;
     u8 * ppkey = (u8 *) tmps[gid].prv_key_bin;
     for (i=0; i<binsz; i++)
-      ppkey[i] = bin[200-binsz+i];
+      // if (binsz==37)
+        ppkey[i] = bin[i];
+      // else
+      //   ppkey[i] = bin[52-binsz+i];
   }
   else
   {

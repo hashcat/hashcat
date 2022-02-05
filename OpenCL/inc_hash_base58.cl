@@ -250,3 +250,106 @@ DECLSPEC bool b58check_enc(char *b58c, size_t *b58c_sz, u8 ver, const void *data
 	
 	return b58enc(b58c, b58c_sz, buf, 1 + datasz + 4);
 }
+
+
+// special function to handle only WIF input of 51 or 52 characters
+
+DECLSPEC bool b58dec_51 (u32 *out, const char *data)
+{
+	// data length must be 51 and must be checked before calling the function
+
+  if (data[0] != '5') return false;
+
+  /*
+   * Base58 decode:
+   */
+
+  // we need 1 + 32 + 0 + 4 = 37 ~ 40 (divided by 4 because of u32) bytes:
+
+  // test speed with (manual or automatic) #pragma unroll
+	int i5 = 0;  // i/5
+	int mod = 0; //
+  for (u32 i = 0; i < 51; i++)
+  {
+
+    u32 c = b58digits_map[data[i]];
+
+    // test speed with (manual or automatic) #pragma unroll
+
+    for (u32 j = 0; j <= i5; j++)
+    {
+      const u32 pos = 10 - j;
+
+      const u64 t = ((u64) out[pos]) * 58 + c;
+
+      c = t >> 32; // upper u32
+
+      out[pos] = t; // lower u32 (& 0xffffffff)
+    }
+		mod++;
+		if (mod == 5){
+			i5++;
+			mod = 0;
+		}
+  }
+
+  // fix byte alignment:
+  // (test speed with (manual or automatic) #pragma unroll)
+
+  for (u32 i = 0; i < 10; i++) // offset of: 3 bytes
+  {
+    out[i] = hc_swap32_S( 
+			        (out[i + 1] << 24) |
+              (out[i + 2] >>  8) ); 
+  }
+
+	return true;
+
+}
+
+
+DECLSPEC bool b58dec_52 (u32 *out, const char *data)
+{
+	// data length must be 51 and must be checked before calling the function
+
+	if ((data[0] != 'K') &&
+		(data[0] != 'L')) return false;
+  // test speed with (manual or automatic) #pragma unroll
+	int i5 = 0;  // i/5
+	int mod = 0; //
+  for (u32 i = 0; i < 52; i++)
+  {
+
+    u32 c = b58digits_map[data[i]];
+
+    // test speed with (manual or automatic) #pragma unroll
+
+    for (u32 j = 0; j <= i5; j++)
+    {
+      const u32 pos = 10 - j;
+
+      const u64 t = ((u64) out[pos]) * 58 + c;
+
+      c = t >> 32; // upper u32
+
+      out[pos] = t; // lower u32 (& 0xffffffff)
+    }
+		mod++;
+		if (mod == 5){
+			i5++;
+			mod = 0;
+		}
+  }
+
+  // fix byte alignment:
+  // (test speed with (manual or automatic) #pragma unroll)
+
+  for (u32 i = 0; i < 10; i++) // offset of: 2 bytes
+  {
+    out[i] = hc_swap32_S(
+			        (out[i + 1] << 16) |
+              (out[i + 2] >> 16) );
+  }
+
+	return true;
+}
