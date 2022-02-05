@@ -35,6 +35,9 @@ static const struct option long_options[] =
   {"backend-devices",           required_argument, NULL, IDX_BACKEND_DEVICES},
   {"backend-ignore-cuda",       no_argument,       NULL, IDX_BACKEND_IGNORE_CUDA},
   {"backend-ignore-hip",        no_argument,       NULL, IDX_BACKEND_IGNORE_HIP},
+  #if defined (__APPLE__)
+  {"backend-ignore-metal",      no_argument,       NULL, IDX_BACKEND_IGNORE_METAL},
+  #endif
   {"backend-ignore-opencl",     no_argument,       NULL, IDX_BACKEND_IGNORE_OPENCL},
   {"backend-info",              no_argument,       NULL, IDX_BACKEND_INFO},
   {"backend-vector-width",      required_argument, NULL, IDX_BACKEND_VECTOR_WIDTH},
@@ -170,6 +173,9 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->backend_devices           = NULL;
   user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
   user_options->backend_ignore_hip        = BACKEND_IGNORE_HIP;
+  #if defined (__APPLE__)
+  user_options->backend_ignore_metal      = BACKEND_IGNORE_METAL;
+  #endif
   user_options->backend_ignore_opencl     = BACKEND_IGNORE_OPENCL;
   user_options->backend_info              = BACKEND_INFO;
   user_options->backend_vector_width      = BACKEND_VECTOR_WIDTH;
@@ -455,6 +461,9 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_CPU_AFFINITY:              user_options->cpu_affinity              = optarg;                          break;
       case IDX_BACKEND_IGNORE_CUDA:       user_options->backend_ignore_cuda       = true;                            break;
       case IDX_BACKEND_IGNORE_HIP:        user_options->backend_ignore_hip        = true;                            break;
+      #if defined (__APPLE__)
+      case IDX_BACKEND_IGNORE_METAL:      user_options->backend_ignore_metal      = true;                            break;
+      #endif
       case IDX_BACKEND_IGNORE_OPENCL:     user_options->backend_ignore_opencl     = true;                            break;
       case IDX_BACKEND_INFO:              user_options->backend_info              = true;                            break;
       case IDX_BACKEND_DEVICES:           user_options->backend_devices           = optarg;                          break;

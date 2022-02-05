@@ -972,6 +972,112 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  #if defined (__APPLE__)
+  if (backend_ctx->mtl)
+  {
+    event_log_info (hashcat_ctx, "Metal Info:");
+    event_log_info (hashcat_ctx, "===========");
+    event_log_info (hashcat_ctx, NULL);
+
+    int metal_devices_cnt = backend_ctx->metal_devices_cnt;
+    int metal_runtimeVersion = backend_ctx->metal_runtimeVersion;
+    char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
+
+    if (metal_runtimeVersionStr != NULL)
+    {
+      event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "Metal.Version.: %d", metal_runtimeVersion);
+    }
+
+    event_log_info (hashcat_ctx, NULL);
+
+    for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
+    {
+      const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
+
+      const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      int   device_id                 = device_param->device_id;
+      int   device_mtl_maj            = device_param->mtl_major;
+      int   device_mtl_min            = device_param->mtl_minor;
+      int   device_max_transfer_rate  = device_param->device_max_transfer_rate;
+      int   device_physical_location  = device_param->device_physical_location;
+      int   device_location_number    = device_param->device_location_number;
+      int   device_registryID         = device_param->device_registryID;
+      int   device_is_headless        = device_param->device_is_headless;
+      int   device_is_low_power       = device_param->device_is_low_power;
+      int   device_is_removable       = device_param->device_is_removable;
+
+      char *device_name               = device_param->device_name;
+
+      u32   device_processors         = device_param->device_processors;
+
+      u64   device_global_mem         = device_param->device_global_mem;
+      u64   device_maxmem_alloc       = device_param->device_maxmem_alloc;
+      u64   device_available_mem      = device_param->device_available_mem;
+      u64   device_local_mem_size     = device_param->device_local_mem_size;
+
+      cl_device_type opencl_device_type         = device_param->opencl_device_type;
+      cl_uint        opencl_device_vendor_id    = device_param->opencl_device_vendor_id;
+      char          *opencl_device_vendor       = device_param->opencl_device_vendor;
+
+      if (device_param->device_id_alias_cnt)
+      {
+        event_log_info (hashcat_ctx, "Backend Device ID #%d (Alias: #%d)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "Backend Device ID #%d", device_id + 1);
+      }
+
+      event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+      event_log_info (hashcat_ctx, "  Vendor.ID......: %u", opencl_device_vendor_id);
+      event_log_info (hashcat_ctx, "  Vendor.........: %s", opencl_device_vendor);
+      event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
+      event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
+      event_log_info (hashcat_ctx, "  Clock..........: N/A");
+      event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
+      event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+      event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+
+      switch (device_physical_location)
+      {
+        case MTL_DEVICE_LOCATION_BUILTIN:     event_log_info (hashcat_ctx, "  Phys.Location..: built-in"); break;
+        case MTL_DEVICE_LOCATION_SLOT:        event_log_info (hashcat_ctx, "  Phys.Location..: connected to slot %d", device_location_number); break;
+        case MTL_DEVICE_LOCATION_EXTERNAL:    event_log_info (hashcat_ctx, "  Phys.Location..: connected via an external interface (port %d)", device_location_number); break;
+        case MTL_DEVICE_LOCATION_UNSPECIFIED: event_log_info (hashcat_ctx, "  Phys.Location..: unspecified"); break;
+        default:                              event_log_info (hashcat_ctx, "  Phys.Location..: N/A"); break;
+      }
+
+      if (device_mtl_maj > 0 && device_mtl_min > 0)
+      {
+        event_log_info (hashcat_ctx, "  Feature.Set....: macOS GPU Family %d v%d", device_mtl_maj, device_mtl_min);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "  Feature.Set....: N/A");
+      }
+
+      event_log_info (hashcat_ctx, "  Registry.ID....: %d", device_registryID);
+
+      if (device_physical_location != MTL_DEVICE_LOCATION_BUILTIN)
+      {
+        event_log_info (hashcat_ctx, "  Max.TX.Rate....: %d MB/sec", device_max_transfer_rate);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "  Max.TX.Rate....: N/A");
+      }
+
+      event_log_info (hashcat_ctx, "  GPU.Properties.: headless %d, low-power %d, removable %d", device_is_headless, device_is_low_power, device_is_removable);
+      event_log_info (hashcat_ctx, NULL);
+    }
+  }
+  #endif
+
   if (backend_ctx->ocl)
   {
     event_log_info (hashcat_ctx, "OpenCL Info:");
@@ -1186,6 +1292,59 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
     event_log_info (hashcat_ctx, NULL);
   }
+
+  #if defined (__APPLE__)
+  /**
+   * Metal
+   */
+
+  if (backend_ctx->mtl)
+  {
+    int metal_devices_cnt    = backend_ctx->metal_devices_cnt;
+    char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
+
+    size_t len = event_log_info (hashcat_ctx, "METAL API (Metal %s)", metal_runtimeVersionStr);
+
+    char line[HCBUFSIZ_TINY] = { 0 };
+
+    memset (line, '=', len);
+
+    line[len] = 0;
+
+    event_log_info (hashcat_ctx, "%s", line);
+
+    for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
+    {
+      const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
+
+      const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      int   device_id            = device_param->device_id;
+      char *device_name          = device_param->device_name;
+      u32   device_processors    = device_param->device_processors;
+      u64   device_global_mem    = device_param->device_global_mem;
+      u64   device_available_mem = device_param->device_available_mem;
+
+      if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+      {
+        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+                  device_id + 1,
+                  device_name,
+                  device_available_mem / 1024 / 1024,
+                  device_global_mem    / 1024 / 1024,
+                  device_processors);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
+                  device_id + 1,
+                  device_name);
+      }
+    }
+
+    event_log_info (hashcat_ctx, NULL);
+  }
+  #endif
 
   /**
    * OpenCL

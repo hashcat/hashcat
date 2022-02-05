@@ -13,10 +13,11 @@
 ## Features
 ##
 
-- Added support to building Universal macOS binary on Apple Silicon
-- Added support to use --debug-mode in attack-mode 9 (Association Attack)
 - Added guess data to --status-json output
 - Added hex format for --separator option
+- Added new backend support for Metal, the OpenCL replacement API on Apple
+- Added support to building Universal macOS binary on Apple Silicon
+- Added support to use --debug-mode in attack-mode 9 (Association Attack)
 
 ##
 ## Bugs

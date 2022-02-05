@@ -95,6 +95,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --example-hashes           |      | Alias of --hash-info                                 |",
   "     --backend-ignore-cuda      |      | Do not try to open CUDA interface on startup         |",
   "     --backend-ignore-hip       |      | Do not try to open HIP interface on startup          |",
+  "     --backend-ignore-metal     |      | Do not try to open Metal interface on startup        |",
   "     --backend-ignore-opencl    |      | Do not try to open OpenCL interface on startup       |",
   " -I, --backend-info             |      | Show info about detected backend API devices         | -I",
   " -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1",
