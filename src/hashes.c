@@ -355,6 +355,20 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
       }
     }
 
+    #if defined (__APPLE__)
+    if (device_param->is_metal == true)
+    {
+      rc = hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_command_queue, tmps, device_param->metal_d_tmps, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size);
+
+      if (rc == -1)
+      {
+        hcfree (tmps);
+
+        return -1;
+      }
+    }
+    #endif
+
     if (device_param->is_opencl == true)
     {
       rc = hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_FALSE, plain->gidvid * hashconfig->tmp_size, hashconfig->tmp_size, tmps, 0, NULL, &opencl_event);
@@ -574,6 +588,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
   }
 
+  #if defined (__APPLE__)
+  if (device_param->is_metal == true)
+  {
+    if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_command_queue, &num_cracked, device_param->metal_d_result, 0, sizeof (u32)) == -1) return -1;
+  }
+  #endif
+
   if (device_param->is_opencl == true)
   {
     /* blocking */
@@ -623,6 +644,20 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       return -1;
     }
   }
+
+  #if defined (__APPLE__)
+  if (device_param->is_metal == true)
+  {
+    rc = hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_command_queue, cracked, device_param->metal_d_plain_bufs, 0, num_cracked * sizeof (plain_t));
+
+    if (rc == -1)
+    {
+      hcfree (cracked);
+
+      return -1;
+    }
+  }
+  #endif
 
   if (device_param->is_opencl == true)
   {
@@ -703,6 +738,18 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         }
       }
 
+      #if defined (__APPLE__)
+      if (device_param->is_metal == true)
+      {
+        rc = run_metal_kernel_memset32 (hashcat_ctx, device_param, device_param->metal_d_digests_shown, salt_buf->digests_offset * sizeof (u32), 0, salt_buf->digests_cnt * sizeof (u32));
+
+        if (rc == -1)
+        {
+          break;
+        }
+      }
+      #endif
+
       if (device_param->is_opencl == true)
       {
         /* NOTE: run_opencl_kernel_bzero() does not handle buffer offset */
@@ -750,6 +797,13 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   {
     if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_result, sizeof (u32)) == -1) return -1;
   }
+
+  #if defined (__APPLE__)
+  if (device_param->is_metal == true)
+  {
+    if (run_metal_kernel_bzero (hashcat_ctx, device_param, device_param->metal_d_result, sizeof (u32)) == -1) return -1;
+  }
+  #endif
 
   if (device_param->is_opencl == true)
   {
