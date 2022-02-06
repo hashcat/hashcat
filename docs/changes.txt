@@ -23,6 +23,7 @@
 ## Bugs
 ##
 
+- Fixed building error on Raspberry Pi
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed false negative on Unit Test with hash-type 25400
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
