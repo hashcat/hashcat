@@ -267,12 +267,12 @@ DECLSPEC bool b58dec_51 (u32 *out, const char *data)
   // we need 1 + 32 + 0 + 4 = 37 ~ 40 (divided by 4 because of u32) bytes:
 
   // test speed with (manual or automatic) #pragma unroll
-	int i5 = 0;  // i/5
-	int mod = 0; //
+	u32 i5 = 0;  // i/5
+	u32 mod = 0; //
   for (u32 i = 0; i < 51; i++)
   {
 
-    u32 c = b58digits_map[data[i]];
+    u32 c = b58digits_map[(u8)data[i]];
 
     // test speed with (manual or automatic) #pragma unroll
 
@@ -315,12 +315,12 @@ DECLSPEC bool b58dec_52 (u32 *out, const char *data)
 	if ((data[0] != 'K') &&
 		(data[0] != 'L')) return false;
   // test speed with (manual or automatic) #pragma unroll
-	int i5 = 0;  // i/5
-	int mod = 0; //
+	u32 i5 = 0;  // i/5
+	u32 mod = 0; //
   for (u32 i = 0; i < 52; i++)
   {
 
-    u32 c = b58digits_map[data[i]];
+    u32 c = b58digits_map[(u8)data[i]];
 
     // test speed with (manual or automatic) #pragma unroll
 
