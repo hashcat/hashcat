@@ -7918,8 +7918,11 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 #endif
 {
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
-  const folder_config_t *folder_config = hashcat_ctx->folder_config;
   const user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  #if !defined (_WIN) && !defined (__CYGWIN__) && !defined (__MSYS__)
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  #endif
 
   bool cached = true;
 
