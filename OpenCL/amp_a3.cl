@@ -3,14 +3,11 @@
  * License.....: MIT
  */
 
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
-
 #ifdef KERNEL_STATIC
-#include STR(INCLUDE_PATH/inc_vendor.h)
-#include STR(INCLUDE_PATH/inc_types.h)
-#include STR(INCLUDE_PATH/inc_platform.cl)
-#include STR(INCLUDE_PATH/inc_amp.h)
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_amp.h)
 #endif
 
 KERNEL_FQ void amp (KERN_ATTR_AMP)

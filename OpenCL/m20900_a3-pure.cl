@@ -5,17 +5,14 @@
 
 #define NEW_SIMD_CODE
 
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
-
 #ifdef KERNEL_STATIC
-#include STR(INCLUDE_PATH/inc_vendor.h)
-#include STR(INCLUDE_PATH/inc_types.h)
-#include STR(INCLUDE_PATH/inc_platform.cl)
-#include STR(INCLUDE_PATH/inc_common.cl)
-#include STR(INCLUDE_PATH/inc_simd.cl)
-#include STR(INCLUDE_PATH/inc_hash_md5.cl)
-#include STR(INCLUDE_PATH/inc_hash_sha1.cl)
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
 
 #if   VECT_SIZE == 1

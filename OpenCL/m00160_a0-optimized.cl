@@ -5,18 +5,15 @@
 
 #define NEW_SIMD_CODE
 
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
-
 #ifdef KERNEL_STATIC
-#include STR(INCLUDE_PATH/inc_vendor.h)
-#include STR(INCLUDE_PATH/inc_types.h)
-#include STR(INCLUDE_PATH/inc_platform.cl)
-#include STR(INCLUDE_PATH/inc_common.cl)
-#include STR(INCLUDE_PATH/inc_rp_optimized.h)
-#include STR(INCLUDE_PATH/inc_rp_optimized.cl)
-#include STR(INCLUDE_PATH/inc_simd.cl)
-#include STR(INCLUDE_PATH/inc_hash_sha1.cl)
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_rp_optimized.h)
+#include M2S(INCLUDE_PATH/inc_rp_optimized.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
 
 DECLSPEC void hmac_sha1_pad (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad)

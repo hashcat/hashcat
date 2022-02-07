@@ -5,16 +5,13 @@
 
 #define NEW_SIMD_CODE
 
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
-
 #ifdef KERNEL_STATIC
-#include STR(INCLUDE_PATH/inc_vendor.h)
-#include STR(INCLUDE_PATH/inc_types.h)
-#include STR(INCLUDE_PATH/inc_platform.cl)
-#include STR(INCLUDE_PATH/inc_common.cl)
-#include STR(INCLUDE_PATH/inc_simd.cl)
-#include STR(INCLUDE_PATH/inc_hash_whirlpool.cl)
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_hash_whirlpool.cl)
 #endif
 
 DECLSPEC void whirlpool_transform_transport_vector (PRIVATE_AS const u32x *w, PRIVATE_AS u32x *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)

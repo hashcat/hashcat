@@ -6,17 +6,14 @@
 //incompatible to simd
 //#define NEW_SIMD_CODE
 
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
-
 #ifdef KERNEL_STATIC
-#include STR(INCLUDE_PATH/inc_vendor.h)
-#include STR(INCLUDE_PATH/inc_types.h)
-#include STR(INCLUDE_PATH/inc_platform.cl)
-#include STR(INCLUDE_PATH/inc_common.cl)
-#include STR(INCLUDE_PATH/inc_rp_optimized.h)
-#include STR(INCLUDE_PATH/inc_rp_optimized.cl)
-#include STR(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_rp_optimized.h)
+#include M2S(INCLUDE_PATH/inc_rp_optimized.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
 #endif
 
 #define SIPROUND(v0,v1,v2,v3)   \

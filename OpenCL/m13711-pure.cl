@@ -5,21 +5,18 @@
 
 #define NEW_SIMD_CODE
 
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
-
 #ifdef KERNEL_STATIC
-#include STR(INCLUDE_PATH/inc_vendor.h)
-#include STR(INCLUDE_PATH/inc_types.h)
-#include STR(INCLUDE_PATH/inc_platform.cl)
-#include STR(INCLUDE_PATH/inc_common.cl)
-#include STR(INCLUDE_PATH/inc_simd.cl)
-#include STR(INCLUDE_PATH/inc_hash_ripemd160.cl)
-#include STR(INCLUDE_PATH/inc_cipher_aes.cl)
-#include STR(INCLUDE_PATH/inc_cipher_twofish.cl)
-#include STR(INCLUDE_PATH/inc_cipher_serpent.cl)
-#include STR(INCLUDE_PATH/inc_cipher_camellia.cl)
-#include STR(INCLUDE_PATH/inc_cipher_kuznyechik.cl)
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_hash_ripemd160.cl)
+#include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
+#include M2S(INCLUDE_PATH/inc_cipher_twofish.cl)
+#include M2S(INCLUDE_PATH/inc_cipher_serpent.cl)
+#include M2S(INCLUDE_PATH/inc_cipher_camellia.cl)
+#include M2S(INCLUDE_PATH/inc_cipher_kuznyechik.cl)
 #endif
 
 typedef struct vc
@@ -41,10 +38,10 @@ typedef struct vc
 } vc_t;
 
 #ifdef KERNEL_STATIC
-#include STR(INCLUDE_PATH/inc_truecrypt_crc32.cl)
-#include STR(INCLUDE_PATH/inc_truecrypt_xts.cl)
-#include STR(INCLUDE_PATH/inc_veracrypt_xts.cl)
-#include STR(INCLUDE_PATH/inc_veracrypt_keyfile.cl)
+#include M2S(INCLUDE_PATH/inc_truecrypt_crc32.cl)
+#include M2S(INCLUDE_PATH/inc_truecrypt_xts.cl)
+#include M2S(INCLUDE_PATH/inc_veracrypt_xts.cl)
+#include M2S(INCLUDE_PATH/inc_veracrypt_keyfile.cl)
 #endif
 
 typedef struct vc_tmp

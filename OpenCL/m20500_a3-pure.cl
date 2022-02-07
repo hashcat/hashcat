@@ -82,14 +82,11 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
     inv_update_key012 (key0, key1, key2, w0a, l_icrc32tab);
   */
 
-#define XSTR(x) #x
-#define STR(x) XSTR(x)
-
-#include STR(INCLUDE_PATH/inc_vendor.h)
-#include STR(INCLUDE_PATH/inc_types.h)
-#include STR(INCLUDE_PATH/inc_platform.cl)
-#include STR(INCLUDE_PATH/inc_common.cl)
-#include STR(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
 
 #define MSB(x)          ((x) >> 24)
 #define CRC32(x,c,t)    (((x) >> 8) ^ (t)[((x) ^ (c)) & 0xff])
