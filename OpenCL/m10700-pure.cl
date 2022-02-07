@@ -14,8 +14,8 @@
 #include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
 #endif
 
-#define COMPARE_S STR(INCLUDE_PATH/inc_comp_single.cl)
-#define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi.cl)
+#define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
+#define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
 #define PUTCHAR(a,p,c)    ((PRIVATE_AS u8 *)(a))[(p)] = (u8) (c)
 #define GETCHAR(a,p)      ((PRIVATE_AS u8 *)(a))[(p)]

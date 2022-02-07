@@ -23,8 +23,8 @@
 #define uint_to_hex_lower8(i) make_u32x (u16_bin_to_u32_hex ((i).s0), u16_bin_to_u32_hex ((i).s1), u16_bin_to_u32_hex ((i).s2), u16_bin_to_u32_hex ((i).s3), u16_bin_to_u32_hex ((i).s4), u16_bin_to_u32_hex ((i).s5), u16_bin_to_u32_hex ((i).s6), u16_bin_to_u32_hex ((i).s7), u16_bin_to_u32_hex ((i).s8), u16_bin_to_u32_hex ((i).s9), u16_bin_to_u32_hex ((i).sa), u16_bin_to_u32_hex ((i).sb), u16_bin_to_u32_hex ((i).sc), u16_bin_to_u32_hex ((i).sd), u16_bin_to_u32_hex ((i).se), u16_bin_to_u32_hex ((i).sf))
 #endif
 
-#define COMPARE_S STR(INCLUDE_PATH/inc_comp_single.cl)
-#define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi.cl)
+#define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
+#define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
 typedef struct bcrypt_tmp
 {
