@@ -31,8 +31,8 @@ typedef struct ethereum_pbkdf2
 
 } ethereum_pbkdf2_t;
 
-#define COMPARE_S STR(INCLUDE_PATH/inc_comp_single.cl)
-#define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi.cl)
+#define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
+#define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
 CONSTANT_VK u64a keccakf_rndc[24] =
 {

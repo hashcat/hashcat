@@ -11,8 +11,8 @@
 #include M2S(INCLUDE_PATH/inc_hash_sha512.cl)
 #endif
 
-#define COMPARE_S STR(INCLUDE_PATH/inc_comp_single.cl)
-#define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi.cl)
+#define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
+#define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
 #define PUTCHAR64_BE(a,p,c) ((PRIVATE_AS u8 *)(a))[(p) ^ 7] = (u8) (c)
 #define GETCHAR64_BE(a,p)   ((PRIVATE_AS u8 *)(a))[(p) ^ 7]

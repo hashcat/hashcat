@@ -12,8 +12,8 @@
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #endif
 
-#define COMPARE_S STR(INCLUDE_PATH/inc_comp_single_bs.cl)
-#define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi_bs.cl)
+#define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single_bs.cl)
+#define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi_bs.cl)
 
 #ifdef IS_NV
 #define KXX_DECL

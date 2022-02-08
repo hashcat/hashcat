@@ -14,8 +14,8 @@
 #include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
 #endif
 
-#define COMPARE_S STR(INCLUDE_PATH/inc_comp_single.cl)
-#define COMPARE_M STR(INCLUDE_PATH/inc_comp_multi.cl)
+#define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
+#define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
 #if defined IS_AMD && defined IS_GPU
 #define HC_INLINE
