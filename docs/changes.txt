@@ -13,11 +13,11 @@
 ## Features
 ##
 
-- Added guess data to --status-json output
-- Added hex format for --separator option
 - Added new backend support for Metal, the OpenCL replacement API on Apple
-- Added support to building Universal macOS binary on Apple Silicon
 - Added support to use --debug-mode in attack-mode 9 (Association Attack)
+- Added support to building universal macOS binary on Apple Silicon
+- Added hex encoding format for --separator option
+- Added password candidates range to --status-json output
 
 ##
 ## Bugs
@@ -27,8 +27,8 @@
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed false negative on Unit Test with hash-type 25400
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
-- Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
 - Fixed handling of devices in benchmark mode for "kernel build error". Instead of canceling, skip the device and move on to the next
+- Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
 - Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
 - Fixed method of how OPTS_TYPE_AUX* kernels are called in an association attack, for example in WPA/WPA2 kernel
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
@@ -44,9 +44,9 @@
 
 - Association Attack: Enable module specific pw_min and pw_max settings to avoid false positives in -a 9 attack-mode
 - Autotune: Added error handling. By default skipping device on error, with --force using accel/loops/threads min values instead
-- Backend: with kernel build options, switch from -I to -D INCLUDE_PATH, in order to support Apple Metal runtime
 - Backend Info: Added generic system info to output (must be completed on Windows side)
 - Backend Info: Added local memory size to output
+- Backend: with kernel build options, switch from -I to -D INCLUDE_PATH, in order to support Apple Metal runtime
 - CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
@@ -57,8 +57,8 @@
 - OpenCL Backend: added workaround to make optimized kernels work on Apple Silicon
 - OpenCL Backend: moved functions to ext_OpenCL.c and includes to ext_OpenCL.h
 - OpenCL Kernel: Set native_threads to 32 on Apple GPU's for various hash-modes
-- OpenCL Runtime: Add some unstable warnings detected on macOS
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
+- OpenCL Runtime: Add some unstable warnings detected on macOS
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
 - Status code: updated negative status code (added kernel create failure and resync)
 - Status code: updated negative status code, usefull in Unit tests engine (test.sh)
