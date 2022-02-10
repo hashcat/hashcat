@@ -54,6 +54,7 @@
 - Kernels: Refactored standard kernel includes, KERN_ATTR macros and rc4 cipher functions, in order to support Apple Metal runtime
 - Kernels: Set the default Address Space Qualifier for any pointer, in order to support Apple Metal runtime
 - Makefile: updated MACOSX_DEPLOYMENT_TARGET to 10.15 and removed OpenCL framework from LFLAGS_NATIVE on MacOS
+- Metal Runtime: added support for vectors up to 4
 - OpenCL Backend: added workaround to make optimized kernels work on Apple Silicon
 - OpenCL Backend: moved functions to ext_OpenCL.c and includes to ext_OpenCL.h
 - OpenCL Kernel: Set native_threads to 32 on Apple GPU's for various hash-modes
