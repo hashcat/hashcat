@@ -683,6 +683,11 @@ DECLSPEC void m04710m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
+    b += digest[1] - SHA1M_B;
+    c += digest[2] - SHA1M_C;
+    d += digest[3] - SHA1M_D;
+    e += digest[4] - SHA1M_E;
+
     COMPARE_M_SIMD (d, e, c, b);
   }
 }
@@ -732,12 +737,6 @@ DECLSPEC void m04710s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R2],
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
-
-  /**
-   * reverse
-   */
-
-  const u32 e_rev = hc_rotl32_S (search[1], 2u);
 
   /**
    * loop
@@ -1356,13 +1355,19 @@ DECLSPEC void m04710s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     w9_t = hc_rotl32 ((w6_t ^ w1_t ^ wb_t ^ w9_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, w9_t);
     wa_t = hc_rotl32 ((w7_t ^ w2_t ^ wc_t ^ wa_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wa_t);
     wb_t = hc_rotl32 ((w8_t ^ w3_t ^ wd_t ^ wb_t), 1u); SHA1_STEP (SHA1_F1, a, b, c, d, e, wb_t);
-
-    if (MATCHES_NONE_VS (e, e_rev)) continue;
-
     wc_t = hc_rotl32 ((w9_t ^ w4_t ^ we_t ^ wc_t), 1u); SHA1_STEP (SHA1_F1, e, a, b, c, d, wc_t);
     wd_t = hc_rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u); SHA1_STEP (SHA1_F1, d, e, a, b, c, wd_t);
+
+    if (MATCHES_NONE_VS (e + digest[4] - SHA1M_E, search[1]))
+      continue;
+
     we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
+
+    b += digest[1] - SHA1M_B;
+    c += digest[2] - SHA1M_C;
+    d += digest[3] - SHA1M_D;
+    e += digest[4] - SHA1M_E;
 
     COMPARE_S_SIMD (d, e, c, b);
   }
