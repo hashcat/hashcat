@@ -312,11 +312,11 @@ KERNEL_FQ void m04510_m04 (KERN_ATTR_RULES ())
     SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
     // Update sha1 state
-    a += SHA1M_A;
-    b += SHA1M_B;
-    c += SHA1M_C;
-    d += SHA1M_D;
-    e += SHA1M_E;
+    a += make_u32x (SHA1M_A);
+    b += make_u32x (SHA1M_B);
+    c += make_u32x (SHA1M_C);
+    d += make_u32x (SHA1M_D);
+    e += make_u32x (SHA1M_E);
 
     /**
     * 2nd SHA1
@@ -1327,11 +1327,11 @@ KERNEL_FQ void m04510_s04 (KERN_ATTR_RULES ())
     SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
     // Update sha1 state
-    a += SHA1M_A;
-    b += SHA1M_B;
-    c += SHA1M_C;
-    d += SHA1M_D;
-    e += SHA1M_E;
+    a += make_u32x (SHA1M_A);
+    b += make_u32x (SHA1M_B);
+    c += make_u32x (SHA1M_C);
+    d += make_u32x (SHA1M_D);
+    e += make_u32x (SHA1M_E);
 
     /**
     * 2nd SHA1

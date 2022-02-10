@@ -184,14 +184,14 @@ DECLSPEC void m20710m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, SHA256C3e);
     wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, SHA256C3f);
 
-    a += SHA256M_A;
-    b += SHA256M_B;
-    c += SHA256M_C;
-    d += SHA256M_D;
-    e += SHA256M_E;
-    f += SHA256M_F;
-    g += SHA256M_G;
-    h += SHA256M_H;
+    a += make_u32x (SHA256M_A);
+    b += make_u32x (SHA256M_B);
+    c += make_u32x (SHA256M_C);
+    d += make_u32x (SHA256M_D);
+    e += make_u32x (SHA256M_E);
+    f += make_u32x (SHA256M_F);
+    g += make_u32x (SHA256M_G);
+    h += make_u32x (SHA256M_H);
 
     // final sha256
 
@@ -563,12 +563,12 @@ DECLSPEC void m20710m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
 
 //    a += digest[0] - SHA256M_A;
 //    b += digest[1] - SHA256M_B;
-    c += digest[2] - SHA256M_C;
-    d += digest[3] - SHA256M_D;
+    c += digest[2] - make_u32x (SHA256M_C);
+    d += digest[3] - make_u32x (SHA256M_D);
 //    e += digest[4] - SHA256M_E;
 //    f += digest[5] - SHA256M_F;
-    g += digest[6] - SHA256M_G;
-    h += digest[7] - SHA256M_H;
+    g += digest[6] - make_u32x (SHA256M_G);
+    h += digest[7] - make_u32x (SHA256M_H);
 
     COMPARE_M_SIMD (d, h, c, g);
   }
@@ -730,14 +730,14 @@ DECLSPEC void m20710s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, SHA256C3e);
     wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, SHA256C3f);
 
-    a += SHA256M_A;
-    b += SHA256M_B;
-    c += SHA256M_C;
-    d += SHA256M_D;
-    e += SHA256M_E;
-    f += SHA256M_F;
-    g += SHA256M_G;
-    h += SHA256M_H;
+    a += make_u32x (SHA256M_A);
+    b += make_u32x (SHA256M_B);
+    c += make_u32x (SHA256M_C);
+    d += make_u32x (SHA256M_D);
+    e += make_u32x (SHA256M_E);
+    f += make_u32x (SHA256M_F);
+    g += make_u32x (SHA256M_G);
+    h += make_u32x (SHA256M_H);
 
     // final sha256
 
@@ -1104,7 +1104,7 @@ DECLSPEC void m20710s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     wb_t = SHA256_EXPAND (w9_t, w4_t, wc_t, wb_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, f, g, h, a, b, c, d, e, wb_t, SHA256C3b);
     wc_t = SHA256_EXPAND (wa_t, w5_t, wd_t, wc_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, e, f, g, h, a, b, c, d, wc_t, SHA256C3c);
 
-    if (MATCHES_NONE_VS (h+digest[7]-SHA256M_H, search[1])) continue;
+    if (MATCHES_NONE_VS ((h + digest[7] - make_u32x (SHA256M_H)), search[1])) continue;
 
     wd_t = SHA256_EXPAND (wb_t, w6_t, we_t, wd_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, d, e, f, g, h, a, b, c, wd_t, SHA256C3d);
     we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, SHA256C3e);
@@ -1112,12 +1112,12 @@ DECLSPEC void m20710s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
 
 //    a += digest[0] - SHA256M_A;
 //    b += digest[1] - SHA256M_B;
-    c += digest[2] - SHA256M_C;
-    d += digest[3] - SHA256M_D;
+    c += digest[2] - make_u32x (SHA256M_C);
+    d += digest[3] - make_u32x (SHA256M_D);
 //    e += digest[4] - SHA256M_E;
 //    f += digest[5] - SHA256M_F;
-    g += digest[6] - SHA256M_G;
-    h += digest[7] - SHA256M_H;
+    g += digest[6] - make_u32x (SHA256M_G);
+    h += digest[7] - make_u32x (SHA256M_H);
 
     COMPARE_S_SIMD (d, h, c, g);
   }

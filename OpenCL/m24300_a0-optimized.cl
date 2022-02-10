@@ -288,11 +288,11 @@ KERNEL_FQ void m24300_m04 (KERN_ATTR_RULES ())
     we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    a += SHA1M_A;
-    b += SHA1M_B;
-    c += SHA1M_C;
-    d += SHA1M_D;
-    e += SHA1M_E;
+    a += make_u32x (SHA1M_A);
+    b += make_u32x (SHA1M_B);
+    c += make_u32x (SHA1M_C);
+    d += make_u32x (SHA1M_D);
+    e += make_u32x (SHA1M_E);
 
     u32x t0[4];
     u32x t1[4];
@@ -471,11 +471,11 @@ KERNEL_FQ void m24300_m04 (KERN_ATTR_RULES ())
       we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
       wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-      a += SHA1M_A;
-      b += SHA1M_B;
-      c += SHA1M_C;
-      d += SHA1M_D;
-      e += SHA1M_E;
+      a += make_u32x (SHA1M_A);
+      b += make_u32x (SHA1M_B);
+      c += make_u32x (SHA1M_C);
+      d += make_u32x (SHA1M_D);
+      e += make_u32x (SHA1M_E);
 
       t0[0] = c0[0];
       t0[1] = c0[1];
@@ -916,11 +916,11 @@ KERNEL_FQ void m24300_s04 (KERN_ATTR_RULES ())
     we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    a += SHA1M_A;
-    b += SHA1M_B;
-    c += SHA1M_C;
-    d += SHA1M_D;
-    e += SHA1M_E;
+    a += make_u32x (SHA1M_A);
+    b += make_u32x (SHA1M_B);
+    c += make_u32x (SHA1M_C);
+    d += make_u32x (SHA1M_D);
+    e += make_u32x (SHA1M_E);
 
     u32x t0[4];
     u32x t1[4];
@@ -1099,11 +1099,11 @@ KERNEL_FQ void m24300_s04 (KERN_ATTR_RULES ())
       we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
       wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-      a += SHA1M_A;
-      b += SHA1M_B;
-      c += SHA1M_C;
-      d += SHA1M_D;
-      e += SHA1M_E;
+      a += make_u32x (SHA1M_A);
+      b += make_u32x (SHA1M_B);
+      c += make_u32x (SHA1M_C);
+      d += make_u32x (SHA1M_D);
+      e += make_u32x (SHA1M_E);
 
       t0[0] = c0[0];
       t0[1] = c0[1];

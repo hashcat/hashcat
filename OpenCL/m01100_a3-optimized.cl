@@ -159,10 +159,10 @@ DECLSPEC void m01100m (LOCAL_AS salt_t *s_salt_buf, PRIVATE_AS u32 *w, const u32
     MD4_STEP0(MD4_H , c, d, a, b,     H_w7c02, MD4S22);
     MD4_STEP0(MD4_H , b, c, d, a,     H_wfc02, MD4S23);
 
-    a += MD4M_A;
-    b += MD4M_B;
-    c += MD4M_C;
-    d += MD4M_D;
+    a += make_u32x (MD4M_A);
+    b += make_u32x (MD4M_B);
+    c += make_u32x (MD4M_C);
+    d += make_u32x (MD4M_D);
 
     u32x w0_t[4];
     u32x w1_t[4];
@@ -403,10 +403,10 @@ DECLSPEC void m01100s (LOCAL_AS salt_t *s_salt_buf, PRIVATE_AS u32 *w, const u32
     MD4_STEP0(MD4_H , c, d, a, b,     H_w7c02, MD4S22);
     MD4_STEP0(MD4_H , b, c, d, a,     H_wfc02, MD4S23);
 
-    a += MD4M_A;
-    b += MD4M_B;
-    c += MD4M_C;
-    d += MD4M_D;
+    a += make_u32x (MD4M_A);
+    b += make_u32x (MD4M_B);
+    c += make_u32x (MD4M_C);
+    d += make_u32x (MD4M_D);
 
     u32x w0_t[4];
     u32x w1_t[4];

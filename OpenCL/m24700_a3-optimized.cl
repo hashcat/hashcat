@@ -133,10 +133,10 @@ DECLSPEC void m24700m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     MD5_STEP (MD5_I , c, d, a, b, w0_t[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2_t[1], MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     w0_t[0] = a;
     w0_t[1] = b & 0xff; w0_t[1] |= 0x8000;
@@ -367,10 +367,10 @@ DECLSPEC void m24700s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     MD5_STEP (MD5_I , c, d, a, b, w0_t[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2_t[1], MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     w0_t[0] = a;
     w0_t[1] = b & 0xff; w0_t[1] |= 0x8000;

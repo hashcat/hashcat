@@ -326,46 +326,6 @@ DECLSPEC u32 hc_atomic_or (volatile GLOBAL_AS u32 *p, volatile const u32 val)
   return atomic_fetch_or_explicit (pd, val, memory_order_relaxed);
 }
 
-DECLSPEC u32x rotl32 (const u32x a, const int n)
-{
-  return ((a << n) | ((a >> (32 - n))));
-}
-
-DECLSPEC u32x rotr32 (const u32x a, const int n)
-{
-  return ((a >> n) | ((a << (32 - n))));
-}
-
-DECLSPEC u32 rotl32_S (const u32 a, const int n)
-{
-  return ((a << n) | ((a >> (32 - n))));
-}
-
-DECLSPEC u32 rotr32_S (const u32 a, const int n)
-{
-  return ((a >> n) | ((a << (32 - n))));
-}
-
-DECLSPEC u64x rotl64 (const u64x a, const int n)
-{
-  return ((a << n) | ((a >> (64 - n))));
-}
-
-DECLSPEC u64x rotr64 (const u64x a, const int n)
-{
-  return ((a >> n) | ((a << (64 - n))));
-}
-
-DECLSPEC u64 rotl64_S (const u64 a, const int n)
-{
-  return ((a << n) | ((a >> (64 - n))));
-}
-
-DECLSPEC u64 rotr64_S (const u64 a, const int n)
-{
-  return ((a >> n) | ((a << (64 - n))));
-}
-
 #define FIXED_THREAD_COUNT(n)
 #define SYNC_THREADS() threadgroup_barrier (mem_flags::mem_threadgroup)
 #endif // IS_METAL

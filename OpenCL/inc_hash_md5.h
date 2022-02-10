@@ -36,7 +36,7 @@
 
 #define MD5_STEP(f,a,b,c,d,x,K,s)   \
 {                                   \
-  a += K;                           \
+  a += make_u32x (K);               \
   a  = hc_add3 (a, x, f (b, c, d)); \
   a  = hc_rotl32 (a, s);            \
   a += b;                           \

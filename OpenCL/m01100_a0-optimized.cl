@@ -145,10 +145,10 @@ KERNEL_FQ void m01100_m04 (KERN_ATTR_RULES ())
     MD4_STEP (MD4_H , c, d, a, b, w1[3], MD4C02, MD4S22);
     MD4_STEP (MD4_H , b, c, d, a, w3[3], MD4C02, MD4S23);
 
-    a += MD4M_A;
-    b += MD4M_B;
-    c += MD4M_C;
-    d += MD4M_D;
+    a += make_u32x (MD4M_A);
+    b += make_u32x (MD4M_B);
+    c += make_u32x (MD4M_C);
+    d += make_u32x (MD4M_D);
 
     w0[0] = a;
     w0[1] = b;
@@ -376,10 +376,10 @@ KERNEL_FQ void m01100_s04 (KERN_ATTR_RULES ())
     MD4_STEP (MD4_H , c, d, a, b, w1[3], MD4C02, MD4S22);
     MD4_STEP (MD4_H , b, c, d, a, w3[3], MD4C02, MD4S23);
 
-    a += MD4M_A;
-    b += MD4M_B;
-    c += MD4M_C;
-    d += MD4M_D;
+    a += make_u32x (MD4M_A);
+    b += make_u32x (MD4M_B);
+    c += make_u32x (MD4M_C);
+    d += make_u32x (MD4M_D);
 
     w0[0] = a;
     w0[1] = b;

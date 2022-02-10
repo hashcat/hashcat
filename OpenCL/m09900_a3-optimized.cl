@@ -205,10 +205,10 @@ DECLSPEC void m09900m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     MD5_STEP0(MD5_I , c, d, a, b,     I_w2c3e, MD5S32);
     MD5_STEP0(MD5_I , b, c, d, a,     I_w9c3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     u32x r_a = a;
     u32x r_b = b;
@@ -495,10 +495,10 @@ DECLSPEC void m09900s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     MD5_STEP0(MD5_I , c, d, a, b,     I_w2c3e, MD5S32);
     MD5_STEP0(MD5_I , b, c, d, a,     I_w9c3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     u32x r_a = a;
     u32x r_b = b;

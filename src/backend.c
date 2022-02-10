@@ -8823,6 +8823,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       vector_width = user_options->backend_vector_width;
     }
 
+    // Metal supports vectors up to 4
+
+    if (device_param->is_metal == true && vector_width > 4)
+    {
+      vector_width = 4;
+    }
+
     // We can't have SIMD in kernels where we have an unknown final password length
     // It also turns out that pure kernels (that have a higher register pressure)
     // actually run faster on scalar GPU (like 1080) without SIMD

@@ -197,4 +197,14 @@ using namespace metal;
 //#define USE_SWIZZLE
 #endif
 
+#ifdef IS_METAL
+#define USE_ROTATE
+
+// Metal support max VECT_SIZE = 4
+#define s0 x
+#define s1 y
+#define s2 z
+#define s3 w
 #endif
+
+#endif // _INC_VENDOR_H

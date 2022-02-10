@@ -197,10 +197,10 @@ KERNEL_FQ void m24900_m04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     const u32x a0 = (((a >>  0) & 0xff) + ((a >>  8) & 0xff)) % 62;
     const u32x a1 = (((a >> 16) & 0xff) + ((a >> 24) & 0xff)) % 62;
@@ -422,10 +422,10 @@ KERNEL_FQ void m24900_s04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     const u32x a0 = (((a >>  0) & 0xff) + ((a >>  8) & 0xff)) % 62;
     const u32x a1 = (((a >> 16) & 0xff) + ((a >> 24) & 0xff)) % 62;
