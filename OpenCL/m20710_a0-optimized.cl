@@ -230,14 +230,14 @@ KERNEL_FQ void m20710_m04 (KERN_ATTR_RULES ())
     we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, SHA256C3e);
     wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, SHA256C3f);
 
-    a += SHA256M_A;
-    b += SHA256M_B;
-    c += SHA256M_C;
-    d += SHA256M_D;
-    e += SHA256M_E;
-    f += SHA256M_F;
-    g += SHA256M_G;
-    h += SHA256M_H;
+    a += make_u32x (SHA256M_A);
+    b += make_u32x (SHA256M_B);
+    c += make_u32x (SHA256M_C);
+    d += make_u32x (SHA256M_D);
+    e += make_u32x (SHA256M_E);
+    f += make_u32x (SHA256M_F);
+    g += make_u32x (SHA256M_G);
+    h += make_u32x (SHA256M_H);
 
     // final sha256
 
@@ -609,12 +609,12 @@ KERNEL_FQ void m20710_m04 (KERN_ATTR_RULES ())
 
 //    a += digest[0] - SHA256M_A;
 //    b += digest[1] - SHA256M_B;
-    c += digest[2] - SHA256M_C;
-    d += digest[3] - SHA256M_D;
+    c += digest[2] - make_u32x (SHA256M_C);
+    d += digest[3] - make_u32x (SHA256M_D);
 //    e += digest[4] - SHA256M_E;
 //    f += digest[5] - SHA256M_F;
-    g += digest[6] - SHA256M_G;
-    h += digest[7] - SHA256M_H;
+    g += digest[6] - make_u32x (SHA256M_G);
+    h += digest[7] - make_u32x (SHA256M_H);
 
     COMPARE_M_SIMD (d, h, c, g);
   }
@@ -828,14 +828,14 @@ KERNEL_FQ void m20710_s04 (KERN_ATTR_RULES ())
     we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, SHA256C3e);
     wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, SHA256C3f);
 
-    a += SHA256M_A;
-    b += SHA256M_B;
-    c += SHA256M_C;
-    d += SHA256M_D;
-    e += SHA256M_E;
-    f += SHA256M_F;
-    g += SHA256M_G;
-    h += SHA256M_H;
+    a += make_u32x (SHA256M_A);
+    b += make_u32x (SHA256M_B);
+    c += make_u32x (SHA256M_C);
+    d += make_u32x (SHA256M_D);
+    e += make_u32x (SHA256M_E);
+    f += make_u32x (SHA256M_F);
+    g += make_u32x (SHA256M_G);
+    h += make_u32x (SHA256M_H);
 
     // final sha256
 
@@ -1213,12 +1213,12 @@ KERNEL_FQ void m20710_s04 (KERN_ATTR_RULES ())
 
 //    a += digest[0] - SHA256M_A;
 //    b += digest[1] - SHA256M_B;
-    c += digest[2] - SHA256M_C;
-    d += digest[3] - SHA256M_D;
+    c += digest[2] - make_u32x (SHA256M_C);
+    d += digest[3] - make_u32x (SHA256M_D);
 //    e += digest[4] - SHA256M_E;
 //    f += digest[5] - SHA256M_F;
-    g += digest[6] - SHA256M_G;
-    h += digest[7] - SHA256M_H;
+    g += digest[6] - make_u32x (SHA256M_G);
+    h += digest[7] - make_u32x (SHA256M_H);
 
     COMPARE_S_SIMD (d, h, c, g);
   }

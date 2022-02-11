@@ -17,11 +17,11 @@
 {                                                                                                           \
   if (((h0) == search[0]) && ((h1) == search[1]) && ((h2) == search[2]) && ((h3) == search[3]))             \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)                                                    \
+    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)                                                 \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos, 0, 0);    \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
 }
@@ -37,13 +37,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)                                                  \
+      if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)                                               \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos, 0, 0); \
       }                                                                                                     \
@@ -66,9 +66,9 @@
 {                                                                                                           \
   if (((h0).s0 == search[0]) && ((h1).s0 == search[1]) && ((h2).s0 == search[2]) && ((h3).s0 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
     }                                                                                                       \
@@ -76,9 +76,9 @@
                                                                                                             \
   if (((h0).s1 == search[0]) && ((h1).s1 == search[1]) && ((h2).s1 == search[2]) && ((h3).s1 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
     }                                                                                                       \
@@ -97,13 +97,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
       }                                                                                                     \
@@ -117,13 +117,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
       }                                                                                                     \
@@ -144,9 +144,9 @@
 {                                                                                                           \
   if (((h0).s0 == search[0]) && ((h1).s0 == search[1]) && ((h2).s0 == search[2]) && ((h3).s0 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
     }                                                                                                       \
@@ -154,9 +154,9 @@
                                                                                                             \
   if (((h0).s1 == search[0]) && ((h1).s1 == search[1]) && ((h2).s1 == search[2]) && ((h3).s1 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
     }                                                                                                       \
@@ -164,9 +164,9 @@
                                                                                                             \
   if (((h0).s2 == search[0]) && ((h1).s2 == search[1]) && ((h2).s2 == search[2]) && ((h3).s2 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 2, 0, 0); \
     }                                                                                                       \
@@ -174,9 +174,9 @@
                                                                                                             \
   if (((h0).s3 == search[0]) && ((h1).s3 == search[1]) && ((h2).s3 == search[2]) && ((h3).s3 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 3, 0, 0); \
     }                                                                                                       \
@@ -197,13 +197,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
       }                                                                                                     \
@@ -217,13 +217,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
       }                                                                                                     \
@@ -237,13 +237,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 2, 0, 0); \
       }                                                                                                     \
@@ -257,13 +257,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 3, 0, 0); \
       }                                                                                                     \
@@ -284,9 +284,9 @@
 {                                                                                                           \
   if (((h0).s0 == search[0]) && ((h1).s0 == search[1]) && ((h2).s0 == search[2]) && ((h3).s0 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
     }                                                                                                       \
@@ -294,9 +294,9 @@
                                                                                                             \
   if (((h0).s1 == search[0]) && ((h1).s1 == search[1]) && ((h2).s1 == search[2]) && ((h3).s1 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
     }                                                                                                       \
@@ -304,9 +304,9 @@
                                                                                                             \
   if (((h0).s2 == search[0]) && ((h1).s2 == search[1]) && ((h2).s2 == search[2]) && ((h3).s2 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 2, 0, 0); \
     }                                                                                                       \
@@ -314,18 +314,18 @@
                                                                                                             \
   if (((h0).s3 == search[0]) && ((h1).s3 == search[1]) && ((h2).s3 == search[2]) && ((h3).s3 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 3, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
   if (((h0).s4 == search[0]) && ((h1).s4 == search[1]) && ((h2).s4 == search[2]) && ((h3).s4 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 4, 0, 0); \
     }                                                                                                       \
@@ -333,9 +333,9 @@
                                                                                                             \
   if (((h0).s5 == search[0]) && ((h1).s5 == search[1]) && ((h2).s5 == search[2]) && ((h3).s5 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 5, 0, 0); \
     }                                                                                                       \
@@ -343,9 +343,9 @@
                                                                                                             \
   if (((h0).s6 == search[0]) && ((h1).s6 == search[1]) && ((h2).s6 == search[2]) && ((h3).s6 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 6, 0, 0); \
     }                                                                                                       \
@@ -353,9 +353,9 @@
                                                                                                             \
   if (((h0).s7 == search[0]) && ((h1).s7 == search[1]) && ((h2).s7 == search[2]) && ((h3).s7 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 7, 0, 0); \
     }                                                                                                       \
@@ -380,13 +380,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
       }                                                                                                     \
@@ -400,13 +400,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
       }                                                                                                     \
@@ -420,13 +420,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 2, 0, 0); \
       }                                                                                                     \
@@ -440,13 +440,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 3, 0, 0); \
       }                                                                                                     \
@@ -459,13 +459,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp4, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp4, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 4, 0, 0); \
       }                                                                                                     \
@@ -479,13 +479,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp5, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp5, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 5, 0, 0); \
       }                                                                                                     \
@@ -499,13 +499,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp6, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp6, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 6, 0, 0); \
       }                                                                                                     \
@@ -519,13 +519,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp7, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                     \
+    int digest_pos = find_hash (digest_tp7, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 7, 0, 0); \
       }                                                                                                     \
@@ -546,9 +546,9 @@
 {                                                                                                           \
   if (((h0).s0 == search[0]) && ((h1).s0 == search[1]) && ((h2).s0 == search[2]) && ((h3).s0 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
     }                                                                                                       \
@@ -556,9 +556,9 @@
                                                                                                             \
   if (((h0).s1 == search[0]) && ((h1).s1 == search[1]) && ((h2).s1 == search[2]) && ((h3).s1 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
     }                                                                                                       \
@@ -566,9 +566,9 @@
                                                                                                             \
   if (((h0).s2 == search[0]) && ((h1).s2 == search[1]) && ((h2).s2 == search[2]) && ((h3).s2 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 2, 0, 0); \
     }                                                                                                       \
@@ -576,18 +576,18 @@
                                                                                                             \
   if (((h0).s3 == search[0]) && ((h1).s3 == search[1]) && ((h2).s3 == search[2]) && ((h3).s3 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 3, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
   if (((h0).s4 == search[0]) && ((h1).s4 == search[1]) && ((h2).s4 == search[2]) && ((h3).s4 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 4, 0, 0); \
     }                                                                                                       \
@@ -595,9 +595,9 @@
                                                                                                             \
   if (((h0).s5 == search[0]) && ((h1).s5 == search[1]) && ((h2).s5 == search[2]) && ((h3).s5 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 5, 0, 0); \
     }                                                                                                       \
@@ -605,9 +605,9 @@
                                                                                                             \
   if (((h0).s6 == search[0]) && ((h1).s6 == search[1]) && ((h2).s6 == search[2]) && ((h3).s6 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 6, 0, 0); \
     }                                                                                                       \
@@ -615,9 +615,9 @@
                                                                                                             \
   if (((h0).s7 == search[0]) && ((h1).s7 == search[1]) && ((h2).s7 == search[2]) && ((h3).s7 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 7, 0, 0); \
     }                                                                                                       \
@@ -625,9 +625,9 @@
                                                                                                             \
   if (((h0).s8 == search[0]) && ((h1).s8 == search[1]) && ((h2).s8 == search[2]) && ((h3).s8 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 8) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 8) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 8, 0, 0); \
     }                                                                                                       \
@@ -635,9 +635,9 @@
                                                                                                             \
   if (((h0).s9 == search[0]) && ((h1).s9 == search[1]) && ((h2).s9 == search[2]) && ((h3).s9 == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 9) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))         \
+    if (vector_accessible (il_pos, IL_CNT, 9) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 9, 0, 0); \
     }                                                                                                       \
@@ -645,9 +645,9 @@
                                                                                                             \
   if (((h0).sa == search[0]) && ((h1).sa == search[1]) && ((h2).sa == search[2]) && ((h3).sa == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 10) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))        \
+    if (vector_accessible (il_pos, IL_CNT, 10) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 10, 0, 0); \
     }                                                                                                       \
@@ -655,9 +655,9 @@
                                                                                                             \
   if (((h0).sb == search[0]) && ((h1).sb == search[1]) && ((h2).sb == search[2]) && ((h3).sb == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 11) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))        \
+    if (vector_accessible (il_pos, IL_CNT, 11) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 11, 0, 0); \
     }                                                                                                       \
@@ -665,9 +665,9 @@
                                                                                                             \
   if (((h0).sc == search[0]) && ((h1).sc == search[1]) && ((h2).sc == search[2]) && ((h3).sc == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 12) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))        \
+    if (vector_accessible (il_pos, IL_CNT, 12) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 12, 0, 0); \
     }                                                                                                       \
@@ -675,9 +675,9 @@
                                                                                                             \
   if (((h0).sd == search[0]) && ((h1).sd == search[1]) && ((h2).sd == search[2]) && ((h3).sd == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 13) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))        \
+    if (vector_accessible (il_pos, IL_CNT, 13) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 13, 0, 0); \
     }                                                                                                       \
@@ -685,9 +685,9 @@
                                                                                                             \
   if (((h0).se == search[0]) && ((h1).se == search[1]) && ((h2).se == search[2]) && ((h3).se == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 14) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))        \
+    if (vector_accessible (il_pos, IL_CNT, 14) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 14, 0, 0); \
     }                                                                                                       \
@@ -695,9 +695,9 @@
                                                                                                             \
   if (((h0).sf == search[0]) && ((h1).sf == search[1]) && ((h2).sf == search[2]) && ((h3).sf == search[3])) \
   {                                                                                                         \
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                          \
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 15) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))        \
+    if (vector_accessible (il_pos, IL_CNT, 15) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
     {                                                                                                       \
       mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 15, 0, 0); \
     }                                                                                                       \
@@ -730,13 +730,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp00, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp00, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
       }                                                                                                     \
@@ -750,13 +750,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp01, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp01, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
       }                                                                                                     \
@@ -770,13 +770,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp02, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp02, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 2, 0, 0); \
       }                                                                                                     \
@@ -790,13 +790,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp03, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp03, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 3, 0, 0); \
       }                                                                                                     \
@@ -810,13 +810,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp04, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp04, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 4, 0, 0); \
       }                                                                                                     \
@@ -830,13 +830,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp05, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp05, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 5, 0, 0); \
       }                                                                                                     \
@@ -850,13 +850,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp06, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp06, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 6, 0, 0); \
       }                                                                                                     \
@@ -870,13 +870,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp07, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp07, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 7, 0, 0); \
       }                                                                                                     \
@@ -890,13 +890,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp08, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp08, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 8) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 8) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 8, 0, 0); \
       }                                                                                                     \
@@ -910,13 +910,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp09, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp09, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 9) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))       \
+      if (vector_accessible (il_pos, IL_CNT, 9) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 9, 0, 0); \
       }                                                                                                     \
@@ -930,13 +930,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp10, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp10, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 10) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+      if (vector_accessible (il_pos, IL_CNT, 10) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 10, 0, 0); \
       }                                                                                                     \
@@ -950,13 +950,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp11, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp11, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 11) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+      if (vector_accessible (il_pos, IL_CNT, 11) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 11, 0, 0); \
       }                                                                                                     \
@@ -970,13 +970,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp12, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp12, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 12) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+      if (vector_accessible (il_pos, IL_CNT, 12) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 12, 0, 0); \
       }                                                                                                     \
@@ -990,13 +990,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp13, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp13, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 13) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+      if (vector_accessible (il_pos, IL_CNT, 13) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 13, 0, 0); \
       }                                                                                                     \
@@ -1010,13 +1010,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp14, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp14, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 14) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+      if (vector_accessible (il_pos, IL_CNT, 14) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 14, 0, 0); \
       }                                                                                                     \
@@ -1030,13 +1030,13 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp15, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                    \
+    int digest_pos = find_hash (digest_tp15, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
     if (digest_pos != -1)                                                                                   \
     {                                                                                                       \
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                               \
+      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 15) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+      if (vector_accessible (il_pos, IL_CNT, 15) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
       {                                                                                                     \
         mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 15, 0, 0); \
       }                                                                                                     \
@@ -1162,21 +1162,21 @@
 #elif VECT_SIZE == 2
 #define VECTOR_ELEMENT(v, n) (n == 0 ? (v).s0 : (v).s1)
 #elif VECT_SIZE == 4
-#define VECTOR_ELEMENT(v, n)    \
-  (n < 2 ?                      \
-   (n == 0 ? (v).s0 : (v).s1) : \
-   (n == 2 ? (v).s2 : (v).s3)   \
+#define VECTOR_ELEMENT(v, n)       \
+  (n < 2 ?                         \
+   (n == 0 ? (v).s0 : (v).s1) :    \
+   (n == 2 ? (v).s2 : (v).s3)      \
   )
 #elif VECT_SIZE == 8
-#define VECTOR_ELEMENT(v, n)     \
-  (n < 4 ?                       \
-   (n < 2 ?                      \
-    (n == 0 ? (v).s0 : (v).s1) : \
-    (n == 2 ? (v).s2 : (v).s3)   \
-   ) : (n < 6 ?                  \
-    (n == 4 ? (v).s4 : (v).s5) : \
-    (n == 6 ? (v).s6 : (v).s7)   \
-   )                             \
+#define VECTOR_ELEMENT(v, n)       \
+  (n < 4 ?                         \
+   (n < 2 ?                        \
+    (n == 0 ? (v).s0 : (v).s1) :   \
+    (n == 2 ? (v).s2 : (v).s3)     \
+   ) : (n < 6 ?                    \
+    (n == 4 ? (v).s4 : (v).s5) :   \
+    (n == 6 ? (v).s6 : (v).s7)     \
+   )                               \
   )
 #elif VECT_SIZE == 16
 #define VECTOR_ELEMENT(v, n)       \

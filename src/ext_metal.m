@@ -166,7 +166,14 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
       }
       else
       {
-        //event_log_warning (hashcat_ctx, "%s(): skipping malformed build option: %s", __func__, [key UTF8String]);
+        #ifdef DEBUG
+        const char *tmp = [key UTF8String];
+
+        if (tmp != nil && strlen (tmp) > 0)
+        {
+          event_log_warning (hashcat_ctx, "%s(): skipping malformed build option: '%s'", __func__, tmp);
+        }
+        #endif
 
         continue;
       }

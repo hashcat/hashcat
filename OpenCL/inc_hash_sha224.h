@@ -41,7 +41,7 @@
 
 #define SHA224_STEP(F0,F1,a,b,c,d,e,f,g,h,x,K)    \
 {                                                 \
-  h = hc_add3 (h, K, x);                          \
+  h = hc_add3 (h, make_u32x (K), x);              \
   h = hc_add3 (h, SHA224_S3 (e), F1 (e,f,g));     \
   d += h;                                         \
   h = hc_add3 (h, SHA224_S2 (a), F0 (a,b,c));     \

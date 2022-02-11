@@ -251,10 +251,10 @@ KERNEL_FQ void m03910_m04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
           | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
@@ -355,10 +355,10 @@ KERNEL_FQ void m03910_m04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    const u32x r_a = a + MD5M_A;
-    const u32x r_b = b + MD5M_B;
-    const u32x r_c = c + MD5M_C;
-    const u32x r_d = d + MD5M_D;
+    const u32x r_a = a + make_u32x (MD5M_A);
+    const u32x r_b = b + make_u32x (MD5M_B);
+    const u32x r_c = c + make_u32x (MD5M_C);
+    const u32x r_d = d + make_u32x (MD5M_D);
 
     const u32x r_00 = 0x80;
     const u32x r_14 = 64 * 8;
@@ -690,10 +690,10 @@ KERNEL_FQ void m03910_s04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
           | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
@@ -794,10 +794,10 @@ KERNEL_FQ void m03910_s04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    const u32x r_a = a + MD5M_A;
-    const u32x r_b = b + MD5M_B;
-    const u32x r_c = c + MD5M_C;
-    const u32x r_d = d + MD5M_D;
+    const u32x r_a = a + make_u32x (MD5M_A);
+    const u32x r_b = b + make_u32x (MD5M_B);
+    const u32x r_c = c + make_u32x (MD5M_C);
+    const u32x r_d = d + make_u32x (MD5M_D);
 
     const u32x r_00 = 0x80;
     const u32x r_14 = 64 * 8;

@@ -179,14 +179,14 @@ KERNEL_FQ void m21400_m04 (KERN_ATTR_RULES ())
      * sha256
      */
 
-    w0_t = a + SHA256M_A;
-    w1_t = b + SHA256M_B;
-    w2_t = c + SHA256M_C;
-    w3_t = d + SHA256M_D;
-    w4_t = e + SHA256M_E;
-    w5_t = f + SHA256M_F;
-    w6_t = g + SHA256M_G;
-    w7_t = h + SHA256M_H;
+    w0_t = a + make_u32x (SHA256M_A);
+    w1_t = b + make_u32x (SHA256M_B);
+    w2_t = c + make_u32x (SHA256M_C);
+    w3_t = d + make_u32x (SHA256M_D);
+    w4_t = e + make_u32x (SHA256M_E);
+    w5_t = f + make_u32x (SHA256M_F);
+    w6_t = g + make_u32x (SHA256M_G);
+    w7_t = h + make_u32x (SHA256M_H);
     w8_t = 0x80000000;
     w9_t = 0;
     wa_t = 0;
@@ -464,14 +464,14 @@ KERNEL_FQ void m21400_s04 (KERN_ATTR_RULES ())
      * sha256
      */
 
-    w0_t = a + SHA256M_A;
-    w1_t = b + SHA256M_B;
-    w2_t = c + SHA256M_C;
-    w3_t = d + SHA256M_D;
-    w4_t = e + SHA256M_E;
-    w5_t = f + SHA256M_F;
-    w6_t = g + SHA256M_G;
-    w7_t = h + SHA256M_H;
+    w0_t = a + make_u32x (SHA256M_A);
+    w1_t = b + make_u32x (SHA256M_B);
+    w2_t = c + make_u32x (SHA256M_C);
+    w3_t = d + make_u32x (SHA256M_D);
+    w4_t = e + make_u32x (SHA256M_E);
+    w5_t = f + make_u32x (SHA256M_F);
+    w6_t = g + make_u32x (SHA256M_G);
+    w7_t = h + make_u32x (SHA256M_H);
     w8_t = 0x80000000;
     w9_t = 0;
     wa_t = 0;

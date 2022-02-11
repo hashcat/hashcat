@@ -602,15 +602,15 @@ DECLSPEC void m05500m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
     MD4_STEP (MD4_H , a, b, c, d, w0_t[3], MD4C02, MD4S20);
     MD4_STEP (MD4_H , d, a, b, c, w2_t[3], MD4C02, MD4S21);
 
-    if (MATCHES_NONE_VS (((d + MD4M_D) >> 16), s2)) continue;
+    if (MATCHES_NONE_VS (((d + make_u32x (MD4M_D)) >> 16), s2)) continue;
 
     MD4_STEP (MD4_H , c, d, a, b, w1_t[3], MD4C02, MD4S22);
     MD4_STEP (MD4_H , b, c, d, a, w3_t[3], MD4C02, MD4S23);
 
-    a += MD4M_A;
-    b += MD4M_B;
-    c += MD4M_C;
-    d += MD4M_D;
+    a += make_u32x (MD4M_A);
+    b += make_u32x (MD4M_B);
+    c += make_u32x (MD4M_C);
+    d += make_u32x (MD4M_D);
 
     /**
      * DES1
@@ -768,15 +768,15 @@ DECLSPEC void m05500s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64],
     MD4_STEP (MD4_H , a, b, c, d, w0_t[3], MD4C02, MD4S20);
     MD4_STEP (MD4_H , d, a, b, c, w2_t[3], MD4C02, MD4S21);
 
-    if (MATCHES_NONE_VS (((d + MD4M_D) >> 16), s2)) continue;
+    if (MATCHES_NONE_VS (((d + make_u32x (MD4M_D)) >> 16), s2)) continue;
 
     MD4_STEP (MD4_H , c, d, a, b, w1_t[3], MD4C02, MD4S22);
     MD4_STEP (MD4_H , b, c, d, a, w3_t[3], MD4C02, MD4S23);
 
-    a += MD4M_A;
-    b += MD4M_B;
-    c += MD4M_C;
-    d += MD4M_D;
+    a += make_u32x (MD4M_A);
+    b += make_u32x (MD4M_B);
+    c += make_u32x (MD4M_C);
+    d += make_u32x (MD4M_D);
 
     /**
      * DES1

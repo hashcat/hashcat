@@ -251,10 +251,10 @@ DECLSPEC void m13300m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     SHA1_STEP (SHA1_F1 , c, d, e, a, b, (c_78s ^ w0s07 ^ w0s08 ^ w0s15 ^ w0s18 ^ w0s20));
     SHA1_STEP (SHA1_F1 , b, c, d, e, a, (c_79s ^ w0s08 ^ w0s22));
 
-    a += SHA1M_A;
-    e += SHA1M_E;
-    d += SHA1M_D;
-    c += SHA1M_C;
+    a += make_u32x (SHA1M_A);
+    e += make_u32x (SHA1M_E);
+    d += make_u32x (SHA1M_D);
+    c += make_u32x (SHA1M_C);
 
     e &= 0x00000000;
 
@@ -511,10 +511,10 @@ DECLSPEC void m13300s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     SHA1_STEP (SHA1_F1 , c, d, e, a, b, (c_78s ^ w0s07 ^ w0s08 ^ w0s15 ^ w0s18 ^ w0s20));
     SHA1_STEP (SHA1_F1 , b, c, d, e, a, (c_79s ^ w0s08 ^ w0s22));
 
-    a += SHA1M_A;
-    e += SHA1M_E;
-    d += SHA1M_D;
-    c += SHA1M_C;
+    a += make_u32x (SHA1M_A);
+    e += make_u32x (SHA1M_E);
+    d += make_u32x (SHA1M_D);
+    c += make_u32x (SHA1M_C);
 
     e &= 0x00000000;
 

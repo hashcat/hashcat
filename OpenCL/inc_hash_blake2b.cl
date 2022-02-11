@@ -601,9 +601,9 @@ DECLSPEC void blake2b_transform_vector (PRIVATE_AS u64x *h, PRIVATE_AS const u64
   v[ 9] = BLAKE2B_IV_01;
   v[10] = BLAKE2B_IV_02;
   v[11] = BLAKE2B_IV_03;
-  v[12] = BLAKE2B_IV_04 ^ t0;
+  v[12] = make_u64x (BLAKE2B_IV_04) ^ t0;
   v[13] = BLAKE2B_IV_05; // ^ t1;
-  v[14] = BLAKE2B_IV_06 ^ f0;
+  v[14] = make_u64x (BLAKE2B_IV_06) ^ f0;
   v[15] = BLAKE2B_IV_07; // ^ f1;
 
   BLAKE2B_ROUND_VECTOR ( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);

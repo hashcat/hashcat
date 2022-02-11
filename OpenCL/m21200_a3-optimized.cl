@@ -166,10 +166,10 @@ DECLSPEC void m21200m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     const u32x a1 = hc_swap32 (a);
     const u32x b1 = hc_swap32 (b);
@@ -387,10 +387,10 @@ DECLSPEC void m21200m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += digest[0] - MD5M_A;
-    b += digest[1] - MD5M_B;
-    c += digest[2] - MD5M_C;
-    d += digest[3] - MD5M_D;
+    a += digest[0] - make_u32x (MD5M_A);
+    b += digest[1] - make_u32x (MD5M_B);
+    c += digest[2] - make_u32x (MD5M_C);
+    d += digest[3] - make_u32x (MD5M_D);
 
     COMPARE_M_SIMD (a, d, c, b);
   }
@@ -548,10 +548,10 @@ DECLSPEC void m21200s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     const u32x a1 = hc_swap32 (a);
     const u32x b1 = hc_swap32 (b);
@@ -766,16 +766,16 @@ DECLSPEC void m21200s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     MD5_STEP (MD5_I , b, c, d, a, wd_t, MD5C3b, MD5S33);
     MD5_STEP (MD5_I , a, b, c, d, w4_t, MD5C3c, MD5S30);
 
-    if (MATCHES_NONE_VS ((a+digest[0]-MD5M_A), search[0])) continue;
+    if (MATCHES_NONE_VS ((a + digest[0] - make_u32x (MD5M_A)), search[0])) continue;
 
     MD5_STEP (MD5_I , d, a, b, c, wb_t, MD5C3d, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += digest[0] - MD5M_A;
-    b += digest[1] - MD5M_B;
-    c += digest[2] - MD5M_C;
-    d += digest[3] - MD5M_D;
+    a += digest[0] - make_u32x (MD5M_A);
+    b += digest[1] - make_u32x (MD5M_B);
+    c += digest[2] - make_u32x (MD5M_C);
+    d += digest[3] - make_u32x (MD5M_D);
 
     COMPARE_S_SIMD (a, d, c, b);
   }

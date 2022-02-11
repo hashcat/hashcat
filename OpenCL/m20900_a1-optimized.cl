@@ -270,11 +270,11 @@ KERNEL_FQ void m20900_m04 (KERN_ATTR_BASIC ())
     we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    a += SHA1M_A;
-    b += SHA1M_B;
-    c += SHA1M_C;
-    d += SHA1M_D;
-    e += SHA1M_E;
+    a += make_u32x (SHA1M_A);
+    b += make_u32x (SHA1M_B);
+    c += make_u32x (SHA1M_C);
+    d += make_u32x (SHA1M_D);
+    e += make_u32x (SHA1M_E);
 
     const u32x a0 = a;
     const u32x b0 = b;
@@ -378,10 +378,10 @@ KERNEL_FQ void m20900_m04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     const u32x a1 = hc_swap32 (a);
     const u32x b1 = hc_swap32 (b);
@@ -778,10 +778,10 @@ KERNEL_FQ void m20900_m04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += digest[0] - MD5M_A;
-    b += digest[1] - MD5M_B;
-    c += digest[2] - MD5M_C;
-    d += digest[3] - MD5M_D;
+    a += digest[0] - make_u32x (MD5M_A);
+    b += digest[1] - make_u32x (MD5M_B);
+    c += digest[2] - make_u32x (MD5M_C);
+    d += digest[3] - make_u32x (MD5M_D);
 
     COMPARE_M_SIMD (a, d, c, b);
   }
@@ -1050,11 +1050,11 @@ KERNEL_FQ void m20900_s04 (KERN_ATTR_BASIC ())
     we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    a += SHA1M_A;
-    b += SHA1M_B;
-    c += SHA1M_C;
-    d += SHA1M_D;
-    e += SHA1M_E;
+    a += make_u32x (SHA1M_A);
+    b += make_u32x (SHA1M_B);
+    c += make_u32x (SHA1M_C);
+    d += make_u32x (SHA1M_D);
+    e += make_u32x (SHA1M_E);
 
     const u32x a0 = a;
     const u32x b0 = b;
@@ -1158,10 +1158,10 @@ KERNEL_FQ void m20900_s04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += MD5M_A;
-    b += MD5M_B;
-    c += MD5M_C;
-    d += MD5M_D;
+    a += make_u32x (MD5M_A);
+    b += make_u32x (MD5M_B);
+    c += make_u32x (MD5M_C);
+    d += make_u32x (MD5M_D);
 
     const u32x a1 = hc_swap32 (a);
     const u32x b1 = hc_swap32 (b);
@@ -1561,10 +1561,10 @@ KERNEL_FQ void m20900_s04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += digest[0] - MD5M_A;
-    b += digest[1] - MD5M_B;
-    c += digest[2] - MD5M_C;
-    d += digest[3] - MD5M_D;
+    a += digest[0] - make_u32x (MD5M_A);
+    b += digest[1] - make_u32x (MD5M_B);
+    c += digest[2] - make_u32x (MD5M_C);
+    d += digest[3] - make_u32x (MD5M_D);
 
     COMPARE_S_SIMD (a, d, c, b);
   }

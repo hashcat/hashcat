@@ -286,11 +286,11 @@ DECLSPEC void m05000m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    a += SHA1M_A;
-    b += SHA1M_B;
-    c += SHA1M_C;
-    d += SHA1M_D;
-    e += SHA1M_E;
+    a += make_u32x (SHA1M_A);
+    b += make_u32x (SHA1M_B);
+    c += make_u32x (SHA1M_C);
+    d += make_u32x (SHA1M_D);
+    e += make_u32x (SHA1M_E);
 
     /**
      * 2nd SHA1
@@ -708,11 +708,11 @@ DECLSPEC void m05000s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u); SHA1_STEP (SHA1_F1, c, d, e, a, b, we_t);
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u); SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    a += SHA1M_A;
-    b += SHA1M_B;
-    c += SHA1M_C;
-    d += SHA1M_D;
-    e += SHA1M_E;
+    a += make_u32x (SHA1M_A);
+    b += make_u32x (SHA1M_B);
+    c += make_u32x (SHA1M_C);
+    d += make_u32x (SHA1M_D);
+    e += make_u32x (SHA1M_E);
 
     /**
      * 2nd SHA1

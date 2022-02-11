@@ -109,6 +109,7 @@ typedef u64  u64x;
 #define make_u64x (u64)
 
 #else
+
 #if defined IS_CUDA || defined IS_HIP
 
 #if VECT_SIZE == 2
@@ -871,10 +872,17 @@ typedef VTYPE(ushort, VECT_SIZE) u16x;
 typedef VTYPE(uint,   VECT_SIZE) u32x;
 typedef VTYPE(ullong, VECT_SIZE) u64x;
 
+#ifndef IS_METAL
 #define make_u8x  (u8x)
 #define make_u16x (u16x)
 #define make_u32x (u32x)
 #define make_u64x (u64x)
+#else
+#define make_u8x  u8x
+#define make_u16x u16x
+#define make_u32x u32x
+#define make_u64x u64x
+#endif
 
 #endif
 #endif
