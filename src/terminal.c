@@ -1388,13 +1388,31 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
         if ((device_param->skipped == false) && (device_param->skipped_warning == false))
         {
-          event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
-                    device_id + 1,
-                    device_name,
-                    device_available_mem / 1024 / 1024,
-                    device_global_mem    / 1024 / 1024,
-                    device_maxmem_alloc  / 1024 / 1024,
-                    device_processors);
+          if (strncmp (device_name, "Apple M", 7) == 0)
+          {
+            cl_device_type opencl_device_type = device_param->opencl_device_type;
+
+            const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+
+            event_log_info (hashcat_ctx, "* Device #%u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                      device_id + 1,
+                      device_name,
+                      device_type_desc,
+                      device_available_mem / 1024 / 1024,
+                      device_global_mem    / 1024 / 1024,
+                      device_maxmem_alloc  / 1024 / 1024,
+                      device_processors);
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                      device_id + 1,
+                      device_name,
+                      device_available_mem / 1024 / 1024,
+                      device_global_mem    / 1024 / 1024,
+                      device_maxmem_alloc  / 1024 / 1024,
+                      device_processors);
+          }
         }
         else
         {

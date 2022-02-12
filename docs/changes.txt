@@ -58,6 +58,7 @@
 - Metal Runtime: added support for vectors up to 4
 - OpenCL Backend: added workaround to make optimized kernels work on Apple Silicon
 - OpenCL Backend: moved functions to ext_OpenCL.c and includes to ext_OpenCL.h
+- OpenCL Backend: show device_type in device list info on Apple Silicon
 - OpenCL Kernel: Set native_threads to 32 on Apple GPU's for various hash-modes
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Add some unstable warnings detected on macOS
