@@ -45,6 +45,7 @@
 
 - Association Attack: Enable module specific pw_min and pw_max settings to avoid false positives in -a 9 attack-mode
 - Autotune: Added error handling. By default skipping device on error, with --force using accel/loops/threads min values instead
+- Backend Info: Added folder_config info to output
 - Backend Info: Added generic system info to output (must be completed on Windows side)
 - Backend Info: Added local memory size to output
 - Backend: with kernel build options, switch from -I to -D INCLUDE_PATH, in order to support Apple Metal runtime

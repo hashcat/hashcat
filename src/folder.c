@@ -22,7 +22,7 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 {
   #if defined (__linux__) || defined (__CYGWIN__)
 
-  char *tmp;
+  char *tmp = NULL;
 
   hc_asprintf (&tmp, "/proc/%d/exe", getpid ());
 
@@ -147,7 +147,7 @@ static void get_session_dir (char *session_dir, const char *profile_dir)
 {
   snprintf (session_dir, HCBUFSIZ_TINY, "%s/%s", profile_dir, SESSIONS_FOLDER);
 }
-#endif
+#endif // _POSIX
 
 int count_dictionaries (char **dictionary_files)
 {
@@ -160,12 +160,12 @@ int count_dictionaries (char **dictionary_files)
     cnt++;
   }
 
-  return (cnt);
+  return cnt;
 }
 
 char *first_file_in_directory (const char *path)
 {
-  DIR *d;
+  DIR *d = NULL;
 
   if ((d = opendir (path)) != NULL)
   {
@@ -187,7 +187,7 @@ char *first_file_in_directory (const char *path)
 
     #else
 
-    struct dirent *de;
+    struct dirent *de = NULL;
 
     while ((de = readdir (d)) != NULL)
     {
@@ -246,7 +246,7 @@ char **scan_directory (const char *path)
 
     #else
 
-    struct dirent *de;
+    struct dirent *de = NULL;
 
     while ((de = readdir (d)) != NULL)
     {
@@ -255,11 +255,11 @@ char **scan_directory (const char *path)
 
       if (de->d_name[0] == '.') continue;
 
-      char *path_file;
+      char *path_file = NULL;
 
       hc_asprintf (&path_file, "%s/%s", tmp_path, de->d_name);
 
-      DIR *d_test;
+      DIR *d_test = NULL;
 
       if ((d_test = opendir (path_file)) != NULL)
       {
@@ -294,7 +294,7 @@ char **scan_directory (const char *path)
 
   hcfree (tmp_path);
 
-  return (files);
+  return files;
 }
 
 int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder)
@@ -393,9 +393,12 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   if (strcmp (install_dir, resolved_install_folder) == 0)
   {
     struct passwd pw;
-    struct passwd *pwp;
+    struct passwd *pwp = NULL;
 
     char buf[HCBUFSIZ_TINY];
+
+    memset (buf, 0, sizeof (buf));
+    memset (&pw, 0, sizeof (pw));
 
     getpwuid_r (getuid (), &pw, buf, HCBUFSIZ_TINY, &pwp);
 
@@ -448,13 +451,13 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
    * The best workaround found so far is to modify the TMP variable (only inside hashcat process) before the runtime is loaded.
    */
 
-  char *cpath;
+  char *cpath = NULL;
 
   #if defined (_WIN)
 
   hc_asprintf (&cpath, "%s\\OpenCL\\", shared_dir);
 
-  char *cpath_real;
+  char *cpath_real = NULL;
 
   hc_asprintf (&cpath_real, "%s\\OpenCL\\", shared_dir);
 
@@ -481,14 +484,12 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
     shared_dir = NULL;
 
-
     hcfree (profile_dir);
 
     if (session_dir == profile_dir) session_dir = NULL;
     if (cache_dir   == profile_dir) cache_dir   = NULL;
 
     profile_dir = NULL;
-
 
     hcfree (cache_dir);
 
@@ -536,7 +537,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
    * kernel cache, we need to make sure folder exist
    */
 
-  char *kernels_folder;
+  char *kernels_folder = NULL;
 
   hc_asprintf (&kernels_folder, "%s/kernels", cache_dir);
 

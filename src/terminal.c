@@ -799,7 +799,8 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
 void backend_info (hashcat_ctx_t *hashcat_ctx)
 {
-  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
   event_log_info (hashcat_ctx, "System Info:");
   event_log_info (hashcat_ctx, "============");
@@ -857,6 +858,20 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     hcfree (hw_model_buf);
   }
   #endif // _WIN || __CYGWIN__ || __MSYS__
+
+  event_log_info (hashcat_ctx, NULL);
+
+  event_log_info (hashcat_ctx, "Environment Info:");
+  event_log_info (hashcat_ctx, "=================");
+  event_log_info (hashcat_ctx, NULL);
+
+  event_log_info (hashcat_ctx, "Cur.Work.Dir.: %s", folder_config->cwd);
+  event_log_info (hashcat_ctx, "Install.Dir..: %s", folder_config->install_dir);
+  event_log_info (hashcat_ctx, "Profile.Dir..: %s", folder_config->profile_dir);
+  event_log_info (hashcat_ctx, "Cache.Dir....: %s", folder_config->cache_dir);
+  event_log_info (hashcat_ctx, "Session.Dir..: %s", folder_config->session_dir);
+  event_log_info (hashcat_ctx, "Shared.Dir...: %s", folder_config->shared_dir);
+  event_log_info (hashcat_ctx, "CL.Inc.Path..: %s", folder_config->cpath_real);
 
   event_log_info (hashcat_ctx, NULL);
 
