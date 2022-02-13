@@ -664,7 +664,7 @@ typedef enum user_options_defaults
   BACKEND_IGNORE_METAL     = false,
   #endif
   BACKEND_IGNORE_OPENCL    = false,
-  BACKEND_INFO             = false,
+  BACKEND_INFO             = 0,
   BACKEND_VECTOR_WIDTH     = 0,
   OPTIMIZED_KERNEL_ENABLE  = false,
   MULTIPLY_ACCEL_DISABLE   = false,
@@ -2310,7 +2310,7 @@ typedef struct user_options
   bool         backend_ignore_hip;
   bool         backend_ignore_metal;
   bool         backend_ignore_opencl;
-  bool         backend_info;
+  uint         backend_info;
   bool         optimized_kernel_enable;
   bool         multiply_accel_disable;
   bool         outfile_autohex;

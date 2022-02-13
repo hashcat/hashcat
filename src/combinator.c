@@ -14,17 +14,17 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
   hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
   user_options_t       *user_options        = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
   combinator_ctx->enabled = false;
 
-  if (user_options->hash_info      == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->backend_info   == true) return 0;
-  if (user_options->show           == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
+  if (user_options->hash_info    == true) return 0;
+  if (user_options->left         == true) return 0;
+  if (user_options->show         == true) return 0;
+  if (user_options->usage        == true) return 0;
+  if (user_options->version      == true) return 0;
+  if (user_options->backend_info  > 0)    return 0;
 
   if ((user_options->attack_mode != ATTACK_MODE_COMBI)
    && (user_options->attack_mode != ATTACK_MODE_HYBRID1)

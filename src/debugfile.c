@@ -97,7 +97,6 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->hash_info     == true) return 0;
   if (user_options->keyspace      == true) return 0;
   if (user_options->left          == true) return 0;
-  if (user_options->backend_info  == true) return 0;
   if (user_options->show          == true) return 0;
   if (user_options->stdout_flag   == true) return 0;
   if (user_options->speed_only    == true) return 0;
@@ -106,11 +105,11 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->version       == true) return 0;
   if (user_options->identify      == true) return 0;
   if (user_options->debug_mode    == 0)    return 0;
+  if (user_options->backend_info   > 0)    return 0;
 
   debugfile_ctx->enabled = true;
 
-  debugfile_ctx->mode = user_options->debug_mode;
-
+  debugfile_ctx->mode     = user_options->debug_mode;
   debugfile_ctx->filename = user_options->debug_file;
 
   if (debugfile_ctx->filename)

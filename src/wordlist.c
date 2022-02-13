@@ -665,18 +665,18 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
 
 int wl_data_init (hashcat_ctx_t *hashcat_ctx)
 {
+  wl_data_t      *wl_data      = hashcat_ctx->wl_data;
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   user_options_t *user_options = hashcat_ctx->user_options;
-  wl_data_t      *wl_data      = hashcat_ctx->wl_data;
 
   wl_data->enabled = false;
 
-  if (user_options->benchmark      == true) return 0;
-  if (user_options->hash_info      == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->backend_info   == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
+  if (user_options->benchmark    == true) return 0;
+  if (user_options->hash_info    == true) return 0;
+  if (user_options->left         == true) return 0;
+  if (user_options->usage        == true) return 0;
+  if (user_options->version      == true) return 0;
+  if (user_options->backend_info  > 0)    return 0;
 
   wl_data->enabled = true;
 

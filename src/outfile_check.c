@@ -348,12 +348,11 @@ int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->hash_info     == true) return 0;
   if (user_options->speed_only    == true) return 0;
   if (user_options->progress_only == true) return 0;
-  if (user_options->backend_info  == true) return 0;
   if (user_options->identify      == true) return 0;
+  if (user_options->backend_info   > 0)    return 0;
 
   if (hashconfig->outfile_check_disable == true) return 0;
-
-  if (user_options->outfile_check_timer == 0) return 0;
+  if (user_options->outfile_check_timer == 0)    return 0;
 
   if (user_options->outfile_check_dir == NULL)
   {
@@ -385,8 +384,7 @@ void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (outcheck_ctx->enabled == false) return;
-
+  if (outcheck_ctx->enabled == false)            return;
   if (hashconfig->outfile_check_disable == true) return;
 
   if (rmdir (outcheck_ctx->root_directory) == -1)

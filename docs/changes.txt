@@ -71,6 +71,7 @@
 - Unit tests: Updated test.sh to set default device-type to CPU with Apple Intel and added -f (--force) option
 - Usage Screen: On windows console, wait for any keypress if usage_mini_print() is used
 - User Options: Add new module function module_hash_decode_postprocess() to override hash specific configurations from command line
+- User Options: Change --backend-info/-I option type, from bool to int
 
 * changes v6.2.4 -> v6.2.5
 

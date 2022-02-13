@@ -293,7 +293,6 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   if (user_options->hash_info       == true) return 0;
   if (user_options->keyspace        == true) return 0;
   if (user_options->left            == true) return 0;
-  if (user_options->backend_info    == true) return 0;
   if (user_options->show            == true) return 0;
   if (user_options->stdout_flag     == true) return 0;
   if (user_options->speed_only      == true) return 0;
@@ -302,6 +301,7 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   if (user_options->version         == true) return 0;
   if (user_options->identify        == true) return 0;
   if (user_options->restore_disable == true) return 0;
+  if (user_options->backend_info     > 0)    return 0;
 
   if (argc ==    0) return 0;
   if (argv == NULL) return 0;

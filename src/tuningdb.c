@@ -47,24 +47,24 @@ int sort_by_tuning_db_entry (const void *v1, const void *v2)
 
 int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t *folder_config  = hashcat_ctx->folder_config;
   tuning_db_t     *tuning_db      = hashcat_ctx->tuning_db;
   user_options_t  *user_options   = hashcat_ctx->user_options;
+  folder_config_t *folder_config  = hashcat_ctx->folder_config;
 
   tuning_db->enabled = false;
 
-  if (user_options->hash_info     == true) return 0;
-  if (user_options->keyspace      == true) return 0;
-  if (user_options->left          == true) return 0;
-  if (user_options->backend_info  == true) return 0;
-  if (user_options->show          == true) return 0;
-  if (user_options->usage         == true) return 0;
-  if (user_options->version       == true) return 0;
-  if (user_options->identify      == true) return 0;
+  if (user_options->hash_info    == true) return 0;
+  if (user_options->keyspace     == true) return 0;
+  if (user_options->left         == true) return 0;
+  if (user_options->show         == true) return 0;
+  if (user_options->usage        == true) return 0;
+  if (user_options->version      == true) return 0;
+  if (user_options->identify     == true) return 0;
+  if (user_options->backend_info  > 0)    return 0;
 
   tuning_db->enabled = true;
 
-  char *tuning_db_file;
+  char *tuning_db_file = NULL;
 
   hc_asprintf (&tuning_db_file, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
 
@@ -225,11 +225,11 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
 
     char *device_name = token_ptr[0];
 
-    int attack_mode      = -1;
-    int hash_mode        = -1;
-    int vector_width     = -1;
-    int kernel_accel     = -1;
-    int kernel_loops     = -1;
+    int hash_mode     = -1;
+    int attack_mode   = -1;
+    int vector_width  = -1;
+    int kernel_accel  = -1;
+    int kernel_loops  = -1;
 
     if (token_ptr[1][0] != '*') attack_mode   = (int) strtol (token_ptr[1], NULL, 10);
     if (token_ptr[2][0] != '*') hash_mode     = (int) strtol (token_ptr[2], NULL, 10);
@@ -460,7 +460,7 @@ tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char
 
 tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
 {
-  tuning_db_entry_t *entry;
+  tuning_db_entry_t *entry = NULL;
 
   const char *NV_prefix = (const char *) "NVIDIA ";
 
