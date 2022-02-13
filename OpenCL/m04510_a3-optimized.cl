@@ -969,10 +969,10 @@ DECLSPEC void m04510m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u);
     SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    b += digest[1] - SHA1M_B;
-    c += digest[2] - SHA1M_C;
-    d += digest[3] - SHA1M_D;
-    e += digest[4] - SHA1M_E;
+    b += digest[1] - make_u32x (SHA1M_B);
+    c += digest[2] - make_u32x (SHA1M_C);
+    d += digest[3] - make_u32x (SHA1M_D);
+    e += digest[4] - make_u32x (SHA1M_E);
 
     COMPARE_M_SIMD (d, e, c, b);
   }
@@ -1930,7 +1930,7 @@ DECLSPEC void m04510s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     wd_t = hc_rotl32 ((wa_t ^ w5_t ^ wf_t ^ wd_t), 1u);
     SHA1_STEP (SHA1_F1, d, e, a, b, c, wd_t);
 
-    if (MATCHES_NONE_VS (e + digest[4] - SHA1M_E, search[1]))
+    if (MATCHES_NONE_VS ((e + digest[4] - make_u32x (SHA1M_E)), search[1]))
       continue;
 
     we_t = hc_rotl32 ((wb_t ^ w6_t ^ w0_t ^ we_t), 1u);
@@ -1938,10 +1938,10 @@ DECLSPEC void m04510s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     wf_t = hc_rotl32 ((wc_t ^ w7_t ^ w1_t ^ wf_t), 1u);
     SHA1_STEP (SHA1_F1, b, c, d, e, a, wf_t);
 
-    b += digest[1] - SHA1M_B;
-    c += digest[2] - SHA1M_C;
-    d += digest[3] - SHA1M_D;
-    e += digest[4] - SHA1M_E;
+    b += digest[1] - make_u32x (SHA1M_B);
+    c += digest[2] - make_u32x (SHA1M_C);
+    d += digest[3] - make_u32x (SHA1M_D);
+    e += digest[4] - make_u32x (SHA1M_E);
 
     COMPARE_S_SIMD (d, e, c, b);
   }
