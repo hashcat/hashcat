@@ -72,21 +72,21 @@ static bool generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, const 
 
 int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  hashes_t       *hashes       = hashcat_ctx->hashes;
   bitmap_ctx_t   *bitmap_ctx   = hashcat_ctx->bitmap_ctx;
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   bitmap_ctx->enabled = false;
 
-  if (user_options->hash_info     == true) return 0;
-  if (user_options->keyspace      == true) return 0;
-  if (user_options->left          == true) return 0;
-  if (user_options->backend_info  == true) return 0;
-  if (user_options->show          == true) return 0;
-  if (user_options->usage         == true) return 0;
-  if (user_options->version       == true) return 0;
-  if (user_options->identify      == true) return 0;
+  if (user_options->hash_info    == true) return 0;
+  if (user_options->keyspace     == true) return 0;
+  if (user_options->left         == true) return 0;
+  if (user_options->show         == true) return 0;
+  if (user_options->usage        == true) return 0;
+  if (user_options->version      == true) return 0;
+  if (user_options->identify     == true) return 0;
+  if (user_options->backend_info  > 0)    return 0;
 
   bitmap_ctx->enabled = true;
 
@@ -117,9 +117,7 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   for (bitmap_bits = bitmap_min; bitmap_bits < bitmap_max; bitmap_bits++)
   {
     bitmap_nums = 1U << bitmap_bits;
-
     bitmap_mask = bitmap_nums - 1;
-
     bitmap_size = bitmap_nums * sizeof (u32);
 
     if ((hashes->digests_cnt & bitmap_mask) == hashes->digests_cnt) break;
@@ -136,9 +134,7 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   bitmap_nums = 1U << bitmap_bits;
-
   bitmap_mask = bitmap_nums - 1;
-
   bitmap_size = bitmap_nums * sizeof (u32);
 
   generate_bitmaps (hashes->digests_cnt, hashconfig->dgst_size, bitmap_shift1, (char *) hashes->digests_buf, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, bitmap_mask, bitmap_size, bitmap_s1_a, bitmap_s1_b, bitmap_s1_c, bitmap_s1_d, -1);

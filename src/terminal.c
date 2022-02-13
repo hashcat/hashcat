@@ -75,7 +75,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     event_log_info (hashcat_ctx, "%s (%s) starting in progress-only mode", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
   }
-  else if (user_options->backend_info == true)
+  else if (user_options->backend_info > 0)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in backend information mode", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
@@ -799,66 +799,85 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
 void backend_info (hashcat_ctx_t *hashcat_ctx)
 {
-  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
-  event_log_info (hashcat_ctx, "System Info:");
-  event_log_info (hashcat_ctx, "============");
-  event_log_info (hashcat_ctx, NULL);
-
-  #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-  // TODO
-  event_log_info (hashcat_ctx, "OS.Name......: Windows");
-  event_log_info (hashcat_ctx, "OS.Release...: N/A");
-  event_log_info (hashcat_ctx, "HW.Platform..: N/A");
-  event_log_info (hashcat_ctx, "HW.Model.....: N/A");
-  #else
-
-  struct utsname utsbuf;
-
-  bool rc_uname  = false;
-  bool rc_sysctl = false;
-
-  char *hw_model_buf = NULL;
-
-  #if !defined (__linux__)
-
-  size_t hw_model_len = 0;
-
-  if (sysctlbyname ("hw.model", NULL, &hw_model_len, NULL, 0) == 0 && hw_model_len > 0)
+  if (user_options->backend_info > 1)
   {
-    hw_model_buf = (char *) hcmalloc (hw_model_len);
+    event_log_info (hashcat_ctx, "System Info:");
+    event_log_info (hashcat_ctx, "============");
+    event_log_info (hashcat_ctx, NULL);
 
-    if (sysctlbyname ("hw.model", hw_model_buf, &hw_model_len, NULL, 0) != 0)
+    #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+    // TODO
+    event_log_info (hashcat_ctx, "OS.Name......: Windows");
+    event_log_info (hashcat_ctx, "OS.Release...: N/A");
+    event_log_info (hashcat_ctx, "HW.Platform..: N/A");
+    event_log_info (hashcat_ctx, "HW.Model.....: N/A");
+    #else
+
+    struct utsname utsbuf;
+
+    bool rc_uname  = false;
+    bool rc_sysctl = false;
+
+    char *hw_model_buf = NULL;
+
+    #if !defined (__linux__)
+
+    size_t hw_model_len = 0;
+
+    if (sysctlbyname ("hw.model", NULL, &hw_model_len, NULL, 0) == 0 && hw_model_len > 0)
     {
-      hw_model_buf = NULL;
-      hw_model_len = 0;
+      hw_model_buf = (char *) hcmalloc (hw_model_len);
 
+      if (sysctlbyname ("hw.model", hw_model_buf, &hw_model_len, NULL, 0) != 0)
+      {
+        hw_model_buf = NULL;
+        hw_model_len = 0;
+
+        hcfree (hw_model_buf);
+      }
+      else
+      {
+        rc_sysctl = true;
+      }
+    }
+    #endif // ! __linux__
+
+    if (uname (&utsbuf) == 0)
+    {
+      rc_uname = true;
+    }
+
+    event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
+    event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
+    event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model_buf   : "N/A");
+    event_log_info (hashcat_ctx, "HW.Platform..: %s", (rc_uname  == true) ? utsbuf.machine : "N/A");
+
+    if (rc_sysctl == true)
+    {
       hcfree (hw_model_buf);
     }
-    else
-    {
-      rc_sysctl = true;
-    }
+    #endif // _WIN || __CYGWIN__ || __MSYS__
+
+    event_log_info (hashcat_ctx, NULL);
+
+    event_log_info (hashcat_ctx, "Environment Info:");
+    event_log_info (hashcat_ctx, "=================");
+    event_log_info (hashcat_ctx, NULL);
+
+    event_log_info (hashcat_ctx, "Cur.Work.Dir.: %s", folder_config->cwd);
+    event_log_info (hashcat_ctx, "Install.Dir..: %s", folder_config->install_dir);
+    event_log_info (hashcat_ctx, "Profile.Dir..: %s", folder_config->profile_dir);
+    event_log_info (hashcat_ctx, "Cache.Dir....: %s", folder_config->cache_dir);
+    event_log_info (hashcat_ctx, "Session.Dir..: %s", folder_config->session_dir);
+    event_log_info (hashcat_ctx, "Shared.Dir...: %s", folder_config->shared_dir);
+    event_log_info (hashcat_ctx, "CL.Inc.Path..: %s", folder_config->cpath_real);
+
+    event_log_info (hashcat_ctx, NULL);
   }
-  #endif // ! __linux__
-
-  if (uname (&utsbuf) == 0)
-  {
-    rc_uname = true;
-  }
-
-  event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
-  event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
-  event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model_buf   : "N/A");
-  event_log_info (hashcat_ctx, "HW.Platform..: %s", (rc_uname  == true) ? utsbuf.machine : "N/A");
-
-  if (rc_sysctl == true)
-  {
-    hcfree (hw_model_buf);
-  }
-  #endif // _WIN || __CYGWIN__ || __MSYS__
-
-  event_log_info (hashcat_ctx, NULL);
 
   if (backend_ctx->cuda)
   {

@@ -5144,7 +5144,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->skipped == false)
       {
-        if ((user_options->force == false) && (user_options->backend_info == false))
+        if ((user_options->force == false) && (user_options->backend_info == 0))
         {
           // CUDA does not support query nvidia driver version, therefore no driver checks here
           // IF needed, could be retrieved using nvmlSystemGetDriverVersion()
@@ -5535,7 +5535,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->skipped == false)
       {
-        if ((user_options->force == false) && (user_options->backend_info == false))
+        if ((user_options->force == false) && (user_options->backend_info == 0))
         {
           // CUDA does not support query nvidia driver version, therefore no driver checks here
           // IF needed, could be retrieved using nvmlSystemGetDriverVersion()
@@ -5968,7 +5968,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       /*
       if (device_param->skipped == false)
       {
-        if ((user_options->force == false) && (user_options->backend_info == false))
+        if ((user_options->force == false) && (user_options->backend_info == 0))
         {
         }
 
@@ -6963,7 +6963,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (device_param->skipped == false)
         {
-          if ((user_options->force == false) && (user_options->backend_info == false))
+          if ((user_options->force == false) && (user_options->backend_info == 0))
           {
             if (opencl_device_type & CL_DEVICE_TYPE_CPU)
             {
@@ -7280,7 +7280,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->is_metal == false) continue;
 
-      if (user_options->backend_info == false)
+      if (user_options->backend_info == 0)
       {
         // do not ignore in case -I because user expects a value also for skipped devices
 
@@ -7381,7 +7381,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->is_opencl == false) continue;
 
-      if (user_options->backend_info == false)
+      if (user_options->backend_info == 0)
       {
         // do not ignore in case -I because user expects a value also for skipped devices
 

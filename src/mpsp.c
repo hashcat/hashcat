@@ -1394,23 +1394,23 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t         *hashconfig          = hashcat_ctx->hashconfig;
-  const user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  const user_options_t       *user_options        = hashcat_ctx->user_options;
-  mask_ctx_t                 *mask_ctx            = hashcat_ctx->mask_ctx;
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  mask_ctx_t                 *mask_ctx           = hashcat_ctx->mask_ctx;
 
   mask_ctx->enabled = false;
 
-  if (user_options->hash_info      == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->backend_info   == true) return 0;
-  if (user_options->show           == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
+  if (user_options->hash_info    == true) return 0;
+  if (user_options->left         == true) return 0;
+  if (user_options->show         == true) return 0;
+  if (user_options->usage        == true) return 0;
+  if (user_options->version      == true) return 0;
+  if (user_options->backend_info  > 0)    return 0;
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT) return 0;
-  if (user_options->attack_mode == ATTACK_MODE_COMBI)    return 0;
-  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)  return 0;
+  if (user_options->attack_mode  == ATTACK_MODE_ASSOCIATION) return 0;
+  if (user_options->attack_mode  == ATTACK_MODE_STRAIGHT)    return 0;
+  if (user_options->attack_mode  == ATTACK_MODE_COMBI)       return 0;
 
   mask_ctx->enabled = true;
 

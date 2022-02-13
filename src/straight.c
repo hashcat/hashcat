@@ -48,8 +48,8 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -256,20 +256,20 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
 int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options        = hashcat_ctx->user_options;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   straight_ctx->enabled = false;
 
-  if (user_options->hash_info      == true) return 0;
-  if (user_options->left           == true) return 0;
-  if (user_options->backend_info   == true) return 0;
-  if (user_options->show           == true) return 0;
-  if (user_options->usage          == true) return 0;
-  if (user_options->version        == true) return 0;
+  if (user_options->left         == true) return 0;
+  if (user_options->show         == true) return 0;
+  if (user_options->usage        == true) return 0;
+  if (user_options->version      == true) return 0;
+  if (user_options->hash_info    == true) return 0;
+  if (user_options->backend_info  > 0)    return 0;
 
-  if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
+  if (user_options->attack_mode  == ATTACK_MODE_BF) return 0;
 
   straight_ctx->enabled = true;
 
@@ -502,7 +502,6 @@ void straight_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   }
 
   hcfree (straight_ctx->dicts);
-
   hcfree (straight_ctx->kernel_rules_buf);
 
   memset (straight_ctx, 0, sizeof (straight_ctx_t));

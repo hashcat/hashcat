@@ -1122,7 +1122,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   else if (user_options->stdout_flag == true)
   {
   }
-  else if (user_options->backend_info == true)
+  else if (user_options->backend_info > 0)
   {
   }
   else

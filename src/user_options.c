@@ -465,7 +465,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BACKEND_IGNORE_METAL:      user_options->backend_ignore_metal      = true;                            break;
       #endif
       case IDX_BACKEND_IGNORE_OPENCL:     user_options->backend_ignore_opencl     = true;                            break;
-      case IDX_BACKEND_INFO:              user_options->backend_info              = true;                            break;
+      case IDX_BACKEND_INFO:              user_options->backend_info++;                                              break;
       case IDX_BACKEND_DEVICES:           user_options->backend_devices           = optarg;                          break;
       case IDX_BACKEND_VECTOR_WIDTH:      user_options->backend_vector_width      = hc_strtoul (optarg, NULL, 10);
                                           user_options->backend_vector_width_chgd = true;                            break;
@@ -1380,6 +1380,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options->backend_info > 2)
+  {
+    event_log_error (hashcat_ctx, "Invalid --backend-info/-I value, must have a value greater or equal to 0 and lower than 3.");
+
+    return -1;
+  }
+
   #ifdef WITH_BRAIN
   if ((user_options->brain_client == true) && (user_options->remove == true))
   {
@@ -1481,7 +1488,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       show_error = false;
     }
   }
-  else if (user_options->backend_info == true)
+  else if (user_options->backend_info > 0)
   {
     if (user_options->hc_argc == 0)
     {
@@ -1702,7 +1709,7 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "stdout";
     }
 
-    if (user_options->backend_info == true)
+    if (user_options->backend_info > 0)
     {
       user_options->session = "backend_info";
     }
@@ -1755,13 +1762,13 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->bitmap_max          = 1;
   }
 
-  if (user_options->hash_info       == true
-   || user_options->backend_info    == true
-   || user_options->keyspace        == true
-   || user_options->speed_only      == true
-   || user_options->progress_only   == true
-   || user_options->identify        == true
-   || user_options->usage           == true)
+  if (user_options->hash_info        == true
+   || user_options->keyspace         == true
+   || user_options->speed_only       == true
+   || user_options->progress_only    == true
+   || user_options->identify         == true
+   || user_options->usage            == true
+   || user_options->backend_info      > 0)
   {
     user_options->hwmon_disable       = true;
     user_options->left                = false;
@@ -1872,7 +1879,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->backend_info == true)
+  if (user_options->backend_info > 0)
   {
     user_options->backend_devices     = NULL;
     user_options->opencl_device_types = hcstrdup ("1,2,3");
@@ -1930,7 +1937,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     {
 
     }
-    else if (user_options->backend_info == true)
+    else if (user_options->backend_info > 0)
     {
 
     }
@@ -2176,7 +2183,7 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   {
 
   }
-  else if (user_options->backend_info == true)
+  else if (user_options->backend_info > 0)
   {
 
   }
