@@ -38,7 +38,7 @@ DECLSPEC u32 MurmurHash3(const u32 seed, PRIVATE_AS const u32 *data, const u32 s
 
   if (size % 4)
   {
-    const u8* remainder = (u8*)(data + nBlocks);
+    PRIVATE_AS const u8 *remainder = (PRIVATE_AS u8 *)(data + nBlocks);
     u32 val = 0;
 
     switch(size & 3) //Hash remaining bytes as size isn't always aligned by 4
