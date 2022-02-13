@@ -1382,7 +1382,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->backend_info > 2)
   {
-    event_log_error (hashcat_ctx, "Invalid --backend-info/-I value, must have a value greater than or equal to 0 and lower than 3.");
+    event_log_error (hashcat_ctx, "Invalid --backend-info/-I value, must have a value greater or equal to 0 and lower than 3.");
 
     return -1;
   }
