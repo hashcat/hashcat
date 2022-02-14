@@ -406,7 +406,7 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  const int hashes->digests_done_pot = hashes->digests_done;
+  hashes->digests_done_pot = hashes->digests_done;
 
   if (hashes->digests_done_pot > 0)
   {
