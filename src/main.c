@@ -746,12 +746,18 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (user_options->slow_candidates == false)
   {
-    event_log_advice (hashcat_ctx, "* Append -S to the commandline.");
-    event_log_advice (hashcat_ctx, "  This has a drastic speed impact but can be better for specific attacks.");
-    event_log_advice (hashcat_ctx, "  Typical scenarios are a small wordlist but a large ruleset.");
-    event_log_advice (hashcat_ctx, NULL);
+    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+    {
+      if ((user_options->attack_mode != ATTACK_MODE_HYBRID1) && (user_options->attack_mode != ATTACK_MODE_HYBRID2) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
+      {
+        event_log_advice (hashcat_ctx, "* Append -S to the commandline.");
+        event_log_advice (hashcat_ctx, "  This has a drastic speed impact but can be better for specific attacks.");
+        event_log_advice (hashcat_ctx, "  Typical scenarios are a small wordlist but a large ruleset.");
+        event_log_advice (hashcat_ctx, NULL);
+      }
+    }
   }
-
+  
   event_log_advice (hashcat_ctx, "* Update your backend API runtime / driver the right way:");
   event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/wrongdriver");
   event_log_advice (hashcat_ctx, NULL);
