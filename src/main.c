@@ -402,7 +402,7 @@ static void main_potfile_hash_left (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
-  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  hashes_t       *hashes       = hashcat_ctx->hashes;
 
   if (user_options->quiet == true) return;
 

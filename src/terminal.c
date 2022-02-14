@@ -2094,7 +2094,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashcat_status->salts_cnt > 1)
     {
-      const int    digests_net_new        = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      const int digests_net_new = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
       
       if (digests_net_new > 1)
       {
@@ -2122,7 +2122,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      const int    digests_net_new        = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      const int digests_net_new = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
       
       if (digests_net_new > 1)
       {
