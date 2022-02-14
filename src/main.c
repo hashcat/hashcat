@@ -748,7 +748,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
-      if ((user_options->attack_mode != ATTACK_MODE_HYBRID1) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
+      if ((user_options->attack_mode != ATTACK_MODE_HYBRID1) && (user_options->attack_mode != ATTACK_MODE_HYBRID2) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
       {
         event_log_advice (hashcat_ctx, "* Append -S to the commandline.");
         event_log_advice (hashcat_ctx, "  This has a drastic speed impact but can be better for specific attacks.");
