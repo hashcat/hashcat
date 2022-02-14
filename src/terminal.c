@@ -2090,7 +2090,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Speed.#*.........: %9sH/s",
       hashcat_status->speed_sec_all);
   }
-  if (hashes_status->digests_done_pot > 0)
+  if (hashcat_status->digests_done_pot > 0)
   {
     if (hashcat_status->salts_cnt > 1)
     {
