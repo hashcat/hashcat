@@ -2090,27 +2090,81 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Speed.#*.........: %9sH/s",
       hashcat_status->speed_sec_all);
   }
-
-  if (hashcat_status->salts_cnt > 1)
+  if (hashes_status->digests_done_pot > 0)
   {
-    event_log_info (hashcat_ctx,
-      "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts",
-      hashcat_status->digests_done,
-      hashcat_status->digests_cnt,
-      hashcat_status->digests_percent,
-      hashcat_status->salts_done,
-      hashcat_status->salts_cnt,
-      hashcat_status->salts_percent);
+    if (hashcat_status->salts_cnt > 1)
+    {
+      const int    digests_net_new        = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      
+      if (digests_net_new > 1)
+      {
+        event_log_info (hashcat_ctx,
+          "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts, %d This Session",
+          hashcat_status->digests_done,
+          hashcat_status->digests_cnt,
+          hashcat_status->digests_percent,
+          hashcat_status->salts_done,
+          hashcat_status->salts_cnt,
+          hashcat_status->salts_percent,
+          digests_net_new);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx,
+          "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts",
+          hashcat_status->digests_done,
+          hashcat_status->digests_cnt,
+          hashcat_status->digests_percent,
+          hashcat_status->salts_done,
+          hashcat_status->salts_cnt,
+          hashcat_status->salts_percent);
+      }  
+    }
+    else
+    {
+      const int    digests_net_new        = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      
+      if (digests_net_new > 1)
+      {
+        event_log_info (hashcat_ctx,
+          "Recovered........: %d/%d (%.2f%%) Digests, %d This Session",
+          hashcat_status->digests_done,
+          hashcat_status->digests_cnt,
+          hashcat_status->digests_percent,
+          digests_net_new);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx,
+          "Recovered........: %d/%d (%.2f%%) Digests",
+          hashcat_status->digests_done,
+          hashcat_status->digests_cnt,
+          hashcat_status->digests_percent);
+      }
+    }
   }
   else
   {
-    event_log_info (hashcat_ctx,
-      "Recovered........: %d/%d (%.2f%%) Digests",
-      hashcat_status->digests_done,
-      hashcat_status->digests_cnt,
-      hashcat_status->digests_percent);
+    if (hashcat_status->salts_cnt > 1)
+    {
+      event_log_info (hashcat_ctx,
+        "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts",
+        hashcat_status->digests_done,
+        hashcat_status->digests_cnt,
+        hashcat_status->digests_percent,
+        hashcat_status->salts_done,
+        hashcat_status->salts_cnt,
+        hashcat_status->salts_percent);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx,
+        "Recovered........: %d/%d (%.2f%%) Digests",
+        hashcat_status->digests_done,
+        hashcat_status->digests_cnt,
+        hashcat_status->digests_percent);
+    }
   }
-
   if (hashcat_status->digests_cnt > 1000)
   {
     const int    digests_remain         = hashcat_status->digests_cnt - hashcat_status->digests_done;

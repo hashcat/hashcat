@@ -941,6 +941,7 @@ typedef struct hashes
 
   u32          digests_cnt;
   u32          digests_done;
+  u32          digests_done_pot;
   u32          digests_saved;
 
   void        *digests_buf;

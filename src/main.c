@@ -406,18 +406,18 @@ static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  const int potfile_remove_cracks = hashes->digests_done;
+  const int hashes->digests_done_pot = hashes->digests_done;
 
-  if (potfile_remove_cracks > 0)
+  if (hashes->digests_done_pot > 0)
   {
-    if (potfile_remove_cracks == 1)
+    if (hashes->digests_done_pot == 1)
     {
       event_log_info (hashcat_ctx, "INFO: Removed 1 hash found as potfile entry or as empty hash.");
       event_log_info (hashcat_ctx, NULL);
     }
     else
     {
-      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries or as empty hashes.", potfile_remove_cracks);
+      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries or as empty hashes.", hashes->digests_done_pot);
       event_log_info (hashcat_ctx, NULL);
     }
   }
