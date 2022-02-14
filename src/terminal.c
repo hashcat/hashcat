@@ -2094,19 +2094,22 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashcat_status->salts_cnt > 1)
     {
-      const int digests_net_new = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      const int digests_new = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      const double digests_new_perc = (double) digests_new / (double) hashcat_status->digests_cnt * 100;
       
-      if (digests_net_new > 1)
+      if (digests_new > 1)
       {
         event_log_info (hashcat_ctx,
-          "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts, %d This Session",
+          "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts, %d/%d (%.2f%%) New",
           hashcat_status->digests_done,
           hashcat_status->digests_cnt,
           hashcat_status->digests_percent,
           hashcat_status->salts_done,
           hashcat_status->salts_cnt,
           hashcat_status->salts_percent,
-          digests_net_new);
+          digests_new,
+          hashcat_status->digests_cnt,
+          digests_new_perc);
       }
       else
       {
@@ -2122,16 +2125,19 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      const int digests_net_new = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      const int digests_new = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      const double digests_new_perc = (double) digests_new / (double) hashcat_status->digests_cnt * 100;
       
-      if (digests_net_new > 1)
+      if (digests_new > 1)
       {
         event_log_info (hashcat_ctx,
-          "Recovered........: %d/%d (%.2f%%) Digests, %d This Session",
+          "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) New",
           hashcat_status->digests_done,
           hashcat_status->digests_cnt,
           hashcat_status->digests_percent,
-          digests_net_new);
+          digests_new,
+          hashcat_status->digests_cnt,
+          digests_new_perc);
       }
       else
       {
