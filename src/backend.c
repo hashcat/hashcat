@@ -6777,6 +6777,17 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             need_nvapi = true;
             #endif
           }
+
+          if (strncmp (device_param->device_name, "Apple M", 7) == 0)
+          {
+            if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+            {
+              if (device_param->skipped == false)
+              {
+                need_iokit = true;
+              }
+            }
+          }
         }
 
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
