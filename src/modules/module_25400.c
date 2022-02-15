@@ -24,7 +24,10 @@ static const char *HASH_NAME      = "PDF 1.4 - 1.6 (Acrobat 5 - 8) - user and ow
 static const u64   KERN_TYPE      = 25400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE | OPTS_TYPE_COPY_TMPS | OPTS_TYPE_PT_ALWAYS_ASCII;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE 
+                                  | OPTS_TYPE_COPY_TMPS 
+                                  | OPTS_TYPE_PT_ALWAYS_ASCII
+                                  | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$pdf$2*3*128*-3904*1*16*631ed33746e50fba5caf56bcc39e09c6*32*5f9d0e4f0b39835dace0d306c40cd6b700000000000000000000000000000000*32*842103b0a0dc886db9223b94afe2d7cd63389079b61986a4fcf70095ad630c24";
