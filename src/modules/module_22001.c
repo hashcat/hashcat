@@ -38,7 +38,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_BINARY_HASHFILE_OPTIONAL
                                   | OPTS_TYPE_DEEP_COMP_KERNEL
                                   | OPTS_TYPE_COPY_TMPS
-                                  | OPTS_TYPE_POTFILE_NOPASS;
+                                  | OPTS_TYPE_POTFILE_NOPASS
+                                  | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "88f43854ae7b1624fc2ab7724859e795130f4843c7535729e819cf92f39535dc";
 static const char *ST_HASH        = "WPA*01*5ce7ebe97a1bbfeb2822ae627b726d5b*27462da350ac*accd10fb464e*686173686361742d6573736964***";

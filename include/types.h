@@ -941,6 +941,7 @@ typedef struct hashes
 
   u32          digests_cnt;
   u32          digests_done;
+  u32          digests_done_pot;
   u32          digests_saved;
 
   void        *digests_buf;
@@ -2631,6 +2632,7 @@ typedef struct hashcat_status
   double      msec_real;
   int         digests_cnt;
   int         digests_done;
+  int         digests_done_pot;
   double      digests_percent;
   int         salts_cnt;
   int         salts_done;
