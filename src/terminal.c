@@ -2100,13 +2100,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (digests_new > 1)
       {
         event_log_info (hashcat_ctx,
-          "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts, %d/%d (%.2f%%) New",
+          "Recovered.Total..: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts, %d/%d (%.2f%%) New",
           hashcat_status->digests_done,
           hashcat_status->digests_cnt,
           hashcat_status->digests_percent,
           hashcat_status->salts_done,
           hashcat_status->salts_cnt,
-          hashcat_status->salts_percent,
+          hashcat_status->salts_percent);
+        event_log_info (hashcat_ctx,
+          "Recovered.New....: %d/%d (%.2f%%) Digests",
           digests_new,
           hashcat_status->digests_cnt,
           digests_new_perc);
@@ -2131,10 +2133,12 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (digests_new > 1)
       {
         event_log_info (hashcat_ctx,
-          "Recovered........: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) New",
+          "Recovered.Total..: %d/%d (%.2f%%) Digests",
           hashcat_status->digests_done,
           hashcat_status->digests_cnt,
-          hashcat_status->digests_percent,
+          hashcat_status->digests_percent);
+        event_log_info (hashcat_ctx,
+          "Recovered.New....: %d/%d (%.2f%%) Digests",
           digests_new,
           hashcat_status->digests_cnt,
           digests_new_perc);
