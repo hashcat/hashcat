@@ -2100,7 +2100,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (digests_new > 1)
       {
         event_log_info (hashcat_ctx,
-          "Recovered.Total..: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts, %d/%d (%.2f%%) New",
+          "Recovered.Total..: %d/%d (%.2f%%) Digests, %d/%d (%.2f%%) Salts",
           hashcat_status->digests_done,
           hashcat_status->digests_cnt,
           hashcat_status->digests_percent,
