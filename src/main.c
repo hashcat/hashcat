@@ -522,6 +522,14 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_advice (hashcat_ctx, "will add ALL plains/collisions found, even duplicates, to the potfile.");
     event_log_advice (hashcat_ctx, NULL);
   }
+  
+  if (hashconfig->potfile_disable == true)
+  {
+    event_log_advice (hashcat_ctx, "ATTENTION! Potfile storage is disabled for this hash mode.");
+    event_log_advice (hashcat_ctx, "Passwords cracked during this session will NOT be stored to the potfile.");
+    event_log_advice (hashcat_ctx, "Consider using -o to save cracked passwords.");
+    event_log_advice (hashcat_ctx, NULL);
+  }
   /**
    * Watchdog and Temperature balance
    */
