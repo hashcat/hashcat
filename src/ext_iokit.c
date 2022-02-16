@@ -249,29 +249,36 @@ int hm_IOKIT_get_utilization_current (void *hashcat_ctx, int *utilization)
     {
       // Service dictionary creation failed.
       IOObjectRelease (regEntry);
+
       continue;
     }
 
-    CFMutableDictionaryRef perf_properties = (CFMutableDictionaryRef) CFDictionaryGetValue( serviceDictionary, CFSTR("PerformanceStatistics"));
+    CFMutableDictionaryRef perf_properties = (CFMutableDictionaryRef) CFDictionaryGetValue (serviceDictionary, CFSTR ("PerformanceStatistics"));
+
     if (perf_properties)
     {
-      static ssize_t gpuCoreUtil=0;
-      const void* gpuCoreUtilization = CFDictionaryGetValue(perf_properties, CFSTR("Device Utilization %"));
-      if (gpuCoreUtilization)
+      static ssize_t gpuCoreUtil = 0;
+
+      const void *gpuCoreUtilization = CFDictionaryGetValue (perf_properties, CFSTR ("Device Utilization %"));
+
+      if (gpuCoreUtilization != NULL)
       {
-        CFNumberGetValue( gpuCoreUtilization, kCFNumberSInt64Type, &gpuCoreUtil);
+        CFNumberGetValue (gpuCoreUtilization, kCFNumberSInt64Type, &gpuCoreUtil);
+
         *utilization = gpuCoreUtil;
 
         rc = true;
       }
     }
 
-    CFRelease(serviceDictionary);
+    CFRelease (serviceDictionary);
+
     IOObjectRelease (regEntry);
-    IOObjectRelease(iterator);
 
     if (rc == true) break;
   }
+
+  IOObjectRelease (iterator);
 
   return rc;
 }

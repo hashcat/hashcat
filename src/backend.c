@@ -6746,10 +6746,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           #if defined (__APPLE__)
           if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
           {
-            if (device_param->skipped == false)
-            {
-              need_iokit = true;
-            }
+            need_iokit = true;
           }
           #endif
 
@@ -6778,16 +6775,15 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             #endif
           }
 
+          #if defined (__APPLE__)
           if (strncmp (device_param->device_name, "Apple M", 7) == 0)
           {
             if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
             {
-              if (device_param->skipped == false)
-              {
-                need_iokit = true;
-              }
+              need_iokit = true;
             }
           }
+          #endif
         }
 
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
