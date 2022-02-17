@@ -2311,7 +2311,7 @@ typedef struct user_options
   bool         backend_ignore_hip;
   bool         backend_ignore_metal;
   bool         backend_ignore_opencl;
-  uint         backend_info;
+  unsigned int backend_info;
   bool         optimized_kernel_enable;
   bool         multiply_accel_disable;
   bool         outfile_autohex;
