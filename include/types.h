@@ -2311,7 +2311,6 @@ typedef struct user_options
   bool         backend_ignore_hip;
   bool         backend_ignore_metal;
   bool         backend_ignore_opencl;
-  uint         backend_info;
   bool         optimized_kernel_enable;
   bool         multiply_accel_disable;
   bool         outfile_autohex;
@@ -2366,6 +2365,7 @@ typedef struct user_options
   const char  *rule_buf_r;
   const char  *session;
   u32          attack_mode;
+  u32          backend_info;
   u32          bitmap_max;
   u32          bitmap_min;
   #ifdef WITH_BRAIN
