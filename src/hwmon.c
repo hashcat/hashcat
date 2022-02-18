@@ -764,6 +764,31 @@ int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
     }
   }
 
+  #if defined(__APPLE__)
+  if (backend_ctx->devices_param[backend_device_idx].is_metal == true || backend_ctx->devices_param[backend_device_idx].is_opencl == true)
+  {
+    if (backend_ctx->devices_param[backend_device_idx].opencl_platform_vendor_id == VENDOR_ID_APPLE)
+    {
+      if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
+      {
+        if (hwmon_ctx->hm_iokit)
+        {
+          int utilization = 0;
+
+          if (hm_IOKIT_get_utilization_current (hashcat_ctx, &utilization) == -1)
+          {
+            hwmon_ctx->hm_device[backend_device_idx].utilization_get_supported = false;
+
+            return -1;
+          }
+
+          return utilization;
+        }
+      }
+    }
+  }
+  #endif
+
   if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
   {
     if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
@@ -1565,6 +1590,24 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
           // nothing to do
         }
 
+        #if defined (__APPLE__)
+        if (device_param->is_metal == true)
+        {
+          const u32 device_id = device_param->device_id;
+
+          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (hwmon_ctx->hm_iokit))
+          {
+            hm_adapters_iokit[device_id].buslanes_get_supported    = false;
+            hm_adapters_iokit[device_id].corespeed_get_supported   = false;
+            hm_adapters_iokit[device_id].fanspeed_get_supported    = true;
+            hm_adapters_iokit[device_id].fanpolicy_get_supported   = false;
+            hm_adapters_iokit[device_id].memoryspeed_get_supported = false;
+            hm_adapters_iokit[device_id].temperature_get_supported = true;
+            hm_adapters_iokit[device_id].utilization_get_supported = true;
+          }
+        }
+        #endif
+
         if ((device_param->is_opencl == true) || (device_param->is_hip == true))
         {
           const u32 device_id = device_param->device_id;
@@ -1577,7 +1620,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hm_adapters_iokit[device_id].fanpolicy_get_supported   = false;
             hm_adapters_iokit[device_id].memoryspeed_get_supported = false;
             hm_adapters_iokit[device_id].temperature_get_supported = true;
-            hm_adapters_iokit[device_id].utilization_get_supported = false;
+            hm_adapters_iokit[device_id].utilization_get_supported = true;
           }
 
           if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
@@ -1647,7 +1690,6 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
-
   if (hwmon_ctx->hm_adl == NULL && hwmon_ctx->hm_nvml == NULL && hwmon_ctx->hm_sysfs_amdgpu == NULL && hwmon_ctx->hm_sysfs_cpu == NULL && hwmon_ctx->hm_iokit == NULL)
   {
     FREE_ADAPTERS;
@@ -1712,6 +1754,24 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_nvapi[device_id].threshold_slowdown_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_nvapi[device_id].throttle_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_nvapi[device_id].utilization_get_supported;
+      }
+    }
+
+    if (device_param->is_metal == true)
+    {
+      if (hwmon_ctx->hm_iokit)
+      {
+        hwmon_ctx->hm_device[backend_devices_idx].iokit                              = hm_adapters_iokit[device_id].iokit;
+        hwmon_ctx->hm_device[backend_devices_idx].buslanes_get_supported            |= hm_adapters_iokit[device_id].buslanes_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].corespeed_get_supported           |= hm_adapters_iokit[device_id].corespeed_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].fanspeed_get_supported            |= hm_adapters_iokit[device_id].fanspeed_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].fanpolicy_get_supported           |= hm_adapters_iokit[device_id].fanpolicy_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].memoryspeed_get_supported         |= hm_adapters_iokit[device_id].memoryspeed_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].temperature_get_supported         |= hm_adapters_iokit[device_id].temperature_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].threshold_shutdown_get_supported  |= hm_adapters_iokit[device_id].threshold_shutdown_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_iokit[device_id].threshold_slowdown_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_iokit[device_id].throttle_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_iokit[device_id].utilization_get_supported;
       }
     }
 

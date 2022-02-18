@@ -111,7 +111,7 @@ typedef struct hm_iokit_lib
 typedef hm_iokit_lib_t IOKIT_PTR;
 
 #if defined(__APPLE__)
-UInt32 hm_IOKIT_strtoul (char *str, int size, int base);
+UInt32 hm_IOKIT_strtoul (const char *str, int size, int base);
 void hm_IOKIT_ultostr (char *str, UInt32 val);
 kern_return_t hm_IOKIT_SMCOpen (void *hashcat_ctx, io_connect_t *conn);
 kern_return_t hm_IOKIT_SMCClose (io_connect_t conn);
@@ -121,6 +121,7 @@ int hm_IOKIT_SMCGetSensorGraphicHot (void *hashcat_ctx);
 int hm_IOKIT_SMCGetTemperature (void *hashcat_ctx, char *key, double *temp);
 bool hm_IOKIT_SMCGetFanRPM (char *key, io_connect_t conn, float *ret);
 int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, char *fan_speed_buf);
+int hm_IOKIT_get_utilization_current (void *hashcat_ctx, int *utilization);
 bool iokit_init (void *hashcat_ctx);
 bool iokit_close (void *hashcat_ctx);
 #endif // __APPLE__

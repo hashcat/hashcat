@@ -13,7 +13,7 @@
 #if defined (__APPLE__)
 #include <IOKit/IOKitLib.h>
 
-UInt32 hm_IOKIT_strtoul (char *str, int size, int base)
+UInt32 hm_IOKIT_strtoul (const char *str, int size, int base)
 {
   int i;
 
@@ -221,6 +221,66 @@ bool hm_IOKIT_SMCGetFanRPM (char *key, io_connect_t conn, float *ret)
   *ret = -1.f;
 
   return false;
+}
+
+int hm_IOKIT_get_utilization_current (void *hashcat_ctx, int *utilization)
+{
+  bool rc = false;
+
+  io_iterator_t iterator;
+
+  CFMutableDictionaryRef matching = IOServiceMatching ("IOAccelerator");
+
+  if (IOServiceGetMatchingServices (kIOMasterPortDefault, matching, &iterator) != kIOReturnSuccess)
+  {
+    event_log_error (hashcat_ctx, "IOServiceGetMatchingServices(): failure");
+
+    return rc;
+  }
+
+  io_registry_entry_t regEntry;
+
+  while ((regEntry = IOIteratorNext (iterator)))
+  {
+    // Put this services object into a dictionary object.
+    CFMutableDictionaryRef serviceDictionary;
+
+    if (IORegistryEntryCreateCFProperties (regEntry, &serviceDictionary, kCFAllocatorDefault, kNilOptions) != kIOReturnSuccess)
+    {
+      // Service dictionary creation failed.
+      IOObjectRelease (regEntry);
+
+      continue;
+    }
+
+    CFMutableDictionaryRef perf_properties = (CFMutableDictionaryRef) CFDictionaryGetValue (serviceDictionary, CFSTR ("PerformanceStatistics"));
+
+    if (perf_properties)
+    {
+      static ssize_t gpuCoreUtil = 0;
+
+      const void *gpuCoreUtilization = CFDictionaryGetValue (perf_properties, CFSTR ("Device Utilization %"));
+
+      if (gpuCoreUtilization != NULL)
+      {
+        CFNumberGetValue (gpuCoreUtilization, kCFNumberSInt64Type, &gpuCoreUtil);
+
+        *utilization = gpuCoreUtil;
+
+        rc = true;
+      }
+    }
+
+    CFRelease (serviceDictionary);
+
+    IOObjectRelease (regEntry);
+
+    if (rc == true) break;
+  }
+
+  IOObjectRelease (iterator);
+
+  return rc;
 }
 
 int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, char *fan_speed_buf)
