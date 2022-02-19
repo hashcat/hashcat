@@ -9401,9 +9401,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      // when is builded with cygwin and msys, cpath_real doesn't work
-
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+      // workaround for AMD
+      if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD && device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+      {
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-I . ");
+      }
+
+      // when built with cygwin or msys, cpath_real doesn't work
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D INCLUDE_PATH=%s ", "OpenCL");
       #else
       const char *build_options_include_fmt = (strchr (folder_config->cpath_real, ' ') != NULL) ? "-D INCLUDE_PATH=\"%s\" " : "-D INCLUDE_PATH=%s ";
