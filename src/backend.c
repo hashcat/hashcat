@@ -4559,17 +4559,24 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       ocl_close (hashcat_ctx);
     }
 
-    if (opencl_platforms_cnt)
+    if (opencl_platforms_cnt > 0)
     {
       for (u32 opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
       {
+        opencl_platforms_name[opencl_platforms_idx]        = "N/A";
+        opencl_platforms_vendor[opencl_platforms_idx]      = "N/A";
+        opencl_platforms_version[opencl_platforms_idx]     = "N/A";
+        opencl_platforms_devices[opencl_platforms_idx]     = NULL;
+        opencl_platforms_vendor_id[opencl_platforms_idx]   = 0;
+        opencl_platforms_devices_cnt[opencl_platforms_idx] = 0;
+
         cl_platform_id opencl_platform = opencl_platforms[opencl_platforms_idx];
 
         size_t param_value_size = 0;
 
         // platform vendor
 
-        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_VENDOR, 0, NULL, &param_value_size) == -1) return -1;
+        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_VENDOR, 0, NULL, &param_value_size) == -1) continue;
 
         char *opencl_platform_vendor = (char *) hcmalloc (param_value_size);
 
@@ -4577,14 +4584,14 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           hcfree (opencl_platform_vendor);
 
-          return -1;
+          continue;
         }
 
         opencl_platforms_vendor[opencl_platforms_idx] = opencl_platform_vendor;
 
         // platform name
 
-        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_NAME, 0, NULL, &param_value_size) == -1) return -1;
+        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_NAME, 0, NULL, &param_value_size) == -1) continue;
 
         char *opencl_platform_name = (char *) hcmalloc (param_value_size);
 
@@ -4592,14 +4599,14 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           hcfree (opencl_platform_name);
 
-          return -1;
+          continue;
         }
 
         opencl_platforms_name[opencl_platforms_idx] = opencl_platform_name;
 
         // platform version
 
-        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_VERSION, 0, NULL, &param_value_size) == -1) return -1;
+        if (hc_clGetPlatformInfo (hashcat_ctx, opencl_platform, CL_PLATFORM_VERSION, 0, NULL, &param_value_size) == -1) continue;
 
         char *opencl_platform_version = (char *) hcmalloc (param_value_size);
 
@@ -4607,7 +4614,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         {
           hcfree (opencl_platform_version);
 
-          return -1;
+          continue;
         }
 
         opencl_platforms_version[opencl_platforms_idx] = opencl_platform_version;
@@ -4669,8 +4676,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (CL_rc == -1)
         {
-          event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_rc));
-
           // Special handling for CL_DEVICE_NOT_FOUND, see: https://github.com/hashcat/hashcat/issues/2455
 
           #define IGNORE_DEVICE_NOT_FOUND 1
@@ -4683,23 +4688,26 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
             const cl_int CL_err = ocl->clGetDeviceIDs (opencl_platform, CL_DEVICE_TYPE_ALL, DEVICES_MAX, opencl_platform_devices, &opencl_platform_devices_cnt);
 
-            if (CL_err == CL_DEVICE_NOT_FOUND)
+            if (CL_err == CL_DEVICE_NOT_FOUND && opencl_platform_devices_cnt > 0)
             {
               // we ignore this error
             }
             else
             {
-              return -1;
+              hcfree (opencl_platform_devices);
+
+              continue;
             }
           }
           else
           {
-            return -1;
+            hcfree (opencl_platform_devices);
+
+            continue;
           }
         }
 
-        opencl_platforms_devices[opencl_platforms_idx] = opencl_platform_devices;
-
+        opencl_platforms_devices[opencl_platforms_idx]     = opencl_platform_devices;
         opencl_platforms_devices_cnt[opencl_platforms_idx] = opencl_platform_devices_cnt;
       }
 
