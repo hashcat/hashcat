@@ -153,7 +153,6 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
       alias_device->skipped = true;
 
       backend_ctx->opencl_devices_active--;
-
       backend_ctx->backend_devices_active--;
 
       // show a warning for specifically listed devices if they are an alias
@@ -7303,6 +7302,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       if (hc_mtlCreateCommandQueue (hashcat_ctx, device_param->metal_device, &command_queue) == -1)
       {
         device_param->skipped = true;
+
+        backend_ctx->metal_devices_active--;
+        backend_ctx->backend_devices_active--;
         continue;
       }
 
@@ -7414,6 +7416,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       if (hc_clCreateContext (hashcat_ctx, NULL, 1, &device_param->opencl_device, NULL, NULL, &context) == -1)
       {
         device_param->skipped = true;
+
+        backend_ctx->opencl_devices_active--;
+        backend_ctx->backend_devices_active--;
         continue;
       }
 
@@ -7426,6 +7431,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       if (hc_clCreateCommandQueue (hashcat_ctx, context, device_param->opencl_device, 0, &command_queue) == -1)
       {
         device_param->skipped = true;
+
+        backend_ctx->opencl_devices_active--;
+        backend_ctx->backend_devices_active--;
         continue;
       }
 
@@ -7610,6 +7618,14 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         device_param->device_available_mem /= 2;
       }
     }
+  }
+
+  // check again to catch error on OpenCL/Metal
+  if (backend_ctx->backend_devices_active == 0)
+  {
+    event_log_error (hashcat_ctx, "No devices found/left.");
+
+    return -1;
   }
 
   backend_ctx->target_msec  = TARGET_MSEC_PROFILE[user_options->workload_profile - 1];

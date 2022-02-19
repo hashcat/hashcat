@@ -24,6 +24,7 @@
 ##
 
 - Fixed building error on Raspberry Pi
+- Fixed backend active devices checks
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed false negative on Unit Test with hash-type 25400
 - Fixed false negative on hash-types 4510 and 4710 for hashes with long salts
