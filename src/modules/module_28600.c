@@ -142,7 +142,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[2] = '$';
   token.len_min[2] = 0;
-  token.len_max[2] = 88; 
+  token.len_max[2] = 88;
   token.attr[2] = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_BASE64A;
 
   token.sep[3] = ':';
@@ -317,7 +317,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return line_len;
 }
 
-void module_init(module_ctx_t *module_ctx) 
+void module_init(module_ctx_t *module_ctx)
 {
   module_ctx->module_context_size = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version = MODULE_INTERFACE_VERSION_CURRENT;
