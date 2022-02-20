@@ -181,7 +181,7 @@ void get_next_word_lm_hex_or_text (char *buf, u64 sz, u64 *len, u64 *off)
         }
         // upcase character if it is a letter 'a-z'
         if ((i & 1) == 1) // if first hex-char
-        { 
+        {
           if (is_valid_hex_char(buf[i+1]))
           {
             if (buf[i] == '6')
@@ -198,7 +198,7 @@ void get_next_word_lm_hex_or_text (char *buf, u64 sz, u64 *len, u64 *off)
   if (hex)
   {
     //$HEX[] format so we need max 14 hex-digits + 6 chars '$HEX[]'
-    get_next_word_lm_gen(buf, sz, len, off, 20); 
+    get_next_word_lm_gen(buf, sz, len, off, 20);
   }
   else
   {
