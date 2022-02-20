@@ -5613,6 +5613,26 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         continue;
       }
 
+      #if defined (__linux__)
+      if (strchr (folder_config->cpath_real, ' ') != NULL)
+      {
+        if (user_options->force == false)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: Unusable HIP include-path! (spaces detected)", device_id + 1);
+
+          if (user_options->quiet == false)
+          {
+            event_log_warning (hashcat_ctx, "Consider moving hashcat to a path with no spaces.");
+            event_log_warning (hashcat_ctx, "You can use --force to override, but do not report related errors.");
+            event_log_warning (hashcat_ctx, NULL);
+          }
+
+          device_param->skipped = true;
+          continue;
+        }
+      }
+      #endif
+
       /**
        * activate device
        */
@@ -6627,6 +6647,28 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             }
           }
         }
+
+        #if defined (__linux__)
+        if (opencl_platform_vendor_id == VENDOR_ID_AMD)
+        {
+          if (strchr (folder_config->cpath_real, ' ') != NULL)
+          {
+            if (user_options->force == false)
+            {
+              event_log_error (hashcat_ctx, "* Device #%u: Unusable OpenCL include-path! (spaces detected)", device_id + 1);
+
+              if (user_options->quiet == false)
+              {
+                event_log_warning (hashcat_ctx, "Consider moving hashcat to a path with no spaces.");
+                event_log_warning (hashcat_ctx, "You can use --force to override, but do not report related errors.");
+                event_log_warning (hashcat_ctx, NULL);
+              }
+
+              device_param->skipped = true;
+            }
+          }
+        }
+        #endif
 
         char *opencl_device_version_lower = hcstrdup (opencl_device_version);
 
