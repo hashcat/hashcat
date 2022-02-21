@@ -456,7 +456,12 @@ int hc_clGetDeviceIDs (void *hashcat_ctx, cl_platform_id platform, cl_device_typ
 
   if (CL_err != CL_SUCCESS)
   {
-    event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_err));
+    #ifndef DEBUG
+    if (CL_err != CL_DEVICE_NOT_FOUND)
+    #endif
+    {
+      event_log_error (hashcat_ctx, "clGetDeviceIDs(): %s", val2cstr_cl (CL_err));
+    }
 
     return -1;
   }

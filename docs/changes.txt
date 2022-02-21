@@ -50,6 +50,7 @@
 - Backend Info: Added generic system info to output (must be completed on Windows side)
 - Backend Info: Added local memory size to output
 - Backend: with kernel build options, switch from -I to -D INCLUDE_PATH, in order to support Apple Metal runtime
+- Backend: improved management of systems with multiple OpenCL platforms
 - CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
 - Hardware Monitor: Add support for GPU device utilization readings using iokit on Apple Silicon (OpenCL and Metal)
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
@@ -68,6 +69,7 @@
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
 - Status code: updated negative status code (added kernel create failure and resync)
 - Status code: updated negative status code, usefull in Unit tests engine (test.sh)
+- Terminal: show empty OpenCL platforms only in backend information mode
 - Tuning Database: Added a warning if a module implements module_extra_tuningdb_block but the installed computing device is not found
 - Unit tests: added -r (--runtime) option
 - Unit tests: handle negative status code, skip deprecated hash-types, skip hash-types with known perl modules issues, updated output

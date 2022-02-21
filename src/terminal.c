@@ -1382,6 +1382,9 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
       char     *opencl_platform_version      = opencl_platforms_version[opencl_platforms_idx];
       cl_uint   opencl_platform_devices_cnt  = opencl_platforms_devices_cnt[opencl_platforms_idx];
 
+      // hide empty OpenCL platforms
+      if (opencl_platform_devices_cnt == 0) continue;
+
       const size_t len = event_log_info (hashcat_ctx, "OpenCL API (%s) - Platform #%u [%s]", opencl_platform_version, opencl_platforms_idx + 1, opencl_platform_vendor);
 
       char line[HCBUFSIZ_TINY] = { 0 };
