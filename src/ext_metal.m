@@ -84,7 +84,13 @@ static int hc_mtlInvocationHelper (id target, SEL selector, void *returnValue)
   if ([target respondsToSelector: selector])
   {
     NSMethodSignature *signature = [object_getClass (target) instanceMethodSignatureForSelector: selector];
+
+    if (signature == nil) return -1;
+
     NSInvocation *invocation = [NSInvocation invocationWithMethodSignature: signature];
+
+    if (invocation == nil) return -1;
+
     [invocation setTarget: target];
     [invocation setSelector: selector];
     [invocation invoke];
@@ -377,7 +383,7 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
 
   uint64_t val64 = 0;
   bool valBool = false;
-  int valInt = 0;
+  unsigned long valULong = 0;
 
   switch (attrib)
   {
@@ -492,11 +498,11 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
       *pi = 0;
 
       SEL locationSelector = NSSelectorFromString(@"location");
-      valInt = 0;
+      valULong = 0;
 
-      hc_mtlInvocationHelper (metal_device, locationSelector, &valInt);
+      hc_mtlInvocationHelper (metal_device, locationSelector, &valULong);
 
-      *pi = valInt;
+      *pi = valULong;
 
       break;
 
@@ -505,10 +511,10 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
 
       SEL locationNumberSelector = NSSelectorFromString(@"locationNumber");
 
-      valInt = 0;
-      hc_mtlInvocationHelper (metal_device, locationNumberSelector, &valInt);
+      valULong = 0;
+      hc_mtlInvocationHelper (metal_device, locationNumberSelector, &valULong);
 
-      *pi = valInt;
+      *pi = valULong;
 
       break;
 
