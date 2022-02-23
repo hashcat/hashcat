@@ -206,43 +206,43 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   size_t off = 0;
 
-  strncpy (stringtosign_ptr + off, (char *) "AWS4-HMAC-SHA256", 16);
+  memcpy (stringtosign_ptr + off, (char *) "AWS4-HMAC-SHA256", 16);
   off += 16;
 
   stringtosign_ptr[off] = 0x0a;
   off += 1;
 
-  strncpy (stringtosign_ptr + off, (char *) esalt->longdate, esalt->longdate_len);
+  memcpy (stringtosign_ptr + off, (char *) esalt->longdate, esalt->longdate_len);
   off += esalt->longdate_len;
 
   stringtosign_ptr[off] = 0x0a;
   off += 1;
 
-  strncpy (stringtosign_ptr + off, (char *) esalt->date, esalt->date_len);
+  memcpy (stringtosign_ptr + off, (char *) esalt->date, esalt->date_len);
   off += esalt->date_len;
 
   stringtosign_ptr[off] = 0x2f;
   off += 1;
 
-  strncpy (stringtosign_ptr + off, (char *) esalt->region, esalt->region_len);
+  memcpy (stringtosign_ptr + off, (char *) esalt->region, esalt->region_len);
   off += esalt->region_len;
 
   stringtosign_ptr[off] = 0x2f;
   off += 1;
 
-  strncpy (stringtosign_ptr + off, (char *) esalt->service, esalt->service_len);
+  memcpy (stringtosign_ptr + off, (char *) esalt->service, esalt->service_len);
   off += esalt->service_len;
 
   stringtosign_ptr[off] = 0x2f;
   off += 1;
 
-  strncpy (stringtosign_ptr + off, (char *) "aws4_request", 12);
+  memcpy (stringtosign_ptr + off, (char *) "aws4_request", 12);
   off += 12;
 
   stringtosign_ptr[off] = 0x0a;
   off += 1;
 
-  strncpy (stringtosign_ptr + off, (char *) canonical_pos, canonical_len);
+  memcpy (stringtosign_ptr + off, (char *) canonical_pos, canonical_len);
   off += canonical_len;
 
   esalt->stringtosign_len = off;
