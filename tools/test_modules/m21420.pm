@@ -17,7 +17,6 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
 
-print unpack ("H*", sha256 ($word)), "\n";
   my $digest = sha256 ($salt . sha256 ($word));
 
   my $hash = sprintf ("%s:%s", unpack ("H*", $digest), $salt);
