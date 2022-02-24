@@ -5621,6 +5621,26 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         continue;
       }
 
+      #if defined (__linux__)
+      if (strchr (folder_config->cpath_real, ' ') != NULL)
+      {
+        if (user_options->force == false)
+        {
+          event_log_error (hashcat_ctx, "* Device #%u: Unusable HIP include-path! (spaces detected)", device_id + 1);
+
+          if (user_options->quiet == false)
+          {
+            event_log_warning (hashcat_ctx, "Consider moving hashcat to a path with no spaces.");
+            event_log_warning (hashcat_ctx, "You can use --force to override, but do not report related errors.");
+            event_log_warning (hashcat_ctx, NULL);
+          }
+
+          device_param->skipped = true;
+          continue;
+        }
+      }
+      #endif
+
       /**
        * activate device
        */
@@ -6635,6 +6655,28 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             }
           }
         }
+
+        #if defined (__linux__)
+        if (opencl_platform_vendor_id == VENDOR_ID_AMD)
+        {
+          if (strchr (folder_config->cpath_real, ' ') != NULL)
+          {
+            if (user_options->force == false)
+            {
+              event_log_error (hashcat_ctx, "* Device #%u: Unusable OpenCL include-path! (spaces detected)", device_id + 1);
+
+              if (user_options->quiet == false)
+              {
+                event_log_warning (hashcat_ctx, "Consider moving hashcat to a path with no spaces.");
+                event_log_warning (hashcat_ctx, "You can use --force to override, but do not report related errors.");
+                event_log_warning (hashcat_ctx, NULL);
+              }
+
+              device_param->skipped = true;
+            }
+          }
+        }
+        #endif
 
         char *opencl_device_version_lower = hcstrdup (opencl_device_version);
 
@@ -9400,22 +9442,28 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     char *build_options_buf = (char *) hcmalloc (build_options_sz);
 
-    int build_options_len = 0;
+    int build_options_len = snprintf (build_options_buf, build_options_sz, "-D KERNEL_STATIC ");
 
     if ((device_param->is_cuda == true) || (device_param->is_hip == true))
     {
       // using a path with a space will break nvrtc_make_options_array_from_string()
       // we add it to options array in a clean way later
-
-      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC ");
     }
     else
     {
-      // when is builded with cygwin and msys, cpath_real doesn't work
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=%s ", "OpenCL");
+      // workaround for AMD
+      if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD && device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+      {
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-I . ");
+      }
+
+      // when built with cygwin or msys, cpath_real doesn't work
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D INCLUDE_PATH=%s ", "OpenCL");
       #else
-      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D KERNEL_STATIC -D INCLUDE_PATH=\"%s\" ", folder_config->cpath_real);
+      const char *build_options_include_fmt = (strchr (folder_config->cpath_real, ' ') != NULL) ? "-D INCLUDE_PATH=\"%s\" " : "-D INCLUDE_PATH=%s ";
+
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, build_options_include_fmt, folder_config->cpath_real);
       #endif
 
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D XM2S(x)=#x ");
