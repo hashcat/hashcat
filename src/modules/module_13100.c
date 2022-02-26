@@ -48,9 +48,11 @@ typedef struct krb5tgs
   u32 edata2[5120];
   u32 edata2_len;
 
+  u32 format;
+
 } krb5tgs_t;
 
-static const char *SIGNATURE_KRB5TGS = "$krb5tgs$23$";
+static const char *SIGNATURE_KRB5TGS = "$krb5tgs$";
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
@@ -117,33 +119,90 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5TGS;
 
-  token.len[0]  = 12;
+  token.len[0]  = 9;
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   /**
-   * $krb5tgs$23$checksum$edata2
-   * $krb5tgs$23$*user*realm*spn*$checksum$edata2
+   * hc
+   * format 1: $krb5tgs$23$*user*realm*spn*$checksum$edata2
+   * format 2: $krb5tgs$23$checksum$edata2
+   *
+   * jtr
+   * format 3: $krb5tgs$spn$checksum$edata2
    */
 
-  if (line_len < 16) return (PARSER_SALT_LENGTH);
+  if (line_len < 9) return (PARSER_SALT_LENGTH);
 
-  if (line_buf[12] == '*')
+  if (line_buf[9] == '2' && line_buf[10] == '3' && line_buf[11] == '$')
   {
-    char *account_info_start = (char *) line_buf + 12; // we want the * char included
-    char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
+    if (line_buf[12] == '*')
+    {
+      char *account_info_start = (char *) line_buf + 12; // we want the * char included
 
-    if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+      char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
 
-    account_info_stop++; // we want the * char included
-    account_info_stop++; // we want the $ char included
+      if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
-    const int account_info_len = account_info_stop - account_info_start;
+      account_info_stop++; // we want the * char included
+      account_info_stop++; // we want the $ char included
 
+      const int account_info_len = account_info_stop - account_info_start;
+
+      token.token_cnt  = 5;
+
+      token.sep[1]     = '$';
+      token.len_min[1] = 2;
+      token.len_max[1] = 2;
+      token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_DIGIT;
+
+      token.len[2]     = account_info_len;
+      token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH;
+
+      token.sep[3]     = '$';
+      token.len_min[3] = 32;
+      token.len_max[3] = 32;
+      token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_HEX;
+
+      token.sep[4]     = '$';
+      token.len_min[4] = 64;
+      token.len_max[4] = 40960;
+      token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_HEX;
+    }
+    else
+    {
+      token.token_cnt  = 4;
+
+      token.sep[1]     = '$';
+      token.len_min[1] = 2;
+      token.len_max[1] = 2;
+      token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_DIGIT;
+
+      token.sep[2]     = '$';
+      token.len_min[2] = 32;
+      token.len_max[2] = 32;
+      token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_HEX;
+
+      token.sep[3]     = '$';
+      token.len_min[3] = 64;
+      token.len_max[3] = 40960;
+      token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                       | TOKEN_ATTR_VERIFY_HEX;
+    }
+  }
+  else
+  {
     token.token_cnt  = 4;
 
-    token.len[1]     = account_info_len;
-    token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
+    token.sep[1]     = ':';
+    token.len_min[1] = 0;
+    token.len_max[1] = 2048;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[2]     = '$';
     token.len_min[2] = 32;
@@ -157,22 +216,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
-  else
-  {
-    token.token_cnt  = 3;
-
-    token.sep[1]     = '$';
-    token.len_min[1] = 32;
-    token.len_max[1] = 32;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    token.sep[2]     = '$';
-    token.len_min[2] = 64;
-    token.len_max[2] = 40960;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-  }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -183,7 +226,30 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int data_len;
 
-  if (line_buf[12] == '*')
+  if (line_buf[9] == '2' && line_buf[10] == '3' && line_buf[11] == '$')
+  {
+    if (line_buf[12] == '*')
+    {
+      checksum_pos = token.buf[3];
+
+      data_pos = token.buf[4];
+      data_len = token.len[4];
+
+      memcpy (krb5tgs->account_info, token.buf[2], token.len[2]);
+      krb5tgs->format = 1;
+    }
+    else
+    {
+      checksum_pos = token.buf[2];
+
+      data_pos = token.buf[3];
+      data_len = token.len[3];
+
+      krb5tgs->account_info[0] = 0;
+      krb5tgs->format = 2;
+    }
+  }
+  else
   {
     checksum_pos = token.buf[2];
 
@@ -191,15 +257,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     data_len = token.len[3];
 
     memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
-  }
-  else
-  {
-    checksum_pos = token.buf[1];
-
-    data_pos = token.buf[2];
-    data_len = token.len[2];
-
-    krb5tgs->account_info[0] = 0;
+    krb5tgs->format = 3;
   }
 
   krb5tgs->checksum[0] = hex_to_u32 (checksum_pos +  0);
@@ -251,14 +309,32 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     sprintf (data + j, "%02x", ptr_edata2[i]);
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%s%s%08x%08x%08x%08x$%s",
-    SIGNATURE_KRB5TGS,
-    (char *) krb5tgs->account_info,
-    byte_swap_32 (krb5tgs->checksum[0]),
-    byte_swap_32 (krb5tgs->checksum[1]),
-    byte_swap_32 (krb5tgs->checksum[2]),
-    byte_swap_32 (krb5tgs->checksum[3]),
-    data);
+  int line_len;
+
+  // preserve the input hash format
+
+  if (krb5tgs->format != 3) // hc
+  {
+    line_len = snprintf (line_buf, line_size, "%s23$%s%08x%08x%08x%08x$%s",
+      SIGNATURE_KRB5TGS,
+      (char *) krb5tgs->account_info,
+      byte_swap_32 (krb5tgs->checksum[0]),
+      byte_swap_32 (krb5tgs->checksum[1]),
+      byte_swap_32 (krb5tgs->checksum[2]),
+      byte_swap_32 (krb5tgs->checksum[3]),
+      data);
+  }
+  else // jtr
+  {
+    line_len = snprintf (line_buf, line_size, "%s%s:%08x%08x%08x%08x$%s",
+      SIGNATURE_KRB5TGS,
+      (char *) krb5tgs->account_info,
+      byte_swap_32 (krb5tgs->checksum[0]),
+      byte_swap_32 (krb5tgs->checksum[1]),
+      byte_swap_32 (krb5tgs->checksum[2]),
+      byte_swap_32 (krb5tgs->checksum[3]),
+      data);
+  }
 
   return line_len;
 }
