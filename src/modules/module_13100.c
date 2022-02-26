@@ -124,11 +124,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   /**
    * hc
-   * format 1: $krb5tgs$23$*user*realm*spn*$checksum$edata2
+   * format 1: $krb5tgs$23$*user$realm$spn*$checksum$edata2
    * format 2: $krb5tgs$23$checksum$edata2
    *
    * jtr
-   * format 3: $krb5tgs$spn$checksum$edata2
+   * format 3: $krb5tgs$spn:checksum$edata2
    */
 
   if (line_len < 9) return (PARSER_SALT_LENGTH);
