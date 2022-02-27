@@ -864,7 +864,7 @@ KERNEL_FQ void m21200_s04 (KERN_ATTR_RULES ())
     MD5_STEP (MD5_I , b, c, d, a, wd_t, MD5C3b, MD5S33);
     MD5_STEP (MD5_I , a, b, c, d, w4_t, MD5C3c, MD5S30);
 
-    if (MATCHES_NONE_VS ((a+digest[0]-MD5M_A), search[0])) continue;
+    if (MATCHES_NONE_VS ((a + digest[0] - make_u32x (MD5M_A)), search[0])) continue;
 
     MD5_STEP (MD5_I , d, a, b, c, wb_t, MD5C3d, MD5S31);
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
