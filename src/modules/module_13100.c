@@ -245,38 +245,40 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  u8 *checksum_pos = NULL;
-  u8 *data_pos = NULL;
+  const u8 *checksum_pos = NULL;
+  const u8 *data_pos = NULL;
 
   int data_len = 0;
 
   if (krb5tgs->format == 1)
   {
-    checksum_pos = (u8 *) token.buf[3];
+    checksum_pos = token.buf[3];
 
-    data_pos = (u8 *) token.buf[4];
+    data_pos = token.buf[4];
     data_len = token.len[4];
 
     memcpy (krb5tgs->account_info, token.buf[2], token.len[2]);
   }
   else if (krb5tgs->format == 2)
   {
-    checksum_pos = (u8 *) token.buf[2];
+    checksum_pos = token.buf[2];
 
-    data_pos = (u8 *) token.buf[3];
+    data_pos = token.buf[3];
     data_len = token.len[3];
 
     krb5tgs->account_info[0] = 0;
   }
   else if (krb5tgs->format == 3)
   {
-    checksum_pos = (u8 *) token.buf[2];
+    checksum_pos = token.buf[2];
 
-    data_pos = (u8 *) token.buf[3];
+    data_pos = token.buf[3];
     data_len = token.len[3];
 
     memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
   }
+
+  if (checksum_pos == NULL || data_pos == NULL) return (PARSER_SALT_VALUE);
 
   krb5tgs->checksum[0] = hex_to_u32 (checksum_pos +  0);
   krb5tgs->checksum[1] = hex_to_u32 (checksum_pos +  8);
