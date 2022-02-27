@@ -18,6 +18,7 @@
 - Added support to building universal macOS binary on Apple Silicon
 - Added hex encoding format for --separator option
 - Added password candidates range to --status-json output
+- Added support to use 'John the Ripper' hash format with hash-type 18200
 
 ##
 ## Bugs
