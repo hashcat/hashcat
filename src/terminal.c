@@ -2097,9 +2097,9 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     if (hashcat_status->salts_cnt > 1)
     {
-      const int digests_new = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      const int digests_new = hashcat_status->digests_done - hashcat_status->digests_done_pot;
       const double digests_new_perc = (double) digests_new / (double) hashcat_status->digests_cnt * 100;
-      
+
       if (digests_new > 1)
       {
         event_log_info (hashcat_ctx,
@@ -2126,13 +2126,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
           hashcat_status->salts_done,
           hashcat_status->salts_cnt,
           hashcat_status->salts_percent);
-      }  
+      }
     }
     else
     {
-      const int digests_new = hashcat_status->digests_done - hashcat_status->digests_done_pot; 
+      const int digests_new = hashcat_status->digests_done - hashcat_status->digests_done_pot;
       const double digests_new_perc = (double) digests_new / (double) hashcat_status->digests_cnt * 100;
-      
+
       if (digests_new > 1)
       {
         event_log_info (hashcat_ctx,
