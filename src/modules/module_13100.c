@@ -131,14 +131,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * format 3: $krb5tgs$spn:checksum$edata2
    */
 
-  if (line_len < 9) return (PARSER_SALT_LENGTH);
+  if (line_len < (int) strlen (SIGNATURE_KRB5TGS)) return (PARSER_SALT_LENGTH);
 
-  if (line_buf[9] == '2' && line_buf[10] == '3' && line_buf[11] == '$')
+  memset (krb5tgs, 0, sizeof (krb5tgs_t));
+
+  token.token_cnt = 4;
+
+  if (line_buf[token.len[0]] == '2' && line_buf[token.len[0] + 1] == '3' && line_buf[token.len[0] + 2] == '$')
   {
-    if (line_buf[12] == '*')
+    if (line_buf[token.len[0] + 3] == '*')
     {
       char *account_info_start = (char *) line_buf + 12; // we want the * char included
-
       char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
 
       if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
@@ -148,7 +151,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       const int account_info_len = account_info_stop - account_info_start;
 
-      token.token_cnt  = 5;
+      token.token_cnt++;
+
+      // etype
 
       token.sep[1]     = '$';
       token.len_min[1] = 2;
@@ -156,8 +161,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                        | TOKEN_ATTR_VERIFY_DIGIT;
 
+      // user$realm$spn
+
       token.len[2]     = account_info_len;
       token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH;
+
+      // checksum
 
       token.sep[3]     = '$';
       token.len_min[3] = 32;
@@ -165,15 +174,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                        | TOKEN_ATTR_VERIFY_HEX;
 
+      // edata2
+
       token.sep[4]     = '$';
       token.len_min[4] = 64;
       token.len_max[4] = 40960;
       token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                        | TOKEN_ATTR_VERIFY_HEX;
+
+      krb5tgs->format = 1;
     }
     else
     {
-      token.token_cnt  = 4;
+      // etype
 
       token.sep[1]     = '$';
       token.len_min[1] = 2;
@@ -181,27 +194,35 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                        | TOKEN_ATTR_VERIFY_DIGIT;
 
+      // checksum
+
       token.sep[2]     = '$';
       token.len_min[2] = 32;
       token.len_max[2] = 32;
       token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                        | TOKEN_ATTR_VERIFY_HEX;
 
+      // edata2
+
       token.sep[3]     = '$';
       token.len_min[3] = 64;
       token.len_max[3] = 40960;
       token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                        | TOKEN_ATTR_VERIFY_HEX;
+
+      krb5tgs->format = 2;
     }
   }
   else
   {
-    token.token_cnt  = 4;
+    // spn
 
     token.sep[1]     = ':';
     token.len_min[1] = 0;
     token.len_max[1] = 2048;
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+    // checksum
 
     token.sep[2]     = '$';
     token.len_min[2] = 32;
@@ -209,54 +230,52 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
+    // edata2
+
     token.sep[3]     = '$';
     token.len_min[3] = 64;
     token.len_max[3] = 40960;
     token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
+
+    krb5tgs->format = 3;
   }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *checksum_pos;
-  const u8 *data_pos;
+  u8 *checksum_pos = NULL;
+  u8 *data_pos = NULL;
 
-  int data_len;
+  int data_len = 0;
 
-  if (line_buf[9] == '2' && line_buf[10] == '3' && line_buf[11] == '$')
+  if (krb5tgs->format == 1)
   {
-    if (line_buf[12] == '*')
-    {
-      checksum_pos = token.buf[3];
+    checksum_pos = (u8 *) token.buf[3];
 
-      data_pos = token.buf[4];
-      data_len = token.len[4];
+    data_pos = (u8 *) token.buf[4];
+    data_len = token.len[4];
 
-      memcpy (krb5tgs->account_info, token.buf[2], token.len[2]);
-      krb5tgs->format = 1;
-    }
-    else
-    {
-      checksum_pos = token.buf[2];
-
-      data_pos = token.buf[3];
-      data_len = token.len[3];
-
-      krb5tgs->account_info[0] = 0;
-      krb5tgs->format = 2;
-    }
+    memcpy (krb5tgs->account_info, token.buf[2], token.len[2]);
   }
-  else
+  else if (krb5tgs->format == 2)
   {
-    checksum_pos = token.buf[2];
+    checksum_pos = (u8 *) token.buf[2];
 
-    data_pos = token.buf[3];
+    data_pos = (u8 *) token.buf[3];
+    data_len = token.len[3];
+
+    krb5tgs->account_info[0] = 0;
+  }
+  else if (krb5tgs->format == 3)
+  {
+    checksum_pos = (u8 *) token.buf[2];
+
+    data_pos = (u8 *) token.buf[3];
     data_len = token.len[3];
 
     memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
-    krb5tgs->format = 3;
   }
 
   krb5tgs->checksum[0] = hex_to_u32 (checksum_pos +  0);
