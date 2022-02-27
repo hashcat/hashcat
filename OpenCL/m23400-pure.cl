@@ -329,10 +329,27 @@ KERNEL_FQ void m23400_comp (KERN_ATTR_TMPS (bitwarden_tmp_t))
 
   sha256_hmac_final (&sha256_hmac_ctx2);
 
-  const u32 r0 = sha256_hmac_ctx2.opad.h[0];
-  const u32 r1 = sha256_hmac_ctx2.opad.h[1];
-  const u32 r2 = sha256_hmac_ctx2.opad.h[2];
-  const u32 r3 = sha256_hmac_ctx2.opad.h[3];
+  sha256_hmac_ctx_t sha256_hmac_ctx3;
+
+
+  u32 buff[16] = {0};
+  buff[0] = sha256_hmac_ctx2.opad.h[0];
+  buff[1] = sha256_hmac_ctx2.opad.h[1];
+  buff[2] = sha256_hmac_ctx2.opad.h[2];
+  buff[3] = sha256_hmac_ctx2.opad.h[3];
+  buff[4] = sha256_hmac_ctx2.opad.h[4];
+  buff[5] = sha256_hmac_ctx2.opad.h[5];
+  buff[6] = sha256_hmac_ctx2.opad.h[6];
+  buff[7] = sha256_hmac_ctx2.opad.h[7];
+
+  sha256_hmac_init (&sha256_hmac_ctx3, out, 32);
+  sha256_hmac_update (&sha256_hmac_ctx3, buff, 32);
+  sha256_hmac_final (&sha256_hmac_ctx3);
+  
+  const u32 r0 = sha256_hmac_ctx2.opad.h[0] ^ sha256_hmac_ctx3.opad.h[0];
+  const u32 r1 = sha256_hmac_ctx2.opad.h[1] ^ sha256_hmac_ctx3.opad.h[1];
+  const u32 r2 = sha256_hmac_ctx2.opad.h[2] ^ sha256_hmac_ctx3.opad.h[2];
+  const u32 r3 = sha256_hmac_ctx2.opad.h[3] ^ sha256_hmac_ctx3.opad.h[3];
 
   #define il_pos 0
 

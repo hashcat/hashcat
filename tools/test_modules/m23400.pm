@@ -29,7 +29,7 @@ sub module_generate_hash
   my $kdf2 = Crypt::PBKDF2->new
   (
     hasher     => Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256),
-    iterations => 1,
+    iterations => 2,
     output_len => 32
   );
 
