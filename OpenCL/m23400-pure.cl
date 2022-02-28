@@ -253,7 +253,7 @@ KERNEL_FQ void m23400_loop (KERN_ATTR_TMPS (bitwarden_tmp_t))
   unpackv (tmps, out, gid, 7, out[7]);
 }
 
-KERNEL_FQ void m23400_comp (KERN_ATTR_TMPS (bitwarden_tmp_t))
+KERNEL_FQ void m23400_comp (KERN_ATTR_TMPS_ESALT (bitwarden_tmp_t, u32))
 {
   /**
    * base
@@ -324,36 +324,54 @@ KERNEL_FQ void m23400_comp (KERN_ATTR_TMPS (bitwarden_tmp_t))
   w3[1] = 0;
   w3[2] = 0;
   w3[3] = 0;
-
+  
   sha256_hmac_update_64 (&sha256_hmac_ctx2, w0, w1, w2, w3, 4);
 
   sha256_hmac_final (&sha256_hmac_ctx2);
 
-  sha256_hmac_ctx_t sha256_hmac_ctx3;
+  const u32 version = esalt_bufs[DIGESTS_OFFSET_HOST];
+  if(version == 2)
+  {
+
+    sha256_hmac_ctx_t sha256_hmac_ctx3;
 
 
-  u32 buff[16] = {0};
-  buff[0] = sha256_hmac_ctx2.opad.h[0];
-  buff[1] = sha256_hmac_ctx2.opad.h[1];
-  buff[2] = sha256_hmac_ctx2.opad.h[2];
-  buff[3] = sha256_hmac_ctx2.opad.h[3];
-  buff[4] = sha256_hmac_ctx2.opad.h[4];
-  buff[5] = sha256_hmac_ctx2.opad.h[5];
-  buff[6] = sha256_hmac_ctx2.opad.h[6];
-  buff[7] = sha256_hmac_ctx2.opad.h[7];
+    u32 buff[16] = {0};
+    buff[0] = sha256_hmac_ctx2.opad.h[0];
+    buff[1] = sha256_hmac_ctx2.opad.h[1];
+    buff[2] = sha256_hmac_ctx2.opad.h[2];
+    buff[3] = sha256_hmac_ctx2.opad.h[3];
+    buff[4] = sha256_hmac_ctx2.opad.h[4];
+    buff[5] = sha256_hmac_ctx2.opad.h[5];
+    buff[6] = sha256_hmac_ctx2.opad.h[6];
+    buff[7] = sha256_hmac_ctx2.opad.h[7];
 
-  sha256_hmac_init (&sha256_hmac_ctx3, out, 32);
-  sha256_hmac_update (&sha256_hmac_ctx3, buff, 32);
-  sha256_hmac_final (&sha256_hmac_ctx3);
-  
-  const u32 r0 = sha256_hmac_ctx2.opad.h[0] ^ sha256_hmac_ctx3.opad.h[0];
-  const u32 r1 = sha256_hmac_ctx2.opad.h[1] ^ sha256_hmac_ctx3.opad.h[1];
-  const u32 r2 = sha256_hmac_ctx2.opad.h[2] ^ sha256_hmac_ctx3.opad.h[2];
-  const u32 r3 = sha256_hmac_ctx2.opad.h[3] ^ sha256_hmac_ctx3.opad.h[3];
+    sha256_hmac_init (&sha256_hmac_ctx3, out, 32);
+    sha256_hmac_update (&sha256_hmac_ctx3, buff, 32);
+    sha256_hmac_final (&sha256_hmac_ctx3);
+    
+    const u32 r0 = sha256_hmac_ctx2.opad.h[0] ^ sha256_hmac_ctx3.opad.h[0];
+    const u32 r1 = sha256_hmac_ctx2.opad.h[1] ^ sha256_hmac_ctx3.opad.h[1];
+    const u32 r2 = sha256_hmac_ctx2.opad.h[2] ^ sha256_hmac_ctx3.opad.h[2];
+    const u32 r3 = sha256_hmac_ctx2.opad.h[3] ^ sha256_hmac_ctx3.opad.h[3];
 
-  #define il_pos 0
+    #define il_pos 0
 
-  #ifdef KERNEL_STATIC
-  #include COMPARE_M
-  #endif
+    #ifdef KERNEL_STATIC
+    #include COMPARE_M
+    #endif
+  }
+  else if (version == 1)
+  {
+    const u32 r0 = sha256_hmac_ctx2.opad.h[0];
+    const u32 r1 = sha256_hmac_ctx2.opad.h[1];
+    const u32 r2 = sha256_hmac_ctx2.opad.h[2];
+    const u32 r3 = sha256_hmac_ctx2.opad.h[3];
+
+    #define il_pos 0
+
+    #ifdef KERNEL_STATIC
+    #include COMPARE_M
+    #endif
+  }
 }

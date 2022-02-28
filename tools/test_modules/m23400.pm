@@ -38,7 +38,7 @@ sub module_generate_hash
   my $digest1 = $kdf1->PBKDF2 ($email, $word);
   my $digest2 = $kdf2->PBKDF2 ($word, $digest1); # position of $word switched !
 
-  my $hash = sprintf ("\$bitwarden\$1*%d*%s*%s", $iter, encode_base64 ($email, ""), encode_base64 ($digest2, ""));
+  my $hash = sprintf ("\$bitwarden\$2*%d*%s*%s", $iter, encode_base64 ($email, ""), encode_base64 ($digest2, ""));
 
   return $hash;
 }
@@ -54,7 +54,7 @@ sub module_verify_hash
   my $hash = substr ($line, 0, $idx);
   my $word = substr ($line, $idx + 1);
 
-  return unless substr ($hash, 0, 12) eq '$bitwarden$1';
+  return unless substr ($hash, 0, 12) eq '$bitwarden$2';
 
   my ($type, $iter, $salt_base64, $hash_base64) = split ('\*', $hash);
 

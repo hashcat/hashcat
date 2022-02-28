@@ -24,7 +24,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
-static const char *ST_HASH        = "$bitwarden$1*100000*bm9yZXBseUBoYXNoY2F0Lm5ldA==*CWCy4KZEEw1W92qB7xfLRNoJpepTMSyr7WJGZ0/Xr8c=";
+static const char *ST_HASH        = "$bitwarden$2*100000*bm9yZXBseUBoYXNoY2F0Lm5ldA==*CWCy4KZEEw1W92qB7xfLRNoJpepTMSyr7WJGZ0/Xr8c=";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -84,6 +84,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   return jit_build_options;
 }
 
+u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return (u64) sizeof(u32);
+}
+
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 tmp_size = (const u64) sizeof (bitwarden_tmp_t);
@@ -104,6 +109,8 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
+  
+  u32 *ver = (u32 *) esalt_buf;
 
   hc_token_t token;
 
@@ -146,8 +153,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // version
 
   const u8 *version_pos = token.buf[1];
+  const u32 version = *version_pos - 0x30;
 
-  if (version_pos[0] != '1') return (PARSER_SALT_VALUE);
+  if (version == 1 || version == 2)
+  {
+    *ver = version;
+  }
+  else return (PARSER_SALT_VALUE);
 
   // iter
 
@@ -230,7 +242,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   base64_encode (int_to_base64, (const u8 *) tmp_buf, 32, (u8 *) hash_buf);
 
-  const int line_len = snprintf (line_buf, line_size, "%s1*%i*%s*%s",
+  const int line_len = snprintf (line_buf, line_size, "%s2*%i*%s*%s",
     SIGNATURE_BITWARDEN,
     salt->salt_iter + 1,
     salt_buf,
@@ -258,7 +270,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
-  module_ctx->module_esalt_size               = MODULE_DEFAULT;
+  module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
