@@ -19,6 +19,8 @@
 - Added hex encoding format for --separator option
 - Added password candidates range to --status-json output
 - Added parameter to Bitwarden mode for second iteration count
+- Added support to use 'John the Ripper' hash format with hash-type 18200
+
 
 ##
 ## Bugs
