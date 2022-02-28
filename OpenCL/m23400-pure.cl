@@ -448,7 +448,7 @@ KERNEL_FQ void m23400_loop2 (KERN_ATTR_TMPS (bitwarden_tmp_t))
   unpackv (tmps, out, gid, 7, out[7]);
 }
 
-KERNEL_FQ void m23400_comp (KERN_ATTR_TMPS_ESALT (bitwarden_tmp_t, u32))
+KERNEL_FQ void m23400_comp (KERN_ATTR_TMPS (bitwarden_tmp_t, u32))
 {
   /**
    * base
