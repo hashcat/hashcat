@@ -522,7 +522,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_advice (hashcat_ctx, "will add ALL plains/collisions found, even duplicates, to the potfile.");
     event_log_advice (hashcat_ctx, NULL);
   }
-  
+
   if (hashconfig->potfile_disable == true)
   {
     event_log_advice (hashcat_ctx, "ATTENTION! Potfile storage is disabled for this hash mode.");
@@ -765,7 +765,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
       }
     }
   }
-  
+
   event_log_advice (hashcat_ctx, "* Update your backend API runtime / driver the right way:");
   event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/wrongdriver");
   event_log_advice (hashcat_ctx, NULL);
