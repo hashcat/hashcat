@@ -24,6 +24,7 @@ typedef struct krb5asrep
   u32 checksum[4];
   u32 edata2[5120];
   u32 edata2_len;
+  u32 format;
 
 } krb5asrep_t;
 
