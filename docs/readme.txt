@@ -367,6 +367,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - vBulletin >= v3.8.5
 - bcrypt(md5($pass)) / bcryptmd5
 - bcrypt(sha1($pass)) / bcryptsha1
+- bcrypt(sha512($pass)) / bcryptsha512
 - osCommerce, xt:Commerce
 - TOTP (HMAC-SHA1)
 - Web2py pbkdf2-sha512
