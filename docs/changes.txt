@@ -15,11 +15,12 @@
 ##
 
 - Added new backend support for Metal, the OpenCL replacement API on Apple
+- Added support to use 'John the Ripper' hash format with hash-type 13100
+- Added support to use 'John the Ripper' hash format with hash-type 18200
 - Added support to use --debug-mode in attack-mode 9 (Association Attack)
 - Added support to building universal macOS binary on Apple Silicon
 - Added hex encoding format for --separator option
 - Added password candidates range to --status-json output
-- Added support to use 'John the Ripper' hash format with hash-type 18200
 
 ##
 ## Bugs
