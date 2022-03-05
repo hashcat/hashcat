@@ -19,6 +19,17 @@
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
+typedef struct dpapimk_tmp_v1
+{
+  u32 ipad[5];
+  u32 opad[5];
+  u32 dgst[10];
+  u32 out[10];
+
+  u32 userKey[5];
+
+} dpapimk_tmp_v1_t;
+
 typedef struct dpapimk
 {
   u32 context;
@@ -38,17 +49,6 @@ typedef struct dpapimk
   u32 contents[128];
 
 } dpapimk_t;
-
-typedef struct dpapimk_tmp_v1
-{
-  u32 ipad[5];
-  u32 opad[5];
-  u32 dgst[10];
-  u32 out[10];
-
-  u32 userKey[5];
-
-} dpapimk_tmp_v1_t;
 
 DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
 {

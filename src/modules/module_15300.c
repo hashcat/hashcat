@@ -18,7 +18,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
-static const char *HASH_NAME      = "DPAPI masterkey file v1";
+static const char *HASH_NAME      = "DPAPI masterkey file v1 (context 1 and 2)";
 static const u64   KERN_TYPE      = 15300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
@@ -223,6 +223,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   dpapimk->contents_len = contents_len;
 
   dpapimk->context = hc_strtoul ((const char *) context_pos, NULL, 10);
+
+  if (dpapimk->context != 1 && dpapimk->context != 2) return (PARSER_SALT_LENGTH);
 
   for (u32 i = 0; i < dpapimk->contents_len / 8; i++)
   {
