@@ -11,6 +11,8 @@
 - Added hash-mode: bcrypt(sha512($pass)) / bcryptsha512
 - Added hash-mode: Kerberos 5, etype 17, DB
 - Added hash-mode: Kerberos 5, etype 18, DB
+- Added hash-mode: DPAPI masterkey file v1 (context 3)
+- Added hash-mode: DPAPI masterkey file v2 (context 3)
 
 ##
 ## Features

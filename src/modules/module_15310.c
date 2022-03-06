@@ -18,14 +18,17 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
-static const char *HASH_NAME      = "DPAPI masterkey file v1 (context 1 and 2)";
-static const u64   KERN_TYPE      = 15300;
+static const char *HASH_NAME      = "DPAPI masterkey file v1 (context 3)";
+static const u64   KERN_TYPE      = 15310;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP2;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_INIT2
+                                  | OPTS_TYPE_LOOP2;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$DPAPImk$1*1*S-15-21-466364039-425773974-453930460-1925*des3*sha1*24000*b038489dee5ad04e3e3cab4d957258b5*208*cb9b5b7d96a0d2a00305ca403d3fd9c47c561e35b4b2cf3aebfd1d3199a6481d56972be7ebd6c291b199e6f1c2ffaee91978706737e9b1209e6c7d3aa3d8c3c3e38ad1ccfa39400d62c2415961c17fd0bd6b0f7bbd49cc1de1a394e64b7237f56244238da8d37d78";
+static const char *ST_HASH        = "$DPAPImk$1*3*S-15-21-407415836-404165111-436049749-1915*des3*sha1*14825*3e86e7d8437c4d5582ff668a83632cb2*208*96ad763b59e67c9f5c3d925e42bbe28a1412b919d1dc4abf03b2bed4c5c244056c14931d94d441117529b7171dfd6ebbe6eecf5d958b65574c293778fbadb892351cc59d5c65d65d2fcda73f5b056548a4a5550106d03d0c39d3cca7e5cdc0d521f48ac9e51cecc5";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -75,6 +78,17 @@ typedef struct dpapimk_tmp_v1
 
 static const char *SIGNATURE_DPAPIMK = "$DPAPImk$";
 
+salt_t *module_benchmark_salt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  salt_t *salt = (salt_t *) hcmalloc (sizeof (salt_t));
+
+  salt->salt_iter  = 10000 - 1;
+  salt->salt_iter2 = 13450 - 1;
+  salt->salt_len   = 16;
+
+  return salt;
+}
+
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
@@ -114,6 +128,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32 *digest = (u32 *) digest_buf;
 
   dpapimk_t *dpapimk = (dpapimk_t *) esalt_buf;
+
+  memset (dpapimk, 0, sizeof (dpapimk_t));
 
   hc_token_t token;
 
@@ -224,7 +240,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   dpapimk->context = hc_strtoul ((const char *) context_pos, NULL, 10);
 
-  if (dpapimk->context != 1 && dpapimk->context != 2) return (PARSER_SALT_LENGTH);
+  if (dpapimk->context != 3) return (PARSER_SALT_LENGTH);
 
   for (u32 i = 0; i < dpapimk->contents_len / 8; i++)
   {
@@ -244,11 +260,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     SID_utf16le[i * 2] = SID_pos[i];
   }
 
-  /* Specific to DPAPI: needs trailing '\0' while computing hash */
-
-  dpapimk->SID_len = (SID_len + 1) * 2;
-
-  SID_utf16le[dpapimk->SID_len] = 0x80;
+  dpapimk->SID_len = SID_len * 2;
 
   memcpy ((u8 *) dpapimk->SID, SID_utf16le, sizeof (SID_utf16le));
 
@@ -283,7 +295,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // iter
 
-  salt->salt_iter = hc_strtoul ((const char *) rounds_pos, NULL, 10) - 1;
+  salt->salt_iter  = 10000 - 1;
+  salt->salt_iter2 = hc_strtoul ((const char *) rounds_pos, NULL, 10) - 1;
 
   return (PARSER_OK);
 }
@@ -292,30 +305,37 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const dpapimk_t *dpapimk = (const dpapimk_t *) esalt_buf;
 
-  u32 version      = 1;
-  u32 context      = dpapimk->context;
-  u32 rounds       = salt->salt_iter + 1;
-  u32 contents_len = dpapimk->contents_len;
-  u32 SID_len      = dpapimk->SID_len;
-  u32 iv_len       = 32;
+  u32  version      = 1;
+  u32  context      = dpapimk->context;
+  u32  rounds       = salt->salt_iter2 + 1;
+  u32  contents_len = dpapimk->contents_len;
+  u32  SID_len      = dpapimk->SID_len;
+  u32  iv_len       = 32;
 
-  u8 cipher_algorithm[8] = { 0 };
-  u8 hash_algorithm[8]   = { 0 };
-  u8 SID[512]            = { 0 };
+  u8   cipher_algorithm[8] = { 0 };
+  u8   hash_algorithm[8]   = { 0 };
+  u8   SID[512]            = { 0 };
+  u8  *SID_tmp             = NULL;
 
-  u8* SID_tmp;
+  u32 *ptr_SID      = (u32 *) dpapimk->SID;
+  u32 *ptr_iv       = (u32 *) dpapimk->iv;
+  u32 *ptr_contents = (u32 *) dpapimk->contents;
 
-  u32  *ptr_SID      = (u32 *)  dpapimk->SID;
-  u32  *ptr_iv       = (u32 *)  dpapimk->iv;
-  u32  *ptr_contents = (u32 *)  dpapimk->contents;
+  u32  u32_iv[4];
+  u8   iv[32 + 1];
 
-  u32 u32_iv[4];
+  u32  u32_contents[36];
+  u8   contents[288 + 1];
 
-  u8 iv[32 + 1];
+  memset (u32_iv, 0, sizeof (u32_iv));
+  memset (iv,     0, sizeof (iv));
+
+  memset (u32_contents, 0, sizeof (u32_contents));
+  memset (contents,     0, sizeof (contents));
 
   // convert back SID
 
-  SID_tmp = (u8 *) hcmalloc ((SID_len + 1) * sizeof(u8));
+  SID_tmp = (u8 *) hcmalloc ((SID_len + 1) * sizeof (u8));
 
   for (u32 i = 0; i < (SID_len / 4); i++)
   {
@@ -330,6 +350,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
 
   // overwrite trailing 0x80
+
   SID_tmp[SID_len] = 0;
 
   for (u32 i = 0, j = 0 ; j < SID_len ; i++, j += 2)
@@ -347,10 +368,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
 
   iv[32] = 0;
-
-  u32 u32_contents[36];
-
-  u8 contents[288 + 1];
 
   for (u32 i = 0; i < contents_len / 8; i++)
   {
@@ -392,7 +409,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_salt           = module_benchmark_salt;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;

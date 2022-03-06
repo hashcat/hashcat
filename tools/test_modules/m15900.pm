@@ -132,11 +132,11 @@ sub module_generate_hash
 
   if ($context == 1)
   {
-     $user_hash = sha1 (encode ("UTF-16LE", $word_buf));
+    $user_hash = sha1 (encode ("UTF-16LE", $word_buf));
   }
   elsif ($context == 2)
   {
-     $user_hash = md4 (encode ("UTF-16LE", $word_buf));
+    $user_hash = md4 (encode ("UTF-16LE", $word_buf));
   }
 
   $user_derivationKey = hmac_sha1 (encode ("UTF-16LE", $SID . "\x00"), $user_hash);
@@ -396,6 +396,7 @@ sub module_verify_hash
   my $cipher_len       = shift @data;
   my $cipher           = shift @data;
 
+  return unless ($context == 1 || $context == 2);
   return unless (length ($cipher) == $cipher_len);
 
   if ($version == 1)

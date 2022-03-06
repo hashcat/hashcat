@@ -9,7 +9,9 @@ use strict;
 use warnings;
 
 use Digest::MD4 qw (md4);
-use Digest::SHA qw (sha1 hmac_sha1);
+use Digest::SHA qw (sha1 hmac_sha1 hmac_sha512);
+use Crypt::PBKDF2;
+use Crypt::CBC;
 use Crypt::ECB;
 use Encode;
 
@@ -21,7 +23,7 @@ sub get_random_dpapimk_salt
 
   my $salt_buf = "";
 
-  my $context = random_number (1, 2);
+  my $context = 3;
 
   my $cipher_algo = "";
 
@@ -99,6 +101,7 @@ sub dpapi_pbkdf2
 
     $t .= $u;
   }
+
   return substr ($t, 0, $keylen);
 }
 
@@ -106,7 +109,7 @@ sub module_generate_hash
 {
   my $word_buf     = shift;
   my $salt_buf     = shift;
-  my $dpapimk_salt = shift // get_random_dpapimk_salt (1);
+  my $dpapimk_salt = shift // get_random_dpapimk_salt (2);
   my $cipher       = shift;
 
   my @salt_arr = split ('\*', $dpapimk_salt);
@@ -128,14 +131,27 @@ sub module_generate_hash
   my $expected_hmac;
   my $cleartext;
 
-  if ($context == 1)
-  {
-    $user_hash = sha1 (encode ("UTF-16LE", $word_buf));
-  }
-  elsif ($context == 2)
-  {
-    $user_hash = md4 (encode ("UTF-16LE", $word_buf));
-  }
+  my $SIDenc = encode ("UTF-16LE", $SID);
+
+  my $NTLMhash = md4 (encode ("UTF-16LE", $word_buf));
+
+  my $hasher = Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256);
+
+  my $pbkdf2_1 = Crypt::PBKDF2->new (
+    hasher       => $hasher,
+    iterations   => 10000,
+    output_len   => 32
+  );
+
+  my $pbkdf2_2 = Crypt::PBKDF2->new (
+    hasher       => $hasher,
+    iterations   => 1,
+    output_len   => 16
+  );
+
+  $user_hash = $pbkdf2_1->PBKDF2 ($SIDenc, $NTLMhash);
+
+  $user_hash = $pbkdf2_2->PBKDF2 ($SIDenc, $user_hash);
 
   $user_derivationKey = hmac_sha1 (encode ("UTF-16LE", $SID . "\x00"), $user_hash);
 
@@ -394,16 +410,16 @@ sub module_verify_hash
   my $cipher_len       = shift @data;
   my $cipher           = shift @data;
 
-  return unless ($context == 1 || $context == 2);
+  return unless ($context == 3);
   return unless (length ($cipher) == $cipher_len);
 
   if ($version == 1)
   {
-    next unless ($cipher_len == 208);
+    return unless ($cipher_len == 208);
   }
   elsif ($version == 2)
   {
-    next unless ($cipher_len == 288);
+    return unless ($cipher_len == 288);
   }
 
   my $dpapimk_salt = substr ($hash, length ('$DPAPImk$'));
