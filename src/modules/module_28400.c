@@ -10,21 +10,21 @@
 #include "convert.h"
 #include "shared.h"
 
-static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_4;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "Kerberos 5, etype 23, TGS-REP";
-static const u64   KERN_TYPE      = 13100;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_NOT_ITERATED;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u32   DGST_SIZE      = DGST_SIZE_4_6;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_FORUM_SOFTWARE;
+static const char *HASH_NAME      = "bcrypt(sha512($pass)) / bcryptsha512";
+static const u64   KERN_TYPE      = 28400;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_DYNAMIC_SHARED;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5tgs$23$*user$realm$test/spn*$b548e10f5694ae018d7ad63c257af7dc$35e8e45658860bc31a859b41a08989265f4ef8afd75652ab4d7a30ef151bf6350d879ae189a8cb769e01fa573c6315232b37e4bcad9105520640a781e5fd85c09615e78267e494f433f067cc6958200a82f70627ce0eebc2ac445729c2a8a0255dc3ede2c4973d2d93ac8c1a56b26444df300cb93045d05ff2326affaa3ae97f5cd866c14b78a459f0933a550e0b6507bf8af27c2391ef69fbdd649dd059a4b9ae2440edd96c82479645ccdb06bae0eead3b7f639178a90cf24d9a";
+static const char *ST_HASH        = "$2a$12$KhivLhCuLhSyMBOxLxCyLu78x4z2X/EJdZNfS3Gy36fvRt56P2jbS";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -41,322 +41,238 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-typedef struct krb5tgs
+static const char *SIGNATURE_BCRYPT1 = "$2a$";
+static const char *SIGNATURE_BCRYPT2 = "$2b$";
+static const char *SIGNATURE_BCRYPT3 = "$2x$";
+static const char *SIGNATURE_BCRYPT4 = "$2y$";
+
+typedef struct bcrypt_tmp
 {
-  u32 account_info[512];
-  u32 checksum[4];
-  u32 edata2[5120];
-  u32 edata2_len;
-  u32 format;
+  u32 E[18];
 
-} krb5tgs_t;
+  u32 P[18];
 
-static const char *SIGNATURE_KRB5TGS = "$krb5tgs$";
+  u32 S0[256];
+  u32 S1[256];
+  u32 S2[256];
+  u32 S3[256];
+
+} bcrypt_tmp_t;
+
+u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 tmp_size = (const u64) sizeof (bcrypt_tmp_t);
+
+  return tmp_size;
+}
+
+bool module_jit_cache_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  return true;
+}
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
 
-  u32 native_threads = 0;
+  // this mode heavily depends on the available shared memory size
+  // note the kernel need to have some special code changes in order to make use to use post-48k memory region
+  // we need to set some macros
+
+  bool use_dynamic = false;
+
+  if (device_param->is_cuda == true)
+  {
+    use_dynamic = true;
+  }
+
+  // this uses some nice feedback effect.
+  // based on the device_local_mem_size the reqd_work_group_size in the kernel is set to some value
+  // which is then is read from the opencl host in the kernel_preferred_wgs_multiple1/2/3 result.
+  // therefore we do not need to set module_kernel_threads_min/max except for CPU, where the threads are set to fixed 1.
 
   if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
-    native_threads = 1;
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", 1);
   }
-  else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+  else
   {
-    #if defined (__APPLE__)
+    u32 overhead = 0;
 
-    native_threads = 32;
-
-    #else
-
-    if (device_param->device_local_mem_size < 49152)
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
     {
-      native_threads = MIN (device_param->kernel_preferred_wgs_multiple, 32); // We can't just set 32, because Intel GPU need 8
+      // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
+      // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)
+      // on my development system. no clue where the 4 bytes are spent.
+      // I did some research on this and it seems to be related with the datatype.
+      // For example, if i used u8 instead, there's only 1 byte wasted.
+
+      if (device_param->is_opencl == true)
+      {
+        overhead = 1;
+      }
+    }
+
+    if (user_options->kernel_threads_chgd == true)
+    {
+      u32 fixed_local_size = user_options->kernel_threads;
+
+      if (use_dynamic == true)
+      {
+        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
+        {
+          // otherwise out-of-bound reads
+
+          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        }
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+        {
+          // otherwise out-of-bound reads
+
+          fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+        }
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
+      }
     }
     else
     {
-      native_threads = device_param->kernel_preferred_wgs_multiple;
+      if (use_dynamic == true)
+      {
+        // using kernel_dynamic_local_mem_size_memset is a bit hackish.
+        // we had to brute-force this value out of an already loaded CUDA function.
+        // there's no official way to query for this value.
+
+        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        const u32 fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", fixed_local_size);
+      }
     }
-
-    #endif
   }
-
-  hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D _unroll", native_threads);
 
   return jit_build_options;
-}
-
-u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 esalt_size = (const u64) sizeof (krb5tgs_t);
-
-  return esalt_size;
-}
-
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 13100 --increment --increment-min 1 --increment-max 8 test_1619967069/13100_multihash_bruteforce.txt ?d?d?d?d?d?d?d?d
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  return false;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
 
-  krb5tgs_t *krb5tgs = (krb5tgs_t *) esalt_buf;
-
   hc_token_t token;
 
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_KRB5TGS;
+  token.token_cnt  = 4;
 
-  token.len[0]  = 9;
-  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
-                | TOKEN_ATTR_VERIFY_SIGNATURE;
+  token.signatures_cnt    = 4;
+  token.signatures_buf[0] = SIGNATURE_BCRYPT1;
+  token.signatures_buf[1] = SIGNATURE_BCRYPT2;
+  token.signatures_buf[2] = SIGNATURE_BCRYPT3;
+  token.signatures_buf[3] = SIGNATURE_BCRYPT4;
 
-  /**
-   * hc
-   * format 1: $krb5tgs$23$*user$realm$spn*$checksum$edata2
-   * format 2: $krb5tgs$23$checksum$edata2
-   *
-   * jtr
-   * format 3: $krb5tgs$spn:checksum$edata2
-   */
+  token.len[0]     = 4;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  if (line_len < (int) strlen (SIGNATURE_KRB5TGS)) return (PARSER_SALT_LENGTH);
+  token.len_min[1] = 2;
+  token.len_max[1] = 2;
+  token.sep[1]     = '$';
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
 
-  memset (krb5tgs, 0, sizeof (krb5tgs_t));
+  token.len[2]     = 22;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64B;
 
-  token.token_cnt = 4;
-
-  if (line_buf[token.len[0]] == '2' && line_buf[token.len[0] + 1] == '3' && line_buf[token.len[0] + 2] == '$')
-  {
-    if (line_buf[token.len[0] + 3] == '*')
-    {
-      char *account_info_start = (char *) line_buf + 12; // we want the * char included
-      char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
-
-      if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-      account_info_stop++; // we want the * char included
-      account_info_stop++; // we want the $ char included
-
-      const int account_info_len = account_info_stop - account_info_start;
-
-      token.token_cnt++;
-
-      // etype
-
-      token.sep[1]     = '$';
-      token.len_min[1] = 2;
-      token.len_max[1] = 2;
-      token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_DIGIT;
-
-      // user$realm$spn
-
-      token.len[2]     = account_info_len;
-      token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH;
-
-      // checksum
-
-      token.sep[3]     = '$';
-      token.len_min[3] = 32;
-      token.len_max[3] = 32;
-      token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
-
-      // edata2
-
-      token.sep[4]     = '$';
-      token.len_min[4] = 64;
-      token.len_max[4] = 40960;
-      token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
-
-      krb5tgs->format = 1;
-    }
-    else
-    {
-      // etype
-
-      token.sep[1]     = '$';
-      token.len_min[1] = 2;
-      token.len_max[1] = 2;
-      token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_DIGIT;
-
-      // checksum
-
-      token.sep[2]     = '$';
-      token.len_min[2] = 32;
-      token.len_max[2] = 32;
-      token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
-
-      // edata2
-
-      token.sep[3]     = '$';
-      token.len_min[3] = 64;
-      token.len_max[3] = 40960;
-      token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
-
-      krb5tgs->format = 2;
-    }
-  }
-  else
-  {
-    // spn
-
-    token.sep[1]     = ':';
-    token.len_min[1] = 0;
-    token.len_max[1] = 2048;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-    // checksum
-
-    token.sep[2]     = '$';
-    token.len_min[2] = 32;
-    token.len_max[2] = 32;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    // edata2
-
-    token.sep[3]     = '$';
-    token.len_min[3] = 64;
-    token.len_max[3] = 40960;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                     | TOKEN_ATTR_VERIFY_HEX;
-
-    krb5tgs->format = 3;
-  }
+  token.len[3]     = 31;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64B;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *checksum_pos = NULL;
-  const u8 *data_pos = NULL;
+  const u8 *iter_pos = token.buf[1];
+  const u8 *salt_pos = token.buf[2];
+  const u8 *hash_pos = token.buf[3];
 
-  int data_len = 0;
+  const int salt_len = token.len[2];
+  const int hash_len = token.len[3];
 
-  if (krb5tgs->format == 1)
-  {
-    checksum_pos = token.buf[3];
+  salt->salt_len  = 16;
+  salt->salt_iter = 1u << hc_strtoul ((const char *) iter_pos, NULL, 10);
 
-    data_pos = token.buf[4];
-    data_len = token.len[4];
+  memcpy ((char *) salt->salt_sign, line_buf, 6);
 
-    memcpy (krb5tgs->account_info, token.buf[2], token.len[2]);
-  }
-  else if (krb5tgs->format == 2)
-  {
-    checksum_pos = token.buf[2];
+  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
 
-    data_pos = token.buf[3];
-    data_len = token.len[3];
+  u8 tmp_buf[100];
 
-    krb5tgs->account_info[0] = 0;
-  }
-  else if (krb5tgs->format == 3)
-  {
-    checksum_pos = token.buf[2];
+  memset (tmp_buf, 0, sizeof (tmp_buf));
 
-    data_pos = token.buf[3];
-    data_len = token.len[3];
+  base64_decode (bf64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
 
-    memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
-  }
+  memcpy (salt_buf_ptr, tmp_buf, 16);
 
-  if (checksum_pos == NULL || data_pos == NULL) return (PARSER_SALT_VALUE);
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
 
-  krb5tgs->checksum[0] = hex_to_u32 (checksum_pos +  0);
-  krb5tgs->checksum[1] = hex_to_u32 (checksum_pos +  8);
-  krb5tgs->checksum[2] = hex_to_u32 (checksum_pos + 16);
-  krb5tgs->checksum[3] = hex_to_u32 (checksum_pos + 24);
+  memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  u8 *edata_ptr = (u8 *) krb5tgs->edata2;
+  base64_decode (bf64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
 
-  for (int i = 0; i < data_len; i += 2)
-  {
-    const u8 p0 = data_pos[i + 0];
-    const u8 p1 = data_pos[i + 1];
+  memcpy (digest, tmp_buf, 24);
 
-    *edata_ptr++ = hex_convert (p1) << 0
-                 | hex_convert (p0) << 4;
-  }
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
 
-  krb5tgs->edata2_len = data_len / 2;
-
-  /* this is needed for hmac_md5 */
-  *edata_ptr++ = 0x80;
-
-  salt->salt_buf[0] = krb5tgs->checksum[0];
-  salt->salt_buf[1] = krb5tgs->checksum[1];
-  salt->salt_buf[2] = krb5tgs->checksum[2];
-  salt->salt_buf[3] = krb5tgs->checksum[3];
-
-  salt->salt_len = 16;
-
-  digest[0] = krb5tgs->checksum[0];
-  digest[1] = krb5tgs->checksum[1];
-  digest[2] = krb5tgs->checksum[2];
-  digest[3] = krb5tgs->checksum[3];
+  digest[5] &= ~0xffu; // its just 23 not 24 !
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const krb5tgs_t *krb5tgs = (const krb5tgs_t *) esalt_buf;
+  const u32 *digest = (const u32 *) digest_buf;
 
-  char data[5120 * 4 * 2] = { 0 };
+  u32 tmp_digest[6];
 
-  for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
-  {
-    u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
+  tmp_digest[0] = byte_swap_32 (digest[0]);
+  tmp_digest[1] = byte_swap_32 (digest[1]);
+  tmp_digest[2] = byte_swap_32 (digest[2]);
+  tmp_digest[3] = byte_swap_32 (digest[3]);
+  tmp_digest[4] = byte_swap_32 (digest[4]);
+  tmp_digest[5] = byte_swap_32 (digest[5]);
 
-    sprintf (data + j, "%02x", ptr_edata2[i]);
-  }
+  u32 tmp_salt[4];
 
-  int line_len;
+  tmp_salt[0] = byte_swap_32 (salt->salt_buf[0]);
+  tmp_salt[1] = byte_swap_32 (salt->salt_buf[1]);
+  tmp_salt[2] = byte_swap_32 (salt->salt_buf[2]);
+  tmp_salt[3] = byte_swap_32 (salt->salt_buf[3]);
 
-  // preserve the input hash format
+  char tmp_buf[64];
 
-  if (krb5tgs->format != 3) // hc
-  {
-    line_len = snprintf (line_buf, line_size, "%s23$%s%08x%08x%08x%08x$%s",
-      SIGNATURE_KRB5TGS,
-      (char *) krb5tgs->account_info,
-      byte_swap_32 (krb5tgs->checksum[0]),
-      byte_swap_32 (krb5tgs->checksum[1]),
-      byte_swap_32 (krb5tgs->checksum[2]),
-      byte_swap_32 (krb5tgs->checksum[3]),
-      data);
-  }
-  else // jtr
-  {
-    line_len = snprintf (line_buf, line_size, "%s%s:%08x%08x%08x%08x$%s",
-      SIGNATURE_KRB5TGS,
-      (char *) krb5tgs->account_info,
-      byte_swap_32 (krb5tgs->checksum[0]),
-      byte_swap_32 (krb5tgs->checksum[1]),
-      byte_swap_32 (krb5tgs->checksum[2]),
-      byte_swap_32 (krb5tgs->checksum[3]),
-      data);
-  }
+  base64_encode (int_to_bf64, (const u8 *) tmp_salt,   16, (u8 *) tmp_buf +  0);
+  base64_encode (int_to_bf64, (const u8 *) tmp_digest, 23, (u8 *) tmp_buf + 22);
 
-  return line_len;
+  tmp_buf[22 + 31] = 0; // base64_encode wants to pad
+
+  return snprintf (line_buf, line_size, "%s$%s", (char *) salt->salt_sign, tmp_buf);
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -378,7 +294,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
-  module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
@@ -408,7 +324,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
   module_ctx->module_jit_build_options        = module_jit_build_options;
-  module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
+  module_ctx->module_jit_cache_disable        = module_jit_cache_disable;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
@@ -433,7 +349,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_separator                = MODULE_DEFAULT;
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
-  module_ctx->module_tmp_size                 = MODULE_DEFAULT;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_tmp_size                 = module_tmp_size;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }
