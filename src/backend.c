@@ -860,6 +860,86 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
   return 0;
 }
 
+int copy_pws_idx (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest)
+{
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return -1;
+
+    if (hc_cuMemcpyDtoHAsync (hashcat_ctx, dest, device_param->cuda_d_pws_idx + (gidd * sizeof (pw_idx_t)), (cnt * sizeof (pw_idx_t)), device_param->cuda_stream) == -1) return -1;
+
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipCtxPushCurrent (hashcat_ctx, device_param->hip_context) == -1) return -1;
+
+    if (hc_hipMemcpyDtoHAsync (hashcat_ctx, dest, device_param->hip_d_pws_idx + (gidd * sizeof (pw_idx_t)), (cnt * sizeof (pw_idx_t)), device_param->hip_stream) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+
+    if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return -1;
+  }
+
+  #if defined (__APPLE__)
+  if (device_param->is_metal == true)
+  {
+    if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_command_queue, dest, device_param->metal_d_pws_idx, gidd * sizeof (pw_idx_t), (cnt * sizeof (pw_idx_t))) == -1) return -1;
+  }
+  #endif
+
+  if (device_param->is_opencl == true)
+  {
+    /* blocking */
+    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, gidd * sizeof (pw_idx_t), (cnt * sizeof (pw_idx_t)), dest, 0, NULL, NULL) == -1) return -1;
+  }
+
+  return 0;
+}
+
+int copy_pws_comp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u32 off, u32 cnt, u32 *dest)
+{
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return -1;
+
+    if (hc_cuMemcpyDtoHAsync (hashcat_ctx, dest, device_param->cuda_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32), device_param->cuda_stream) == -1) return -1;
+
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipCtxPushCurrent (hashcat_ctx, device_param->hip_context) == -1) return -1;
+
+    if (hc_hipMemcpyDtoHAsync (hashcat_ctx, dest, device_param->hip_d_pws_comp_buf + (off * sizeof (u32)), cnt * sizeof (u32), device_param->hip_stream) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+
+    if (hc_hipCtxPopCurrent (hashcat_ctx, &device_param->hip_context) == -1) return -1;
+  }
+
+  #if defined (__APPLE__)
+  if (device_param->is_metal == true)
+  {
+    if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_command_queue, dest, device_param->metal_d_pws_comp_buf, off * sizeof (u32), cnt * sizeof (u32)) == -1) return -1;
+  }
+  #endif
+
+  if (device_param->is_opencl == true)
+  {
+    /* blocking */
+    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_comp_buf, CL_TRUE, off * sizeof (u32), cnt * sizeof (u32), dest, 0, NULL, NULL) == -1) return -1;
+  }
+
+  return 0;
+}
+
 int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
