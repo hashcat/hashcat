@@ -18,6 +18,7 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
   my $iter = shift // 10000; # or 100000 default but probably too high for tests
+  my $iter2 = shift // 2;
 
   my $kdf1 = Crypt::PBKDF2->new
   (
@@ -29,7 +30,7 @@ sub module_generate_hash
   my $kdf2 = Crypt::PBKDF2->new
   (
     hasher     => Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256),
-    iterations => 1,
+    iterations => $iter2,
     output_len => 32
   );
 
@@ -38,7 +39,7 @@ sub module_generate_hash
   my $digest1 = $kdf1->PBKDF2 ($email, $word);
   my $digest2 = $kdf2->PBKDF2 ($word, $digest1); # position of $word switched !
 
-  my $hash = sprintf ("\$bitwarden\$1*%d*%s*%s", $iter, encode_base64 ($email, ""), encode_base64 ($digest2, ""));
+  my $hash = sprintf ("\$bitwarden\$2*%d*%d*%s*%s", $iter, $iter2, encode_base64 ($email, ""), encode_base64 ($digest2, ""));
 
   return $hash;
 }
@@ -54,7 +55,7 @@ sub module_verify_hash
   my $hash = substr ($line, 0, $idx);
   my $word = substr ($line, $idx + 1);
 
-  return unless substr ($hash, 0, 12) eq '$bitwarden$1';
+  return unless substr ($hash, 0, 12) eq '$bitwarden$2';
 
   my ($type, $iter, $salt_base64, $hash_base64) = split ('\*', $hash);
 

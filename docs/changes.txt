@@ -26,6 +26,7 @@
 - Added support to building universal macOS binary on Apple Silicon
 - Added hex encoding format for --separator option
 - Added password candidates range to --status-json output
+- Added parameter to Bitwarden mode for second iteration count
 
 ##
 ## Bugs
