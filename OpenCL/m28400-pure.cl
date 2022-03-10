@@ -414,30 +414,10 @@ DECLSPEC inline void SET_KEY32 (LOCAL_AS u32 *S, const u64 key, const u32 val, M
 extern __shared__ u32 S[];
 #endif
 
-DECLSPEC void expand_key (PRIVATE_AS u32 *E, PRIVATE_AS u32 *W, const int len)
-{
-  PRIVATE_AS u8 *E_ptr = (PRIVATE_AS u8 *) E;
-  PRIVATE_AS u8 *W_ptr = (PRIVATE_AS u8 *) W;
-
-  for (int pos = 0; pos < 72; pos++) // pos++ is not a bug, we actually want that zero byte here
-  {
-    const int left = 72 - pos;
-
-    const int sz = (len < left) ? len : left; // should be MIN()
-
-    for (int i = 0; i < sz; i++)
-    {
-      E_ptr[pos + i] = W_ptr[i];
-    }
-
-    pos += sz;
-  }
-}
-
 DECLSPEC u32 u16_bin_to_u32_hex (const u32 v)
 {
-  const u32 v0 = (v >> 0) & 15;
-  const u32 v1 = (v >> 4) & 15;
+  const u32 v0 = (v >> 4) & 15;
+  const u32 v1 = (v >> 0) & 15;
 
   return ((v0 < 10) ? '0' + v0 : 'a' - 10 + v0) << 8
        | ((v1 < 10) ? '0' + v1 : 'a' - 10 + v1) << 0;
@@ -471,102 +451,48 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m28400_init (KERN_ATTR_TMPS 
   const u64 g = ctx0.h[6];
   const u64 h = ctx0.h[7];
 
-  u32 w[32];
-
-  w[ 0] = uint_to_hex_lower8 ((a >> 56) & 255) <<  0
-        | uint_to_hex_lower8 ((a >> 48) & 255) << 16;
-  w[ 1] = uint_to_hex_lower8 ((a >> 40) & 255) <<  0
-        | uint_to_hex_lower8 ((a >> 32) & 255) << 16;
-  w[ 2] = uint_to_hex_lower8 ((a >> 24) & 255) <<  0
-        | uint_to_hex_lower8 ((a >> 16) & 255) << 16;
-  w[ 3] = uint_to_hex_lower8 ((a >>  8) & 255) <<  0
-        | uint_to_hex_lower8 ((a >>  0) & 255) << 16;
-
-  w[ 4] = uint_to_hex_lower8 ((b >> 56) & 255) <<  0
-        | uint_to_hex_lower8 ((b >> 48) & 255) << 16;
-  w[ 5] = uint_to_hex_lower8 ((b >> 40) & 255) <<  0
-        | uint_to_hex_lower8 ((b >> 32) & 255) << 16;
-  w[ 6] = uint_to_hex_lower8 ((b >> 24) & 255) <<  0
-        | uint_to_hex_lower8 ((b >> 16) & 255) << 16;
-  w[ 7] = uint_to_hex_lower8 ((b >>  8) & 255) <<  0
-        | uint_to_hex_lower8 ((b >>  0) & 255) << 16;
-
-  w[ 8] = uint_to_hex_lower8 ((c >> 56) & 255) <<  0
-        | uint_to_hex_lower8 ((c >> 48) & 255) << 16;
-  w[ 9] = uint_to_hex_lower8 ((c >> 40) & 255) <<  0
-        | uint_to_hex_lower8 ((c >> 32) & 255) << 16;
-  w[10] = uint_to_hex_lower8 ((c >> 24) & 255) <<  0
-        | uint_to_hex_lower8 ((c >> 16) & 255) << 16;
-  w[11] = uint_to_hex_lower8 ((c >>  8) & 255) <<  0
-        | uint_to_hex_lower8 ((c >>  0) & 255) << 16;
-
-  w[12] = uint_to_hex_lower8 ((d >> 56) & 255) <<  0
-        | uint_to_hex_lower8 ((d >> 48) & 255) << 16;
-  w[13] = uint_to_hex_lower8 ((d >> 40) & 255) <<  0
-        | uint_to_hex_lower8 ((d >> 32) & 255) << 16;
-  w[14] = uint_to_hex_lower8 ((d >> 24) & 255) <<  0
-        | uint_to_hex_lower8 ((d >> 16) & 255) << 16;
-  w[15] = uint_to_hex_lower8 ((d >>  8) & 255) <<  0
-        | uint_to_hex_lower8 ((d >>  0) & 255) << 16;
-
-  w[16] = uint_to_hex_lower8 ((e >> 56) & 255) <<  0
-        | uint_to_hex_lower8 ((e >> 48) & 255) << 16;
-  w[17] = uint_to_hex_lower8 ((e >> 40) & 255) <<  0
-        | uint_to_hex_lower8 ((e >> 32) & 255) << 16;
-  w[18] = uint_to_hex_lower8 ((e >> 24) & 255) <<  0
-        | uint_to_hex_lower8 ((e >> 16) & 255) << 16;
-  w[19] = uint_to_hex_lower8 ((e >>  8) & 255) <<  0
-        | uint_to_hex_lower8 ((e >>  0) & 255) << 16;
-
-  w[20] = uint_to_hex_lower8 ((f >> 56) & 255) <<  0
-        | uint_to_hex_lower8 ((f >> 48) & 255) << 16;
-  w[21] = uint_to_hex_lower8 ((f >> 40) & 255) <<  0
-        | uint_to_hex_lower8 ((f >> 32) & 255) << 16;
-  w[22] = uint_to_hex_lower8 ((f >> 24) & 255) <<  0
-        | uint_to_hex_lower8 ((f >> 16) & 255) << 16;
-  w[23] = uint_to_hex_lower8 ((f >>  8) & 255) <<  0
-        | uint_to_hex_lower8 ((f >>  0) & 255) << 16;
-
-  w[24] = uint_to_hex_lower8 ((g >> 56) & 255) <<  0
-        | uint_to_hex_lower8 ((g >> 48) & 255) << 16;
-  w[25] = uint_to_hex_lower8 ((g >> 40) & 255) <<  0
-        | uint_to_hex_lower8 ((g >> 32) & 255) << 16;
-  w[26] = uint_to_hex_lower8 ((g >> 24) & 255) <<  0
-        | uint_to_hex_lower8 ((g >> 16) & 255) << 16;
-  w[27] = uint_to_hex_lower8 ((g >>  8) & 255) <<  0
-        | uint_to_hex_lower8 ((g >>  0) & 255) << 16;
-
-  w[28] = uint_to_hex_lower8 ((h >> 56) & 255) <<  0
-        | uint_to_hex_lower8 ((h >> 48) & 255) << 16;
-  w[29] = uint_to_hex_lower8 ((h >> 40) & 255) <<  0
-        | uint_to_hex_lower8 ((h >> 32) & 255) << 16;
-  w[30] = uint_to_hex_lower8 ((h >> 24) & 255) <<  0
-        | uint_to_hex_lower8 ((h >> 16) & 255) << 16;
-  w[31] = uint_to_hex_lower8 ((h >>  8) & 255) <<  0
-        | uint_to_hex_lower8 ((h >>  0) & 255) << 16;
-
   u32 E[18] = { 0 };
 
-  expand_key (E, w, 128);
+  E[ 0] = uint_to_hex_lower8 ((a >> 56) & 255) << 16
+        | uint_to_hex_lower8 ((a >> 48) & 255) <<  0;
+  E[ 1] = uint_to_hex_lower8 ((a >> 40) & 255) << 16
+        | uint_to_hex_lower8 ((a >> 32) & 255) <<  0;
+  E[ 2] = uint_to_hex_lower8 ((a >> 24) & 255) << 16
+        | uint_to_hex_lower8 ((a >> 16) & 255) <<  0;
+  E[ 3] = uint_to_hex_lower8 ((a >>  8) & 255) << 16
+        | uint_to_hex_lower8 ((a >>  0) & 255) <<  0;
 
-  E[ 0] = hc_swap32_S (E[ 0]);
-  E[ 1] = hc_swap32_S (E[ 1]);
-  E[ 2] = hc_swap32_S (E[ 2]);
-  E[ 3] = hc_swap32_S (E[ 3]);
-  E[ 4] = hc_swap32_S (E[ 4]);
-  E[ 5] = hc_swap32_S (E[ 5]);
-  E[ 6] = hc_swap32_S (E[ 6]);
-  E[ 7] = hc_swap32_S (E[ 7]);
-  E[ 8] = hc_swap32_S (E[ 8]);
-  E[ 9] = hc_swap32_S (E[ 9]);
-  E[10] = hc_swap32_S (E[10]);
-  E[11] = hc_swap32_S (E[11]);
-  E[12] = hc_swap32_S (E[12]);
-  E[13] = hc_swap32_S (E[13]);
-  E[14] = hc_swap32_S (E[14]);
-  E[15] = hc_swap32_S (E[15]);
-  E[16] = hc_swap32_S (E[16]);
-  E[17] = hc_swap32_S (E[17]);
+  E[ 4] = uint_to_hex_lower8 ((b >> 56) & 255) << 16
+        | uint_to_hex_lower8 ((b >> 48) & 255) <<  0;
+  E[ 5] = uint_to_hex_lower8 ((b >> 40) & 255) << 16
+        | uint_to_hex_lower8 ((b >> 32) & 255) <<  0;
+  E[ 6] = uint_to_hex_lower8 ((b >> 24) & 255) << 16
+        | uint_to_hex_lower8 ((b >> 16) & 255) <<  0;
+  E[ 7] = uint_to_hex_lower8 ((b >>  8) & 255) << 16
+        | uint_to_hex_lower8 ((b >>  0) & 255) <<  0;
+
+  E[ 8] = uint_to_hex_lower8 ((c >> 56) & 255) << 16
+        | uint_to_hex_lower8 ((c >> 48) & 255) <<  0;
+  E[ 9] = uint_to_hex_lower8 ((c >> 40) & 255) << 16
+        | uint_to_hex_lower8 ((c >> 32) & 255) <<  0;
+  E[10] = uint_to_hex_lower8 ((c >> 24) & 255) << 16
+        | uint_to_hex_lower8 ((c >> 16) & 255) <<  0;
+  E[11] = uint_to_hex_lower8 ((c >>  8) & 255) << 16
+        | uint_to_hex_lower8 ((c >>  0) & 255) <<  0;
+
+  E[12] = uint_to_hex_lower8 ((d >> 56) & 255) << 16
+        | uint_to_hex_lower8 ((d >> 48) & 255) <<  0;
+  E[13] = uint_to_hex_lower8 ((d >> 40) & 255) << 16
+        | uint_to_hex_lower8 ((d >> 32) & 255) <<  0;
+  E[14] = uint_to_hex_lower8 ((d >> 24) & 255) << 16
+        | uint_to_hex_lower8 ((d >> 16) & 255) <<  0;
+  E[15] = uint_to_hex_lower8 ((d >>  8) & 255) << 16
+        | uint_to_hex_lower8 ((d >>  0) & 255) <<  0;
+
+  E[16] = uint_to_hex_lower8 ((e >> 56) & 255) << 16
+        | uint_to_hex_lower8 ((e >> 48) & 255) <<  0;
+  E[17] = uint_to_hex_lower8 ((e >> 40) & 255) << 16
+        | uint_to_hex_lower8 ((e >> 32) & 255) <<  0;
 
   for (u32 i = 0; i < 18; i++)
   {
