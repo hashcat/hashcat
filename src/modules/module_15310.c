@@ -67,10 +67,10 @@ typedef struct dpapimk
 
 typedef struct dpapimk_tmp_v1
 {
-  u32 ipad[5];
-  u32 opad[5];
-  u32 dgst[10];
-  u32 out[10];
+  u32 ipad[8];
+  u32 opad[8];
+  u32 dgst[32];
+  u32 out[32];
 
   u32 userKey[5];
 
