@@ -78,6 +78,7 @@ static const char *const OPTI_STR_SINGLE_HASH          = "Single-Hash";
 static const char *const OPTI_STR_SINGLE_SALT          = "Single-Salt";
 static const char *const OPTI_STR_BRUTE_FORCE          = "Brute-Force";
 static const char *const OPTI_STR_RAW_HASH             = "Raw-Hash";
+static const char *const OPTI_STR_REGISTER_LIMIT       = "Register-Limit";
 static const char *const OPTI_STR_SLOW_HASH_SIMD_INIT  = "Slow-Hash-SIMD-INIT";
 static const char *const OPTI_STR_SLOW_HASH_SIMD_LOOP  = "Slow-Hash-SIMD-LOOP";
 static const char *const OPTI_STR_SLOW_HASH_SIMD_COMP  = "Slow-Hash-SIMD-COMP";
@@ -1006,6 +1007,7 @@ const char *stroptitype (const u32 opti_type)
     case OPTI_TYPE_SINGLE_SALT:         return OPTI_STR_SINGLE_SALT;
     case OPTI_TYPE_BRUTE_FORCE:         return OPTI_STR_BRUTE_FORCE;
     case OPTI_TYPE_RAW_HASH:            return OPTI_STR_RAW_HASH;
+    case OPTI_TYPE_REGISTER_LIMIT:      return OPTI_STR_REGISTER_LIMIT;
     case OPTI_TYPE_SLOW_HASH_SIMD_INIT: return OPTI_STR_SLOW_HASH_SIMD_INIT;
     case OPTI_TYPE_SLOW_HASH_SIMD_LOOP: return OPTI_STR_SLOW_HASH_SIMD_LOOP;
     case OPTI_TYPE_SLOW_HASH_SIMD_COMP: return OPTI_STR_SLOW_HASH_SIMD_COMP;
