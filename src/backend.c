@@ -3595,6 +3595,17 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     }
     else
     {
+      // sanity check: do NOT cast to an u32 integer type without checking that it is safe (upper bits must NOT be set)
+
+      if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+      {
+        if ((combinator_ctx->combs_cnt >> 32) != 0) return -1;
+      }
+      else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+      {
+        if ((mask_ctx->bfs_cnt >> 32) != 0) return -1;
+      }
+
       if   (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) innerloop_step = device_param->kernel_loops;
       else                                                        innerloop_step = 1;
 
