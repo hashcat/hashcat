@@ -770,6 +770,13 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     {
       rule_len = (u32) fgetl (&fp, rule_buf, HCBUFSIZ_LARGE);
 
+      if (rule_line >= 0xffffffff)
+      {
+        event_log_error (hashcat_ctx, "Unsupported number of lines in rule file %s", rp_file);
+
+        return -1;
+      }
+
       rule_line++;
 
       if (rule_len == 0) continue;
@@ -805,6 +812,13 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
         memset (&kernel_rules_buf[kernel_rules_cnt], 0, sizeof (kernel_rule_t)); // needs to be cleared otherwise we could have some remaining data
 
         continue;
+      }
+
+      if (kernel_rules_cnt >= 0xffffffff)
+      {
+        event_log_error (hashcat_ctx, "Unsupported number of rules in file %s", rp_file);
+
+        return -1;
       }
 
       kernel_rules_cnt++;
