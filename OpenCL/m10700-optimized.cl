@@ -653,7 +653,7 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
   w0[2] = pws[gid].i[2];
   w0[3] = pws[gid].i[3];
 
-  const u32 pw_len = pws[gid].pw_len & 63;
+  const u32 pw_len = pws[gid].pw_len & 31;
 
   if (pw_len == 0) return;
 
