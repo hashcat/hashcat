@@ -273,10 +273,11 @@ DECLSPEC void AES_GCM_GHASH (PRIVATE_AS const u32 *subkey, PRIVATE_AS const u32 
 
   u32 len_buf[4];
 
-  len_buf[0] = 0;
-  len_buf[1] = aad_len * 8;
-  len_buf[2] = 0;
-  len_buf[3] = enc_len * 8;
+  // still not fully correct if len > 32 bit
+  len_buf[0] = aad_len >> 29;
+  len_buf[1] = aad_len <<  3;
+  len_buf[2] = enc_len >> 29;
+  len_buf[3] = enc_len <<  3;
 
   AES_GCM_ghash (subkey, len_buf, 16, out);
 }
@@ -294,10 +295,11 @@ DECLSPEC void AES_GCM_GHASH_GLOBAL (PRIVATE_AS const u32 *subkey, PRIVATE_AS con
 
   u32 len_buf[4];
 
-  len_buf[0] = 0;
-  len_buf[1] = aad_len * 8;
-  len_buf[2] = 0;
-  len_buf[3] = enc_len * 8;
+  // still not fully correct if len > 32 bit
+  len_buf[0] = aad_len >> 29;
+  len_buf[1] = aad_len <<  3;
+  len_buf[2] = enc_len >> 29;
+  len_buf[3] = enc_len <<  3;
 
   AES_GCM_ghash (subkey, len_buf, 16, out);
 }
