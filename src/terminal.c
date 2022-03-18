@@ -1660,6 +1660,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     }
 
     printf (" { \"device_id\": %d,", device_id + 1);
+    printf (" { \"device_name\": \"%s\",", device_info->device_name);
     printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
 
     if (hwmon_ctx->enabled == true)

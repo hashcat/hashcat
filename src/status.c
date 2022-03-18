@@ -1829,6 +1829,15 @@ int status_get_iteration_left_dev (const hashcat_ctx_t *hashcat_ctx, const int b
   return iteration_left;
 }
 
+char *status_get_device_name (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  return device_param->device_name;
+}
+
 #ifdef WITH_BRAIN
 int status_get_brain_link_client_id_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
