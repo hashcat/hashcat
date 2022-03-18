@@ -88,6 +88,7 @@ int         status_get_innerloop_left_dev             (const hashcat_ctx_t *hash
 int         status_get_iteration_pos_dev              (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_iteration_left_dev             (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 char       *status_get_device_name                    (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
+cl_device_type  status_get_device_type                (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 #ifdef WITH_BRAIN
 int         status_get_brain_session                  (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_brain_attack                   (const hashcat_ctx_t *hashcat_ctx);

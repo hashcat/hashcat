@@ -2018,6 +2018,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->iteration_pos_dev              = status_get_iteration_pos_dev              (hashcat_ctx, device_id);
     device_info->iteration_left_dev             = status_get_iteration_left_dev             (hashcat_ctx, device_id);
     device_info->device_name                    = status_get_device_name                    (hashcat_ctx, device_id);
+    device_info->device_type                    = status_get_device_type                    (hashcat_ctx, device_id);
     #ifdef WITH_BRAIN
     device_info->brain_link_client_id_dev       = status_get_brain_link_client_id_dev       (hashcat_ctx, device_id);
     device_info->brain_link_status_dev          = status_get_brain_link_status_dev          (hashcat_ctx, device_id);

@@ -1660,7 +1660,12 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     }
 
     printf (" { \"device_id\": %d,", device_id + 1);
-    printf (" { \"device_name\": \"%s\",", device_info->device_name);
+    printf (" \"device_name\": \"%s\",", device_info->device_name);
+
+    const char *device_type_desc = ((device_info->device_type & CL_DEVICE_TYPE_CPU) ? "CPU" :
+                                   ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+    printf(" \"device_type\": \"%s\",", device_type_desc);
+
     printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
 
     if (hwmon_ctx->enabled == true)
