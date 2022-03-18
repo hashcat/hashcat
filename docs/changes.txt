@@ -5,51 +5,51 @@
 ##
 
 - Added hash-mode: Amazon AWS4-HMAC-SHA256
-- Added hash-mode: Exodus Desktop Wallet (scrypt)
-- Added hash-mode: PostgreSQL SCRAM-SHA-256
-- Added hash-mode: Teamspeak 3 (channel hash)
-- Added hash-mode: sha256($salt.sha256_bin($pass))
-- Added hash-mode: bcrypt(sha512($pass)) / bcryptsha512
-- Added hash-mode: Kerberos 5, etype 17, DB
-- Added hash-mode: Kerberos 5, etype 18, DB
 - Added hash-mode: DPAPI masterkey file v1 (context 3)
 - Added hash-mode: DPAPI masterkey file v2 (context 3)
+- Added hash-mode: Exodus Desktop Wallet (scrypt)
+- Added hash-mode: Kerberos 5, etype 17, DB
+- Added hash-mode: Kerberos 5, etype 18, DB
+- Added hash-mode: PostgreSQL SCRAM-SHA-256
+- Added hash-mode: Teamspeak 3 (channel hash)
+- Added hash-mode: bcrypt(sha512($pass)) / bcryptsha512
+- Added hash-mode: sha256($salt.sha256_bin($pass))
 
 ##
 ## Features
 ##
 
 - Added new backend support for Metal, the OpenCL replacement API on Apple
-- Added support to use 'John the Ripper' hash format with hash-type 13100
-- Added support to use 'John the Ripper' hash format with hash-type 18200
-- Added support to use --debug-mode in attack-mode 9 (Association Attack)
 - Added support to building universal macOS binary on Apple Silicon
+- Added support to use --debug-mode in attack-mode 9 (Association Attack)
 - Added hex encoding format for --separator option
 - Added password candidates range to --status-json output
 - Added parameter to Bitwarden mode for second iteration count
+- Added support to use 'John the Ripper' hash format with hash-type 13100
+- Added support to use 'John the Ripper' hash format with hash-type 18200
 
 ##
 ## Bugs
 ##
 
-- Fixed building error on Raspberry Pi
 - Fixed backend active devices checks
+- Fixed building error on Raspberry Pi
+- Fixed display problem of the "Optimizers applied" list for algorithms using Register-Limit
+- Fixed false negative on hash-types 4510 and 4710 for hashes with long salts
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed false negative on Unit Test with hash-type 25400
-- Fixed false negative on hash-types 4510 and 4710 for hashes with long salts
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
 - Fixed handling of devices in benchmark mode for "kernel build error". Instead of canceling, skip the device and move on to the next
 - Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
 - Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
 - Fixed method of how OPTS_TYPE_AUX* kernels are called in an association attack, for example in WPA/WPA2 kernel
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
+- Fixed password limit in optimized kernel for hash-mode 10700
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
 - Fixed Unit Test early exit on luks test file download/extract failure
 - Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
 - Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
 - Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
-- Fixed display problem of the "Optimizers applied" list for algorithms using Register-Limit
-- Fixed password limit in optimized kernel for hash-mode 10700
 
 ##
 ## Technical
@@ -57,11 +57,11 @@
 
 - Association Attack: Enable module specific pw_min and pw_max settings to avoid false positives in -a 9 attack-mode
 - Autotune: Added error handling. By default skipping device on error, with --force using accel/loops/threads min values instead
+- Backend: improved management of systems with multiple OpenCL platforms
 - Backend Info: Added folder_config info to output
 - Backend Info: Added generic system info to output (must be completed on Windows side)
 - Backend Info: Added local memory size to output
 - Backend: with kernel build options, switch from -I to -D INCLUDE_PATH, in order to support Apple Metal runtime
-- Backend: improved management of systems with multiple OpenCL platforms
 - CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
 - Hardware Monitor: Add support for GPU device utilization readings using iokit on Apple Silicon (OpenCL and Metal)
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
