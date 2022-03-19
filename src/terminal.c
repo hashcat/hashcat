@@ -600,6 +600,15 @@ int tty_fix ()
 }
 #endif
 
+bool is_stdout_terminal(void)
+{
+#if defined(_WIN)
+  return _isatty(_fileno(stdout));
+#else
+  return isatty(fileno(stdout));
+#endif
+}
+
 void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginning, const size_t keep_from_end)
 {
   const size_t target_len = TERMINAL_LINE_LENGTH - keep_from_beginning;

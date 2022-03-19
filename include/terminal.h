@@ -46,6 +46,8 @@ int tty_break(void);
 int tty_getchar(void);
 int tty_fix(void);
 
+bool is_stdout_terminal(void);
+
 void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginning, const size_t keep_from_end);
 
 void hash_info                          (hashcat_ctx_t *hashcat_ctx);

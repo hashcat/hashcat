@@ -30,6 +30,8 @@ int _dowildcard = -1;
 
 static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
 {
+  if (!is_stdout_terminal()) return;
+
   #if defined (_WIN)
 
   fputc ('\r', fp);
@@ -69,61 +71,63 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   }
 
   // color stuff pre
-
+  if (is_stdout_terminal()) {
   #if defined (_WIN)
-  HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
+    HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
 
-  CONSOLE_SCREEN_BUFFER_INFO con_info;
+    CONSOLE_SCREEN_BUFFER_INFO con_info;
 
-  GetConsoleScreenBufferInfo (hConsole, &con_info);
+    GetConsoleScreenBufferInfo (hConsole, &con_info);
 
-  const int orig = con_info.wAttributes;
+    const int orig = con_info.wAttributes;
 
-  switch (loglevel)
-  {
-    case LOGLEVEL_INFO:
-      break;
-    case LOGLEVEL_WARNING: SetConsoleTextAttribute (hConsole, 6);
-      break;
-    case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, FOREGROUND_RED | FOREGROUND_INTENSITY);
-      break;
-    case LOGLEVEL_ADVICE:  SetConsoleTextAttribute (hConsole, 6);
-      break;
-  }
+    switch (loglevel)
+    {
+      case LOGLEVEL_INFO:
+        break;
+      case LOGLEVEL_WARNING: SetConsoleTextAttribute (hConsole, 6);
+        break;
+      case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, FOREGROUND_RED | FOREGROUND_INTENSITY);
+        break;
+      case LOGLEVEL_ADVICE:  SetConsoleTextAttribute (hConsole, 6);
+        break;
+    }
 
   #else
-  switch (loglevel)
-  {
-    case LOGLEVEL_INFO:                                   break;
-    case LOGLEVEL_WARNING: fwrite ("\033[33m", 5, 1, fp); break;
-    case LOGLEVEL_ERROR:   fwrite ("\033[31m", 5, 1, fp); break;
-    case LOGLEVEL_ADVICE:  fwrite ("\033[33m", 5, 1, fp); break;
-  }
+    switch (loglevel)
+    {
+      case LOGLEVEL_INFO:                                   break;
+      case LOGLEVEL_WARNING: fwrite ("\033[33m", 5, 1, fp); break;
+      case LOGLEVEL_ERROR:   fwrite ("\033[31m", 5, 1, fp); break;
+      case LOGLEVEL_ADVICE:  fwrite ("\033[33m", 5, 1, fp); break;
+    }
   #endif
+  }
 
   // finally, print
 
   fwrite (msg_buf, msg_len, 1, fp);
 
   // color stuff post
-
+  if (is_stdout_terminal()) {
   #if defined (_WIN)
-  switch (loglevel)
-  {
-    case LOGLEVEL_INFO:                                              break;
-    case LOGLEVEL_WARNING: SetConsoleTextAttribute (hConsole, orig); break;
-    case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, orig); break;
-    case LOGLEVEL_ADVICE:  SetConsoleTextAttribute (hConsole, orig); break;
-  }
+    switch (loglevel)
+    {
+      case LOGLEVEL_INFO:                                              break;
+      case LOGLEVEL_WARNING: SetConsoleTextAttribute (hConsole, orig); break;
+      case LOGLEVEL_ERROR:   SetConsoleTextAttribute (hConsole, orig); break;
+      case LOGLEVEL_ADVICE:  SetConsoleTextAttribute (hConsole, orig); break;
+    }
   #else
-  switch (loglevel)
-  {
-    case LOGLEVEL_INFO:                                  break;
-    case LOGLEVEL_WARNING: fwrite ("\033[0m", 4, 1, fp); break;
-    case LOGLEVEL_ERROR:   fwrite ("\033[0m", 4, 1, fp); break;
-    case LOGLEVEL_ADVICE:  fwrite ("\033[0m", 4, 1, fp); break;
-  }
+    switch (loglevel)
+    {
+      case LOGLEVEL_INFO:                                  break;
+      case LOGLEVEL_WARNING: fwrite ("\033[0m", 4, 1, fp); break;
+      case LOGLEVEL_ERROR:   fwrite ("\033[0m", 4, 1, fp); break;
+      case LOGLEVEL_ADVICE:  fwrite ("\033[0m", 4, 1, fp); break;
+    }
   #endif
+  }
 
   // eventual newline
 
