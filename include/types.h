@@ -2586,6 +2586,8 @@ typedef struct device_info
   int     innerloop_left_dev;
   int     iteration_pos_dev;
   int     iteration_left_dev;
+  char   *device_name;
+  cl_device_type device_type;
   #ifdef WITH_BRAIN
   int     brain_link_client_id_dev;
   int     brain_link_status_dev;
