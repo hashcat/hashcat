@@ -1552,6 +1552,37 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+void json_encode(char *text, char *escaped)
+{
+  /*
+   * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
+   * are getting escaped before being printed.
+   */
+
+  size_t len = strlen(text);
+  unsigned long i, j;
+
+  for (i = 0, j = 0; i < len; i++, j++)
+  {
+    char c = text[i];
+
+    switch (c)
+    {
+      case '\b': c =  'b'; escaped[j] = '\\'; j++; break;
+      case '\t': c =  't'; escaped[j] = '\\'; j++; break;
+      case '\n': c =  'n'; escaped[j] = '\\'; j++; break;
+      case '\f': c =  'f'; escaped[j] = '\\'; j++; break;
+      case '\r': c =  'r'; escaped[j] = '\\'; j++; break;
+      case '\\': c = '\\'; escaped[j] = '\\'; j++; break;
+      case  '"': c =  '"'; escaped[j] = '\\'; j++; break;
+    }
+
+    escaped[j] = c;
+  }
+
+  escaped[j] = 0;
+}
+
 void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 {
   const hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
@@ -1584,37 +1615,6 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     end = time_now + sec_etc;
   }
 
-  /*
-   * As the hash target can contain the hash (in case of a single attacked hash), especially
-   * some salts can contain chars which need to be escaped to not break the JSON encoding.
-   * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
-   * are getting escaped before being printed.
-   */
-
-  char *target_json_encoded = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
-
-  unsigned long i, j;
-
-  for (i = 0, j = 0; i < strlen (hashcat_status->hash_target); i++, j++)
-  {
-    char c = hashcat_status->hash_target[i];
-
-    switch (c)
-    {
-      case '\b': c =  'b'; target_json_encoded[j] = '\\'; j++; break;
-      case '\t': c =  't'; target_json_encoded[j] = '\\'; j++; break;
-      case '\n': c =  'n'; target_json_encoded[j] = '\\'; j++; break;
-      case '\f': c =  'f'; target_json_encoded[j] = '\\'; j++; break;
-      case '\r': c =  'r'; target_json_encoded[j] = '\\'; j++; break;
-      case '\\': c = '\\'; target_json_encoded[j] = '\\'; j++; break;
-      case  '"': c =  '"'; target_json_encoded[j] = '\\'; j++; break;
-    }
-
-    target_json_encoded[j] = c;
-  }
-
-  target_json_encoded[j] = 0;
-
   printf ("{ \"session\": \"%s\",", hashcat_status->session);
   printf (" \"guess\": {");
   if (hashcat_status->guess_base)
@@ -1635,15 +1635,22 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"guess_mode\": %d", hashcat_status->guess_mode);
   printf (" },");
   printf (" \"status\": %d,", hashcat_status->status_number);
+
+  /*
+   * As the hash target can contain the hash (in case of a single attacked hash), especially
+   * some salts can contain chars which need to be escaped to not break the JSON encoding.
+   */
+  char *target_json_encoded = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
+  json_encode(hashcat_status->hash_target, target_json_encoded);
   printf (" \"target\": \"%s\",", target_json_encoded);
+  hcfree (target_json_encoded);
+
   printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
   printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
   printf (" \"recovered_hashes\": [%d, %d],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": [%d, %d],", hashcat_status->salts_done, hashcat_status->salts_cnt);
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
-
-  hcfree (target_json_encoded);
 
   int device_num = 0;
 
@@ -1660,7 +1667,11 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     }
 
     printf (" { \"device_id\": %d,", device_id + 1);
-    printf (" \"device_name\": \"%s\",", device_info->device_name);
+
+    char *device_name_json_encoded = (char *)hcmalloc(strlen(device_info->device_name) * 2);
+    json_encode(device_info->device_name, device_name_json_encoded);
+    printf(" \"device_name\": \"%s\",", device_name_json_encoded);
+    hcfree(device_name_json_encoded);
 
     const char *device_type_desc = ((device_info->device_type & CL_DEVICE_TYPE_CPU) ? "CPU" :
                                    ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
