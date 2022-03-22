@@ -1372,7 +1372,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     // --stdin-timeout-abort can only be used in stdin mode
 
-    if (user_options->hc_argc > 1)
+    int hc_argc_expected = 1; // our hash file (note: hc_argc only counts hash files and dicts)
+
+    if (user_options->stdout_flag == true) hc_argc_expected = 0; // special case: no hash file
+
+    if (user_options->hc_argc != hc_argc_expected)
     {
       event_log_error (hashcat_ctx, "Use of --stdin-timeout-abort is only allowed in stdin mode (pipe).");
 
