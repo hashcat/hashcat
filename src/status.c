@@ -79,34 +79,34 @@ void format_timer_display (struct tm *tm, char *buf, size_t len)
     const char *time_entity1 = ((tm->tm_year - 70) == 1) ? time_entities_s[0] : time_entities_m[0];
     const char *time_entity2 = ( tm->tm_yday       == 1) ? time_entities_s[1] : time_entities_m[1];
 
-    snprintf (buf, len, "%d %s, %d %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
+    snprintf (buf, len, "%u %s, %u %s", tm->tm_year - 70, time_entity1, tm->tm_yday, time_entity2);
   }
   else if (tm->tm_yday)
   {
     const char *time_entity1 = (tm->tm_yday == 1) ? time_entities_s[1] : time_entities_m[1];
     const char *time_entity2 = (tm->tm_hour == 1) ? time_entities_s[2] : time_entities_m[2];
 
-    snprintf (buf, len, "%d %s, %d %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
+    snprintf (buf, len, "%u %s, %u %s", tm->tm_yday, time_entity1, tm->tm_hour, time_entity2);
   }
   else if (tm->tm_hour)
   {
     const char *time_entity1 = (tm->tm_hour == 1) ? time_entities_s[2] : time_entities_m[2];
     const char *time_entity2 = (tm->tm_min  == 1) ? time_entities_s[3] : time_entities_m[3];
 
-    snprintf (buf, len, "%d %s, %d %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
+    snprintf (buf, len, "%u %s, %u %s", tm->tm_hour, time_entity1, tm->tm_min, time_entity2);
   }
   else if (tm->tm_min)
   {
     const char *time_entity1 = (tm->tm_min == 1) ? time_entities_s[3] : time_entities_m[3];
     const char *time_entity2 = (tm->tm_sec == 1) ? time_entities_s[4] : time_entities_m[4];
 
-    snprintf (buf, len, "%d %s, %d %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
+    snprintf (buf, len, "%u %s, %u %s", tm->tm_min, time_entity1, tm->tm_sec, time_entity2);
   }
   else
   {
     const char *time_entity1 = (tm->tm_sec == 1) ? time_entities_s[4] : time_entities_m[4];
 
-    snprintf (buf, len, "%d %s", tm->tm_sec, time_entity1);
+    snprintf (buf, len, "%u %s", tm->tm_sec, time_entity1);
   }
 }
 
@@ -1719,7 +1719,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
 
   if ((cpt_ctx->cpt_start + (60 * 60 * 24)) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,%d,%d AVG:%.2f,%.2f,%.2f (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%u,%u,%u AVG:%.2f,%.2f,%.2f (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_cur_day,
@@ -1729,7 +1729,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else if ((cpt_ctx->cpt_start + (60 * 60)) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,%d,N/A AVG:%.2f,%.2f,N/a (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%u,%u,N/A AVG:%.2f,%.2f,N/a (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_avg_min,
@@ -1737,7 +1737,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else if ((cpt_ctx->cpt_start + 60) < now)
   {
-    hc_asprintf (&cpt, "CUR:%d,N/A,N/A AVG:%.2f,N/A,N/A (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%u,N/A,N/A AVG:%.2f,N/A,N/A (Min,Hour,Day)",
       cpt_cur_min,
       cpt_avg_min);
   }
@@ -2093,7 +2093,7 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
 
   if (num_buslanes >= 0)
   {
-    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus:%d ", num_buslanes);
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus:%u ", num_buslanes);
   }
 
   if (output_len > 0)
