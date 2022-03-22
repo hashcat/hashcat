@@ -34,6 +34,7 @@
 
 - Fixed backend active devices checks
 - Fixed building error on Raspberry Pi
+- Fixed display problem of incorrect negative values in case of large numbers
 - Fixed display problem of the "Optimizers applied" list for algorithms using Register-Limit
 - Fixed false negative on hash-types 4510 and 4710 for hashes with long salts
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
