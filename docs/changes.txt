@@ -46,6 +46,7 @@
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
 - Fixed password limit in optimized kernel for hash-mode 10700
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
+- Fixed usage of --rule-right (-k) in -a 7 with optimized (-O) kernels
 - Fixed Unit Test early exit on luks test file download/extract failure
 - Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
 - Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
