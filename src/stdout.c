@@ -130,7 +130,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       }
     }
   }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0))
   {
     for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
@@ -297,6 +297,36 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
             sp_exec (off, (char *) plain_ptr + plain_len, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
 
             plain_len += start + stop;
+
+            out_push (&out, plain_ptr, plain_len);
+          }
+        }
+      }
+      else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL))
+      {
+        while (pw_idx <= pw_idx_last)
+        {
+          char *pw     = (char *) (pws_comp_blk + (pw_idx->off - off_blk));
+          u32   pw_len =          (pw_idx->len);
+
+          pw_idx++;
+
+          for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+          {
+            u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
+
+            u32 start = 0;
+            u32 stop  = device_param->kernel_params_mp_buf32[4];
+
+            sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
+
+            plain_len = stop;
+
+            memcpy (plain_ptr + plain_len, pw, pw_len);
+
+            plain_len += pw_len;
+
+            if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
 
             out_push (&out, plain_ptr, plain_len);
           }
