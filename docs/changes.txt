@@ -44,6 +44,7 @@
 - Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
 - Fixed method of how OPTS_TYPE_AUX* kernels are called in an association attack, for example in WPA/WPA2 kernel
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
+- Fixed optimized (-O) candidate generation with --stdout and -a 7
 - Fixed password limit in optimized kernel for hash-mode 10700
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
 - Fixed Unit Test early exit on luks test file download/extract failure
