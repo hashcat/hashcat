@@ -152,6 +152,9 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
 
+  const u32 attack_mode = user_options->attack_mode;
+  const u32 attack_kern = user_options_extra->attack_kern;
+
   char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
   bool iconv_enabled = false;
@@ -243,13 +246,22 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
       char rule_buf_out[RP_PASSWORD_SIZE];
 
-      if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
+      int   rule_jk_len = (int)    user_options_extra->rule_len_l;
+      char *rule_jk_buf = (char *) user_options->rule_buf_l;
+
+      if (attack_mode == ATTACK_MODE_HYBRID2)
+      {
+        rule_jk_len = (int)    user_options_extra->rule_len_r;
+        rule_jk_buf = (char *) user_options->rule_buf_r;
+      }
+
+      if (run_rule_engine (rule_jk_len, rule_jk_buf))
       {
         if (line_len >= RP_PASSWORD_SIZE) continue;
 
         memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
-        const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
+        const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, line_buf, (int) line_len, rule_buf_out);
 
         if (rule_len_out < 0) continue;
 
@@ -260,8 +272,6 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       if (line_len > PW_MAX) continue;
 
       // hmm that's always the case, or?
-
-      const u32 attack_kern = user_options_extra->attack_kern;
 
       if (attack_kern == ATTACK_KERN_STRAIGHT)
       {
@@ -1415,13 +1425,22 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
             // post-process rule engine
 
-            if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
+            int   rule_jk_len = (int)    user_options_extra->rule_len_l;
+            char *rule_jk_buf = (char *) user_options->rule_buf_l;
+
+            if (attack_mode == ATTACK_MODE_HYBRID2)
+            {
+              rule_jk_len = (int)    user_options_extra->rule_len_r;
+              rule_jk_buf = (char *) user_options->rule_buf_r;
+            }
+
+            if (run_rule_engine (rule_jk_len, rule_jk_buf))
             {
               if (line_len >= RP_PASSWORD_SIZE) continue;
 
               memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
-              const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
+              const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, line_buf, (int) line_len, rule_buf_out);
 
               if (rule_len_out < 0) continue;
 
@@ -1429,7 +1448,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
               line_len = (u32) rule_len_out;
             }
 
-            if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+            if (attack_mode == ATTACK_MODE_ASSOCIATION)
             {
               // we can't reject password base on length in -a 9 because it will bring the schedule out of sync
               // therefore we render it defective so the other candidates survive
