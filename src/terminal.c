@@ -632,6 +632,147 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
   *ptr1 = 0;
 }
 
+void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
+{
+  if (hashconfig_init (hashcat_ctx) == 0)
+  {
+    hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+    printf ("\"%u\": { ", hashconfig->hash_mode);
+    printf ("\"name\": \"%s\", ", hashconfig->hash_name);
+    printf ("\"category\": \"%s\", ", strhashcategory (hashconfig->hash_category));
+    printf ("\"slow_hash\": %s, ", (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? "false" : "true");
+
+    printf ("\"password_len_min\": %d, ", hashconfig->pw_min);
+    printf ("\"password_len_max\": %d, ", hashconfig->pw_max);
+
+    printf ("\"is_salted\": %s, ", (hashconfig->is_salted == true) ? "true" : "false");
+
+    if (hashconfig->is_salted == true)
+    {
+      u32 t = hashconfig->salt_type;
+      const char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "embedded" : (t == SALT_TYPE_GENERIC) ? "generic" : "virtual";
+      printf("\"salt_type\": \"%s\", ", t_desc);
+      printf("\"salt_len_min\": %d, ", hashconfig->salt_min);
+      printf("\"salt_len_max\": %d, ", hashconfig->salt_max);
+    }
+
+    if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
+    {
+      printf("\"kernel_type\": %s, ", "[ \"pure\", \"optimized\" ]");
+    }
+    else if (hashconfig->has_pure_kernel)
+    {
+      printf("\"kernel_type\": %s, ", "[ \"pure\" ]");
+    }
+    else if (hashconfig->has_optimized_kernel)
+    {
+      printf("\"kernel_type\": %s, ", "[ \"optimized\" ]");
+    }
+
+    if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
+      {
+        if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
+        {
+          printf("\"example_hash_format\": \"%s\", ", "hex-encoded");
+        }
+        else
+        {
+          printf("\"example_hash_format\": \"%s\", ", "hex-encoded (binary file only)");
+        }
+        printf("\"example_hash\": \"%s\", ", hashconfig->st_hash);
+      }
+      else
+      {
+        printf("\"example_hash_format\": \"%s\", ", "plain");
+        printf("\"example_hash\": \"%s\", ", hashconfig->st_hash);
+      }
+
+      if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options_extra->separator, false))
+      {
+        char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+        int tmp_len = 0;
+
+        tmp_buf[tmp_len++] = '$';
+        tmp_buf[tmp_len++] = 'H';
+        tmp_buf[tmp_len++] = 'E';
+        tmp_buf[tmp_len++] = 'X';
+        tmp_buf[tmp_len++] = '[';
+
+        exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+
+        tmp_len += strlen (hashconfig->st_pass) * 2;
+
+        tmp_buf[tmp_len++] = ']';
+        tmp_buf[tmp_len++] = 0;
+
+        printf("\"example_pass\": \"%s\", ", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
+      else if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+      {
+        size_t st_pass_len = strlen (hashconfig->st_pass);
+
+        char *tmp_buf = (char *) hcmalloc (st_pass_len + 1);
+
+        strncpy (tmp_buf, hashconfig->st_pass, st_pass_len);
+
+        uppercase ((u8 *) tmp_buf, st_pass_len);
+
+        printf("\"example_pass\": \"%s\", ", tmp_buf);
+
+        hcfree (tmp_buf);
+      }
+      else
+      {
+        printf("\"example_pass\": \"%s\", ", hashconfig->st_pass);
+      }
+    }
+    else
+    {
+      printf("\"example_hash_format\": \"%s\", ", "N/A");
+      printf("\"example_hash\": \"%s\", ", "N/A");
+      printf("\"example_pass\": \"%s\", ", "N/A");
+    }
+
+    if (hashconfig->benchmark_mask != NULL)
+    {
+      printf("\"benchmark_mask\": \"%s\", ", hashconfig->benchmark_mask);
+    }
+    else
+    {
+      printf("\"benchmark_mask\": \"%s\", ", "N/A");
+    }
+
+    printf("\"autodetect_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "false" : "true");
+    printf("\"self_test_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "false" : "true");
+    printf("\"potfile_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "false" : "true");
+
+    if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII)
+    {
+      printf("\"plaintext_encoding\": %s", "[ \"ASCII\" ]");
+    }
+    else if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY)
+    {
+      printf("\"plaintext_encoding\": %s", "[ \"HEX\" ]");
+    }
+    else
+    {
+      printf("\"plaintext_encoding\": %s", "[ \"ASCII\", \"HEX\" ]");
+    }
+
+    event_log_info (hashcat_ctx, NULL);
+  }
+
+  printf (" }");
+
+  hashconfig_destroy (hashcat_ctx);
+}
+
 void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
 {
   if (hashconfig_init (hashcat_ctx) == 0)
@@ -779,17 +920,32 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  event_log_info (hashcat_ctx, "Hash Info:");
-  event_log_info (hashcat_ctx, "==========");
-  event_log_info (hashcat_ctx, NULL);
+  if (user_options->machine_readable == false)
+  {
+    event_log_info(hashcat_ctx, "Hash Info:");
+    event_log_info(hashcat_ctx, "==========");
+    event_log_info(hashcat_ctx, NULL);
+  }
 
   if (user_options->hash_mode_chgd == true)
   {
-    hash_info_single (hashcat_ctx, user_options_extra);
+    if (user_options->machine_readable == true)
+    {
+      printf("{ ");
+      hash_info_single_json(hashcat_ctx, user_options_extra);
+      printf(" }");
+    }
+    else
+    {
+      hash_info_single(hashcat_ctx, user_options_extra);
+    }
   }
   else
   {
     char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+    if (user_options->machine_readable == true)
+      printf("{ ");
 
     for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
     {
@@ -799,8 +955,23 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_path_exist (modulefile) == false) continue;
 
-      hash_info_single (hashcat_ctx, user_options_extra);
+      if (user_options->machine_readable == true)
+      {
+        if (i != 0)
+        {
+          printf(", ");
+        }
+
+        hash_info_single_json(hashcat_ctx, user_options_extra);
+      }
+      else
+      {
+        hash_info_single(hashcat_ctx, user_options_extra);
+      }
     }
+
+    if (user_options->machine_readable == true)
+      printf(" }");
 
     hcfree (modulefile);
   }
