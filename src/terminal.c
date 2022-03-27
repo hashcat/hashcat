@@ -643,8 +643,8 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     printf ("\"category\": \"%s\", ", strhashcategory (hashconfig->hash_category));
     printf ("\"slow_hash\": %s, ", (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? "false" : "true");
 
-    printf ("\"password_len_min\": %d, ", hashconfig->pw_min);
-    printf ("\"password_len_max\": %d, ", hashconfig->pw_max);
+    printf ("\"password_len_min\": %u, ", hashconfig->pw_min);
+    printf ("\"password_len_max\": %u, ", hashconfig->pw_max);
 
     printf ("\"is_salted\": %s, ", (hashconfig->is_salted == true) ? "true" : "false");
 
@@ -653,8 +653,8 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       u32 t = hashconfig->salt_type;
       const char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "embedded" : (t == SALT_TYPE_GENERIC) ? "generic" : "virtual";
       printf("\"salt_type\": \"%s\", ", t_desc);
-      printf("\"salt_len_min\": %d, ", hashconfig->salt_min);
-      printf("\"salt_len_max\": %d, ", hashconfig->salt_max);
+      printf("\"salt_len_min\": %u, ", hashconfig->salt_min);
+      printf("\"salt_len_max\": %u, ", hashconfig->salt_max);
     }
 
     if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
