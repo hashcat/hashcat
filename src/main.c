@@ -70,17 +70,19 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
     event_ctx->prev_len = msg_len;
   }
 
+  #if defined (_WIN)
+  HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
+
+  CONSOLE_SCREEN_BUFFER_INFO con_info;
+
+  GetConsoleScreenBufferInfo (hConsole, &con_info);
+
+  const int orig = con_info.wAttributes;
+  #endif
+
   // color stuff pre
   if (is_stdout_terminal()) {
   #if defined (_WIN)
-    HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
-
-    CONSOLE_SCREEN_BUFFER_INFO con_info;
-
-    GetConsoleScreenBufferInfo (hConsole, &con_info);
-
-    const int orig = con_info.wAttributes;
-
     switch (loglevel)
     {
       case LOGLEVEL_INFO:
