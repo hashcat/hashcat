@@ -2267,7 +2267,7 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
       hc_enc->pos = src_len;
 
-      return dst_pos;
+      return -1;
     }
 
     if (hc_enc_validate_utf8 (src_buf, src_pos, extraBytesToRead) == 0)
@@ -2276,7 +2276,7 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
       hc_enc->pos = src_len;
 
-      return dst_pos;
+      return -1;
     }
 
     u32 ch = 0;
@@ -2413,7 +2413,7 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 
       hc_enc->pos = src_len;
 
-      return dst_pos;
+      return -1;
     }
 
     if (hc_enc_validate_utf8_global (src_buf, src_pos, extraBytesToRead) == 0)
@@ -2422,7 +2422,7 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 
       hc_enc->pos = src_len;
 
-      return dst_pos;
+      return -1;
     }
 
     u32 ch = 0;

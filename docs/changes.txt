@@ -47,6 +47,7 @@
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
 - Fixed optimized (-O) candidate generation with --stdout and -a 7
 - Fixed password limit in optimized kernel for hash-mode 10700
+- Fixed password reassembling function reporting an incorrect candidate in some cases when the correct candidate has zero length
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
 - Fixed usage of --rule-right (-k) in -a 7 with optimized (-O) kernels
 - Fixed Unit Test early exit on luks test file download/extract failure
