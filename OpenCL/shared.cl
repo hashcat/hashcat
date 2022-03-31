@@ -269,6 +269,9 @@ KERNEL_FQ void gpu_utf8_to_utf16 (KERN_ATTR_GPU_UTF8_TO_UTF16)
 
   hc_enc_init (&hc_enc);
 
+  // note that this can result in pw_len = -1
+  // need to check for pw_len in kernel
+
   pw_out.pw_len = hc_enc_next (&hc_enc, pw_in.i, pw_in.pw_len, 256, pw_out.i, 256);
 
   pws_buf[gid] = pw_out;

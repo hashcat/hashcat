@@ -331,7 +331,9 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   hc_enc_init (&hc_enc);
 
-  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+  const int w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  if (w_len == -1) return;
 
   // utf16le to utf16be
   for (int i = 0, j = 0; i < w_len; i += 4, j += 1)
@@ -567,7 +569,9 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   hc_enc_init (&hc_enc);
 
-  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+  const int w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  if (w_len == -1) return;
 
   // utf16le to utf16be
   for (int i = 0, j = 0; i < w_len; i += 4, j += 1)

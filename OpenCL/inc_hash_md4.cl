@@ -377,6 +377,13 @@ DECLSPEC void md4_update_utf16le (PRIVATE_AS md4_ctx_t *ctx, PRIVATE_AS const u3
 
       const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
+
       md4_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
     }
 
@@ -436,6 +443,13 @@ DECLSPEC void md4_update_utf16le_swap (PRIVATE_AS md4_ctx_t *ctx, PRIVATE_AS con
       u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
 
       enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
       enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
@@ -686,6 +700,13 @@ DECLSPEC void md4_update_global_utf16le (PRIVATE_AS md4_ctx_t *ctx, GLOBAL_AS co
 
       const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
+
       md4_update_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_len);
     }
 
@@ -745,6 +766,13 @@ DECLSPEC void md4_update_global_utf16le_swap (PRIVATE_AS md4_ctx_t *ctx, GLOBAL_
       u32 enc_buf[16] = { 0 };
 
       const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
 
       enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
       enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);

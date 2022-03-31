@@ -281,7 +281,9 @@ KERNEL_FQ void m27700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   hc_enc_init (&hc_enc);
 
-  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+  const int w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  if (w_len == -1) return;
 
   // utf16le to utf16be
 
@@ -518,7 +520,9 @@ KERNEL_FQ void m27700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   hc_enc_init (&hc_enc);
 
-  const u32 w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+  const int w_len = hc_enc_next_global (&hc_enc, pws[gid].i, pws[gid].pw_len, 256, w, sizeof (w));
+
+  if (w_len == -1) return;
 
   // utf16le to utf16be
 

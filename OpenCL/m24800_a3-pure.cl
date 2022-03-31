@@ -58,7 +58,9 @@ KERNEL_FQ void m24800_mxx (KERN_ATTR_VECTOR ())
 
     hc_enc_init (&hc_enc);
 
-    const u32 t_len = hc_enc_next (&hc_enc, w, pw_len, 256, t, sizeof (t));
+    const int t_len = hc_enc_next (&hc_enc, w, pw_len, 256, t, sizeof (t));
+
+    if (t_len == -1) continue;
 
     // hash time
 
@@ -135,7 +137,9 @@ KERNEL_FQ void m24800_sxx (KERN_ATTR_VECTOR ())
 
     hc_enc_init (&hc_enc);
 
-    const u32 t_len = hc_enc_next (&hc_enc, w, pw_len, 256, t, sizeof (t));
+    const int t_len = hc_enc_next (&hc_enc, w, pw_len, 256, t, sizeof (t));
+
+    if (t_len == -1) continue;
 
     // hash time
 

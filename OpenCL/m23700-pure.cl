@@ -854,7 +854,9 @@ KERNEL_FQ void m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 
   // store pass and salt in tmps:
 
-  const u32 pw_len = pws[gid].pw_len;
+  const int pw_len = pws[gid].pw_len;
+
+  if (pw_len == -1) return; // gpu_utf8_to_utf16() can result in -1
 
   u32 w[80] = { 0 };
 
@@ -912,7 +914,9 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const int pw_len = pws[gid].pw_len;
+
+  if (pw_len == -1) return; // gpu_utf8_to_utf16() can result in -1
 
   const u32 salt_len = 8;
 
@@ -1086,7 +1090,9 @@ KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  const int pw_len = pws[gid].pw_len;
+
+  if (pw_len == -1) return; // gpu_utf8_to_utf16() can result in -1
 
   const u32 salt_len = 8;
 

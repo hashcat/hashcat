@@ -636,6 +636,13 @@ DECLSPEC void sha384_update_utf16le (PRIVATE_AS sha384_ctx_t *ctx, PRIVATE_AS co
 
       const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
+
       sha384_update_128 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_buf + 16, enc_buf + 20, enc_buf + 24, enc_buf + 28, enc_len);
     }
 
@@ -719,6 +726,13 @@ DECLSPEC void sha384_update_utf16le_swap (PRIVATE_AS sha384_ctx_t *ctx, PRIVATE_
       u32 enc_buf[32] = { 0 };
 
       const int enc_len = hc_enc_next (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
 
       enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
       enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
@@ -1145,6 +1159,13 @@ DECLSPEC void sha384_update_global_utf16le (PRIVATE_AS sha384_ctx_t *ctx, GLOBAL
 
       const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
 
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
+
       sha384_update_128 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12, enc_buf + 16, enc_buf + 20, enc_buf + 24, enc_buf + 28, enc_len);
     }
 
@@ -1228,6 +1249,13 @@ DECLSPEC void sha384_update_global_utf16le_swap (PRIVATE_AS sha384_ctx_t *ctx, G
       u32 enc_buf[32] = { 0 };
 
       const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      if (enc_len == -1)
+      {
+        ctx->len = -1;
+
+        return;
+      }
 
       enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
       enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);

@@ -50,7 +50,9 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
   s[2] = salt_bufs[SALT_POS_HOST].salt_buf[2];
   s[3] = salt_bufs[SALT_POS_HOST].salt_buf[3];
 
-  const u32 pw_len = pws[gid].pw_len;
+  const int pw_len = pws[gid].pw_len;
+
+  if (pw_len == -1) return; // gpu_utf8_to_utf16() can result in -1
 
   u32 w[80] = { 0 };
 
