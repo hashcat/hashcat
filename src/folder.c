@@ -67,7 +67,7 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   mib[0] = CTL_KERN;
   mib[1] = KERN_PROC_ARGS;
-  mib[2] = getpid();
+  mib[2] = getpid ();
   mib[3] = KERN_PROC_PATHNAME;
 
   size_t size = exec_path_sz;

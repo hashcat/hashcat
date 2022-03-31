@@ -353,7 +353,7 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
   {
     #if defined (__APPLE__)
 
-    if (is_apple_silicon() == true)
+    if (is_apple_silicon () == true)
     {
       // With Apple's M1* use GPU only, because CPU device it is not recognized by OpenCL
 
@@ -1747,7 +1747,7 @@ int run_hip_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
     const u64 kernel_threads = device_param->kernel_wgs_bzero;
 
-    u64 num_elements = CEILDIV(num16d, kernel_threads);
+    u64 num_elements = CEILDIV (num16d, kernel_threads);
 
     hipFunction_t function = device_param->hip_function_bzero;
 
@@ -2020,7 +2020,7 @@ int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   {
     const u64 kernel_threads = device_param->kernel_wgs_bzero;
 
-    u64 num_elements = round_up_multiple_64(num16d, kernel_threads);
+    u64 num_elements = round_up_multiple_64 (num16d, kernel_threads);
 
     cl_kernel kernel = device_param->opencl_kernel_bzero;
 
@@ -5791,7 +5791,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       device_param->use_opencl20 = false;
       device_param->use_opencl21 = false;
 
-      device_param->is_apple_silicon = is_apple_silicon();
+      device_param->is_apple_silicon = is_apple_silicon ();
 
       // some attributes have to be hardcoded values because they are used for instance in the build options
 
@@ -9561,7 +9561,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D M2S(x)=XM2S(x) ");
 
       #if defined (__APPLE__)
-      if (is_apple_silicon() == true)
+      if (is_apple_silicon () == true)
       {
         build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D IS_APPLE_SILICON ");
       }

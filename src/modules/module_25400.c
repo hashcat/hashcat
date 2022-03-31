@@ -390,7 +390,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   pdf->P = P;
 
   memcpy ( pdf->u_pass_buf, u_pass_buf_pos, 32);
-  pdf->u_pass_len = strlen((char *) pdf->u_pass_buf);
+  pdf->u_pass_len = strlen ((char *) pdf->u_pass_buf);
 
   pdf->enc_md = enc_md;
 
@@ -496,7 +496,11 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
   pdf_t *pdf = (pdf_t *) hashes->esalts_buf;
 
   // if the password in tmp->out is equal to the padding, then we recovered just the owner-password
-  if(pdf_tmp->out[0]==padding[0] && pdf_tmp->out[1]==padding[1] && pdf_tmp->out[2]==padding[2] && pdf_tmp->out[3]==padding[3])
+
+  if (pdf_tmp->out[0] == padding[0] &&
+      pdf_tmp->out[1] == padding[1] &&
+      pdf_tmp->out[2] == padding[2] &&
+      pdf_tmp->out[3] == padding[3])
   {
     return snprintf ((char *) dst_buf, dst_sz, "%s    (user password not set)", (char *) src_buf);
   }
@@ -511,14 +515,15 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
   const u8 *u8OutPadPtr;
   u8OutPadPtr = (u8*) u32OutPadPtr;
 
-  bool remove_padding=false;
-  int i_padding=0;
-  for(int i=0;i<16;i++)
+  bool remove_padding = false;
+  int i_padding = 0;
+
+  for (int i = 0; i < 16; i++)
   {
-    if(u8OutBufPtr[i]==u8OutPadPtr[i_padding] || remove_padding)
+    if (u8OutBufPtr[i] == u8OutPadPtr[i_padding] || remove_padding)
     {
-    u8OutBufPtr[i]=0x0;
-    remove_padding=true;
+      u8OutBufPtr[i] = 0x0;
+      remove_padding = true;
     }
   }
 
@@ -527,9 +532,13 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
   //   TODO would be better to actually also verify the u-value whether we've retrieved the correct user-password,
   //     however, we'd need to include a lot of code/complexity here to do so (or call into 10500 kernel).
   //     this seems relevant: run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 0, 1, false, 0)
-  if(pdf_tmp->out[0]==src_buf[0] && pdf_tmp->out[1]==src_buf[1] && pdf_tmp->out[2]==src_buf[2] && pdf_tmp->out[3]==src_buf[3])
+
+  if (pdf_tmp->out[0] == src_buf[0] &&
+      pdf_tmp->out[1] == src_buf[1] &&
+      pdf_tmp->out[2] == src_buf[2] &&
+      pdf_tmp->out[3] == src_buf[3])
   {
-    if(pdf->u_pass_len==0)
+    if (pdf->u_pass_len == 0)
     {
       // we seem to only have recovered the user-password as we don't have one yet
       return snprintf ((char *) dst_buf, dst_sz, "(user password=%s)", (char *) src_buf);

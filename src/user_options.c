@@ -613,8 +613,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       if ((user_options->separator[0] == '0') && (user_options->separator[1] == 'x'))
       {
-        if (is_valid_hex_string((u8 * )(&(user_options->separator[2])),2)){
-          u8 sep = hex_to_u8((u8 * )(&(user_options->separator[2])));
+        if (is_valid_hex_string ((u8 * ) (&(user_options->separator[2])), 2))
+        {
+          u8 sep = hex_to_u8 ((u8 * ) (&(user_options->separator[2])));
           user_options->separator[0] = sep;
           user_options->separator[1] = 0;
         }
@@ -627,7 +628,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
         error = true;
       }
     }
-    if (error){
+
+    if (error)
+    {
       event_log_error (hashcat_ctx, "Separator length has to be exactly 1 byte (single char or hex format e.g. 0x09 for TAB)");
 
       return -1;

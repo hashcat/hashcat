@@ -70,7 +70,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
   #elif defined(__NetBSD__)
   cpuset_t * cpuset;
   const int cpu_id_max = 8 * cpuset_size (cpuset);
-  cpuset = cpuset_create();
+  cpuset = cpuset_create ();
   if (cpuset == NULL)
   {
     event_log_error (hashcat_ctx, "cpuset_create() failed with error: %d", errno);
@@ -157,7 +157,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
   pthread_t thread = pthread_self ();
 
-  const int rc = pthread_setaffinity_np (thread, cpuset_size(cpuset), cpuset);
+  const int rc = pthread_setaffinity_np (thread, cpuset_size (cpuset), cpuset);
 
   if (rc != 0)
   {

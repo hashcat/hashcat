@@ -126,7 +126,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     {
       if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)                     is_gzip = true;
       if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) is_zip  = true;
-      if (memcmp(check, XZ_SIG, XZ_SIG_SIZE) == 0)                                      is_xz   = true;
+      if (memcmp (check, XZ_SIG, XZ_SIG_SIZE) == 0)                                     is_xz   = true;
 
       // compressed files with BOM will be undetected!
 

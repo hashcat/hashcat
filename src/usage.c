@@ -291,7 +291,7 @@ void usage_mini_print (const char *progname)
   printf ("\n");
   printf ("Press any key to exit\n");
 
-  getch();
+  getch ();
   #endif
 }
 

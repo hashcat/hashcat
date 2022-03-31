@@ -246,7 +246,7 @@ int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
           char *key = HM_IOKIT_SMC_CPU_PROXIMITY;
 
-          if (hm_IOKIT_SMCGetTemperature(hashcat_ctx, key, &temperature) == -1)
+          if (hm_IOKIT_SMCGetTemperature (hashcat_ctx, key, &temperature) == -1)
           {
             hwmon_ctx->hm_device[backend_device_idx].temperature_get_supported = false;
 

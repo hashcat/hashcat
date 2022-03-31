@@ -160,7 +160,7 @@ static int check_huffman (const unsigned char *next)
       {
         zero_count += 2;
 
-        while (zero_count-- > 0 && i < sizeof(bit_length) / sizeof (bit_length[0]))
+        while (zero_count-- > 0 && i < sizeof (bit_length) / sizeof (bit_length[0]))
         {
           bit_length[i++] = 0;
         }

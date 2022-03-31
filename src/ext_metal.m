@@ -56,7 +56,7 @@ static bool iokit_getGPUCore (void *hashcat_ctx, int *gpu_core)
 
   // "gpu-core-count" is present only on Apple Silicon
 
-  CFNumberRef num = IORegistryEntryCreateCFProperty(service, CFSTR("gpu-core-count"), kCFAllocatorDefault, 0);
+  CFNumberRef num = IORegistryEntryCreateCFProperty (service, CFSTR ("gpu-core-count"), kCFAllocatorDefault, 0);
 
   int gc = 0;
 
@@ -216,7 +216,7 @@ int mtl_init (void *hashcat_ctx)
 
   mtl->devices = nil;
 
-  if (MTLCreateSystemDefaultDevice() == nil)
+  if (MTLCreateSystemDefaultDevice () == nil)
   {
     event_log_error (hashcat_ctx, "Metal is not supported on this computer");
 
@@ -262,7 +262,7 @@ int hc_mtlDeviceGetCount (void *hashcat_ctx, int *count)
 
   if (mtl == nil) return -1;
 
-  CFArrayRef devices = (CFArrayRef) MTLCopyAllDevices();
+  CFArrayRef devices = (CFArrayRef) MTLCopyAllDevices ();
 
   if (devices == nil)
   {
@@ -395,7 +395,7 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
     case MTL_DEVICE_ATTRIBUTE_UNIFIED_MEMORY:
       *pi = 0;
 
-      SEL hasUnifiedMemorySelector = NSSelectorFromString(@"hasUnifiedMemory");
+      SEL hasUnifiedMemorySelector = NSSelectorFromString (@"hasUnifiedMemory");
 
       hc_mtlInvocationHelper (metal_device, hasUnifiedMemorySelector, &valBool);
 
@@ -467,7 +467,7 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
     case MTL_DEVICE_ATTRIBUTE_MAX_TRANSFER_RATE:
       val64 = 0;
 
-      SEL maxTransferRateSelector = NSSelectorFromString(@"maxTransferRate");
+      SEL maxTransferRateSelector = NSSelectorFromString (@"maxTransferRate");
 
       hc_mtlInvocationHelper (metal_device, maxTransferRateSelector, &val64);
 
@@ -497,7 +497,7 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
     case MTL_DEVICE_ATTRIBUTE_PHYSICAL_LOCATION:
       *pi = 0;
 
-      SEL locationSelector = NSSelectorFromString(@"location");
+      SEL locationSelector = NSSelectorFromString (@"location");
       valULong = 0;
 
       hc_mtlInvocationHelper (metal_device, locationSelector, &valULong);
@@ -509,7 +509,7 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
     case MTL_DEVICE_ATTRIBUTE_LOCATION_NUMBER:
       *pi = 0;
 
-      SEL locationNumberSelector = NSSelectorFromString(@"locationNumber");
+      SEL locationNumberSelector = NSSelectorFromString (@"locationNumber");
 
       valULong = 0;
       hc_mtlInvocationHelper (metal_device, locationNumberSelector, &valULong);
@@ -538,7 +538,7 @@ int hc_mtlMemGetInfo (void *hashcat_ctx, size_t *mem_free, size_t *mem_total)
   vm_size_t page_size = 0;
   unsigned int count = HOST_VM_INFO64_COUNT;
 
-  mach_port_t port = mach_host_self();
+  mach_port_t port = mach_host_self ();
 
   if (host_page_size (port, &page_size) != KERN_SUCCESS)
   {
@@ -580,7 +580,7 @@ int hc_mtlDeviceMaxMemAlloc (void *hashcat_ctx, size_t *bytes, mtl_device_id met
 
   uint64_t memsize = 0;
 
-  SEL maxBufferLengthSelector = NSSelectorFromString(@"maxBufferLength");
+  SEL maxBufferLengthSelector = NSSelectorFromString (@"maxBufferLength");
 
   if (hc_mtlInvocationHelper (metal_device, maxBufferLengthSelector, &memsize) == -1) return -1;
 
@@ -1094,7 +1094,7 @@ int hc_mtlMemcpyDtoH (void *hashcat_ctx, mtl_command_queue command_queue, void *
 
 int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, size_t *size)
 {
-  CFURLRef plist_url = CFURLCreateWithFileSystemPath (kCFAllocatorDefault, CFSTR("/System/Library/Frameworks/Metal.framework/Versions/Current/Resources/version.plist"), kCFURLPOSIXPathStyle, false);
+  CFURLRef plist_url = CFURLCreateWithFileSystemPath (kCFAllocatorDefault, CFSTR ("/System/Library/Frameworks/Metal.framework/Versions/Current/Resources/version.plist"), kCFURLPOSIXPathStyle, false);
 
   if (plist_url == NULL)
   {
@@ -1137,7 +1137,7 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
     return -1;
   }
 
-  CFStringRef runtime_version_str = CFRetain (CFDictionaryGetValue (plist_prop, CFSTR("CFBundleVersion")));
+  CFStringRef runtime_version_str = CFRetain (CFDictionaryGetValue (plist_prop, CFSTR ("CFBundleVersion")));
 
   if (runtime_version_str != NULL)
   {
@@ -1290,8 +1290,8 @@ int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_com
   CFTimeInterval myGPUStartTime = 0;
   CFTimeInterval myGPUEndTime = 0;
 
-  SEL myGPUStartTimeSelector = NSSelectorFromString(@"GPUStartTime");
-  SEL myGPUEndTimeSelector   = NSSelectorFromString(@"GPUEndTime");
+  SEL myGPUStartTimeSelector = NSSelectorFromString (@"GPUStartTime");
+  SEL myGPUEndTimeSelector   = NSSelectorFromString (@"GPUEndTime");
 
   if (hc_mtlInvocationHelper (metal_command_buffer, myGPUStartTimeSelector, &myGPUStartTime) == -1) return -1;
   if (hc_mtlInvocationHelper (metal_command_buffer, myGPUEndTimeSelector, &myGPUEndTime) == -1) return -1;
@@ -1355,7 +1355,7 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device
 
     if (build_options_buf != nil)
     {
-      //printf("using build_opts from arg:\n%s\n", build_options_buf);
+      //printf ("using build_opts from arg:\n%s\n", build_options_buf);
 
       build_options_dict = [NSMutableDictionary dictionary]; //[[NSMutableDictionary alloc] init];
 

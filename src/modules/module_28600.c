@@ -81,20 +81,20 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // NVIDIA GPU
   if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
   {
-    hc_asprintf(&jit_build_options, "-D _unroll");
+    hc_asprintf (&jit_build_options, "-D _unroll");
   }
 
   // HIP
   if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
   {
-    hc_asprintf(&jit_build_options, "-D _unroll");
+    hc_asprintf (&jit_build_options, "-D _unroll");
   }
 
   // ROCM
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) &&
       (device_param->has_vperm == true))
   {
-    hc_asprintf(&jit_build_options, "-D _unroll");
+    hc_asprintf (&jit_build_options, "-D _unroll");
   }
 
   return jit_build_options;
@@ -191,22 +191,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (postgres_sha256->salt, tmp_buf, tmp_len);
 
-  postgres_sha256->salt[ 0] = byte_swap_32(postgres_sha256->salt[ 0]);
-  postgres_sha256->salt[ 1] = byte_swap_32(postgres_sha256->salt[ 1]);
-  postgres_sha256->salt[ 2] = byte_swap_32(postgres_sha256->salt[ 2]);
-  postgres_sha256->salt[ 3] = byte_swap_32(postgres_sha256->salt[ 3]);
-  postgres_sha256->salt[ 4] = byte_swap_32(postgres_sha256->salt[ 4]);
-  postgres_sha256->salt[ 5] = byte_swap_32(postgres_sha256->salt[ 5]);
-  postgres_sha256->salt[ 6] = byte_swap_32(postgres_sha256->salt[ 6]);
-  postgres_sha256->salt[ 7] = byte_swap_32(postgres_sha256->salt[ 7]);
-  postgres_sha256->salt[ 8] = byte_swap_32(postgres_sha256->salt[ 8]);
-  postgres_sha256->salt[ 9] = byte_swap_32(postgres_sha256->salt[ 9]);
-  postgres_sha256->salt[10] = byte_swap_32(postgres_sha256->salt[10]);
-  postgres_sha256->salt[11] = byte_swap_32(postgres_sha256->salt[11]);
-  postgres_sha256->salt[12] = byte_swap_32(postgres_sha256->salt[12]);
-  postgres_sha256->salt[13] = byte_swap_32(postgres_sha256->salt[13]);
-  postgres_sha256->salt[14] = byte_swap_32(postgres_sha256->salt[14]);
-  postgres_sha256->salt[15] = byte_swap_32(postgres_sha256->salt[15]);
+  postgres_sha256->salt[ 0] = byte_swap_32 (postgres_sha256->salt[ 0]);
+  postgres_sha256->salt[ 1] = byte_swap_32 (postgres_sha256->salt[ 1]);
+  postgres_sha256->salt[ 2] = byte_swap_32 (postgres_sha256->salt[ 2]);
+  postgres_sha256->salt[ 3] = byte_swap_32 (postgres_sha256->salt[ 3]);
+  postgres_sha256->salt[ 4] = byte_swap_32 (postgres_sha256->salt[ 4]);
+  postgres_sha256->salt[ 5] = byte_swap_32 (postgres_sha256->salt[ 5]);
+  postgres_sha256->salt[ 6] = byte_swap_32 (postgres_sha256->salt[ 6]);
+  postgres_sha256->salt[ 7] = byte_swap_32 (postgres_sha256->salt[ 7]);
+  postgres_sha256->salt[ 8] = byte_swap_32 (postgres_sha256->salt[ 8]);
+  postgres_sha256->salt[ 9] = byte_swap_32 (postgres_sha256->salt[ 9]);
+  postgres_sha256->salt[10] = byte_swap_32 (postgres_sha256->salt[10]);
+  postgres_sha256->salt[11] = byte_swap_32 (postgres_sha256->salt[11]);
+  postgres_sha256->salt[12] = byte_swap_32 (postgres_sha256->salt[12]);
+  postgres_sha256->salt[13] = byte_swap_32 (postgres_sha256->salt[13]);
+  postgres_sha256->salt[14] = byte_swap_32 (postgres_sha256->salt[14]);
+  postgres_sha256->salt[15] = byte_swap_32 (postgres_sha256->salt[15]);
 
   postgres_sha256->salt_len = tmp_len;
   salt->salt_len            = tmp_len;
@@ -245,7 +245,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *hash_pos = token.buf[4];
   const int hash_len = token.len[4];
 
-  memset (tmp_buf, 0, sizeof(tmp_buf));
+  memset (tmp_buf, 0, sizeof (tmp_buf));
 
   tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
