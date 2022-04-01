@@ -477,7 +477,7 @@ int tty_getchar ()
   if (retval ==  0) return  0;
   if (retval == -1) return -1;
 
-  return getchar();
+  return getchar ();
 }
 
 int tty_fix ()
@@ -526,7 +526,7 @@ int tty_getchar ()
   if (retval ==  0) return  0;
   if (retval == -1) return -1;
 
-  return getchar();
+  return getchar ();
 }
 
 int tty_fix ()
@@ -600,12 +600,12 @@ int tty_fix ()
 }
 #endif
 
-bool is_stdout_terminal(void)
+bool is_stdout_terminal (void)
 {
 #if defined(_WIN)
-  return _isatty(_fileno(stdout));
+  return _isatty(_fileno (stdout));
 #else
-  return isatty(fileno(stdout));
+  return isatty (fileno (stdout));
 #endif
 }
 
@@ -652,22 +652,22 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     {
       u32 t = hashconfig->salt_type;
       const char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "embedded" : (t == SALT_TYPE_GENERIC) ? "generic" : "virtual";
-      printf("\"salt_type\": \"%s\", ", t_desc);
-      printf("\"salt_len_min\": %u, ", hashconfig->salt_min);
-      printf("\"salt_len_max\": %u, ", hashconfig->salt_max);
+      printf ("\"salt_type\": \"%s\", ", t_desc);
+      printf ("\"salt_len_min\": %u, ", hashconfig->salt_min);
+      printf ("\"salt_len_max\": %u, ", hashconfig->salt_max);
     }
 
     if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
     {
-      printf("\"kernel_type\": %s, ", "[ \"pure\", \"optimized\" ]");
+      printf ("\"kernel_type\": %s, ", "[ \"pure\", \"optimized\" ]");
     }
     else if (hashconfig->has_pure_kernel)
     {
-      printf("\"kernel_type\": %s, ", "[ \"pure\" ]");
+      printf ("\"kernel_type\": %s, ", "[ \"pure\" ]");
     }
     else if (hashconfig->has_optimized_kernel)
     {
-      printf("\"kernel_type\": %s, ", "[ \"optimized\" ]");
+      printf ("\"kernel_type\": %s, ", "[ \"optimized\" ]");
     }
 
     if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
@@ -676,18 +676,18 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       {
         if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE_OPTIONAL)
         {
-          printf("\"example_hash_format\": \"%s\", ", "hex-encoded");
+          printf ("\"example_hash_format\": \"%s\", ", "hex-encoded");
         }
         else
         {
-          printf("\"example_hash_format\": \"%s\", ", "hex-encoded (binary file only)");
+          printf ("\"example_hash_format\": \"%s\", ", "hex-encoded (binary file only)");
         }
-        printf("\"example_hash\": \"%s\", ", hashconfig->st_hash);
+        printf ("\"example_hash\": \"%s\", ", hashconfig->st_hash);
       }
       else
       {
-        printf("\"example_hash_format\": \"%s\", ", "plain");
-        printf("\"example_hash\": \"%s\", ", hashconfig->st_hash);
+        printf ("\"example_hash_format\": \"%s\", ", "plain");
+        printf ("\"example_hash\": \"%s\", ", hashconfig->st_hash);
       }
 
       if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options_extra->separator, false))
@@ -709,7 +709,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         tmp_buf[tmp_len++] = ']';
         tmp_buf[tmp_len++] = 0;
 
-        printf("\"example_pass\": \"%s\", ", tmp_buf);
+        printf ("\"example_pass\": \"%s\", ", tmp_buf);
 
         hcfree (tmp_buf);
       }
@@ -723,46 +723,46 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
         uppercase ((u8 *) tmp_buf, st_pass_len);
 
-        printf("\"example_pass\": \"%s\", ", tmp_buf);
+        printf ("\"example_pass\": \"%s\", ", tmp_buf);
 
         hcfree (tmp_buf);
       }
       else
       {
-        printf("\"example_pass\": \"%s\", ", hashconfig->st_pass);
+        printf ("\"example_pass\": \"%s\", ", hashconfig->st_pass);
       }
     }
     else
     {
-      printf("\"example_hash_format\": \"%s\", ", "N/A");
-      printf("\"example_hash\": \"%s\", ", "N/A");
-      printf("\"example_pass\": \"%s\", ", "N/A");
+      printf ("\"example_hash_format\": \"%s\", ", "N/A");
+      printf ("\"example_hash\": \"%s\", ", "N/A");
+      printf ("\"example_pass\": \"%s\", ", "N/A");
     }
 
     if (hashconfig->benchmark_mask != NULL)
     {
-      printf("\"benchmark_mask\": \"%s\", ", hashconfig->benchmark_mask);
+      printf ("\"benchmark_mask\": \"%s\", ", hashconfig->benchmark_mask);
     }
     else
     {
-      printf("\"benchmark_mask\": \"%s\", ", "N/A");
+      printf ("\"benchmark_mask\": \"%s\", ", "N/A");
     }
 
-    printf("\"autodetect_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "false" : "true");
-    printf("\"self_test_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "false" : "true");
-    printf("\"potfile_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "false" : "true");
+    printf ("\"autodetect_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "false" : "true");
+    printf ("\"self_test_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "false" : "true");
+    printf ("\"potfile_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "false" : "true");
 
     if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII)
     {
-      printf("\"plaintext_encoding\": %s", "[ \"ASCII\" ]");
+      printf ("\"plaintext_encoding\": %s", "[ \"ASCII\" ]");
     }
     else if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY)
     {
-      printf("\"plaintext_encoding\": %s", "[ \"HEX\" ]");
+      printf ("\"plaintext_encoding\": %s", "[ \"HEX\" ]");
     }
     else
     {
-      printf("\"plaintext_encoding\": %s", "[ \"ASCII\", \"HEX\" ]");
+      printf ("\"plaintext_encoding\": %s", "[ \"ASCII\", \"HEX\" ]");
     }
 
     event_log_info (hashcat_ctx, NULL);
@@ -922,30 +922,29 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->machine_readable == false)
   {
-    event_log_info(hashcat_ctx, "Hash Info:");
-    event_log_info(hashcat_ctx, "==========");
-    event_log_info(hashcat_ctx, NULL);
+    event_log_info (hashcat_ctx, "Hash Info:");
+    event_log_info (hashcat_ctx, "==========");
+    event_log_info (hashcat_ctx, NULL);
   }
 
   if (user_options->hash_mode_chgd == true)
   {
     if (user_options->machine_readable == true)
     {
-      printf("{ ");
-      hash_info_single_json(hashcat_ctx, user_options_extra);
-      printf(" }");
+      printf ("{ ");
+      hash_info_single_json (hashcat_ctx, user_options_extra);
+      printf (" }");
     }
     else
     {
-      hash_info_single(hashcat_ctx, user_options_extra);
+      hash_info_single (hashcat_ctx, user_options_extra);
     }
   }
   else
   {
     char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    if (user_options->machine_readable == true)
-      printf("{ ");
+    if (user_options->machine_readable == true) printf ("{ ");
 
     for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
     {
@@ -959,19 +958,18 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
       {
         if (i != 0)
         {
-          printf(", ");
+          printf (", ");
         }
 
-        hash_info_single_json(hashcat_ctx, user_options_extra);
+        hash_info_single_json (hashcat_ctx, user_options_extra);
       }
       else
       {
-        hash_info_single(hashcat_ctx, user_options_extra);
+        hash_info_single (hashcat_ctx, user_options_extra);
       }
     }
 
-    if (user_options->machine_readable == true)
-      printf(" }");
+    if (user_options->machine_readable == true) printf (" }");
 
     hcfree (modulefile);
   }
@@ -1723,14 +1721,14 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
-void json_encode(char *text, char *escaped)
+void json_encode (char *text, char *escaped)
 {
   /*
    * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
    * are getting escaped before being printed.
    */
 
-  size_t len = strlen(text);
+  size_t len = strlen (text);
   unsigned long i, j;
 
   for (i = 0, j = 0; i < len; i++, j++)
@@ -1789,17 +1787,28 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf ("{ \"session\": \"%s\",", hashcat_status->session);
   printf (" \"guess\": {");
   if (hashcat_status->guess_base)
+  {
     printf (" \"guess_base\": \"%s\",", hashcat_status->guess_base);
+  }
   else
+  {
     printf (" \"guess_base\": null,");
+  }
+
   printf (" \"guess_base_count\": %u,", hashcat_status->guess_base_count);
   printf (" \"guess_base_offset\": %u,", hashcat_status->guess_base_offset);
   printf (" \"guess_base_percent\": %.02f,", hashcat_status->guess_base_percent);
   printf (" \"guess_mask_length\": %u,", hashcat_status->guess_mask_length);
+
   if (hashcat_status->guess_mod)
+  {
     printf (" \"guess_mod\": \"%s\",", hashcat_status->guess_mod);
+  }
   else
+  {
     printf (" \"guess_mod\": null,");
+  }
+
   printf (" \"guess_mod_count\": %u,", hashcat_status->guess_mod_count);
   printf (" \"guess_mod_offset\": %u,", hashcat_status->guess_mod_offset);
   printf (" \"guess_mod_percent\": %.02f,", hashcat_status->guess_mod_percent);
@@ -1812,7 +1821,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
    * some salts can contain chars which need to be escaped to not break the JSON encoding.
    */
   char *target_json_encoded = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
-  json_encode(hashcat_status->hash_target, target_json_encoded);
+  json_encode (hashcat_status->hash_target, target_json_encoded);
   printf (" \"target\": \"%s\",", target_json_encoded);
   hcfree (target_json_encoded);
 
@@ -1839,14 +1848,14 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
     printf (" { \"device_id\": %u,", device_id + 1);
 
-    char *device_name_json_encoded = (char *)hcmalloc(strlen(device_info->device_name) * 2);
-    json_encode(device_info->device_name, device_name_json_encoded);
-    printf(" \"device_name\": \"%s\",", device_name_json_encoded);
-    hcfree(device_name_json_encoded);
+    char *device_name_json_encoded = (char *) hcmalloc (strlen (device_info->device_name) * 2);
+    json_encode (device_info->device_name, device_name_json_encoded);
+    printf (" \"device_name\": \"%s\",", device_name_json_encoded);
+    hcfree (device_name_json_encoded);
 
     const char *device_type_desc = ((device_info->device_type & CL_DEVICE_TYPE_CPU) ? "CPU" :
                                    ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
-    printf(" \"device_type\": \"%s\",", device_type_desc);
+    printf (" \"device_type\": \"%s\",", device_type_desc);
 
     printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
 

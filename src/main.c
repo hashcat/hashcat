@@ -30,7 +30,7 @@ int _dowildcard = -1;
 
 static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
 {
-  if (!is_stdout_terminal()) return;
+  if (!is_stdout_terminal ()) return;
 
   #if defined (_WIN)
 
@@ -81,7 +81,8 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   #endif
 
   // color stuff pre
-  if (is_stdout_terminal()) {
+  if (is_stdout_terminal ())
+  {
   #if defined (_WIN)
     switch (loglevel)
     {
@@ -111,7 +112,8 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   fwrite (msg_buf, msg_len, 1, fp);
 
   // color stuff post
-  if (is_stdout_terminal()) {
+  if (is_stdout_terminal ())
+  {
   #if defined (_WIN)
     switch (loglevel)
     {

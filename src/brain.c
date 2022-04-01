@@ -3369,7 +3369,7 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   close (server_fd);
 
   #if defined (_WIN)
-  WSACleanup();
+  WSACleanup ();
   #endif
 
   return 0;

@@ -27,7 +27,7 @@ UInt32 hm_IOKIT_strtoul (const char *str, int size, int base)
     }
     else
     {
-      total += (unsigned char)(str[i] << (size - 1 - i) * 8);
+      total += (unsigned char) (str[i] << (size - 1 - i) * 8);
     }
   }
   return total;
@@ -37,7 +37,7 @@ void hm_IOKIT_ultostr (char *str, UInt32 val)
 {
   str[0] = '\0';
 
-  sprintf (str, "%c%c%c%c", (unsigned int)(val >> 24), (unsigned int)(val >> 16), (unsigned int)(val >> 8), (unsigned int)(val));
+  sprintf (str, "%c%c%c%c", (unsigned int) (val >> 24), (unsigned int) (val >> 16), (unsigned int) (val >> 8), (unsigned int) (val));
 }
 
 kern_return_t hm_IOKIT_SMCOpen (void *hashcat_ctx, io_connect_t *conn)
@@ -68,7 +68,7 @@ kern_return_t hm_IOKIT_SMCOpen (void *hashcat_ctx, io_connect_t *conn)
     return 1;
   }
 
-  result = IOServiceOpen (device, mach_task_self(), 0, conn);
+  result = IOServiceOpen (device, mach_task_self (), 0, conn);
 
   IOObjectRelease (device);
 
@@ -124,7 +124,7 @@ kern_return_t hm_IOKIT_SMCReadKey (UInt32Char_t key, SMCVal_t *val, io_connect_t
 
   if (hm_IOKIT_SMCCall (KERNEL_INDEX_SMC, &inData, &outData, conn) != kIOReturnSuccess) return 1;
 
-  memcpy(val->bytes, outData.bytes, sizeof(outData.bytes));
+  memcpy (val->bytes, outData.bytes, sizeof (outData.bytes));
 
   return kIOReturnSuccess;
 }
@@ -145,9 +145,9 @@ int hm_IOKIT_SMCGetSensorGraphicHot (void *hashcat_ctx)
 
     if (val.dataSize > 0)
     {
-      if (strcmp(val.dataType, DATATYPE_UINT8) == 0)
+      if (strcmp (val.dataType, DATATYPE_UINT8) == 0)
       {
-        alarm = hm_IOKIT_strtoul ((char *)val.bytes, val.dataSize, 10);
+        alarm = hm_IOKIT_strtoul ((char *) val.bytes, val.dataSize, 10);
       }
     }
 
@@ -171,7 +171,7 @@ int hm_IOKIT_SMCGetTemperature (void *hashcat_ctx, char *key, double *temp)
   {
     if (val.dataSize > 0)
     {
-      if (strcmp(val.dataType, DATATYPE_SP78) == 0)
+      if (strcmp (val.dataType, DATATYPE_SP78) == 0)
       {
         // convert sp78 value to temperature
         int intValue = val.bytes[0] * 256 + (unsigned char)val.bytes[1];
@@ -200,17 +200,17 @@ bool hm_IOKIT_SMCGetFanRPM (char *key, io_connect_t conn, float *ret)
   {
     if (val.dataSize > 0)
     {
-      if (strcmp(val.dataType, DATATYPE_FLT) == 0)
+      if (strcmp (val.dataType, DATATYPE_FLT) == 0)
       {
         *ret = *(float *) val.bytes;
 
         return true;
       }
 
-      if (strcmp(val.dataType, DATATYPE_FPE2) == 0)
+      if (strcmp (val.dataType, DATATYPE_FPE2) == 0)
       {
         // convert fpe2 value to RPM
-        *ret = ntohs (*(UInt16*)val.bytes) / 4.0;
+        *ret = ntohs (*(UInt16*) val.bytes) / 4.0;
 
         return true;
       }
