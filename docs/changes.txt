@@ -82,6 +82,7 @@
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Add some unstable warnings detected on macOS
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
+- Rules: Update hand-written rulesets to covers years up to 2029
 - Status code: updated negative status code (added kernel create failure and resync)
 - Status code: updated negative status code, usefull in Unit tests engine (test.sh)
 - Terminal: show empty OpenCL platforms only in backend information mode
