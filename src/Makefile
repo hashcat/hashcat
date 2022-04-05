@@ -227,6 +227,7 @@ CFLAGS_UNRAR            += -Wno-parentheses
 CFLAGS_UNRAR            += -Wno-implicit-fallthrough
 CFLAGS_UNRAR            += -Wno-extra
 CFLAGS_UNRAR            += -Wno-unknown-pragmas
+CFLAGS_UNRAR            += -Wno-unused-but-set-variable
 endif
 endif
 
