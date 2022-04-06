@@ -37,6 +37,18 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
 
   module_filename (folder_config, hash_mode, module_file, HCBUFSIZ_TINY);
 
+  struct stat s;
+
+  memset (&s, 0, sizeof (struct stat));
+
+  if (stat (module_file, &s) == -1)
+  {
+    event_log_warning (hashcat_ctx, "Either the specified hash mode does not exist in the official repository,");
+    event_log_warning (hashcat_ctx, "or the file(s) could not be found. Please check that the hash mode number is");
+    event_log_warning (hashcat_ctx, "correct and that the files are in the correct place.");
+    event_log_warning (hashcat_ctx, NULL);
+  }
+
   module_ctx->module_handle = hc_dlopen (module_file);
 
   if (module_ctx->module_handle == NULL)
