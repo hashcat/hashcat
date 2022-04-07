@@ -458,6 +458,7 @@ typedef enum opts_type
   OPTS_TYPE_POST_AMP_UTF16LE  = (1ULL << 55), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
   OPTS_TYPE_AUTODETECT_DISABLE
                               = (1ULL << 56), // skip autodetect engine
+  OPTS_TYPE_STOCK_MODULE      = (1ULL << 57), // module included with hashcat default distribution
 
 } opts_type_t;
 
