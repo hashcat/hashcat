@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "Half MD5";
 static const u64   KERN_TYPE      = 5100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;

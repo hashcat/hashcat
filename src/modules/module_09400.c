@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "MS Office 2007";
 static const u64   KERN_TYPE      = 9400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$office$*2007*20*128*16*18410007331073848057180885845227*944c70a5ee6e5ab2a6a86ff54b5f621a*e6650f1f2630c27fd8fc0f5e56e2e01f99784b9f";

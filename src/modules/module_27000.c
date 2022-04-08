@@ -22,7 +22,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
 static const char *HASH_NAME      = "NetNTLMv1 / NetNTLMv1+ESS (NT)";
 static const u64   KERN_TYPE      = 27000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14
                                   | OPTS_TYPE_PT_UTF16LE

@@ -22,7 +22,8 @@ static const u64   KERN_TYPE      = 28800;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "password";
 static const char *ST_HASH        = "$krb5db$17$test$TEST.LOCAL$6fb8b78e20ad3df6591cabb9cacf4594";

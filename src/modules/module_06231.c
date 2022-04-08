@@ -24,7 +24,8 @@ static const char *HASH_NAME      = "TrueCrypt Whirlpool + XTS 512 bit";
 static const u64   KERN_TYPE      = 6231;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_BINARY_HASHFILE
                                   | OPTS_TYPE_MAXIMUM_THREADS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;

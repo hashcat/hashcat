@@ -22,7 +22,8 @@ static const u64   KERN_TYPE      = 28300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP
                                   | OPTI_TYPE_NOT_ITERATED;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_BE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$teamspeak$3$E0aV0IQ29EDyxRfkFoQflUGJ6zo=$mRgDUkNpd0IwUEcTJQBmE0NHYwdDEhFzQ0VgMRcFJUIRYnaHBwNXRZJwk2ZUaURzdXkVYiUROERmI0hYYGFYCDiIJCeIU3N5EhRVcZFnSIRCJlkUFkY4YFMDcheYeTl4RYZEdpKGJYhxAIQJEYGYEA==";

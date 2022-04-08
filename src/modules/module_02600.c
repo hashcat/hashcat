@@ -22,7 +22,8 @@ static const u64   KERN_TYPE      = 2610;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS14
                                   | OPTS_TYPE_ST_ADD80;

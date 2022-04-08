@@ -20,7 +20,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
 static const char *HASH_NAME      = "Whirlpool";
 static const u64   KERN_TYPE      = 6100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_MAXIMUM_THREADS;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;

@@ -21,7 +21,8 @@ static const char *HASH_NAME      = "XMPP SCRAM PBKDF2-SHA1";
 static const u64   KERN_TYPE      = 23200;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$xmpp-scram$0$4096$45$353835323736323530353932363531393630313632353634313335323434323038393931323138373138343134$6d5b543b985dc6c0645da3c83d114fce121aa51d";

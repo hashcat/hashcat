@@ -22,7 +22,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "QNX /etc/shadow (SHA256)";
 static const u64   KERN_TYPE      = 19100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "@s@0b365cab7e17ee1e7e1a90078501cc1aa85888d6da34e2f5b04f5c614b882a93@5498317092471604";

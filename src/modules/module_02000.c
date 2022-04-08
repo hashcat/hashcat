@@ -20,7 +20,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_PLAIN;
 static const char *HASH_NAME      = "STDOUT";
 static const u64   KERN_TYPE      = 2000;
 static const u32   OPTI_TYPE      = 0;
-static const u64   OPTS_TYPE      = OPTS_TYPE_SELF_TEST_DISABLE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_SELF_TEST_DISABLE
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "hashcat";

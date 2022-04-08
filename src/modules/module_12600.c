@@ -24,7 +24,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP
                                   | OPTI_TYPE_NOT_ITERATED;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_PT_ADD80;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";

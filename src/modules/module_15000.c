@@ -25,7 +25,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE; // OPTS_TYPE_ST_ADD80 added within kernel
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_BE; // OPTS_TYPE_ST_ADD80 added within kernel
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "bfa9fe5a404faff8b0d200385e26b783a163e475869336029d3ebaccaf02b5f16e4949279e8a33b942ab647f8f19a83dbe89a6d39dd6d8f84812de7d2e556767:6422386434050716105781561510557063652302782465168686858312232148";

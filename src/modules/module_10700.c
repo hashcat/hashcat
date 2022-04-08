@@ -22,7 +22,8 @@ static const u64   KERN_TYPE      = 10700;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_REGISTER_LIMIT;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_HASH_COPY
                                   | OPTS_TYPE_MAXIMUM_THREADS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;

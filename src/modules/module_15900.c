@@ -23,7 +23,8 @@ static const u64   KERN_TYPE      = 15900;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$DPAPImk$2*1*S-15-21-439882973-489230393-482956683-1522*aes256*sha512*12900*79f7ca399f2626e21aad108c3922af7c*288*c47bc8a985ca6aa708b01c97b004bff20cc52379dc2635b4acf59ce17970a2cb47ace98c7e8de977f265243c5c03d0a97e4b954b494d9e38d9158d0c1e729d16a28ba69e2e7c6c3bc0e3afc9c9b6306b83372ccb35d89b98925728fd36315b8ee95b4d4eccdcb31564769f9a4b9ee10828184e16d4af336675d5e31d987dd87233d34fbbb98880c5e1f64cbb9b043ad8";

@@ -20,7 +20,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "RAR3-hp";
 static const u64   KERN_TYPE      = 12500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_POST_AMP_UTF16LE
                                   | OPTS_TYPE_MAXIMUM_THREADS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;

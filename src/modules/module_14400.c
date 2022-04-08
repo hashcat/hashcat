@@ -22,7 +22,8 @@ static const u64   KERN_TYPE      = 14400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "fcdc7ec700b887e8eaebf94c2ec52aebb5521223:63038426024388230227";

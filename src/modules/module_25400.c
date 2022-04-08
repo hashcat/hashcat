@@ -24,7 +24,8 @@ static const char *HASH_NAME      = "PDF 1.4 - 1.6 (Acrobat 5 - 8) - user and ow
 static const u64   KERN_TYPE      = 25400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_COPY_TMPS
                                   | OPTS_TYPE_PT_ALWAYS_ASCII
                                   | OPTS_TYPE_AUTODETECT_DISABLE;

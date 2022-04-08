@@ -20,7 +20,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
 static const char *HASH_NAME      = "phpass";
 static const u64   KERN_TYPE      = 400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$P$946647711V1klyitUYhtB8Yw5DMA/w.";

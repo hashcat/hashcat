@@ -22,7 +22,8 @@ static const char *HASH_NAME      = "Ruby on Rails Restful-Authentication";
 static const u64   KERN_TYPE      = 19500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_BE;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "d7d5ea3e09391da412b653ae6c8d7431ec273ea2:238769868762:8962783556527653675";

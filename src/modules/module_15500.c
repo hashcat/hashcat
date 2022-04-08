@@ -23,7 +23,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_APPENDED_SALT;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_BE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_BE
                                   | OPTS_TYPE_PT_UTF16BE
                                   | OPTS_TYPE_ST_ADD80
                                   | OPTS_TYPE_ST_ADDBITS15;

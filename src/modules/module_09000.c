@@ -20,7 +20,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
 static const char *HASH_NAME      = "Password Safe v2";
 static const u64   KERN_TYPE      = 9000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_BINARY_HASHFILE
                                   | OPTS_TYPE_AUTODETECT_DISABLE
                                   | OPTS_TYPE_DYNAMIC_SHARED;

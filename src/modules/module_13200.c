@@ -20,7 +20,8 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "AxCrypt 1";
 static const u64   KERN_TYPE      = 13200;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
-static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$axcrypt$*1*10467*9a7cd609bb262c738d9f0e4977039b94*ecbe0fd05a96fd2099d88a92eebb76c59d6837dfe55b3631";
