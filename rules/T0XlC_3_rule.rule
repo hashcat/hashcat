@@ -1,0 +1,47 @@
+# Created by: T0XlC ᨐ
+#
+# Upper case the letter after the Nth instance of a char
+#
+#  -------------------------------------------------------------------------------------
+# | DICTIONARY_WORD               3_RULE                          OUTPUT                |
+#  -------------------------------------------------------------------------------------
+# | one and that's it       31  @                                  oneandThat'sit       |
+# | You must not sleep      30  31  32  33  @  $1 $2               YouMustNotSleep12    |
+# | Create new password     30  31  32  33  so0                    Create New Passw0rd  |
+# | This isn't secure       30  31  32  33  @  TE                  ThisIsn'tSecurE      |
+# | I took your words       30  31  32  33  34  @  ] ] ] $m $a $n  ITookYourWoman       |
+# | encrypt your passwords  30  31  32  33  @  T0                  EncryptYourPasswords |
+#  -------------------------------------------------------------------------------------ᨐ
+#
+# hint : use as a combination rule -r T0XlC_3_rule.rule -r T0XlC_3_rule.rule or -r T0XlC_3_rule.rule -r best64.rule 
+
+:
+@ 
+30 
+31 
+32 
+33 
+34 
+35 
+36 
+37 
+38 
+39 
+3A 
+30  31  32  33  34  35  36  37  38  39  3A 
+30  31  32  33  34  35  36  37  38  39  3A @ 
+T1
+T2
+T3
+T4
+T5
+T6
+T7
+T8
+T9
+TA
+TB
+TC
+TD
+TE
+TF
