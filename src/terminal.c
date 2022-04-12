@@ -908,6 +908,7 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
       event_log_info (hashcat_ctx, "  Plaintext.Encoding..: ASCII, HEX");
     }
 
+    event_log_info (hashcat_ctx, "  Custom.Plugin.......: %s", (hashconfig->opts_type & OPTS_TYPE_STOCK_MODULE) ? "No" : "Yes");
     event_log_info (hashcat_ctx, NULL);
   }
 
