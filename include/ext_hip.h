@@ -10,7 +10,7 @@
 // Therefore, we need to take certain items, such as hipDeviceptr_t from driver specific paths like amd_driver_types.h
 // We just need to keep this in mind in case we need to update these constants from future SDK versions
 
-// start: amd_driver_types.h
+// start: driver_types.h
 
 typedef void* hipDeviceptr_t;
 
@@ -26,9 +26,9 @@ typedef enum hipFunction_attribute {
     HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES,
     HIP_FUNC_ATTRIBUTE_PREFERRED_SHARED_MEMORY_CARVEOUT,
     HIP_FUNC_ATTRIBUTE_MAX
-}hipFunction_attribute;
+} hipFunction_attribute;
 
-// stop: amd_driver_types.h
+// stop: driver_types.h
 
 // start: hip_runtime_api.h
 
@@ -101,6 +101,7 @@ typedef enum __HIP_NODISCARD hipError_t {
     hipErrorInvalidHandle = 400,
     // Deprecated
     hipErrorInvalidResourceHandle = 400,  ///< Resource handle (hipEvent_t or hipStream_t) invalid.
+    hipErrorIllegalState = 401, ///< Resource required is not in a valid state to perform operation.
     hipErrorNotFound = 500,
     hipErrorNotReady = 600,  ///< Indicates that asynchronous operations enqueued earlier are not
                              ///< ready.  This is not actually an error, but is used to distinguish
@@ -149,6 +150,10 @@ typedef enum __HIP_NODISCARD hipError_t {
                                              ///< the hipStreamCaptureModeRelaxed argument to
                                              ///< hipStreamBeginCapture was passed to
                                              ///< hipStreamEndCapture in a different thread.
+    hipErrorGraphExecUpdateFailure = 910,  ///< This error indicates that the graph update
+                                           ///< not performed because it included changes which
+                                           ///< violated constraintsspecific to instantiated graph
+                                           ///< update.
     hipErrorUnknown = 999,  //< Unknown error.
     // HSA Runtime Error Codes start here.
     hipErrorRuntimeMemory = 1052,  ///< HSA runtime memory call returned error.  Typically not seen
@@ -161,112 +166,170 @@ typedef enum __HIP_NODISCARD hipError_t {
 #undef __HIP_NODISCARD
 
 typedef enum hipDeviceAttribute_t {
-    hipDeviceAttributeMaxThreadsPerBlock,       ///< Maximum number of threads per block.
-    hipDeviceAttributeMaxBlockDimX,             ///< Maximum x-dimension of a block.
-    hipDeviceAttributeMaxBlockDimY,             ///< Maximum y-dimension of a block.
-    hipDeviceAttributeMaxBlockDimZ,             ///< Maximum z-dimension of a block.
-    hipDeviceAttributeMaxGridDimX,              ///< Maximum x-dimension of a grid.
-    hipDeviceAttributeMaxGridDimY,              ///< Maximum y-dimension of a grid.
-    hipDeviceAttributeMaxGridDimZ,              ///< Maximum z-dimension of a grid.
-    hipDeviceAttributeMaxSharedMemoryPerBlock,  ///< Maximum shared memory available per block in
-                                                ///< bytes.
-    hipDeviceAttributeTotalConstantMemory,      ///< Constant memory size in bytes.
-    hipDeviceAttributeWarpSize,                 ///< Warp size in threads.
-    hipDeviceAttributeMaxRegistersPerBlock,  ///< Maximum number of 32-bit registers available to a
-                                             ///< thread block. This number is shared by all thread
-                                             ///< blocks simultaneously resident on a
-                                             ///< multiprocessor.
-    hipDeviceAttributeClockRate,             ///< Peak clock frequency in kilohertz.
-    hipDeviceAttributeMemoryClockRate,       ///< Peak memory clock frequency in kilohertz.
-    hipDeviceAttributeMemoryBusWidth,        ///< Global memory bus width in bits.
-    hipDeviceAttributeMultiprocessorCount,   ///< Number of multiprocessors on the device.
-    hipDeviceAttributeComputeMode,           ///< Compute mode that device is currently in.
-    hipDeviceAttributeL2CacheSize,  ///< Size of L2 cache in bytes. 0 if the device doesn't have L2
-                                    ///< cache.
-    hipDeviceAttributeMaxThreadsPerMultiProcessor,  ///< Maximum resident threads per
-                                                    ///< multiprocessor.
-    hipDeviceAttributeComputeCapabilityMajor,       ///< Major compute capability version number.
-    hipDeviceAttributeComputeCapabilityMinor,       ///< Minor compute capability version number.
-    hipDeviceAttributeConcurrentKernels,  ///< Device can possibly execute multiple kernels
-                                          ///< concurrently.
-    hipDeviceAttributePciBusId,           ///< PCI Bus ID.
-    hipDeviceAttributePciDeviceId,        ///< PCI Device ID.
-    hipDeviceAttributeMaxSharedMemoryPerMultiprocessor,  ///< Maximum Shared Memory Per
-                                                         ///< Multiprocessor.
-    hipDeviceAttributeIsMultiGpuBoard,                   ///< Multiple GPU devices.
-    hipDeviceAttributeIntegrated,                        ///< iGPU
-    hipDeviceAttributeCooperativeLaunch,                 ///< Support cooperative launch
-    hipDeviceAttributeCooperativeMultiDeviceLaunch,      ///< Support cooperative launch on multiple devices
-    hipDeviceAttributeMaxTexture1DWidth,    ///< Maximum number of elements in 1D images
-    hipDeviceAttributeMaxTexture2DWidth,    ///< Maximum dimension width of 2D images in image elements
-    hipDeviceAttributeMaxTexture2DHeight,   ///< Maximum dimension height of 2D images in image elements
-    hipDeviceAttributeMaxTexture3DWidth,    ///< Maximum dimension width of 3D images in image elements
-    hipDeviceAttributeMaxTexture3DHeight,   ///< Maximum dimensions height of 3D images in image elements
-    hipDeviceAttributeMaxTexture3DDepth,    ///< Maximum dimensions depth of 3D images in image elements
+    hipDeviceAttributeCudaCompatibleBegin = 0,
 
-    hipDeviceAttributeHdpMemFlushCntl,      ///< Address of the HDP_MEM_COHERENCY_FLUSH_CNTL register
-    hipDeviceAttributeHdpRegFlushCntl,      ///< Address of the HDP_REG_COHERENCY_FLUSH_CNTL register
+    hipDeviceAttributeEccEnabled = hipDeviceAttributeCudaCompatibleBegin, ///< Whether ECC support is enabled.
+    hipDeviceAttributeAccessPolicyMaxWindowSize,        ///< Cuda only. The maximum size of the window policy in bytes.
+    hipDeviceAttributeAsyncEngineCount,                 ///< Cuda only. Asynchronous engines number.
+    hipDeviceAttributeCanMapHostMemory,                 ///< Whether host memory can be mapped into device address space
+    hipDeviceAttributeCanUseHostPointerForRegisteredMem,///< Cuda only. Device can access host registered memory
+                                                        ///< at the same virtual address as the CPU
+    hipDeviceAttributeClockRate,                        ///< Peak clock frequency in kilohertz.
+    hipDeviceAttributeComputeMode,                      ///< Compute mode that device is currently in.
+    hipDeviceAttributeComputePreemptionSupported,       ///< Cuda only. Device supports Compute Preemption.
+    hipDeviceAttributeConcurrentKernels,                ///< Device can possibly execute multiple kernels concurrently.
+    hipDeviceAttributeConcurrentManagedAccess,          ///< Device can coherently access managed memory concurrently with the CPU
+    hipDeviceAttributeCooperativeLaunch,                ///< Support cooperative launch
+    hipDeviceAttributeCooperativeMultiDeviceLaunch,     ///< Support cooperative launch on multiple devices
+    hipDeviceAttributeDeviceOverlap,                    ///< Cuda only. Device can concurrently copy memory and execute a kernel.
+                                                        ///< Deprecated. Use instead asyncEngineCount.
+    hipDeviceAttributeDirectManagedMemAccessFromHost,   ///< Host can directly access managed memory on
+                                                        ///< the device without migration
+    hipDeviceAttributeGlobalL1CacheSupported,           ///< Cuda only. Device supports caching globals in L1
+    hipDeviceAttributeHostNativeAtomicSupported,        ///< Cuda only. Link between the device and the host supports native atomic operations
+    hipDeviceAttributeIntegrated,                       ///< Device is integrated GPU
+    hipDeviceAttributeIsMultiGpuBoard,                  ///< Multiple GPU devices.
+    hipDeviceAttributeKernelExecTimeout,                ///< Run time limit for kernels executed on the device
+    hipDeviceAttributeL2CacheSize,                      ///< Size of L2 cache in bytes. 0 if the device doesn't have L2 cache.
+    hipDeviceAttributeLocalL1CacheSupported,            ///< caching locals in L1 is supported
+    hipDeviceAttributeLuid,                             ///< Cuda only. 8-byte locally unique identifier in 8 bytes. Undefined on TCC and non-Windows platforms
+    hipDeviceAttributeLuidDeviceNodeMask,               ///< Cuda only. Luid device node mask. Undefined on TCC and non-Windows platforms
+    hipDeviceAttributeComputeCapabilityMajor,           ///< Major compute capability version number.
+    hipDeviceAttributeManagedMemory,                    ///< Device supports allocating managed memory on this system
+    hipDeviceAttributeMaxBlocksPerMultiProcessor,       ///< Cuda only. Max block size per multiprocessor
+    hipDeviceAttributeMaxBlockDimX,                     ///< Max block size in width.
+    hipDeviceAttributeMaxBlockDimY,                     ///< Max block size in height.
+    hipDeviceAttributeMaxBlockDimZ,                     ///< Max block size in depth.
+    hipDeviceAttributeMaxGridDimX,                      ///< Max grid size  in width.
+    hipDeviceAttributeMaxGridDimY,                      ///< Max grid size  in height.
+    hipDeviceAttributeMaxGridDimZ,                      ///< Max grid size  in depth.
+    hipDeviceAttributeMaxSurface1D,                     ///< Maximum size of 1D surface.
+    hipDeviceAttributeMaxSurface1DLayered,              ///< Cuda only. Maximum dimensions of 1D layered surface.
+    hipDeviceAttributeMaxSurface2D,                     ///< Maximum dimension (width, height) of 2D surface.
+    hipDeviceAttributeMaxSurface2DLayered,              ///< Cuda only. Maximum dimensions of 2D layered surface.
+    hipDeviceAttributeMaxSurface3D,                     ///< Maximum dimension (width, height, depth) of 3D surface.
+    hipDeviceAttributeMaxSurfaceCubemap,                ///< Cuda only. Maximum dimensions of Cubemap surface.
+    hipDeviceAttributeMaxSurfaceCubemapLayered,         ///< Cuda only. Maximum dimension of Cubemap layered surface.
+    hipDeviceAttributeMaxTexture1DWidth,                ///< Maximum size of 1D texture.
+    hipDeviceAttributeMaxTexture1DLayered,              ///< Cuda only. Maximum dimensions of 1D layered texture.
+    hipDeviceAttributeMaxTexture1DLinear,               ///< Maximum number of elements allocatable in a 1D linear texture.
+                                                        ///< Use cudaDeviceGetTexture1DLinearMaxWidth() instead on Cuda.
+    hipDeviceAttributeMaxTexture1DMipmap,               ///< Cuda only. Maximum size of 1D mipmapped texture.
+    hipDeviceAttributeMaxTexture2DWidth,                ///< Maximum dimension width of 2D texture.
+    hipDeviceAttributeMaxTexture2DHeight,               ///< Maximum dimension hight of 2D texture.
+    hipDeviceAttributeMaxTexture2DGather,               ///< Cuda only. Maximum dimensions of 2D texture if gather operations  performed.
+    hipDeviceAttributeMaxTexture2DLayered,              ///< Cuda only. Maximum dimensions of 2D layered texture.
+    hipDeviceAttributeMaxTexture2DLinear,               ///< Cuda only. Maximum dimensions (width, height, pitch) of 2D textures bound to pitched memory.
+    hipDeviceAttributeMaxTexture2DMipmap,               ///< Cuda only. Maximum dimensions of 2D mipmapped texture.
+    hipDeviceAttributeMaxTexture3DWidth,                ///< Maximum dimension width of 3D texture.
+    hipDeviceAttributeMaxTexture3DHeight,               ///< Maximum dimension height of 3D texture.
+    hipDeviceAttributeMaxTexture3DDepth,                ///< Maximum dimension depth of 3D texture.
+    hipDeviceAttributeMaxTexture3DAlt,                  ///< Cuda only. Maximum dimensions of alternate 3D texture.
+    hipDeviceAttributeMaxTextureCubemap,                ///< Cuda only. Maximum dimensions of Cubemap texture
+    hipDeviceAttributeMaxTextureCubemapLayered,         ///< Cuda only. Maximum dimensions of Cubemap layered texture.
+    hipDeviceAttributeMaxThreadsDim,                    ///< Maximum dimension of a block
+    hipDeviceAttributeMaxThreadsPerBlock,               ///< Maximum number of threads per block.
+    hipDeviceAttributeMaxThreadsPerMultiProcessor,      ///< Maximum resident threads per multiprocessor.
+    hipDeviceAttributeMaxPitch,                         ///< Maximum pitch in bytes allowed by memory copies
+    hipDeviceAttributeMemoryBusWidth,                   ///< Global memory bus width in bits.
+    hipDeviceAttributeMemoryClockRate,                  ///< Peak memory clock frequency in kilohertz.
+    hipDeviceAttributeComputeCapabilityMinor,           ///< Minor compute capability version number.
+    hipDeviceAttributeMultiGpuBoardGroupID,             ///< Cuda only. Unique ID of device group on the same multi-GPU board
+    hipDeviceAttributeMultiprocessorCount,              ///< Number of multiprocessors on the device.
+    hipDeviceAttributeName,                             ///< Device name.
+    hipDeviceAttributePageableMemoryAccess,             ///< Device supports coherently accessing pageable memory
+                                                        ///< without calling hipHostRegister on it
+    hipDeviceAttributePageableMemoryAccessUsesHostPageTables, ///< Device accesses pageable memory via the host's page tables
+    hipDeviceAttributePciBusId,                         ///< PCI Bus ID.
+    hipDeviceAttributePciDeviceId,                      ///< PCI Device ID.
+    hipDeviceAttributePciDomainID,                      ///< PCI Domain ID.
+    hipDeviceAttributePersistingL2CacheMaxSize,         ///< Cuda11 only. Maximum l2 persisting lines capacity in bytes
+    hipDeviceAttributeMaxRegistersPerBlock,             ///< 32-bit registers available to a thread block. This number is shared
+                                                        ///< by all thread blocks simultaneously resident on a multiprocessor.
+    hipDeviceAttributeMaxRegistersPerMultiprocessor,    ///< 32-bit registers available per block.
+    hipDeviceAttributeReservedSharedMemPerBlock,        ///< Cuda11 only. Shared memory reserved by CUDA driver per block.
+    hipDeviceAttributeMaxSharedMemoryPerBlock,          ///< Maximum shared memory available per block in bytes.
+    hipDeviceAttributeSharedMemPerBlockOptin,           ///< Cuda only. Maximum shared memory per block usable by special opt in.
+    hipDeviceAttributeSharedMemPerMultiprocessor,       ///< Cuda only. Shared memory available per multiprocessor.
+    hipDeviceAttributeSingleToDoublePrecisionPerfRatio, ///< Cuda only. Performance ratio of single precision to double precision.
+    hipDeviceAttributeStreamPrioritiesSupported,        ///< Cuda only. Whether to support stream priorities.
+    hipDeviceAttributeSurfaceAlignment,                 ///< Cuda only. Alignment requirement for surfaces
+    hipDeviceAttributeTccDriver,                        ///< Cuda only. Whether device is a Tesla device using TCC driver
+    hipDeviceAttributeTextureAlignment,                 ///< Alignment requirement for textures
+    hipDeviceAttributeTexturePitchAlignment,            ///< Pitch alignment requirement for 2D texture references bound to pitched memory;
+    hipDeviceAttributeTotalConstantMemory,              ///< Constant memory size in bytes.
+    hipDeviceAttributeTotalGlobalMem,                   ///< Global memory available on devicice.
+    hipDeviceAttributeUnifiedAddressing,                ///< Cuda only. An unified address space shared with the host.
+    hipDeviceAttributeUuid,                             ///< Cuda only. Unique ID in 16 byte.
+    hipDeviceAttributeWarpSize,                         ///< Warp size in threads.
 
-    hipDeviceAttributeMaxPitch,             ///< Maximum pitch in bytes allowed by memory copies
-    hipDeviceAttributeTextureAlignment,     ///<Alignment requirement for textures
-    hipDeviceAttributeTexturePitchAlignment, ///<Pitch alignment requirement for 2D texture references bound to pitched memory;
-    hipDeviceAttributeKernelExecTimeout,    ///<Run time limit for kernels executed on the device
-    hipDeviceAttributeCanMapHostMemory,     ///<Device can map host memory into device address space
-    hipDeviceAttributeEccEnabled,           ///<Device has ECC support enabled
+    hipDeviceAttributeCudaCompatibleEnd = 9999,
+    hipDeviceAttributeAmdSpecificBegin = 10000,
 
-    hipDeviceAttributeCooperativeMultiDeviceUnmatchedFunc,        ///< Supports cooperative launch on multiple
-                                                                  ///devices with unmatched functions
-    hipDeviceAttributeCooperativeMultiDeviceUnmatchedGridDim,     ///< Supports cooperative launch on multiple
-                                                                  ///devices with unmatched grid dimensions
-    hipDeviceAttributeCooperativeMultiDeviceUnmatchedBlockDim,    ///< Supports cooperative launch on multiple
-                                                                  ///devices with unmatched block dimensions
-    hipDeviceAttributeCooperativeMultiDeviceUnmatchedSharedMem,   ///< Supports cooperative launch on multiple
-                                                                  ///devices with unmatched shared memories
-    hipDeviceAttributeAsicRevision,         ///< Revision of the GPU in this device
-    hipDeviceAttributeManagedMemory,        ///< Device supports allocating managed memory on this system
-    hipDeviceAttributeDirectManagedMemAccessFromHost, ///< Host can directly access managed memory on
-                                                      /// the device without migration
-    hipDeviceAttributeConcurrentManagedAccess,  ///< Device can coherently access managed memory
-                                                /// concurrently with the CPU
-    hipDeviceAttributePageableMemoryAccess,     ///< Device supports coherently accessing pageable memory
-                                                /// without calling hipHostRegister on it
-    hipDeviceAttributePageableMemoryAccessUsesHostPageTables, ///< Device accesses pageable memory via
-                                                              /// the host's page tables
-    hipDeviceAttributeCanUseStreamWaitValue ///< '1' if Device supports hipStreamWaitValue32() and
-                                            ///< hipStreamWaitValue64() , '0' otherwise.
-
+    hipDeviceAttributeClockInstructionRate = hipDeviceAttributeAmdSpecificBegin,  ///< Frequency in khz of the timer used by the device-side "clock*"
+    hipDeviceAttributeArch,                                     ///< Device architecture
+    hipDeviceAttributeMaxSharedMemoryPerMultiprocessor,         ///< Maximum Shared Memory PerMultiprocessor.
+    hipDeviceAttributeGcnArch,                                  ///< Device gcn architecture
+    hipDeviceAttributeGcnArchName,                              ///< Device gcnArch name in 256 bytes
+    hipDeviceAttributeHdpMemFlushCntl,                          ///< Address of the HDP_MEM_COHERENCY_FLUSH_CNTL register
+    hipDeviceAttributeHdpRegFlushCntl,                          ///< Address of the HDP_REG_COHERENCY_FLUSH_CNTL register
+    hipDeviceAttributeCooperativeMultiDeviceUnmatchedFunc,      ///< Supports cooperative launch on multiple
+                                                                ///< devices with unmatched functions
+    hipDeviceAttributeCooperativeMultiDeviceUnmatchedGridDim,   ///< Supports cooperative launch on multiple
+                                                                ///< devices with unmatched grid dimensions
+    hipDeviceAttributeCooperativeMultiDeviceUnmatchedBlockDim,  ///< Supports cooperative launch on multiple
+                                                                ///< devices with unmatched block dimensions
+    hipDeviceAttributeCooperativeMultiDeviceUnmatchedSharedMem, ///< Supports cooperative launch on multiple
+                                                                ///< devices with unmatched shared memories
+    hipDeviceAttributeIsLargeBar,                               ///< Whether it is LargeBar
+    hipDeviceAttributeAsicRevision,                             ///< Revision of the GPU in this device
+    hipDeviceAttributeCanUseStreamWaitValue,                    ///< '1' if Device supports hipStreamWaitValue32() and
+                                                                ///< hipStreamWaitValue64(), '0' otherwise.
+    hipDeviceAttributeImageSupport,                             ///< '1' if Device supports image, '0' otherwise.
+    hipDeviceAttributePhysicalMultiProcessorCount,              ///< All available physical compute
+                                                                ///< units for the device
+    hipDeviceAttributeAmdSpecificEnd = 19999,
+    hipDeviceAttributeVendorSpecificBegin = 20000,
+    // Extended attributes for vendors
 } hipDeviceAttribute_t;
 
-//! Flags that can be used with hipStreamCreateWithFlags
-#define hipStreamDefault                                                                           \
-    0x00  ///< Default stream creation flags. These are used with hipStreamCreate().
-#define hipStreamNonBlocking 0x01  ///< Stream does not implicitly synchronize with null stream
+//Flags that can be used with hipStreamCreateWithFlags.
+/** Default stream creation flags. These are used with hipStreamCreate().*/
+#define hipStreamDefault  0x00
 
+/** Stream does not implicitly synchronize with null stream.*/
+#define hipStreamNonBlocking 0x01
 
-//! Flags that can be used with hipEventCreateWithFlags:
-#define hipEventDefault 0x0  ///< Default flags
-#define hipEventBlockingSync                                                                       \
-    0x1  ///< Waiting will yield CPU.  Power-friendly and usage-friendly but may increase latency.
-#define hipEventDisableTiming                                                                      \
-    0x2  ///< Disable event's capability to record timing information.  May improve performance.
-#define hipEventInterprocess 0x4  ///< Event can support IPC.  @warning - not supported in HIP.
-#define hipEventReleaseToDevice                                                                    \
-    0x40000000  /// < Use a device-scope release when recording this event.  This flag is useful to
-                /// obtain more precise timings of commands between events.  The flag is a no-op on
-                /// CUDA platforms.
-#define hipEventReleaseToSystem                                                                    \
-    0x80000000  /// < Use a system-scope release when recording this event.  This flag is
-                /// useful to make non-coherent host memory visible to the host.  The flag is a
-                /// no-op on CUDA platforms.
+//Flags that can be used with hipEventCreateWithFlags.
+/** Default flags.*/
+#define hipEventDefault 0x0
 
+/** Waiting will yield CPU. Power-friendly and usage-friendly but may increase latency.*/
+#define hipEventBlockingSync 0x1
 
-#define hipDeviceScheduleAuto 0x0  ///< Automatically select between Spin and Yield
-#define hipDeviceScheduleSpin                                                                      \
-    0x1  ///< Dedicate a CPU core to spin-wait.  Provides lowest latency, but burns a CPU core and
-         ///< may consume more power.
-#define hipDeviceScheduleYield                                                                     \
-    0x2  ///< Yield the CPU to the operating system when waiting.  May increase latency, but lowers
-         ///< power and is friendlier to other threads in the system.
+/** Disable event's capability to record timing information. May improve performance.*/
+#define hipEventDisableTiming  0x2
+
+/** Event can support IPC. Warnig: It is not supported in HIP.*/
+#define hipEventInterprocess 0x4
+
+/** Use a device-scope release when recording this event. This flag is useful to obtain more
+ * precise timings of commands between events.  The flag is a no-op on CUDA platforms.*/
+#define hipEventReleaseToDevice  0x40000000
+
+/** Use a system-scope release when recording this event. This flag is useful to make
+ * non-coherent host memory visible to the host. The flag is a no-op on CUDA platforms.*/
+#define hipEventReleaseToSystem  0x80000000
+
+#define hipDeviceScheduleAuto 0x0
+
+/** Dedicate a CPU core to spin-wait. Provides lowest latency, but burns a CPU core and may
+ * consume more power.*/
+#define hipDeviceScheduleSpin  0x1
+
+/** Yield the CPU to the operating system when waiting. May increase latency, but lowers power
+ * and is friendlier to other threads in the system.*/
+#define hipDeviceScheduleYield  0x2
 #define hipDeviceScheduleBlockingSync 0x4
 #define hipDeviceScheduleMask 0x7
 #define hipDeviceMapHost 0x8

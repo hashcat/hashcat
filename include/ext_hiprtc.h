@@ -6,7 +6,7 @@
 #ifndef _EXT_HIPRTC_H
 #define _EXT_HIPRTC_H
 
-// start: amd_detail/hiprtc.h
+// start: hiprtc.h
 
 typedef enum hiprtcResult {
     HIPRTC_SUCCESS = 0,
@@ -25,7 +25,7 @@ typedef enum hiprtcResult {
 
 typedef struct _hiprtcProgram* hiprtcProgram;
 
-// stop: amd_detail/hiprtc.h
+// stop: hiprtc.h
 
 #ifdef _WIN32
 #define HIPRTCAPI __stdcall
