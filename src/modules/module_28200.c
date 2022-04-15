@@ -25,7 +25,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_MP_MULTI_DISABLE
                                   | OPTS_TYPE_NATIVE_THREADS
-                                  | OPTS_TYPE_LOOP_PREPARE;
+                                  | OPTS_TYPE_LOOP_PREPARE
+                                  | OPTS_TYPE_SELF_TEST_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "EXODUS:16384:8:1:IYkXZgFETRmFp4wQXyP8XMe3LtuOw8wMdLcBVQ+9YWE=:lq0W9ekN5sC0O7Xw:UD4a6mUUhkTbQtGWitXHZUg0pQ4RHI6W/KUyYE95m3k=:ZuNQckXOtr4r21x+DT1zpQ==";
@@ -503,13 +504,16 @@ const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashco
   const char *extra_tuningdb_block =
     "DEVICE_TYPE_CPU                                 *      28200    1       N       A\n"
     "DEVICE_TYPE_GPU                                 *      28200    1       N       A\n"
-    "GeForce_GTX_980                                 *      28200    1      16       A\n"
-    "GeForce_GTX_1080                                *      28200    1      45       A\n"
+    "GeForce_GTX_980                                 *      28200    1      29       A\n"
+    "GeForce_GTX_1080                                *      28200    1      15       A\n"
     "GeForce_RTX_2080_Ti                             *      28200    1      68       A\n"
-    "GeForce_RTX_3080                                *      28200    1      68       A\n"
+    "GeForce_RTX_3060_Ti                             *      28200    1      51       A\n"
+    "GeForce_RTX_3070                                *      28200    1      46       A\n"
     "GeForce_RTX_3090                                *      28200    1      82       A\n"
-    "ALIAS_AMD_Vega64                                *      28200    1      60       A\n"
-    "ALIAS_AMD_RX6900XT                              *      28200    1      60       A\n"
+    "ALIAS_AMD_RX480                                 *      28200    1      15       A\n"
+    "ALIAS_AMD_Vega64                                *      28200    1      28       A\n"
+    "ALIAS_AMD_MI100                                 *      28200    1      79       A\n"
+    "ALIAS_AMD_RX6900XT                              *      28200    1      59       A\n"
   ;
 
   return extra_tuningdb_block;

@@ -34,7 +34,7 @@ typedef struct exodus
 
 } exodus_t;
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 inline __device__ uint4 operator &  (const uint4  a, const u32   b) { return make_uint4 ((a.x &  b  ), (a.y &  b  ), (a.z &  b  ), (a.w &  b  ));  }
 inline __device__ uint4 operator << (const uint4  a, const u32   b) { return make_uint4 ((a.x << b  ), (a.y << b  ), (a.z << b  ), (a.w << b  ));  }
@@ -67,7 +67,7 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 
 #define ADD_ROTATE_XOR(r,i1,i2,s) (r) ^= rotate ((i1) + (i2), (s));
 
-#ifdef IS_CUDA
+#if defined IS_CUDA || defined IS_HIP
 
 #define SALSA20_2R()                        \
 {                                           \
