@@ -8083,10 +8083,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 {
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const user_options_t  *user_options  = hashcat_ctx->user_options;
-
-  #if !defined (_WIN) && !defined (__CYGWIN__) && !defined (__MSYS__)
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
-  #endif
 
   bool cached = true;
 
@@ -8396,7 +8393,8 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       // untested but it should work
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-      hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s", "OpenCL");
+      hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s/OpenCL/", folder_config->cwd);
+      // ugly, but required since HIPRTC is changing the current working folder to the temporary compile folder
       #else
       hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
       #endif
