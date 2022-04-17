@@ -39,6 +39,7 @@
 - Fixed false negative on hash-types 4510 and 4710 for hashes with long salts
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed false negative on Unit Test with hash-type 25400
+- Fixed false negative on hash-types 8900, 15700, 22700, 27700 and 28200 if using the HIP backend
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
 - Fixed handling of devices in benchmark mode for "kernel build error". Instead of canceling, skip the device and move on to the next
 - Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
