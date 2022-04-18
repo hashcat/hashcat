@@ -4410,54 +4410,71 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       backend_ctx->hip_runtimeVersion = hip_runtimeVersion;
 
-      if (hip_runtimeVersion < 1000)
+      #if defined (_WIN)
+      // 404 is ok
+      if (hip_runtimeVersion < 404)
       {
-        if (hip_runtimeVersion < 404)
-        {
-          event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d' detected! Falling back to OpenCL...", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
-          event_log_warning (hashcat_ctx, NULL);
+        event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d' detected! Falling back to OpenCL...", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+        event_log_warning (hashcat_ctx, NULL);
 
-          rc_hip_init    = -1;
-          rc_hiprtc_init = -1;
+        rc_hip_init    = -1;
+        rc_hiprtc_init = -1;
 
-          backend_ctx->rc_hip_init    = rc_hip_init;
-          backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
+        backend_ctx->rc_hip_init    = rc_hip_init;
+        backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
 
-          backend_ctx->hip    = NULL;
-          backend_ctx->hiprtc = NULL;
+        backend_ctx->hip    = NULL;
+        backend_ctx->hiprtc = NULL;
 
-          backend_ctx->hip = NULL;
+        backend_ctx->hip = NULL;
 
-          // if we call this, opencl stops working?! so we just zero the pointer
-          // this causes a memleak and an open filehandle but what can we do?
-          // hip_close    (hashcat_ctx);
-          // hiprtc_close (hashcat_ctx);
-        }
+        // if we call this, opencl stops working?! so we just zero the pointer
+        // this causes a memleak and an open filehandle but what can we do?
+        // hip_close    (hashcat_ctx);
+        // hiprtc_close (hashcat_ctx);
       }
+      #else
+      // 511 is ok
+      if (hip_runtimeVersion < 50120531)
+      {
+        int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
+        int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
+        int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
+
+        event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d.%d' detected! Falling back to OpenCL...", hip_version_major, hip_version_minor, hip_version_patch);
+        event_log_warning (hashcat_ctx, NULL);
+
+        rc_hip_init    = -1;
+        rc_hiprtc_init = -1;
+
+        backend_ctx->rc_hip_init    = rc_hip_init;
+        backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
+
+        backend_ctx->hip = NULL;
+
+        // if we call this, opencl stops working?! so we just zero the pointer
+        // this causes a memleak and an open filehandle but what can we do?
+        // hip_close    (hashcat_ctx);
+        // hiprtc_close (hashcat_ctx);
+      }
+      #endif
       else
       {
-        if (hip_runtimeVersion < 40421401)
-        {
-          int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
-          int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
-          int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
+        event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d' detected! Falling back to OpenCL...", hip_runtimeVersion);
+        event_log_warning (hashcat_ctx, NULL);
 
-          event_log_warning (hashcat_ctx, "Unsupported AMD HIP runtime version '%d.%d.%d' detected! Falling back to OpenCL...", hip_version_major, hip_version_minor, hip_version_patch);
-          event_log_warning (hashcat_ctx, NULL);
+        rc_hip_init    = -1;
+        rc_hiprtc_init = -1;
 
-          rc_hip_init    = -1;
-          rc_hiprtc_init = -1;
+        backend_ctx->rc_hip_init    = rc_hip_init;
+        backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
 
-          backend_ctx->rc_hip_init    = rc_hip_init;
-          backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
+        backend_ctx->hip = NULL;
 
-          backend_ctx->hip = NULL;
-
-          // if we call this, opencl stops working?! so we just zero the pointer
-          // this causes a memleak and an open filehandle but what can we do?
-          // hip_close    (hashcat_ctx);
-          // hiprtc_close (hashcat_ctx);
-        }
+        // if we call this, opencl stops working?! so we just zero the pointer
+        // this causes a memleak and an open filehandle but what can we do?
+        // hip_close    (hashcat_ctx);
+        // hiprtc_close (hashcat_ctx);
       }
     }
     else
@@ -4503,6 +4520,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       backend_ctx->metal_runtimeVersionStr = (char *) hcmalloc (version_len + 1);
 
       if (hc_mtlRuntimeGetVersionString (hashcat_ctx, backend_ctx->metal_runtimeVersionStr, &version_len) == -1) return -1;
+
+      // TODO: needs version check
     }
     else
     {
