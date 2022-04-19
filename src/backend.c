@@ -4566,10 +4566,10 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       #if defined (__linux__)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-      event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (4.5 or later)");
+      event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (5.1.1 or later)");
       #elif defined (_WIN)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
-      event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (21.2.1 or later)");
+      event_log_warning (hashcat_ctx, "  \"AMD Adrenalin Edition\" (22.3.1 or later)");
       #endif
 
       event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
@@ -4903,10 +4903,10 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     #if defined (__linux__)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (4.5 or later)");
+    event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (5.1.1 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD Radeon Adrenalin 2020 Edition\" (21.2.1 or later)");
+    event_log_warning (hashcat_ctx, "  \"AMD Adrenalin Edition\" (22.3.1 or later)");
     #endif
 
     event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
