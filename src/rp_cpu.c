@@ -531,6 +531,8 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
   char *rule_new = (char *) hcmalloc (rule_len);
 
+  #define HCFREE_AND_RETURN(x) { hcfree (rule_new); return (x); }
+
   int rule_len_new = 0;
 
   int rule_pos;
@@ -794,26 +796,26 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         break;
 
       case RULE_OP_MANGLE_EXTRACT_MEMORY:
-        if (mem_len < 1) return (RULE_RC_REJECT_ERROR);
+        if (mem_len < 1) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, ulen);
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos2);
-        if ((out_len = mangle_insert_multi (out, out_len, upos2, mem, mem_len, upos, ulen)) < 1) return (out_len);
+        if ((out_len = mangle_insert_multi (out, out_len, upos2, mem, mem_len, upos, ulen)) < 1) HCFREE_AND_RETURN (out_len);
         break;
 
       case RULE_OP_MANGLE_APPEND_MEMORY:
-        if (mem_len < 1) return (RULE_RC_REJECT_ERROR);
-        if ((out_len + mem_len) >= RP_PASSWORD_SIZE) return (RULE_RC_REJECT_ERROR);
+        if (mem_len < 1) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if ((out_len + mem_len) >= RP_PASSWORD_SIZE) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         memcpy (out + out_len, mem, mem_len);
         out_len += mem_len;
         break;
 
       case RULE_OP_MANGLE_PREPEND_MEMORY:
-        if (mem_len < 1) return (RULE_RC_REJECT_ERROR);
-        if ((mem_len + out_len) >= RP_PASSWORD_SIZE) return (RULE_RC_REJECT_ERROR);
+        if (mem_len < 1) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if ((mem_len + out_len) >= RP_PASSWORD_SIZE) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         memcpy (mem + mem_len, out, out_len);
         out_len += mem_len;
         memcpy (out, mem, out_len);
@@ -827,24 +829,24 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
       case RULE_OP_REJECT_LESS:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if (out_len > upos) return (RULE_RC_REJECT_ERROR);
+        if (out_len > upos) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_GREATER:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if (out_len < upos) return (RULE_RC_REJECT_ERROR);
+        if (out_len < upos) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if (out_len != upos) return (RULE_RC_REJECT_ERROR);
+        if (out_len != upos) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
-        if (strchr (out, rule_new[rule_pos]) != NULL) return (RULE_RC_REJECT_ERROR);
+        if (strchr (out, rule_new[rule_pos]) != NULL) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_NOT_CONTAIN:
@@ -857,33 +859,33 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
           }
           else
           {
-            return (RULE_RC_REJECT_ERROR);
+            HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
           }
         }
         break;
 
       case RULE_OP_REJECT_EQUAL_FIRST:
         NEXT_RULEPOS (rule_pos);
-        if (out[0] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
+        if (out[0] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL_LAST:
         NEXT_RULEPOS (rule_pos);
-        if (out[out_len - 1] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
+        if (out[out_len - 1] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL_AT:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
+        if ((upos + 1) > out_len) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
-        if (out[upos] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
+        if (out[upos] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_CONTAINS:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
+        if ((upos + 1) > out_len) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
         int c; int cnt;
         for (c = 0, cnt = 0; c < out_len && cnt < upos; c++)
@@ -895,23 +897,23 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
           }
         }
 
-        if (cnt < upos) return (RULE_RC_REJECT_ERROR);
+        if (cnt < upos) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_MEMORY:
-        if ((out_len == mem_len) && (memcmp (out, mem, out_len) == 0)) return (RULE_RC_REJECT_ERROR);
+        if ((out_len == mem_len) && (memcmp (out, mem, out_len) == 0)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       default:
-        return (RULE_RC_SYNTAX_ERROR);
+        HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
     }
   }
 
   memset (out + out_len, 0, RP_PASSWORD_SIZE - out_len);
 
-  hcfree (rule_new);
+  HCFREE_AND_RETURN (out_len);
 
-  return (out_len);
+  #undef HCFREE_AND_RETURN
 }
 
 int run_rule_engine (const int rule_len, const char *rule_buf)
