@@ -1294,6 +1294,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options->markov_threshold != 0) // is 0 by default
+  {
+    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+    {
+      event_log_error (hashcat_ctx, "Option --markov-threshold is not allowed in combination with --attack mode %d", user_options->attack_mode);
+
+      return -1;
+    }
+  }
+
   if (user_options->restore_file_path != NULL)
   {
     if (strlen (user_options->restore_file_path) == 0)
