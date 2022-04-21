@@ -44,6 +44,7 @@
 - Fixed handling of devices in benchmark mode for "kernel build error". Instead of canceling, skip the device and move on to the next
 - Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
 - Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
+- Fixed memory leak in CPU rule engine
 - Fixed method of how OPTS_TYPE_AUX* kernels are called in an association attack, for example in WPA/WPA2 kernel
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
 - Fixed optimized (-O) candidate generation with --stdout and -a 7
