@@ -72,6 +72,7 @@
 - Backend: with kernel build options, switch from -I to -D INCLUDE_PATH, in order to support Apple Metal runtime
 - CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
 - Command Line: Disallow combinations of some options. for instance, using -t in -a 0 mode
+- Debug Rules: Set --debug-file to $session.debugfile if --debug-mode was set by the user and --debug-file was not set
 - Hardware Monitor: Add support for GPU device utilization readings using iokit on Apple Silicon (OpenCL and Metal)
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h

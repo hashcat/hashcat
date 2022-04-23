@@ -1114,16 +1114,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->debug_file != NULL)
-  {
-    if (user_options->debug_mode < 1)
-    {
-      event_log_error (hashcat_ctx, "Parameter --debug-file requires --debug-mode.");
-
-      return -1;
-    }
-  }
-
   if (user_options->induction_dir != NULL)
   {
     if (user_options->attack_mode == ATTACK_MODE_BF)

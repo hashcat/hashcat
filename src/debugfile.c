@@ -88,8 +88,9 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
 
 int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 {
-  debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
+        debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
 
   debugfile_ctx->enabled = false;
 
@@ -109,38 +110,31 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
 
   debugfile_ctx->enabled = true;
 
-  debugfile_ctx->mode     = user_options->debug_mode;
-  debugfile_ctx->filename = user_options->debug_file;
+  debugfile_ctx->mode = user_options->debug_mode;
 
-  if (debugfile_ctx->filename)
+  if (user_options->debug_file == NULL)
   {
-    if (hc_fopen (&debugfile_ctx->fp, debugfile_ctx->filename, "ab") == false)
-    {
-      event_log_error (hashcat_ctx, "Could not open --debug-file file for writing.");
-
-      return -1;
-    }
-
-    if (hc_lockfile (&debugfile_ctx->fp) == -1)
-    {
-      hc_fclose (&debugfile_ctx->fp);
-
-      event_log_error (hashcat_ctx, "%s: %s", debugfile_ctx->filename, strerror (errno));
-
-      return -1;
-    }
+    hc_asprintf (&debugfile_ctx->filename, "%s/hashcat.debugfile", folder_config->profile_dir);
   }
   else
   {
-    HCFILE *fp = &debugfile_ctx->fp;
+    debugfile_ctx->filename = user_options->debug_file;
+  }
 
-    fp->fd       = fileno (stdout);
-    fp->pfp      = stdout;
-    fp->gfp      = NULL;
-    fp->ufp      = NULL;
-    fp->bom_size = 0;
-    fp->path     = NULL;
-    fp->mode     = NULL;
+  if (hc_fopen (&debugfile_ctx->fp, debugfile_ctx->filename, "ab") == false)
+  {
+    event_log_error (hashcat_ctx, "Could not open --debug-file file for writing.");
+
+    return -1;
+  }
+
+  if (hc_lockfile (&debugfile_ctx->fp) == -1)
+  {
+    hc_fclose (&debugfile_ctx->fp);
+
+    event_log_error (hashcat_ctx, "%s: %s", debugfile_ctx->filename, strerror (errno));
+
+    return -1;
   }
 
   return 0;
