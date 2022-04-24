@@ -2308,7 +2308,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       const int digests_new = hashcat_status->digests_done - hashcat_status->digests_done_pot;
       const double digests_new_perc = (double) digests_new / (double) hashcat_status->digests_cnt * 100;
 
-      if (digests_new > 1)
+      if (digests_new >= 1)
       {
         event_log_info (hashcat_ctx,
           "Recovered.Total..: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
@@ -2341,7 +2341,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       const int digests_new = hashcat_status->digests_done - hashcat_status->digests_done_pot;
       const double digests_new_perc = (double) digests_new / (double) hashcat_status->digests_cnt * 100;
 
-      if (digests_new > 1)
+      if (digests_new >= 1)
       {
         event_log_info (hashcat_ctx,
           "Recovered.Total..: %u/%u (%.2f%%) Digests",
