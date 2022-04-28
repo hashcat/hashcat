@@ -1052,7 +1052,8 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, "Install.Dir..: %s", folder_config->install_dir);
     event_log_info (hashcat_ctx, "Profile.Dir..: %s", folder_config->profile_dir);
     event_log_info (hashcat_ctx, "Cache.Dir....: %s", folder_config->cache_dir);
-    event_log_info (hashcat_ctx, "Session.Dir..: %s", folder_config->session_dir);
+    // uninitialized at this point, for instance if the user uses --session
+    //event_log_info (hashcat_ctx, "Session.Dir..: %s", folder_config->session_dir);
     event_log_info (hashcat_ctx, "Shared.Dir...: %s", folder_config->shared_dir);
     event_log_info (hashcat_ctx, "CL.Inc.Path..: %s", folder_config->cpath_real);
 
