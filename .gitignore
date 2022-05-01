@@ -6,6 +6,7 @@ hashcat.exe
 libhashcat.so.*
 libhashcat*.dylib
 hashcat.dll
+*.debugfile
 *.potfile
 *.restore
 *.dictstat2
