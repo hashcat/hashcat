@@ -454,6 +454,7 @@ const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashco
     "GeForce_RTX_3070                                *       27700   1      46       A\n"
     "GeForce_RTX_3090                                *       27700   1      82       A\n"
     "GeForce_RTX_3090_Ti                             *       27700   1      84       A\n"
+    "NVS_510                                         *       27700   1      12       A\n"
     "ALIAS_AMD_RX480                                 *       27700   1      15       A\n"
     "ALIAS_AMD_Vega64                                *       27700   1      30       A\n"
     "ALIAS_AMD_MI100                                 *       27700   1      79       A\n"
