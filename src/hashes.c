@@ -869,6 +869,8 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  hashes->parser_token_length_cnt = 0;
+
   return 0;
 }
 
@@ -1252,6 +1254,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
 
+            if (parser_status == PARSER_TOKEN_LENGTH)
+            {
+              hashes->parser_token_length_cnt++;
+            }
+
             hash = &hashes_buf[hashes_cnt];
 
             parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf + 16, 16);
@@ -1280,6 +1287,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             else
             {
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
+            }
+
+            if (parser_status == PARSER_TOKEN_LENGTH)
+            {
+              hashes->parser_token_length_cnt++;
             }
           }
           else
@@ -1313,6 +1325,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             {
               event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
             }
+
+            if (parser_status == PARSER_TOKEN_LENGTH)
+            {
+              hashes->parser_token_length_cnt++;
+            }
           }
         }
         else
@@ -1342,6 +1359,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           else
           {
             event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
+          }
+
+          if (parser_status == PARSER_TOKEN_LENGTH)
+          {
+            hashes->parser_token_length_cnt++;
           }
         }
       }
@@ -1673,6 +1695,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hcfree (tmp_line_buf);
 
+            if (parser_status == PARSER_TOKEN_LENGTH)
+            {
+              hashes->parser_token_length_cnt++;
+            }
+
             continue;
           }
 
@@ -1698,6 +1725,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               }
 
               hcfree (tmp_line_buf);
+
+              if (parser_status_postprocess == PARSER_TOKEN_LENGTH)
+              {
+                hashes->parser_token_length_cnt++;
+              }
 
               continue;
             }
@@ -1808,6 +1840,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           event_log_warning (hashcat_ctx, "Hash '%s': %s", input_buf, strparser (parser_status));
         }
+
+        if (parser_status == PARSER_TOKEN_LENGTH)
+        {
+          hashes->parser_token_length_cnt++;
+        }
       }
     }
   }
@@ -1855,6 +1892,16 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         break;
       }
     }
+  }
+
+  if (hashes->parser_token_length_cnt > 0)
+  {
+    event_log_advice (hashcat_ctx, NULL); // we can guarantee that the previous line was not an empty line
+    event_log_advice (hashcat_ctx, "* Token length exception: %u/%u hashes", hashes->parser_token_length_cnt, hashes->parser_token_length_cnt + hashes->hashes_cnt_orig);
+    event_log_advice (hashcat_ctx, "  This error happens if the wrong hash type is specified, if the hashes are");
+    event_log_advice (hashcat_ctx, "  malformed, or if input is otherwise not as expected (for example, if the");
+    event_log_advice (hashcat_ctx, "  --username option is used but no username is present)");
+    event_log_advice (hashcat_ctx, NULL);
   }
 
   return 0;

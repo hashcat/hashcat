@@ -974,6 +974,8 @@ typedef struct hashes
   void        *st_esalts_buf;
   void        *st_hook_salts_buf;
 
+  int          parser_token_length_cnt;
+
 } hashes_t;
 
 typedef struct hashconfig
