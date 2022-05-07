@@ -717,7 +717,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->runtime_chgd == true && user_options->loopback == true)
+  if (user_options->limit_chgd == true && user_options->loopback == true)
   {
     event_log_error (hashcat_ctx, "Combining --limit with --loopback is not allowed.");
 
