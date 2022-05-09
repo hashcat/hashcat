@@ -10,6 +10,8 @@
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_rp.h)
+#include M2S(INCLUDE_PATH/inc_rp.cl)
 #include M2S(INCLUDE_PATH/inc_scalar.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
@@ -24,14 +26,14 @@ typedef struct sha1_double_salt
 
 } sha1_double_salt_t;
 
-KERNEL_FQ void m09902_mxx (KERN_ATTR_ESALT (sha1_double_salt_t))
+KERNEL_FQ void m29000_mxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 {
   /**
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
 
   if (gid >= GID_CNT) return;
 
@@ -39,16 +41,9 @@ KERNEL_FQ void m09902_mxx (KERN_ATTR_ESALT (sha1_double_salt_t))
    * base
    */
 
-  u32 s2[64] = { 0 };
-
-  const int salt2_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len;
+  COPY_PW (pws[gid]);
 
   const u32 colon[16] = {0x3a000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-
-  for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
-  {
-    s2[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf[idx];
-  }
 
   sha1_ctx_t ctx0;
 
@@ -56,15 +51,13 @@ KERNEL_FQ void m09902_mxx (KERN_ATTR_ESALT (sha1_double_salt_t))
 
   sha1_update_global_swap (&ctx0, esalt_bufs[SALT_POS_HOST].salt1_buf, esalt_bufs[SALT_POS_HOST].salt1_len);
 
-  sha1_ctx_t ctx1l;
+  sha1_ctx_t ctx2;
 
-  sha1_init (&ctx1l);
+  sha1_init (&ctx2);
 
-  sha1_update_global_utf16le_swap (&ctx1l, esalt_bufs[SALT_POS_HOST].salt2_buf, esalt_bufs[SALT_POS_HOST].salt2_len);
+  sha1_update_global_utf16le_swap (&ctx2, esalt_bufs[SALT_POS_HOST].salt2_buf, esalt_bufs[SALT_POS_HOST].salt2_len);
 
-  sha1_update(&ctx1l, colon, 1);
-
-  sha1_update_global_utf16le_swap (&ctx1l, pws[gid].i, pws[gid].pw_len);
+  sha1_update(&ctx2, colon, 1);
 
   /**
    * loop
@@ -72,9 +65,13 @@ KERNEL_FQ void m09902_mxx (KERN_ATTR_ESALT (sha1_double_salt_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx1 = ctx1l;
+    pw_t tmp = PASTE_PW;
 
-    sha1_update_global_utf16le_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+
+    sha1_ctx_t ctx1 = ctx2;
+
+    sha1_update_utf16le_swap (&ctx1, tmp.i, tmp.pw_len);
 
     sha1_final (&ctx1);
 
@@ -115,14 +112,14 @@ KERNEL_FQ void m09902_mxx (KERN_ATTR_ESALT (sha1_double_salt_t))
   }
 }
 
-KERNEL_FQ void m09902_sxx (KERN_ATTR_ESALT (sha1_double_salt_t))
+KERNEL_FQ void m29000_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 {
   /**
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
 
   if (gid >= GID_CNT) return;
 
@@ -142,6 +139,8 @@ KERNEL_FQ void m09902_sxx (KERN_ATTR_ESALT (sha1_double_salt_t))
    * base
    */
 
+  COPY_PW (pws[gid]);
+
   const u32 colon[16] = {0x3a000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   sha1_ctx_t ctx0;
@@ -150,15 +149,13 @@ KERNEL_FQ void m09902_sxx (KERN_ATTR_ESALT (sha1_double_salt_t))
 
   sha1_update_global_swap (&ctx0, esalt_bufs[SALT_POS_HOST].salt1_buf, esalt_bufs[SALT_POS_HOST].salt1_len);
 
-  sha1_ctx_t ctx1l;
+  sha1_ctx_t ctx2;
 
-  sha1_init (&ctx1l);
+  sha1_init (&ctx2);
 
-  sha1_update_global_utf16le_swap (&ctx1l, esalt_bufs[SALT_POS_HOST].salt2_buf, esalt_bufs[SALT_POS_HOST].salt2_len);
+  sha1_update_global_utf16le_swap (&ctx2, esalt_bufs[SALT_POS_HOST].salt2_buf, esalt_bufs[SALT_POS_HOST].salt2_len);
 
-  sha1_update(&ctx1l, colon, 1);
-
-  sha1_update_global_utf16le_swap (&ctx1l, pws[gid].i, pws[gid].pw_len);
+  sha1_update(&ctx2, colon, 1);
 
   /**
    * loop
@@ -166,9 +163,13 @@ KERNEL_FQ void m09902_sxx (KERN_ATTR_ESALT (sha1_double_salt_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx1 = ctx1l;
+    pw_t tmp = PASTE_PW;
 
-    sha1_update_global_utf16le_swap (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+
+    sha1_ctx_t ctx1 = ctx2;
+
+    sha1_update_utf16le_swap (&ctx1, tmp.i, tmp.pw_len);
 
     sha1_final (&ctx1);
 

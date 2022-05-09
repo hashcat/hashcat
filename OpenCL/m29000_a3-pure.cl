@@ -3,16 +3,14 @@
  * License.....: MIT
  */
 
-//#define NEW_SIMD_CODE
+#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
-#include M2S(INCLUDE_PATH/inc_rp.h)
-#include M2S(INCLUDE_PATH/inc_rp.cl)
-#include M2S(INCLUDE_PATH/inc_scalar.cl)
+#include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
 
@@ -26,7 +24,7 @@ typedef struct sha1_double_salt
 
 } sha1_double_salt_t;
 
-KERNEL_FQ void m09902_mxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
+KERNEL_FQ void m29000_mxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
 {
   /**
    * modifier
@@ -41,7 +39,14 @@ KERNEL_FQ void m09902_mxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
    * base
    */
 
-  COPY_PW (pws[gid]);
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
   const u32 colon[16] = {0x3a000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -59,23 +64,32 @@ KERNEL_FQ void m09902_mxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
 
   sha1_update(&ctx2, colon, 1);
 
+
   /**
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
+  u32x w0l = w[0];
+
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    pw_t tmp = PASTE_PW;
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+    const u32x w0lr = w0l | w0r;
 
-    sha1_ctx_t ctx1 = ctx2;
+    w[0] = w0lr;
 
-    sha1_update_utf16le_swap (&ctx1, tmp.i, tmp.pw_len);
+    sha1_ctx_vector_t ctx1;
 
-    sha1_final (&ctx1);
+    sha1_init_vector_from_scalar (&ctx1, &ctx2);
 
-    sha1_ctx_t ctx = ctx0;
+    sha1_update_vector_utf16beN (&ctx1, w, pw_len);
+
+    sha1_final_vector (&ctx1);
+
+    sha1_ctx_vector_t ctx;
+
+    sha1_init_vector_from_scalar (&ctx, &ctx0);
 
     u32 w0[4];
     u32 w1[4];
@@ -99,20 +113,20 @@ KERNEL_FQ void m09902_mxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
     w3[2] = 0;
     w3[3] = 0;
 
-    sha1_update_64 (&ctx, w0, w1, w2, w3, 20);
+    sha1_update_vector_64 (&ctx, w0, w1, w2, w3, 20);
 
-    sha1_final (&ctx);
+    sha1_final_vector (&ctx);
 
-    const u32 r0 = ctx.h[DGST_R0];
-    const u32 r1 = ctx.h[DGST_R1];
-    const u32 r2 = ctx.h[DGST_R2];
-    const u32 r3 = ctx.h[DGST_R3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
-    COMPARE_M_SCALAR (r0, r1, r2, r3);
+    COMPARE_M_SIMD (r0, r1, r2, r3);
   }
 }
 
-KERNEL_FQ void m09902_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
+KERNEL_FQ void m29000_sxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
 {
   /**
    * modifier
@@ -139,7 +153,14 @@ KERNEL_FQ void m09902_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
    * base
    */
 
-  COPY_PW (pws[gid]);
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32x w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
   const u32 colon[16] = {0x3a000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
@@ -161,19 +182,27 @@ KERNEL_FQ void m09902_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
    * loop
    */
 
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
+  u32x w0l = w[0];
+
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
-    pw_t tmp = PASTE_PW;
+    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+    const u32x w0lr = w0l | w0r;
 
-    sha1_ctx_t ctx1 = ctx2;
+    w[0] = w0lr;
 
-    sha1_update_utf16le_swap (&ctx1, tmp.i, tmp.pw_len);
+    sha1_ctx_vector_t ctx1;
 
-    sha1_final (&ctx1);
+    sha1_init_vector_from_scalar (&ctx1, &ctx2);
 
-    sha1_ctx_t ctx = ctx0;
+    sha1_update_vector_utf16beN (&ctx1, w, pw_len);
+
+    sha1_final_vector (&ctx1);
+
+    sha1_ctx_vector_t ctx;
+
+    sha1_init_vector_from_scalar (&ctx, &ctx0);
 
     u32 w0[4];
     u32 w1[4];
@@ -197,15 +226,15 @@ KERNEL_FQ void m09902_sxx (KERN_ATTR_RULES_ESALT (sha1_double_salt_t))
     w3[2] = 0;
     w3[3] = 0;
 
-    sha1_update_64 (&ctx, w0, w1, w2, w3, 20);
+    sha1_update_vector_64 (&ctx, w0, w1, w2, w3, 20);
 
-    sha1_final (&ctx);
+    sha1_final_vector (&ctx);
 
-    const u32 r0 = ctx.h[DGST_R0];
-    const u32 r1 = ctx.h[DGST_R1];
-    const u32 r2 = ctx.h[DGST_R2];
-    const u32 r3 = ctx.h[DGST_R3];
+    const u32x r0 = ctx.h[DGST_R0];
+    const u32x r1 = ctx.h[DGST_R1];
+    const u32x r2 = ctx.h[DGST_R2];
+    const u32x r3 = ctx.h[DGST_R3];
 
-    COMPARE_S_SCALAR (r0, r1, r2, r3);
+    COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }
