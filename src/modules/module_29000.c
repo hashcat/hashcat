@@ -18,7 +18,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_5;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
-static const char *HASH_NAME      = "Radmin3";
+static const char *HASH_NAME      = "sha1($salt.sha1(utf16le($username).':'.utf16le($pass)))";
 static const u64   KERN_TYPE      = 29000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_EARLY_SKIP
