@@ -38,6 +38,7 @@
 - Fixed building error on Raspberry Pi
 - Fixed display problem of incorrect negative values in case of large numbers
 - Fixed display problem of the "Optimizers applied" list for algorithms using Register-Limit
+- Fixed example password output of --hash-info: force uppercase if OPTS_TYPE_PT_UPPER is set
 - Fixed false negative on hash-types 4510 and 4710 for hashes with long salts
 - Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
 - Fixed false negative on Unit Test with hash-type 25400
@@ -45,7 +46,6 @@
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
 - Fixed handling of devices in benchmark mode for "kernel build error". Instead of canceling, skip the device and move on to the next
 - Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
-- Fixed --hash-info example password output: force uppercase if OPTS_TYPE_PT_UPPER is set
 - Fixed memory leak in CPU rule engine
 - Fixed method of how OPTS_TYPE_AUX* kernels are called in an association attack, for example in WPA/WPA2 kernel
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
