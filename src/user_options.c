@@ -1107,7 +1107,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->debug_mode > 4)
+  if (user_options->debug_mode > 5)
   {
     event_log_error (hashcat_ctx, "Invalid --debug-mode value specified.");
 

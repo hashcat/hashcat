@@ -439,7 +439,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     pw_pre_t *pw_base = device_param->pws_base_buf + gidvid;
 
     // save rule
-    if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4))
+    if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))
     {
       const int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[pw_base->rule_idx]);
 
@@ -449,7 +449,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     }
 
     // save plain
-    if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
+    if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))
     {
       memcpy (debug_plain_ptr, pw_base->base_buf, pw_base->base_len);
 
@@ -471,7 +471,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     const u64 off = device_param->innerloop_pos + il_pos;
 
     // save rule
-    if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4))
+    if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))
     {
       const int len = kernel_rule_to_cpu_rule ((char *) debug_rule_buf, &straight_ctx->kernel_rules_buf[off]);
 
@@ -481,7 +481,7 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     }
 
     // save plain
-    if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4))
+    if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))
     {
       memcpy (debug_plain_ptr, (char *) pw.i, (size_t) plain_len);
 
