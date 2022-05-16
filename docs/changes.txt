@@ -92,6 +92,7 @@
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
 - Rules: Update hand-written rulesets to covers years up to 2029
 - Rules: Add new rulesets from T0XlC: T0XlCv2, T0XlC_3_rule, T0XlC_insert_HTLM_entities_0_Z
+- Rules: Add support to include source wordlist in debugging format
 - Status code: updated negative status code (added kernel create failure and resync)
 - Status code: updated negative status code, usefull in Unit tests engine (test.sh)
 - Terminal: show empty OpenCL platforms only in backend information mode

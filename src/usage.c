@@ -181,6 +181,7 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  2 | Original-Word",
   "  3 | Original-Word:Finding-Rule",
   "  4 | Original-Word:Finding-Rule:Processed-Word",
+  "  5 | Original-Word:Finding-Rule:Processed-Word:Wordlist",
   "",
   "- [ Attack Modes ] -",
   "",
