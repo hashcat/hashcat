@@ -87,7 +87,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int salt1_len = token.len[0];
   const int salt2_len = token.len[1];
-  const u8 *salt1_pos = token.buf[0];
   const u8 *salt2_pos = token.buf[1];
   const u8 *hash_pos = token.buf[2];
   const int hash_len = token.len[2];
