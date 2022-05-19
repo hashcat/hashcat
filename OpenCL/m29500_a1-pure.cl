@@ -17,10 +17,11 @@
 
 KERNEL_FQ void m29500_mxx (KERN_ATTR_BASIC ())
 {
+
   /**
    * modifier
    */
-  const u32 fixed[16] = 
+  const u32 fixed[16] =
   {
     0x636f6f6b,
     0x69652d73,
@@ -96,20 +97,19 @@ KERNEL_FQ void m29500_mxx (KERN_ATTR_BASIC ())
     }
 
     sha1_hmac_ctx_t ctx;
-    sha1_hmac_init_swap (&ctx, c, pw_len + comb_len);
+    sha1_hmac_init (&ctx, c, pw_len + comb_len);
     sha1_hmac_update (&ctx, fixed, 14);
     sha1_hmac_final (&ctx);
-
     u32 intermediate[16] = {0};
     intermediate[0] = ctx.opad.h[0];
     intermediate[1] = ctx.opad.h[1];
     intermediate[2] = ctx.opad.h[2];
     intermediate[3] = ctx.opad.h[3];
     intermediate[4] = ctx.opad.h[4];
-    sha1_hmac_init (&ctx, intermediate, 16);  
+    sha1_hmac_init (&ctx, intermediate, 16);
     sha1_hmac_update (&ctx, s, salt_len);
     sha1_hmac_final (&ctx);
-    const u32 r0 = ctx.opad.h[0]; 
+    const u32 r0 = ctx.opad.h[0];
     const u32 r1 = ctx.opad.h[1];
     const u32 r2 = ctx.opad.h[2];
     const u32 r3 = ctx.opad.h[3];
@@ -119,11 +119,11 @@ KERNEL_FQ void m29500_mxx (KERN_ATTR_BASIC ())
 
 KERNEL_FQ void m29500_sxx (KERN_ATTR_BASIC ())
 {
-  
+
   /**
    * modifier
    */
-  const u32 fixed[16] = 
+  const u32 fixed[16] =
   {
     0x636f6f6b,
     0x69652d73,
@@ -220,10 +220,10 @@ KERNEL_FQ void m29500_sxx (KERN_ATTR_BASIC ())
     intermediate[2] = ctx.opad.h[2];
     intermediate[3] = ctx.opad.h[3];
     intermediate[4] = ctx.opad.h[4];
-    sha1_hmac_init (&ctx, intermediate, 16);  
+    sha1_hmac_init (&ctx, intermediate, 16);
     sha1_hmac_update (&ctx, s, salt_len);
     sha1_hmac_final (&ctx);
-    const u32 r0 = ctx.opad.h[0]; 
+    const u32 r0 = ctx.opad.h[0];
     const u32 r1 = ctx.opad.h[1];
     const u32 r2 = ctx.opad.h[2];
     const u32 r3 = ctx.opad.h[3];
