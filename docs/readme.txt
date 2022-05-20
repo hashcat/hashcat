@@ -187,6 +187,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - NetNTLMv1 / NetNTLMv1+ESS (NT)
 - NetNTLMv2
 - NetNTLMv2 (NT)
+- Flask Session Cookie
 - iSCSI CHAP authentication, MD5(CHAP)
 - RACF
 - AIX {smd5}
