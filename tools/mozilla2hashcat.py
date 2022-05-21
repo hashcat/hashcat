@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #
 # Script to extract the "hash" from a password protected key3.db or key4.db file.
 #
@@ -6,7 +7,7 @@
 #
 # Tested with Python 3.8.5 and the following libraries: PyCryptodome 3.10.1 and pyasn1 0.4.8
 #
-# Author: 
+# Author:
 #   https://github.com/Banaanhangwagen
 #   https://github.com/mneitsabes
 # License: MIT
