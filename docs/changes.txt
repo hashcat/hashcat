@@ -29,6 +29,7 @@
 - Added parameter to Bitwarden mode for second iteration count
 - Added support to use 'John the Ripper' hash format with hash-type 13100
 - Added support to use 'John the Ripper' hash format with hash-type 18200
+- Added the hash extraction scripts from the tools folder also to beta/release versions
 - Added user advice if a hash throws 'token length exception'
 
 ##
