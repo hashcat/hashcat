@@ -1,5 +1,5 @@
 
-   
+
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
@@ -26,8 +26,7 @@ static const u64   KERN_TYPE      = 29500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_BE
-                                  | OPTS_TYPE_SELF_TEST_DISABLE;
+                                  | OPTS_TYPE_PT_GENERATE_BE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "eyJ1c2VybmFtZSI6ImFkbWluIn0.YjdgRQ.1OTlf1PD0H9wXsu_qS0aywAJVD8";
@@ -65,7 +64,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = 3;
 
   token.sep[0]     = '.';
-  token.len_min[0] = 0; 
+  token.len_min[0] = 0;
   token.len_max[0] = 27;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64C;
@@ -91,11 +90,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *hash_pos = token.buf[2];
   const int hash_len = token.len[2];
   const int salt_len = salt1_len + 1 + salt2_len;
-  
+
   const bool parse_rc = generic_salt_decode (hashconfig, salt2_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
-  
+
 
   memcpy (salt->salt_buf, line_buf, salt_len);
 
@@ -111,7 +110,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = byte_swap_32 (digest[2]);
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
-  
+
   return (PARSER_OK);
 }
 
@@ -134,7 +133,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   base64_encode (int_to_base64url, (const u8 *) tmp_buf, 48, (u8 *) ptr_plain);
 
   ptr_plain[27] = 0;
-  
+
 
   const int line_len = snprintf (line_buf, line_size, "%s.%s", (char *) salt->salt_buf, (char *) ptr_plain);
 
