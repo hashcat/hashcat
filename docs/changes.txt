@@ -108,6 +108,7 @@
 - Usage Screen: On windows console, wait for any keypress if usage_mini_print() is used
 - User Options: Add new module function module_hash_decode_postprocess() to override hash specific configurations from command line
 - User Options: Change --backend-info/-I option type, from bool to uint
+- Modules: New TrueCrypt modules (29311-29343) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/truecrypt2hashcat.py`).
 
 * changes v6.2.4 -> v6.2.5
 
