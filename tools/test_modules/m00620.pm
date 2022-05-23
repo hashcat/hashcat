@@ -19,7 +19,7 @@ sub module_generate_hash
 
   my $digest = blake2b_hex ($salt . $word);
 
-  my $hash = sprintf ("\$BLAKE2\$%s:%s", $digest, $salt);
+  my $hash = sprintf ("\$BLAKE2\$%s:%s", lc ($digest), $salt);
 
   return $hash;
 }
