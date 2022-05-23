@@ -10,13 +10,15 @@
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_rp.h)
+#include M2S(INCLUDE_PATH/inc_rp.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
 
-KERNEL_FQ void m29500_mxx (KERN_ATTR_BASIC ())
-{
 
+KERNEL_FQ void m29100_mxx (KERN_ATTR_BASIC ())
+{
   /**
    * modifier
    */
@@ -27,18 +29,8 @@ KERNEL_FQ void m29500_mxx (KERN_ATTR_BASIC ())
   if (gid >= GID_CNT) return;
 
   /**
-   * base
+   * digest
    */
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 w[64] = { 0 };
-
-  #pragma unroll
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = hc_swap32_S (pws[gid].i[idx]);
-  }
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
@@ -51,35 +43,23 @@ KERNEL_FQ void m29500_mxx (KERN_ATTR_BASIC ())
   };
 
   /**
+   * base
+   */
+
+  COPY_PW (pws[gid]);
+
+  /**
    * loop
    */
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
+    pw_t tmp = PASTE_PW;
 
-    u32 c[64];
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int idx = 0; idx < 64; idx++)
-    {
-      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-    }
-
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
-    {
-      c[i] |= w[i];
-    }
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     sha1_hmac_ctx_t ctx;
-    sha1_hmac_init (&ctx, c, pw_len + comb_len);
+    sha1_hmac_init_swap (&ctx, tmp.i, tmp.pw_len);
 
     // fixed: "cookie-session"
     ctx.ipad.w0[0] = 0x636f6f6b;
@@ -103,7 +83,7 @@ KERNEL_FQ void m29500_mxx (KERN_ATTR_BASIC ())
 
     sha1_hmac_final (&ctx);
 
-    u32 intermediate[16] = {0};
+    u32 intermediate[16] = { 0 };
 
     intermediate[0] = ctx.opad.h[0];
     intermediate[1] = ctx.opad.h[1];
@@ -124,9 +104,8 @@ KERNEL_FQ void m29500_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m29500_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m29100_sxx (KERN_ATTR_BASIC ())
 {
-
   /**
    * modifier
    */
@@ -148,20 +127,6 @@ KERNEL_FQ void m29500_sxx (KERN_ATTR_BASIC ())
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
-  /**
-   * base
-   */
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32 w[64] = { 0 };
-
-  #pragma unroll
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = hc_swap32_S (pws[gid].i[idx]);
-  }
-
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32 s[16] = { 0 };
@@ -173,35 +138,23 @@ KERNEL_FQ void m29500_sxx (KERN_ATTR_BASIC ())
   };
 
   /**
+   * base
+   */
+
+  COPY_PW (pws[gid]);
+
+  /**
    * loop
    */
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
+    pw_t tmp = PASTE_PW;
 
-    u32 c[64];
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int idx = 0; idx < 64; idx++)
-    {
-      c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-    }
-
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
-    {
-      c[i] |= w[i];
-    }
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
     sha1_hmac_ctx_t ctx;
-    sha1_hmac_init (&ctx, c, pw_len + comb_len);
+    sha1_hmac_init_swap (&ctx, tmp.i, tmp.pw_len);
 
     // fixed: "cookie-session"
     ctx.ipad.w0[0] = 0x636f6f6b;
@@ -225,7 +178,7 @@ KERNEL_FQ void m29500_sxx (KERN_ATTR_BASIC ())
 
     sha1_hmac_final (&ctx);
 
-    u32 intermediate[16] = {0};
+    u32 intermediate[16] = { 0 };
 
     intermediate[0] = ctx.opad.h[0];
     intermediate[1] = ctx.opad.h[1];
