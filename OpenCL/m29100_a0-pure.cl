@@ -17,7 +17,7 @@
 #endif
 
 
-KERNEL_FQ void m29100_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m29100_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -104,7 +104,7 @@ KERNEL_FQ void m29100_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m29100_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void m29100_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
