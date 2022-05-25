@@ -1,5 +1,3 @@
-
-
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
@@ -11,7 +9,6 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "emu_inc_hash_md5.h"
 #include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -64,7 +61,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = 3;
 
   token.sep[0]     = '.';
-  token.len_min[0] = 0;
+  token.len_min[0] =  0;
   token.len_max[0] = 27;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64C;
@@ -82,14 +79,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_BASE64C;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   const int salt1_len = token.len[0];
   const int salt2_len = token.len[1];
   const u8 *salt2_pos = token.buf[1];
-  const u8 *hash_pos = token.buf[2];
-  const int hash_len = token.len[2];
-  const int salt_len = salt1_len + 1 + salt2_len;
+  const u8 *hash_pos  = token.buf[2];
+  const int hash_len  = token.len[2];
+  const int salt_len  = salt1_len + 1 + salt2_len;
 
   const bool parse_rc = generic_salt_decode (hashconfig, salt2_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
@@ -100,9 +98,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 
   u8 tmp_buf[100] = { 0 };
+
   const int decoded_len = base64_decode (base64url_to_int, hash_pos, hash_len, tmp_buf);
+
   if (decoded_len != 20) return (PARSER_HASH_LENGTH);
+
   memcpy (digest_buf, tmp_buf, 20);
+
   u32 *digest = (u32 *) digest_buf;
 
   digest[0] = byte_swap_32 (digest[0]);
@@ -121,6 +123,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   char tmp_buf[128] = { 0 };
 
   char ptr_plain[128];
+
   u32 tmp[5];
 
   tmp[0] = byte_swap_32 (digest32[0]);
@@ -130,6 +133,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[4] = byte_swap_32 (digest32[4]);
 
   memcpy (tmp_buf, tmp, 20);
+
   base64_encode (int_to_base64url, (const u8 *) tmp_buf, 48, (u8 *) ptr_plain);
 
   ptr_plain[27] = 0;
