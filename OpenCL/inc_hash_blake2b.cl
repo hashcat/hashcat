@@ -660,6 +660,36 @@ DECLSPEC void blake2b_init_vector (PRIVATE_AS blake2b_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
+DECLSPEC void blake2b_init_vector_from_scalar(blake2b_ctx_vector_t* ctx, blake2b_ctx_t* ctx0) {
+  ctx->h[0] = ctx0->h[0];
+  ctx->h[1] = ctx0->h[1];
+  ctx->h[2] = ctx0->h[2];
+  ctx->h[3] = ctx0->h[3];
+  ctx->h[4] = ctx0->h[4];
+  ctx->h[5] = ctx0->h[5];
+  ctx->h[6] = ctx0->h[6];
+  ctx->h[7] = ctx0->h[7];
+
+  ctx->m[ 0] = ctx0->m[ 0];
+  ctx->m[ 1] = ctx0->m[ 1];
+  ctx->m[ 2] = ctx0->m[ 2];
+  ctx->m[ 3] = ctx0->m[ 3];
+  ctx->m[ 4] = ctx0->m[ 4];
+  ctx->m[ 5] = ctx0->m[ 5];
+  ctx->m[ 6] = ctx0->m[ 6];
+  ctx->m[ 7] = ctx0->m[ 7];
+  ctx->m[ 8] = ctx0->m[ 8];
+  ctx->m[ 9] = ctx0->m[ 9];
+  ctx->m[10] = ctx0->m[10];
+  ctx->m[11] = ctx0->m[11];
+  ctx->m[12] = ctx0->m[12];
+  ctx->m[13] = ctx0->m[13];
+  ctx->m[14] = ctx0->m[14];
+  ctx->m[15] = ctx0->m[15];
+
+  ctx->len = ctx0->len;
+}
+
 DECLSPEC void blake2b_update_vector_128 (PRIVATE_AS blake2b_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, const int len)
 {
   if (len == 0) return;
