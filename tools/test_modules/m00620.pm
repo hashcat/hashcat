@@ -10,7 +10,7 @@ use warnings;
 
 use Digest::BLAKE2 qw (blake2b_hex);
 
-sub module_constraints { [[0, 256], [0, 256], [0, 64], [0, 64], [0, 64]] }
+sub module_constraints { [[0, 127], [0, 127], [0, 55], [0, 55], [0, 55]] }
 
 sub module_generate_hash
 {
