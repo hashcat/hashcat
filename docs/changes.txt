@@ -14,6 +14,7 @@
 - Added hash-mode: Kerberos 5, etype 17, DB
 - Added hash-mode: Kerberos 5, etype 18, DB
 - Added hash-mode: PostgreSQL SCRAM-SHA-256
+- Added hash-mode: Radmin3
 - Added hash-mode: Teamspeak 3 (channel hash)
 - Added hash-mode: bcrypt(sha512($pass)) / bcryptsha512
 - Added hash-mode: sha1($salt.sha1(utf16le($username).':'.utf16le($pass)))
