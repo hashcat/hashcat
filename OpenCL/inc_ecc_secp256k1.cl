@@ -1743,7 +1743,9 @@ DECLSPEC void point_get_coords (PRIVATE_AS secp256k1_t *r, PRIVATE_AS const u32 
 DECLSPEC int convert_to_window_naf (PRIVATE_AS u32 *naf, PRIVATE_AS const u32 *k)
 {
   int loop_start = 0;
+
   u32 n[9];
+
   n[0] =    0; // we need this extra slot sometimes for the subtraction to work
   n[1] = k[7];
   n[2] = k[6];
@@ -1837,6 +1839,7 @@ DECLSPEC int convert_to_window_naf (PRIVATE_AS u32 *naf, PRIVATE_AS const u32 *k
     n[1] = n[1] >> 1 | n[0] << 31;
     n[0] = n[0] >> 1;
   }
+
   return loop_start;
 }
 
@@ -1850,7 +1853,8 @@ DECLSPEC int convert_to_window_naf (PRIVATE_AS u32 *naf, PRIVATE_AS const u32 *k
 DECLSPEC void point_mul_xy (PRIVATE_AS u32 *x1, PRIVATE_AS u32 *y1, PRIVATE_AS const u32 *k, GLOBAL_AS const secp256k1_t *tmps)
 {
   u32 naf[SECP256K1_NAF_SIZE] = { 0 };
-  int loop_start = convert_to_window_naf(naf, k);
+
+  int loop_start = convert_to_window_naf (naf, k);
 
   // first set:
 
@@ -1991,7 +1995,8 @@ DECLSPEC void point_mul (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *k, GLOBAL_AS c
 {
   u32 x[8];
   u32 y[8];
-  point_mul_xy(x, y, k, tmps);
+
+  point_mul_xy (x, y, k, tmps);
 
   /*
    * output:
@@ -2105,7 +2110,7 @@ DECLSPEC u32 parse_public (PRIVATE_AS secp256k1_t *r, PRIVATE_AS const u32 *k)
   x[6] = (k[1] & 0xff00) << 16 | (k[1] & 0xff0000) | (k[1] & 0xff000000) >> 16 | (k[2] & 0xff);
   x[7] = (k[0] & 0xff00) << 16 | (k[0] & 0xff0000) | (k[0] & 0xff000000) >> 16 | (k[1] & 0xff);
 
-  return transform_public(r, x, first_byte);
+  return transform_public (r, x, first_byte);
 }
 
 
