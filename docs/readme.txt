@@ -207,6 +207,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - BSDi Crypt, Extended DES
 - NTLM
 - Radmin2
+- Radmin3
 - Samsung Android Password/PIN
 - Windows Hello PIN/Password
 - Windows Phone 8+ PIN/password
