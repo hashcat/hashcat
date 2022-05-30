@@ -62,25 +62,6 @@ typedef struct radmin3
 
 } radmin3_t;
 
-// trick to include binary data file in assembly:
-// credits go to http://elm-chan.org/junk/32bit/binclude.html#inc_c
-
-#define INCLUDE_BIN(name, file) asm \
-(                                   \
-  ".section .rodata     \n"         \
-  ".balign 4            \n"         \
-  ".global "   name "   \n"         \
-               name ":  \n"         \
-  ".incbin \"" file "\" \n"         \
-  ".section .text       \n"         \
-)
-
-INCLUDE_BIN ("RADMIN3_PRE", "include/inc_radmin3_constants_pre.data");
-
-#undef INCLUDE_BIN
-
-extern const u32 RADMIN3_PRE[PRECOMP_DATALEN];
-
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 esalt_size = (const u64) sizeof (radmin3_t);
