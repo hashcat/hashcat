@@ -1,10 +1,12 @@
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
- * This algorithm for password-storage for the Radmin 3 software was analyzed and made public by synacktiv: 
+ *
+ * Further credits:
+ * The password-storage algorithm used by Radmin 3 was analyzed and made public
+ * by synacktiv:
  * https://www.synacktiv.com/publications/cracking-radmin-server-3-passwords.html
  */
-
 
 #include "common.h"
 #include "types.h"
