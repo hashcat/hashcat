@@ -26,7 +26,7 @@ typedef struct radmin3
   u32 user[64];
   u32 user_len;
 
-  u32 pre[PRECOMP_DATALEN]; // 38400 for PRECOMP_BITS = 4
+  u32 pre[PRECOMP_DATALEN]; // 1047552 * 4 bytes for PRECOMP_BITS = 10
 
 } radmin3_t;
 
