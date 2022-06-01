@@ -20,7 +20,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_32;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
-static const char *HASH_NAME      = "VeraCrypt Streebog-512 + XTS 1536 bit";
+static const char *HASH_NAME      = "VeraCrypt Streebog-512 + XTS 1536 bit (legacy)";
 static const u64   KERN_TYPE      = 13773;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64

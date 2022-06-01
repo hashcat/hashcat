@@ -145,8 +145,8 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "",
   "- [ Hash modes ] -",
   "",
-  "      # | Name                                                | Category",
-  "  ======+=====================================================+======================================",
+  "      # | Name                                                       | Category",
+  "  ======+============================================================+======================================",
   NULL
 };
 
@@ -345,7 +345,7 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
   for (int i = 0; i < usage_sort_cnt; i++)
   {
-    printf ("%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+    printf ("%7u | %-58s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
 
     fwrite (EOL, strlen (EOL), 1, stdout);
   }

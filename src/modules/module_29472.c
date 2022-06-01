@@ -20,19 +20,20 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_32;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
-static const char *HASH_NAME      = "VeraCrypt SHA256 + XTS 1024 bit (legacy)";
-static const u64   KERN_TYPE      = 13752;
+static const char *HASH_NAME      = "VeraCrypt Streebog-512 + XTS 1024 bit";
+static const u64   KERN_TYPE      = 13772; // old kernel used here
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_USES_BITS_64
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_BINARY_HASHFILE
                                   | OPTS_TYPE_LOOP_EXTENDED
                                   | OPTS_TYPE_MP_MULTI_DISABLE
-                                  | OPTS_TYPE_COPY_TMPS;
+                                  | OPTS_TYPE_COPY_TMPS
+                                  | OPTS_TYPE_MAXIMUM_THREADS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "1c3197f32dc5b72b4d60474a7a43afefb0d2e856a8fc4957c3fb1188b62cb0ca002f585c125bb33c5a5e85a665afae9fce15cb127c2fd9b5ee074a48fd95b3a58364dfd645968187d546443ba234f5cc40e78c4bdcd1e0c6d0a1208dd892442bc1dfe2a45bc4821e843bb6d9f4adf742c48c432daf0d4a51d42cafdfca281f0fab0caabde8005405840383bbfd8dbf227384891ffa501531549e0b9562c2dd77f0e6552d253acb20cbee9a75d17ec283a46006ee89cd53e3b538e054952ae6db7aac9f2f190590e697a2a8e22d080e88c32f4d27b5afe100647da2a5c80cfcb69e5a3db67cb2fcd86d89c1c53fab1bf3a287bb9002d092e75eb1fe6269a1603545dbf97b9d7fcc9485b6400f7b0abaccc31642cefd83f037e7314c6990c51af24ae894cc1c49a09d18f3ad91b3ef37ae5414fef280ec776d9c0bf84b2eb312c8cb0046bedf6f29b4aab30cdb34333f613000a39bf650341cbf33bdd47ba7bd9be8108a1254390b045d82b208d21aa45de7ca399f8e91845b9ffb47d9e6eeb506965622a2e842ec6897277388cbb6ca2a50117e228e84bebd98f9aba40f38dc3bce3b576cb08596836e50ef276ee3a76b8ce76735fd172e9bae284aa83e2677dac56e4624e66604a90e2e3ae704c64a0f27b51ce9e472891bbc212b4a6055e4482b2e6963507f9ffb477224372289fcfee5764a5f4bc7307a509e7c37c69b4857";
+static const char *ST_HASH        = "$veracrypt$0f5da0b17c60edcd392058752ec29c389b140b54cd1f94de43dccea703b1fd37936e75a500b7f9d4e94e7f214c4696c051be9697792a856ebf9c0f5a598cf8ba$5621e49c7505eba3b4738acdc860b6ed648f52e5b673ae06bb04616de438a090ab19abea11c30984ead06859de9b7aec8e436c40816f67a56cb53d5f125e58c42225315a4bf494da8128f0df924bcf6ad4b91c9efc5cb0be67cb0cd753c392388d780f57aba39197513a191cc684e9ebee41bc901dd99e9a625141cf98e55e8f74d838baea3bf8f411b85c14eff8cddd1720c2539eef7a38a72c4ed9745a05476b6a16bcda2a5391c94b6f499e3bea64ff412d03d060741e938ed3dc905d8bd6dbb2420e9277251ebe3421be389ea8b02782baeb258b9ec7e0732b3817ee6da58209871aee4e16d57a132c6215782364570238157d8a7fdcd29f54ab2295f68d027dc9f2e0c951afad7500cafe3219e6530699918ac55f4fa1141bc3596155b05bae2fdc8b0a5438edeb5bb0cfac592565b20645be90b406a1fd59846957e7539fd8423bfd4c7ae7d608aacb084ae887baa1a83b14afff8d2063565086c66e293234a8667af39642b90a38c3a5bd4fa8a787c60f73882535c9b34cb7b243465dcc32aff29cee0e741ff059c6acd8ddcbdb3cfafecdcd0f45c84dd871be4fbffd5ac2ab9e01898009adcf7d932c37d6568ad875e4d6ea15db29a1e8ba5a4e86bd";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -49,23 +50,25 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-#define VC_SALT_LEN   64
-#define VC_DATA_LEN   448
-#define VC_HEADER_LEN 512
+#define VC_SALT_LEN 64
+#define VC_DATA_LEN 448
 
-typedef struct vc_tmp
+typedef struct vc64_sbog_tmp
 {
-  u32 ipad[16];
-  u32 opad[16];
+  u64  ipad_raw[8];
+  u64  opad_raw[8];
 
-  u32 dgst[64];
-  u32 out[64];
+  u64  ipad_hash[8];
+  u64  opad_hash[8];
 
-  u32 pim_key[64];
+  u64  dgst[32];
+  u64  out[32];
+
+  u64 pim_key[32];
   int pim; // marker for cracked
   int pim_check; // marker for _extended kernel
 
-} vc_tmp_t;
+} vc64_sbog_tmp_t;
 
 typedef struct vc
 {
@@ -86,13 +89,20 @@ typedef struct vc
 
 static const int   ROUNDS_VERACRYPT_500000     = 500000;
 static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
+static const char *SIGNATURE_VERACRYPT         = "$veracrypt$";
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    if (device_param->is_metal == false)
+    return true;
+  }
+
+  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  {
+    // self-test failed
+    if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
     {
       return true;
     }
@@ -101,51 +111,18 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return false;
 }
 
-char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  char *jit_build_options = NULL;
-
-  // Extra treatment for Apple systems
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
-  {
-    return jit_build_options;
-  }
-
-  // NVIDIA GPU
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
-  {
-    hc_asprintf (&jit_build_options, "-D _unroll");
-  }
-
-  return jit_build_options;
-}
-
 int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
 {
-  const vc_tmp_t *vc_tmp = (const vc_tmp_t *) tmps;
+  const vc64_sbog_tmp_t *vc64_sbog_tmp = (const vc64_sbog_tmp_t *) tmps;
 
-  if (vc_tmp->pim == 0)
+  if (vc64_sbog_tmp->pim == 0)
   {
     return snprintf ((char *) dst_buf, dst_sz, "%s", (char *) src_buf);
   }
   else
   {
-    return snprintf ((char *) dst_buf, dst_sz, "%s   (PIM=%d)", (char *) src_buf, vc_tmp->pim - 15);
+    return snprintf ((char *) dst_buf, dst_sz, "%s   (PIM=%d)", (char *) src_buf, vc64_sbog_tmp->pim - 15);
   }
-}
-
-bool module_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool potfile_disable = true;
-
-  return potfile_disable;
-}
-
-bool module_outfile_check_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool outfile_check_disable = true;
-
-  return outfile_check_disable;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -157,7 +134,7 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (vc_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (vc64_sbog_tmp_t);
 
   return tmp_size;
 }
@@ -179,55 +156,91 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return pw_max;
 }
 
-int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash_t *hash)
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
-  const size_t st_hash_len = strlen (hashconfig->st_hash);
+  u32 *digest = (u32 *) digest_buf;
 
-  char *tmpdata = (char *) hcmalloc (st_hash_len / 2);
+  vc_t *vc = (vc_t *) esalt_buf;
 
-  for (size_t i = 0, j = 0; j < st_hash_len; i += 1, j += 2)
+  hc_token_t token;
+
+  token.token_cnt  = 3;
+
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_VERACRYPT;
+
+  token.len[0]     = 11;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.sep[1]     = '$';
+  token.len_min[1] = 128;
+  token.len_max[1] = 128;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.sep[2]     = '$';
+  token.len_min[2] = 896;
+  token.len_max[2] = 896;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  // salt
+
+  const u8 *salt_pos = token.buf[1];
+
+  for (u32 i = 0, j = 0; i < VC_SALT_LEN / 4; i += 1, j += 8)
   {
-    const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + j);
-
-    tmpdata[i] = c;
+    salt->salt_buf[i] = hex_to_u32 (salt_pos + j);
   }
 
-  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, tmpdata, st_hash_len / 2);
+  salt->salt_len = VC_SALT_LEN;
 
-  hcfree (tmpdata);
+  // iter
 
-  return parser_status;
+  salt->salt_iter = ROUNDS_VERACRYPT_500000 - 1;
+
+  // data
+
+  const u8 *data_pos = token.buf[2];
+
+  for (u32 i = 0, j = 0; i < VC_DATA_LEN / 4; i += 1, j += 8)
+  {
+    vc->data_buf[i] = hex_to_u32 (data_pos + j);
+  }
+
+  // entropy
+
+  const float entropy = get_entropy ((const u8 *) vc->data_buf, VC_DATA_LEN);
+
+  if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
+
+  // pim
+
+  vc->pim_multi = 1000;
+  vc->pim_start = 0;
+  vc->pim_stop  = 0;
+
+  // signature
+
+  vc->signature = 0x41524556; // "VERA"
+
+  // fake digest
+
+  memcpy (digest, vc->data_buf, 112);
+
+  return (PARSER_OK);
 }
 
-int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, hashes_t *hashes)
+int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // note: if module_hash_binary_parse exists, then module_hash_decode is not called
-
-  HCFILE fp;
-
-  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return (PARSER_HAVE_ERRNO);
-
-  char *in = (char *) hcmalloc (VC_HEADER_LEN);
-
-  const size_t n = hc_fread (in, 1, VC_HEADER_LEN, &fp);
-
-  hc_fclose (&fp);
-
-  if (n != VC_HEADER_LEN) return (PARSER_VC_FILE_SIZE);
-
-  hash_t *hashes_buf = hashes->hashes_buf;
-
-  hash_t *hash = &hashes_buf[0];
-
-  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, in, VC_HEADER_LEN);
-
-  if (parser_status != PARSER_OK) return 0;
-
-  hcfree (in);
+  vc_t *vc = (vc_t *) esalt_buf;
 
   // keyfiles
-
-  vc_t *vc = (vc_t *) hash->esalt;
 
   if (user_options->veracrypt_keyfiles)
   {
@@ -265,8 +278,6 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   // veracrypt PIM
 
-  salt_t *salt = hash->salt;
-
   if ((user_options->veracrypt_pim_start_chgd == true) && (user_options->veracrypt_pim_stop_chgd == true))
   {
     vc->pim_start = 15 + user_options->veracrypt_pim_start;
@@ -275,50 +286,43 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     salt->salt_iter = vc->pim_stop * 1000 - 1;
   }
 
-  return 1;
+  return (PARSER_OK);
 }
 
-int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
+int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  u32 *digest = (u32 *) digest_buf;
-
   vc_t *vc = (vc_t *) esalt_buf;
-
-  // entropy
-
-  const float entropy = get_entropy ((const u8 *) line_buf, line_len);
-
-  if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
   // salt
 
-  memcpy (salt->salt_buf, line_buf, VC_SALT_LEN);
+  #define SALT_HEX_LEN VC_SALT_LEN * 2 + 1
 
-  salt->salt_len = VC_SALT_LEN;
+  char salt_buf[SALT_HEX_LEN] = { 0 };
 
-  // iter
-
-  salt->salt_iter = ROUNDS_VERACRYPT_500000 - 1;
-
-  // pim
-
-  vc->pim_multi = 1000;
-  vc->pim_start = 0;
-  vc->pim_stop  = 0;
+  for (u32 i = 0, j = 0; i < VC_SALT_LEN / 4; i += 1, j += 8)
+  {
+    snprintf (salt_buf + j, SALT_HEX_LEN - j, "%08x", byte_swap_32 (salt->salt_buf[i]));
+  }
 
   // data
 
-  memcpy (vc->data_buf, line_buf + VC_SALT_LEN, VC_DATA_LEN);
+  #define DATA_HEX_LEN VC_DATA_LEN * 2 + 1
 
-  // signature
+  char data_buf[DATA_HEX_LEN] = { 0 };
 
-  vc->signature = 0x41524556; // "VERA"
+  for (u32 i = 0, j = 0; i < VC_DATA_LEN / 4; i += 1, j += 8)
+  {
+    snprintf (data_buf + j, DATA_HEX_LEN - j, "%08x", byte_swap_32 (vc->data_buf[i]));
+  }
 
-  // fake digest
+  // output
 
-  memcpy (digest, vc->data_buf, 112);
+  int line_len = snprintf (line_buf, line_size, "%s%s$%s",
+    SIGNATURE_VERACRYPT,
+    salt_buf,
+    data_buf);
 
-  return (PARSER_OK);
+  return line_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -346,16 +350,16 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
-  module_ctx->module_hash_binary_parse        = module_hash_binary_parse;
+  module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
-  module_ctx->module_hash_decode_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_postprocess  = module_hash_decode_postprocess;
   module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
   module_ctx->module_hash_decode              = module_hash_decode;
   module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
   module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
-  module_ctx->module_hash_encode              = MODULE_DEFAULT;
-  module_ctx->module_hash_init_selftest       = module_hash_init_selftest;
+  module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
   module_ctx->module_hash_mode                = MODULE_DEFAULT;
   module_ctx->module_hash_category            = module_hash_category;
   module_ctx->module_hash_name                = module_hash_name;
@@ -369,7 +373,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
-  module_ctx->module_jit_build_options        = module_jit_build_options;
+  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
@@ -381,10 +385,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;
   module_ctx->module_opts_type                = module_opts_type;
-  module_ctx->module_outfile_check_disable    = module_outfile_check_disable;
+  module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
   module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
-  module_ctx->module_potfile_disable          = module_potfile_disable;
+  module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
