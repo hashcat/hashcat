@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
@@ -48,7 +48,7 @@ KERNEL_FQ void m29000_mxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 colon[16] = {0x3a000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  const u32 colon[16] = { 0x3a000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   sha1_ctx_t ctx0;
 
@@ -62,8 +62,7 @@ KERNEL_FQ void m29000_mxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
 
   sha1_update_global_utf16le_swap (&ctx2, esalt_bufs[SALT_POS_HOST].salt2_buf, esalt_bufs[SALT_POS_HOST].salt2_len);
 
-  sha1_update(&ctx2, colon, 1);
-
+  sha1_update (&ctx2, colon, 1);
 
   /**
    * loop
@@ -162,7 +161,7 @@ KERNEL_FQ void m29000_sxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
     w[idx] = pws[gid].i[idx];
   }
 
-  const u32 colon[16] = {0x3a000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  const u32 colon[16] = { 0x3a000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
   sha1_ctx_t ctx0;
 
@@ -176,7 +175,7 @@ KERNEL_FQ void m29000_sxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
 
   sha1_update_global_utf16le_swap (&ctx2, esalt_bufs[SALT_POS_HOST].salt2_buf, esalt_bufs[SALT_POS_HOST].salt2_len);
 
-  sha1_update(&ctx2, colon, 1);
+  sha1_update (&ctx2, colon, 1);
 
   /**
    * loop
