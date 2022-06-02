@@ -18,7 +18,7 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_8_8;
+static const u32   DGST_SIZE      = DGST_SIZE_4_32;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
 static const char *HASH_NAME      = "TrueCrypt SHA512 + XTS 512 bit";
 static const u64   KERN_TYPE      = 6221;
@@ -48,6 +48,10 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+#define TC_SALT_LEN   64
+#define TC_DATA_LEN   448
+#define TC_HEADER_LEN 512
+
 typedef struct tc64_tmp
 {
   u64  ipad[8];
@@ -60,7 +64,6 @@ typedef struct tc64_tmp
 
 typedef struct tc
 {
-  u32 salt_buf[32];
   u32 data_buf[112];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
@@ -222,23 +225,33 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tc_t *tc = (tc_t *) esalt_buf;
 
+  // entropy
+
   const float entropy = get_entropy ((const u8 *) line_buf, line_len);
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
-  memcpy (tc->salt_buf, line_buf, 64);
+  // salt
 
-  memcpy (tc->data_buf, line_buf + 64, 512 - 64);
+  memcpy (salt->salt_buf, line_buf, TC_SALT_LEN);
 
-  salt->salt_buf[0] = tc->salt_buf[0];
+  salt->salt_len = TC_SALT_LEN;
 
-  salt->salt_len = 4;
+  // iter
 
   salt->salt_iter = ROUNDS_TRUECRYPT_1K - 1;
 
+  // data
+
+  memcpy (tc->data_buf, line_buf + TC_SALT_LEN, TC_DATA_LEN);
+
+  // signature
+
   tc->signature = 0x45555254; // "TRUE"
 
-  digest[0] = tc->data_buf[0];
+  // fake digest
+
+  memcpy (digest, tc->data_buf, 112);
 
   return (PARSER_OK);
 }

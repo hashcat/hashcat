@@ -18,7 +18,7 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_5;
+static const u32   DGST_SIZE      = DGST_SIZE_4_32;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
 static const char *HASH_NAME      = "TrueCrypt RIPEMD160 + XTS 1024 bit";
 static const u64   KERN_TYPE      = 6212;
@@ -46,6 +46,10 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+#define TC_SALT_LEN   64
+#define TC_DATA_LEN   448
+#define TC_HEADER_LEN 512
+
 typedef struct tc_tmp
 {
   u32 ipad[16];
@@ -58,7 +62,6 @@ typedef struct tc_tmp
 
 typedef struct tc
 {
-  u32 salt_buf[32];
   u32 data_buf[112];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
@@ -140,8 +143,6 @@ int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash
 
   const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, tmpdata, st_hash_len / 2);
 
-
-
   hcfree (tmpdata);
 
   return parser_status;
@@ -155,21 +156,19 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return (PARSER_HAVE_ERRNO);
 
-  #define TC_HEADER_SIZE 512
+  char *in = (char *) hcmalloc (TC_HEADER_LEN);
 
-  char *in = (char *) hcmalloc (TC_HEADER_SIZE);
-
-  const size_t n = hc_fread (in, 1, TC_HEADER_SIZE, &fp);
+  const size_t n = hc_fread (in, 1, TC_HEADER_LEN, &fp);
 
   hc_fclose (&fp);
 
-  if (n != TC_HEADER_SIZE) return (PARSER_TC_FILE_SIZE);
+  if (n != TC_HEADER_LEN) return (PARSER_TC_FILE_SIZE);
 
   hash_t *hashes_buf = hashes->hashes_buf;
 
   hash_t *hash = &hashes_buf[0];
 
-  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, in, TC_HEADER_SIZE);
+  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, in, TC_HEADER_LEN);
 
   if (parser_status != PARSER_OK) return 0;
 
@@ -222,23 +221,33 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tc_t *tc = (tc_t *) esalt_buf;
 
+  // entropy
+
   const float entropy = get_entropy ((const u8 *) line_buf, line_len);
 
   if (entropy < MIN_SUFFICIENT_ENTROPY_FILE) return (PARSER_INSUFFICIENT_ENTROPY);
 
-  memcpy (tc->salt_buf, line_buf, 64);
+  // salt
 
-  memcpy (tc->data_buf, line_buf + 64, 512 - 64);
+  memcpy (salt->salt_buf, line_buf, TC_SALT_LEN);
 
-  salt->salt_buf[0] = tc->salt_buf[0];
+  salt->salt_len = TC_SALT_LEN;
 
-  salt->salt_len = 4;
+  // iter
 
   salt->salt_iter = ROUNDS_TRUECRYPT_2K - 1;
 
+  // data
+
+  memcpy (tc->data_buf, line_buf + TC_SALT_LEN, TC_DATA_LEN);
+
+  // signature
+
   tc->signature = 0x45555254; // "TRUE"
 
-  digest[0] = tc->data_buf[0];
+  // fake digest
+
+  memcpy (digest, tc->data_buf, 112);
 
   return (PARSER_OK);
 }

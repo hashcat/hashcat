@@ -19,7 +19,6 @@
 
 typedef struct tc
 {
-  u32 salt_buf[32];
   u32 data_buf[112];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
@@ -291,7 +290,7 @@ KERNEL_FQ void m06232_init (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   tmps[gid].opad[14] = whirlpool_hmac_ctx.opad.h[14];
   tmps[gid].opad[15] = whirlpool_hmac_ctx.opad.h[15];
 
-  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, 64);
+  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, 64);
 
   for (u32 i = 0, j = 1; i < 32; i += 16, j += 1)
   {
@@ -646,27 +645,27 @@ KERNEL_FQ void m06232_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   ukey2[6] = hc_swap32_S (tmps[gid].out[14]);
   ukey2[7] = hc_swap32_S (tmps[gid].out[15]);
 
-  if (verify_header_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
+  if (verify_header_serpent (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, ukey1, ukey2) == 1)
   {
-    if (hc_atomic_inc (&hashes_shown[0]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_twofish (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2) == 1)
+  if (verify_header_twofish (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, ukey1, ukey2) == 1)
   {
-    if (hc_atomic_inc (&hashes_shown[0]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_aes (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, ukey1, ukey2, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    if (hc_atomic_inc (&hashes_shown[0]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 
@@ -692,27 +691,27 @@ KERNEL_FQ void m06232_comp (KERN_ATTR_TMPS_ESALT (tc_tmp_t, tc_t))
   ukey4[6] = hc_swap32_S (tmps[gid].out[30]);
   ukey4[7] = hc_swap32_S (tmps[gid].out[31]);
 
-  if (verify_header_serpent_aes (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_serpent_aes (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    if (hc_atomic_inc (&hashes_shown[0]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_twofish_serpent (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, ukey3, ukey4) == 1)
+  if (verify_header_twofish_serpent (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, ukey1, ukey2, ukey3, ukey4) == 1)
   {
-    if (hc_atomic_inc (&hashes_shown[0]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 
-  if (verify_header_aes_twofish (esalt_bufs[0].data_buf, esalt_bufs[0].signature, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
+  if (verify_header_aes_twofish (esalt_bufs[DIGESTS_OFFSET_HOST].data_buf, esalt_bufs[DIGESTS_OFFSET_HOST].signature, ukey1, ukey2, ukey3, ukey4, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) == 1)
   {
-    if (hc_atomic_inc (&hashes_shown[0]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 }
