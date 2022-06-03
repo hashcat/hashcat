@@ -110,7 +110,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-
   // user name:
 
   if ((token.len[1] % 2) != 0) return (PARSER_SALT_LENGTH);
@@ -132,7 +131,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     esalt->user[i] = byte_swap_32 (esalt->user[i]);
   }
 
-
   // salt (for salted SHA1):
 
   if ((token.len[2] % 2) != 0) return (PARSER_SALT_LENGTH);
@@ -149,7 +147,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     salt->salt_buf[i] = byte_swap_32 (salt->salt_buf[i]);
   }
-
 
   // verifier:
 
@@ -170,7 +167,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     salt->salt_buf_pc[i] = byte_swap_32 (t2);
   }
 
-
   // digest
 
   // convert our verifier to Montgomery form (s.t. we avoid converting it back on GPU):
@@ -183,7 +179,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[1] = dgst[1];
   digest[2] = dgst[2];
   digest[3] = dgst[3];
-
 
   /*
    * pre-computed values for BigNum exponentiation:
