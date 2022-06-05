@@ -36773,6 +36773,44 @@ DECLSPEC void make_utf16be_S (PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out1, PR
   #endif
 }
 
+DECLSPEC void make_utf16beN_S (PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out1, PRIVATE_AS u32 *out2)
+{
+  #if defined IS_NV
+
+  out2[3] = hc_byte_perm_S (in[3], 0, 0x1707);
+  out2[2] = hc_byte_perm_S (in[3], 0, 0x3727);
+  out2[1] = hc_byte_perm_S (in[2], 0, 0x1707);
+  out2[0] = hc_byte_perm_S (in[2], 0, 0x3727);
+  out1[3] = hc_byte_perm_S (in[1], 0, 0x1707);
+  out1[2] = hc_byte_perm_S (in[1], 0, 0x3727);
+  out1[1] = hc_byte_perm_S (in[0], 0, 0x1707);
+  out1[0] = hc_byte_perm_S (in[0], 0, 0x3727);
+
+  #elif (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
+
+  out2[3] = hc_byte_perm_S (in[3], 0, 0x01070007);
+  out2[2] = hc_byte_perm_S (in[3], 0, 0x03070207);
+  out2[1] = hc_byte_perm_S (in[2], 0, 0x01070007);
+  out2[0] = hc_byte_perm_S (in[2], 0, 0x03070207);
+  out1[3] = hc_byte_perm_S (in[1], 0, 0x01070007);
+  out1[2] = hc_byte_perm_S (in[1], 0, 0x03070207);
+  out1[1] = hc_byte_perm_S (in[0], 0, 0x01070007);
+  out1[0] = hc_byte_perm_S (in[0], 0, 0x03070207);
+
+  #else
+
+  out2[3] = ((in[3] << 16) & 0xFF000000) | ((in[3] << 8) & 0x0000FF00);
+  out2[2] = ((in[3] >>  0) & 0xFF000000) | ((in[3] >> 8) & 0x0000FF00);
+  out2[1] = ((in[2] << 16) & 0xFF000000) | ((in[2] << 8) & 0x0000FF00);
+  out2[0] = ((in[2] >>  0) & 0xFF000000) | ((in[2] >> 8) & 0x0000FF00);
+  out1[3] = ((in[1] << 16) & 0xFF000000) | ((in[1] << 8) & 0x0000FF00);
+  out1[2] = ((in[1] >>  0) & 0xFF000000) | ((in[1] >> 8) & 0x0000FF00);
+  out1[1] = ((in[0] << 16) & 0xFF000000) | ((in[0] << 8) & 0x0000FF00);
+  out1[0] = ((in[0] >>  0) & 0xFF000000) | ((in[0] >> 8) & 0x0000FF00);
+
+  #endif
+}
+
 DECLSPEC void make_utf16le_S (PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out1, PRIVATE_AS u32 *out2)
 {
   #if defined IS_NV

@@ -315,6 +315,7 @@ DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len
 DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
 DECLSPEC void make_utf16be (PRIVATE_AS const u32x *in, PRIVATE_AS u32x *out1, PRIVATE_AS u32x *out2);
 DECLSPEC void make_utf16beN (PRIVATE_AS const u32x *in, PRIVATE_AS u32x *out1, PRIVATE_AS u32x *out2);
+DECLSPEC void make_utf16beN_S (PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out1, PRIVATE_AS u32 *out2);
 DECLSPEC void make_utf16le (PRIVATE_AS const u32x *in, PRIVATE_AS u32x *out1, PRIVATE_AS u32x *out2);
 DECLSPEC void make_utf16leN (PRIVATE_AS const u32x *in, PRIVATE_AS u32x *out1, PRIVATE_AS u32x *out2);
 DECLSPEC void undo_utf16be (PRIVATE_AS const u32x *in1, PRIVATE_AS const u32x *in2, PRIVATE_AS u32x *out);

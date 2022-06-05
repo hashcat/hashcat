@@ -99,6 +99,7 @@ DECLSPEC void sha1_update_utf16le (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const 
 DECLSPEC void sha1_update_utf16le_swap (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha1_update_utf16be (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha1_update_utf16be_swap (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha1_update_utf16beN (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha1_update_global (PRIVATE_AS sha1_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha1_update_global_swap (PRIVATE_AS sha1_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha1_update_global_utf16le (PRIVATE_AS sha1_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
