@@ -110,13 +110,11 @@ KERNEL_FQ void m29200_mxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
 
     // add password to the user name (and colon, included):
 
-    sha1_ctx_vector_t c0;
+    sha1_ctx_t c0 = ctx0;
 
-    sha1_init_vector_from_scalar (&c0, &ctx0);
+    sha1_update_utf16beN (&c0, w, pw_len);
 
-    sha1_update_vector_utf16beN (&c0, w, pw_len);
-
-    sha1_final_vector (&c0);
+    sha1_final (&c0);
 
 
     // add first SHA1 result to main salt:
@@ -351,13 +349,11 @@ KERNEL_FQ void m29200_sxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
 
     // add password to the user name (and colon, included):
 
-    sha1_ctx_vector_t c0;
+    sha1_ctx_t c0 = ctx0;
 
-    sha1_init_vector_from_scalar (&c0, &ctx0);
+    sha1_update_utf16beN (&c0, w, pw_len);
 
-    sha1_update_vector_utf16beN (&c0, w, pw_len);
-
-    sha1_final_vector (&c0);
+    sha1_final (&c0);
 
 
     // add first SHA1 result to main salt:
