@@ -296,14 +296,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[2] = 5;
-  token.len_max[2] = 5;
+  token.len_min[2] = 1;
+  token.len_max[2] = 10;
   token.sep[2]     = '*';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.len_min[3] = 1;
-  token.len_max[3] = 1;
+  token.len_max[3] = 2;
   token.sep[3]     = '*';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
@@ -340,23 +340,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 scrypt_n = hc_strtoul ((const char *) scrypt_n_pos, NULL, 10);
 
-  if (scrypt_n != SCRYPT_N) return (PARSER_SALT_VALUE);
-
   const u8 *scrypt_r_pos = token.buf[3];
 
   const u32 scrypt_r = hc_strtoul ((const char *) scrypt_r_pos, NULL, 10);
-
-  if (scrypt_r != SCRYPT_R) return (PARSER_SALT_VALUE);
 
   const u8 *scrypt_p_pos = token.buf[4];
 
   const u32 scrypt_p = hc_strtoul ((const char *) scrypt_p_pos, NULL, 10);
 
-  if (scrypt_p != SCRYPT_P) return (PARSER_SALT_VALUE);
-
-  salt->scrypt_N = SCRYPT_N;
-  salt->scrypt_r = SCRYPT_R;
-  salt->scrypt_p = SCRYPT_P;
+  salt->scrypt_N = scrypt_n;
+  salt->scrypt_r = scrypt_r;
+  salt->scrypt_p = scrypt_p;
 
   salt->salt_iter    = salt->scrypt_N;
   salt->salt_repeats = salt->scrypt_p - 1;
@@ -404,9 +398,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int line_len = snprintf (line_buf, line_size, "%s%u*%" PRIu64 "*%" PRIu64 "*%" PRIu64 "*%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
     SIGNATURE_MULTIBIT,
     3,
-    SCRYPT_N,
-    SCRYPT_R,
-    SCRYPT_P,
+    salt->scrypt_N,
+    salt->scrypt_r,
+    salt->scrypt_p,
     salt->salt_buf[0],
     salt->salt_buf[1],
     byte_swap_32 (salt->salt_buf[2]),
