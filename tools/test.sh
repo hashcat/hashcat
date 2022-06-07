@@ -13,7 +13,7 @@ RUNTIME=400
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # List of TrueCrypt modes which have test containers
-TC_MODES="6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243"
+TC_MODES="6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 29311 29312 29313 29321 29322 29323 29331 29332 29333 29341 29342 29343"
 
 # List of VeraCrypt modes which have test containers
 VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 13743 13751 13752 13753 13761 13762 13763 13771 13772 13773 13781 13782 13783"
@@ -2681,6 +2681,9 @@ function truecrypt_test()
   tcMode=$2
   CMD="unset"
 
+  mkdir -p ${OUTD}/tc_tests
+  chmod u+x "${TDIR}/truecrypt2hashcat.py"
+
   case $hashType in
 
     6211)
@@ -2829,6 +2832,186 @@ function truecrypt_test()
       case $tcMode in
         0)
           CMD="./${BIN} ${OPTS} -a 3 -m 6243 '${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.tc' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29311)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_aes.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash' hashca?l"
+          ;;
+        2)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29312)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash' hashca?l"
+          ;;
+        2)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29313)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29321)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_aes.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_serpent.hash' hashca?l"
+          ;;
+        2)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_twofish.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29322)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash' hashca?l"
+          ;;
+        2)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29323)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29331)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_aes.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash' hashca?l"
+          ;;
+        2)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29332)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash' hashca?l"
+          ;;
+        2)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29333)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29341)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash' hashca?l"
+          ;;
+        2)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29342)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash' hashca?l"
+          ;;
+        1)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash' hashca?l"
+          ;;
+      esac
+      ;;
+
+    29343)
+      case $tcMode in
+        0)
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash
+          CMD="./${BIN} ${OPTS} -a 3 -m 29343 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash' hashca?l"
           ;;
       esac
       ;;
