@@ -40,6 +40,8 @@ KERNEL_FQ void m29200_mxx (KERN_ATTR_RULES_ESALT (radmin3_t))
 
   const u64 gid = get_global_id (0);
 
+  if (gid >= GID_CNT) return;
+
 
   /**
    * base
@@ -293,6 +295,8 @@ KERNEL_FQ void m29200_sxx (KERN_ATTR_RULES_ESALT (radmin3_t))
    */
 
   const u64 gid = get_global_id (0);
+
+  if (gid >= GID_CNT) return;
 
 
   /**
