@@ -78,17 +78,13 @@ KERNEL_FQ void m29000_mxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
 
     w[0] = w0lr;
 
-    sha1_ctx_vector_t ctx1;
+    sha1_ctx_t ctx1 = ctx2;
 
-    sha1_init_vector_from_scalar (&ctx1, &ctx2);
+    sha1_update_utf16beN (&ctx1, w, pw_len);
 
-    sha1_update_vector_utf16beN (&ctx1, w, pw_len);
+    sha1_final (&ctx1);
 
-    sha1_final_vector (&ctx1);
-
-    sha1_ctx_vector_t ctx;
-
-    sha1_init_vector_from_scalar (&ctx, &ctx0);
+    sha1_ctx_t ctx = ctx0;
 
     u32 w0[4];
     u32 w1[4];
@@ -112,9 +108,9 @@ KERNEL_FQ void m29000_mxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
     w3[2] = 0;
     w3[3] = 0;
 
-    sha1_update_vector_64 (&ctx, w0, w1, w2, w3, 20);
+    sha1_update_64 (&ctx, w0, w1, w2, w3, 20);
 
-    sha1_final_vector (&ctx);
+    sha1_final (&ctx);
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
@@ -191,17 +187,13 @@ KERNEL_FQ void m29000_sxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
 
     w[0] = w0lr;
 
-    sha1_ctx_vector_t ctx1;
+    sha1_ctx_t ctx1 = ctx2;
 
-    sha1_init_vector_from_scalar (&ctx1, &ctx2);
+    sha1_update_utf16beN (&ctx1, w, pw_len);
 
-    sha1_update_vector_utf16beN (&ctx1, w, pw_len);
+    sha1_final (&ctx1);
 
-    sha1_final_vector (&ctx1);
-
-    sha1_ctx_vector_t ctx;
-
-    sha1_init_vector_from_scalar (&ctx, &ctx0);
+    sha1_ctx_t ctx = ctx0;
 
     u32 w0[4];
     u32 w1[4];
@@ -225,9 +217,9 @@ KERNEL_FQ void m29000_sxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t))
     w3[2] = 0;
     w3[3] = 0;
 
-    sha1_update_vector_64 (&ctx, w0, w1, w2, w3, 20);
+    sha1_update_64 (&ctx, w0, w1, w2, w3, 20);
 
-    sha1_final_vector (&ctx);
+    sha1_final (&ctx);
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
