@@ -255,6 +255,8 @@ KERNEL_FQ void m15400_m16 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
+  if (gid >= GID_CNT) return;
+
   u32 w0[4];
   u32 w1[4];
 
@@ -342,6 +344,8 @@ KERNEL_FQ void m15400_s16 (KERN_ATTR_VECTOR_ESALT (chacha20_t))
 
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+
+  if (gid >= GID_CNT) return;
 
   u32 w0[4];
   u32 w1[4];

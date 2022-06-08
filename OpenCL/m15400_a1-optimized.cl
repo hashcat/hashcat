@@ -245,6 +245,8 @@ KERNEL_FQ void m15400_m04 (KERN_ATTR_ESALT (chacha20_t))
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
 
+  if (gid >= GID_CNT) return;
+
   u32 pw_buf0[4];
   u32 pw_buf1[4];
 
@@ -369,9 +371,8 @@ KERNEL_FQ void m15400_s04 (KERN_ATTR_ESALT (chacha20_t))
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
-
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
 
   if (gid >= GID_CNT) return;
 
