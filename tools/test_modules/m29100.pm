@@ -10,9 +10,8 @@ use warnings;
 
 use Digest::SHA  qw (sha1);
 use Digest::HMAC qw (hmac);
-use MIME::Base64 qw (encode_base64url decode_base64url);
-use JSON         qw (encode_json decode_json);
-use Data::Dumper;
+use MIME::Base64 qw (encode_base64url);
+use JSON         qw (encode_json);
 
 sub module_constraints { [[0, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
