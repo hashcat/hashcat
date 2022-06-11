@@ -140,6 +140,11 @@ sub single
     my $word = random_numeric_string ($word_len) // "";
     my $salt = random_numeric_string ($salt_len) // "";
 
+    if (exists &{module_get_random_password}) # if hash mode requires special format of passwords
+    {
+      $word = module_get_random_password ($word);
+    }
+
     # check if this combination out of word and salt was previously checked
     next if exists $db_prev->{$word}->{$salt};
 

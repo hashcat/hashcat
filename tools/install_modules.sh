@@ -14,6 +14,8 @@ cpan install Authen::Passphrase::LANManager \
              Authen::Passphrase::MySQL323   \
              Authen::Passphrase::NTHash     \
              Authen::Passphrase::PHPass     \
+             Bitcoin::Crypto                \
+             Bitcoin::Crypto::Base58        \
              Compress::Zlib                 \
              Convert::EBCDIC                \
              Crypt::AuthEnc::GCM            \

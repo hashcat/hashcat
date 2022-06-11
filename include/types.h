@@ -843,6 +843,7 @@ typedef enum token_attr
   TOKEN_ATTR_VERIFY_BASE64A     = 1 <<  8,
   TOKEN_ATTR_VERIFY_BASE64B     = 1 <<  9,
   TOKEN_ATTR_VERIFY_BASE64C     = 1 << 10,
+  TOKEN_ATTR_VERIFY_BASE58      = 1 << 11,
 
 } token_attr_t;
 
