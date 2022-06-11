@@ -4,9 +4,9 @@
 ## Algorithms
 ##
 
-- Added hash-mode: BLAKE2b-512($salt.$pass)
-- Added hash-mode: BLAKE2b-512($pass.$salt)
 - Added hash-mode: Amazon AWS4-HMAC-SHA256
+- Added hash-mode: BLAKE2b-512($pass.$salt)
+- Added hash-mode: BLAKE2b-512($salt.$pass)
 - Added hash-mode: DPAPI masterkey file v1 (context 3)
 - Added hash-mode: DPAPI masterkey file v2 (context 3)
 - Added hash-mode: Exodus Desktop Wallet (scrypt)
