@@ -1850,7 +1850,7 @@ DECLSPEC int convert_to_window_naf (PRIVATE_AS u32 *naf, PRIVATE_AS const u32 *k
  * @param tmps in: a basepoint for the multiplication.
  * @return Returns the x coordinate with a leading parity/sign (for odd/even y), it is named a compressed coordinate.
  */
-DECLSPEC void point_mul_xy (PRIVATE_AS u32 *x1, PRIVATE_AS u32 *y1, PRIVATE_AS const u32 *k, GLOBAL_AS const secp256k1_t *tmps)
+DECLSPEC void point_mul_xy (PRIVATE_AS u32 *x1, PRIVATE_AS u32 *y1, PRIVATE_AS const u32 *k, SECP256K1_TMPS_TYPE const secp256k1_t *tmps)
 {
   u32 naf[SECP256K1_NAF_SIZE] = { 0 };
 
@@ -1991,7 +1991,7 @@ DECLSPEC void point_mul_xy (PRIVATE_AS u32 *x1, PRIVATE_AS u32 *y1, PRIVATE_AS c
  * @param tmps in: a basepoint for the multiplication.
  * @return Returns the x coordinate with a leading parity/sign (for odd/even y), it is named a compressed coordinate.
  */
-DECLSPEC void point_mul (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *k, GLOBAL_AS const secp256k1_t *tmps)
+DECLSPEC void point_mul (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *k, SECP256K1_TMPS_TYPE const secp256k1_t *tmps)
 {
   u32 x[8];
   u32 y[8];

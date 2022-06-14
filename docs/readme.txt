@@ -402,6 +402,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MetaMask Wallet
 - BitShares v0.x - sha512(sha512_bin(pass))
 - Bitcoin/Litecoin wallet.dat
+- Bitcoin WIF private key (P2PKH)
 - Electrum Wallet (Salt-Type 1-3)
 - Electrum Wallet (Salt-Type 4)
 - Electrum Wallet (Salt-Type 5)

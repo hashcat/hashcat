@@ -41,6 +41,11 @@ VECTOR_WIDTHS="1 2 4 8 16"
 HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 
+# fake slow algos, due to specific password pattern (e.g. ?d from "mask_3" is invalid):
+# ("only" drawback is that just -a 0 is tested with this workaround)
+
+SLOW_ALGOS="${SLOW_ALGOS} 28501 28502"
+
 OUTD="test_$(date +%s)"
 
 PACKAGE_CMD="7z a"
