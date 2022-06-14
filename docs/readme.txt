@@ -189,6 +189,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - NetNTLMv1 / NetNTLMv1+ESS (NT)
 - NetNTLMv2
 - NetNTLMv2 (NT)
+- Amazon AWS4-HMAC-SHA256
 - Flask Session Cookie
 - iSCSI CHAP authentication, MD5(CHAP)
 - RACF
@@ -243,6 +244,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MongoDB ServerKey SCRAM-SHA-256
 - PostgreSQL
 - PostgreSQL CRAM (MD5)
+- PostgreSQL SCRAM-SHA-256
 - Oracle H: Type (Oracle 7+)
 - Oracle S: Type (Oracle 11+)
 - Oracle T: Type (Oracle 12+)

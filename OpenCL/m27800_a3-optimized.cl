@@ -13,72 +13,79 @@
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #endif
 
-DECLSPEC u32x Murmur32_Scramble(u32x k)
+DECLSPEC u32x Murmur32_Scramble (u32x k)
 {
   k = (k * 0x16A88000) | ((k * 0xCC9E2D51) >> 17);
+
   return (k * 0x1B873593);
 }
 
-DECLSPEC u32x MurmurHash3(const u32 seed, const u32x w0, PRIVATE_AS const u32 *data, const u32 size)
+DECLSPEC u32x MurmurHash3 (const u32 seed, const u32x w0, PRIVATE_AS const u32 *data, const u32 size)
 {
   u32x checksum = seed;
 
-  if (size >= 4)
+  if (size >= 4) // Hash blocks, sizes of 4
   {
-    checksum ^= Murmur32_Scramble(w0);
+    checksum ^= Murmur32_Scramble (w0);
+
     checksum = (checksum >> 19) | (checksum << 13); //rotateRight(checksum, 19)
     checksum = (checksum * 5) + 0xE6546B64;
 
     const u32 nBlocks = (size / 4);
-    if (size >= 4) //Hash blocks, sizes of 4
+
+    // if (size >= 4) // size didn't change, why should we check it again ?
+    // {
+    for (u32 i = 1; i < nBlocks; i++)
     {
-      for (u32 i = 1; i < nBlocks; i++)
-      {
-        checksum ^= Murmur32_Scramble(data[i]);
-        checksum = (checksum >> 19) | (checksum << 13); //rotateRight(checksum, 19)
-        checksum = (checksum * 5) + 0xE6546B64;
-      }
+      checksum ^= Murmur32_Scramble (data[i]);
+
+      checksum = (checksum >> 19) | (checksum << 13); //rotateRight(checksum, 19)
+      checksum = (checksum * 5) + 0xE6546B64;
     }
+    //}
 
     if (size % 4)
     {
-      PRIVATE_AS const u8 *remainder = (PRIVATE_AS u8 *)(data + nBlocks);
+      const u32x remainder = data[nBlocks];
+
       u32x val = 0;
 
-      switch(size & 3) //Hash remaining bytes as size isn't always aligned by 4
+      switch (size & 3) //Hash remaining bytes as size isn't always aligned by 4
       {
         case 3:
-          val ^= (remainder[2] << 16);
+          val ^= remainder & 0x00ff0000;
         case 2:
-          val ^= (remainder[1] << 8);
+          val ^= remainder & 0x0000ff00;
         case 1:
-          val ^= remainder[0];
-          checksum ^= Murmur32_Scramble(val);
+          val ^= remainder & 0x000000ff;
+
+          checksum ^= Murmur32_Scramble (val);
         default:
           break;
-      };
+      }
     }
   }
-
   else
   {
     if (size % 4)
     {
-      PRIVATE_AS const u8 *remainder = (PRIVATE_AS u8 *)(&w0);
+      const u32x remainder = w0;
+
       u32x val = 0;
 
-      switch(size & 3)
+      switch (size & 3)
       {
         case 3:
-          val ^= (remainder[2] << 16);
+          val ^= remainder & 0x00ff0000;
         case 2:
-          val ^= (remainder[1] << 8);
+          val ^= remainder & 0x0000ff00;
         case 1:
-          val ^= remainder[0];
-          checksum ^= Murmur32_Scramble(val);
+          val ^= remainder & 0x000000ff;
+
+          checksum ^= Murmur32_Scramble (val);
         default:
           break;
-      };
+      }
     }
   }
 
@@ -87,6 +94,7 @@ DECLSPEC u32x MurmurHash3(const u32 seed, const u32x w0, PRIVATE_AS const u32 *d
   checksum *= 0x85EBCA6B;
   checksum ^= checksum >> 13;
   checksum *= 0xC2B2AE35;
+
   return checksum ^ (checksum >> 16);
 }
 

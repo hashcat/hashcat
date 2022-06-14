@@ -50,6 +50,7 @@ cpan install Authen::Passphrase::LANManager \
              Digest::Keccak                 \
              Digest::MD4                    \
              Digest::MD5                    \
+             Digest::MurmurHash3            \
              Digest::Perl::MD5              \
              Digest::SHA                    \
              Digest::SHA1                   \
