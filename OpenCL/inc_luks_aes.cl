@@ -2571,7 +2571,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
   u32 mk[16] = { 0 };
 
-  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV)
+  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -2597,10 +2597,10 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_essiv128_mk_sha1 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_essiv128_mk_sha1 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_essiv128_mk_sha1_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_essiv128_mk_sha1_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -2630,13 +2630,13 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_essiv256_mk_sha1 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_essiv256_mk_sha1 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_essiv256_mk_sha1_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_essiv256_mk_sha1_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -2656,10 +2656,10 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_plain128_mk_sha1 (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_plain128_mk_sha1 (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_plain128_mk_sha1_final (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_plain128_mk_sha1_final (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -2683,13 +2683,13 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_plain256_mk_sha1 (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_plain256_mk_sha1 (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_plain256_mk_sha1_final (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_plain256_mk_sha1_final (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -2718,10 +2718,10 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_xts_plain256_mk_sha1 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_xts_plain256_mk_sha1 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_xts_plain256_mk_sha1_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_xts_plain256_mk_sha1_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_512)
     {
@@ -2758,16 +2758,16 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_xts_plain512_mk_sha1 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_xts_plain512_mk_sha1 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_xts_plain512_mk_sha1_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_xts_plain512_mk_sha1_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
 
   // decrypt payload data
 
-  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV)
+  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -2824,7 +2824,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       luks_decrypt_sector_aes_cbc_essiv256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -2869,7 +2869,7 @@ DECLSPEC void luks_af_sha1_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs, 
       luks_decrypt_sector_aes_cbc_plain256 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -2962,7 +2962,7 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
   u32 mk[16] = { 0 };
 
-  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV)
+  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -2988,10 +2988,10 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_essiv128_mk_sha256 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_essiv128_mk_sha256 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_essiv128_mk_sha256_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_essiv128_mk_sha256_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3021,13 +3021,13 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_essiv256_mk_sha256 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_essiv256_mk_sha256 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_essiv256_mk_sha256_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_essiv256_mk_sha256_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3047,10 +3047,10 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_plain128_mk_sha256 (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_plain128_mk_sha256 (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_plain128_mk_sha256_final (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_plain128_mk_sha256_final (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3074,13 +3074,13 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_plain256_mk_sha256 (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_plain256_mk_sha256 (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_plain256_mk_sha256_final (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_plain256_mk_sha256_final (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3109,10 +3109,10 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_xts_plain256_mk_sha256 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_xts_plain256_mk_sha256 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_xts_plain256_mk_sha256_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_xts_plain256_mk_sha256_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_512)
     {
@@ -3149,16 +3149,16 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_xts_plain512_mk_sha256 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_xts_plain512_mk_sha256 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_xts_plain512_mk_sha256_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_xts_plain512_mk_sha256_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
 
   // decrypt payload data
 
-  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV)
+  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3207,7 +3207,7 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       luks_decrypt_sector_aes_cbc_essiv256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3244,7 +3244,7 @@ DECLSPEC void luks_af_sha256_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       luks_decrypt_sector_aes_cbc_plain256 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3340,7 +3340,7 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
   u32 mk[16] = { 0 };
 
-  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV)
+  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3366,10 +3366,10 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_essiv128_mk_sha512 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_essiv128_mk_sha512 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_essiv128_mk_sha512_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_essiv128_mk_sha512_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3399,13 +3399,13 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_essiv256_mk_sha512 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_essiv256_mk_sha512 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_essiv256_mk_sha512_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_essiv256_mk_sha512_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3425,10 +3425,10 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_plain128_mk_sha512 (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_plain128_mk_sha512 (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_plain128_mk_sha512_final (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_plain128_mk_sha512_final (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3452,13 +3452,13 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_plain256_mk_sha512 (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_plain256_mk_sha512 (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_plain256_mk_sha512_final (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_plain256_mk_sha512_final (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3487,10 +3487,10 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_xts_plain256_mk_sha512 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_xts_plain256_mk_sha512 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_xts_plain256_mk_sha512_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_xts_plain256_mk_sha512_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_512)
     {
@@ -3527,16 +3527,16 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_xts_plain512_mk_sha512 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_xts_plain512_mk_sha512 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_xts_plain512_mk_sha512_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_xts_plain512_mk_sha512_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
 
   // decrypt payload data
 
-  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV)
+  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3585,7 +3585,7 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       luks_decrypt_sector_aes_cbc_essiv256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3622,7 +3622,7 @@ DECLSPEC void luks_af_sha512_then_aes_decrypt (GLOBAL_AS const luks_t *luks_bufs
       luks_decrypt_sector_aes_cbc_plain256 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3699,7 +3699,7 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
   u32 mk[16] = { 0 };
 
-  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV)
+  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3725,10 +3725,10 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_essiv128_mk_ripemd160_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3758,13 +3758,13 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_essiv256_mk_ripemd160_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3784,10 +3784,10 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160 (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160 (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160_final (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_plain128_mk_ripemd160_final (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3811,13 +3811,13 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160 (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160 (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160_final (luks_bufs->af_src_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_cbc_plain256_mk_ripemd160_final (luks_bufs->af_buf + offset, mk, ks1, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
@@ -3846,10 +3846,10 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_xts_plain256_mk_ripemd160 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_xts_plain256_mk_ripemd160 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_xts_plain256_mk_ripemd160_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_xts_plain256_mk_ripemd160_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
     else if (key_size == HC_LUKS_KEY_SIZE_512)
     {
@@ -3886,16 +3886,16 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
 
       for (sector = 0; sector < SECTOR_PER_AF - 1; sector++, offset += OFFSET_PER_SECTOR)
       {
-        luks_decrypt_sector_aes_xts_plain512_mk_ripemd160 (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+        luks_decrypt_sector_aes_xts_plain512_mk_ripemd160 (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
       }
 
-      luks_decrypt_sector_aes_xts_plain512_mk_ripemd160_final (luks_bufs->af_src_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
+      luks_decrypt_sector_aes_xts_plain512_mk_ripemd160_final (luks_bufs->af_buf + offset, mk, ks1, ks2, sector, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
 
   // decrypt payload data
 
-  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV)
+  if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3944,7 +3944,7 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       luks_decrypt_sector_aes_cbc_essiv256 (luks_bufs->ct_buf, pt_buf, ks1, ks2, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_CBC_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_128)
     {
@@ -3981,7 +3981,7 @@ DECLSPEC void luks_af_ripemd160_then_aes_decrypt (GLOBAL_AS const luks_t *luks_b
       luks_decrypt_sector_aes_cbc_plain256 (luks_bufs->ct_buf, pt_buf, ks1, 0, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4);
     }
   }
-  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN)
+  else if (cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN || cipher_mode == HC_LUKS_CIPHER_MODE_XTS_PLAIN64)
   {
     if (key_size == HC_LUKS_KEY_SIZE_256)
     {
