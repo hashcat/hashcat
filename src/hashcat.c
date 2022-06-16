@@ -1643,15 +1643,15 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_info (hashcat_ctx, "The following %d hash-modes match the structure of your input hash:", modes_cnt);
         event_log_info (hashcat_ctx, NULL);
-        event_log_info (hashcat_ctx, "      # | Name                                                | Category");
-        event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
+        event_log_info (hashcat_ctx, "      # | Name                                                       | Category");
+        event_log_info (hashcat_ctx, "  ======+============================================================+======================================");
       }
 
       for (int i = 0; i < modes_cnt; i++)
       {
         if (user_options->machine_readable == false)
         {
-          event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+          event_log_info (hashcat_ctx, "%7u | %-58s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
         }
         else
         {
@@ -1693,9 +1693,9 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_info (hashcat_ctx, "The following hash-mode match the structure of your input hash:");
         event_log_info (hashcat_ctx, NULL);
-        event_log_info (hashcat_ctx, "      # | Name                                                | Category");
-        event_log_info (hashcat_ctx, "  ======+=====================================================+======================================");
-        event_log_info (hashcat_ctx, "%7u | %-51s | %s", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
+        event_log_info (hashcat_ctx, "      # | Name                                                       | Category");
+        event_log_info (hashcat_ctx, "  ======+============================================================+======================================");
+        event_log_info (hashcat_ctx, "%7u | %-58s | %s", usage_sort_buf[0].hash_mode, usage_sort_buf[0].hash_name, strhashcategory (usage_sort_buf[0].hash_category));
         event_log_info (hashcat_ctx, NULL);
       }
     }
