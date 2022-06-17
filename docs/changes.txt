@@ -65,6 +65,7 @@
 - Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
 - Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
 - Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
+- Fixed accepted salt length by PKCS#8 Private Keys modules
 
 ##
 ## Technical

@@ -43,6 +43,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+#define PKCS_MIN_SALT_LEN     ( 8)
+#define PKCS_MAX_SALT_LEN     (32)
+#define PKCS_MIN_SALT_HEX_LEN (PKCS_MIN_SALT_LEN * 2)
+#define PKCS_MAX_SALT_HEX_LEN (PKCS_MAX_SALT_LEN * 2)
+
 typedef struct pkcs_sha1_tmp
 {
   u32  ipad[5];
@@ -120,8 +125,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[3]     = '$';
-  token.len_min[3] = 16;
-  token.len_max[3] = 16;
+  token.len_min[3] = PKCS_MIN_SALT_HEX_LEN;
+  token.len_max[3] = PKCS_MAX_SALT_HEX_LEN;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -174,12 +179,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt buffer
 
+  u8 salt_buf[PKCS_MAX_SALT_HEX_LEN] = { 0 };
+
   const u8 *salt_pos = token.buf[3];
 
-  salt->salt_buf[0] = hex_to_u32 (salt_pos + 0);
-  salt->salt_buf[1] = hex_to_u32 (salt_pos + 8);
+  salt->salt_len = token.len[3] / 2;
 
-  salt->salt_len = 8;
+  memcpy (salt_buf, salt_pos, token.len[3]);
+
+  for (u32 i = 0, j = 0; i < salt->salt_len / 4; i += 1, j += 8)
+  {
+    salt->salt_buf[i] = hex_to_u32 (salt_buf + j);
+  }
 
   // iter
 
@@ -251,17 +262,23 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   pkcs_t *pkcs = (pkcs_t *) esalt_buf;
 
+  char salt_buf[PKCS_MAX_SALT_HEX_LEN + 1] = { 0 };
+
+  for (u32 i = 0, j = 0; i < salt->salt_len / 4; i += 1, j += 8)
+  {
+    snprintf (salt_buf + j, PKCS_MAX_SALT_HEX_LEN - j, "%08x", byte_swap_32 (salt->salt_buf[i]));
+  }
+
   u8 *out_buf = (u8 *) line_buf;
 
   int out_len;
 
   if (pkcs->cipher == 1)
   {
-    out_len = snprintf ((char *) out_buf, line_size, "%s1$%d$%08x%08x$%d$%08x%08x$%d$",
+    out_len = snprintf ((char *) out_buf, line_size, "%s1$%d$%s$%d$%08x%08x$%d$",
       SIGNATURE_PEM,
       pkcs->cipher,
-      byte_swap_32 (salt->salt_buf[0]),
-      byte_swap_32 (salt->salt_buf[1]),
+      salt_buf,
       salt->salt_iter + 1,
       byte_swap_32 (pkcs->iv_buf[0]),
       byte_swap_32 (pkcs->iv_buf[1]),
@@ -269,11 +286,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    out_len = snprintf ((char *) out_buf, line_size, "%s1$%d$%08x%08x$%d$%08x%08x%08x%08x$%d$",
+    out_len = snprintf ((char *) out_buf, line_size, "%s1$%d$%s$%d$%08x%08x%08x%08x$%d$",
       SIGNATURE_PEM,
       pkcs->cipher,
-      byte_swap_32 (salt->salt_buf[0]),
-      byte_swap_32 (salt->salt_buf[1]),
+      salt_buf,
       salt->salt_iter + 1,
       byte_swap_32 (pkcs->iv_buf[0]),
       byte_swap_32 (pkcs->iv_buf[1]),
