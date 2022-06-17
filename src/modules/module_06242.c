@@ -20,7 +20,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_32;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
-static const char *HASH_NAME      = "TrueCrypt RIPEMD160 + XTS 1024 bit + boot-mode";
+static const char *HASH_NAME      = "TrueCrypt RIPEMD160 + XTS 1024 bit + boot-mode (legacy)";
 static const u64   KERN_TYPE      = 6212;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;

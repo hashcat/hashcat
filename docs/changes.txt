@@ -111,6 +111,7 @@
 - User Options: Add new module function module_hash_decode_postprocess() to override hash specific configurations from command line
 - User Options: Change --backend-info/-I option type, from bool to uint
 - Modules: New TrueCrypt modules (29311-29343) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/truecrypt2hashcat.py`).
+- Modules: Added suffix *legacy* to old TrueCrypt modules (06211-06243).
 - Modules: New VeraCrypt modules (29411-29483) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/veracrypt2hashcat.py`).
 - Modules: Added suffix *legacy* to old VeraCrypt modules (13711-13783).
 - Terminal: Increased size of hash name column in `--help` and `--identify` options.
