@@ -20,6 +20,7 @@
 - Added hash-mode: bcrypt(sha512($pass)) / bcryptsha512
 - Added hash-mode: sha1($salt.sha1(utf16le($username).':'.utf16le($pass)))
 - Added hash-mode: sha256($salt.sha256_bin($pass))
+- Added hash-mode: md5(sha1($pass).$salt)
 
 ##
 ## Features
