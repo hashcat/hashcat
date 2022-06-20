@@ -30,18 +30,23 @@ sub module_generate_hash
 
   my @is_valid_base58 = eval
   {
-    decode_base58check ($word); # or we could use from_wif () or validate_wif ()
+    decode_base58check ($word); # or we could use validate_wif ()
   };
 
-  if (! @is_valid_base58)
-  {
-    # not valid so just return and do nothing
-    return;
-  }
+  return if (! @is_valid_base58);
 
   # validate WIF (check password, "verify")
 
-  my $priv = btc_prv->from_wif ($word);
+  my $priv = "";
+
+  my @is_valid_wif = eval
+  {
+    $priv = btc_prv->from_wif ($word);
+  };
+
+  return if (! @is_valid_wif);
+
+  return if ($priv->compressed != 0);
 
   my $pub  = $priv->get_public_key    ();
   my $hash = $pub->get_legacy_address ();

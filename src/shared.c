@@ -1241,6 +1241,10 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
     {
       if (is_valid_base58_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
     }
+    if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_BECH32)
+    {
+      if (is_valid_bech32_string (token->buf[token_idx], token->len[token_idx]) == false) return (PARSER_TOKEN_ENCODING);
+    }
   }
 
   return PARSER_OK;

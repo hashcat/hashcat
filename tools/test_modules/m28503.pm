@@ -49,7 +49,7 @@ sub module_generate_hash
   return if ($priv->compressed != 1);
 
   my $pub  = $priv->get_public_key    ();
-  my $hash = $pub->get_legacy_address ();
+  my $hash = $pub->get_segwit_address ();
 
   return $hash;
 }
@@ -70,11 +70,12 @@ sub module_verify_hash
 
   my @is_valid_base58 = eval
   {
-    decode_base58check ($hash);
     decode_base58check ($word);
   };
 
   return unless (@is_valid_base58);
+
+  return unless ($hash =~ m/^bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]*$/); # bech32/base32 encoding
 
   return unless (length ($word) == 52);
 

@@ -338,6 +338,30 @@ bool is_valid_base58_char (const u8 c)
   return false;
 }
 
+bool is_valid_bech32_string (const u8 *s, const size_t len)
+{
+  for (size_t i = 0; i < len; i++)
+  {
+    const u8 c = s[i];
+
+    if (is_valid_bech32_char (c) == false) return false;
+  }
+
+  return true;
+}
+
+bool is_valid_bech32_char (const u8 c)
+{
+  if ((c == '0'))               return true;
+  if ((c >= '2') && (c <= '9')) return true;
+  if ((c == 'a'))               return true;
+  if ((c >= 'c') && (c <= 'h')) return true;
+  if ((c >= 'j') && (c <= 'n')) return true;
+  if ((c >= 'p') && (c <= 'z')) return true;
+
+  return false;
+}
+
 bool is_valid_hex_string (const u8 *s, const size_t len)
 {
   for (size_t i = 0; i < len; i++)

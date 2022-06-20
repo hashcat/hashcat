@@ -44,7 +44,7 @@ SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_
 # fake slow algos, due to specific password pattern (e.g. ?d from "mask_3" is invalid):
 # ("only" drawback is that just -a 0 is tested with this workaround)
 
-SLOW_ALGOS="${SLOW_ALGOS} 28501 28502"
+SLOW_ALGOS="${SLOW_ALGOS} 28501 28502 28503 28504"
 
 OUTD="test_$(date +%s)"
 
