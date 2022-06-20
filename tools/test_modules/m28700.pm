@@ -27,7 +27,7 @@ sub module_generate_hash
   if (length ($salt) == 8)
   {
     $date = $salt;
-    $longdate = sprintf ("%sT000000Z", $date);  
+    $longdate = sprintf ("%sT000000Z", $date);
   }
 
   if (length ($salt) == 16)
