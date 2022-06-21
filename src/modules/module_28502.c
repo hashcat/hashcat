@@ -11,7 +11,6 @@
 #include "shared.h"
 #include "memory.h"
 
-#include "emu_inc_hash_sha256.h"
 #include "emu_inc_hash_base58.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -122,54 +121,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   u8 *digest = (u8 *) digest_buf;
 
-  u8 bin[64] = { 0 };
-
-  // add 00 byte at front indicating BTC PubKey Hash160
-
-  for (u32 i = 0; i < 20; i++)
-  {
-    bin[i + 1] = digest[i]; // + 1 because we have \x00 at the start
-  }
-
-  // calculate sha256 twice
-
-  u32 *bin32 = (u32 *) bin;
-
-  sha256_ctx_t ctx;
-
-  sha256_init        (&ctx);
-  sha256_update_swap (&ctx, bin32, 21);
-  sha256_final       (&ctx);
-
-  u32 data[16] = { 0 };
-
-  for (u32 i = 0; i < 8; i++) // 8 * 4 = 32 bytes
-  {
-    data[i] = ctx.h[i];
-  }
-
-  sha256_init   (&ctx);
-  sha256_update (&ctx, data, 32);
-  sha256_final  (&ctx);
-
-  ctx.h[0] = byte_swap_32 (ctx.h[0]);
-
-  // put sha256 after pub key hash160
-
-  u8 *hash = &bin[21];
-
-  for (u32 i = 0; i < 4; i++)
-  {
-    ((u8*) hash)[i] = ((u8*) ctx.h)[i];
-  }
-
-  // base58 encode
-
-  u32 bufsz = 41;
-
   u8 buf[64] = { 0 };
 
-  b58enc (buf, &bufsz, bin, 25);
+  u32 len = 64;
+
+  b58check_enc (buf, &len, 0, digest, 20);
 
   return snprintf (line_buf, line_size, "%s", buf);
 }
