@@ -8135,7 +8135,16 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       nvrtc_options[1] = "--device-as-default-execution-space";
       nvrtc_options[2] = "--gpu-architecture";
 
-      hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
+      if (device_param->sm_major > 7)
+      {
+        // https://docs.nvidia.com/cuda/cuda-compiler-driver-nvcc/index.html#virtual-architecture-feature-list
+        // Ampere architecture workaround - force to stop support at Turing architecture
+        nvrtc_options[3] = "compute_75";
+      }
+      else
+      {
+        hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
+      }
 
       // untested on windows, but it should work
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
