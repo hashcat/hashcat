@@ -6,6 +6,7 @@
 
 - Added hash-mode: Amazon AWS4-HMAC-SHA256
 - Added hash-mode: Bitcoin WIF private key (P2PKH)
+- Added hash-mode: Bitcoin WIF private key (P2WSH, Bech32)
 - Added hash-mode: BLAKE2b-512($pass.$salt)
 - Added hash-mode: BLAKE2b-512($salt.$pass)
 - Added hash-mode: DPAPI masterkey file v1 (context 3)

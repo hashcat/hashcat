@@ -11,11 +11,11 @@ use warnings;
 use Bitcoin::Crypto         qw (btc_prv btc_extprv);
 use Bitcoin::Crypto::Base58 qw (decode_base58check);
 
-sub module_constraints { [[52, 52], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[51, 51], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 # Note:
 # We expect valid WIF format which for BTC private address is 51/52 base58 characters long.
-# For compressed P2PKH the length of the WIF is always 52.
+# For uncompressed P2PKH the length of the WIF is always 51.
 # Standard test.pl is generating random passwords consisting only from digits.
 # That does not work for this mode.
 # So we have introduced new function: module_get_random_password ()
@@ -46,10 +46,10 @@ sub module_generate_hash
 
   return if (! @is_valid_wif);
 
-  return if ($priv->compressed != 1);
+  return if ($priv->compressed != 0);
 
   my $pub  = $priv->get_public_key    ();
-  my $hash = $pub->get_legacy_address ();
+  my $hash = $pub->get_segwit_address ();
 
   return $hash;
 }
@@ -70,17 +70,16 @@ sub module_verify_hash
 
   my @is_valid_base58 = eval
   {
-    decode_base58check ($hash);
     decode_base58check ($word);
   };
 
+  return unless ($hash =~ m/^bc1[qpzry9x8gf2tvdw0s3jn54khce6mua7l]*$/); # bech32/base32 encoding
+
   return unless (@is_valid_base58);
 
-  return unless (length ($word) == 52);
+  return unless (length ($word) == 51);
 
-  my $first_byte = substr ($word, 0, 1);
-
-  return unless (($first_byte eq "K") || ($first_byte eq "L"));
+  return unless (substr ($word, 0, 1) eq "5");
 
   my $new_hash = module_generate_hash ($word);
 
@@ -99,7 +98,7 @@ sub module_get_random_password
 
   my $priv = $derived_key->get_basic_key ();
 
-  my $IS_COMPRESSED = 1;
+  my $IS_COMPRESSED = 0;
 
   $priv->set_compressed ($IS_COMPRESSED);
 
