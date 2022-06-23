@@ -27,6 +27,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]  # todo: windows-latest - lack of iconv development files
         shared: [0, 1]
