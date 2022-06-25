@@ -846,7 +846,7 @@ DECLSPEC void mul_masked (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *x, PRIVATE_AS
 // m   [128], modulo
 // fact[ 64], our m' (actually it is fact[65])
 
-DECLSPEC void mul_mod (PRIVATE_AS u32 *x, PRIVATE_AS const u32 *y, PRIVATE_AS const u32 *m, PRIVATE_AS const u32 *fact)
+DECLSPEC void mul_mod128 (PRIVATE_AS u32 *x, PRIVATE_AS const u32 *y, PRIVATE_AS const u32 *m, PRIVATE_AS const u32 *fact)
 {
   // 1st multiplication
   // p = x * y
@@ -1411,7 +1411,7 @@ DECLSPEC void pow_mod_precomp_g (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *b_pre,
 
     const u32 bit_set = (y[div] >> mod) & 1;
 
-    if (bit_set == 1) mul_mod (r, b_pre + i * 64, m, fact);
+    if (bit_set == 1) mul_mod128 (r, b_pre + i * 64, m, fact);
   }
 }
 
@@ -1445,9 +1445,9 @@ DECLSPEC void pow_mod (PRIVATE_AS u32 *r, PRIVATE_AS u32 *x, PRIVATE_AS const u3
 
     const u32 bit_set = (y[div] >> mod) & 1;
 
-    if (bit_set == 1) mul_mod (r, x, m, fact);
+    if (bit_set == 1) mul_mod128 (r, x, m, fact);
 
-    mul_mod (x, x, m, fact);
+    mul_mod128 (x, x, m, fact);
   }
 }
 
