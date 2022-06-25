@@ -26,7 +26,7 @@ DECLSPEC u32 MurmurHash3 (const u32 seed, PRIVATE_AS const u32 *data, const u32 
 {
   u32 checksum = seed;
 
-  const u32 nBlocks = (size / 4);
+  const u32 nBlocks = size / 4; // or size >> 2
 
   if (size >= 4) // Hash blocks, sizes of 4
   {
@@ -39,26 +39,12 @@ DECLSPEC u32 MurmurHash3 (const u32 seed, PRIVATE_AS const u32 *data, const u32 
     }
   }
 
-  if (size % 4)
-  {
-    const u32 remainder = data[nBlocks];
+  // Hash remaining bytes as size isn't always aligned by 4:
 
-    u32 val = 0;
+  const u32 val = data[nBlocks] & (0x00ffffff >> ((3 - (size & 3)) * 8));
+  // or: data[nBlocks] & ((1 << ((size & 3) * 8)) - 1);
 
-    switch (size & 3) //Hash remaining bytes as size isn't always aligned by 4
-    {
-      case 3:
-        val ^= remainder & 0x00ff0000;
-      case 2:
-        val ^= remainder & 0x0000ff00;
-      case 1:
-        val ^= remainder & 0x000000ff;
-
-        checksum ^= Murmur32_Scramble (val);
-      default:
-        break;
-    }
-  }
+  checksum ^= Murmur32_Scramble (val);
 
   checksum ^= size;
   checksum ^= checksum >> 16;
