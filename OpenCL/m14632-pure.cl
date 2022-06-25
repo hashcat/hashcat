@@ -18,7 +18,9 @@
 #include M2S(INCLUDE_PATH/inc_cipher_serpent.cl)
 #endif
 
-#define LUKS_STRIPES 4000
+#define LUKS_STRIPES    4000
+#define LUKS_CT_LEN     512
+#define LUKS_AF_MAX_LEN ((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES)
 
 typedef enum hc_luks_hash_type
 {
@@ -48,9 +50,11 @@ typedef enum hc_luks_cipher_type
 
 typedef enum hc_luks_cipher_mode
 {
-  HC_LUKS_CIPHER_MODE_CBC_ESSIV = 1,
-  HC_LUKS_CIPHER_MODE_CBC_PLAIN = 2,
-  HC_LUKS_CIPHER_MODE_XTS_PLAIN = 3,
+  HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256 = 1,
+  HC_LUKS_CIPHER_MODE_CBC_PLAIN        = 2,
+  HC_LUKS_CIPHER_MODE_CBC_PLAIN64      = 3,
+  HC_LUKS_CIPHER_MODE_XTS_PLAIN        = 4,
+  HC_LUKS_CIPHER_MODE_XTS_PLAIN64      = 5,
 
 } hc_luks_cipher_mode_t;
 
@@ -61,9 +65,10 @@ typedef struct luks
   int cipher_type;  // hc_luks_cipher_type_t
   int cipher_mode;  // hc_luks_cipher_mode_t
 
-  u32 ct_buf[128];
+  u32 ct_buf[LUKS_CT_LEN / 4];
 
-  u32 af_src_buf[((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES) / 4];
+  u32 af_buf[LUKS_AF_MAX_LEN / 4];
+  u32 af_len;
 
 } luks_t;
 
@@ -409,7 +414,7 @@ KERNEL_FQ void m14632_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   {
     if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 }
