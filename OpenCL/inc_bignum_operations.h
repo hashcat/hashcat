@@ -9,7 +9,7 @@
 DECLSPEC void mod_4096   (PRIVATE_AS u32 *n, PRIVATE_AS const u32 *m);
 DECLSPEC void mul        (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *x, PRIVATE_AS const u32 *y);
 DECLSPEC void mul_masked (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *x, PRIVATE_AS const u32 *y);
-DECLSPEC void mul_mod    (PRIVATE_AS u32 *x, PRIVATE_AS const u32 *y, PRIVATE_AS const u32 *m, PRIVATE_AS const u32 *fact);
+DECLSPEC void mul_mod128 (PRIVATE_AS u32 *x, PRIVATE_AS const u32 *y, PRIVATE_AS const u32 *m, PRIVATE_AS const u32 *fact);
 
 DECLSPEC void pow_mod_precomp_g (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *b_pre, PRIVATE_AS const u32 *y, PRIVATE_AS const u32 *m, PRIVATE_AS const u32 *fact);
 DECLSPEC void pow_mod           (PRIVATE_AS u32 *r, PRIVATE_AS       u32 *x,     PRIVATE_AS const u32 *y, PRIVATE_AS const u32 *m, PRIVATE_AS const u32 *fact);

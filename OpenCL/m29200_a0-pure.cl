@@ -276,7 +276,7 @@ KERNEL_FQ void m29200_mxx (KERN_ATTR_RULES_ESALT (radmin3_t))
         esalt_bufs[DIGESTS_OFFSET_HOST].pre[pre_idx + 63],
       };
 
-      mul_mod (r_t, pre, m, fact); // r_t = (r_t * RADMIN3_PRE[n]) % m
+      mul_mod128 (r_t, pre, m, fact); // r_t = (r_t * RADMIN3_PRE[n]) % m
     }
 
     const u32 r0 = r_t[0];
@@ -544,7 +544,7 @@ KERNEL_FQ void m29200_sxx (KERN_ATTR_RULES_ESALT (radmin3_t))
         esalt_bufs[DIGESTS_OFFSET_HOST].pre[pre_idx + 63],
       };
 
-      mul_mod (r_t, pre, m, fact); // r_t = (r_t * RADMIN3_PRE[n]) % m
+      mul_mod128 (r_t, pre, m, fact); // r_t = (r_t * RADMIN3_PRE[n]) % m
     }
 
     const u32 r0 = r_t[0];
