@@ -102,7 +102,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[1] = TOKEN_ATTR_FIXED_LENGTH
                 | TOKEN_ATTR_VERIFY_BECH32;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token); if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   // Bech32 decode:
 
