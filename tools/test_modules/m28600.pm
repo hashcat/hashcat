@@ -15,9 +15,9 @@ use Crypt::PBKDF2;
 
 sub module_constraints { [[0, 256], [28, 28], [-1, -1], [-1, -1], [-1, -1]] }
 
-my $ITERATIONS = 4096;
-my $HMAC_SALT  = "Server Key";
-my $HMAC_SALT_2  = "Client Key";
+my $ITERATIONS  = 4096;
+my $HMAC_SALT   = "Server Key";
+my $HMAC_SALT_2 = "Client Key";
 
 sub module_generate_hash
 {
@@ -34,8 +34,8 @@ sub module_generate_hash
 
   my $pbkdf2_dgst = $pbkdf->PBKDF2 ($salt, $word);
 
-  my $server_key = hmac ($HMAC_SALT, $pbkdf2_dgst, \&sha256);
-  my $stored_key = hmac ($HMAC_SALT_2, $pbkdf2_dgst, \&sha256);
+  my $server_key =         hmac ($HMAC_SALT,   $pbkdf2_dgst, \&sha256);
+  my $stored_key = sha256 (hmac ($HMAC_SALT_2, $pbkdf2_dgst, \&sha256));
 
   my $hash = sprintf ('SCRAM-SHA-256$%i:%s$%s:%s', $iter, encode_base64 ($salt, ""), encode_base64 ($stored_key, ""), encode_base64 ($server_key, ""));
 
@@ -46,7 +46,7 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  my $idx = index ($line, '$');
+  my $idx = rindex ($line, ':');
 
   return unless $idx >= 0;
 
@@ -55,7 +55,7 @@ sub module_verify_hash
 
   return unless substr ($hash, 0, 13) eq 'SCRAM-SHA-256';
 
-  my (undef, $iter, $salt) = split ('\*|\$', $hash);
+  my (undef, $iter, $salt) = split (':|\$', $hash);
 
   return unless defined ($iter);
   return unless defined ($salt);
