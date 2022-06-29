@@ -70,11 +70,20 @@ ERRORS=$((ERRORS+$?))
 
 pip3 install pygost
 
+ERRORS=$((ERRORS+$?))
+
 # pip3 uninstall -y pycryptoplus pycrypto pycryptodome
 
 pip3 install pycryptoplus
+
+ERRORS=$((ERRORS+$?))
+
 # pip3 uninstall -y pycryptodome # latest versions do not require this work around anymore
 pip3 install pycrypto
+
+ERRORS=$((ERRORS+$?))
+
+pip3 install cryptography
 
 ERRORS=$((ERRORS+$?))
 
