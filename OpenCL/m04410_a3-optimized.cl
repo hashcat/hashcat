@@ -608,7 +608,7 @@ DECLSPEC void m04410s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
 {
   /**
    * modifiers are taken from args
-   */  
+   */
 
   /**
    * salt
