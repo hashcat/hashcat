@@ -15,10 +15,10 @@ sub module_constraints { [[0, 256], [1, 256], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
-  my $word = shift;
-  my $salt = shift;
-  my $iter = shift // 10000; # or 100000 default but probably too high for tests
-  my $iter2 = shift // 2;
+  my $word  = shift;
+  my $salt  = shift;
+  my $iter  = shift // 10000; # or 100000 default but probably too high for tests
+  my $iter2 = shift //     2;
 
   my $kdf1 = Crypt::PBKDF2->new
   (
@@ -57,7 +57,7 @@ sub module_verify_hash
 
   return unless substr ($hash, 0, 12) eq '$bitwarden$2';
 
-  my ($type, $iter, $salt_base64, $hash_base64) = split ('\*', $hash);
+  my ($type, $iter, $iter2, $salt_base64, $hash_base64) = split ('\*', $hash);
 
   return unless defined ($type);
   return unless defined ($iter);
@@ -66,8 +66,9 @@ sub module_verify_hash
 
   $type = substr ($type, 11);
 
-  return unless ($type eq '1');
-  return unless ($iter =~ m/^[0-9]{1,7}$/);
+  return unless ($type eq '2');
+  return unless ($iter  =~ m/^[0-9]{1,7}$/);
+  return unless ($iter2 =~ m/^[0-9]{1,7}$/);
   return unless ($salt_base64 =~ m/^[a-zA-Z0-9+\/=]+$/);
   return unless ($hash_base64 =~ m/^[a-zA-Z0-9+\/=]+$/);
 
@@ -75,7 +76,7 @@ sub module_verify_hash
 
   my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word_packed, $salt, $iter);
+  my $new_hash = module_generate_hash ($word_packed, $salt, $iter, $iter2);
 
   return ($new_hash, $word);
 }
