@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #endif
 
-DECLSPEC u32 MurmurHash (const u32 seed, PRIVATE_AS const u32 *w, const int pw_len)
+DECLSPEC u32 MurmurHash (const u32 seed, PRIVATE_AS const u32 *w, const u32 pw_len)
 {
   u32 hash = seed;
 
@@ -23,26 +23,21 @@ DECLSPEC u32 MurmurHash (const u32 seed, PRIVATE_AS const u32 *w, const int pw_l
 
   hash += 0xdeadbeef;
 
-  int i;
-  int j;
+  const u32 blocks = pw_len / 4;
 
-  for (i = 0, j = 0; i < pw_len - 3; i += 4, j += 1)
+  if (pw_len >= 4)
   {
-    const u32 tmp = w[j];
+    for (u32 i = 0; i < blocks; i++)
+    {
+      const u32 tmp = (hash + w[i]) * M;
 
-    hash += tmp;
-    hash *= M;
-    hash ^= hash >> R;
+      hash = tmp ^ (tmp >> R);
+    }
   }
 
-  if (pw_len & 3)
-  {
-    const u32 tmp = w[j];
+  const u32 tmp = (hash + w[blocks]) * M;
 
-    hash += tmp;
-    hash *= M;
-    hash ^= hash >> R;
-  }
+  hash = (pw_len & 3) ? (tmp ^ (tmp >> R)) : hash;
 
   hash *= M;
   hash ^= hash >> 10;
