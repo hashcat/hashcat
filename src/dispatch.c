@@ -1448,6 +1448,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
               line_len = (u32) rule_len_out;
             }
 
+            /*
+
             if (attack_mode == ATTACK_MODE_ASSOCIATION)
             {
               // we can't reject password base on length in -a 9 because it will bring the schedule out of sync
@@ -1457,13 +1459,36 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
               line_len = MIN (line_len, hashconfig->pw_max);
             }
 
+            This strategy turns out not to work very well. If there's a candidate shorter than pw_min, this leads to situation the \n is copied, too.
+
+            To reproduce:
+
+            $ cat hash
+            WPA*01*4d4fe7aac3a2cecab195321ceb99a7d0*fc690c158264*f4747f87f9f4*686173686361742d6573736964***
+            $ cat word
+            hashcat
+            $ ./hashcat -m 22000 -a 9 hash word
+            ...
+            Candidates.#1....: $HEX[686173686361740a21] -> $HEX[686173686361740a21]
+            ...
+            */
+
+            // This is a test fix for the above situation
+
             if (attack_kern == ATTACK_KERN_STRAIGHT)
             {
-              if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
+              if (attack_mode == ATTACK_MODE_ASSOCIATION)
               {
-                words_extra++;
+                // do nothing, test fix for above scenario
+              }
+              else
+              {
+                if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
+                {
+                  words_extra++;
 
-                continue;
+                  continue;
+                }
               }
             }
             else if (attack_kern == ATTACK_KERN_COMBI)
