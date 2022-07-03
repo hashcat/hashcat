@@ -2798,11 +2798,11 @@ typedef struct hashlist_parse
 
 typedef struct event_ctx
 {
-  char   old_buf[MAX_OLD_EVENTS][HCBUFSIZ_SMALL];
+  char   old_buf[MAX_OLD_EVENTS][HCBUFSIZ_LARGE];
   size_t old_len[MAX_OLD_EVENTS];
   int    old_cnt;
 
-  char   msg_buf[HCBUFSIZ_SMALL];
+  char   msg_buf[HCBUFSIZ_LARGE];
   size_t msg_len;
   bool   msg_newline;
 
