@@ -73,7 +73,7 @@ static u32 polymod_checksum (const u8 *data, const u32 data_len)
 
       if (bit_set == 0) continue;
 
-      c ^= consts[j];
+      c ^= CONSTS[j];
     }
   }
 
