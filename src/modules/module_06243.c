@@ -47,9 +47,10 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-#define TC_SALT_LEN   64
-#define TC_DATA_LEN   448
-#define TC_HEADER_LEN 512
+#define TC_SALT_LEN       (               64)
+#define TC_DATA_LEN       (              448)
+#define TC_HEADER_LEN     (              512)
+#define TC_HEADER_HEX_LEN (TC_HEADER_LEN * 2)
 
 typedef struct tc_tmp
 {
@@ -63,7 +64,7 @@ typedef struct tc_tmp
 
 typedef struct tc
 {
-  u32 data_buf[112];
+  u32 data_buf[TC_DATA_LEN / 4];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
   u32 keyfile_enabled;
@@ -143,20 +144,11 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 int module_hash_init_selftest (MAYBE_UNUSED const hashconfig_t *hashconfig, hash_t *hash)
 {
-  const size_t st_hash_len = strlen (hashconfig->st_hash);
+  char header[TC_HEADER_LEN + 1] = { 0 };
 
-  char *tmpdata = (char *) hcmalloc (st_hash_len / 2);
+  hex_decode ((const u8 *) hashconfig->st_hash, TC_HEADER_HEX_LEN, (u8 *) header);
 
-  for (size_t i = 0, j = 0; j < st_hash_len; i += 1, j += 2)
-  {
-    const u8 c = hex_to_u8 ((const u8 *) hashconfig->st_hash + j);
-
-    tmpdata[i] = c;
-  }
-
-  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, tmpdata, st_hash_len / 2);
-
-  hcfree (tmpdata);
+  const int parser_status = module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, header, TC_HEADER_LEN);
 
   return parser_status;
 }
@@ -262,7 +254,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake digest
 
-  memcpy (digest, tc->data_buf, 112);
+  memcpy (digest, tc->data_buf, TC_DATA_LEN / 4);
 
   return (PARSER_OK);
 }
