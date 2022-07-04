@@ -20,74 +20,29 @@ DECLSPEC u32x Murmur32_Scramble (u32x k)
   return (k * 0x1B873593);
 }
 
-DECLSPEC u32x MurmurHash3 (const u32 seed, const u32x w0, PRIVATE_AS const u32 *data, const u32 size)
+DECLSPEC u32x MurmurHash3 (const u32x seed, PRIVATE_AS const u32x *data, const u32 size)
 {
   u32x checksum = seed;
 
+  const u32 nBlocks = size / 4; // or size >> 2
+
   if (size >= 4) // Hash blocks, sizes of 4
   {
-    checksum ^= Murmur32_Scramble (w0);
-
-    checksum = (checksum >> 19) | (checksum << 13); //rotateRight(checksum, 19)
-    checksum = (checksum * 5) + 0xE6546B64;
-
-    const u32 nBlocks = (size / 4);
-
-    // if (size >= 4) // size didn't change, why should we check it again ?
-    // {
-    for (u32 i = 1; i < nBlocks; i++)
+    for (u32 i = 0; i < nBlocks; i++)
     {
       checksum ^= Murmur32_Scramble (data[i]);
 
       checksum = (checksum >> 19) | (checksum << 13); //rotateRight(checksum, 19)
       checksum = (checksum * 5) + 0xE6546B64;
     }
-    //}
-
-    if (size % 4)
-    {
-      const u32x remainder = data[nBlocks];
-
-      u32x val = 0;
-
-      switch (size & 3) //Hash remaining bytes as size isn't always aligned by 4
-      {
-        case 3:
-          val ^= remainder & 0x00ff0000;
-        case 2:
-          val ^= remainder & 0x0000ff00;
-        case 1:
-          val ^= remainder & 0x000000ff;
-
-          checksum ^= Murmur32_Scramble (val);
-        default:
-          break;
-      }
-    }
   }
-  else
-  {
-    if (size % 4)
-    {
-      const u32x remainder = w0;
 
-      u32x val = 0;
+  // Hash remaining bytes as size isn't always aligned by 4:
 
-      switch (size & 3)
-      {
-        case 3:
-          val ^= remainder & 0x00ff0000;
-        case 2:
-          val ^= remainder & 0x0000ff00;
-        case 1:
-          val ^= remainder & 0x000000ff;
+  const u32x val = data[nBlocks] & (0x00ffffff >> ((3 - (size & 3)) * 8));
+  // or: data[nBlocks] & ((1 << ((size & 3) * 8)) - 1);
 
-          checksum ^= Murmur32_Scramble (val);
-        default:
-          break;
-      }
-    }
-  }
+  checksum ^= Murmur32_Scramble (val);
 
   checksum ^= size;
   checksum ^= checksum >> 16;
@@ -98,7 +53,7 @@ DECLSPEC u32x MurmurHash3 (const u32 seed, const u32x w0, PRIVATE_AS const u32 *
   return checksum ^ (checksum >> 16);
 }
 
-DECLSPEC void m27800m (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m27800m (PRIVATE_AS const u32 *data, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args
@@ -108,13 +63,36 @@ DECLSPEC void m27800m (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
    * seed
    */
 
-  const u32 seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  const u32x seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
+
+  /**
+   * data
+   */
+
+  u32x w[16];
+
+  w[ 0] = data[ 0];
+  w[ 1] = data[ 1];
+  w[ 2] = data[ 2];
+  w[ 3] = data[ 3];
+  w[ 4] = data[ 4];
+  w[ 5] = data[ 5];
+  w[ 6] = data[ 6];
+  w[ 7] = data[ 7];
+  w[ 8] = data[ 8];
+  w[ 9] = data[ 9];
+  w[10] = data[10];
+  w[11] = data[11];
+  w[12] = data[12];
+  w[13] = data[13];
+  w[14] = data[14];
+  w[15] = data[15];
 
   /**
    * loop
    */
 
-  u32 w0l = w[0];
+  u32x w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
@@ -122,7 +100,9 @@ DECLSPEC void m27800m (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
 
     const u32x w0 = w0l | w0r;
 
-    const u32x hash = MurmurHash3 (seed, w0, w, pw_len);
+    w[0] = w0;
+
+    const u32x hash = MurmurHash3 (seed, w, pw_len);
 
     const u32x r0 = hash;
     const u32x r1 = 0;
@@ -133,7 +113,7 @@ DECLSPEC void m27800m (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
   }
 }
 
-DECLSPEC void m27800s (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m27800s (PRIVATE_AS const u32 *data, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args
@@ -155,13 +135,36 @@ DECLSPEC void m27800s (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
    * seed
    */
 
-  const u32 seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  const u32x seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
+
+  /**
+   * data
+   */
+
+  u32x w[16];
+
+  w[ 0] = data[ 0];
+  w[ 1] = data[ 1];
+  w[ 2] = data[ 2];
+  w[ 3] = data[ 3];
+  w[ 4] = data[ 4];
+  w[ 5] = data[ 5];
+  w[ 6] = data[ 6];
+  w[ 7] = data[ 7];
+  w[ 8] = data[ 8];
+  w[ 9] = data[ 9];
+  w[10] = data[10];
+  w[11] = data[11];
+  w[12] = data[12];
+  w[13] = data[13];
+  w[14] = data[14];
+  w[15] = data[15];
 
   /**
    * loop
    */
 
-  u32 w0l = w[0];
+  u32x w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
@@ -169,7 +172,9 @@ DECLSPEC void m27800s (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
 
     const u32x w0 = w0l | w0r;
 
-    const u32x hash = MurmurHash3 (seed, w0, w, pw_len);
+    w[0] = w0;
+
+    const u32x hash = MurmurHash3 (seed, w, pw_len);
 
     const u32x r0 = hash;
     const u32x r1 = 0;
@@ -208,7 +213,7 @@ KERNEL_FQ void m27800_m04 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -248,7 +253,7 @@ KERNEL_FQ void m27800_m08 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -328,7 +333,7 @@ KERNEL_FQ void m27800_s04 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -368,7 +373,7 @@ KERNEL_FQ void m27800_s08 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
