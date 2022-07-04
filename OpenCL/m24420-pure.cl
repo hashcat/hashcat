@@ -19,6 +19,13 @@
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
+typedef enum pkcs_cipher {
+  PKCS_CIPHER_3DES        = 1,
+  PKCS_CIPHER_AES_128_CBC = 2,
+  PKCS_CIPHER_AES_192_CBC = 3,
+  PKCS_CIPHER_AES_256_CBC = 4,
+} pkcs_cipher_t;
+
 typedef struct pkcs_sha256_tmp
 {
   u32  ipad[8];
@@ -31,7 +38,7 @@ typedef struct pkcs_sha256_tmp
 
 typedef struct pkcs
 {
-  int cipher;
+  int cipher; // pkcs_cipher_t
 
   u32 data_buf[16384];
   int data_len;
@@ -382,7 +389,7 @@ KERNEL_FQ void m24420_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha256_tmp_t, pkcs_t))
   u32 enc[4];
   u32 dec[4];
 
-  if (cipher == 1)
+  if (cipher == PKCS_CIPHER_3DES)
   {
     ukey[0] = hc_swap32_S (ukey[0]);
     ukey[1] = hc_swap32_S (ukey[1]);
@@ -445,7 +452,7 @@ KERNEL_FQ void m24420_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha256_tmp_t, pkcs_t))
 
     if (asn1_ok == 0) return;
   }
-  else if (cipher == 2)
+  else if (cipher == PKCS_CIPHER_AES_128_CBC)
   {
     u32 ks[44];
 
@@ -499,7 +506,7 @@ KERNEL_FQ void m24420_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha256_tmp_t, pkcs_t))
 
     if (asn1_ok == 0) return;
   }
-  else if (cipher == 3)
+  else if (cipher == PKCS_CIPHER_AES_192_CBC)
   {
     u32 ks[52];
 
@@ -553,7 +560,7 @@ KERNEL_FQ void m24420_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha256_tmp_t, pkcs_t))
 
     if (asn1_ok == 0) return;
   }
-  else if (cipher == 4)
+  else if (cipher == PKCS_CIPHER_AES_256_CBC)
   {
     u32 ks[60];
 
