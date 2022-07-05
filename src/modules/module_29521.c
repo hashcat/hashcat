@@ -19,7 +19,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_16;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FDE;
 static const char *HASH_NAME      = "LUKS v1 SHA-256 + AES";
-static const u64   KERN_TYPE      = 14621;
+static const u64   KERN_TYPE      = 14621; // old kernel used here
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
@@ -43,11 +43,15 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-#define LUKS_STRIPES    4000
-#define LUKS_SALT_LEN   32
-#define LUKS_CT_LEN     512
-#define LUKS_AF_MIN_LEN ((HC_LUKS_KEY_SIZE_128 / 8) * LUKS_STRIPES)
-#define LUKS_AF_MAX_LEN ((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES)
+#define LUKS_STRIPES        (                                   4000)
+#define LUKS_SALT_LEN       (                                     32)
+#define LUKS_SALT_HEX_LEN   (                      LUKS_SALT_LEN * 2)
+#define LUKS_CT_LEN         (                                    512)
+#define LUKS_CT_HEX_LEN     (                        LUKS_CT_LEN * 2)
+#define LUKS_AF_MIN_LEN     (HC_LUKS_KEY_SIZE_128 / 8 * LUKS_STRIPES)
+#define LUKS_AF_MIN_HEX_LEN (                    LUKS_AF_MIN_LEN * 2)
+#define LUKS_AF_MAX_LEN     (HC_LUKS_KEY_SIZE_512 / 8 * LUKS_STRIPES)
+#define LUKS_AF_MAX_HEX_LEN (                    LUKS_AF_MAX_LEN * 2)
 
 typedef enum hc_luks_hash_type
 {
@@ -87,10 +91,10 @@ typedef enum hc_luks_cipher_mode
 
 typedef struct luks
 {
-  int hash_type;    // hc_luks_hash_type_t
-  int key_size;     // hc_luks_key_size_t
-  int cipher_type;  // hc_luks_cipher_type_t
-  int cipher_mode;  // hc_luks_cipher_mode_t
+  int hash_type;   // hc_luks_hash_type_t
+  int key_size;    // hc_luks_key_size_t
+  int cipher_type; // hc_luks_cipher_type_t
+  int cipher_mode; // hc_luks_cipher_mode_t
 
   u32 ct_buf[LUKS_CT_LEN / 4];
 
@@ -179,22 +183,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
   token.sep[4]     = '$';
-  token.len_min[4] = LUKS_SALT_LEN * 2;
-  token.len_max[4] = LUKS_SALT_LEN * 2;
+  token.len_min[4] = LUKS_SALT_HEX_LEN;
+  token.len_max[4] = LUKS_SALT_HEX_LEN;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // af
   token.sep[5]     = '$';
-  token.len_min[5] = LUKS_AF_MIN_LEN * 2;
-  token.len_max[5] = LUKS_AF_MAX_LEN * 2;
+  token.len_min[5] = LUKS_AF_MIN_HEX_LEN;
+  token.len_max[5] = LUKS_AF_MAX_HEX_LEN;
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // ct
   token.sep[6]     = '$';
-  token.len_min[6] = LUKS_CT_LEN * 2;
-  token.len_max[6] = LUKS_CT_LEN * 2;
+  token.len_min[6] = LUKS_CT_HEX_LEN;
+  token.len_max[6] = LUKS_CT_HEX_LEN;
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -266,12 +270,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *salt_pos = token.buf[4];
 
-  for (u32 i = 0, j = 0; i < LUKS_SALT_LEN / 4; i += 1, j += 8)
-  {
-    salt->salt_buf[i] = hex_to_u32 (salt_pos + j);
-  }
-
-  salt->salt_len = LUKS_SALT_LEN;
+  salt->salt_len = hex_decode (salt_pos, LUKS_SALT_HEX_LEN, (u8 *) salt->salt_buf);
 
   // iter
 
@@ -289,12 +288,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *af_pos = token.buf[5];
 
-  for (u32 i = 0, j = 0; i < af_len / 4; i += 1, j += 8)
-  {
-    luks->af_buf[i] = hex_to_u32 (af_pos + j);
-  }
-
-  luks->af_len = af_len;
+  luks->af_len = hex_decode (af_pos, token.len[5], (u8 *) luks->af_buf);
 
   // ct
 
@@ -304,10 +298,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *ct_pos = token.buf[6];
 
-  for (u32 i = 0, j = 0; i < ct_len / 4; i += 1, j += 8)
-  {
-    luks->ct_buf[i] = hex_to_u32 (ct_pos + j);
-  }
+  hex_decode (ct_pos, LUKS_CT_HEX_LEN, (u8 *) luks->ct_buf);
 
   return (PARSER_OK);
 }
@@ -327,6 +318,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     case HC_LUKS_CIPHER_MODE_CBC_PLAIN64:      cipher_mode = "cbc-plain64";      break;
     case HC_LUKS_CIPHER_MODE_XTS_PLAIN:        cipher_mode = "xts-plain";        break;
     case HC_LUKS_CIPHER_MODE_XTS_PLAIN64:      cipher_mode = "xts-plain64";      break;
+    default:                                                                     return 0;
   }
 
   // key size
@@ -338,6 +330,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     case HC_LUKS_KEY_SIZE_128: key_size = 128; break;
     case HC_LUKS_KEY_SIZE_256: key_size = 256; break;
     case HC_LUKS_KEY_SIZE_512: key_size = 512; break;
+    default:                                   return 0;
   }
 
   // iterations
@@ -346,36 +339,21 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  #define LUKS_SALT_HEX_LEN (LUKS_SALT_LEN * 2 + 1)
+  char salt_buf[LUKS_SALT_HEX_LEN + 1] = { 0 };
 
-  char salt_buf[LUKS_SALT_HEX_LEN] = { 0 };
-
-  for (u32 i = 0, j = 0; i < LUKS_SALT_LEN / 4; i += 1, j += 8)
-  {
-    snprintf (salt_buf + j, LUKS_SALT_HEX_LEN - j, "%08x", byte_swap_32 (salt->salt_buf[i]));
-  }
+  hex_encode ((const u8 *) salt->salt_buf, LUKS_SALT_LEN, (u8 *) salt_buf);
 
   // af
 
-  #define LUKS_AF_HEX_LEN (LUKS_AF_MAX_LEN * 2 + 1)
+  char af_buf[LUKS_AF_MAX_HEX_LEN + 1] = { 0 };
 
-  char af_buf[LUKS_AF_HEX_LEN] = { 0 };
-
-  for (u32 i = 0, j = 0; i < luks->af_len / 4; i += 1, j += 8)
-  {
-    snprintf (af_buf + j, LUKS_AF_HEX_LEN - j, "%08x", byte_swap_32 (luks->af_buf[i]));
-  }
+  hex_encode ((const u8 *) luks->af_buf, luks->af_len, (u8 *) af_buf);
 
   // ct
 
-  #define LUKS_CT_HEX_LEN (LUKS_CT_LEN * 2 + 1)
+  char ct_buf[LUKS_CT_HEX_LEN + 1] = { 0 };
 
-  char ct_buf[LUKS_CT_HEX_LEN] = { 0 };
-
-  for (u32 i = 0, j = 0; i < LUKS_CT_LEN / 4; i += 1, j += 8)
-  {
-    snprintf (ct_buf + j, LUKS_CT_HEX_LEN - j, "%08x", byte_swap_32 (luks->ct_buf[i]));
-  }
+  hex_encode ((const u8 *) luks->ct_buf, LUKS_CT_LEN, (u8 *) ct_buf);
 
   // output
 
