@@ -155,14 +155,14 @@ typedef enum hc_luks_cipher_mode
 
 typedef struct luks
 {
-  int hash_type;    // hc_luks_hash_type_t
-  int key_size;     // hc_luks_key_size_t
-  int cipher_type;  // hc_luks_cipher_type_t
-  int cipher_mode;  // hc_luks_cipher_mode_t
+  int hash_type;   // hc_luks_hash_type_t
+  int key_size;    // hc_luks_key_size_t
+  int cipher_type; // hc_luks_cipher_type_t
+  int cipher_mode; // hc_luks_cipher_mode_t
 
   u32 ct_buf[128];
 
-  u32 af_buf[((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES) / 4];
+  u32 af_buf[HC_LUKS_KEY_SIZE_512 / 8 * LUKS_STRIPES / 4];
   u32 af_len;
 
 } luks_t;
@@ -187,9 +187,9 @@ void *module_benchmark_esalt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 {
   luks_t *luks = (luks_t *) hcmalloc (sizeof (luks_t));
 
-  luks->key_size      = HC_LUKS_KEY_SIZE_256;
-  luks->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
-  luks->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
+  luks->key_size    = HC_LUKS_KEY_SIZE_256;
+  luks->cipher_type = HC_LUKS_CIPHER_TYPE_AES;
+  luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
 
   return luks;
 }
@@ -554,7 +554,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_seek1 == -1)
   {
-      hc_fclose (&fp);
+    hc_fclose (&fp);
 
     return (PARSER_LUKS_FILE_SIZE);
   }
