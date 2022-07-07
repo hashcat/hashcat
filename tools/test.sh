@@ -18,9 +18,6 @@ TC_MODES="6211 6212 6213 6221 6222 6223 6231 6232 6233 6241 6242 6243 29311 2931
 # List of VeraCrypt modes which have test containers
 VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 13743 13751 13752 13753 13761 13762 13763 13771 13772 13773 13781 13782 13783 29411 29412 29413 29421 29422 29423 29431 29432 29433 29441 29442 29443 29451 29452 29453 29461 29462 29463 29471 29472 29473 29481 29482 29483"
 
-# List of modes which either are OPTS_TYPE_PT_NEVERCRACK or produce collisions
-NEVER_CRACK="9720 9820 14900 18100 27800"
-
 # List of modes which return a different output hash format than the input hash format
 NOCHECK_ENCODING="16800 22000"
 
@@ -38,8 +35,9 @@ HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 VECTOR_WIDTHS="1 2 4 8 16"
 
-HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
-SLOW_ALGOS=$(grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+KEEP_GUESSING=$(grep -l OPTS_TYPE_SUGGEST_KG       "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+HASHFILE_ONLY=$(grep -l OPTS_TYPE_BINARY_HASHFILE  "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
+SLOW_ALGOS=$(   grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/module_*.c | sed -E 's/.*module_0*([0-9]+).c/\1/' | tr '\n' ' ')
 
 # fake slow algos, due to specific password pattern (e.g. ?d from "mask_3" is invalid):
 # ("only" drawback is that just -a 0 is tested with this workaround)
@@ -451,11 +449,13 @@ function status()
         ;;
 
       1)
-        if ! is_in_array "${hash_type}" ${NEVER_CRACK_ALGOS}; then
-           echo "password not found, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
-           e_nf=$((e_nf + 1))
-        fi
+        # next check should not be needed anymore (NEVER_CRACK with exit code EXHAUSTED):
+        # if is_in_array "${hash_type}" ${KEEP_GUESSING_ALGOS}; then
+        #   return
+        # fi
 
+        echo "password not found, cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+        e_nf=$((e_nf + 1))
         ;;
 
       4)
@@ -465,7 +465,7 @@ function status()
         ;;
 
       10)
-        if is_in_array "${hash_type}" ${NEVER_CRACK_ALGOS}; then
+        if is_in_array "${hash_type}" ${KEEP_GUESSING_ALGOS}; then
           return
         fi
 
@@ -3893,7 +3893,7 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   IFS=';' read -ra PASS_ONLY <<< "${HASHFILE_ONLY} ${NOCHECK_ENCODING}"
   IFS=';' read -ra TIMEOUT_ALGOS <<< "${SLOW_ALGOS}"
 
-  IFS=';' read -ra NEVER_CRACK_ALGOS <<< "${NEVER_CRACK}"
+  IFS=';' read -ra KEEP_GUESSING_ALGOS <<< "${KEEP_GUESSING}"
 
   # for these particular algos we need to save the output to a temporary file
   IFS=';' read -ra FILE_BASED_ALGOS <<< "${HASHFILE_ONLY}"
@@ -4170,15 +4170,15 @@ if [ "${PACKAGE}" -eq 1 ]; then
     HT_PACKAGED=${HT_MIN}-${HT_MAX}
   fi
 
-  HASH_TYPES_PACKAGED=$(   echo "${HASH_TYPES}"    | tr '\n' ' ' | sed 's/ $//')
-  HASHFILE_ONLY_PACKAGED=$(echo "${HASHFILE_ONLY}" | tr '\n' ' ' | sed 's/ $//')
-  NEVER_CRACK_PACKAGED=$(  echo "${NEVER_CRACK}"   | tr '\n' ' ' | sed 's/ $//')
-  SLOW_ALGOS_PACKAGED=$(   echo "${SLOW_ALGOS}"    | tr '\n' ' ' | sed 's/ $//')
+  HASH_TYPES_PACKAGED=$(   echo "${HASH_TYPES}"    | tr '\n' ' ' | sed 's/ *$//')
+  HASHFILE_ONLY_PACKAGED=$(echo "${HASHFILE_ONLY}" | tr '\n' ' ' | sed 's/ *$//')
+  KEEP_GUESSING_PACKAGED=$(echo "${KEEP_GUESSING}" | tr '\n' ' ' | sed 's/ *$//')
+  SLOW_ALGOS_PACKAGED=$(   echo "${SLOW_ALGOS}"    | tr '\n' ' ' | sed 's/ *$//')
 
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
     -e "s/^\(HASHFILE_ONLY\)=\$(.*/\1=\"${HASHFILE_ONLY_PACKAGED}\"/" \
-    -e "s/^\(NEVER_CRACK\)=\$(.*/\1=\"${NEVER_CRACK_PACKAGED}\"/" \
+    -e "s/^\(KEEP_GUESSING\)=\$(.*/\1=\"${KEEP_GUESSING_PACKAGED}\"/" \
     -e "s/^\(SLOW_ALGOS\)=\$(.*/\1=\"${SLOW_ALGOS_PACKAGED}\"/" \
     -e "s/^\(HT\)=0/\1=${HT_PACKAGED}/" \
     -e "s/^\(MODE\)=0/\1=${MODE}/" \
