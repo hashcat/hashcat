@@ -49,6 +49,14 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 u32 dahua_decode (const u32 in)
 {
+  // chars used (alphabet):
+  // 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+
+  if (            in < '0') return -1;
+  if (in > '9' && in < 'A') return -1;
+  if (in > 'Z' && in < 'a') return -1;
+  if (in > 'z'            ) return -1;
+
   if (in >= 'a')
   {
     return (in - 61);
@@ -57,12 +65,8 @@ u32 dahua_decode (const u32 in)
   {
     return (in - 55);
   }
-  else
-  {
-    return (in - 48);
-  }
 
-  return -1;
+  return (in - 48);
 }
 
 u32 dahua_encode (const u32 in)
@@ -109,6 +113,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32 c1 = dahua_decode (hash_pos[5]);
   const u32 d0 = dahua_decode (hash_pos[6]);
   const u32 d1 = dahua_decode (hash_pos[7]);
+
+  if (a0 == (u32) -1) return (PARSER_HASH_ENCODING);
+  if (a1 == (u32) -1) return (PARSER_HASH_ENCODING);
+  if (b0 == (u32) -1) return (PARSER_HASH_ENCODING);
+  if (b1 == (u32) -1) return (PARSER_HASH_ENCODING);
+  if (c0 == (u32) -1) return (PARSER_HASH_ENCODING);
+  if (c1 == (u32) -1) return (PARSER_HASH_ENCODING);
+  if (d0 == (u32) -1) return (PARSER_HASH_ENCODING);
+  if (d1 == (u32) -1) return (PARSER_HASH_ENCODING);
 
   digest[0] = (a0 << 0) | (a1 << 8);
   digest[1] = (b0 << 0) | (b1 << 8);
