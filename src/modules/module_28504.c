@@ -57,7 +57,7 @@ u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 static u32 polymod_checksum (const u8 *data, const u32 data_len)
 {
-  const u32 CONST[5] = { 0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3 };
+  const u32 TABLE[5] = { 0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3 };
 
   u32 c = 1;
 
@@ -73,7 +73,7 @@ static u32 polymod_checksum (const u8 *data, const u32 data_len)
 
       if (bit_set == 0) continue;
 
-      c ^= CONST[j];
+      c ^= TABLE[j];
     }
   }
 
