@@ -318,7 +318,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // cipher mode
 
-  char *cipher_mode;
+  char *cipher_mode = "";
 
   switch (luks->cipher_mode)
   {
@@ -331,7 +331,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // key size
 
-  u32 key_size;
+  u32 key_size = 0;
 
   switch (luks->key_size)
   {
