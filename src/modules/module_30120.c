@@ -177,7 +177,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-  int out_len = snprintf((char *)out_buf, 7, "sha256$");
+  int out_len = snprintf ((char *) out_buf, line_size, "sha256$");
 
   out_len += generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, out_buf + out_len);
 
