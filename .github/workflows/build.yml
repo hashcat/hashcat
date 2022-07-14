@@ -12,6 +12,7 @@ env:
               rules/
               example*
               hashcat*
+              libhashcat*
 
 on:
   push:
@@ -44,17 +45,51 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]  # todo: windows-latest - lack of iconv development files
+        os: [ubuntu-latest, macos-latest, windows-latest]  # todo: windows-latest - lack of iconv development files
         shared: [0, 1]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - name: Build
+      - name: Checkout Hashcat
+        uses: actions/checkout@v3
+      - name: Checkout win-iconv
+        uses: actions/checkout@v3
+        if: ${{ matrix.os == 'windows-latest' }}
+        with:
+          repository: win-iconv/win-iconv
+          path: 'win-iconv/'
+          clean: false
+      - name: Install WSL
+        uses: Vampire/setup-wsl@v1
+        if: ${{ matrix.os == 'windows-latest' }}
+        with:
+          additional-packages:
+            gcc-mingw-w64-x86-64
+            g++-mingw-w64-x86-64
+            make
+            git
+            patch
+      - name: Setup WSL
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: wsl-bash {0}
+        run: cd win-iconv/ && patch < ../tools/win-iconv-64.diff && sudo make install
+      - name: Build (Win)
+        if: ${{ matrix.os == 'windows-latest' }}
+        shell: wsl-bash {0}
+        run: make win
+      - name: Build (Unix)
+        if: ${{ matrix.os != 'windows-latest' }}
         env:
           SHARED: ${{ matrix.shared }}
         run: make
-      - name: Generate artifacts (shared)
+      - name: Generate static artifacts
+        if: ${{ matrix.shared == 0 }}
         uses: actions/upload-artifact@v3
         with:
-          name: hashcat-${{ matrix.os }}-${{ matrix.shared }}
+          name: hashcat-${{ runner.os }}-static
+          path: ${{ env.include_paths }}
+      - name: Generate shared artifacts
+        if: ${{ matrix.shared == 1 }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: hashcat-${{ runner.os }}-shared
           path: ${{ env.include_paths }}
