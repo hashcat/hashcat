@@ -1,5 +1,18 @@
 name: Build
 
+env:
+  include_paths: |
+              charsets/
+              docs/
+              extra/
+              layouts/
+              masks/
+              modules/
+              OpenCL/
+              rules/
+              example*
+              hashcat*
+
 on:
   push:
     branches:
@@ -13,6 +26,7 @@ on:
       - 'src/**.c'
       - 'tools/**'
       - '**/Makefile'
+      - '.github/workflows/build.yml'
   pull_request:
     branches:
       - master
@@ -23,6 +37,7 @@ on:
       - 'src/**.c'
       - 'tools/**'
       - '**/Makefile'
+      - '.github/workflows/build.yml'
 
 jobs:
   build:
@@ -38,3 +53,8 @@ jobs:
         env:
           SHARED: ${{ matrix.shared }}
         run: make
+      - name: Generate artifacts (shared)
+        uses: actions/upload-artifact@v3
+        with:
+          name: hashcat-${{ matrix.os }}-${{ matrix.shared }}
+          path: ${{ env.include_paths }}
