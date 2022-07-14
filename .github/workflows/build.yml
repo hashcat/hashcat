@@ -2,17 +2,17 @@ name: Build
 
 env:
   include_paths: |
-              charsets/
-              docs/
-              extra/
-              layouts/
-              masks/
-              modules/
-              OpenCL/
-              rules/
-              example*
-              hashcat*
-              libhashcat*
+    charsets/
+    docs/
+    extra/
+    layouts/
+    masks/
+    modules/
+    OpenCL/
+    rules/
+    example*
+    hashcat*
+    libhashcat*
 
 on:
   push:
@@ -41,55 +41,70 @@ on:
       - '.github/workflows/build.yml'
 
 jobs:
-  build:
+  build-linux:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]  # todo: windows-latest - lack of iconv development files
         shared: [0, 1]
-    runs-on: ${{ matrix.os }}
+    name: Build Linux (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout Hashcat
-        uses: actions/checkout@v3
-      - name: Checkout win-iconv
-        uses: actions/checkout@v3
-        if: ${{ matrix.os == 'windows-latest' }}
-        with:
-          repository: win-iconv/win-iconv
-          path: 'win-iconv/'
-          clean: false
-      - name: Install WSL
-        uses: Vampire/setup-wsl@v1
-        if: ${{ matrix.os == 'windows-latest' }}
-        with:
-          additional-packages:
-            gcc-mingw-w64-x86-64
-            g++-mingw-w64-x86-64
-            make
-            git
-            patch
-      - name: Setup WSL
-        if: ${{ matrix.os == 'windows-latest' }}
-        shell: wsl-bash {0}
-        run: cd win-iconv/ && patch < ../tools/win-iconv-64.diff && sudo make install
-      - name: Build (Win)
-        if: ${{ matrix.os == 'windows-latest' }}
-        shell: wsl-bash {0}
-        run: make win
-      - name: Build (Unix)
-        if: ${{ matrix.os != 'windows-latest' }}
+      - uses: actions/checkout@v3
+      - name: Build
         env:
           SHARED: ${{ matrix.shared }}
         run: make
-      - name: Generate static artifacts
-        if: ${{ matrix.shared == 0 }}
+      - name: Generate artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: hashcat-${{ runner.os }}-static
+          name: Hashcat-${{ runner.os }}-${{ matrix.shared == 0 && 'Static' || 'Shared' }}
           path: ${{ env.include_paths }}
-      - name: Generate shared artifacts
-        if: ${{ matrix.shared == 1 }}
+
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [0, 1]
+    name: Build MacOS (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        env:
+          SHARED: ${{ matrix.shared }}
+        run: make
+      - name: Generate artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: hashcat-${{ runner.os }}-shared
+          name: Hashcat-${{ runner.os }}-${{ matrix.shared == 0 && 'Static' || 'Shared' }}
+          path: ${{ env.include_paths }}
+
+  build-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [0, 1]
+    name: Build Windows (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    runs-on: windows-latest
+    steps:
+      - name: Install libiconv
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: |
+            gcc
+            git
+            libiconv
+            libiconv-devel
+            make
+      - uses: actions/checkout@v3
+      - name: Build
+        shell: msys2 {0}
+        env:
+          SHARED: ${{ matrix.shared }}
+        run: make
+      - name: Generate artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Hashcat-${{ runner.os }}-${{ matrix.shared == 0 && 'Static' || 'Shared' }}
           path: ${{ env.include_paths }}
