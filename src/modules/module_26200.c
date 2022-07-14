@@ -109,7 +109,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *hash_pos = (u8 *) token.buf[0];
   const u32 hash_len = token.len[0];
 
-  memcpy ((u8 *)digest, hash_pos, hash_len);
+  /*
+   * Check encoding:
+   */
+
+  for (u32 i = 0; i < hash_len; i++)
+  {
+    // chars used (alphabet):
+    // ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
+
+    const u8 c = hash_pos[i];
+
+    if (           c < 'A') return (PARSER_HASH_ENCODING);
+    if (c > 'Z' && c < 'a') return (PARSER_HASH_ENCODING);
+    if (c > 'z'           ) return (PARSER_HASH_ENCODING);
+  }
+
+  /*
+   * digest:
+   */
+
+  memcpy ((u8 *) digest, hash_pos, hash_len);
 
   return (PARSER_OK);
 }
