@@ -65,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         shared: [0, 1]
-    name: Build MacOS (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    name: Build macOS (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v3
