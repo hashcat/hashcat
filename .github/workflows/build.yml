@@ -1,5 +1,19 @@
 name: Build
 
+env:
+  include_paths: |
+    charsets/
+    docs/
+    extra/
+    layouts/
+    masks/
+    modules/
+    OpenCL/
+    rules/
+    example*
+    hashcat*
+    libhashcat*
+
 on:
   push:
     branches:
@@ -13,6 +27,7 @@ on:
       - 'src/**.c'
       - 'tools/**'
       - '**/Makefile'
+      - '.github/workflows/build.yml'
   pull_request:
     branches:
       - master
@@ -23,18 +38,73 @@ on:
       - 'src/**.c'
       - 'tools/**'
       - '**/Makefile'
+      - '.github/workflows/build.yml'
 
 jobs:
-  build:
+  build-linux:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]  # todo: windows-latest - lack of iconv development files
         shared: [0, 1]
-    runs-on: ${{ matrix.os }}
+    name: Build Linux (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Build
         env:
           SHARED: ${{ matrix.shared }}
         run: make
+      - name: Generate artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Hashcat-${{ runner.os }}-${{ matrix.shared == 0 && 'Static' || 'Shared' }}
+          path: ${{ env.include_paths }}
+
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [0, 1]
+    name: Build MacOS (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        env:
+          SHARED: ${{ matrix.shared }}
+        run: make
+      - name: Generate artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Hashcat-${{ runner.os }}-${{ matrix.shared == 0 && 'Static' || 'Shared' }}
+          path: ${{ env.include_paths }}
+
+  build-windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [0, 1]
+    name: Build Windows (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    runs-on: windows-latest
+    steps:
+      - name: Install libiconv
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: |
+            gcc
+            git
+            libiconv
+            libiconv-devel
+            make
+      - uses: actions/checkout@v3
+      - name: Build
+        shell: msys2 {0}
+        env:
+          SHARED: ${{ matrix.shared }}
+        run: make
+      - name: Generate artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Hashcat-${{ runner.os }}-${{ matrix.shared == 0 && 'Static' || 'Shared' }}
+          path: ${{ env.include_paths }}
