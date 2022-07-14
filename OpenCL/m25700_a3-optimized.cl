@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
 #endif
 
-DECLSPEC u32x MurmurHash_w0 (const u32 seed, const u32x w0, PRIVATE_AS const u32 *w, const int pw_len)
+DECLSPEC u32x MurmurHash (const u32x seed, PRIVATE_AS const u32x *w, const u32 pw_len)
 {
   u32x hash = seed;
 
@@ -23,46 +23,21 @@ DECLSPEC u32x MurmurHash_w0 (const u32 seed, const u32x w0, PRIVATE_AS const u32
 
   hash += 0xdeadbeef;
 
-  u32x tmp = w0;
+  const u32 blocks = pw_len / 4;
 
   if (pw_len >= 4)
   {
-    hash += w0;
-    hash *= M;
-    hash ^= hash >> R;
-
-    int i;
-    int j;
-
-    for (i = 4, j = 1; i < pw_len - 3; i += 4, j += 1)
+    for (u32 i = 0; i < blocks; i++)
     {
-      tmp = w[j];
+      const u32x tmp = (hash + w[i]) * M;
 
-      hash += tmp;
-      hash *= M;
-      hash ^= hash >> R;
-    }
-
-    if (pw_len & 3)
-    {
-      tmp = w[j];
-
-      hash += tmp;
-      hash *= M;
-      hash ^= hash >> R;
+      hash = tmp ^ (tmp >> R);
     }
   }
-  else
-  {
-    if (pw_len & 3)
-    {
-      tmp = w0;
 
-      hash += tmp;
-      hash *= M;
-      hash ^= hash >> R;
-    }
-  }
+  const u32x tmp = (hash + w[blocks]) * M;
+
+  hash = (pw_len & 3) ? (tmp ^ (tmp >> R)) : hash;
 
   hash *= M;
   hash ^= hash >> 10;
@@ -75,7 +50,7 @@ DECLSPEC u32x MurmurHash_w0 (const u32 seed, const u32x w0, PRIVATE_AS const u32
   return hash;
 }
 
-DECLSPEC void m25700m (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m25700m (PRIVATE_AS const u32 *data, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args
@@ -85,13 +60,36 @@ DECLSPEC void m25700m (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
    * seed
    */
 
-  const u32 seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  const u32x seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
+
+  /**
+   * base
+   */
+
+  u32x w[16];
+
+  w[ 0] = data[ 0];
+  w[ 1] = data[ 1];
+  w[ 2] = data[ 2];
+  w[ 3] = data[ 3];
+  w[ 4] = data[ 4];
+  w[ 5] = data[ 5];
+  w[ 6] = data[ 6];
+  w[ 7] = data[ 7];
+  w[ 8] = data[ 8];
+  w[ 9] = data[ 9];
+  w[10] = data[10];
+  w[11] = data[11];
+  w[12] = data[12];
+  w[13] = data[13];
+  w[14] = data[14];
+  w[15] = data[15];
 
   /**
    * loop
    */
 
-  u32 w0l = w[0];
+  u32x w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
@@ -99,7 +97,9 @@ DECLSPEC void m25700m (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
 
     const u32x w0 = w0l | w0r;
 
-    const u32x hash = MurmurHash_w0 (seed, w0, w, pw_len);
+    w[0] = w0;
+
+    const u32x hash = MurmurHash (seed, w, pw_len);
 
     const u32x r0 = hash;
     const u32x r1 = 0;
@@ -110,7 +110,7 @@ DECLSPEC void m25700m (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
   }
 }
 
-DECLSPEC void m25700s (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m25700s (PRIVATE_AS const u32 *data, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args
@@ -132,13 +132,36 @@ DECLSPEC void m25700s (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
    * seed
    */
 
-  const u32 seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  const u32x seed = salt_bufs[SALT_POS_HOST].salt_buf[0];
+
+  /**
+   * base
+   */
+
+  u32x w[16];
+
+  w[ 0] = data[ 0];
+  w[ 1] = data[ 1];
+  w[ 2] = data[ 2];
+  w[ 3] = data[ 3];
+  w[ 4] = data[ 4];
+  w[ 5] = data[ 5];
+  w[ 6] = data[ 6];
+  w[ 7] = data[ 7];
+  w[ 8] = data[ 8];
+  w[ 9] = data[ 9];
+  w[10] = data[10];
+  w[11] = data[11];
+  w[12] = data[12];
+  w[13] = data[13];
+  w[14] = data[14];
+  w[15] = data[15];
 
   /**
    * loop
    */
 
-  u32 w0l = w[0];
+  u32x w0l = w[0];
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
@@ -146,7 +169,9 @@ DECLSPEC void m25700s (PRIVATE_AS const u32 *w, const u32 pw_len, KERN_ATTR_FUNC
 
     const u32x w0 = w0l | w0r;
 
-    const u32x hash = MurmurHash_w0 (seed, w0, w, pw_len);
+    w[0] = w0;
+
+    const u32x hash = MurmurHash (seed, w, pw_len);
 
     const u32x r0 = hash;
     const u32x r1 = 0;
@@ -185,7 +210,7 @@ KERNEL_FQ void m25700_m04 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -225,7 +250,7 @@ KERNEL_FQ void m25700_m08 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -305,7 +330,7 @@ KERNEL_FQ void m25700_s04 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
@@ -345,7 +370,7 @@ KERNEL_FQ void m25700_s08 (KERN_ATTR_VECTOR ())
   w[11] = 0;
   w[12] = 0;
   w[13] = 0;
-  w[14] = pws[gid].i[14];
+  w[14] = 0;
   w[15] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;

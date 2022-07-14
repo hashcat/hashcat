@@ -12,26 +12,6 @@ use Digest::SHA qw (hmac_sha1);
 use Crypt::Mode::CBC;
 use Crypt::PBKDF2;
 
-sub byte2hex
-{
-  my $input = shift;
-  return unpack ("H*", $input);
-}
-
-sub hex2byte
-{
-  my $input = shift;
-  return pack ("H*", $input);
-}
-
-sub pad
-{
-  my $n = shift;
-  my $size = shift;
-
-  return (~$n + 1) & ($size - 1);
-}
-
 sub module_constraints { [[0, 256], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
@@ -56,9 +36,9 @@ sub module_generate_hash
   my $b_seed = $pbkdf2->PBKDF2 ($mysalt, $word);
 
   # we can precompute this
-  my $b_kerberos_nfolded = hex2byte ('6b65726265726f737b9b5b2b93132b93');
+  my $b_kerberos_nfolded = pack ("H*", '6b65726265726f737b9b5b2b93132b93');
 
-  my $b_iv = hex2byte ('0' x 32);
+  my $b_iv = pack ("H*", '0' x 32);
 
   # 'key_bytes' will be the AES key used to generate 'ki' (for final hmac-sha1)
   # and 'ke' (AES key to decrypt/encrypt the ticket)
@@ -81,7 +61,7 @@ sub module_verify_hash
 
   my @data = split ('\$', $hash);
 
-  return unless scalar @data == 5;
+  return unless scalar @data == 6;
 
   shift @data;
 
