@@ -23,6 +23,10 @@
 - Added hash-mode: md5(sha1($pass).$salt)
 - Added hash-mode: sha1($salt.sha1(utf16le($username).':'.utf16le($pass)))
 - Added hash-mode: sha256($salt.sha256_bin($pass))
+- Added hash-mode: Python Werkzeug SHA256
+- Added hash-mode: Python Werkzeug MD5
+- Added hash-mode: Python Werkzeug SHA1
+- Added hash-mode: Python Werkzeug SHA512
 
 ##
 ## Features
