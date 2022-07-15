@@ -1897,7 +1897,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   if (hashes->parser_token_length_cnt > 0)
   {
     event_log_advice (hashcat_ctx, NULL); // we can guarantee that the previous line was not an empty line
-    event_log_advice (hashcat_ctx, "* Token length exception: %u/%u hashes", hashes->parser_token_length_cnt, hashes->parser_token_length_cnt + hashes->hashes_cnt_orig);
+    event_log_advice (hashcat_ctx, "* Token length exception: %u/%u hashes", hashes->parser_token_length_cnt, hashes->parser_token_length_cnt + hashes->hashes_cnt);
     event_log_advice (hashcat_ctx, "  This error happens if the wrong hash type is specified, if the hashes are");
     event_log_advice (hashcat_ctx, "  malformed, or if input is otherwise not as expected (for example, if the");
     event_log_advice (hashcat_ctx, "  --username option is used but no username is present)");
