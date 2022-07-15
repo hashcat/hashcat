@@ -748,6 +748,15 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       printf ("\"benchmark_mask\": \"%s\", ", "N/A");
     }
 
+    if (hashconfig->benchmark_charset != NULL)
+    {
+      printf ("\"benchmark_charset1\": \"%s\", ", hashconfig->benchmark_charset);
+    }
+    else
+    {
+      printf ("\"benchmark_charset1\": \"%s\", ", "N/A");
+    }
+
     printf ("\"autodetect_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "false" : "true");
     printf ("\"self_test_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "false" : "true");
     printf ("\"potfile_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "false" : "true");
@@ -891,6 +900,15 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
     {
       event_log_info (hashcat_ctx, "  Benchmark.Mask......: N/A");
     }
+
+    if (hashconfig->benchmark_charset != NULL)
+    {
+      event_log_info (hashcat_ctx, "  Benchmark.Charset1..: %s", hashconfig->benchmark_charset);
+    }
+    // else // almost always empty
+    // {
+    //   event_log_info (hashcat_ctx, "  Benchmark.Charset1..: N/A");
+    // }
 
     event_log_info (hashcat_ctx, "  Autodetect.Enabled..: %s", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "No" : "Yes");
     event_log_info (hashcat_ctx, "  Self.Test.Enabled...: %s", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "No" : "Yes");

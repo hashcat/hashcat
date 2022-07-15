@@ -1033,6 +1033,7 @@ typedef struct hashconfig
   const char *hash_name;
 
   const char *benchmark_mask;
+  const char *benchmark_charset;
 
   u32 kernel_accel_min;
   u32 kernel_accel_max;
@@ -2831,6 +2832,7 @@ typedef struct module_ctx
   void       *(*module_benchmark_esalt)         (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   void       *(*module_benchmark_hook_salt)     (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_benchmark_mask)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_benchmark_charset)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   salt_t     *(*module_benchmark_salt)          (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_deprecated_notice)       (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos0)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

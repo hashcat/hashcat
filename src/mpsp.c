@@ -1443,6 +1443,14 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2) == -1) return -1; }
   if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3) == -1) return -1; }
 
+  if (user_options->benchmark == true)
+  {
+    if (hashconfig->benchmark_charset != NULL)
+    {
+      if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, hashconfig->benchmark_charset, 0) == -1) return -1;
+    }
+  }
+
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     if (user_options->benchmark == false)

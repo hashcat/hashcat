@@ -96,6 +96,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // set some boring defaults
 
   hashconfig->benchmark_mask          = default_benchmark_mask          (hashconfig, user_options, user_options_extra);
+  hashconfig->benchmark_charset       = default_benchmark_charset       (hashconfig, user_options, user_options_extra);
   hashconfig->dictstat_disable        = default_dictstat_disable        (hashconfig, user_options, user_options_extra);
   hashconfig->esalt_size              = default_esalt_size              (hashconfig, user_options, user_options_extra);
   hashconfig->forced_outfile_format   = default_forced_outfile_format   (hashconfig, user_options, user_options_extra);
@@ -150,6 +151,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_benchmark_esalt);
   CHECK_DEFINED (module_ctx->module_benchmark_hook_salt);
   CHECK_DEFINED (module_ctx->module_benchmark_mask);
+  CHECK_DEFINED (module_ctx->module_benchmark_charset);
   CHECK_DEFINED (module_ctx->module_benchmark_salt);
   CHECK_DEFINED (module_ctx->module_build_plain_postprocess);
   CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
@@ -419,6 +421,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   hashconfig->is_salted = is_salted;
 
   if (module_ctx->module_benchmark_mask           != MODULE_DEFAULT) hashconfig->benchmark_mask          = module_ctx->module_benchmark_mask           (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_benchmark_charset        != MODULE_DEFAULT) hashconfig->benchmark_charset       = module_ctx->module_benchmark_charset        (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_dictstat_disable         != MODULE_DEFAULT) hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_esalt_size               != MODULE_DEFAULT) hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_outfile_format    != MODULE_DEFAULT) hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
@@ -548,6 +551,11 @@ const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig,
   const char *mask = "?b?b?b?b?b?b?b";
 
   return mask;
+}
+
+const char *default_benchmark_charset (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return NULL;
 }
 
 u32 default_hash_mode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

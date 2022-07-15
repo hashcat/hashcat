@@ -13,7 +13,7 @@
 #include <limits.h>
 #include <inttypes.h>
 
-static const int MODULE_INTERFACE_VERSION_MINIMUM = 630;
+static const int MODULE_INTERFACE_VERSION_MINIMUM = 700;
 
 static const int MODULE_HASH_MODES_MAXIMUM = 100000;
 
@@ -29,6 +29,7 @@ int         hashconfig_init                 (hashcat_ctx_t *hashcat_ctx);
 void        hashconfig_destroy              (hashcat_ctx_t *hashcat_ctx);
 
 const char *default_benchmark_mask          (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
+const char *default_benchmark_charset       (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 bool        default_dictstat_disable        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 u64         default_esalt_size              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 u32         default_forced_outfile_format   (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
