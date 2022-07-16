@@ -244,6 +244,9 @@ Namely, these configurations take place in a variety of optional functions that 
 * module_salt_type()
 * module_st_hash()
 * module_st_pass()
+* module_benchmark_mask()
+* module_benchmark_charset()
+* module_benchmark_salt()
 
 At first glance, this looks a bit overwhelming. But in fact, all of these functions (apart from the first three) are only configuration parameters. You may wonder why we have not designed the module by simply setting a macro/number item for each of the configurations. But we wanted to give you the opportunity to change this configuration at runtime and not just at compile time. For example, if you only want to use a specific optimizer but only if the user runs the kernel on a GPU and not if the user runs it on a CPU. But this actually goes into deep detail. In reality, it usually looks like this:
 
@@ -517,6 +520,18 @@ The --example-hashes command line argument together with a specific hash mode (-
 ### module_st_pass() ###
 
 This is the password to crack the hash given in module_st_hash() for the self-test functionality.
+
+### module_benchmark_mask() ###
+
+This is a mask that is hash mode specific and is normally used whenever the mask that should be used in benchmarks is of a very specific length and/or pattern. This could be a dynamic string, but in general try to use a variable called `BENCHMARK_MASK`.
+
+### module_benchmark_charset() ###
+
+This is a custom charset setting (like `--custom-charset1`) that always needs to be synchronized with the default benchmark mask (see `module_benchmark_mask ()`, or the default one if not set). This setting does only affect `--benchmark` and you can use this charset within your mask with `?1`. Try to use a variable called `BENCHMARK_CHARSET` for this string whenever possible.
+
+### module_benchmark_salt() ###
+
+This is a salt that is hash mode specific and allows you to set a `salt_t` structure dynamically. This could sometimes be needed if custom iteration counts or salt lengths are needed for a specific hash mode.
 
 ### module_hook_extra_param_init() and module_hook_extra_param_term() ###
 
