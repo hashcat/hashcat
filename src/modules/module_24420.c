@@ -53,6 +53,20 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 #define PKCS_MIN_IV_HEX_LEN (PKCS_MIN_IV_LEN * 2)
 #define PKCS_MAX_IV_HEX_LEN (PKCS_MAX_IV_LEN * 2)
 
+typedef enum pkcs_cipher {
+  PKCS_CIPHER_3DES        = 1,
+  PKCS_CIPHER_AES_128_CBC = 2,
+  PKCS_CIPHER_AES_192_CBC = 3,
+  PKCS_CIPHER_AES_256_CBC = 4,
+} pkcs_cipher_t;
+
+typedef enum pkcs_cipher_block_size {
+  PKCS_CIPHER_BLOCK_SIZE_3DES        =  8,
+  PKCS_CIPHER_BLOCK_SIZE_AES_128_CBC = 16,
+  PKCS_CIPHER_BLOCK_SIZE_AES_192_CBC = 16,
+  PKCS_CIPHER_BLOCK_SIZE_AES_256_CBC = 16,
+} pkcs_cipher_block_size_t;
+
 typedef struct pkcs_sha256_tmp
 {
   u32  ipad[8];
@@ -65,7 +79,7 @@ typedef struct pkcs_sha256_tmp
 
 typedef struct pkcs
 {
-  int cipher;
+  int cipher; // pkcs_cipher_t
 
   u32 data_buf[16384];
   int data_len;
@@ -175,10 +189,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int cipher = hc_strtoul ((const char *) cipher_pos, NULL, 10);
 
-  if ((cipher != 1)
-   && (cipher != 2)
-   && (cipher != 3)
-   && (cipher != 4)) return (PARSER_CIPHER);
+  if ((cipher != PKCS_CIPHER_3DES)
+   && (cipher != PKCS_CIPHER_AES_128_CBC)
+   && (cipher != PKCS_CIPHER_AES_192_CBC)
+   && (cipher != PKCS_CIPHER_AES_256_CBC)) return (PARSER_CIPHER);
 
   pkcs->cipher = cipher;
 
@@ -201,18 +215,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *iv_pos = token.buf[5];
   const int iv_len = token.len[5];
 
-  if (cipher == 1)
-  {
-    if (iv_len != PKCS_MIN_IV_HEX_LEN) return (PARSER_SALT_LENGTH);
+  if ((cipher == PKCS_CIPHER_3DES) && (iv_len != PKCS_MIN_IV_HEX_LEN)) return (PARSER_SALT_LENGTH);
+  if ((cipher != PKCS_CIPHER_3DES) && (iv_len != PKCS_MAX_IV_HEX_LEN)) return (PARSER_SALT_LENGTH);
 
-    hex_decode (iv_pos, iv_len, (u8 *) pkcs->iv_buf);
-  }
-  else
-  {
-    if (iv_len != PKCS_MAX_IV_HEX_LEN) return (PARSER_SALT_LENGTH);
-
-    hex_decode (iv_pos, iv_len, (u8 *) pkcs->iv_buf);
-  }
+  hex_decode (iv_pos, iv_len, (u8 *) pkcs->iv_buf);
 
   // data length
 
@@ -233,10 +239,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int cipher_bs = 0;
 
-       if (cipher == 1) { cipher_bs =  8; }
-  else if (cipher == 2) { cipher_bs = 16; }
-  else if (cipher == 3) { cipher_bs = 16; }
-  else if (cipher == 4) { cipher_bs = 16; }
+       if (cipher == PKCS_CIPHER_3DES)        { cipher_bs = PKCS_CIPHER_BLOCK_SIZE_3DES; }
+  else if (cipher == PKCS_CIPHER_AES_128_CBC) { cipher_bs = PKCS_CIPHER_BLOCK_SIZE_AES_128_CBC; }
+  else if (cipher == PKCS_CIPHER_AES_192_CBC) { cipher_bs = PKCS_CIPHER_BLOCK_SIZE_AES_192_CBC; }
+  else if (cipher == PKCS_CIPHER_AES_256_CBC) { cipher_bs = PKCS_CIPHER_BLOCK_SIZE_AES_256_CBC; }
 
   if (pkcs->data_len % cipher_bs) return (PARSER_HASH_LENGTH);
 
@@ -254,40 +260,40 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   pkcs_t *pkcs = (pkcs_t *) esalt_buf;
 
+  // salt
+
   char salt_buf[PKCS_MAX_SALT_HEX_LEN + 1] = { 0 };
 
   hex_encode ((const u8 *) salt->salt_buf, salt->salt_len, (u8 *) salt_buf);
 
-  u8 *out_buf = (u8 *) line_buf;
+  // iv
 
-  int out_len;
+  char iv[PKCS_MAX_IV_HEX_LEN + 1] = { 0 };
 
-  if (pkcs->cipher == 1)
+  int iv_len = 0;
+
+  if (pkcs->cipher == PKCS_CIPHER_3DES)
   {
-    char iv[PKCS_MIN_IV_HEX_LEN + 1] = { 0 };
-    hex_encode((const u8 *) pkcs->iv_buf, PKCS_MIN_IV_LEN, (u8 *) iv);
-
-    out_len = snprintf ((char *) out_buf, line_size, "%s2$%d$%s$%d$%s$%d$",
-      SIGNATURE_PEM,
-      pkcs->cipher,
-      salt_buf,
-      salt->salt_iter + 1,
-      iv,
-      pkcs->data_len);
+    iv_len = PKCS_MIN_IV_LEN;
   }
   else
   {
-    char iv[PKCS_MAX_IV_HEX_LEN + 1] = { 0 };
-    hex_encode((const u8 *) pkcs->iv_buf, PKCS_MAX_IV_LEN, (u8 *) iv);
-
-    out_len = snprintf ((char *) out_buf, line_size, "%s2$%d$%s$%d$%s$%d$",
-      SIGNATURE_PEM,
-      pkcs->cipher,
-      salt_buf,
-      salt->salt_iter + 1,
-      iv,
-      pkcs->data_len);
+    iv_len = PKCS_MAX_IV_LEN;
   }
+
+  hex_encode((const u8 *) pkcs->iv_buf, iv_len, (u8 *) iv);
+
+  // output
+
+  u8 *out_buf = (u8 *) line_buf;
+
+  int out_len = snprintf ((char *) out_buf, line_size, "%s2$%d$%s$%d$%s$%d$",
+    SIGNATURE_PEM,
+    pkcs->cipher,
+    salt_buf,
+    salt->salt_iter + 1,
+    iv,
+    pkcs->data_len);
 
   out_len += hex_encode ((const u8 *) pkcs->data_buf, pkcs->data_len, (u8 *) out_buf + out_len);
 

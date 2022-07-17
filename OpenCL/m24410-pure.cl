@@ -19,6 +19,20 @@
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
+typedef enum pkcs_cipher {
+  PKCS_CIPHER_3DES        = 1,
+  PKCS_CIPHER_AES_128_CBC = 2,
+  PKCS_CIPHER_AES_192_CBC = 3,
+  PKCS_CIPHER_AES_256_CBC = 4,
+} pkcs_cipher_t;
+
+typedef enum pkcs_cipher_key_size {
+  PKCS_CIPHER_KEY_SIZE_3DES        = 192,
+  PKCS_CIPHER_KEY_SIZE_AES_128_CBC = 128,
+  PKCS_CIPHER_KEY_SIZE_AES_192_CBC = 192,
+  PKCS_CIPHER_KEY_SIZE_AES_256_CBC = 256,
+} pkcs_cipher_key_size_t;
+
 typedef struct pkcs_sha1_tmp
 {
   u32  ipad[5];
@@ -31,7 +45,7 @@ typedef struct pkcs_sha1_tmp
 
 typedef struct pkcs
 {
-  int cipher;
+  int cipher; // pkcs_cipher_t
 
   u32 data_buf[16384];
   int data_len;
@@ -106,10 +120,10 @@ KERNEL_FQ void m24410_init (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
   u32 key_elem = 0;
 
-       if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 1) { key_elem = (192 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 2) { key_elem = (128 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 3) { key_elem = (192 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 4) { key_elem = (256 / 8) / 4; }
+       if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == PKCS_CIPHER_3DES)        { key_elem = (PKCS_CIPHER_KEY_SIZE_3DES        / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == PKCS_CIPHER_AES_128_CBC) { key_elem = (PKCS_CIPHER_KEY_SIZE_AES_128_CBC / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == PKCS_CIPHER_AES_192_CBC) { key_elem = (PKCS_CIPHER_KEY_SIZE_AES_192_CBC / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == PKCS_CIPHER_AES_256_CBC) { key_elem = (PKCS_CIPHER_KEY_SIZE_AES_256_CBC / 8) / 4; }
 
   for (u32 i = 0, j = 1; i < key_elem; i += 5, j += 1)
   {
@@ -178,10 +192,10 @@ KERNEL_FQ void m24410_loop (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
   u32 key_elem = 0;
 
-       if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 1) { key_elem = (192 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 2) { key_elem = (128 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 3) { key_elem = (192 / 8) / 4; }
-  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == 4) { key_elem = (256 / 8) / 4; }
+       if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == PKCS_CIPHER_3DES)        { key_elem = (PKCS_CIPHER_KEY_SIZE_3DES        / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == PKCS_CIPHER_AES_128_CBC) { key_elem = (PKCS_CIPHER_KEY_SIZE_AES_128_CBC / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == PKCS_CIPHER_AES_192_CBC) { key_elem = (PKCS_CIPHER_KEY_SIZE_AES_192_CBC / 8) / 4; }
+  else if (esalt_bufs[DIGESTS_OFFSET_HOST].cipher == PKCS_CIPHER_AES_256_CBC) { key_elem = (PKCS_CIPHER_KEY_SIZE_AES_256_CBC / 8) / 4; }
 
   for (u32 i = 0; i < key_elem; i += 5)
   {
@@ -357,7 +371,7 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
   u32 enc[4];
   u32 dec[4];
 
-  if (cipher == 1)
+  if (cipher == PKCS_CIPHER_3DES)
   {
     ukey[0] = hc_swap32_S (ukey[0]);
     ukey[1] = hc_swap32_S (ukey[1]);
@@ -420,7 +434,7 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     if (asn1_ok == 0) return;
   }
-  else if (cipher == 2)
+  else if (cipher == PKCS_CIPHER_AES_128_CBC)
   {
     u32 ks[44];
 
@@ -474,7 +488,7 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     if (asn1_ok == 0) return;
   }
-  else if (cipher == 3)
+  else if (cipher == PKCS_CIPHER_AES_192_CBC)
   {
     u32 ks[52];
 
@@ -528,7 +542,7 @@ KERNEL_FQ void m24410_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha1_tmp_t, pkcs_t))
 
     if (asn1_ok == 0) return;
   }
-  else if (cipher == 4)
+  else if (cipher == PKCS_CIPHER_AES_256_CBC)
   {
     u32 ks[60];
 
