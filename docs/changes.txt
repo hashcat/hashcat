@@ -4,6 +4,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode: Terra Station Wallet (AES256-CBC(PBKDF2($pass)))
 - Added hash-mode: Amazon AWS4-HMAC-SHA256
 - Added hash-mode: Bitcoin WIF private key (P2PKH)
 - Added hash-mode: Bitcoin WIF private key (P2SH(P2WPKH))
