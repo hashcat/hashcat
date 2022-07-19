@@ -1,7 +1,6 @@
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
- * DEBUG: ST PW = 0x70617373776f7264313233
  */
 
 #define NEW_SIMD_CODE
@@ -39,7 +38,7 @@ typedef struct terra
 
 DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
 {
-  
+
   digest[0] = ipad[0];
   digest[1] = ipad[1];
   digest[2] = ipad[2];
@@ -74,7 +73,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m90999_init (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
+KERNEL_FQ void m29600_init (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 {
   const u64 gid = get_global_id (0);
   if (gid >= GID_CNT) return;
@@ -91,7 +90,7 @@ KERNEL_FQ void m90999_init (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 
   sha1_hmac_ctx_t sha1_hmac_ctx;
   sha1_hmac_init_global_swap (&sha1_hmac_ctx, pws[gid].i, pws[gid].pw_len);
-  
+
 
   tmps[gid].ipad[0] = sha1_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha1_hmac_ctx.ipad.h[1];
@@ -107,7 +106,7 @@ KERNEL_FQ void m90999_init (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 
 
   sha1_hmac_update (&sha1_hmac_ctx, s, FIXED_SALT_SIZE);
-  
+
 
   // First iteration
   for (u32 i = 0, j = 1; i < 8; i += 5, j += 1)
@@ -138,7 +137,7 @@ KERNEL_FQ void m90999_init (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 
     sha1_hmac_update_64 (&sha1_hmac_ctx2, w0, w1, w2, w3, 4);
     sha1_hmac_final (&sha1_hmac_ctx2);
-  
+
 
     tmps[gid].dgst[i + 0] = sha1_hmac_ctx2.opad.h[0];
     tmps[gid].dgst[i + 1] = sha1_hmac_ctx2.opad.h[1];
@@ -154,7 +153,7 @@ KERNEL_FQ void m90999_init (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
   }
 }
 
-KERNEL_FQ void m90999_loop (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
+KERNEL_FQ void m29600_loop (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -191,7 +190,7 @@ KERNEL_FQ void m90999_loop (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
     out[2] = packv (tmps, out, gid, i + 2);
     out[3] = packv (tmps, out, gid, i + 3);
     out[4] = packv (tmps, out, gid, i + 4);
-   
+
     for (u32 j = 0; j < LOOP_CNT; j++)
     {
       u32x w0[4];
@@ -217,7 +216,7 @@ KERNEL_FQ void m90999_loop (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
       w3[3] = (64 + 20) * 8;
 
       hmac_sha1_run_V (w0, w1, w2, w3, ipad, opad, dgst);
-      
+
 
       out[0] ^= dgst[0];
       out[1] ^= dgst[1];
@@ -240,7 +239,7 @@ KERNEL_FQ void m90999_loop (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
   }
 }
 
-KERNEL_FQ void m90999_comp (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
+KERNEL_FQ void m29600_comp (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 {
   /**
    * base
