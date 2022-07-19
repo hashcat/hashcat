@@ -57,7 +57,7 @@ jobs:
       - name: Generate artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Hashcat-${{ runner.os }}-${{ matrix.shared == 0 && 'Static' || 'Shared' }}
+          name: hashcat-linux-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
 
   build-macos:
@@ -76,7 +76,7 @@ jobs:
       - name: Generate artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Hashcat-${{ runner.os }}-${{ matrix.shared == 0 && 'Static' || 'Shared' }}
+          name: hashcat-macos-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
 
   build-windows:
@@ -106,5 +106,5 @@ jobs:
       - name: Generate artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: Hashcat-${{ runner.os }}-${{ matrix.shared == 0 && 'Static' || 'Shared' }}
+          name: hashcat-windows-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
