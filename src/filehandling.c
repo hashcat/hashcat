@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "limits.h"
 #include "memory.h"
 #include "shared.h"
 #include "filehandling.h"
