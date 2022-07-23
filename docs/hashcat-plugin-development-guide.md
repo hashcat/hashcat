@@ -225,7 +225,7 @@ There is no need to implement any black magic into the module. A module covers e
 * Hook functions
 * JiT compiler options
 
-Namely, these configurations take place in a variety of optional functions that you provide in every module. There is a few mandatory functions which need to be implemented:
+Namely, these configurations take place in a variety of optional functions that you provide in every module. There are a few mandatory functions which need to be implemented:
 
 * module_init()
 * module_hash_decode()
@@ -244,9 +244,6 @@ Namely, these configurations take place in a variety of optional functions that 
 * module_salt_type()
 * module_st_hash()
 * module_st_pass()
-* module_benchmark_mask()
-* module_benchmark_charset()
-* module_benchmark_salt()
 
 At first glance, this looks a bit overwhelming. But in fact, all of these functions (apart from the first three) are only configuration parameters. You may wonder why we have not designed the module by simply setting a macro/number item for each of the configurations. But we wanted to give you the opportunity to change this configuration at runtime and not just at compile time. For example, if you only want to use a specific optimizer but only if the user runs the kernel on a GPU and not if the user runs it on a CPU. But this actually goes into deep detail. In reality, it usually looks like this:
 
@@ -521,6 +518,16 @@ The --example-hashes command line argument together with a specific hash mode (-
 
 This is the password to crack the hash given in module_st_hash() for the self-test functionality.
 
+### module_hook_extra_param_init() and module_hook_extra_param_term() ###
+
+These two functions were added to hashcat beginning with version 6.2.0 when it was required for a module to use a 3rd party library from inside a hook function. However, the module developer is free to decide how to use this buffer (it doesn't have to be a library handle). Generally, it is a buffer that the module developer would use for something that they need to initialize and terminate only once on startup and shutdown for performance reasons.
+
+It is unclear to hashcat if this buffer will be handled in a thread-safe fashion or not, but since hooks are multi-threaded, hashcat will allocate multiple buffers (as many as there are hook threads) of this type for the module developer. This enables the module developer to load 3rd party libraries where they have no control over and which are known to not be thread-safe.
+
+The module developer does not have to care about managing the multiple instances but has to provide the size of the buffer to be allocated. For this, they have to use the module_hook_extra_param_size() function. The buffer in *hook_extra_param is zeroed and ready to be written when module_hook_extra_param_init() is called. On startup, hashcat will call module_hook_extra_param_init() that many times as there are hook threads each time providing the module function with a new buffer. The same logic applies to module_hook_extra_param_term() on shutdown. Hashcat will also free the memory on shutdown.
+
+A good example for this is: `src/modules/module_11600.c` and `src/modules/module_23800.c`
+
 ### module_benchmark_mask() ###
 
 This is a mask that is hash mode specific and is normally used whenever the mask that should be used in benchmarks is of a very specific length and/or pattern. This could be a dynamic string, but in general try to use a variable called `BENCHMARK_MASK`.
@@ -532,16 +539,6 @@ This is a custom charset setting (like `--custom-charset1`) that always needs to
 ### module_benchmark_salt() ###
 
 This is a salt that is hash mode specific and allows you to set a `salt_t` structure dynamically. This could sometimes be needed if custom iteration counts or salt lengths are needed for a specific hash mode.
-
-### module_hook_extra_param_init() and module_hook_extra_param_term() ###
-
-These two functions were added to hashcat beginning with version 6.2.0 when it was required for a module to use a 3rd party library from inside a hook function. However, the module developer is free to decide how to use this buffer (it doesn't have to be a library handle). Generally, it is a buffer that the module developer would use for something that they need to initialize and terminate only once on startup and shutdown for performance reasons.
-
-It is unclear to hashcat if this buffer will be handled in a thread-safe fashion or not, but since hooks are multi-threaded, hashcat will allocate multiple buffers (as many as there are hook threads) of this type for the module developer. This enables the module developer to load 3rd party libraries where they have no control over and which are known to not be thread-safe.
-
-The module developer does not have to care about managing the multiple instances but has to provide the size of the buffer to be allocated. For this, they have to use the module_hook_extra_param_size() function. The buffer in *hook_extra_param is zeroed and ready to be written when module_hook_extra_param_init() is called. On startup, hashcat will call module_hook_extra_param_init() that many times as there are hook threads each time providing the module function with a new buffer. The same logic applies to module_hook_extra_param_term() on shutdown. Hashcat will also free the memory on shutdown.
-
-A good example for this is: `src/modules/module_11600.c` and `src/modules/module_23800.c`
 
 ## Kernel ##
 
