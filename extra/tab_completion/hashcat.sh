@@ -821,7 +821,7 @@ _hashcat ()
     *)
       case "${attack_mode}" in
 
-        0)
+        0|9)
           # dict/directory are files here
           _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
           COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
