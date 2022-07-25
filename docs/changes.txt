@@ -126,6 +126,7 @@
 - Modules: Renamed old LUKS module into LUKS v1 and added suffix *legacy* (14600).
 - Workflow: Added basic workflow for GitHub Actions.
 - Makefile: Add install tools target.
+- Makefile: Add package target to make release package.
 
 * changes v6.2.4 -> v6.2.5
 

@@ -67,6 +67,7 @@ INSTALL                 := install
 RM                      := rm
 SED                     := sed
 SED_IN_PLACE            := -i
+7Z                      := 7z
 
 ifeq ($(UNAME),Darwin)
 CC                      := clang
@@ -149,11 +150,12 @@ endif
 endif
 
 ##
-## Filenames for library and frontend
+## Filenames for package, library and frontend
 ##
 
 HASHCAT_FRONTEND        := hashcat
 HASHCAT_LIBRARY         := libhashcat.so.$(VERSION_PURE)
+HASHCAT_PACKAGE         := hashcat.7z
 
 ifeq ($(UNAME),Darwin)
 HASHCAT_LIBRARY         := libhashcat.$(VERSION_PURE).dylib
@@ -466,6 +468,7 @@ default: $(HASHCAT_FRONTEND) modules
 clean:
 	$(RM) -f  $(HASHCAT_FRONTEND)
 	$(RM) -f  $(HASHCAT_LIBRARY)
+	$(RM) -f  $(HASHCAT_PACKAGE)
 	$(RM) -rf modules/*.dSYM
 	$(RM) -f  modules/*.dll
 	$(RM) -f  modules/*.so
@@ -701,6 +704,36 @@ MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SU
 
 .PHONY: modules
 modules: $(MODULES_LIB)
+
+##
+## native package
+##
+
+ifeq ($(UNAME),CYGWIN)
+EXAMPLE_SUFFIX := cmd
+else ifeq ($(UNAME),MSYS2)
+EXAMPLE_SUFFIX := cmd
+else
+EXAMPLE_SUFFIX := sh
+endif
+
+EXAMPLES       += example.dict
+EXAMPLES       += $(wildcard example*.$(EXAMPLE_SUFFIX))
+EXAMPLES       += $(wildcard example*.hash)
+
+TOOLS          += $(wildcard tools/*hashcat.pl)
+TOOLS          += $(wildcard tools/*hashcat.py)
+
+.PHONY: package
+package: $(HASHCAT_PACKAGE)
+
+ifeq ($(SHARED),1)
+$(HASHCAT_PACKAGE): $(HASHCAT_FRONTEND) $(HASHCAT_LIBRARY) $(MODULES_LIB) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE) $(HASHCAT_FRONTEND) $(HASHCAT_LIBRARY) $(EXAMPLES) charsets/ docs/ extra/ layouts/ masks/ $(MODULES_LIB) OpenCL/ rules/ $(TOOLS)
+else
+$(HASHCAT_PACKAGE): $(HASHCAT_FRONTEND)                    $(MODULES_LIB) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE) $(HASHCAT_FRONTEND)                    $(EXAMPLES) charsets/ docs/ extra/ layouts/ masks/ $(MODULES_LIB) OpenCL/ rules/ $(TOOLS)
+endif
 
 ##
 ## Cross Compilation (binary release version)
