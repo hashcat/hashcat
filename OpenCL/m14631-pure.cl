@@ -18,9 +18,9 @@
 #include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
 #endif
 
-#define LUKS_STRIPES    4000
-#define LUKS_CT_LEN     512
-#define LUKS_AF_MAX_LEN ((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES)
+#define LUKS_STRIPES    (                                   4000)
+#define LUKS_CT_LEN     (                                    512)
+#define LUKS_AF_MAX_LEN (HC_LUKS_KEY_SIZE_512 / 8 * LUKS_STRIPES)
 
 typedef enum hc_luks_hash_type
 {
@@ -60,10 +60,10 @@ typedef enum hc_luks_cipher_mode
 
 typedef struct luks
 {
-  int hash_type;    // hc_luks_hash_type_t
-  int key_size;     // hc_luks_key_size_t
-  int cipher_type;  // hc_luks_cipher_type_t
-  int cipher_mode;  // hc_luks_cipher_mode_t
+  int hash_type;   // hc_luks_hash_type_t
+  int key_size;    // hc_luks_key_size_t
+  int cipher_type; // hc_luks_cipher_type_t
+  int cipher_mode; // hc_luks_cipher_mode_t
 
   u32 ct_buf[LUKS_CT_LEN / 4];
 
