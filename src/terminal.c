@@ -17,7 +17,7 @@
 #include "timer.h"
 #include "terminal.h"
 
-#define MAXIMUM_EXAMPLE_HASH_LENGTH (128)
+static const size_t MAXIMUM_EXAMPLE_HASH_LENGTH = 200;
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
@@ -843,15 +843,18 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
         event_log_info (hashcat_ctx, "  Example.Hash.Format.: plain");
       }
 
-      if (strlen (hashconfig->st_hash) > MAXIMUM_EXAMPLE_HASH_LENGTH) {
-        char st_hash[MAXIMUM_EXAMPLE_HASH_LENGTH + 1] = { '\0' };
+      if (strlen (hashconfig->st_hash) > MAXIMUM_EXAMPLE_HASH_LENGTH)
+      {
+        char *st_hash = hcstrdup (hashconfig->st_hash);
 
-        strncpy (st_hash, hashconfig->st_hash, MAXIMUM_EXAMPLE_HASH_LENGTH - 3);
-        strcpy  (st_hash + MAXIMUM_EXAMPLE_HASH_LENGTH - 3, "...");
+        compress_terminal_line_length (st_hash, 24, 5);
 
-        event_log_info (hashcat_ctx, "  Example.Hash........: [too long example hash for your terminal, use --machine-readable]");
-        event_log_info (hashcat_ctx, "                        %s", st_hash);
-      } else {
+        event_log_info (hashcat_ctx, "  Example.Hash........: %s [Truncated, use --mach for full length]", st_hash);
+
+        hcfree (st_hash);
+      }
+      else
+      {
         event_log_info (hashcat_ctx, "  Example.Hash........: %s", hashconfig->st_hash);
       }
 

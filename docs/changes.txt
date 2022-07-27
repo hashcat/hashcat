@@ -121,6 +121,7 @@
 - Modules: Added support of a custom charset setting for benchmarks to the module interface
 - Modules: Added suffix *legacy* to old VeraCrypt modules (13711-13783).
 - Terminal: Increased size of hash name column in `--help` and `--identify` options.
+- Terminal: Limit output length of example hash in --example-hash mode to 200. Use --mach to see full example hash
 - Modules: New LUKS v1 modules (29511-29543) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/luks2hashcat.py`).
 - Modules: Renamed old LUKS module into LUKS v1 and added suffix *legacy* (14600).
 - Workflow: Added basic workflow for GitHub Actions.
