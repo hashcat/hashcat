@@ -59,7 +59,7 @@ typedef struct pbkdf_sha1_tmp
 
 typedef struct terra
 {
-  u32 salt_buf[8];
+  u32 salt_buf[4];
   u32 ct_block_a[4];
   
 } terra_t;
