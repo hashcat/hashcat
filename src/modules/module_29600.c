@@ -24,7 +24,6 @@ static const char *HASH_NAME      = "terra";
 static const u64   KERN_TYPE      = 29600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_HASH_COPY
                                   | OPTS_TYPE_PT_GENERATE_BE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcathas";
@@ -60,7 +59,8 @@ typedef struct pbkdf_sha1_tmp
 typedef struct terra
 {
   u32 salt_buf[8];
-  u32 ct_block_a[4];
+  u32 ct[16]; // 16 * 4 = 64 bytes (we have extra 16 bytes in digest: 64 + 16 = 80)
+  u32 iv[4];
   
 } terra_t;
 
@@ -122,7 +122,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *salt_pos = token.buf[0];
   const int salt_len = token.len[0];
-  // iv unused
+  const u8 *iv_pos   = token.buf[1];
+  const int iv_len   = token.len[1];
   const u8 *hash_pos = token.buf[2];
   const int hash_len = token.len[2];
   
@@ -143,6 +144,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   terra->salt_buf[2] = hex_to_u32 (salt_pos + 16);
   terra->salt_buf[3] = hex_to_u32 (salt_pos + 24);
 
+  // store IV
+  if (iv_len != 32) return (PARSER_SALT_LENGTH);
+  terra->iv[0] = hex_to_u32 (iv_pos +  0);
+  terra->iv[1] = hex_to_u32 (iv_pos +  8);
+  terra->iv[2] = hex_to_u32 (iv_pos + 16);
+  terra->iv[3] = hex_to_u32 (iv_pos + 24);
+
   // Base64 decode the ciphertext
   u8  tmp_buf[512];
   int tmp_len;
@@ -152,13 +160,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (tmp_len != 0x50) return (PARSER_HASH_LENGTH);
 
   
-  u32* whole_digest = (u32*)tmp_buf;
+  u32* whole_digest = (u32*) tmp_buf;
 
   // Penultimate block, i.e. IV, xored with a whole padding block
-  terra->ct_block_a[0] = byte_swap_32(whole_digest[0xc] ^ 0x10101010);
-  terra->ct_block_a[1] = byte_swap_32(whole_digest[0xd] ^ 0x10101010);
-  terra->ct_block_a[2] = byte_swap_32(whole_digest[0xe] ^ 0x10101010);
-  terra->ct_block_a[3] = byte_swap_32(whole_digest[0xf] ^ 0x10101010);
+  terra->ct[0] = byte_swap_32(whole_digest[0xc] ^ 0x10101010);
+  terra->ct[1] = byte_swap_32(whole_digest[0xd] ^ 0x10101010);
+  terra->ct[2] = byte_swap_32(whole_digest[0xe] ^ 0x10101010);
+  terra->ct[3] = byte_swap_32(whole_digest[0xf] ^ 0x10101010);
+
+  for (int i = 4; i < 16; i++)
+  {
+    terra->ct[i] = whole_digest[i - 4];
+  }
 
   // Last block
   digest[0] = byte_swap_32 (whole_digest[0x10]);
@@ -171,7 +184,52 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const int line_len = snprintf (line_buf, line_size, "%s", hash_info->orighash);
+  terra_t *terra = (terra_t *) esalt_buf;
+
+  u32 *digest = (u32 *) digest_buf;
+
+  // salt:
+
+  char salt_hex[32 + 1] = { 0 };
+
+  hex_encode ((u8 *) terra->salt_buf, 16, (u8 *) salt_hex); // or use: generic_salt_encode ()
+
+  salt_hex[32] = 0;
+
+  // iv:
+
+  char iv_hex[32 + 1] = { 0 };
+
+  hex_encode ((u8 *) terra->iv, 16, (u8 *) iv_hex);
+
+  iv_hex[32] = 0;
+
+  // data:
+
+  u32 data[16 + 4] = { 0 }; // total: 80 bytes
+
+  for (int i = 4; i < 16; i++)
+  {
+    data[i - 4] = terra->ct[i];
+  }
+
+  data[0xc] = byte_swap_32 (terra->ct[0] ^ 0x10101010);
+  data[0xd] = byte_swap_32 (terra->ct[1] ^ 0x10101010);
+  data[0xe] = byte_swap_32 (terra->ct[2] ^ 0x10101010);
+  data[0xf] = byte_swap_32 (terra->ct[3] ^ 0x10101010);
+
+  data[ 16] = byte_swap_32 (digest[0]);
+  data[ 17] = byte_swap_32 (digest[1]);
+  data[ 18] = byte_swap_32 (digest[2]);
+  data[ 19] = byte_swap_32 (digest[3]);
+
+  char data_b64[108 + 1] = { 0 };
+
+  base64_encode (int_to_base64, (u8 *) data, 80, (u8 *) data_b64);
+
+  data_b64[108] = 0;
+
+  const int line_len = snprintf (line_buf, line_size, "%s%s%s", salt_hex, iv_hex, data_b64);
  
   return line_len;
 }
