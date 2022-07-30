@@ -1,5 +1,3 @@
-
-   
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
@@ -61,7 +59,7 @@ typedef struct terra
 {
   u32 salt_buf[8];
   u32 ct_block_a[4];
-  
+
 } terra_t;
 
 
@@ -91,7 +89,6 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
- 
   terra_t *terra = (terra_t *) esalt_buf;
   u32 *digest = (u32 *) digest_buf;
 
@@ -113,7 +110,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len[2]     = 108;
   token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
-  
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -125,7 +121,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // iv unused
   const u8 *hash_pos = token.buf[2];
   const int hash_len = token.len[2];
-  
+
 
   // Populating salt buf even though it's unused - we use esalt below
   const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *)salt->salt_buf, (int *)&salt->salt_len);
@@ -151,7 +147,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (tmp_len != 0x50) return (PARSER_HASH_LENGTH);
 
-  
+
   u32* whole_digest = (u32*)tmp_buf;
 
   // Penultimate block, i.e. IV, xored with a whole padding block
@@ -172,7 +168,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
   const int line_len = snprintf (line_buf, line_size, "%s", hash_info->orighash);
- 
+
   return line_len;
 }
 
@@ -186,7 +182,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
-  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;  
+  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
