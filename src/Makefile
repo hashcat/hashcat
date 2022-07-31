@@ -457,32 +457,32 @@ default: $(HASHCAT_FRONTEND) modules
 
 .PHONY: clean
 clean:
-	$(RM) -f $(HASHCAT_FRONTEND)
-	$(RM) -f $(HASHCAT_LIBRARY)
+	$(RM) -f  $(HASHCAT_FRONTEND)
+	$(RM) -f  $(HASHCAT_LIBRARY)
 	$(RM) -rf modules/*.dSYM
-	$(RM) -f modules/*.dll
-	$(RM) -f modules/*.so
-	$(RM) -f obj/*/*/*.o
-	$(RM) -f obj/*/*.o
-	$(RM) -f obj/*.o
-	$(RM) -f obj/*.a
+	$(RM) -f  modules/*.dll
+	$(RM) -f  modules/*.so
+	$(RM) -f  obj/*/*/*.o
+	$(RM) -f  obj/*/*.o
+	$(RM) -f  obj/*.o
+	$(RM) -f  obj/*.a
 	$(RM) -rf *.dSYM
-	$(RM) -f *.dylib
-	$(RM) -f *.bin *.exe
-	$(RM) -f *.pid
-	$(RM) -f *.log
-	$(RM) -f core
+	$(RM) -f  *.dylib
+	$(RM) -f  *.bin *.exe
+	$(RM) -f  *.pid
+	$(RM) -f  *.log
+	$(RM) -f  core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf kernels
 
 .PHONY: distclean
 distclean: clean
-	$(RM) -f *.restore
-	$(RM) -f *.potfile
-	$(RM) -f *.out
-	$(RM) -f hashcat.dictstat2
-	$(RM) -f brain.*
+	$(RM) -f  *.restore
+	$(RM) -f  *.potfile
+	$(RM) -f  *.out
+	$(RM) -f  hashcat.dictstat2
+	$(RM) -f  brain.*
 	$(RM) -rf test_[0-9]*
 	$(RM) -rf tools/luks_tests
 
