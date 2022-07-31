@@ -721,9 +721,6 @@ EXAMPLES       += example.dict
 EXAMPLES       += $(wildcard example*.$(EXAMPLE_SUFFIX))
 EXAMPLES       += $(wildcard example*.hash)
 
-TOOLS          += $(wildcard tools/*hashcat.pl)
-TOOLS          += $(wildcard tools/*hashcat.py)
-
 .PHONY: package
 package: $(HASHCAT_PACKAGE)
 
@@ -879,6 +876,26 @@ hashcat.dll: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
 	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
 endif
+
+##
+## cross compiled packages
+##
+
+EXAMPLES_LINUX   := $(wildcard example*.sh)
+EXAMPLES_WINDOWS := $(wildcard example*.cmd)
+EXAMPLES_HASHES  := $(wildcard example*.hash)
+
+.PHONY: package-all
+package-all:    binaries $(EXAMPLES_LINUX) $(EXAMPLES_WINDOWS) $(EXAMPLES_HASHES) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE) hashcat.bin hashcat.exe example.dict $(EXAMPLES_LINUX) $(EXAMPLES_WINDOWS) $(EXAMPLES_HASHES) hashcat.hctune hashcat.hcstat2 charsets/ docs/ extra/ layouts/ masks/ $(MODULES_LIB_LINUX) $(MODULES_LIB_WIN) OpenCL/ rules/ $(TOOLS)
+
+.PHONY: package-linux
+package-linux: linux     $(EXAMPLES_LINUX)                     $(EXAMPLES_HASHES) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE) hashcat.bin             example.dict $(EXAMPLES_LINUX)                     $(EXAMPLES_HASHES) hashcat.hctune hashcat.hcstat2 charsets/ docs/ extra/ layouts/ masks/ $(MODULES_LIB_LINUX)                    OpenCL/ rules/ $(TOOLS)
+
+.PHONY: package-win
+package-win:   win                         $(EXAMPLES_WINDOWS) $(EXAMPLES_HASHES) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE)             hashcat.exe example.dict                   $(EXAMPLES_WINDOWS) $(EXAMPLES_HASHES) hashcat.hctune hashcat.hcstat2 charsets/ docs/ extra/ layouts/ masks/                      $(MODULES_LIB_WIN) OpenCL/ rules/ $(TOOLS)
 
 # Give plugin developers a chance to add some 3rd party libraries
 include	$(wildcard src/modules/module_*.mk)

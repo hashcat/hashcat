@@ -127,6 +127,7 @@
 - Workflow: Added basic workflow for GitHub Actions.
 - Makefile: Add install tools target.
 - Makefile: Add package target to make release package.
+- Makefile: Add cross compiled package targets.
 
 * changes v6.2.4 -> v6.2.5
 
