@@ -23,6 +23,7 @@ static const u64   KERN_TYPE      = 29600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_HASH_COPY
+                                  | OPTS_TYPE_ST_HEX
                                   | OPTS_TYPE_PT_GENERATE_BE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -87,6 +88,20 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return pw_max;
 }
 
+u32 module_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 salt_min = 16;
+
+  return salt_min;
+}
+
+u32 module_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 salt_max = 16;
+
+  return salt_max;
+}
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   terra_t *terra = (terra_t *) esalt_buf;
@@ -124,7 +139,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 
   // Populating salt buf even though it's unused - we use esalt below
-  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *)salt->salt_buf, (int *)&salt->salt_len);
+  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
@@ -241,8 +256,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = module_pw_max;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
-  module_ctx->module_salt_max                 = MODULE_DEFAULT;
-  module_ctx->module_salt_min                 = MODULE_DEFAULT;
+  module_ctx->module_salt_max                 = module_salt_max;
+  module_ctx->module_salt_min                 = module_salt_min;
   module_ctx->module_salt_type                = module_salt_type;
   module_ctx->module_separator                = MODULE_DEFAULT;
   module_ctx->module_st_hash                  = module_st_hash;
