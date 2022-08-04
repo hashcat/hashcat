@@ -25,12 +25,14 @@ typedef struct pbkdf_sha1_tmp
 
   u32  dgst[32];
   u32  out[32];
+
 } pbkdf_sha1_tmp_t;
 
 typedef struct terra
 {
-  u32 salt_buf[8];
+  u32 salt_buf[4];
   u32 ct_block_a[4];
+
 } terra_t;
 
 #define FIXED_SALT_SIZE 16
