@@ -30,9 +30,9 @@ typedef struct pbkdf_sha1_tmp
 
 typedef struct terra
 {
-  u32 salt_buf[4];
-  u32 ct_block_a[4];
-
+  u32 salt_buf[8];
+  u32 ct[16]; // 16 * 4 = 64 bytes (we have extra 16 bytes in digest: 64 + 16 = 80)
+  u32 iv[4];
 } terra_t;
 
 #define FIXED_SALT_SIZE 16
@@ -300,10 +300,10 @@ KERNEL_FQ void m29600_comp (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 
   u32 ks[60];
   u32 d[4];
-  d[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_block_a[0];
-  d[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_block_a[1];
-  d[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_block_a[2];
-  d[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_block_a[3];
+  d[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct[0];
+  d[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct[1];
+  d[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ct[2];
+  d[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ct[3];
   u32 CT[4] = { 0 };
   AES256_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
   AES256_encrypt(ks, d, CT, s_te0, s_te1, s_te2, s_te3, s_te4);
