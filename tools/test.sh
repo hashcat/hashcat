@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-OPTS="--quiet --potfile-disable --hwmon-disable"
+OPTS="--quiet --potfile-disable --hwmon-disable --logfile-disable"
 
 FORCE=0
 RUNTIME=400

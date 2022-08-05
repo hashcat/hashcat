@@ -25,6 +25,7 @@ typedef struct pbkdf_sha1_tmp
 
   u32  dgst[32];
   u32  out[32];
+
 } pbkdf_sha1_tmp_t;
 
 typedef struct terra
