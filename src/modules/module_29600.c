@@ -43,7 +43,7 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-static const u32   ROUNDS_PBKDF_SHA_TERRA    = 100;
+static const u32 ROUNDS_PBKDF_SHA_TERRA = 100;
 
 typedef struct pbkdf_sha1_tmp
 {
@@ -60,6 +60,7 @@ typedef struct terra
   u32 salt_buf[8];
   u32 ct[16]; // 16 * 4 = 64 bytes (we have extra 16 bytes in digest: 64 + 16 = 80)
   u32 iv[4];
+
 } terra_t;
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -110,57 +111,59 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = 3;
 
   // salt
-  token.len[0]     = 32;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  token.len[0]  = 32;
+  token.attr[0] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_HEX;
 
   // iv
-  token.len[1]     = 32;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  token.len[1]  = 32;
+  token.attr[1] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_HEX;
 
   // ciphertext
-  token.len[2]     = 108;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
+  token.len[2]  = 108;
+  token.attr[2] = TOKEN_ATTR_FIXED_LENGTH
+                | TOKEN_ATTR_VERIFY_BASE64A;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-
+  // salt
   const u8 *salt_pos = token.buf[0];
   const int salt_len = token.len[0];
-  const u8 *iv_pos   = token.buf[1];
-  const int iv_len   = token.len[1];
-  const u8 *hash_pos = token.buf[2];
-  const int hash_len = token.len[2];
-
 
   // Populating salt buf even though it's unused - we use esalt below
   const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
-
   // Set the loop rounds - 1 round is done in the init function
   salt->salt_iter = ROUNDS_PBKDF_SHA_TERRA - 1;
 
   // Unhex the salt into the esalt buffer
   if (salt_len != 32) return (PARSER_HASH_LENGTH);
+
   terra->salt_buf[0] = hex_to_u32 (salt_pos +  0);
   terra->salt_buf[1] = hex_to_u32 (salt_pos +  8);
   terra->salt_buf[2] = hex_to_u32 (salt_pos + 16);
   terra->salt_buf[3] = hex_to_u32 (salt_pos + 24);
 
   // store IV
+  const u8 *iv_pos = token.buf[1];
+  const int iv_len = token.len[1];
+
   if (iv_len != 32) return (PARSER_SALT_LENGTH);
+
   terra->iv[0] = hex_to_u32 (iv_pos +  0);
   terra->iv[1] = hex_to_u32 (iv_pos +  8);
   terra->iv[2] = hex_to_u32 (iv_pos + 16);
   terra->iv[3] = hex_to_u32 (iv_pos + 24);
 
   // Base64 decode the ciphertext
+  const u8 *hash_pos = token.buf[2];
+  const int hash_len = token.len[2];
+
   u8  tmp_buf[512];
   int tmp_len;
 
@@ -168,13 +171,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (tmp_len != 0x50) return (PARSER_HASH_LENGTH);
 
-  u32* whole_digest = (u32*) tmp_buf;
+  u32 *whole_digest = (u32 *) tmp_buf;
 
   // Penultimate block, i.e. IV, xored with a whole padding block
-  terra->ct[0] = byte_swap_32(whole_digest[0xc] ^ 0x10101010);
-  terra->ct[1] = byte_swap_32(whole_digest[0xd] ^ 0x10101010);
-  terra->ct[2] = byte_swap_32(whole_digest[0xe] ^ 0x10101010);
-  terra->ct[3] = byte_swap_32(whole_digest[0xf] ^ 0x10101010);
+  terra->ct[0] = byte_swap_32 (whole_digest[0xc] ^ 0x10101010);
+  terra->ct[1] = byte_swap_32 (whole_digest[0xd] ^ 0x10101010);
+  terra->ct[2] = byte_swap_32 (whole_digest[0xe] ^ 0x10101010);
+  terra->ct[3] = byte_swap_32 (whole_digest[0xf] ^ 0x10101010);
 
   for (int i = 4; i < 16; i++)
   {
@@ -238,7 +241,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   data_b64[108] = 0;
 
   const int line_len = snprintf (line_buf, line_size, "%s%s%s", salt_hex, iv_hex, data_b64);
- 
+
   return line_len;
 }
 
