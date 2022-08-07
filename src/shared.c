@@ -1397,3 +1397,34 @@ bool is_apple_silicon (void)
 }
 
 #endif // __APPLE__
+
+char *file_to_buffer (const char *filename)
+{
+  HCFILE fp;
+
+  if (hc_fopen (&fp, filename, "r") == true)
+  {
+    struct stat st;
+
+    memset (&st, 0, sizeof (st));
+
+    if (hc_fstat (&fp, &st))
+    {
+      hc_fclose (&fp);
+
+      return NULL;
+    }
+
+    char *buffer = malloc (st.st_size + 1);
+
+    const size_t nread = hc_fread (buffer, 1, st.st_size, &fp);
+
+    hc_fclose (&fp);
+
+    buffer[nread] = 0;
+
+    return buffer;
+  }
+
+  return NULL;
+}

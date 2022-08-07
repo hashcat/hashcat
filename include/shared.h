@@ -107,4 +107,6 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
 bool is_apple_silicon (void);
 #endif
 
+char *file_to_buffer (const char *filename);
+
 #endif // _SHARED_H
