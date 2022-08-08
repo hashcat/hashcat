@@ -505,9 +505,9 @@ endif
 
 .PHONY: install
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_library install_library_dev install_kernels install_modules install_hashcat
+install: install_docs install_shared install_library install_library_dev install_tunings install_kernels install_modules install_hashcat
 else
-install: install_docs install_shared                                     install_kernels install_modules install_hashcat
+install: install_docs install_shared                                     install_tunings install_kernels install_modules install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -560,8 +560,13 @@ install_docs: install_make_shared_root
 .PHONY: install_shared
 install_shared: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)
-	$(INSTALL) -m 644 hashcat.hctune                                        $(DESTDIR)$(SHARED_FOLDER)/
 	$(INSTALL) -m 644 hashcat.hcstat2                                       $(DESTDIR)$(SHARED_FOLDER)/
+
+.PHONY: install_tunings
+install_tunings: install_shared
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/tunings
+	$(FIND) tunings/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/tunings/{} \;
+	$(FIND) tunings/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/tunings/{} \;
 
 .PHONY: install_kernels
 install_kernels: install_shared

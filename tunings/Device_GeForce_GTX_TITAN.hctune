@@ -1,0 +1,22 @@
+#Device                                         Attack  Hash    Vector  Kernel  Kernel
+#Name                                           Mode    Type    Width   Accel   Loops
+
+##
+## The following cards were manually tuned, as example
+##
+
+GeForce_GTX_TITAN                               3       0       4       A       A
+GeForce_GTX_TITAN                               3       11      4       A       A
+GeForce_GTX_TITAN                               3       12      4       A       A
+GeForce_GTX_TITAN                               3       21      1       A       A
+GeForce_GTX_TITAN                               3       22      1       A       A
+GeForce_GTX_TITAN                               3       23      1       A       A
+GeForce_GTX_TITAN                               3       30      4       A       A
+GeForce_GTX_TITAN                               3       200     2       A       A
+GeForce_GTX_TITAN                               3       900     4       A       A
+GeForce_GTX_TITAN                               3       1000    4       A       A
+GeForce_GTX_TITAN                               3       1100    4       A       A
+GeForce_GTX_TITAN                               3       2400    4       A       A
+GeForce_GTX_TITAN                               3       2410    2       A       A
+GeForce_GTX_TITAN                               3       5500    1       A       A
+GeForce_GTX_TITAN                               3       9900    2       A       A

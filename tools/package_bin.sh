@@ -17,7 +17,6 @@ mkdir -p $OUT/tools
 
 cp    $IN/hashcat.exe                   $OUT/
 cp    $IN/hashcat.bin                   $OUT/
-cp    $IN/hashcat.hctune                $OUT/
 cp    $IN/hashcat.hcstat2               $OUT/
 
 cp -r $IN/docs                          $OUT/
@@ -27,11 +26,13 @@ cp -r $IN/masks                         $OUT/
 cp -r $IN/modules                       $OUT/
 cp -r $IN/rules                         $OUT/
 cp -r $IN/extra                         $OUT/
+cp -r $IN/tunings                       $OUT/
 cp    $IN/example.dict                  $OUT/
 cp    $IN/example[0123456789]*.hash     $OUT/
 cp    $IN/example[0123456789]*.cmd      $OUT/
 cp -r $IN/OpenCL                        $OUT/
-cp    $IN/tools/*hashcat.p[ly]          $OUT/tools/
+cp    $IN/tools/*hashcat.pl             $OUT/tools/
+cp    $IN/tools/*hashcat.py             $OUT/tools/
 
 # since for the binary distribution we still use .bin, we need to rewrite the commands
 # within the example*.sh files
@@ -50,6 +51,7 @@ dos2unix $OUT/docs/*
 dos2unix $OUT/docs/license_libs/*
 dos2unix $OUT/example*
 dos2unix $OUT/tools/*
+dos2unix $OUT/tunings/*
 
 unix2dos $OUT/layouts/*.hckmap
 unix2dos $OUT/masks/*.hcmask
@@ -59,8 +61,8 @@ unix2dos $OUT/docs/*
 unix2dos $OUT/docs/license_libs/*
 unix2dos $OUT/example*.cmd
 unix2dos $OUT/OpenCL/*
-unix2dos $OUT/hashcat.hctune
 unix2dos $OUT/tools/*
+unix2dos $OUT/tunings/*
 
 chmod 755 $OUT
 chmod 755 $OUT/rules
@@ -83,10 +85,12 @@ chmod 755 $OUT/extra/tab_completion/*.sh
 chmod 755 $OUT/extra/tab_completion/install
 chmod 755 $OUT/OpenCL
 chmod 644 $OUT/OpenCL/*
+chmod 755 $OUT/tunings
+chmod 644 $OUT/tunings/*
 chmod 644 $OUT/*.exe
 chmod 755 $OUT/*.bin
-chmod 644 $OUT/hashcat.hctune
 chmod 644 $OUT/hashcat.hcstat2
-chmod 755 $OUT/tools/*hashcat.p[ly]
+chmod 755 $OUT/tools/*hashcat.pl
+chmod 755 $OUT/tools/*hashcat.py
 
 time 7z a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $OUT.7z $OUT

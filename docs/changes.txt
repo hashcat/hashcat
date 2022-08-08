@@ -39,6 +39,7 @@
 - Added support to use 'John the Ripper' hash format with hash-type 18200
 - Added the hash extraction scripts from the tools folder also to beta/release versions
 - Added user advice if a hash throws 'token length exception'
+- Added tunings/ folder in order to replace hashcat.hctune. Configuration files with *.hctune suffix are automatically load on startup
 
 ##
 ## Bugs

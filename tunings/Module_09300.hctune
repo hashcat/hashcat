@@ -1,0 +1,34 @@
+#
+# Find the right -n value for your GPU:
+# =====================================
+#
+# 1. For example, to find the value for 9300, first create a valid hash for 9300 as follows:
+#
+# $ ./hashcat --example-hashes -m 9300 | grep Example.Hash | grep -v Format | cut -b 25- > tmp.hash.9300
+#
+# 2. Now let it iterate through all -n values to a certain point. In this case, I'm using 1032, but in general it's a value that is at least twice that of the multiprocessor. If you don't mind you can just leave it as it is, it just runs a little longer.
+#
+# $ export i=8; while [ $i -ne 1032 ]; do echo $i; ./hashcat --quiet tmp.hash.9300 --keep-guessing --self-test-disable --markov-disable --restore-disable --outfile-autohex-disable --wordlist-autohex-disable --potfile-disable --logfile-disable --hwmon-disable --status --status-timer 1 --runtime 28 --machine-readable --optimized-kernel-enable --workload-profile 3 --hash-type 9300 --attack-mode 3 ?b?b?b?b?b?b?b --backend-devices 1 --force -n $i; i=$(($i+8)); done | tee x
+#
+# 3. Determine the highest measured H/s speed. But don't just use the highest value. Instead, use the number that seems most stable, usually at the beginning.
+#
+# $ grep "$(printf 'STATUS\t3')" x | cut -f4 -d$'\t' | sort -n | tail
+#
+# 4. To match the speed you have chosen to the correct value in the 'x' file, simply search for it in it. Then go up a little on the block where you found him. The value -n is the single value that begins before the block start. If you have multiple blocks at the same speed, choose the lowest value for -n
+
+#Device                                         Attack  Hash    Vector  Kernel  Kernel
+#Name                                           Mode    Type    Width   Accel   Loops
+
+DEVICE_TYPE_CPU                                 *       9300    1       N       A
+DEVICE_TYPE_GPU                                 *       9300    1       N       A
+
+GeForce_GTX_980                                 *       9300    1       128     A
+GeForce_GTX_1080                                *       9300    1       256     A
+GeForce_RTX_2080_Ti                             *       9300    1       528     A
+GeForce_RTX_3060_Ti                             *       9300    1       256     A
+GeForce_RTX_3070                                *       9300    1       368     A
+GeForce_RTX_3090                                *       9300    1       984     A
+ALIAS_AMD_RX480                                 *       9300    1       232     A
+ALIAS_AMD_Vega64                                *       9300    1       440     A
+ALIAS_AMD_MI100                                 *       9300    1       1000    A
+ALIAS_AMD_RX6900XT                              *       9300    1       720     A

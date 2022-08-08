@@ -8,6 +8,7 @@
 #include "event.h"
 #include "memory.h"
 #include "filehandling.h"
+#include "folder.h"
 #include "shared.h"
 #include "tuningdb.h"
 
@@ -64,45 +65,62 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   tuning_db->enabled = true;
 
-  char *tuning_db_file = NULL;
+  char *tuning_db_folder = NULL;
 
-  hc_asprintf (&tuning_db_file, "%s/%s", folder_config->shared_dir, TUNING_DB_FILE);
+  hc_asprintf (&tuning_db_folder, "%s/tunings", folder_config->shared_dir);
 
-  HCFILE fp;
+  char **tuning_db_files = scan_directory (tuning_db_folder);
 
-  if (hc_fopen (&fp, tuning_db_file, "rb") == false)
+  for (int i = 0; tuning_db_files[i] != NULL; i++)
   {
-    event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, strerror (errno));
+    char *tuning_db_file = tuning_db_files[i];
 
-    return -1;
+    const size_t suflen = strlen (TUNING_DB_SUFFIX);
+
+    const size_t dblen = strlen (tuning_db_file);
+
+    if (dblen < suflen) continue; // make sure to not do any out-of-boundary reads
+
+    if (memcmp (tuning_db_file + dblen - suflen, TUNING_DB_SUFFIX, suflen) != 0) continue;
+
+    HCFILE fp;
+
+    if (hc_fopen (&fp, tuning_db_file, "rb") == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, strerror (errno));
+
+      return -1;
+    }
+
+    hcfree (tuning_db_file);
+
+    int line_num = 0;
+
+    char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+    while (!hc_feof (&fp))
+    {
+      char *line_buf = hc_fgets (buf, HCBUFSIZ_LARGE - 1, &fp);
+
+      if (line_buf == NULL) break;
+
+      line_num++;
+
+      const size_t line_len = in_superchop (line_buf);
+
+      if (line_len == 0) continue;
+
+      if (line_buf[0] == '#') continue;
+
+      tuning_db_process_line (hashcat_ctx, line_buf, line_num);
+    }
+
+    hcfree (buf);
+
+    hc_fclose (&fp);
   }
 
-  hcfree (tuning_db_file);
-
-  int line_num = 0;
-
-  char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
-
-  while (!hc_feof (&fp))
-  {
-    char *line_buf = hc_fgets (buf, HCBUFSIZ_LARGE - 1, &fp);
-
-    if (line_buf == NULL) break;
-
-    line_num++;
-
-    const size_t line_len = in_superchop (line_buf);
-
-    if (line_len == 0) continue;
-
-    if (line_buf[0] == '#') continue;
-
-    tuning_db_process_line (hashcat_ctx, line_buf, line_num);
-  }
-
-  hcfree (buf);
-
-  hc_fclose (&fp);
+  hcfree (tuning_db_files);
 
   // todo: print loaded 'cnt' message
 

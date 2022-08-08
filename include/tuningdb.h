@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#define TUNING_DB_FILE "hashcat.hctune"
+#define TUNING_DB_SUFFIX "hctune"
 
 int sort_by_tuning_db_alias (const void *v1, const void *v2);
 int sort_by_tuning_db_entry (const void *v1, const void *v2);
