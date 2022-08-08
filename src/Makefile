@@ -67,6 +67,7 @@ INSTALL                 := install
 RM                      := rm
 SED                     := sed
 SED_IN_PLACE            := -i
+7Z                      := 7z
 
 ifeq ($(UNAME),Darwin)
 CC                      := clang
@@ -149,11 +150,12 @@ endif
 endif
 
 ##
-## Filenames for library and frontend
+## Filenames for package, library and frontend
 ##
 
 HASHCAT_FRONTEND        := hashcat
 HASHCAT_LIBRARY         := libhashcat.so.$(VERSION_PURE)
+HASHCAT_PACKAGE         := hashcat.7z
 
 ifeq ($(UNAME),Darwin)
 HASHCAT_LIBRARY         := libhashcat.$(VERSION_PURE).dylib
@@ -449,6 +451,13 @@ endif
 endif
 
 ##
+## Tools
+##
+
+TOOLS          += $(wildcard tools/*hashcat.pl)
+TOOLS          += $(wildcard tools/*hashcat.py)
+
+##
 ## Targets: Native Compilation
 ##
 
@@ -457,32 +466,33 @@ default: $(HASHCAT_FRONTEND) modules
 
 .PHONY: clean
 clean:
-	$(RM) -f $(HASHCAT_FRONTEND)
-	$(RM) -f $(HASHCAT_LIBRARY)
+	$(RM) -f  $(HASHCAT_FRONTEND)
+	$(RM) -f  $(HASHCAT_LIBRARY)
+	$(RM) -f  $(HASHCAT_PACKAGE)
 	$(RM) -rf modules/*.dSYM
-	$(RM) -f modules/*.dll
-	$(RM) -f modules/*.so
-	$(RM) -f obj/*/*/*.o
-	$(RM) -f obj/*/*.o
-	$(RM) -f obj/*.o
-	$(RM) -f obj/*.a
+	$(RM) -f  modules/*.dll
+	$(RM) -f  modules/*.so
+	$(RM) -f  obj/*/*/*.o
+	$(RM) -f  obj/*/*.o
+	$(RM) -f  obj/*.o
+	$(RM) -f  obj/*.a
 	$(RM) -rf *.dSYM
-	$(RM) -f *.dylib
-	$(RM) -f *.bin *.exe
-	$(RM) -f *.pid
-	$(RM) -f *.log
-	$(RM) -f core
+	$(RM) -f  *.dylib
+	$(RM) -f  *.bin *.exe
+	$(RM) -f  *.pid
+	$(RM) -f  *.log
+	$(RM) -f  core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
 	$(RM) -rf kernels
 
 .PHONY: distclean
 distclean: clean
-	$(RM) -f *.restore
-	$(RM) -f *.potfile
-	$(RM) -f *.out
-	$(RM) -f hashcat.dictstat2
-	$(RM) -f brain.*
+	$(RM) -f  *.restore
+	$(RM) -f  *.potfile
+	$(RM) -f  *.out
+	$(RM) -f  hashcat.dictstat2
+	$(RM) -f  brain.*
 	$(RM) -rf test_[0-9]*
 	$(RM) -rf tools/luks_tests
 
@@ -505,9 +515,9 @@ endif
 
 .PHONY: install
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_library install_library_dev install_kernels install_modules install_hashcat
+install: install_docs install_shared install_library install_library_dev install_kernels install_modules install_hashcat install_tools
 else
-install: install_docs install_shared                                     install_kernels install_modules install_hashcat
+install: install_docs install_shared                                     install_kernels install_modules install_hashcat install_tools
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -531,7 +541,6 @@ install_docs: install_make_shared_root
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/rules
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/extra/tab_completion
-	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(DOCUMENT_FOLDER)/tools
 	$(INSTALL) -m 644 example.dict                                          $(DESTDIR)$(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 644 example0.hash                                         $(DESTDIR)$(DOCUMENT_FOLDER)/
 	$(INSTALL) -m 644 example400.hash                                       $(DESTDIR)$(DOCUMENT_FOLDER)/
@@ -552,7 +561,6 @@ install_docs: install_make_shared_root
 	$(FIND) masks/    -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type d -exec $(INSTALL) -m 755 -d                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(FIND) rules/    -type f -exec $(INSTALL) -m 644 {}                    $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
-	$(FIND) tools/    -type f -name '*cat.p[ly]' -exec $(INSTALL) -m 755 {} $(DESTDIR)$(DOCUMENT_FOLDER)/{} \;
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example0.sh
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example400.sh
 	$(SED) $(SED_IN_PLACE) 's/\.\/hashcat/hashcat/'                         $(DESTDIR)$(DOCUMENT_FOLDER)/example500.sh
@@ -591,10 +599,16 @@ install_hashcat: $(HASHCAT_FRONTEND)
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(INSTALL_FOLDER)
 	$(INSTALL) -m 755 $(HASHCAT_FRONTEND)                                   $(DESTDIR)$(INSTALL_FOLDER)/
 
+.PHONY: install_tools
+install_tools: $(TOOLS)
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(INSTALL_FOLDER)/
+	$(FIND) tools/ -type f -name '*cat.p[ly]' -execdir $(INSTALL) -m 755 {} $(DESTDIR)$(INSTALL_FOLDER)/{} \;
+
 .PHONY: uninstall
 uninstall:
 	$(RM) -f  $(DESTDIR)$(INSTALL_FOLDER)/$(HASHCAT_FRONTEND)
 	$(RM) -f  $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY)
+	$(RM) -f  $(DESTDIR)$(INSTALL_FOLDER)/*hashcat.p[ly]
 	$(RM) -rf $(DESTDIR)$(LIBRARY_DEV_FOLDER)
 	$(RM) -rf $(DESTDIR)$(SHARED_FOLDER)
 	$(RM) -rf $(DESTDIR)$(DOCUMENT_FOLDER)
@@ -690,6 +704,33 @@ MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SU
 
 .PHONY: modules
 modules: $(MODULES_LIB)
+
+##
+## native package
+##
+
+ifeq ($(UNAME),CYGWIN)
+EXAMPLE_SUFFIX := cmd
+else ifeq ($(UNAME),MSYS2)
+EXAMPLE_SUFFIX := cmd
+else
+EXAMPLE_SUFFIX := sh
+endif
+
+EXAMPLES       += example.dict
+EXAMPLES       += $(wildcard example*.$(EXAMPLE_SUFFIX))
+EXAMPLES       += $(wildcard example*.hash)
+
+.PHONY: package
+package: $(HASHCAT_PACKAGE)
+
+ifeq ($(SHARED),1)
+$(HASHCAT_PACKAGE): $(HASHCAT_FRONTEND) $(HASHCAT_LIBRARY) $(MODULES_LIB) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE) $(HASHCAT_FRONTEND) $(HASHCAT_LIBRARY) $(EXAMPLES) charsets/ docs/ extra/ layouts/ masks/ $(MODULES_LIB) OpenCL/ rules/ $(TOOLS)
+else
+$(HASHCAT_PACKAGE): $(HASHCAT_FRONTEND)                    $(MODULES_LIB) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE) $(HASHCAT_FRONTEND)                    $(EXAMPLES) charsets/ docs/ extra/ layouts/ masks/ $(MODULES_LIB) OpenCL/ rules/ $(TOOLS)
+endif
 
 ##
 ## Cross Compilation (binary release version)
@@ -835,6 +876,26 @@ hashcat.dll: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
 	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
 endif
+
+##
+## cross compiled packages
+##
+
+EXAMPLES_LINUX   := $(wildcard example*.sh)
+EXAMPLES_WINDOWS := $(wildcard example*.cmd)
+EXAMPLES_HASHES  := $(wildcard example*.hash)
+
+.PHONY: package-all
+package-all:    binaries $(EXAMPLES_LINUX) $(EXAMPLES_WINDOWS) $(EXAMPLES_HASHES) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE) hashcat.bin hashcat.exe example.dict $(EXAMPLES_LINUX) $(EXAMPLES_WINDOWS) $(EXAMPLES_HASHES) hashcat.hctune hashcat.hcstat2 charsets/ docs/ extra/ layouts/ masks/ $(MODULES_LIB_LINUX) $(MODULES_LIB_WIN) OpenCL/ rules/ $(TOOLS)
+
+.PHONY: package-linux
+package-linux: linux     $(EXAMPLES_LINUX)                     $(EXAMPLES_HASHES) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE) hashcat.bin             example.dict $(EXAMPLES_LINUX)                     $(EXAMPLES_HASHES) hashcat.hctune hashcat.hcstat2 charsets/ docs/ extra/ layouts/ masks/ $(MODULES_LIB_LINUX)                    OpenCL/ rules/ $(TOOLS)
+
+.PHONY: package-win
+package-win:   win                         $(EXAMPLES_WINDOWS) $(EXAMPLES_HASHES) $(TOOLS)
+	$(7Z) a -t7z -m0=lzma2:d31 -mx=9 -mmt=8 -ms=on $(HASHCAT_PACKAGE)             hashcat.exe example.dict                   $(EXAMPLES_WINDOWS) $(EXAMPLES_HASHES) hashcat.hctune hashcat.hcstat2 charsets/ docs/ extra/ layouts/ masks/                      $(MODULES_LIB_WIN) OpenCL/ rules/ $(TOOLS)
 
 # Give plugin developers a chance to add some 3rd party libraries
 include	$(wildcard src/modules/module_*.mk)

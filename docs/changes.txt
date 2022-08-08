@@ -125,6 +125,9 @@
 - Modules: New LUKS v1 modules (29511-29543) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/luks2hashcat.py`).
 - Modules: Renamed old LUKS module into LUKS v1 and added suffix *legacy* (14600).
 - Workflow: Added basic workflow for GitHub Actions.
+- Makefile: Add install tools target.
+- Makefile: Add package target to make release package.
+- Makefile: Add cross compiled package targets.
 
 * changes v6.2.4 -> v6.2.5
 

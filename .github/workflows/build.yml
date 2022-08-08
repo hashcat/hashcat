@@ -1,19 +1,5 @@
 name: Build
 
-env:
-  include_paths: |
-    charsets/
-    docs/
-    extra/
-    layouts/
-    masks/
-    modules/
-    OpenCL/
-    rules/
-    example*
-    hashcat*
-    libhashcat*
-
 on:
   push:
     branches:
@@ -48,17 +34,19 @@ jobs:
         shared: [0, 1]
     name: Build Linux (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: ubuntu-latest
+    env:
+      SHARED: ${{ matrix.shared }}
     steps:
       - uses: actions/checkout@v3
       - name: Build
-        env:
-          SHARED: ${{ matrix.shared }}
         run: make
+      - name: Make package
+        run: make package
       - name: Generate artifacts
         uses: actions/upload-artifact@v3
         with:
           name: hashcat-linux-${{ matrix.shared == 0 && 'static' || 'shared' }}
-          path: ${{ env.include_paths }}
+          path: hashcat.7z
 
   build-macos:
     strategy:
@@ -67,17 +55,19 @@ jobs:
         shared: [0, 1]
     name: Build macOS (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: macos-latest
+    env:
+      SHARED: ${{ matrix.shared }}
     steps:
       - uses: actions/checkout@v3
       - name: Build
-        env:
-          SHARED: ${{ matrix.shared }}
         run: make
+      - name: Make package
+        run: make package
       - name: Generate artifacts
         uses: actions/upload-artifact@v3
         with:
           name: hashcat-macos-${{ matrix.shared == 0 && 'static' || 'shared' }}
-          path: ${{ env.include_paths }}
+          path: hashcat.7z
 
   build-windows:
     strategy:
@@ -86,6 +76,8 @@ jobs:
         shared: [0, 1]
     name: Build Windows (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: windows-latest
+    env:
+      SHARED: ${{ matrix.shared }}
     steps:
       - name: Install libiconv
         uses: msys2/setup-msys2@v2
@@ -100,11 +92,11 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build
         shell: msys2 {0}
-        env:
-          SHARED: ${{ matrix.shared }}
         run: make
+      - name: Make package
+        run: make package
       - name: Generate artifacts
         uses: actions/upload-artifact@v3
         with:
           name: hashcat-windows-${{ matrix.shared == 0 && 'static' || 'shared' }}
-          path: ${{ env.include_paths }}
+          path: hashcat.7z
