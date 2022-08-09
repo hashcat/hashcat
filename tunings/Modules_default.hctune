@@ -70,18 +70,6 @@ ALIAS_nv_sm50_or_higher                         3       16400   8       A       
 ALIAS_nv_sm50_or_higher                         3       18700   8       A       A
 
 ##
-## BCRYPT
-##
-
-DEVICE_TYPE_CPU                                 *       3200    1       N       A
-DEVICE_TYPE_CPU                                 *       25600   1       N       A
-DEVICE_TYPE_CPU                                 *       25800   1       N       A
-
-##
-## SCRYPT: Tunings for SCRYPT based hash-modes can be found in separate files in the tunings/ folder
-##
-
-##
 ## CryptoAPI
 ##
 
