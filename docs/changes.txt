@@ -76,7 +76,7 @@
 ## Technical
 ##
 
-- AMD Driver: Updated requirements for AMD Linux drivers to ROCm 5.1.1 or later due to new HIP interface
+- AMD Driver: Updated requirements for AMD Linux drivers to ROCm 5.2.1 or later due to new HIP interface
 - AMD Driver: Updated requirements for AMD Windows drivers to Adrenalin 22.3.1 or later due to new HIP interface
 - Association Attack: Enable module specific pw_min and pw_max settings to avoid false positives in -a 9 attack-mode
 - Autotune: Added error handling. By default skipping device on error, with --force using accel/loops/threads min values instead

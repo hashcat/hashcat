@@ -4434,8 +4434,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         // hiprtc_close (hashcat_ctx);
       }
       #else
-      // 511 is ok
-      if (hip_runtimeVersion < 50120531)
+      // 521 is ok
+      if (hip_runtimeVersion < 50221151)
       {
         int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
         int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
@@ -4548,7 +4548,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       #if defined (__linux__)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-      event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (5.1.1 or later)");
+      event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (5.2.1 or later)");
       #elif defined (_WIN)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
       event_log_warning (hashcat_ctx, "  \"AMD Adrenalin Edition\" (22.3.1 or later)");
@@ -4885,7 +4885,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
     #if defined (__linux__)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Linux require this driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (5.1.1 or later)");
+    event_log_warning (hashcat_ctx, "  \"AMD ROCm\" (5.2.1 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
     event_log_warning (hashcat_ctx, "  \"AMD Adrenalin Edition\" (22.3.1 or later)");
