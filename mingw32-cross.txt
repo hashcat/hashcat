@@ -1,0 +1,16 @@
+[binaries]
+c = 'i686-w64-mingw32-gcc'
+cpp = 'i686-w64-mingw32-g++'
+ld = 'i686-w64-mingw32-ld'
+ar = 'i686-w64-mingw32-ar'
+dlltool = 'i686-w64-mingw32-dlltool'
+strip = 'i686-w64-mingw32-strip'
+pkgconfig = 'i686-w64-mingw32-pkg-config'
+windres = 'i686-w64-mingw32-windres'
+exe_wrapper = 'wine'
+
+[host_machine]
+system = 'windows'
+cpu_family = 'x86'
+cpu = 'x86'
+endian = 'little'
