@@ -8389,7 +8389,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       hiprtc_options[1] = "-nocudainc";
       hiprtc_options[2] = "-nocudalib";
-      hiprtc_options[3] = "";
+      hiprtc_options[3] = "-flegacy-pass-manager";
       hiprtc_options[4] = "";
 
       // untested but it should work
