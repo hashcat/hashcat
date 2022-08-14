@@ -495,16 +495,24 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[3] = keepass->expected_bytes[3];
   }
 
-  salt->salt_buf[0] = keepass->transf_random_seed[0];
-  salt->salt_buf[1] = keepass->transf_random_seed[1];
-  salt->salt_buf[2] = keepass->transf_random_seed[2];
-  salt->salt_buf[3] = keepass->transf_random_seed[3];
-  salt->salt_buf[4] = keepass->transf_random_seed[4];
-  salt->salt_buf[5] = keepass->transf_random_seed[5];
-  salt->salt_buf[6] = keepass->transf_random_seed[6];
-  salt->salt_buf[7] = keepass->transf_random_seed[7];
+  salt->salt_buf[ 0] = keepass->transf_random_seed[0];
+  salt->salt_buf[ 1] = keepass->transf_random_seed[1];
+  salt->salt_buf[ 2] = keepass->transf_random_seed[2];
+  salt->salt_buf[ 3] = keepass->transf_random_seed[3];
+  salt->salt_buf[ 4] = keepass->transf_random_seed[4];
+  salt->salt_buf[ 5] = keepass->transf_random_seed[5];
+  salt->salt_buf[ 6] = keepass->transf_random_seed[6];
+  salt->salt_buf[ 7] = keepass->transf_random_seed[7];
+  salt->salt_buf[ 8] = keepass->keyfile[0];
+  salt->salt_buf[ 9] = keepass->keyfile[1];
+  salt->salt_buf[10] = keepass->keyfile[2];
+  salt->salt_buf[11] = keepass->keyfile[3];
+  salt->salt_buf[12] = keepass->keyfile[4];
+  salt->salt_buf[13] = keepass->keyfile[5];
+  salt->salt_buf[14] = keepass->keyfile[6];
+  salt->salt_buf[15] = keepass->keyfile[7];
 
-  salt->salt_len = 32;
+  salt->salt_len = 64;
 
   return (PARSER_OK);
 }

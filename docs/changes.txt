@@ -71,6 +71,7 @@
 - Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
 - Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
 - Fixed accepted salt length by PKCS#8 Private Keys modules
+- Fixed invalid handling of keyfiles in Keepass if transf_random_seed doesn't change
 
 ##
 ## Technical
