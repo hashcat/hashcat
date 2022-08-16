@@ -2410,11 +2410,24 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         hashcat_status->salts_done,
         hashcat_status->salts_cnt,
         hashcat_status->salts_percent);
+      event_log_info (hashcat_ctx,
+        "Recovered.New....: %u/%u (%.2f%%) Digests, %u/%u (%.2f%%) Salts",
+        hashcat_status->digests_done,
+        hashcat_status->digests_cnt,
+        hashcat_status->digests_percent,
+        hashcat_status->salts_done,
+        hashcat_status->salts_cnt,
+        hashcat_status->salts_percent);
     }
     else
     {
       event_log_info (hashcat_ctx,
         "Recovered.Total..: %u/%u (%.2f%%) Digests",
+        hashcat_status->digests_done,
+        hashcat_status->digests_cnt,
+        hashcat_status->digests_percent);
+      event_log_info (hashcat_ctx,
+        "Recovered.New....: %u/%u (%.2f%%) Digests",
         hashcat_status->digests_done,
         hashcat_status->digests_cnt,
         hashcat_status->digests_percent);
