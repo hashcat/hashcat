@@ -1927,6 +1927,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 
   hashcat_status->digests_cnt                 = status_get_digests_cnt                (hashcat_ctx);
   hashcat_status->digests_done                = status_get_digests_done               (hashcat_ctx);
+  hashcat_status->digests_done_new            = status_get_digests_done_new           (hashcat_ctx);
   hashcat_status->digests_done_pot            = status_get_digests_done_pot           (hashcat_ctx);
   hashcat_status->digests_percent             = status_get_digests_percent            (hashcat_ctx);
   hashcat_status->hash_target                 = status_get_hash_target                (hashcat_ctx);

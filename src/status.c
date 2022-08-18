@@ -893,6 +893,13 @@ int status_get_digests_done (const hashcat_ctx_t *hashcat_ctx)
   return hashes->digests_done;
 }
 
+int status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  return hashes->digests_done - hashes->digests_done_pot;
+}
+
 int status_get_digests_done_pot (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;

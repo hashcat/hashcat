@@ -2640,6 +2640,7 @@ typedef struct hashcat_status
   double      msec_real;
   int         digests_cnt;
   int         digests_done;
+  int         digests_done_new;
   int         digests_done_pot;
   double      digests_percent;
   int         salts_cnt;
