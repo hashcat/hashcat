@@ -329,7 +329,7 @@ void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_
     found->pw_buf[found->pw_len] = 0;
   }
 
-  found->cracked = 1;
+  found->cracked_pot = 1;
 
   // if enabled, update also the loopback file
 

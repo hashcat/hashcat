@@ -910,6 +910,8 @@ typedef struct hash
   void       *esalt;
   void       *hook_salt; // additional salt info only used by the hook (host)
   int         cracked;
+  int         cracked_pot;
+  int         cracked_zero;
   hashinfo_t *hash_info;
   char       *pw_buf;
   int         pw_len;
@@ -945,6 +947,8 @@ typedef struct hashes
   u32          digests_cnt;
   u32          digests_done;
   u32          digests_done_pot;
+  u32          digests_done_zero;
+  u32          digests_done_new;
   u32          digests_saved;
 
   void        *digests_buf;
@@ -2640,9 +2644,11 @@ typedef struct hashcat_status
   double      msec_real;
   int         digests_cnt;
   int         digests_done;
-  int         digests_done_new;
   int         digests_done_pot;
+  int         digests_done_zero;
+  int         digests_done_new;
   double      digests_percent;
+  double      digests_percent_new;
   int         salts_cnt;
   int         salts_done;
   double      salts_percent;

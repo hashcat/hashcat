@@ -414,24 +414,30 @@ static void main_potfile_hash_left (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
+  hashes_t             *hashes       = hashcat_ctx->hashes;
 
   if (user_options->quiet == true) return;
 
-  hashes->digests_done_pot = hashes->digests_done;
-
-  if (hashes->digests_done_pot > 0)
+  if (hashes->digests_done_zero == 1)
   {
-    if (hashes->digests_done_pot == 1)
-    {
-      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found as potfile entry or as empty hash.");
-      event_log_info (hashcat_ctx, NULL);
-    }
-    else
-    {
-      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries or as empty hashes.", hashes->digests_done_pot);
-      event_log_info (hashcat_ctx, NULL);
-    }
+    event_log_info (hashcat_ctx, "INFO: Removed hash found as empty hash.");
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (hashes->digests_done_zero > 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as empty hashes.", hashes->digests_done_zero);
+    event_log_info (hashcat_ctx, NULL);
+  }
+
+  if (hashes->digests_done_pot == 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed hash found as potfile entry.");
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (hashes->digests_done_pot > 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries.", hashes->digests_done_pot);
+    event_log_info (hashcat_ctx, NULL);
   }
 }
 
@@ -441,7 +447,7 @@ static void main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  event_log_info (hashcat_ctx, "INFO: All hashes found in potfile! Use --show to display them.");
+  event_log_info (hashcat_ctx, "INFO: All hashes found as potfile and/or empty entries! Use --show to display them.");
   event_log_info (hashcat_ctx, NULL);
 }
 

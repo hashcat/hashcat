@@ -691,6 +691,8 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       hashes->digests_done++;
 
+      hashes->digests_done_new++;
+
       cpt_cracked++;
 
       salt_buf->digests_done++;
@@ -1995,7 +1997,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   u32 digests_cnt  = hashes_cnt;
   u32 digests_done = 0;
 
-  u32 *digests_shown     = (u32 *) hccalloc (digests_cnt, sizeof (u32));
+  u32 *digests_shown = (u32 *) hccalloc (digests_cnt, sizeof (u32));
 
   u32 salts_cnt   = 0;
   u32 salts_done  = 0;
@@ -2150,16 +2152,17 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t *hashes = hashcat_ctx->hashes;
 
-  u32  digests_done  = hashes->digests_done;
-  u32 *digests_shown = hashes->digests_shown;
+  u32  digests_done      = hashes->digests_done;
+  u32  digests_done_zero = hashes->digests_done_zero;
+  u32  digests_done_pot  = hashes->digests_done_pot;
+  u32 *digests_shown     = hashes->digests_shown;
 
-  u32  salts_cnt     = hashes->salts_cnt;
-  u32  salts_done    = hashes->salts_done;
-  u32 *salts_shown   = hashes->salts_shown;
+  u32  salts_cnt         = hashes->salts_cnt;
+  u32  salts_done        = hashes->salts_done;
+  u32 *salts_shown       = hashes->salts_shown;
 
-  hash_t *hashes_buf = hashes->hashes_buf;
-
-  salt_t *salts_buf  = hashes->salts_buf;
+  hash_t *hashes_buf     = hashes->hashes_buf;
+  salt_t *salts_buf      = hashes->salts_buf;
 
   for (u32 salt_idx = 0; salt_idx < salts_cnt; salt_idx++)
   {
@@ -2171,11 +2174,24 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
     {
       const u32 hashes_idx = salt_buf->digests_offset + digest_idx;
 
-      if (hashes_buf[hashes_idx].cracked == 1)
+      if (hashes_buf[hashes_idx].cracked_pot == 1)
       {
         digests_shown[hashes_idx] = 1;
 
         digests_done++;
+
+        digests_done_pot++;
+
+        salt_buf->digests_done++;
+      }
+
+      if (hashes_buf[hashes_idx].cracked_zero == 1)
+      {
+        digests_shown[hashes_idx] = 1;
+
+        digests_done++;
+
+        digests_done_zero++;
 
         salt_buf->digests_done++;
       }
@@ -2191,10 +2207,12 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
     if (salts_done == salts_cnt) mycracked (hashcat_ctx);
   }
 
-  hashes->digests_done = digests_done;
+  hashes->digests_done      = digests_done;
+  hashes->digests_done_zero = digests_done_zero;
+  hashes->digests_done_pot  = digests_done_pot;
 
-  hashes->salts_cnt   = salts_cnt;
-  hashes->salts_done  = salts_done;
+  hashes->salts_cnt         = salts_cnt;
+  hashes->salts_done        = salts_done;
 
   return 0;
 }
@@ -2553,7 +2571,7 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
       next->pw_buf = (char *) hcmalloc (1);
       next->pw_len = 0;
 
-      next->cracked = 1;
+      next->cracked_zero = 1;
 
       // should we show the cracked zero hash to the user?
 
