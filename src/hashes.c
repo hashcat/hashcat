@@ -2692,6 +2692,8 @@ void hashes_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (hashes->hashlist_format);
   logfile_top_uint   (hashes->hashes_cnt);
   logfile_top_uint   (hashes->digests_cnt);
+  logfile_top_uint   (hashes->digests_done_pot);
+  logfile_top_uint   (hashes->digests_done_zero);
   logfile_top_uint   (hashes->digests_done);
   logfile_top_uint   (hashes->salts_cnt);
   logfile_top_uint   (hashes->salts_done);

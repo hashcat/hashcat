@@ -395,6 +395,10 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->accessible = false;
 
+  // update newly cracked hashes per session
+
+  logfile_sub_uint (hashes->digests_done_new);
+
   EVENT (EVENT_CRACKER_FINISHED);
 
   // mark sub logfile
