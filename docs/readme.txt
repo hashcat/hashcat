@@ -328,6 +328,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Password Safe v3
 - LastPass + LastPass sniffed
 - KeePass 1 (AES/Twofish) and KeePass 2 (AES)
+- KeePass 1 (AES/Twofish) and KeePass 2 (AES) - keyfile only mode
 - Bitwarden
 - Ansible Vault
 - Mozilla key3.db

@@ -15,6 +15,7 @@
 - Added hash-mode: DPAPI masterkey file v2 (context 3)
 - Added hash-mode: Exodus Desktop Wallet (scrypt)
 - Added hash-mode: Flask session cookie
+- Added hash-mode: KeePass 1 (AES/Twofish) and KeePass 2 (AES) - keyfile only mode
 - Added hash-mode: Kerberos 5, etype 17, DB
 - Added hash-mode: Kerberos 5, etype 18, DB
 - Added hash-mode: PostgreSQL SCRAM-SHA-256
