@@ -78,28 +78,6 @@ typedef struct tc
 static const int   ROUNDS_TRUECRYPT_1K         = 1000;
 static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
-  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_aes.tc hashca?l
-  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_serpent.tc hashca?l
-  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_twofish.tc hashca?l
-  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_aes.tc hashca?l
-  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_serpent.tc hashca?l
-  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_twofish.tc hashca?l
-  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_aes.tc hashca?l
-  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_serpent.tc hashca?l
-  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_twofish.tc hashca?l
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_aes.tc hashca?l
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_serpent.tc hashca?l
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6231 /root/hashcat/tools/tc_tests/hashcat_whirlpool_twofish.tc hashca?l
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  return false;
-}
 
 bool module_potfile_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -332,6 +310,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

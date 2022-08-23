@@ -60,12 +60,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     return true;
   }
 
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
   return false;
 }
 

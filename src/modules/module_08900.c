@@ -63,14 +63,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
-  // test_1619943729/test_report.log:password not found, cmdline : cat test_1619943729/8900_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 8900 test_1619943729/8900_hashes.txt
-  // test_1619955152/test_report.log:password not found, cmdline : cat test_1619955152/8900_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 8900 test_1619955152/8900_hashes.txt
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
   return false;
 }
 
