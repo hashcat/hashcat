@@ -93,6 +93,7 @@
 - Hardware Monitor: Add support for GPU device utilization readings using iokit on Apple Silicon (OpenCL and Metal)
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
+- HIP Backend: removed unused functions from hiprtc to workaroung missing function symbols on windows dll
 - Kernels: Refactored standard kernel declaration to use a structure holding u32/u64 attributes to reduce the number of attributes
 - Kernels: Refactored standard kernel includes, KERN_ATTR macros and rc4 cipher functions, in order to support Apple Metal runtime
 - Kernels: Set the default Address Space Qualifier for any pointer, in order to support Apple Metal runtime

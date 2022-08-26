@@ -52,11 +52,9 @@ int hiprtc_init (void *hashcat_ctx)
 
   if (hiprtc->lib == NULL) return -1;
 
-  HC_LOAD_FUNC (hiprtc, hiprtcAddNameExpression,  HIPRTC_HIPRTCADDNAMEEXPRESSION, HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcCompileProgram,     HIPRTC_HIPRTCCOMPILEPROGRAM,    HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcCreateProgram,      HIPRTC_HIPRTCCREATEPROGRAM,     HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcDestroyProgram,     HIPRTC_HIPRTCDESTROYPROGRAM,    HIPRTC, 1);
-  HC_LOAD_FUNC (hiprtc, hiprtcGetLoweredName,     HIPRTC_HIPRTCGETLOWEREDNAME,    HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetCode,            HIPRTC_HIPRTCGETCODE,           HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetCodeSize,        HIPRTC_HIPRTCGETCODESIZE,       HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetProgramLog,      HIPRTC_HIPRTCGETPROGRAMLOG,     HIPRTC, 1);
