@@ -4,7 +4,6 @@
 ## Algorithms
 ##
 
-- Added hash-mode: Terra Station Wallet (AES256-CBC(PBKDF2($pass)))
 - Added hash-mode: Amazon AWS4-HMAC-SHA256
 - Added hash-mode: Bitcoin WIF private key (P2PKH)
 - Added hash-mode: Bitcoin WIF private key (P2SH(P2WPKH))
@@ -21,6 +20,7 @@
 - Added hash-mode: PostgreSQL SCRAM-SHA-256
 - Added hash-mode: Radmin3
 - Added hash-mode: Teamspeak 3 (channel hash)
+- Added hash-mode: Terra Station Wallet (AES256-CBC(PBKDF2($pass)))
 - Added hash-mode: bcrypt(sha512($pass)) / bcryptsha512
 - Added hash-mode: md5(sha1($pass).$salt)
 - Added hash-mode: sha1($salt.sha1(utf16le($username).':'.utf16le($pass)))
@@ -46,19 +46,21 @@
 ## Bugs
 ##
 
+- Fixed accepted salt length by PKCS#8 Private Keys modules
 - Fixed backend active devices checks
 - Fixed building error on Raspberry Pi
 - Fixed display problem of incorrect negative values in case of large numbers
 - Fixed display problem of the "Optimizers applied" list for algorithms using Register-Limit
 - Fixed example password output of --hash-info: force uppercase if OPTS_TYPE_PT_UPPER is set
-- Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
-- Fixed false negative on Unit Test with hash-type 25400
 - Fixed false negative on hash-type 27800 if using vector width greater than 1 and -a 3
 - Fixed false negative on hash-types 4510 and 4710 for hashes with long salts
 - Fixed false negative on hash-types 8900, 15700, 22700, 27700 and 28200 if using the HIP backend
+- Fixed false negative on Unit Test in case of out-of-memory with grep in single mode
+- Fixed false negative on Unit Test with hash-type 25400
 - Fixed functional error when nonce-error-corrections that were set on the command line in hash-mode 22000/22001 were not accepted
 - Fixed handling of devices in benchmark mode for "kernel build error". Instead of canceling, skip the device and move on to the next
 - Fixed handling of password candidates that are shorter than the minimum password length in Association Attack
+- Fixed invalid handling of keyfiles in Keepass if transf_random_seed doesn't change
 - Fixed memory leak in CPU rule engine
 - Fixed method of how OPTS_TYPE_AUX* kernels are called in an association attack, for example in WPA/WPA2 kernel
 - Fixed missing option flag OPTS_TYPE_SUGGEST_KG for hash-mode 11600 to inform the user about possible false positives in this mode
@@ -66,20 +68,18 @@
 - Fixed password limit in optimized kernel for hash-mode 10700
 - Fixed password reassembling function reporting an incorrect candidate in some cases when the correct candidate has zero length
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
-- Fixed usage of --rule-right (-k) in -a 7 with optimized (-O) kernels
 - Fixed Unit Test early exit on luks test file download/extract failure
 - Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
 - Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
+- Fixed usage of --rule-right (-k) in -a 7 with optimized (-O) kernels
 - Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
-- Fixed accepted salt length by PKCS#8 Private Keys modules
-- Fixed invalid handling of keyfiles in Keepass if transf_random_seed doesn't change
 
 ##
 ## Technical
 ##
 
-- AMD Driver: Updated requirements for AMD Linux drivers to ROCm 5.2.1 or later due to new HIP interface
-- AMD Driver: Updated requirements for AMD Windows drivers to Adrenalin 22.3.1 or later due to new HIP interface
+- AMD Driver: Updated requirements for AMD Linux drivers to "AMDGPU" (21.50 or later) and "ROCm" (5.0 or later)
+- AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (Adrenalin 22.5.1 exactly)
 - Association Attack: Enable module specific pw_min and pw_max settings to avoid false positives in -a 9 attack-mode
 - Autotune: Added error handling. By default skipping device on error, with --force using accel/loops/threads min values instead
 - Backend: improved management of systems with multiple OpenCL platforms
@@ -87,8 +87,8 @@
 - Backend Info: Added generic system info to output (must be completed on Windows side)
 - Backend Info: Added local memory size to output
 - Backend: with kernel build options, switch from -I to -D INCLUDE_PATH, in order to support Apple Metal runtime
-- CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
 - Command Line: Disallow combinations of some options. for instance, using -t in -a 0 mode
+- CUDA Backend: moved functions to ext_cuda.c/ext_nvrtc.c and includes to ext_cuda.h/ext_nvrtc.h
 - Debug Rules: Set --debug-file to $session.debugfile if --debug-mode was set by the user and --debug-file was not set
 - Hardware Monitor: Add support for GPU device utilization readings using iokit on Apple Silicon (OpenCL and Metal)
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
@@ -97,8 +97,16 @@
 - Kernels: Refactored standard kernel declaration to use a structure holding u32/u64 attributes to reduce the number of attributes
 - Kernels: Refactored standard kernel includes, KERN_ATTR macros and rc4 cipher functions, in order to support Apple Metal runtime
 - Kernels: Set the default Address Space Qualifier for any pointer, in order to support Apple Metal runtime
+- Logfile: Write per-session "recovered new" value to logfile
 - Makefile: updated MACOSX_DEPLOYMENT_TARGET to 10.15 and removed OpenCL framework from LFLAGS_NATIVE on MacOS
 - Metal Runtime: added support for vectors up to 4
+- Modules: Added suffix *legacy* to old TrueCrypt modules (06211-06243).
+- Modules: Added suffix *legacy* to old VeraCrypt modules (13711-13783).
+- Modules: Added support of a custom charset setting for benchmarks to the module interface
+- Modules: New LUKS v1 modules (29511-29543) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/luks2hashcat.py`).
+- Modules: New TrueCrypt modules (29311-29343) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/truecrypt2hashcat.py`).
+- Modules: New VeraCrypt modules (29411-29483) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/veracrypt2hashcat.py`).
+- Modules: Renamed old LUKS module into LUKS v1 and added suffix *legacy* (14600).
 - OpenCL Backend: added workaround to make optimized kernels work on Apple Silicon
 - OpenCL Backend: moved functions to ext_OpenCL.c and includes to ext_OpenCL.h
 - OpenCL Backend: show device_type in device list info on Apple Silicon
@@ -106,11 +114,13 @@
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Add some unstable warnings detected on macOS
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
-- Rules: Update hand-written rulesets to covers years up to 2029
 - Rules: Add new rulesets from T0XlC: T0XlCv2, T0XlC_3_rule, T0XlC_insert_HTLM_entities_0_Z
 - Rules: Add support to include source wordlist in debugging format
+- Rules: Update hand-written rulesets to covers years up to 2029
 - Status code: updated negative status code (added kernel create failure and resync)
 - Status code: updated negative status code, usefull in Unit tests engine (test.sh)
+- Terminal: Increased size of hash name column in `--help` and `--identify` options.
+- Terminal: Limit output length of example hash in --example-hash mode to 200. Use --mach to see full example hash
 - Terminal: show empty OpenCL platforms only in backend information mode
 - Tuning Database: Added a warning if a module implements module_extra_tuningdb_block but the installed computing device is not found
 - Unit tests: added -r (--runtime) option
@@ -119,17 +129,7 @@
 - Usage Screen: On windows console, wait for any keypress if usage_mini_print() is used
 - User Options: Add new module function module_hash_decode_postprocess() to override hash specific configurations from command line
 - User Options: Change --backend-info/-I option type, from bool to uint
-- Modules: New TrueCrypt modules (29311-29343) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/truecrypt2hashcat.py`).
-- Modules: Added suffix *legacy* to old TrueCrypt modules (06211-06243).
-- Modules: New VeraCrypt modules (29411-29483) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/veracrypt2hashcat.py`).
-- Modules: Added support of a custom charset setting for benchmarks to the module interface
-- Modules: Added suffix *legacy* to old VeraCrypt modules (13711-13783).
-- Terminal: Increased size of hash name column in `--help` and `--identify` options.
-- Terminal: Limit output length of example hash in --example-hash mode to 200. Use --mach to see full example hash
-- Modules: New LUKS v1 modules (29511-29543) which do not use `module_hash_binary_parse` to get data from containers anymore (use new tool `tools/luks2hashcat.py`).
-- Modules: Renamed old LUKS module into LUKS v1 and added suffix *legacy* (14600).
 - Workflow: Added basic workflow for GitHub Actions.
-- Logfile: Write per-session "recovered new" value to logfile
 
 * changes v6.2.4 -> v6.2.5
 

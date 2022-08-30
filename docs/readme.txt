@@ -7,11 +7,11 @@
            |_____|     /___________/     |_____|  /_____/        /_______|
                  :                             :                         :
 
-hashcat v6.2.5
+hashcat v6.2.6
 ==============
 
-AMD GPUs on Linux require "AMD ROCm" (5.2.1 or later)
-AMD GPUs on Windows require "AMD Adrenalin Edition" (22.3.1 or later)
+AMD GPUs on Linux require "AMDGPU" (21.50 or later) and "ROCm" (5.0 or later)
+AMD GPUs on Windows require "AMD Adrenalin Edition" (Adrenalin 22.5.1 exactly)
 Intel CPUs require "OpenCL Runtime for Intel Core and Intel Xeon Processors" (16.1.1 or later)
 NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or later)
 
