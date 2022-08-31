@@ -1391,12 +1391,18 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
   hash_info->orighash = (char *) hcmalloc (256);
   hash_info->split = (split_t *) hcmalloc (sizeof (split_t));
 
-  hash_t *hashes_buf = (hash_t *) hcmalloc (sizeof (hash_t));
+  // this is required for multi hash iterations in binary files, for instance used in -m 14600
+  #define HASHES_IN_BINARY 10
 
-  hashes_buf->digest    = digest;
-  hashes_buf->salt      = salt;
-  hashes_buf->esalt     = esalt;
-  hashes_buf->hook_salt = hook_salt;
+  hash_t *hashes_buf = (hash_t *) hccalloc (HASHES_IN_BINARY, sizeof (hash_t));
+
+  for (int i = 0; i < HASHES_IN_BINARY; i++)
+  {
+    hashes_buf[i].digest    = digest;
+    hashes_buf[i].salt      = salt;
+    hashes_buf[i].esalt     = esalt;
+    hashes_buf[i].hook_salt = hook_salt;
+  }
 
   hashes->hashes_buf     = hashes_buf;
   hashes->digests_buf    = digest;

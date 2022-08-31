@@ -47,6 +47,7 @@
 ##
 
 - Fixed accepted salt length by PKCS#8 Private Keys modules
+- Fixed autodetect memory allocation for temporary hashes for LUKS v1 (legacy) in --identify mode
 - Fixed backend active devices checks
 - Fixed building error on Raspberry Pi
 - Fixed display problem of incorrect negative values in case of large numbers
@@ -68,9 +69,9 @@
 - Fixed password limit in optimized kernel for hash-mode 10700
 - Fixed password reassembling function reporting an incorrect candidate in some cases when the correct candidate has zero length
 - Fixed undefined function call to hc_byte_perm_S() in hash-mode 17010 on non-CUDA compute devices
-- Fixed Unit Test early exit on luks test file download/extract failure
-- Fixed Unit Test false negative if there are spaces in the filesystem path to hashcat
-- Fixed Unit Test salt-max in case of optimized kernel, with hash-type 22 and 23
+- Fixed unit test early exit on luks test file download/extract failure
+- Fixed unit test false negative if there are spaces in the filesystem path to hashcat
+- Fixed unit test salt-max in case of optimized kernel, with hash-type 22 and 23
 - Fixed usage of --rule-right (-k) in -a 7 with optimized (-O) kernels
 - Fixed wordlist handling in -m 3000 when candidate passwords use the $HEX[...] syntax
 
