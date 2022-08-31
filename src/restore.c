@@ -240,6 +240,19 @@ int cycle_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (restore_ctx->enabled == false) return 0;
 
+  const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+  // no updates, no need to write
+  if ((restore_ctx->masks_pos_prev == mask_ctx->masks_pos)
+   && (restore_ctx->dicts_pos_prev == straight_ctx->dicts_pos)
+   && (restore_ctx->words_cur_prev == status_ctx->words_cur)) return 0;
+
+  restore_ctx->masks_pos_prev = mask_ctx->masks_pos;
+  restore_ctx->dicts_pos_prev = straight_ctx->dicts_pos;
+  restore_ctx->words_cur_prev = status_ctx->words_cur;
+
   const char *eff_restore_file = restore_ctx->eff_restore_file;
   const char *new_restore_file = restore_ctx->new_restore_file;
 
@@ -345,6 +358,10 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
     restore_ctx->restore_execute = true;
   }
+
+  restore_ctx->masks_pos_prev = -1;
+  restore_ctx->dicts_pos_prev = -1;
+  restore_ctx->words_cur_prev = -1;
 
   return 0;
 }

@@ -679,7 +679,7 @@ typedef enum user_options_defaults
   REMOVE_TIMER             = 60,
   RESTORE_DISABLE          = false,
   RESTORE                  = false,
-  RESTORE_TIMER            = 60,
+  RESTORE_TIMER            = 1,
   RP_GEN                   = 0,
   RP_GEN_FUNC_MAX          = 4,
   RP_GEN_FUNC_MIN          = 1,
@@ -2182,6 +2182,10 @@ typedef struct restore_ctx
   char   *new_restore_file;
 
   restore_data_t *rd;
+
+  u32  dicts_pos_prev;
+  u32  masks_pos_prev;
+  u64  words_cur_prev;
 
 } restore_ctx_t;
 

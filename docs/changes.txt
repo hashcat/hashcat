@@ -115,6 +115,7 @@
 - OpenCL Runtime: Added support to use Apple Silicon compute devices
 - OpenCL Runtime: Add some unstable warnings detected on macOS
 - OpenCL Runtime: Set default device-type to GPU with Apple Silicon compute devices
+- Restore: Restore timer is decreased from 60 seconds to 1 second, but only updates if there's actually a change compared to previous data written to restore file
 - Rules: Add new rulesets from T0XlC: T0XlCv2, T0XlC_3_rule, T0XlC_insert_HTLM_entities_0_Z
 - Rules: Add support to include source wordlist in debugging format
 - Rules: Update hand-written rulesets to covers years up to 2029
