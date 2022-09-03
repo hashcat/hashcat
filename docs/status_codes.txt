@@ -1,6 +1,7 @@
 status codes on exit:
 =====================
 
+-11 = self-test failed
 -10 = autotune failure
  -9 = mixed backend errors (combo of -3, -4, -5, -6, -7 errors type)
  -8 = backend error: Invalid module_extra_buffer_size

@@ -913,6 +913,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
         event_log_warning (hashcat_ctx, "You can use --self-test-disable to override, but do not report related errors.");
         event_log_warning (hashcat_ctx, NULL);
 
+        backend_ctx->self_test_warnings = true;
+
         return -1;
       }
     }
@@ -1825,6 +1827,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     if (backend_ctx->kernel_accel_warnings == true)               rc_final = -7;
     if (backend_ctx->extra_size_warning    == true)               rc_final = -8;
     if (backend_ctx->mixed_warnings        == true)               rc_final = -9;
+    if (backend_ctx->self_test_warnings    == true)               rc_final = -11;
   }
 
   // special case for --stdout

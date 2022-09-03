@@ -1842,6 +1842,7 @@ typedef struct backend_ctx
   bool                kernel_accel_warnings;
   bool                extra_size_warning;
   bool                mixed_warnings;
+  bool                self_test_warnings;
 
   // generic
 
