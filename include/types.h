@@ -224,6 +224,13 @@ typedef enum status_rc
 
 } status_rc_t;
 
+typedef enum rc_final
+{
+  RC_FINAL_OK          = 0,
+  RC_FINAL_EXHAUSTED   = 1
+
+} rc_final_t;
+
 typedef enum wl_mode
 {
   WL_MODE_NONE  = 0,

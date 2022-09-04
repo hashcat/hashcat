@@ -1812,8 +1812,8 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     if (status_ctx->devices_status == STATUS_ABORTED_CHECKPOINT)  rc_final =  3;
     if (status_ctx->devices_status == STATUS_ABORTED)             rc_final =  2;
     if (status_ctx->devices_status == STATUS_QUIT)                rc_final =  2;
-    if (status_ctx->devices_status == STATUS_EXHAUSTED)           rc_final =  1;
-    if (status_ctx->devices_status == STATUS_CRACKED)             rc_final =  0;
+    if (status_ctx->devices_status == STATUS_EXHAUSTED)           rc_final = RC_FINAL_EXHAUSTED;
+    if (status_ctx->devices_status == STATUS_CRACKED)             rc_final = RC_FINAL_OK;
     if (status_ctx->devices_status == STATUS_ERROR)               rc_final = -1;
   }
   else if (rc_final == -1)
