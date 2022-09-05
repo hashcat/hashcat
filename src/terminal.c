@@ -639,6 +639,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
   if (hashconfig_init (hashcat_ctx) == 0)
   {
     hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+    module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
     printf ("\"%u\": { ", hashconfig->hash_mode);
     printf ("\"name\": \"%s\", ", hashconfig->hash_name);
@@ -647,6 +648,13 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
     printf ("\"password_len_min\": %u, ", hashconfig->pw_min);
     printf ("\"password_len_max\": %u, ", hashconfig->pw_max);
+
+    printf ("\"is_deprecated\": %s, ", (module_ctx->module_deprecated_notice != MODULE_DEFAULT) ? "true" : "false");
+
+    if (module_ctx->module_deprecated_notice != MODULE_DEFAULT) {
+      const char *deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
+      printf ("\"deprecated_notice\": \"%s\", ", deprecated_notice);
+    }
 
     printf ("\"is_salted\": %s, ", (hashconfig->is_salted == true) ? "true" : "false");
 
