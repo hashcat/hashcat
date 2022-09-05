@@ -324,7 +324,7 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, const char *in_buf, size_t in_
     }
     else
     {
-      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
+      if (hashconfig->opts_type & OPTS_TYPE_MT_HEX)
       {
         in_pos++;
 
@@ -437,7 +437,7 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
     }
     else
     {
-      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
+      if (hashconfig->opts_type & OPTS_TYPE_MT_HEX)
       {
         mask_pos++;
 
@@ -519,7 +519,7 @@ static int mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask_b
     }
     else
     {
-      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
+      if (hashconfig->opts_type & OPTS_TYPE_MT_HEX)
       {
         mask_pos++;
 
@@ -1168,7 +1168,7 @@ u32 mp_get_length (const char *mask, const u32 opts_type)
         ignore_next = true;
       }
 
-      if (opts_type & OPTS_TYPE_PT_HEX)
+      if (opts_type & OPTS_TYPE_MT_HEX)
       {
         ignore_next = true;
       }

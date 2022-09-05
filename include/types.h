@@ -420,7 +420,7 @@ typedef enum opts_type
   OPTS_TYPE_PT_ALWAYS_ASCII   = (1ULL << 12),
   OPTS_TYPE_PT_ALWAYS_HEXIFY  = (1ULL << 13),
   OPTS_TYPE_PT_LM             = (1ULL << 14), // special handling: all lower, 7 max, ...
-  OPTS_TYPE_PT_HEX            = (1ULL << 15), // input wordlist (and masks!) are always in hex
+  OPTS_TYPE_PT_HEX            = (1ULL << 15), // input wordlist is always in hex
   OPTS_TYPE_ST_UTF16LE        = (1ULL << 16),
   OPTS_TYPE_ST_UTF16BE        = (1ULL << 17),
   OPTS_TYPE_ST_UPPER          = (1ULL << 18),
@@ -432,6 +432,7 @@ typedef enum opts_type
   OPTS_TYPE_ST_ADDBITS15      = (1ULL << 24),
   OPTS_TYPE_ST_HEX            = (1ULL << 25),
   OPTS_TYPE_ST_BASE64         = (1ULL << 26),
+  OPTS_TYPE_MT_HEX            = (1ULL << 27), // mask is always in hex
   OPTS_TYPE_HASH_COPY         = (1ULL << 28),
   OPTS_TYPE_HASH_SPLIT        = (1ULL << 29),
   OPTS_TYPE_LOOP_PREPARE      = (1ULL << 30), // a kernel which is called each time before _loop kernel started.
