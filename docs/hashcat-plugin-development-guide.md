@@ -456,7 +456,7 @@ This configuration item is a bitmask field and is very similar to the module_opt
 * OPTS_TYPE_PT_ALWAYS_ASCII: This option prevents hashcat to automatically convert a password into the $HEX[...] encoding type. This automatic conversion is typically performed if the password itself contains the same character as the hash line separator character.
 * OPTS_TYPE_PT_ALWAYS_HEXIFY: This option forces all the cracked passwords to be written always in hex. In this case neither "$HEX[", nor "]", is added.
 * OPTS_TYPE_PT_LM: Special handling for LM passwords: all lower, 7 max, ...
-* OPTS_TYPE_PT_HEX: Assume that all input data like wordlist and masks are always given in hex
+* OPTS_TYPE_PT_HEX: Assume that wordlist is given in hex.
 * OPTS_TYPE_ST_UTF16LE: Same as OPTS_TYPE_PT_UTF16LE but applied on the salt buffer.
 * OPTS_TYPE_ST_UTF16BE: Same as OPTS_TYPE_PT_UTF16BE but applied on the salt buffer.
 * OPTS_TYPE_ST_UPPER: Same as OPTS_TYPE_PT_UPPER but applied on the salt buffer.
@@ -468,6 +468,7 @@ This configuration item is a bitmask field and is very similar to the module_opt
 * OPTS_TYPE_ST_ADDBITS15: Same as OPTS_TYPE_PT_ADDBITS15 but applied on the salt buffer.
 * OPTS_TYPE_ST_HEX: Same as OPTS_TYPE_PT_HEX but applied on the salt buffer.
 * OPTS_TYPE_ST_BASE64: Same as OPTS_TYPE_ST_HEX but using base64 encoding.
+* OPTS_TYPE_MT_HEX: Assume that mask is always given in hex.
 * OPTS_TYPE_HASH_COPY: This copies the original input hash line as it is into a buffer so that it can be used later. This is required if the original input hash line ships with the same data which is not copied into salt_t or esalt buffer because it is overhead data which is not used in any way. The hash line is copied to the buffer hash_info->orighash and can be used from the encoder function by simply returning hash_info->orighash. Please do not abuse this functionality, for two reasons: First, by being able to reconstruct the original hash line from only the hashcat data we verify that the correct amount of data has been stored in the hashcat memory structures (IOW, it is a good verification process). Second, the host memory requirement for saving this data increases drastically.
 * OPTS_TYPE_HASH_SPLIT: This needs to be used if the hash actually contains multiple hashes in the same hash line. A good example is the LM hash which is typically stored as a 128 bit hash, but actually is built on two 64 bit hashes.
 * OPTS_TYPE_LOOP_PREPARE: TBD

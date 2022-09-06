@@ -294,7 +294,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->hex_charset)
   {
-    hashconfig->opts_type |= OPTS_TYPE_PT_HEX;
+    hashconfig->opts_type |= OPTS_TYPE_MT_HEX;
   }
 
   if (user_options->hex_wordlist)
