@@ -1876,8 +1876,6 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
 
-  int device_num = 0;
-
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
@@ -1885,7 +1883,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_dev == true) continue;
     if (device_info->skipped_warning_dev == true) continue;
 
-    if (device_num != 0)
+    if (device_id != 0)
     {
       printf (",");
     }
@@ -1903,19 +1901,21 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
     printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
 
-    if (hwmon_ctx->enabled == true)
-    {
-      const int temp = hm_get_temperature_with_devices_idx (hashcat_ctx, device_id);
-
-      printf (" \"temp\": %d,", temp);
-    }
-
+    const int temp = hm_get_temperature_with_devices_idx (hashcat_ctx, device_id);
     const int util = hm_get_utilization_with_devices_idx (hashcat_ctx, device_id);
+    const int fanspeed = hm_get_fanspeed_with_devices_idx (hashcat_ctx, device_id);
+    const int corespeed = hm_get_corespeed_with_devices_idx (hashcat_ctx, device_id);
+    const int memoryspeed = hm_get_memoryspeed_with_devices_idx (hashcat_ctx, device_id);
+    const int buslanes = hm_get_buslanes_with_devices_idx (hashcat_ctx, device_id);
 
-    printf (" \"util\": %d }", util);
-
-    device_num++;
+    printf (" \"temp\": %d,", temp);
+    printf (" \"util\": %d,", util);
+    printf (" \"fanspeed\": %d,", fanspeed);
+    printf (" \"corespeed\": %d,", corespeed);
+    printf (" \"memoryspeed\": %d,", memoryspeed);
+    printf (" \"buslanes\": %d }", buslanes);
   }
+
   printf (" ],");
   printf (" \"time_start\": %" PRIu64 ",", (u64) status_ctx->runtime_start);
   printf (" \"estimated_stop\": %" PRIu64 " }", (u64) end);
