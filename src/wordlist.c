@@ -723,7 +723,7 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        wl_data->func = get_next_word_lm_text;        // treat as nromal text
+        wl_data->func = get_next_word_lm_text;        // treat as normal text
       }
     }
   }
