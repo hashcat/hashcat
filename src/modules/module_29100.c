@@ -62,7 +62,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[0]     = '.';
   token.len_min[0] =  0;
-  token.len_max[0] = 27;
+  token.len_max[0] = 56;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64C;
 
