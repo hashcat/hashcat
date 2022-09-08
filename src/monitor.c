@@ -75,7 +75,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     remove_check = true;
   }
 
-  if (user_options->status == true)
+  if (user_options->status == true || user_options->status_json == true)
   {
     status_check = true;
   }
