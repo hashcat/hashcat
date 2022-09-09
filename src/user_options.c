@@ -559,12 +559,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
   
-  if ((user_options->status_timer > 0) && (user_options->status == false))
+  if ((user_options->status_timer == 10) && (user_options->status == false))
    {     
-      event_log_error (hashcat_ctx, "--status must the set to get an output");
-    
-      return -1;
-   }
+      return 0;
+  }else{
+    event_log_error (hashcat_ctx, "--status must the set to get an output");
+    return -1:
+  }
  
 
   #ifdef WITH_BRAIN
