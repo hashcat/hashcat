@@ -2015,17 +2015,6 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->status = true;
   }
 }
-//ensures the user gets a status output
-  if (user_options->status-timer > 0)
-  {
-    if (user_options->status == false)
-    {
-      event_log_error (hashcat_ctx, "The --status flag must be set to dispaly a status");
-      
-     return -1;
-    }
-  }
-   
 
 void user_options_info (hashcat_ctx_t *hashcat_ctx)
 {
