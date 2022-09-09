@@ -561,7 +561,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   
   if ((user_options->status_timer == 10) && (user_options->status == false))
    {     
-      return -1;
+      return 1;
   }else{
     event_log_error (hashcat_ctx, "--status must the set to get an output");
     return -1:
