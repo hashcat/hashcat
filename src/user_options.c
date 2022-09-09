@@ -558,6 +558,12 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     return -1;
   }
+    if ((user_options->status-timer > 0) $$ (user_options->status == false))
+    {     
+      event_log_error (hashcat_ctx, "--status must the set to get an output");
+      return -1;
+    }
+ 
 
   #ifdef WITH_BRAIN
   if ((user_options->brain_client == true) && (user_options->brain_server == true))
