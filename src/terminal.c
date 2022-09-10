@@ -1798,8 +1798,6 @@ void json_encode (char *text, char *escaped)
 
 void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 {
-  const hwmon_ctx_t *hwmon_ctx = hashcat_ctx->hwmon_ctx;
-
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
@@ -1830,6 +1828,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   printf ("{ \"session\": \"%s\",", hashcat_status->session);
   printf (" \"guess\": {");
+
   if (hashcat_status->guess_base)
   {
     printf (" \"guess_base\": \"%s\",", hashcat_status->guess_base);
@@ -1864,9 +1863,13 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
    * As the hash target can contain the hash (in case of a single attacked hash), especially
    * some salts can contain chars which need to be escaped to not break the JSON encoding.
    */
+
   char *target_json_encoded = (char *) hcmalloc (strlen (hashcat_status->hash_target) * 2);
+
   json_encode (hashcat_status->hash_target, target_json_encoded);
+
   printf (" \"target\": \"%s\",", target_json_encoded);
+
   hcfree (target_json_encoded);
 
   printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
@@ -1891,8 +1894,11 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     printf (" { \"device_id\": %u,", device_id + 1);
 
     char *device_name_json_encoded = (char *) hcmalloc (strlen (device_info->device_name) * 2);
+
     json_encode (device_info->device_name, device_name_json_encoded);
+
     printf (" \"device_name\": \"%s\",", device_name_json_encoded);
+
     hcfree (device_name_json_encoded);
 
     const char *device_type_desc = ((device_info->device_type & CL_DEVICE_TYPE_CPU) ? "CPU" :
