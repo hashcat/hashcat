@@ -1826,12 +1826,25 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
     end = time_now + sec_etc;
   }
 
-  printf ("{ \"session\": \"%s\",", hashcat_status->session);
+  char *session_json_encoded = (char *) hcmalloc (strlen (hashcat_status->session) * 2);
+
+  json_encode (hashcat_status->session, session_json_encoded);
+
+  printf ("{ \"session\": \"%s\",", session_json_encoded);
+
+  hcfree (session_json_encoded);
+
   printf (" \"guess\": {");
 
   if (hashcat_status->guess_base)
   {
-    printf (" \"guess_base\": \"%s\",", hashcat_status->guess_base);
+    char *guess_base_json_encoded = (char *) hcmalloc (strlen (hashcat_status->guess_base) * 2);
+
+    json_encode (hashcat_status->guess_base, guess_base_json_encoded);
+
+    printf (" \"guess_base\": \"%s\",", guess_base_json_encoded);
+
+    hcfree (guess_base_json_encoded);
   }
   else
   {
@@ -1845,7 +1858,13 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   if (hashcat_status->guess_mod)
   {
-    printf (" \"guess_mod\": \"%s\",", hashcat_status->guess_mod);
+    char *guess_mod_json_encoded = (char *) hcmalloc (strlen (hashcat_status->guess_mod) * 2);
+
+    json_encode (hashcat_status->guess_mod, guess_mod_json_encoded);
+
+    printf (" \"guess_mod\": \"%s\",", guess_mod_json_encoded);
+
+    hcfree (guess_mod_json_encoded);
   }
   else
   {
