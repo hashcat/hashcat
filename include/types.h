@@ -226,8 +226,13 @@ typedef enum status_rc
 
 typedef enum rc_final
 {
-  RC_FINAL_OK          = 0,
-  RC_FINAL_EXHAUSTED   = 1
+  RC_FINAL_ERROR            = -1,
+  RC_FINAL_OK               = 0,
+  RC_FINAL_EXHAUSTED        = 1,
+  RC_FINAL_ABORT            = 2,
+  RC_FINAL_ABORT_CHECKPOINT = 3,
+  RC_FINAL_ABORT_RUNTIME    = 4,
+  RC_FINAL_ABORT_FINISH     = 5,
 
 } rc_final_t;
 
