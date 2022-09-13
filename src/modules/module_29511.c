@@ -217,24 +217,25 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // cipher mode
 
   const u8 *cipher_mode_pos = token.buf[1];
+  const u32 cipher_mode_len = token.len[1];
 
-  if (strncmp ((const char *) cipher_mode_pos, "cbc-essiv:sha256", 16) == 0)
+  if ((strncmp ((const char *) cipher_mode_pos, "cbc-essiv:sha256", 16) == 0) && (cipher_mode_len == 16))
   {
     luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_ESSIV_SHA256;
   }
-  else if (strncmp ((const char *) cipher_mode_pos, "cbc-plain",    9) == 0)
+  else if ((strncmp ((const char *) cipher_mode_pos, "cbc-plain",    9) == 0) && (cipher_mode_len ==  9))
   {
     luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_PLAIN;
   }
-  else if (strncmp ((const char *) cipher_mode_pos, "cbc-plain64", 11) == 0)
+  else if ((strncmp ((const char *) cipher_mode_pos, "cbc-plain64", 11) == 0) && (cipher_mode_len == 11))
   {
     luks->cipher_mode = HC_LUKS_CIPHER_MODE_CBC_PLAIN64;
   }
-  else if (strncmp ((const char *) cipher_mode_pos, "xts-plain",    9) == 0)
+  else if ((strncmp ((const char *) cipher_mode_pos, "xts-plain",    9) == 0) && (cipher_mode_len ==  9))
   {
     luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
   }
-  else if (strncmp ((const char *) cipher_mode_pos, "xts-plain64", 11) == 0)
+  else if ((strncmp ((const char *) cipher_mode_pos, "xts-plain64", 11) == 0) && (cipher_mode_len == 11))
   {
     luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN64;
   }
