@@ -253,6 +253,8 @@ def extract_version1(file):
     payload = file.read(PAYLOAD_SIZE)
     if len(payload) < PAYLOAD_SIZE:
         raise ValueError("file contains less data than needed")
+    if sum(payload) == 0:
+        raise ValueError("file not initialized - payload contains zeros only")
 
     # convert into header
     header = HeaderVersion1(
