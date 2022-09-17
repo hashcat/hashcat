@@ -768,7 +768,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (straight_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
-   * straight mode init
+   * combinator mode init
    */
 
   if (combinator_ctx_init (hashcat_ctx) == -1) return -1;
