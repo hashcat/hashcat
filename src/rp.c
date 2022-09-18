@@ -893,6 +893,18 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) hccalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
 
+  if (kernel_rules_buf == NULL)
+  {
+    event_log_error (hashcat_ctx, "Not enough allocatable memory (RAM) for this ruleset.");
+
+    hcfree (all_kernel_rules_cnt);
+    hcfree (all_kernel_rules_buf);
+
+    hcfree (repeats);
+
+    return -1;
+  }
+
   for (u32 i = 0; i < kernel_rules_cnt; i++)
   {
     u32 out_pos = 0;
