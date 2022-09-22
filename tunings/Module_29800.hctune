@@ -25,5 +25,6 @@ DEVICE_TYPE_GPU                                 *       29800   1       N       
 GeForce_GTX_1070_Ti                             *       29800   1       14      A
 GeForce_GTX_1080                                *       29800   1       14      A
 GeForce_GTX_1080_Ti                             *       29800   1       20      A
+GeForce_RTX_2080_Ti                             *       29800   1       40      A
 
 ALIAS_AMD_RX6900XT                              *       29800   1       125     A
