@@ -13,6 +13,7 @@
 #include "rp_cpu.h"
 #include "shared.h"
 #include "wordlist.h"
+#include "bitops.h"
 #include "emu_inc_hash_sha1.h"
 
 size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len)
@@ -481,10 +482,21 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
 
   memcpy (dictfile_padded, dictfile, dictfile_len);
 
+  for (size_t i = 0, j = 0; i < dictfile_len; i += 4, j += 1)
+  {
+    dictfile_padded[j] = byte_swap_32 (dictfile_padded[j]);
+  }
+
   sha1_ctx_t sha1_ctx;
   sha1_init   (&sha1_ctx);
   sha1_update (&sha1_ctx, dictfile_padded, dictfile_len);
   sha1_final  (&sha1_ctx);
+
+  sha1_ctx.h[0] = byte_swap_32 (sha1_ctx.h[0]);
+  sha1_ctx.h[1] = byte_swap_32 (sha1_ctx.h[1]);
+  sha1_ctx.h[2] = byte_swap_32 (sha1_ctx.h[2]);
+  sha1_ctx.h[3] = byte_swap_32 (sha1_ctx.h[3]);
+  sha1_ctx.h[4] = byte_swap_32 (sha1_ctx.h[4]);
 
   hcfree (dictfile_padded);
 
