@@ -15,8 +15,8 @@ use Crypt::CBC;
 sub module_constraints { [[0, 256], [8, 8], [-1, -1], [-1, -1], [-1, -1]] }
 
 my $SCRYPT_N = 32768;
-my $SCRYPT_R =     8;
-my $SCRYPT_P =     6;
+my $SCRYPT_R = 8;
+my $SCRYPT_P = 6;
 
 my $DATA_FIXED = "\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10\x10";
 
