@@ -11,20 +11,21 @@ use warnings;
 use Crypt::Mode::ECB;
 use Crypt::PBKDF2;
 
-my $ENC_NONCE_SIZE = 8;
-my $ENC_KEY_SIZE   = 16;
-my $ENC_BLOCK_SIZE = 16;
+my $ENC_MAX_KEY_NUM = 8;
+my $ENC_NONCE_SIZE  = 8;
+my $ENC_KEY_SIZE    = 16;
+my $ENC_BLOCK_SIZE  = 16;
 
 sub module_constraints { [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
-  my $word  = shift;
-  my $salt  = shift;
-  my $algo  = shift // random_number (1, 4);
-  my $iv    = shift // random_hex_string (16);
-  my $ct    = shift;
-  my $iter  = shift // 100000;
+  my $word = shift;
+  my $salt = shift;
+  my $algo = shift // random_number (1, 4);
+  my $iv   = shift // random_hex_string (16);
+  my $ct   = shift;
+  my $iter = shift // 100000;
 
   # pbkdf2 part
 
