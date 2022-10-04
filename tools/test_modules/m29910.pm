@@ -11,10 +11,11 @@ use warnings;
 use Crypt::Mode::ECB;
 use Crypt::PBKDF2;
 
-my $ENC_MAX_KEY_NUM = 8;
-my $ENC_NONCE_SIZE  = 8;
-my $ENC_KEY_SIZE    = 16;
-my $ENC_BLOCK_SIZE  = 16;
+my $ENC_MAX_KEY_NUM   = 8;
+my $ENC_NONCE_SIZE    = 8;
+my $ENC_KEY_SIZE      = 16;
+my $ENC_BLOCK_SIZE    = 16;
+my $ENC_KEYCHAIN_SIZE = 128;
 
 sub module_constraints { [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]] }
 
@@ -47,6 +48,8 @@ sub module_generate_hash
   my $aes = Crypt::Mode::ECB->new ('AES', 0);
 
   my $aes_key = substr ($key, 0, $ENC_KEY_SIZE);
+
+  ## decrypt encrypted data using PBKDF2 key
 
   my $iv_bin = pack ("H*", $iv);
 
