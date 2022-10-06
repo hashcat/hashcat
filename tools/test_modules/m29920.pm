@@ -11,11 +11,12 @@ use warnings;
 use Crypt::Mode::ECB;
 use Crypt::PBKDF2;
 
-my $ENC_MAX_KEY_NUM   = 8;
-my $ENC_NONCE_SIZE    = 8;
-my $ENC_KEY_SIZE      = 16;
-my $ENC_BLOCK_SIZE    = 16;
-my $ENC_KEYCHAIN_SIZE = 128;
+my $ENC_MAX_KEY_NUM             = 8;
+my $ENC_NONCE_SIZE              = 8;
+my $ENC_KEY_SIZE                = 16;
+my $ENC_BLOCK_SIZE              = 16;
+my $ENC_KEYCHAIN_SIZE           = 128;
+my $ENC_DEFAULT_MD5_ITERATIONS  = 1000;
 
 sub module_constraints { [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]] }
 
