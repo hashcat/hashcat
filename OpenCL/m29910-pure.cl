@@ -340,6 +340,19 @@ KERNEL_FQ void m29910_comp (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavau
 
   if (gid >= GID_CNT) return;
 
+  // decrypt encrypted data using PBKDF2 key
+
+  u32 ukey[4];
+
+  ukey[0] = tmps[gid].out[0];
+  ukey[1] = tmps[gid].out[1];
+  ukey[2] = tmps[gid].out[2];
+  ukey[3] = tmps[gid].out[3];
+
+  u32 ks[44];
+
+  AES128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
+
   #define ENC_MAX_KEY_NUM 8
 
   u32 ivs[ENC_MAX_KEY_NUM][2];
@@ -352,17 +365,6 @@ KERNEL_FQ void m29910_comp (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavau
     ivs[i][0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[0] ^ tmps[gid].out[j + 0];
     ivs[i][1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[1] ^ tmps[gid].out[j + 1];
   }
-
-  u32 ukey[4];
-
-  ukey[0] = tmps[gid].out[0];
-  ukey[1] = tmps[gid].out[1];
-  ukey[2] = tmps[gid].out[2];
-  ukey[3] = tmps[gid].out[3];
-
-  u32 ks[44];
-
-  AES128_set_encrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3);
 
   #define CTR_LEN 16
   #define ENC_BLOCK_SIZE 16

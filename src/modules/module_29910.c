@@ -21,6 +21,7 @@ static const char *HASH_NAME      = "ENCsecurity Datavault (PBKDF2/no keychain)"
 static const u64   KERN_TYPE      = 29910;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_SUGGEST_KG
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
@@ -153,11 +154,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   encdatavault->version = hc_strtoul ((const char *) version_pos, NULL, 10);
 
+  if (encdatavault->version != 1) return (PARSER_SALT_VALUE);
+
   // algo
 
   const u8 *algo_pos = token.buf[2];
 
   encdatavault->algo = hc_strtoul ((const char *) algo_pos, NULL, 10);
+
+  if (encdatavault->algo < 1) return (PARSER_SALT_VALUE);
+  if (encdatavault->algo > 4) return (PARSER_SALT_VALUE);
 
   #define ENC_KEY_SIZE 16
 
@@ -225,17 +231,17 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     SIGNATURE_ENCDATAVAULT,
     encdatavault->version,
     encdatavault->algo,
-     (encdatavault->iv[0]),
-     (encdatavault->iv[1]),
-     (encdatavault->ct),
-     (salt->salt_buf[0]),
-     (salt->salt_buf[1]),
-     (salt->salt_buf[2]),
-     (salt->salt_buf[3]),
-     (salt->salt_buf[4]),
-     (salt->salt_buf[5]),
-     (salt->salt_buf[6]),
-     (salt->salt_buf[7]),
+    encdatavault->iv[0],
+    encdatavault->iv[1],
+    encdatavault->ct,
+    salt->salt_buf[0],
+    salt->salt_buf[1],
+    salt->salt_buf[2],
+    salt->salt_buf[3],
+    salt->salt_buf[4],
+    salt->salt_buf[5],
+    salt->salt_buf[6],
+    salt->salt_buf[7],
     salt->salt_iter + 1);
 
   return line_len;
