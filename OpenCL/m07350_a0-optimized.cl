@@ -16,24 +16,28 @@
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
 #endif
 
+#define DIGEST_SIZE_BYTES 16
+#define BLOCK_SIZE_BYTES 64
+
 DECLSPEC void hmac_md5_pad (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad)
 {
-  w0[0] = w0[0] ^ 0x36363636;
-  w0[1] = w0[1] ^ 0x36363636;
-  w0[2] = w0[2] ^ 0x36363636;
-  w0[3] = w0[3] ^ 0x36363636;
-  w1[0] = w1[0] ^ 0x36363636;
-  w1[1] = w1[1] ^ 0x36363636;
-  w1[2] = w1[2] ^ 0x36363636;
-  w1[3] = w1[3] ^ 0x36363636;
-  w2[0] = w2[0] ^ 0x36363636;
-  w2[1] = w2[1] ^ 0x36363636;
-  w2[2] = w2[2] ^ 0x36363636;
-  w2[3] = w2[3] ^ 0x36363636;
-  w3[0] = w3[0] ^ 0x36363636;
-  w3[1] = w3[1] ^ 0x36363636;
-  w3[2] = w3[2] ^ 0x36363636;
-  w3[3] = w3[3] ^ 0x36363636;
+  w0[0] ^= 0x36363636;
+  w0[1] ^= 0x36363636;
+  w0[2] ^= 0x36363636;
+  w0[3] ^= 0x36363636;
+  w1[0] ^= 0x36363636;
+  w1[1] ^= 0x36363636;
+  w1[2] ^= 0x36363636;
+  w1[3] ^= 0x36363636;
+
+  w2[0] = 0x36363636;
+  w2[1] = 0x36363636;
+  w2[2] = 0x36363636;
+  w2[3] = 0x36363636;
+  w3[0] = 0x36363636;
+  w3[1] = 0x36363636;
+  w3[2] = 0x36363636;
+  w3[3] = 0x36363636;
 
   ipad[0] = MD5M_A;
   ipad[1] = MD5M_B;
@@ -42,22 +46,25 @@ DECLSPEC void hmac_md5_pad (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS
 
   md5_transform_vector (w0, w1, w2, w3, ipad);
 
-  w0[0] = w0[0] ^ 0x6a6a6a6a;
-  w0[1] = w0[1] ^ 0x6a6a6a6a;
-  w0[2] = w0[2] ^ 0x6a6a6a6a;
-  w0[3] = w0[3] ^ 0x6a6a6a6a;
-  w1[0] = w1[0] ^ 0x6a6a6a6a;
-  w1[1] = w1[1] ^ 0x6a6a6a6a;
-  w1[2] = w1[2] ^ 0x6a6a6a6a;
-  w1[3] = w1[3] ^ 0x6a6a6a6a;
-  w2[0] = w2[0] ^ 0x6a6a6a6a;
-  w2[1] = w2[1] ^ 0x6a6a6a6a;
-  w2[2] = w2[2] ^ 0x6a6a6a6a;
-  w2[3] = w2[3] ^ 0x6a6a6a6a;
-  w3[0] = w3[0] ^ 0x6a6a6a6a;
-  w3[1] = w3[1] ^ 0x6a6a6a6a;
-  w3[2] = w3[2] ^ 0x6a6a6a6a;
-  w3[3] = w3[3] ^ 0x6a6a6a6a;
+  // 0x36 ^ 0x5c = 0x6a
+
+  w0[0] ^= 0x6a6a6a6a;
+  w0[1] ^= 0x6a6a6a6a;
+  w0[2] ^= 0x6a6a6a6a;
+  w0[3] ^= 0x6a6a6a6a;
+  w1[0] ^= 0x6a6a6a6a;
+  w1[1] ^= 0x6a6a6a6a;
+  w1[2] ^= 0x6a6a6a6a;
+  w1[3] ^= 0x6a6a6a6a;
+
+  w2[0] = 0x5c5c5c5c;
+  w2[1] = 0x5c5c5c5c;
+  w2[2] = 0x5c5c5c5c;
+  w2[3] = 0x5c5c5c5c;
+  w3[0] = 0x5c5c5c5c;
+  w3[1] = 0x5c5c5c5c;
+  w3[2] = 0x5c5c5c5c;
+  w3[3] = 0x5c5c5c5c;
 
   opad[0] = MD5M_A;
   opad[1] = MD5M_B;
@@ -65,40 +72,6 @@ DECLSPEC void hmac_md5_pad (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS
   opad[3] = MD5M_D;
 
   md5_transform_vector (w0, w1, w2, w3, opad);
-}
-
-DECLSPEC void hmac_md5_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *ipad, PRIVATE_AS u32x *opad, PRIVATE_AS u32x *digest)
-{
-  digest[0] = ipad[0];
-  digest[1] = ipad[1];
-  digest[2] = ipad[2];
-  digest[3] = ipad[3];
-
-  md5_transform_vector (w0, w1, w2, w3, digest);
-
-  w0[0] = digest[0];
-  w0[1] = digest[1];
-  w0[2] = digest[2];
-  w0[3] = digest[3];
-  w1[0] = 0x80;
-  w1[1] = 0;
-  w1[2] = 0;
-  w1[3] = 0;
-  w2[0] = 0;
-  w2[1] = 0;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = (64 + 16) * 8;
-  w3[3] = 0;
-
-  digest[0] = opad[0];
-  digest[1] = opad[1];
-  digest[2] = opad[2];
-  digest[3] = opad[3];
-
-  md5_transform_vector (w0, w1, w2, w3, digest);
 }
 
 KERNEL_FQ void m07350_m04 (KERN_ATTR_RULES ())
@@ -387,7 +360,7 @@ KERNEL_FQ void m07350_s04 (KERN_ATTR_RULES ())
     w2[3] = 0;
     w3[0] = 0;
     w3[1] = 0;
-    w3[2] = (64 + salt_len) * 8;
+    w3[2] = (BLOCK_SIZE_BYTES + salt_len) * 8;
     w3[3] = 0;
 
     md5_transform_vector(w0, w1, w2, w3, ipad);
@@ -406,12 +379,10 @@ KERNEL_FQ void m07350_s04 (KERN_ATTR_RULES ())
     w2[3] = 0;
     w3[0] = 0;
     w3[1] = 0;
-    w3[2] = (64 + 16) * 8;
+    w3[2] = (BLOCK_SIZE_BYTES + DIGEST_SIZE_BYTES) * 8;
     w3[3] = 0;
 
     md5_transform_vector (w0, w1, w2, w3, opad);
-
-    // hmac_md5_run (w0, w1, w2, w3, ipad, opad, digest);
 
     COMPARE_S_SIMD (opad[0], opad[3], opad[2], opad[1]);
   }
