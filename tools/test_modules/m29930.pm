@@ -9,7 +9,7 @@ use strict;
 use warnings;
 
 use Crypt::Mode::ECB;
-use Digest::MD5 qw (md5 md5_hex);
+use Digest::MD5 qw (md5);
 
 my $ENC_MAX_KEY_NUM             = 8;
 my $ENC_NONCE_SIZE              = 8;
