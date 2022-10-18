@@ -237,6 +237,8 @@ GeForce_RTX_3080_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3090                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_3090_Ti                             ALIAS_nv_sm50_or_higher
 
+GeForce_RTX_4090                                ALIAS_nv_sm50_or_higher
+
 ##
 ## Unmapped GPU
 ##
