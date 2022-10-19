@@ -117,23 +117,25 @@ sub module_generate_hash
   {
     my $ct_bin = pack ("H*", $ct);
 
-    $pt_bin = xor_len (substr ($ctr, 4, 4), $ct_bin, 4);
+    $pt_bin = xor_len (substr ($ctr, 4, 8), $ct_bin, 8);
 
-    if ($pt_bin eq "\xd2\xc3\xb4\xa1")
+    # we compare only 56 bit, see https://github.com/hashcat/hashcat/issues/3467
+
+    if (substr ($pt_bin, 0, 7) eq "\xd2\xc3\xb4\xa1\x00\x00\x00")
     {
       # ok
     }
     else
     {
-      $pt_bin = "\xff\xff\xff\xff";
+      $pt_bin = "\xff\xff\xff\xff\xff\xff\xff\xff";
     }
   }
   else
   {
-    $pt_bin = "\xd2\xc3\xb4\xa1";
+    $pt_bin = "\xd2\xc3\xb4\xa1\x00\x00\x00\x00";
   }
 
-  my $ct_bin = xor_len (substr ($ctr, 4, 4), $pt_bin, 4);
+  my $ct_bin = xor_len (substr ($ctr, 4, 8), $pt_bin, 8);
 
   my $hash = sprintf ('$encdv$1$%d$%s$%s', $algo, unpack ("H*", $iv_bin), unpack ("H*", $ct_bin));
 
