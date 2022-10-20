@@ -23,7 +23,7 @@ typedef struct encdatavault
   u32 keychain[32];
   u32 iv[2];
 
-  u32 ct;
+  u32 ct[2];
 
   u32 algo;
   u32 version;
@@ -290,11 +290,17 @@ KERNEL_FQ void m29930_comp (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavau
     }
   }
 
-  const u32 ct = esalt_bufs[DIGESTS_OFFSET_HOST].ct;
+  u32 ct[2];
 
-  const u32 pt = ct ^ ctr[0][1];
+  ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct[0];
+  ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct[1];
 
-  if (pt == 0xd2c3b4a1)
+  u32 pt[2];
+
+  pt[0] = ct[0] ^ ctr[0][1];
+  pt[1] = ct[1] ^ ctr[0][2];
+
+  if ((pt[0] == 0xd2c3b4a1) && ((pt[1] & 0x00ffffff) == 0))
   {
     if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
