@@ -97,6 +97,7 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_RULES_ESALT (md5_double_salt_t))
   md5_init (&ctx0);
   
   md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
+  
   /**
    * loop
    */
@@ -235,7 +236,7 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_RULES_ESALT (md5_double_salt_t))
 
   md5_init (&ctx0);
 
-  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt1_len);
+  md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
   
   /**
    * loop
