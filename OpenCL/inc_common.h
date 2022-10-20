@@ -147,7 +147,7 @@
 
 #if defined IS_METAL
 #define KERN_ATTR_BASIC()                      _KERN_ATTR_BASIC(), KERN_ATTR_MAIN_PARAMS
-#define KERN_ATTR_BASIC_ESALT(e)	       _KERN_ATTR_BASIC_ESALT(e), KERN_ATTR_MAIN_PARAMS
+#define KERN_ATTR_BASIC_ESALT(e)			    _KERN_ATTR_BASIC_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_BITSLICE()                   _KERN_ATTR_BITSLICE(), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES(), KERN_ATTR_MAIN_PARAMS
@@ -161,7 +161,7 @@
 #define KERN_ATTR_TM                           _KERN_ATTR_TM, KERN_ATTR_MAIN_PARAMS
 #else // CUDA, HIP and OpenCL
 #define KERN_ATTR_BASIC()                      _KERN_ATTR_BASIC()
-#define KERN_ATTR_BASIC_ESALT(e)	       _KERN_ATTR_BASIC_ESALT(e)
+#define KERN_ATTR_BASIC_ESALT(e)				_KERN_ATTR_BASIC_ESALT(e)
 #define KERN_ATTR_BITSLICE()                   _KERN_ATTR_BITSLICE()
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e)
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES()
