@@ -21,10 +21,6 @@ if len(sys.argv) != 2 :
     print("Error, usage exodus2hashcat.py <path to exodus seed.seco file>")
     sys.exit(1)
 
-if os.path.basename(sys.argv[1])!= 'seed.seco':
-    print("Error, usage exodus2hashcat.py <path to exodus seed.seco file>")
-    sys.exit(1)
-
 with open(sys.argv[1],'rb') as fd:
     seedBuffer = fd.read()
 
