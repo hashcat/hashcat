@@ -21,11 +21,10 @@ static const char *HASH_NAME      = "ENCsecurity Datavault (MD5/no keychain)";
 static const u64   KERN_TYPE      = 29930;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_SUGGEST_KG
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$encdv$1$1$a36ce62ab8a2701b$8c5d1f2c";
+static const char *ST_HASH        = "$encdv$1$1$c3b2325acd041cc5$125027145bd58e4c";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -47,7 +46,7 @@ typedef struct encdatavault
   u32 keychain[32];
   u32 iv[2];
 
-  u32 ct;
+  u32 ct[2];
 
   u32 algo;
   u32 version;
@@ -116,8 +115,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[4]     = '$';
-  token.len_min[4] = 8;
-  token.len_max[4] = 8;
+  token.len_min[4] = 16;
+  token.len_max[4] = 16;
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -159,13 +158,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *ct_pos = token.buf[4];
 
-  encdatavault->ct = byte_swap_32 (hex_to_u32 ((const u8 *) &ct_pos[ 0]));
+  encdatavault->ct[0] = byte_swap_32 (hex_to_u32 ((const u8 *) &ct_pos[0]));
+  encdatavault->ct[1] = byte_swap_32 (hex_to_u32 ((const u8 *) &ct_pos[8]));
 
   // salt fixed
 
-  salt->salt_buf[0] = encdatavault->ct;
+  salt->salt_buf[0] = encdatavault->ct[0];
+  salt->salt_buf[1] = encdatavault->ct[1];
 
-  salt->salt_len = 4;
+  salt->salt_len = 8;
 
   // iter fixed
 
@@ -175,8 +176,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // hash
 
-  digest[0] = encdatavault->ct; // very little comparison material, mark?
-  digest[1] = 0;
+  digest[0] = encdatavault->ct[0];
+  digest[1] = encdatavault->ct[1];
   digest[2] = 0;
   digest[3] = 0;
 
@@ -187,13 +188,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const encdatavault_t *encdatavault = (const encdatavault_t *) esalt_buf;
 
-  const int line_len = snprintf (line_buf, line_size, "%s%u$%u$%08x%08x$%08x",
+  const int line_len = snprintf (line_buf, line_size, "%s%u$%u$%08x%08x$%08x%08x",
     SIGNATURE_ENCDATAVAULT,
     encdatavault->version,
     encdatavault->algo,
     encdatavault->iv[0],
     encdatavault->iv[1],
-    encdatavault->ct);
+    encdatavault->ct[0],
+    encdatavault->ct[1]);
 
   return line_len;
 }

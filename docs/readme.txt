@@ -423,6 +423,10 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Exodus Desktop Wallet (scrypt)
 - Terra Station Wallet (AES256-CBC(PBKDF2($pass)))
 - Bisq .wallet (scrypt)
+- ENCsecurity Datavault (PBKDF2/no keychain)
+- ENCsecurity Datavault (PBKDF2/keychain)
+- ENCsecurity Datavault (MD5/no keychain)
+- ENCsecurity Datavault (MD5/keychain)
 
 ##
 ## Attack-Modes
