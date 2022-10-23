@@ -95,11 +95,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.len_max[1] *= 2;
 
     token.attr[1] |= TOKEN_ATTR_VERIFY_HEX;
-	
-	token.len_min[2] *= 2;
-	token.len_max[2] *= 2;
-	
-	token.attr[2] |= TOKEN_ATTR_VERIFY_HEX;
+
+    token.len_min[2] *= 2;
+    token.len_max[2] *= 2;
+
+    token.attr[2] |= TOKEN_ATTR_VERIFY_HEX;
   }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -194,7 +194,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   out_len += generic_salt_encode (hashconfig, (const u8 *) md5_double_salt->salt2_buf, (const int) md5_double_salt->salt2_len, out_buf + out_len);
 
   return out_len;
-
 }
 
 void module_init (module_ctx_t *module_ctx)

@@ -51,6 +51,7 @@ KERNEL_FQ void m03730_m04 (KERN_ATTR_RULES_ESALT (md5_double_salt_t))
   /**
    * bin2asc uppercase array
    */
+   
   LOCAL_VK u32 u_bin2asc[256];
 
   for (u32 j = lid; j < 256; j += lsz)
@@ -419,6 +420,7 @@ KERNEL_FQ void m03730_s04 (KERN_ATTR_RULES_ESALT (md5_double_salt_t))
   /**
    * bin2asc uppercase array
    */
+   
   LOCAL_VK u32 u_bin2asc[256];
 
   for (u32 j = lid; j < 256; j += lsz)

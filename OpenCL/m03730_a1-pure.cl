@@ -78,15 +78,6 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_BASIC_ESALT (md5_double_salt_t))
     s[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf[idx];
   }
 
-  const int salt2_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len;
-
-  u32 s2[64] = { 0 };
-
-  for (int i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
-  {
-    s2[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf[idx];
-  }
-  
   md5_ctx_t ctx0;
 
   md5_init (&ctx0);
@@ -210,16 +201,7 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_BASIC_ESALT (md5_double_salt_t))
   {
     s[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf[idx];
   }
-  
-  const u32 salt2_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len;
-
-  u32 s2[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
-  {
-    s2[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf[idx];
-  }
-  
+    
   /**
    * base
    */
