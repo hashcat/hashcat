@@ -5,6 +5,10 @@
 ##
 
 - Added hash-mode: Bisq .wallet (scrypt)
+- Added hash-mode: ENCsecurity Datavault (PBKDF2/no keychain)
+- Added hash-mode: ENCsecurity Datavault (PBKDF2/keychain)
+- Added hash-mode: ENCsecurity Datavault (MD5/no keychain)
+- Added hash-mode: ENCsecurity Datavault (MD5/keychain)
 
 ##
 ## Technical
