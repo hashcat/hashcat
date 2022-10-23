@@ -92,7 +92,6 @@
 
 #if defined IS_CUDA || defined IS_HIP
 #define _KERN_ATTR_BASIC()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
-#define _KERN_ATTR_BASIC_ESALT(e)          KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
 #define _KERN_ATTR_BITSLICE()              KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bs_word_t *g_words_buf_s, void, void, void)
 #define _KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
 #define _KERN_ATTR_RULES()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
@@ -105,7 +104,6 @@
 #define _KERN_ATTR_VECTOR_ESALT(e)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const u32x      *g_words_buf_r, void, void, e)
 #else
 #define _KERN_ATTR_BASIC()                 KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, void)
-#define _KERN_ATTR_BASIC_ESALT(e)          KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e)
 #define _KERN_ATTR_BITSLICE()              KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bs_word_t *words_buf_s,   void, void, void)
 #define _KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e)
 #define _KERN_ATTR_RULES()                 KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, void)
@@ -147,7 +145,6 @@
 
 #if defined IS_METAL
 #define KERN_ATTR_BASIC()                      _KERN_ATTR_BASIC(), KERN_ATTR_MAIN_PARAMS
-#define KERN_ATTR_BASIC_ESALT(e)               _KERN_ATTR_BASIC_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_BITSLICE()                   _KERN_ATTR_BITSLICE(), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES(), KERN_ATTR_MAIN_PARAMS
@@ -161,7 +158,6 @@
 #define KERN_ATTR_TM                           _KERN_ATTR_TM, KERN_ATTR_MAIN_PARAMS
 #else // CUDA, HIP and OpenCL
 #define KERN_ATTR_BASIC()                      _KERN_ATTR_BASIC()
-#define KERN_ATTR_BASIC_ESALT(e)               _KERN_ATTR_BASIC_ESALT(e)
 #define KERN_ATTR_BITSLICE()                   _KERN_ATTR_BITSLICE()
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e)
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES()
@@ -188,7 +184,6 @@
   MAYBE_UNUSED const u64 lsz
 
 #define KERN_ATTR_FUNC_BASIC()                 _KERN_ATTR_BASIC(), KERN_ATTR_FUNC_PARAMS
-#define KERN_ATTR_FUNC_BASIC_ESALT(e)          _KERN_ATTR_BASIC_ESALT(e), KERN_ATTR_FUNC_PARAMS
 #define KERN_ATTR_FUNC_BITSLICE()              _KERN_ATTR_BITSLICE(), KERN_ATTR_FUNC_PARAMS
 #define KERN_ATTR_FUNC_ESALT(e)                _KERN_ATTR_ESALT(e), KERN_ATTR_FUNC_PARAMS
 #define KERN_ATTR_FUNC_RULES()                 _KERN_ATTR_RULES(), KERN_ATTR_FUNC_PARAMS

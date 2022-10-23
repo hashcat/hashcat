@@ -38,7 +38,7 @@ typedef struct md5_double_salt
 
 } md5_double_salt_t;
 
-KERNEL_FQ void m03730_mxx (KERN_ATTR_RULES_ESALT (md5_double_salt_t))
+KERNEL_FQ void m03730_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
 {
   /**
    * modifier
@@ -96,12 +96,10 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_RULES_ESALT (md5_double_salt_t))
   {
     pw_t tmp = PASTE_PW;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
     md5_ctx_t ctx1 = ctx0;
 	
-    md5_update (&ctx1, tmp.i, tmp.pw_len);
-   
+    md5_update(&ctx1, pws[gid].i, pws[gid].pw_len);
+
     md5_final (&ctx1);
 
     const u32 a = ctx1.h[0];
@@ -158,7 +156,7 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_RULES_ESALT (md5_double_salt_t))
   }
 }
 
-KERNEL_FQ void m03730_sxx (KERN_ATTR_RULES_ESALT (md5_double_salt_t))
+KERNEL_FQ void m03730_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
 {
   /**
    * modifier
@@ -228,11 +226,9 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_RULES_ESALT (md5_double_salt_t))
   {
     pw_t tmp = PASTE_PW;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
     md5_ctx_t ctx1 = ctx0;
 	
-    md5_update (&ctx1, tmp.i, tmp.pw_len);
+    md5_update (&ctx1, pws[gid].i, pws[gid].pw_len);
 
     md5_final (&ctx1);
 
