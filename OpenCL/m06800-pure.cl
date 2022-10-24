@@ -18,6 +18,11 @@
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
+typedef struct lastpass
+{
+    u32 iv[4];
+} lastpass_t;
+
 typedef struct lastpass_tmp
 {
   u32 ipad[8];
@@ -70,7 +75,7 @@ DECLSPEC void hmac_sha256_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVA
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m06800_init (KERN_ATTR_TMPS (lastpass_tmp_t))
+KERNEL_FQ void m06800_init (KERN_ATTR_TMPS_ESALT (lastpass_tmp_t, lastpass_t))
 {
   /**
    * base
@@ -154,7 +159,7 @@ KERNEL_FQ void m06800_init (KERN_ATTR_TMPS (lastpass_tmp_t))
   }
 }
 
-KERNEL_FQ void m06800_loop (KERN_ATTR_TMPS (lastpass_tmp_t))
+KERNEL_FQ void m06800_loop (KERN_ATTR_TMPS_ESALT (lastpass_tmp_t, lastpass_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -260,7 +265,7 @@ KERNEL_FQ void m06800_loop (KERN_ATTR_TMPS (lastpass_tmp_t))
   }
 }
 
-KERNEL_FQ void m06800_comp (KERN_ATTR_TMPS (lastpass_tmp_t))
+KERNEL_FQ void m06800_comp (KERN_ATTR_TMPS_ESALT (lastpass_tmp_t, lastpass_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -366,6 +371,11 @@ KERNEL_FQ void m06800_comp (KERN_ATTR_TMPS (lastpass_tmp_t))
     out[1] = hc_swap32_S (out[1]);
     out[2] = hc_swap32_S (out[2]);
     out[3] = hc_swap32_S (out[3]);
+
+    out[0] ^= esalt_bufs[DIGESTS_OFFSET_HOST].iv[0];
+    out[1] ^= esalt_bufs[DIGESTS_OFFSET_HOST].iv[1];
+    out[2] ^= esalt_bufs[DIGESTS_OFFSET_HOST].iv[2];
+    out[3] ^= esalt_bufs[DIGESTS_OFFSET_HOST].iv[3];
 
     truncate_block_4x4_le_S (out, salt_len);
 

@@ -18,9 +18,9 @@ sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
-  my $iter = shift // 500;
+  my $iter = shift // 100100;
 
-  my $iv = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+  my $iv = random_bytes(16);
 
   my $hasher = Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256);
 
@@ -45,7 +45,9 @@ sub module_generate_hash
 
   my $hash_buf = substr (unpack ("H*", $encrypt), 0, 32);
 
-  my $hash = sprintf ("%s:%i:%s", $hash_buf, $iter, $salt);
+  my $iv_buf = unpack("H*", $iv);
+
+  my $hash = sprintf ("%s:%i:%s:%s", $hash_buf, $iter, $salt, $iv_buf);
 
   return $hash;
 }

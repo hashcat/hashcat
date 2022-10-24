@@ -25,7 +25,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "82dbb8ccc9c7ead8c38a92a6b5740f94:500:pmix@trash-mail.com";
+static const char *ST_HASH        = "02eb97e869e0ddc7dc760fc633b4b54d:100100:pmix@trash-mail.com:9b071db7b8e265d4cadd3eb65ac0864a";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -42,6 +42,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+typedef struct lastpass
+{
+    u32 iv[4];
+} lastpass_t;
+
 typedef struct lastpass_tmp
 {
   u32 ipad[8];
@@ -51,6 +56,13 @@ typedef struct lastpass_tmp
   u32 out[8];
 
 } lastpass_tmp_t;
+
+u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+    const u64 esalt_size = (const u64) sizeof (lastpass_t);
+
+    return esalt_size;
+}
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
@@ -120,7 +132,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
-  token.token_cnt  = 3;
+  token.token_cnt  = 4;
 
   token.len_min[0] = 32;
   token.len_max[0] = 64;
@@ -137,6 +149,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[2] = 32;
   token.sep[2]     = ':';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
+
+  token.len_min[3] = 32;
+  token.len_max[3] = 32;
+  token.sep[3]     = ':';
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -165,6 +183,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
+  lastpass_t *lastpass = (lastpass_t *) esalt_buf;
+
+  const int iv_size = hex_decode ((const u8 *) token.buf[3], token.len[3], (u8 *) lastpass->iv);
+
+  if (iv_size != sizeof (lastpass->iv)) return (PARSER_IV_LENGTH);
+
   return (PARSER_OK);
 }
 
@@ -172,19 +196,25 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
+  const lastpass_t *lastpass = (const lastpass_t *) esalt_buf;
+
   char tmp_salt[SALT_MAX * 2];
 
   const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
 
   tmp_salt[salt_len] = 0;
 
-  return snprintf (line_buf, line_size, "%08x%08x%08x%08x:%u:%s",
+  return snprintf (line_buf, line_size, "%08x%08x%08x%08x:%u:%s:%08x%08x%08x%08x",
     digest[0],
     digest[1],
     digest[2],
     digest[3],
     salt->salt_iter + 1,
-    tmp_salt);
+    tmp_salt,
+    byte_swap_32(lastpass->iv[0]),
+    byte_swap_32(lastpass->iv[1]),
+    byte_swap_32(lastpass->iv[2]),
+    byte_swap_32(lastpass->iv[3]));
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -207,7 +237,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
-  module_ctx->module_esalt_size               = MODULE_DEFAULT;
+  module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;

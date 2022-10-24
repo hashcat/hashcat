@@ -14,6 +14,7 @@
 ## Technical
 ##
 
+- Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Status Code: Add specific return code for self-test fail (-11)
 
 * changes v6.2.5 -> v6.2.6
