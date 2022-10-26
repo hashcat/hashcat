@@ -10,13 +10,13 @@ use warnings;
 
 use Digest::MD5 qw (md5_hex);
 
-sub module_constraints { [[0, 64], [0, 128], [0, 55], [0, 128], [0, 55]] }
+sub module_constraints { [[0, 255], [0, 255], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
   my $word = shift;
   my $salt1 = shift;
-  my $salt2 = shift || random_numeric_string (32);
+  my $salt2 = shift || random_numeric_string (128);
 
   my $digest = md5_hex ($salt1 . uc(md5_hex ($salt2 . $word)));
 
