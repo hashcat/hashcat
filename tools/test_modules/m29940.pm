@@ -176,7 +176,7 @@ sub module_generate_hash
   }
   else
   {
-    $pt_bin = "\xd2\xc3\xb4\xa1\x00\x00\x00\x00";
+    $pt_bin = "\xd2\xc3\xb4\xa1\x00\x00\x00\x30";
   }
 
   my $ct_bin = xor_len (substr ($ctr, 4, 8), $pt_bin, 8);

@@ -24,7 +24,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$encdv$3$1$57eb2fd014e80ab8$d9efd5b50d7d2c96$4d155873a6619957b8e30739d729e8a7b147573a839603fe5dcfdec186c0cb622ddda17ae077dbd77b8a7193e2e975c03f4ccb9052ffbcb6cf419aa9dcd2f7c917ffb4f243fae96cef2f96b804879e9e02b1fcaa4e1b0e765cb138fd0993cda006384a1e690d4058e107cfb7e214bf0217ea7b405af3924db4fa839efedbea59";
+static const char *ST_HASH        = "$encdv$3$1$91b9babb3820c527$1ff4cb6657adad34$d9067c4d059879dfee2edeb3999871973d422ff5fa868c51b025d07f644187889dc5509ec75d4a120184d619d10d02b138d64ba82f9d0936162c9e64d97771de3e74d6e52e5ab9b900c25fb446e14cbe3ef1fa34328a13f9473c669f22d7020bc036d9e99194c959e4c5ba885d6f9ff9ccc2299d67b26e68b850a02363fb2646";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }

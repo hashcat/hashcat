@@ -24,7 +24,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$encdv-pbkdf2$1$1$2a634ff38de7bd65$da30f6488f23d250$32$8411766641676379804327452599148252868336714192465947587879023912$100000";
+static const char *ST_HASH        = "$encdv-pbkdf2$1$1$121f898edc51ffb2$14e6bf4e9256f9e4$32$1972489853882254644795101599063579097812661888813652597380052274$100000";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }

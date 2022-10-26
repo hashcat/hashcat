@@ -24,7 +24,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$encdv-pbkdf2$3$1$ce7801561a78723a$92d57beb35641626$32$4865411258241441439695058324389632216617876787029059122102544908$100000$0fcd759f2a0b8687a63bd70db4af46735199cacd2e67df549bfa643ac2610f23bcc533d693be54f3307d9fb14057d53eed528079a90c160bf9bde5cce8e0283539d97bb536029ebb8b641e18ecf8d1af44e3e161a47e263830eb0b3de53052c3f36a4e6f5068b14c7aabd449c63969948ac27adbd111762583ac779d53156e9b";
+static const char *ST_HASH        = "$encdv-pbkdf2$3$1$c232aba45699c80b$473d5dd2e0833ac7$32$4454716926322493581114042616371582782202532493983541577898367049$100000$9a030124cecc2fef5ca44f83ef6e4c7944f8d7c5234b9000c982e209a92bb5535f4c15be6e9914729eb8a9bf870bd0535a231fa1d443d27c1fc4f78b441a7aa765fa0a3d181c485f77f59334ec68f27e66f227eb4be3579464d907ed8cf8bacc817cceb4496587898e43ce41921f66114051c007e1a54b7215b220aed6e33064";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }

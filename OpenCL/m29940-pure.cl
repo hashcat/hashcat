@@ -370,7 +370,7 @@ KERNEL_FQ void m29940_comp (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavau
   pt[0] = ct[0] ^ ctr[0][1];
   pt[1] = ct[1] ^ ctr[0][2];
 
-  if ((pt[0] == 0xd2c3b4a1) && ((pt[1] & 0x00ffffff) == 0))
+  if ((pt[0] == 0xd2c3b4a1) && ((pt[1] & 0xffffff00) == 0))
   {
     if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
     {
