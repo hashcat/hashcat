@@ -7330,6 +7330,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   {
     const u64 backend_devices_cnt_mask = ~(((u64) -1 >> backend_ctx->backend_devices_cnt) << backend_ctx->backend_devices_cnt);
 
+    if (backend_ctx->backend_devices_cnt >= 64)
+    {
+      event_log_error (hashcat_ctx, "Illegal use of the --backend-devices parameter because too many backend devices were found (%u).", backend_ctx->backend_devices_cnt);
+      event_log_error (hashcat_ctx, "If possible, disable one of your backends to reduce the number of backend devices. For example \"--backend-ignore-cuda\" or \"--backend-ignore-opencl\" .");
+
+      return -1;
+    }
     if (backend_ctx->backend_devices_filter > backend_devices_cnt_mask)
     {
       event_log_error (hashcat_ctx, "An invalid device was specified using the --backend-devices parameter.");
