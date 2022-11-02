@@ -273,8 +273,13 @@ def extract_version1(file):
     )
 
     # check for any active key
+    if all(key.active not in [KeyVersion1.Active.ENABLED, KeyVersion1.Active.ENABLED_OLD] for key in header.keys):
+        # all keys are disabled
+        raise ValueError("all keys are disabled")
+
     for key in header.keys:
         if key.active not in [KeyVersion1.Active.ENABLED, KeyVersion1.Active.ENABLED_OLD]:
+            # skip inactive keys
             continue
 
         hash = SIGNATURE + "$".join(
@@ -294,10 +299,6 @@ def extract_version1(file):
             )
         )
         print(hash)
-        break
-    else:
-        # all keys are disabled
-        raise ValueError("all keys are disabled")
 
 
 # main

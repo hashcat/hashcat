@@ -12,6 +12,12 @@
 - Added hash-mode: Dahua NVR/DVR/HVR (md5($salt1.strtoupper(md5($salt2.$pass))))
 
 ##
+## Bugs
+##
+
+- Fixed keys extraction in luks2hashcat - now extracts all active keys
+
+##
 ## Technical
 ##
 
