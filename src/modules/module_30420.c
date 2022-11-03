@@ -16,9 +16,9 @@ static const u32   DGST_POS1      = 5;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_7;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
-static const char *HASH_NAME      = "SHA2-256 DANE RFC7929/RFC8162";
-static const u64   KERN_TYPE      = 1400;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
+static const char *HASH_NAME      = "DANE RFC7929/RFC8162 SHA2-256";
+static const u64   KERN_TYPE      = 30420;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP

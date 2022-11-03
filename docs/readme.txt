@@ -160,6 +160,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - scrypt
 - phpass
 - TACACS+
+- DANE RFC7929/RFC8162 SHA2-256
 - SIP digest authentication (MD5)
 - IKE-PSK MD5
 - IKE-PSK SHA1
