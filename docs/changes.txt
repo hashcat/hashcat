@@ -22,6 +22,7 @@
 ## Technical
 ##
 
+- AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (Adrenalin 22.5.1 or later)
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Status Code: Add specific return code for self-test fail (-11)
 - Described workaround in error message when detecting more than 64 backend devices
