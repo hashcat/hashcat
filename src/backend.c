@@ -5858,6 +5858,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         continue;
       }
 
+      // this is a hack for sure, but what can we do if they report just 1.
+      // But 8 is a number that is pretty good since most real values are divisible by 8.
+      if (device_processors == 1) device_processors = 8;
+
       device_param->device_processors = device_processors;
 
       // device_host_unified_memory
