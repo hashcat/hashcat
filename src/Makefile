@@ -189,7 +189,8 @@ endif
 
 ## because LZMA SDK
 ifeq ($(CC),clang)
-CFLAGS                  += -Wno-enum-conversion
+#No longer supported in clang 10.0.0
+#CFLAGS                  += -Wno-enum-conversion
 CFLAGS                  += -Wno-typedef-redefinition
 endif
 
@@ -228,7 +229,11 @@ CFLAGS_UNRAR            += -Wno-implicit-fallthrough
 CFLAGS_UNRAR            += -Wno-extra
 CFLAGS_UNRAR            += -Wno-unknown-pragmas
 CFLAGS_UNRAR            += -Wno-unused-but-set-variable
-CFLAGS_UNRAR            += -Wno-format-overflow
+#Not supported on macOS 12.3
+#CFLAGS_UNRAR            += -Wno-format-overflow
+#Added hashcat 7.0.0
+CFLAGS_UNRAR            += -Wno-class-memaccess
+CFLAGS_UNRAR            += -Wno-misleading-indentation
 endif
 endif
 
