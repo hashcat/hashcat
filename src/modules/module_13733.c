@@ -93,10 +93,7 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   // AppleM1, OpenCL, MTLCompilerService never-end (pure/optimized kernel)
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    if (device_param->is_metal == false)
-    {
-      return true;
-    }
+    return true;
   }
 
   return false;

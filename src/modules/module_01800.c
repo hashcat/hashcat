@@ -428,6 +428,15 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     }
   }
 
+  // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
+  if (device_param->is_metal == true)
+  {
+    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    {
+      return true;
+    }
+  }
+
   return false;
 }
 

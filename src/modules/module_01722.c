@@ -57,6 +57,12 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // Extra treatment for Apple systems
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
+    // Metal
+    if (device_param->is_metal == true)
+    {
+      hc_asprintf (&jit_build_options, "-D _unroll");
+    }
+
     return jit_build_options;
   }
 
