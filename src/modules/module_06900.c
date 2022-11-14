@@ -21,8 +21,7 @@ static const char *HASH_NAME      = "GOST R 34.11-94";
 static const u64   KERN_TYPE      = 6900;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_MAXIMUM_THREADS;
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "df226c2c6dcb1d995c0299a33a084b201544293c31fc3d279530121d36bbcea9";

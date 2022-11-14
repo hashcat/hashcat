@@ -30,8 +30,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_LOOP_EXTENDED
                                   | OPTS_TYPE_MP_MULTI_DISABLE
                                   | OPTS_TYPE_KEYBOARD_MAPPING
-                                  | OPTS_TYPE_COPY_TMPS
-                                  | OPTS_TYPE_MAXIMUM_THREADS;
+                                  | OPTS_TYPE_COPY_TMPS;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$veracrypt$0c9d7444e9e64a833e857163787b2f6349224bdb4bbf788ce25156c870514226674725be3eebc3f2a2c2ee8adbf8bb3ec1405a333e8e091cec0c5aa77fa9b650$48ca01d954912bf3a3b1c38c00297a33ea0e014156ce08d9526150c085e5e2776a1faeb272c6e9539f466f4f93ffe6497c77d3aed54ffcdf1a3e6171cffac7b2ad96bd9e7cc553058894058def68beea05891b0ce734b6a166b8a5f24b4052fc7014b424bd6c33c9d710fb409cdf1a6c7567c1ba6a3010b03f9bda8aa2ef6733542d198a316da0c83106a6c31043f11ac191169db3db994493168ea996737355ccff84f27f6792b3dc87025d3594edb9e759ba3885980df17bc8c751ce3aba0df67aa7997906348729e81c4893cc654dc6b1da3ff7c588a327f45b8acff976d0593cc607dad48a25468d7c3ebc6dd49aa32fc526dd513852cdec4b36f3683b4998800afa25bb968c242d4c66b9b0c77b20d7bd40ffb403e9e087990d59c94ee7d36e9ebfa35a310bab963c253596e6bc89f67d5307823851c526ac789d0628a3eb81f2cdfd7d7612d8be1dade1b17f30aa2bb5d02eb8534caca0c334a269085939a5041c4ad112d325b1bfe3e9851bfdcad80bbc05ecbddc3f2ac09e2ad7182daf6ca5ccc510a100514f5d2dce1ff5046e0c8e7edf0bdc27f8fcdf4e9b3bce786c24bfa28dacee65ee8c913fc18eee5df61b8a43224f3a9c4e1b5de7b600d9e0";
