@@ -11,6 +11,8 @@
 - Added hash-mode: ENCsecurity Datavault (MD5/keychain)
 - Added hash-mode: DANE RFC7929/RFC8162 SHA2-256
 - Added hash-mode: Dahua NVR/DVR/HVR (md5($salt1.strtoupper(md5($salt2.$pass))))
+- Added hash-mode: HMAC-RIPEMD160 (key = $pass)
+- Added hash-mode: HMAC-RIPEMD160 (key = $salt)
 
 ##
 ## Bugs

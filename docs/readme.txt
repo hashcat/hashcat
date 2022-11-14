@@ -139,6 +139,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - HMAC-Streebog-256 (key = $salt), big-endian
 - HMAC-Streebog-512 (key = $pass), big-endian
 - HMAC-Streebog-512 (key = $salt), big-endian
+- HMAC-RIPEMD160 (key = $pass)
+- HMAC-RIPEMD160 (key = $salt)
 - CRC32
 - CRC32C
 - CRC64Jones
