@@ -12,7 +12,7 @@
 #define IS_CUDA
 #elif defined __HIPCC__
 #define IS_HIP
-#elif defined __METAL_MACOS__
+#elif defined __METAL__
 #define IS_METAL
 #else
 #define IS_OPENCL
