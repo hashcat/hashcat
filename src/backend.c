@@ -14703,7 +14703,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (kernel_accel_min > kernel_accel_max)
     {
       event_log_error (hashcat_ctx, "* Device #%u: Too many compute units to keep minimum kernel accel limit.", device_id + 1);
-      event_log_error (hashcat_ctx, "             Retry with lower --backend-kernel-threads value.");
+      event_log_error (hashcat_ctx, "             Retry with lower --kernel-threads value.");
 
       backend_kernel_accel_warnings++;
 
