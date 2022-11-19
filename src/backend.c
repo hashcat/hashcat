@@ -4503,13 +4503,27 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_mtlRuntimeGetVersionString (hashcat_ctx, backend_ctx->metal_runtimeVersionStr, &version_len) == -1) return -1;
 
-      // TODO: needs version check
+      if (atoi (backend_ctx->metal_runtimeVersionStr) < 300)
+      {
+        event_log_warning (hashcat_ctx, "Unsupported Apple Metal runtime version '%s' detected! Falling back to OpenCL...", backend_ctx->metal_runtimeVersionStr);
+        event_log_warning (hashcat_ctx, NULL);
+
+        rc_metal_init = -1;
+
+        backend_ctx->rc_metal_init = rc_metal_init;
+
+        backend_ctx->mtl = NULL;
+
+        mtl_close (hashcat_ctx);
+      }
     }
     else
     {
       rc_metal_init = -1;
 
       backend_ctx->rc_metal_init = rc_metal_init;
+
+      backend_ctx->mtl = NULL;
 
       mtl_close (hashcat_ctx);
     }
@@ -9265,8 +9279,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       // set some limits with Metal
 
-      device_param->kernel_threads_max = 128;
+      device_param->kernel_threads_max = 64;
+      device_param->kernel_threads_min = MIN (device_param->kernel_threads_min, device_param->kernel_threads_max);
+
       device_param->kernel_loops_max = 1024;  // autotune go over ...
+      device_param->kernel_loops_min = MIN (device_param->kernel_loops_min, device_param->kernel_loops_max);
     }
     #endif
 
@@ -14686,7 +14703,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (kernel_accel_min > kernel_accel_max)
     {
       event_log_error (hashcat_ctx, "* Device #%u: Too many compute units to keep minimum kernel accel limit.", device_id + 1);
-      event_log_error (hashcat_ctx, "             Retry with lower --backend-kernel-threads value.");
+      event_log_error (hashcat_ctx, "             Retry with lower --kernel-threads value.");
 
       backend_kernel_accel_warnings++;
 

@@ -1,5 +1,5 @@
 /**
- * Author......: Netherlands Forensic Institute
+ * Author......: See docs/credits.txt
  * License.....: MIT
  */
 
@@ -17,8 +17,8 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_PRIVATE_KEY;
-static const char *HASH_NAME      = "GPG (AES-128/AES-256 (SHA-1($pass)))";
-static const u64   KERN_TYPE      = 17010;
+static const char *HASH_NAME      = "GPG (AES-128/AES-256 (SHA-512($pass)))";
+static const u64   KERN_TYPE      = 17020;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
@@ -28,7 +28,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$gpg$*1*348*1024*8833fa3812b5500aa9eb7e46febfa31a0584b7e4a5b13c198f5c9b0814243895cce45ac3714e79692fb5a130a1c943b9130315ce303cb7e6831be68ce427892858f313fc29f533434dbe0ef26573f2071bbcc1499dc49bda90648221ef3823757e2fba6099a18c0c83386b21d8c9b522ec935ecd540210dbf0f21c859429fd4d35fa056415d8087f27b3e66b16081ea18c544d8b2ea414484f17097bc83b773d92743f76eb2ccb4df8ba5f5ff84a5474a5e8a8e5179a5b0908503c55e428de04b40628325739874e1b4aa004c4cbdf09b0b620990a8479f1c9b4187e33e63fe48a565bc1264bbf4062559631bef9e346a7217f1cabe101a38ac4be9fa94f6dafe6b0301e67792ed51bca04140cddd5cb6e80ac6e95e9a09378c9651588fe360954b622c258a3897f11246c944a588822cc6daf1cb81ccc95098c3bea8432f1ee0c663b193a7c7f1cdfeb91eee0195296bf4783025655cbebd7c70236*3*254*2*7*16*a47ef38987beab0a0b9bfe74b72822e8*65536*1f5c90d9820997db";
+static const char *ST_HASH        = "$gpg$*1*668*2048*57e1f19c69a86038e23d7e5af5d810f4f86d32e9aaaf04b54281cda2194dcca99ee1f23f4aa3a011d5d2dc9e47689c449f398d315f91a03f4765742d20a7046e986a9696f0e07380a73fdd61e7ab2caa463a049a5869e008e16bb30d22f93f9aa8b0fdd41d2b19e669d58ca462498905e79944bff578c24139a88ef44582aef93f94fe22406a3ae32dcc0f0602e2f4345db2bd9d775eaeb14a8d7aff963e1ca8c29bab2fc3d459941587f4242af6e100e2e668a6c9247c19969ba294f6f2ab60ef84d42aab2e3512153a283d321442840189733dc6024dab0ea5d10d2e07fee914fc2e7177b310e8835bf8a5ffe1bde5ce0a74d3dd570c1b2652672873d3c520364acc0af35f5f7d0e0e95df8c2db3855936e0a4a24cc463bf277b0c5ea37d4ac1ddae6ef9da18852620de15ab648306f3d7acbb918e79f3ab7a3eaf4f59416560c4d31d8a0220c3301c95db4b8fe6b69348657aed52d5e15aefb17fedd15a50630a4edbad362ba9b79a048b4966a70643d8fa31fb397a531db85e8ad5bb169f5188449dbcc1bbaf42440d1794a34296c2407092c76e59544133959309ce42a05899162c55a865018085a4c57068294a5389cf6fbf1c93b5ab7732625fb6a465bd7ec51a128c2f9b0cf3fd0367f92667098b3a8af40f9f434a2a727b09bddbad1762127cc785eda419ac3ff24c8724e04ea2d330b0b441f34623955efd383f20578cdc527f3076ee068b727cd399ce17ff9d5233409b2d16d55c5c80cb8ca01019cd068c6e803217d6f2b7124e354b89de0eb0dfd241384026a1cdca529b6fed37aa0ececb0d6c26de06407d75a6e3108b0d25621db418206291a67216306e1a18c992736e45ef7f87373c0a3f28ddc1b4543604cd154f6b79265a6d8c13550078c3bcf55063263e5bc5cae6b925c1dbb67f972e234006867849e653*3*254*10*9*16*d1547688c9cc944482d16dff17df0858*20971520*1fef4e57e302d34e";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -57,18 +57,22 @@ typedef struct gpg
 
 typedef struct gpg_tmp
 {
-  u32 salted_pw_block[80];
+  u32 salted_pw_block[96];
 
   u32 salted_pw_block_len;
 
-  u32 h[10];
+  u64 h[8];
 
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
   u32 w3[4];
+  u32 w4[4];
+  u32 w5[4];
+  u32 w6[4];
+  u32 w7[4];
 
-  u32 len;
+  int len;
 
 } gpg_tmp_t;
 
@@ -192,9 +196,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[6]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
-  // "2" - String2Key parameters
-  token.len_min[7]  = 1;
-  token.len_max[7]  = 1;
+  // "10" - String2Key parameters
+  token.len_min[7]  = 2;
+  token.len_max[7]  = 2;
   token.sep[7]      = '*';
   token.attr[7]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
@@ -259,7 +263,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (hc_strtoul ((const char *) token.buf[5], NULL, 10) !=   3) return (PARSER_HASH_VALUE);
   if (hc_strtoul ((const char *) token.buf[6], NULL, 10) != 254) return (PARSER_HASH_VALUE);
-  if (hc_strtoul ((const char *) token.buf[7], NULL, 10) !=   2) return (PARSER_HASH_VALUE);
+  if (hc_strtoul ((const char *) token.buf[7], NULL, 10) !=  10) return (PARSER_HASH_VALUE);
 
   // Cipher algo
 
@@ -286,8 +290,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_iter = salt_iter;
 
   // Salt Value
-
-  salt->salt_repeats = gpg->cipher_algo == 7 ? 0 : 1; // "minus one"
 
   salt->salt_len = hex_decode ((const u8 *) token.buf[12], token.len[12], (u8 *) salt->salt_buf);
 
@@ -318,7 +320,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     encrypted_data,
     3, /* version (major?) */
     254, /* version (minor?) */
-    2, /* key cipher (sha-1) */
+    10, /* key hash (sha-512) */
     gpg->cipher_algo,
     16, /*iv_size*/
     byte_swap_32 (gpg->iv[0]),
