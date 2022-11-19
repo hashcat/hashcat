@@ -13,6 +13,8 @@
 - Added hash-mode: Dahua NVR/DVR/HVR (md5($salt1.strtoupper(md5($salt2.$pass))))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-1($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
+- Added hash-mode: HMAC-RIPEMD160 (key = $pass)
+- Added hash-mode: HMAC-RIPEMD160 (key = $salt)
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
 
 ##
