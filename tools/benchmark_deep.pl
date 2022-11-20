@@ -13,14 +13,14 @@ my $amd_cache        = "~/.AMD";
 my $hashcat_path     = ".";
 my $kernels_cache    = "$hashcat_path/kernels";
 my $hashcat_bin      = "$hashcat_path/hashcat";
-my $device           = 1;
+my $device           = 3;
 my $workload_profile = 3;
 my $runtime          = 24;
 my $sleep_sec        = 12;
 my $default_mask     = "?b?b?b?b?b?b?b";
 my $result           = "result.txt";
 my $old_hashcat      = 0; # requires to have ran with new hashcat before to create the hashfiles
-my $repeats          = 1;
+my $repeats          = 0;
 my $cpu_benchmark    = 0;
 
 print "\nHardware preparations... You may need to adjust some settings and probably can ignore some of the error\n\n";
@@ -102,7 +102,7 @@ my @hash_types =
   1420,
   1450,
   1460,
-  1500,
+  1600,
   1600,
   1700,
   1720,
@@ -408,7 +408,7 @@ for my $hash_type (@hash_types)
 
   my @command =
   (
-    $hashcat_bin,
+    $hashcat_bin, "-D2",
     "--quiet",
     "tmp.hash.$hash_type",
     "--keep-guessing",
