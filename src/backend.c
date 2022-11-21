@@ -351,6 +351,7 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
   }
   else
   {
+    /* no longer required with macOS 13.0
     #if defined (__APPLE__)
 
     if (is_apple_silicon () == true)
@@ -370,6 +371,9 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
 
     #else
 
+    #endif
+    */
+
     // Do not use CPU by default, this often reduces GPU performance because
     // the CPU is too busy to handle GPU synchronization
     // Do not use FPGA/other by default, this is a rare case and we expect the users to enable this manually.
@@ -377,8 +381,6 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
 
     //opencl_device_types_filter = CL_DEVICE_TYPE_ALL & ~CL_DEVICE_TYPE_CPU;
     opencl_device_types_filter = CL_DEVICE_TYPE_GPU;
-
-    #endif
   }
 
   *out = opencl_device_types_filter;
@@ -6127,6 +6129,28 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->device_processors == 1) device_param->skipped = true;
 
+      // Since we can't match OpenCL with Metal devices (missing PCI ID etc.) and at the same time we have better OpenCL support than Metal support,
+      // we disable all Metal devices by default. The user can reactivate them with -d.
+
+      if (device_param->skipped == false)
+      {
+        if (backend_ctx->backend_devices_filter == -1ULL)
+        {
+          device_param->skipped = true;
+        }
+        else
+        {
+          if (backend_ctx->backend_devices_filter & (1ULL << device_id))
+          {
+            // ok
+          }
+          else
+          {
+            device_param->skipped = true;
+          }
+        }
+      }
+
       /**
        * activate device
        */
@@ -6858,6 +6882,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->skipped = true;
         }
 
+        /* no longer valid after macOS 13.0
         #if defined (__APPLE__)
         if (opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
@@ -6878,6 +6903,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
         }
         #endif // __APPLE__
+        */
 
         // driver_version
 
@@ -7288,6 +7314,79 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
                   }
                 }
               }
+
+              #if defined (__APPLE__)
+
+              char *start = index (device_param->opencl_driver_version, '(');
+              char *stop  = index (device_param->opencl_driver_version, ')');
+
+              if ((start != NULL) && (stop != NULL))
+              {
+                start++;
+                stop--;
+
+                const int driver_version_len = 1 + (const int) (stop - start);
+
+                if (driver_version_len > 16)
+                {
+                  struct tm tm;
+
+                  memset (&tm, 0, sizeof (tm));
+
+                  char *ptr = strptime (start, "%b %d %Y %H:%M:%S", &tm);
+
+                  if (ptr != NULL)
+                  {
+                    const time_t t = mktime (&tm);
+
+                    if (t >= 1666902815)
+                    {
+                      // ok: 1.2 (Oct 27 2022 21:33:35)
+                    }
+                    else
+                    {
+                      event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Apple OpenCL driver '%s' detected!", device_id + 1, device_param->opencl_driver_version);
+
+                      event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported driver.");
+                      event_log_warning (hashcat_ctx, "See hashcat.net for officially supported Apple OpenCL drivers.");
+                      event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
+                      event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+                      event_log_warning (hashcat_ctx, NULL);
+
+                      device_param->skipped = true;
+                      continue;
+                    }
+                  }
+                  else
+                  {
+                    event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Apple OpenCL driver '%s' detected!", device_id + 1, device_param->opencl_driver_version);
+
+                    event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported driver.");
+                    event_log_warning (hashcat_ctx, "See hashcat.net for officially supported Apple OpenCL drivers.");
+                    event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
+                    event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+                    event_log_warning (hashcat_ctx, NULL);
+
+                    device_param->skipped = true;
+                    continue;
+                  }
+
+                }
+              }
+              else
+              {
+                event_log_error (hashcat_ctx, "* Device #%u: Outdated or broken Apple OpenCL driver '%s' detected!", device_id + 1, device_param->opencl_driver_version);
+
+                event_log_warning (hashcat_ctx, "You are STRONGLY encouraged to use the officially supported driver.");
+                event_log_warning (hashcat_ctx, "See hashcat.net for officially supported Apple OpenCL drivers.");
+                event_log_warning (hashcat_ctx, "See also: https://hashcat.net/faq/wrongdriver");
+                event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+                event_log_warning (hashcat_ctx, NULL);
+
+                device_param->skipped = true;
+                continue;
+              }
+              #endif // __APPLE__
             }
           }
 
@@ -14703,7 +14802,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (kernel_accel_min > kernel_accel_max)
     {
       event_log_error (hashcat_ctx, "* Device #%u: Too many compute units to keep minimum kernel accel limit.", device_id + 1);
-      event_log_error (hashcat_ctx, "             Retry with lower --backend-kernel-threads value.");
+      event_log_error (hashcat_ctx, "             Retry with lower --kernel-threads value.");
 
       backend_kernel_accel_warnings++;
 
