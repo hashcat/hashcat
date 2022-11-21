@@ -243,7 +243,10 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
     if (parser_status != PARSER_OK)
     {
-      last_error = parser_status;
+      if (parser_status != PARSER_LUKS_KEY_DISABLED)
+      {
+        last_error = parser_status;
+      }
       continue;
     }
 
@@ -252,7 +255,14 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   if (hashes_cnt == 0)
   {
-    return last_error;
+    if (last_error != 0)
+    {
+      return last_error;
+    } 
+    else
+    {
+      return PARSER_LUKS_KEY_DISABLED;
+    }
   }
   else
   {
