@@ -15,8 +15,8 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
 - Added hash-mode: HMAC-RIPEMD160 (key = $pass)
 - Added hash-mode: HMAC-RIPEMD160 (key = $salt)
-- Added hash-mode: md5(md5($salt).md5(md5($pass)))
 - Added hash-mode: bcrypt(sha256($pass))
+- Added hash-mode: md5(md5($salt).md5(md5($pass)))
 
 ##
 ## Bugs

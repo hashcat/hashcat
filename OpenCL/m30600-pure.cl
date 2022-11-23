@@ -444,7 +444,7 @@ DECLSPEC u32 u16_bin_to_u32_hex (const u32 v)
        | ((v1 < 10) ? '0' + v1 : 'a' - 10 + v1) << 0;
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25850_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m30600_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -695,7 +695,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25850_init (KERN_ATTR_TMPS 
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25850_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m30600_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -898,7 +898,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25850_loop (KERN_ATTR_TMPS 
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m25850_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m30600_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base

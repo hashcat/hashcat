@@ -18,7 +18,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_6;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_FORUM_SOFTWARE;
 static const char *HASH_NAME      = "bcrypt(sha256($pass)) / bcryptsha256";
-static const u64   KERN_TYPE      = 25850;
+static const u64   KERN_TYPE      = 30600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
