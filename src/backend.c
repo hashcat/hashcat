@@ -6990,7 +6990,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             // so we will set kernel_preferred_wgs_multiple intentionally to 0 because otherwise it it set to 8 by default.
             // we then assign the value kernel_preferred_wgs_multiple a small kernel like bzero after test if this was set to 0.
 
-            device_param->kernel_preferred_wgs_multiple = 0;
+            // Update macOS 13.x: this strategy doesn't work for algorithms that require high memory like scrypt.
+            // Let's use a fixed thread count instead
+            //device_param->kernel_preferred_wgs_multiple = 0;
+
+            device_param->kernel_preferred_wgs_multiple = 32;
           }
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
@@ -7317,8 +7321,16 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               #if defined (__APPLE__)
 
-              char *start = index (device_param->opencl_driver_version, '(');
-              char *stop  = index (device_param->opencl_driver_version, ')');
+              char *start130 = index (device_param->opencl_driver_version, '(');
+              char *stop130  = index (device_param->opencl_driver_version, ')');
+
+              char *start131 = index (opencl_platform_version, '(');
+              char *stop131  = index (opencl_platform_version, ')');
+
+              // either none or one of these have a date string
+
+              char *start = (start130 == NULL) ? start131 : start130;
+              char *stop  = (stop130  == NULL) ? stop131  : stop130;
 
               if ((start != NULL) && (stop != NULL))
               {
@@ -7339,9 +7351,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
                   {
                     const time_t t = mktime (&tm);
 
-                    if (t >= 1666902815)
+                    if (t >= 1662940800)
                     {
-                      // ok: 1.2 (Oct 27 2022 21:33:35)
+                      // ok: 1.2 (Oct 26 2022 11:01:47) // 13.1+
+                      // ok: 1.2 (Oct 27 2022 21:33:35) // 13.0 AMD
+                      // ok: 1.2 (Sep 30 2022 01:38:14) // 13.0 M1
+                      // Since versions vary a lot on destination hardware, its probably better
+                      // to use xcode 14 release date as reference: September 12, 2022 GMT
                     }
                     else
                     {
@@ -7827,6 +7843,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
         {
           if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+
+          // work around, for some reason apple opencl can't have buffers larger 2^31
+          // typically runs into trap 6
+          // maybe 32/64 bit problem affecting size_t?
+          // this seems to affect global memory as well no just single allocations
+
+          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->is_metal == false))
+          {
+            const size_t undocumented_single_allocation_apple = 0x7fffffff;
+
+            if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= undocumented_single_allocation_apple) break;
+          }
 
           cl_int CL_err;
 
@@ -9378,10 +9406,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       // set some limits with Metal
 
-      device_param->kernel_threads_max = 64;
+      device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
       device_param->kernel_threads_min = MIN (device_param->kernel_threads_min, device_param->kernel_threads_max);
 
-      device_param->kernel_loops_max = 1024;  // autotune go over ...
+      device_param->kernel_loops_max = MIN (device_param->kernel_loops_max, 1024);  // autotune go over ...
       device_param->kernel_loops_min = MIN (device_param->kernel_loops_min, device_param->kernel_loops_max);
     }
     #endif
@@ -14891,7 +14919,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // typically runs into trap 6
       // maybe 32/64 bit problem affecting size_t?
 
-      if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+      if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->is_metal == false))
       {
         const size_t undocumented_single_allocation_apple = 0x7fffffff;
 
