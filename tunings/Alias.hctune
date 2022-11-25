@@ -258,3 +258,6 @@ gfx908:sramecc+:xnack-                          ALIAS_AMD_MI100
 Device_73bf                                     ALIAS_AMD_RX6900XT
 gfx1030                                         ALIAS_AMD_RX6900XT
 Radeon_RX_6900_XT                               ALIAS_AMD_RX6900XT
+
+Radeon_Pro_W5700X                               ALIAS_AMD_W5700X
+Radeon_Pro_W5700X_Compute_Engine                ALIAS_AMD_W5700X
