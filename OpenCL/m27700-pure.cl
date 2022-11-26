@@ -297,15 +297,15 @@ KERNEL_FQ void m27700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   sha256_hmac_init_swap (&sha256_hmac_ctx, w, w_len);
 
-  u32 s0[4] = { 0 };
-  u32 s1[4] = { 0 };
-  u32 s2[4] = { 0 };
-  u32 s3[4] = { 0 };
+  u32 x0[4] = { 0 };
+  u32 x1[4] = { 0 };
+  u32 x2[4] = { 0 };
+  u32 x3[4] = { 0 };
 
-  s0[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
-  s0[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  x0[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  x0[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 
-  sha256_hmac_update_64 (&sha256_hmac_ctx, s0, s1, s2, s3, 8);
+  sha256_hmac_update_64 (&sha256_hmac_ctx, x0, x1, x2, x3, 8);
 
   for (u32 i = 0, j = 1, k = 0; i < SCRYPT_CNT; i += 8, j += 1, k += 2)
   {

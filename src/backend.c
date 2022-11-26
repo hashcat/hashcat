@@ -5832,17 +5832,21 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       int mtl_major = 0;
       int mtl_minor = 0;
 
+      /* unused and deprecated
       if (hc_mtlDeviceGetAttribute (hashcat_ctx, &mtl_major, MTL_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, metal_device) == -1)
       {
         device_param->skipped = true;
         continue;
       }
+      */
 
+      /* unused and deprecated
       if (hc_mtlDeviceGetAttribute (hashcat_ctx, &mtl_minor, MTL_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, metal_device) == -1)
       {
         device_param->skipped = true;
         continue;
       }
+      */
 
       device_param->mtl_major = mtl_major;
       device_param->mtl_minor = mtl_minor;

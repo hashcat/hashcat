@@ -574,7 +574,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
   // input:
 
   infstream.avail_in  = AES_LEN;
-  infstream.next_in   = (u8 *) buf_full;
+  infstream.next_in   = (PRIVATE_AS u8 *) buf_full;
 
   // output:
 
@@ -599,7 +599,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
     return;
   }
 
-  for (int i = 1; i < infstream.total_out; i++)
+  for (mz_ulong i = 1; i < infstream.total_out; i++)
   {
     if (tmp[i] == '\t') continue;
     if (tmp[i] == '\r') continue;
@@ -638,7 +638,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
     int qcnt2 = 0;
     int ccnt2 = 0;
 
-    for (int i = 1; i < infstream.total_out; i++)
+    for (mz_ulong i = 1; i < infstream.total_out; i++)
     {
       if (tmp[i] == '"') qcnt2++;
       if (tmp[i] == ':') ccnt2++;
@@ -646,7 +646,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
     if ((qcnt1 >= 1) && (ccnt1 >= 1) && (qcnt2 >= 4) && (ccnt2 >= 3))
     {
-      const float entropy = hc_get_entropy ((const u32 *) tmp, infstream.total_out / 4);
+      const float entropy = hc_get_entropy ((PRIVATE_AS const u32 *) tmp, infstream.total_out / 4);
 
       if ((entropy >= MIN_ENTROPY) && (entropy <= MAX_ENTROPY))
       {

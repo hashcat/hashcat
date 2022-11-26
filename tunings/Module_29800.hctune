@@ -29,3 +29,4 @@ GeForce_RTX_2080_Ti                             *       29800   1       40      
 GeForce_RTX_3090                                *       29800   1       82      A
 
 ALIAS_AMD_RX6900XT                              *       29800   1       125     A
+ALIAS_AMD_W5700X                                *       29800   1       4       A

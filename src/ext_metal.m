@@ -410,6 +410,7 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
       *pi = 32;
       break;
 
+    /* unused and deprecated
     case MTL_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR:
       *pi = 0;
 
@@ -426,7 +427,9 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
       }
 
       break;
+    */
 
+    /* unused and deprecated
     case MTL_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR:
       *pi = 0;
 
@@ -443,6 +446,7 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
       }
 
       break;
+    */
 
     case MTL_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK:
       // M1 max is 1024

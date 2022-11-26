@@ -232,7 +232,7 @@ CFLAGS_UNRAR            += -Wno-unused-but-set-variable
 #Not supported on macOS 12.3
 #CFLAGS_UNRAR            += -Wno-format-overflow
 #Added hashcat 7.0.0
-CFLAGS_UNRAR            += -Wno-class-memaccess
+#CFLAGS_UNRAR            += -Wno-class-memaccess
 CFLAGS_UNRAR            += -Wno-misleading-indentation
 endif
 endif
