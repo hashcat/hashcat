@@ -103,6 +103,7 @@ static const char *HASH_NAME      = "PKZIP (Uncompressed)";
 static const u64   KERN_TYPE      = 17210;
 static const u32   OPTI_TYPE      = 0;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_SUGGEST_KG
                                   | 0;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
