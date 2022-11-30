@@ -215,7 +215,7 @@ KERNEL_FQ void m30500_m04 (KERN_ATTR_RULES ())
           | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
           | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-		  
+
     w2[0] = 0x80;
     w2[1] = 0;
     w2[2] = 0;
@@ -224,7 +224,7 @@ KERNEL_FQ void m30500_m04 (KERN_ATTR_RULES ())
     w3[1] = 0;
     w3[2] = 32 * 8;
     w3[3] = 0;
-	
+
     a = MD5M_A;
     b = MD5M_B;
     c = MD5M_C;
@@ -699,7 +699,7 @@ KERNEL_FQ void m30500_s04 (KERN_ATTR_RULES ())
           | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
     w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
           | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
-		  
+
     w2[0] = 0x80;
     w2[1] = 0;
     w2[2] = 0;
@@ -708,7 +708,7 @@ KERNEL_FQ void m30500_s04 (KERN_ATTR_RULES ())
     w3[1] = 0;
     w3[2] = 32 * 8;
     w3[3] = 0;
-	
+
     a = MD5M_A;
     b = MD5M_B;
     c = MD5M_C;

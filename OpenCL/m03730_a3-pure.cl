@@ -49,7 +49,7 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
   /**
    * bin2asc uppercase array
    */
-   
+
   LOCAL_VK u32 u_bin2asc[256];
 
   for (u32 j = lid; j < 256; j += lsz)
@@ -86,7 +86,7 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
   {
     s[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf[idx];
   }
-  
+
   md5_ctx_vector_t ctx0;
 
   md5_init_vector (&ctx0);
@@ -180,7 +180,7 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
   /*
   * bin2asc uppercase table
   */
-  
+
   LOCAL_VK u32 u_bin2asc[256];
 
   for (u32 j = lid; j < 256; j += lsz)
@@ -191,7 +191,7 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
     u_bin2asc[j] = ((i0 < 10) ? '0' + i0 : 'A' - 10 + i0) << 8
                  | ((i1 < 10) ? '0' + i1 : 'A' - 10 + i1) << 0;
   }
-  
+
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
@@ -229,7 +229,7 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
   {
     s[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf[idx];
   }
-  
+
   md5_ctx_vector_t ctx0;
 
   md5_init_vector (&ctx0);

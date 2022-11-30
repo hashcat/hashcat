@@ -258,7 +258,7 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     if (last_error != 0)
     {
       return last_error;
-    } 
+    }
     else
     {
       return PARSER_LUKS_KEY_DISABLED;

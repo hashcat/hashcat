@@ -13,8 +13,8 @@
 # https://github.com/gurnec/btcrecover/blob/master/btcrecover/btcrpass.py
 #
 
-# Updated script in order to work with Bisq wallet v1.9.5 (2022) 
-# Author: 
+# Updated script in order to work with Bisq wallet v1.9.5 (2022)
+# Author:
 #   https://github.com/Banaanhangwagen
 # License: MIT
 

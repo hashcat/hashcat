@@ -66,9 +66,9 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
-   
+
   md5_double_salt_t *md5_double_salt = (md5_double_salt_t *) esalt_buf;
-  
+
   hc_token_t token;
 
   token.token_cnt  = 3;
@@ -88,7 +88,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_min[2] = SALT_MIN;
   token.len_max[2] = SALT_MAX;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
-  
+
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
     token.len_min[1] *= 2;
@@ -153,7 +153,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32 *digest = (const u32 *) digest_buf;
 
   const md5_double_salt_t *md5_double_salt = (const md5_double_salt_t *) esalt_buf;
-  
+
   // we can not change anything in the original buffer, otherwise destroying sorting
   // therefore create some local buffer
 
