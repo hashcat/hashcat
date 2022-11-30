@@ -49,7 +49,7 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
   /**
    * bin2asc uppercase array
    */
-   
+
   LOCAL_VK u32 u_bin2asc[256];
 
   for (u32 j = lid; j < 256; j += lsz)
@@ -83,9 +83,9 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
   md5_init (&ctx0);
 
   md5_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
-  
+
   md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
-  
+
   /**
    * loop
    */
@@ -135,10 +135,10 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
 
     md5_ctx_t ctx;
 
-	md5_init (&ctx);
+    md5_init (&ctx);
 
     md5_update (&ctx, s, salt_len);
-	
+
     md5_update_64 (&ctx, w0, w1, w2, w3, 32);
 
     md5_final (&ctx);
@@ -165,7 +165,7 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
   /**
    * bin2asc uppercase array
    */
-   
+
   LOCAL_VK u32 u_bin2asc[256];
 
   for (u32 j = lid; j < 256; j += lsz)
@@ -201,7 +201,7 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
   {
     s[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf[idx];
   }
-    
+
   /**
    * base
    */
@@ -262,8 +262,8 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
     w3[3] = 0;
 
     md5_ctx_t ctx;
-	
-	md5_init (&ctx);
+
+    md5_init (&ctx);
 
     md5_update (&ctx, s, salt_len);
 
