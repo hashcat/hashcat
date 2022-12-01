@@ -67,17 +67,15 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   // we only use these 2 checks to avoid "tainted string" warnings
 
-  if (rd->argc < 1)
+  // raise upper bound to 5000 when --force'd
+  if(rd ->argc > 5000)
   {
-    event_log_error (hashcat_ctx, "Unusually low number of arguments (argc) within restore file %s", eff_restore_file);
+    event_log_error (hashcat_ctx, "Unusually high number of arguments (argc) within restore file %s", eff_restore_file);
 
     hc_fclose (&fp);
 
     return -1;
-  }
-
-  if (rd->argc > 250) // some upper bound check is always good (with some dirs/dicts it could be a large string)
-  {
+  } else if (hashcat_ctx->user_options->force == false && rd->argc > 250) // some upper bound check is always good (with some dirs/dicts it could be a large string)
     event_log_error (hashcat_ctx, "Unusually high number of arguments (argc) within restore file %s", eff_restore_file);
 
     hc_fclose (&fp);
