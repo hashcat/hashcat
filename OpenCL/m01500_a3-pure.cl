@@ -1913,6 +1913,12 @@ KERNEL_FQ void m01500_tm (KERN_ATTR_TM)
   }
 }
 
+#ifndef DESCRYPT_SALT
+
+KERNEL_FQ void m01500_sxx (KERN_ATTR_BITSLICE ())
+{
+}
+
 KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
 {
   /**
@@ -2285,6 +2291,8 @@ KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
     }
   }
 }
+
+#else
 
 KERNEL_FQ void m01500_sxx (KERN_ATTR_BITSLICE ())
 {
@@ -2679,3 +2687,9 @@ KERNEL_FQ void m01500_sxx (KERN_ATTR_BITSLICE ())
     #endif
   }
 }
+
+KERNEL_FQ void m01500_mxx (KERN_ATTR_BITSLICE ())
+{
+}
+
+#endif

@@ -19,6 +19,12 @@
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
 
 ##
+## Performance
+##
+
+- DEScrypt Kernel (1500): Improved performance from 950MH/s to 2200MH/s (RX6900XT) on HIP backend by workaround invalid compile time optimizer
+
+##
 ## Bugs
 ##
 

@@ -137,46 +137,9 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 {
   char *jit_build_options = NULL;
 
-  // Extra treatment for Apple systems
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  if ((user_options->attack_mode == ATTACK_MODE_BF) && (hashes->salts_cnt == 1) && (user_options->slow_candidates == false))
   {
-    if ((user_options->attack_mode == ATTACK_MODE_BF) && (hashes->salts_cnt == 1) && (user_options->slow_candidates == false))
-    {
-      hc_asprintf (&jit_build_options, "-D DESCRYPT_SALT=%u", hashes->salts_buf[0].salt_buf[0] & 0xfff);
-    }
-
-    return jit_build_options;
-  }
-
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
-  {
-    if ((user_options->attack_mode == ATTACK_MODE_BF) && (hashes->salts_cnt == 1) && (user_options->slow_candidates == false))
-    {
-      hc_asprintf (&jit_build_options, "-D DESCRYPT_SALT=%u -D _unroll", hashes->salts_buf[0].salt_buf[0] & 0xfff);
-    }
-  }
-  // ROCM
-  else if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
-  {
-    if ((user_options->attack_mode == ATTACK_MODE_BF) && (hashes->salts_cnt == 1) && (user_options->slow_candidates == false))
-    {
-      hc_asprintf (&jit_build_options, "-D DESCRYPT_SALT=%u -D _unroll", hashes->salts_buf[0].salt_buf[0] & 0xfff);
-    }
-  }
-  // ROCM
-  else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
-  {
-    if ((user_options->attack_mode == ATTACK_MODE_BF) && (hashes->salts_cnt == 1) && (user_options->slow_candidates == false))
-    {
-      hc_asprintf (&jit_build_options, "-D DESCRYPT_SALT=%u", hashes->salts_buf[0].salt_buf[0] & 0xfff);
-    }
-  }
-  else
-  {
-    if ((user_options->attack_mode == ATTACK_MODE_BF) && (hashes->salts_cnt == 1) && (user_options->slow_candidates == false))
-    {
-      hc_asprintf (&jit_build_options, "-D DESCRYPT_SALT=%u", hashes->salts_buf[0].salt_buf[0] & 0xfff);
-    }
+    hc_asprintf (&jit_build_options, "-D DESCRYPT_SALT=%u -D _unroll", hashes->salts_buf[0].salt_buf[0] & 0xfff);
   }
 
   return jit_build_options;
