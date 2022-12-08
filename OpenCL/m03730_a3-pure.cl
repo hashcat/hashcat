@@ -87,11 +87,20 @@ KERNEL_FQ void m03730_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
     s[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf[idx];
   }
 
+  const u32 salt_len2 = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len;
+
+  u32 s2[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < salt_len2; i += 4, idx += 1)
+  {
+    s2[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf[idx];
+  }
+
   md5_ctx_vector_t ctx0;
 
   md5_init_vector (&ctx0);
 
-  md5_update_vector (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
+  md5_update_vector (&ctx0, s2, salt_len2);
 
   /**
    * loop
@@ -230,11 +239,20 @@ KERNEL_FQ void m03730_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
     s[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_buf[idx];
   }
 
+  const u32 salt_len2 = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len;
+
+  u32 s2[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < salt_len2; i += 4, idx += 1)
+  {
+    s2[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf[idx];
+  }
+
   md5_ctx_vector_t ctx0;
 
   md5_init_vector (&ctx0);
 
-  md5_update_vector (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len);
+  md5_update_vector (&ctx0, s2, salt_len2);
 
   /**
    * loop
