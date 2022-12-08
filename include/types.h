@@ -1640,8 +1640,8 @@ typedef struct hc_device_param
 
   #if defined (__APPLE__)
 
-  int               mtl_major;
-  int               mtl_minor;
+  //int               mtl_major;
+  //int               mtl_minor;
 
   int               device_physical_location;
   int               device_location_number;

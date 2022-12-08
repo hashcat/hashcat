@@ -4507,20 +4507,40 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       backend_ctx->metal_runtimeVersion = atoi (backend_ctx->metal_runtimeVersionStr);
 
-      if (user_options->force == false)
+      // disable metal < 200
+
+      if (backend_ctx->metal_runtimeVersion < 200)
       {
-        if (backend_ctx->metal_runtimeVersion < 300)
+        event_log_warning (hashcat_ctx, "Unsupported Apple Metal runtime version '%s' detected! Falling back to OpenCL...", backend_ctx->metal_runtimeVersionStr);
+        event_log_warning (hashcat_ctx, NULL);
+
+        rc_metal_init = -1;
+
+        backend_ctx->rc_metal_init = rc_metal_init;
+
+        backend_ctx->mtl = NULL;
+
+        mtl_close (hashcat_ctx);
+      }
+      else
+      {
+        if (user_options->force == false)
         {
-          event_log_warning (hashcat_ctx, "Unsupported Apple Metal runtime version '%s' detected! Falling back to OpenCL...", backend_ctx->metal_runtimeVersionStr);
-          event_log_warning (hashcat_ctx, NULL);
+          // disable metal < 300
 
-          rc_metal_init = -1;
+          if (backend_ctx->metal_runtimeVersion < 300)
+          {
+            event_log_warning (hashcat_ctx, "Unsupported Apple Metal runtime version '%s' detected! Falling back to OpenCL...", backend_ctx->metal_runtimeVersionStr);
+            event_log_warning (hashcat_ctx, NULL);
 
-          backend_ctx->rc_metal_init = rc_metal_init;
+            rc_metal_init = -1;
 
-          backend_ctx->mtl = NULL;
+            backend_ctx->rc_metal_init = rc_metal_init;
 
-          mtl_close (hashcat_ctx);
+            backend_ctx->mtl = NULL;
+
+            mtl_close (hashcat_ctx);
+          }
         }
       }
     }
@@ -5832,29 +5852,28 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       device_param->opencl_device_vendor     = strdup ("Apple");
       device_param->opencl_device_c_version  = "";
 
+      /* unused and deprecated
+
       // sm_minor, sm_major
 
       int mtl_major = 0;
       int mtl_minor = 0;
 
-      /* unused and deprecated
       if (hc_mtlDeviceGetAttribute (hashcat_ctx, &mtl_major, MTL_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR, metal_device) == -1)
       {
         device_param->skipped = true;
         continue;
       }
-      */
 
-      /* unused and deprecated
       if (hc_mtlDeviceGetAttribute (hashcat_ctx, &mtl_minor, MTL_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR, metal_device) == -1)
       {
         device_param->skipped = true;
         continue;
       }
-      */
 
       device_param->mtl_major = mtl_major;
       device_param->mtl_minor = mtl_minor;
+      */
 
       // device_name
 
