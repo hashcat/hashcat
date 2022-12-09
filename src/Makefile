@@ -229,6 +229,7 @@ CFLAGS_UNRAR            += -Wno-implicit-fallthrough
 CFLAGS_UNRAR            += -Wno-extra
 CFLAGS_UNRAR            += -Wno-unknown-pragmas
 CFLAGS_UNRAR            += -Wno-unused-but-set-variable
+CFLAGS_UNRAR            += -Wno-deprecated-declarations
 #Not supported on macOS 12.3
 #CFLAGS_UNRAR            += -Wno-format-overflow
 #Added hashcat 7.0.0
