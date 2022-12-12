@@ -99,6 +99,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
+  // we can swap the version for sha1 to not need to do this in the kernel
+
+  for (int i = 0; i < 64; i++)
+  {
+    salt->salt_buf_pc[i] = byte_swap_32 (salt->salt_buf[i]);
+  }
+
+  salt->salt_len_pc = salt->salt_len;
+
   return (PARSER_OK);
 }
 
