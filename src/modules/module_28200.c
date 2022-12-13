@@ -369,6 +369,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
+  for (int i = 0; i < 8; i++) salt->salt_buf[i] = byte_swap_32 (salt->salt_buf[i]);
+
   salt->salt_len = tmp_len;
 
   // iv
@@ -428,9 +430,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
+  u32 tmp_salt[8] = { 0 };
+
+  for (int i = 0; i < 8; i++) tmp_salt[i] = byte_swap_32 (salt->salt_buf[i]);
+
   char base64_salt[64];
 
-  int base64_salt_len = base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) base64_salt);
+  int base64_salt_len = base64_encode (int_to_base64, (const u8 *) tmp_salt, salt->salt_len, (u8 *) base64_salt);
 
   base64_salt[base64_salt_len] = 0;
 
