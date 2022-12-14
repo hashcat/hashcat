@@ -33,14 +33,18 @@ KERNEL_FQ void m30700_mxx (KERN_ATTR_RULES ())
 
   COPY_PW (pws[gid]);
 
-  const u32 IV_A = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
-  const u32 IV_B = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
-  const u32 IV_C = salt_bufs[SALT_POS_HOST].salt_buf_pc[2];
-  const u32 IV_D = salt_bufs[SALT_POS_HOST].salt_buf_pc[3];
-  const u32 IV_E = salt_bufs[SALT_POS_HOST].salt_buf_pc[4];
-  const u32 IV_F = salt_bufs[SALT_POS_HOST].salt_buf_pc[5];
-  const u32 IV_G = salt_bufs[SALT_POS_HOST].salt_buf_pc[6];
-  const u32 IV_H = salt_bufs[SALT_POS_HOST].salt_buf_pc[7];  
+  sha256_ctx_t ctx0;
+
+  sha256_init (&ctx0);
+
+  ctx0.h[0] = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
+  ctx0.h[1] = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
+  ctx0.h[2] = salt_bufs[SALT_POS_HOST].salt_buf_pc[2];
+  ctx0.h[3] = salt_bufs[SALT_POS_HOST].salt_buf_pc[3];
+  ctx0.h[4] = salt_bufs[SALT_POS_HOST].salt_buf_pc[4];
+  ctx0.h[5] = salt_bufs[SALT_POS_HOST].salt_buf_pc[5];
+  ctx0.h[6] = salt_bufs[SALT_POS_HOST].salt_buf_pc[6];
+  ctx0.h[7] = salt_bufs[SALT_POS_HOST].salt_buf_pc[7];
 
   /**
    * loop
@@ -52,18 +56,7 @@ KERNEL_FQ void m30700_mxx (KERN_ATTR_RULES ())
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    sha256_ctx_t ctx;
-
-    sha256_init (&ctx);
-
-    ctx.h[0] = IV_A;
-    ctx.h[1] = IV_B;
-    ctx.h[2] = IV_C;
-    ctx.h[3] = IV_D;
-    ctx.h[4] = IV_E;
-    ctx.h[5] = IV_F;
-    ctx.h[6] = IV_G;
-    ctx.h[7] = IV_H;
+    sha256_ctx_t ctx = ctx0;
 
     sha256_update_swap (&ctx, tmp.i, tmp.pw_len);
 
@@ -107,14 +100,18 @@ KERNEL_FQ void m30700_sxx (KERN_ATTR_RULES ())
 
   COPY_PW (pws[gid]);
 
-  const u32 IV_A = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
-  const u32 IV_B = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
-  const u32 IV_C = salt_bufs[SALT_POS_HOST].salt_buf_pc[2];
-  const u32 IV_D = salt_bufs[SALT_POS_HOST].salt_buf_pc[3];
-  const u32 IV_E = salt_bufs[SALT_POS_HOST].salt_buf_pc[4];
-  const u32 IV_F = salt_bufs[SALT_POS_HOST].salt_buf_pc[5];
-  const u32 IV_G = salt_bufs[SALT_POS_HOST].salt_buf_pc[6];
-  const u32 IV_H = salt_bufs[SALT_POS_HOST].salt_buf_pc[7];  
+  sha256_ctx_t ctx0;
+
+  sha256_init (&ctx0);
+
+  ctx0.h[0] = salt_bufs[SALT_POS_HOST].salt_buf_pc[0];
+  ctx0.h[1] = salt_bufs[SALT_POS_HOST].salt_buf_pc[1];
+  ctx0.h[2] = salt_bufs[SALT_POS_HOST].salt_buf_pc[2];
+  ctx0.h[3] = salt_bufs[SALT_POS_HOST].salt_buf_pc[3];
+  ctx0.h[4] = salt_bufs[SALT_POS_HOST].salt_buf_pc[4];
+  ctx0.h[5] = salt_bufs[SALT_POS_HOST].salt_buf_pc[5];
+  ctx0.h[6] = salt_bufs[SALT_POS_HOST].salt_buf_pc[6];
+  ctx0.h[7] = salt_bufs[SALT_POS_HOST].salt_buf_pc[7];
 
   /**
    * loop
@@ -126,18 +123,7 @@ KERNEL_FQ void m30700_sxx (KERN_ATTR_RULES ())
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    sha256_ctx_t ctx;
-
-    sha256_init (&ctx);
-
-    ctx.h[0] = IV_A;
-    ctx.h[1] = IV_B;
-    ctx.h[2] = IV_C;
-    ctx.h[3] = IV_D;
-    ctx.h[4] = IV_E;
-    ctx.h[5] = IV_F;
-    ctx.h[6] = IV_G;
-    ctx.h[7] = IV_H;
+    sha256_ctx_t ctx = ctx0;
 
     sha256_update_swap (&ctx, tmp.i, tmp.pw_len);
 
