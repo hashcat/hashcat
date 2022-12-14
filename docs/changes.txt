@@ -17,6 +17,7 @@
 - Added hash-mode: HMAC-RIPEMD160 (key = $salt)
 - Added hash-mode: bcrypt(sha256($pass))
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
+- Added hash-mode: Anope IRC Services (enc_sha256)
 
 ##
 ## Performance
