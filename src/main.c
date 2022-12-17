@@ -1209,6 +1209,7 @@ int main (int argc, char **argv)
 
     return -1;
   }
+
   // install and shared folder need to be set to recognize "make install" use
 
   const char *install_folder = NULL;
@@ -1251,6 +1252,16 @@ int main (int argc, char **argv)
     user_options_destroy (hashcat_ctx);
 
     hashcat_destroy (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return -1;
+  }
+
+  // upper bound of 5000, a reasonable limit for the amount of wordlists in a directory
+  if (argc >= 5000)
+  {
+    event_log_error (hashcat_ctx, "Unusually high number of arguments (argc >= 5000)");
 
     hcfree (hashcat_ctx);
 
