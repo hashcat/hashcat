@@ -1221,18 +1221,10 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, NULL);
 
     int metal_devices_cnt = backend_ctx->metal_devices_cnt;
-    int metal_runtimeVersion = backend_ctx->metal_runtimeVersion;
+
     char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
 
-    if (metal_runtimeVersionStr != NULL)
-    {
-      event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
-    }
-    else
-    {
-      event_log_info (hashcat_ctx, "Metal.Version.: %u", metal_runtimeVersion);
-    }
-
+    event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
     event_log_info (hashcat_ctx, NULL);
 
     for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
@@ -1242,8 +1234,8 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
       int   device_id                 = device_param->device_id;
-      int   device_mtl_maj            = device_param->mtl_major;
-      int   device_mtl_min            = device_param->mtl_minor;
+      //int   device_mtl_maj            = device_param->mtl_major;
+      //int   device_mtl_min            = device_param->mtl_minor;
       int   device_max_transfer_rate  = device_param->device_max_transfer_rate;
       int   device_physical_location  = device_param->device_physical_location;
       int   device_location_number    = device_param->device_location_number;
@@ -1293,6 +1285,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         default:                              event_log_info (hashcat_ctx, "  Phys.Location..: N/A"); break;
       }
 
+      /*
       if (device_mtl_maj > 0 && device_mtl_min > 0)
       {
         event_log_info (hashcat_ctx, "  Feature.Set....: macOS GPU Family %u v%u", device_mtl_maj, device_mtl_min);
@@ -1301,6 +1294,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       {
         event_log_info (hashcat_ctx, "  Feature.Set....: N/A");
       }
+      */
 
       event_log_info (hashcat_ctx, "  Registry.ID....: %u", device_registryID);
 
@@ -1542,6 +1536,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
   if (backend_ctx->mtl)
   {
     int metal_devices_cnt    = backend_ctx->metal_devices_cnt;
+
     char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
 
     size_t len = event_log_info (hashcat_ctx, "METAL API (Metal %s)", metal_runtimeVersionStr);

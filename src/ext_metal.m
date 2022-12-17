@@ -16,6 +16,7 @@
 #include <Foundation/Foundation.h>
 #include <Metal/Metal.h>
 
+/*
 typedef NS_ENUM(NSUInteger, hc_mtlFeatureSet)
 {
   MTL_FEATURESET_MACOS_GPUFAMILY_1_V1 = 10000,
@@ -25,6 +26,7 @@ typedef NS_ENUM(NSUInteger, hc_mtlFeatureSet)
   MTL_FEATURESET_MACOS_GPUFAMILY_2_V1 = 10005,
 
 } metalDeviceFeatureSet_macOS_t;
+*/
 
 typedef NS_ENUM(NSUInteger, hc_mtlLanguageVersion)
 {

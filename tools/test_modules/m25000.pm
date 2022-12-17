@@ -12,7 +12,7 @@ use Digest::MD5  qw (md5 md5_hex);
 use Digest::SHA  qw (sha1 sha1_hex);
 use Digest::HMAC qw (hmac_hex);
 
-sub module_constraints { [[8, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [24, 3000], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
