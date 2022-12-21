@@ -434,6 +434,7 @@ typedef struct mz_stream_s
     PRIVATE_AS unsigned char *next_out; /* pointer to next byte to write */
     unsigned int avail_out;  /* number of bytes that can be written to next_out */
     mz_ulong total_out;      /* total number of bytes produced so far */
+    mz_ulong window_out;     /* total number of bytes produced in window so far */
 
     PRIVATE_AS char *msg;                       /* error msg (unused) */
     PRIVATE_AS inflate_state *state; /* internal state, allocated by zalloc/zfree */
@@ -980,6 +981,7 @@ DECLSPEC int mz_inflateInit2 (mz_streamp pStream, int window_bits, PRIVATE_AS in
     pStream->msg = Z_NULL;
     pStream->total_in = 0;
     pStream->total_out = 0;
+    pStream->window_out = 0;
     pStream->reserved = 0;
 
     //pStream->state = (struct mz_internal_state *)pDecomp;
@@ -1047,6 +1049,7 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
         //pStream->next_out += (mz_uint)out_bytes;
         //pStream->avail_out -= (mz_uint)out_bytes;
         pStream->total_out += (mz_uint)out_bytes;
+        pStream->window_out += (mz_uint)out_bytes;
 
         if (status < 0)
             return MZ_DATA_ERROR;
@@ -1076,6 +1079,7 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
         //pStream->next_out += n;
         //pStream->avail_out -= n;
         pStream->total_out += n;
+        pStream->window_out += n;
         pState->m_dict_avail -= n;
         pState->m_dict_ofs = (pState->m_dict_ofs + n) & (TINFL_LZ_DICT_SIZE - 1);
         return ((pState->m_last_status == TINFL_STATUS_DONE) && (!pState->m_dict_avail)) ? MZ_STREAM_END : MZ_OK;
@@ -1110,6 +1114,7 @@ DECLSPEC int mz_inflate(mz_streamp pStream, int flush)
         //pStream->next_out += n;
         //pStream->avail_out -= n;
         pStream->total_out += n;
+        pStream->window_out += n;
         pState->m_dict_avail -= n;
         pState->m_dict_ofs = (pState->m_dict_ofs + n) & (TINFL_LZ_DICT_SIZE - 1);
 
@@ -1186,12 +1191,12 @@ DECLSPEC int hc_inflate (mz_streamp pStream)
 
   size_t out_bytes = pStream->avail_out;
 
-  tinfl_status status = tinfl_decompress (&pState->m_decomp, pStream->next_in, &in_bytes, pStream->next_out, pStream->next_out + pStream->total_out, &out_bytes, decomp_flags, pStream);
+  tinfl_status status = tinfl_decompress (&pState->m_decomp, pStream->next_in, &in_bytes, pStream->next_out, pStream->next_out + pStream->window_out, &out_bytes, decomp_flags, pStream);
 
   #ifdef CRC32_IN_INFLATE
   for (int i = 0; i < out_bytes; i++)
   {
-    pStream->crc32 = CRC32 (pStream->crc32, pStream->next_out[pStream->total_out + i], pStream->crc32tab);
+    pStream->crc32 = CRC32 (pStream->crc32, pStream->next_out[pStream->window_out + i], pStream->crc32tab);
   }
   #endif
 
@@ -1201,6 +1206,7 @@ DECLSPEC int hc_inflate (mz_streamp pStream)
 
   pStream->avail_out -= out_bytes;
   pStream->total_out += out_bytes;
+  pStream->window_out += out_bytes;
 
   if (pStream->avail_out < TINFL_LZ_DICT_SIZE)
   {
@@ -1209,10 +1215,10 @@ DECLSPEC int hc_inflate (mz_streamp pStream)
     // move the last TINFL_LZ_DICT_SIZE bytes to the start of the output buffer
 
     // zlib_memcpy (pStream->next_out, pStream->next_out + pStream->total_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
-    hc_shift_inflate_dict (pStream->next_out, pStream->total_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
+    hc_shift_inflate_dict (pStream->next_out, pStream->window_out - TINFL_LZ_DICT_SIZE, TINFL_LZ_DICT_SIZE);
 
     pStream->avail_out = TINFL_LZ_DICT_SIZE;
-    pStream->total_out = TINFL_LZ_DICT_SIZE;
+    pStream->window_out = TINFL_LZ_DICT_SIZE;
   }
 
   if (status < 0)
