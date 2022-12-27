@@ -4,6 +4,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode: Anope IRC Services (enc_sha256)
 - Added hash-mode: Bisq .wallet (scrypt)
 - Added hash-mode: ENCsecurity Datavault (PBKDF2/no keychain)
 - Added hash-mode: ENCsecurity Datavault (PBKDF2/keychain)
@@ -17,7 +18,6 @@
 - Added hash-mode: HMAC-RIPEMD160 (key = $salt)
 - Added hash-mode: bcrypt(sha256($pass))
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
-- Added hash-mode: Anope IRC Services (enc_sha256)
 
 ##
 ## Performance

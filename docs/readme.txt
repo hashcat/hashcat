@@ -405,6 +405,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Telegram Desktop >= v2.1.14 (PBKDF2-HMAC-SHA512)
 - Telegram Mobile App Passcode (SHA256)
 - Skype
+- Anope IRC Services (enc_sha256)
 - MetaMask Wallet
 - BitShares v0.x - sha512(sha512_bin(pass))
 - Bitcoin/Litecoin wallet.dat
