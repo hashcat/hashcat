@@ -6230,8 +6230,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       {
         if (backend_ctx->backend_devices_filter == -1ULL)
         {
-          event_log_warning (hashcat_ctx, "The device #%d has been disabled as it most likely also exists as an OpenCL device, but it is not possible to automatically map it.", alias_device->device_id + 1);
-          event_log_warning (hashcat_ctx, "You can use -d #%d to use Metal API instead of OpenCL API. In some rare cases this is more stable.", alias_device->device_id + 1);
+          event_log_warning (hashcat_ctx, "The device #%d has been disabled as it most likely also exists as an OpenCL device, but it is not possible to automatically map it.", device_id + 1);
+          event_log_warning (hashcat_ctx, "You can use -d #%d to use Metal API instead of OpenCL API. In some rare cases this is more stable.", device_id + 1);
           event_log_warning (hashcat_ctx, NULL);
 
           device_param->skipped = true;
