@@ -19,6 +19,7 @@
 - Added hash-mode: bcrypt(sha256($pass))
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
 
+
 ##
 ## Performance
 ##
