@@ -36,7 +36,7 @@
 ## Technical
 ##
 
-- AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (Adrenalin 22.5.1 or later)
+- AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (Adrenalin 22.5.1 exactly)
 - Apple Driver: Automatically enable GPU support on Apple OpenCL instead of CPU support
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
 - Backend Checks: Described workaround in error message when detecting more than 64 backend devices
