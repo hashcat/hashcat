@@ -6,6 +6,9 @@
 
 - Added hash-mode: Anope IRC Services (enc_sha256)
 - Added hash-mode: Bisq .wallet (scrypt)
+- Added hash-mode: Bitcoin raw private key (P2PKH)
+- Added hash-mode: Bitcoin raw private key (P2SH(P2WPKH))
+- Added hash-mode: Bitcoin raw private key (P2WPKH, Bech32)
 - Added hash-mode: ENCsecurity Datavault (PBKDF2/no keychain)
 - Added hash-mode: ENCsecurity Datavault (PBKDF2/keychain)
 - Added hash-mode: ENCsecurity Datavault (MD5/no keychain)
