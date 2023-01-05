@@ -65,7 +65,7 @@ KERNEL_FQ void m30700_m04 (KERN_ATTR_BASIC ())
   const u32 IV_E = salt_bufs[SALT_POS_HOST].salt_buf_pc[4];
   const u32 IV_F = salt_bufs[SALT_POS_HOST].salt_buf_pc[5];
   const u32 IV_G = salt_bufs[SALT_POS_HOST].salt_buf_pc[6];
-  const u32 IV_H = salt_bufs[SALT_POS_HOST].salt_buf_pc[7];  
+  const u32 IV_H = salt_bufs[SALT_POS_HOST].salt_buf_pc[7];
 
   /**
    * loop
