@@ -865,25 +865,47 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   const bool need_hex1 = need_hexify (plain_ptr1, plain_len1, 0, always_ascii);
   const bool need_hex2 = need_hexify (plain_ptr2, plain_len2, 0, always_ascii);
 
-  // Left candidate needs to be $HEX-ed
-  if(need_hex1 == true){
+  if((need_hex1 == true) || (need_hex2 == true))
+  {
+    // Right candidate needs to be $HEX-ed
+    if(need_hex1 == false)
+    {
+      exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
+
+      plain_ptr1[plain_len1] = 0;
+      plain_ptr2[plain_len2 * 2] = 0;
+
+      snprintf (display, HCBUFSIZ_TINY, "%s -> $HEX[%s]", plain_ptr1, plain_ptr2);
+    }
+    // Left candidate needs to be $HEX-ed
+    else if(need_hex2 == false)
+    {
     exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
+
     plain_ptr1[plain_len1 * 2] = 0;
+    plain_ptr2[plain_len2] = 0;
+
+    snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> %s", plain_ptr1, plain_ptr2);
+    }
+    // Both candidates need to be $HEX-ed
+    else {
+      exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
+      exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
+
+      plain_ptr1[plain_len1 * 2] = 0;
+      plain_ptr2[plain_len2 * 2] = 0;
+
+      snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> $HEX[%s]", plain_ptr1, plain_ptr2);
+    }
   }
-  else{plain_ptr1[plain_len1] = 0;}
+  // Neither candidate needs to be $HEX-ed
+  else
+  {
+    plain_ptr1[plain_len1] = 0;
+    plain_ptr2[plain_len2] = 0;
 
-  // Right candidate needs to be $HEX-ed
-  if(need_hex2 == true){
-    exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
-    plain_ptr2[plain_len2 * 2] = 0;
+    snprintf (display, HCBUFSIZ_TINY, "%s -> %s", plain_ptr1, plain_ptr2);
   }
-  else { plain_ptr2[plain_len2] = 0; }
-
-  if(need_hex1 == true && need_hex2 == true) {snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> $HEX[%s]", plain_ptr1, plain_ptr2);}
-  else if(need_hex1 == true && need_hex2 == false) {snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> %s", plain_ptr1, plain_ptr2);}
-  else if(need_hex1 == false && need_hex2 == true) {snprintf (display, HCBUFSIZ_TINY, "%s -> $HEX[%s]", plain_ptr1, plain_ptr2);}
-  else if(need_hex1 == false && need_hex2 == false) {snprintf (display, HCBUFSIZ_TINY, "%s -> %s", plain_ptr1, plain_ptr2);}
-
   return display;
 }
 
