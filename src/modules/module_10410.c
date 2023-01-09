@@ -239,7 +239,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int R = strtol ((const char *) R_pos, NULL, 10);
   const int P = strtol ((const char *) P_pos, NULL, 10);
 
-  if (V != 1) return (PARSER_SALT_VALUE);
+  if (V != 1 && V != 2) return (PARSER_SALT_VALUE);
   if (R != 2) return (PARSER_SALT_VALUE);
 
   const int enc_md = strtol ((const char *) enc_md_pos, NULL, 10);
