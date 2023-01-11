@@ -503,10 +503,11 @@ sub get_module
 {
   my $hash_type = shift;
 
-  my $st_hash = undef;
-  my $is_binary = 0;
-  my $pw_min    = -1;
-  my $pw_max    = -1;
+  my $st_hash         = undef;
+  my $is_binary       = 0;
+  my $pw_min          = -1;
+  my $pw_max          = -1;
+  my $benchmark_mask  = undef;
 
   my $path = sprintf ("src/modules/module_%05d.c", $hash_type);
 
@@ -542,11 +543,16 @@ sub get_module
     {
       $pw_max = $1;
     }
+
+    if ($line =~ /BENCHMARK_MASK *= \"(.*)\"/)
+    {
+      $benchmark_mask = $1;
+    }
   }
 
   close (IN);
 
-  my $mask = $default_mask;
+  my $mask = (defined $benchmark_mask) ? $benchmark_mask : $default_mask;
 
   if ($pw_min != -1)
   {
