@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _EXT_SYSFS_CPU_H
-#define _EXT_SYSFS_CPU_H
+#ifndef EXT_SYSFS_CPU_H
+#define EXT_SYSFS_CPU_H
 
 #include <stdbool.h>
 
@@ -54,4 +54,4 @@ int hm_SYSFS_CPU_get_temperature_current (void *hashcat_ctx, int *val);
 bool read_proc_stat (void *hashcat_ctx, proc_stat_t *proc_stat);
 int hm_SYSFS_CPU_get_utilization_current (void *hashcat_ctx, int *val);
 
-#endif // _EXT_SYSFS_CPU_H
+#endif // EXT_SYSFS_CPU_H

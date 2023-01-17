@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_WHIRLPOOL_H
-#define _INC_HASH_WHIRLPOOL_H
+#ifndef INC_HASH_WHIRLPOOL_H
+#define INC_HASH_WHIRLPOOL_H
 
 #if   VECT_SIZE == 1
 #define BOX(S,i)   (S)[(i)]
@@ -126,4 +126,4 @@ DECLSPEC void whirlpool_hmac_update_vector_64 (PRIVATE_AS whirlpool_hmac_ctx_vec
 DECLSPEC void whirlpool_hmac_update_vector (PRIVATE_AS whirlpool_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void whirlpool_hmac_final_vector (PRIVATE_AS whirlpool_hmac_ctx_vector_t *ctx);
 
-#endif // _INC_HASH_WHIRLPOOL_H
+#endif // INC_HASH_WHIRLPOOL_H

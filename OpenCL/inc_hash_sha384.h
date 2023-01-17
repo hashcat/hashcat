@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_SHA384_H
-#define _INC_HASH_SHA384_H
+#ifndef INC_HASH_SHA384_H
+#define INC_HASH_SHA384_H
 
 #define SHA384_SHR_64(x,n) ((x) >> (n))
 
@@ -146,4 +146,4 @@ DECLSPEC void sha384_hmac_update_vector_128 (PRIVATE_AS sha384_hmac_ctx_vector_t
 DECLSPEC void sha384_hmac_update_vector (PRIVATE_AS sha384_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void sha384_hmac_final_vector (PRIVATE_AS sha384_hmac_ctx_vector_t *ctx);
 
-#endif // _INC_HASH_SHA384_H
+#endif // INC_HASH_SHA384_H

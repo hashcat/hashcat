@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _EXT_HIPRTC_H
-#define _EXT_HIPRTC_H
+#ifndef EXT_HIPRTC_H
+#define EXT_HIPRTC_H
 
 // start: hiprtc.h
 
@@ -75,4 +75,4 @@ int hc_hiprtcGetProgramLog       (void *hashcat_ctx, hiprtcProgram prog, char *l
 int hc_hiprtcGetCodeSize         (void *hashcat_ctx, hiprtcProgram prog, size_t *codeSizeRet);
 int hc_hiprtcGetCode             (void *hashcat_ctx, hiprtcProgram prog, char *code);
 
-#endif // _EXT_HIPRTC_H
+#endif // EXT_HIPRTC_H

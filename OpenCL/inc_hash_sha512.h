@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_SHA512_H
-#define _INC_HASH_SHA512_H
+#ifndef INC_HASH_SHA512_H
+#define INC_HASH_SHA512_H
 
 #define SHA512_SHR_64(x,n) ((x) >> (n))
 
@@ -147,4 +147,4 @@ DECLSPEC void sha512_hmac_update_vector_128 (PRIVATE_AS sha512_hmac_ctx_vector_t
 DECLSPEC void sha512_hmac_update_vector (PRIVATE_AS sha512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void sha512_hmac_final_vector (PRIVATE_AS sha512_hmac_ctx_vector_t *ctx);
 
-#endif // _INC_HASH_SHA512_H
+#endif // INC_HASH_SHA512_H

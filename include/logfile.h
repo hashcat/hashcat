@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _LOGFILE_H
-#define _LOGFILE_H
+#ifndef LOGFILE_H
+#define LOGFILE_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,4 +40,4 @@ void logfile_append         (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...) _
 int  logfile_init           (hashcat_ctx_t *hashcat_ctx);
 void logfile_destroy        (hashcat_ctx_t *hashcat_ctx);
 
-#endif // _LOGFILE_H
+#endif // LOGFILE_H

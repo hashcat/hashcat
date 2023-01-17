@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _EXT_CUDA_H
-#define _EXT_CUDA_H
+#ifndef EXT_CUDA_H
+#define EXT_CUDA_H
 
 /**
  * from cuda.h (/usr/local/cuda-10.1/targets/x86_64-linux/include/cuda.h)
@@ -1182,4 +1182,4 @@ int hc_cuLinkAddData           (void *hashcat_ctx, CUlinkState state, CUjitInput
 int hc_cuLinkDestroy           (void *hashcat_ctx, CUlinkState state);
 int hc_cuLinkComplete          (void *hashcat_ctx, CUlinkState state, void **cubinOut, size_t *sizeOut);
 
-#endif // _EXT_CUDA_H
+#endif // EXT_CUDA_H

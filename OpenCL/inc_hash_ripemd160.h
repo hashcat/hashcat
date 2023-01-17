@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_RIPEMD160_H
-#define _INC_HASH_RIPEMD160_H
+#ifndef INC_HASH_RIPEMD160_H
+#define INC_HASH_RIPEMD160_H
 
 #define RIPEMD160_F(x,y,z)    ((x) ^ (y) ^ (z))
 #define RIPEMD160_G(x,y,z)    ((z) ^ ((x) & ((y) ^ (z)))) /* x ? y : z */
@@ -144,4 +144,4 @@ DECLSPEC void ripemd160_hmac_update_vector_64 (PRIVATE_AS ripemd160_hmac_ctx_vec
 DECLSPEC void ripemd160_hmac_update_vector (PRIVATE_AS ripemd160_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void ripemd160_hmac_final_vector (PRIVATE_AS ripemd160_hmac_ctx_vector_t *ctx);
 
-#endif // _INC_HASH_RIPEMD160_H
+#endif // INC_HASH_RIPEMD160_H

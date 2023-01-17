@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_TYPES_H
-#define _INC_TYPES_H
+#ifndef INC_TYPES_H
+#define INC_TYPES_H
 
 #if ATTACK_MODE == 9
 #define BITMAP_MASK         kernel_param->bitmap_mask

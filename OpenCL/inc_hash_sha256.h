@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_SHA256_H
-#define _INC_HASH_SHA256_H
+#ifndef INC_HASH_SHA256_H
+#define INC_HASH_SHA256_H
 
 #define SHIFT_RIGHT_32(x,n) ((x) >> (n))
 

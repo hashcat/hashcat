@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_STREEBOG256_H
-#define _INC_HASH_STREEBOG256_H
+#ifndef INC_HASH_STREEBOG256_H
+#define INC_HASH_STREEBOG256_H
 
 #if   VECT_SIZE == 1
 #define BOX(S,n,i)        ((S)[(n)][(i)])
@@ -118,4 +118,4 @@ DECLSPEC void streebog256_hmac_update_vector (PRIVATE_AS streebog256_hmac_ctx_ve
 DECLSPEC void streebog256_hmac_update_vector_swap (PRIVATE_AS streebog256_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void streebog256_hmac_final_vector (PRIVATE_AS streebog256_hmac_ctx_vector_t *ctx);
 
-#endif // _INC_HASH_STREEBOG256_H
+#endif // INC_HASH_STREEBOG256_H

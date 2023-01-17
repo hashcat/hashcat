@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _LOOPBACK_H
-#define _LOOPBACK_H
+#ifndef LOOPBACK_H
+#define LOOPBACK_H
 
 #include <stdio.h>
 #include <unistd.h>
@@ -20,4 +20,4 @@ void loopback_write_close   (hashcat_ctx_t *hashcat_ctx);
 void loopback_write_append  (hashcat_ctx_t *hashcat_ctx, const u8 *plain_ptr, const unsigned int plain_len);
 void loopback_write_unlink  (hashcat_ctx_t *hashcat_ctx);
 
-#endif // _LOOPBACK_H
+#endif // LOOPBACK_H

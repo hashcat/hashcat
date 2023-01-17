@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_BLAKE2B_H
-#define _INC_HASH_BLAKE2B_H
+#ifndef INC_HASH_BLAKE2B_H
+#define INC_HASH_BLAKE2B_H
 
 #define BLAKE2B_UPDATE  0
 #define BLAKE2B_FINAL  -1
@@ -96,4 +96,4 @@ DECLSPEC void blake2b_init_vector_from_scalar (PRIVATE_AS blake2b_ctx_vector_t *
 DECLSPEC void blake2b_update_vector (PRIVATE_AS blake2b_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void blake2b_final_vector (PRIVATE_AS blake2b_ctx_vector_t *ctx);
 
-#endif // _INC_HASH_BLAKE2B_H
+#endif // INC_HASH_BLAKE2B_H

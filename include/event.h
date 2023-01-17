@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _EVENT_H
-#define _EVENT_H
+#ifndef EVENT_H
+#define EVENT_H
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -27,4 +27,4 @@ __attribute__ ((format (printf, 2, 3))) size_t event_log_error      (hashcat_ctx
 int  event_ctx_init         (hashcat_ctx_t *hashcat_ctx);
 void event_ctx_destroy      (hashcat_ctx_t *hashcat_ctx);
 
-#endif // _EVENT_H
+#endif // EVENT_H

@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_COMMON_H
-#define _INC_COMMON_H
+#ifndef INC_COMMON_H
+#define INC_COMMON_H
 
 /*
  * Prototype kernel function that fits all kernel macros
@@ -376,4 +376,4 @@ DECLSPEC void append_0x80_2x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, cons
 DECLSPEC void append_0x80_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
 DECLSPEC void append_0x2d_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
 
-#endif // _INC_COMMON_H
+#endif // INC_COMMON_H

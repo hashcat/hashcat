@@ -8,8 +8,8 @@
  * https://www.synacktiv.com/publications/cracking-radmin-server-3-passwords.html
  */
 
-#ifndef _INC_RADMIN3_CONSTANTS_H
-#define _INC_RADMIN3_CONSTANTS_H
+#ifndef INC_RADMIN3_CONSTANTS_H
+#define INC_RADMIN3_CONSTANTS_H
 
 #define PRECOMP_BITS      10
 #define PRECOMP_VECLEN   160 // SHA1 hash (in bits, 20 bytes)
@@ -75,4 +75,4 @@ CONSTANT_VK u32 RADMIN3_FACT[64] =
   0x0312ac4d, 0x73aa4ff4, 0x39ad3b1f, 0xfad6fce6,
 };
 
-#endif // _INC_RADMIN3_CONSTANTS_H
+#endif // INC_RADMIN3_CONSTANTS_H

@@ -3,9 +3,9 @@
  * License.....: MIT
  */
 
-#ifndef _AUTOTUNE_H
-#define _AUTOTUNE_H
+#ifndef AUTOTUNE_H
+#define AUTOTUNE_H
 
 HC_API_CALL void *thread_autotune (void *p);
 
-#endif // _AUTOTUNE_H
+#endif // AUTOTUNE_H

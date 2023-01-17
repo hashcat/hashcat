@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _AFFINITY_H
-#define _AFFINITY_H
+#ifndef AFFINITY_H
+#define AFFINITY_H
 
 #include <stdlib.h>
 #include <stdarg.h>
@@ -25,4 +25,4 @@
 
 int set_cpu_affinity (hashcat_ctx_t *hashcat_ctx);
 
-#endif // _AFFINITY_H
+#endif // AFFINITY_H

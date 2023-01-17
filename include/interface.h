@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INTERFACE_H
-#define _INTERFACE_H
+#ifndef INTERFACE_H
+#define INTERFACE_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,4 +58,4 @@ char        default_separator               (MAYBE_UNUSED const hashconfig_t *ha
 u64         default_tmp_size                (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 bool        default_warmup_disable          (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 
-#endif // _INTERFACE_H
+#endif // INTERFACE_H

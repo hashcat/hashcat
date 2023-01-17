@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_AMP_H
-#define _INC_AMP_H
+#ifndef INC_AMP_H
+#define INC_AMP_H
 
 #if defined IS_METAL
 
@@ -31,4 +31,4 @@
 
 #endif // IS_METAL
 
-#endif // _INC_AMP_H
+#endif // INC_AMP_H

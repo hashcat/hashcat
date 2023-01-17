@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_MD4_H
-#define _INC_HASH_MD4_H
+#ifndef INC_HASH_MD4_H
+#define INC_HASH_MD4_H
 
 #define MD4_F_S(x,y,z)  (((x) & (y)) | ((~(x)) & (z)))
 #define MD4_G_S(x,y,z)  (((x) & (y)) | ((x) & (z)) | ((y) & (z)))

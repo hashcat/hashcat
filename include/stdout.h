@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _STDOUT_H
-#define _STDOUT_H
+#ifndef STDOUT_H
+#define STDOUT_H
 
 #include <stdio.h>
 #include <string.h>
@@ -22,4 +22,4 @@
 
 int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 
-#endif // _STDOUT_H
+#endif // STDOUT_H

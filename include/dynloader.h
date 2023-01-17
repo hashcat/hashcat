@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _DYNLOADER_H
-#define _DYNLOADER_H
+#ifndef DYNLOADER_H
+#define DYNLOADER_H
 
 #include <stdlib.h>
 

@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _CONVERT_H
-#define _CONVERT_H
+#ifndef CONVERT_H
+#define CONVERT_H
 
 #include <ctype.h>
 
@@ -82,4 +82,4 @@ u64 v64_from_v32ab (const u32 v32a, const u32 v32b);
 int hex_decode (const u8 *in_buf, const int in_len, u8 *out_buf);
 int hex_encode (const u8 *in_buf, const int in_len, u8 *out_buf);
 
-#endif // _CONVERT_H
+#endif // CONVERT_H

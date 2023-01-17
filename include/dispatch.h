@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _DISPATCH_H
-#define _DISPATCH_H
+#ifndef DISPATCH_H
+#define DISPATCH_H
 
 #ifdef WITH_BRAIN
 #if defined (_WIN)
@@ -25,4 +25,4 @@
 HC_API_CALL void *thread_calc_stdin (void *p);
 HC_API_CALL void *thread_calc (void *p);
 
-#endif // _DISPATCH_H
+#endif // DISPATCH_H

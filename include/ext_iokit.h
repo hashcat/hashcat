@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _EXT_IOKIT_H
-#define _EXT_IOKIT_H
+#ifndef EXT_IOKIT_H
+#define EXT_IOKIT_H
 
 #if defined(__APPLE__)
 #include <IOKit/IOKitLib.h>
@@ -126,4 +126,4 @@ bool iokit_init (void *hashcat_ctx);
 bool iokit_close (void *hashcat_ctx);
 #endif // __APPLE__
 
-#endif // _EXT_IOKIT_H
+#endif // EXT_IOKIT_H

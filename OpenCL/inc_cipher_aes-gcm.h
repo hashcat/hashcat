@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_CIPHER_AES_GCM_H
-#define _INC_CIPHER_AES_GCM_H
+#ifndef INC_CIPHER_AES_GCM_H
+#define INC_CIPHER_AES_GCM_H
 
 DECLSPEC void AES_GCM_inc32 (PRIVATE_AS u32 *block);
 DECLSPEC void AES_GCM_xor_block (PRIVATE_AS u32 *dst, PRIVATE_AS const u32 *src);
@@ -18,4 +18,4 @@ DECLSPEC void AES_GCM_GCTR (PRIVATE_AS u32 *key, PRIVATE_AS u32 *J0, PRIVATE_AS 
 DECLSPEC void AES_GCM_GHASH (PRIVATE_AS const u32 *subkey, PRIVATE_AS const u32 *aad_buf, int aad_len, PRIVATE_AS const u32 *enc_buf, int enc_len, PRIVATE_AS u32 *out);
 DECLSPEC void AES_GCM_GHASH_GLOBAL (PRIVATE_AS const u32 *subkey, PRIVATE_AS const u32 *aad_buf, int aad_len, GLOBAL_AS const u32 *enc_buf, int enc_len, PRIVATE_AS u32 *out);
 
-#endif // _INC_CIPHER_AES_GCM_H
+#endif // INC_CIPHER_AES_GCM_H

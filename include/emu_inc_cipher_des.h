@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _EMU_INC_CIPHER_DES_H
-#define _EMU_INC_CIPHER_DES_H
+#ifndef EMU_INC_CIPHER_DES_H
+#define EMU_INC_CIPHER_DES_H
 
 #include "emu_general.h"
 
@@ -14,4 +14,4 @@
 extern u32a c_SPtrans[8][64];
 extern u32a c_skb[8][64];
 
-#endif // _EMU_INC_CIPHER_DES_H
+#endif // EMU_INC_CIPHER_DES_H

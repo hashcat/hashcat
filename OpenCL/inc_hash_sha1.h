@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_SHA1_H
-#define _INC_HASH_SHA1_H
+#ifndef INC_HASH_SHA1_H
+#define INC_HASH_SHA1_H
 
 #define SHA1_F0(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA1_F1(x,y,z)  ((x) ^ (y) ^ (z))

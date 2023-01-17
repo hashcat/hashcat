@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_CIPHER_SERPENT_H
-#define _INC_CIPHER_SERPENT_H
+#ifndef INC_CIPHER_SERPENT_H
+#define INC_CIPHER_SERPENT_H
 
 DECLSPEC void serpent128_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey);
 DECLSPEC void serpent128_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out);
@@ -16,4 +16,4 @@ DECLSPEC void serpent256_set_key (PRIVATE_AS u32 *ks, PRIVATE_AS const u32 *ukey
 DECLSPEC void serpent256_encrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out);
 DECLSPEC void serpent256_decrypt (PRIVATE_AS const u32 *ks, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out);
 
-#endif // _INC_CIPHER_SERPENT_H
+#endif // INC_CIPHER_SERPENT_H

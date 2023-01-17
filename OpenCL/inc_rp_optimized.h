@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_RP_OPTIMIZED_H
-#define _INC_RP_OPTIMIZED_H
+#ifndef INC_RP_OPTIMIZED_H
+#define INC_RP_OPTIMIZED_H
 
 #ifndef DECLSPEC
 #define DECLSPEC
@@ -133,4 +133,4 @@ DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, P
 DECLSPEC u32 apply_rules_optimized (CONSTANT_AS const u32 *cmds, PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 len);
 DECLSPEC u32x apply_rules_vect_optimized (PRIVATE_AS const u32 *pw_buf0, PRIVATE_AS const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS const kernel_rule_t *kernel_rules, const u32 il_pos, PRIVATE_AS u32x *buf0, PRIVATE_AS u32x *buf1);
 
-#endif // _INC_RP_OPTIMIZED_H
+#endif // INC_RP_OPTIMIZED_H

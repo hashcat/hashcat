@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _EMU_INC_HASH_SHA256_H
-#define _EMU_INC_HASH_SHA256_H
+#ifndef EMU_INC_HASH_SHA256_H
+#define EMU_INC_HASH_SHA256_H
 
 #include "emu_general.h"
 
@@ -13,4 +13,4 @@
 
 extern u32a k_sha256[64];
 
-#endif // _EMU_INC_HASH_SHA256_H
+#endif // EMU_INC_HASH_SHA256_H

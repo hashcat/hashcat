@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_CIPHER_DES_H
-#define _INC_CIPHER_DES_H
+#ifndef INC_CIPHER_DES_H
+#define INC_CIPHER_DES_H
 
 // these really should be turned into real function
 #define PERM_OP(a,b,n,m) \
@@ -109,4 +109,4 @@ DECLSPEC void _des_crypt_encrypt_vect (PRIVATE_AS u32x *out, PRIVATE_AS const u3
 DECLSPEC void _des_crypt_decrypt_vect (PRIVATE_AS u32x *out, PRIVATE_AS const u32x *in, PRIVATE_AS const u32x *Kc, PRIVATE_AS const u32x *Kd, SHM_TYPE u32 (*s_SPtrans)[64]);
 DECLSPEC void _des_crypt_keysetup_vect (u32x c, u32x d, PRIVATE_AS u32x *Kc, PRIVATE_AS u32x *Kd, SHM_TYPE u32 (*s_skb)[64]);
 
-#endif // _INC_CIPHER_DES_H
+#endif // INC_CIPHER_DES_H

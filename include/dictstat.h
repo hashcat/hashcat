@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _DICTSTAT_H
-#define _DICTSTAT_H
+#ifndef DICTSTAT_H
+#define DICTSTAT_H
 
 #include <stdio.h>
 #include <string.h>
@@ -29,4 +29,4 @@ int  dictstat_write   (hashcat_ctx_t *hashcat_ctx);
 u64  dictstat_find    (hashcat_ctx_t *hashcat_ctx, dictstat_t *d);
 void dictstat_append  (hashcat_ctx_t *hashcat_ctx, dictstat_t *d);
 
-#endif // _DICTSTAT_H
+#endif // DICTSTAT_H

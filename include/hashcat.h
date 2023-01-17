@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _HASHCAT_H
-#define _HASHCAT_H
+#ifndef HASHCAT_H
+#define HASHCAT_H
 
 int   hashcat_init               (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t));
 void  hashcat_destroy            (hashcat_ctx_t *hashcat_ctx);
@@ -22,4 +22,4 @@ int   hashcat_session_destroy    (hashcat_ctx_t *hashcat_ctx);
 char *hashcat_get_log            (hashcat_ctx_t *hashcat_ctx);
 int   hashcat_get_status         (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_status);
 
-#endif // _HASHCAT_H
+#endif // HASHCAT_H

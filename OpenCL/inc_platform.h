@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_PLATFORM_H
-#define _INC_PLATFORM_H
+#ifndef INC_PLATFORM_H
+#define INC_PLATFORM_H
 
 DECLSPEC u32 hc_atomic_dec (volatile GLOBAL_AS u32 *p);
 DECLSPEC u32 hc_atomic_inc (volatile GLOBAL_AS u32 *p);
@@ -87,4 +87,4 @@ DECLSPEC u64  rotr64_S (const u64  a, const int n);
 #define bitselect(a,b,c) ((a) ^ ((c) & ((b) ^ (a))))
 #endif // IS_METAL
 
-#endif // _INC_PLATFORM_H
+#endif // INC_PLATFORM_H

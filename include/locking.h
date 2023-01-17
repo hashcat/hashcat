@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _LOCKING_H
-#define _LOCKING_H
+#ifndef LOCKING_H
+#define LOCKING_H
 
 #include <stdio.h>
 #include <string.h>
@@ -16,4 +16,4 @@
 int hc_lockfile   (HCFILE *fp);
 int hc_unlockfile (HCFILE *fp);
 
-#endif // _LOCKING_H
+#endif // LOCKING_H

@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_ECC_SECP256K1_H
-#define _INC_ECC_SECP256K1_H
+#ifndef INC_ECC_SECP256K1_H
+#define INC_ECC_SECP256K1_H
 
 // y^2 = x^3 + ax + b with a = 0 and b = 7 => y^2 = x^3 + 7:
 
@@ -227,4 +227,4 @@ DECLSPEC void point_mul (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *k, SECP256K1_T
 
 DECLSPEC void set_precomputed_basepoint_g (PRIVATE_AS secp256k1_t *r);
 
-#endif // _INC_ECC_SECP256K1_H
+#endif // INC_ECC_SECP256K1_H

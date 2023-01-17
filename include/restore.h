@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _RESTORE_H
-#define _RESTORE_H
+#ifndef RESTORE_H
+#define RESTORE_H
 
 #include <stdio.h>
 #include <unistd.h>
@@ -26,4 +26,4 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv);
 
 void restore_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 
-#endif // _RESTORE_H
+#endif // RESTORE_H
