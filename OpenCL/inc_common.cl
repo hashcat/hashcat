@@ -872,12 +872,12 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 
 // bit rotates
 //
-// For _CPU_OPENCL_EMU_H we dont need to care about vector functions
+// For CPU_OPENCL_EMU_H we dont need to care about vector functions
 // The VECT_SIZE is guaranteed to be set to 1 from cpu_opencl_emu.h
 
 DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined CPU_OPENCL_EMU_H
   return rotl32 (a, n);
   #elif defined IS_CUDA || defined IS_HIP
   return rotl32 (a, n);
@@ -892,7 +892,7 @@ DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 
 DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined CPU_OPENCL_EMU_H
   return rotr32 (a, n);
   #elif defined IS_CUDA || defined IS_HIP
   return rotr32 (a, n);
@@ -907,7 +907,7 @@ DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 
 DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined CPU_OPENCL_EMU_H
   return rotl32 (a, n);
   #elif defined IS_CUDA || defined IS_HIP
   return rotl32_S (a, n);
@@ -922,7 +922,7 @@ DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 
 DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined CPU_OPENCL_EMU_H
   return rotr32 (a, n);
   #elif defined IS_CUDA || defined IS_HIP
   return rotr32_S (a, n);
@@ -937,7 +937,7 @@ DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 
 DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined CPU_OPENCL_EMU_H
   return rotl64 (a, n);
   #elif defined IS_CUDA
   return rotl64 (a, n);
@@ -954,7 +954,7 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 
 DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined CPU_OPENCL_EMU_H
   return rotr64 (a, n);
   #elif defined IS_CUDA
   return rotr64 (a, n);
@@ -971,7 +971,7 @@ DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 
 DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined CPU_OPENCL_EMU_H
   return rotl64 (a, n);
   #elif defined IS_CUDA
   return rotl64_S (a, n);
@@ -988,7 +988,7 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 
 DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined CPU_OPENCL_EMU_H
   return rotr64 (a, n);
   #elif defined IS_CUDA
   return rotr64_S (a, n);
@@ -1009,7 +1009,7 @@ DECLSPEC u32x hc_swap32 (const u32x v)
 {
   u32x r;
 
-  #ifdef _CPU_OPENCL_EMU_H
+  #ifdef CPU_OPENCL_EMU_H
   r = byte_swap_32 (v);
   #else
   #if   (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
@@ -1106,7 +1106,7 @@ DECLSPEC u32 hc_swap32_S (const u32 v)
 {
   u32 r;
 
-  #ifdef _CPU_OPENCL_EMU_H
+  #ifdef CPU_OPENCL_EMU_H
   r = byte_swap_32 (v);
   #else
   #if   (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
@@ -1132,7 +1132,7 @@ DECLSPEC u64x hc_swap64 (const u64x v)
 {
   u64x r;
 
-  #ifdef _CPU_OPENCL_EMU_H
+  #ifdef CPU_OPENCL_EMU_H
   r = byte_swap_64 (v);
   #else
   #if   (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
@@ -1351,7 +1351,7 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
 {
   u64 r;
 
-  #ifdef _CPU_OPENCL_EMU_H
+  #ifdef CPU_OPENCL_EMU_H
   r = byte_swap_64 (v);
   #else
   #if   (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
