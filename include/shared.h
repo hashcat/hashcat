@@ -55,6 +55,7 @@ void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size
 
 bool hc_path_is_file (const char *path);
 bool hc_path_is_directory (const char *path);
+bool hc_path_is_fifo (const char *path);
 bool hc_path_is_empty (const char *path);
 bool hc_path_exist (const char *path);
 bool hc_path_read (const char *path);

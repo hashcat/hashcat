@@ -340,6 +340,19 @@ bool hc_path_is_directory (const char *path)
   return false;
 }
 
+bool hc_path_is_fifo (const char *path)
+{
+  struct stat s;
+
+  memset (&s, 0, sizeof (s));
+
+  if (stat (path, &s) == -1) return false;
+
+  if (S_ISFIFO (s.st_mode) == true) return true;
+
+  return false;
+}
+
 bool hc_path_is_empty (const char *path)
 {
   struct stat s;
