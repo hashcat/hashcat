@@ -53,9 +53,10 @@ typedef cpuset_t cpu_set_t;
 
 int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
-#if defined (__CYGWIN__)
+  #if defined (__CYGWIN__)
   return 0;
-#else
+  #else
+
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->cpu_affinity == NULL) return 0;
@@ -180,7 +181,6 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
   }
 
   #endif
-
   return 0;
-#endif
+  #endif
 }
