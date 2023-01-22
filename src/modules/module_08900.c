@@ -304,7 +304,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
   token.len_min[5] = 44;
-  token.len_max[5] = 44;
+  token.len_max[5] = 88;
   token.sep[5]     = ':';
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
@@ -333,7 +333,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[4];
   const int salt_len = token.len[4];
 
-  u8 tmp_buf[33] = { 0 };
+  u8 tmp_buf[63] = { 0 };
 
   const int tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
 
