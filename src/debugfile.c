@@ -73,7 +73,7 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
   {
     debugfile_format_plain (hashcat_ctx, orig_plain_ptr, orig_plain_len);
 
-    if ((debug_mode == 3) || (debug_mode == 4)) hc_fputc (':', &debugfile_ctx->fp);
+    if ((debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5)) hc_fputc (':', &debugfile_ctx->fp);
   }
 
   hc_fwrite ((void *) rule_buf, rule_len, 1, &debugfile_ctx->fp);
