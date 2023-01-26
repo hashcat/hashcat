@@ -223,7 +223,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
             out_push (&out, plain_ptr, plain_len);
 
-            memset (plain_ptr, 0, BUF_SZ);
+            memset (plain_ptr, 0, PW_MAX);
           }
 
           pw_idx++;
