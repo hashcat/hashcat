@@ -35,6 +35,7 @@
 
 - Fixed keys extraction in luks2hashcat - now extracts all active keys
 - Prevent Hashcat from hanging by checking during startup that the output file is a named pipe
+- Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
 
 ##
 ## Technical
