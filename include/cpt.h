@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef CPT_H
-#define CPT_H
+#ifndef HC_CPT_H
+#define HC_CPT_H
 
 #include <stdio.h>
 #include <errno.h>
@@ -14,4 +14,4 @@ int  cpt_ctx_init    (hashcat_ctx_t *hashcat_ctx);
 void cpt_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 void cpt_ctx_reset   (hashcat_ctx_t *hashcat_ctx);
 
-#endif // CPT_H
+#endif // HC_CPT_H

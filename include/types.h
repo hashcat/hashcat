@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef HC_TYPES_H
+#define HC_TYPES_H
 
 #include "common.h"
 
@@ -3060,4 +3060,4 @@ typedef enum hash_category
 
 typedef aes_ctx AES_KEY;
 
-#endif // TYPES_H
+#endif // HC_TYPES_H

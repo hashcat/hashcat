@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef EXT_NVAPI_H
-#define EXT_NVAPI_H
+#ifndef HC_EXT_NVAPI_H
+#define HC_EXT_NVAPI_H
 
 /**
  * Declarations from nvapi.h and subheaders
@@ -250,4 +250,4 @@ int hm_NvAPI_GPU_GetPerfPoliciesStatus (void *hashcat_ctx, NvPhysicalGpuHandle h
 int hm_NvAPI_GPU_GetBusId (void *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusId);
 int hm_NvAPI_GPU_GetBusSlotId (void *hashcat_ctx, NvPhysicalGpuHandle hPhysicalGpu, NvU32 *pBusSlotId);
 
-#endif // EXT_NVAPI_H
+#endif // HC_EXT_NVAPI_H

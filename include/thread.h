@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef THREAD_H
-#define THREAD_H
+#ifndef HC_THREAD_H
+#define HC_THREAD_H
 
 #include <signal.h>
 
@@ -86,4 +86,4 @@ int ResumeThreads (hashcat_ctx_t *hashcat_ctx);
 int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx);
 int finish_after_attack (hashcat_ctx_t *hashcat_ctx);
 
-#endif // THREAD_H
+#endif // HC_THREAD_H

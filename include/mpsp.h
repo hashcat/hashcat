@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef MPSP_H
-#define MPSP_H
+#ifndef HC_MPSP_H
+#define HC_MPSP_H
 
 #include <stdio.h>
 #include <errno.h>
@@ -31,4 +31,4 @@ int   mask_ctx_init           (hashcat_ctx_t *hashcat_ctx);
 void  mask_ctx_destroy        (hashcat_ctx_t *hashcat_ctx);
 int   mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx);
 
-#endif // MPSP_H
+#endif // HC_MPSP_H

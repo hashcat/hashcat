@@ -1,6 +1,6 @@
 
-#ifndef MODULES_H
-#define MODULES_H
+#ifndef HC_MODULES_H
+#define HC_MODULES_H
 
 static const size_t MODULE_CONTEXT_SIZE_CURRENT = sizeof (module_ctx_t);
 
@@ -88,4 +88,4 @@ bool        module_unstable_warning         (MAYBE_UNUSED const hashconfig_t *ha
 
 bool        module_potfile_custom_check     (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hash_t *db, MAYBE_UNUSED const hash_t *entry_hash, MAYBE_UNUSED const void *entry_tmps);
 
-#endif // MODULES_H
+#endif // HC_MODULES_H

@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef FILEHANDLING_H
-#define FILEHANDLING_H
+#ifndef HC_FILEHANDLING_H
+#define HC_FILEHANDLING_H
 
 #include <stdio.h>
 #include <string.h>
@@ -40,4 +40,4 @@ size_t in_superchop (char *buf);
 size_t superchop_with_length (char *buf, const size_t len);
 
 
-#endif // FILEHANDLING_H
+#endif // HC_FILEHANDLING_H

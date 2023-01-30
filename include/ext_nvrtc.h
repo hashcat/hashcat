@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef EXT_NVRTC_H
-#define EXT_NVRTC_H
+#ifndef HC_EXT_NVRTC_H
+#define HC_EXT_NVRTC_H
 
 /**
  * from cuda.h (/usr/local/cuda-10.1/targets/x86_64-linux/include/nvrtc.h)
@@ -96,4 +96,4 @@ int hc_nvrtcGetPTXSize         (void *hashcat_ctx, nvrtcProgram prog, size_t *pt
 int hc_nvrtcGetPTX             (void *hashcat_ctx, nvrtcProgram prog, char *ptx);
 int hc_nvrtcVersion            (void *hashcat_ctx, int *major, int *minor);
 
-#endif // EXT_NVRTC_H
+#endif // HC_EXT_NVRTC_H

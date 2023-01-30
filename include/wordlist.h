@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef WORDLIST_H
-#define WORDLIST_H
+#ifndef HC_WORDLIST_H
+#define HC_WORDLIST_H
 
 #include <time.h>
 #include <inttypes.h>
@@ -26,4 +26,4 @@ int  count_words     (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfi
 int  wl_data_init    (hashcat_ctx_t *hashcat_ctx);
 void wl_data_destroy (hashcat_ctx_t *hashcat_ctx);
 
-#endif // WORDLIST_H
+#endif // HC_WORDLIST_H

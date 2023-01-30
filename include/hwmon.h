@@ -8,8 +8,8 @@
 #include <sys/cygwin.h>
 #endif
 
-#ifndef HWMON_H
-#define HWMON_H
+#ifndef HC_HWMON_H
+#define HC_HWMON_H
 
 int hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
@@ -28,4 +28,4 @@ int hm_get_throttle_with_devices_idx           (hashcat_ctx_t *hashcat_ctx, cons
 int  hwmon_ctx_init    (hashcat_ctx_t *hashcat_ctx);
 void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 
-#endif // HWMON_H
+#endif // HC_HWMON_H

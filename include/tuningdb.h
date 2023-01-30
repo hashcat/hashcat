@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef TUNINGDB_H
-#define TUNINGDB_H
+#ifndef HC_TUNINGDB_H
+#define HC_TUNINGDB_H
 
 #include <stdio.h>
 #include <errno.h>
@@ -20,4 +20,4 @@ void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx);
 bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, const int line_num);
 tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode);
 
-#endif // TUNINGDB_H
+#endif // HC_TUNINGDB_H

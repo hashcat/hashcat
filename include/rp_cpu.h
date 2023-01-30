@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef RP_CPU_H
-#define RP_CPU_H
+#ifndef HC_RP_CPU_H
+#define HC_RP_CPU_H
 
 #include <string.h>
 
@@ -15,4 +15,4 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
 int run_rule_engine (const int rule_len, const char *rule_buf);
 
-#endif // RP_CPU_H
+#endif // HC_RP_CPU_H

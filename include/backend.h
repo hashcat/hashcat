@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef BACKEND_H
-#define BACKEND_H
+#ifndef HC_BACKEND_H
+#define HC_BACKEND_H
 
 #include <stdio.h>
 #include <errno.h>
@@ -92,4 +92,4 @@ int run_cracker                             (hashcat_ctx_t *hashcat_ctx, hc_devi
 void *hook12_thread (void *p);
 void *hook23_thread (void *p);
 
-#endif // BACKEND_H
+#endif // HC_BACKEND_H

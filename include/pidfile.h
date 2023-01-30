@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef PIDFILE_H
-#define PIDFILE_H
+#ifndef HC_PIDFILE_H
+#define HC_PIDFILE_H
 
 #include <stdio.h>
 #include <unistd.h>
@@ -19,4 +19,4 @@ int pidfile_ctx_init (hashcat_ctx_t *hashcat_ctx);
 
 void pidfile_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 
-#endif // PIDFILE_H
+#endif // HC_PIDFILE_H

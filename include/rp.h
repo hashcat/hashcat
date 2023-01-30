@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef RP_H
-#define RP_H
+#ifndef HC_RP_H
+#define HC_RP_H
 
 #include <string.h>
 
@@ -63,4 +63,4 @@ bool kernel_rules_has_noop (const kernel_rule_t *kernel_rules_buf, const u32 ker
 int kernel_rules_load     (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt);
 int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 *out_cnt, const char *rp_gen_func_selection);
 
-#endif // RP_H
+#endif // HC_RP_H

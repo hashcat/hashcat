@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef EXT_METAL_H
-#define EXT_METAL_H
+#ifndef HC_EXT_METAL_H
+#define HC_EXT_METAL_H
 
 #if defined (__APPLE__)
 
@@ -115,4 +115,4 @@ int  hc_mtlEncodeComputeCommand     (void *hashcat_ctx, mtl_command_encoder meta
 
 #endif // __APPLE__
 
-#endif // EXT_METAL_H
+#endif // HC_EXT_METAL_H

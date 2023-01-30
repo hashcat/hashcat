@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef BRAIN_H
-#define BRAIN_H
+#ifndef HC_BRAIN_H
+#define HC_BRAIN_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -252,4 +252,4 @@ void  brain_server_db_attack_free       (brain_server_db_attack_t *brain_server_
 int   brain_ctx_init                    (hashcat_ctx_t *hashcat_ctx);
 void  brain_ctx_destroy                 (hashcat_ctx_t *hashcat_ctx);
 
-#endif // BRAIN_H
+#endif // HC_BRAIN_H

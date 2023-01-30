@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef USER_OPTIONS_H
-#define USER_OPTIONS_H
+#ifndef HC_USER_OPTIONS_H
+#define HC_USER_OPTIONS_H
 
 #include <getopt.h>
 
@@ -34,4 +34,4 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_info (hashcat_ctx_t *hashcat_ctx);
 
-#endif // USER_OPTIONS_H
+#endif // HC_USER_OPTIONS_H

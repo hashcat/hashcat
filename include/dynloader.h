@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef DYNLOADER_H
-#define DYNLOADER_H
+#ifndef HC_DYNLOADER_H
+#define HC_DYNLOADER_H
 
 #include <stdlib.h>
 
@@ -76,4 +76,4 @@ hc_dynfunc_t hc_dlsym   (hc_dynlib_t handle, const char *symbol);
     } \
   } while (0)
 
-#endif // _DYNALOADER_H
+#endif // HC__DYNALOADER_H

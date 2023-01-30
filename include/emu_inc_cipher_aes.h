@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef EMU_INC_CIPHER_AES_H
-#define EMU_INC_CIPHER_AES_H
+#ifndef HC_EMU_INC_CIPHER_AES_H
+#define HC_EMU_INC_CIPHER_AES_H
 
 #include "emu_general.h"
 
@@ -23,4 +23,4 @@ extern u32a td2[256];
 extern u32a td3[256];
 extern u32a td4[256];
 
-#endif // EMU_INC_CIPHER_AES_H
+#endif // HC_EMU_INC_CIPHER_AES_H

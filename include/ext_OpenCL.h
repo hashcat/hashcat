@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef EXT_OPENCL_H
-#define EXT_OPENCL_H
+#ifndef HC_EXT_OPENCL_H
+#define HC_EXT_OPENCL_H
 
 #define CL_TARGET_OPENCL_VERSION 120
 
@@ -163,4 +163,4 @@ int hc_clGetEventProfilingInfo   (void *hashcat_ctx, cl_event event, cl_profilin
 int hc_clReleaseEvent            (void *hashcat_ctx, cl_event event);
 //int hc_clUnloadPlatformCompiler  (void *hashcat_ctx, cl_platform_id platform);
 
-#endif // EXT_OPENCL_H
+#endif // HC_EXT_OPENCL_H

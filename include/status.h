@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef STATUS_H
-#define STATUS_H
+#ifndef HC_STATUS_H
+#define HC_STATUS_H
 
 #include <stdio.h>
 #include <time.h>
@@ -126,4 +126,4 @@ void        status_ctx_destroy                        (hashcat_ctx_t *hashcat_ct
 
 void        status_status_destroy                     (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_status);
 
-#endif // STATUS_H
+#endif // HC_STATUS_H

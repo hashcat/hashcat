@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef OUTFILE_H
-#define OUTFILE_H
+#ifndef HC_OUTFILE_H
+#define HC_OUTFILE_H
 
 #include <stdio.h>
 #include <time.h>
@@ -22,4 +22,4 @@ int  outfile_write_open     (hashcat_ctx_t *hashcat_ctx);
 void outfile_write_close    (hashcat_ctx_t *hashcat_ctx);
 int  outfile_write          (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, const bool print_eol, char *tmp_buf);
 
-#endif // OUTFILE_H
+#endif // HC_OUTFILE_H

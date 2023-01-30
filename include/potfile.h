@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef POTFILE_H
-#define POTFILE_H
+#ifndef HC_POTFILE_H
+#define HC_POTFILE_H
 
 #include <stdio.h>
 #include <stddef.h>
@@ -32,4 +32,4 @@ void pot_tree_destroy      (pot_tree_entry_t *tree);
 int  sort_pot_tree_by_hash (const void *v1, const void *v2);
 int  sort_pot_orig_line    (const void *v1, const void *v2);
 
-#endif // POTFILE_H
+#endif // HC_POTFILE_H

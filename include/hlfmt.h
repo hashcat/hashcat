@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef HLFMT_H
-#define HLFMT_H
+#ifndef HC_HLFMT_H
+#define HC_HLFMT_H
 
 #include <stdio.h>
 
@@ -17,4 +17,4 @@ void hlfmt_user (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf
 
 u32 hlfmt_detect (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32 max_check);
 
-#endif // HLFMT_H
+#endif // HC_HLFMT_H

@@ -3,9 +3,9 @@
  * License.....: MIT
  */
 
-#ifndef BENCHMARK_H
-#define BENCHMARK_H
+#ifndef HC_BENCHMARK_H
+#define HC_BENCHMARK_H
 
 int benchmark_next (hashcat_ctx_t *hashcat_ctx);
 
-#endif // BENCHMARK_H
+#endif // HC_BENCHMARK_H

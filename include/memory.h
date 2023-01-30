@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef MEMORY_H
-#define MEMORY_H
+#ifndef HC_MEMORY_H
+#define HC_MEMORY_H
 
 #include <stdio.h>
 #include <string.h>
@@ -18,4 +18,4 @@ void *hcrealloc (void *ptr, const size_t oldsz, const size_t addsz);
 char *hcstrdup  (const char *s);
 void  hcfree    (void *ptr);
 
-#endif // MEMORY_H
+#endif // HC_MEMORY_H

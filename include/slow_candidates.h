@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef SLOW_CANDIDATES_H
-#define SLOW_CANDIDATES_H
+#ifndef HC_SLOW_CANDIDATES_H
+#define HC_SLOW_CANDIDATES_H
 
 typedef struct extra_info_straight
 {
@@ -55,4 +55,4 @@ typedef struct extra_info_mask
 void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u64 cur, const u64 end);
 void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info);
 
-#endif // SLOW_CANDIDATES_H
+#endif // HC_SLOW_CANDIDATES_H

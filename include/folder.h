@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef FOLDER_H
-#define FOLDER_H
+#ifndef HC_FOLDER_H
+#define HC_FOLDER_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,4 +39,4 @@ void folder_config_destroy (hashcat_ctx_t *hashcat_ctx);
 int hc_mkdir (const char *name, MAYBE_UNUSED const int mode);
 int hc_mkdir_rec (const char *path, MAYBE_UNUSED const int mode);
 
-#endif // FOLDER_H
+#endif // HC_FOLDER_H

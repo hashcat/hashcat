@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef SHARED_H
-#define SHARED_H
+#ifndef HC_SHARED_H
+#define HC_SHARED_H
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -110,4 +110,4 @@ bool is_apple_silicon (void);
 
 char *file_to_buffer (const char *filename);
 
-#endif // SHARED_H
+#endif // HC_SHARED_H

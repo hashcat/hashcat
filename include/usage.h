@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef USAGE_H
-#define USAGE_H
+#ifndef HC_USAGE_H
+#define HC_USAGE_H
 
 #include <stdio.h>
 #include <string.h>
@@ -26,4 +26,4 @@ void usage_mini_print (const char *progname);
 void usage_big_print  (hashcat_ctx_t *hashcat_ctx);
 int sort_by_usage (const void *p1, const void *p2);
 
-#endif // USAGE_H
+#endif // HC_USAGE_H

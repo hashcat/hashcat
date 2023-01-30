@@ -6,7 +6,7 @@
 #ifndef INC_VENDOR_H
 #define INC_VENDOR_H
 
-#if defined CPU_OPENCL_EMU_H
+#if defined HC_CPU_OPENCL_EMU_H
 #define IS_NATIVE
 #elif defined __CUDACC__
 #define IS_CUDA

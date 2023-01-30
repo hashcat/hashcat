@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef EXT_SYSFS_AMDGPU_H
-#define EXT_SYSFS_AMDGPU_H
+#ifndef HC_EXT_SYSFS_AMDGPU_H
+#define HC_EXT_SYSFS_AMDGPU_H
 
 #include <stdbool.h>
 
@@ -35,4 +35,4 @@ int hm_SYSFS_AMDGPU_get_pp_dpm_mclk (void *hashcat_ctx, const int backend_device
 int hm_SYSFS_AMDGPU_get_pp_dpm_pcie (void *hashcat_ctx, const int backend_device_idx, int *val);
 int hm_SYSFS_AMDGPU_get_gpu_busy_percent (void *hashcat_ctx, const int backend_device_idx, int *val);
 
-#endif // EXT_SYSFS_AMDGPU_H
+#endif // HC_EXT_SYSFS_AMDGPU_H

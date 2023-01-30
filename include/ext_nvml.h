@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef NVML_H
-#define NVML_H
+#ifndef HC_NVML_H
+#define HC_NVML_H
 
 /**
  * Declarations from nvml.h
@@ -233,4 +233,4 @@ int hm_NVML_nvmlDeviceGetTemperatureThreshold (void *hashcat_ctx, nvmlDevice_t d
 int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (void *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkWidth);
 int hm_NVML_nvmlDeviceGetPciInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlPciInfo_t *pci);
 
-#endif // NVML_H
+#endif // HC_NVML_H

@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef TERMINAL_H
-#define TERMINAL_H
+#ifndef HC_TERMINAL_H
+#define HC_TERMINAL_H
 
 #include <stdio.h>
 #include <string.h>
@@ -64,4 +64,4 @@ void status_display                     (hashcat_ctx_t *hashcat_ctx);
 void status_benchmark_machine_readable  (hashcat_ctx_t *hashcat_ctx);
 void status_benchmark                   (hashcat_ctx_t *hashcat_ctx);
 
-#endif // TERMINAL_H
+#endif // HC_TERMINAL_H

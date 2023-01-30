@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef CPU_OPENCL_EMU_H
-#define CPU_OPENCL_EMU_H
+#ifndef HC_CPU_OPENCL_EMU_H
+#define HC_CPU_OPENCL_EMU_H
 
 #define DEVICE_TYPE    -1
 #define VENDOR_ID      -1
@@ -27,4 +27,4 @@ size_t get_global_id  (u32 dimindx __attribute__((unused)));
 size_t get_local_id   (u32 dimindx __attribute__((unused)));
 size_t get_local_size (u32 dimindx __attribute__((unused)));
 
-#endif // CPU_OPENCL_EMU_H
+#endif // HC_CPU_OPENCL_EMU_H

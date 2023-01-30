@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef EXT_ADL_H
-#define EXT_ADL_H
+#ifndef HC_EXT_ADL_H
+#define HC_EXT_ADL_H
 
 #include <string.h>
 #include <stdlib.h>
@@ -659,4 +659,4 @@ int hm_ADL_Overdrive_Caps (void *hashcat_ctx, int iAdapterIndex, int *od_support
 int hm_ADL2_Overdrive_Caps (void *hashcat_ctx, int iAdapterIndex, int *od_supported, int *od_enabled, int *od_version);
 int hm_ADL2_New_QueryPMLogData_Get (void *hashcat_ctx, int iAdapterIndex, ADLPMLogDataOutput *lpDataOutput);
 
-#endif // EXT_ADL_H
+#endif // HC_EXT_ADL_H
