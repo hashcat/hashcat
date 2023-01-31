@@ -2731,13 +2731,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_path_exist (outfile_ctx->filename) == true)
     {
-      if (hc_path_is_fifo (outfile_ctx->filename) == true)
-      {
-        event_log_error (hashcat_ctx, "%s: A fifo cannot be used as an outfile.", outfile_ctx->filename);
-
-        return -1;
-      }
-
       if (hc_path_is_directory (outfile_ctx->filename) == true)
       {
         event_log_error (hashcat_ctx, "%s: A directory cannot be used as an outfile.", outfile_ctx->filename);
