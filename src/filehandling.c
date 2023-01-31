@@ -116,28 +116,32 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   bool is_gzip = false;
   bool is_zip  = false;
   bool is_xz   = false;
+  bool is_fifo = hc_path_is_fifo (path);
 
-  int fd_tmp = open (path, O_RDONLY);
-
-  if (fd_tmp != -1)
+  if (is_fifo == false)
   {
-    lseek (fd_tmp, 0, SEEK_SET);
+    int fd_tmp = open (path, O_RDONLY);
 
-    if (read (fd_tmp, check, sizeof (check)) > 0)
+    if (fd_tmp != -1)
     {
-      if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)                     is_gzip = true;
-      if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) is_zip  = true;
-      if (memcmp (check, XZ_SIG, XZ_SIG_SIZE) == 0)                                     is_xz   = true;
+      lseek (fd_tmp, 0, SEEK_SET);
 
-      // compressed files with BOM will be undetected!
-
-      if (is_gzip == false && is_zip == false && is_xz == false)
+      if (read (fd_tmp, check, sizeof (check)) > 0)
       {
-        fp->bom_size = hc_string_bom_size (check);
-      }
-    }
+        if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)                     is_gzip = true;
+        if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) is_zip  = true;
+        if (memcmp (check, XZ_SIG, XZ_SIG_SIZE) == 0)                                     is_xz   = true;
 
-    close (fd_tmp);
+        // compressed files with BOM will be undetected!
+
+        if (is_gzip == false && is_zip == false && is_xz == false)
+        {
+          fp->bom_size = hc_string_bom_size (check);
+        }
+      }
+
+      close (fd_tmp);
+    }
   }
 
   if (fmode == -1)

@@ -699,6 +699,11 @@ bool hc_same_files (char *file1, char *file2)
 {
   if ((file1 != NULL) && (file2 != NULL))
   {
+    if (hc_path_is_fifo (file1) == true || hc_path_is_fifo (file2) == true)
+    {
+      return false;
+    }
+
     struct stat tmpstat_file1;
     struct stat tmpstat_file2;
 
