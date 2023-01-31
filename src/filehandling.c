@@ -80,7 +80,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
   int fmode = S_IRUSR|S_IWUSR;
 
-  if (strncmp (mode, "a", 1) == 0 || strncmp (mode, "ab", 2) == 0)
+  if (strncmp (mode, "a", 1) == 0)
   {
     oflag = O_WRONLY | O_CREAT | O_APPEND;
 
@@ -88,7 +88,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     if (strncmp (mode, "ab", 2) == 0) oflag |= O_BINARY;
     #endif
   }
-  else if (strncmp (mode, "r", 1) == 0 || strncmp (mode, "rb", 2) == 0)
+  else if (strncmp (mode, "r", 1) == 0)
   {
     oflag = O_RDONLY;
     fmode = -1;
@@ -97,7 +97,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     if (strncmp (mode, "rb", 2) == 0) oflag |= O_BINARY;
     #endif
   }
-  else if (strncmp (mode, "w", 1) == 0 || strncmp (mode, "wb", 2) == 0)
+  else if (strncmp (mode, "w", 1) == 0)
   {
     oflag = O_WRONLY | O_CREAT | O_TRUNC;
 
