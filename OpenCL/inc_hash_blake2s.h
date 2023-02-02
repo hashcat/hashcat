@@ -28,9 +28,9 @@ DECLSPEC u32x blake2s_rot07   (const u32x a);
   c = c + d;                     \
   b = blake2s_rot12_S (b ^ c);   \
   a = a + b + m[k1];             \
-  d = blake2s_rot8_S (d ^ a);   \
+  d = blake2s_rot08_S (d ^ a);   \
   c = c + d;                     \
-  b = blake2s_rot7_S (b ^ c);   \
+  b = blake2s_rot07_S (b ^ c);   \
 }
 
 #define BLAKE2S_ROUND(c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,ca,cb,cc,cd,ce,cf) \
@@ -45,16 +45,16 @@ DECLSPEC u32x blake2s_rot07   (const u32x a);
   BLAKE2B_G (ce, cf, v[3], v[4], v[ 9], v[14]);                        \
 }
 
-#define BLAKE2B_G_VECTOR(k0,k1,a,b,c,d) \
+#define BLAKE2S_G_VECTOR(k0,k1,a,b,c,d) \
 {                                       \
   a = a + b + m[k0];                    \
-  d = blake2b_rot32 (d ^ a);            \
+  d = blake2s_rot16 (d ^ a);            \
   c = c + d;                            \
-  b = blake2b_rot24 (b ^ c);            \
+  b = blake2s_rot12 (b ^ c);            \
   a = a + b + m[k1];                    \
-  d = blake2b_rot16 (d ^ a);            \
+  d = blake2s_rot08 (d ^ a);            \
   c = c + d;                            \
-  b = hc_rotr64 (b ^ c, 63);            \
+  b = blake2s_rot07 (b ^ c);            \
 }
 
 #define BLAKE2B_ROUND_VECTOR(c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,ca,cb,cc,cd,ce,cf) \
