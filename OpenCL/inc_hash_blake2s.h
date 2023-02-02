@@ -3,34 +3,37 @@
  * License.....: MIT
  */
 
-#ifndef INC_HASH_BLAKE2B_H
-#define INC_HASH_BLAKE2B_H
+#ifndef INC_HASH_BLAKE2S_H
+#define INC_HASH_BLAKE2S_H
 
-#define BLAKE2B_UPDATE  0
-#define BLAKE2B_FINAL  -1
+#define BLAKE2S_UPDATE  0
+#define BLAKE2S_FINAL  -1
 
-DECLSPEC u64  blake2b_rot16_S (const u64  a);
-DECLSPEC u64x blake2b_rot16   (const u64x a);
+DECLSPEC u32  blake2s_rot16_S (const u32  a);
+DECLSPEC u32x blake2s_rot16   (const u32x a);
 
-DECLSPEC u64  blake2b_rot24_S (const u64  a);
-DECLSPEC u64x blake2b_rot24   (const u64x a);
+DECLSPEC u32  blake2s_rot24_S (const u32  a);
+DECLSPEC u32x blake2s_rot24   (const u32x a);
 
-DECLSPEC u64  blake2b_rot32_S (const u64  a);
-DECLSPEC u64x blake2b_rot32   (const u64x a);
+DECLSPEC u32  blake2s_rot32_S (const u32  a);
+DECLSPEC u32x blake2s_rot32   (const u32x a);
 
-#define BLAKE2B_G(k0,k1,a,b,c,d) \
+DECLSPEC u32  blake2s_rot07_S (const u32  a);
+DECLSPEC u32x blake2s_rot07   (const u32x a);
+
+#define BLAKE2S_G(k0,k1,a,b,c,d) \
 {                                \
   a = a + b + m[k0];             \
-  d = blake2b_rot32_S (d ^ a);   \
+  d = blake2s_rot16_S (d ^ a);   \
   c = c + d;                     \
-  b = blake2b_rot24_S (b ^ c);   \
+  b = blake2s_rot12_S (b ^ c);   \
   a = a + b + m[k1];             \
-  d = blake2b_rot16_S (d ^ a);   \
+  d = blake2s_rot8_S (d ^ a);   \
   c = c + d;                     \
-  b = hc_rotr64_S (b ^ c, 63);   \
+  b = blake2s_rot7_S (b ^ c);   \
 }
 
-#define BLAKE2B_ROUND(c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,ca,cb,cc,cd,ce,cf) \
+#define BLAKE2S_ROUND(c0,c1,c2,c3,c4,c5,c6,c7,c8,c9,ca,cb,cc,cd,ce,cf) \
 {                                                                      \
   BLAKE2B_G (c0, c1, v[0], v[4], v[ 8], v[12]);                        \
   BLAKE2B_G (c2, c3, v[1], v[5], v[ 9], v[13]);                        \
