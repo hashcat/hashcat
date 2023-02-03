@@ -808,6 +808,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
+   * prevent the user from using -m/--hash-type together with --stdout
+   */
+
+  if (user_options->hash_mode_chgd == true && user_options->stdout_flag == true)
+  {
+    event_log_error (hashcat_ctx, "Use of -m/--hash-type is not supported with --stdout.");
+
+    return -1;
+  }
+
+  /**
    * status progress init; needs hashes that's why we have to do it here and separate from status_ctx_init
    */
 
