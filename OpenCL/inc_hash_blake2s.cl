@@ -136,6 +136,7 @@ DECLSPEC u32x blake2S_rot08 (const u32x a)
 
 DECLSPEC void blake2s_transform (PRIVATE_AS u32 *h, PRIVATE_AS const u32 *m, const int len, const u32 f0)
 {
+  // printf("------\nm : %x\n", m[0]);
   const u32 t0 = len;
 
   u32 v[16];
@@ -157,6 +158,7 @@ DECLSPEC void blake2s_transform (PRIVATE_AS u32 *h, PRIVATE_AS const u32 *m, con
   v[14] = BLAKE2S_IV_06 ^ f0;
   v[15] = BLAKE2S_IV_07; // ^ f1;
 
+  // printf("v : %x\n", v[0]);
   BLAKE2S_ROUND ( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
   BLAKE2S_ROUND (14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3);
   BLAKE2S_ROUND (11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4);
@@ -176,6 +178,7 @@ DECLSPEC void blake2s_transform (PRIVATE_AS u32 *h, PRIVATE_AS const u32 *m, con
   h[5] = h[5] ^ v[5] ^ v[13];
   h[6] = h[6] ^ v[6] ^ v[14];
   h[7] = h[7] ^ v[7] ^ v[15];
+  // printf("h : %x\n------\n", h[0]);
 }
 
 DECLSPEC void blake2s_init (PRIVATE_AS blake2s_ctx_t *ctx)
