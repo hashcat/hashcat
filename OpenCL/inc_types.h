@@ -1666,6 +1666,19 @@ typedef enum blake2b_constants
 
 } blake2b_constants_t;
 
+typedef enum blake2s_constants
+{
+  BLAKE2S_IV_00=0x6a09e667,
+  BLAKE2S_IV_01=0xbb67ae85,
+  BLAKE2S_IV_02=0x3c6ef372,
+  BLAKE2S_IV_03=0xa54ff53a,
+  BLAKE2S_IV_04=0x510e527f,
+  BLAKE2S_IV_05=0x9b05688c,
+  BLAKE2S_IV_06=0x1f83d9ab,
+  BLAKE2S_IV_07=0x5be0cd19
+
+} blake2s_constants_t;
+
 typedef enum combinator_mode
 {
   COMBINATOR_MODE_BASE_LEFT  = 10001,
