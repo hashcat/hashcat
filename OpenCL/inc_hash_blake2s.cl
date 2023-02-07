@@ -95,7 +95,7 @@ DECLSPEC u32 blake2s_rot08_S (const u32 a)
   #endif
 }
 
-DECLSPEC u32x blake2S_rot08 (const u32x a)
+DECLSPEC u32x blake2s_rot08 (const u32x a)
 {
   u32x r;
 
