@@ -198,6 +198,7 @@ DECLSPEC void blake2s_transform (PRIVATE_AS u32 *h, PRIVATE_AS const u32 *m, con
 DECLSPEC void blake2s_init (PRIVATE_AS blake2s_ctx_t *ctx)
 {
   printf("Init\n");
+
   ctx->h[0] = BLAKE2S_IV_00 ^ 0x01010020; // default output length: 0x20 = 32 bytes
   ctx->h[1] = BLAKE2S_IV_01;
   ctx->h[2] = BLAKE2S_IV_02;
@@ -230,6 +231,7 @@ DECLSPEC void blake2s_init (PRIVATE_AS blake2s_ctx_t *ctx)
 DECLSPEC void blake2s_update_64 (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
 {
   printf("update_64\n");
+
   if (len == 0) return;
 
   const int pos = ctx->len & 63;
@@ -337,7 +339,9 @@ DECLSPEC void blake2s_update_64 (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS u32 *
 
 DECLSPEC void blake2s_update (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
+
   printf("update\n");
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -392,7 +396,9 @@ DECLSPEC void blake2s_update (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS const u3
 
 DECLSPEC void blake2s_update_global (PRIVATE_AS blake2s_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
+
   printf("update_global\n");
+
   u32 w0[4];
   u32 w1[4];
   u32 w2[4];
@@ -447,13 +453,17 @@ DECLSPEC void blake2s_update_global (PRIVATE_AS blake2s_ctx_t *ctx, GLOBAL_AS co
 
 DECLSPEC void blake2s_final (PRIVATE_AS blake2s_ctx_t *ctx)
 {
+
   printf("final\n");
+
   blake2s_transform (ctx->h, ctx->m, ctx->len, BLAKE2S_FINAL);
 }
 
 DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32x *m, const u32x len, const u32 f0)
 {
+
   printf("transform_vector\n");
+
   const u32x t0 = len;
 
   u32x v[16];
@@ -494,12 +504,11 @@ DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32
   h[5] = h[5] ^ v[5] ^ v[13];
   h[6] = h[6] ^ v[6] ^ v[14];
   h[7] = h[7] ^ v[7] ^ v[15];
-
-  printf("Final-V : %x %x %x %x %x %x %x %x\n", h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7]);
 }
 
 DECLSPEC void blake2s_init_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx)
-{
+i{
+
   printf("init_vector\n");
 
   ctx->h[0] = BLAKE2S_IV_00 ^ 0x01010020; // default output length: 0x20 = 32 bytes
