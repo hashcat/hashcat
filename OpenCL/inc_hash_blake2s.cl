@@ -507,7 +507,7 @@ DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32
 }
 
 DECLSPEC void blake2s_init_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx)
-i{
+{
 
   printf("init_vector\n");
 

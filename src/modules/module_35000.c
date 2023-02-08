@@ -22,10 +22,10 @@ static const u64 KERN_TYPE = 35000;
 static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_USES_BITS_32 | OPTI_TYPE_RAW_HASH;
 static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_PT_GENERATE_LE;
 static const u32 SALT_TYPE = SALT_TYPE_NONE;
-static const char *ST_PASS = "abc";
-static const char *ST_HASH = "$BLAKE2$508c5e8c327c14e2e1a72ba34eeb452f37458b209ed63a294d999b4c86675982";
-//static const char *ST_PASS = "hashcat";
-//static const char *ST_HASH = "$BLAKE2$2c719b484789ad5f6fc1739012182169b25484af156adc91d4f64f72400e574a";
+//static const char *ST_PASS = "abc";
+//static const char *ST_HASH = "$BLAKE2$508c5e8c327c14e2e1a72ba34eeb452f37458b209ed63a294d999b4c86675982";
+static const char *ST_PASS = "hashcat";
+static const char *ST_HASH = "$BLAKE2$2c719b484789ad5f6fc1739012182169b25484af156adc91d4f64f72400e574a";
 
 u32 module_attack_exec (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED const user_options_t * user_options, MAYBE_UNUSED const user_options_extra_t * user_options_extra)
 {
@@ -110,10 +110,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
   token.signatures_cnt = 1;
   token.signatures_buf[0] = SIGNATURE_BLAKE2S;
 
-  token.len[0] = 8;
+  token.len[0] = 4;
   token.attr[0] = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.len[1] = 64;
+  token.len[1] = 32;
   token.attr[1] = TOKEN_ATTR_FIXED_LENGTH | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -124,13 +124,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
   const u8 *hash_pos = token.buf[1];
 
   digest[0] = hex_to_u32 (hash_pos + 0);
-  digest[1] = hex_to_u32 (hash_pos + 8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
-  digest[4] = hex_to_u32 (hash_pos + 32);
-  digest[5] = hex_to_u32 (hash_pos + 40);
-  digest[6] = hex_to_u32 (hash_pos + 48);
-  digest[7] = hex_to_u32 (hash_pos + 56);
+  digest[1] = hex_to_u32 (hash_pos + 4);
+  digest[2] = hex_to_u32 (hash_pos + 8);
+  digest[3] = hex_to_u32 (hash_pos + 12);
+  digest[4] = hex_to_u32 (hash_pos + 16);
+  digest[5] = hex_to_u32 (hash_pos + 20);
+  digest[6] = hex_to_u32 (hash_pos + 24);
+  digest[7] = hex_to_u32 (hash_pos + 28);
 
   return (PARSER_OK);
 }
@@ -149,21 +149,21 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
   memcpy (out_buf, SIGNATURE_BLAKE2S, out_len);
 
   u32_to_hex (digest[0], out_buf + out_len);
-  out_len += 8;
+  out_len += 4;
   u32_to_hex (digest[1], out_buf + out_len);
-  out_len += 8;
+  out_len += 4;
   u32_to_hex (digest[2], out_buf + out_len);
-  out_len += 8;
+  out_len += 4;
   u32_to_hex (digest[3], out_buf + out_len);
-  out_len += 8;
+  out_len += 4;
   u32_to_hex (digest[4], out_buf + out_len);
-  out_len += 8;
+  out_len += 4;
   u32_to_hex (digest[5], out_buf + out_len);
-  out_len += 8;
+  out_len += 4;
   u32_to_hex (digest[6], out_buf + out_len);
-  out_len += 8;
+  out_len += 4;
   u32_to_hex (digest[7], out_buf + out_len);
-  out_len += 8;
+  out_len += 4;
 
   return out_len;
 }
