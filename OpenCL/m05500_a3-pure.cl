@@ -586,6 +586,18 @@ KERNEL_FQ void m05500_mxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
+    #if VECT_SIZE == 1
+
+    md4_ctx_t ctx;
+
+    md4_init (&ctx);
+
+    md4_update_utf16le (&ctx, w, pw_len);
+
+    md4_final (&ctx);
+
+    #else
+
     md4_ctx_vector_t ctx;
 
     md4_init_vector (&ctx);
@@ -593,6 +605,8 @@ KERNEL_FQ void m05500_mxx (KERN_ATTR_VECTOR ())
     md4_update_vector_utf16le (&ctx, w, pw_len);
 
     md4_final_vector (&ctx);
+
+    #endif
 
     const u32x a = ctx.h[0];
     const u32x b = ctx.h[1];
@@ -742,6 +756,18 @@ KERNEL_FQ void m05500_sxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
+    #if VECT_SIZE == 1
+
+    md4_ctx_t ctx;
+
+    md4_init (&ctx);
+
+    md4_update_utf16le (&ctx, w, pw_len);
+
+    md4_final (&ctx);
+
+    #else
+
     md4_ctx_vector_t ctx;
 
     md4_init_vector (&ctx);
@@ -749,6 +775,8 @@ KERNEL_FQ void m05500_sxx (KERN_ATTR_VECTOR ())
     md4_update_vector_utf16le (&ctx, w, pw_len);
 
     md4_final_vector (&ctx);
+
+    #endif
 
     const u32x a = ctx.h[0];
     const u32x b = ctx.h[1];

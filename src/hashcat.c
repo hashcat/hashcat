@@ -364,12 +364,12 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   if (status_ctx->devices_status == STATUS_EXHAUSTED)
   {
     // the options speed-only and progress-only cause hashcat to abort quickly.
-    // therefore, they will end up (if no other error occured) as STATUS_EXHAUSTED.
+    // therefore, they will end up (if no other error occurred) as STATUS_EXHAUSTED.
     // however, that can create confusion in hashcats RC, because exhausted translates to RC = 1.
-    // but then having RC = 1 does not match our expection if we use for speed-only and progress-only.
+    // but then having RC = 1 does not match our exception if we use for speed-only and progress-only.
     // to get hashcat to return RC = 0 we have to set it to CRACKED or BYPASS
     // note: other options like --show, --left, --benchmark, --keyspace, --backend-info, etc.
-    // not not reach this section of the code, they've returned already with rc 0.
+    // do not reach this section of the code, they've returned already with rc 0.
 
     if ((user_options->speed_only == true) || (user_options->progress_only == true))
     {
@@ -774,7 +774,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (combinator_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
-   * charsets : keep them together for more easy maintainnce
+   * charsets : keep them together for more easy maintenance
    */
 
   if (mask_ctx_init (hashcat_ctx) == -1) return -1;
@@ -787,7 +787,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   {
     if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
     {
-      event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with --increment or mask files.");
+      event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with --increment, mask files, or --stdout.");
 
       return -1;
     }
@@ -805,6 +805,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+  }
+
+  /**
+   * prevent the user from using -m/--hash-type together with --stdout
+   */
+
+  if (user_options->hash_mode_chgd == true && user_options->stdout_flag == true)
+  {
+    event_log_error (hashcat_ctx, "Use of -m/--hash-type is not supported with --stdout.");
+
+    return -1;
   }
 
   /**
@@ -1818,7 +1829,7 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   }
   else if (rc_final == -1)
   {
-    // setup the new negative status code, usefull in test.sh
+    // set up the new negative status code, useful in test.sh
     // -2 is marked as used in status_codes.txt
     if (backend_ctx->runtime_skip_warning  == true)               rc_final = -3;
     if (backend_ctx->memory_hit_warning    == true)               rc_final = -4;
