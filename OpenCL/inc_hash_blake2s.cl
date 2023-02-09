@@ -136,8 +136,8 @@ DECLSPEC u32x blake2s_rot08 (const u32x a)
 
 DECLSPEC void blake2s_transform (PRIVATE_AS u32 *h, PRIVATE_AS const u32 *m, const int len, const u32 f0)
 {
-  printf("transform\n");
-  // printf("------\nm : %x\n", m[0]);
+  // printf("transform\n");
+  // // printf("------\nm : %x\n", m[0]);
   const u32 t0 = len;
 
   u32 v[16];
@@ -159,29 +159,29 @@ DECLSPEC void blake2s_transform (PRIVATE_AS u32 *h, PRIVATE_AS const u32 *m, con
   v[14] = BLAKE2S_IV_06 ^ f0;
   v[15] = BLAKE2S_IV_07; // ^ f1;
 
-  // printf("v : %x\n", v[0]);
-  printf("\n");
-  printf("Round 0 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // // printf("v : %x\n", v[0]);
+  // printf("\n");
+  // printf("Round 0 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND ( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
-  printf("Round 1 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round 1 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND (14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3);
-  printf("Round 2 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round 2 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND (11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4);
-  printf("Round 3 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round 3 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND ( 7,  9,  3,  1, 13, 12, 11, 14,  2,  6,  5, 10,  4,  0, 15,  8);
-  printf("Round 4 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round 4 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND ( 9,  0,  5,  7,  2,  4, 10, 15, 14,  1, 11, 12,  6,  8,  3, 13);
-  printf("Round 5 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round 5 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND ( 2, 12,  6, 10,  0, 11,  8,  3,  4, 13,  7,  5, 15, 14,  1,  9);
-  printf("Round 6 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round 6 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND (12,  5,  1, 15, 14, 13,  4, 10,  0,  7,  6,  3,  9,  2,  8, 11);
-  printf("Round 7 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round 7 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND (13, 11,  7, 14, 12,  1,  3,  9,  5,  0, 15,  4,  8,  6,  2, 10);
-  printf("Round 8 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round 8 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND ( 6, 15, 14,  9, 11,  3,  0,  8, 12,  2, 13,  7,  1,  4, 10,  5);
-  printf("Round 9 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round 9 : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
   BLAKE2S_ROUND (10,  2,  8,  4,  7,  6,  1,  5, 15, 11,  9, 14,  3, 12, 13 , 0);
-  printf("Round A : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
+  // printf("Round A : %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x\n", v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9], v[10], v[11], v[12], v[13], v[14], v[15]);
 
   h[0] = h[0] ^ v[0] ^ v[ 8];
   h[1] = h[1] ^ v[1] ^ v[ 9];
@@ -191,13 +191,13 @@ DECLSPEC void blake2s_transform (PRIVATE_AS u32 *h, PRIVATE_AS const u32 *m, con
   h[5] = h[5] ^ v[5] ^ v[13];
   h[6] = h[6] ^ v[6] ^ v[14];
   h[7] = h[7] ^ v[7] ^ v[15];
-  printf("Final : %x %x %x %x %x %x %x %x\n", h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7]);
-  // printf("h : %x\n------\n", h[0]);
+  // printf("Final : %x %x %x %x %x %x %x %x\n", h[0], h[1], h[2], h[3], h[4], h[5], h[6], h[7]);
+  // // printf("h : %x\n------\n", h[0]);
 }
 
 DECLSPEC void blake2s_init (PRIVATE_AS blake2s_ctx_t *ctx)
 {
-  printf("Init\n");
+  // printf("Init\n");
 
   ctx->h[0] = BLAKE2S_IV_00 ^ 0x01010020; // default output length: 0x20 = 32 bytes
   ctx->h[1] = BLAKE2S_IV_01;
@@ -230,7 +230,7 @@ DECLSPEC void blake2s_init (PRIVATE_AS blake2s_ctx_t *ctx)
 
 DECLSPEC void blake2s_update_64 (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
 {
-  printf("update_64\n");
+  // printf("update_64\n");
 
   if (len == 0) return;
 
@@ -340,7 +340,7 @@ DECLSPEC void blake2s_update_64 (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS u32 *
 DECLSPEC void blake2s_update (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
 
-  printf("update\n");
+  // printf("update\n");
 
   u32 w0[4];
   u32 w1[4];
@@ -397,7 +397,7 @@ DECLSPEC void blake2s_update (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS const u3
 DECLSPEC void blake2s_update_global (PRIVATE_AS blake2s_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
 
-  printf("update_global\n");
+  // printf("update_global\n");
 
   u32 w0[4];
   u32 w1[4];
@@ -454,7 +454,7 @@ DECLSPEC void blake2s_update_global (PRIVATE_AS blake2s_ctx_t *ctx, GLOBAL_AS co
 DECLSPEC void blake2s_final (PRIVATE_AS blake2s_ctx_t *ctx)
 {
 
-  printf("final\n");
+  // printf("final\n");
 
   blake2s_transform (ctx->h, ctx->m, ctx->len, BLAKE2S_FINAL);
 }
@@ -462,7 +462,7 @@ DECLSPEC void blake2s_final (PRIVATE_AS blake2s_ctx_t *ctx)
 DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32x *m, const u32x len, const u32 f0)
 {
 
-  printf("transform_vector\n");
+  // printf("transform_vector\n");
 
   const u32x t0 = len;
 
@@ -509,7 +509,7 @@ DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32
 DECLSPEC void blake2s_init_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx)
 {
 
-  printf("init_vector\n");
+  // printf("init_vector\n");
 
   ctx->h[0] = BLAKE2S_IV_00 ^ 0x01010020; // default output length: 0x20 = 32 bytes
   ctx->h[1] = BLAKE2S_IV_01;
@@ -543,7 +543,7 @@ DECLSPEC void blake2s_init_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx)
 DECLSPEC void blake2s_init_vector_from_scalar (PRIVATE_AS blake2s_ctx_vector_t *ctx, PRIVATE_AS blake2s_ctx_t *ctx0)
 {
 
-  printf("init_vector_scalar\n");
+  // printf("init_vector_scalar\n");
 
   ctx->h[0] = ctx0->h[0];
   ctx->h[1] = ctx0->h[1];
@@ -577,7 +577,7 @@ DECLSPEC void blake2s_init_vector_from_scalar (PRIVATE_AS blake2s_ctx_vector_t *
 DECLSPEC void blake2s_update_vector_64 (PRIVATE_AS blake2s_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const int len)
 {
 
-  printf("update_vector_64\n");
+  // printf("update_vector_64\n");
 
   if (len == 0) return;
 
@@ -687,7 +687,7 @@ DECLSPEC void blake2s_update_vector_64 (PRIVATE_AS blake2s_ctx_vector_t *ctx, PR
 DECLSPEC void blake2s_update_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
 {
 
-  printf("update_vector\n");
+  // printf("update_vector\n");
 
   u32x w0[4];
   u32x w1[4];
@@ -744,7 +744,7 @@ DECLSPEC void blake2s_update_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx, PRIVA
 DECLSPEC void blake2s_final_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx)
 {
 
-  printf("final_vector\n");
+  // printf("final_vector\n");
 
   blake2s_transform_vector (ctx->h, ctx->m, (u32x) ctx->len, BLAKE2S_FINAL);
 }

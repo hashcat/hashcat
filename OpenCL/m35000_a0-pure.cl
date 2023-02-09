@@ -48,10 +48,10 @@ KERNEL_FQ void m35000_mxx (KERN_ATTR_RULES ())
     blake2s_update (&ctx, tmp.i, tmp.pw_len);
     blake2s_final  (&ctx);
     
-    const u32 r0 = h32_from_64_S (ctx.h[0]);
-    const u32 r1 = l32_from_64_S (ctx.h[0]);
-    const u32 r2 = h32_from_64_S (ctx.h[1]);
-    const u32 r3 = l32_from_64_S (ctx.h[1]);
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
 
     COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
@@ -101,15 +101,10 @@ KERNEL_FQ void m35000_sxx (KERN_ATTR_RULES ())
     blake2s_update (&ctx, tmp.i, tmp.pw_len);
     blake2s_final  (&ctx);
 
-    if (il_pos == 0)
-    {
-        printf("ctx.h[0] : %x\n", ctx.h[0]);
-    }
-
-    const u32 r0 = h32_from_64_S (ctx.h[0]);
-    const u32 r1 = l32_from_64_S (ctx.h[0]);
-    const u32 r2 = h32_from_64_S (ctx.h[1]);
-    const u32 r3 = l32_from_64_S (ctx.h[1]);
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
 
     COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
