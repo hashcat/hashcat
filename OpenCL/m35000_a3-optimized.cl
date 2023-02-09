@@ -33,8 +33,6 @@ DECLSPEC void m35000m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
 
     u32x w0[4];
     u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
 
     w0[0] = w0x;
     w0[1] = w[ 1];
@@ -44,25 +42,17 @@ DECLSPEC void m35000m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     w1[1] = w[ 5];
     w1[2] = w[ 6];
     w1[3] = w[ 7];
-    w2[0] = w[ 8];
-    w2[1] = w[ 9];
-    w2[2] = w[10];
-    w2[3] = w[11];
-    w3[0] = w[12];
-    w3[1] = w[13];
-    w3[2] = w[14];
-    w3[3] = w[15];
 
     u32x m[16];
 
-    m[ 0] = hl32_to_64 (w0[1], w0[0]);
-    m[ 1] = hl32_to_64 (w0[3], w0[2]);
-    m[ 2] = hl32_to_64 (w1[1], w1[0]);
-    m[ 3] = hl32_to_64 (w1[3], w1[2]);
-    m[ 4] = hl32_to_64 (w2[1], w2[0]);
-    m[ 5] = hl32_to_64 (w2[3], w2[2]);
-    m[ 6] = hl32_to_64 (w3[1], w3[0]);
-    m[ 7] = hl32_to_64 (w3[3], w3[2]);
+    m[ 0] = w0[0];
+    m[ 1] = w0[1];
+    m[ 2] = w0[2];
+    m[ 3] = w0[3];
+    m[ 4] = w1[0];
+    m[ 5] = w1[1];
+    m[ 6] = w1[2];
+    m[ 7] = w1[3];
     m[ 8] = 0;
     m[ 9] = 0;
     m[10] = 0;
@@ -125,8 +115,6 @@ DECLSPEC void m35000s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
 
     u32x w0[4];
     u32x w1[4];
-    u32x w2[4];
-    u32x w3[4];
 
     w0[0] = w0x;
     w0[1] = w[ 1];
@@ -136,25 +124,17 @@ DECLSPEC void m35000s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     w1[1] = w[ 5];
     w1[2] = w[ 6];
     w1[3] = w[ 7];
-    w2[0] = w[ 8];
-    w2[1] = w[ 9];
-    w2[2] = w[10];
-    w2[3] = w[11];
-    w3[0] = w[12];
-    w3[1] = w[13];
-    w3[2] = w[14];
-    w3[3] = w[15];
 
     u32x m[16];
 
-    m[ 0] = hl32_to_64 (w0[1], w0[0]);
-    m[ 1] = hl32_to_64 (w0[3], w0[2]);
-    m[ 2] = hl32_to_64 (w1[1], w1[0]);
-    m[ 3] = hl32_to_64 (w1[3], w1[2]);
-    m[ 4] = hl32_to_64 (w2[1], w2[0]);
-    m[ 5] = hl32_to_64 (w2[3], w2[2]);
-    m[ 6] = hl32_to_64 (w3[1], w3[0]);
-    m[ 7] = hl32_to_64 (w3[3], w3[2]);
+    m[ 0] = w0[0];
+    m[ 1] = w0[1];
+    m[ 2] = w0[2];
+    m[ 3] = w0[3];
+    m[ 4] = w1[0];
+    m[ 5] = w1[1];
+    m[ 6] = w1[2];
+    m[ 7] = w1[3];
     m[ 8] = 0;
     m[ 9] = 0;
     m[10] = 0;
