@@ -22,8 +22,6 @@ static const u64 KERN_TYPE = 35000;
 static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_USES_BITS_32 | OPTI_TYPE_RAW_HASH;
 static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_PT_GENERATE_LE;
 static const u32 SALT_TYPE = SALT_TYPE_NONE;
-// static const char *ST_PASS = "abc";
-// static const char *ST_HASH = "$BLAKE2$508c5e8c327c14e2e1a72ba34eeb452f37458b209ed63a294d999b4c86675982";
 static const char *ST_PASS = "hashcat";
 static const char *ST_HASH = "$BLAKE2$2c719b484789ad5f6fc1739012182169b25484af156adc91d4f64f72400e574a";
 
