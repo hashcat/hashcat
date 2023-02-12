@@ -68,17 +68,29 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = 1;
 
   token.len_min[0] = 1;
-  token.len_max[0] = 55;
+  token.len_max[0] = 55 * 2 + 6; /* 55 without $HEX[...] */
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
+  const u8 *unhex_buf = token.buf[0];
+  int unhex_len       = token.len[0];
+
+  if (is_hexify (unhex_buf, unhex_len))
+  {
+    unhex_len = exec_unhexify (unhex_buf, unhex_len, (u8 *) unhex_buf, unhex_len);
+  }
+  else if (unhex_len > 55)
+  {
+    return (PARSER_HASH_LENGTH);
+  }
+
   memset (digest, 0, hashconfig->dgst_size);
 
-  const u8 *pw_buf = token.buf[0];
-  const int pw_len = token.len[0];
+  const u8 *pw_buf = unhex_buf;
+  const int pw_len = unhex_len;
 
   memcpy ((char *) digest + 64, pw_buf, pw_len);
 
@@ -116,7 +128,33 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   char *ptr = (char *) digest_buf;
 
-  return snprintf (line_buf, line_size, "%s", ptr + 64);
+  const char *line_ptr = ptr + 64;
+  size_t line_len      = strnlen (line_ptr, 55);
+
+  if (need_hexify ((const u8 *) line_ptr, line_len, ':', 0))
+  {
+    char tmp_buf[55 * 2 + 6 + 1] = { 0 };
+
+    int tmp_len = 0;
+
+    tmp_buf[tmp_len++] = '$';
+    tmp_buf[tmp_len++] = 'H';
+    tmp_buf[tmp_len++] = 'E';
+    tmp_buf[tmp_len++] = 'X';
+    tmp_buf[tmp_len++] = '[';
+
+    exec_hexify ((const u8 *) line_ptr, line_len, (u8 *) tmp_buf + tmp_len);
+
+    tmp_len += line_len * 2;
+
+    tmp_buf[tmp_len++] = ']';
+
+    tmp_buf[tmp_len++] = 0;
+
+    return snprintf (line_buf, tmp_len, "%s", tmp_buf);
+  }
+
+  return snprintf (line_buf, line_size, "%s", line_ptr);
 }
 
 void module_init (module_ctx_t *module_ctx)
