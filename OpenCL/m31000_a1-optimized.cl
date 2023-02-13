@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_blake2s.cl)
 #endif
 
-KERNEL_FQ void m35000_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m31000_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -142,15 +142,15 @@ KERNEL_FQ void m35000_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m35000_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m31000_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m35000_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m31000_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m35000_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m31000_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -290,10 +290,10 @@ KERNEL_FQ void m35000_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m35000_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m31000_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m35000_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void m31000_s16 (KERN_ATTR_BASIC ())
 {
 }

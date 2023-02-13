@@ -16,7 +16,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_blake2s.cl)
 #endif
 
-KERNEL_FQ void m35000_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m31000_mxx (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -57,7 +57,7 @@ KERNEL_FQ void m35000_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m35000_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m31000_sxx (KERN_ATTR_RULES ())
 {
   /**
    * base
