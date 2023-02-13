@@ -58,6 +58,16 @@ KERNEL_FQ void m00040_mxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
+    #if VECT_SIZE == 1
+
+    md5_ctx_t ctx = ctx0;
+
+    md5_update_utf16le (&ctx, w, pw_len);
+
+    md5_final (&ctx);
+
+    #else
+
     md5_ctx_vector_t ctx;
 
     md5_init_vector_from_scalar (&ctx, &ctx0);
@@ -65,6 +75,8 @@ KERNEL_FQ void m00040_mxx (KERN_ATTR_VECTOR ())
     md5_update_vector_utf16le (&ctx, w, pw_len);
 
     md5_final_vector (&ctx);
+
+    #endif
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
@@ -131,6 +143,16 @@ KERNEL_FQ void m00040_sxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
+    #if VECT_SIZE == 1
+
+    md5_ctx_t ctx = ctx0;
+
+    md5_update_utf16le (&ctx, w, pw_len);
+
+    md5_final (&ctx);
+
+    #else
+
     md5_ctx_vector_t ctx;
 
     md5_init_vector_from_scalar (&ctx, &ctx0);
@@ -138,6 +160,8 @@ KERNEL_FQ void m00040_sxx (KERN_ATTR_VECTOR ())
     md5_update_vector_utf16le (&ctx, w, pw_len);
 
     md5_final_vector (&ctx);
+
+    #endif
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
