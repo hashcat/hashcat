@@ -72,7 +72,7 @@ DECLSPEC u32 blake2s_rot08_S (const u32 a)
 
   vconv32_t out;
 
-  out.v32 = hc_byte_perm_S (in.v32.b, in.v32.a, 0x0321);
+  out.v32 = hc_byte_perm_S (in.v32, in.v32, 0x0321);
 
   return out.v32;
 
@@ -84,7 +84,7 @@ DECLSPEC u32 blake2s_rot08_S (const u32 a)
 
   vconv32_t out;
 
-  out.v32 = hc_byte_perm_S (in.v32.b, in.v32.a, 0x00030201);
+  out.v32 = hc_byte_perm_S (in.v32, in.v32, 0x00030201);
 
   return out.v32;
 
