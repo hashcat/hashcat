@@ -2240,14 +2240,15 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
     int extraBytesToRead = 0;
 
-    /* old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
     if (c >= 0xfc)
     {
-      extraBytesToRead = 5;
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      //extraBytesToRead = 5;
     }
     else if (c >= 0xf8)
     {
-      extraBytesToRead = 4;
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      //extraBytesToRead = 4;
     }
     else if (c >= 0xf0)
     {
@@ -2260,50 +2261,6 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
     else if (c >= 0xc0)
     {
       extraBytesToRead = 1;
-    }
-    */
-
-    if (c <= 0x7f)
-    {
-      extraBytesToRead = 0;
-    }
-    else if ((c >= 0xc2) && (c <= 0xdf))
-    {
-      extraBytesToRead = 1;
-    }
-    else if (c == 0xe0)
-    {
-      extraBytesToRead = 2;
-    }
-    else if (c == 0xec)
-    {
-      extraBytesToRead = 2;
-    }
-    else if (c == 0xed)
-    {
-      extraBytesToRead = 2;
-    }
-    else if (c == 0xef)
-    {
-      extraBytesToRead = 2;
-    }
-    else if (c == 0xf0)
-    {
-      extraBytesToRead = 3;
-    }
-    else if (c == 0xf3)
-    {
-      extraBytesToRead = 3;
-    }
-    else if (c == 0xf4)
-    {
-      extraBytesToRead = 3;
-    }
-    else
-    {
-      hc_enc->pos = src_len;
-
-      return -1;
     }
 
     if ((src_pos + extraBytesToRead) >= src_sz)
@@ -2328,7 +2285,7 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
     switch (extraBytesToRead)
     {
-      /* old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
       /*
       case 5:
         ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
@@ -2434,14 +2391,15 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 
     int extraBytesToRead = 0;
 
-    /* old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
     if (c >= 0xfc)
     {
-      extraBytesToRead = 5;
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      //extraBytesToRead = 5;
     }
     else if (c >= 0xf8)
     {
-      extraBytesToRead = 4;
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      //extraBytesToRead = 4;
     }
     else if (c >= 0xf0)
     {
@@ -2454,50 +2412,6 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
     else if (c >= 0xc0)
     {
       extraBytesToRead = 1;
-    }
-    */
-
-    if (c <= 0x7f)
-    {
-      extraBytesToRead = 0;
-    }
-    else if ((c >= 0xc2) && (c <= 0xdf))
-    {
-      extraBytesToRead = 1;
-    }
-    else if (c == 0xe0)
-    {
-      extraBytesToRead = 2;
-    }
-    else if (c == 0xec)
-    {
-      extraBytesToRead = 2;
-    }
-    else if (c == 0xed)
-    {
-      extraBytesToRead = 2;
-    }
-    else if (c == 0xef)
-    {
-      extraBytesToRead = 2;
-    }
-    else if (c == 0xf0)
-    {
-      extraBytesToRead = 3;
-    }
-    else if (c == 0xf3)
-    {
-      extraBytesToRead = 3;
-    }
-    else if (c == 0xf4)
-    {
-      extraBytesToRead = 3;
-    }
-    else
-    {
-      hc_enc->pos = src_len;
-
-      return -1;
     }
 
     if ((src_pos + extraBytesToRead) >= src_sz)
@@ -2522,7 +2436,7 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 
     switch (extraBytesToRead)
     {
-      /* old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
       /*
       case 5:
         ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
