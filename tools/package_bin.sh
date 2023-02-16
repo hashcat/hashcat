@@ -67,8 +67,11 @@ unix2dos $OUT/tunings/*
 chmod 755 $OUT
 chmod 755 $OUT/rules
 chmod 644 $OUT/rules/*
+chmod 755 $OUT/rules/hybrid
+chmod 644 $OUT/rules/hybrid/*
 chmod 755 $OUT/docs
 chmod 644 $OUT/docs/*
+chmod 755 $OUT/docs/license_libs
 chmod 644 $OUT/docs/license_libs/*
 chmod 755 $OUT/charsets
 chmod 755 $OUT/charsets/*
