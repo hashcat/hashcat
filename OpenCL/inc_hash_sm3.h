@@ -19,7 +19,7 @@
 #define SM3_GG1(x, y, z)  (((z) ^ ((x) & ((y) ^ (z)))))
 
 #define SM3_EXPAND_S(a, b, c, d, e)   (SM3_P1_S(a ^ b ^ hc_rotl32_S(c, 15)) ^ hc_rotl32_S(d, 7) ^ e)
-#define SM3_EXPAND(a, b, c, d, e)     (SM3_P1(a ^ b ^ (c, 15)) ^ hc_rotl32(d, 7) ^ e)
+#define SM3_EXPAND(a, b, c, d, e)     (SM3_P1(a ^ b ^ hc_rotl32(c, 15)) ^ hc_rotl32(d, 7) ^ e)
 
 // Only Wj need to be parenthesis because of operator priority
 // (Wj = Wi ^ Wi+4)
@@ -34,13 +34,17 @@
   f = hc_rotl32_S(f, 19);                                        \
   h = SM3_P0_S(TT2);                                             \
 }
-
+/*
+printf(" Intermediate digest values :"                       \
+    " %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",     \
+    a, b, c, d, e, f, g, h);                                  \
+*/
 #define SM3_ROUND(a, b, c, d, e, f, g, h, Tj, Wi, Wj, FF, GG)    \
 {                                                                \
-  const u32 A_ROTL12 = hc_rotl32(a, 12);                         \
-  const u32 SS1 = hc_rotl32(A_ROTL12 + e + make_u32x(Tj), 7);    \
-  const u32 TT1 = FF(a, b, c) + d + (SS1 ^ A_ROTL12) + (Wj);     \
-  const u32 TT2 = GG(e, f, g) + h + SS1 + Wi;                    \
+  const u32x A_ROTL12 = hc_rotl32(a, 12);                        \
+  const u32x SS1 = hc_rotl32(A_ROTL12 + e + make_u32x(Tj), 7);   \
+  const u32x TT1 = FF(a, b, c) + d + (SS1 ^ A_ROTL12) + (Wj);    \
+  const u32x TT2 = GG(e, f, g) + h + SS1 + Wi;                   \
   b = hc_rotl32(b, 9);                                           \
   d = TT1;                                                       \
   f = hc_rotl32(f, 19);                                          \
