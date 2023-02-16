@@ -18,60 +18,39 @@
 #define SM3_FF1(x, y, z)  (((x) & (y)) | (((x) | (y)) & (z)))
 #define SM3_GG1(x, y, z)  (((z) ^ ((x) & ((y) ^ (z)))))
 
-#define SM3_EXPAND_S(a, b, c, d, e) \
-    (SM3_P1_S(a ^ b ^ hc_rotl32_S(c, 15)) ^ hc_rotl32_S(d, 7) ^ e)
-#define SM3_EXPAND(a, b, c, d, e)   \
-    (SM3_P1(a ^ b ^ (c, 15)) ^ hc_rotl32(d, 7) ^ e)
+#define SM3_EXPAND_S(a, b, c, d, e)   (SM3_P1_S(a ^ b ^ hc_rotl32_S(c, 15)) ^ hc_rotl32_S(d, 7) ^ e)
+#define SM3_EXPAND(a, b, c, d, e)     (SM3_P1(a ^ b ^ (c, 15)) ^ hc_rotl32(d, 7) ^ e)
 
 // Only Wj need to be parenthesis because of operator priority
 // (Wj = Wi ^ Wi+4)
-#define SM3_R1_S(a, b, c, d, e, f, g, h, Tj, Wi, Wj)	            \
-{																																  \
-  const u32 A_ROTL12 = hc_rotl32_S(a, 12);										    \
-	const u32 SS1 = hc_rotl32_S(A_ROTL12 + e + Tj, 7);					    \
-	const u32 TT1 = SM3_FF0(a, b, c) + d + (SS1 ^ A_ROTL12) + (Wj); \
-	const u32 TT2 = SM3_GG0(e, f, g) + h + SS1 + Wi;							  \
-	b = hc_rotl32_S(b, 9);																			    \
-	d = TT1;																										    \
-	f = hc_rotl32_S(f, 19);																			    \
-	h = SM3_P0_S(TT2);																					    \
+#define SM3_ROUND_S(a, b, c, d, e, f, g, h, Tj, Wi, Wj, FF, GG)  \
+{                                                                \
+  const u32 A_ROTL12 = hc_rotl32_S(a, 12);                       \
+  const u32 SS1 = hc_rotl32_S(A_ROTL12 + e + Tj, 7);             \
+  const u32 TT1 = FF(a, b, c) + d + (SS1 ^ A_ROTL12) + (Wj);     \
+  const u32 TT2 = GG(e, f, g) + h + SS1 + Wi;                    \
+  b = hc_rotl32_S(b, 9);                                         \
+  d = TT1;                                                       \
+  f = hc_rotl32_S(f, 19);                                        \
+  h = SM3_P0_S(TT2);                                             \
 }
 
-#define SM3_R1(a, b, c, d, e, f, g, h, Tj, Wi, Wj)	              \
-{																															    \
-	const u32 A_ROTL12 = hc_rotl32(a, 12);											    \
-	const u32 SS1 = hc_rotl32(A_ROTL12 + e + Tj, 7);					  	  \
-	const u32 TT1 = SM3_FF0(a, b, c) + d + (SS1 ^ A_ROTL12) + (Wj); \
-	const u32 TT2 = SM3_GG0(e, f, g) + h + SS1 + Wi;							  \
-  b = hc_rotl32(b, 9);			  																	  \
-	d = TT1;																									  	  \
-	f = hc_rotl32(f, 19);																				    \
-	h = SM3_P0(TT2);																					  	  \
+#define SM3_ROUND(a, b, c, d, e, f, g, h, Tj, Wi, Wj, FF, GG)    \
+{                                                                \
+  const u32 A_ROTL12 = hc_rotl32(a, 12);                         \
+  const u32 SS1 = hc_rotl32(A_ROTL12 + e + make_u32x(Tj), 7);    \
+  const u32 TT1 = FF(a, b, c) + d + (SS1 ^ A_ROTL12) + (Wj);     \
+  const u32 TT2 = GG(e, f, g) + h + SS1 + Wi;                    \
+  b = hc_rotl32(b, 9);                                           \
+  d = TT1;                                                       \
+  f = hc_rotl32(f, 19);                                          \
+  h = SM3_P0(TT2);                                               \
 }
 
-#define SM3_R2_S(a, b, c, d, e, f, g, h, Tj, Wi, Wj)              \
-{																										  					  \
-	const u32 A_ROTL12 = hc_rotl32_S(a, 12);					  					  \
-	const u32 SS1 = hc_rotl32_S(A_ROTL12 + e + Tj, 7);				  	  \
-	const u32 TT1 = SM3_FF1(a, b, c) + d + (SS1 ^ A_ROTL12) + (Wj); \
-	const u32 TT2 = SM3_GG1(e, f, g) + h + SS1 + Wi;							  \
-	b = hc_rotl32_S(b, 9);																	  		  \
-	d = TT1;																								  		  \
-	f = hc_rotl32_S(f, 19);																	  		  \
-	h = SM3_P0_S(TT2);																		  			  \
-}
-
-#define SM3_R2(a, b, c, d, e, f, g, h, Tj, Wi, Wj)	              \
-{																														  	  \
-	const u32 A_ROTL12 = hc_rotl32(a, 12);									  		  \
-	const u32 SS1 = hc_rotl32(A_ROTL12 + e + Tj, 7);				  		  \
-	const u32 TT1 = SM3_FF1(a, b, c) + d + (SS1 ^ A_ROTL12) + (Wj); \
-	const u32 TT2 = SM3_GG1(e, f, g) + h + SS1 + Wi;							  \
-	b = hc_rotl32(b, 9);																	  			  \
-	d = TT1;																						  				  \
-	f = hc_rotl32(f, 19);																  				  \
-	h = SM3_P0(TT2);																		  				  \
-}
+#define SM3_ROUND1_S(a, b, c, d, e, f, g, h, Tj, Wi, Wj)  SM3_ROUND_S(a, b, c, d, e, f, g, h, Tj, Wi, Wj, SM3_FF0, SM3_GG0)
+#define SM3_ROUND1(a, b, c, d, e, f, g, h, Tj, Wi, Wj)    SM3_ROUND(a, b, c, d, e, f, g, h, Tj, Wi, Wj, SM3_FF0, SM3_GG0)
+#define SM3_ROUND2_S(a, b, c, d, e, f, g, h, Tj, Wi, Wj)  SM3_ROUND_S(a, b, c, d, e, f, g, h, Tj, Wi, Wj, SM3_FF1, SM3_GG1)
+#define SM3_ROUND2(a, b, c, d, e, f, g, h, Tj, Wi, Wj)    SM3_ROUND(a, b, c, d, e, f, g, h, Tj, Wi, Wj, SM3_FF1, SM3_GG1)
 
 typedef struct sm3_ctx
 {
