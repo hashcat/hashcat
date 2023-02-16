@@ -56,7 +56,7 @@ KERNEL_FQ void m36000_mxx (KERN_ATTR_VECTOR ())
 
     sm3_init_vector (&ctx);
 
-    sm3_update_vector (&ctx, w, pw_len);
+    sm3_update_vector_swap (&ctx, w, pw_len);
 
     sm3_final_vector (&ctx);
 
@@ -123,7 +123,7 @@ KERNEL_FQ void m36000_sxx (KERN_ATTR_VECTOR ())
 
     sm3_init_vector (&ctx);
 
-    sm3_update_vector (&ctx, w, pw_len);
+    sm3_update_vector_swap (&ctx, w, pw_len);
 
     sm3_final_vector (&ctx);
 
