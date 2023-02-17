@@ -440,7 +440,7 @@ KERNEL_FQ void m36000_s04 (KERN_ATTR_BASIC ())
     w2_t = SM3_EXPAND(w2_t, w9_t, wf_t, w5_t, wc_t); SM3_ROUND2(c, d, a, b, g, h, e, f, SM3_T62, we_t, we_t ^ w2_t);
     w3_t = SM3_EXPAND(w3_t, wa_t, w0_t, w6_t, wd_t); SM3_ROUND2(b, c, d, a, f, g, h, e, SM3_T63, wf_t, wf_t ^ w3_t);
 
-		COMPARE_M_SIMD (d, h, c, g);
+		COMPARE_S_SIMD (d, h, c, g);
   }
 }
 
