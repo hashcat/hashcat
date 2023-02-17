@@ -50,6 +50,7 @@ DECLSPEC void m36000m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
 
     const u32x w0 = w0l | w0r;
 
+		/*
 		u32x w0_t = hc_swap32 (w0);
     u32x w1_t = hc_swap32 (w[ 1]);
     u32x w2_t = hc_swap32 (w[ 2]);
@@ -66,6 +67,24 @@ DECLSPEC void m36000m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     u32x wd_t = hc_swap32 (w[13]);
     u32x we_t = hc_swap32 (w[14]);
     u32x wf_t = hc_swap32 (w[15]);
+		*/
+
+    u32x w0_t = w0;
+    u32x w1_t = w[ 1];
+    u32x w2_t = w[ 2];
+    u32x w3_t = w[ 3];
+    u32x w4_t = w[ 4];
+    u32x w5_t = w[ 5];
+    u32x w6_t = w[ 6];
+    u32x w7_t = w[ 7];
+    u32x w8_t = w[ 8];
+    u32x w9_t = w[ 9];
+    u32x wa_t = w[10];
+    u32x wb_t = w[11];
+    u32x wc_t = w[12];
+    u32x wd_t = w[13];
+    u32x we_t = w[14];
+    u32x wf_t = w[15];
 
     u32x a = SM3_IV_A;
     u32x b = SM3_IV_B;
@@ -203,6 +222,7 @@ DECLSPEC void m36000s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
 
     const u32x w0 = w0l | w0r;
 
+		/*
 		u32x w0_t = hc_swap32 (w0);
     u32x w1_t = hc_swap32 (w[ 1]);
     u32x w2_t = hc_swap32 (w[ 2]);
@@ -219,6 +239,24 @@ DECLSPEC void m36000s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     u32x wd_t = hc_swap32 (w[13]);
     u32x we_t = hc_swap32 (w[14]);
     u32x wf_t = hc_swap32 (w[15]);
+		*/
+
+		u32x w0_t = w0;
+    u32x w1_t = w[ 1];
+    u32x w2_t = w[ 2];
+    u32x w3_t = w[ 3];
+    u32x w4_t = w[ 4];
+    u32x w5_t = w[ 5];
+    u32x w6_t = w[ 6];
+    u32x w7_t = w[ 7];
+    u32x w8_t = w[ 8];
+    u32x w9_t = w[ 9];
+    u32x wa_t = w[10];
+    u32x wb_t = w[11];
+    u32x wc_t = w[12];
+    u32x wd_t = w[13];
+    u32x we_t = w[14];
+    u32x wf_t = w[15];
 
     u32x a = SM3_IV_A;
     u32x b = SM3_IV_B;
