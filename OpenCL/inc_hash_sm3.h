@@ -35,9 +35,9 @@
   h = SM3_P0_S(TT2);                                             \
 }
 /*
-printf(" Intermediate digest values :"                       \
-    " %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",     \
-    a, b, c, d, e, f, g, h);                                  \
+   printf(" Intermediate digest values :"                       \
+   " %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",     \
+   a, b, c, d, e, f, g, h);                                  \
 */
 #define SM3_ROUND(a, b, c, d, e, f, g, h, Tj, Wi, Wj, FF, GG)    \
 {                                                                \

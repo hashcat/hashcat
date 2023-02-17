@@ -36,10 +36,12 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS15;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
+/*
+static const char *ST_PASS        = "abc";
+static const char *ST_HASH        = "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0";
+*/
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "51227e48ea74827b77fc142c3ec21d25cc42c794e6ac422825cd47ad4ac7913d";
-// static const char *ST_PASS        = "abc";
-// static const char *ST_HASH        = "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -92,19 +94,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[5] = byte_swap_32 (digest[5]);
   digest[6] = byte_swap_32 (digest[6]);
   digest[7] = byte_swap_32 (digest[7]);
-  /*
+  
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
-    digest[0] -= SHA256M_A;
-    digest[1] -= SHA256M_B;
-    digest[2] -= SHA256M_C;
-    digest[3] -= SHA256M_D;
-    digest[4] -= SHA256M_E;
-    digest[5] -= SHA256M_F;
-    digest[6] -= SHA256M_G;
-    digest[7] -= SHA256M_H;
+    digest[0] ^= SM3_IV_A;
+    digest[1] ^= SM3_IV_B;
+    digest[2] ^= SM3_IV_C;
+    digest[3] ^= SM3_IV_D;
+    digest[4] ^= SM3_IV_E;
+    digest[5] ^= SM3_IV_F;
+    digest[6] ^= SM3_IV_G;
+    digest[7] ^= SM3_IV_H;
   }
-  */
+  
   return (PARSER_OK);
 }
 
@@ -125,19 +127,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[5] = digest[5];
   tmp[6] = digest[6];
   tmp[7] = digest[7];
-  /*
+  
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
-    tmp[0] += SHA256M_A;
-    tmp[1] += SHA256M_B;
-    tmp[2] += SHA256M_C;
-    tmp[3] += SHA256M_D;
-    tmp[4] += SHA256M_E;
-    tmp[5] += SHA256M_F;
-    tmp[6] += SHA256M_G;
-    tmp[7] += SHA256M_H;
+    tmp[0] ^= SM3_IV_A;
+    tmp[1] ^= SM3_IV_B;
+    tmp[2] ^= SM3_IV_C;
+    tmp[3] ^= SM3_IV_D;
+    tmp[4] ^= SM3_IV_E;
+    tmp[5] ^= SM3_IV_F;
+    tmp[6] ^= SM3_IV_G;
+    tmp[7] ^= SM3_IV_H;
   }
-  */
+  
   tmp[0] = byte_swap_32 (tmp[0]);
   tmp[1] = byte_swap_32 (tmp[1]);
   tmp[2] = byte_swap_32 (tmp[2]);

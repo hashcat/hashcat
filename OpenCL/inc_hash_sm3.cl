@@ -10,7 +10,7 @@
 #include "inc_hash_sm3.h"
 
 #define LOG_BUF_16(msg)                                             \
-    // printf("%s : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x"   \
+    printf("%s : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x"   \
       " %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",         \
       msg,                                                          \
       w0[0], w0[1], w0[2], w0[3],                                   \
@@ -20,7 +20,7 @@
     )
 
 #define LOG_TMP_BUF_16(msg, i)                                         \
-    // printf("%s (%d) : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x"   \
+    printf("%s (%d) : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x"   \
       " %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",         \
       msg,  i,                                                         \
       w0_t, w1_t, w2_t, w3_t, w4_t, w5_t, w6_t, w7_t,               \
@@ -29,7 +29,7 @@
 /*
 */
 #define LOG_LOOP(msg, i)                                    \
-    // printf("\n%s (%d) :"                                      \
+    printf("\n%s (%d) :"                                      \
       " Intermediate digest values :"                       \
       " %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n"  \
       " %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x"    \
@@ -41,7 +41,7 @@
     )
 
 #define LOG_CTX_BUF_16(msg)                                         \
-    // printf("%s : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x"   \
+    printf("%s : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x"   \
       " %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",         \
       msg,                                                          \
       ctx->w0[0], ctx->w0[1],  ctx->w0[2],  ctx->w0[3],             \
@@ -51,13 +51,13 @@
     )
 
 #define LOG_DIGEST(msg)                                               \
-    // printf("%s : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",  \
+    printf("%s : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",  \
       msg, digest[0], digest[1], digest[2], digest[3],                \
       digest[4], digest[5], digest[6], digest[7]                      \
     )
 
 #define LOG_CTX_DIGEST(msg)                                           \
-    // printf("%s : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",  \
+    printf("%s : %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",  \
       msg, ctx->h[0], ctx->h[1], ctx->h[2], ctx->h[3],                \
       ctx->h[4], ctx->h[5], ctx->h[6], ctx->h[7]                      \
     )
