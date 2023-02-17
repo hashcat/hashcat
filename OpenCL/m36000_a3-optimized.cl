@@ -14,24 +14,6 @@
 #include M2S(INCLUDE_PATH/inc_hash_sm3.cl)
 #endif
 
-/**
- * useless for now
- *
-#define SHA256_STEP_REV(a,b,c,d,e,f,g,h)        \
-{                                               \
-  u32 t2 = SHA256_S2_S(b) + SHA256_F0o(b,c,d);  \
-  u32 t1 = a - t2;                              \
-  a = b;                                        \
-  b = c;                                        \
-  c = d;                                        \
-  d = e - t1;                                   \
-  e = f;                                        \
-  f = g;                                        \
-  g = h;                                        \
-  h = 0;                                        \
-}
-*/
-
 DECLSPEC void m36000m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
@@ -49,25 +31,6 @@ DECLSPEC void m36000m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
-
-		/*
-		u32x w0_t = hc_swap32 (w0);
-    u32x w1_t = hc_swap32 (w[ 1]);
-    u32x w2_t = hc_swap32 (w[ 2]);
-    u32x w3_t = hc_swap32 (w[ 3]);
-    u32x w4_t = hc_swap32 (w[ 4]);
-    u32x w5_t = hc_swap32 (w[ 5]);
-    u32x w6_t = hc_swap32 (w[ 6]);
-    u32x w7_t = hc_swap32 (w[ 7]);
-    u32x w8_t = hc_swap32 (w[ 8]);
-    u32x w9_t = hc_swap32 (w[ 9]);
-    u32x wa_t = hc_swap32 (w[10]);
-    u32x wb_t = hc_swap32 (w[11]);
-    u32x wc_t = hc_swap32 (w[12]);
-    u32x wd_t = hc_swap32 (w[13]);
-    u32x we_t = hc_swap32 (w[14]);
-    u32x wf_t = hc_swap32 (w[15]);
-		*/
 
     u32x w0_t = w0;
     u32x w1_t = w[ 1];
@@ -189,28 +152,6 @@ DECLSPEC void m36000s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
   };
 
   /**
-   * reverse
-   */
-
-	/**
-	 * useless for now
-	 *
-  u32 a_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[0];
-  u32 b_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[1];
-  u32 c_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[2];
-  u32 d_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[3];
-  u32 e_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[4];
-  u32 f_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[5];
-  u32 g_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[6];
-  u32 h_rev = digests_buf[DIGESTS_OFFSET_HOST].digest_buf[7];
-
-  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
-  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
-  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
-  SHA256_STEP_REV (a_rev, b_rev, c_rev, d_rev, e_rev, f_rev, g_rev, h_rev);
-	*/
-
-  /**
    * loop
    */
 
@@ -221,25 +162,6 @@ DECLSPEC void m36000s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
-
-		/*
-		u32x w0_t = hc_swap32 (w0);
-    u32x w1_t = hc_swap32 (w[ 1]);
-    u32x w2_t = hc_swap32 (w[ 2]);
-    u32x w3_t = hc_swap32 (w[ 3]);
-    u32x w4_t = hc_swap32 (w[ 4]);
-    u32x w5_t = hc_swap32 (w[ 5]);
-    u32x w6_t = hc_swap32 (w[ 6]);
-    u32x w7_t = hc_swap32 (w[ 7]);
-    u32x w8_t = hc_swap32 (w[ 8]);
-    u32x w9_t = hc_swap32 (w[ 9]);
-    u32x wa_t = hc_swap32 (w[10]);
-    u32x wb_t = hc_swap32 (w[11]);
-    u32x wc_t = hc_swap32 (w[12]);
-    u32x wd_t = hc_swap32 (w[13]);
-    u32x we_t = hc_swap32 (w[14]);
-    u32x wf_t = hc_swap32 (w[15]);
-		*/
 
 		u32x w0_t = w0;
     u32x w1_t = w[ 1];

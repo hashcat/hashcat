@@ -36,10 +36,6 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS15;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
-/*
-static const char *ST_PASS        = "abc";
-static const char *ST_HASH        = "66c7f0f462eeedd9d1f2d46bdc10e4e24167c4875cf2f7a2297da02b8f4ba8e0";
-*/
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "51227e48ea74827b77fc142c3ec21d25cc42c794e6ac422825cd47ad4ac7913d";
 
