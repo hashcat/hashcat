@@ -34,11 +34,7 @@
   f = hc_rotl32_S(f, 19);                                        \
   h = SM3_P0_S(TT2);                                             \
 }
-/*
-   printf(" Intermediate digest values :"                       \
-   " %.08x %.08x %.08x %.08x %.08x %.08x %.08x %.08x\n",     \
-   a, b, c, d, e, f, g, h);                                  \
-*/
+
 #define SM3_ROUND(a, b, c, d, e, f, g, h, Tj, Wi, Wj, FF, GG)    \
 {                                                                \
   const u32x A_ROTL12 = hc_rotl32(a, 12);                        \
