@@ -91,6 +91,8 @@ KERNEL_FQ void m31000_m04 (KERN_ATTR_BASIC ())
 
     u32x w0[4];
     u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
@@ -100,6 +102,14 @@ KERNEL_FQ void m31000_m04 (KERN_ATTR_BASIC ())
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = wordl2[0] | wordr2[0];
+    w2[1] = wordl2[1] | wordr2[1];
+    w2[2] = wordl2[2] | wordr2[2];
+    w2[3] = wordl2[3] | wordr2[3];
+    w3[0] = wordl3[0] | wordr3[0];
+    w3[1] = wordl3[1] | wordr3[1];
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
     u32x m[16];
 
@@ -111,14 +121,14 @@ KERNEL_FQ void m31000_m04 (KERN_ATTR_BASIC ())
     m[ 5] = w1[1];
     m[ 6] = w1[2];
     m[ 7] = w1[3];
-    m[ 8] = 0;
-    m[ 9] = 0;
-    m[10] = 0;
-    m[11] = 0;
-    m[12] = 0;
-    m[13] = 0;
-    m[14] = 0;
-    m[15] = 0;
+    m[ 8] = w2[0];
+    m[ 9] = w2[1];
+    m[10] = w2[2];
+    m[11] = w2[3];
+    m[12] = w3[0];
+    m[13] = w3[1];
+    m[14] = w3[2];
+    m[15] = w3[3];
 
     u32x h[8];
 
@@ -239,6 +249,8 @@ KERNEL_FQ void m31000_s04 (KERN_ATTR_BASIC ())
 
     u32x w0[4];
     u32x w1[4];
+    u32x w2[4];
+    u32x w3[4];
 
     w0[0] = wordl0[0] | wordr0[0];
     w0[1] = wordl0[1] | wordr0[1];
@@ -248,6 +260,14 @@ KERNEL_FQ void m31000_s04 (KERN_ATTR_BASIC ())
     w1[1] = wordl1[1] | wordr1[1];
     w1[2] = wordl1[2] | wordr1[2];
     w1[3] = wordl1[3] | wordr1[3];
+    w2[0] = wordl2[0] | wordr2[0];
+    w2[1] = wordl2[1] | wordr2[1];
+    w2[2] = wordl2[2] | wordr2[2];
+    w2[3] = wordl2[3] | wordr2[3];
+    w3[0] = wordl3[0] | wordr3[0];
+    w3[1] = wordl3[1] | wordr3[1];
+    w3[2] = wordl3[2] | wordr3[2];
+    w3[3] = wordl3[3] | wordr3[3];
 
     u32x m[16];
 
@@ -259,14 +279,15 @@ KERNEL_FQ void m31000_s04 (KERN_ATTR_BASIC ())
     m[ 5] = w1[1];
     m[ 6] = w1[2];
     m[ 7] = w1[3];
-    m[ 8] = 0;
-    m[ 9] = 0;
-    m[10] = 0;
-    m[11] = 0;
-    m[12] = 0;
-    m[13] = 0;
-    m[14] = 0;
-    m[15] = 0;
+    m[ 8] = w2[0];
+    m[ 9] = w2[1];
+    m[10] = w2[2];
+    m[11] = w2[3];
+    m[12] = w3[0];
+    m[13] = w3[1];
+    m[14] = w3[2];
+    m[15] = w3[3];
+
 
     u32x h[8];
 
