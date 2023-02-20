@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_sm3.cl)
 #endif
 
-KERNEL_FQ void m36000_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m31100_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -69,7 +69,7 @@ KERNEL_FQ void m36000_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m36000_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m31100_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

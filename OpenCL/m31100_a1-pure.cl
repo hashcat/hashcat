@@ -10,13 +10,11 @@
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
-#include M2S(INCLUDE_PATH/inc_rp.h)
-#include M2S(INCLUDE_PATH/inc_rp.cl)
 #include M2S(INCLUDE_PATH/inc_scalar.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sm3.cl)
 #endif
 
-KERNEL_FQ void m36000_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m31100_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -31,7 +29,11 @@ KERNEL_FQ void m36000_mxx (KERN_ATTR_RULES ())
    * base
    */
 
-  COPY_PW (pws[gid]);
+  sm3_ctx_t ctx0;
+
+  sm3_init (&ctx0);
+
+  sm3_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -39,15 +41,9 @@ KERNEL_FQ void m36000_mxx (KERN_ATTR_RULES ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    sm3_ctx_t ctx = ctx0;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
-    sm3_ctx_t ctx;
-
-    sm3_init (&ctx);
-
-    sm3_update_swap (&ctx, tmp.i, tmp.pw_len);
+    sm3_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sm3_final (&ctx);
 
@@ -60,7 +56,7 @@ KERNEL_FQ void m36000_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m36000_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m31100_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -87,7 +83,11 @@ KERNEL_FQ void m36000_sxx (KERN_ATTR_RULES ())
    * base
    */
 
-  COPY_PW (pws[gid]);
+  sm3_ctx_t ctx0;
+
+  sm3_init (&ctx0);
+
+  sm3_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -95,15 +95,9 @@ KERNEL_FQ void m36000_sxx (KERN_ATTR_RULES ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    sm3_ctx_t ctx = ctx0;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
-
-    sm3_ctx_t ctx;
-
-    sm3_init (&ctx);
-
-    sm3_update_swap (&ctx, tmp.i, tmp.pw_len);
+    sm3_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sm3_final (&ctx);
 
