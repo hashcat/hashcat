@@ -2101,6 +2101,7 @@ typedef struct outfile_ctx
 
   u32     outfile_format;
   bool    outfile_autohex;
+  bool    is_fifo;
 
   char   *filename;
 

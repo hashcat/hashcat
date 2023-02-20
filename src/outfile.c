@@ -503,6 +503,7 @@ int outfile_init (hashcat_ctx_t *hashcat_ctx)
   outfile_ctx->filename        = user_options->outfile;
   outfile_ctx->outfile_format  = user_options->outfile_format;
   outfile_ctx->outfile_autohex = user_options->outfile_autohex;
+  outfile_ctx->is_fifo         = hc_path_is_fifo (outfile_ctx->filename);
 
   return 0;
 }
@@ -510,6 +511,13 @@ int outfile_init (hashcat_ctx_t *hashcat_ctx)
 void outfile_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+
+  if (outfile_ctx->is_fifo == true && outfile_ctx->fp.pfp != NULL)
+  {
+    hc_unlockfile (&outfile_ctx->fp);
+
+    hc_fclose (&outfile_ctx->fp);
+  }
 
   memset (outfile_ctx, 0, sizeof (outfile_ctx_t));
 }
@@ -520,20 +528,23 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (outfile_ctx->filename == NULL) return 0;
 
-  if (hc_fopen (&outfile_ctx->fp, outfile_ctx->filename, "ab") == false)
+  if (outfile_ctx->is_fifo == false || outfile_ctx->fp.pfp == NULL)
   {
-    event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
+    if (hc_fopen (&outfile_ctx->fp, outfile_ctx->filename, "ab") == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
-    return -1;
-  }
+      return -1;
+    }
 
-  if (hc_lockfile (&outfile_ctx->fp) == -1)
-  {
-    hc_fclose (&outfile_ctx->fp);
+    if (hc_lockfile (&outfile_ctx->fp) == -1)
+    {
+      hc_fclose (&outfile_ctx->fp);
 
-    event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
 
-    return -1;
+      return -1;
+    }
   }
 
   return 0;
@@ -544,6 +555,12 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
   if (outfile_ctx->fp.pfp == NULL) return;
+
+  if (outfile_ctx->is_fifo == true)
+  {
+    hc_fflush (&outfile_ctx->fp);
+    return;
+  }
 
   hc_unlockfile (&outfile_ctx->fp);
 
