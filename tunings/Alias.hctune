@@ -260,5 +260,8 @@ Device_73bf                                     ALIAS_AMD_RX6900XT
 gfx1030                                         ALIAS_AMD_RX6900XT
 Radeon_RX_6900_XT                               ALIAS_AMD_RX6900XT
 
+gfx1100                                         ALIAS_AMD_RX7900XTX
+Radeon_RX_7900_XTX                              ALIAS_AMD_RX7900XTX
+
 Radeon_Pro_W5700X                               ALIAS_AMD_W5700X
 Radeon_Pro_W5700X_Compute_Engine                ALIAS_AMD_W5700X
