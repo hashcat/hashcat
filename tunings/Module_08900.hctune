@@ -34,4 +34,5 @@ ALIAS_AMD_RX480                                 *       8900    1       15      
 ALIAS_AMD_Vega64                                *       8900    1       30      A
 ALIAS_AMD_MI100                                 *       8900    1       79      A
 ALIAS_AMD_RX6900XT                              *       8900    1       123     A
+ALIAS_AMD_RX7900XTX                             *       8900    1       91      A 
 ALIAS_AMD_W5700X                                *       8900    1       4       A
