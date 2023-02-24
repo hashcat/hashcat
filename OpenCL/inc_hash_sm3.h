@@ -15,8 +15,13 @@
 #define SM3_FF0(x, y, z)  ((x) ^ (y) ^ (z))
 #define SM3_GG0(x, y, z)  ((x) ^ (y) ^ (z))
 
-#define SM3_FF1(x, y, z)  (((x) & (y)) | (((x) | (y)) & (z)))
+#ifdef USE_BITSELECT
+#define SM3_FF1(x, y, z)  (bitselect ((x), (y), ((x) ^ (z))))
+#define SM3_GG1(x, y, z)  (bitselect ((z), (y), (x)))
+#else
+#define SM3_FF1(x, y, z)  (((x) & (y)) | ((z) & ((x) ^ (y))))
 #define SM3_GG1(x, y, z)  (((z) ^ ((x) & ((y) ^ (z)))))
+#endif
 
 #define SM3_EXPAND_S(a, b, c, d, e)   (SM3_P1_S(a ^ b ^ hc_rotl32_S(c, 15)) ^ hc_rotl32_S(d, 7) ^ e)
 #define SM3_EXPAND(a, b, c, d, e)     (SM3_P1(a ^ b ^ hc_rotl32(c, 15)) ^ hc_rotl32(d, 7) ^ e)
