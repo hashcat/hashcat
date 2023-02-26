@@ -11,8 +11,9 @@
 
 import json
 import argparse
+import base64
 
-def metamask_parser(file):
+def metamask_parser(file, shortdata):
   try:
     f = open(file)
 
@@ -23,7 +24,13 @@ def metamask_parser(file):
       parser.print_help()
       exit(1)
 
-    print('$metamask$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
+    if((len(j['data']) > 3000) or shortdata):
+      print("! Data too long, we limit it to 64 bytes, this hash can only be used with m26610!")
+      data_bin = base64.b64decode(j['data'])
+      j['data'] = base64.b64encode(data_bin[0:64]).decode("ascii")
+      print('$metamask-short$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
+    else:
+      print('$metamask$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
   except ValueError as e:
     parser.print_help()
     exit(1)
@@ -33,10 +40,12 @@ def metamask_parser(file):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="metamask2hashcat.py extraction tool")
   parser.add_argument('--vault', required=True, help='set metamask vault (json) file from path', type=str)
+  parser.add_argument('--shortdata', help='force short data, can only be used with m26610, ', action='store_true')
 
   args = parser.parse_args()
+
   if args.vault:
-      metamask_parser(args.vault)
+      metamask_parser(args.vault, args.shortdata)
   else:
       parser.print_help()
       exit(1)

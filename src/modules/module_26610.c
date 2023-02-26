@@ -18,7 +18,8 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
-static const char *HASH_NAME      = "MetaMask Wallet short data";
+// 22610 generates a decryption key based on a password-guess and uses that to AES-GCM decrypt the data decrypts
+static const char *HASH_NAME      = "MetaMask Wallet (short hash, plaintext check)";
 static const u64   KERN_TYPE      = 26610;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
@@ -26,6 +27,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
+// hash generated using with python3 tools/metamask2hashcat.py --vault tools/2hashcat_tests/metamask2hashcat.json --shortdata
 static const char *ST_HASH        = "$metamask-short$jfGI3TXguhb8GPnKSXFrMzRk2NCEc131Gt5G3kZr5+s=$h+BoIf2CQ5BEjaIOShFE7g==$R95fzGt4UQ0uwrcrVYnIi4UcSlWn9wlmer+//526ZDwYAp50K82F1u1oacYcdjjhuEvbZnWk/uBG00UkgLLlOw==";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
@@ -237,15 +239,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[1] =  (metamask->ct_buf[1]);
   digest[2] =  (metamask->ct_buf[2]);
   digest[3] =  (metamask->ct_buf[3]);
-
-printf ("ct_buf[0]=%08x\n", metamask->ct_buf[0]);
-printf ("ct_buf[1]=%08x\n", metamask->ct_buf[1]);
-printf ("ct_buf[2]=%08x\n", metamask->ct_buf[2]);
-printf ("ct_buf[3]=%08x\n", metamask->ct_buf[3]);
-printf ("digest[0]=%08x\n", digest[0]);
-printf ("digest[1]=%08x\n", digest[1]);
-printf ("digest[2]=%08x\n", digest[2]);
-printf ("digest[3]=%08x\n", digest[3]);
+  
   return (PARSER_OK);
 }
 

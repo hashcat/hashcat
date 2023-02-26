@@ -335,7 +335,6 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   AES_GCM_Init (ukey, key_len, key, subKey, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   // iv
-
   const u32 iv[4] = {
     esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0],
     esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1],
@@ -349,33 +348,21 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   AES_GCM_Prepare_J0 (iv, iv_len, subKey, J0);
 
-  // ct
-
-  //u32 T[4] = { 0 };
+  //ct
   u32 ct[4] = { 
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0], 
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1],
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2],
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3] 
-    };
+  };
   
   u32 pt[4] = { 0 };
-
-  //u32 S_len   = 16;
-  //u32 aad_buf[4] = { 0 };
-  //u32 aad_len = 0;
-
-  //AES_GCM_GHASH_GLOBAL (subKey, aad_buf, aad_len, esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf, esalt_bufs[DIGESTS_OFFSET_HOST].ct_len, S);
-
-  //AES_GCM_GCTR (key, J0, S, S_len, T, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   // we try to decrypt the ciphertext
   AES_GCM_inc32(J0); // the first ctr is used to compute the tag, only the second is used for decryption: https://en.wikipedia.org/wiki/Galois/Counter_Mode#/media/File:GCM-Galois_Counter_Mode_with_IV.svg
   AES_GCM_GCTR (key, J0, ct, 16, pt, s_te0, s_te1, s_te2, s_te3, s_te4); // decrypt the ciphertext
 
-
-  if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x\n", pt[0]); // should be 5b7b2274 or [{"type"
-
+  // if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x\n", pt[0]); // should be 5b7b2274 or [{"type"
 
   // cast plaintext buffer to byte such that we can do a byte per byte comparison
   PRIVATE_AS const u32 *u32OutBufPtr = (PRIVATE_AS u32 *) pt;
@@ -389,11 +376,12 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   for(int i=0;i<16;i++)
   { 
         if(u8OutBufPtr[i] >=20 && u8OutBufPtr[i] <= 0x7e) {
-          if ((gid == 0) && (lid == 0)) printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
+          //if ((gid == 0) && (lid == 0)) printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
         } 
         else {
-          if ((gid == 0) && (lid == 0)) printf("NOT correct!   byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
+          //if ((gid == 0) && (lid == 0)) printf("NOT correct!   byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
           correct = false;
+          break;
         }
   }
 
@@ -405,23 +393,17 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3],
   };
   
-  
-  if ((gid == 0) && (lid == 0)) printf ("ct[0]=%08x\n", ct[0]);
-  if ((gid == 0) && (lid == 0)) printf ("ct[1]=%08x\n", ct[1]);
-  if ((gid == 0) && (lid == 0)) printf ("ct[2]=%08x\n", ct[2]);
-  if ((gid == 0) && (lid == 0)) printf ("ct[3]=%08x\n", ct[3]);
-    if ((gid == 0) && (lid == 0)) printf("here0\n");
-  
+  //if ((gid == 0) && (lid == 0)) printf ("ct[0]=%08x\n", ct[0]);
+  //if ((gid == 0) && (lid == 0)) printf ("ct[1]=%08x\n", ct[1]);
+  //if ((gid == 0) && (lid == 0)) printf ("ct[2]=%08x\n", ct[2]);
+  //if ((gid == 0) && (lid == 0)) printf ("ct[3]=%08x\n", ct[3]);
+
   if (correct)
   {
-    
-    if ((gid == 0) && (lid == 0)) printf("here1\n");
     int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
     if (digest_pos != -1)
     {
-      
-    if ((gid == 0) && (lid == 0)) printf("here2\n");
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
 
       if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
