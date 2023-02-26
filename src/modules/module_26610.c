@@ -60,7 +60,7 @@ typedef struct pbkdf2_sha256_aes_gcm
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[784];
+  u32 ct_buf[784]; // TODO this can be smaller and would speedup the attack, only 64 bytes of ciphertext are allowed
   u32 ct_len;
 
 } pbkdf2_sha256_aes_gcm_t;
@@ -129,7 +129,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pbkdf2_sha256_aes_gcm_t *metamask = (pbkdf2_sha256_aes_gcm_t *) esalt_buf;
 
-  #define CT_MAX_LEN_BASE64 (((3136+16) * 8) / 6) + 3
+  #define CT_MAX_LEN_BASE64 (((3136+16) * 8) / 6) + 3 // TODO this can be smaller and would speedup the attack, only 64 bytes of ciphertext are allowed
 
   hc_token_t token;
 
@@ -156,7 +156,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[3]     = '$';
   token.len_min[3] = 32;
-  token.len_max[3] = 100;
+  token.len_max[3] = 100; // TODO this can be smaller and would speedup the attack, only 64 bytes of ciphertext are allowed
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
@@ -221,7 +221,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *ct_pos = token.buf[3];
   const int ct_len = token.len[3];
 
-  memset (tmp_buf, 0, sizeof (tmp_buf));
+  memset (tmp_buf, 0, sizeof (tmp_buf)); 
 
   tmp_len = base64_decode (base64_to_int, ct_pos, ct_len, tmp_buf);
 
@@ -278,7 +278,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if ((ct_len % 4) > 0) j++;
 
-  u32 tmp_buf[784] = { 0 };
+  u32 tmp_buf[784] = { 0 }; // TODO this can be smaller and would speedup the attack, only 64 bytes of ciphertext are allowed
 
   for (u32 i = 0; i < j; i++) tmp_buf[i] = byte_swap_32 (metamask->ct_buf[i]);
 
