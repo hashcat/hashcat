@@ -13,8 +13,8 @@
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
 static const u32   DGST_POS1      = 7;
-static const u32   DGST_POS2      = 2;
-static const u32   DGST_POS3      = 6;
+static const u32   DGST_POS2      = 1;
+static const u32   DGST_POS3      = 5;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
 static const char *HASH_NAME      = "SM3";
@@ -84,7 +84,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[5] = byte_swap_32 (digest[5]);
   digest[6] = byte_swap_32 (digest[6]);
   digest[7] = byte_swap_32 (digest[7]);
-  
+
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
     digest[0] ^= SM3_IV_A;
@@ -96,7 +96,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[6] ^= SM3_IV_G;
     digest[7] ^= SM3_IV_H;
   }
-  
+
   return (PARSER_OK);
 }
 
@@ -117,7 +117,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[5] = digest[5];
   tmp[6] = digest[6];
   tmp[7] = digest[7];
-  
+
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
     tmp[0] ^= SM3_IV_A;
@@ -129,7 +129,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp[6] ^= SM3_IV_G;
     tmp[7] ^= SM3_IV_H;
   }
-  
+
   tmp[0] = byte_swap_32 (tmp[0]);
   tmp[1] = byte_swap_32 (tmp[1]);
   tmp[2] = byte_swap_32 (tmp[2]);
