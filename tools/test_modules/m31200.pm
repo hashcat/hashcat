@@ -13,7 +13,7 @@ use Digest::SHA qw (sha1);
 use Crypt::CBC;
 use Encode;
 
-sub module_constraints { [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 256], [128, 128], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
@@ -63,7 +63,7 @@ sub module_generate_hash
   }
   else
   {
-    $pt = "\xff" x 16;
+    $pt = "\x30\x30\x30\x30\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c\x0c";
   }
 
   my $aes_cbc = Crypt::CBC->new ({
