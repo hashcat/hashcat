@@ -27,7 +27,11 @@ def metamask_parser(file, shortdata):
     if((len(j['data']) > 3000) or shortdata):
       print("! Data too long, we limit it to 64 bytes, this hash can only be used with m26610!")
       data_bin = base64.b64decode(j['data'])
+      # TODO limit data to 16 bytes, we only check the first block of data, so we don't need more data.
+      #  The use of smaller buffers should speedup the attack.
+      #  Still the pbkdf 10k iter will be taking the most time by far probably.
       j['data'] = base64.b64encode(data_bin[0:64]).decode("ascii")
+
       print('$metamask-short$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
     else:
       print('$metamask$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])

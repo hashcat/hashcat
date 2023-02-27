@@ -359,6 +359,7 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   u32 pt[4] = { 0 };
 
   // we try to decrypt the ciphertext
+  // TODO this can be moved to a separate decryption function in inc_cipher_aes-gcm.cl
   AES_GCM_inc32(J0); // the first ctr is used to compute the tag, only the second is used for decryption: https://en.wikipedia.org/wiki/Galois/Counter_Mode#/media/File:GCM-Galois_Counter_Mode_with_IV.svg
   AES_GCM_GCTR (key, J0, ct, 16, pt, s_te0, s_te1, s_te2, s_te3, s_te4); // decrypt the ciphertext
 
