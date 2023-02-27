@@ -11,6 +11,7 @@ use warnings;
 use Crypt::PBKDF2;
 use Digest::SHA qw (sha1);
 use Crypt::CBC;
+use Encode;
 
 sub module_constraints { [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]] }
 
@@ -30,7 +31,9 @@ sub module_generate_hash
 
   my $salt_bin = pack ("H*", $salt);
 
-  my $pbkdf2key = $pbkdf2->PBKDF2 ($salt_bin, $word);
+  my $word_utf16le = encode ("UTF-16LE", $word);
+
+  my $pbkdf2key = $pbkdf2->PBKDF2 ($salt_bin, $word_utf16le);
 
   my $key = substr ($pbkdf2key,  0, 32);
   my $iv  = substr ($pbkdf2key, 32, 16);
@@ -75,7 +78,7 @@ sub module_generate_hash
 
   my $ct_bin = $aes_cbc->encrypt ($pt);
 
-  my $hash = sprintf ('$vbk$*%s*%d*%s', pack ("H*", $salt_bin), $iter, pack ("H*", $ct_bin));
+  my $hash = sprintf ('$vbk$*%s*%d*%s', unpack ("H*", $salt_bin), $iter, unpack ("H*", $ct_bin));
 
   return $hash;
 }
