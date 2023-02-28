@@ -18,16 +18,17 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
-static const char *HASH_NAME      = "MetaMask Wallet (needs all data, checks AES-GCM tag)";
-static const u64   KERN_TYPE      = 26600;
+// 22610 generates a decryption key based on a password-guess and uses that to AES-GCM decrypt the data decrypts
+static const char *HASH_NAME      = "MetaMask Wallet (short hash, plaintext check)";
+static const u64   KERN_TYPE      = 26610;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
-// hash generated using with python3 tools/metamask2hashcat.py --vault tools/2hashcat_tests/metamask2hashcat.json
-static const char *ST_HASH        = "$metamask$jfGI3TXguhb8GPnKSXFrMzRk2NCEc131Gt5G3kZr5+s=$h+BoIf2CQ5BEjaIOShFE7g==$R95fzGt4UQ0uwrcrVYnIi4UcSlWn9wlmer+//526ZDwYAp50K82F1u1oacYcdjjhuEvbZnWk/uBG00UkgLLlO3WbINljqmu2QWdDEwjTgo/qWR6MU9d/82rxNiONHQE8UrZ8SV+htVr6XIB0ze3aCV0E+fwI93EeP79ZeDxuOEhuHoiYT0bHWMv5nA48AdluG4DbOo7SrDAWBVCBsEdXsOfYsS3/TIh0a/iFCMX4uhxY2824JwcWp4H36SFWyBYMZCJ3/U4DYFbbjWZtGRthoJlIik5BJq4FLu3Y1jEgza0AWlAvu4MKTEqrYSpUIghfxf1a1f+kPvxsHNq0as0kRwCXu09DObbdsiggbmeoBkxMZiFq0d9ar/3Gon0r3hfc3c124Wlivzbzu1JcZ3wURhLSsUS7b5cfG86aXHJkxmQDA5urBz6lw3bsIvlEUB2ErkQy/zD+cPwCG1Rs/WKt7KNh45lppCUkHccbf+xlpdc8OfUwj01Xp7BdH8LMR7Vx1C4hZCvSdtURVl0VaAMxHDX0MjRkwmqS";
+// hash generated using with python3 tools/metamask2hashcat.py --vault tools/2hashcat_tests/metamask2hashcat.json --shortdata
+static const char *ST_HASH        = "$metamask-short$jfGI3TXguhb8GPnKSXFrMzRk2NCEc131Gt5G3kZr5+s=$h+BoIf2CQ5BEjaIOShFE7g==$R95fzGt4UQ0uwrcrVYnIi4UcSlWn9wlmer+//526ZDwYAp50K82F1u1oacYcdjjhuEvbZnWk/uBG00UkgLLlOw==";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -59,12 +60,12 @@ typedef struct pbkdf2_sha256_aes_gcm
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[784];
+  u32 ct_buf[784]; // TODO this can be smaller and would speedup the attack, only 64 bytes of ciphertext are allowed
   u32 ct_len;
 
 } pbkdf2_sha256_aes_gcm_t;
 
-static const char *SIGNATURE_METAMASK_WALLET = "$metamask$";
+static const char *SIGNATURE_METAMASK_WALLET = "$metamask-short$";
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
@@ -128,7 +129,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pbkdf2_sha256_aes_gcm_t *metamask = (pbkdf2_sha256_aes_gcm_t *) esalt_buf;
 
-  #define CT_MAX_LEN_BASE64 (((3136+16) * 8) / 6) + 3
+  #define CT_MAX_LEN_BASE64 (((3136+16) * 8) / 6) + 3 // TODO this can be smaller and would speedup the attack, only 64 bytes of ciphertext are allowed
 
   hc_token_t token;
 
@@ -137,7 +138,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_METAMASK_WALLET;
 
-  token.len[0]     = 10;
+  token.len[0]     = 16;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
@@ -154,8 +155,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
   token.sep[3]     = '$';
-  token.len_min[3] = 64;
-  token.len_max[3] = CT_MAX_LEN_BASE64;
+  token.len_min[3] = 32;
+  token.len_max[3] = 100; // TODO this can be smaller and would speedup the attack, only 64 bytes of ciphertext are allowed
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
@@ -220,15 +221,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *ct_pos = token.buf[3];
   const int ct_len = token.len[3];
 
-  memset (tmp_buf, 0, sizeof (tmp_buf));
+  memset (tmp_buf, 0, sizeof (tmp_buf)); 
 
   tmp_len = base64_decode (base64_to_int, ct_pos, ct_len, tmp_buf);
-
-  if (tmp_len <= 16) return (PARSER_CT_LENGTH);
-
-  tmp_len -= 16;
-
-  if (tmp_len < 30 || tmp_len > 3136) return (PARSER_CT_LENGTH);
 
   memcpy ((u8 *) metamask->ct_buf, tmp_buf, tmp_len);
 
@@ -240,31 +235,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   metamask->ct_len = tmp_len;
 
-  // tag
-
-  u32 tag_buf[4] = { 0 };
-
-  memcpy ((u8 *) tag_buf, tmp_buf+metamask->ct_len, 16);
-
-  digest[0] = byte_swap_32 (tag_buf[0]);
-  digest[1] = byte_swap_32 (tag_buf[1]);
-  digest[2] = byte_swap_32 (tag_buf[2]);
-  digest[3] = byte_swap_32 (tag_buf[3]);
-
+  digest[0] =  (metamask->ct_buf[0]);
+  digest[1] =  (metamask->ct_buf[1]);
+  digest[2] =  (metamask->ct_buf[2]);
+  digest[3] =  (metamask->ct_buf[3]);
+  
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const u32 *digest = (const u32 *) digest_buf;
-
   pbkdf2_sha256_aes_gcm_t *metamask = (pbkdf2_sha256_aes_gcm_t *) esalt_buf;
 
   // salt
 
   #define SALT_LEN_BASE64   ((32 * 8) / 6) + 3
   #define IV_LEN_BASE64     ((16 * 8) / 6) + 3
-  #define CT_MAX_LEN_BASE64 (((3136+16) * 8) / 6) + 3
+  #define CT_MAX_LEN_BASE64 (((3136+16) * 8) / 6) + 3 // TODO this can be much smaller now, probably 32 ?
 
   u8 salt_buf[SALT_LEN_BASE64] = { 0 };
 
@@ -291,25 +278,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if ((ct_len % 4) > 0) j++;
 
-  u32 tmp_buf[784] = { 0 };
+  u32 tmp_buf[784] = { 0 }; // TODO this can be smaller and would speedup the attack, only 64 bytes of ciphertext are allowed
 
   for (u32 i = 0; i < j; i++) tmp_buf[i] = byte_swap_32 (metamask->ct_buf[i]);
 
-  u32 tmp_tag[4] = { 0 };
-
-  tmp_tag[0] = byte_swap_32 (digest[0]);
-  tmp_tag[1] = byte_swap_32 (digest[1]);
-  tmp_tag[2] = byte_swap_32 (digest[2]);
-  tmp_tag[3] = byte_swap_32 (digest[3]);
-
-  u8 *tmp_buf_str = (u8 *) tmp_buf;
-  u8 *tmp_tag_str = (u8 *) tmp_tag;
-
-  memcpy (tmp_buf_str+metamask->ct_len, tmp_tag_str, 16);
-
   u8 ct_buf[CT_MAX_LEN_BASE64] = { 0 };
 
-  base64_encode (int_to_base64, (const u8 *) tmp_buf, (const int) metamask->ct_len+16, ct_buf);
+  base64_encode (int_to_base64, (const u8 *) tmp_buf, (const int) metamask->ct_len, ct_buf);
 
   u8 *out_buf = (u8 *) line_buf;
 
