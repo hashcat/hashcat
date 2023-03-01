@@ -1721,6 +1721,152 @@ DECLSPEC void sha1_hmac_init_global_swap (PRIVATE_AS sha1_hmac_ctx_t *ctx, GLOBA
   sha1_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
+DECLSPEC void sha1_hmac_init_global_utf16le_swap (PRIVATE_AS sha1_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  if (hc_enc_scan_global (w, len))
+  {
+    hc_enc_t hc_enc;
+
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, len))
+    {
+      // forced full decode in one round
+
+      u32 enc_buf[256];
+
+      const int enc_len = hc_enc_next_global (&hc_enc, w, len, 256, enc_buf, sizeof (enc_buf));
+
+      if (enc_len == -1)
+      {
+        //hmac doesn't have password length
+        //ctx->len = -1;
+
+        return;
+      }
+
+      if (enc_len > 64)
+      {
+        sha1_ctx_t tmp;
+
+        sha1_init (&tmp);
+
+        sha1_update_utf16le_swap (&tmp, enc_buf, enc_len);
+
+        sha1_final (&tmp);
+
+        enc_buf[ 0] = tmp.h[0];
+        enc_buf[ 1] = tmp.h[1];
+        enc_buf[ 2] = tmp.h[2];
+        enc_buf[ 3] = tmp.h[3];
+        enc_buf[ 4] = tmp.h[4];
+        enc_buf[ 5] = 0;
+        enc_buf[ 6] = 0;
+        enc_buf[ 7] = 0;
+        enc_buf[ 8] = 0;
+        enc_buf[ 9] = 0;
+        enc_buf[10] = 0;
+        enc_buf[11] = 0;
+        enc_buf[12] = 0;
+        enc_buf[13] = 0;
+        enc_buf[14] = 0;
+        enc_buf[15] = 0;
+      }
+      else
+      {
+        enc_buf[ 0] = hc_swap32_S (enc_buf[ 0]);
+        enc_buf[ 1] = hc_swap32_S (enc_buf[ 1]);
+        enc_buf[ 2] = hc_swap32_S (enc_buf[ 2]);
+        enc_buf[ 3] = hc_swap32_S (enc_buf[ 3]);
+        enc_buf[ 4] = hc_swap32_S (enc_buf[ 4]);
+        enc_buf[ 5] = hc_swap32_S (enc_buf[ 5]);
+        enc_buf[ 6] = hc_swap32_S (enc_buf[ 6]);
+        enc_buf[ 7] = hc_swap32_S (enc_buf[ 7]);
+        enc_buf[ 8] = hc_swap32_S (enc_buf[ 8]);
+        enc_buf[ 9] = hc_swap32_S (enc_buf[ 9]);
+        enc_buf[10] = hc_swap32_S (enc_buf[10]);
+        enc_buf[11] = hc_swap32_S (enc_buf[11]);
+        enc_buf[12] = hc_swap32_S (enc_buf[12]);
+        enc_buf[13] = hc_swap32_S (enc_buf[13]);
+        enc_buf[14] = hc_swap32_S (enc_buf[14]);
+        enc_buf[15] = hc_swap32_S (enc_buf[15]);
+      }
+
+      sha1_hmac_init_64 (ctx, enc_buf + 0, enc_buf + 4, enc_buf + 8, enc_buf + 12);
+    }
+
+    return;
+  }
+
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  const int len_new = len * 2;
+
+  if (len_new > 64)
+  {
+    sha1_ctx_t tmp;
+
+    sha1_init (&tmp);
+
+    sha1_update_global_utf16le_swap (&tmp, w, len);
+
+    sha1_final (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = 0;
+    w1[2] = 0;
+    w1[3] = 0;
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = w[0];
+    w0[1] = w[1];
+    w0[2] = w[2];
+    w0[3] = w[3];
+    w1[0] = w[4];
+    w1[1] = w[5];
+    w1[2] = w[6];
+    w1[3] = w[7];
+
+    make_utf16le_S (w1, w2, w3);
+    make_utf16le_S (w0, w0, w1);
+
+    w0[0] = hc_swap32_S (w0[0]);
+    w0[1] = hc_swap32_S (w0[1]);
+    w0[2] = hc_swap32_S (w0[2]);
+    w0[3] = hc_swap32_S (w0[3]);
+    w1[0] = hc_swap32_S (w1[0]);
+    w1[1] = hc_swap32_S (w1[1]);
+    w1[2] = hc_swap32_S (w1[2]);
+    w1[3] = hc_swap32_S (w1[3]);
+    w2[0] = hc_swap32_S (w2[0]);
+    w2[1] = hc_swap32_S (w2[1]);
+    w2[2] = hc_swap32_S (w2[2]);
+    w2[3] = hc_swap32_S (w2[3]);
+    w3[0] = hc_swap32_S (w3[0]);
+    w3[1] = hc_swap32_S (w3[1]);
+    w3[2] = hc_swap32_S (w3[2]);
+    w3[3] = hc_swap32_S (w3[3]);
+  }
+
+  sha1_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
 DECLSPEC void sha1_hmac_update_64 (PRIVATE_AS sha1_hmac_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
 {
   sha1_update_64 (&ctx->ipad, w0, w1, w2, w3, len);

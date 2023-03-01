@@ -354,6 +354,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SecureZIP AES-128
 - SecureZIP AES-192
 - SecureZIP AES-256
+- Veeam VBK
 - WinZip
 - Android Backup
 - Stuffit5

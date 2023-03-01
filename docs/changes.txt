@@ -23,6 +23,7 @@
 - Added hash-mode: bcrypt(sha256($pass))
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
 - Added hash-mode: metamask (26610) with plaintext check instead of checking the AES-GCM tag of the data (26600). 26610 no longer needs all data in hash.
+- Added hash-mode: Veeam VBK
 
 ##
 ## Performance
