@@ -63,6 +63,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - GOST R 34.11-2012 (Streebog) 512-bit, big-endian
 - GOST R 34.11-94
 - GPG (AES-128/AES-256 (SHA-1($pass)))
+- GPG (AES-128/AES-256 (SHA-256($pass)))
+- GPG (AES-128/AES-256 (SHA-512($pass)))
 - Half MD5
 - Keccak-224
 - Keccak-256
