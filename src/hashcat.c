@@ -54,6 +54,9 @@
 #include "brain.h"
 #endif
 
+// hashcat_ctx stored globally for signal handling
+hashcat_ctx_t *hc_ctx;
+
 // inner2_loop iterates through wordlists, then calls kernel execution
 
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
@@ -1093,6 +1096,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (sizeof (user_options_t));
   hashcat_ctx->wl_data            = (wl_data_t *)             hcmalloc (sizeof (wl_data_t));
 
+  hc_ctx = hashcat_ctx;
   return 0;
 }
 
@@ -1742,6 +1746,19 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
     if (user_options->identify == true) return 0;
 
     user_options->autodetect = false;
+  }
+
+  /**
+   * enable custom signal handler(s)
+   */
+
+  if (user_options->benchmark == false)
+  {
+    hc_signal (sigHandler_default);
+  }
+  else
+  {
+    hc_signal (sigHandler_benchmark);
   }
 
   /**

@@ -58,7 +58,7 @@
 
 #endif
 
-/*
+
 #if defined (_WIN)
 
 BOOL WINAPI sigHandler_default (DWORD sig);
@@ -72,7 +72,7 @@ void sigHandler_benchmark (int sig);
 void hc_signal (void (callback) (int));
 
 #endif
-*/
+
 
 int mycracked (hashcat_ctx_t *hashcat_ctx);
 int myabort_runtime (hashcat_ctx_t *hashcat_ctx);

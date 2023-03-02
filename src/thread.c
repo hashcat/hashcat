@@ -9,7 +9,9 @@
 #include "timer.h"
 #include "thread.h"
 
-/*
+// hashcat_ctx stored globally for signal handling
+extern hashcat_ctx_t *hc_ctx;
+
 #if defined (_WIN)
 
 BOOL WINAPI sigHandler_default (DWORD sig)
@@ -24,7 +26,7 @@ BOOL WINAPI sigHandler_default (DWORD sig)
        * function otherwise it is too late (e.g. after returning from this function)
        *
 
-      myabort (hashcat_ctx->status_ctx);
+      myabort (hc_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -36,7 +38,7 @@ BOOL WINAPI sigHandler_default (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myabort (hashcat_ctx->status_ctx);
+      myabort (hc_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -52,7 +54,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
   {
     case CTRL_CLOSE_EVENT:
 
-      myquit (hashcat_ctx->status_ctx);
+      myquit (hc_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -64,7 +66,7 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myquit (hashcat_ctx->status_ctx);
+      myquit (hc_ctx);
 
       SetConsoleCtrlHandler (NULL, TRUE);
 
@@ -90,14 +92,14 @@ void hc_signal (BOOL WINAPI (callback) (DWORD))
 
 void sigHandler_default (int sig)
 {
-  myabort (hashcat_ctx->status_ctx);
+  myabort (hc_ctx);
 
   signal (sig, NULL);
 }
 
 void sigHandler_benchmark (int sig)
 {
-  myquit (hashcat_ctx->status_ctx);
+  myquit (hc_ctx);
 
   signal (sig, NULL);
 }
@@ -112,7 +114,7 @@ void hc_signal (void (callback) (int))
 }
 
 #endif
-*/
+
 
 int mycracked (hashcat_ctx_t *hashcat_ctx)
 {
