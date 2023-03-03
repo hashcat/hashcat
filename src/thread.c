@@ -92,16 +92,24 @@ void hc_signal (BOOL WINAPI (callback) (DWORD))
 
 void sigHandler_default (int sig)
 {
-  myabort (hc_ctx);
+  if (hc_ctx) 
+  {
+    hc_ctx = NULL;
+    myabort (hc_ctx);
+  }
 
-  signal (sig, NULL);
+  // signal (sig, NULL);
 }
 
 void sigHandler_benchmark (int sig)
 {
-  myquit (hc_ctx);
+  if (hc_ctx) 
+  {
+    hc_ctx = NULL;
+    myquit (hc_ctx);
+  }
 
-  signal (sig, NULL);
+  // signal (sig, NULL);
 }
 
 void hc_signal (void (callback) (int))

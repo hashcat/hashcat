@@ -28,6 +28,9 @@
 int _dowildcard = -1;
 #endif
 
+// hashcat_ctx stored globally for signal handling
+hashcat_ctx_t *hc_ctx;
+
 static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
 {
   if (!is_stdout_terminal ()) return;
@@ -1283,6 +1286,10 @@ int main (int argc, char **argv)
 
     return 0;
   }
+
+  // Initializing the hashcat ctx global pointer for the signal handler 
+  
+  hc_ctx = hashcat_ctx;
 
   // init a hashcat session; this initializes backend devices, hwmon, etc
 
