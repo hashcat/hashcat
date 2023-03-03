@@ -20,15 +20,19 @@ BOOL WINAPI sigHandler_default (DWORD sig)
   {
     case CTRL_CLOSE_EVENT:
 
-       *
+       /*
        * special case see: https://stackoverflow.com/questions/3640633/c-setconsolectrlhandler-routine-issue/5610042#5610042
        * if the user interacts w/ the user-interface (GUI/cmd), we need to do the finalization job within this signal handler
        * function otherwise it is too late (e.g. after returning from this function)
-       *
+       */
 
-      myabort (hc_ctx);
+      if (hc_ctx) 
+      {
+        hc_ctx = NULL;
+        myabort (hc_ctx);
+      }
 
-      SetConsoleCtrlHandler (NULL, TRUE);
+      // SetConsoleCtrlHandler (NULL, TRUE);
 
       sleep (10);
 
@@ -38,9 +42,13 @@ BOOL WINAPI sigHandler_default (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myabort (hc_ctx);
+      if (hc_ctx) 
+      {
+        hc_ctx = NULL;
+        myabort (hc_ctx);
+      }
 
-      SetConsoleCtrlHandler (NULL, TRUE);
+      // SetConsoleCtrlHandler (NULL, TRUE);
 
       return TRUE;
   }
@@ -54,9 +62,13 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
   {
     case CTRL_CLOSE_EVENT:
 
-      myquit (hc_ctx);
+      if (hc_ctx) 
+      {
+        hc_ctx = NULL;
+        myquit (hc_ctx);
+      }
 
-      SetConsoleCtrlHandler (NULL, TRUE);
+      // SetConsoleCtrlHandler (NULL, TRUE);
 
       sleep (10);
 
@@ -66,9 +78,13 @@ BOOL WINAPI sigHandler_benchmark (DWORD sig)
     case CTRL_LOGOFF_EVENT:
     case CTRL_SHUTDOWN_EVENT:
 
-      myquit (hc_ctx);
+      if (hc_ctx) 
+      {
+        hc_ctx = NULL;
+        myquit (hc_ctx);
+      }
 
-      SetConsoleCtrlHandler (NULL, TRUE);
+      // SetConsoleCtrlHandler (NULL, TRUE);
 
       return TRUE;
   }
