@@ -262,14 +262,6 @@ KERNEL_FQ void m17020_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].h[ 5] = SHA512M_F;
   tmps[gid].h[ 6] = SHA512M_G;
   tmps[gid].h[ 7] = SHA512M_H;
-  tmps[gid].h[ 8] = SHA512M_A;
-  tmps[gid].h[ 9] = SHA512M_B;
-  tmps[gid].h[10] = SHA512M_C;
-  tmps[gid].h[11] = SHA512M_D;
-  tmps[gid].h[12] = SHA512M_E;
-  tmps[gid].h[13] = SHA512M_F;
-  tmps[gid].h[14] = SHA512M_G;
-  tmps[gid].h[15] = SHA512M_H;
 
   tmps[gid].len = 0;
 }
