@@ -364,7 +364,7 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
     // we don't use the user-password in the attack now (as we don't need it),
     //  however we could use it in the comparison of the decrypted o-value,
     //  yet it may make this attack a bit more fragile, as now we just check for ASCII
-    if ((u8OutBufPtr[i] >= 20 && u8OutBufPtr[i] <= 0x7e) ||
+    if ((u8OutBufPtr[i] >= 0x20 && u8OutBufPtr[i] <= 0x7e) ||
         (u8OutBufPtr[i] == u8OutPadPtr[i_padding]))
     {
       if (u8OutBufPtr[i] == u8OutPadPtr[i_padding])
@@ -374,7 +374,7 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
       }
       else
       {
-        if (u8OutBufPtr[i] >= 20 && u8OutBufPtr[i] <= 0x7e)
+        if (u8OutBufPtr[i] >= 0x20 && u8OutBufPtr[i] <= 0x7e)
         {
           //printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
         }

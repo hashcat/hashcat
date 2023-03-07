@@ -376,7 +376,7 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   
   for(int i=0;i<16;i++)
   { 
-        if(u8OutBufPtr[i] >=20 && u8OutBufPtr[i] <= 0x7e) {
+        if(u8OutBufPtr[i] >=0x20 && u8OutBufPtr[i] <= 0x7e) {
           //if ((gid == 0) && (lid == 0)) printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
         } 
         else {
