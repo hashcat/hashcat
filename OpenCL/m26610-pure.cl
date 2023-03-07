@@ -348,17 +348,12 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   AES_GCM_Prepare_J0 (iv, iv_len, subKey, J0);
 
-  //first block of ciphertext
-  u32 ct[4] = { 
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0], 
+  u32 ct[8] = {
+    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0],   //first block of ciphertext
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1],
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2],
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3]
-  };
-
-  // second block of ciphertext
-  u32 ct2[4] = {
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[4],
+    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3],
+    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[4],  // second block of ciphertext
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[5],
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[6],
     esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[7]
@@ -366,19 +361,17 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   //if ((gid == 0) && (lid == 0)) printf("esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3]=0x%08x\n", esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3]);
   //if ((gid == 0) && (lid == 0)) printf("esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[4]=0x%08x\n", esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[4]);
   
-  u32 pt[4] = { 0 };
-  u32 pt2[4] = { 0 };
+  u32 pt[8] = { 0 };
+  AES_GCM_decrypt (key, J0, ct, 32, pt, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  // we try to decrypt the ciphertext
-  // TODO this can be moved to a separate decryption function in inc_cipher_aes-gcm.cl
-  AES_GCM_inc32(J0); // the first ctr is used to compute the tag, only the second is used for decryption: https://en.wikipedia.org/wiki/Galois/Counter_Mode#/media/File:GCM-Galois_Counter_Mode_with_IV.svg
-  AES_GCM_GCTR (key, J0, ct, 16, pt, s_te0, s_te1, s_te2, s_te3, s_te4); // decrypt the first block of ciphertext
 
-  AES_GCM_inc32(J0);
-  AES_GCM_GCTR (key, J0, ct2, 16, pt2, s_te0, s_te1, s_te2, s_te3, s_te4); // decrypt the second block of ciphertext
+  // TODO check entropy, but not sure what MAX_ENTROPY should be..
+  //const float entropy = hc_get_entropy (pt, 8);
+  //printf("entropy=%f\n", entropy);
+
 
   //if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x\n", pt[0]); // should be 5b7b2274 or [{"type"
-  if ((gid == 0) && (lid == 0)) printf ("pt2[0]=%08x%08x\n", pt2[0], pt2[1]); // should be 2054726565222c22 or  Tree","
+  //if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x%08x\n", pt[4], pt[5]); // should be 2054726565222c22 or  Tree","
 
   // cast plaintext buffer to byte such that we can do a byte per byte comparison
   PRIVATE_AS const u32 *u32OutBufPtr = (PRIVATE_AS u32 *) pt;
@@ -389,7 +382,7 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   //  if not, decryption was not successful
   bool correct = true;
   
-  for(int i=0;i<16;i++)
+  for(int i=0;i<32;i++)
   { 
         if(u8OutBufPtr[i] >=0x20 && u8OutBufPtr[i] <= 0x7e) {
           //if ((gid == 0) && (lid == 0)) printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
