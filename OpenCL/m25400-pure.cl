@@ -296,25 +296,21 @@ KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
   rc4_init_128 (S, o_rc4_decryption_key, lid);
   j = rc4_next_16 (S, 0, 0, out, out, lid); // output of the rc4 decrypt of the o-value should be the padded user-password
+  tmps[gid].out[0] = out[0];
+  tmps[gid].out[1] = out[1];
+  tmps[gid].out[2] = out[2];
+  tmps[gid].out[3] = out[3];
+
+  rc4_next_16 (S, 16, j, out2, out2, lid); // decrypt a second block of rc4 to improve plaintext check and limit false positives
+  tmps[gid].out[4] = out2[0];
+  tmps[gid].out[5] = out2[1];
+  tmps[gid].out[6] = out2[2];
+  tmps[gid].out[7] = out2[3];
 
   tmps[gid].digest[0] = digest[0];
   tmps[gid].digest[1] = digest[1];
   tmps[gid].digest[2] = digest[2];
   tmps[gid].digest[3] = digest[3];
-
-  tmps[gid].out[0] = out[0];
-  tmps[gid].out[1] = out[1];
-  tmps[gid].out[2] = out[2];
-  tmps[gid].out[3] = out[3];
-  if ((gid == 0) && (lid == 0)) printf ("out[3]=%08x\n", out[3]);
-
-  rc4_next_16 (S, 16, j, out2, out2, lid); // decrypt a second block of rc4 to improve plaintext check and limit false positives
-  if ((gid == 0) && (lid == 0)) printf ("out2[0]=%08x\n", out2[0]);
-  tmps[gid].out[4] = out2[0];
-  if ((gid == 0) && (lid == 0)) printf ("tmps[gid].out[4]=%08x\n", tmps[gid].out[4]);
-  tmps[gid].out[5] = out2[1];
-  tmps[gid].out[6] = out2[2];
-  tmps[gid].out[7] = out2[3];
 }
 
 KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
@@ -391,34 +387,34 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
     {
       if (u8OutBufPtr[i] == u8OutPadPtr[i_padding])
       {
-        if ((gid == 0) && (lid == 0)) printf("correct padding byte[%d]=0x%02x==0x%02x\n", i, u8OutBufPtr[i], u8OutPadPtr[i_padding]);
+        //if ((gid == 0) && (lid == 0)) printf("correct padding byte[%d]=0x%02x==0x%02x\n", i, u8OutBufPtr[i], u8OutPadPtr[i_padding]);
         i_padding = i_padding + 1;
       }
       else
       {
         if (u8OutBufPtr[i] >= 0x20 && u8OutBufPtr[i] <= 0x7e)
         {
-          if ((gid == 0) && (lid == 0)) printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
+          //if ((gid == 0) && (lid == 0)) printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
         }
       }
     }
     else
     {
-      if ((gid == 0) && (lid == 0)) {
-        printf("wrong byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
-
-        printf("u8OutBufPtr=0x");
-        for(int j=0;j<32;j++) {
-          printf("%02x", u8OutBufPtr[j]);
-        }
-        printf("\n");
-
-        printf("u8OutPadPtr=0x");
-        for(int j=0;j<32;j++) {
-          printf("%02x", u8OutPadPtr[j]);
-        }
-        printf("\n");
-      }
+      //if ((gid == 0) && (lid == 0)) {
+      //  printf("wrong byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
+      //
+      //  printf("u8OutBufPtr=0x");
+      //  for(int j=0;j<32;j++) {
+      //    printf("%02x", u8OutBufPtr[j]);
+      //  }
+      //  printf("\n");
+      //
+      //  printf("u8OutPadPtr=0x");
+      //  for(int j=0;j<32;j++) {
+      //    printf("%02x", u8OutPadPtr[j]);
+      //  }
+      //  printf("\n");
+      //}
       correct = false;
       break;
     }

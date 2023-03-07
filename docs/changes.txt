@@ -40,6 +40,7 @@
 - Prevent Hashcat from hanging by checking during startup that the output file is a named pipe
 - Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
 - Skip generated rule that was the result of chaining rule operation and caused this generated rule to exceed the maximum number of function calls
+- Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes for 25400 to prevent false positives.
 
 ##
 ## Technical
