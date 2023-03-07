@@ -335,12 +335,13 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   AES_GCM_Init (ukey, key_len, key, subKey, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   // iv
-  const u32 iv[4] = {
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0],
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1],
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2],
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3]
-  };
+
+  u32 iv[4];
+
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
 
   const u32 iv_len = esalt_bufs[DIGESTS_OFFSET_HOST].iv_len;
 
@@ -349,13 +350,14 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   AES_GCM_Prepare_J0 (iv, iv_len, subKey, J0);
 
   //ct
-  u32 ct[4] = { 
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0], 
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1],
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2],
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3] 
-  };
-  
+
+  u32 ct[4];
+
+  ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0];
+  ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1];
+  ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2];
+  ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3];
+
   u32 pt[4] = { 0 };
 
   // we try to decrypt the ciphertext
@@ -365,41 +367,24 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   // if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x\n", pt[0]); // should be 5b7b2274 or [{"type"
 
-  // cast plaintext buffer to byte such that we can do a byte per byte comparison
-  PRIVATE_AS const u32 *u32OutBufPtr = (PRIVATE_AS u32 *) pt;
-  PRIVATE_AS const u8  *u8OutBufPtr  = (PRIVATE_AS u8  *) u32OutBufPtr;
+  u32 digest[4];
 
-  // the best comparison I can think of is checking each byte
-  //  whether it's ASCII, if so we're good,
-  //  if not, decryption was not successful
-  bool correct = true;
-  
-  for(int i=0;i<16;i++)
-  { 
-        if(u8OutBufPtr[i] >=20 && u8OutBufPtr[i] <= 0x7e) {
-          //if ((gid == 0) && (lid == 0)) printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
-        } 
-        else {
-          //if ((gid == 0) && (lid == 0)) printf("NOT correct!   byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
-          correct = false;
-          break;
-        }
-  }
+  digest[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0];
+  digest[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1];
+  digest[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2];
+  digest[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3];
 
-  const u32 digest[4] =
-  {
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0],
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1],
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2],
-    esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3],
-  };
-  
   //if ((gid == 0) && (lid == 0)) printf ("ct[0]=%08x\n", ct[0]);
   //if ((gid == 0) && (lid == 0)) printf ("ct[1]=%08x\n", ct[1]);
   //if ((gid == 0) && (lid == 0)) printf ("ct[2]=%08x\n", ct[2]);
   //if ((gid == 0) && (lid == 0)) printf ("ct[3]=%08x\n", ct[3]);
 
-  if (correct)
+  const int correct = is_valid_printable_32 (pt[0])
+                    + is_valid_printable_32 (pt[1])
+                    + is_valid_printable_32 (pt[2])
+                    + is_valid_printable_32 (pt[3]);
+
+  if (correct == 4)
   {
     int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
