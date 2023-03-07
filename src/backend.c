@@ -7271,6 +7271,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                   event_log_warning (hashcat_ctx, "* Device #%u: CUDA SDK Toolkit not installed or incorrectly installed.", device_id + 1);
                   event_log_warning (hashcat_ctx, "             CUDA SDK Toolkit required for proper device support and utilization.");
+                  event_log_warning (hashcat_ctx, "             For more information, see: https://hashcat.net/faq/wrongdriver");
                   event_log_warning (hashcat_ctx, "             Falling back to OpenCL runtime.");
 
                   event_log_warning (hashcat_ctx, NULL);
