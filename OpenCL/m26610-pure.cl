@@ -349,23 +349,23 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   AES_GCM_Prepare_J0 (iv, iv_len, subKey, J0);
 
-  //ct
-
-  u32 ct[4];
-
-  ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0];
+  u32 ct[8];
+  ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0]; // first block of ciphertext
   ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1];
   ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2];
   ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3];
+  ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[4]; // second block of ciphertext
+  ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[5];
+  ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[6];
+  ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[7];
 
-  u32 pt[4] = { 0 };
+  u32 pt[8] = { 0 };
 
-  // we try to decrypt the ciphertext
-  // TODO this can be moved to a separate decryption function in inc_cipher_aes-gcm.cl
-  AES_GCM_inc32(J0); // the first ctr is used to compute the tag, only the second is used for decryption: https://en.wikipedia.org/wiki/Galois/Counter_Mode#/media/File:GCM-Galois_Counter_Mode_with_IV.svg
-  AES_GCM_GCTR (key, J0, ct, 16, pt, s_te0, s_te1, s_te2, s_te3, s_te4); // decrypt the ciphertext
+
+  AES_GCM_decrypt (key, J0, ct, 32, pt, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   // if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x\n", pt[0]); // should be 5b7b2274 or [{"type"
+  // if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x%08x\n", pt[4], pt[5]); // should be 2054726565222c22 or  Tree","
 
   u32 digest[4];
 
@@ -382,9 +382,15 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   const int correct = is_valid_printable_32 (pt[0])
                     + is_valid_printable_32 (pt[1])
                     + is_valid_printable_32 (pt[2])
-                    + is_valid_printable_32 (pt[3]);
+                    + is_valid_printable_32 (pt[3])
+                    + is_valid_printable_32 (pt[4])
+                    + is_valid_printable_32 (pt[5])
+                    + is_valid_printable_32 (pt[6])
+                    + is_valid_printable_32 (pt[7]);
 
-  if (correct == 4)
+  // if ((gid == 0) && (lid == 0)) printf("correct=%d\n", correct);
+
+  if (correct == 8)
   {
     int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 

@@ -303,3 +303,9 @@ DECLSPEC void AES_GCM_GHASH_GLOBAL (PRIVATE_AS const u32 *subkey, PRIVATE_AS con
 
   AES_GCM_ghash (subkey, len_buf, 16, out);
 }
+
+void AES_GCM_decrypt (PRIVATE_AS u32 *key, PRIVATE_AS u32 *J0, PRIVATE_AS const u32 *in, int in_len, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+{
+    AES_GCM_inc32(J0); // the first ctr is used to compute the tag, only the second is used for decryption: https://en.wikipedia.org/wiki/Galois/Counter_Mode#/media/File:GCM-Galois_Counter_Mode_with_IV.svg
+    AES_GCM_GCTR (key, J0, in, in_len, out, s_te0, s_te1, s_te2, s_te3, s_te4); // decrypt the first block of ciphertext
+}

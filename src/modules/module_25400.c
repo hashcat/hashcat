@@ -74,7 +74,7 @@ typedef struct pdf
 typedef struct pdf14_tmp
 {
   u32 digest[4];
-  u32 out[4];
+  u32 out[8];
 
 } pdf14_tmp_t;
 
@@ -501,7 +501,11 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
   if (pdf_tmp->out[0] == padding[0] &&
       pdf_tmp->out[1] == padding[1] &&
       pdf_tmp->out[2] == padding[2] &&
-      pdf_tmp->out[3] == padding[3])
+      pdf_tmp->out[3] == padding[3] &&
+      pdf_tmp->out[4] == padding[4] &&
+      pdf_tmp->out[5] == padding[5] &&
+      pdf_tmp->out[6] == padding[6] &&
+      pdf_tmp->out[7] == padding[7])
   {
     return snprintf ((char *) dst_buf, dst_sz, "%s    (user password not set)", (char *) src_buf);
   }
@@ -534,10 +538,14 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
   //     however, we'd need to include a lot of code/complexity here to do so (or call into 10500 kernel).
   //     this seems relevant: run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 0, 1, false, 0)
 
-  if (pdf_tmp->out[0] == src_buf[0] &&
-      pdf_tmp->out[1] == src_buf[1] &&
-      pdf_tmp->out[2] == src_buf[2] &&
-      pdf_tmp->out[3] == src_buf[3])
+  if (pdf_tmp->out[0] == padding[0] &&
+      pdf_tmp->out[1] == padding[1] &&
+      pdf_tmp->out[2] == padding[2] &&
+      pdf_tmp->out[3] == padding[3] &&
+      pdf_tmp->out[4] == padding[4] &&
+      pdf_tmp->out[5] == padding[5] &&
+      pdf_tmp->out[6] == padding[6] &&
+      pdf_tmp->out[7] == padding[7])
   {
     if (pdf->u_pass_len == 0)
     {
