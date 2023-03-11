@@ -392,6 +392,24 @@ static void main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
   event_log_info_nn (hashcat_ctx, "Compared hashes with potfile entries");
 }
 
+static void main_rulesfiles_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Loading rules. Please be patient...");
+}
+
+static void main_rulesfiles_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Loading rules finished");
+}
+
 static void main_potfile_hash_show (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
@@ -1184,6 +1202,8 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_POTFILE_NUM_CRACKED:       main_potfile_num_cracked       (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_REMOVE_PARSE_POST: main_potfile_remove_parse_post (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_REMOVE_PARSE_PRE:  main_potfile_remove_parse_pre  (hashcat_ctx, buf, len); break;
+    case EVENT_RULESFILES_PARSE_POST:     main_rulesfiles_parse_post     (hashcat_ctx, buf, len); break;
+    case EVENT_RULESFILES_PARSE_PRE:      main_rulesfiles_parse_pre      (hashcat_ctx, buf, len); break;
     case EVENT_SET_KERNEL_POWER_FINAL:    main_set_kernel_power_final    (hashcat_ctx, buf, len); break;
     case EVENT_WORDLIST_CACHE_GENERATE:   main_wordlist_cache_generate   (hashcat_ctx, buf, len); break;
     case EVENT_WORDLIST_CACHE_HIT:        main_wordlist_cache_hit        (hashcat_ctx, buf, len); break;

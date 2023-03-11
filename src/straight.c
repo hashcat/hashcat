@@ -289,8 +289,11 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->rp_files_cnt)
     {
-      event_log_info_nn(hashcat_ctx, "Loading Rules");
+      EVENT (EVENT_RULESFILES_PARSE_PRE);
+
       if (kernel_rules_load (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt) == -1) return -1;
+
+      EVENT (EVENT_RULESFILES_PARSE_POST);
     }
     else if (user_options->rp_gen)
     {
