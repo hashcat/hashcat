@@ -361,11 +361,14 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   u32 pt[8] = { 0 };
 
-
   AES_GCM_decrypt (key, J0, ct, 32, pt, s_te0, s_te1, s_te2, s_te3, s_te4);
 
   // if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x\n", pt[0]); // should be 5b7b2274 or [{"type"
   // if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x%08x\n", pt[4], pt[5]); // should be 2054726565222c22 or  Tree","
+
+  const float entropy = hc_get_entropy (pt, 8);
+
+  if (entropy > (8 / (256 / (0x7e - 0x20)))) return;
 
   u32 digest[4];
 
@@ -379,29 +382,15 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   //if ((gid == 0) && (lid == 0)) printf ("ct[2]=%08x\n", ct[2]);
   //if ((gid == 0) && (lid == 0)) printf ("ct[3]=%08x\n", ct[3]);
 
-  const int correct = is_valid_printable_32 (pt[0])
-                    + is_valid_printable_32 (pt[1])
-                    + is_valid_printable_32 (pt[2])
-                    + is_valid_printable_32 (pt[3])
-                    + is_valid_printable_32 (pt[4])
-                    + is_valid_printable_32 (pt[5])
-                    + is_valid_printable_32 (pt[6])
-                    + is_valid_printable_32 (pt[7]);
+  const int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
-  // if ((gid == 0) && (lid == 0)) printf("correct=%d\n", correct);
-
-  if (correct == 8)
+  if (digest_pos != -1)
   {
-    int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
+    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
 
-    if (digest_pos != -1)
+    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
     {
-      const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
-
-      if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
-      {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
-      }
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
     }
   }
 }
