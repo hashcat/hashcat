@@ -276,8 +276,6 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
-  #define il_pos 0
-
 
   /**
    * aes shared
@@ -314,6 +312,12 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   if (gid >= GID_CNT) return;
 
+  const u32 digest_pos = LOOP_POS;
+
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
+
+  GLOBAL_AS const pbkdf2_sha256_aes_gcm_t *pbkdf2_sha256_aes_gcm = &esalt_bufs[digest_cur];
+
   // keys
 
   u32 ukey[8];
@@ -338,59 +342,73 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   u32 iv[4];
 
-  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
-  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
-  iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
-  iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
+  iv[0] = pbkdf2_sha256_aes_gcm->iv_buf[0];
+  iv[1] = pbkdf2_sha256_aes_gcm->iv_buf[1];
+  iv[2] = pbkdf2_sha256_aes_gcm->iv_buf[2];
+  iv[3] = pbkdf2_sha256_aes_gcm->iv_buf[3];
 
-  const u32 iv_len = esalt_bufs[DIGESTS_OFFSET_HOST].iv_len;
+  const u32 iv_len = pbkdf2_sha256_aes_gcm->iv_len;
 
   u32 J0[4] = { 0 };
 
   AES_GCM_Prepare_J0 (iv, iv_len, subKey, J0);
 
   u32 ct[8];
-  ct[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0]; // first block of ciphertext
-  ct[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1];
-  ct[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2];
-  ct[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3];
-  ct[4] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[4]; // second block of ciphertext
-  ct[5] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[5];
-  ct[6] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[6];
-  ct[7] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[7];
+
+  ct[0] = pbkdf2_sha256_aes_gcm->ct_buf[0]; // first block of ciphertext
+  ct[1] = pbkdf2_sha256_aes_gcm->ct_buf[1];
+  ct[2] = pbkdf2_sha256_aes_gcm->ct_buf[2];
+  ct[3] = pbkdf2_sha256_aes_gcm->ct_buf[3];
+  ct[4] = pbkdf2_sha256_aes_gcm->ct_buf[4]; // second block of ciphertext
+  ct[5] = pbkdf2_sha256_aes_gcm->ct_buf[5];
+  ct[6] = pbkdf2_sha256_aes_gcm->ct_buf[6];
+  ct[7] = pbkdf2_sha256_aes_gcm->ct_buf[7];
 
   u32 pt[8] = { 0 };
 
   AES_GCM_decrypt (key, J0, ct, 32, pt, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  // if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x\n", pt[0]); // should be 5b7b2274 or [{"type"
-  // if ((gid == 0) && (lid == 0)) printf ("pt[0]=%08x%08x\n", pt[4], pt[5]); // should be 2054726565222c22 or  Tree","
 
-  const float entropy = hc_get_entropy (pt, 8);
+  const int correct = is_valid_printable_32 (pt[0])
+                    + is_valid_printable_32 (pt[1])
+                    + is_valid_printable_32 (pt[2])
+                    + is_valid_printable_32 (pt[3])
+                    + is_valid_printable_32 (pt[4])
+                    + is_valid_printable_32 (pt[5])
+                    + is_valid_printable_32 (pt[6])
+                    + is_valid_printable_32 (pt[7]);
 
-  if (entropy > (8 / (256 / (0x7e - 0x20)))) return;
+  if (correct != 8) return;
 
-  u32 digest[4];
+  /*
+  const int pt_len = 28; // not using 32 byte but 28 because our UTF8 allows up to 4 byte per character and since we decrypt 32 byte
+                         // only we can't garantee it is not in the middle of a UTF8 byte stream at that point
 
-  digest[0] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[0];
-  digest[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[1];
-  digest[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[2];
-  digest[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf[3];
-
-  //if ((gid == 0) && (lid == 0)) printf ("ct[0]=%08x\n", ct[0]);
-  //if ((gid == 0) && (lid == 0)) printf ("ct[1]=%08x\n", ct[1]);
-  //if ((gid == 0) && (lid == 0)) printf ("ct[2]=%08x\n", ct[2]);
-  //if ((gid == 0) && (lid == 0)) printf ("ct[3]=%08x\n", ct[3]);
-
-  const int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
-
-  if (digest_pos != -1)
+  if (hc_enc_scan (pt, pt_len))
   {
-    const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
+    hc_enc_t hc_enc;
 
-    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
+    hc_enc_init (&hc_enc);
+
+    while (hc_enc_has_next (&hc_enc, pt_len))
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
+      u32 enc_buf[16] = { 0 };
+
+      const int enc_len = hc_enc_next (&hc_enc, pt, pt_len, 32, enc_buf, sizeof (enc_buf));
+
+      if (enc_len == -1) return;
     }
   }
+  */
+
+  const u32 r0 = ct[0];
+  const u32 r1 = ct[1];
+  const u32 r2 = ct[2];
+  const u32 r3 = ct[3];
+
+  #define il_pos 0
+
+  #ifdef KERNEL_STATIC
+  #include COMPARE_M
+  #endif
 }
