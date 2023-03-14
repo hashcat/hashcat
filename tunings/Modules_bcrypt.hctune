@@ -5,4 +5,5 @@
 DEVICE_TYPE_CPU                                 *       3200    1       N       A
 DEVICE_TYPE_CPU                                 *       25600   1       N       A
 DEVICE_TYPE_CPU                                 *       25800   1       N       A
-
+DEVICE_TYPE_CPU                                 *       28400   1       N       A
+DEVICE_TYPE_CPU                                 *       30600   1       N       A
