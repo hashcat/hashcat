@@ -1,6 +1,9 @@
 /**
  * Author......: See docs/credits.txt
  * License.....: MIT
+ *
+ * Note that this module is intended to crack only the master passphrase of a SecureCRT config stored in the 2: format (versions < 9.3)
+ * See https://github.com/HyperSine/how-does-SecureCRT-encrypt-password for decrypting passwords after you've cracked the master passphrase (or if there is no master passphrase)
  */
 
 #include "common.h"
@@ -17,7 +20,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
-static const char *HASH_NAME      = "SecureCRT";
+static const char *HASH_NAME      = "SecureCRT MasterPassphrase v2";
 static const u64   KERN_TYPE      = 31400;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
