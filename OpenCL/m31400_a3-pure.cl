@@ -114,7 +114,7 @@ DECLSPEC void shift_buffer_by_offset(PRIVATE_AS u32 *w0, const u32 offset)
 #endif
 }
 
-DECLSPEC void aes256_scrt_format(PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32 *pw, PRIVATE_AS u32 pw_len, PRIVATE_AS u32 *hash, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes256_scrt_format (PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32 *pw, const u32 pw_len, PRIVATE_AS u32 *hash, PRIVATE_AS u32 *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
         AES256_set_encrypt_key(aes_ks, hash, s_te0, s_te1, s_te2, s_te3);
 
@@ -127,7 +127,7 @@ DECLSPEC void aes256_scrt_format(PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32 *pw, PRI
         
     AES256_encrypt(aes_ks, hash, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
-DECLSPEC void aes256_scrt_format_VV(PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w, PRIVATE_AS u32x pw_len, PRIVATE_AS u32x *hash, PRIVATE_AS u32x *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void aes256_scrt_format_VV(PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w, const u32 pw_len, PRIVATE_AS u32x *hash, PRIVATE_AS u32x *out, SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
 #if VECT_SIZE == 1
     aes256_scrt_format(aes_ks, w, pw_len, hash, out, s_te0, s_te1, s_te2, s_te3, s_te4);
