@@ -361,134 +361,134 @@ DECLSPEC void aes256_scrt_format_VV(PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w, 
 
 
     //s10
-    tmp_w[0] = w[0].s10;
-    tmp_w[1] = w[1].s10;
-    tmp_w[2] = w[2].s10;
-    tmp_w[3] = w[3].s10;
+    tmp_w[0] = w[0].sa;
+    tmp_w[1] = w[1].sa;
+    tmp_w[2] = w[2].sa;
+    tmp_w[3] = w[3].sa;
 
 
-    tmp_hash[0] = hash[0].s10;
-    tmp_hash[1] = hash[1].s10;
-    tmp_hash[2] = hash[2].s10;
-    tmp_hash[3] = hash[3].s10;
+    tmp_hash[0] = hash[0].sa;
+    tmp_hash[1] = hash[1].sa;
+    tmp_hash[2] = hash[2].sa;
+    tmp_hash[3] = hash[3].sa;
 
-    tmp_pw_len = pw_len.s10;
+    tmp_pw_len = pw_len.sa;
 
     aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, tmp_hash, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-    out[0].s10 = tmp_out[0];
-    out[1].s10 = tmp_out[1];
-    out[2].s10 = tmp_out[2];
-    out[3].s10 = tmp_out[3];
+    out[0].sa = tmp_out[0];
+    out[1].sa = tmp_out[1];
+    out[2].sa = tmp_out[2];
+    out[3].sa = tmp_out[3];
 
 
     //s11
-    tmp_w[0] = w[0].s11;
-    tmp_w[1] = w[1].s11;
-    tmp_w[2] = w[2].s11;
-    tmp_w[3] = w[3].s11;
+    tmp_w[0] = w[0].sb;
+    tmp_w[1] = w[1].sb;
+    tmp_w[2] = w[2].sb;
+    tmp_w[3] = w[3].sb;
 
 
-    tmp_hash[0] = hash[0].s11;
-    tmp_hash[1] = hash[1].s11;
-    tmp_hash[2] = hash[2].s11;
-    tmp_hash[3] = hash[3].s11;
+    tmp_hash[0] = hash[0].sb;
+    tmp_hash[1] = hash[1].sb;
+    tmp_hash[2] = hash[2].sb;
+    tmp_hash[3] = hash[3].sb;
 
-    tmp_pw_len = pw_len.s11;
+    tmp_pw_len = pw_len.sb;
 
     aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, tmp_hash, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-    out[0].s11 = tmp_out[0];
-    out[1].s11 = tmp_out[1];
-    out[2].s11 = tmp_out[2];
-    out[3].s11 = tmp_out[3];
+    out[0].sb = tmp_out[0];
+    out[1].sb = tmp_out[1];
+    out[2].sb = tmp_out[2];
+    out[3].sb = tmp_out[3];
 
 
     //s12
-    tmp_w[0] = w[0].s12;
-    tmp_w[1] = w[1].s12;
-    tmp_w[2] = w[2].s12;
-    tmp_w[3] = w[3].s12;
+    tmp_w[0] = w[0].sc;
+    tmp_w[1] = w[1].sc;
+    tmp_w[2] = w[2].sc;
+    tmp_w[3] = w[3].sc;
 
 
-    tmp_hash[0] = hash[0].s12;
-    tmp_hash[1] = hash[1].s12;
-    tmp_hash[2] = hash[2].s12;
-    tmp_hash[3] = hash[3].s12;
+    tmp_hash[0] = hash[0].sc;
+    tmp_hash[1] = hash[1].sc;
+    tmp_hash[2] = hash[2].sc;
+    tmp_hash[3] = hash[3].sc;
 
-    tmp_pw_len = pw_len.s12;
+    tmp_pw_len = pw_len.sc;
 
     aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, tmp_hash, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-    out[0].s12 = tmp_out[0];
-    out[1].s12 = tmp_out[1];
-    out[2].s12 = tmp_out[2];
-    out[3].s12 = tmp_out[3];
+    out[0].sc = tmp_out[0];
+    out[1].sc = tmp_out[1];
+    out[2].sc = tmp_out[2];
+    out[3].sc = tmp_out[3];
 
 
     //s13
-    tmp_w[0] = w[0].s13;
-    tmp_w[1] = w[1].s13;
-    tmp_w[2] = w[2].s13;
-    tmp_w[3] = w[3].s13;
+    tmp_w[0] = w[0].sd;
+    tmp_w[1] = w[1].sd;
+    tmp_w[2] = w[2].sd;
+    tmp_w[3] = w[3].sd;
 
 
-    tmp_hash[0] = hash[0].s13;
-    tmp_hash[1] = hash[1].s13;
-    tmp_hash[2] = hash[2].s13;
-    tmp_hash[3] = hash[3].s13;
+    tmp_hash[0] = hash[0].sd;
+    tmp_hash[1] = hash[1].sd;
+    tmp_hash[2] = hash[2].sd;
+    tmp_hash[3] = hash[3].sd;
 
-    tmp_pw_len = pw_len.s13;
+    tmp_pw_len = pw_len.sd;
 
     aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, tmp_hash, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-    out[0].s13 = tmp_out[0];
-    out[1].s13 = tmp_out[1];
-    out[2].s13 = tmp_out[2];
-    out[3].s13 = tmp_out[3];
+    out[0].sd = tmp_out[0];
+    out[1].sd = tmp_out[1];
+    out[2].sd = tmp_out[2];
+    out[3].sd = tmp_out[3];
 
      //s14
-    tmp_w[0] = w[0].s14;
-    tmp_w[1] = w[1].s14;
-    tmp_w[2] = w[2].s14;
-    tmp_w[3] = w[3].s14;
+    tmp_w[0] = w[0].se;
+    tmp_w[1] = w[1].se;
+    tmp_w[2] = w[2].se;
+    tmp_w[3] = w[3].se;
 
-    tmp_hash[0] = hash[0].s14;
-    tmp_hash[1] = hash[1].s14;
-    tmp_hash[2] = hash[2].s14;
-    tmp_hash[3] = hash[3].s14;
+    tmp_hash[0] = hash[0].se;
+    tmp_hash[1] = hash[1].se;
+    tmp_hash[2] = hash[2].se;
+    tmp_hash[3] = hash[3].se;
 
 
-    tmp_pw_len = pw_len.s14;
+    tmp_pw_len = pw_len.se;
 
     aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, tmp_hash, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-    out[0].s14 = tmp_out[0];
-    out[1].s14 = tmp_out[1];
-    out[2].s14 = tmp_out[2];
-    out[3].s14 = tmp_out[3];
+    out[0].se = tmp_out[0];
+    out[1].se = tmp_out[1];
+    out[2].se = tmp_out[2];
+    out[3].se = tmp_out[3];
 
 
     //s15
-    tmp_w[0] = w[0].s15;
-    tmp_w[1] = w[1].s15;
-    tmp_w[2] = w[2].s15;
-    tmp_w[3] = w[3].s15;
+    tmp_w[0] = w[0].sf;
+    tmp_w[1] = w[1].sf;
+    tmp_w[2] = w[2].sf;
+    tmp_w[3] = w[3].sf;
 
 
-    tmp_hash[0] = hash[0].s15;
-    tmp_hash[1] = hash[1].s15;
-    tmp_hash[2] = hash[2].s15;
-    tmp_hash[3] = hash[3].s15;
+    tmp_hash[0] = hash[0].sf;
+    tmp_hash[1] = hash[1].sf;
+    tmp_hash[2] = hash[2].sf;
+    tmp_hash[3] = hash[3].sf;
 
-    tmp_pw_len = pw_len.s15;
+    tmp_pw_len = pw_len.sf;
 
     aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, tmp_hash, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-    out[0].s15 = tmp_out[0];
-    out[1].s15 = tmp_out[1];
-    out[2].s15 = tmp_out[2];
-    out[3].s15 = tmp_out[3];
+    out[0].sf = tmp_out[0];
+    out[1].sf = tmp_out[1];
+    out[2].sf = tmp_out[2];
+    out[3].sf = tmp_out[3];
 
 
 #endif
