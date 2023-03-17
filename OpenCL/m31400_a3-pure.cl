@@ -153,7 +153,7 @@ DECLSPEC void aes256_scrt_format_VV(PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w, 
 
     tmp_pw_len = pw_len.s0;
 
-    aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, hash.s0, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, tmp_hash, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     out[0].s0 = tmp_out[0];
     out[1].s0 = tmp_out[1];
@@ -174,7 +174,7 @@ DECLSPEC void aes256_scrt_format_VV(PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w, 
 
     tmp_pw_len = pw_len.s1;
 
-    aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, hash.s1, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes256_scrt_format(aes_ks, tmp_w, tmp_pw_len, tmp_hash, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     out[0].s1 = tmp_out[0];
     out[1].s1 = tmp_out[1];
