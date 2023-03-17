@@ -121,10 +121,10 @@ DECLSPEC void aes256_scrt_format (PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32 *pw, co
 
         shift_buffer_by_offset(hash,pw_len+4);
 
-        hash[0] = hc_swap32(pw_len);
-        hash[1] |= hc_swap32(pw[0]);
-        hash[2] |= hc_swap32(pw[1]);
-        hash[3] |= hc_swap32(pw[2]);
+        hash[0] = hc_swap32_S(pw_len);
+        hash[1] |= hc_swap32_S(pw[0]);
+        hash[2] |= hc_swap32_S(pw[1]);
+        hash[3] |= hc_swap32_S(pw[2]);
         
         AES256_encrypt (aes_ks, hash, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
@@ -197,9 +197,9 @@ KERNEL_FQ void m31400_mxx (KERN_ATTR_BASIC ())
     sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     u32 pw_candidate[3];
-    pw_candidate[0]= hc_swap32(ctx.w0[0]);
-    pw_candidate[1]= hc_swap32(ctx.w0[1]);
-    pw_candidate[2]= hc_swap32(ctx.w0[2]);
+    pw_candidate[0]= hc_swap32_S(ctx.w0[0]);
+    pw_candidate[1]= hc_swap32_S(ctx.w0[1]);
+    pw_candidate[2]= hc_swap32_S(ctx.w0[2]);
     u32 pw_len=ctx.len;
 
     sha256_final (&ctx);
@@ -297,9 +297,9 @@ KERNEL_FQ void m31400_sxx (KERN_ATTR_BASIC ())
     sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
  
     u32 pw_candidate[3];
-    pw_candidate[0]=hc_swap32(ctx.w0[0]); 
-    pw_candidate[1]=hc_swap32(ctx.w0[1]);
-    pw_candidate[2]=hc_swap32(ctx.w0[2]);
+    pw_candidate[0]=hc_swap32_S(ctx.w0[0]); 
+    pw_candidate[1]=hc_swap32_S(ctx.w0[1]);
+    pw_candidate[2]=hc_swap32_S(ctx.w0[2]);
     u32 pw_len=ctx.len;
 
     sha256_final (&ctx);
