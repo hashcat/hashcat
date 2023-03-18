@@ -290,6 +290,8 @@ void usage_mini_print (const char *progname)
 
   #if defined (_WIN)
   printf ("\n");
+  printf ("For more info, see https://hashcat.net/wiki/doku.php?id=ubernoobs\n");
+  printf ("\n");
   printf ("Press any key to exit\n");
 
   getch ();
