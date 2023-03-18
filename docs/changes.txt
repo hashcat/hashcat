@@ -20,6 +20,7 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-256($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
+- Added hash-mode: SecureCRT MasterPassphrase v2
 - Added hash-mode: Veeam VB
 - Added hash-mode: bcrypt(sha256($pass))
 - Added hash-mode: HMAC-RIPEMD160 (key = $pass)

@@ -18,7 +18,7 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_8;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
 static const char *HASH_NAME      = "SecureCRT MasterPassphrase v2";
 static const u64   KERN_TYPE      = 31400;
@@ -53,7 +53,7 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
-  static const char *CONFIGPASSPHRASEV2_SIGNATURE = "S:\"Config Passphrase\"=02:"; //The whole line is part of the format to prevent confusion with other similiar tokens also prefixed with 02: in the config files
+  static const char *CONFIGPASSPHRASEV2_SIGNATURE            = "S:\"Config Passphrase\"=02:"; //The whole line is part of the format to prevent confusion with other similiar tokens also prefixed with 02: in the config files
   static const char *CONFIGPASSPHRASEV2_SIGNATURE_UNDERSCORE = "S:_Config_Passphrase_=02:"; //double quotes char messes up testing so we're also allowing underscore instead
 
   u32 *digest = (u32 *) digest_buf;
