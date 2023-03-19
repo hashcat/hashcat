@@ -135,7 +135,7 @@ DECLSPEC void aes256_scrt_format_VV (PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w,
   #endif
 
   #if VECT_SIZE >= 2
-  u32 tmp_w[16];
+  u32 tmp_w[64];
   u32 tmp_h[8];
   u32 tmp_out[4];
 
