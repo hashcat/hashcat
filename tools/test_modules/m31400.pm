@@ -55,7 +55,7 @@ sub module_generate_hash
   });
 
   my $ciphertext=$aes->encrypt(pack("H*",$plaintext));
-  my $hash = sprintf("S:_Config_Passphrase_=02:%s",unpack ("H*",$ciphertext));
+  my $hash = sprintf("S:\"Config Passphrase\"=02:%s",unpack ("H*",$ciphertext));
 
   return $hash
 }

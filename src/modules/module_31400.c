@@ -29,10 +29,9 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_SALTED
                                   | OPTI_TYPE_RAW_HASH;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_HASH_COPY
                                   | OPTS_TYPE_PT_ADD80
                                   | OPTS_TYPE_PT_ADDBITS15;
-static const u32   SALT_TYPE      = SALT_TYPE_NONE;
+static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "S:\"Config Passphrase\"=02:ded7137400e0a1004a12f1708453968ccc270908ba02ab0345c83690d1de3d9937587be66ad2a7fe8cc6cb16ecff02e61ac05e09d4f49f284efd24f6b16d6ae3";
 
@@ -51,20 +50,34 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+typedef struct scrtv2
+{
+  u32 ct_buf[64];
+  int ct_len;
+
+} scrtv2_t;
+
+static const char *CONFIGPASSPHRASEV2_SIGNATURE = "S:\"Config Passphrase\"=02:"; //The whole line is part of the format to prevent confusion with other similiar tokens also prefixed with 02: in the config files
+
+u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 esalt_size = (const u64) sizeof (scrtv2_t);
+
+  return esalt_size;
+}
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
-  static const char *CONFIGPASSPHRASEV2_SIGNATURE            = "S:\"Config Passphrase\"=02:"; //The whole line is part of the format to prevent confusion with other similiar tokens also prefixed with 02: in the config files
-  static const char *CONFIGPASSPHRASEV2_SIGNATURE_UNDERSCORE = "S:_Config_Passphrase_=02:"; //double quotes char messes up testing so we're also allowing underscore instead
-
   u32 *digest = (u32 *) digest_buf;
+
+  scrtv2_t *scrtv2 = (scrtv2_t *) esalt_buf;
 
   hc_token_t token;
 
   token.token_cnt  = 2;
 
-  token.signatures_cnt    = 2;
+  token.signatures_cnt    = 1;
   token.signatures_buf[0] = CONFIGPASSPHRASEV2_SIGNATURE;
-  token.signatures_buf[1] = CONFIGPASSPHRASEV2_SIGNATURE_UNDERSCORE;
 
   token.len[0]     = 25;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
@@ -79,12 +92,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *hash_pos = token.buf[1];
+  // some fake salt so we can have an esalt
 
-  digest[0] = hex_to_u32 (hash_pos +  0);
-  digest[1] = hex_to_u32 (hash_pos +  8);
-  digest[2] = hex_to_u32 (hash_pos + 16);
-  digest[3] = hex_to_u32 (hash_pos + 24);
+  salt->salt_buf[0] = 0;
+
+  salt->salt_len = 4;
+
+  const int ct_len = token.len[1];
+  const u8 *ct_pos = token.buf[1];
+
+  scrtv2->ct_len = hex_decode (ct_pos, ct_len, (u8 *) scrtv2->ct_buf);
+
+  // hash
+
+  digest[0] = hex_to_u32 (ct_pos +  0);
+  digest[1] = hex_to_u32 (ct_pos +  8);
+  digest[2] = hex_to_u32 (ct_pos + 16);
+  digest[3] = hex_to_u32 (ct_pos + 24);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);
@@ -96,8 +120,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const int line_len = snprintf (line_buf, line_size, "%s", hash_info->orighash);
-  return line_len;
+  const scrtv2_t *scrtv2 = (const scrtv2_t *) esalt_buf;
+
+  u8 *out_buf = (u8 *) line_buf;
+
+  int out_len = snprintf (line_buf, line_size, "%s", CONFIGPASSPHRASEV2_SIGNATURE);
+
+  out_len += hex_encode ((u8 *) scrtv2->ct_buf, scrtv2->ct_len, out_buf + out_len);
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -120,7 +151,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
-  module_ctx->module_esalt_size               = MODULE_DEFAULT;
+  module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;

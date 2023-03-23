@@ -20,6 +20,13 @@
 #include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
 #endif
 
+typedef struct scrtv2
+{
+  u32 ct_buf[64];
+  int ct_len;
+
+} scrtv2_t;
+
 DECLSPEC void shift_buffer_by_offset (PRIVATE_AS u32 *w0, const u32 offset)
 {
   const int offset_switch = offset / 4;
@@ -298,7 +305,7 @@ DECLSPEC void aes256_scrt_format_VV (PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w,
   #endif
 }
 
-KERNEL_FQ void m31400_mxx (KERN_ATTR_VECTOR())
+KERNEL_FQ void m31400_mxx (KERN_ATTR_VECTOR_ESALT (scrtv2_t))
 {
   /**
    * modifier
@@ -393,7 +400,7 @@ KERNEL_FQ void m31400_mxx (KERN_ATTR_VECTOR())
   }
 }
 
-KERNEL_FQ void m31400_sxx (KERN_ATTR_VECTOR())
+KERNEL_FQ void m31400_sxx (KERN_ATTR_VECTOR_ESALT (scrtv2_t))
 {
   /**
    * modifier
