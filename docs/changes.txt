@@ -42,6 +42,7 @@
 - Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
 - Skip generated rule that was the result of chaining rule operation and caused this generated rule to exceed the maximum number of function calls
 - Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes to prevent false positives.
+- Fixed bug in --stdout that caused certain rules to malfunction
 
 ##
 ## Technical
@@ -51,6 +52,7 @@
 - Apple Driver: Automatically enable GPU support on Apple OpenCL instead of CPU support
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
 - Backend Checks: Described workaround in error message when detecting more than 64 backend devices
+- Brain: Added sanity check and corresponding error message for invalid --brain-port values
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Status Code: Add specific return code for self-test fail (-11)
 - SCRYPT: Increase buffer sizes in module for hash mode 8900 to allow longer SCRYPT digests
