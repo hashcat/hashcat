@@ -27,7 +27,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_PT_UTF16LE
                                   | OPTS_TYPE_ST_ADD80
                                   | OPTS_TYPE_ST_UTF16LE
-                                  | OPTS_TYPE_ST_LOWER;
+                                  | OPTS_TYPE_ST_LOWER
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "b4b9b02e6f09a9bd760f388b67351e2b";
