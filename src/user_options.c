@@ -559,24 +559,31 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  #ifdef WITH_BRAIN
+#ifdef WITH_BRAIN
   if ((user_options->brain_client == true) && (user_options->brain_server == true))
   {
-    event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time");
+    event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time.");
 
     return -1;
   }
 
   if ((user_options->brain_client_features < 1) || (user_options->brain_client_features > 3))
   {
-    event_log_error (hashcat_ctx, "Invalid --brain-client-feature argument");
+    event_log_error (hashcat_ctx, "Invalid --brain-client-feature argument.");
 
     return -1;
   }
+  
+  if (user_options->brain_port > 65535)
+  {
+    event_log_error (hashcat_ctx, "Invalid brain port specified (greater than 65535).");
 
+    return -1;
+  }
+  
   if ((user_options->brain_client == true) && (user_options->brain_password_chgd == false))
   {
-    event_log_error (hashcat_ctx, "Brain clients need to set --brain-password");
+    event_log_error (hashcat_ctx, "Brain clients must specify --brain-password.");
 
     return -1;
   }
