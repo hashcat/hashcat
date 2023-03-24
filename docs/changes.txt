@@ -26,6 +26,7 @@
 - Added hash-mode: HMAC-RIPEMD160 (key = $pass)
 - Added hash-mode: HMAC-RIPEMD160 (key = $salt)
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
+- Added hash-mode: Domain Cached Credentials 2 (DCC2), MS Cache 2, (NT)
 
 ##
 ## Performance
