@@ -1007,7 +1007,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return 0;
   }
 
-  if (user_options->show == true || user_options->left == true)
+  if ((user_options->show == true || user_options->left == true))
   {
     if (user_options->remove == true)
     {
