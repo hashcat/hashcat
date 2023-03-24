@@ -1000,6 +1000,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options->show == true) && (user_options->username == true)
+  {
+    event_log_advice (hashcat_ctx, "Mixing --show with --username can cause exponential delay in output.");
+    
+    return 0;
+  }
+
   if (user_options->show == true || user_options->left == true)
   {
     if (user_options->remove == true)
