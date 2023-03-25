@@ -256,8 +256,8 @@ function init()
   grep " ${hash_type} '" "${OUTD}/all.sh" > "${cmd_file}" 2>/dev/null
 
   # create separate list of password and hashes
-  sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                  > "${OUTD}/${hash_type}_passwords.txt"
-  sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{print $10}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes.txt"
+  sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords.txt"
+  sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{t="";for(i=10;i<=NF;i++){if(t){t=t" "$i}else{t=$i}};print t}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes.txt"
 
   if [ "${hash_type}" -eq 10300 ]; then
     #cat ${OUTD}/${hash_type}.sh | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
@@ -368,8 +368,8 @@ function init()
 
       perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
 
-      sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                  > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
-      sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{print $10}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
+      sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
+      sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{t="";for(i=10;i<=NF;i++){if(t){t=t" "$i}else{t=$i}};print t}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
       if [ "${hash_type}" -eq 10300 ]; then
         #cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
