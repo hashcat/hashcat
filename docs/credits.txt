@@ -85,4 +85,4 @@ Brandon Chalk <brandon@casaba.com> (@brandoncasaba)
 Jamie Riden <jamie@blacktraffic.co.uk>
 * Web2py pbkdf2-sha512 plugin
 
-!!! All the package maintainer of hashcat !!!
+!!! All the package maintainers of hashcat !!!
