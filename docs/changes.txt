@@ -38,9 +38,9 @@
 ##
 
 - Fixed keys extraction in luks2hashcat - now extracts all active keys
-- Prevent Hashcat from hanging by checking during startup that the output file is a named pipe
+- Prevent Hashcat from hanging by checking during startup whether the output file is a named pipe
 - Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
-- Skip generated rule that was the result of chaining rule operation and caused this generated rule to exceed the maximum number of function calls
+- Skip chained generated rules that exceed the maximum number of function calls
 - Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes to prevent false positives.
 - Fixed bug in --stdout that caused certain rules to malfunction
 
@@ -51,13 +51,13 @@
 - AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (Adrenalin 22.5.1 exactly)
 - Apple Driver: Automatically enable GPU support on Apple OpenCL instead of CPU support
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
-- Backend Checks: Described workaround in error message when detecting more than 64 backend devices
+- Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Status Code: Add specific return code for self-test fail (-11)
-- SCRYPT: Increase buffer sizes in module for hash mode 8900 to allow longer SCRYPT digests
-- Unicode: Update UTF8 to UTF16 conversion to match RFC 3629
-- User Options: Added error message when mixing --username and --show to warn users of exponential delay 
+- Scrypt: Increase buffer sizes in module for hash mode 8900 to allow longer scrypt digests
+- Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
+- User Options: Added error message when mixing --username and --show to warn users of exponential delay
 
 * changes v6.2.5 -> v6.2.6
 
@@ -92,16 +92,17 @@
 ##
 
 - Added new backend support for Metal, the OpenCL replacement API on Apple
-- Added support to building universal macOS binary on Apple Silicon
-- Added support to use --debug-mode in attack-mode 9 (Association Attack)
+- Added support for building universal macOS binary on Apple Silicon
+- Added support for using --debug-mode in attack-mode 9 (association attack)
 - Added hex encoding format for --separator option
 - Added password candidates range to --status-json output
 - Added parameter to Bitwarden mode for second iteration count
-- Added support to use 'John the Ripper' hash format with hash-type 13100
-- Added support to use 'John the Ripper' hash format with hash-type 18200
-- Added the hash extraction scripts from the tools folder also to beta/release versions
+- Added support for using 'John the Ripper' hash format with hash-type 13100
+- Added support for using 'John the Ripper' hash format with hash-type 18200
+- Added hash extraction scripts from the tools folder to beta/release versions
 - Added user advice if a hash throws 'token length exception'
 - Added tunings/ folder in order to replace hashcat.hctune. Configuration files with *.hctune suffix are automatically load on startup
+- Added link to 'ubernoob' documentation when no parameters are supplied on Windows
 
 ##
 ## Bugs
