@@ -3,14 +3,16 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
-#include M2S(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_rp.h)
+#include M2S(INCLUDE_PATH/inc_rp.cl)
+#include M2S(INCLUDE_PATH/inc_scalar.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
 #endif
 
@@ -36,7 +38,7 @@ typedef struct md5_double_salt
 
 } md5_double_salt_t;
 
-KERNEL_FQ void m31500_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
+KERNEL_FQ void m31700_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
 {
   /**
    * modifier
@@ -46,9 +48,9 @@ KERNEL_FQ void m31500_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  /*
-  * bin2asc uppercase table
-  */
+  /**
+   * bin2asc uppercase table
+   */
 
   LOCAL_VK u32 l_bin2asc[256];
 
@@ -69,14 +71,7 @@ KERNEL_FQ void m31500_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32x w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  COPY_PW (pws[gid]);
 
   const u32 salt1_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_len;
 
@@ -100,32 +95,28 @@ KERNEL_FQ void m31500_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
    * loop
    */
 
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    pw_t tmp = PASTE_PW;
 
-    const u32x w0 = w0l | w0r;
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    w[0] = w0;
+    md5_ctx_t ctx0;
 
-    md5_ctx_vector_t ctx0;
+    md5_init (&ctx0);
 
-    md5_init_vector (&ctx0);
+    md5_update (&ctx0, tmp.i, tmp.pw_len);
 
-    md5_update_vector (&ctx0, w, pw_len);
+    md5_final (&ctx0);
 
-    md5_final_vector (&ctx0);
+    u32 a = ctx0.h[0];
+    u32 b = ctx0.h[1];
+    u32 c = ctx0.h[2];
+    u32 d = ctx0.h[3];
 
-    u32x a = ctx0.h[0];
-    u32x b = ctx0.h[1];
-    u32x c = ctx0.h[2];
-    u32x d = ctx0.h[3];
+    md5_ctx_t ctx;
 
-    md5_ctx_vector_t ctx;
-
-    md5_init_vector (&ctx);
+    md5_init (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
               | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
@@ -146,16 +137,16 @@ KERNEL_FQ void m31500_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, salt1_buf, salt1_len);
+    md5_update (&ctx, salt1_buf, salt1_len);
 
-    md5_final_vector (&ctx);
+    md5_final (&ctx);
 
     a = ctx.h[0];
     b = ctx.h[1];
     c = ctx.h[2];
     d = ctx.h[3];
 
-    md5_init_vector (&ctx);
+    md5_init (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
               | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
@@ -176,20 +167,20 @@ KERNEL_FQ void m31500_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, salt2_buf, salt2_len);
+    md5_update (&ctx, salt2_buf, salt2_len);
 
-    md5_final_vector (&ctx);
+    md5_final (&ctx);
 
-    const u32x r0 = ctx.h[DGST_R0];
-    const u32x r1 = ctx.h[DGST_R1];
-    const u32x r2 = ctx.h[DGST_R2];
-    const u32x r3 = ctx.h[DGST_R3];
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
 
-    COMPARE_M_SIMD (r0, r1, r2, r3);
+    COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
 }
 
-KERNEL_FQ void m31500_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
+KERNEL_FQ void m31700_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
 {
   /**
    * modifier
@@ -199,9 +190,9 @@ KERNEL_FQ void m31500_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
   const u64 lid = get_local_id (0);
   const u64 lsz = get_local_size (0);
 
-  /*
-  * bin2asc uppercase table
-  */
+  /**
+   * bin2asc uppercase table
+   */
 
   LOCAL_VK u32 l_bin2asc[256];
 
@@ -234,14 +225,7 @@ KERNEL_FQ void m31500_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32x w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
+  COPY_PW (pws[gid]);
 
   const u32 salt1_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_len;
 
@@ -265,32 +249,28 @@ KERNEL_FQ void m31500_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
    * loop
    */
 
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    pw_t tmp = PASTE_PW;
 
-    const u32x w0 = w0l | w0r;
+    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    w[0] = w0;
+    md5_ctx_t ctx0;
 
-    md5_ctx_vector_t ctx0;
+    md5_init (&ctx0);
 
-    md5_init_vector (&ctx0);
+    md5_update (&ctx0, tmp.i, tmp.pw_len);
 
-    md5_update_vector (&ctx0, w, pw_len);
+    md5_final (&ctx0);
 
-    md5_final_vector (&ctx0);
+    u32 a = ctx0.h[0];
+    u32 b = ctx0.h[1];
+    u32 c = ctx0.h[2];
+    u32 d = ctx0.h[3];
 
-    u32x a = ctx0.h[0];
-    u32x b = ctx0.h[1];
-    u32x c = ctx0.h[2];
-    u32x d = ctx0.h[3];
+    md5_ctx_t ctx;
 
-    md5_ctx_vector_t ctx;
-
-    md5_init_vector (&ctx);
+    md5_init (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
               | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
@@ -311,16 +291,16 @@ KERNEL_FQ void m31500_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, salt1_buf, salt1_len);
+    md5_update (&ctx, salt1_buf, salt1_len);
 
-    md5_final_vector (&ctx);
+    md5_final (&ctx);
 
     a = ctx.h[0];
     b = ctx.h[1];
     c = ctx.h[2];
     d = ctx.h[3];
 
-    md5_init_vector (&ctx);
+    md5_init (&ctx);
 
     ctx.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
               | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
@@ -341,15 +321,15 @@ KERNEL_FQ void m31500_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
 
     ctx.len = 32;
 
-    md5_update_vector (&ctx, salt2_buf, salt2_len);
+    md5_update (&ctx, salt2_buf, salt2_len);
 
-    md5_final_vector (&ctx);
+    md5_final (&ctx);
 
-    const u32x r0 = ctx.h[DGST_R0];
-    const u32x r1 = ctx.h[DGST_R1];
-    const u32x r2 = ctx.h[DGST_R2];
-    const u32x r3 = ctx.h[DGST_R3];
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
 
-    COMPARE_S_SIMD (r0, r1, r2, r3);
+    COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
 }
