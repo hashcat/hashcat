@@ -5,11 +5,11 @@
 ##
 
 - Added hash-mode: Anope IRC Services (enc_sha256)
-- Added hash-mode: BLAKE2s-256
 - Added hash-mode: Bisq .wallet (scrypt)
 - Added hash-mode: Bitcoin raw private key (P2PKH)
 - Added hash-mode: Bitcoin raw private key (P2SH(P2WPKH))
 - Added hash-mode: Bitcoin raw private key (P2WPKH, Bech32)
+- Added hash-mode: BLAKE2s-256
 - Added hash-mode: Dahua NVR/DVR/HVR (md5($salt1.strtoupper(md5($salt2.$pass))))
 - Added hash-mode: DANE RFC7929/RFC8162 SHA2-256
 - Added hash-mode: ENCsecurity Datavault (MD5/keychain)
