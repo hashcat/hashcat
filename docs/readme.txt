@@ -337,6 +337,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Apple iWork
 - 1Password, agilekeychain
 - 1Password, cloudkeychain
+- 1Password, mobilekeychain (1Password 8)
 - Password Safe v2
 - Password Safe v3
 - LastPass + LastPass sniffed

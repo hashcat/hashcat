@@ -4,6 +4,7 @@
 ## Algorithms
 ##
 
+- Added hash-mode: 1Password, mobilekeychain (1Password 8)
 - Added hash-mode: Anope IRC Services (enc_sha256)
 - Added hash-mode: Bisq .wallet (scrypt)
 - Added hash-mode: Bitcoin raw private key (P2PKH)
