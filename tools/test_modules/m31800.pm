@@ -21,7 +21,7 @@ sub module_generate_hash
   my $hkdf_salt   = shift;
   my $hkdf_key    = shift // random_hex_string (64);
   my $iterations  = shift // 100000;
-  my $iv          = shift // random_hex_string (32);
+  my $iv          = shift // (random_number (0,1) ? random_hex_string (32) : random_hex_string (24));
   my $ct          = shift;
   my $tag         = shift;
   my $email       = shift // "31800\@hashcat.net";

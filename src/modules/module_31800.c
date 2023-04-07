@@ -58,8 +58,10 @@ typedef struct onepassword8
 {
   u32 hkdf_salt_buf[8];
   u32 hkdf_key_buf[8];
-  u32 iv_buf[4];
   u32 tag_buf[4];
+
+  u32 iv_buf[4];
+  int iv_len;
 
   u32 email_buf[64];
   int email_len;
@@ -166,7 +168,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[5]     = '$';
-  token.len_min[5] = 32;
+  token.len_min[5] = 24;
   token.len_max[5] = 32;
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -254,18 +256,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // iv
 
-  //const int iv_len = token.len[5];
+  const int iv_len = token.len[5];
   const u8 *iv_pos = token.buf[5];
 
-  onepassword8->iv_buf[0] = hex_to_u32 (iv_pos +  0);
-  onepassword8->iv_buf[1] = hex_to_u32 (iv_pos +  8);
-  onepassword8->iv_buf[2] = hex_to_u32 (iv_pos + 16);
-  onepassword8->iv_buf[3] = hex_to_u32 (iv_pos + 24);
+  onepassword8->iv_len = hex_decode (iv_pos, iv_len, (u8 *) onepassword8->iv_buf);
 
-  onepassword8->iv_buf[0] = byte_swap_32 (onepassword8->iv_buf[0]);
-  onepassword8->iv_buf[1] = byte_swap_32 (onepassword8->iv_buf[1]);
-  onepassword8->iv_buf[2] = byte_swap_32 (onepassword8->iv_buf[2]);
-  onepassword8->iv_buf[3] = byte_swap_32 (onepassword8->iv_buf[3]);
+  for (int i = 0; i < 4; i++) onepassword8->iv_buf[i] = byte_swap_32 (onepassword8->iv_buf[i]);
 
   // ct
 
@@ -320,13 +316,25 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   onepassword8_t *onepassword8 = (onepassword8_t *) esalt_buf;
 
+  // iv
+
+  u32 iv_buf[4];
+
+  for (int i = 0; i < 4; i++) iv_buf[i] = byte_swap_32 (onepassword8->iv_buf[i]);
+
+  u8 iv_buf8[(4 * 2 * 4) + 1];
+
+  const int iv_len = hex_encode ((const u8 *) iv_buf, onepassword8->iv_len, iv_buf8);
+
+  iv_buf8[iv_len] = 0;
+
   // ct
 
   u32 ct_buf[1024];
 
   for (int i = 0; i < 1024; i++) ct_buf[i] = byte_swap_32 (onepassword8->ct_buf[i]);
 
-  u8 ct_buf8[1024 * 4];
+  u8 ct_buf8[(1024 * 2 * 4) + 1];
 
   const int ct_len = hex_encode ((const u8 *) ct_buf, onepassword8->ct_len, ct_buf8);
 
@@ -334,7 +342,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // final
 
-  int out_len = snprintf ((char *) line_buf, line_size, "%s%s$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x$%u$%08x%08x%08x%08x$%s$%08x%08x%08x%08x",
+  int out_len = snprintf ((char *) line_buf, line_size, "%s%s$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x$%u$%s$%s$%08x%08x%08x%08x",
     SIGNATURE_1PASSWORD8,
     (char *) onepassword8->email_buf,
     onepassword8->hkdf_salt_buf[0],
@@ -354,10 +362,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     onepassword8->hkdf_key_buf[6],
     onepassword8->hkdf_key_buf[7],
     salt->salt_iter + 1,
-    onepassword8->iv_buf[0],
-    onepassword8->iv_buf[1],
-    onepassword8->iv_buf[2],
-    onepassword8->iv_buf[3],
+    (char *) iv_buf8,
     (char *) ct_buf8,
     onepassword8->tag_buf[0],
     onepassword8->tag_buf[1],

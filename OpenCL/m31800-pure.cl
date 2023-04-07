@@ -33,8 +33,10 @@ typedef struct onepassword8
 {
   u32 hkdf_salt_buf[8];
   u32 hkdf_key_buf[8];
-  u32 iv_buf[4];
   u32 tag_buf[4];
+
+  u32 iv_buf[4];
+  int iv_len;
 
   u32 email_buf[64];
   int email_len;
@@ -393,7 +395,7 @@ KERNEL_FQ void m31800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, onepasswo
   iv[2] = onepassword8->iv_buf[2];
   iv[3] = onepassword8->iv_buf[3];
 
-  const u32 iv_len = 16;
+  const u32 iv_len = onepassword8->iv_len;
 
   u32 J0[4] = { 0 };
 
