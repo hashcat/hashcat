@@ -48,6 +48,8 @@ void generate_cached_kernel_mp_filename     (const u32 opti_type, const u64 opts
 void generate_source_kernel_amp_filename    (const u32 attack_kern, char *shared_dir, char *source_file);
 void generate_cached_kernel_amp_filename    (const u32 attack_kern, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
 
+bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources);
+
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
 int copy_pws_idx                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest);

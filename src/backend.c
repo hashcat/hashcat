@@ -528,7 +528,7 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
   return true;
 }
 
-static bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources)
+bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources)
 {
   HCFILE fp;
 
@@ -6377,11 +6377,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         // try CL_DEVICE_BOARD_NAME_AMD first, if it fails fall back to CL_DEVICE_NAME
         // since AMD ROCm does not identify itself at this stage we simply check for return code from clGetDeviceInfo()
 
-        #define CHECK_BOARD_NAME_AMD 1
-
         cl_int rc_board_name_amd = CL_INVALID_VALUE;
 
-        if (CHECK_BOARD_NAME_AMD)
+        if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
           //backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -7869,6 +7867,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         backend_ctx->opencl_devices_active--;
         backend_ctx->backend_devices_active--;
+
         continue;
       }
 
@@ -7884,6 +7883,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         backend_ctx->opencl_devices_active--;
         backend_ctx->backend_devices_active--;
+
         continue;
       }
 
@@ -7979,94 +7979,97 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         */
       }
 
-      // available device memory
+        // available device memory
       // This test causes an GPU memory usage spike.
       // In case there are multiple hashcat instances starting at the same time this will cause GPU out of memory errors which otherwise would not exist.
       // We will simply not run it if that device was skipped by the user.
 
-      #define MAX_ALLOC_CHECKS_CNT  8192
-      #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
-
-      device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
-
-      if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+      if (device_param->device_global_mem)
       {
-        // OK, so the problem here is the following:
-        // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
-        // but there's no way to ask for available memory on the device.
-        // In combination, most OpenCL runtimes implementation of clCreateBuffer()
-        // are doing so called lazy memory allocation on the device.
-        // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
-        // running on the host we end up with an error type of this:
-        // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
-        // The clEnqueueNDRangeKernel() is because of the lazy allocation
-        // The best way to workaround this problem is if we would be able to ask for available memory,
-        // The idea here is to try to evaluate available memory by allocating it till it errors
+        #define MAX_ALLOC_CHECKS_CNT  8192
+        #define MAX_ALLOC_CHECKS_SIZE (64 * 1024 * 1024)
 
-        cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
+        device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-        u64 c;
-
-        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
+        if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
-          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
+          // OK, so the problem here is the following:
+          // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
+          // but there's no way to ask for available memory on the device.
+          // In combination, most OpenCL runtimes implementation of clCreateBuffer()
+          // are doing so called lazy memory allocation on the device.
+          // Now, if the user has X11 (or a game or anything that takes a lot of GPU memory)
+          // running on the host we end up with an error type of this:
+          // clEnqueueNDRangeKernel(): CL_MEM_OBJECT_ALLOCATION_FAILURE
+          // The clEnqueueNDRangeKernel() is because of the lazy allocation
+          // The best way to workaround this problem is if we would be able to ask for available memory,
+          // The idea here is to try to evaluate available memory by allocating it till it errors
 
-          // work around, for some reason apple opencl can't have buffers larger 2^31
-          // typically runs into trap 6
-          // maybe 32/64 bit problem affecting size_t?
-          // this seems to affect global memory as well no just single allocations
+          cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
 
-          if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->is_metal == false))
+          u64 c;
+
+          for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
           {
-            const size_t undocumented_single_allocation_apple = 0x7fffffff;
+            if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
 
-            if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= undocumented_single_allocation_apple) break;
+            // work around, for some reason apple opencl can't have buffers larger 2^31
+            // typically runs into trap 6
+            // maybe 32/64 bit problem affecting size_t?
+            // this seems to affect global memory as well no just single allocations
+
+            if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->is_metal == false))
+            {
+              const size_t undocumented_single_allocation_apple = 0x7fffffff;
+
+              if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= undocumented_single_allocation_apple) break;
+            }
+
+            cl_int CL_err;
+
+            OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+            tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
+
+            if (CL_err != CL_SUCCESS)
+            {
+              c--;
+
+              break;
+            }
+
+            // transfer only a few byte should be enough to force the runtime to actually allocate the memory
+
+            u8 tmp_host[8];
+
+            if (ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
+            if (ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
+
+            if (ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
+            if (ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
           }
 
-          cl_int CL_err;
+          device_param->device_available_mem = MAX_ALLOC_CHECKS_SIZE;
 
-          OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
-
-          tmp_device[c] = ocl->clCreateBuffer (context, CL_MEM_READ_WRITE, MAX_ALLOC_CHECKS_SIZE, NULL, &CL_err);
-
-          if (CL_err != CL_SUCCESS)
+          if (c > 0)
           {
-            c--;
-
-            break;
+            device_param->device_available_mem *= c;
           }
 
-          // transfer only a few byte should be enough to force the runtime to actually allocate the memory
+          // clean up
 
-          u8 tmp_host[8];
-
-          if (ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
-          if (ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, 0, sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
-
-          if (ocl->clEnqueueReadBuffer  (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
-          if (ocl->clEnqueueWriteBuffer (command_queue, tmp_device[c], CL_TRUE, MAX_ALLOC_CHECKS_SIZE - sizeof (tmp_host), sizeof (tmp_host), tmp_host, 0, NULL, NULL) != CL_SUCCESS) break;
-        }
-
-        device_param->device_available_mem = MAX_ALLOC_CHECKS_SIZE;
-
-        if (c > 0)
-        {
-          device_param->device_available_mem *= c;
-        }
-
-        // clean up
-
-        for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
-        {
-          if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
-
-          if (tmp_device[c] != NULL)
+          for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
           {
-            if (hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]) == -1) return -1;
-          }
-        }
+            if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= device_param->device_global_mem) break;
 
-        hcfree (tmp_device);
+            if (tmp_device[c] != NULL)
+            {
+              if (hc_clReleaseMemObject (hashcat_ctx, tmp_device[c]) == -1) return -1;
+            }
+          }
+
+          hcfree (tmp_device);
+        }
       }
 
       hc_clReleaseCommandQueue (hashcat_ctx, command_queue);
