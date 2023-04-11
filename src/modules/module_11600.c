@@ -438,6 +438,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 11;
 
   token.signatures_cnt    = 1;
@@ -448,9 +450,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                     | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]      = '$';
-  token.len_min[1]  = 1;
-  token.len_max[1]  = 1;
-  token.attr[1]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]      = 1;
+  token.attr[1]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]      = '$';
@@ -460,9 +461,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[3]      = '$';
-  token.len_min[3]  = 1;
-  token.len_max[3]  = 1;
-  token.attr[3]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]      = 1;
+  token.attr[3]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[4]      = '$';
@@ -477,9 +477,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[6]      = '$';
-  token.len_min[6]  = 32;
-  token.len_max[6]  = 32;
-  token.attr[6]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[6]      = 32;
+  token.attr[6]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[7]      = '$';

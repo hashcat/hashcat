@@ -137,6 +137,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt = 13;
 
   // signature $gpg$
@@ -144,93 +146,84 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.signatures_buf[0] = SIGNATURE_GPG;
 
   // signature $gpg$
-  token.len_min[0]  = 5;
-  token.len_max[0]  = 5;
   token.sep[0]      = '*';
-  token.attr[0]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]      = 5;
+  token.attr[0]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   // "1" -- unknown option
-  token.len_min[1]  = 1;
-  token.len_max[1]  = 1;
   token.sep[1]      = '*';
-  token.attr[1]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]      = 1;
+  token.attr[1]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // size of the encrypted data in bytes
+  token.sep[2]      = '*';
   token.len_min[2]  = 3;
   token.len_max[2]  = 4;
-  token.sep[2]      = '*';
   token.attr[2]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // size of the key: 1024, 2048, 4096, etc.
+  token.sep[3]      = '*';
   token.len_min[3]  = 3;
   token.len_max[3]  = 4;
-  token.sep[3]      = '*';
   token.attr[3]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // encrypted key -- twice the amount of byte because its interpreted as characters
+  token.sep[4]      = '*';
   token.len_min[4]  = 256;
   token.len_max[4]  = 3072;
-  token.sep[4]      = '*';
   token.attr[4]     = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_HEX;
 
   // "3" - String2Key parameter
-  token.len_min[5]  = 1;
-  token.len_max[5]  = 1;
   token.sep[5]      = '*';
-  token.attr[5]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[5]      = 1;
+  token.attr[5]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // "254" - String2Key parameters
-  token.len_min[6]  = 3;
-  token.len_max[6]  = 3;
   token.sep[6]      = '*';
-  token.attr[6]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[6]      = 3;
+  token.attr[6]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // "2" - String2Key parameters
-  token.len_min[7]  = 1;
-  token.len_max[7]  = 1;
   token.sep[7]      = '*';
-  token.attr[7]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[7]      = 1;
+  token.attr[7]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // cipher mode: 7 or 9
-  token.len_min[8]  = 1;
-  token.len_max[8]  = 1;
   token.sep[8]      = '*';
-  token.attr[8]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[8]      = 1;
+  token.attr[8]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // size of initial vector in bytes: 16
-  token.len_min[9]  = 2;
-  token.len_max[9]  = 2;
   token.sep[9]      = '*';
-  token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[9]      = 2;
+  token.attr[9]     = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // initial vector - twice the amount of bytes because its interpreted as characters
-  token.len_min[10] = 32;
-  token.len_max[10] = 32;
   token.sep[10]     = '*';
-  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[10]     = 32;
+  token.attr[10]    = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_HEX;
 
   // iteration count
+  token.sep[11]     = '*';
   token.len_min[11] = 1;
   token.len_max[11] = 8;
-  token.sep[11]     = '*';
   token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
   // salt - 8 bytes / 16 characters
-  token.len_min[12] = 16;
-  token.len_max[12] = 16;
-  token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[12]     = 16;
+  token.attr[12]    = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);

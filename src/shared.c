@@ -1153,6 +1153,13 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
       token->buf[token_idx + 1] = token->buf[token_idx] + len;
 
       len_left -= len;
+
+      if (token->sep[token_idx] != 0)
+      {
+        token->buf[token_idx + 1]++; // +1 = separator
+
+        len_left--; // -1 = separator
+      }
     }
     else
     {
