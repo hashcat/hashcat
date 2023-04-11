@@ -33,6 +33,7 @@ typedef struct odf11
   u32 iv[2];
   u32 checksum[5];
   u32 encrypted_data[256];
+  int encrypted_len;
 
 } odf11_t;
 
@@ -759,116 +760,48 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE_COMP) m18600_comp (KERN_ATTR_
 
   GLOBAL_AS const odf11_t *es = &esalt_bufs[DIGESTS_OFFSET_HOST];
 
-  u32 ct[2];
+  u32 iv[2];
 
-  u32 pt0[4];
-  u32 pt1[4];
-  u32 pt2[4];
-  u32 pt3[4];
+  iv[0] = es->iv[0];
+  iv[1] = es->iv[1];
 
-  u32 buf[2];
+  u32 pt[256];
 
-  buf[0] = es->iv[0];
-  buf[1] = es->iv[1];
+  for (int i = 0, j = 0; i < es->encrypted_len; i += 8, j += 2)
+  {
+    u32 ct[2];
+
+    ct[0] = es->encrypted_data[j + 0];
+    ct[1] = es->encrypted_data[j + 1];
+
+    BF_ENCRYPT (iv[0], iv[1]);
+
+    pt[j + 0] = ct[0] ^ iv[0];
+    pt[j + 1] = ct[1] ^ iv[1];
+
+    iv[0] = ct[0];
+    iv[1] = ct[1];
+  }
+
+  const int full64 = es->encrypted_len / 64;
+
+  const int encrypted_len64 = full64 * 64;
 
   sha1_ctx_t sha1_ctx;
 
   sha1_init (&sha1_ctx);
 
-  // decrypt blowfish-cfb and calculate plaintext checksum at the same time
-  for (int i = 0; i < 16; i++)
+  sha1_update (&sha1_ctx, pt, encrypted_len64);
+
+  const int remaining64 = es->encrypted_len - encrypted_len64;
+
+  if (remaining64)
   {
-    const int i16 = i * 16;
+    u32 *pt_remaining = pt + (encrypted_len64 / 4);
 
-    ct[0] = es->encrypted_data[i16 + 0];
-    ct[1] = es->encrypted_data[i16 + 1];
+    truncate_block_16x4_be_S (pt_remaining + 0, pt_remaining + 4, pt_remaining + 8, pt_remaining + 12, remaining64);
 
-    BF_ENCRYPT (buf[0], buf[1]);
-
-    pt0[0] = ct[0] ^ buf[0];
-    pt0[1] = ct[1] ^ buf[1];
-
-    buf[0] = ct[0];
-    buf[1] = ct[1];
-
-    ct[0] = es->encrypted_data[i16 + 2];
-    ct[1] = es->encrypted_data[i16 + 3];
-
-    BF_ENCRYPT (buf[0], buf[1]);
-
-    pt0[2] = ct[0] ^ buf[0];
-    pt0[3] = ct[1] ^ buf[1];
-
-    buf[0] = ct[0];
-    buf[1] = ct[1];
-
-    ct[0] = es->encrypted_data[i16 + 4];
-    ct[1] = es->encrypted_data[i16 + 5];
-
-    BF_ENCRYPT (buf[0], buf[1]);
-
-    pt1[0] = ct[0] ^ buf[0];
-    pt1[1] = ct[1] ^ buf[1];
-
-    buf[0] = ct[0];
-    buf[1] = ct[1];
-
-    ct[0] = es->encrypted_data[i16 + 6];
-    ct[1] = es->encrypted_data[i16 + 7];
-
-    BF_ENCRYPT (buf[0], buf[1]);
-
-    pt1[2] = ct[0] ^ buf[0];
-    pt1[3] = ct[1] ^ buf[1];
-
-    buf[0] = ct[0];
-    buf[1] = ct[1];
-
-    ct[0] = es->encrypted_data[i16 + 8];
-    ct[1] = es->encrypted_data[i16 + 9];
-
-    BF_ENCRYPT (buf[0], buf[1]);
-
-    pt2[0] = ct[0] ^ buf[0];
-    pt2[1] = ct[1] ^ buf[1];
-
-    buf[0] = ct[0];
-    buf[1] = ct[1];
-
-    ct[0] = es->encrypted_data[i16 + 10];
-    ct[1] = es->encrypted_data[i16 + 11];
-
-    BF_ENCRYPT (buf[0], buf[1]);
-
-    pt2[2] = ct[0] ^ buf[0];
-    pt2[3] = ct[1] ^ buf[1];
-
-    buf[0] = ct[0];
-    buf[1] = ct[1];
-
-    ct[0] = es->encrypted_data[i16 + 12];
-    ct[1] = es->encrypted_data[i16 + 13];
-
-    BF_ENCRYPT (buf[0], buf[1]);
-
-    pt3[0] = ct[0] ^ buf[0];
-    pt3[1] = ct[1] ^ buf[1];
-
-    buf[0] = ct[0];
-    buf[1] = ct[1];
-
-    ct[0] = es->encrypted_data[i16 + 14];
-    ct[1] = es->encrypted_data[i16 + 15];
-
-    BF_ENCRYPT (buf[0], buf[1]);
-
-    pt3[2] = ct[0] ^ buf[0];
-    pt3[3] = ct[1] ^ buf[1];
-
-    buf[0] = ct[0];
-    buf[1] = ct[1];
-
-    sha1_update_64 (&sha1_ctx, pt0, pt1, pt2, pt3, 64);
+    sha1_update (&sha1_ctx, pt_remaining, remaining64);
   }
 
   sha1_final (&sha1_ctx);

@@ -56,6 +56,7 @@
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
+- Open Document Format: Added support for small documents with content length < 1024
 - Status Code: Add specific return code for self-test fail (-11)
 - Scrypt: Increase buffer sizes in module for hash mode 8900 to allow longer scrypt digests
 - Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
