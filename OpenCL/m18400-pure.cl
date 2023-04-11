@@ -391,7 +391,7 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
 
   if (remaining64)
   {
-    u32 *pt_remaining = pt + (encrypted_len64 / 4);
+    PRIVATE_AS u32 *pt_remaining = pt + (encrypted_len64 / 4);
 
     truncate_block_16x4_be_S (pt_remaining + 0, pt_remaining + 4, pt_remaining + 8, pt_remaining + 12, remaining64);
 
