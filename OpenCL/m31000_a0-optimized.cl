@@ -185,7 +185,7 @@ KERNEL_FQ void m31000_s04 (KERN_ATTR_RULES ())
     const u32x r1 = h[DGST_R1];
     const u32x r2 = h[DGST_R2];
     const u32x r3 = h[DGST_R3];
-    
+
     COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }

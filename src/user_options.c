@@ -573,14 +573,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     return -1;
   }
-  
+
   if (user_options->brain_port > 65535)
   {
     event_log_error (hashcat_ctx, "Invalid brain port specified (greater than 65535).");
 
     return -1;
   }
-  
+
   if ((user_options->brain_client == true) && (user_options->brain_password_chgd == false))
   {
     event_log_error (hashcat_ctx, "Brain clients must specify --brain-password.");
@@ -1010,7 +1010,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if ((user_options->show == true) && (user_options->username == true))
   {
     event_log_error (hashcat_ctx, "Mixing --show with --username can cause exponential delay in output.");
-    
+
     return 0;
   }
 

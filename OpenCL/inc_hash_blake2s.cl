@@ -26,7 +26,7 @@ DECLSPEC u32 blake2s_rot16_S (const u32 a)
 DECLSPEC u32x blake2s_rot16 (const u32x a)
 {
   u32x r;
-  
+
   #if VECT_SIZE == 1
   r = blake2s_rot16_S (a);
   #endif
@@ -346,7 +346,7 @@ DECLSPEC void blake2s_update (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS const u3
     w3[1] = w[pos4 + 13];
     w3[2] = w[pos4 + 14];
     w3[3] = w[pos4 + 15];
-    
+
     blake2s_update_64 (ctx, w0, w1, w2, w3, 64);
   }
 
@@ -451,7 +451,7 @@ DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32
   v[13] = BLAKE2S_IV_05; // ^ t1;
   v[14] = BLAKE2S_IV_06 ^ f0;
   v[15] = BLAKE2S_IV_07; // ^ f1;
-  
+
   BLAKE2S_ROUND_VECTOR ( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
   BLAKE2S_ROUND_VECTOR (14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3);
   BLAKE2S_ROUND_VECTOR (11,  8, 12,  0,  5,  2, 15, 13, 10, 14,  3,  6,  7,  1,  9,  4);
