@@ -99,6 +99,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --backend-ignore-opencl    |      | Do not try to open OpenCL interface on startup       |",
   " -I, --backend-info             |      | Show system/evironment/backend API info              | -I or -II",
   " -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1",
+  " -Y, --backend-devices-virtual  | Num  | Spawn X virtual instances for each real device       | -Y 8",
   " -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1",
   " -O, --optimized-kernel-enable  |      | Enable optimized kernels (limits password length)    |",
   " -M, --multiply-accel-disable   |      | Disable multiply kernel-accel with processor count   |",

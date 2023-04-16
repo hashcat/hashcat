@@ -617,6 +617,11 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_
   return true;
 }
 
+u32 backend_device_idx_real_from_virtual (const u32 device_idx, const u32 backend_devices_virtual)
+{
+  return device_idx / backend_devices_virtual;
+}
+
 void generate_source_kernel_filename (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file)
 {
   if (opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
@@ -4855,6 +4860,13 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
           }
         }
 
+        opencl_platform_devices_cnt *= user_options->backend_devices_virtual;
+
+        for (int i = opencl_platform_devices_cnt - 1; i >= 0; i--)
+        {
+          opencl_platform_devices[i] = opencl_platform_devices[backend_device_idx_real_from_virtual (i, user_options->backend_devices_virtual)];
+        }
+
         opencl_platforms_devices[opencl_platforms_idx]     = opencl_platform_devices;
         opencl_platforms_devices_cnt[opencl_platforms_idx] = opencl_platform_devices_cnt;
       }
@@ -5025,6 +5037,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       cuda_close (hashcat_ctx);
     }
 
+    cuda_devices_cnt *= user_options->backend_devices_virtual;
+
     backend_ctx->cuda_devices_cnt = cuda_devices_cnt;
 
     // device specific
@@ -5032,6 +5046,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++, backend_devices_idx++)
     {
       const u32 device_id = backend_devices_idx;
+
+      const u32 cuda_devices_idx_real = backend_device_idx_real_from_virtual (cuda_devices_idx, user_options->backend_devices_virtual);
 
       hc_device_param_t *device_param = &devices_param[backend_devices_idx];
 
@@ -5041,7 +5057,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       CUdevice cuda_device;
 
-      if (hc_cuDeviceGet (hashcat_ctx, &cuda_device, cuda_devices_idx) == -1)
+      if (hc_cuDeviceGet (hashcat_ctx, &cuda_device, cuda_devices_idx_real) == -1)
       {
         device_param->skipped = true;
 
@@ -5432,6 +5448,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       hip_close (hashcat_ctx);
     }
 
+    hip_devices_cnt *= user_options->backend_devices_virtual;
+
     backend_ctx->hip_devices_cnt = hip_devices_cnt;
 
     // device specific
@@ -5439,6 +5457,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++, backend_devices_idx++)
     {
       const u32 device_id = backend_devices_idx;
+
+      const u32 hip_devices_idx_real = backend_device_idx_real_from_virtual (hip_devices_idx, user_options->backend_devices_virtual);
 
       hc_device_param_t *device_param = &devices_param[backend_devices_idx];
 
@@ -5448,7 +5468,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       hipDevice_t hip_device;
 
-      if (hc_hipDeviceGet (hashcat_ctx, &hip_device, hip_devices_idx) == -1)
+      if (hc_hipDeviceGet (hashcat_ctx, &hip_device, hip_devices_idx_real) == -1)
       {
         device_param->skipped = true;
 
@@ -5860,6 +5880,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       mtl_close (hashcat_ctx);
     }
 
+    metal_devices_cnt *= user_options->backend_devices_virtual;
+
     backend_ctx->metal_devices_cnt = metal_devices_cnt;
 
     // device specific
@@ -5867,6 +5889,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++, backend_devices_idx++)
     {
       const u32 device_id = backend_devices_idx;
+
+      const u32 metal_devices_idx_real = backend_device_idx_real_from_virtual (metal_devices_idx, user_options->backend_devices_virtual);
 
       hc_device_param_t *device_param = &devices_param[backend_devices_idx];
 
@@ -5876,7 +5900,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       mtl_device_id metal_device = NULL;
 
-      if (hc_mtlDeviceGet (hashcat_ctx, &metal_device, metal_devices_idx) == -1)
+      if (hc_mtlDeviceGet (hashcat_ctx, &metal_device, metal_devices_idx_real) == -1)
       {
         device_param->skipped = true;
 
