@@ -69,6 +69,8 @@ typedef struct pdf
   u32 rc4key[2];
   u32 rc4data[2];
 
+  int P_minus;
+
 } pdf_t;
 
 typedef struct pdf14_tmp
@@ -338,6 +340,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // validate data
 
+  pdf->P_minus = 0;
+
+  if (P_pos[0] == 0x2d) pdf->P_minus = 1;
+
   const int V = strtol ((const char *) V_pos, NULL, 10);
   const int R = strtol ((const char *) R_pos, NULL, 10);
   const int P = strtol ((const char *) P_pos, NULL, 10);
@@ -552,9 +558,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   int line_len = 0;
 
   pdf_t *pdf = (pdf_t *) esalt_buf;
+
   if (pdf->id_len == 32)
   {
-    line_len = snprintf (line_buf, line_size, "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s",
+    char *line_format = "$pdf$%d*%d*%d*%u*%d*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s";
+
+    if (pdf->P_minus == 1) line_format = "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s";
+
+    line_len = snprintf (line_buf, line_size, line_format,
       pdf->V,
       pdf->R,
       128,
@@ -592,7 +603,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s",
+    char *line_format = "$pdf$%d*%d*%d*%u*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s";
+
+    if (pdf->P_minus == 1) line_format = "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s";
+
+    line_len = snprintf (line_buf, line_size, line_format,
       pdf->V,
       pdf->R,
       128,

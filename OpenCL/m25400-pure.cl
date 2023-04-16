@@ -38,6 +38,8 @@ typedef struct pdf
   u32 rc4key[2];
   u32 rc4data[2];
 
+  int P_minus;
+
 } pdf_t;
 
 typedef struct pdf14_tmp

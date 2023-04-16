@@ -30,6 +30,12 @@
 - Added hash-mode: md5(md5(md5($pass).$salt1).$salt2)
 
 ##
+## Features
+##
+
+- Added new feature (-Y) that creates N virtual instances for each device in your system at the cost of N times the device memory consumption
+
+##
 ## Performance
 ##
 
@@ -46,6 +52,7 @@
 - Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes to prevent false positives.
 - Fixed bug in --stdout that caused certain rules to malfunction
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
+- Handle signed/unsigned PDF permission P value for all PDF hash-modes
 
 ##
 ## Technical

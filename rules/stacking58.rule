@@ -1,0 +1,81 @@
+## This rule file is designed to act as a base for usage in a rule stacking runs.
+##
+## For instance: $ hashcat hash.txt word.txt -r stacking58.rule -r stacking58.rule -r stacking58.rule
+##
+## This automatically produces a rule set of 195112 rules. These include well known efficient rules like:
+##
+## :
+## $1 
+## $1 $3
+## $1 $2 $3
+## $!
+## c $!
+## ...
+##
+
+:
+
+c
+u
+
+d
+
+r
+
+[
+]
+
+{
+}
+
+^0
+^1
+^2
+^3
+^4
+^5
+^6
+^7
+^8
+^9
+^ 
+^!
+^#
+^%
+^&
+^*
+^-
+^.
+^@
+^^
+^_
+
+$0
+$1
+$2
+$3
+$4
+$5
+$6
+$7
+$8
+$9
+$ 
+$!
+$#
+$%
+$&
+$*
+$-
+$.
+$@
+$^
+$_
+$$
+
+sa@
+se3
+si!
+si1
+so0
+ss$
