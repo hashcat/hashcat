@@ -628,6 +628,7 @@ typedef enum user_options_defaults
   ADVICE_DISABLE           = false,
   ATTACK_MODE              = ATTACK_MODE_STRAIGHT,
   AUTODETECT               = false,
+  BACKEND_DEVICES_VIRTUAL  = 1,
   BENCHMARK_ALL            = false,
   BENCHMARK                = false,
   BITMAP_MAX               = 18,
@@ -728,6 +729,7 @@ typedef enum user_options_map
   IDX_ADVICE_DISABLE            = 0xff00,
   IDX_ATTACK_MODE               = 'a',
   IDX_BACKEND_DEVICES           = 'd',
+  IDX_BACKEND_DEVICES_VIRTUAL   = 'Y',
   IDX_BACKEND_IGNORE_CUDA       = 0xff01,
   IDX_BACKEND_IGNORE_HIP        = 0xff02,
   IDX_BACKEND_IGNORE_METAL      = 0xff03,
@@ -1073,6 +1075,7 @@ typedef struct hashconfig
   bool forced_jit_compile;
 
   u32 pwdump_column;
+
 } hashconfig_t;
 
 typedef struct pw_pre
@@ -1876,6 +1879,7 @@ typedef struct backend_ctx
   int                 backend_device_from_opencl_platform[CL_PLATFORMS_MAX][DEVICES_MAX]; // from opencl device index to backend device index (by platform)
 
   int                 backend_devices_cnt;
+  int                 backend_devices_virtual;
   int                 backend_devices_active;
 
   int                 cuda_devices_cnt;
@@ -2396,6 +2400,7 @@ typedef struct user_options
   const char  *rule_buf_r;
   const char  *session;
   u32          attack_mode;
+  u32          backend_devices_virtual;
   u32          backend_info;
   u32          bitmap_max;
   u32          bitmap_min;

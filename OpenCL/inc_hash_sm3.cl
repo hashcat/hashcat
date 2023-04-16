@@ -41,7 +41,7 @@ DECLSPEC void sm3_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1,
   u32 wd_t = w3[1];
   u32 we_t = w3[2];
   u32 wf_t = w3[3];
- 
+
   // SM3 main loop, composed of 64 rounds (0 to 63).
   // The Compression Function (CF) and Message Expansion (ME) are executed step-by-step.
   // SM3_ROUND1_S use SM3_FF0 and SM3_GG0 functions for index 0 to 15 and SM3_ROUND2_S use SM3_FF1 and SM3_GG1 functions for index 16 to 63.
@@ -93,7 +93,7 @@ DECLSPEC void sm3_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1,
   wc_t = SM3_EXPAND_S(wc_t, w3_t, w9_t, wf_t, w6_t); SM3_ROUND2_S(a, b, c, d, e, f, g, h, SM3_T40, w8_t, w8_t ^ wc_t);
   wd_t = SM3_EXPAND_S(wd_t, w4_t, wa_t, w0_t, w7_t); SM3_ROUND2_S(d, a, b, c, h, e, f, g, SM3_T41, w9_t, w9_t ^ wd_t);
   we_t = SM3_EXPAND_S(we_t, w5_t, wb_t, w1_t, w8_t); SM3_ROUND2_S(c, d, a, b, g, h, e, f, SM3_T42, wa_t, wa_t ^ we_t);
-  wf_t = SM3_EXPAND_S(wf_t, w6_t, wc_t, w2_t, w9_t); SM3_ROUND2_S(b, c, d, a, f, g, h, e, SM3_T43, wb_t, wb_t ^ wf_t); 
+  wf_t = SM3_EXPAND_S(wf_t, w6_t, wc_t, w2_t, w9_t); SM3_ROUND2_S(b, c, d, a, f, g, h, e, SM3_T43, wb_t, wb_t ^ wf_t);
   w0_t = SM3_EXPAND_S(w0_t, w7_t, wd_t, w3_t, wa_t); SM3_ROUND2_S(a, b, c, d, e, f, g, h, SM3_T44, wc_t, wc_t ^ w0_t);
   w1_t = SM3_EXPAND_S(w1_t, w8_t, we_t, w4_t, wb_t); SM3_ROUND2_S(d, a, b, c, h, e, f, g, SM3_T45, wd_t, wd_t ^ w1_t);
   w2_t = SM3_EXPAND_S(w2_t, w9_t, wf_t, w5_t, wc_t); SM3_ROUND2_S(c, d, a, b, g, h, e, f, SM3_T46, we_t, we_t ^ w2_t);
@@ -928,7 +928,7 @@ DECLSPEC void sm3_final (PRIVATE_AS sm3_ctx_t *ctx)
   const int pos = ctx->len & 63;
 
   append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos ^ 3);
-  
+
   if (pos >= 56)
   {
     sm3_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
@@ -986,7 +986,7 @@ DECLSPEC void sm3_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const 
   u32x wd_t = w3[1];
   u32x we_t = w3[2];
   u32x wf_t = w3[3];
-  
+
   // SM3 main loop, composed of 64 rounds (0 to 63).
   // The Compression Function (CF) and Message Expansion (ME) are executed step-by-step.
   // SM3_ROUND1 use SM3_FF0 and SM3_GG0 functions for index 0 to 15 and SM3_ROUND2 use SM3_FF1 and SM3_GG1 functions for index 16 to 63.
@@ -1038,7 +1038,7 @@ DECLSPEC void sm3_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const 
   wc_t = SM3_EXPAND(wc_t, w3_t, w9_t, wf_t, w6_t); SM3_ROUND2(a, b, c, d, e, f, g, h, SM3_T40, w8_t, w8_t ^ wc_t);
   wd_t = SM3_EXPAND(wd_t, w4_t, wa_t, w0_t, w7_t); SM3_ROUND2(d, a, b, c, h, e, f, g, SM3_T41, w9_t, w9_t ^ wd_t);
   we_t = SM3_EXPAND(we_t, w5_t, wb_t, w1_t, w8_t); SM3_ROUND2(c, d, a, b, g, h, e, f, SM3_T42, wa_t, wa_t ^ we_t);
-  wf_t = SM3_EXPAND(wf_t, w6_t, wc_t, w2_t, w9_t); SM3_ROUND2(b, c, d, a, f, g, h, e, SM3_T43, wb_t, wb_t ^ wf_t); 
+  wf_t = SM3_EXPAND(wf_t, w6_t, wc_t, w2_t, w9_t); SM3_ROUND2(b, c, d, a, f, g, h, e, SM3_T43, wb_t, wb_t ^ wf_t);
   w0_t = SM3_EXPAND(w0_t, w7_t, wd_t, w3_t, wa_t); SM3_ROUND2(a, b, c, d, e, f, g, h, SM3_T44, wc_t, wc_t ^ w0_t);
   w1_t = SM3_EXPAND(w1_t, w8_t, we_t, w4_t, wb_t); SM3_ROUND2(d, a, b, c, h, e, f, g, SM3_T45, wd_t, wd_t ^ w1_t);
   w2_t = SM3_EXPAND(w2_t, w9_t, wf_t, w5_t, wc_t); SM3_ROUND2(c, d, a, b, g, h, e, f, SM3_T46, we_t, we_t ^ w2_t);
