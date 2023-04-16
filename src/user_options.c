@@ -21,9 +21,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSz";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSY:z";
 #else
-static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMS";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSY:";
 #endif
 
 static char *const SEPARATOR = ":";
@@ -33,6 +33,7 @@ static const struct option long_options[] =
   {"advice-disable",            no_argument,       NULL, IDX_ADVICE_DISABLE},
   {"attack-mode",               required_argument, NULL, IDX_ATTACK_MODE},
   {"backend-devices",           required_argument, NULL, IDX_BACKEND_DEVICES},
+  {"backend-devices-virtual",   required_argument, NULL, IDX_BACKEND_DEVICES_VIRTUAL},
   {"backend-ignore-cuda",       no_argument,       NULL, IDX_BACKEND_IGNORE_CUDA},
   {"backend-ignore-hip",        no_argument,       NULL, IDX_BACKEND_IGNORE_HIP},
   #if defined (__APPLE__)
@@ -171,6 +172,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->attack_mode               = ATTACK_MODE;
   user_options->autodetect                = AUTODETECT;
   user_options->backend_devices           = NULL;
+  user_options->backend_devices_virtual   = BACKEND_DEVICES_VIRTUAL;
   user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
   user_options->backend_ignore_hip        = BACKEND_IGNORE_HIP;
   #if defined (__APPLE__)
@@ -353,6 +355,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_INCREMENT_MIN:
       case IDX_INCREMENT_MAX:
       case IDX_HOOK_THREADS:
+      case IDX_BACKEND_DEVICES_VIRTUAL:
       #ifdef WITH_BRAIN
       case IDX_BRAIN_PORT:
       #endif
@@ -467,6 +470,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BACKEND_IGNORE_OPENCL:     user_options->backend_ignore_opencl     = true;                            break;
       case IDX_BACKEND_INFO:              user_options->backend_info++;                                              break;
       case IDX_BACKEND_DEVICES:           user_options->backend_devices           = optarg;                          break;
+      case IDX_BACKEND_DEVICES_VIRTUAL:   user_options->backend_devices_virtual   = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BACKEND_VECTOR_WIDTH:      user_options->backend_vector_width      = hc_strtoul (optarg, NULL, 10);
                                           user_options->backend_vector_width_chgd = true;                            break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
@@ -559,7 +563,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-#ifdef WITH_BRAIN
+  #ifdef WITH_BRAIN
   if ((user_options->brain_client == true) && (user_options->brain_server == true))
   {
     event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time.");
@@ -612,17 +616,20 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->separator_chgd == true)
   {
     bool error = false;
+
     if ((strlen (user_options->separator) != 1) && (strlen (user_options->separator) != 4))
     {
         error = true;
     }
+
     if (strlen (user_options->separator) == 4)
     {
       if ((user_options->separator[0] == '0') && (user_options->separator[1] == 'x'))
       {
-        if (is_valid_hex_string ((u8 * ) (&(user_options->separator[2])), 2))
+        if (is_valid_hex_string ((u8 *) (&(user_options->separator[2])), 2))
         {
-          u8 sep = hex_to_u8 ((u8 * ) (&(user_options->separator[2])));
+          u8 sep = hex_to_u8 ((u8 *) (&(user_options->separator[2])));
+
           user_options->separator[0] = sep;
           user_options->separator[1] = 0;
         }
@@ -631,7 +638,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
           error = true;
         }
       }
-      else{
+      else
+      {
         error = true;
       }
     }
@@ -734,6 +742,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->hash_mode >= MODULE_HASH_MODES_MAXIMUM)
   {
     event_log_error (hashcat_ctx, "Invalid -m (hash type) value specified.");
+
+    return -1;
+  }
+
+  if (user_options->backend_devices_virtual == 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid --backend-devices-virtual value specified.");
 
     return -1;
   }
@@ -2058,6 +2073,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --backend-devices=%s", user_options->backend_devices);
     }
 
+    if (user_options->backend_devices_virtual)
+    {
+      event_log_info (hashcat_ctx, "* --backend-devices-virtual=%u", user_options->backend_devices_virtual);
+    }
+
     if (user_options->opencl_device_types)
     {
       event_log_info (hashcat_ctx, "* --opencl-device-types=%s", user_options->opencl_device_types);
@@ -2115,6 +2135,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     if (user_options->backend_devices)
     {
       event_log_info (hashcat_ctx, "# option: --backend-devices=%s", user_options->backend_devices);
+    }
+
+    if (user_options->backend_devices_virtual)
+    {
+      event_log_info (hashcat_ctx, "# option: --backend-devices-virtual=%u", user_options->backend_devices_virtual);
     }
 
     if (user_options->opencl_device_types)
@@ -3147,6 +3172,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint64 (user_options->limit);
   logfile_top_uint64 (user_options->skip);
   logfile_top_uint   (user_options->attack_mode);
+  logfile_top_uint   (user_options->backend_devices_virtual);
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->benchmark_all);
   logfile_top_uint   (user_options->bitmap_max);
