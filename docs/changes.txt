@@ -52,6 +52,8 @@
 - Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes to prevent false positives.
 - Fixed bug in --stdout that caused certain rules to malfunction
 - Fixed build failed for 18600 with Apple Metal
+- Fixed incompatible pointer types (salt1 and salt2 buf) in 31700 a3 kernel
+- Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
 
 ##
