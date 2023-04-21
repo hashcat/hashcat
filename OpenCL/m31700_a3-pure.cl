@@ -80,7 +80,7 @@ KERNEL_FQ void m31700_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
 
   const u32 salt1_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_len;
 
-  u32 salt1_buf[64] = { 0 };
+  u32x salt1_buf[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
   {
@@ -89,7 +89,7 @@ KERNEL_FQ void m31700_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
 
   const u32 salt2_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len;
 
-  u32 salt2_buf[64] = { 0 };
+  u32x salt2_buf[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
@@ -245,7 +245,7 @@ KERNEL_FQ void m31700_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
 
   const u32 salt1_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt1_len;
 
-  u32 salt1_buf[64] = { 0 };
+  u32x salt1_buf[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt1_len; i += 4, idx += 1)
   {
@@ -254,7 +254,7 @@ KERNEL_FQ void m31700_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
 
   const u32 salt2_len = esalt_bufs[DIGESTS_OFFSET_HOST].salt2_len;
 
-  u32 salt2_buf[64] = { 0 };
+  u32x salt2_buf[64] = { 0 };
 
   for (u32 i = 0, idx = 0; i < salt2_len; i += 4, idx += 1)
   {
