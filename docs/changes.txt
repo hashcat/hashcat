@@ -51,6 +51,7 @@
 - Skip chained generated rules that exceed the maximum number of function calls
 - Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes to prevent false positives.
 - Fixed bug in --stdout that caused certain rules to malfunction
+- Fixed bug in 18400 module_hash_encode
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
