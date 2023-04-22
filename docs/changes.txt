@@ -20,6 +20,7 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-1($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-256($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
+- Added hash-mode: MetaMask Mobile Wallet
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
 - Added hash-mode: SecureCRT MasterPassphrase v2
 - Added hash-mode: Veeam VB
@@ -73,6 +74,7 @@
 - Scrypt: Increase buffer sizes in module for hash mode 8900 to allow longer scrypt digests
 - Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
 - User Options: Added error message when mixing --username and --show to warn users of exponential delay
+- MetaMask: update extraction tool to support MetaMask Mobile wallets
 
 * changes v6.2.5 -> v6.2.6
 
