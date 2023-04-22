@@ -290,7 +290,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (krb5asrep->format == 1)
   {
-    line_len = snprintf (line_buf, line_size, "%s23%s%08x%08x%08x%08x$%s",
+    line_len = snprintf (line_buf, line_size, "%s23$%s:%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5ASREP,
       (char *) krb5asrep->account_info,
       byte_swap_32 (krb5asrep->checksum[0]),
@@ -301,7 +301,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "%s%s%08x%08x%08x%08x$%s",
+    line_len = snprintf (line_buf, line_size, "%s%s:%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5ASREP,
       (char *) krb5asrep->account_info,
       byte_swap_32 (krb5asrep->checksum[0]),
