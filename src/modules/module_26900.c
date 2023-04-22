@@ -282,7 +282,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len++;
 
-  out_len += hex_encode ((u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
+  // remove zero padding from snmpv3->engineID_buf
+
+  u8 *engineID_buf_tmp = (u8 *) snmpv3->engineID_buf;
+
+  u32 engineID_len = snmpv3->engineID_len;
+
+  while (engineID_buf_tmp[engineID_len] == 0x00) engineID_len--;
+
+  engineID_len++;
+
+  // append to output
+
+  out_len += hex_encode ((u8 *) snmpv3->engineID_buf, engineID_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 
