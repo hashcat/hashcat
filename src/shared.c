@@ -1173,26 +1173,44 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
       }
     }
 
-    const u8 *next_pos = NULL;
-
-    if (token->attr[token_idx] & TOKEN_ATTR_SEPARATOR_FARTHEST)
+    if (token->sep[token_idx] != 0x00)
     {
-      next_pos = hc_strchr_last (token->buf[token_idx], len_left, token->sep[token_idx]);
+      const u8 *next_pos = NULL;
+
+      if (token->attr[token_idx] & TOKEN_ATTR_SEPARATOR_FARTHEST)
+      {
+        next_pos = hc_strchr_last (token->buf[token_idx], len_left, token->sep[token_idx]);
+      }
+      else
+      {
+        next_pos = hc_strchr_next (token->buf[token_idx], len_left, token->sep[token_idx]);
+      }
+
+      if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+
+      const int len = next_pos - token->buf[token_idx];
+
+      token->len[token_idx] = len;
+
+      token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
+
+      len_left -= len + 1; // +1 = separator
     }
     else
     {
-      next_pos = hc_strchr_next (token->buf[token_idx], len_left, token->sep[token_idx]);
+      const int len = token->len[token_idx];
+
+      token->buf[token_idx + 1] = token->buf[token_idx] + len;
+
+      len_left -= len;
+
+      if (token->sep[token_idx] != 0)
+      {
+        token->buf[token_idx + 1]++; // +1 = separator
+
+        len_left--; // -1 = separator
+      }
     }
-
-    if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-    const int len = next_pos - token->buf[token_idx];
-
-    token->len[token_idx] = len;
-
-    token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
-
-    len_left -= len + 1; // +1 = separator
   }
 
   if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
