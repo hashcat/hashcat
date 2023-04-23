@@ -94,6 +94,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 7;
 
   token.signatures_cnt    = 2;
@@ -101,27 +103,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.signatures_buf[1] = SIGNATURE_MOZILLA_AES;
 
   token.sep[0]     = '*';
-  token.len_min[0] = 9;
-  token.len_max[0] = 9;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 9;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '*';
-  token.len_min[1] = 3;
-  token.len_max[1] = 3;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 3;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[2]     = '*';
-  token.len_min[2] = 40;
-  token.len_max[2] = 40;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 40;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '*';
-  token.len_min[3] = 64;
-  token.len_max[3] = 64;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 64;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[4]     = '*';
@@ -131,15 +129,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[5]     = '*';
-  token.len_min[5] = 32;
-  token.len_max[5] = 32;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[5]     = 32;
+  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[6]     = '*';
-  token.len_min[6] = 32;
-  token.len_max[6] = 32;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[6]     = 32;
+  token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);

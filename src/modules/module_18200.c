@@ -104,6 +104,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5ASREP;
 
@@ -131,7 +133,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     krb5asrep->format = 1;
 
-    parse_off += 2;
+    parse_off += 3;
   }
   else
   {
@@ -144,8 +146,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   char *account_info_stop  = strchr ((const char *) account_info_start, ':');
 
   if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  account_info_stop++; // we want the : char included
 
   const int account_info_len = account_info_stop - account_info_start;
 
@@ -171,9 +171,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     // checksum
 
     token.sep[3]     = '$';
-    token.len_min[3] = 32;
-    token.len_max[3] = 32;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[3]     = 32;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     // edata2
@@ -195,9 +194,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     // checksum
 
     token.sep[2]     = '$';
-    token.len_min[2] = 32;
-    token.len_max[2] = 32;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[2]     = 32;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     // edata2
@@ -292,7 +290,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (krb5asrep->format == 1)
   {
-    line_len = snprintf (line_buf, line_size, "%s23%s%08x%08x%08x%08x$%s",
+    line_len = snprintf (line_buf, line_size, "%s23$%s:%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5ASREP,
       (char *) krb5asrep->account_info,
       byte_swap_32 (krb5asrep->checksum[0]),
@@ -303,7 +301,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "%s%s%08x%08x%08x%08x$%s",
+    line_len = snprintf (line_buf, line_size, "%s%s:%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5ASREP,
       (char *) krb5asrep->account_info,
       byte_swap_32 (krb5asrep->checksum[0]),
