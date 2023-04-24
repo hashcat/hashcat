@@ -291,7 +291,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if ((ct_len % 4) > 0) j++;
 
-  u32 tmp_buf[784] = { 0 };
+  u32 tmp_buf[788] = { 0 };
 
   for (u32 i = 0; i < j; i++) tmp_buf[i] = byte_swap_32 (metamask->ct_buf[i]);
 

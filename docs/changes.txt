@@ -59,6 +59,7 @@
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 31700 a3 kernel
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
+- Fixed buffer overflow on module_26600.c / module_hash_encode()
 
 ##
 ## Technical
