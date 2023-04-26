@@ -105,6 +105,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5TGS;
 
@@ -146,9 +148,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       // etype
 
       token.sep[1]     = '$';
-      token.len_min[1] = 2;
-      token.len_max[1] = 2;
-      token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[1]     = 2;
+      token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                        | TOKEN_ATTR_VERIFY_DIGIT;
 
       // user$realm$spn
@@ -159,9 +160,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       // checksum
 
       token.sep[3]     = '$';
-      token.len_min[3] = 32;
-      token.len_max[3] = 32;
-      token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[3]     = 32;
+      token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                        | TOKEN_ATTR_VERIFY_HEX;
 
       // edata2
@@ -179,17 +179,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       // etype
 
       token.sep[1]     = '$';
-      token.len_min[1] = 2;
-      token.len_max[1] = 2;
-      token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[1]     = 2;
+      token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                        | TOKEN_ATTR_VERIFY_DIGIT;
 
       // checksum
 
       token.sep[2]     = '$';
-      token.len_min[2] = 32;
-      token.len_max[2] = 32;
-      token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[2]     = 32;
+      token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                        | TOKEN_ATTR_VERIFY_HEX;
 
       // edata2
@@ -215,9 +213,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     // checksum
 
     token.sep[2]     = '$';
-    token.len_min[2] = 32;
-    token.len_max[2] = 32;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[2]     = 32;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     // edata2

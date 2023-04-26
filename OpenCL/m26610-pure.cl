@@ -21,11 +21,11 @@
 
 typedef struct pbkdf2_sha256_tmp
 {
-  u32  ipad[8];
-  u32  opad[8];
+  u32 ipad[8];
+  u32 opad[8];
 
-  u32  dgst[32];
-  u32  out[32];
+  u32 dgst[32];
+  u32 out[32];
 
 } pbkdf2_sha256_tmp_t;
 
@@ -34,7 +34,7 @@ typedef struct pbkdf2_sha256_aes_gcm
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[784]; // TODO this can be smaller and would speedup the attack, only 64 bytes of ciphertext are allowed
+  u32 ct_buf[16];
   u32 ct_len;
 
 } pbkdf2_sha256_aes_gcm_t;
@@ -367,7 +367,6 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   u32 pt[8] = { 0 };
 
   AES_GCM_decrypt (key, J0, ct, 32, pt, s_te0, s_te1, s_te2, s_te3, s_te4);
-
 
   const int correct = is_valid_printable_32 (pt[0])
                     + is_valid_printable_32 (pt[1])

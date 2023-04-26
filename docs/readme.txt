@@ -420,6 +420,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Skype
 - Anope IRC Services (enc_sha256)
 - Terra Station Wallet (AES256-CBC(PBKDF2($pass)))
+- MetaMask Mobile Wallet
 - MetaMask Wallet (needs all data, checks AES-GCM tag)
 - MetaMask Wallet (short hash, plaintext check)
 - Bisq .wallet (scrypt)

@@ -80,7 +80,9 @@ static const char *const OPTI_STR_BRUTE_FORCE          = "Brute-Force";
 static const char *const OPTI_STR_RAW_HASH             = "Raw-Hash";
 static const char *const OPTI_STR_REGISTER_LIMIT       = "Register-Limit";
 static const char *const OPTI_STR_SLOW_HASH_SIMD_INIT  = "Slow-Hash-SIMD-INIT";
+static const char *const OPTI_STR_SLOW_HASH_SIMD_INIT2 = "Slow-Hash-SIMD-INIT-2";
 static const char *const OPTI_STR_SLOW_HASH_SIMD_LOOP  = "Slow-Hash-SIMD-LOOP";
+static const char *const OPTI_STR_SLOW_HASH_SIMD_LOOP2 = "Slow-Hash-SIMD-LOOP-2";
 static const char *const OPTI_STR_SLOW_HASH_SIMD_COMP  = "Slow-Hash-SIMD-COMP";
 static const char *const OPTI_STR_USES_BITS_8          = "Uses-8-Bit";
 static const char *const OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
@@ -1014,27 +1016,29 @@ const char *stroptitype (const u32 opti_type)
 {
   switch (opti_type)
   {
-    case OPTI_TYPE_OPTIMIZED_KERNEL:    return OPTI_STR_OPTIMIZED_KERNEL;
-    case OPTI_TYPE_ZERO_BYTE:           return OPTI_STR_ZERO_BYTE;
-    case OPTI_TYPE_PRECOMPUTE_INIT:     return OPTI_STR_PRECOMPUTE_INIT;
-    case OPTI_TYPE_MEET_IN_MIDDLE:      return OPTI_STR_MEET_IN_MIDDLE;
-    case OPTI_TYPE_EARLY_SKIP:          return OPTI_STR_EARLY_SKIP;
-    case OPTI_TYPE_NOT_SALTED:          return OPTI_STR_NOT_SALTED;
-    case OPTI_TYPE_NOT_ITERATED:        return OPTI_STR_NOT_ITERATED;
-    case OPTI_TYPE_PREPENDED_SALT:      return OPTI_STR_PREPENDED_SALT;
-    case OPTI_TYPE_APPENDED_SALT:       return OPTI_STR_APPENDED_SALT;
-    case OPTI_TYPE_SINGLE_HASH:         return OPTI_STR_SINGLE_HASH;
-    case OPTI_TYPE_SINGLE_SALT:         return OPTI_STR_SINGLE_SALT;
-    case OPTI_TYPE_BRUTE_FORCE:         return OPTI_STR_BRUTE_FORCE;
-    case OPTI_TYPE_RAW_HASH:            return OPTI_STR_RAW_HASH;
-    case OPTI_TYPE_REGISTER_LIMIT:      return OPTI_STR_REGISTER_LIMIT;
-    case OPTI_TYPE_SLOW_HASH_SIMD_INIT: return OPTI_STR_SLOW_HASH_SIMD_INIT;
-    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP: return OPTI_STR_SLOW_HASH_SIMD_LOOP;
-    case OPTI_TYPE_SLOW_HASH_SIMD_COMP: return OPTI_STR_SLOW_HASH_SIMD_COMP;
-    case OPTI_TYPE_USES_BITS_8:         return OPTI_STR_USES_BITS_8;
-    case OPTI_TYPE_USES_BITS_16:        return OPTI_STR_USES_BITS_16;
-    case OPTI_TYPE_USES_BITS_32:        return OPTI_STR_USES_BITS_32;
-    case OPTI_TYPE_USES_BITS_64:        return OPTI_STR_USES_BITS_64;
+    case OPTI_TYPE_OPTIMIZED_KERNEL:     return OPTI_STR_OPTIMIZED_KERNEL;
+    case OPTI_TYPE_ZERO_BYTE:            return OPTI_STR_ZERO_BYTE;
+    case OPTI_TYPE_PRECOMPUTE_INIT:      return OPTI_STR_PRECOMPUTE_INIT;
+    case OPTI_TYPE_MEET_IN_MIDDLE:       return OPTI_STR_MEET_IN_MIDDLE;
+    case OPTI_TYPE_EARLY_SKIP:           return OPTI_STR_EARLY_SKIP;
+    case OPTI_TYPE_NOT_SALTED:           return OPTI_STR_NOT_SALTED;
+    case OPTI_TYPE_NOT_ITERATED:         return OPTI_STR_NOT_ITERATED;
+    case OPTI_TYPE_PREPENDED_SALT:       return OPTI_STR_PREPENDED_SALT;
+    case OPTI_TYPE_APPENDED_SALT:        return OPTI_STR_APPENDED_SALT;
+    case OPTI_TYPE_SINGLE_HASH:          return OPTI_STR_SINGLE_HASH;
+    case OPTI_TYPE_SINGLE_SALT:          return OPTI_STR_SINGLE_SALT;
+    case OPTI_TYPE_BRUTE_FORCE:          return OPTI_STR_BRUTE_FORCE;
+    case OPTI_TYPE_RAW_HASH:             return OPTI_STR_RAW_HASH;
+    case OPTI_TYPE_REGISTER_LIMIT:       return OPTI_STR_REGISTER_LIMIT;
+    case OPTI_TYPE_SLOW_HASH_SIMD_INIT:  return OPTI_STR_SLOW_HASH_SIMD_INIT;
+    case OPTI_TYPE_SLOW_HASH_SIMD_INIT2: return OPTI_STR_SLOW_HASH_SIMD_INIT2;
+    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP:  return OPTI_STR_SLOW_HASH_SIMD_LOOP;
+    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP2: return OPTI_STR_SLOW_HASH_SIMD_LOOP2;
+    case OPTI_TYPE_SLOW_HASH_SIMD_COMP:  return OPTI_STR_SLOW_HASH_SIMD_COMP;
+    case OPTI_TYPE_USES_BITS_8:          return OPTI_STR_USES_BITS_8;
+    case OPTI_TYPE_USES_BITS_16:         return OPTI_STR_USES_BITS_16;
+    case OPTI_TYPE_USES_BITS_32:         return OPTI_STR_USES_BITS_32;
+    case OPTI_TYPE_USES_BITS_64:         return OPTI_STR_USES_BITS_64;
   }
 
   return NULL;
@@ -1149,10 +1153,6 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
       int len = token->len[token_idx];
 
       if (len_left < len) return (PARSER_TOKEN_LENGTH);
-
-      token->buf[token_idx + 1] = token->buf[token_idx] + len;
-
-      len_left -= len;
     }
     else
     {
@@ -1171,7 +1171,10 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
           len_left -= len + 1; // +1 = separator
         }
       }
+    }
 
+    if (token->sep[token_idx] != 0x00)
+    {
       const u8 *next_pos = NULL;
 
       if (token->attr[token_idx] & TOKEN_ATTR_SEPARATOR_FARTHEST)
@@ -1192,6 +1195,21 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
       token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
 
       len_left -= len + 1; // +1 = separator
+    }
+    else
+    {
+      const int len = token->len[token_idx];
+
+      token->buf[token_idx + 1] = token->buf[token_idx] + len;
+
+      len_left -= len;
+
+      if (token->sep[token_idx] != 0)
+      {
+        token->buf[token_idx + 1]++; // +1 = separator
+
+        len_left--; // -1 = separator
+      }
     }
   }
 
