@@ -1153,10 +1153,6 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
       int len = token->len[token_idx];
 
       if (len_left < len) return (PARSER_TOKEN_LENGTH);
-
-      token->buf[token_idx + 1] = token->buf[token_idx] + len;
-
-      len_left -= len;
     }
     else
     {
@@ -1175,7 +1171,10 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
           len_left -= len + 1; // +1 = separator
         }
       }
+    }
 
+    if (token->sep[token_idx] != 0x00)
+    {
       const u8 *next_pos = NULL;
 
       if (token->attr[token_idx] & TOKEN_ATTR_SEPARATOR_FARTHEST)
@@ -1196,6 +1195,21 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
       token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
 
       len_left -= len + 1; // +1 = separator
+    }
+    else
+    {
+      const int len = token->len[token_idx];
+
+      token->buf[token_idx + 1] = token->buf[token_idx] + len;
+
+      len_left -= len;
+
+      if (token->sep[token_idx] != 0)
+      {
+        token->buf[token_idx + 1]++; // +1 = separator
+
+        len_left--; // -1 = separator
+      }
     }
   }
 
