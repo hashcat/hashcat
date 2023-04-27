@@ -56,6 +56,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 3;
 
   token.signatures_cnt    = 1;
