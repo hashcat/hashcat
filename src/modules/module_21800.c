@@ -116,6 +116,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
@@ -126,21 +128,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '*';
-  token.len_min[1] = 66;
-  token.len_max[1] = 66;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 66;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[2]     = '*';
-  token.len_min[2] = 2048;
-  token.len_max[2] = 2048;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 2048;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '*';
-  token.len_min[3] = 64;
-  token.len_max[3] = 64;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 64;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);

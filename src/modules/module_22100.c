@@ -159,6 +159,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 9;
 
   token.signatures_cnt    = 1;
@@ -169,51 +171,43 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '$';
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 1;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '$';
-  token.len_min[2] = 2;
-  token.len_max[2] = 2;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 2;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[3]     = '$';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 32;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[4]     = '$';
-  token.len_min[4] = 7;
-  token.len_max[4] = 7;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[4]     = 7;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[5]     = '$';
-  token.len_min[5] = 2;
-  token.len_max[5] = 2;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[5]     = 2;
+  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[6]     = '$';
-  token.len_min[6] = 24;
-  token.len_max[6] = 24;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[6]     = 24;
+  token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[7]     = '$';
-  token.len_min[7] = 2;
-  token.len_max[7] = 2;
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[7]     = 2;
+  token.attr[7]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[8]     = '$';
-  token.len_min[8] = 120;
-  token.len_max[8] = 120;
-  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[8]     = 120;
+  token.attr[8]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
