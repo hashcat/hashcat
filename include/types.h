@@ -714,7 +714,7 @@ typedef enum user_options_defaults
   STATUS_TIMER             = 10,
   STDIN_TIMEOUT_ABORT      = 120,
   STDOUT_FLAG              = false,
-  USAGE                    = false,
+  USAGE                    = 0,
   USERNAME                 = false,
   VERSION                  = false,
   VERACRYPT_PIM_START      = 485,
@@ -2363,7 +2363,6 @@ typedef struct user_options
   bool         status_json;
   bool         stdout_flag;
   bool         stdin_timeout_abort_chgd;
-  bool         usage;
   bool         username;
   bool         veracrypt_pim_start_chgd;
   bool         veracrypt_pim_stop_chgd;
@@ -2439,6 +2438,7 @@ typedef struct user_options
   u32          segment_size;
   u32          status_timer;
   u32          stdin_timeout_abort;
+  u32          usage;
   u32          veracrypt_pim_start;
   u32          veracrypt_pim_stop;
   u32          workload_profile;

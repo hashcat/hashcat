@@ -387,7 +387,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   {
     switch (c)
     {
-      case IDX_HELP:                      user_options->usage                     = true;                            break;
+      case IDX_HELP:                      user_options->usage++;                                                     break;
       case IDX_VERSION:                   user_options->version                   = true;                            break;
       case IDX_RESTORE:                   user_options->restore                   = true;                            break;
       case IDX_QUIET:                     user_options->quiet                     = true;                            break;
@@ -559,6 +559,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->hc_argv == NULL)
   {
     event_log_error (hashcat_ctx, "hc_argv is NULL.");
+
+    return -1;
+  }
+
+  if (user_options->usage > 2)
+  {
+    event_log_error (hashcat_ctx, "Invalid --help/-h value, must have a value greater or equal to 0 and lower than 3.");
 
     return -1;
   }
@@ -1500,7 +1507,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     show_error = false;
   }
-  else if (user_options->usage == true)
+  else if (user_options->usage > 0)
   {
     show_error = false;
   }
@@ -1720,7 +1727,7 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "hash_info";
     }
 
-    if (user_options->usage == true)
+    if (user_options->usage > 0)
     {
       user_options->session = "usage";
     }
@@ -1803,7 +1810,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
    || user_options->speed_only       == true
    || user_options->progress_only    == true
    || user_options->identify         == true
-   || user_options->usage            == true
+   || user_options->usage             > 0
    || user_options->backend_info      > 0)
   {
     user_options->hwmon_disable       = true;
@@ -1860,7 +1867,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->quiet = true;
   }
 
-  if (user_options->usage == true)
+  if (user_options->usage > 0)
   {
     user_options->quiet = true;
   }

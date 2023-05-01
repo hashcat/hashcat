@@ -1312,7 +1312,7 @@ int main (int argc, char **argv)
 
   if (hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME) == 0)
   {
-    if (user_options->usage == true)
+    if (user_options->usage > 0)
     {
       usage_big_print (hashcat_ctx);
 

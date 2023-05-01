@@ -35,7 +35,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
   if (user_options->left        == true) return;
   if (user_options->identify    == true) return;
 
-  if (user_options->usage == true)
+  if (user_options->usage > 0)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in help mode", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);

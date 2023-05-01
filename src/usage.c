@@ -29,7 +29,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -m, --hash-type                | Num  | Hash-type, references below (otherwise autodetect)   | -m 1000",
   " -a, --attack-mode              | Num  | Attack-mode, see references below                    | -a 3",
   " -V, --version                  |      | Print version                                        |",
-  " -h, --help                     |      | Print help                                           |",
+  " -h, --help                     |      | Print help. Use -hh to show all supported hash-modes | -h or -hh",
   "     --quiet                    |      | Suppress output                                      |",
   "     --hex-charset              |      | Assume charset is given in hex                       |",
   "     --hex-salt                 |      | Assume salt is given in hex                          |",
@@ -144,10 +144,25 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --brain-session-whitelist  | Hex  | Allow given sessions only, separated with commas     | --brain-session-whitelist=0x2ae611db",
   #endif
   "",
-  "- [ Hash modes ] -",
+  NULL
+};
+
+static const char *const USAGE_BIG_HEADER_HASHMODES[] =
+{
+  "- [ Hash Modes ] -",
   "",
   "      # | Name                                                       | Category",
   "  ======+============================================================+======================================",
+  NULL
+};
+
+static const char *const USAGE_BIG_NO_HASHMODES[] =
+{
+  "- [ Hash Modes ] -",
+  "",
+  "  please use -hh to show all supported Hash Modes"
+  "",
+  "",
   NULL
 };
 
@@ -305,37 +320,42 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
         user_options_t  *user_options  = hashcat_ctx->user_options;
 
-  char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
-
-  usage_sort_t *usage_sort_buf = (usage_sort_t *) hccalloc (MODULE_HASH_MODES_MAXIMUM, sizeof (usage_sort_t));
-
   int usage_sort_cnt = 0;
 
-  for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
+  usage_sort_t *usage_sort_buf = NULL;
+
+  if (user_options->usage > 1)
   {
-    user_options->hash_mode = i;
+    char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-    module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+    usage_sort_buf = (usage_sort_t *) hccalloc (MODULE_HASH_MODES_MAXIMUM, sizeof (usage_sort_t));
 
-    if (hc_path_exist (modulefile) == false) continue;
-
-    const int rc = hashconfig_init (hashcat_ctx);
-
-    if (rc == 0)
+    for (int i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
     {
-      usage_sort_buf[usage_sort_cnt].hash_mode     = hashconfig->hash_mode;
-      usage_sort_buf[usage_sort_cnt].hash_name     = hcstrdup (hashconfig->hash_name);
-      usage_sort_buf[usage_sort_cnt].hash_category = hashconfig->hash_category;
+      user_options->hash_mode = i;
 
-      usage_sort_cnt++;
+      module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+
+      if (hc_path_exist (modulefile) == false) continue;
+
+      const int rc = hashconfig_init (hashcat_ctx);
+
+      if (rc == 0)
+      {
+        usage_sort_buf[usage_sort_cnt].hash_mode     = hashconfig->hash_mode;
+        usage_sort_buf[usage_sort_cnt].hash_name     = hcstrdup (hashconfig->hash_name);
+        usage_sort_buf[usage_sort_cnt].hash_category = hashconfig->hash_category;
+
+        usage_sort_cnt++;
+      }
+
+      hashconfig_destroy (hashcat_ctx);
     }
 
-    hashconfig_destroy (hashcat_ctx);
+    hcfree (modulefile);
+
+    qsort (usage_sort_buf, usage_sort_cnt, sizeof (usage_sort_t), sort_by_usage);
   }
-
-  hcfree (modulefile);
-
-  qsort (usage_sort_buf, usage_sort_cnt, sizeof (usage_sort_t), sort_by_usage);
 
   for (int i = 0; USAGE_BIG_PRE_HASHMODES[i] != NULL; i++)
   {
@@ -346,21 +366,40 @@ void usage_big_print (hashcat_ctx_t *hashcat_ctx)
 
   //hc_fwrite (EOL, strlen (EOL), 1, stdout);
 
-  for (int i = 0; i < usage_sort_cnt; i++)
+  if (user_options->usage > 1)
   {
-    printf ("%7u | %-58s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+    for (int i = 0; USAGE_BIG_HEADER_HASHMODES[i] != NULL; i++)
+    {
+      printf ("%s", USAGE_BIG_HEADER_HASHMODES[i]);
+
+      fwrite (EOL, strlen (EOL), 1, stdout);
+    }
+
+    for (int i = 0; i < usage_sort_cnt; i++)
+    {
+      printf ("%7u | %-58s | %s", usage_sort_buf[i].hash_mode, usage_sort_buf[i].hash_name, strhashcategory (usage_sort_buf[i].hash_category));
+
+      fwrite (EOL, strlen (EOL), 1, stdout);
+    }
 
     fwrite (EOL, strlen (EOL), 1, stdout);
+
+    for (int i = 0; i < usage_sort_cnt; i++)
+    {
+      hcfree (usage_sort_buf[i].hash_name);
+    }
+
+    hcfree (usage_sort_buf);
   }
-
-  fwrite (EOL, strlen (EOL), 1, stdout);
-
-  for (int i = 0; i < usage_sort_cnt; i++)
+  else
   {
-    hcfree (usage_sort_buf[i].hash_name);
-  }
+    for (int i = 0; USAGE_BIG_NO_HASHMODES[i] != NULL; i++)
+    {
+      printf ("%s", USAGE_BIG_NO_HASHMODES[i]);
 
-  hcfree (usage_sort_buf);
+      fwrite (EOL, strlen (EOL), 1, stdout);
+    }
+  }
 
   for (int i = 0; USAGE_BIG_POST_HASHMODES[i] != NULL; i++)
   {
