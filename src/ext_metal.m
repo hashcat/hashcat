@@ -742,8 +742,8 @@ int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_libra
   dispatch_group_t group = dispatch_group_create ();
   dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
 
-  // wait for 120 secs by default or using user-defined runtime if is set
-  long timeout = (user_options->runtime > 0) ? user_options->runtime : 120;
+  // if no user-defined runtime, set to METAL_COMPILER_RUNTIME
+  long timeout = (user_options->metal_compiler_runtime > 0) ? user_options->metal_compiler_runtime : METAL_COMPILER_RUNTIME;
 
   dispatch_time_t when = dispatch_time (DISPATCH_TIME_NOW,NSEC_PER_SEC * timeout);
 

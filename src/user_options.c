@@ -94,6 +94,7 @@ static const struct option long_options[] =
   {"markov-hcstat2",            required_argument, NULL, IDX_MARKOV_HCSTAT2},
   {"markov-inverse",            no_argument,       NULL, IDX_MARKOV_INVERSE},
   {"markov-threshold",          required_argument, NULL, IDX_MARKOV_THRESHOLD},
+  {"metal-compiler-runtime",    required_argument, NULL, IDX_METAL_COMPILER_RUNTIME},
   {"nonce-error-corrections",   required_argument, NULL, IDX_NONCE_ERROR_CORRECTIONS},
   {"opencl-device-types",       required_argument, NULL, IDX_OPENCL_DEVICE_TYPES},
   {"optimized-kernel-enable",   no_argument,       NULL, IDX_OPTIMIZED_KERNEL_ENABLE},
@@ -236,6 +237,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->markov_hcstat2            = NULL;
   user_options->markov_inverse            = MARKOV_INVERSE;
   user_options->markov_threshold          = MARKOV_THRESHOLD;
+  user_options->metal_compiler_runtime    = METAL_COMPILER_RUNTIME;
   user_options->nonce_error_corrections   = NONCE_ERROR_CORRECTIONS;
   user_options->opencl_device_types       = NULL;
   user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
@@ -330,6 +332,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STATUS_TIMER:
       case IDX_HASH_MODE:
       case IDX_RUNTIME:
+      case IDX_METAL_COMPILER_RUNTIME:
       case IDX_ATTACK_MODE:
       case IDX_RP_GEN:
       case IDX_RP_GEN_FUNC_MIN:
@@ -436,6 +439,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->hash_mode_chgd            = true;                            break;
       case IDX_RUNTIME:                   user_options->runtime                   = hc_strtoul (optarg, NULL, 10);
                                           user_options->runtime_chgd              = true;                            break;
+      case IDX_METAL_COMPILER_RUNTIME:    user_options->metal_compiler_runtime    = hc_strtoul (optarg, NULL, 10);
+                                          user_options->metal_compiler_runtime_chgd = true;                          break;
       case IDX_ATTACK_MODE:               user_options->attack_mode               = hc_strtoul (optarg, NULL, 10);
                                           user_options->attack_mode_chgd          = true;                            break;
       case IDX_RP_FILE:                   user_options->rp_files[user_options->rp_files_cnt++] = optarg;             break;
@@ -728,6 +733,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->runtime_chgd == true && user_options->runtime == 0)
   {
     event_log_error (hashcat_ctx, "Invalid --runtime value specified.");
+
+    return -1;
+  }
+
+  // --metal-compiler-runtime is really used only on Apple,
+  // but is useless to expose only on Apple
+
+  if (user_options->metal_compiler_runtime_chgd == true && user_options->metal_compiler_runtime == 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid --metal-compiler-runtime value specified (must be > 0).");
 
     return -1;
   }
@@ -3204,6 +3219,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->markov_disable);
   logfile_top_uint   (user_options->markov_inverse);
   logfile_top_uint   (user_options->markov_threshold);
+  logfile_top_uint   (user_options->metal_compiler_runtime);
   logfile_top_uint   (user_options->multiply_accel_disable);
   logfile_top_uint   (user_options->backend_info);
   logfile_top_uint   (user_options->backend_vector_width);
