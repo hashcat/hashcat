@@ -248,15 +248,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // ct
 
-  u32 ct_buf[256];
+  u8 ct_buf[(256 * 4 * 2) + 1];
 
-  for (int i = 0; i < 256; i++) ct_buf[i] = byte_swap_32 (odf12->encrypted_data[i]);
+  memset (ct_buf, 0, sizeof (ct_buf));
 
-  u8 ct_buf8[(256 * 4 * 2) + 1];
+  const int ct_len = hex_encode ((const u8 *) odf12->encrypted_data, odf12->encrypted_len, ct_buf);
 
-  const int ct_len = hex_encode ((const u8 *) ct_buf, odf12->encrypted_len, ct_buf8);
-
-  ct_buf8[ct_len] = 0;
+  ct_buf[ct_len] = 0;
 
   const int out_len = snprintf (line_buf, line_size, "%s*1*1*%u*32*%08x%08x%08x%08x%08x%08x%08x%08x*16*%08x%08x%08x%08x*16*%08x%08x%08x%08x*0*%s",
     SIGNATURE_ODF,
@@ -277,7 +275,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     byte_swap_32 (salt->salt_buf[1]),
     byte_swap_32 (salt->salt_buf[2]),
     byte_swap_32 (salt->salt_buf[3]),
-    (char *) ct_buf8);
+    (char *) ct_buf);
 
   return out_len;
 }

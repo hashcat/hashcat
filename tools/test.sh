@@ -591,7 +591,7 @@ function attack_0()
 
           # out-of-memory, workaround
 
-          echo "${output}" | head -1 > tmp_file_out
+          echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
           echo "${search}" > tmp_file_search
 
           out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -874,7 +874,7 @@ function attack_1()
 
             # out-of-memory, workaround
 
-            echo "${output}" | head -1 > tmp_file_out
+            echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
             echo "${search}" > tmp_file_search
 
             out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -1180,7 +1180,7 @@ function attack_3()
 
           # out-of-memory, workaround
 
-          echo "${output}" | head -1 > tmp_file_out
+          echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
           echo "${search}" > tmp_file_search
 
           out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -1840,9 +1840,10 @@ function attack_6()
           newRet=$?
 
           if [ "${newRet}" -eq 2 ]; then
+
             # out-of-memory, workaround
 
-            echo "${output}" | head -1 > tmp_file_out
+            echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
             echo "${search}" > tmp_file_search
 
             out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -2273,7 +2274,7 @@ function attack_7()
 
             # out-of-memory, workaround
 
-            echo "${output}" | head -1 > tmp_file_out
+            echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
             echo "${search}" > tmp_file_search
 
             out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -2287,7 +2288,6 @@ function attack_7()
           fi
 
           if [ "${newRet}" -ne 0 ]; then
-
             if [ "${newRet}" -eq 2 ]; then
               ret=20
             else
