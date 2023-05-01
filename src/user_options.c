@@ -737,8 +737,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  // --metal-compiler-runtime is really used only on Apple,
-  // but is useless to expose only on Apple
+  // --metal-compiler-runtime is really used only on Apple
 
   if (user_options->metal_compiler_runtime_chgd == true && user_options->metal_compiler_runtime == 0)
   {

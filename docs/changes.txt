@@ -82,6 +82,7 @@
 - User Options: Added error message when mixing --username and --show to warn users of exponential delay
 - MetaMask: update extraction tool to support MetaMask Mobile wallets
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
+- User Options: added --metal-compiler-runtime option
 
 * changes v6.2.5 -> v6.2.6
 
