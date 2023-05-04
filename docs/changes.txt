@@ -56,6 +56,7 @@
 - Fixed bug in 26900 module_hash_encode
 - Fixed bug in grep out-of-memory workaround on Unit Test
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
+- Fixed build failed for 4410 with vector width > 1
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
 - Fixed build failed for 31700 with Apple Metal
