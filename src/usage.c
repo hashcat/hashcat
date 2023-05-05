@@ -49,6 +49,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --markov-classic           |      | Enables classic markov-chains, no per-position       |",
   "     --markov-inverse           |      | Enables inverse markov-chains, no per-position       |",
   " -t, --markov-threshold         | Num  | Threshold X when to stop accepting new markov-chains | -t 50",
+  "     --metal-compiler-runtime   | Num  | Abort Metal kernel build after X seconds of runtime  | --metal-compiler-runtime=180",
   "     --runtime                  | Num  | Abort session after X seconds of runtime             | --runtime=10",
   "     --session                  | Str  | Define specific session name                         | --session=mysession",
   "     --restore                  |      | Restore session from --session                       |",
