@@ -52,13 +52,17 @@
 - Skip chained generated rules that exceed the maximum number of function calls
 - Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes to prevent false positives.
 - Fixed bug in --stdout that caused certain rules to malfunction
+- Fixed bug in 18400 module_hash_encode
+- Fixed bug in 26900 module_hash_encode
 - Fixed bug in grep out-of-memory workaround on Unit Test
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
+- Fixed build failed for 31700 with Apple Metal
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 31700 a3 kernel
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
+- Fixed minimum password length in module of hash-mode 28200
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
 - Fixed minimum password length in module of hash-mode 29800
 - Fixed buffer overflow on module_26600.c / module_hash_encode()
@@ -80,6 +84,8 @@
 - User Options: Added error message when mixing --username and --show to warn users of exponential delay
 - MetaMask: update extraction tool to support MetaMask Mobile wallets
 - SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
+- Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
+- User Options: added --metal-compiler-runtime option
 
 * changes v6.2.5 -> v6.2.6
 
