@@ -634,6 +634,37 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
   *ptr1 = 0;
 }
 
+void json_encode (char *text, char *escaped)
+{
+  /*
+   * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
+   * are getting escaped before being printed.
+   */
+
+  size_t len = strlen (text);
+  unsigned long i, j;
+
+  for (i = 0, j = 0; i < len; i++, j++)
+  {
+    char c = text[i];
+
+    switch (c)
+    {
+      case '\b': c =  'b'; escaped[j] = '\\'; j++; break;
+      case '\t': c =  't'; escaped[j] = '\\'; j++; break;
+      case '\n': c =  'n'; escaped[j] = '\\'; j++; break;
+      case '\f': c =  'f'; escaped[j] = '\\'; j++; break;
+      case '\r': c =  'r'; escaped[j] = '\\'; j++; break;
+      case '\\': c = '\\'; escaped[j] = '\\'; j++; break;
+      case  '"': c =  '"'; escaped[j] = '\\'; j++; break;
+    }
+
+    escaped[j] = c;
+  }
+
+  escaped[j] = 0;
+}
+
 void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
 {
   if (hashconfig_init (hashcat_ctx) == 0)
@@ -692,13 +723,19 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         {
           printf ("\"example_hash_format\": \"%s\", ", "hex-encoded (binary file only)");
         }
-        printf ("\"example_hash\": \"%s\", ", hashconfig->st_hash);
       }
       else
       {
         printf ("\"example_hash_format\": \"%s\", ", "plain");
-        printf ("\"example_hash\": \"%s\", ", hashconfig->st_hash);
       }
+
+      char *example_hash_json_encoded = (char *) hcmalloc (strlen (hashconfig->st_hash) * 2);
+
+      json_encode ((char *)hashconfig->st_hash, example_hash_json_encoded);
+
+      printf ("\"example_hash\": \"%s\", ", example_hash_json_encoded);
+
+      hcfree (example_hash_json_encoded);
 
       if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options_extra->separator, false))
       {
@@ -1758,37 +1795,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   status_status_destroy (hashcat_ctx, hashcat_status);
 
   hcfree (hashcat_status);
-}
-
-void json_encode (char *text, char *escaped)
-{
-  /*
-   * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
-   * are getting escaped before being printed.
-   */
-
-  size_t len = strlen (text);
-  unsigned long i, j;
-
-  for (i = 0, j = 0; i < len; i++, j++)
-  {
-    char c = text[i];
-
-    switch (c)
-    {
-      case '\b': c =  'b'; escaped[j] = '\\'; j++; break;
-      case '\t': c =  't'; escaped[j] = '\\'; j++; break;
-      case '\n': c =  'n'; escaped[j] = '\\'; j++; break;
-      case '\f': c =  'f'; escaped[j] = '\\'; j++; break;
-      case '\r': c =  'r'; escaped[j] = '\\'; j++; break;
-      case '\\': c = '\\'; escaped[j] = '\\'; j++; break;
-      case  '"': c =  '"'; escaped[j] = '\\'; j++; break;
-    }
-
-    escaped[j] = c;
-  }
-
-  escaped[j] = 0;
 }
 
 void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
