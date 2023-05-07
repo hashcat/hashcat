@@ -85,5 +85,9 @@ This is a trade-off game.
 ## Position identifiers in rules are limited to 36
 ##
 
+##
+## When cracking wpa2.hccapx handshake file use of  "--deprecated-check-disable" is required in latest versions
+##
+
 The upper limit of maximum 36 positions for various rule functions (0-9, A-Z) was a design decision by the original authors of the rule engine.
 
