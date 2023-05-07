@@ -83,6 +83,7 @@
 - Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
 - User Options: Added error message when mixing --username and --show to warn users of exponential delay
 - MetaMask: update extraction tool to support MetaMask Mobile wallets
+- SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
 - User Options: added --metal-compiler-runtime option
 
