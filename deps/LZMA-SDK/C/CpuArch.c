@@ -1,5 +1,5 @@
 /* CpuArch.c -- CPU specific code
-2021-04-28 : Igor Pavlov : Public domain */
+2021-07-13 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -217,7 +217,7 @@ BoolInt CPU_Is_InOrder()
 }
 
 #if !defined(MY_CPU_AMD64) && defined(_WIN32)
-#include <windows.h>
+#include <Windows.h>
 static BoolInt CPU_Sys_Is_SSE_Supported()
 {
   OSVERSIONINFO vi;
@@ -275,8 +275,32 @@ BoolInt CPU_IsSupported_SHA()
 // #include <stdio.h>
 
 #ifdef _WIN32
-#include <windows.h>
+#include <Windows.h>
 #endif
+
+BoolInt CPU_IsSupported_AVX2()
+{
+  Cx86cpuid p;
+  CHECK_SYS_SSE_SUPPORT
+
+  #ifdef _WIN32
+  #define MY__PF_XSAVE_ENABLED  17
+  if (!IsProcessorFeaturePresent(MY__PF_XSAVE_ENABLED))
+    return False;
+  #endif
+
+  if (!x86cpuid_CheckAndRead(&p))
+    return False;
+  if (p.maxFunc < 7)
+    return False;
+  {
+    UInt32 d[4] = { 0 };
+    MyCPUID(7, &d[0], &d[1], &d[2], &d[3]);
+    // printf("\ncpuid(7): ebx=%8x ecx=%8x\n", d[1], d[2]);
+    return 1
+      & (d[1] >> 5); // avx2
+  }
+}
 
 BoolInt CPU_IsSupported_VAES_AVX2()
 {
@@ -327,12 +351,11 @@ BoolInt CPU_IsSupported_PageGB()
 
 #ifdef _WIN32
 
-#include <windows.h>
+#include <Windows.h>
 
-BoolInt CPU_IsSupported_CRC32()
-  { return IsProcessorFeaturePresent(PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE) ? 1 : 0; }
-BoolInt CPU_IsSupported_CRYPTO()
-  { return IsProcessorFeaturePresent(PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE) ? 1 : 0; }
+BoolInt CPU_IsSupported_CRC32()  { return IsProcessorFeaturePresent(PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE) ? 1 : 0; }
+BoolInt CPU_IsSupported_CRYPTO() { return IsProcessorFeaturePresent(PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE) ? 1 : 0; }
+BoolInt CPU_IsSupported_NEON()   { return IsProcessorFeaturePresent(PF_ARM_NEON_INSTRUCTIONS_AVAILABLE) ? 1 : 0; }
 
 #else
 
@@ -356,17 +379,27 @@ static void Print_sysctlbyname(const char *name)
 }
 */
 
-BoolInt CPU_IsSupported_CRC32(void)
+static BoolInt My_sysctlbyname_Get_BoolInt(const char *name)
 {
+  UInt32 val = 0;
+  if (My_sysctlbyname_Get_UInt32(name, &val) == 0 && val == 1)
+    return 1;
+  return 0;
+}
+
   /*
   Print_sysctlbyname("hw.pagesize");
   Print_sysctlbyname("machdep.cpu.brand_string");
   */
 
-  UInt32 val = 0;
-  if (My_sysctlbyname_Get_UInt32("hw.optional.armv8_crc32", &val) == 0 && val == 1)
-    return 1;
-  return 0;
+BoolInt CPU_IsSupported_CRC32(void)
+{
+  return My_sysctlbyname_Get_BoolInt("hw.optional.armv8_crc32");
+}
+
+BoolInt CPU_IsSupported_NEON(void)
+{
+  return My_sysctlbyname_Get_BoolInt("hw.optional.neon");
 }
 
 #ifdef MY_CPU_ARM64
@@ -390,18 +423,25 @@ BoolInt CPU_IsSupported_AES (void) { return APPLE_CRYPTO_SUPPORT_VAL; }
 
 #include <asm/hwcap.h>
 
+  #define MY_HWCAP_CHECK_FUNC_2(name1, name2) \
+  BoolInt CPU_IsSupported_ ## name1() { return (getauxval(AT_HWCAP)  & (HWCAP_  ## name2)) ? 1 : 0; }
+
 #ifdef MY_CPU_ARM64
   #define MY_HWCAP_CHECK_FUNC(name) \
-  BoolInt CPU_IsSupported_ ## name() { return (getauxval(AT_HWCAP)  & (HWCAP_  ## name)) ? 1 : 0; }
+  MY_HWCAP_CHECK_FUNC_2(name, name)
+  MY_HWCAP_CHECK_FUNC_2(NEON, ASIMD)
+// MY_HWCAP_CHECK_FUNC (ASIMD)
 #elif defined(MY_CPU_ARM)
   #define MY_HWCAP_CHECK_FUNC(name) \
   BoolInt CPU_IsSupported_ ## name() { return (getauxval(AT_HWCAP2) & (HWCAP2_ ## name)) ? 1 : 0; }
+  MY_HWCAP_CHECK_FUNC_2(NEON, NEON)
 #endif
 
 #else // USE_HWCAP
 
   #define MY_HWCAP_CHECK_FUNC(name) \
   BoolInt CPU_IsSupported_ ## name() { return 0; }
+  MY_HWCAP_CHECK_FUNC(NEON)
 
 #endif // USE_HWCAP
 

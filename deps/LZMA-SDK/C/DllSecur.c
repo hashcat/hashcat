@@ -1,15 +1,19 @@
 /* DllSecur.c -- DLL loading security
-2018-02-21 : Igor Pavlov : Public domain */
+2022-07-15 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
 #ifdef _WIN32
 
-#include <windows.h>
+#include <Windows.h>
 
 #include "DllSecur.h"
 
 #ifndef UNDER_CE
+
+#if defined(__GNUC__) && (__GNUC__ >= 8)
+  #pragma GCC diagnostic ignored "-Wcast-function-type"
+#endif
 
 typedef BOOL (WINAPI *Func_SetDefaultDllDirectories)(DWORD DirectoryFlags);
 
@@ -33,17 +37,19 @@ static const char * const g_Dlls =
 
 #endif
 
+// #define MY_CAST_FUNC  (void(*)())
+#define MY_CAST_FUNC
+
 void My_SetDefaultDllDirectories()
 {
   #ifndef UNDER_CE
   
     OSVERSIONINFO vi;
     vi.dwOSVersionInfoSize = sizeof(vi);
-    GetVersionEx(&vi);
     if (!GetVersionEx(&vi) || vi.dwMajorVersion != 6 || vi.dwMinorVersion != 0)
     {
       Func_SetDefaultDllDirectories setDllDirs = (Func_SetDefaultDllDirectories)
-          GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "SetDefaultDllDirectories");
+          MY_CAST_FUNC GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "SetDefaultDllDirectories");
       if (setDllDirs)
         if (setDllDirs(MY_LOAD_LIBRARY_SEARCH_SYSTEM32 | MY_LOAD_LIBRARY_SEARCH_USER_DIRS))
           return;
@@ -66,7 +72,7 @@ void LoadSecurityDlls()
     if (!GetVersionEx(&vi) || vi.dwMajorVersion != 6 || vi.dwMinorVersion != 0)
     {
       Func_SetDefaultDllDirectories setDllDirs = (Func_SetDefaultDllDirectories)
-          GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "SetDefaultDllDirectories");
+          MY_CAST_FUNC GetProcAddress(GetModuleHandle(TEXT("kernel32.dll")), "SetDefaultDllDirectories");
       if (setDllDirs)
         if (setDllDirs(MY_LOAD_LIBRARY_SEARCH_SYSTEM32 | MY_LOAD_LIBRARY_SEARCH_USER_DIRS))
           return;

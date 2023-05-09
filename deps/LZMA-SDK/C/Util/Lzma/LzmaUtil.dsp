@@ -134,6 +134,10 @@ SOURCE=..\..\LzFindMt.h
 # End Source File
 # Begin Source File
 
+SOURCE=..\..\LzFindOpt.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\..\LzHash.h
 # End Source File
 # Begin Source File

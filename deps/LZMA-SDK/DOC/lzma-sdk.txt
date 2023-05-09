@@ -1,4 +1,4 @@
-LZMA SDK 21.02
+LZMA SDK 22.01
 --------------
 
 LZMA SDK provides the documentation, samples, header files,
@@ -62,14 +62,61 @@ LZMA SDK Contents
 
 UNIX/Linux version 
 ------------------
-To compile C++ version of file->file LZMA encoding, go to directory
-CPP/7zip/Bundles/LzmaCon
-and call make to recompile it:
-  make -f makefile.gcc clean all
+There are several otpions to compile 7-Zip with different compilers: gcc and clang.
+Also 7-Zip code contains two versions for some critical parts of code: in C and in Assembeler.
+So if you compile the version with Assembeler code, you will get faster 7-Zip binary.
 
-In some UNIX/Linux versions you must compile LZMA with static libraries.
-To compile with static libraries, you can use 
-LIB = -lm -static
+7-Zip's assembler code uses the following syntax for different platforms:
+
+1) x86 and x86-64 (AMD64): MASM syntax. 
+   There are 2 programs that supports MASM syntax in Linux.
+'    'Asmc Macro Assembler and JWasm. But JWasm now doesn't support some 
+      cpu instructions used in 7-Zip.
+   So you must install Asmc Macro Assembler in Linux, if you want to compile fastest version
+   of 7-Zip  x86 and x86-64:
+     https://github.com/nidud/asmc
+
+2) arm64: GNU assembler for ARM64 with preprocessor. 
+   That systax of that arm64 assembler code in 7-Zip is supported by GCC and CLANG for ARM64.
+
+There are different binaries that can be compiled from 7-Zip source.
+There are 2 main files in folder for compiling:
+  makefile        - that can be used for compiling Windows version of 7-Zip with nmake command
+  makefile.gcc    - that can be used for compiling Linux/macOS versions of 7-Zip with make command
+
+At first you must change the current folder to folder that contains `makefile.gcc`:
+
+  cd CPP/7zip/Bundles/Alone7z
+
+Then you can compile `makefile.gcc` with the command:
+
+  make -j -f makefile.gcc
+
+Also there are additional "*.mak" files in folder "CPP/7zip/" that can be used to compile 
+7-Zip binaries with optimized code and optimzing options.
+
+To compile with GCC without assembler:
+  cd CPP/7zip/Bundles/Alone7z
+  make -j -f ../../cmpl_gcc.mak
+
+To compile with CLANG without assembler:
+  make -j -f ../../cmpl_clang.mak
+
+To compile 7-Zip for x86-64 with asmc assembler:
+  make -j -f ../../cmpl_gcc_x64.mak
+
+To compile 7-Zip for arm64 with assembler:
+  make -j -f ../../cmpl_gcc_arm64.mak
+
+To compile 7-Zip for arm64 for macOS:
+  make -j -f ../../cmpl_mac_arm64.mak
+
+Also you can change some compiler options in the mak files:
+  cmpl_gcc.mak
+  var_gcc.mak
+  warn_gcc.mak
+
+
 
 Also you can use p7zip (port of 7-Zip for POSIX systems like Unix or Linux):
   
