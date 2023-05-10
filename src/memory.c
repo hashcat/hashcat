@@ -66,3 +66,26 @@ void hcfree (void *ptr)
 
   free (ptr);
 }
+
+void *hcmalloc_aligned (const size_t sz, const int align)
+{
+  // store the original allocated address so we can later use it to free the memory
+  // this is convinient to use because we don't need to store two memory addresses
+
+  const int align1 = align - 1;
+
+  void *ptr1 = hcmalloc (sz + sizeof (void *) + align1);
+
+  void *ptr2 = (void **) ((uintptr_t) (ptr1 + sizeof (void *) + align1) & ~align1);
+
+  ((void **) ptr2)[-1] = ptr1;
+
+  return ptr2;
+}
+
+void hcfree_aligned (void *ptr)
+{
+  if (ptr == NULL) return;
+
+  free (((void **) ptr)[-1]);
+}

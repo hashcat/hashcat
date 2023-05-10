@@ -110,17 +110,18 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   potfile_ctx->enabled = false;
 
+  if (user_options->usage            > 0)    return 0;
+  if (user_options->backend_info     > 0)    return 0;
+
   if (user_options->benchmark       == true) return 0;
   if (user_options->hash_info       == true) return 0;
   if (user_options->keyspace        == true) return 0;
   if (user_options->stdout_flag     == true) return 0;
   if (user_options->speed_only      == true) return 0;
   if (user_options->progress_only   == true) return 0;
-  if (user_options->usage           == true) return 0;
   if (user_options->version         == true) return 0;
   if (user_options->identify        == true) return 0;
   if (user_options->potfile_disable == true) return 0;
-  if (user_options->backend_info     > 0)    return 0;
 
   if (hashconfig->potfile_disable   == true) return 0;
 
