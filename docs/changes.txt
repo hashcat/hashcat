@@ -88,6 +88,7 @@
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
 - User Options: added --metal-compiler-runtime option
 - Help: show supported hash-modes only with -hh
+- Unit tests: add test modules for hash-modes 31500 and 31600 and handle them in tools/test.pl
 
 * changes v6.2.5 -> v6.2.6
 

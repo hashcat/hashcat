@@ -13,6 +13,10 @@ use File::Basename;
 use FindBin;
 use List::Util 'shuffle';
 
+# used by hash-mode 31500 and 31600
+use Text::Iconv;
+use Digest::MD4 qw (md4_hex);
+
 # allows require by filename
 use lib "$FindBin::Bin/test_modules";
 
@@ -159,6 +163,13 @@ sub single
   {
     for my $salt (sort { length $a <=> length $b } keys %{$db_prev->{$word}})
     {
+      if ($MODE == 31500 || $MODE == 31600)
+      {
+        my $converter = Text::Iconv->new('utf8', 'UTF-16LE');
+
+        $word = md4_hex ($converter->convert ($word));
+      }
+
       my $hash = module_generate_hash ($word, $salt);
 
       # possible if the requested length is not supported by algorithm
@@ -228,6 +239,13 @@ sub passthrough
       my $salt = random_numeric_string ($salt_len) // "";
 
       $idx++;
+
+      if ($MODE == 31500 || $MODE == 31600)
+      {
+        my $converter = Text::Iconv->new('utf8', 'UTF-16LE');
+
+        $word = md4_hex ($converter->convert ($word));
+      }
 
       my $hash = module_generate_hash ($word, $salt);
 
