@@ -55,6 +55,7 @@
 - Fixed bug in --stdout that caused certain rules to malfunction
 - Fixed bug in 18400 module_hash_encode
 - Fixed bug in 26900 module_hash_encode
+- Fixed bug in 29600 module OPTS_TYPE setting
 - Fixed bug in grep out-of-memory workaround on Unit Test
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
 - Fixed build failed for 18400 with Apple Metal
