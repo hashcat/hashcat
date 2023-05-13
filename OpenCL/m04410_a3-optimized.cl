@@ -595,10 +595,10 @@ DECLSPEC void m04410m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += digest[0] - MD5M_A;
-    b += digest[1] - MD5M_B;
-    c += digest[2] - MD5M_C;
-    d += digest[3] - MD5M_D;
+    a += digest[0] - make_u32x (MD5M_A);
+    b += digest[1] - make_u32x (MD5M_B);
+    c += digest[2] - make_u32x (MD5M_C);
+    d += digest[3] - make_u32x (MD5M_D);
 
     COMPARE_M_SIMD (a, d, c, b);
   }
@@ -1187,10 +1187,10 @@ DECLSPEC void m04410s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     MD5_STEP (MD5_I , c, d, a, b, w2_t, MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w9_t, MD5C3f, MD5S33);
 
-    a += digest[0] - MD5M_A;
-    b += digest[1] - MD5M_B;
-    c += digest[2] - MD5M_C;
-    d += digest[3] - MD5M_D;
+    a += digest[0] - make_u32x (MD5M_A);
+    b += digest[1] - make_u32x (MD5M_B);
+    c += digest[2] - make_u32x (MD5M_C);
+    d += digest[3] - make_u32x (MD5M_D);
 
     COMPARE_S_SIMD (a, d, c, b);
   }
