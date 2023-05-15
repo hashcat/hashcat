@@ -62,6 +62,7 @@
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
 - Fixed build failed for 31700 with Apple Metal
+- Fixed build failed for 31300 with vector width > 1
 - Fixed build failed for 31000/Blake2s with vector width > 1
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 31700 a3 kernel
