@@ -2266,15 +2266,18 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
 
   // https://github.com/hashcat/hashcat/issues/3641
 
-  if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
+  if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
   {
-    if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+    if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
     {
-      if (hashes->digests_cnt != hashes->salts_cnt)
+      if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
       {
-        event_log_error (hashcat_ctx, "This hash-mode plugin cannot crack multiple hashes with the same salt, please select one of the hashes.");
+        if (hashes->digests_cnt != hashes->salts_cnt)
+        {
+          event_log_error (hashcat_ctx, "This hash-mode plugin cannot crack multiple hashes with the same salt, please select one of the hashes.");
 
-        return -1;
+          return -1;
+        }
       }
     }
   }
