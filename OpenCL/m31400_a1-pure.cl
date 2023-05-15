@@ -184,13 +184,15 @@ KERNEL_FQ void m31400_mxx (KERN_ATTR_ESALT (scrtv2_t))
    * base
    */
 
+  u32 wt[3];
+
+  u32 ks[60];
+
   sha256_ctx_t ctx0;
 
   sha256_init (&ctx0);
 
   sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
-
-  u32 ks[60];
 
   /**
    * loop
@@ -202,19 +204,17 @@ KERNEL_FQ void m31400_mxx (KERN_ATTR_ESALT (scrtv2_t))
 
     sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    u32 pw_candidate[3];
+    wt[0] = hc_swap32_S (ctx.w0[0]);
+    wt[1] = hc_swap32_S (ctx.w0[1]);
+    wt[2] = hc_swap32_S (ctx.w0[2]);
 
-    pw_candidate[0] = hc_swap32_S (ctx.w0[0]);
-    pw_candidate[1] = hc_swap32_S (ctx.w0[1]);
-    pw_candidate[2] = hc_swap32_S (ctx.w0[2]);
-
-    u32 pw_len=ctx.len;
+    u32 pw_len = ctx.len;
 
     sha256_final (&ctx);
 
     u32 out[4] = { 0 };
 
-    aes256_scrt_format (ks, pw_candidate, pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes256_scrt_format (ks, wt, pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     const u32 r0 = out[DGST_R0];
     const u32 r1 = out[DGST_R1];
@@ -286,13 +286,15 @@ KERNEL_FQ void m31400_sxx (KERN_ATTR_ESALT (scrtv2_t))
    * base
    */
 
+  u32 wt[3];
+
+  u32 ks[60];
+
   sha256_ctx_t ctx0;
 
   sha256_init (&ctx0);
 
   sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
-
-  u32 ks[60];
 
   /**
    * loop
@@ -304,19 +306,17 @@ KERNEL_FQ void m31400_sxx (KERN_ATTR_ESALT (scrtv2_t))
 
     sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    u32 pw_candidate[3];
+    wt[0] = hc_swap32_S (ctx.w0[0]);
+    wt[1] = hc_swap32_S (ctx.w0[1]);
+    wt[2] = hc_swap32_S (ctx.w0[2]);
 
-    pw_candidate[0] = hc_swap32_S (ctx.w0[0]);
-    pw_candidate[1] = hc_swap32_S (ctx.w0[1]);
-    pw_candidate[2] = hc_swap32_S (ctx.w0[2]);
-
-    u32 pw_len=ctx.len;
+    u32 pw_len = ctx.len;
 
     sha256_final (&ctx);
 
     u32 out[4] = { 0 };
 
-    aes256_scrt_format (ks, pw_candidate, pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes256_scrt_format (ks, wt, pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     const u32 r0 = out[DGST_R0];
     const u32 r1 = out[DGST_R1];

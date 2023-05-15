@@ -29,6 +29,7 @@
 - Added hash-mode: HMAC-RIPEMD160 (key = $salt)
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
 - Added hash-mode: md5(md5(md5($pass).$salt1).$salt2)
+- Added hash-mode: md5(md5(md5($pass)).$salt)
 
 ##
 ## Features
@@ -54,12 +55,15 @@
 - Fixed bug in --stdout that caused certain rules to malfunction
 - Fixed bug in 18400 module_hash_encode
 - Fixed bug in 26900 module_hash_encode
+- Fixed bug in 29600 module OPTS_TYPE setting
 - Fixed bug in grep out-of-memory workaround on Unit Test
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
+- Fixed build failed for 4410 with vector width > 1
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
 - Fixed build failed for 31700 with Apple Metal
 - Fixed build failed for 31300 with vector width > 1
+- Fixed build failed for 31000/Blake2s with vector width > 1
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 31700 a3 kernel
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
@@ -84,8 +88,10 @@
 - Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
 - User Options: Added error message when mixing --username and --show to warn users of exponential delay
 - MetaMask: update extraction tool to support MetaMask Mobile wallets
+- SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
 - User Options: added --metal-compiler-runtime option
+- Help: show supported hash-modes only with -hh
 
 * changes v6.2.5 -> v6.2.6
 
