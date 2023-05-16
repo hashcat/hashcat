@@ -37,7 +37,7 @@ void hm_IOKIT_ultostr (char *str, UInt32 val)
 {
   str[0] = '\0';
 
-  sprintf (str, "%c%c%c%c", (unsigned int) (val >> 24), (unsigned int) (val >> 16), (unsigned int) (val >> 8), (unsigned int) (val));
+  snprintf (str, 5, "%c%c%c%c", (unsigned int) (val >> 24), (unsigned int) (val >> 16), (unsigned int) (val >> 8), (unsigned int) (val));
 }
 
 kern_return_t hm_IOKIT_SMCOpen (void *hashcat_ctx, io_connect_t *conn)
@@ -301,6 +301,9 @@ int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, char *fan_speed_buf)
 
     if (totalFans <= 0) return -1;
 
+    // limit totalFans to 10
+    if (totalFans > 10) totalFans = 10;
+
     char tmp_buf[16];
 
     for (int i = 0; i < totalFans; i++)
@@ -310,12 +313,12 @@ int hm_IOKIT_get_fan_speed_current (void *hashcat_ctx, char *fan_speed_buf)
       float maximum_speed = 0.0f;
 
       memset (&key, 0, sizeof (UInt32Char_t));
-      sprintf (key, "F%dAc", i);
+      snprintf (key, 5, "F%dAc", i);
       hm_IOKIT_SMCGetFanRPM (key, iokit->conn, &actual_speed);
       if (actual_speed < 0.f) continue;
 
       memset (&key, 0, sizeof (UInt32Char_t));
-      sprintf (key, "F%dMx", i);
+      snprintf (key, 5, "F%dMx", i);
       hm_IOKIT_SMCGetFanRPM (key, iokit->conn, &maximum_speed);
       if (maximum_speed < 0.f) continue;
 
