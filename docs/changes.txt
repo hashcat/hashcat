@@ -5,6 +5,8 @@
 ##
 
 - Added hash-mode: 1Password, mobilekeychain (1Password 8)
+- Added hash-mode: Adobe AEM (SSPR, SHA-256 with Salt)
+- Added hash-mode: Adobe AEM (SSPR, SHA-512 with Salt)
 - Added hash-mode: Anope IRC Services (enc_sha256)
 - Added hash-mode: Bisq .wallet (scrypt)
 - Added hash-mode: Bitcoin raw private key (P2PKH)
@@ -22,6 +24,14 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
 - Added hash-mode: MetaMask Mobile Wallet
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
+- Added hash-mode: NetIQ SSPR (MD5)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA1)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA256)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA512)
+- Added hash-mode: NetIQ SSPR (SHA-1 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA-256 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA-512 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA1)
 - Added hash-mode: SecureCRT MasterPassphrase v2
 - Added hash-mode: Veeam VB
 - Added hash-mode: bcrypt(sha256($pass))
