@@ -5,7 +5,7 @@
 #define __7Z_THREADS_H
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #else
 
 #if defined(__linux__)
