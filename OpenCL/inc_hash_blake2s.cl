@@ -447,7 +447,7 @@ DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32
   v[ 9] = BLAKE2S_IV_01;
   v[10] = BLAKE2S_IV_02;
   v[11] = BLAKE2S_IV_03;
-  v[12] = BLAKE2S_IV_04 ^ t0;
+  v[12] = make_u32x (BLAKE2S_IV_04) ^ t0;
   v[13] = BLAKE2S_IV_05; // ^ t1;
   v[14] = BLAKE2S_IV_06 ^ f0;
   v[15] = BLAKE2S_IV_07; // ^ f1;
