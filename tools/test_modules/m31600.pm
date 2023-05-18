@@ -8,7 +8,7 @@
 use strict;
 use warnings;
 
-use Digest::MD4 qw (md4);
+use Digest::MD4 qw (md4 md4_hex);
 use Crypt::PBKDF2;
 use Text::Iconv;
 use Encode;
