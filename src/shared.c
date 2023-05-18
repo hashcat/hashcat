@@ -1190,6 +1190,11 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
 
       const int len = next_pos - token->buf[token_idx];
 
+      if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
+      {
+        if (len != token->len[token_idx]) return (PARSER_TOKEN_LENGTH);
+      }
+
       token->len[token_idx] = len;
 
       token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
