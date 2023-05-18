@@ -10,9 +10,21 @@ use warnings;
 
 use Digest::MD4 qw (md4);
 use Crypt::PBKDF2;
+use Text::Iconv;
 use Encode;
 
 sub module_constraints { [[32, 32], [0, 256], [-1, -1], [-1, -1], [-1, -1]] }
+
+sub module_get_random_password
+{
+  my $word = shift;
+
+  my $converter = Text::Iconv->new('utf8', 'UTF-16LE');
+
+  $word = md4_hex ($converter->convert ($word));
+
+  return $word;
+}
 
 sub module_generate_hash
 {
