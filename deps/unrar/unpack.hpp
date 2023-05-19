@@ -23,8 +23,8 @@
 // allocation. Must be equal or larger than MAX_ANALYZE_SIZE.
 #define MAX_FILTER_BLOCK_SIZE 0x400000
 
-// Write data in 4 MB or smaller blocks. Must not exceed PACK_MAX_WRITE,
-// so we keep a number of buffered filters in unpacker reasonable.
+// Write data in 4 MB or smaller blocks. Must not exceed PACK_MAX_READ,
+// so we keep the number of buffered filters in unpacker reasonable.
 #define UNPACK_MAX_WRITE      0x400000
 
 // Decode compressed bit fields to alphabet numbers.
@@ -93,17 +93,17 @@ struct UnpackBlockTables
 
 #ifdef RAR_SMP
 enum UNP_DEC_TYPE {
-  UNPDT_LITERAL,UNPDT_MATCH,UNPDT_FULLREP,UNPDT_REP,UNPDT_FILTER
+  UNPDT_LITERAL=0,UNPDT_MATCH,UNPDT_FULLREP,UNPDT_REP,UNPDT_FILTER
 };
 
 struct UnpackDecodedItem
 {
-  UNP_DEC_TYPE Type;
+  byte Type; // 'byte' instead of enum type to reduce memory use.
   ushort Length;
   union
   {
     uint Distance;
-    byte Literal[4];
+    byte Literal[8]; // Store up to 8 chars here to speed up extraction.
   };
 };
 

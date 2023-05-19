@@ -13,6 +13,8 @@
 #endif
 
 #include <new>
+#include <string>
+#include <vector>
 
 
 #if defined(_WIN_ALL) || defined(_EMX)
@@ -36,12 +38,18 @@
 // re-definition warnings in third party projects.
 #ifndef UNICODE
 #define UNICODE
+#define _UNICODE // Set _T() macro to convert from narrow to wide strings.
 #endif
 
-#undef WINVER
-#undef _WIN32_WINNT
-#define WINVER 0x0501
-#define _WIN32_WINNT 0x0501
+#if 0
+// 2021.09.05: Allow newer Vista+ APIs like IFileOpenDialog for WinRAR,
+// but still keep SFX modules XP compatible.
+#define WINVER _WIN32_WINNT_VISTA
+#define _WIN32_WINNT _WIN32_WINNT_VISTA
+#else
+#define WINVER _WIN32_WINNT_WINXP
+#define _WIN32_WINNT _WIN32_WINNT_WINXP
+#endif
 
 #if !defined(ZIPSFX)
 #define RAR_SMP
@@ -53,7 +61,7 @@
 #include <prsht.h>
 #include <shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
-#include <powrprof.h>
+#include <PowrProf.h>
 #pragma comment(lib, "PowrProf.lib")
 #include <shellapi.h>
 #include <shlobj.h>
@@ -73,14 +81,14 @@
   #include <dir.h>
 #endif
 #ifdef _MSC_VER
-  #if _MSC_VER<1500
-    #define for if (0) ; else for
-  #endif
   #include <direct.h>
   #include <intrin.h>
 
-  #define USE_SSE
-  #define SSE_ALIGNMENT 16
+  // Use SSE only for x86/x64, not ARM Windows.
+  #if defined(_M_IX86) || defined(_M_X64)
+    #define USE_SSE
+    #define SSE_ALIGNMENT 16
+  #endif
 #else
   #include <dirent.h>
 #endif // _MSC_VER
@@ -95,7 +103,6 @@
 #include <io.h>
 #include <time.h>
 #include <signal.h>
-
 
 #define SAVE_LINKS
 
@@ -212,7 +219,8 @@
   #endif
 #endif
 
-#if _POSIX_C_SOURCE >= 200809L
+// Unlike Apple x64, utimensat shall be available in all Apple M1 systems.
+#if _POSIX_C_SOURCE >= 200809L || defined(__APPLE__) && defined(__arm64__)
   #define UNIX_TIME_NS // Nanosecond time precision in Unix.
 #endif
 

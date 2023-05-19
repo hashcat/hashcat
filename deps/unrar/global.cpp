@@ -1,6 +1,6 @@
 #define INCLUDEGLOBAL
 
-#if defined(__BORLANDC__) || defined(_MSC_VER)
+#ifdef _MSC_VER
 #pragma hdrstop
 #endif
 

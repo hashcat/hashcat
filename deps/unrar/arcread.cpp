@@ -100,6 +100,9 @@ void Archive::UnexpEndArcMsg()
   // If block positions are equal to file size, this is not an error.
   // It can happen when we reached the end of older RAR 1.5 archive,
   // which did not have the end of archive block.
+  // We can't replace this check by checking that read size is exactly 0
+  // in the beginning of file header, because in this case the read position
+  // still can be beyond the end of archive.
   if (CurBlockPos!=ArcSize || NextBlockPos!=ArcSize)
   {
     uiMsg(UIERROR_UNEXPEOF,FileName);
@@ -145,7 +148,7 @@ size_t Archive::ReadHeader15()
 #ifdef RAR_NOCRYPT // For rarext.dll and unrar_nocrypt.dll.
     return 0;
 #else
-    RequestArcPassword();
+    RequestArcPassword(NULL);
 
     byte Salt[SIZE_SALT30];
     if (Read(Salt,SIZE_SALT30)!=SIZE_SALT30)
@@ -558,6 +561,13 @@ size_t Archive::ReadHeader50()
     return 0;
 #else
 
+    if (Cmd->SkipEncrypted)
+    {
+      uiMsg(UIMSG_SKIPENCARC,FileName);
+      FailedHeaderDecryption=true; // Suppress error messages and quit quietly.
+      return 0;
+    }
+
     byte HeadersInitV[SIZE_INITV];
     if (Read(HeadersInitV,SIZE_INITV)!=SIZE_INITV)
     {
@@ -570,14 +580,20 @@ size_t Archive::ReadHeader50()
     // in -p<pwd> to not stop batch processing for encrypted archives.
     bool GlobalPassword=Cmd->Password.IsSet() || uiIsGlobalPasswordSet();
 
+    RarCheckPassword CheckPwd;
+    if (CryptHead.UsePswCheck && !BrokenHeader)
+      CheckPwd.Set(CryptHead.Salt,HeadersInitV,CryptHead.Lg2Count,CryptHead.PswCheck);
+    
     while (true) // Repeat the password prompt for wrong passwords.
     {
-      RequestArcPassword();
+      RequestArcPassword(CheckPwd.IsSet() ? &CheckPwd:NULL);
 
       byte PswCheck[SIZE_PSWCHECK];
       HeadersCrypt.SetCryptKeys(false,CRYPT_RAR50,&Cmd->Password,CryptHead.Salt,HeadersInitV,CryptHead.Lg2Count,NULL,PswCheck);
-      // Verify password validity.
-      if (CryptHead.UsePswCheck && memcmp(PswCheck,CryptHead.PswCheck,SIZE_PSWCHECK)!=0)
+      // Verify password validity. If header is damaged, we cannot rely on
+      // password check value, because it can be damaged too.
+      if (CryptHead.UsePswCheck && !BrokenHeader &&
+          memcmp(PswCheck,CryptHead.PswCheck,SIZE_PSWCHECK)!=0)
       {
         if (GlobalPassword) // For -p<pwd> or Ctrl+P.
         {
@@ -843,8 +859,6 @@ size_t Archive::ReadHeader50()
         hd->Dir=(hd->FileFlags & FHFL_DIRECTORY)!=0;
         hd->WinSize=hd->Dir ? 0:size_t(0x20000)<<((CompInfo>>10)&0xf);
 
-        hd->CryptMethod=hd->Encrypted ? CRYPT_RAR50:CRYPT_NONE;
-
         char FileName[NM*4];
         size_t ReadNameSize=Min(NameSize,ASIZE(FileName)-1);
         Raw.GetB((byte *)FileName,ReadNameSize);
@@ -868,20 +882,6 @@ size_t Archive::ReadHeader50()
         if (!FileBlock && hd->CmpName(SUBHEAD_TYPE_CMT))
           MainComment=true;
 
-#if 0
-        // For RAR5 format we read the user specified recovery percent here.
-        // It would be useful to do it for shell extension too, so we display
-        // the correct recovery record size in archive properties. But then
-        // we would need to include the entire recovery record processing
-        // code to shell extension, which is not done now.
-        if (!FileBlock && hd->CmpName(SUBHEAD_TYPE_RR) && hd->SubData.Size()>0)
-        {
-          RecoveryPercent=hd->SubData[0];
-          RSBlockHeader Header;
-          GetRRInfo(this,&Header);
-          RecoverySize=Header.RecSectionSize*Header.RecCount;
-        }
-#endif
 
         if (BadCRC) // Add the file name to broken header message displayed above.
           uiMsg(UIERROR_FHEADERBROKEN,Archive::FileName,hd->FileName);
@@ -904,7 +904,7 @@ size_t Archive::ReadHeader50()
 
 
 #if !defined(RAR_NOCRYPT)
-void Archive::RequestArcPassword()
+void Archive::RequestArcPassword(RarCheckPassword *CheckPwd)
 {
   if (!Cmd->Password.IsSet())
   {
@@ -934,7 +934,7 @@ void Archive::RequestArcPassword()
       ErrHandler.Exit(RARX_USERBREAK);
     }
 #else
-    if (!uiGetPassword(UIPASSWORD_ARCHIVE,FileName,&Cmd->Password))
+    if (!uiGetPassword(UIPASSWORD_ARCHIVE,FileName,&Cmd->Password,CheckPwd))
     {
       Close();
       uiMsg(UIERROR_INCERRCOUNT); // Prevent archive deleting if delete after extraction is on.
@@ -947,7 +947,7 @@ void Archive::RequestArcPassword()
 #endif
 
 
-void Archive::ProcessExtra50(RawRead *Raw,size_t ExtraSize,BaseBlock *bb)
+void Archive::ProcessExtra50(RawRead *Raw,size_t ExtraSize,const BaseBlock *bb)
 {
   // Read extra data from the end of block skipping any fields before it.
   size_t ExtraStart=Raw->Size()-ExtraSize;
@@ -970,22 +970,57 @@ void Archive::ProcessExtra50(RawRead *Raw,size_t ExtraSize,BaseBlock *bb)
     if (bb->HeaderType==HEAD_MAIN)
     {
       MainHeader *hd=(MainHeader *)bb;
-      if (FieldType==MHEXTRA_LOCATOR)
+      switch(FieldType)
       {
-        hd->Locator=true;
-        uint Flags=(uint)Raw->GetV();
-        if ((Flags & MHEXTRA_LOCATOR_QLIST)!=0)
-        {
-          uint64 Offset=Raw->GetV();
-          if (Offset!=0) // 0 means that reserved space was not enough to write the offset.
-            hd->QOpenOffset=Offset+CurBlockPos;
-        }
-        if ((Flags & MHEXTRA_LOCATOR_RR)!=0)
-        {
-          uint64 Offset=Raw->GetV();
-          if (Offset!=0) // 0 means that reserved space was not enough to write the offset.
-            hd->RROffset=Offset+CurBlockPos;
-        }
+        case MHEXTRA_LOCATOR:
+          {
+            hd->Locator=true;
+            uint Flags=(uint)Raw->GetV();
+            if ((Flags & MHEXTRA_LOCATOR_QLIST)!=0)
+            {
+              uint64 Offset=Raw->GetV();
+              if (Offset!=0) // 0 means that reserved space was not enough to write the offset.
+                hd->QOpenOffset=Offset+CurBlockPos;
+            }
+            if ((Flags & MHEXTRA_LOCATOR_RR)!=0)
+            {
+              uint64 Offset=Raw->GetV();
+              if (Offset!=0) // 0 means that reserved space was not enough to write the offset.
+                hd->RROffset=Offset+CurBlockPos;
+            }
+          }
+          break;
+        case MHEXTRA_METADATA:
+          {
+            uint Flags=(uint)Raw->GetV();
+            if ((Flags & MHEXTRA_METADATA_NAME)!=0)
+            {
+              uint64 NameSize=Raw->GetV();
+              if (NameSize<0x10000) // Prevent excessive allocation.
+              {
+                std::vector<char> NameU((size_t)NameSize); // UTF-8 name.
+                Raw->GetB(&NameU[0],(size_t)NameSize);
+                // If starts from 0, the name was longer than reserved space
+                // when saving this extra field.
+                if (NameU[0]!=0)
+                {
+                  NameU.push_back(0);
+                  std::vector<wchar> NameW(NameU.size()*4);
+                  UtfToWide(&NameU[0],&NameW[0],NameW.size());
+                  hd->OrigName.assign(&NameW[0]);
+                }
+              }
+            }
+            if ((Flags & MHEXTRA_METADATA_CTIME)!=0)
+              if ((Flags & MHEXTRA_METADATA_UNIXTIME)!=0)
+                if ((Flags & MHEXTRA_METADATA_UNIX_NS)!=0)
+                  hd->OrigTime.SetUnixNS(Raw->Get8());
+                else
+                  hd->OrigTime.SetUnix((time_t)Raw->Get4());
+              else
+                hd->OrigTime.SetWin(Raw->Get8());
+          }
+          break;
       }
     }
 
@@ -1441,7 +1476,9 @@ bool Archive::ReadSubData(Array<byte> *UnpData,File *DestFile,bool TestMode)
   {
     if (SubHead.UnpSize>0x1000000)
     {
-      // So huge allocation must never happen in valid archives.
+      // Prevent the excessive allocation. When reading to memory, normally
+      // this function operates with reasonably small blocks, such as
+      // the archive comment, NTFS ACL or "Zone.Identifier" NTFS stream.
       uiMsg(UIERROR_SUBHEADERUNKNOWN,FileName);
       return false;
     }

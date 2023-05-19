@@ -112,6 +112,68 @@ static bool LinkInPath(const wchar *Name)
 }
 
 
+// Delete symbolic links in file path, if any, and replace them by directories.
+// Prevents extracting files outside of destination folder with symlink chains.
+bool LinksToDirs(const wchar *SrcName,const wchar *SkipPart,std::wstring &LastChecked)
+{
+  // Unlike Unix, Windows doesn't expand lnk1 in symlink targets like
+  // "lnk1/../dir", but converts the path to "dir". In Unix we need to call
+  // this function to prevent placing unpacked files outside of destination
+  // folder if previously we unpacked "dir/lnk1" -> "..",
+  // "dir/lnk2" -> "lnk1/.." and "dir/lnk2/anypath/poc.txt".
+  // We may still need this function to prevent abusing symlink chains
+  // in link source path if we remove detection of such chains
+  // in IsRelativeSymlinkSafe. This function seems to make other symlink
+  // related safety checks redundant, but for now we prefer to keep them too.
+  //
+  // 2022.12.01: the performance impact is minimized after adding the check
+  // against the previous path and enabling this verification only after
+  // extracting a symlink with ".." in target. So we enabled it for Windows
+  // as well for extra safety.
+//#ifdef _UNIX
+  wchar Path[NM];
+  if (wcslen(SrcName)>=ASIZE(Path))
+    return false;  // It should not be that long, skip.
+  wcsncpyz(Path,SrcName,ASIZE(Path));
+
+  size_t SkipLength=wcslen(SkipPart);
+
+  if (SkipLength>0 && wcsncmp(Path,SkipPart,SkipLength)!=0)
+    SkipLength=0; // Parameter validation, not really needed now.
+
+  // Do not check parts already checked in previous path to improve performance.
+  for (uint I=0;Path[I]!=0 && I<LastChecked.size() && Path[I]==LastChecked[I];I++)
+    if (IsPathDiv(Path[I]) && I>SkipLength)
+      SkipLength=I;
+
+  wchar *Name=Path;
+  if (SkipLength>0)
+  {
+    // Avoid converting symlinks in destination path part specified by user.
+    Name+=SkipLength;
+    while (IsPathDiv(*Name))
+      Name++;
+  }
+
+  for (wchar *s=Path+wcslen(Path)-1;s>Name;s--)
+    if (IsPathDiv(*s))
+    {
+      *s=0;
+      FindData FD;
+      if (FindFile::FastFind(Path,&FD,true) && FD.IsLink)
+#ifdef _WIN_ALL
+        if (!DelDir(Path))
+#else
+        if (!DelFile(Path))
+#endif
+          return false; // Couldn't delete the symlink to replace it with directory.
+    }
+  LastChecked=SrcName;
+//#endif
+  return true;
+}
+
+
 bool IsRelativeSymlinkSafe(CommandData *Cmd,const wchar *SrcName,const wchar *PrepSrcName,const wchar *TargetName)
 {
   // Catch root dir based /path/file paths also as stuff like \\?\.
@@ -131,10 +193,14 @@ bool IsRelativeSymlinkSafe(CommandData *Cmd,const wchar *SrcName,const wchar *Pr
       UpLevels++;
     TargetName++;
   }
-  // If link target includes "..", it must not have another links
-  // in the path, because they can bypass our safety check. For example,
+  // If link target includes "..", it must not have another links in its
+  // source path, because they can bypass our safety check. For example,
   // suppose we extracted "lnk1" -> "." first and "lnk1/lnk2" -> ".." next
-  // or "dir/lnk1" -> ".." first and "dir/lnk1/lnk2" -> ".." next.
+  // or "dir/lnk1" -> ".." first, "dir/lnk1/lnk2" -> ".." next and
+  // file "dir/lnk1/lnk2/poc.txt" last.
+  // Do not confuse with link chains in target, this is in link source path.
+  // It is important for Windows too, though this check can be omitted
+  // if LinksToDirs is invoked in Windows as well.
   if (UpLevels>0 && LinkInPath(PrepSrcName))
     return false;
     
@@ -160,15 +226,26 @@ bool IsRelativeSymlinkSafe(CommandData *Cmd,const wchar *SrcName,const wchar *Pr
 }
 
 
-bool ExtractSymlink(CommandData *Cmd,ComprDataIO &DataIO,Archive &Arc,const wchar *LinkName)
+bool ExtractSymlink(CommandData *Cmd,ComprDataIO &DataIO,Archive &Arc,const wchar *LinkName,bool &UpLink)
 {
+  // Returning true in Uplink indicates that link target might include ".."
+  // and enables additional checks. It is ok to falsely return true here,
+  // as it implies only the minor performance penalty. But we shall always
+  // return true for links with ".." in target for security reason.
+
+  UpLink=true; // Assume the target might include potentially unsafe "..".
+#if defined(SAVE_LINKS) && defined(_UNIX) || defined(_WIN_ALL)
+  if (Arc.Format==RARFMT50) // For RAR5 archives we can check RedirName for both Unix and Windows.
+    UpLink=wcsstr(Arc.FileHead.RedirName,L"..")!=NULL;
+#endif
+
 #if defined(SAVE_LINKS) && defined(_UNIX)
   // For RAR 3.x archives we process links even in test mode to skip link data.
   if (Arc.Format==RARFMT15)
-    return ExtractUnixLink30(Cmd,DataIO,Arc,LinkName);
+    return ExtractUnixLink30(Cmd,DataIO,Arc,LinkName,UpLink);
   if (Arc.Format==RARFMT50)
     return ExtractUnixLink50(Cmd,LinkName,&Arc.FileHead);
-#elif defined _WIN_ALL
+#elif defined(_WIN_ALL)
   // RAR 5.0 archives store link information in file header, so there is
   // no need to additionally test it if we do not create a file.
   if (Arc.Format==RARFMT50)

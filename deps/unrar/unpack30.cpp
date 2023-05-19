@@ -55,7 +55,7 @@ void Unpack::Unpack29(bool Solid)
       if (!UnpReadBuf30())
         break;
     }
-    if (((WrPtr-UnpPtr) & MaxWinMask)<260 && WrPtr!=UnpPtr)
+    if (((WrPtr-UnpPtr) & MaxWinMask)<=MAX3_INC_LZ_MATCH && WrPtr!=UnpPtr)
     {
       UnpWriteBuf30();
       if (WrittenFileSize>DestUnpSize)
@@ -637,7 +637,7 @@ bool Unpack::ReadTables30()
   if (BitField & 0x8000)
   {
     UnpBlockType=BLOCK_PPM;
-    return(PPM.DecodeInit(this,PPMEscChar,hcppm));
+    return(PPM.DecodeInit(this,PPMEscChar));
   }
   UnpBlockType=BLOCK_LZ;
   

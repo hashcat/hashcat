@@ -5,7 +5,7 @@ BitInput::BitInput(bool AllocBuffer)
   ExternalBuffer=false;
   if (AllocBuffer)
   {
-    // getbits32 attempts to read data from InAddr, ... InAddr+3 positions.
+    // getbits*() attempt to read data from InAddr, ... InAddr+3 positions.
     // So let's allocate 3 additional bytes for situation, when we need to
     // read only 1 byte from the last position of buffer and avoid a crash
     // from access to next 3 bytes, which contents we do not need.

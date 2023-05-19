@@ -61,14 +61,14 @@ void CommandData::OutHelp(RAR_EXIT ExitCode)
     MUNRARTitle1,MRARTitle2,MCHelpCmd,MCHelpCmdE,MCHelpCmdL,
     MCHelpCmdP,MCHelpCmdT,MCHelpCmdV,MCHelpCmdX,MCHelpSw,MCHelpSwm,
     MCHelpSwAT,MCHelpSwAC,MCHelpSwAD,MCHelpSwAG,MCHelpSwAI,MCHelpSwAP,
-    MCHelpSwCm,MCHelpSwCFGm,MCHelpSwCL,MCHelpSwCU,
-    MCHelpSwDH,MCHelpSwEP,MCHelpSwEP3,MCHelpSwF,MCHelpSwIDP,MCHelpSwIERR,
-    MCHelpSwINUL,MCHelpSwIOFF,MCHelpSwKB,MCHelpSwN,MCHelpSwNa,MCHelpSwNal,
-    MCHelpSwO,MCHelpSwOC,MCHelpSwOL,MCHelpSwOR,MCHelpSwOW,MCHelpSwP,
-    MCHelpSwPm,MCHelpSwR,MCHelpSwRI,MCHelpSwSC,MCHelpSwSL,MCHelpSwSM,
-    MCHelpSwTA,MCHelpSwTB,MCHelpSwTN,MCHelpSwTO,MCHelpSwTS,MCHelpSwU,
-    MCHelpSwVUnr,MCHelpSwVER,MCHelpSwVP,MCHelpSwX,MCHelpSwXa,MCHelpSwXal,
-    MCHelpSwY
+    MCHelpSwCm,MCHelpSwCFGm,MCHelpSwCL,MCHelpSwCU,MCHelpSwDH,MCHelpSwEP,
+    MCHelpSwEP3,MCHelpSwEP4,MCHelpSwF,MCHelpSwIDP,MCHelpSwIERR,
+    MCHelpSwINUL,MCHelpSwIOFF,MCHelpSwKB,MCHelpSwME,MCHelpSwN,MCHelpSwNa,
+    MCHelpSwNal,MCHelpSwO,MCHelpSwOC,MCHelpSwOL,MCHelpSwOP,MCHelpSwOR,
+    MCHelpSwOW,MCHelpSwP,MCHelpSwR,MCHelpSwRI,MCHelpSwSC,MCHelpSwSI,
+    MCHelpSwSL,MCHelpSwSM,MCHelpSwTA,MCHelpSwTB,MCHelpSwTN,MCHelpSwTO,
+    MCHelpSwTS,MCHelpSwU,MCHelpSwVUnr,MCHelpSwVER,MCHelpSwVP,MCHelpSwX,
+    MCHelpSwXa,MCHelpSwXal,MCHelpSwY
 #endif
   };
 
@@ -91,6 +91,13 @@ void CommandData::OutHelp(RAR_EXIT ExitCode)
       }
     if (Found)
       continue;
+#endif
+#ifdef _UNIX
+    if (CmpMSGID(Help[I],MRARTitle2))
+    {
+      mprintf(St(MFwrSlTitle2));
+      continue;
+    }
 #endif
 #if !defined(_UNIX) && !defined(_WIN_ALL)
     if (CmpMSGID(Help[I],MCHelpSwOW))

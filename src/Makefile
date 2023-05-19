@@ -641,7 +641,7 @@ endif
 ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 obj/%.UNRAR.NATIVE.o: $(DEPS_UNRAR_PATH)/%.cpp
-	$(CXX) -c $(CXXFLAGS) $(CFLAGS_NATIVE) $(CFLAGS_UNRAR) $< -o $@ -fpic
+	$(CXX) -std=c++11 -c $(CXXFLAGS) $(CFLAGS_NATIVE) $(CFLAGS_UNRAR) $< -o $@ -fpic
 endif
 endif
 

@@ -6,8 +6,14 @@ enum HASH_TYPE {HASH_NONE,HASH_RAR14,HASH_CRC32,HASH_BLAKE2};
 struct HashValue
 {
   void Init(HASH_TYPE Type);
-  bool operator == (const HashValue &cmp);
-  bool operator != (const HashValue &cmp) {return !(*this==cmp);}
+
+  // Use the const member, so types on both sides of "==" match.
+  // Otherwise clang -std=c++20 issues "ambiguity is between a regular call
+  // to this operator and a call with the argument order reversed" warning.
+  bool operator == (const HashValue &cmp) const;
+
+  // Not actually used now. Const member for same reason as operator == above.
+  bool operator != (const HashValue &cmp) const {return !(*this==cmp);}
 
   HASH_TYPE Type;
   union
