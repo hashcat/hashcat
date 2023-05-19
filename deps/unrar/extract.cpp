@@ -846,6 +846,7 @@ bool CmdExtract::ExtractCurrentFile(Archive &Arc,size_t HeaderSize,bool &Repeat)
             Unp->Init(Arc.FileHead.WinSize,Arc.FileHead.Solid);
             Unp->SetDestSize(Arc.FileHead.UnpSize);
 #ifndef SFX_MODULE
+            // RAR 1.3 - 1.5 archives do not set per file solid flag.
             if (Arc.Format!=RARFMT50 && Arc.FileHead.UnpVer<=15)
               Unp->DoUnpack(15,FileCount>1 && Arc.Solid);
             else
@@ -1520,6 +1521,15 @@ void CmdExtract::AnalyzeArchive(const wchar *ArcName,bool Volume,bool NewNumberi
       }
       if (HeaderType==HEAD_FILE)
       {
+        if ((Arc.Format==RARFMT14 || Arc.Format==RARFMT15) && Arc.FileHead.UnpVer<=15)
+        {
+          // RAR versions earlier than 2.0 do not set per file solid flag.
+          // They have only the global archive solid flag, so we can't
+          // reliably analyze them here.
+          OpenNext=false;
+          break;
+        }
+
         if (!Arc.FileHead.SplitBefore)
         {
           if (!MatchFound && !Arc.FileHead.Solid) // Can start extraction from here.

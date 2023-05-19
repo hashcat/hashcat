@@ -254,7 +254,11 @@ size_t Archive::ReadHeader15()
         hd->SplitAfter=(hd->Flags & LHD_SPLIT_AFTER)!=0;
         hd->Encrypted=(hd->Flags & LHD_PASSWORD)!=0;
         hd->SaltSet=(hd->Flags & LHD_SALT)!=0;
+        
+        // RAR versions earlier than 2.0 do not set the solid flag
+        // in file header. They use only a global solid archive flag.
         hd->Solid=FileBlock && (hd->Flags & LHD_SOLID)!=0;
+
         hd->SubBlock=!FileBlock && (hd->Flags & LHD_SOLID)!=0;
         hd->Dir=(hd->Flags & LHD_WINDOWMASK)==LHD_DIRECTORY;
         hd->WinSize=hd->Dir ? 0:0x10000<<((hd->Flags & LHD_WINDOWMASK)>>5);

@@ -72,6 +72,7 @@
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
 - Fixed minimum password length in module of hash-mode 29800
 - Fixed buffer overflow on module_26600.c / module_hash_encode()
+- Fixed bug in 23800/unrar with Apple Silicon
 
 ##
 ## Technical
@@ -82,6 +83,7 @@
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
+- Dependencies: Updated unrar source to 6.2.7
 - Dependencies: Updated OpenCL-Headers to v2023.04.17
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Open Document Format: Added support for small documents with content length < 1024
