@@ -41,6 +41,11 @@
 #define _UNICODE // Set _T() macro to convert from narrow to wide strings.
 #endif
 
+
+#ifdef _WIN32_WINNT
+#undef _WIN32_WINNT
+#endif
+
 #if 0
 // 2021.09.05: Allow newer Vista+ APIs like IFileOpenDialog for WinRAR,
 // but still keep SFX modules XP compatible.
@@ -61,7 +66,7 @@
 #include <prsht.h>
 #include <shlwapi.h>
 #pragma comment(lib, "Shlwapi.lib")
-#include <PowrProf.h>
+#include <powrprof.h>
 #pragma comment(lib, "PowrProf.lib")
 #include <shellapi.h>
 #include <shlobj.h>

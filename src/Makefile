@@ -752,6 +752,7 @@ LFLAGS_CROSS_WIN        += -lpsapi
 LFLAGS_CROSS_WIN        += -lws2_32
 LFLAGS_CROSS_WIN        += -lpowrprof
 LFLAGS_CROSS_WIN        += -static -static-libgcc -static-libstdc++
+LFLAGS_CROSS_WIN        += -lole32 -loleaut32 -lwbemuuid
 
 ##
 ## Targets

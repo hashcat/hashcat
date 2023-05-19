@@ -26,7 +26,7 @@ DWORD WinNT()
 
 // Replace it with documented Windows 11 check when available.
 #include <comdef.h>
-#include <Wbemidl.h>
+#include <wbemidl.h>
 #pragma comment(lib, "wbemuuid.lib")
 
 static bool WMI_IsWindows10()
@@ -40,8 +40,10 @@ static bool WMI_IsWindows10()
     return false;
 
   IWbemServices *pSvc = NULL;
- 
-  hres = pLoc->ConnectServer(_bstr_t(L"ROOT\\CIMV2"),NULL,NULL,NULL,NULL,0,0,&pSvc);
+
+  BSTR bstr_root_cimv2 = SysAllocString(L"ROOT\\CIMV2");
+
+  hres = pLoc->ConnectServer(bstr_root_cimv2,NULL,NULL,NULL,0,0,0,&pSvc);
     
   if (FAILED(hres))
   {
@@ -60,7 +62,11 @@ static bool WMI_IsWindows10()
   }
 
   IEnumWbemClassObject *pEnumerator = NULL;
-  hres = pSvc->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_OperatingSystem"),
+
+  BSTR bstr_wql = SysAllocString(L"WQL");
+  BSTR bstr_sql = SysAllocString(L"SELECT * FROM Win32_OperatingSystem");
+
+  hres = pSvc->ExecQuery(bstr_wql, bstr_sql,
          WBEM_FLAG_FORWARD_ONLY | WBEM_FLAG_RETURN_IMMEDIATELY, NULL, &pEnumerator);
     
   if (FAILED(hres))

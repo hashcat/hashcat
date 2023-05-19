@@ -215,9 +215,11 @@ bool ScanTree::GetNextMask()
   UnixSlashToDos(CurMask,CurMask,ASIZE(CurMask));
 #endif
 
-  // We prefer to scan entire disk if mask like \\server\share\ or c:\
-  // is specified regardless of recursion mode. Use \\server\share\*.*
-  // or c:\*.* mask to scan only the root directory.
+  /*
+    We prefer to scan entire disk if mask like \\server\share\ or c:\
+    is specified regardless of recursion mode. Use \\server\share\*.*
+    or c:\*.* mask to scan only the root directory.
+  */
   if (CurMask[0]=='\\' && CurMask[1]=='\\')
   {
     const wchar *Slash=wcschr(CurMask+2,'\\');
