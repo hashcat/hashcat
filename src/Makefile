@@ -217,6 +217,8 @@ ifneq ($(CC),clang)
 CFLAGS_UNRAR            += -Wno-class-memaccess
 CFLAGS_UNRAR            += -Wno-misleading-indentation
 CFLAGS_UNRAR            += -Wno-format-overflow
+else
+CFLAGS_UNRAR            += -std=c++11
 endif
 CFLAGS_UNRAR            += -Wno-missing-braces
 CFLAGS_UNRAR            += -Wno-unused-variable
@@ -641,7 +643,7 @@ endif
 ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 obj/%.UNRAR.NATIVE.o: $(DEPS_UNRAR_PATH)/%.cpp
-	$(CXX) -std=c++11 -c $(CXXFLAGS) $(CFLAGS_NATIVE) $(CFLAGS_UNRAR) $< -o $@ -fpic
+	$(CXX) -c $(CXXFLAGS) $(CFLAGS_NATIVE) $(CFLAGS_UNRAR) $< -o $@ -fpic
 endif
 endif
 
