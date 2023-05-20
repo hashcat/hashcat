@@ -273,6 +273,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token2;
 
+  memset (&token2, 0, sizeof (hc_token_t));
+
   token2.token_cnt  = 3;
 
   token2.signatures_cnt    = 1;
@@ -286,6 +288,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token2.len[1]     = 8;
   token2.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
 
+  token2.sep[2]     = '$';
   token2.len[2]     = 22;
   token2.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_BASE64B;
