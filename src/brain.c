@@ -345,7 +345,43 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
       XXH64_update (state, custom_charset_4, strlen (custom_charset_4));
     }
+
+    if (user_options->custom_charset_5)
+    {
+      const char *custom_charset_5 = user_options->custom_charset_5;
+
+      XXH64_update (state, custom_charset_5, strlen (custom_charset_5));
+    }
+
+    if (user_options->custom_charset_6)
+    {
+      const char *custom_charset_6 = user_options->custom_charset_6;
+
+      XXH64_update (state, custom_charset_6, strlen (custom_charset_6));
+    }
+
+    if (user_options->custom_charset_7)
+    {
+      const char *custom_charset_7 = user_options->custom_charset_7;
+
+      XXH64_update (state, custom_charset_7, strlen (custom_charset_7));
+    }
+
+    if (user_options->custom_charset_8)
+    {
+      const char *custom_charset_8 = user_options->custom_charset_8;
+
+      XXH64_update (state, custom_charset_8, strlen (custom_charset_8));
+    }
+
+    if (user_options->custom_charset_9)
+    {
+      const char *custom_charset_9 = user_options->custom_charset_9;
+
+      XXH64_update (state, custom_charset_9, strlen (custom_charset_9));
+    }
   }
+
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
     const u64 wordlist_hash = brain_compute_attack_wordlist (straight_ctx->dict);
@@ -403,6 +439,41 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
       const char *custom_charset_4 = user_options->custom_charset_4;
 
       XXH64_update (state, custom_charset_4, strlen (custom_charset_4));
+    }
+
+    if (user_options->custom_charset_5)
+    {
+      const char *custom_charset_5 = user_options->custom_charset_5;
+
+      XXH64_update (state, custom_charset_5, strlen (custom_charset_5));
+    }
+
+    if (user_options->custom_charset_6)
+    {
+      const char *custom_charset_6 = user_options->custom_charset_6;
+
+      XXH64_update (state, custom_charset_6, strlen (custom_charset_6));
+    }
+
+    if (user_options->custom_charset_7)
+    {
+      const char *custom_charset_7 = user_options->custom_charset_7;
+
+      XXH64_update (state, custom_charset_7, strlen (custom_charset_7));
+    }
+
+    if (user_options->custom_charset_8)
+    {
+      const char *custom_charset_8 = user_options->custom_charset_8;
+
+      XXH64_update (state, custom_charset_8, strlen (custom_charset_8));
+    }
+
+    if (user_options->custom_charset_9)
+    {
+      const char *custom_charset_9 = user_options->custom_charset_9;
+
+      XXH64_update (state, custom_charset_9, strlen (custom_charset_9));
     }
 
     const int hex_wordlist = user_options->hex_wordlist;

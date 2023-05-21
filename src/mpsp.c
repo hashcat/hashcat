@@ -18,7 +18,7 @@
 
 static const char *const DEF_MASK = "?1?2?2?2?2?2?2?3?3?3?3?d?d?d?d";
 
-#define MAX_MFS 5 // 4*charset, 1*mask
+#define MAX_MFS 10 // 9*charset, 1*mask
 
 static int sp_comp_val (const void *p1, const void *p2)
 {
@@ -314,6 +314,21 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, const char *in_buf, size_t in_
         case '4': if (mp_usr[3].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 4 is undefined."); return -1; }
                   rc = mp_add_cs_buf (hashcat_ctx, mp_usr[3].cs_buf, mp_usr[3].cs_len, mp_usr, mp_usr_offset);
                   break;
+        case '5': if (mp_usr[4].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 5 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[4].cs_buf, mp_usr[4].cs_len, mp_usr, mp_usr_offset);
+                  break;
+        case '6': if (mp_usr[5].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 6 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[5].cs_buf, mp_usr[5].cs_len, mp_usr, mp_usr_offset);
+                  break;
+        case '7': if (mp_usr[6].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 7 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[6].cs_buf, mp_usr[6].cs_len, mp_usr, mp_usr_offset);
+                  break;
+        case '8': if (mp_usr[7].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 8 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[7].cs_buf, mp_usr[7].cs_len, mp_usr, mp_usr_offset);
+                  break;
+        case '9': if (mp_usr[8].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 9 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[8].cs_buf, mp_usr[8].cs_len, mp_usr, mp_usr_offset);
+                  break;
         case '?': rc = mp_add_cs_buf (hashcat_ctx, &p0, 1, mp_usr, mp_usr_offset);
                   break;
         default:  event_log_error (hashcat_ctx, "Syntax error in mask: %s", in_buf);
@@ -426,6 +441,21 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
                   break;
         case '4': if (mp_usr[3].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 4 is undefined."); return -1; }
                   rc = mp_add_cs_buf (hashcat_ctx, mp_usr[3].cs_buf, mp_usr[3].cs_len, css_buf, css_pos);
+                  break;
+        case '5': if (mp_usr[4].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 5 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[4].cs_buf, mp_usr[4].cs_len, css_buf, css_pos);
+                  break;
+        case '6': if (mp_usr[5].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 6 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[5].cs_buf, mp_usr[5].cs_len, css_buf, css_pos);
+                  break;
+        case '7': if (mp_usr[6].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 7 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[6].cs_buf, mp_usr[6].cs_len, css_buf, css_pos);
+                  break;
+        case '8': if (mp_usr[7].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 8 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[7].cs_buf, mp_usr[7].cs_len, css_buf, css_pos);
+                  break;
+        case '9': if (mp_usr[8].cs_len == 0) { event_log_error (hashcat_ctx, "Custom-charset 9 is undefined."); return -1; }
+                  rc = mp_add_cs_buf (hashcat_ctx, mp_usr[8].cs_buf, mp_usr[8].cs_len, css_buf, css_pos);
                   break;
         case '?': rc = mp_add_cs_buf (hashcat_ctx, &chr, 1, css_buf, css_pos);
                   break;
@@ -1416,7 +1446,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   mask_ctx->enabled = true;
 
   mask_ctx->mp_sys  = (cs_t *) hccalloc (8, sizeof (cs_t));
-  mask_ctx->mp_usr  = (cs_t *) hccalloc (4, sizeof (cs_t));
+  mask_ctx->mp_usr  = (cs_t *) hccalloc (9, sizeof (cs_t));
 
   mask_ctx->css_buf = (cs_t *) hccalloc (256, sizeof (cs_t));
   mask_ctx->css_cnt = 0;
@@ -1443,6 +1473,11 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->custom_charset_2) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_2, 1) == -1) return -1; }
   if (user_options->custom_charset_3) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_3, 2) == -1) return -1; }
   if (user_options->custom_charset_4) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3) == -1) return -1; }
+  if (user_options->custom_charset_5) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4) == -1) return -1; }
+  if (user_options->custom_charset_6) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5) == -1) return -1; }
+  if (user_options->custom_charset_7) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6) == -1) return -1; }
+  if (user_options->custom_charset_8) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7) == -1) return -1; }
+  if (user_options->custom_charset_9) { if (mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_9, 8) == -1) return -1; }
 
   if (user_options->benchmark == true)
   {
@@ -1739,6 +1774,10 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
   mfs_buf[2].mf_len = 0;
   mfs_buf[3].mf_len = 0;
   mfs_buf[4].mf_len = 0;
+  mfs_buf[5].mf_len = 0;
+  mfs_buf[6].mf_len = 0;
+  mfs_buf[7].mf_len = 0;
+  mfs_buf[8].mf_len = 0;
 
   size_t mfs_cnt = 0;
 
@@ -1796,11 +1835,21 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
   user_options->custom_charset_2 = NULL;
   user_options->custom_charset_3 = NULL;
   user_options->custom_charset_4 = NULL;
+  user_options->custom_charset_5 = NULL;
+  user_options->custom_charset_6 = NULL;
+  user_options->custom_charset_7 = NULL;
+  user_options->custom_charset_8 = NULL;
+  user_options->custom_charset_9 = NULL;
 
   mp_reset_usr (mask_ctx->mp_usr, 0);
   mp_reset_usr (mask_ctx->mp_usr, 1);
   mp_reset_usr (mask_ctx->mp_usr, 2);
   mp_reset_usr (mask_ctx->mp_usr, 3);
+  mp_reset_usr (mask_ctx->mp_usr, 4);
+  mp_reset_usr (mask_ctx->mp_usr, 5);
+  mp_reset_usr (mask_ctx->mp_usr, 6);
+  mp_reset_usr (mask_ctx->mp_usr, 7);
+  mp_reset_usr (mask_ctx->mp_usr, 8);
 
   for (size_t i = 0; i < mfs_cnt; i++)
   {
@@ -1824,6 +1873,31 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
       case 3:
         user_options->custom_charset_4 = mfs_buf[3].mf_buf;
         mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_4, 3);
+        break;
+
+      case 4:
+        user_options->custom_charset_5 = mfs_buf[4].mf_buf;
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_5, 4);
+        break;
+
+      case 5:
+        user_options->custom_charset_6 = mfs_buf[5].mf_buf;
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_6, 5);
+        break;
+
+      case 6:
+        user_options->custom_charset_7 = mfs_buf[6].mf_buf;
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_7, 6);
+        break;
+
+      case 7:
+        user_options->custom_charset_8 = mfs_buf[7].mf_buf;
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_8, 7);
+        break;
+
+      case 8:
+        user_options->custom_charset_9 = mfs_buf[8].mf_buf;
+        mp_setup_usr (hashcat_ctx, mask_ctx->mp_sys, mask_ctx->mp_usr, user_options->custom_charset_9, 8);
         break;
     }
   }
