@@ -793,15 +793,15 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
   {
     char *tmp_buf;
 
-    if (custom_charset_1 == NULL) custom_charset_1 = "Undefined";
-    if (custom_charset_2 == NULL) custom_charset_2 = "Undefined";
-    if (custom_charset_3 == NULL) custom_charset_3 = "Undefined";
-    if (custom_charset_4 == NULL) custom_charset_4 = "Undefined";
-    if (custom_charset_5 == NULL) custom_charset_5 = "Undefined";
-    if (custom_charset_6 == NULL) custom_charset_6 = "Undefined";
-    if (custom_charset_7 == NULL) custom_charset_7 = "Undefined";
-    if (custom_charset_8 == NULL) custom_charset_8 = "Undefined";
-    if (custom_charset_9 == NULL) custom_charset_9 = "Undefined";
+    if (custom_charset_1 == NULL) custom_charset_1 = "Undef";
+    if (custom_charset_2 == NULL) custom_charset_2 = "Undef";
+    if (custom_charset_3 == NULL) custom_charset_3 = "Undef";
+    if (custom_charset_4 == NULL) custom_charset_4 = "Undef";
+    if (custom_charset_5 == NULL) custom_charset_5 = "Undef";
+    if (custom_charset_6 == NULL) custom_charset_6 = "Undef";
+    if (custom_charset_7 == NULL) custom_charset_7 = "Undef";
+    if (custom_charset_8 == NULL) custom_charset_8 = "Undef";
+    if (custom_charset_9 == NULL) custom_charset_9 = "Undef";
 
     hc_asprintf (&tmp_buf, "-1 %s, -2 %s, -3 %s, -4 %s, -5 %s, -6 %s, -7 %s, -8 %s, -9 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4, custom_charset_5, custom_charset_6, custom_charset_7, custom_charset_8, custom_charset_9);
 
