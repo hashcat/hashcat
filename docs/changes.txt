@@ -71,6 +71,7 @@
 - Fixed minimum password length in module of hash-mode 28200
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
 - Fixed minimum password length in module of hash-mode 29800
+- Fixed maximum password length in module/test_module of hash-mode 2400
 - Fixed buffer overflow on module_26600.c / module_hash_encode()
 
 ##
