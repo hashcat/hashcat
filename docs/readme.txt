@@ -193,9 +193,11 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Kerberos 5, etype 17, TGS-REP
 - Kerberos 5, etype 17, Pre-Auth
 - Kerberos 5, etype 17, DB
+- Kerberos 5, etype 17, AS-REP
 - Kerberos 5, etype 18, TGS-REP
 - Kerberos 5, etype 18, Pre-Auth
 - Kerberos 5, etype 18, DB
+- Kerberos 5, etype 18, AS-REP
 - Kerberos 5, etype 23, AS-REQ Pre-Auth
 - Kerberos 5, etype 23, TGS-REP
 - Kerberos 5, etype 23, AS-REP

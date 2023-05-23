@@ -20,6 +20,8 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-1($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-256($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
+- Added hash-mode: Kerberos 5, etype 17, AS-REP
+- Added hash-mode: Kerberos 5, etype 18, AS-REP
 - Added hash-mode: MetaMask Mobile Wallet
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
 - Added hash-mode: SecureCRT MasterPassphrase v2

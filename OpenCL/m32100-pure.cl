@@ -116,7 +116,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m33100_init (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_17_t))
+KERNEL_FQ void m32100_init (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_17_t))
 {
   /**
    * base
@@ -194,7 +194,7 @@ KERNEL_FQ void m33100_init (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_
   }
 }
 
-KERNEL_FQ void m33100_loop (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_17_t))
+KERNEL_FQ void m32100_loop (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_17_t))
 {
    /**
    * base
@@ -282,7 +282,7 @@ KERNEL_FQ void m33100_loop (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_
   }
 }
 
-KERNEL_FQ void m33100_comp (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_17_t))
+KERNEL_FQ void m32100_comp (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_17_t))
 {
   /**
    * base
@@ -451,7 +451,7 @@ KERNEL_FQ void m33100_comp (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_
 
       For AS-REP EncASRepPart:
       The first byte is 0x79 (01 1 11001, where 01 = "class=APPLICATION", 1 = "form=constructed", 11001 is application type 25)
-      
+
       According to RFC4120 Section 5.4.2: "Some implementations unconditionally send an encrypted EncTGSRepPart (application
       tag number 26) in this field regardless of whether the reply is a AS-REP or a TGS-REP.  In the interest of compatibility,
       implementors MAY relax the check on the tag number of the decrypted ENC-PART"
@@ -526,7 +526,7 @@ KERNEL_FQ void m33100_comp (KERN_ATTR_TMPS_ESALT (krb5asrep_17_tmp_t, krb5asrep_
 
   if (((decrypted_block[0] & 0x00ff80ff) == 0x00300079) ||
       ((decrypted_block[0] & 0x00ff80ff) == 0x0030007a) ||
-      ((decrypted_block[0] & 0xFF00FFFF) == 0x30008179) || 
+      ((decrypted_block[0] & 0xFF00FFFF) == 0x30008179) ||
       ((decrypted_block[0] & 0xFF00FFFF) == 0x3000817a) ||
       ((decrypted_block[0] & 0x0000FFFF) == 0x00008279 && (decrypted_block[1] & 0x000000FF) == 0x00000030) ||
       ((decrypted_block[0] & 0x0000FFFF) == 0x0000827a && (decrypted_block[1] & 0x000000FF) == 0x00000030))

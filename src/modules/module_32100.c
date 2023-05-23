@@ -17,8 +17,8 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "Kerberos 5, etype 18, AS-REP";
-static const u64   KERN_TYPE      = 33200;
+static const char *HASH_NAME      = "Kerberos 5, etype 17, AS-REP";
+static const u64   KERN_TYPE      = 32100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
@@ -26,7 +26,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$krb5asrep$18$user$EXAMPLE.COM$aa4c494f520b27873a4de8f7$ebc9976a77f62e8ccca02d43d68bafcc66a81fcbb44a336b00ce401982f32975a5f9bcdc752643252185866685b0a30aaf50e449e392a5994e6979f23aba25f7704c90b2efa03b703c3c2f9e3617cc588ed226d0417e7742d45407878fd946d046b4a9732b9a203cb857811714b009c195b7c96b9bccb7e48832b11a4e92ecf24c49e54de8d0d5d5351445b5126db90bb7eebc7861db1e61de1175824b0a45023a6fa06c2a9d3035fdcf863bea922648e3dc28b48e39b1dec0869e7fe4de399cb52dfcf2596599da54a4bb0169c72d9496de2e137a4594e0e8a69082fc558ac9ace65d32eae5e260a65ca3f2f5871aaeee7a3b090b50f39321d120c144421e0abe7d";
+static const char *ST_HASH        = "$krb5asrep$17$user$EXAMPLE.COM$a419c4030e555734b06c2629$c09a1421f96eb126c757a4b87830381f142477d9a85b2beb3093dbfd44f38ddb6016a479537fb7b36e046315869fe79187217971ff6a12c1e0a2df3f68045e03814b21f756d8981f781803d65e8572823c88979581d93cf7d768f2efced16f3719b8d1004d9e73d798de255383476bced47d1982f16be77d0feb55a1f44f58bd013fa4caee58ac614caf0f1cf9101ec9623c5b8c2a1491b73f134f074790088fdb360b5ebce0d32a8145ed00a81ddf77188e150b92d8e8ddd0285d27f1514253e5546e6bba864b362bb1e6483b26d08fa4cc268bfbefe0f690039bcc524b774599df3680c1c3431d891bfa99514a877f964e";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -43,8 +43,8 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-// Struct to store the hash structure - same fields as TGS-REP type 18
-typedef struct krb5asrep_18
+// Struct to store the hash structure - same fields as TGS-REP type 17
+typedef struct krb5asrep_17
 {
   u32 user[128];
   u32 domain[128];
@@ -56,29 +56,29 @@ typedef struct krb5asrep_18
   u32 edata2_len;
   u32 format;
 
-} krb5asrep_18_t;
+} krb5asrep_17_t;
 
-typedef struct krb5asrep_18_tmp
+typedef struct krb5asrep_17_tmp
 {
   u32 ipad[5];
   u32 opad[5];
   u32 dgst[16];
   u32 out[16];
 
-} krb5asrep_18_tmp_t;
+} krb5asrep_17_tmp_t;
 
-static const char *SIGNATURE_KRB5ASREP = "$krb5asrep$18$";
+static const char *SIGNATURE_KRB5ASREP = "$krb5asrep$17$";
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (krb5asrep_18_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (krb5asrep_17_tmp_t);
 
   return tmp_size;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (krb5asrep_18_t);
+  const u64 esalt_size = (const u64) sizeof (krb5asrep_17_t);
 
   return esalt_size;
 }
@@ -87,7 +87,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   u32 *digest = (u32 *) digest_buf;
 
-  krb5asrep_18_t *krb5asrep = (krb5asrep_18_t *) esalt_buf;
+  krb5asrep_17_t *krb5asrep = (krb5asrep_17_t *) esalt_buf;
 
   hc_token_t token;
 
@@ -110,7 +110,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (line_len < (int) strlen (SIGNATURE_KRB5ASREP)) return (PARSER_SALT_LENGTH);
 
-  memset (krb5asrep, 0, sizeof (krb5asrep_18_t));
+  memset (krb5asrep, 0, sizeof (krb5asrep_17_t));
 
   /**
    * JtR format has the checksum at the end, so can identify it based on the
@@ -183,6 +183,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
+
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
   
@@ -300,7 +301,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const krb5asrep_18_t *krb5asrep = (const krb5asrep_18_t *) esalt_buf;
+  const krb5asrep_17_t *krb5asrep = (const krb5asrep_17_t *) esalt_buf;
 
   char data[5120 * 4 * 2] = { 0 };
 
