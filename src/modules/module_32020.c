@@ -9,33 +9,26 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
-#include "emu_inc_cipher_aes.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
-static const u32   DGST_POS0      = 0;
-static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS0      = 3;
+static const u32   DGST_POS1      = 4;
 static const u32   DGST_POS2      = 2;
-static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_4;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
-static const char *HASH_NAME      = "Juniper IVE";
-static const u64   KERN_TYPE      = 500;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u32   DGST_POS3      = 1;
+static const u32   DGST_SIZE      = DGST_SIZE_4_5;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_EAS;
+static const char *HASH_NAME      = "NetIQ SSPR (SHA-1 with Salt)";
+static const u64   KERN_TYPE      = 32020;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_ST_BASE64
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_HASH_COPY;
+                                  | OPTS_TYPE_PT_ADD80
+                                  | OPTS_TYPE_PT_ADDBITS15;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "3u+UR6n8AgABAAAAHxxdXKmiOmUoqKnZlf8lTOhlPYy93EAkbPfs5+49YLFd/B1+omSKbW7DoqNM40/EeVnwJ8kYoXv9zy9D5C5m5A==";
-
-typedef struct md5crypt_tmp
-{
-  u32 digest_buf[4];
-
-} md5crypt_tmp_t;
-
-static const u32   ROUNDS_MD5CRYPT    = 1000;
-static const char *SIGNATURE_MD5CRYPT = "$1$";
+static const char *ST_HASH        = "$sspr$2$100000$CxCpGqosk9PkCBcoRFp6DLjjRhVEJKK8$a33283d71c2ecaf4f3017b0a89feca2fc879221c";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -52,197 +45,33 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+typedef struct netiq_sspr_sha1_tmp
+{
+  u32 dgst[5];
+
+} netiq_sspr_sha1_tmp_t;
+
+static const char *SIGNATURE_NETIQ_SSPR_SHA1_SALTED = "$sspr$2$100000$";
+
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (md5crypt_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (netiq_sspr_sha1_tmp_t);
 
   return tmp_size;
 }
 
-static void AES128_decrypt_cbc (const u32 key[4], const u32 iv[4], const u32 in[16], u32 out[16])
+u32 module_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  AES_KEY skey;
+  const u32 salt_min = 32;
 
-  aes128_set_decrypt_key (skey.rdk, key, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3);
-
-  u32 _iv[4] = { 0 };
-
-  _iv[0] = iv[0];
-  _iv[1] = iv[1];
-  _iv[2] = iv[2];
-  _iv[3] = iv[3];
-
-  for (int i = 0; i < 16; i += 4)
-  {
-    u32 _in[4] = { 0 };
-    u32 _out[4] = { 0 };
-
-    _in[0] = in[i + 0];
-    _in[1] = in[i + 1];
-    _in[2] = in[i + 2];
-    _in[3] = in[i + 3];
-
-    aes128_decrypt (skey.rdk, _in, _out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
-
-    _out[0] ^= _iv[0];
-    _out[1] ^= _iv[1];
-    _out[2] ^= _iv[2];
-    _out[3] ^= _iv[3];
-
-    out[i + 0] = _out[0];
-    out[i + 1] = _out[1];
-    out[i + 2] = _out[2];
-    out[i + 3] = _out[3];
-
-    _iv[0] = _in[0];
-    _iv[1] = _in[1];
-    _iv[2] = _in[2];
-    _iv[3] = _in[3];
-  }
+  return salt_min;
 }
 
-static void juniper_decrypt_hash (const u8 *in, const int in_len, u8 *out)
+u32 module_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // base64 decode
+  const u32 salt_max = 32;
 
-  u8 base64_buf[100] = { 0 };
-
-  base64_decode (base64_to_int, (const u8 *) in, in_len, base64_buf);
-
-  // iv stuff
-
-  u32 juniper_iv[4] = { 0 };
-
-  memcpy (juniper_iv, base64_buf, 12);
-
-  memcpy (out, juniper_iv, 12);
-
-  // reversed key
-
-  u32 juniper_key[4] = { 0 };
-
-  juniper_key[0] = byte_swap_32 (0xa6707a7e);
-  juniper_key[1] = byte_swap_32 (0x8df91059);
-  juniper_key[2] = byte_swap_32 (0xdea70ae5);
-  juniper_key[3] = byte_swap_32 (0x2f9c2442);
-
-  // AES decrypt
-
-  u32 *in_ptr  = (u32 *) (base64_buf + 12);
-  u32 *out_ptr = (u32 *) (out        + 12);
-
-  AES128_decrypt_cbc (juniper_key, juniper_iv, in_ptr, out_ptr);
-}
-
-static void md5crypt_decode (u8 digest[16], const u8 buf[22])
-{
-  int l;
-
-  l  = itoa64_to_int (buf[ 0]) <<  0;
-  l |= itoa64_to_int (buf[ 1]) <<  6;
-  l |= itoa64_to_int (buf[ 2]) << 12;
-  l |= itoa64_to_int (buf[ 3]) << 18;
-
-  digest[ 0] = (l >> 16) & 0xff;
-  digest[ 6] = (l >>  8) & 0xff;
-  digest[12] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[ 4]) <<  0;
-  l |= itoa64_to_int (buf[ 5]) <<  6;
-  l |= itoa64_to_int (buf[ 6]) << 12;
-  l |= itoa64_to_int (buf[ 7]) << 18;
-
-  digest[ 1] = (l >> 16) & 0xff;
-  digest[ 7] = (l >>  8) & 0xff;
-  digest[13] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[ 8]) <<  0;
-  l |= itoa64_to_int (buf[ 9]) <<  6;
-  l |= itoa64_to_int (buf[10]) << 12;
-  l |= itoa64_to_int (buf[11]) << 18;
-
-  digest[ 2] = (l >> 16) & 0xff;
-  digest[ 8] = (l >>  8) & 0xff;
-  digest[14] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[12]) <<  0;
-  l |= itoa64_to_int (buf[13]) <<  6;
-  l |= itoa64_to_int (buf[14]) << 12;
-  l |= itoa64_to_int (buf[15]) << 18;
-
-  digest[ 3] = (l >> 16) & 0xff;
-  digest[ 9] = (l >>  8) & 0xff;
-  digest[15] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[16]) <<  0;
-  l |= itoa64_to_int (buf[17]) <<  6;
-  l |= itoa64_to_int (buf[18]) << 12;
-  l |= itoa64_to_int (buf[19]) << 18;
-
-  digest[ 4] = (l >> 16) & 0xff;
-  digest[10] = (l >>  8) & 0xff;
-  digest[ 5] = (l >>  0) & 0xff;
-
-  l  = itoa64_to_int (buf[20]) <<  0;
-  l |= itoa64_to_int (buf[21]) <<  6;
-
-  digest[11] = (l >>  0) & 0xff;
-}
-
-/* uses OPTS_TYPE_HASH_COPY
-static void md5crypt_encode (const u8 digest[16], u8 buf[22])
-{
-  int l;
-
-  l = (digest[ 0] << 16) | (digest[ 6] << 8) | (digest[12] << 0);
-
-  buf[ 0] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 1] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 2] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 3] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[ 1] << 16) | (digest[ 7] << 8) | (digest[13] << 0);
-
-  buf[ 4] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 5] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 6] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 7] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[ 2] << 16) | (digest[ 8] << 8) | (digest[14] << 0);
-
-  buf[ 8] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[ 9] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[10] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[11] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[ 3] << 16) | (digest[ 9] << 8) | (digest[15] << 0);
-
-  buf[12] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[13] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[14] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[15] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[ 4] << 16) | (digest[10] << 8) | (digest[ 5] << 0);
-
-  buf[16] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[17] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[18] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[19] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-
-  l = (digest[11] << 0);
-
-  buf[20] = int_to_itoa64 (l & 0x3f); l >>= 6;
-  buf[21] = int_to_itoa64 (l & 0x3f); //l >>= 6;
-}
-*/
-
-u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
-
-  const u32 pw_max = (optimized_kernel == true) ? 15 : PW_MAX;
-
-  return pw_max;
+  return salt_max;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -253,75 +82,96 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 1;
+  token.token_cnt  = 3;
 
-  token.len[0]     = 104;
+  token.signatures_cnt    = 1;
+  token.signatures_buf[0] = SIGNATURE_NETIQ_SSPR_SHA1_SALTED;
+
+  token.len[0]     = strlen (SIGNATURE_NETIQ_SSPR_SHA1_SALTED);
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.sep[1]     = '$';
+  token.len[1]     = 32;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
+
+  token.sep[2]     = '$';
+  token.len[2]     = 40;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  u8 decrypted[76] = { 0 }; // iv + hash
+  // iter
 
-  juniper_decrypt_hash (token.buf[0], token.len[0], decrypted);
+  salt->salt_iter = 100000 - 1;
 
-  // from here we are parsing a normal md5crypt hash
+  // salt
 
-  u8 *md5crypt_hash = decrypted + 12;
+  const u8 *salt_pos = token.buf[1];
+  const int salt_len = token.len[1];
 
-  hc_token_t token2;
+  salt->salt_len = salt_len;
 
-  memset (&token2, 0, sizeof (hc_token_t));
+  memcpy ((u8 *) salt->salt_buf, salt_pos, salt->salt_len);
 
-  token2.token_cnt  = 3;
+  // digest
 
-  token2.signatures_cnt    = 1;
-  token2.signatures_buf[0] = SIGNATURE_MD5CRYPT;
+  const u8 *hash_pos = token.buf[2];
 
-  token2.len[0]     = 3;
-  token2.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_SIGNATURE;
+  digest[0] = hex_to_u32 (hash_pos +  0);
+  digest[1] = hex_to_u32 (hash_pos +  8);
+  digest[2] = hex_to_u32 (hash_pos + 16);
+  digest[3] = hex_to_u32 (hash_pos + 24);
+  digest[4] = hex_to_u32 (hash_pos + 32);
 
-  token2.sep[1]     = '$';
-  token2.len[1]     = 8;
-  token2.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
-
-  token2.sep[2]     = '$';
-  token2.len[2]     = 22;
-  token2.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                    | TOKEN_ATTR_VERIFY_BASE64B;
-
-  const int rc_tokenizer2 = input_tokenizer (md5crypt_hash, 34, &token2);
-
-  if (rc_tokenizer2 != PARSER_OK) return (rc_tokenizer2);
-
-  static const char *danastre = "danastre";
-
-  if (memcmp (token2.buf[1], danastre, 8) != 0) return (PARSER_SALT_VALUE);
-
-  salt->salt_iter = ROUNDS_MD5CRYPT;
-
-  const u8 *salt_pos = token2.buf[1];
-  const int salt_len = token2.len[1];
-
-  const bool parse_rc = generic_salt_decode (hashconfig, salt_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
-
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
-
-  const u8 *hash_pos = token2.buf[2];
-
-  md5crypt_decode ((u8 *) digest, hash_pos);
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const int line_len = snprintf (line_buf, line_size, "%s", hash_info->orighash);
+  const u32 *digest = (const u32 *) digest_buf;
 
-  return line_len;
+  // salt
+
+  u8 *salt_buf = (u8 *) salt->salt_buf;
+
+  // digest
+
+  u32 tmp[5];
+
+  tmp[0] = byte_swap_32 (digest[0]);
+  tmp[1] = byte_swap_32 (digest[1]);
+  tmp[2] = byte_swap_32 (digest[2]);
+  tmp[3] = byte_swap_32 (digest[3]);
+  tmp[4] = byte_swap_32 (digest[4]);
+
+  u8 *out_buf = (u8 *) line_buf;
+
+  int out_len = snprintf ((char *) out_buf, line_size, "%s%s$",
+    SIGNATURE_NETIQ_SSPR_SHA1_SALTED,
+    salt_buf);
+
+  out_buf += out_len;
+
+  u32_to_hex (tmp[0], out_buf +  0);
+  u32_to_hex (tmp[1], out_buf +  8);
+  u32_to_hex (tmp[2], out_buf + 16);
+  u32_to_hex (tmp[3], out_buf + 24);
+  u32_to_hex (tmp[4], out_buf + 32);
+
+  out_len += 40;
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -391,10 +241,10 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
-  module_ctx->module_pw_max                   = module_pw_max;
+  module_ctx->module_pw_max                   = MODULE_DEFAULT;
   module_ctx->module_pw_min                   = MODULE_DEFAULT;
-  module_ctx->module_salt_max                 = MODULE_DEFAULT;
-  module_ctx->module_salt_min                 = MODULE_DEFAULT;
+  module_ctx->module_salt_max                 = module_salt_max;
+  module_ctx->module_salt_min                 = module_salt_min;
   module_ctx->module_salt_type                = module_salt_type;
   module_ctx->module_separator                = MODULE_DEFAULT;
   module_ctx->module_st_hash                  = module_st_hash;
