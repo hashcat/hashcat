@@ -622,11 +622,11 @@ u32 get_random_num (const u32 min, const u32 max)
 
   #if defined (_WIN)
 
-  return (((u32) rand () % (max - min)) + min);
+  return (((u32) rand () % (max - min + 1)) + min);
 
   #else
 
-  return (((u32) random () % (max - min)) + min);
+  return (((u32) random () % (max - min + 1)) + min);
 
   #endif
 }
