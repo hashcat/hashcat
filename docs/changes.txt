@@ -74,12 +74,8 @@
 - Fixed build failed for 4410 with vector width > 1
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
-- Fixed build failed for 31700 with Apple Metal
-- Fixed build failed for 31300 with vector width > 1
-- Fixed build failed for 31000/Blake2s with vector width > 1
 - Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
-- Fixed incompatible pointer types (salt1 and salt2 buf) in 31700 a3 kernel
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
 - Fixed minimum password length in module of hash-mode 28200
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
@@ -109,7 +105,6 @@
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
 - Help: show supported hash-modes only with -hh
 - Makefile: prevent make failure with Apple Silicon in case of partial rebuild
-- Unit tests: add test modules for hash-modes 31500 and 31600 and handle them in tools/test.pl
 
 * changes v6.2.5 -> v6.2.6
 
