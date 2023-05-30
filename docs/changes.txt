@@ -72,6 +72,7 @@
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
 - Added verification of token buffer length when using TOKEN_ATTR_FIXED_LENGTH
 - Fixed build failed for 4410 with vector width > 1
+- Fixed build failed for 13772 and 13773 with Apple Metal
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
 - Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal
