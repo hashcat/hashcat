@@ -193,9 +193,11 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Kerberos 5, etype 17, TGS-REP
 - Kerberos 5, etype 17, Pre-Auth
 - Kerberos 5, etype 17, DB
+- Kerberos 5, etype 17, AS-REP
 - Kerberos 5, etype 18, TGS-REP
 - Kerberos 5, etype 18, Pre-Auth
 - Kerberos 5, etype 18, DB
+- Kerberos 5, etype 18, AS-REP
 - Kerberos 5, etype 23, AS-REQ Pre-Auth
 - Kerberos 5, etype 23, TGS-REP
 - Kerberos 5, etype 23, AS-REP
@@ -288,8 +290,18 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SAP CODVN F/G (PASSCODE)
 - SAP CODVN F/G (PASSCODE) from RFC_READ_TABLE
 - SAP CODVN H (PWDSALTEDHASH) iSSHA-1
+- Adobe AEM (SSPR, SHA-256 with Salt)
+- Adobe AEM (SSPR, SHA-512 with Salt)
 - PeopleSoft
 - PeopleSoft PS_TOKEN
+- NetIQ SSPR (MD5)
+- NetIQ SSPR (PBKDF2WithHmacSHA1)
+- NetIQ SSPR (PBKDF2WithHmacSHA256)
+- NetIQ SSPR (PBKDF2WithHmacSHA512)
+- NetIQ SSPR (SHA-1 with Salt)
+- NetIQ SSPR (SHA-256 with Salt)
+- NetIQ SSPR (SHA-512 with Salt)
+- NetIQ SSPR (SHA1)
 - SolarWinds Orion
 - SolarWinds Orion v2
 - SolarWinds Serv-U

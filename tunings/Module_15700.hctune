@@ -29,6 +29,7 @@ GeForce_RTX_3060_Ti                             *       15700   1       11      
 GeForce_RTX_3070                                *       15700   1       22      A
 GeForce_RTX_3090                                *       15700   1       82      A
 GeForce_RTX_3090_Ti                             *       15700   1       84      A
+GeForce_RTX_4090                                *       15700   1      180      A
 ALIAS_AMD_RX480                                 *       15700   1       58      A
 ALIAS_AMD_Vega64                                *       15700   1       53      A
 ALIAS_AMD_MI100                                 *       15700   1       120     A

@@ -646,6 +646,11 @@ endif
 endif
 
 obj/combined.NATIVE.a: $(NATIVE_OBJS)
+ifeq ($(UNAME),Darwin)
+ifeq ($(IS_APPLE_SILICON),1)
+	$(RM) -f obj/combined.NATIVE.a
+endif
+endif
 	$(AR) rcs $@ $^
 
 ifeq ($(UNAME),Darwin)

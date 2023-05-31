@@ -422,54 +422,142 @@ KERNEL_FQ void m13773_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
 
   streebog512_hmac_update_global_swap (&streebog512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, 64);
 
-  for (u32 i = 0, j = 1; i < 24; i += 8, j += 1)
-  {
-    streebog512_hmac_ctx_t streebog512_hmac_ctx2 = streebog512_hmac_ctx;
+  u32 i = 0;
+  u32 j = 1;
 
-    u32 w0[4];
-    u32 w1[4];
-    u32 w2[4];
-    u32 w3[4];
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
-    w0[0] = j;
-    w0[1] = 0;
-    w0[2] = 0;
-    w0[3] = 0;
-    w1[0] = 0;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
+  streebog512_hmac_ctx_t streebog512_hmac_ctx_v1 = streebog512_hmac_ctx;
 
-    streebog512_hmac_update_64 (&streebog512_hmac_ctx2, w0, w1, w2, w3, 4);
+  w0[0] = j;
+  w0[1] = 0;
+  w0[2] = 0;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
 
-    streebog512_hmac_final (&streebog512_hmac_ctx2);
+  streebog512_hmac_update_64 (&streebog512_hmac_ctx_v1, w0, w1, w2, w3, 4);
 
-    tmps[gid].dgst[i + 0] = streebog512_hmac_ctx2.opad.h[0];
-    tmps[gid].dgst[i + 1] = streebog512_hmac_ctx2.opad.h[1];
-    tmps[gid].dgst[i + 2] = streebog512_hmac_ctx2.opad.h[2];
-    tmps[gid].dgst[i + 3] = streebog512_hmac_ctx2.opad.h[3];
-    tmps[gid].dgst[i + 4] = streebog512_hmac_ctx2.opad.h[4];
-    tmps[gid].dgst[i + 5] = streebog512_hmac_ctx2.opad.h[5];
-    tmps[gid].dgst[i + 6] = streebog512_hmac_ctx2.opad.h[6];
-    tmps[gid].dgst[i + 7] = streebog512_hmac_ctx2.opad.h[7];
+  streebog512_hmac_final (&streebog512_hmac_ctx_v1);
 
-    tmps[gid].out[i + 0] = tmps[gid].dgst[i + 0];
-    tmps[gid].out[i + 1] = tmps[gid].dgst[i + 1];
-    tmps[gid].out[i + 2] = tmps[gid].dgst[i + 2];
-    tmps[gid].out[i + 3] = tmps[gid].dgst[i + 3];
-    tmps[gid].out[i + 4] = tmps[gid].dgst[i + 4];
-    tmps[gid].out[i + 5] = tmps[gid].dgst[i + 5];
-    tmps[gid].out[i + 6] = tmps[gid].dgst[i + 6];
-    tmps[gid].out[i + 7] = tmps[gid].dgst[i + 7];
-  }
+  tmps[gid].dgst[i + 0] = streebog512_hmac_ctx_v1.opad.h[0];
+  tmps[gid].dgst[i + 1] = streebog512_hmac_ctx_v1.opad.h[1];
+  tmps[gid].dgst[i + 2] = streebog512_hmac_ctx_v1.opad.h[2];
+  tmps[gid].dgst[i + 3] = streebog512_hmac_ctx_v1.opad.h[3];
+  tmps[gid].dgst[i + 4] = streebog512_hmac_ctx_v1.opad.h[4];
+  tmps[gid].dgst[i + 5] = streebog512_hmac_ctx_v1.opad.h[5];
+  tmps[gid].dgst[i + 6] = streebog512_hmac_ctx_v1.opad.h[6];
+  tmps[gid].dgst[i + 7] = streebog512_hmac_ctx_v1.opad.h[7];
+
+  tmps[gid].out[i + 0] = tmps[gid].dgst[i + 0];
+  tmps[gid].out[i + 1] = tmps[gid].dgst[i + 1];
+  tmps[gid].out[i + 2] = tmps[gid].dgst[i + 2];
+  tmps[gid].out[i + 3] = tmps[gid].dgst[i + 3];
+  tmps[gid].out[i + 4] = tmps[gid].dgst[i + 4];
+  tmps[gid].out[i + 5] = tmps[gid].dgst[i + 5];
+  tmps[gid].out[i + 6] = tmps[gid].dgst[i + 6];
+  tmps[gid].out[i + 7] = tmps[gid].dgst[i + 7];
+
+  i = 8;
+  j = 2;
+
+  streebog512_hmac_ctx_t streebog512_hmac_ctx_v2 = streebog512_hmac_ctx;
+
+  w0[0] = j;
+  w0[1] = 0;
+  w0[2] = 0;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
+
+  streebog512_hmac_update_64 (&streebog512_hmac_ctx_v2, w0, w1, w2, w3, 4);
+
+  streebog512_hmac_final (&streebog512_hmac_ctx_v2);
+
+  tmps[gid].dgst[i + 0] = streebog512_hmac_ctx_v2.opad.h[0];
+  tmps[gid].dgst[i + 1] = streebog512_hmac_ctx_v2.opad.h[1];
+  tmps[gid].dgst[i + 2] = streebog512_hmac_ctx_v2.opad.h[2];
+  tmps[gid].dgst[i + 3] = streebog512_hmac_ctx_v2.opad.h[3];
+  tmps[gid].dgst[i + 4] = streebog512_hmac_ctx_v2.opad.h[4];
+  tmps[gid].dgst[i + 5] = streebog512_hmac_ctx_v2.opad.h[5];
+  tmps[gid].dgst[i + 6] = streebog512_hmac_ctx_v2.opad.h[6];
+  tmps[gid].dgst[i + 7] = streebog512_hmac_ctx_v2.opad.h[7];
+
+  tmps[gid].out[i + 0] = tmps[gid].dgst[i + 0];
+  tmps[gid].out[i + 1] = tmps[gid].dgst[i + 1];
+  tmps[gid].out[i + 2] = tmps[gid].dgst[i + 2];
+  tmps[gid].out[i + 3] = tmps[gid].dgst[i + 3];
+  tmps[gid].out[i + 4] = tmps[gid].dgst[i + 4];
+  tmps[gid].out[i + 5] = tmps[gid].dgst[i + 5];
+  tmps[gid].out[i + 6] = tmps[gid].dgst[i + 6];
+  tmps[gid].out[i + 7] = tmps[gid].dgst[i + 7];
+
+  i = 16;
+  j = 3;
+
+  streebog512_hmac_ctx_t streebog512_hmac_ctx_v3 = streebog512_hmac_ctx;
+
+  w0[0] = j;
+  w0[1] = 0;
+  w0[2] = 0;
+  w0[3] = 0;
+  w1[0] = 0;
+  w1[1] = 0;
+  w1[2] = 0;
+  w1[3] = 0;
+  w2[0] = 0;
+  w2[1] = 0;
+  w2[2] = 0;
+  w2[3] = 0;
+  w3[0] = 0;
+  w3[1] = 0;
+  w3[2] = 0;
+  w3[3] = 0;
+
+  streebog512_hmac_update_64 (&streebog512_hmac_ctx_v3, w0, w1, w2, w3, 4);
+
+  streebog512_hmac_final (&streebog512_hmac_ctx_v3);
+
+  tmps[gid].dgst[i + 0] = streebog512_hmac_ctx_v3.opad.h[0];
+  tmps[gid].dgst[i + 1] = streebog512_hmac_ctx_v3.opad.h[1];
+  tmps[gid].dgst[i + 2] = streebog512_hmac_ctx_v3.opad.h[2];
+  tmps[gid].dgst[i + 3] = streebog512_hmac_ctx_v3.opad.h[3];
+  tmps[gid].dgst[i + 4] = streebog512_hmac_ctx_v3.opad.h[4];
+  tmps[gid].dgst[i + 5] = streebog512_hmac_ctx_v3.opad.h[5];
+  tmps[gid].dgst[i + 6] = streebog512_hmac_ctx_v3.opad.h[6];
+  tmps[gid].dgst[i + 7] = streebog512_hmac_ctx_v3.opad.h[7];
+
+  tmps[gid].out[i + 0] = tmps[gid].dgst[i + 0];
+  tmps[gid].out[i + 1] = tmps[gid].dgst[i + 1];
+  tmps[gid].out[i + 2] = tmps[gid].dgst[i + 2];
+  tmps[gid].out[i + 3] = tmps[gid].dgst[i + 3];
+  tmps[gid].out[i + 4] = tmps[gid].dgst[i + 4];
+  tmps[gid].out[i + 5] = tmps[gid].dgst[i + 5];
+  tmps[gid].out[i + 6] = tmps[gid].dgst[i + 6];
+  tmps[gid].out[i + 7] = tmps[gid].dgst[i + 7];
 }
 
 KERNEL_FQ void m13773_loop (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))

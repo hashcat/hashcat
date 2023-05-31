@@ -5,6 +5,8 @@
 ##
 
 - Added hash-mode: 1Password, mobilekeychain (1Password 8)
+- Added hash-mode: Adobe AEM (SSPR, SHA-256 with Salt)
+- Added hash-mode: Adobe AEM (SSPR, SHA-512 with Salt)
 - Added hash-mode: Anope IRC Services (enc_sha256)
 - Added hash-mode: Bisq .wallet (scrypt)
 - Added hash-mode: Bitcoin raw private key (P2PKH)
@@ -20,8 +22,18 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-1($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-256($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
+- Added hash-mode: Kerberos 5, etype 17, AS-REP
+- Added hash-mode: Kerberos 5, etype 18, AS-REP
 - Added hash-mode: MetaMask Mobile Wallet
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
+- Added hash-mode: NetIQ SSPR (MD5)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA1)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA256)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA512)
+- Added hash-mode: NetIQ SSPR (SHA-1 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA-256 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA-512 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA1)
 - Added hash-mode: SecureCRT MasterPassphrase v2
 - Added hash-mode: Veeam VB
 - Added hash-mode: bcrypt(sha256($pass))
@@ -61,13 +73,11 @@
 - Added verification of token buffer length when using TOKEN_ATTR_FIXED_LENGTH
 - Fixed build failed for 4410 with vector width > 1
 - Fixed build failed for 10700 optimized with Apple Metal
+- Fixed build failed for 13772 and 13773 with Apple Metal
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
-- Fixed build failed for 31700 with Apple Metal
-- Fixed build failed for 31300 with vector width > 1
-- Fixed build failed for 31000/Blake2s with vector width > 1
+- Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
-- Fixed incompatible pointer types (salt1 and salt2 buf) in 31700 a3 kernel
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
 - Fixed minimum password length in module of hash-mode 28200
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
@@ -96,7 +106,7 @@
 - User Options: added --metal-compiler-runtime option
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
 - Help: show supported hash-modes only with -hh
-- Unit tests: add test modules for hash-modes 31500 and 31600 and handle them in tools/test.pl
+- Makefile: prevent make failure with Apple Silicon in case of partial rebuild
 
 * changes v6.2.5 -> v6.2.6
 
