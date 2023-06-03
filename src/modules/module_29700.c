@@ -555,20 +555,17 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   *ptr_data = '*';
   ptr_data++;
 
-  for (u32 i = 0; i < final_random_seed_len; i++, ptr_data += 8)
-    sprintf (ptr_data, "%08x", ptr_final_random_seed[i]);
+  for (u32 i = 0; i < final_random_seed_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_final_random_seed[i]);
 
   *ptr_data = '*';
   ptr_data++;
 
-  for (u32 i = 0; i < transf_random_seed_len; i++, ptr_data += 8)
-    sprintf (ptr_data, "%08x", ptr_transf_random_seed[i]);
+  for (u32 i = 0; i < transf_random_seed_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_transf_random_seed[i]);
 
   *ptr_data = '*';
   ptr_data++;
 
-  for (u32 i = 0; i < enc_iv_len; i++, ptr_data += 8)
-    sprintf (ptr_data, "%08x", ptr_enc_iv[i]);
+  for (u32 i = 0; i < enc_iv_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_enc_iv[i]);
 
   *ptr_data = '*';
   ptr_data++;
@@ -578,8 +575,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     u32  contents_len =         keepass->contents_len;
     u32 *ptr_contents = (u32 *) keepass->contents;
 
-    for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
+    for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_contents_hash[i]);
 
     *ptr_data = '*';
     ptr_data++;
@@ -593,31 +589,28 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     char ptr_contents_len[10] = { 0 };
 
-    sprintf ((char*) ptr_contents_len, "%u", contents_len);
+    snprintf ((char*) ptr_contents_len, sizeof (ptr_contents_len), "%u", contents_len);
 
-    sprintf (ptr_data, "%u", contents_len);
+    snprintf (ptr_data, sizeof (ptr_contents_len), "%u", contents_len);
 
     ptr_data += strlen (ptr_contents_len);
 
     *ptr_data = '*';
     ptr_data++;
 
-    for (u32 i = 0; i < contents_len / 4; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_contents[i]);
+    for (u32 i = 0; i < contents_len / 4; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_contents[i]);
   }
   else if (version == 2)
   {
     expected_bytes_len = 8;
     ptr_expected_bytes = (u32 *) keepass->expected_bytes;
 
-    for (u32 i = 0; i < expected_bytes_len; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_expected_bytes[i]);
+    for (u32 i = 0; i < expected_bytes_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_expected_bytes[i]);
 
     *ptr_data = '*';
     ptr_data++;
 
-    for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
+    for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_contents_hash[i]);
   }
 
   if (keyfile_len)
@@ -632,15 +625,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     *ptr_data = '*';
     ptr_data++;
 
-    sprintf (ptr_data, "%u", keyfile_len * 2);
+    snprintf (ptr_data, 3, "%u", keyfile_len * 2);
 
     ptr_data += 2;
 
     *ptr_data = '*';
     ptr_data++;
 
-    for (u32 i = 0; i < 8; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_keyfile[i]);
+    for (u32 i = 0; i < 8; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_keyfile[i]);
   }
 
   return strlen (line_buf);

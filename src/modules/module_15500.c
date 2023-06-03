@@ -228,7 +228,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0, j = 0; i < jks_sha1->enc_key_len; i += 1, j += 2)
   {
-    sprintf (enc_key + j, "%02X", ptr[i]);
+    snprintf (enc_key + j, 3, "%02X", ptr[i]);
   }
 
   u8 *der = (u8 *) jks_sha1->der;

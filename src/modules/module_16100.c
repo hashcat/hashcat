@@ -166,7 +166,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0, j = 0; i < tacacs_plus->ct_data_len; i += 1, j += 2)
   {
-    sprintf (ct_data + j, "%02x", ct_data_ptr[i]);
+    snprintf (ct_data + j, 3, "%02x", ct_data_ptr[i]);
   }
 
   const u8 *session_ptr  = (const u8 *) tacacs_plus->session_buf;

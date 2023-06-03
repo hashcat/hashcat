@@ -237,7 +237,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; i < 512; i += 1, j += 8)
   {
-    sprintf (data_buf + j, "%08x", cloudkey->data_buf[i]);
+    snprintf (data_buf + j, 9, "%08x", cloudkey->data_buf[i]);
   }
 
   data_buf[cloudkey->data_len * 2] = 0;

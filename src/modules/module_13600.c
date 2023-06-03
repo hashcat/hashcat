@@ -358,7 +358,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     const u8 *ptr = (const u8 *) zip2->salt_buf;
 
-    sprintf (salt_tmp + j, "%02x", ptr[i]);
+    snprintf (salt_tmp + j, 3, "%02x", ptr[i]);
   }
 
   const u32 data_len = zip2->data_len;
@@ -369,7 +369,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     const u8 *ptr = (const u8 *) zip2->data_buf;
 
-    sprintf (data_tmp + j, "%02x", ptr[i]);
+    snprintf (data_tmp + j, 3, "%02x", ptr[i]);
   }
 
   const u32 auth_len = zip2->auth_len;
@@ -380,7 +380,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     const u8 *ptr = (const u8 *) zip2->auth_buf;
 
-    sprintf (auth_tmp + j, "%02x", ptr[i]);
+    snprintf (auth_tmp + j, 3, "%02x", ptr[i]);
   }
 
   const int line_len = snprintf (line_buf, line_size, "%s*%u*%u*%u*%s*%x*%x*%s*%s*%s",

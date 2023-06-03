@@ -225,12 +225,12 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0; i < 36; i++, ptr_data += 2)
   {
-    sprintf (ptr_data, "%02x", ptr_timestamp[i]);
+    snprintf (ptr_data, 3, "%02x", ptr_timestamp[i]);
   }
 
   for (u32 i = 0; i < 16; i++, ptr_data += 2)
   {
-    sprintf (ptr_data, "%02x", ptr_checksum[i]);
+    snprintf (ptr_data, 3, "%02x", ptr_checksum[i]);
   }
 
   *ptr_data = 0;
