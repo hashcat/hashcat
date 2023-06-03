@@ -387,6 +387,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MediaWiki B type
 - Redmine
 - Umbraco HMAC-SHA1
+- Empire CMS (Admin password)
 - Joomla < 2.5.18
 - OpenCart
 - PrestaShop
