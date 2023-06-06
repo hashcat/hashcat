@@ -95,7 +95,9 @@
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
+- Building: Support building windows binaries on macOS using MinGW
 - Dependencies: Updated OpenCL-Headers to v2023.04.17
+- Documents: Updated BUILD.md and added BUILD_macOS.md (containing instructions for building windows binaries on macOS)
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Open Document Format: Added support for small documents with content length < 1024
 - Status Code: Add specific return code for self-test fail (-11)
