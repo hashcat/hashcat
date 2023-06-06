@@ -70,6 +70,7 @@
 - Fixed bug in 29600 module OPTS_TYPE setting
 - Fixed bug in grep out-of-memory workaround on Unit Test
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
+- Fixed a bug in all SCRYPT-based hash modes with Apple Metal
 - Added verification of token buffer length when using TOKEN_ATTR_FIXED_LENGTH
 - Fixed build failed for 4410 with vector width > 1
 - Fixed build failed for 10700 optimized with Apple Metal

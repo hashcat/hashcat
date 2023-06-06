@@ -400,6 +400,9 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
     #if defined IS_CUDA || defined IS_HIP
     const uint4 tmp0 = make_uint4 (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = make_uint4 (digest[4], digest[5], digest[6], digest[7]);
+    #elif defined IS_METAL
+    const uint4 tmp0 = uint4 (digest[0], digest[1], digest[2], digest[3]);
+    const uint4 tmp1 = uint4 (digest[4], digest[5], digest[6], digest[7]);
     #else
     const uint4 tmp0 = (uint4) (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = (uint4) (digest[4], digest[5], digest[6], digest[7]);
@@ -430,6 +433,11 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
     X[1] = make_uint4 (T[1].x, T[2].y, T[3].z, T[0].w);
     X[2] = make_uint4 (T[2].x, T[3].y, T[0].z, T[1].w);
     X[3] = make_uint4 (T[3].x, T[0].y, T[1].z, T[2].w);
+    #elif defined IS_METAL
+    X[0] = uint4 (T[0].x, T[1].y, T[2].z, T[3].w);
+    X[1] = uint4 (T[1].x, T[2].y, T[3].z, T[0].w);
+    X[2] = uint4 (T[2].x, T[3].y, T[0].z, T[1].w);
+    X[3] = uint4 (T[3].x, T[0].y, T[1].z, T[2].w);
     #else
     X[0] = (uint4) (T[0].x, T[1].y, T[2].z, T[3].w);
     X[1] = (uint4) (T[1].x, T[2].y, T[3].z, T[0].w);
@@ -605,6 +613,11 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
     T[1] = make_uint4 (X[1].x, X[0].y, X[3].z, X[2].w);
     T[2] = make_uint4 (X[2].x, X[1].y, X[0].z, X[3].w);
     T[3] = make_uint4 (X[3].x, X[2].y, X[1].z, X[0].w);
+    #elif defined IS_METAL
+    T[0] = uint4 (X[0].x, X[3].y, X[2].z, X[1].w);
+    T[1] = uint4 (X[1].x, X[0].y, X[3].z, X[2].w);
+    T[2] = uint4 (X[2].x, X[1].y, X[0].z, X[3].w);
+    T[3] = uint4 (X[3].x, X[2].y, X[1].z, X[0].w);
     #else
     T[0] = (uint4) (X[0].x, X[3].y, X[2].z, X[1].w);
     T[1] = (uint4) (X[1].x, X[0].y, X[3].z, X[2].w);
