@@ -9893,6 +9893,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    if ((int) kern_type == -1)
+    {
+      event_log_error (hashcat_ctx, "Invalid hash-mode selected: -1");
+
+      return -1;
+    }
+
     // built options
 
     const size_t build_options_sz = 4096;
