@@ -87,6 +87,7 @@
 - Fixed minimum password length in module of hash-mode 29800
 - Fixed maximum password length in module/test_module of hash-mode 2400
 - Fixed buffer overflow on module_26600.c / module_hash_encode()
+- Fixed vector datatypes usage for HIP
 
 ##
 ## Technical
