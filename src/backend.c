@@ -4543,27 +4543,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         mtl_close (hashcat_ctx);
       }
-      else
-      {
-        if (user_options->force == false)
-        {
-          // disable metal < 300
-
-          if (backend_ctx->metal_runtimeVersion < 300)
-          {
-            event_log_warning (hashcat_ctx, "Unsupported Apple Metal runtime version '%s' detected! Falling back to OpenCL...", backend_ctx->metal_runtimeVersionStr);
-            event_log_warning (hashcat_ctx, NULL);
-
-            rc_metal_init = -1;
-
-            backend_ctx->rc_metal_init = rc_metal_init;
-
-            backend_ctx->mtl = NULL;
-
-            mtl_close (hashcat_ctx);
-          }
-        }
-      }
     }
     else
     {
