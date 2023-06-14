@@ -6242,35 +6242,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->device_processors == 1) device_param->skipped = true;
 
-      // Since we can't match OpenCL with Metal devices (missing PCI ID etc.) and at the same time we have better OpenCL support than Metal support,
-      // we disable all Metal devices by default. The user can reactivate them with -d.
-
-      if (device_param->skipped == false)
-      {
-        if (backend_ctx->backend_devices_filter == -1ULL)
-        {
-          if ((user_options->quiet == false) && (user_options->backend_info == 0))
-          {
-            event_log_warning (hashcat_ctx, "The device #%d has been disabled as it most likely also exists as an OpenCL device, but it is not possible to automatically map it.", device_id + 1);
-            event_log_warning (hashcat_ctx, "You can use -d %d to use Metal API instead of OpenCL API. In some rare cases this is more stable.", device_id + 1);
-            event_log_warning (hashcat_ctx, NULL);
-          }
-
-          device_param->skipped = true;
-        }
-        else
-        {
-          if (backend_ctx->backend_devices_filter & (1ULL << device_id))
-          {
-            // ok
-          }
-          else
-          {
-            device_param->skipped = true;
-          }
-        }
-      }
-
       /**
        * activate device
        */
@@ -7591,6 +7562,57 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   backend_ctx->backend_devices_cnt    = cuda_devices_cnt    + hip_devices_cnt    + metal_devices_cnt    + opencl_devices_cnt;
   backend_ctx->backend_devices_active = cuda_devices_active + hip_devices_active + metal_devices_active + opencl_devices_active;
+
+  #if defined (__APPLE__)
+  // disable Metal devices if at least one OpenCL device is enabled
+  if (backend_ctx->opencl_devices_active > 0)
+  {
+    if (backend_ctx->mtl)
+    {
+      for (int backend_devices_cnt = 0; backend_devices_cnt < backend_ctx->backend_devices_cnt; backend_devices_cnt++)
+      {
+        hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_cnt];
+
+        if (device_param->is_metal == false) continue;
+
+        // Since we can't match OpenCL with Metal devices (missing PCI ID etc.) and at the same time we have better OpenCL support than Metal support,
+        // we disable all Metal devices by default. The user can reactivate them with -d.
+
+        if (device_param->skipped == false)
+        {
+          if (backend_ctx->backend_devices_filter == -1ULL)
+          {
+            if ((user_options->quiet == false) && (user_options->backend_info == 0))
+            {
+              event_log_warning (hashcat_ctx, "The device #%d has been disabled as it most likely also exists as an OpenCL device, but it is not possible to automatically map it.", device_param->device_id + 1);
+              event_log_warning (hashcat_ctx, "You can use -d %d to use Metal API instead of OpenCL API. In some rare cases this is more stable.", device_param->device_id + 1);
+              event_log_warning (hashcat_ctx, NULL);
+            }
+
+            device_param->skipped = true;
+          }
+          else
+          {
+            if (backend_ctx->backend_devices_filter & (1ULL << device_param->device_id))
+            {
+              // ok
+            }
+            else
+            {
+              device_param->skipped = true;
+            }
+          }
+
+          if (device_param->skipped == true)
+          {
+            backend_ctx->metal_devices_active--;
+            backend_ctx->backend_devices_active--;
+          }
+        }
+      }
+    }
+  }
+  #endif
 
   // find duplicate devices
 
