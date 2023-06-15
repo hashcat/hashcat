@@ -111,6 +111,7 @@
 - SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
 - Metal Backend: allow use of devices with Metal if runtime version is >= 200
+- Metal Backend: disable Metal devices only if at least one OpenCL device is active
 - User Options: added --metal-compiler-runtime option
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
 - Help: show supported hash-modes only with -hh
