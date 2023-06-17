@@ -291,6 +291,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SAP CODVN F/G (PASSCODE)
 - SAP CODVN F/G (PASSCODE) from RFC_READ_TABLE
 - SAP CODVN H (PWDSALTEDHASH) iSSHA-1
+- RSA Security Analytics / NetWitness (sha256)
 - Adobe AEM (SSPR, SHA-256 with Salt)
 - Adobe AEM (SSPR, SHA-512 with Salt)
 - PeopleSoft
