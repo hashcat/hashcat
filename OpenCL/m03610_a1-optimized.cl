@@ -282,7 +282,7 @@ KERNEL_FQ void m03610_m04 (KERN_ATTR_BASIC ())
     w3[1] = 0;
     w3[2] = 32 * 8;
     w3[3] = 0;
-    
+
     a = MD5M_A;
     b = MD5M_B;
     c = MD5M_C;

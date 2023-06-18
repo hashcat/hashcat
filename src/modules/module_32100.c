@@ -117,13 +117,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * separator ('$') being at a fixed length from the end of the line. Checksum
    * is 24 characters in length, so then there should be a '$' at line_len - 25
    */
-  
+
   if (line_buf[line_len - 25] == '$')
   {
     // JtR format
     krb5asrep->format = 2;
   }
-  else 
+  else
   {
     // Hashcat format
     krb5asrep->format = 1;
@@ -186,7 +186,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
-  
+
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   const u8 *user_pos;
@@ -225,7 +225,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     account_info_len = token.len[1];
 
     memcpy (krb5asrep->account_info, salt_pos, account_info_len);
-    
+
     /**
      * JtR format only has the final salt/account_info value (combination of
      * user and domain), rather than separate "user" and "domain" values. Since
@@ -250,7 +250,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
 
   u8 *account_info_ptr = (u8 *) krb5asrep->account_info;
-  
+
   // Domain must be uppercase
   u8 domain[128];
 
@@ -262,7 +262,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     memcpy (account_info_ptr, domain, domain_len);
     memcpy (account_info_ptr + domain_len, user_pos, user_len);
   }
-  
+
   krb5asrep->account_info_len = account_info_len;
 
   // hmac-sha1 is reduced to 12 bytes
