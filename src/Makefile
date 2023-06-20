@@ -409,10 +409,6 @@ EMU_OBJS_ALL            += emu_inc_hash_base58
 
 OBJS_ALL                := affinity autotune backend benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_sysfs_amdgpu ext_sysfs_cpu ext_iokit ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
-ifeq ($(UNAME),Darwin)
-OBJS_ALL                += ext_metal
-endif
-
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
 endif
@@ -420,6 +416,12 @@ endif
 NATIVE_OBJS             := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).NATIVE.o)
 LINUX_OBJS              := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).LINUX.o)
 WIN_OBJS                := $(foreach OBJ,$(OBJS_ALL),obj/$(OBJ).WIN.o)
+
+ifeq ($(UNAME),Darwin)
+OBJS_METAL              := ext_metal
+
+NATIVE_OBJS             += $(foreach OBJ,$(OBJS_METAL),obj/$(OBJ).METAL.NATIVE.o)
+endif
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 OBJS_LZMA               := 7zCrc 7zCrcOpt 7zFile 7zStream Alloc Bra Bra86 BraIA64 CpuArch Delta LzmaDec Lzma2Dec Sha256 Sha256Opt Xz XzCrc64 XzCrc64Opt XzDec XzIn
@@ -620,8 +622,10 @@ uninstall:
 obj/%.NATIVE.o: src/%.c
 	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $< -o $@ -fpic
 
-obj/%.NATIVE.o: src/%.m
+ifeq ($(UNAME),Darwin)
+obj/%.METAL.NATIVE.o: src/%.m
 	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $< -o $@ -fpic
+endif
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 obj/%.LZMA.NATIVE.o: $(DEPS_LZMA_PATH)/%.c
@@ -648,6 +652,11 @@ endif
 endif
 
 obj/combined.NATIVE.a: $(NATIVE_OBJS)
+ifeq ($(UNAME),Darwin)
+ifeq ($(IS_APPLE_SILICON),1)
+	$(RM) -f obj/combined.NATIVE.a
+endif
+endif
 	$(AR) rcs $@ $^
 
 ifeq ($(UNAME),Darwin)
@@ -709,7 +718,7 @@ modules: $(MODULES_LIB)
 ## Cross Compilation (binary release version)
 ##
 
-ifeq ($(UNAME),Linux)
+ifneq (,$(filter $(UNAME),Linux Darwin))
 
 ##
 ## Compiler paths
@@ -756,10 +765,32 @@ LFLAGS_CROSS_WIN        += -lpowrprof
 LFLAGS_CROSS_WIN        += -static -static-libgcc -static-libstdc++
 LFLAGS_CROSS_WIN        += -lole32 -loleaut32 -lwbemuuid
 
+CFLAGS_LZMA_WIN         := $(CFLAGS_LZMA)
+CFLAGS_UNRAR_WIN        := $(CFLAGS_UNRAR)
+
+ifeq ($(UNAME),Darwin)
+CFLAGS_CROSS_WIN        := $(filter-out -Wno-typedef-redefinition,$(CFLAGS_CROSS_WIN))
+
+CFLAGS_LZMA_WIN         += -Wno-misleading-indentation
+
+CFLAGS_UNRAR_WIN        += -Wno-misleading-indentation
+CFLAGS_UNRAR_WIN        += -Wno-class-memaccess
+endif
+
 ##
 ## Targets
 ##
 
+ifeq ($(UNAME),Darwin)
+.PHONY: binaries
+binaries: win
+
+.PHONY: host_win
+host_win:   hashcat.exe
+
+.PHONY: win
+win:   host_win   modules_win
+else
 .PHONY: binaries
 binaries: linux win
 
@@ -770,6 +801,7 @@ host_win:   hashcat.exe
 .PHONY: linux win
 linux: host_linux modules_linux
 win:   host_win   modules_win
+endif
 
 ##
 ## cross compiled modules
@@ -800,10 +832,10 @@ obj/%.WIN.o:   src/%.c
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 obj/%.LZMA.LINUX.o: $(DEPS_LZMA_PATH)/%.c
-	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_LZMA) -c -o $@ $<
+	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_LZMA)     -c -o $@ $<
 
 obj/%.LZMA.WIN.o:   $(DEPS_LZMA_PATH)/%.c
-	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_LZMA) -c -o $@ $<
+	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_LZMA_WIN) -c -o $@ $<
 endif
 
 ifeq ($(USE_SYSTEM_ZLIB),0)
@@ -827,10 +859,10 @@ endif
 ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 obj/%.UNRAR.LINUX.o: $(DEPS_UNRAR_PATH)/%.cpp
-	$(CXX_LINUX) $(CXXFLAGS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_UNRAR) -c -o $@ $<
+	$(CXX_LINUX) $(CXXFLAGS) $(CFLAGS_CROSS_LINUX) $(CFLAGS_UNRAR)     -c -o $@ $<
 
 obj/%.UNRAR.WIN.o:   $(DEPS_UNRAR_PATH)/%.cpp
-	$(CXX_WIN)   $(CXXFLAGS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_UNRAR) -c -o $@ $<
+	$(CXX_WIN)   $(CXXFLAGS) $(CFLAGS_CROSS_WIN)   $(CFLAGS_UNRAR_WIN) -c -o $@ $<
 endif
 endif
 

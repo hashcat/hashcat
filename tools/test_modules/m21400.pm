@@ -1,3 +1,5 @@
+#!/usr/bin/env perl
+
 ##
 ## Author......: See docs/credits.txt
 ## License.....: MIT

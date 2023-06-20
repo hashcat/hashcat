@@ -267,7 +267,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
 
-    sprintf (data + j, "%02x", ptr_edata2[i]);
+    snprintf (data + j, 3, "%02x", ptr_edata2[i]);
   }
 
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x$%s",

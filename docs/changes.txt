@@ -5,6 +5,8 @@
 ##
 
 - Added hash-mode: 1Password, mobilekeychain (1Password 8)
+- Added hash-mode: Adobe AEM (SSPR, SHA-256 with Salt)
+- Added hash-mode: Adobe AEM (SSPR, SHA-512 with Salt)
 - Added hash-mode: Anope IRC Services (enc_sha256)
 - Added hash-mode: Bisq .wallet (scrypt)
 - Added hash-mode: Bitcoin raw private key (P2PKH)
@@ -13,6 +15,7 @@
 - Added hash-mode: BLAKE2s-256
 - Added hash-mode: Dahua NVR/DVR/HVR (md5($salt1.strtoupper(md5($salt2.$pass))))
 - Added hash-mode: DANE RFC7929/RFC8162 SHA2-256
+- Added hash-mode: Empire CMS (Admin password)
 - Added hash-mode: ENCsecurity Datavault (MD5/keychain)
 - Added hash-mode: ENCsecurity Datavault (MD5/no keychain)
 - Added hash-mode: ENCsecurity Datavault (PBKDF2/keychain)
@@ -20,16 +23,29 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-1($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-256($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
+- Added hash-mode: Kerberos 5, etype 17, AS-REP
+- Added hash-mode: Kerberos 5, etype 18, AS-REP
 - Added hash-mode: MetaMask Mobile Wallet
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
+- Added hash-mode: NetIQ SSPR (MD5)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA1)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA256)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA512)
+- Added hash-mode: NetIQ SSPR (SHA-1 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA-256 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA-512 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA1)
+- Added hash-mode: RSA Security Analytics / NetWitness (sha256)
 - Added hash-mode: SecureCRT MasterPassphrase v2
 - Added hash-mode: Veeam VB
 - Added hash-mode: bcrypt(sha256($pass))
 - Added hash-mode: HMAC-RIPEMD160 (key = $pass)
 - Added hash-mode: HMAC-RIPEMD160 (key = $salt)
+- Added hash-mode: md5($salt1.sha1($salt2.$pass))
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
 - Added hash-mode: md5(md5(md5($pass).$salt1).$salt2)
 - Added hash-mode: md5(md5(md5($pass)).$salt)
+- Added hash-mode: sha512(sha512($pass).$salt)
 
 ##
 ## Features
@@ -58,21 +74,24 @@
 - Fixed bug in 29600 module OPTS_TYPE setting
 - Fixed bug in grep out-of-memory workaround on Unit Test
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
+- Fixed a bug in all SCRYPT-based hash modes with Apple Metal
 - Added verification of token buffer length when using TOKEN_ATTR_FIXED_LENGTH
 - Fixed build failed for 4410 with vector width > 1
+- Fixed build failed for 10700 optimized with Apple Metal
+- Fixed build failed for 13772 and 13773 with Apple Metal
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
-- Fixed build failed for 31700 with Apple Metal
-- Fixed build failed for 31300 with vector width > 1
-- Fixed build failed for 31000/Blake2s with vector width > 1
+- Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
-- Fixed incompatible pointer types (salt1 and salt2 buf) in 31700 a3 kernel
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
 - Fixed minimum password length in module of hash-mode 28200
+- Fixed maximum password length in module/test_module of hash-mode 2410
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
 - Fixed minimum password length in module of hash-mode 29800
+- Fixed maximum password length in module/test_module of hash-mode 2400
 - Fixed buffer overflow on module_26600.c / module_hash_encode()
 - Fixed bug in 23800/unrar with Apple Silicon
+- Fixed vector datatypes usage for HIP
 
 ##
 ## Technical
@@ -84,7 +103,9 @@
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
 - Dependencies: Updated unrar source to 6.2.7
+- Building: Support building windows binaries on macOS using MinGW
 - Dependencies: Updated OpenCL-Headers to v2023.04.17
+- Documents: Updated BUILD.md and added BUILD_macOS.md (containing instructions for building windows binaries on macOS)
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Open Document Format: Added support for small documents with content length < 1024
 - Status Code: Add specific return code for self-test fail (-11)
@@ -94,10 +115,12 @@
 - MetaMask: update extraction tool to support MetaMask Mobile wallets
 - SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
+- Metal Backend: allow use of devices with Metal if runtime version is >= 200
+- Metal Backend: disable Metal devices only if at least one OpenCL device is active
 - User Options: added --metal-compiler-runtime option
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
 - Help: show supported hash-modes only with -hh
-- Unit tests: add test modules for hash-modes 31500 and 31600 and handle them in tools/test.pl
+- Makefile: prevent make failure with Apple Silicon in case of partial rebuild
 
 * changes v6.2.5 -> v6.2.6
 
