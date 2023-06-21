@@ -13,16 +13,16 @@ int stricomp(const char *s1,const char *s2);
 int strnicomp(const char *s1,const char *s2,size_t n);
 wchar* RemoveEOL(wchar *Str);
 wchar* RemoveLF(wchar *Str);
-unsigned char loctolower(unsigned char ch);
-unsigned char loctoupper(unsigned char ch);
 
 void strncpyz(char *dest, const char *src, size_t maxlen);
 void wcsncpyz(wchar *dest, const wchar *src, size_t maxlen);
 void strncatz(char* dest, const char* src, size_t maxlen);
 void wcsncatz(wchar* dest, const wchar* src, size_t maxlen);
 
-unsigned char etoupper(unsigned char ch);
-wchar etoupperw(wchar ch);
+#if defined(SFX_MODULE)
+unsigned char etoupper(unsigned char c);
+#endif
+wchar etoupperw(wchar c);
 
 bool IsDigit(int ch);
 bool IsSpace(int ch);
@@ -42,6 +42,7 @@ int wcsnicompc(const wchar *s1,const wchar *s2,size_t n);
 
 void itoa(int64 n,char *Str,size_t MaxSize);
 void itoa(int64 n,wchar *Str,size_t MaxSize);
+void fmtitoa(int64 n,wchar *Str,size_t MaxSize);
 const wchar* GetWide(const char *Src);
 const wchar* GetCmdParam(const wchar *CmdLine,wchar *Param,size_t MaxSize);
 #ifndef RARDLL

@@ -16,7 +16,7 @@
 #include "unpack50frag.cpp"
 
 Unpack::Unpack(ComprDataIO *DataIO)
-:Inp(false),VMCodeInp(false)
+:Inp(true),VMCodeInp(true)
 {
   UnpIO=DataIO;
   Window=NULL;
@@ -49,8 +49,8 @@ Unpack::~Unpack()
 {
   InitFilters30(false);
 
-  //if (Window!=NULL)
-  //  free(Window);
+  if (Window!=NULL)
+    free(Window);
 #ifdef RAR_SMP
   delete UnpThreadPool;
   delete[] ReadBufMT;
@@ -117,7 +117,7 @@ void Unpack::Init(size_t WinSize,bool Solid)
   if (Grow && Fragmented)
     throw std::bad_alloc();
 
-  byte *NewWindow=Fragmented ? NULL : (byte *)hcwin;
+  byte *NewWindow=Fragmented ? NULL : (byte *)malloc(WinSize);
 
   if (NewWindow==NULL)
     if (Grow || WinSize<0x1000000)
@@ -130,7 +130,7 @@ void Unpack::Init(size_t WinSize,bool Solid)
     {
       if (Window!=NULL) // If allocated by preceding files.
       {
-        //free(Window);
+        free(Window);
         Window=NULL;
       }
       FragWindow.Init(WinSize);
@@ -141,7 +141,7 @@ void Unpack::Init(size_t WinSize,bool Solid)
   {
     // Clean the window to generate the same output when unpacking corrupt
     // RAR files, which may access unused areas of sliding dictionary.
-    //memset(NewWindow,0,WinSize);
+    memset(NewWindow,0,WinSize);
 
     // If Window is not NULL, it means that window size has grown.
     // In solid streams we need to copy data to a new window in such case.
@@ -151,8 +151,8 @@ void Unpack::Init(size_t WinSize,bool Solid)
       for (size_t I=1;I<=MaxWinSize;I++)
         NewWindow[(UnpPtr-I)&(WinSize-1)]=Window[(UnpPtr-I)&(MaxWinSize-1)];
 
-    //if (Window!=NULL)
-    //  free(Window);
+    if (Window!=NULL)
+      free(Window);
     Window=NewWindow;
   }
 
@@ -324,7 +324,7 @@ void Unpack::MakeDecodeTables(byte *LengthTable,DecodeTable *Dec,uint Size)
       Dec->QuickBits=MAX_QUICK_DECODE_BITS;
       break;
     default:
-      Dec->QuickBits=MAX_QUICK_DECODE_BITS-3;
+      Dec->QuickBits=MAX_QUICK_DECODE_BITS>3 ? MAX_QUICK_DECODE_BITS-3 : 0;
       break;
   }
 

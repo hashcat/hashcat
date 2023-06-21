@@ -59,10 +59,17 @@
 
 // Main header extra field values.
 #define MHEXTRA_LOCATOR       0x01 // Position of quick list and other blocks.
+#define MHEXTRA_METADATA      0x02 // Archive metadata.
 
 // Flags for MHEXTRA_LOCATOR.
 #define MHEXTRA_LOCATOR_QLIST 0x01 // Quick open offset is present.
 #define MHEXTRA_LOCATOR_RR    0x02 // Recovery record offset is present.
+
+// Flags for MHEXTRA_METADATA.
+#define MHEXTRA_METADATA_NAME      0x01 // Archive name is present.
+#define MHEXTRA_METADATA_CTIME     0x02 // Archive creation time is present.
+#define MHEXTRA_METADATA_UNIXTIME  0x04 // Use Unix nanosecond time format.
+#define MHEXTRA_METADATA_UNIX_NS   0x08 // Unix format with nanosecond precision.
 
 // File and service header extra field values.
 #define FHEXTRA_CRYPT         0x01 // Encryption parameters.

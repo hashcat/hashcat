@@ -8,7 +8,7 @@ void uiInit(SOUND_NOTIFY_MODE Sound)
 
 // Additionally to handling user input, it analyzes and sets command options.
 // Returns only 'replace', 'skip' and 'cancel' codes.
-UIASKREP_RESULT uiAskReplaceEx(RAROptions *Cmd,wchar *Name,size_t MaxNameSize,int64 FileSize,RarTime *FileTime,uint Flags)
+UIASKREP_RESULT uiAskReplaceEx(CommandData *Cmd,wchar *Name,size_t MaxNameSize,int64 FileSize,RarTime *FileTime,uint Flags)
 {
   if (Cmd->Overwrite==OVERWRITE_NONE)
     return UIASKREP_R_SKIP;

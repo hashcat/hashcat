@@ -217,6 +217,8 @@ ifneq ($(CC),clang)
 CFLAGS_UNRAR            += -Wno-class-memaccess
 CFLAGS_UNRAR            += -Wno-misleading-indentation
 CFLAGS_UNRAR            += -Wno-format-overflow
+else
+CFLAGS_UNRAR            += -std=c++11
 endif
 CFLAGS_UNRAR            += -Wno-missing-braces
 CFLAGS_UNRAR            += -Wno-unused-variable
@@ -761,6 +763,7 @@ LFLAGS_CROSS_WIN        += -lpsapi
 LFLAGS_CROSS_WIN        += -lws2_32
 LFLAGS_CROSS_WIN        += -lpowrprof
 LFLAGS_CROSS_WIN        += -static -static-libgcc -static-libstdc++
+LFLAGS_CROSS_WIN        += -lole32 -loleaut32 -lwbemuuid
 
 CFLAGS_LZMA_WIN         := $(CFLAGS_LZMA)
 CFLAGS_UNRAR_WIN        := $(CFLAGS_UNRAR)

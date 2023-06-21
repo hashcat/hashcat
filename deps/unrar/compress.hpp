@@ -17,6 +17,7 @@ class PackDef
     static const uint MAX_INC_LZ_MATCH = MAX_LZ_MATCH + 3;
 
     static const uint MAX3_LZ_MATCH = 0x101; // Maximum match length for RAR v3.
+    static const uint MAX3_INC_LZ_MATCH = MAX3_LZ_MATCH + 3;
     static const uint LOW_DIST_REP_COUNT = 16;
 
     static const uint NC    = 306; /* alphabet = {0, 1, 2, ..., NC - 1} */

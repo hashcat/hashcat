@@ -9,9 +9,13 @@
 
 #define  ASIZE(x) (sizeof(x)/sizeof(x[0]))
 
-// MAXPASSWORD is expected to be multiple of CRYPTPROTECTMEMORY_BLOCK_SIZE (16)
-// for CryptProtectMemory in SecPassword.
-#define  MAXPASSWORD       128
+// MAXPASSWORD and MAXPASSWORD_RAR are expected to be multiple of
+// CRYPTPROTECTMEMORY_BLOCK_SIZE (16) for CryptProtectMemory in SecPassword.
+// We allow a larger MAXPASSWORD to unpack archives with lengthy passwords
+// in non-RAR formats in GUI versions. For RAR format we set MAXPASSWORD_RAR
+// to 128 for compatibility and because it is enough for AES-256.
+#define  MAXPASSWORD       512
+#define  MAXPASSWORD_RAR   128
 
 #define  MAXSFXSIZE        0x200000
 
