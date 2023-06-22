@@ -14,11 +14,11 @@ class RecVolumes3
     ThreadPool *RSThreadPool;
 #endif
   public:
-    RecVolumes3(RAROptions *Cmd,bool TestOnly);
+    RecVolumes3(CommandData *Cmd,bool TestOnly);
     ~RecVolumes3();
-    void Make(RAROptions *Cmd,wchar *ArcName);
-    bool Restore(RAROptions *Cmd,const wchar *Name,bool Silent);
-    void Test(RAROptions *Cmd,const wchar *Name);
+    void Make(CommandData *Cmd,wchar *ArcName);
+    bool Restore(CommandData *Cmd,const wchar *Name,bool Silent);
+    void Test(CommandData *Cmd,const wchar *Name);
 };
 
 
@@ -48,8 +48,8 @@ struct RecRSThreadData
 class RecVolumes5
 {
   private:
-    void ProcessRS(RAROptions *Cmd,uint DataNum,const byte *Data,uint MaxRead,bool Encode);
-    void ProcessRS(RAROptions *Cmd,uint MaxRead,bool Encode);
+    void ProcessRS(CommandData *Cmd,uint DataNum,const byte *Data,uint MaxRead,bool Encode);
+    void ProcessRS(CommandData *Cmd,uint MaxRead,bool Encode);
     uint ReadHeader(File *RecFile,bool FirstRev);
 
     Array<RecVolItem> RecItems;
@@ -76,13 +76,13 @@ class RecVolumes5
   public: // 'public' only because called from thread functions.
     void ProcessAreaRS(RecRSThreadData *td);
   public:
-    RecVolumes5(RAROptions *Cmd,bool TestOnly);
+    RecVolumes5(CommandData *Cmd,bool TestOnly);
     ~RecVolumes5();
-    bool Restore(RAROptions *Cmd,const wchar *Name,bool Silent);
-    void Test(RAROptions *Cmd,const wchar *Name);
+    bool Restore(CommandData *Cmd,const wchar *Name,bool Silent);
+    void Test(CommandData *Cmd,const wchar *Name);
 };
 
-bool RecVolumesRestore(RAROptions *Cmd,const wchar *Name,bool Silent);
-void RecVolumesTest(RAROptions *Cmd,Archive *Arc,const wchar *Name);
+bool RecVolumesRestore(CommandData *Cmd,const wchar *Name,bool Silent);
+void RecVolumesTest(CommandData *Cmd,Archive *Arc,const wchar *Name);
 
 #endif

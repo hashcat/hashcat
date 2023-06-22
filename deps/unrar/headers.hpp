@@ -6,7 +6,7 @@
 #define  SIZEOF_MAINHEAD3       13 // Size of RAR 4.x main archive header.
 #define  SIZEOF_FILEHEAD14      21 // Size of RAR 1.4 file header.
 #define  SIZEOF_FILEHEAD3       32 // Size of RAR 3.0 file header.
-#define  SIZEOF_SHORTBLOCKHEAD   7
+#define  SIZEOF_SHORTBLOCKHEAD   7 // Smallest RAR 4.x block size.
 #define  SIZEOF_LONGBLOCKHEAD   11
 #define  SIZEOF_SUBBLOCKHEAD    14
 #define  SIZEOF_COMMHEAD        13
@@ -162,12 +162,16 @@ struct MainHeader:BaseBlock
   ushort HighPosAV;
   uint PosAV;
   bool CommentInHeader;
-  bool PackComment; // For RAR 1.4 archive format only.
+  bool PackComment;     // For RAR 1.4 archive format only.
   bool Locator;
-  uint64 QOpenOffset;  // Offset of quick list record.
-  uint64 QOpenMaxSize; // Maximum size of QOpen offset in locator extra field.
-  uint64 RROffset;     // Offset of recovery record.
-  uint64 RRMaxSize;    // Maximum size of RR offset in locator extra field.
+  uint64 QOpenOffset;   // Offset of quick list record.
+  uint64 QOpenMaxSize;  // Maximum size of QOpen offset in locator extra field.
+  uint64 RROffset;      // Offset of recovery record.
+  uint64 RRMaxSize;     // Maximum size of RR offset in locator extra field.
+  size_t MetaNameMaxSize; // Maximum size of archive name in metadata extra field.
+  std::wstring OrigName;  // Original archive name.
+  RarTime OrigTime;       // Original archive time.
+
   void Reset();
 };
 
@@ -230,7 +234,7 @@ struct FileHeader:BlockHeader
   bool LargeFile;
   
   // 'true' for HEAD_SERVICE block, which is a child of preceding file block.
-  // RAR 4.x uses 'solid' flag to indicate child subheader blocks in archives.
+  // RAR 4.x uses 'solid' flag to indicate children subheader blocks in archives.
   bool SubBlock;
 
   HOST_SYSTEM_TYPE HSType;

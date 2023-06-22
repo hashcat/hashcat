@@ -622,11 +622,11 @@ u32 get_random_num (const u32 min, const u32 max)
 
   #if defined (_WIN)
 
-  return (((u32) rand () % (max - min)) + min);
+  return (((u32) rand () % (max - min + 1)) + min);
 
   #else
 
-  return (((u32) random () % (max - min)) + min);
+  return (((u32) random () % (max - min + 1)) + min);
 
   #endif
 }
@@ -1189,6 +1189,11 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
       if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
       const int len = next_pos - token->buf[token_idx];
+
+      if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
+      {
+        if (len != token->len[token_idx]) return (PARSER_TOKEN_LENGTH);
+      }
 
       token->len[token_idx] = len;
 

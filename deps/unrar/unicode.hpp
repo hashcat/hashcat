@@ -7,7 +7,7 @@
 
 bool WideToChar(const wchar *Src,char *Dest,size_t DestSize);
 bool CharToWide(const char *Src,wchar *Dest,size_t DestSize);
-byte* WideToRaw(const wchar *Src,byte *Dest,size_t SrcSize);
+byte* WideToRaw(const wchar *Src,size_t SrcSize,byte *Dest,size_t DestSize);
 wchar* RawToWide(const byte *Src,wchar *Dest,size_t DestSize);
 void WideToUtf(const wchar *Src,char *Dest,size_t DestSize);
 size_t WideToUtfSize(const wchar *Src);
@@ -33,34 +33,19 @@ class SupportDBCS
   public:
     SupportDBCS();
     void Init();
-
     char* charnext(const char *s);
-    size_t strlend(const char *s);
-    char *strchrd(const char *s, int c);
-    char *strrchrd(const char *s, int c);
-    void copychrd(char *dest,const char *src);
 
     bool IsLeadByte[256];
     bool DBCSMode;
 };
-
 extern SupportDBCS gdbcs;
 
 inline char* charnext(const char *s) {return (char *)(gdbcs.DBCSMode ? gdbcs.charnext(s):s+1);}
-inline size_t strlend(const char *s) {return (uint)(gdbcs.DBCSMode ? gdbcs.strlend(s):strlen(s));}
-inline char* strchrd(const char *s, int c) {return (char *)(gdbcs.DBCSMode ? gdbcs.strchrd(s,c):strchr(s,c));}
-inline char* strrchrd(const char *s, int c) {return (char *)(gdbcs.DBCSMode ? gdbcs.strrchrd(s,c):strrchr(s,c));}
-inline void copychrd(char *dest,const char *src) {if (gdbcs.DBCSMode) gdbcs.copychrd(dest,src); else *dest=*src;}
-inline bool IsDBCSMode() {return(gdbcs.DBCSMode);}
-inline void InitDBCS() {gdbcs.Init();}
+inline bool IsDBCSMode() {return gdbcs.DBCSMode;}
 
 #else
 #define charnext(s) ((s)+1)
-#define strlend strlen
-#define strchrd strchr
-#define strrchrd strrchr
-#define IsDBCSMode() (true)
-inline void copychrd(char *dest,const char *src) {*dest=*src;}
+#define IsDBCSMode() (false)
 #endif
 
 

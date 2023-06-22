@@ -20,8 +20,6 @@ void EncodeFileName::Decode(char *Name,size_t NameSize,byte *EncName,size_t EncS
   {
     if (FlagBits==0)
     {
-      if (EncPos>=EncSize)
-        break;
       Flags=EncName[EncPos++];
       FlagBits=8;
     }

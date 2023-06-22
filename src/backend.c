@@ -4543,27 +4543,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         mtl_close (hashcat_ctx);
       }
-      else
-      {
-        if (user_options->force == false)
-        {
-          // disable metal < 300
-
-          if (backend_ctx->metal_runtimeVersion < 300)
-          {
-            event_log_warning (hashcat_ctx, "Unsupported Apple Metal runtime version '%s' detected! Falling back to OpenCL...", backend_ctx->metal_runtimeVersionStr);
-            event_log_warning (hashcat_ctx, NULL);
-
-            rc_metal_init = -1;
-
-            backend_ctx->rc_metal_init = rc_metal_init;
-
-            backend_ctx->mtl = NULL;
-
-            mtl_close (hashcat_ctx);
-          }
-        }
-      }
     }
     else
     {
@@ -6263,35 +6242,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->device_processors == 1) device_param->skipped = true;
 
-      // Since we can't match OpenCL with Metal devices (missing PCI ID etc.) and at the same time we have better OpenCL support than Metal support,
-      // we disable all Metal devices by default. The user can reactivate them with -d.
-
-      if (device_param->skipped == false)
-      {
-        if (backend_ctx->backend_devices_filter == -1ULL)
-        {
-          if ((user_options->quiet == false) && (user_options->backend_info == 0))
-          {
-            event_log_warning (hashcat_ctx, "The device #%d has been disabled as it most likely also exists as an OpenCL device, but it is not possible to automatically map it.", device_id + 1);
-            event_log_warning (hashcat_ctx, "You can use -d %d to use Metal API instead of OpenCL API. In some rare cases this is more stable.", device_id + 1);
-            event_log_warning (hashcat_ctx, NULL);
-          }
-
-          device_param->skipped = true;
-        }
-        else
-        {
-          if (backend_ctx->backend_devices_filter & (1ULL << device_id))
-          {
-            // ok
-          }
-          else
-          {
-            device_param->skipped = true;
-          }
-        }
-      }
-
       /**
        * activate device
        */
@@ -7612,6 +7562,57 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   backend_ctx->backend_devices_cnt    = cuda_devices_cnt    + hip_devices_cnt    + metal_devices_cnt    + opencl_devices_cnt;
   backend_ctx->backend_devices_active = cuda_devices_active + hip_devices_active + metal_devices_active + opencl_devices_active;
+
+  #if defined (__APPLE__)
+  // disable Metal devices if at least one OpenCL device is enabled
+  if (backend_ctx->opencl_devices_active > 0)
+  {
+    if (backend_ctx->mtl)
+    {
+      for (int backend_devices_cnt = 0; backend_devices_cnt < backend_ctx->backend_devices_cnt; backend_devices_cnt++)
+      {
+        hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_cnt];
+
+        if (device_param->is_metal == false) continue;
+
+        // Since we can't match OpenCL with Metal devices (missing PCI ID etc.) and at the same time we have better OpenCL support than Metal support,
+        // we disable all Metal devices by default. The user can reactivate them with -d.
+
+        if (device_param->skipped == false)
+        {
+          if (backend_ctx->backend_devices_filter == -1ULL)
+          {
+            if ((user_options->quiet == false) && (user_options->backend_info == 0))
+            {
+              event_log_warning (hashcat_ctx, "The device #%d has been disabled as it most likely also exists as an OpenCL device, but it is not possible to automatically map it.", device_param->device_id + 1);
+              event_log_warning (hashcat_ctx, "You can use -d %d to use Metal API instead of OpenCL API. In some rare cases this is more stable.", device_param->device_id + 1);
+              event_log_warning (hashcat_ctx, NULL);
+            }
+
+            device_param->skipped = true;
+          }
+          else
+          {
+            if (backend_ctx->backend_devices_filter & (1ULL << device_param->device_id))
+            {
+              // ok
+            }
+            else
+            {
+              device_param->skipped = true;
+            }
+          }
+
+          if (device_param->skipped == true)
+          {
+            backend_ctx->metal_devices_active--;
+            backend_ctx->backend_devices_active--;
+          }
+        }
+      }
+    }
+  }
+  #endif
 
   // find duplicate devices
 
@@ -9891,6 +9892,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         kern_type = (u32) module_ctx->module_kern_type_dynamic (hashconfig, digests_buf, salts_buf, esalts_buf, hook_salts_buf, hash_info_ptr);
       }
+    }
+
+    if ((int) kern_type == -1)
+    {
+      event_log_error (hashcat_ctx, "Invalid hash-mode selected: -1");
+
+      return -1;
     }
 
     // built options

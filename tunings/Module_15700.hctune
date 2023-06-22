@@ -4,7 +4,7 @@
 #
 # 1. For example, to find the value for 15700, first create a valid hash for 15700 as follows:
 #
-# $ ./hashcat --example-hashes -m 15700 | grep Example.Hash | grep -v Format | cut -b 25- > tmp.hash.15700
+# $ ./hashcat --example-hashes --mach -m 15700 | grep -Eo '\$ethereum\$s[*a-f0-9]{1,}' > tmp.hash.15700
 #
 # 2. Now let it iterate through all -n values to a certain point. In this case, I'm using 200, but in general it's a value that is at least twice that of the multiprocessor. If you don't mind you can just leave it as it is, it just runs a little longer.
 #
@@ -29,6 +29,7 @@ GeForce_RTX_3060_Ti                             *       15700   1       11      
 GeForce_RTX_3070                                *       15700   1       22      A
 GeForce_RTX_3090                                *       15700   1       82      A
 GeForce_RTX_3090_Ti                             *       15700   1       84      A
+GeForce_RTX_4090                                *       15700   1      180      A
 ALIAS_AMD_RX480                                 *       15700   1       58      A
 ALIAS_AMD_Vega64                                *       15700   1       53      A
 ALIAS_AMD_MI100                                 *       15700   1       120     A

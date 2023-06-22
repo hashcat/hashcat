@@ -163,7 +163,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; i < 32; i += 1, j += 8)
   {
-    sprintf (buf + j, "%08x", esalt->salt_buf[i]);
+    snprintf (buf + j, 9, "%08x", esalt->salt_buf[i]);
   }
 
   const int line_len = snprintf (line_buf, line_size, "%08x%08x%08x%08x%08x%08x%08x%08x%c%s",

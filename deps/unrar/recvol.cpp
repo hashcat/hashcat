@@ -5,7 +5,7 @@
 
 
 
-bool RecVolumesRestore(RAROptions *Cmd,const wchar *Name,bool Silent)
+bool RecVolumesRestore(CommandData *Cmd,const wchar *Name,bool Silent)
 {
   Archive Arc(Cmd);
   if (!Arc.Open(Name))
@@ -42,7 +42,7 @@ bool RecVolumesRestore(RAROptions *Cmd,const wchar *Name,bool Silent)
 }
 
 
-void RecVolumesTest(RAROptions *Cmd,Archive *Arc,const wchar *Name)
+void RecVolumesTest(CommandData *Cmd,Archive *Arc,const wchar *Name)
 {
   wchar RevName[NM];
   *RevName=0;

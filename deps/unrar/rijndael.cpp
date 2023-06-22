@@ -1,22 +1,40 @@
-/***************************************************************************
- * This code is based on public domain Szymon Stefanek AES implementation: *
- * http://www.pragmaware.net/software/rijndael/index.php                   *
- *                                                                         *
- * Dynamic tables generation is based on the Brian Gladman work:           *
- * http://fp.gladman.plus.com/cryptography_technology/rijndael             *
- ***************************************************************************/
+/**************************************************************************
+ * This code is based on Szymon Stefanek public domain AES implementation *
+ **************************************************************************/
 #include "rar.hpp"
 
 #ifdef USE_SSE
 #include <wmmintrin.h>
 #endif
 
-// not thread-safe ?
-//static byte S[256],S5[256],rcon[30];
-//static byte T1[256][4],T2[256][4],T3[256][4],T4[256][4];
-//static byte T5[256][4],T6[256][4],T7[256][4],T8[256][4];
-//static byte U1[256][4],U2[256][4],U3[256][4],U4[256][4];
+static byte S[256]=
+{
+   99, 124, 119, 123, 242, 107, 111, 197,  48,   1, 103,  43, 254, 215, 171, 118, 
+  202, 130, 201, 125, 250,  89,  71, 240, 173, 212, 162, 175, 156, 164, 114, 192, 
+  183, 253, 147,  38,  54,  63, 247, 204,  52, 165, 229, 241, 113, 216,  49,  21, 
+    4, 199,  35, 195,  24, 150,   5, 154,   7,  18, 128, 226, 235,  39, 178, 117, 
+    9, 131,  44,  26,  27, 110,  90, 160,  82,  59, 214, 179,  41, 227,  47, 132, 
+   83, 209,   0, 237,  32, 252, 177,  91, 106, 203, 190,  57,  74,  76,  88, 207, 
+  208, 239, 170, 251,  67,  77,  51, 133,  69, 249,   2, 127,  80,  60, 159, 168, 
+   81, 163,  64, 143, 146, 157,  56, 245, 188, 182, 218,  33,  16, 255, 243, 210, 
+  205,  12,  19, 236,  95, 151,  68,  23, 196, 167, 126,  61, 100,  93,  25, 115, 
+   96, 129,  79, 220,  34,  42, 144, 136,  70, 238, 184,  20, 222,  94,  11, 219, 
+  224,  50,  58,  10,  73,   6,  36,  92, 194, 211, 172,  98, 145, 149, 228, 121, 
+  231, 200,  55, 109, 141, 213,  78, 169, 108,  86, 244, 234, 101, 122, 174,   8, 
+  186, 120,  37,  46,  28, 166, 180, 198, 232, 221, 116,  31,  75, 189, 139, 138, 
+  112,  62, 181, 102,  72,   3, 246,  14,  97,  53,  87, 185, 134, 193,  29, 158, 
+  225, 248, 152,  17, 105, 217, 142, 148, 155,  30, 135, 233, 206,  85,  40, 223, 
+  140, 161, 137,  13, 191, 230,  66, 104,  65, 153,  45,  15, 176,  84, 187,  22
+};
 
+static byte S5[256];
+
+// Round constants. 10 items are used by AES-128, 8 by AES-192, 7 by AES-256.
+static byte rcon[]={0x01,0x02,0x04,0x08,0x10,0x20,0x40,0x80,0x1b,0x36};
+
+static byte T1[256][4],T2[256][4],T3[256][4],T4[256][4];
+static byte T5[256][4],T6[256][4],T7[256][4],T8[256][4];
+static byte U1[256][4],U2[256][4],U3[256][4],U4[256][4];
 
 inline void Xor128(void *dest,const void *arg1,const void *arg2)
 {
@@ -64,7 +82,7 @@ inline void Copy128(byte *dest,const byte *src)
 
 Rijndael::Rijndael()
 {
-  //if (S[0]==0)
+  if (S5[0]==0)
     GenerateTables();
   CBCMode = true; // Always true for RAR.
 }
@@ -72,18 +90,20 @@ Rijndael::Rijndael()
 
 void Rijndael::Init(bool Encrypt,const byte *key,uint keyLen,const byte * initVector)
 {
-#ifdef USE_SSE
-  // Check SSE here instead of constructor, so if object is a part of some
-  // structure memset'ed before use, this variable is not lost.
+  // Check SIMD here instead of constructor, so if object is a part of some
+  // structure memset'ed before use, these variables are not lost.
+#if defined(USE_SSE)
   int CPUInfo[4];
-  __cpuid(CPUInfo, 0x80000000); // Get the maximum supported cpuid function.
-  if ((CPUInfo[0] & 0x7fffffff)>=1)
+  __cpuid(CPUInfo, 0);
+  if (CPUInfo[0]>=1) // Check the maximum supported cpuid function.
   {
     __cpuid(CPUInfo, 1);
     AES_NI=(CPUInfo[2] & 0x2000000)!=0;
   }
   else
-    AES_NI=0;
+    AES_NI=false;
+#elif defined(USE_NEON)
+  AES_Neon=(getauxval(AT_HWCAP) & HWCAP_AES)!=0;
 #endif
 
   // Other developers asked us to initialize it to suppress "may be used
@@ -123,16 +143,23 @@ void Rijndael::Init(bool Encrypt,const byte *key,uint keyLen,const byte * initVe
     keyEncToDec();
 }
 
+
 void Rijndael::blockEncrypt(const byte *input,size_t inputLen,byte *outBuffer)
 {
   if (inputLen <= 0)
     return;
 
   size_t numBlocks = inputLen/16;
-#ifdef USE_SSE
+#if defined(USE_SSE)
   if (AES_NI)
   {
     blockEncryptSSE(input,numBlocks,outBuffer);
+    return;
+  }
+#elif defined(USE_NEON)
+  if (AES_Neon)
+  {
+    blockEncryptNeon(input,numBlocks,outBuffer);
     return;
   }
 #endif
@@ -221,6 +248,40 @@ void Rijndael::blockEncryptSSE(const byte *input,size_t numBlocks,byte *outBuffe
 }
 #endif
 
+
+#ifdef USE_NEON
+void Rijndael::blockEncryptNeon(const byte *input,size_t numBlocks,byte *outBuffer)
+{
+  byte *prevBlock = m_initVector;
+  while (numBlocks > 0)
+  {
+    byte block[16];
+    if (CBCMode)
+      vst1q_u8(block, veorq_u8(vld1q_u8(prevBlock), vld1q_u8(input)));
+    else
+      vst1q_u8(block, vld1q_u8(input));
+
+    uint8x16_t data = vld1q_u8(block);
+    for (uint i = 0; i < m_uRounds-1; i++)
+    {
+      data = vaeseq_u8(data, vld1q_u8((byte *)m_expandedKey[i]));
+      data = vaesmcq_u8(data);
+    }
+    data = vaeseq_u8(data, vld1q_u8((byte *)(m_expandedKey[m_uRounds-1])));
+    data = veorq_u8(data, vld1q_u8((byte *)(m_expandedKey[m_uRounds])));
+    vst1q_u8(outBuffer, data);
+
+    prevBlock=outBuffer;
+
+    outBuffer += 16;
+    input += 16;
+    numBlocks--;
+  }
+  vst1q_u8(m_initVector, vld1q_u8(prevBlock));
+  return;
+}
+#endif
+
   
 void Rijndael::blockDecrypt(const byte *input, size_t inputLen, byte *outBuffer)
 {
@@ -228,10 +289,16 @@ void Rijndael::blockDecrypt(const byte *input, size_t inputLen, byte *outBuffer)
     return;
 
   size_t numBlocks=inputLen/16;
-#ifdef USE_SSE
+#if defined(USE_SSE)
   if (AES_NI)
   {
     blockDecryptSSE(input,numBlocks,outBuffer);
+    return;
+  }
+#elif defined(USE_NEON)
+  if (AES_Neon)
+  {
+    blockDecryptNeon(input,numBlocks,outBuffer);
     return;
   }
 #endif
@@ -321,6 +388,41 @@ void Rijndael::blockDecryptSSE(const byte *input, size_t numBlocks, byte *outBuf
     numBlocks--;
   }
   _mm_storeu_si128((__m128i*)m_initVector,initVector);
+}
+#endif
+
+
+#ifdef USE_NEON
+void Rijndael::blockDecryptNeon(const byte *input, size_t numBlocks, byte *outBuffer)
+{
+  byte iv[16];
+  memcpy(iv,m_initVector,16);
+
+  while (numBlocks > 0)
+  {
+    uint8x16_t data = vld1q_u8(input);
+
+    for (int i=m_uRounds-1; i>0; i--)
+    {
+      data = vaesdq_u8(data, vld1q_u8((byte *)m_expandedKey[i+1]));
+      data = vaesimcq_u8(data);
+    }
+
+    data = vaesdq_u8(data, vld1q_u8((byte *)m_expandedKey[1]));
+    data = veorq_u8(data, vld1q_u8((byte *)m_expandedKey[0]));
+
+    if (CBCMode)
+      data = veorq_u8(data, vld1q_u8(iv));
+
+    vst1q_u8(iv, vld1q_u8(input));
+    vst1q_u8(outBuffer, data);
+
+    input += 16;
+    outBuffer += 16;
+    numBlocks--;
+  }
+
+  memcpy(m_initVector,iv,16);
 }
 #endif
 
@@ -417,51 +519,40 @@ void Rijndael::keyEncToDec()
 } 
 
 
-#define ff_poly 0x011b
-#define ff_hi   0x80
+static byte gmul(byte a, byte b) // Galois field "peasant's algorithm" multiplication.
+{
+  const byte poly=0x1b; // Lower byte of AES 0x11b irreducible polynomial.
+  byte result = 0;
+  while (b>0)
+  {
+    if ((b & 1) != 0) 
+      result ^= a;
+    a = (a & 0x80) ? (a<<1)^poly : a<<1;
+    b >>= 1;
+  }
+  return result;
+}
 
-#define FFinv(x)    ((x) ? pow[255 - log[x]]: 0)
 
-#define FFmul02(x) (x ? pow[log[x] + 0x19] : 0)
-#define FFmul03(x) (x ? pow[log[x] + 0x01] : 0)
-#define FFmul09(x) (x ? pow[log[x] + 0xc7] : 0)
-#define FFmul0b(x) (x ? pow[log[x] + 0x68] : 0)
-#define FFmul0d(x) (x ? pow[log[x] + 0xee] : 0)
-#define FFmul0e(x) (x ? pow[log[x] + 0xdf] : 0)
-#define fwd_affine(x) \
-    (w = (uint)x, w ^= (w<<1)^(w<<2)^(w<<3)^(w<<4), (byte)(0x63^(w^(w>>8))))
-
-#define inv_affine(x) \
-    (w = (uint)x, w = (w<<1)^(w<<3)^(w<<6), (byte)(0x05^(w^(w>>8))))
-
+// 2021-09-24: changed to slower and simpler code without interim tables.
+// It is still fast enough for our purpose.
 void Rijndael::GenerateTables()
 {
-  unsigned char pow[512],log[256];
-  int i = 0, w = 1; 
-  do
+  for (int I=0;I<256;I++)
+    S5[S[I]]=I;
+
+  for (int I=0;I<256;I++)
   {   
-    pow[i] = (byte)w;
-    pow[i + 255] = (byte)w;
-    log[w] = (byte)i++;
-    w ^=  (w << 1) ^ (w & ff_hi ? ff_poly : 0);
-  } while (w != 1);
- 
-  for (int i = 0,w = 1; i < sizeof(rcon)/sizeof(rcon[0]); i++)
-  {
-    rcon[i] = w;
-    w = (w << 1) ^ (w & ff_hi ? ff_poly : 0);
-  }
-  for(int i = 0; i < 256; ++i)
-  {   
-    unsigned char b=S[i]=fwd_affine(FFinv((byte)i));
-    T1[i][1]=T1[i][2]=T2[i][2]=T2[i][3]=T3[i][0]=T3[i][3]=T4[i][0]=T4[i][1]=b;
-    T1[i][0]=T2[i][1]=T3[i][2]=T4[i][3]=FFmul02(b);
-    T1[i][3]=T2[i][0]=T3[i][1]=T4[i][2]=FFmul03(b);
-    S5[i] = b = FFinv(inv_affine((byte)i));
-    U1[b][3]=U2[b][0]=U3[b][1]=U4[b][2]=T5[i][3]=T6[i][0]=T7[i][1]=T8[i][2]=FFmul0b(b);
-    U1[b][1]=U2[b][2]=U3[b][3]=U4[b][0]=T5[i][1]=T6[i][2]=T7[i][3]=T8[i][0]=FFmul09(b);
-    U1[b][2]=U2[b][3]=U3[b][0]=U4[b][1]=T5[i][2]=T6[i][3]=T7[i][0]=T8[i][1]=FFmul0d(b);
-    U1[b][0]=U2[b][1]=U3[b][2]=U4[b][3]=T5[i][0]=T6[i][1]=T7[i][2]=T8[i][3]=FFmul0e(b);
+    byte s=S[I];
+    T1[I][1]=T1[I][2]=T2[I][2]=T2[I][3]=T3[I][0]=T3[I][3]=T4[I][0]=T4[I][1]=s;
+    T1[I][0]=T2[I][1]=T3[I][2]=T4[I][3]=gmul(s,2);
+    T1[I][3]=T2[I][0]=T3[I][1]=T4[I][2]=gmul(s,3);
+
+    byte b=S5[I];
+    U1[b][3]=U2[b][0]=U3[b][1]=U4[b][2]=T5[I][3]=T6[I][0]=T7[I][1]=T8[I][2]=gmul(b,0xb);
+    U1[b][1]=U2[b][2]=U3[b][3]=U4[b][0]=T5[I][1]=T6[I][2]=T7[I][3]=T8[I][0]=gmul(b,0x9);
+    U1[b][2]=U2[b][3]=U3[b][0]=U4[b][1]=T5[I][2]=T6[I][3]=T7[I][0]=T8[I][1]=gmul(b,0xd);
+    U1[b][0]=U2[b][1]=U3[b][2]=U4[b][3]=T5[I][0]=T6[I][1]=T7[I][2]=T8[I][3]=gmul(b,0xe);
   }
 }
 

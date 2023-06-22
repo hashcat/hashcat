@@ -229,10 +229,11 @@ void CharToWideMap(const char *Src,wchar *Dest,size_t DestSize,bool &Success)
 #endif
 
 
-// SrcSize is in wide characters, not in bytes.
-byte* WideToRaw(const wchar *Src,byte *Dest,size_t SrcSize)
+// SrcSize is source data size in wide characters, not in bytes.
+// DestSize is the maximum allowed destination size.
+byte* WideToRaw(const wchar *Src,size_t SrcSize,byte *Dest,size_t DestSize)
 {
-  for (size_t I=0;I<SrcSize;I++,Src++)
+  for (size_t I=0;I<SrcSize && I*2+1<DestSize;I++,Src++)
   {
     Dest[I*2]=(byte)*Src;
     Dest[I*2+1]=(byte)(*Src>>8);
@@ -600,59 +601,6 @@ char* SupportDBCS::charnext(const char *s)
   // is 0, the string is corrupt and we'll better return the pointer to 0,
   // to break string processing loops.
   return (char *)(IsLeadByte[(byte)*s] && s[1]!=0 ? s+2:s+1);
-}
-
-
-size_t SupportDBCS::strlend(const char *s)
-{
-  size_t Length=0;
-  while (*s!=0)
-  {
-    if (IsLeadByte[(byte)*s])
-      s+=2;
-    else
-      s++;
-    Length++;
-  }
-  return(Length);
-}
-
-
-char* SupportDBCS::strchrd(const char *s, int c)
-{
-  while (*s!=0)
-    if (IsLeadByte[(byte)*s])
-      s+=2;
-    else
-      if (*s==c)
-        return((char *)s);
-      else
-        s++;
-  return(NULL);
-}
-
-
-void SupportDBCS::copychrd(char *dest,const char *src)
-{
-  dest[0]=src[0];
-  if (IsLeadByte[(byte)src[0]])
-    dest[1]=src[1];
-}
-
-
-char* SupportDBCS::strrchrd(const char *s, int c)
-{
-  const char *found=NULL;
-  while (*s!=0)
-    if (IsLeadByte[(byte)*s])
-      s+=2;
-    else
-    {
-      if (*s==c)
-        found=s;
-      s++;
-    }
-  return((char *)found);
 }
 #endif
 

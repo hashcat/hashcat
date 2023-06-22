@@ -3,6 +3,7 @@
 
 static MESSAGE_TYPE MsgStream=MSG_STDOUT;
 static RAR_CHARSET RedirectCharset=RCH_DEFAULT;
+static bool ProhibitInput=false;
 
 const int MaxMsgSize=2*NM+2048;
 
@@ -58,6 +59,12 @@ void SetConsoleMsgStream(MESSAGE_TYPE MsgStream)
 void SetConsoleRedirectCharset(RAR_CHARSET RedirectCharset)
 {
   ::RedirectCharset=RedirectCharset;
+}
+
+
+void ProhibitConsoleInput()
+{
+  ProhibitInput=true;
 }
 
 
@@ -141,28 +148,56 @@ void eprintf(const wchar *fmt,...)
 
 
 #ifndef SILENT
+static void QuitIfInputProhibited()
+{
+  // We cannot handle user prompts if -si is used to read file or archive data
+  // from stdin.
+  if (ProhibitInput)
+  {
+    mprintf(St(MStdinNoInput));
+    ErrHandler.Exit(RARX_FATAL);
+  }
+}
+
+
 static void GetPasswordText(wchar *Str,uint MaxLength)
 {
   if (MaxLength==0)
     return;
+  QuitIfInputProhibited();
   if (StdinRedirected)
     getwstr(Str,MaxLength); // Read from pipe or redirected file.
   else
   {
 #ifdef _WIN_ALL
     HANDLE hConIn=GetStdHandle(STD_INPUT_HANDLE);
-    HANDLE hConOut=GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD ConInMode,ConOutMode;
-    DWORD Read=0;
+    DWORD ConInMode;
     GetConsoleMode(hConIn,&ConInMode);
-    GetConsoleMode(hConOut,&ConOutMode);
-    SetConsoleMode(hConIn,ENABLE_LINE_INPUT);
-    SetConsoleMode(hConOut,ENABLE_PROCESSED_OUTPUT|ENABLE_WRAP_AT_EOL_OUTPUT);
+    SetConsoleMode(hConIn,ENABLE_LINE_INPUT); // Remove ENABLE_ECHO_INPUT.
 
+    // We prefer ReadConsole to ReadFile, so we can read Unicode input.
+    DWORD Read=0;
     ReadConsole(hConIn,Str,MaxLength-1,&Read,NULL);
     Str[Read]=0;
     SetConsoleMode(hConIn,ConInMode);
-    SetConsoleMode(hConOut,ConOutMode);
+
+    // If entered password is longer than MAXPASSWORD and truncated,
+    // read its unread part anyway, so it isn't read later as the second
+    // password for -p switch. Low level FlushConsoleInputBuffer doesn't help
+    // for high level ReadConsole, which in line input mode seems to store
+    // the rest of string in its own internal buffer.
+    if (wcschr(Str,'\r')==NULL) // If '\r' is missing, the password was truncated.
+      while (true)
+      {
+        wchar Trail[64];
+        DWORD TrailRead=0;
+        // Use ASIZE(Trail)-1 to reserve the space for trailing 0.
+        ReadConsole(hConIn,Trail,ASIZE(Trail)-1,&TrailRead,NULL);
+        Trail[TrailRead]=0;
+        if (TrailRead==0 || wcschr(Trail,'\r')!=NULL)
+          break;
+      }
+
 #else
     char StrA[MAXPASSWORD*4]; // "*4" for multibyte UTF-8 characters.
 #if defined(_EMX) || defined (__VMS)
@@ -190,16 +225,21 @@ bool GetConsolePassword(UIPASSWORD_TYPE Type,const wchar *FileName,SecPassword *
   
   while (true)
   {
-    if (!StdinRedirected)
+//    if (!StdinRedirected)
       if (Type==UIPASSWORD_GLOBAL)
         eprintf(L"\n%s: ",St(MAskPsw));
       else
         eprintf(St(MAskPswFor),FileName);
 
-    wchar PlainPsw[MAXPASSWORD];
+    wchar PlainPsw[MAXPASSWORD+1];
     GetPasswordText(PlainPsw,ASIZE(PlainPsw));
     if (*PlainPsw==0 && Type==UIPASSWORD_GLOBAL)
       return false;
+    if (wcslen(PlainPsw)>=MAXPASSWORD)
+    {
+      PlainPsw[MAXPASSWORD-1]=0;
+      uiMsg(UIERROR_TRUNCPSW,MAXPASSWORD-1);
+    }
     if (!StdinRedirected && Type==UIPASSWORD_GLOBAL)
     {
       eprintf(St(MReAskPsw));
@@ -229,6 +269,8 @@ bool getwstr(wchar *str,size_t n)
   // Print buffered prompt title function before waiting for input.
   fflush(stderr);
 
+  QuitIfInputProhibited();
+
   *str=0;
 #if defined(_WIN_ALL)
   // fgetws does not work well with non-English text in Windows,
@@ -240,6 +282,7 @@ bool getwstr(wchar *str,size_t n)
     Array<char> StrA(n*4); // Up to 4 UTF-8 characters per wchar_t.
     File SrcFile;
     SrcFile.SetHandleType(FILE_HANDLESTD);
+    SrcFile.SetLineInputMode(true);
     int ReadSize=SrcFile.Read(&StrA[0],StrA.Size()-1);
     if (ReadSize<=0)
     {
