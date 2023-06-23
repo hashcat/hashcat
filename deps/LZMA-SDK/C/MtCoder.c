@@ -1,5 +1,5 @@
 /* MtCoder.c -- Multi-thread Coder
-2021-02-09 : Igor Pavlov : Public domain */
+2021-12-21 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -44,7 +44,7 @@ static WRes ArEvent_OptCreate_And_Reset(CEvent *p)
 }
 
 
-static THREAD_FUNC_RET_TYPE THREAD_FUNC_CALL_TYPE ThreadFunc(void *pp);
+static THREAD_FUNC_DECL ThreadFunc(void *pp);
 
 
 static SRes MtCoderThread_CreateAndStart(CMtCoderThread *t)
@@ -335,7 +335,7 @@ static SRes ThreadFunc2(CMtCoderThread *t)
 }
 
 
-static THREAD_FUNC_RET_TYPE THREAD_FUNC_CALL_TYPE ThreadFunc(void *pp)
+static THREAD_FUNC_DECL ThreadFunc(void *pp)
 {
   CMtCoderThread *t = (CMtCoderThread *)pp;
   for (;;)
@@ -495,12 +495,7 @@ SRes MtCoder_Code(CMtCoder *p)
 
   {
     RINOK_THREAD(ArEvent_OptCreate_And_Reset(&p->readEvent));
-
-    if (Semaphore_IsCreated(&p->blocksSemaphore))
-    {
-      RINOK_THREAD(Semaphore_Close(&p->blocksSemaphore));
-    }
-    RINOK_THREAD(Semaphore_Create(&p->blocksSemaphore, numBlocksMax, numBlocksMax));
+    RINOK_THREAD(Semaphore_OptCreateInit(&p->blocksSemaphore, numBlocksMax, numBlocksMax));
   }
 
   for (i = 0; i < MTCODER__BLOCKS_MAX - 1; i++)

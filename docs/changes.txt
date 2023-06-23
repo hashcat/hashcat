@@ -102,6 +102,7 @@
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
+- Dependencies: Updated LZMA SDK to 22.01
 - Dependencies: Updated unrar source to 6.2.7
 - Building: Support building windows binaries on macOS using MinGW
 - Dependencies: Updated OpenCL-Headers to v2023.04.17

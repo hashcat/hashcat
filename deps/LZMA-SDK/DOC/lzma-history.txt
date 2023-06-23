@@ -1,6 +1,42 @@
 HISTORY of the LZMA SDK
 -----------------------
 
+21.07          2021-12-26
+-------------------------
+- New switches: -spm and -im!{file_path} to exclude directories from processing 
+    for specified paths that don't contain path separator character at the end of path.
+- The sorting order of files in archives was slightly changed to be more consistent
+  for cases where the name of some directory is the same as the prefix part of the name
+  of another directory or file.
+
+
+21.06          2021-11-24
+-------------------------
+- Bug in LZMA encoder in file LzmaEnc.c was fixed:
+  LzmaEnc_MemEncode(), LzmaEncode() and LzmaCompress() could work incorrectly, 
+    if size value for output buffer is smaller than size required for all compressed data.
+  LzmaEnc_Encode() could work incorrectly,
+    if callback ISeqOutStream::Write() doesn't write all compressed data.
+  NCompress::NLzma::CEncoder::Code() could work incorrectly,
+    if callback ISequentialOutStream::Write() returns error code.
+- Bug in versions 21.00-21.05 was fixed:
+  7-Zip didn't set attributes of directories during archive extracting.
+
+
+21.04 beta     2021-11-02
+-------------------------
+- 7-Zip now reduces the number of working CPU threads for compression,
+  if RAM size is not enough for compression with big LZMA2 dictionary.
+- 7-Zip now can create and check "file.sha256" text files that contain the list 
+  of file names and SHA-256 checksums in format compatible with sha256sum program.
+
+
+21.03 beta     2021-07-20
+-------------------------
+- The maximum dictionary size for LZMA/LZMA2 compressing was increased to 4 GB (3840 MiB).
+- Minor speed optimizations in LZMA/LZMA2 compressing.
+
+
 21.02 alpha    2021-05-06
 -------------------------
 - The command line version of 7-Zip for macOS was released.
