@@ -42,6 +42,7 @@
 - Added hash-mode: HMAC-RIPEMD160 (key = $pass)
 - Added hash-mode: HMAC-RIPEMD160 (key = $salt)
 - Added hash-mode: md5($salt1.sha1($salt2.$pass))
+- Added hash-mode: md5(md5($pass.$salt))
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
 - Added hash-mode: md5(md5(md5($pass).$salt1).$salt2)
 - Added hash-mode: md5(md5(md5($pass)).$salt)
