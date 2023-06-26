@@ -269,7 +269,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
      return (PARSER_HASH_VALUE); // for us this "String2Key parameter 1" is 1 instead of 3, no idea what that means..
   }
 
-  //  100 to 110 Private/Experimental S2K
+  // 100 to 110 Private/Experimental S2K
   if (hc_strtoul ((const char *) token.buf[6], NULL, 10) != 254) return (PARSER_HASH_VALUE);
   if (hc_strtoul ((const char *) token.buf[7], NULL, 10) !=   2) return (PARSER_HASH_VALUE);
 
