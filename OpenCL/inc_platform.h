@@ -39,7 +39,7 @@ DECLSPEC u64x rotr64   (const u64x a, const int n);
 DECLSPEC u64  rotl64_S (const u64  a, const int n);
 DECLSPEC u64  rotr64_S (const u64  a, const int n);
 
-//#define rotate(a,n) (((a) << (n)) | ((a) >> (32 - (n))))
+#define rotate(a,n) (((a) << (n)) | ((a) >> (32 - (n))))
 #define bitselect(a,b,c) ((a) ^ ((c) & ((b) ^ (a))))
 #endif // IS_CUDA
 

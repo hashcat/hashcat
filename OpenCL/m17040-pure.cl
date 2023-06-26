@@ -1,5 +1,6 @@
 /**
  * Author......: Netherlands Forensic Institute
+ *                based upon 17010
  * License.....: MIT
  */
 
@@ -11,13 +12,13 @@
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
-#include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
+#include M2S(INCLUDE_PATH/inc_cipher_cast.h)
 #endif
 
 typedef struct gpg
 {
   u32 cipher_algo;
-  u32 iv[4];
+  u32 iv[4]; // make this dynamic based on the input hash.. iv_size can be 8 bytes or 16 bytes
   u32 modulus_size;
   u32 encrypted_data[384];
   u32 encrypted_data_size;
@@ -116,67 +117,46 @@ DECLSPEC void memzero_be_S (PRIVATE_AS u32 *block, const u32 start_offset, const
   }
 }
 
-DECLSPEC void aes128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data,
-                                  SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
+DECLSPEC void cast128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data)
 {
-  u32 ks[44];
-  u32 essiv[4];
+  u8 essiv[8];
+  for (int j=0; j<8; j++) { essiv[j] = 0; }
 
-  // Copy the IV, since this will be modified
-  essiv[0] = iv[0];
-  essiv[1] = iv[1];
-  essiv[2] = iv[2];
-  essiv[3] = iv[3];
-
-  aes128_set_encrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3);
-
-  // Decrypt an AES-128 encrypted block
+  // TODO remove this casting, would speedup the attack
+  // We need to do this casting to get values in local memory and have them not be constant.
+  u32 lencrypted_data[384]; // I'd prefer not to hardcode to 384,  but rest of kernel uses the same value
   for (u32 i = 0; i < (data_len + 3) / 4; i += 4)
   {
-    aes128_encrypt (ks, essiv, decrypted_data + i, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-    decrypted_data[i + 0] ^= encrypted_data[i + 0];
-    decrypted_data[i + 1] ^= encrypted_data[i + 1];
-    decrypted_data[i + 2] ^= encrypted_data[i + 2];
-    decrypted_data[i + 3] ^= encrypted_data[i + 3];
-
-    // Note: Not necessary if you are only decrypting a single block!
-    essiv[0] = encrypted_data[i + 0];
-    essiv[1] = encrypted_data[i + 1];
-    essiv[2] = encrypted_data[i + 2];
-    essiv[3] = encrypted_data[i + 3];
+    lencrypted_data[i + 0] = encrypted_data[i + 0];
+    lencrypted_data[i + 1] = encrypted_data[i + 1];
+    lencrypted_data[i + 2] = encrypted_data[i + 2];
+    lencrypted_data[i + 3] = encrypted_data[i + 3];
   }
-}
+  u8 *lencrypted_data8 =  (u8*)lencrypted_data;
+  u8 *decrypted_data8 = (u8*)decrypted_data;
+  u8 *key8 = (u8*)key;
 
-DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data,
-                                  SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
-{
-  u32 ks[60];
-  u32 essiv[4];
 
   // Copy the IV, since this will be modified
-  essiv[0] = iv[0];
-  essiv[1] = iv[1];
-  essiv[2] = iv[2];
-  essiv[3] = iv[3];
+  // essiv[0] = iv[0];  // IV is zero for our example, but we load it dynamically..
+  // essiv[1] = iv[1];  // IV is zero for our example, but we load it dynamically..
+  // essiv[2] = 0;
+  // essiv[3] = 0; //TODO load IV dynamically, code doesn't make any sense currently as essiv is now a u8
 
-  aes256_set_encrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3);
+  CAST_KEY ck;
+  Cast5SetKey(&ck, 16, key8);
 
-  // Decrypt an AES-256 encrypted block
-  for (u32 i = 0; i < (data_len + 3) / 4; i += 4)
+  // Decrypt an CAST5 encrypted block
+  for (u32 i = 0; i < (data_len + 3) ; i += 8)
   {
-    aes256_encrypt (ks, essiv, decrypted_data + i, s_te0, s_te1, s_te2, s_te3, s_te4);
+    Cast5Encrypt(essiv, &decrypted_data8[i], &ck);
 
-    decrypted_data[i + 0] ^= encrypted_data[i + 0];
-    decrypted_data[i + 1] ^= encrypted_data[i + 1];
-    decrypted_data[i + 2] ^= encrypted_data[i + 2];
-    decrypted_data[i + 3] ^= encrypted_data[i + 3];
+    for (int j=0; j<8; j++) { decrypted_data8[i+j] ^= lencrypted_data8[i + j]; }
 
     // Note: Not necessary if you are only decrypting a single block!
-    essiv[0] = encrypted_data[i + 0];
-    essiv[1] = encrypted_data[i + 1];
-    essiv[2] = encrypted_data[i + 2];
-    essiv[3] = encrypted_data[i + 3];
+    for (int j=0; j<8; j++) {
+      essiv[j] = lencrypted_data8[i + j];
+    }
   }
 }
 
@@ -193,6 +173,8 @@ DECLSPEC int check_decoded_data (PRIVATE_AS u32 *decoded_data, const u32 decoded
   expected_sha1[2] = hc_bytealign_le_S (decoded_data[sha1_u32_off + 3], decoded_data[sha1_u32_off + 2], sha1_byte_off);
   expected_sha1[3] = hc_bytealign_le_S (decoded_data[sha1_u32_off + 4], decoded_data[sha1_u32_off + 3], sha1_byte_off);
   expected_sha1[4] = hc_bytealign_le_S (decoded_data[sha1_u32_off + 5], decoded_data[sha1_u32_off + 4], sha1_byte_off);
+
+
 
   memzero_le_S (decoded_data, sha1_byte_off, 384 * sizeof(u32));
 
@@ -211,7 +193,7 @@ DECLSPEC int check_decoded_data (PRIVATE_AS u32 *decoded_data, const u32 decoded
       && (expected_sha1[4] == hc_swap32_S (ctx.h[4]));
 }
 
-KERNEL_FQ void m17010_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void m17040_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -260,11 +242,22 @@ KERNEL_FQ void m17010_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].len = 0;
 }
 
-KERNEL_FQ void m17010_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void m17040_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
+
+  tmps[gid].h[0] = SHA1M_A;
+  tmps[gid].h[1] = SHA1M_B;
+  tmps[gid].h[2] = SHA1M_C;
+  tmps[gid].h[3] = SHA1M_D;
+  tmps[gid].h[4] = SHA1M_E;
+  tmps[gid].h[5] = SHA1M_A;
+  tmps[gid].h[6] = SHA1M_B;
+  tmps[gid].h[7] = SHA1M_C;
+  tmps[gid].h[8] = SHA1M_D;
+  tmps[gid].h[9] = SHA1M_E;
 
   tmps[gid].w0[0] = 0;
   tmps[gid].w0[1] = 0;
@@ -283,19 +276,20 @@ KERNEL_FQ void m17010_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].w3[2] = 0;
   tmps[gid].w3[3] = 0;
 
-  tmps[gid].len = SALT_REPEAT;
+  tmps[gid].len = 0;
 }
 
-KERNEL_FQ void m17010_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void m17040_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
 
   if (gid >= GID_CNT) return;
 
   // get the prepared buffer from the gpg_tmp_t struct into a local buffer
   u32 salted_pw_block[80];
-
   for (int i = 0; i < 80; i++) salted_pw_block[i] = tmps[gid].salted_pw_block[i];
+
 
   const u32 salted_pw_block_len = tmps[gid].salted_pw_block_len;
 
@@ -308,47 +302,31 @@ KERNEL_FQ void m17010_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   sha1_ctx_t ctx;
 
-  const u32 sha_offset = SALT_REPEAT * 5;
-
-  for (int i = 0; i < 5; i++) ctx.h[i] = tmps[gid].h[sha_offset + i];
+  for (int i = 0; i < 5; i++) ctx.h[i] = tmps[gid].h[i];
 
   for (int i = 0; i < 4; i++) ctx.w0[i] = tmps[gid].w0[i];
   for (int i = 0; i < 4; i++) ctx.w1[i] = tmps[gid].w1[i];
   for (int i = 0; i < 4; i++) ctx.w2[i] = tmps[gid].w2[i];
   for (int i = 0; i < 4; i++) ctx.w3[i] = tmps[gid].w3[i];
 
+  const u32 pw_len = pws[gid].pw_len;
+  const u32 salted_pw_len = (salt_bufs[SALT_POS_HOST].salt_len + pw_len);
+  const u32 remaining_bytes = salted_pw_len % 4;
+
   ctx.len = tmps[gid].len;
 
-  // sha-1 of salt and password, up to 'salt_iter' bytes
-  const u32 salt_iter = salt_bufs[SALT_POS_HOST].salt_iter;
-
-  const u32 salted_pw_block_pos = LOOP_POS % salted_pw_block_len;
-  const u32 rounds = (LOOP_CNT + salted_pw_block_pos) / salted_pw_block_len;
-
-  for (u32 i = 0; i < rounds; i++)
-  {
-    sha1_update (&ctx, salted_pw_block, salted_pw_block_len);
-  }
-
-  if ((LOOP_POS + LOOP_CNT) == salt_iter)
-  {
-    const u32 remaining_bytes = salt_iter % salted_pw_block_len;
-
-    if (remaining_bytes)
-    {
-      memzero_be_S (salted_pw_block, remaining_bytes, salted_pw_block_len);
-
-      sha1_update (&ctx, salted_pw_block, remaining_bytes);
-    }
-
-    sha1_final (&ctx);
-  }
+  memzero_be_S (salted_pw_block, salted_pw_len, salted_pw_block_len);
+  // zero out last bytes of password if not a multiple of 4
+  // TODO do we need this wo don't feed the remainder to the hashing algorithm anyway..??
+  sha1_update (&ctx, salted_pw_block, salted_pw_len);
+  sha1_final (&ctx);
 
   /**
    * context save
    */
 
-  for (int i = 0; i < 5; i++) tmps[gid].h[sha_offset + i] = ctx.h[i];
+  for (int i = 0; i < 5; i++) tmps[gid].h[i] = ctx.h[i];
+  // this is the sha1 hash of the salt+password:
 
   for (int i = 0; i < 4; i++) tmps[gid].w0[i] = ctx.w0[i];
   for (int i = 0; i < 4; i++) tmps[gid].w1[i] = ctx.w1[i];
@@ -358,12 +336,12 @@ KERNEL_FQ void m17010_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].len = ctx.len;
 }
 
-KERNEL_FQ void m17010_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void m17040_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   // not in use here, special case...
 }
 
-KERNEL_FQ void m17010_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void m17040_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   /**
    * modifier
@@ -373,126 +351,20 @@ KERNEL_FQ void m17010_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
-  /**
-   * aes shared
-   */
-
-  #ifdef REAL_SHM
-
-  LOCAL_VK u32 s_te0[256];
-  LOCAL_VK u32 s_te1[256];
-  LOCAL_VK u32 s_te2[256];
-  LOCAL_VK u32 s_te3[256];
-  LOCAL_VK u32 s_te4[256];
-
-  for (u32 i = lid; i < 256; i += lsz)
-  {
-    s_te0[i] = te0[i];
-    s_te1[i] = te1[i];
-    s_te2[i] = te2[i];
-    s_te3[i] = te3[i];
-    s_te4[i] = te4[i];
-  }
-
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u32a *s_te0 = te0;
-  CONSTANT_AS u32a *s_te1 = te1;
-  CONSTANT_AS u32a *s_te2 = te2;
-  CONSTANT_AS u32a *s_te3 = te3;
-  CONSTANT_AS u32a *s_te4 = te4;
-
-  #endif
-
   if (gid >= GID_CNT) return;
 
-  // retrieve and use the SHA-1 as the key for AES
-
-  u32 aes_key[4];
-
-  for (int i = 0; i < 4; i++) aes_key[i] = hc_swap32_S (tmps[gid].h[i]);
+  // retrieve and use the SHA-1 as the key for CAST5
+  u32 cast_key[5];
+  for (int i = 0; i < 5; i++) cast_key[i] = hc_swap32_S (tmps[gid].h[i]);
 
   u32 iv[4] = {0};
-
   for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[idx];
 
   u32 decoded_data[384];
 
   const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
 
-  aes128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
-
-  if (check_decoded_data (decoded_data, enc_data_size))
-  {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
-    {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
-    }
-  }
-}
-
-KERNEL_FQ void m17010_aux2 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
-{
-  /**
-   * modifier
-   */
-
-  const u64 lid = get_local_id (0);
-  const u64 gid = get_global_id (0);
-  const u64 lsz = get_local_size (0);
-
-  /**
-   * aes shared
-   */
-
-  #ifdef REAL_SHM
-
-  LOCAL_VK u32 s_te0[256];
-  LOCAL_VK u32 s_te1[256];
-  LOCAL_VK u32 s_te2[256];
-  LOCAL_VK u32 s_te3[256];
-  LOCAL_VK u32 s_te4[256];
-
-  for (u32 i = lid; i < 256; i += lsz)
-  {
-    s_te0[i] = te0[i];
-    s_te1[i] = te1[i];
-    s_te2[i] = te2[i];
-    s_te3[i] = te3[i];
-    s_te4[i] = te4[i];
-  }
-
-  SYNC_THREADS ();
-
-  #else
-
-  CONSTANT_AS u32a *s_te0 = te0;
-  CONSTANT_AS u32a *s_te1 = te1;
-  CONSTANT_AS u32a *s_te2 = te2;
-  CONSTANT_AS u32a *s_te3 = te3;
-  CONSTANT_AS u32a *s_te4 = te4;
-
-  #endif
-
-  if (gid >= GID_CNT) return;
-
-  // retrieve and use the SHA-1 as the key for AES
-
-  u32 aes_key[8];
-
-  for (int i = 0; i < 8; i++) aes_key[i] = hc_swap32_S (tmps[gid].h[i]);
-
-  u32 iv[4] = {0};
-
-  for (int idx = 0; idx < 4; idx++) iv[idx] = esalt_bufs[DIGESTS_OFFSET_HOST].iv[idx];
-
-  u32 decoded_data[384];
-
-  const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
-
-  aes256_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, aes_key, decoded_data, s_te0, s_te1, s_te2, s_te3, s_te4);
+  cast128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, cast_key, decoded_data);
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {
