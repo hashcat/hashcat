@@ -47,6 +47,7 @@
 - Added hash-mode: md5(md5(md5($pass).$salt1).$salt2)
 - Added hash-mode: md5(md5(md5($pass)).$salt)
 - Added hash-mode: md5(sha1($pass.$salt))
+- Added hash-mode: md5(sha1($salt.$pass))
 - Added hash-mode: sha512(sha512($pass).$salt)
 
 ##
