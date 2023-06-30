@@ -25,17 +25,17 @@
 	}
 #define PUT_UINT32BE(n, b, i)	  \
 	{ \
-		(b)[(i)    ] = (uchar) ((n) >> 24); \
-		(b)[(i) + 1] = (uchar) ((n) >> 16); \
-		(b)[(i) + 2] = (uchar) ((n) >>  8); \
-		(b)[(i) + 3] = (uchar) ((n)      ); \
+		(b)[(i)    ] = (u8) ((n) >> 24); \
+		(b)[(i) + 1] = (u8) ((n) >> 16); \
+		(b)[(i) + 2] = (u8) ((n) >>  8); \
+		(b)[(i) + 3] = (u8) ((n)      ); \
 	}
 
 typedef struct {
 	uint K[32];
 } CAST_KEY;
 
-#define GETBYTE(x, y) (uint)(uchar)((x)>>(8*(y)))
+#define GETBYTE(x, y) (uint)(u8)((x)>>(8*(y)))
 
 /* Macros to access 8-bit bytes out of a 32-bit word */
 #define U8a(x) GETBYTE(x,3)
@@ -600,11 +600,11 @@ CONSTANT_AS uint S[8][256] = {
 #define _CAST_F2(l, r, i, j) _CAST_f2(l, r, K[i], K[i+j])
 #define _CAST_F3(l, r, i, j) _CAST_f3(l, r, K[i], K[i+j])
 
-inline void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
+inline void Cast5Encrypt(PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBlock, PRIVATE_AS CAST_KEY *key)
 {
 	uint l; GET_UINT32BE(l, inBlock, 0);
 	uint r; GET_UINT32BE(r, inBlock, 4);
-	uint *K = key->K;
+	PRIVATE_AS uint *K = key->K;
 	uint t;
 
 	/* Do the work */
@@ -630,11 +630,11 @@ inline void Cast5Encrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 	PUT_UINT32BE(l, outBlock, 4);
 }
 
-inline void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
+inline void Cast5Decrypt(PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBlock, PRIVATE_AS CAST_KEY *key)
 {
 	uint l; GET_UINT32BE(l, inBlock, 0);
 	uint r; GET_UINT32BE(r, inBlock, 4);
-	uint *K = key->K;
+	PRIVATE_AS uint *K = key->K;
 	uint t;
 
 	/* Only do full 16 rounds if key length > 80 bits */
@@ -661,10 +661,10 @@ inline void Cast5Decrypt(const uchar *inBlock, uchar *outBlock, CAST_KEY *key)
 	t = l = r = 0;
 }
 
-inline void Cast5SetKey(CAST_KEY *key, uint keylength, const uchar *userKey)
+inline void Cast5SetKey(PRIVATE_AS CAST_KEY *key, uint keylength, PRIVATE_AS const u8 *userKey)
 {
 	uint i;
-	uint *K = key->K;
+	PRIVATE_AS uint *K = key->K;
 	uint X[4], Z[4];
 
 	GET_UINT32BE(X[0], userKey, 0);

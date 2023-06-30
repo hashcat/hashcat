@@ -132,9 +132,9 @@ DECLSPEC void cast128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data
     lencrypted_data[i + 2] = encrypted_data[i + 2];
     lencrypted_data[i + 3] = encrypted_data[i + 3];
   }
-  u8 *lencrypted_data8 =  (u8*)lencrypted_data;
-  u8 *decrypted_data8 = (u8*)decrypted_data;
-  u8 *key8 = (u8*)key;
+  PRIVATE_AS u8 *lencrypted_data8 = (PRIVATE_AS u8*)lencrypted_data;
+  PRIVATE_AS u8 *decrypted_data8 = (PRIVATE_AS u8*)decrypted_data;
+  PRIVATE_AS u8 *key8 = (PRIVATE_AS u8*)key;
 
 
   // Copy the IV, since this will be modified
