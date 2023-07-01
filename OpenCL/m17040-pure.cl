@@ -117,7 +117,7 @@ DECLSPEC void memzero_be_S (PRIVATE_AS u32 *block, const u32 start_offset, const
   }
 }
 
-DECLSPEC void cast128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data)
+DECLSPEC void cast128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data, SHM_TYPE u32 (*s_S)[256])
 {
   u8 essiv[8];
   for (int j=0; j<8; j++) { essiv[j] = 0; }
@@ -144,12 +144,12 @@ DECLSPEC void cast128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data
   // essiv[3] = 0; //TODO load IV dynamically, code doesn't make any sense currently as essiv is now a u8
 
   CAST_KEY ck;
-  Cast5SetKey(&ck, 16, key8);
+  Cast5SetKey(&ck, 16, key8, s_S);
 
   // Decrypt an CAST5 encrypted block
   for (u32 i = 0; i < (data_len + 3) ; i += 8)
   {
-    Cast5Encrypt(essiv, &decrypted_data8[i], &ck);
+    Cast5Encrypt(essiv, &decrypted_data8[i], &ck, s_S);
 
     for (int j=0; j<8; j++) { decrypted_data8[i+j] ^= lencrypted_data8[i + j]; }
 
@@ -351,6 +351,34 @@ KERNEL_FQ void m17040_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   const u64 gid = get_global_id (0);
   const u64 lsz = get_local_size (0);
 
+  /**
+   * aes shared
+   */
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_S[8][256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_S[0][i] = S[0][i];
+    s_S[1][i] = S[1][i];
+    s_S[2][i] = S[2][i];
+    s_S[3][i] = S[3][i];
+    s_S[4][i] = S[4][i];
+    s_S[5][i] = S[5][i];
+    s_S[6][i] = S[6][i];
+    s_S[7][i] = S[7][i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a (*s_S)[256] = S;
+
+  #endif
+
   if (gid >= GID_CNT) return;
 
   // retrieve and use the SHA-1 as the key for CAST5
@@ -364,7 +392,7 @@ KERNEL_FQ void m17040_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   const u32 enc_data_size = esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data_size;
 
-  cast128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, cast_key, decoded_data);
+  cast128_decrypt_cfb (esalt_bufs[DIGESTS_OFFSET_HOST].encrypted_data, enc_data_size, iv, cast_key, decoded_data, s_S);
 
   if (check_decoded_data (decoded_data, enc_data_size))
   {

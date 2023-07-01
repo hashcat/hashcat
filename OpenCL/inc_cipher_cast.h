@@ -10,6 +10,8 @@
  * Based on cast.cpp - written and placed in the public domain by
  * Wei Dai and Leonard Janke
  * Based on Steve Reid's public domain cast.c
+ *
+ * atom - changed S boxes from constant mem to shared mem
  */
 
 #ifndef _OPENCL_CAST_H
@@ -585,22 +587,22 @@ CONSTANT_AS uint S[8][256] = {
 /* CAST uses three different round functions */
 #define _CAST_f1(l, r, km, kr) \
 	t = rotate(km + r, kr); \
-	l ^= ((S[0][U8a(t)] ^ S[1][U8b(t)]) - \
-	 S[2][U8c(t)]) + S[3][U8d(t)];
+	l ^= ((s_S[0][U8a(t)] ^ s_S[1][U8b(t)]) - \
+	 s_S[2][U8c(t)]) + s_S[3][U8d(t)];
 #define _CAST_f2(l, r, km, kr) \
 	t = rotate(km ^ r, kr); \
-	l ^= ((S[0][U8a(t)] - S[1][U8b(t)]) + \
-	 S[2][U8c(t)]) ^ S[3][U8d(t)];
+	l ^= ((s_S[0][U8a(t)] - s_S[1][U8b(t)]) + \
+	 s_S[2][U8c(t)]) ^ s_S[3][U8d(t)];
 #define _CAST_f3(l, r, km, kr) \
 	t = rotate(km - r, kr); \
-	l ^= ((S[0][U8a(t)] + S[1][U8b(t)]) ^ \
-	 S[2][U8c(t)]) - S[3][U8d(t)];
+	l ^= ((s_S[0][U8a(t)] + s_S[1][U8b(t)]) ^ \
+	 s_S[2][U8c(t)]) - s_S[3][U8d(t)];
 
 #define _CAST_F1(l, r, i, j) _CAST_f1(l, r, K[i], K[i+j])
 #define _CAST_F2(l, r, i, j) _CAST_f2(l, r, K[i], K[i+j])
 #define _CAST_F3(l, r, i, j) _CAST_f3(l, r, K[i], K[i+j])
 
-inline void Cast5Encrypt(PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBlock, PRIVATE_AS CAST_KEY *key)
+inline void Cast5Encrypt(PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBlock, PRIVATE_AS CAST_KEY *key, SHM_TYPE u32 (*s_S)[256])
 {
 	uint l; GET_UINT32BE(l, inBlock, 0);
 	uint r; GET_UINT32BE(r, inBlock, 4);
@@ -630,7 +632,7 @@ inline void Cast5Encrypt(PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBlock, 
 	PUT_UINT32BE(l, outBlock, 4);
 }
 
-inline void Cast5Decrypt(PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBlock, PRIVATE_AS CAST_KEY *key)
+inline void Cast5Decrypt(PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBlock, PRIVATE_AS CAST_KEY *key, SHM_TYPE u32 (*s_S)[256])
 {
 	uint l; GET_UINT32BE(l, inBlock, 0);
 	uint r; GET_UINT32BE(r, inBlock, 4);
@@ -661,7 +663,7 @@ inline void Cast5Decrypt(PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBlock, 
 	t = l = r = 0;
 }
 
-inline void Cast5SetKey(PRIVATE_AS CAST_KEY *key, uint keylength, PRIVATE_AS const u8 *userKey)
+inline void Cast5SetKey(PRIVATE_AS CAST_KEY *key, uint keylength, PRIVATE_AS const u8 *userKey, SHM_TYPE u32 (*s_S)[256])
 {
 	uint i;
 	PRIVATE_AS uint *K = key->K;
@@ -677,38 +679,38 @@ inline void Cast5SetKey(PRIVATE_AS CAST_KEY *key, uint keylength, PRIVATE_AS con
 
 	for (i=0; i<=16; i+=16) {
 		// this part is copied directly from RFC 2144 (with some search and replace) by Wei Dai
-		Z[0] = X[0] ^ S[4][x(0xD)] ^ S[5][x(0xF)] ^ S[6][x(0xC)] ^ S[7][x(0xE)] ^ S[6][x(0x8)];
-		Z[1] = X[2] ^ S[4][z(0x0)] ^ S[5][z(0x2)] ^ S[6][z(0x1)] ^ S[7][z(0x3)] ^ S[7][x(0xA)];
-		Z[2] = X[3] ^ S[4][z(0x7)] ^ S[5][z(0x6)] ^ S[6][z(0x5)] ^ S[7][z(0x4)] ^ S[4][x(0x9)];
-		Z[3] = X[1] ^ S[4][z(0xA)] ^ S[5][z(0x9)] ^ S[6][z(0xB)] ^ S[7][z(0x8)] ^ S[5][x(0xB)];
-		K[i+0] = S[4][z(0x8)] ^ S[5][z(0x9)] ^ S[6][z(0x7)] ^ S[7][z(0x6)] ^ S[4][z(0x2)];
-		K[i+1] = S[4][z(0xA)] ^ S[5][z(0xB)] ^ S[6][z(0x5)] ^ S[7][z(0x4)] ^ S[5][z(0x6)];
-		K[i+2] = S[4][z(0xC)] ^ S[5][z(0xD)] ^ S[6][z(0x3)] ^ S[7][z(0x2)] ^ S[6][z(0x9)];
-		K[i+3] = S[4][z(0xE)] ^ S[5][z(0xF)] ^ S[6][z(0x1)] ^ S[7][z(0x0)] ^ S[7][z(0xC)];
-		X[0] = Z[2] ^ S[4][z(0x5)] ^ S[5][z(0x7)] ^ S[6][z(0x4)] ^ S[7][z(0x6)] ^ S[6][z(0x0)];
-		X[1] = Z[0] ^ S[4][x(0x0)] ^ S[5][x(0x2)] ^ S[6][x(0x1)] ^ S[7][x(0x3)] ^ S[7][z(0x2)];
-		X[2] = Z[1] ^ S[4][x(0x7)] ^ S[5][x(0x6)] ^ S[6][x(0x5)] ^ S[7][x(0x4)] ^ S[4][z(0x1)];
-		X[3] = Z[3] ^ S[4][x(0xA)] ^ S[5][x(0x9)] ^ S[6][x(0xB)] ^ S[7][x(0x8)] ^ S[5][z(0x3)];
-		K[i+4] = S[4][x(0x3)] ^ S[5][x(0x2)] ^ S[6][x(0xC)] ^ S[7][x(0xD)] ^ S[4][x(0x8)];
-		K[i+5] = S[4][x(0x1)] ^ S[5][x(0x0)] ^ S[6][x(0xE)] ^ S[7][x(0xF)] ^ S[5][x(0xD)];
-		K[i+6] = S[4][x(0x7)] ^ S[5][x(0x6)] ^ S[6][x(0x8)] ^ S[7][x(0x9)] ^ S[6][x(0x3)];
-		K[i+7] = S[4][x(0x5)] ^ S[5][x(0x4)] ^ S[6][x(0xA)] ^ S[7][x(0xB)] ^ S[7][x(0x7)];
-		Z[0] = X[0] ^ S[4][x(0xD)] ^ S[5][x(0xF)] ^ S[6][x(0xC)] ^ S[7][x(0xE)] ^ S[6][x(0x8)];
-		Z[1] = X[2] ^ S[4][z(0x0)] ^ S[5][z(0x2)] ^ S[6][z(0x1)] ^ S[7][z(0x3)] ^ S[7][x(0xA)];
-		Z[2] = X[3] ^ S[4][z(0x7)] ^ S[5][z(0x6)] ^ S[6][z(0x5)] ^ S[7][z(0x4)] ^ S[4][x(0x9)];
-		Z[3] = X[1] ^ S[4][z(0xA)] ^ S[5][z(0x9)] ^ S[6][z(0xB)] ^ S[7][z(0x8)] ^ S[5][x(0xB)];
-		K[i+8] = S[4][z(0x3)] ^ S[5][z(0x2)] ^ S[6][z(0xC)] ^ S[7][z(0xD)] ^ S[4][z(0x9)];
-		K[i+9] = S[4][z(0x1)] ^ S[5][z(0x0)] ^ S[6][z(0xE)] ^ S[7][z(0xF)] ^ S[5][z(0xC)];
-		K[i+10] = S[4][z(0x7)] ^ S[5][z(0x6)] ^ S[6][z(0x8)] ^ S[7][z(0x9)] ^ S[6][z(0x2)];
-		K[i+11] = S[4][z(0x5)] ^ S[5][z(0x4)] ^ S[6][z(0xA)] ^ S[7][z(0xB)] ^ S[7][z(0x6)];
-		X[0] = Z[2] ^ S[4][z(0x5)] ^ S[5][z(0x7)] ^ S[6][z(0x4)] ^ S[7][z(0x6)] ^ S[6][z(0x0)];
-		X[1] = Z[0] ^ S[4][x(0x0)] ^ S[5][x(0x2)] ^ S[6][x(0x1)] ^ S[7][x(0x3)] ^ S[7][z(0x2)];
-		X[2] = Z[1] ^ S[4][x(0x7)] ^ S[5][x(0x6)] ^ S[6][x(0x5)] ^ S[7][x(0x4)] ^ S[4][z(0x1)];
-		X[3] = Z[3] ^ S[4][x(0xA)] ^ S[5][x(0x9)] ^ S[6][x(0xB)] ^ S[7][x(0x8)] ^ S[5][z(0x3)];
-		K[i+12] = S[4][x(0x8)] ^ S[5][x(0x9)] ^ S[6][x(0x7)] ^ S[7][x(0x6)] ^ S[4][x(0x3)];
-		K[i+13] = S[4][x(0xA)] ^ S[5][x(0xB)] ^ S[6][x(0x5)] ^ S[7][x(0x4)] ^ S[5][x(0x7)];
-		K[i+14] = S[4][x(0xC)] ^ S[5][x(0xD)] ^ S[6][x(0x3)] ^ S[7][x(0x2)] ^ S[6][x(0x8)];
-		K[i+15] = S[4][x(0xE)] ^ S[5][x(0xF)] ^ S[6][x(0x1)] ^ S[7][x(0x0)] ^ S[7][x(0xD)];
+		Z[0] = X[0] ^ s_S[4][x(0xD)] ^ s_S[5][x(0xF)] ^ s_S[6][x(0xC)] ^ s_S[7][x(0xE)] ^ s_S[6][x(0x8)];
+		Z[1] = X[2] ^ s_S[4][z(0x0)] ^ s_S[5][z(0x2)] ^ s_S[6][z(0x1)] ^ s_S[7][z(0x3)] ^ s_S[7][x(0xA)];
+		Z[2] = X[3] ^ s_S[4][z(0x7)] ^ s_S[5][z(0x6)] ^ s_S[6][z(0x5)] ^ s_S[7][z(0x4)] ^ s_S[4][x(0x9)];
+		Z[3] = X[1] ^ s_S[4][z(0xA)] ^ s_S[5][z(0x9)] ^ s_S[6][z(0xB)] ^ s_S[7][z(0x8)] ^ s_S[5][x(0xB)];
+		K[i+0] = s_S[4][z(0x8)] ^ s_S[5][z(0x9)] ^ s_S[6][z(0x7)] ^ s_S[7][z(0x6)] ^ s_S[4][z(0x2)];
+		K[i+1] = s_S[4][z(0xA)] ^ s_S[5][z(0xB)] ^ s_S[6][z(0x5)] ^ s_S[7][z(0x4)] ^ s_S[5][z(0x6)];
+		K[i+2] = s_S[4][z(0xC)] ^ s_S[5][z(0xD)] ^ s_S[6][z(0x3)] ^ s_S[7][z(0x2)] ^ s_S[6][z(0x9)];
+		K[i+3] = s_S[4][z(0xE)] ^ s_S[5][z(0xF)] ^ s_S[6][z(0x1)] ^ s_S[7][z(0x0)] ^ s_S[7][z(0xC)];
+		X[0] = Z[2] ^ s_S[4][z(0x5)] ^ s_S[5][z(0x7)] ^ s_S[6][z(0x4)] ^ s_S[7][z(0x6)] ^ s_S[6][z(0x0)];
+		X[1] = Z[0] ^ s_S[4][x(0x0)] ^ s_S[5][x(0x2)] ^ s_S[6][x(0x1)] ^ s_S[7][x(0x3)] ^ s_S[7][z(0x2)];
+		X[2] = Z[1] ^ s_S[4][x(0x7)] ^ s_S[5][x(0x6)] ^ s_S[6][x(0x5)] ^ s_S[7][x(0x4)] ^ s_S[4][z(0x1)];
+		X[3] = Z[3] ^ s_S[4][x(0xA)] ^ s_S[5][x(0x9)] ^ s_S[6][x(0xB)] ^ s_S[7][x(0x8)] ^ s_S[5][z(0x3)];
+		K[i+4] = s_S[4][x(0x3)] ^ s_S[5][x(0x2)] ^ s_S[6][x(0xC)] ^ s_S[7][x(0xD)] ^ s_S[4][x(0x8)];
+		K[i+5] = s_S[4][x(0x1)] ^ s_S[5][x(0x0)] ^ s_S[6][x(0xE)] ^ s_S[7][x(0xF)] ^ s_S[5][x(0xD)];
+		K[i+6] = s_S[4][x(0x7)] ^ s_S[5][x(0x6)] ^ s_S[6][x(0x8)] ^ s_S[7][x(0x9)] ^ s_S[6][x(0x3)];
+		K[i+7] = s_S[4][x(0x5)] ^ s_S[5][x(0x4)] ^ s_S[6][x(0xA)] ^ s_S[7][x(0xB)] ^ s_S[7][x(0x7)];
+		Z[0] = X[0] ^ s_S[4][x(0xD)] ^ s_S[5][x(0xF)] ^ s_S[6][x(0xC)] ^ s_S[7][x(0xE)] ^ s_S[6][x(0x8)];
+		Z[1] = X[2] ^ s_S[4][z(0x0)] ^ s_S[5][z(0x2)] ^ s_S[6][z(0x1)] ^ s_S[7][z(0x3)] ^ s_S[7][x(0xA)];
+		Z[2] = X[3] ^ s_S[4][z(0x7)] ^ s_S[5][z(0x6)] ^ s_S[6][z(0x5)] ^ s_S[7][z(0x4)] ^ s_S[4][x(0x9)];
+		Z[3] = X[1] ^ s_S[4][z(0xA)] ^ s_S[5][z(0x9)] ^ s_S[6][z(0xB)] ^ s_S[7][z(0x8)] ^ s_S[5][x(0xB)];
+		K[i+8] = s_S[4][z(0x3)] ^ s_S[5][z(0x2)] ^ s_S[6][z(0xC)] ^ s_S[7][z(0xD)] ^ s_S[4][z(0x9)];
+		K[i+9] = s_S[4][z(0x1)] ^ s_S[5][z(0x0)] ^ s_S[6][z(0xE)] ^ s_S[7][z(0xF)] ^ s_S[5][z(0xC)];
+		K[i+10] = s_S[4][z(0x7)] ^ s_S[5][z(0x6)] ^ s_S[6][z(0x8)] ^ s_S[7][z(0x9)] ^ s_S[6][z(0x2)];
+		K[i+11] = s_S[4][z(0x5)] ^ s_S[5][z(0x4)] ^ s_S[6][z(0xA)] ^ s_S[7][z(0xB)] ^ s_S[7][z(0x6)];
+		X[0] = Z[2] ^ s_S[4][z(0x5)] ^ s_S[5][z(0x7)] ^ s_S[6][z(0x4)] ^ s_S[7][z(0x6)] ^ s_S[6][z(0x0)];
+		X[1] = Z[0] ^ s_S[4][x(0x0)] ^ s_S[5][x(0x2)] ^ s_S[6][x(0x1)] ^ s_S[7][x(0x3)] ^ s_S[7][z(0x2)];
+		X[2] = Z[1] ^ s_S[4][x(0x7)] ^ s_S[5][x(0x6)] ^ s_S[6][x(0x5)] ^ s_S[7][x(0x4)] ^ s_S[4][z(0x1)];
+		X[3] = Z[3] ^ s_S[4][x(0xA)] ^ s_S[5][x(0x9)] ^ s_S[6][x(0xB)] ^ s_S[7][x(0x8)] ^ s_S[5][z(0x3)];
+		K[i+12] = s_S[4][x(0x8)] ^ s_S[5][x(0x9)] ^ s_S[6][x(0x7)] ^ s_S[7][x(0x6)] ^ s_S[4][x(0x3)];
+		K[i+13] = s_S[4][x(0xA)] ^ s_S[5][x(0xB)] ^ s_S[6][x(0x5)] ^ s_S[7][x(0x4)] ^ s_S[5][x(0x7)];
+		K[i+14] = s_S[4][x(0xC)] ^ s_S[5][x(0xD)] ^ s_S[6][x(0x3)] ^ s_S[7][x(0x2)] ^ s_S[6][x(0x8)];
+		K[i+15] = s_S[4][x(0xE)] ^ s_S[5][x(0xF)] ^ s_S[6][x(0x1)] ^ s_S[7][x(0x0)] ^ s_S[7][x(0xD)];
 	}
 
 	uint data[32];
