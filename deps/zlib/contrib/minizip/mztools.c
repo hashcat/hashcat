@@ -38,7 +38,7 @@ uLong* bytesRecovered;
   FILE* fpZip = fopen(file, "rb");
   FILE* fpOut = fopen(fileOut, "wb");
   FILE* fpOutCD = fopen(fileOutTmp, "wb");
-  if (fpZip != NULL &&  fpOut != NULL) {
+  if (fpZip != NULL &&  fpOut != NULL && fpOutCD !=NULL) {
     int entries = 0;
     uLong totalBytes = 0;
     char header[30];
