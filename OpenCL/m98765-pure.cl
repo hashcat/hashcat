@@ -94,6 +94,8 @@ CONSTANT_VK u32 base64_table[64] =
   '4', '5', '6', '7', '8', '9', '+', '/',
 };
 
+// Wow it's the right file
+
 u32 base64_encode_three_bytes_better (u32 in){ //in has 3 u8s in, first u8 is not set)
     u32 out;
 
@@ -121,6 +123,7 @@ void base64_encode_sha256 (u32 *out, const u32 *in)
     out[8] = base64_encode_three_bytes_better(                (in[6] >>  8));
     out[9] = base64_encode_three_bytes_better((in[6] << 16) | (in[7] >> 16));
 
+    // 0x7c = ord('A') ^ ord('=') so replaces the A that we'll get at the end with an =
     out[10] = base64_encode_three_bytes_better(in[7] <<  8) ^ 0x7c;
 }
 
@@ -141,7 +144,7 @@ KERNEL_FQ void m98765_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
   sha256_update_global_swap (&ctx,  pws[gid].i, pws[gid].pw_len);
   sha256_final (&ctx);
 
-  u32 w[16] = { 0 }; 
+  u32 w[16] = { 0 }; // only uses 11, but have to be 16 for sha256_hmac_init_global_swap function
 
   base64_encode_sha256 (w, ctx.h);
 
@@ -225,6 +228,7 @@ KERNEL_FQ void m98765_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 
 KERNEL_FQ void m98765_loop (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 {   
+  //pbkdf2hmac here
 
   const u64 gid = get_global_id (0);
 
@@ -411,7 +415,9 @@ KERNEL_FQ void m98765_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 
   // iv
 
-  u32 prev_ct[4]; 
+
+
+  u32 prev_ct[4]; //iv is the first 4 u32s -> needs to be prev ct for cbc encryption (each block used prior ct)
 
   prev_ct[0] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[0]);
   prev_ct[1] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[1]);
@@ -421,8 +427,10 @@ KERNEL_FQ void m98765_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 
   u32 isAscii = 0;
   // ct
-  u32 ct_buf[4] = {0}; 
+  u32 ct_buf[4] = {0}; //ct is the payload (- the first 4 u32s)
   u32 pt_buf[4] = {0};
+
+
 
   // Padding is Crypto.pad.iso10126 -pads with random bytes until the last byte, and which defines the number of padding bytes
   // So knocking off last block to not account for any non-ascii padding
@@ -443,6 +451,7 @@ KERNEL_FQ void m98765_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
     }
 
   }
+
 
   const u32 r0 = isAscii; 
   const u32 r1 = 0;

@@ -29,9 +29,9 @@ static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 
 
 static const char *ST_PASS        = "hashcat"; 
-static const char *ST_HASH        = "dogechain$EEmAkgiMlVrToRhu2suq91R5Frf+VQCvNzv9lj6OwRWIf/3IM31wqhJM7gGQpinXH9kqHkuQ2DMZxspgA7QFAddsUWvZxGdNAkaeKy90EAsTLIuDQnH3plfBQfmL6j5NPaH7Nr7kF1PdvM0pbUw6XHySBYkD/rPHNM6n58NRK4xfO4VVMykeX3+m2LaVyv5s269r/op38svRPT0YFGpRcanY6/U1BeSrvG2IXii1BKXXAcVEN4GFmyEQRWKI0uZE+3M0atf7UEPD4K9tmEKosqdsF4MFLiBtfI4eq0+926ijoezDmUPvHIiyQZ9CH2jZ$6jOgqW/GxL9He1afQiINIg==";
+static const char *ST_HASH        = "$dogechain$0*5000*EEmAkgiMlVrToRhu2suq91R5Frf+VQCvNzv9lj6OwRWIf/3IM31wqhJM7gGQpinXH9kqHkuQ2DMZxspgA7QFAddsUWvZxGdNAkaeKy90EAsTLIuDQnH3plfBQfmL6j5NPaH7Nr7kF1PdvM0pbUw6XHySBYkD/rPHNM6n58NRK4xfO4VVMykeX3+m2LaVyv5s269r/op38svRPT0YFGpRcanY6/U1BeSrvG2IXii1BKXXAcVEN4GFmyEQRWKI0uZE+3M0atf7UEPD4K9tmEKosqdsF4MFLiBtfI4eq0+926ijoezDmUPvHIiyQZ9CH2jZ*6jOgqW/GxL9He1afQiINIg==";
 
-static const char *SIGNATURE_DOGECHAIN = "dogechain";
+static const char *SIGNATURE_DOGECHAIN = "$dogechain$0";
 
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
@@ -67,8 +67,6 @@ typedef struct doge_tmp
 
 } doge_tmp_t;
 
-const u32 PBKDF2_ITER = 5000;
-
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -94,41 +92,50 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
-  token.token_cnt  = 3;
+  token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_DOGECHAIN;
 
   // sig
-  token.sep[0]     = '$';
-  token.len_min[0] = 9;
-  token.len_max[0] = 9;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH 
+  token.sep[0]     = '*';
+  token.len_min[0] = 12;
+  token.len_max[0] = 12;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH //VERIFY NOT FIXED
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
+  
+  // iter
+  token.sep[1]     = '*';
+  token.len_min[1] = 1;
+  token.len_max[1] = 10;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
   // payload
-  token.sep[1]     = '$';
-  token.len_min[1] = 320;
-  token.len_max[1] = 320;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH 
-                   | TOKEN_ATTR_VERIFY_BASE64A; 
+  token.sep[2]     = '*';
+  token.len_min[2] = 320;
+  token.len_max[2] = 320;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH 
+                   | TOKEN_ATTR_VERIFY_BASE64A; //verify is b64
 
   // salt
-  token.sep[2]     = '$';
-  token.len_min[2] = 24;
-  token.len_max[2] = 24;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A; 
+  token.sep[3]     = '*';
+  token.len_min[3] = 24;
+  token.len_max[3] = 24;
+  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64A; //verify is b64
 
            
- 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
   
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
+  // Our parsing
+
   // esalt for payload
 
-  const u8 *data_pos = token.buf[1];
-  const int data_len = token.len[1];
+  const u8 *data_pos = token.buf[2];
+  const int data_len = token.len[2];
 
 
   u8 tmp_buf[256]  = { 0 };
@@ -141,8 +148,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  const u8 *salt_pos = token.buf[2];
-  const int salt_length = token.len[2];
+  const u8 *salt_pos = token.buf[3];
+  const int salt_length = token.len[3];
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
@@ -151,7 +158,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
   salt->salt_len = tmp_len;
-  salt->salt_iter = PBKDF2_ITER-1;
+  
+  // iter
+  const u8 *iter_pos = token.buf[1];
+
+  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
 
   // digest
 
@@ -159,6 +170,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[1] = 0;
   digest[2] = 0;
   digest[3] = 0;
+
 
   return (PARSER_OK);
 
