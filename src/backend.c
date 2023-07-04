@@ -9797,8 +9797,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->size_results = size_results;
 
-    u64 size_rules   = (u64) straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);
-    u64 size_rules_c = (u64) KERNEL_RULES                   * sizeof (kernel_rule_t);
+    u32 aligned_rules_cnt = MAX (MAX (straight_ctx->kernel_rules_cnt, device_param->kernel_loops_min), KERNEL_RULES);
+
+    u64 size_rules   = (u64) aligned_rules_cnt * sizeof (kernel_rule_t);
+    u64 size_rules_c = (u64) KERNEL_RULES      * sizeof (kernel_rule_t);
 
     device_param->size_rules    = size_rules;
     device_param->size_rules_c  = size_rules_c;
