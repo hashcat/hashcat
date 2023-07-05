@@ -97,6 +97,7 @@
 - Fixed buffer overflow on module_26600.c / module_hash_encode()
 - Fixed bug in 23800/unrar with Apple Silicon
 - Fixed vector datatypes usage for HIP
+- Fixed out-of-boundary read when a fast hash defines a kernel_loops_min value higher than the amplifiers provided by the user
 
 ##
 ## Technical
