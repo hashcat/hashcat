@@ -21,7 +21,6 @@
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
-
 typedef struct payload
 {
   u32 pl_buf[64];
@@ -95,45 +94,41 @@ CONSTANT_VK u32 base64_table[64] =
 };
 
 // Wow it's the right file
+u32 base64_encode_three_bytes_better (u32 in)
+{
+  //in has 3 u8s in, first u8 is not set)
+  u32 out;
 
-u32 base64_encode_three_bytes_better (u32 in){ //in has 3 u8s in, first u8 is not set)
-    u32 out;
+  out  = base64_table[(in >> 18) & 0x3F] << 24;
+  out |= base64_table[(in >> 12) & 0x3F] << 16;
+  out |= base64_table[(in >>  6) & 0x3F] << 8;
+  out |= base64_table[(in      ) & 0x3F];
 
-    out =  base64_table[(in >> 18) & 0x3F] << 24; 
-    out |= base64_table[(in >> 12) & 0x3F] << 16;
-    out |= base64_table[(in >>  6) & 0x3F] << 8;
-    out |= base64_table[(in      ) & 0x3F];
-    
-    return out;
+  return out;
 }
 
 void base64_encode_sha256 (u32 *out, const u32 *in)
 {
+  out[0] = base64_encode_three_bytes_better(                (in[0] >>  8));
+  out[1] = base64_encode_three_bytes_better((in[0] << 16) | (in[1] >> 16));
+  out[2] = base64_encode_three_bytes_better((in[1] <<  8) | (in[2] >> 24));
+  out[3] = base64_encode_three_bytes_better((in[2]      ));
 
-    out[0] = base64_encode_three_bytes_better(                (in[0] >>  8));
-    out[1] = base64_encode_three_bytes_better((in[0] << 16) | (in[1] >> 16));
-    out[2] = base64_encode_three_bytes_better((in[1] <<  8) | (in[2] >> 24));
-    out[3] = base64_encode_three_bytes_better((in[2]      ));
+  out[4] = base64_encode_three_bytes_better(                (in[3] >>  8));
+  out[5] = base64_encode_three_bytes_better((in[3] << 16) | (in[4] >> 16));
+  out[6] = base64_encode_three_bytes_better((in[4] <<  8) | (in[5] >> 24));
+  out[7] = base64_encode_three_bytes_better((in[5]      ));
 
-    out[4] = base64_encode_three_bytes_better(                (in[3] >>  8));
-    out[5] = base64_encode_three_bytes_better((in[3] << 16) | (in[4] >> 16));
-    out[6] = base64_encode_three_bytes_better((in[4] <<  8) | (in[5] >> 24));
-    out[7] = base64_encode_three_bytes_better((in[5]      ));
+  out[8] = base64_encode_three_bytes_better(                (in[6] >>  8));
+  out[9] = base64_encode_three_bytes_better((in[6] << 16) | (in[7] >> 16));
 
-    out[8] = base64_encode_three_bytes_better(                (in[6] >>  8));
-    out[9] = base64_encode_three_bytes_better((in[6] << 16) | (in[7] >> 16));
-
-    // 0x7c = ord('A') ^ ord('=') so replaces the A that we'll get at the end with an =
-    out[10] = base64_encode_three_bytes_better(in[7] <<  8) ^ 0x7c;
+  // 0x7c = ord('A') ^ ord('=') so replaces the A that we'll get at the end with an =
+  out[10] = base64_encode_three_bytes_better(in[7] <<  8) ^ 0x7c;
 }
-
 //---------------------------------------------------------------------------------------
 
-
-KERNEL_FQ void m98765_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
+KERNEL_FQ void m32500_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 {
-
-
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
@@ -141,13 +136,12 @@ KERNEL_FQ void m98765_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
   sha256_ctx_t ctx;
 
   sha256_init (&ctx);
-  sha256_update_global_swap (&ctx,  pws[gid].i, pws[gid].pw_len);
+  sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
   sha256_final (&ctx);
 
-  u32 w[16] = { 0 }; // only uses 11, but have to be 16 for sha256_hmac_init_global_swap function
+  u32 w[16] = { 0 }; // only uses 11, but have to be 16 for sha256_hmac_init_global function
 
   base64_encode_sha256 (w, ctx.h);
-
 
   // pbkdf
 
@@ -173,7 +167,7 @@ KERNEL_FQ void m98765_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
   tmps[gid].opad[6] = sha256_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha256_hmac_ctx.opad.h[7];
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[DIGESTS_OFFSET_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
@@ -223,11 +217,11 @@ KERNEL_FQ void m98765_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
     tmps[gid].out[i + 6] = tmps[gid].dgst[i + 6];
     tmps[gid].out[i + 7] = tmps[gid].dgst[i + 7];
   }
-  
+
 }
 
-KERNEL_FQ void m98765_loop (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
-{   
+KERNEL_FQ void m32500_loop (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
+{
   //pbkdf2hmac here
 
   const u64 gid = get_global_id (0);
@@ -334,7 +328,7 @@ KERNEL_FQ void m98765_loop (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
   }
 }
 
-KERNEL_FQ void m98765_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
+KERNEL_FQ void m32500_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 {
    /**
    * base
@@ -397,8 +391,7 @@ KERNEL_FQ void m98765_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 
   if (gid >= GID_CNT) return;
 
-
-  u32 ukey[8] = {0};
+  u32 ukey[8];
 
   ukey[0] = tmps[gid].out[0];
   ukey[1] = tmps[gid].out[1];
@@ -409,34 +402,32 @@ KERNEL_FQ void m98765_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
   ukey[6] = tmps[gid].out[6];
   ukey[7] = tmps[gid].out[7];
 
-  u32 ks[60] = {0};
+  u32 ks[60];
 
   AES256_set_decrypt_key (ks, ukey, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
   // iv
 
+  u32 prev_ct[4]; // iv is the first 4 u32s -> needs to be prev ct for cbc encryption (each block used prior ct)
+                  // todo: might want to swap in module
 
-
-  u32 prev_ct[4]; //iv is the first 4 u32s -> needs to be prev ct for cbc encryption (each block used prior ct)
-
-  prev_ct[0] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[0]);
-  prev_ct[1] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[1]);
-  prev_ct[2] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[2]);
-  prev_ct[3] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[3]);
-
+  prev_ct[0] = hc_swap32 (esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[0]);
+  prev_ct[1] = hc_swap32 (esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[1]);
+  prev_ct[2] = hc_swap32 (esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[2]);
+  prev_ct[3] = hc_swap32 (esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[3]);
 
   u32 isAscii = 0;
+
   // ct
   u32 ct_buf[4] = {0}; //ct is the payload (- the first 4 u32s)
   u32 pt_buf[4] = {0};
 
-
-
   // Padding is Crypto.pad.iso10126 -pads with random bytes until the last byte, and which defines the number of padding bytes
   // So knocking off last block to not account for any non-ascii padding
+  // todo: pkcs_padding_bs16() might be able to replace this
+
   for (u32 i=4; i < esalt_bufs[DIGESTS_OFFSET_HOST].pl_len-4; i+=4)
   {
-
     ct_buf[0] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i    ]);
     ct_buf[1] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i + 1]);
     ct_buf[2] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i + 2]);
@@ -444,26 +435,22 @@ KERNEL_FQ void m98765_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 
     AES256_decrypt (ks, ct_buf, pt_buf, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-    for(u32 x = 0; x < 4; x ++){
+    for(u32 x = 0; x < 4; x ++)
+      {
       pt_buf[x] ^= prev_ct[x];
       isAscii |= pt_buf[x] & 0x80808080; //check the ciphertext is human readable
       prev_ct[x] = ct_buf[x];            //set previous CT as the new IV for the next block
     }
-
   }
 
-
-  const u32 r0 = isAscii; 
+  const u32 r0 = isAscii;
   const u32 r1 = 0;
   const u32 r2 = 0;
   const u32 r3 = 0;
 
-  #define il_pos 0  
+  #define il_pos 0
 
   #ifdef KERNEL_STATIC
   #include COMPARE_M
   #endif
- 
 }
-
-

@@ -3,7 +3,6 @@
  * License.....: MIT
  */
 
-
 #include "common.h"
 #include "types.h"
 #include "modules.h"
@@ -11,28 +10,21 @@
 #include "convert.h"
 #include "shared.h"
 
-
-
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_4; 
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH;
 static const char *HASH_NAME      = "Dogechain";
-static const u64   KERN_TYPE      = 98765;
+static const u64   KERN_TYPE      = 32500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_HASH_COPY; 
-static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED; 
-
-
-static const char *ST_PASS        = "hashcat"; 
+static const u64   OPTS_TYPE      = OPTS_TYPE_HASH_COPY;
+static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$dogechain$0*5000*EEmAkgiMlVrToRhu2suq91R5Frf+VQCvNzv9lj6OwRWIf/3IM31wqhJM7gGQpinXH9kqHkuQ2DMZxspgA7QFAddsUWvZxGdNAkaeKy90EAsTLIuDQnH3plfBQfmL6j5NPaH7Nr7kF1PdvM0pbUw6XHySBYkD/rPHNM6n58NRK4xfO4VVMykeX3+m2LaVyv5s269r/op38svRPT0YFGpRcanY6/U1BeSrvG2IXii1BKXXAcVEN4GFmyEQRWKI0uZE+3M0atf7UEPD4K9tmEKosqdsF4MFLiBtfI4eq0+926ijoezDmUPvHIiyQZ9CH2jZ*6jOgqW/GxL9He1afQiINIg==";
-
-static const char *SIGNATURE_DOGECHAIN = "$dogechain$0";
-
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -49,11 +41,12 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+static const char *SIGNATURE_DOGECHAIN = "$dogechain$0";
+
 typedef struct payload
 {
   u32 pl_buf[64];
   u32 pl_len;
-
 
 } payload_t;
 
@@ -66,7 +59,6 @@ typedef struct doge_tmp
   u32  out[32];
 
 } doge_tmp_t;
-
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -92,6 +84,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
@@ -103,7 +97,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[0] = 12;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH //VERIFY NOT FIXED
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
-  
+
   // iter
   token.sep[1]     = '*';
   token.len_min[1] = 1;
@@ -115,7 +109,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.sep[2]     = '*';
   token.len_min[2] = 320;
   token.len_max[2] = 320;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH 
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A; //verify is b64
 
   // salt
@@ -125,9 +119,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A; //verify is b64
 
-           
+
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
-  
+
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   // Our parsing
@@ -142,8 +136,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int tmp_len = base64_decode (base64_to_int, (const u8 *) data_pos, data_len, tmp_buf);
 
-  
   memcpy (payload->pl_buf, tmp_buf, tmp_len);
+
   payload->pl_len = tmp_len/4;
 
   // salt
@@ -158,8 +152,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
   salt->salt_len = tmp_len;
-  
+
   // iter
+
   const u8 *iter_pos = token.buf[1];
 
   salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
@@ -171,12 +166,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = 0;
   digest[3] = 0;
 
-
   return (PARSER_OK);
-
 }
-
-
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
@@ -184,7 +175,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   return line_len;
 }
-
 
 void module_init (module_ctx_t *module_ctx)
 {
@@ -264,5 +254,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
-  
+
 }
