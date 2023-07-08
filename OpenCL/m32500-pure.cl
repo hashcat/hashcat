@@ -419,24 +419,25 @@ KERNEL_FQ void m32500_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
   u32 isAscii = 0;
 
   // ct
-  u32 ct_buf[4] = {0}; //ct is the payload (- the first 4 u32s)
-  u32 pt_buf[4] = {0};
+  u32 ct_buf[4];
 
   // Padding is Crypto.pad.iso10126 -pads with random bytes until the last byte, and which defines the number of padding bytes
   // So knocking off last block to not account for any non-ascii padding
   // todo: pkcs_padding_bs16() might be able to replace this
 
-  for (u32 i=4; i < esalt_bufs[DIGESTS_OFFSET_HOST].pl_len-4; i+=4)
+  for (u32 i = 4, j = 16; j < esalt_bufs[DIGESTS_OFFSET_HOST].pl_len - 16; i += 4, j += 16)
   {
-    ct_buf[0] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i    ]);
-    ct_buf[1] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i + 1]);
-    ct_buf[2] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i + 2]);
-    ct_buf[3] = hc_swap32(esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i + 3]);
+    ct_buf[0] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i + 0]);
+    ct_buf[1] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i + 1]);
+    ct_buf[2] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i + 2]);
+    ct_buf[3] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].pl_buf[i + 3]);
+
+    u32 pt_buf[4];
 
     AES256_decrypt (ks, ct_buf, pt_buf, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-    for(u32 x = 0; x < 4; x ++)
-      {
+    for (u32 x = 0; x < 4; x++)
+    {
       pt_buf[x] ^= prev_ct[x];
       isAscii |= pt_buf[x] & 0x80808080; //check the ciphertext is human readable
       prev_ct[x] = ct_buf[x];            //set previous CT as the new IV for the next block

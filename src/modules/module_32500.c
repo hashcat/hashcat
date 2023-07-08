@@ -21,7 +21,7 @@ static const char *HASH_NAME      = "Dogechain";
 static const u64   KERN_TYPE      = 32500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64   OPTS_TYPE      = OPTS_TYPE_HASH_COPY;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$dogechain$0*5000*EEmAkgiMlVrToRhu2suq91R5Frf+VQCvNzv9lj6OwRWIf/3IM31wqhJM7gGQpinXH9kqHkuQ2DMZxspgA7QFAddsUWvZxGdNAkaeKy90EAsTLIuDQnH3plfBQfmL6j5NPaH7Nr7kF1PdvM0pbUw6XHySBYkD/rPHNM6n58NRK4xfO4VVMykeX3+m2LaVyv5s269r/op38svRPT0YFGpRcanY6/U1BeSrvG2IXii1BKXXAcVEN4GFmyEQRWKI0uZE+3M0atf7UEPD4K9tmEKosqdsF4MFLiBtfI4eq0+926ijoezDmUPvHIiyQZ9CH2jZ*6jOgqW/GxL9He1afQiINIg==";
@@ -73,8 +73,6 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
 
   return tmp_size;
 }
-
-
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
@@ -131,23 +129,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *data_pos = token.buf[2];
   const int data_len = token.len[2];
 
-
   u8 tmp_buf[256]  = { 0 };
 
   int tmp_len = base64_decode (base64_to_int, (const u8 *) data_pos, data_len, tmp_buf);
 
   memcpy (payload->pl_buf, tmp_buf, tmp_len);
 
-  payload->pl_len = tmp_len/4;
+  payload->pl_len = tmp_len;
 
   // salt
 
   const u8 *salt_pos = token.buf[3];
-  const int salt_length = token.len[3];
+  const int salt_len = token.len[3];
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  tmp_len = base64_decode (base64_to_int, salt_pos, salt_length, tmp_buf);
+  tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
 
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
@@ -171,9 +168,31 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const int line_len = snprintf (line_buf, line_size, "%s", hash_info->orighash);
+  //const u32 *digest = (const u32 *) digest_buf;
 
-  return line_len;
+  const payload_t *payload = (const payload_t *) esalt_buf;
+
+  // payload
+
+  u8 payload_base64[512];
+
+  base64_encode (int_to_base64, (const u8 *) payload->pl_buf, payload->pl_len, payload_base64);
+
+  // salt
+
+  u8 salt_base64[32];
+
+  base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, salt_base64);
+
+  u8 *out_buf = (u8 *) line_buf;
+
+  int out_len = snprintf ((char *) out_buf, line_size, "%s*%u*%s*%s",
+    SIGNATURE_DOGECHAIN,
+    salt->salt_iter + 1,
+    payload_base64,
+    salt_base64);
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)
