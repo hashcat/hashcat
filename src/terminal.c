@@ -490,7 +490,7 @@ int tty_fix ()
 }
 #endif
 
-#if defined (__APPLE__) || defined (__FreeBSD__)
+#if defined (__APPLE__)
 static struct termios savemodes;
 static int havemodes = 0;
 
