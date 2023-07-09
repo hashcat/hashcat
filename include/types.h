@@ -17,11 +17,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <math.h>
-
-// workaround to get the rid of "redefinition of typedef 'Byte'" build warning
-#if !defined (__APPLE__)
-#include "zlib.h"
-#endif
+#include <zlib.h>
 
 #if !defined(__MACTYPES__)
 #define __MACTYPES__
