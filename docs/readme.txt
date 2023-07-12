@@ -106,6 +106,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - sha1($salt.$pass.$salt)
 - sha1($salt.sha1($pass))
 - sha1($salt.sha1($pass.$salt))
+- sha1($salt.sha1(utf16le($username).':'.utf16le($pass)))
 - sha1($salt.utf16le($pass))
 - sha1($salt1.$pass.$salt2)
 - sha1(CX)
@@ -256,7 +257,6 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - bcrypt $2*$, Blowfish (Unix)
 - md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)
 - descrypt, DES (Unix), Traditional DES
-- sha1($salt.sha1(utf16le($username).':'.utf16le($pass)))
 - sha256crypt $5$, SHA256 (Unix)
 - sha512crypt $6$, SHA512 (Unix)
 - SQLCipher
@@ -369,8 +369,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Mozilla key4.db
 - Apple Keychain
 - 7-Zip
-- RAR3-hp
-- RAR3-p
+- RAR3
 - RAR5
 - PKZIP
 - PKZIP Master Key
@@ -428,6 +427,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - GPG (AES-128/AES-256 (SHA-1($pass)))
 - GPG (AES-128/AES-256 (SHA-512($pass)))
 - GPG (AES-128/AES-256 (SHA-256($pass)))
+- GPG (CAST5 (SHA-1($pass)))
 - RSA/DSA/EC/OpenSSH Private Keys ($0$)
 - RSA/DSA/EC/OpenSSH Private Keys ($6$)
 - RSA/DSA/EC/OpenSSH Private Keys ($1, $3$)
@@ -446,12 +446,18 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MetaMask Wallet (short hash, plaintext check)
 - Bisq .wallet (scrypt)
 - BitShares v0.x - sha512(sha512_bin(pass))
-- Bitcoin WIF private key (P2PKH)
-- Bitcoin WIF private key (P2WPKH, Bech32)
-- Bitcoin WIF private key (P2SH(P2WPKH))
-- Bitcoin raw private key (P2PKH)
-- Bitcoin raw private key (P2WPKH, Bech32)
-- Bitcoin raw private key (P2SH(P2WPKH))
+- Bitcoin WIF private key (P2PKH), compressed
+- Bitcoin WIF private key (P2PKH), uncompressed
+- Bitcoin WIF private key (P2WPKH, Bech32), compressed
+- Bitcoin WIF private key (P2WPKH, Bech32), uncompressed
+- Bitcoin WIF private key (P2SH(P2WPKH)), compressed
+- Bitcoin WIF private key (P2SH(P2WPKH)), uncompressed
+- Bitcoin raw private key (P2PKH), compressed
+- Bitcoin raw private key (P2PKH), uncompressed
+- Bitcoin raw private key (P2WPKH, Bech32), compressed
+- Bitcoin raw private key (P2WPKH, Bech32), uncompressed
+- Bitcoin raw private key (P2SH(P2WPKH)), compressed
+- Bitcoin raw private key (P2SH(P2WPKH)), uncompressed
 - Bitcoin/Litecoin wallet.dat
 - Electrum Wallet (Salt-Type 1-3)
 - Electrum Wallet (Salt-Type 4)
@@ -459,6 +465,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
 - Blockchain, My Wallet, Second Password (SHA256)
+- Dogechain.info Wallet
 - Stargazer Stellar Wallet XLM
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256
