@@ -387,6 +387,7 @@ LFLAGS_NATIVE           += -Wl,--dynamicbase
 LFLAGS_NATIVE           += -Wl,--nxcompat
 LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
+LFLAGS_NATIVE           += -ldl
 LFLAGS_NATIVE           += -lws2_32
 LFLAGS_NATIVE           += -lpowrprof
 endif # MSYS2
