@@ -129,6 +129,7 @@
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
 - Help: show supported hash-modes only with -hh
 - Makefile: prevent make failure with Apple Silicon in case of partial rebuild
+- Rules: Rename best64.rule to best66.rule and remove the unknown section from it
 
 * changes v6.2.5 -> v6.2.6
 
