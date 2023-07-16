@@ -717,6 +717,7 @@ typedef enum user_options_defaults
   VERACRYPT_PIM_START      = 485,
   VERACRYPT_PIM_STOP       = 485,
   WORDLIST_AUTOHEX_DISABLE = false,
+  WORDLIST_COUNT           = 0,
   WORKLOAD_PROFILE         = 2,
 
 } user_options_defaults_t;
@@ -841,6 +842,7 @@ typedef enum user_options_map
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff53,
+  IDX_WORDLIST_COUNT            = 0xff54,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -2354,6 +2356,7 @@ typedef struct user_options
   bool         remove;
   bool         restore;
   bool         restore_disable;
+  bool         rule_buf_l_chgd;
   bool         self_test_disable;
   bool         show;
   bool         slow_candidates;
@@ -2365,6 +2368,7 @@ typedef struct user_options
   bool         username;
   bool         veracrypt_pim_start_chgd;
   bool         veracrypt_pim_stop_chgd;
+  bool         wordlist_count_chgd;
   bool         version;
   bool         wordlist_autohex_disable;
   #ifdef WITH_BRAIN
@@ -2441,6 +2445,7 @@ typedef struct user_options
   u32          usage;
   u32          veracrypt_pim_start;
   u32          veracrypt_pim_stop;
+  u64          wordlist_count;
   u32          workload_profile;
   u64          limit;
   u64          skip;

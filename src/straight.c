@@ -13,6 +13,7 @@
 #include "rp.h"
 #include "wordlist.h"
 #include "straight.h"
+#include "user_options.h"
 
 static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
 {
@@ -80,7 +81,15 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      const int rc = count_words (hashcat_ctx, &fp, straight_ctx->dict, &status_ctx->words_cnt);
+      int rc = 0;
+      if (user_options->wordlist_count > 0)
+      {
+        status_ctx->words_cnt = user_options->wordlist_count * straight_ctx->kernel_rules_cnt;
+      }
+      else
+      {
+        rc = count_words (hashcat_ctx, &fp, straight_ctx->dict, &status_ctx->words_cnt);
+      }
 
       hc_fclose (&fp);
 
@@ -97,6 +106,10 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
         return 0;
       }
+    }
+    else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+    {
+      status_ctx->words_cnt = user_options->wordlist_count * straight_ctx->kernel_rules_cnt;
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
