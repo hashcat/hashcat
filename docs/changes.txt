@@ -24,6 +24,7 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-1($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-256($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
+- Added hash-mode: GPG (CAST5 (SHA-1($pass)))
 - Added hash-mode: Kerberos 5, etype 17, AS-REP
 - Added hash-mode: Kerberos 5, etype 18, AS-REP
 - Added hash-mode: MetaMask Mobile Wallet
@@ -32,10 +33,10 @@
 - Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA1)
 - Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA256)
 - Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA512)
+- Added hash-mode: NetIQ SSPR (SHA1)
 - Added hash-mode: NetIQ SSPR (SHA-1 with Salt)
 - Added hash-mode: NetIQ SSPR (SHA-256 with Salt)
 - Added hash-mode: NetIQ SSPR (SHA-512 with Salt)
-- Added hash-mode: NetIQ SSPR (SHA1)
 - Added hash-mode: RSA Security Analytics / NetWitness (sha256)
 - Added hash-mode: SecureCRT MasterPassphrase v2
 - Added hash-mode: Veeam VB
@@ -51,7 +52,6 @@
 - Added hash-mode: md5(sha1($salt.$pass))
 - Added hash-mode: sha512(sha512($pass).$salt)
 - Added hash-mode: sha512(sha512_bin($pass).$salt)
-- Added hash-mode: GPG (CAST5 (SHA-1($pass)))
 
 ##
 ## Features
