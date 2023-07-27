@@ -107,7 +107,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     iter = hc_strtoul ((const char *) token.buf[1] + 2, NULL, 10);
   }
 
-  // iter++; the additinal round is added in the init kernel
+  // iter++; the additional round is added in the init kernel
 
   salt->salt_iter = iter;
 

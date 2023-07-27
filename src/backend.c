@@ -1055,8 +1055,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     // - hooks can have a large influence depending on the OS.
     //   spawning threads and memory allocations take a lot of time on windows (compared to linux).
     // - the kernel execution can take shortcuts based on intermediate values
-    //   while these intermediate valus depend on input values.
-    // - if we meassure runtimes of different kernels to find out about their weightning
+    //   while these intermediate values depend on input values.
+    // - if we measure runtimes of different kernels to find out about their weightning
     //   we need to call them with real input values otherwise we miss the shortcuts inside the kernel.
     // - the problem is that these real input values could crack the hash which makes the chaos perfect.
     //
@@ -1589,7 +1589,7 @@ static void rebuild_pws_compressed_append (hc_device_param_t *device_param, cons
     const u32 dst_pw_len4_cnt = dst_pw_len4 / 4;
 
     pw_idx_dst->cnt = dst_pw_len4_cnt;
-    pw_idx_dst->len = src_len; // this is intenionally! src_len can not be dst_len, we dont want the kernel to think 0x80 is part of the password
+    pw_idx_dst->len = src_len; // this is intentionally! src_len can not be dst_len, we dont want the kernel to think 0x80 is part of the password
 
     u8 *dst = (u8 *) (tmp_pws_comp + pw_idx_dst->off);
 
@@ -3512,7 +3512,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     if (iconv_ctx == (iconv_t) -1) return -1;
   }
 
-  // find higest password length, this is for optimization stuff
+  // find highest password length, this is for optimization stuff
 
   u32 highest_pw_len = 0;
 

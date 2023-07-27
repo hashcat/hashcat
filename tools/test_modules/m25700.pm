@@ -115,7 +115,7 @@ sub module_generate_hash
 
   my $salt_bin = pack ("H*", $salt);
 
-  my $seed = unpack ("N", $salt_bin); # or maybe "L" ? not enought example data to clarify
+  my $seed = unpack ("N", $salt_bin); # or maybe "L" ? not enough example data to clarify
 
   my $digest = MurmurHash ($word, $seed);
 

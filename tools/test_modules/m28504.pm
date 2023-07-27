@@ -26,7 +26,7 @@ sub module_constraints { [[51, 51], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {
-  my $word = shift; # expecting valid WIF formated private key
+  my $word = shift; # expecting valid WIF formatted private key
 
   my @is_valid_base58 = eval
   {

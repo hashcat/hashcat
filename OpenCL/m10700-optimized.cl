@@ -323,7 +323,7 @@ DECLSPEC u32 do_round (LOCAL_AS u32 *sc, PRIVATE_AS const u32 *pw, const u32 pw_
 
   make_sc (sc, pw, pw_len, ctx->dgst32, ctx->dgst_len);
 
-  // make sure pwbl_len is calculcated before it gets changed
+  // make sure pwbl_len is calculated before it gets changed
 
   const u32 pwbl_len = pw_len + ctx->dgst_len;
 

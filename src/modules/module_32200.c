@@ -101,7 +101,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                 | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   /**
-   * Haschat
+   * Hashcat
    * format 1: $krb5asrep$18$user$realm$checksum$edata2
    *
    * JtR

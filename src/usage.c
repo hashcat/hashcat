@@ -98,7 +98,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --backend-ignore-hip       |      | Do not try to open HIP interface on startup          |",
   "     --backend-ignore-metal     |      | Do not try to open Metal interface on startup        |",
   "     --backend-ignore-opencl    |      | Do not try to open OpenCL interface on startup       |",
-  " -I, --backend-info             |      | Show system/evironment/backend API info              | -I or -II",
+  " -I, --backend-info             |      | Show system/environment/backend API info             | -I or -II",
   " -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1",
   " -Y, --backend-devices-virtual  | Num  | Spawn X virtual instances for each real device       | -Y 8",
   " -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1",

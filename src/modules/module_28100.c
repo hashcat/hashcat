@@ -277,7 +277,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   winhello->mk_buf_pc[6] = 0;
   winhello->mk_buf_pc[7] = 0;
 
-  // yes we can precompute the first block of both sha512 here, because length is 128 + hmac lenght + magic length, but
+  // yes we can precompute the first block of both sha512 here, because length is 128 + hmac length + magic length, but
   // speed improvement is negligible, but readability would drop a lot
 
   return (PARSER_OK);
