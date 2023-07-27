@@ -988,7 +988,7 @@ static void main_hashconfig_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE
   {
     if (hashconfig->opti_type & OPTI_TYPE_RAW_HASH)
     {
-      event_log_info (hashcat_ctx, "Minimim salt length supported by kernel: %u", hashconfig->salt_min);
+      event_log_info (hashcat_ctx, "Minimum salt length supported by kernel: %u", hashconfig->salt_min);
       event_log_info (hashcat_ctx, "Maximum salt length supported by kernel: %u", hashconfig->salt_max);
     }
   }
