@@ -41,14 +41,14 @@ int hiprtc_init (void *hashcat_ctx)
   #if   defined (_WIN)
   hiprtc->lib = hc_dlopen ("hiprtc.dll");
 
-  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("contrib/bin/win64/hiprtc0503.dll");
+  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("C:/Program Files/AMD/ROCm/5.5/bin/hiprtc0505.dll");
   if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("amdhip64.dll");
   #elif defined (__APPLE__)
   hiprtc->lib = hc_dlopen ("fixme.dylib");
   #elif defined (__CYGWIN__)
   hiprtc->lib = hc_dlopen ("hiprtc.dll");
 
-  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("contrib/bin/win64/hiprtc0503.dll");
+  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("C:/Program Files/AMD/ROCm/5.5/bin/hiprtc0505.dll");
   if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("amdhip64.dll");
   #else
   hiprtc->lib = hc_dlopen ("libhiprtc.so");
