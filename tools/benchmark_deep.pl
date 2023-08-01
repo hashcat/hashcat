@@ -379,7 +379,7 @@ chdir ($hashcat_path);
 
 for my $hash_type (@hash_types)
 {
-  # banchmark always in optimized mode with single hash and mask!
+  # benchmark always in optimized mode with single hash and mask!
 
   my $mask = $default_mask;
 
@@ -521,7 +521,7 @@ sub get_module
     {
       if (($hash_type == 22000) || ($hash_type == 22001))
       {
-        ## problem while in -m 2500 backward compatiblity mode
+        ## problem while in -m 2500 backward compatibility mode
       }
       else
       {

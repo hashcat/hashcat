@@ -429,7 +429,7 @@ KERNEL_FQ void m31800_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, onepasswo
 
   /*
   const int pt_len = 28; // not using 32 byte but 28 because our UTF8 allows up to 4 byte per character and since we decrypt 32 byte
-                         // only we can't garantee it is not in the middle of a UTF8 byte stream at that point
+                         // only we can't guarantee it is not in the middle of a UTF8 byte stream at that point
 
   if (hc_enc_scan (pt, pt_len))
   {

@@ -11,7 +11,7 @@
  *
  * There are four variables where major differences occur:
  *
- *   -  P2: Adress space of kernel_rules_t struct.
+ *   -  P2: Address space of kernel_rules_t struct.
  *          If the kernel uses rules_buf, it will be stored in CONSTANT_AS.
  *          If it does not, cheaper GLOBAL_AS space is used.
  *

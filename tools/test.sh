@@ -218,7 +218,7 @@ function init()
       echo "They will be fetched from ${luks_tests_url}"
       echo "Note: this needs to be done only once and could take a little bit to download/extract."
       echo "These luks test files are not shipped directly with hashcat because the file sizes are"
-      echo "particularily large and therefore a bandwidth burner for users who do not run these tests."
+      echo "particularly large and therefore a bandwidth burner for users who do not run these tests."
       echo ""
 
       # download:

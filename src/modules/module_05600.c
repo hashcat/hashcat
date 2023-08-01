@@ -196,7 +196,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[3] = hex_to_u32 (hash_pos + 24);
 
   /**
-   * reuse challange data as salt_buf, its the buffer that is most likely unique
+   * reuse challenge data as salt_buf, its the buffer that is most likely unique
    */
 
   salt->salt_buf[0] = 0;

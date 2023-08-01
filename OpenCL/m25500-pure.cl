@@ -371,7 +371,7 @@ KERNEL_FQ void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   */
 
   /*
-  // decrypt buffer is not usefull here, skip
+  // decrypt buffer is not useful here, skip
   u32 dec[14] = { 0 };
 
   AES_GCM_GCTR (key, J0, enc, enc_len, dec, s_te0, s_te1, s_te2, s_te3, s_te4);

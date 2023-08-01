@@ -116,14 +116,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  // salt in alternate base64 repretentation
+  // salt in alternate base64 representation
   token.sep[3]     = '$';
   token.len_min[3] = SALT_MIN;
   token.len_max[3] = SALT_MAX;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64B;
 
-  // payload in alternate base64 representanion
+  // payload in alternate base64 representation
   token.sep[4]     = '$';
   token.len[4]     = HASH_LEN_B64;
   token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH

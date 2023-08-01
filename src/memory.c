@@ -70,7 +70,7 @@ void hcfree (void *ptr)
 void *hcmalloc_aligned (const size_t sz, const int align)
 {
   // store the original allocated address so we can later use it to free the memory
-  // this is convinient to use because we don't need to store two memory addresses
+  // this is convenient to use because we don't need to store two memory addresses
 
   const int align1 = align - 1;
 

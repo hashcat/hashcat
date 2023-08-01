@@ -228,7 +228,7 @@
 - Hardware Monitor: Add support for GPU device utilization readings using iokit on Apple Silicon (OpenCL and Metal)
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
-- HIP Backend: removed unused functions from hiprtc to workaroung missing function symbols on windows dll
+- HIP Backend: removed unused functions from hiprtc to workaround missing function symbols on windows dll
 - Kernels: Refactored standard kernel declaration to use a structure holding u32/u64 attributes to reduce the number of attributes
 - Kernels: Refactored standard kernel includes, KERN_ATTR macros and RC4 cipher functions, in order to support Apple Metal runtime
 - Kernels: Set the default Address Space Qualifier for any pointer, in order to support Apple Metal runtime
@@ -254,7 +254,7 @@
 - Rules: Add support to include source wordlist in debugging format
 - Rules: Update hand-written rulesets to covers years up to 2029
 - Status code: updated negative status code (added kernel create failure and resync)
-- Status code: updated negative status code, usefull in Unit tests engine (test.sh)
+- Status code: updated negative status code, useful in Unit tests engine (test.sh)
 - Terminal: Increased size of hash name column in `--help` and `--identify` options
 - Terminal: Limit output length of example hash in --example-hash mode to 200. Use --mach to see full example hash
 - Terminal: show empty OpenCL platforms only in backend information mode
@@ -666,7 +666,7 @@
 - Building: Fixed build warnings on macOS for unrar sources
 - Building: Fixed test for DARWIN_VERSION in Makefile
 - Commandline Options: Removed option --example-hashes, now an alias of --hash-info
-- Compute API: Skipping devices instead of stop if error occured in initialization
+- Compute API: Skipping devices instead of stop if error occurred in initialization
 - Documentation: Added 3rd party licenses to docs/license_libs
 - Hash-Mode 8900 (Scrypt): Changed default benchmark scrypt parameters from 1k:1:1 to 16k:8:1 (default)
 - Hash-Mode 11600 (7-Zip): Improved memory handling (alloc and free) for the hook function
@@ -732,7 +732,7 @@
 - Hcchr Files: Renamed some .charset files into .hcchr files
 - Hash-Mode 21200 (md5(sha1($salt).md5($pass))): Improved speed by using pre-computed SHA1
 - OpenCL Devices: Utilize PCI domain to improve alias device detection
-- OpenCL Kernels: Added datatypes to literals of enum costants
+- OpenCL Kernels: Added datatypes to literals of enum constants
 - OpenCL Kernels: Added pure kernels for hash-mode 600 (BLAKE2b-512)
 - OpenCL Runtime: Add some unstable warnings for some SHA512 based algorithms on AMD GPU on macOS
 - OpenCL Runtime: Reinterpret return code CL_DEVICE_NOT_FOUND from clGetDeviceIDs() as non-fatal
@@ -865,7 +865,7 @@
 
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
 - Brain: Added new parameter --brain-server-timer to specify seconds between scheduled backups
-- Building: Fix for library compilation failure due to multiple defenition of sbob_xx64()
+- Building: Fix for library compilation failure due to multiple definition of sbob_xx64()
 - Cracking bcrypt and Password Safe v2: Use feedback from the compute API backend to dynamically calculate optimal thread count
 - Dictstat: On Windows, the st_ino attribute in the stat struct is not set, which can lead to invalid cache hits. Added the filename to the database entry.
 - Documents: Added README on how to build hashcat on Cygwin, MSYS2 and WSL
@@ -903,7 +903,7 @@
 ## Technical
 ##
 
-- Backend Interface: Added new options --backend-ignore-cuda and --backend-ingore-opencl to prevent CUDA and/or OpenCL API from being used
+- Backend Interface: Added new options --backend-ignore-cuda and --backend-ignore-opencl to prevent CUDA and/or OpenCL API from being used
 - Binary Distribution: Removed 32-bit binary executables
 - Building: On macOS, switch from ar to /usr/bin/ar to improve building compatibility
 - Building: Skipping Travis/Appveyor build for non-code changes
@@ -1261,7 +1261,7 @@
 - Added option --optimized-kernel-enable to use faster kernels but limit the maximum supported password- and salt-length
 - Added self-test functionality to detect broken OpenCL runtimes on startup
 - Added option --self-test-disable to disable self-test functionality on startup
-- Added option --wordlist-autohex-disable to disable the automatical conversion of $HEX[] words from the word list
+- Added option --wordlist-autohex-disable to disable the automatic conversion of $HEX[] words from the word list
 - Added option --example-hashes to show an example hash for each hash-mode
 - Removed option --weak-hash-check (zero-length password check) to increase startup time, it also causes many Trap 6 error on macOS
 
@@ -1278,7 +1278,7 @@
 
 - Fixed a buffer overflow in mangle_dupechar_last function
 - Fixed a calculation error in get_power() leading to errors of type "BUG pw_add()!!"
-- Fixed a memory problem that occured when the OpenCL folder was not found and e.g. the shared and session folder were the same
+- Fixed a memory problem that occurred when the OpenCL folder was not found and e.g. the shared and session folder were the same
 - Fixed a missing barrier() call in the RACF OpenCL kernel
 - Fixed a missing salt length value in benchmark mode for SIP
 - Fixed an integer overflow in hash buffer size calculation
@@ -1463,7 +1463,7 @@
 - Added support for filtering hccapx message pairs using --hccapx-message-pair
 - Added support for parsing 7-Zip hashes with LZMA/LZMA2 compression indicator set to a non-zero value
 - Added support for decompressing LZMA1/LZMA2 data for -m 11600 = 7-Zip to validate the CRC
-- Added support for automatic merge of LM halfes in case --show and --left is used
+- Added support for automatic merge of LM halves in case --show and --left is used
 - Added support for showing all user names with --show and --left if --username was specified
 - Added support for GPU temperature management on cygwin build
 
@@ -1538,7 +1538,7 @@
 - Hardware Management: Bring back kernel exec timeout detection for NVidia on user request
 - Hardware Monitor: Fixed several memory leaks in case hash-file writing (caused by --remove) failed
 - Hardware Monitor: Fixed several memory leaks in case no hardware monitor sensor is found
-- Hardware Monitor: In case NVML initialization failed, do not try to initialiaze NVAPI or XNVCTRL because they both depend on NVML
+- Hardware Monitor: In case NVML initialization failed, do not try to initialize NVAPI or XNVCTRL because they both depend on NVML
 - Hash Parsing: Added additional bound checks for the SIP digest authentication (MD5) parser (-m 11400)
 - Hash Parsing: Make sure that all files are correctly closed whenever a hash file parsing error occurs
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
@@ -1575,7 +1575,7 @@
 ## Features
 ##
 
-- Files: Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
+- Files: Use $HEX[...] in case the password includes the separator character, increases potfile reading performance
 - Files: If the user specifies a folder to scan for wordlists instead of directly a wordlist, then ignore the hidden files
 - Loopback: Include passwords for removed hashes present in the potfile to next loopback iteration
 - New option --progress-only: Quickly provides ideal progress step size and time to process on the user hashes and selected options, then quit
@@ -1682,9 +1682,9 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 ## Bugs
 ##
 
-- Custom charset from file parsing code did not return an error if an error occured
+- Custom charset from file parsing code did not return an error if an error occurred
 - Fix some clSetKernelArg() size error that caused slow modes to not work anymore in -a 1 mode
-- Hash-mode 11600 = (7-Zip): Depending on input hash a clEnqueueReadBuffer(): CL_INVALID_VALUE error occured
+- Hash-mode 11600 = (7-Zip): Depending on input hash a clEnqueueReadBuffer(): CL_INVALID_VALUE error occurred
 - Hash-mode 22 = Juniper Netscreen/SSG (ScreenOS): Fix salt length for -m 22 in benchmark mode
 - Hash-Mode 5500 = NetNTLMv1 + ESS: Fix loading of NetNTLMv1 + SSP hash
 - Hash-mode 6000 = RipeMD160: Fix typo in array index number
@@ -1757,12 +1757,12 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Error handling (startup): Added some missing returncode checks to get_exec_path()
 - Fanspeed: Check both fanpolicy and fanspeed returncode and disable retain support if any of them fail
 - Fanspeed: Minimum fanspeed for retain support increased to 33%, same as NV uses as default on windows
-- Fanspeed: Reset PID controler settings to what they were initially
+- Fanspeed: Reset PID controller settings to what they were initially
 - Fanspeed: Set fan speed to default on quit
 - File handling: Do a single write test (for files to be written later) directly on startup
 - File locking: Use same locking mechanism in potfile as in outfile
 - Hardware management: Fixed calling conventions for ADL, NvAPI and NVML on windows
-- Hardware management: Improved checking for successfull load of the NVML API
+- Hardware management: Improved checking for successful load of the NVML API
 - Hardware management: In case fanspeed can not be set, disable --gpu-temp-retain automatically
 - Hardware management: In case of initialization error show it only once to the user on startup
 - Hardware management: Refactored all code to return returncode (0 or -1) instead of data for more easy error handling
@@ -1866,7 +1866,7 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 
 * changes v2.01 -> v3.00:
 
-This release markes the fusion of "hashcat" and "oclHashcat" into "hashcat".
+This release marks the fusion of "hashcat" and "oclHashcat" into "hashcat".
 It combines all features of all hashcat projects in one project.
 
 ##
@@ -1951,7 +1951,7 @@ It combines all features of all hashcat projects in one project.
 - Fixed a bug in line counter: conditional jump or move depends on an uninitialised value
 - Fixed a bug in rule-engine for NVidia devices: code for left- and right-shift were switched
 - Fixed a bug in dive.rule: rules were not updated after the function 'x' was renamed to 'O'
-- Fixed a bug in memory allocation "OpenCL -4 error": used unitialized value in a special situation
+- Fixed a bug in memory allocation "OpenCL -4 error": used uninitialized value in a special situation
 - Fixed a bug in memory handling: heap buffer overflow
 - Fixed a bug in memory handling: out of bounds access
 - Fixed a bug in implementation of DCC2: forced default iteration count for hashes to 10240

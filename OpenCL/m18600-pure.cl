@@ -350,7 +350,7 @@ DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u64 key, const u32 val)
 
 #else
 
-// access pattern: linear access with S offset already set to right offset based on thread ID saving it from compuation
+// access pattern: linear access with S offset already set to right offset based on thread ID saving it from computation
 //                 makes sense if there are not thread ID's (for instance on CPU)
 
 DECLSPEC inline u32 GET_KEY32 (LOCAL_AS u32 *S, const u64 key)

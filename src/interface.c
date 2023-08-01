@@ -137,7 +137,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  // check for missing pointer assignements
+  // check for missing pointer assignments
 
   #define CHECK_DEFINED(func)                                                     \
     if ((func) == NULL)                                                           \
@@ -818,7 +818,7 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
 
 u32 default_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // salt_min : this limit is only interessting for generic hash types that support a salt
+  // salt_min : this limit is only interesting for generic hash types that support a salt
 
   u32 salt_min = SALT_MIN;
 
@@ -837,7 +837,7 @@ u32 default_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
 {
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  // salt_max : this limit is only interessting for generic hash types that support a salt
+  // salt_max : this limit is only interesting for generic hash types that support a salt
 
   u32 salt_max = SALT_MAX;
 
