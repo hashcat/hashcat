@@ -69,6 +69,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Keccak-384
 - Keccak-512
 - Whirlpool
+- CubeCart (Whirlpool($salt.$pass.$salt))
 - SipHash
 - md5(utf16le($pass))
 - sha1(utf16le($pass))

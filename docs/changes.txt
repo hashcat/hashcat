@@ -13,6 +13,7 @@
 - Added hash-mode: Bitcoin raw private key (P2SH(P2WPKH))
 - Added hash-mode: Bitcoin raw private key (P2WPKH, Bech32)
 - Added hash-mode: BLAKE2s-256
+- Added hash-mode: CubeCart (Whirlpool($salt.$pass.$salt)
 - Added hash-mode: Dahua NVR/DVR/HVR (md5($salt1.strtoupper(md5($salt2.$pass))))
 - Added hash-mode: DANE RFC7929/RFC8162 SHA2-256
 - Added hash-mode: Dogechain.info Wallet
