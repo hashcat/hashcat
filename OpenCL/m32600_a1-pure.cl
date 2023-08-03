@@ -3,18 +3,18 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
-#include M2S(INCLUDE_PATH/inc_simd.cl)
+#include M2S(INCLUDE_PATH/inc_scalar.cl)
 #include M2S(INCLUDE_PATH/inc_hash_whirlpool.cl)
 #endif
 
-KERNEL_FQ void m06150_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m32600_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -68,19 +68,6 @@ KERNEL_FQ void m06150_mxx (KERN_ATTR_VECTOR ())
 
   if (gid >= GID_CNT) return;
 
-  /**
-   * base
-   */
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32x w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
-
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32x s[64] = { 0 };
@@ -90,44 +77,42 @@ KERNEL_FQ void m06150_mxx (KERN_ATTR_VECTOR ())
     s[idx] = hc_swap32 (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
-  whirlpool_ctx_vector_t ctx0;
+  /**
+   * base
+   */
 
-  whirlpool_init_vector (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+  whirlpool_ctx_t ctx0;
 
-  whirlpool_update_vector (&ctx0, s, salt_len);
+  whirlpool_init (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+
+  whirlpool_update (&ctx0, s, salt_len);
+
+  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
    */
 
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    whirlpool_ctx_t ctx = ctx0;
 
-    const u32x w0 = w0l | w0r;
+    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    w[0] = w0;
+    whirlpool_update (&ctx, s, salt_len);
 
-    whirlpool_ctx_vector_t ctx = ctx0;
+    whirlpool_final (&ctx);
 
-    whirlpool_update_vector (&ctx, w, pw_len);
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
 
-    whirlpool_update_vector (&ctx, s, salt_len);
-
-    whirlpool_final_vector (&ctx);
-
-    const u32x r0 = ctx.h[DGST_R0];
-    const u32x r1 = ctx.h[DGST_R1];
-    const u32x r2 = ctx.h[DGST_R2];
-    const u32x r3 = ctx.h[DGST_R3];
-
-    COMPARE_M_SIMD (r0, r1, r2, r3);
+    COMPARE_M_SCALAR (r0, r1, r2, r3);
   }
 }
 
-KERNEL_FQ void m06150_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void m32600_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -193,19 +178,6 @@ KERNEL_FQ void m06150_sxx (KERN_ATTR_VECTOR ())
     digests_buf[DIGESTS_OFFSET_HOST].digest_buf[DGST_R3]
   };
 
-  /**
-   * base
-   */
-
-  const u32 pw_len = pws[gid].pw_len;
-
-  u32x w[64] = { 0 };
-
-  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-  {
-    w[idx] = pws[gid].i[idx];
-  }
-
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
   u32x s[64] = { 0 };
@@ -215,39 +187,37 @@ KERNEL_FQ void m06150_sxx (KERN_ATTR_VECTOR ())
     s[idx] = hc_swap32 (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
   }
 
-  whirlpool_ctx_vector_t ctx0;
+  /**
+   * base
+   */
 
-  whirlpool_init_vector (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+  whirlpool_ctx_t ctx0;
 
-  whirlpool_update_vector (&ctx0, s, salt_len);
+  whirlpool_init (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+
+  whirlpool_update (&ctx0, s, salt_len);
+
+  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
    */
 
-  u32x w0l = w[0];
-
-  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
+    whirlpool_ctx_t ctx = ctx0;
 
-    const u32x w0 = w0l | w0r;
+    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
-    w[0] = w0;
+    whirlpool_update (&ctx, s, salt_len);
 
-    whirlpool_ctx_vector_t ctx = ctx0;
+    whirlpool_final (&ctx);
 
-    whirlpool_update_vector (&ctx, w, pw_len);
+    const u32 r0 = ctx.h[DGST_R0];
+    const u32 r1 = ctx.h[DGST_R1];
+    const u32 r2 = ctx.h[DGST_R2];
+    const u32 r3 = ctx.h[DGST_R3];
 
-    whirlpool_update_vector (&ctx, s, salt_len);
-
-    whirlpool_final_vector (&ctx);
-
-    const u32x r0 = ctx.h[DGST_R0];
-    const u32x r1 = ctx.h[DGST_R1];
-    const u32x r2 = ctx.h[DGST_R2];
-    const u32x r3 = ctx.h[DGST_R3];
-
-    COMPARE_S_SIMD (r0, r1, r2, r3);
+    COMPARE_S_SCALAR (r0, r1, r2, r3);
   }
 }

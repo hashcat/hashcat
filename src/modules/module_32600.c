@@ -18,7 +18,7 @@ static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_16;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
 static const char *HASH_NAME      = "CubeCart (whirlpool($salt.$pass.$salt))";
-static const u64   KERN_TYPE      = 6150;
+static const u64   KERN_TYPE      = 32600;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_RAW_HASH;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
