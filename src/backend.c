@@ -4401,14 +4401,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       event_log_warning (hashcat_ctx, "Support for HIPRTC was dropped by AMD Adrenalin Edition 22.7.1 and later.");
       event_log_warning (hashcat_ctx, "This is not a hashcat problem.");
       event_log_warning (hashcat_ctx, NULL);
-      event_log_warning (hashcat_ctx, "For details please read: https://github.com/hashcat/hashcat/issues/3501");
-      event_log_warning (hashcat_ctx, NULL);
-      event_log_warning (hashcat_ctx, "In order to make HIP work, you have two options:");
-      event_log_warning (hashcat_ctx, "- Install AMD Adrenalin version 22.5.1 EXACTLY");
-      event_log_warning (hashcat_ctx, "- Read the details from the above link for other workarounds");
-      event_log_warning (hashcat_ctx, NULL);
-      event_log_warning (hashcat_ctx, "You can also just stick to OpenCL support.");
-      event_log_warning (hashcat_ctx, "To do this, just use --backend-ignore-hip option to ignore HIP.");
+      event_log_warning (hashcat_ctx, "Please install the AMD HIP SDK");
       event_log_warning (hashcat_ctx, NULL);
       #endif
     }
@@ -4592,7 +4585,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       event_log_warning (hashcat_ctx, "  \"AMDGPU\" (21.50 or later) and \"ROCm\" (5.0 or later)");
       #elif defined (_WIN)
       event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
-      event_log_warning (hashcat_ctx, "  \"AMD Adrenalin Edition\" (Adrenalin 22.5.1 exactly)");
+      event_log_warning (hashcat_ctx, "  \"AMD Adrenalin Edition\" (23.7.2 or later) and \"AMD HIP SDK\" (23.Q3 or later)");
       #endif
 
       event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
@@ -4936,7 +4929,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "  \"AMDGPU\" (21.50 or later) and \"ROCm\" (5.0 or later)");
     #elif defined (_WIN)
     event_log_warning (hashcat_ctx, "* AMD GPUs on Windows require this driver:");
-    event_log_warning (hashcat_ctx, "  \"AMD Adrenalin Edition\" (Adrenalin 22.5.1 exactly)");
+    event_log_warning (hashcat_ctx, "  \"AMD Adrenalin Edition\" (23.7.2 or later) and \"AMD HIP SDK\" (23.Q3 or later)");
     #endif
 
     event_log_warning (hashcat_ctx, "* Intel CPUs require this runtime:");
