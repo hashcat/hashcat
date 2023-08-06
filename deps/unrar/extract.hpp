@@ -6,13 +6,32 @@ enum EXTRACT_ARC_CODE {EXTRACT_ARC_NEXT,EXTRACT_ARC_REPEAT};
 class CmdExtract
 {
   private:
+    struct ExtractRef
+    {
+      wchar *RefName;
+      wchar *TmpName;
+      uint64 RefCount;
+    };
+    Array<ExtractRef> RefList;
+
+    struct AnalyzeData
+    {
+      wchar StartName[NM];
+      uint64 StartPos;
+      wchar EndName[NM];
+      uint64 EndPos;
+    } *Analyze;
+
+    bool ArcAnalyzed;
+
+    void FreeAnalyzeData();
     EXTRACT_ARC_CODE ExtractArchive();
-    bool ExtractFileCopy(File &New,wchar *ArcName,wchar *NameNew,wchar *NameExisting,size_t NameExistingSize);
+    bool ExtractFileCopy(File &New,wchar *ArcName,const wchar *RedirName,wchar *NameNew,wchar *NameExisting,size_t NameExistingSize,int64 UnpSize);
     void ExtrPrepareName(Archive &Arc,const wchar *ArcFileName,wchar *DestName,size_t DestSize);
 #ifdef RARDLL
     bool ExtrDllGetPassword();
 #else
-    bool ExtrGetPassword(Archive &Arc,const wchar *ArcFileName);
+    bool ExtrGetPassword(Archive &Arc,const wchar *ArcFileName,RarCheckPassword *CheckPwd);
 #endif
 #if defined(_WIN_ALL) && !defined(SFX_MODULE)
     void ConvertDosPassword(Archive &Arc,SecPassword &DestPwd);
@@ -21,7 +40,7 @@ class CmdExtract
     bool ExtrCreateFile(Archive &Arc,File &CurFile);
     bool CheckUnpVer(Archive &Arc,const wchar *ArcFileName);
 #ifndef SFX_MODULE
-    bool DetectStartVolume(const wchar *VolName,bool NewNumbering);
+    void AnalyzeArchive(const wchar *ArcName,bool Volume,bool NewNumbering);
     void GetFirstVolIfFullSet(const wchar *SrcName,bool NewNumbering,wchar *DestName,size_t DestSize);
 #endif
 
@@ -52,6 +71,15 @@ class CmdExtract
     bool PrevProcessed; // If previous file was successfully extracted or tested.
     wchar DestFileName[NM];
     bool PasswordCancelled;
+
+    // In Windows it is set to true if at least one symlink with ".."
+    // in target was extracted.
+    bool ConvertSymlinkPaths;
+
+    // Last path checked for symlinks. We use it to improve the performance,
+    // so we do not check recently checked folders again.
+    std::wstring LastCheckedSymlink;
+
 #if defined(_WIN_ALL) && !defined(SFX_MODULE) && !defined(SILENT)
     bool Fat32,NotFat32;
 #endif

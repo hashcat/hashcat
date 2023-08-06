@@ -203,7 +203,7 @@ Each password candidate creates a hash of 8 bytes that has to be transferred, lo
 
 So let's assume a candidate list size of 8,000,000,000. That doesn't sound like too much - especially if you want to work with rules and masks. It should be clear that using the hashcat brain against a raw MD5 is not very efficient. But now things become interesting, because of some unexpected effects that kick in.
 
-Imagine you have a salted MD5 list, let's say VBULL which is a fast hash (not a slow hash) - and you have many of them. In thise case, each of the salts starts to work for us.
+Imagine you have a salted MD5 list, let's say VBULL which is a fast hash (not a slow hash) - and you have many of them. In this case, each of the salts starts to work for us.
 
 Yes, you read that right - the more salts, the better!!
 

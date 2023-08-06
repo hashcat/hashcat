@@ -166,10 +166,10 @@ DECLSPEC void m31300m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     u32x w2[4];
     u32x w3[4];
 
-    w0[0] = a + MD4M_A;
-    w0[1] = b + MD4M_B;
-    w0[2] = c + MD4M_C;
-    w0[3] = d + MD4M_D;
+    w0[0] = a + make_u32x (MD4M_A);
+    w0[1] = b + make_u32x (MD4M_B);
+    w0[2] = c + make_u32x (MD4M_C);
+    w0[3] = d + make_u32x (MD4M_D);
     w1[0] = salt_buf[ 0];
     w1[1] = salt_buf[ 1];
     w1[2] = salt_buf[ 2];
@@ -258,10 +258,10 @@ DECLSPEC void m31300m (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    a = a + MD5M_A;
-    b = b + MD5M_B;
-    c = c + MD5M_C;
-    d = d + MD5M_D;
+    a = a + make_u32x (MD5M_A);
+    b = b + make_u32x (MD5M_B);
+    c = c + make_u32x (MD5M_C);
+    d = d + make_u32x (MD5M_D);
 
     const u32x a1 = a;
     const u32x b1 = b;
@@ -527,10 +527,10 @@ DECLSPEC void m31300s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     u32x w2[4];
     u32x w3[4];
 
-    w0[0] = a + MD4M_A;
-    w0[1] = b + MD4M_B;
-    w0[2] = c + MD4M_C;
-    w0[3] = d + MD4M_D;
+    w0[0] = a + make_u32x (MD4M_A);
+    w0[1] = b + make_u32x (MD4M_B);
+    w0[2] = c + make_u32x (MD4M_C);
+    w0[3] = d + make_u32x (MD4M_D);
     w1[0] = salt_buf[ 0];
     w1[1] = salt_buf[ 1];
     w1[2] = salt_buf[ 2];
@@ -619,10 +619,10 @@ DECLSPEC void m31300s (PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTO
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    a = a + MD5M_A;
-    b = b + MD5M_B;
-    c = c + MD5M_C;
-    d = d + MD5M_D;
+    a = a + make_u32x (MD5M_A);
+    b = b + make_u32x (MD5M_B);
+    c = c + make_u32x (MD5M_C);
+    d = d + make_u32x (MD5M_D);
 
     const u32x a1 = a;
     const u32x b1 = b;

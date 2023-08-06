@@ -40,7 +40,7 @@ typedef struct dpapimk
   u32 SID_offset;
 
   /* here only for possible
-     forward compatibiliy
+     forward compatibility
   */
   // u8 cipher_algo[16];
   // u8 hash_algo[16];

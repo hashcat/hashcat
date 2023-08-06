@@ -35,7 +35,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
   if (user_options->left        == true) return;
   if (user_options->identify    == true) return;
 
-  if (user_options->usage == true)
+  if (user_options->usage > 0)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in help mode", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
@@ -490,7 +490,7 @@ int tty_fix ()
 }
 #endif
 
-#if defined (__APPLE__) || defined (__FreeBSD__)
+#if defined (__APPLE__)
 static struct termios savemodes;
 static int havemodes = 0;
 
@@ -634,6 +634,37 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
   *ptr1 = 0;
 }
 
+void json_encode (char *text, char *escaped)
+{
+  /*
+   * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
+   * are getting escaped before being printed.
+   */
+
+  size_t len = strlen (text);
+  unsigned long i, j;
+
+  for (i = 0, j = 0; i < len; i++, j++)
+  {
+    char c = text[i];
+
+    switch (c)
+    {
+      case '\b': c =  'b'; escaped[j] = '\\'; j++; break;
+      case '\t': c =  't'; escaped[j] = '\\'; j++; break;
+      case '\n': c =  'n'; escaped[j] = '\\'; j++; break;
+      case '\f': c =  'f'; escaped[j] = '\\'; j++; break;
+      case '\r': c =  'r'; escaped[j] = '\\'; j++; break;
+      case '\\': c = '\\'; escaped[j] = '\\'; j++; break;
+      case  '"': c =  '"'; escaped[j] = '\\'; j++; break;
+    }
+
+    escaped[j] = c;
+  }
+
+  escaped[j] = 0;
+}
+
 void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
 {
   if (hashconfig_init (hashcat_ctx) == 0)
@@ -692,13 +723,19 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         {
           printf ("\"example_hash_format\": \"%s\", ", "hex-encoded (binary file only)");
         }
-        printf ("\"example_hash\": \"%s\", ", hashconfig->st_hash);
       }
       else
       {
         printf ("\"example_hash_format\": \"%s\", ", "plain");
-        printf ("\"example_hash\": \"%s\", ", hashconfig->st_hash);
       }
+
+      char *example_hash_json_encoded = (char *) hcmalloc (strlen (hashconfig->st_hash) * 2);
+
+      json_encode ((char *)hashconfig->st_hash, example_hash_json_encoded);
+
+      printf ("\"example_hash\": \"%s\", ", example_hash_json_encoded);
+
+      hcfree (example_hash_json_encoded);
 
       if (need_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), user_options_extra->separator, false))
       {
@@ -1760,37 +1797,6 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
-void json_encode (char *text, char *escaped)
-{
-  /*
-   * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
-   * are getting escaped before being printed.
-   */
-
-  size_t len = strlen (text);
-  unsigned long i, j;
-
-  for (i = 0, j = 0; i < len; i++, j++)
-  {
-    char c = text[i];
-
-    switch (c)
-    {
-      case '\b': c =  'b'; escaped[j] = '\\'; j++; break;
-      case '\t': c =  't'; escaped[j] = '\\'; j++; break;
-      case '\n': c =  'n'; escaped[j] = '\\'; j++; break;
-      case '\f': c =  'f'; escaped[j] = '\\'; j++; break;
-      case '\r': c =  'r'; escaped[j] = '\\'; j++; break;
-      case '\\': c = '\\'; escaped[j] = '\\'; j++; break;
-      case  '"': c =  '"'; escaped[j] = '\\'; j++; break;
-    }
-
-    escaped[j] = c;
-  }
-
-  escaped[j] = 0;
-}
-
 void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
@@ -1893,14 +1899,18 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
 
-  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  for (int device_id = 0, first_dev = 1; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
     if (device_info->skipped_warning_dev == true) continue;
 
-    if (device_id != 0)
+    if (first_dev)
+    {
+      first_dev = 0;
+    }
+    else
     {
       printf (",");
     }

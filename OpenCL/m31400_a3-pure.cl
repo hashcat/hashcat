@@ -1,7 +1,7 @@
 /**
-* Author......: See docs/credits.txt
-* License.....: MIT
-*/
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
 
 #define NEW_SIMD_CODE
 
@@ -142,27 +142,27 @@ DECLSPEC void aes256_scrt_format_VV (PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w,
   #endif
 
   #if VECT_SIZE >= 2
-  u32 tmp_w[64];
+  u32 tmp_w[4];
   u32 tmp_h[8];
   u32 tmp_out[4];
 
   //s0
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s0;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s0;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s0;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s0;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s0 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s0 = tmp_out[i];
 
   //s1
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s1;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s1;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s1;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s1;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s1 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s1 = tmp_out[i];
 
   #endif
 
@@ -170,21 +170,21 @@ DECLSPEC void aes256_scrt_format_VV (PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w,
 
   //s2
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s2;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s2;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s2;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s2;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s2 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s2 = tmp_out[i];
 
   //s3
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s3;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s3;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s3;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s3;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s3 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s3 = tmp_out[i];
 
   #endif
 
@@ -192,39 +192,39 @@ DECLSPEC void aes256_scrt_format_VV (PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w,
 
   //s4
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s4;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s4;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s4;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s4;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s4 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s4 = tmp_out[i];
 
   //s5
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s5;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s5;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s5;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s5;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s5 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s5 = tmp_out[i];
 
   //s6
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s6;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s6;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s6;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s6;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s6 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s6 = tmp_out[i];
 
   //s7
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s7;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s7;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s7;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s7;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s7 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s7 = tmp_out[i];
 
   #endif
 
@@ -232,75 +232,75 @@ DECLSPEC void aes256_scrt_format_VV (PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32x *w,
 
   //s8
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s8;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s8;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s8;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s8;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s8 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s8 = tmp_out[i];
 
   //s9
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].s9;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].s9;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].s9;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].s9;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].s9 = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].s9 = tmp_out[i];
 
   //sa
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].sa;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].sa;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].sa;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].sa;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].sa = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].sa = tmp_out[i];
 
   //sb
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].sb;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].sb;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].sb;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].sb;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].sb = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].sb = tmp_out[i];
 
   //sc
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].sc;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].sc;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].sc;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].sc;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].sc = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].sc = tmp_out[i];
 
   //sd
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].sd;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].sd;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].sd;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].sd;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].sd = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].sd = tmp_out[i];
 
   //se
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].se;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].se;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].se;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].se;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].se = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].se = tmp_out[i];
 
   //sf
 
-  for (u32 i = 0; i < 64; i++) tmp_w[i] = w[i].sf;
-  for (u32 i = 0; i <  8; i++) tmp_h[i] = h[i].sf;
+  for (u32 i = 0; i < 4; i++) tmp_w[i] = w[i].sf;
+  for (u32 i = 0; i < 8; i++) tmp_h[i] = h[i].sf;
 
   aes256_scrt_format (aes_ks, tmp_w, pw_len, tmp_h, tmp_out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  for (u32 i = 0; i <  4; i++) out[i].sf = tmp_out[i];
+  for (u32 i = 0; i < 4; i++) out[i].sf = tmp_out[i];
 
   #endif
 }
@@ -354,9 +354,11 @@ KERNEL_FQ void m31400_mxx (KERN_ATTR_VECTOR_ESALT (scrtv2_t))
    * base
    */
 
-  const u32 pw_len = pws[gid].pw_len;
+  u32 ks[60];
 
   u32x w[64] = {0};
+
+  const u32 pw_len = pws[gid].pw_len;
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
@@ -385,11 +387,9 @@ KERNEL_FQ void m31400_mxx (KERN_ATTR_VECTOR_ESALT (scrtv2_t))
 
     sha256_final_vector (&ctx);
 
-    u32x out[4] = {0};
+    u32x out[4] = { 0 };
 
-    u32 aes_ks[60];
-
-    aes256_scrt_format_VV (aes_ks, w, pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes256_scrt_format_VV (ks, w, pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     const u32x r0 = out[DGST_R0];
     const u32x r1 = out[DGST_R1];
@@ -461,9 +461,11 @@ KERNEL_FQ void m31400_sxx (KERN_ATTR_VECTOR_ESALT (scrtv2_t))
   * base
   */
 
-  const u32 pw_len = pws[gid].pw_len;
+  u32 ks[60];
 
-  u32x w[64] = {0};
+  u32x w[64] = { 0 };
+
+  const u32 pw_len = pws[gid].pw_len;
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
@@ -492,11 +494,9 @@ KERNEL_FQ void m31400_sxx (KERN_ATTR_VECTOR_ESALT (scrtv2_t))
 
     sha256_final_vector (&ctx);
 
-    u32x out[4] = {0};
+    u32x out[4] = { 0 };
 
-    u32 aes_ks[60];
-
-    aes256_scrt_format_VV (aes_ks, w, pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes256_scrt_format_VV (ks, w, pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     const u32x r0 = out[DGST_R0];
     const u32x r1 = out[DGST_R1];

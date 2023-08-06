@@ -39,6 +39,9 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   induct_ctx->enabled = false;
 
+  if (user_options->usage          > 0)    return 0;
+  if (user_options->backend_info   > 0)    return 0;
+
   if (user_options->benchmark     == true) return 0;
   if (user_options->hash_info     == true) return 0;
   if (user_options->keyspace      == true) return 0;
@@ -47,10 +50,8 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->stdout_flag   == true) return 0;
   if (user_options->speed_only    == true) return 0;
   if (user_options->progress_only == true) return 0;
-  if (user_options->usage         == true) return 0;
   if (user_options->version       == true) return 0;
   if (user_options->identify      == true) return 0;
-  if (user_options->backend_info   > 0)    return 0;
 
   if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
    && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)) return 0;

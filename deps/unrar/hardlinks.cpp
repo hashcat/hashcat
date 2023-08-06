@@ -1,7 +1,5 @@
 bool ExtractHardlink(CommandData *Cmd,wchar *NameNew,wchar *NameExisting,size_t NameExistingSize)
 {
-  SlashToNative(NameExisting,NameExisting,NameExistingSize); // Not needed for RAR 5.1+ archives.
-
   if (!FileExist(NameExisting))
   {
     uiMsg(UIERROR_HLINKCREATE,NameNew);

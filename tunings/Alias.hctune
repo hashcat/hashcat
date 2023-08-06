@@ -165,11 +165,25 @@ Tesla_P4                                        ALIAS_nv_sm50_or_higher
 Tesla_P40                                       ALIAS_nv_sm50_or_higher
 Tesla_P100                                      ALIAS_nv_sm50_or_higher
 Tesla_V100                                      ALIAS_nv_sm50_or_higher
+Tesla_T4                                        ALIAS_nv_sm50_or_higher
+
+L4                                              ALIAS_nv_sm50_or_higher
+
+A100-SXM4-40GB                                  ALIAS_nv_sm50_or_higher
+A100-SXM4-80GB                                  ALIAS_nv_sm50_or_higher
+A100-PCIE-40GB                                  ALIAS_nv_sm50_or_higher
+A100-PCIE-80GB                                  ALIAS_nv_sm50_or_higher
 
 Quadro_M2000                                    ALIAS_nv_sm50_or_higher
 Quadro_M4000                                    ALIAS_nv_sm50_or_higher
 Quadro_M5000                                    ALIAS_nv_sm50_or_higher
 Quadro_M6000                                    ALIAS_nv_sm50_or_higher
+
+Quadro_RTX_4000                                 ALIAS_nv_sm50_or_higher
+Quadro_RTX_5000                                 ALIAS_nv_sm50_or_higher
+Quadro_RTX_6000                                 ALIAS_nv_sm50_or_higher
+
+RTX_A6000                                       ALIAS_nv_sm50_or_higher
 
 TITAN_X                                         ALIAS_nv_sm50_or_higher
 TITAN_Xp                                        ALIAS_nv_sm50_or_higher
@@ -236,9 +250,12 @@ GeForce_RTX_3080_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3090                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_3090_Ti                             ALIAS_nv_sm50_or_higher
 
+GeForce_RTX_4070                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_4070_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_4080                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_4090                                ALIAS_nv_sm50_or_higher
+
+
 
 ##
 ## Unmapped GPU

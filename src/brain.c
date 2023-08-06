@@ -2311,7 +2311,7 @@ void *brain_server_handle_client (void *p)
 
   hc_thread_mutex_unlock (brain_server_dbs->mux_dbs);
 
-  // higest position of that attack
+  // highest position of that attack
 
   u64 highest = brain_server_highest_attack (brain_server_db_attack);
 

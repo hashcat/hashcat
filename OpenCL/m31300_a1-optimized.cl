@@ -205,11 +205,10 @@ KERNEL_FQ void m31300_m04 (KERN_ATTR_BASIC ())
     MD4_STEP (MD4_H , c, d, a, b, w1[3], MD4C02, MD4S22);
     MD4_STEP (MD4_H , b, c, d, a, w3[3], MD4C02, MD4S23);
 
-
-    w0[0] = a + MD4M_A;
-    w0[1] = b + MD4M_B;
-    w0[2] = c + MD4M_C;
-    w0[3] = d + MD4M_D;
+    w0[0] = a + make_u32x (MD4M_A);
+    w0[1] = b + make_u32x (MD4M_B);
+    w0[2] = c + make_u32x (MD4M_C);
+    w0[3] = d + make_u32x (MD4M_D);
     w1[0] = salt_buf[ 0];
     w1[1] = salt_buf[ 1];
     w1[2] = salt_buf[ 2];
@@ -298,10 +297,10 @@ KERNEL_FQ void m31300_m04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    a = a + MD5M_A;
-    b = b + MD5M_B;
-    c = c + MD5M_C;
-    d = d + MD5M_D;
+    a = a + make_u32x (MD5M_A);
+    b = b + make_u32x (MD5M_B);
+    c = c + make_u32x (MD5M_C);
+    d = d + make_u32x (MD5M_D);
 
     const u32x a1 = a;
     const u32x b1 = b;
@@ -615,10 +614,10 @@ KERNEL_FQ void m31300_s04 (KERN_ATTR_BASIC ())
     MD4_STEP (MD4_H , b, c, d, a, w3[3], MD4C02, MD4S23);
 
 
-    w0[0] = a + MD4M_A;
-    w0[1] = b + MD4M_B;
-    w0[2] = c + MD4M_C;
-    w0[3] = d + MD4M_D;
+    w0[0] = a + make_u32x (MD4M_A);
+    w0[1] = b + make_u32x (MD4M_B);
+    w0[2] = c + make_u32x (MD4M_C);
+    w0[3] = d + make_u32x (MD4M_D);
     w1[0] = salt_buf[ 0];
     w1[1] = salt_buf[ 1];
     w1[2] = salt_buf[ 2];
@@ -707,10 +706,10 @@ KERNEL_FQ void m31300_s04 (KERN_ATTR_BASIC ())
     MD5_STEP (MD5_I , c, d, a, b, w0[2], MD5C3e, MD5S32);
     MD5_STEP (MD5_I , b, c, d, a, w2[1], MD5C3f, MD5S33);
 
-    a = a + MD5M_A;
-    b = b + MD5M_B;
-    c = c + MD5M_C;
-    d = d + MD5M_D;
+    a = a + make_u32x (MD5M_A);
+    b = b + make_u32x (MD5M_B);
+    c = c + make_u32x (MD5M_C);
+    d = d + make_u32x (MD5M_D);
 
     const u32x a1 = a;
     const u32x b1 = b;

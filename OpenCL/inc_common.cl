@@ -1317,6 +1317,16 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
   #endif
 
+  #elif defined IS_METAL
+
+  const u32x a0 = h32_from_64 (v);
+  const u32x a1 = l32_from_64 (v);
+
+  u32x t0 = hc_swap32 (a0);
+  u32x t1 = hc_swap32 (a1);
+
+  r = hl32_to_64 (t1, t0);
+
   #else
 
   #if defined USE_BITSELECT && defined USE_ROTATE
@@ -1380,7 +1390,19 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
   asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
 
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+
+  #elif defined IS_METAL
+
+  const u32 v0 = h32_from_64_S (v);
+  const u32 v1 = l32_from_64_S (v);
+
+  u32 t0 = hc_swap32_S (v0);
+  u32 t1 = hc_swap32_S (v1);
+
+  r = hl32_to_64_S (t1, t0);
+
   #else
+
   #ifdef USE_SWIZZLE
   r = as_ulong (as_uchar8 (v).s76543210);
   #else

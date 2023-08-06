@@ -39,6 +39,8 @@ int  backend_session_update_combinator      (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp              (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp_rl           (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r);
 
+u32  backend_device_idx_real_from_virtual   (const u32 device_idx, const u32 backend_devices_virtual);
+
 void generate_source_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
 void generate_cached_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
 void generate_source_kernel_shared_filename (char *shared_dir, char *source_file);
@@ -47,6 +49,8 @@ void generate_source_kernel_mp_filename     (const u32 opti_type, const u64 opts
 void generate_cached_kernel_mp_filename     (const u32 opti_type, const u64 opts_type, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
 void generate_source_kernel_amp_filename    (const u32 attack_kern, char *shared_dir, char *source_file);
 void generate_cached_kernel_amp_filename    (const u32 attack_kern, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
+
+bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources);
 
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 

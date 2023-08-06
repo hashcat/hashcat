@@ -112,6 +112,15 @@ typedef u64  u64x;
 
 #if defined IS_CUDA || defined IS_HIP
 
+#ifndef __device_builtin__
+#define __device_builtin__
+#endif
+
+#ifndef __builtin_align__
+#define __builtin_align__(x)
+#endif
+
+
 #if VECT_SIZE == 2
 
 struct __device_builtin__ __builtin_align__(2) u8x

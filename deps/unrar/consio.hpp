@@ -4,6 +4,7 @@
 void InitConsole();
 void SetConsoleMsgStream(MESSAGE_TYPE MsgStream);
 void SetConsoleRedirectCharset(RAR_CHARSET RedirectCharset);
+void ProhibitConsoleInput();
 void OutComment(const wchar *Comment,size_t Size);
 
 #ifndef SILENT

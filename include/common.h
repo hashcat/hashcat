@@ -76,7 +76,7 @@
 #endif
 
 /* The C++ standard denies redefinition of keywords,
-but this is nededed for VS compiler which doesn't have inline keyword but has __inline
+but this is needed for VS compiler which doesn't have inline keyword but has __inline
 */
 #ifndef __cplusplus
 #if defined (_MSC_VER)

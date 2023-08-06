@@ -18,4 +18,7 @@ void *hcrealloc (void *ptr, const size_t oldsz, const size_t addsz);
 char *hcstrdup  (const char *s);
 void  hcfree    (void *ptr);
 
+void *hcmalloc_aligned (const size_t sz, const int align);
+void  hcfree_aligned   (void *ptr);
+
 #endif // HC_MEMORY_H

@@ -47,7 +47,7 @@ KERNEL_FQ void m31000_mxx (KERN_ATTR_RULES ())
     blake2s_init   (&ctx);
     blake2s_update (&ctx, tmp.i, tmp.pw_len);
     blake2s_final  (&ctx);
-    
+
     const u32 r0 = ctx.h[DGST_R0];
     const u32 r1 = ctx.h[DGST_R1];
     const u32 r2 = ctx.h[DGST_R2];

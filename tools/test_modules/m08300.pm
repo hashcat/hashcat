@@ -11,7 +11,7 @@ use warnings;
 use Net::DNS::RR::NSEC3;
 use Net::DNS::SEC;
 
-# we need to restict the pure password length for the test module to 63 bytes,
+# we need to restrict the pure password length for the test module to 63 bytes,
 # because we can't have any string (including the pass) of over 63 bytes without "."
 
 # sub module_constraints { [[1, 256], [-1, -1], [1, 55], [-1, -1], [-1, -1]] }

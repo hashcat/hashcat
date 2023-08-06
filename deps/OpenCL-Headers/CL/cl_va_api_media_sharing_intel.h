@@ -1,73 +1,95 @@
-/**********************************************************************************
- * Copyright (c) 2008-2019 The Khronos Group Inc.
+/*******************************************************************************
+ * Copyright (c) 2008-2023 The Khronos Group Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and/or associated documentation files (the
- * "Materials"), to deal in the Materials without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Materials, and to
- * permit persons to whom the Materials are furnished to do so, subject to
- * the following conditions:
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Materials.
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * MODIFICATIONS TO THIS FILE MAY MEAN IT NO LONGER ACCURATELY REFLECTS
- * KHRONOS STANDARDS. THE UNMODIFIED, NORMATIVE VERSIONS OF KHRONOS
- * SPECIFICATIONS AND HEADER INFORMATION ARE LOCATED AT
- *    https://www.khronos.org/registry/
- *
- * THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
- **********************************************************************************/
-/*****************************************************************************\
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 
-Copyright (c) 2013-2019 Intel Corporation All Rights Reserved.
+#ifndef OPENCL_CL_VA_API_MEDIA_SHARING_INTEL_H_
+#define OPENCL_CL_VA_API_MEDIA_SHARING_INTEL_H_
 
-THESE MATERIALS ARE PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL INTEL OR ITS
-CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
-OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY OR TORT (INCLUDING
-NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THESE
-MATERIALS, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+/*
+** This header is generated from the Khronos OpenCL XML API Registry.
+*/
 
-File Name: cl_va_api_media_sharing_intel.h
-
-Abstract:
-
-Notes:
-
-\*****************************************************************************/
-
-
-#ifndef __OPENCL_CL_VA_API_MEDIA_SHARING_INTEL_H
-#define __OPENCL_CL_VA_API_MEDIA_SHARING_INTEL_H
+#include <va/va.h>
 
 #include <CL/cl.h>
-#include <CL/cl_platform.h>
-#include <va/va.h>
+
+/* CL_NO_PROTOTYPES implies CL_NO_EXTENSION_PROTOTYPES: */
+#if defined(CL_NO_PROTOTYPES) && !defined(CL_NO_EXTENSION_PROTOTYPES)
+#define CL_NO_EXTENSION_PROTOTYPES
+#endif
+
+/* CL_NO_EXTENSION_PROTOTYPES implies
+   CL_NO_ICD_DISPATCH_EXTENSION_PROTOTYPES and
+   CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES: */
+#if defined(CL_NO_EXTENSION_PROTOTYPES) && \
+    !defined(CL_NO_ICD_DISPATCH_EXTENSION_PROTOTYPES)
+#define CL_NO_ICD_DISPATCH_EXTENSION_PROTOTYPES
+#endif
+#if defined(CL_NO_EXTENSION_PROTOTYPES) && \
+    !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES)
+#define CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/******************************************
-* cl_intel_va_api_media_sharing extension *
-*******************************************/
+/***************************************************************
+* cl_intel_sharing_format_query_va_api
+***************************************************************/
+#define cl_intel_sharing_format_query_va_api 1
+#define CL_INTEL_SHARING_FORMAT_QUERY_VA_API_EXTENSION_NAME \
+    "cl_intel_sharing_format_query_va_api"
 
+/* when cl_intel_va_api_media_sharing is supported */
+
+typedef cl_int (CL_API_CALL *
+clGetSupportedVA_APIMediaSurfaceFormatsINTEL_fn)(
+    cl_context context,
+    cl_mem_flags flags,
+    cl_mem_object_type image_type,
+    cl_uint plane,
+    cl_uint num_entries,
+    VAImageFormat* va_api_formats,
+    cl_uint* num_surface_formats) ;
+
+#if !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES)
+
+extern CL_API_ENTRY cl_int CL_API_CALL
+clGetSupportedVA_APIMediaSurfaceFormatsINTEL(
+    cl_context context,
+    cl_mem_flags flags,
+    cl_mem_object_type image_type,
+    cl_uint plane,
+    cl_uint num_entries,
+    VAImageFormat* va_api_formats,
+    cl_uint* num_surface_formats) ;
+
+#endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
+
+/***************************************************************
+* cl_intel_va_api_media_sharing
+***************************************************************/
 #define cl_intel_va_api_media_sharing 1
+#define CL_INTEL_VA_API_MEDIA_SHARING_EXTENSION_NAME \
+    "cl_intel_va_api_media_sharing"
 
-/* error codes */
+typedef cl_uint             cl_va_api_device_source_intel;
+typedef cl_uint             cl_va_api_device_set_intel;
+
+/* Error codes */
 #define CL_INVALID_VA_API_MEDIA_ADAPTER_INTEL               -1098
 #define CL_INVALID_VA_API_MEDIA_SURFACE_INTEL               -1099
 #define CL_VA_API_MEDIA_SURFACE_ALREADY_ACQUIRED_INTEL      -1100
@@ -93,80 +115,85 @@ extern "C" {
 #define CL_COMMAND_ACQUIRE_VA_API_MEDIA_SURFACES_INTEL      0x409A
 #define CL_COMMAND_RELEASE_VA_API_MEDIA_SURFACES_INTEL      0x409B
 
-typedef cl_uint cl_va_api_device_source_intel;
-typedef cl_uint cl_va_api_device_set_intel;
+
+typedef cl_int (CL_API_CALL *
+clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn)(
+    cl_platform_id platform,
+    cl_va_api_device_source_intel media_adapter_type,
+    void* media_adapter,
+    cl_va_api_device_set_intel media_adapter_set,
+    cl_uint num_entries,
+    cl_device_id* devices,
+    cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_mem (CL_API_CALL *
+clCreateFromVA_APIMediaSurfaceINTEL_fn)(
+    cl_context context,
+    cl_mem_flags flags,
+    VASurfaceID* surface,
+    cl_uint plane,
+    cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_int (CL_API_CALL *
+clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn)(
+    cl_command_queue command_queue,
+    cl_uint num_objects,
+    const cl_mem* mem_objects,
+    cl_uint num_events_in_wait_list,
+    const cl_event* event_wait_list,
+    cl_event* event) CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_int (CL_API_CALL *
+clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn)(
+    cl_command_queue command_queue,
+    cl_uint num_objects,
+    const cl_mem* mem_objects,
+    cl_uint num_events_in_wait_list,
+    const cl_event* event_wait_list,
+    cl_event* event) CL_API_SUFFIX__VERSION_1_2;
+
+#if !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES)
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clGetDeviceIDsFromVA_APIMediaAdapterINTEL(
-    cl_platform_id                platform,
+    cl_platform_id platform,
     cl_va_api_device_source_intel media_adapter_type,
-    void*                         media_adapter,
-    cl_va_api_device_set_intel    media_adapter_set,
-    cl_uint                       num_entries,
-    cl_device_id*                 devices,
-    cl_uint*                      num_devices) CL_EXT_SUFFIX__VERSION_1_2;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL * clGetDeviceIDsFromVA_APIMediaAdapterINTEL_fn)(
-    cl_platform_id                platform,
-    cl_va_api_device_source_intel media_adapter_type,
-    void*                         media_adapter,
-    cl_va_api_device_set_intel    media_adapter_set,
-    cl_uint                       num_entries,
-    cl_device_id*                 devices,
-    cl_uint*                      num_devices) CL_EXT_SUFFIX__VERSION_1_2;
+    void* media_adapter,
+    cl_va_api_device_set_intel media_adapter_set,
+    cl_uint num_entries,
+    cl_device_id* devices,
+    cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_2;
 
 extern CL_API_ENTRY cl_mem CL_API_CALL
 clCreateFromVA_APIMediaSurfaceINTEL(
-    cl_context                    context,
-    cl_mem_flags                  flags,
-    VASurfaceID*                  surface,
-    cl_uint                       plane,
-    cl_int*                       errcode_ret) CL_EXT_SUFFIX__VERSION_1_2;
-
-typedef CL_API_ENTRY cl_mem (CL_API_CALL * clCreateFromVA_APIMediaSurfaceINTEL_fn)(
-    cl_context                    context,
-    cl_mem_flags                  flags,
-    VASurfaceID*                  surface,
-    cl_uint                       plane,
-    cl_int*                       errcode_ret) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_context context,
+    cl_mem_flags flags,
+    VASurfaceID* surface,
+    cl_uint plane,
+    cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueAcquireVA_APIMediaSurfacesINTEL(
-    cl_command_queue              command_queue,
-    cl_uint                       num_objects,
-    const cl_mem*                 mem_objects,
-    cl_uint                       num_events_in_wait_list,
-    const cl_event*               event_wait_list,
-    cl_event*                     event) CL_EXT_SUFFIX__VERSION_1_2;
-
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueAcquireVA_APIMediaSurfacesINTEL_fn)(
-    cl_command_queue              command_queue,
-    cl_uint                       num_objects,
-    const cl_mem*                 mem_objects,
-    cl_uint                       num_events_in_wait_list,
-    const cl_event*               event_wait_list,
-    cl_event*                     event) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_command_queue command_queue,
+    cl_uint num_objects,
+    const cl_mem* mem_objects,
+    cl_uint num_events_in_wait_list,
+    const cl_event* event_wait_list,
+    cl_event* event) CL_API_SUFFIX__VERSION_1_2;
 
 extern CL_API_ENTRY cl_int CL_API_CALL
 clEnqueueReleaseVA_APIMediaSurfacesINTEL(
-    cl_command_queue              command_queue,
-    cl_uint                       num_objects,
-    const cl_mem*                 mem_objects,
-    cl_uint                       num_events_in_wait_list,
-    const cl_event*               event_wait_list,
-    cl_event*                     event) CL_EXT_SUFFIX__VERSION_1_2;
+    cl_command_queue command_queue,
+    cl_uint num_objects,
+    const cl_mem* mem_objects,
+    cl_uint num_events_in_wait_list,
+    const cl_event* event_wait_list,
+    cl_event* event) CL_API_SUFFIX__VERSION_1_2;
 
-typedef CL_API_ENTRY cl_int (CL_API_CALL *clEnqueueReleaseVA_APIMediaSurfacesINTEL_fn)(
-    cl_command_queue              command_queue,
-    cl_uint                       num_objects,
-    const cl_mem*                 mem_objects,
-    cl_uint                       num_events_in_wait_list,
-    const cl_event*               event_wait_list,
-    cl_event*                     event) CL_EXT_SUFFIX__VERSION_1_2;
+#endif /* !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES) */
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif  /* __OPENCL_CL_VA_API_MEDIA_SHARING_INTEL_H */
-
+#endif /* OPENCL_CL_VA_API_MEDIA_SHARING_INTEL_H_ */

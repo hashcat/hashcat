@@ -79,14 +79,15 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   bitmap_ctx->enabled = false;
 
+  if (user_options->usage         > 0)    return 0;
+  if (user_options->backend_info  > 0)    return 0;
+
   if (user_options->hash_info    == true) return 0;
   if (user_options->keyspace     == true) return 0;
   if (user_options->left         == true) return 0;
   if (user_options->show         == true) return 0;
-  if (user_options->usage        == true) return 0;
   if (user_options->version      == true) return 0;
   if (user_options->identify     == true) return 0;
-  if (user_options->backend_info  > 0)    return 0;
 
   bitmap_ctx->enabled = true;
 

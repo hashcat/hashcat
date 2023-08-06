@@ -122,19 +122,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KEEPASS;
 
   token.sep[0]     = '*';
-  token.len_min[0] = 9;
-  token.len_max[0] = 9;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 9;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '*';
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 1;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '*';
@@ -158,33 +158,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.token_cnt  = 11;
 
     token.sep[4]     = '*';
-    token.len_min[4] = 32;
-    token.len_max[4] = 32;
-    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[4]     = 32;
+    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[5]     = '*';
-    token.len_min[5] = 64;
-    token.len_max[5] = 64;
-    token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[5]     = 64;
+    token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[6]     = '*';
-    token.len_min[6] = 32;
-    token.len_max[6] = 32;
-    token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[6]     = 32;
+    token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[7]     = '*';
-    token.len_min[7] = 64;
-    token.len_max[7] = 64;
-    token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[7]     = 64;
+    token.attr[7]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[8]     = '*';
-    token.len_min[8] = 1;
-    token.len_max[8] = 1;
-    token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[8]     = 1;
+    token.attr[8]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_DIGIT;
 
     token.sep[9]     = '*';
@@ -204,21 +199,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       token.token_cnt = 14;
 
       token.sep[11]     = '*';
-      token.len_min[11] = 1;
-      token.len_max[11] = 1;
-      token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[11]     = 1;
+      token.attr[11]    = TOKEN_ATTR_FIXED_LENGTH
                         | TOKEN_ATTR_VERIFY_DIGIT;
 
       token.sep[12]     = '*';
-      token.len_min[12] = 2;
-      token.len_max[12] = 2;
-      token.attr[12]    = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[12]     = 2;
+      token.attr[12]    = TOKEN_ATTR_FIXED_LENGTH
                         | TOKEN_ATTR_VERIFY_DIGIT;
 
       token.sep[13]     = '*';
-      token.len_min[13] = 64;
-      token.len_max[13] = 64;
-      token.attr[13]    = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[13]     = 64;
+      token.attr[13]    = TOKEN_ATTR_FIXED_LENGTH
                         | TOKEN_ATTR_VERIFY_HEX;
     }
   }
@@ -227,33 +219,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.token_cnt  = 9;
 
     token.sep[4]     = '*';
-    token.len_min[4] = 64;
-    token.len_max[4] = 64;
-    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[4]     = 64;
+    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[5]     = '*';
-    token.len_min[5] = 64;
-    token.len_max[5] = 64;
-    token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[5]     = 64;
+    token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[6]     = '*';
-    token.len_min[6] = 32;
-    token.len_max[6] = 32;
-    token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[6]     = 32;
+    token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[7]     = '*';
-    token.len_min[7] = 64;
-    token.len_max[7] = 64;
-    token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[7]     = 64;
+    token.attr[7]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[8]     = '*';
-    token.len_min[8] = 64;
-    token.len_max[8] = 64;
-    token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[8]     = 64;
+    token.attr[8]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     if (is_keyfile_present == true)
@@ -261,21 +248,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       token.token_cnt = 12;
 
       token.sep[9]      = '*';
-      token.len_min[9]  = 1;
-      token.len_max[9]  = 1;
-      token.attr[9]     = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[9]      = 1;
+      token.attr[9]     = TOKEN_ATTR_FIXED_LENGTH
                         | TOKEN_ATTR_VERIFY_DIGIT;
 
       token.sep[10]     = '*';
-      token.len_min[10] = 2;
-      token.len_max[10] = 2;
-      token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[10]     = 2;
+      token.attr[10]    = TOKEN_ATTR_FIXED_LENGTH
                         | TOKEN_ATTR_VERIFY_DIGIT;
 
       token.sep[11]     = '*';
-      token.len_min[11] = 64;
-      token.len_max[11] = 64;
-      token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
+      token.len[11]     = 64;
+      token.attr[11]    = TOKEN_ATTR_FIXED_LENGTH
                         | TOKEN_ATTR_VERIFY_HEX;
     }
   }
@@ -571,20 +555,17 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   *ptr_data = '*';
   ptr_data++;
 
-  for (u32 i = 0; i < final_random_seed_len; i++, ptr_data += 8)
-    sprintf (ptr_data, "%08x", ptr_final_random_seed[i]);
+  for (u32 i = 0; i < final_random_seed_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_final_random_seed[i]);
 
   *ptr_data = '*';
   ptr_data++;
 
-  for (u32 i = 0; i < transf_random_seed_len; i++, ptr_data += 8)
-    sprintf (ptr_data, "%08x", ptr_transf_random_seed[i]);
+  for (u32 i = 0; i < transf_random_seed_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_transf_random_seed[i]);
 
   *ptr_data = '*';
   ptr_data++;
 
-  for (u32 i = 0; i < enc_iv_len; i++, ptr_data += 8)
-    sprintf (ptr_data, "%08x", ptr_enc_iv[i]);
+  for (u32 i = 0; i < enc_iv_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_enc_iv[i]);
 
   *ptr_data = '*';
   ptr_data++;
@@ -594,8 +575,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     u32  contents_len =         keepass->contents_len;
     u32 *ptr_contents = (u32 *) keepass->contents;
 
-    for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
+    for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_contents_hash[i]);
 
     *ptr_data = '*';
     ptr_data++;
@@ -609,31 +589,28 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     char ptr_contents_len[10] = { 0 };
 
-    sprintf ((char*) ptr_contents_len, "%u", contents_len);
+    snprintf ((char*) ptr_contents_len, sizeof (ptr_contents_len), "%u", contents_len);
 
-    sprintf (ptr_data, "%u", contents_len);
+    snprintf (ptr_data, sizeof (ptr_contents_len), "%u", contents_len);
 
     ptr_data += strlen (ptr_contents_len);
 
     *ptr_data = '*';
     ptr_data++;
 
-    for (u32 i = 0; i < contents_len / 4; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_contents[i]);
+    for (u32 i = 0; i < contents_len / 4; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_contents[i]);
   }
   else if (version == 2)
   {
     expected_bytes_len = 8;
     ptr_expected_bytes = (u32 *) keepass->expected_bytes;
 
-    for (u32 i = 0; i < expected_bytes_len; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_expected_bytes[i]);
+    for (u32 i = 0; i < expected_bytes_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_expected_bytes[i]);
 
     *ptr_data = '*';
     ptr_data++;
 
-    for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_contents_hash[i]);
+    for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_contents_hash[i]);
   }
 
   if (keyfile_len)
@@ -648,15 +625,14 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     *ptr_data = '*';
     ptr_data++;
 
-    sprintf (ptr_data, "%u", keyfile_len * 2);
+    snprintf (ptr_data, 3, "%u", keyfile_len * 2);
 
     ptr_data += 2;
 
     *ptr_data = '*';
     ptr_data++;
 
-    for (u32 i = 0; i < 8; i++, ptr_data += 8)
-      sprintf (ptr_data, "%08x", ptr_keyfile[i]);
+    for (u32 i = 0; i < 8; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_keyfile[i]);
   }
 
   return strlen (line_buf);

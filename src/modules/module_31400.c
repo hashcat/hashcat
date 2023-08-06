@@ -28,9 +28,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_NOT_SALTED
                                   | OPTI_TYPE_RAW_HASH;
-static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_ADD80
-                                  | OPTS_TYPE_PT_ADDBITS15;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE; // OPTS_TYPE_PT_ADD80 and OPTS_TYPE_PT_ADDBITS15 added within kernel
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "S:\"Config Passphrase\"=02:ded7137400e0a1004a12f1708453968ccc270908ba02ab0345c83690d1de3d9937587be66ad2a7fe8cc6cb16ecff02e61ac05e09d4f49f284efd24f6b16d6ae3";
@@ -57,7 +55,7 @@ typedef struct scrtv2
 
 } scrtv2_t;
 
-static const char *CONFIGPASSPHRASEV2_SIGNATURE = "S:\"Config Passphrase\"=02:"; //The whole line is part of the format to prevent confusion with other similiar tokens also prefixed with 02: in the config files
+static const char *CONFIGPASSPHRASEV2_SIGNATURE = "S:\"Config Passphrase\"=02:"; //The whole line is part of the format to prevent confusion with other similar tokens also prefixed with 02: in the config files
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -74,6 +72,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 2;
 
   token.signatures_cnt    = 1;
@@ -84,7 +84,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.len_min[1] = 96;
-  token.len_max[1] = 160;
+  token.len_max[1] = 224;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 

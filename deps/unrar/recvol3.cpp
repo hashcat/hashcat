@@ -36,7 +36,7 @@ THREAD_PROC(RSDecodeThread)
 }
 #endif
 
-RecVolumes3::RecVolumes3(RAROptions *Cmd,bool TestOnly)
+RecVolumes3::RecVolumes3(CommandData *Cmd,bool TestOnly)
 {
   memset(SrcFile,0,sizeof(SrcFile));
   if (TestOnly)
@@ -99,7 +99,7 @@ static bool IsNewStyleRev(const wchar *Name)
 }
 
 
-bool RecVolumes3::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
+bool RecVolumes3::Restore(CommandData *Cmd,const wchar *Name,bool Silent)
 {
   wchar ArcName[NM];
   wcsncpyz(ArcName,Name,ASIZE(ArcName));
@@ -497,7 +497,7 @@ void RSEncode::DecodeBuf()
 }
 
 
-void RecVolumes3::Test(RAROptions *Cmd,const wchar *Name)
+void RecVolumes3::Test(CommandData *Cmd,const wchar *Name)
 {
   if (!IsNewStyleRev(Name)) // RAR 3.0 name#_#_#.rev do not include CRC32.
   {

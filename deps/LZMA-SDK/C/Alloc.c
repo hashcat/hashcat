@@ -1,5 +1,5 @@
 /* Alloc.c -- Memory allocation functions
-2020-10-29 : Igor Pavlov : Public domain */
+2021-07-13 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -247,14 +247,14 @@ static void *SzAlloc(ISzAllocPtr p, size_t size) { UNUSED_VAR(p); return MyAlloc
 static void SzFree(ISzAllocPtr p, void *address) { UNUSED_VAR(p); MyFree(address); }
 const ISzAlloc g_Alloc = { SzAlloc, SzFree };
 
+#ifdef _WIN32
 static void *SzMidAlloc(ISzAllocPtr p, size_t size) { UNUSED_VAR(p); return MidAlloc(size); }
 static void SzMidFree(ISzAllocPtr p, void *address) { UNUSED_VAR(p); MidFree(address); }
-const ISzAlloc g_MidAlloc = { SzMidAlloc, SzMidFree };
-
 static void *SzBigAlloc(ISzAllocPtr p, size_t size) { UNUSED_VAR(p); return BigAlloc(size); }
 static void SzBigFree(ISzAllocPtr p, void *address) { UNUSED_VAR(p); BigFree(address); }
+const ISzAlloc g_MidAlloc = { SzMidAlloc, SzMidFree };
 const ISzAlloc g_BigAlloc = { SzBigAlloc, SzBigFree };
-
+#endif
 
 /*
   uintptr_t : <stdint.h> C99 (optional)

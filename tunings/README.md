@@ -20,6 +20,7 @@ Each file in this folder with the filename suffix .hctune will be automatically 
 - Invalid lines are ignored
 - The Device-Name is the OpenCL Device-Name. It's shown on hashcat startup.
   - If the device contains spaces, replace all spaces with _ character.
+  - Device Names prefixed with 'NVIDIA' will be matched with or without 'NVIDIA' present in the alias. e.g. 'NVIDIA_Tesla_T4' vs 'Tesla_T4'
 - The Device-Name can be assigned an alias. This is useful if many devices share the same chip
   - If you assign an alias, make sure to not use the devices name directly
 - There's also a hard-wired Device-Name which matches all device types called:

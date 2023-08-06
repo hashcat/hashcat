@@ -139,7 +139,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   // for the threads we take as initial value what we receive from the runtime
   // but is only to start with something, we will fine tune this value as soon as we have our workload specified
-  // this thread limiting is also performed insinde run_kernel() so we need to redo it here, too
+  // this thread limiting is also performed inside run_kernel() so we need to redo it here, too
 
   u32 kernel_wgs = 0;
   u32 kernel_wgs_multiple = 0;
@@ -191,7 +191,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     #if defined (DEBUG)
 
     // don't do any autotune in debug mode in this case
-    // we're propably during kernel development
+    // we're probably during kernel development
 
     #else
 
@@ -432,7 +432,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // v6.2.4 new section: find thread count
     // This is not as effective as it could be because of inaccurate kernel return timers
     // But is better than fixed values
-    // Timers in this section are critical, so we rerun meassurements 3 times
+    // Timers in this section are critical, so we rerun measurements 3 times
 
     if (kernel_threads_max > kernel_threads_min)
     {

@@ -4,14 +4,20 @@
 ## Algorithms
 ##
 
+- Added hash-mode: 1Password, mobilekeychain (1Password 8)
+- Added hash-mode: Adobe AEM (SSPR, SHA-256 with Salt)
+- Added hash-mode: Adobe AEM (SSPR, SHA-512 with Salt)
 - Added hash-mode: Anope IRC Services (enc_sha256)
-- Added hash-mode: BLAKE2s-256
 - Added hash-mode: Bisq .wallet (scrypt)
 - Added hash-mode: Bitcoin raw private key (P2PKH)
 - Added hash-mode: Bitcoin raw private key (P2SH(P2WPKH))
 - Added hash-mode: Bitcoin raw private key (P2WPKH, Bech32)
+- Added hash-mode: BLAKE2s-256
+- Added hash-mode: CubeCart (Whirlpool($salt.$pass.$salt)
 - Added hash-mode: Dahua NVR/DVR/HVR (md5($salt1.strtoupper(md5($salt2.$pass))))
 - Added hash-mode: DANE RFC7929/RFC8162 SHA2-256
+- Added hash-mode: Dogechain.info Wallet
+- Added hash-mode: Empire CMS (Admin password)
 - Added hash-mode: ENCsecurity Datavault (MD5/keychain)
 - Added hash-mode: ENCsecurity Datavault (MD5/no keychain)
 - Added hash-mode: ENCsecurity Datavault (PBKDF2/keychain)
@@ -19,14 +25,41 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-1($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-256($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
+- Added hash-mode: GPG (CAST5 (SHA-1($pass)))
+- Added hash-mode: Kerberos 5, etype 17, AS-REP
+- Added hash-mode: Kerberos 5, etype 18, AS-REP
+- Added hash-mode: MetaMask Mobile Wallet
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
+- Added hash-mode: NetIQ SSPR (MD5)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA1)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA256)
+- Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA512)
+- Added hash-mode: NetIQ SSPR (SHA1)
+- Added hash-mode: NetIQ SSPR (SHA-1 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA-256 with Salt)
+- Added hash-mode: NetIQ SSPR (SHA-512 with Salt)
+- Added hash-mode: RSA Security Analytics / NetWitness (sha256)
 - Added hash-mode: SecureCRT MasterPassphrase v2
 - Added hash-mode: Veeam VB
 - Added hash-mode: bcrypt(sha256($pass))
 - Added hash-mode: HMAC-RIPEMD160 (key = $pass)
 - Added hash-mode: HMAC-RIPEMD160 (key = $salt)
+- Added hash-mode: md5($salt1.sha1($salt2.$pass))
+- Added hash-mode: md5(md5($pass.$salt))
 - Added hash-mode: md5(md5($salt).md5(md5($pass)))
 - Added hash-mode: Domain Cached Credentials (DCC), MS Cache (NT)
+- Added hash-mode: md5(md5(md5($pass).$salt1).$salt2)
+- Added hash-mode: md5(md5(md5($pass)).$salt)
+- Added hash-mode: md5(sha1($pass.$salt))
+- Added hash-mode: md5(sha1($salt.$pass))
+- Added hash-mode: sha512(sha512($pass).$salt)
+- Added hash-mode: sha512(sha512_bin($pass).$salt)
+
+##
+## Features
+##
+
+- Added new feature (-Y) that creates N virtual instances for each device in your system at the cost of N times the device memory consumption
 
 ##
 ## Performance
@@ -39,23 +72,66 @@
 ##
 
 - Fixed keys extraction in luks2hashcat - now extracts all active keys
-- Prevent Hashcat from hanging by checking during startup that the output file is a named pipe
+- Prevent Hashcat from hanging by checking during startup whether the output file is a named pipe
 - Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
-- Skip generated rule that was the result of chaining rule operation and caused this generated rule to exceed the maximum number of function calls
+- Skip chained generated rules that exceed the maximum number of function calls
 - Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes to prevent false positives.
+- Fixed bug in --stdout that caused certain rules to malfunction
+- Fixed bug in 18400 module_hash_encode
+- Fixed bug in 26900 module_hash_encode
+- Fixed bug in 29600 module OPTS_TYPE setting
+- Fixed bug in grep out-of-memory workaround on Unit Test
+- Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
+- Fixed a bug in all SCRYPT-based hash modes with Apple Metal
+- Added verification of token buffer length when using TOKEN_ATTR_FIXED_LENGTH
+- Fixed build failed for 4410 with vector width > 1
+- Fixed build failed for 10700 optimized with Apple Metal
+- Fixed build failed for 13772 and 13773 with Apple Metal
+- Fixed build failed for 18400 with Apple Metal
+- Fixed build failed for 18600 with Apple Metal
+- Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal
+- Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
+- Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
+- Fixed minimum password length in module of hash-mode 28200
+- Fixed maximum password length in module/test_module of hash-mode 2410
+- Handle signed/unsigned PDF permission P value for all PDF hash-modes
+- Fixed minimum password length in module of hash-mode 29800
+- Fixed maximum password length in module/test_module of hash-mode 2400
+- Fixed buffer overflow on module_26600.c / module_hash_encode()
+- Fixed bug in 23800/unrar with Apple Silicon
+- Fixed vector datatypes usage for HIP
+- Fixed out-of-boundary read when a fast hash defines a kernel_loops_min value higher than the amplifiers provided by the user
 
 ##
 ## Technical
 ##
 
-- AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (Adrenalin 22.5.1 exactly)
+- AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (23.7.2 or later) and "AMD HIP SDK" (23.Q3 or later)
 - Apple Driver: Automatically enable GPU support on Apple OpenCL instead of CPU support
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
-- Backend Checks: Described workaround in error message when detecting more than 64 backend devices
+- Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
+- Brain: Added sanity check and corresponding error message for invalid --brain-port values
+- Dependencies: Updated LZMA SDK to 22.01
+- Dependencies: Updated unrar source to 6.2.7
+- Building: Support building windows binaries on macOS using MinGW
+- Dependencies: Updated OpenCL-Headers to v2023.04.17
+- Documents: Updated BUILD.md and added BUILD_macOS.md (containing instructions for building windows binaries on macOS)
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
+- Open Document Format: Added support for small documents with content length < 1024
 - Status Code: Add specific return code for self-test fail (-11)
-- SCRYPT: Increase buffer sizes in module for hash mode 8900 to allow longer SCRYPT digests
-- Unicode: Update UTF8 to UTF16 conversion to match RFC 3629
+- Scrypt: Increase buffer sizes in module for hash mode 8900 to allow longer scrypt digests
+- Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
+- User Options: Added error message when mixing --username and --show to warn users of exponential delay
+- MetaMask: update extraction tool to support MetaMask Mobile wallets
+- SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
+- Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
+- Metal Backend: allow use of devices with Metal if runtime version is >= 200
+- Metal Backend: disable Metal devices only if at least one OpenCL device is active
+- User Options: added --metal-compiler-runtime option
+- Hardware Monitor: avoid sprintf in src/ext_iokit.c
+- Help: show supported hash-modes only with -hh
+- Makefile: prevent make failure with Apple Silicon in case of partial rebuild
+- Rules: Rename best64.rule to best66.rule and remove the unknown section from it
 
 * changes v6.2.5 -> v6.2.6
 
@@ -90,16 +166,17 @@
 ##
 
 - Added new backend support for Metal, the OpenCL replacement API on Apple
-- Added support to building universal macOS binary on Apple Silicon
-- Added support to use --debug-mode in attack-mode 9 (Association Attack)
+- Added support for building universal macOS binary on Apple Silicon
+- Added support for using --debug-mode in attack-mode 9 (association attack)
 - Added hex encoding format for --separator option
 - Added password candidates range to --status-json output
 - Added parameter to Bitwarden mode for second iteration count
-- Added support to use 'John the Ripper' hash format with hash-type 13100
-- Added support to use 'John the Ripper' hash format with hash-type 18200
-- Added the hash extraction scripts from the tools folder also to beta/release versions
+- Added support for using 'John the Ripper' hash format with hash-type 13100
+- Added support for using 'John the Ripper' hash format with hash-type 18200
+- Added hash extraction scripts from the tools folder to beta/release versions
 - Added user advice if a hash throws 'token length exception'
 - Added tunings/ folder in order to replace hashcat.hctune. Configuration files with *.hctune suffix are automatically load on startup
+- Added link to 'ubernoob' documentation when no parameters are supplied on Windows
 
 ##
 ## Bugs
@@ -153,7 +230,7 @@
 - Hardware Monitor: Add support for GPU device utilization readings using iokit on Apple Silicon (OpenCL and Metal)
 - Hash Info: show more information (Updated Hash-Format. Added Autodetect, Self-Test, Potfile and Plaintext encoding)
 - HIP Backend: moved functions to ext_hip.c/ext_hiprtc.c and includes to ext_hip.h/ext_hiprtc.h
-- HIP Backend: removed unused functions from hiprtc to workaroung missing function symbols on windows dll
+- HIP Backend: removed unused functions from hiprtc to workaround missing function symbols on windows dll
 - Kernels: Refactored standard kernel declaration to use a structure holding u32/u64 attributes to reduce the number of attributes
 - Kernels: Refactored standard kernel includes, KERN_ATTR macros and RC4 cipher functions, in order to support Apple Metal runtime
 - Kernels: Set the default Address Space Qualifier for any pointer, in order to support Apple Metal runtime
@@ -179,7 +256,7 @@
 - Rules: Add support to include source wordlist in debugging format
 - Rules: Update hand-written rulesets to covers years up to 2029
 - Status code: updated negative status code (added kernel create failure and resync)
-- Status code: updated negative status code, usefull in Unit tests engine (test.sh)
+- Status code: updated negative status code, useful in Unit tests engine (test.sh)
 - Terminal: Increased size of hash name column in `--help` and `--identify` options
 - Terminal: Limit output length of example hash in --example-hash mode to 200. Use --mach to see full example hash
 - Terminal: show empty OpenCL platforms only in backend information mode
@@ -591,7 +668,7 @@
 - Building: Fixed build warnings on macOS for unrar sources
 - Building: Fixed test for DARWIN_VERSION in Makefile
 - Commandline Options: Removed option --example-hashes, now an alias of --hash-info
-- Compute API: Skipping devices instead of stop if error occured in initialization
+- Compute API: Skipping devices instead of stop if error occurred in initialization
 - Documentation: Added 3rd party licenses to docs/license_libs
 - Hash-Mode 8900 (Scrypt): Changed default benchmark scrypt parameters from 1k:1:1 to 16k:8:1 (default)
 - Hash-Mode 11600 (7-Zip): Improved memory handling (alloc and free) for the hook function
@@ -657,7 +734,7 @@
 - Hcchr Files: Renamed some .charset files into .hcchr files
 - Hash-Mode 21200 (md5(sha1($salt).md5($pass))): Improved speed by using pre-computed SHA1
 - OpenCL Devices: Utilize PCI domain to improve alias device detection
-- OpenCL Kernels: Added datatypes to literals of enum costants
+- OpenCL Kernels: Added datatypes to literals of enum constants
 - OpenCL Kernels: Added pure kernels for hash-mode 600 (BLAKE2b-512)
 - OpenCL Runtime: Add some unstable warnings for some SHA512 based algorithms on AMD GPU on macOS
 - OpenCL Runtime: Reinterpret return code CL_DEVICE_NOT_FOUND from clGetDeviceIDs() as non-fatal
@@ -790,7 +867,7 @@
 
 - Bitcoin Wallet: Be more user friendly by allowing a larger data range for ckey and public_key
 - Brain: Added new parameter --brain-server-timer to specify seconds between scheduled backups
-- Building: Fix for library compilation failure due to multiple defenition of sbob_xx64()
+- Building: Fix for library compilation failure due to multiple definition of sbob_xx64()
 - Cracking bcrypt and Password Safe v2: Use feedback from the compute API backend to dynamically calculate optimal thread count
 - Dictstat: On Windows, the st_ino attribute in the stat struct is not set, which can lead to invalid cache hits. Added the filename to the database entry.
 - Documents: Added README on how to build hashcat on Cygwin, MSYS2 and WSL
@@ -828,7 +905,7 @@
 ## Technical
 ##
 
-- Backend Interface: Added new options --backend-ignore-cuda and --backend-ingore-opencl to prevent CUDA and/or OpenCL API from being used
+- Backend Interface: Added new options --backend-ignore-cuda and --backend-ignore-opencl to prevent CUDA and/or OpenCL API from being used
 - Binary Distribution: Removed 32-bit binary executables
 - Building: On macOS, switch from ar to /usr/bin/ar to improve building compatibility
 - Building: Skipping Travis/Appveyor build for non-code changes
@@ -1186,7 +1263,7 @@
 - Added option --optimized-kernel-enable to use faster kernels but limit the maximum supported password- and salt-length
 - Added self-test functionality to detect broken OpenCL runtimes on startup
 - Added option --self-test-disable to disable self-test functionality on startup
-- Added option --wordlist-autohex-disable to disable the automatical conversion of $HEX[] words from the word list
+- Added option --wordlist-autohex-disable to disable the automatic conversion of $HEX[] words from the word list
 - Added option --example-hashes to show an example hash for each hash-mode
 - Removed option --weak-hash-check (zero-length password check) to increase startup time, it also causes many Trap 6 error on macOS
 
@@ -1203,7 +1280,7 @@
 
 - Fixed a buffer overflow in mangle_dupechar_last function
 - Fixed a calculation error in get_power() leading to errors of type "BUG pw_add()!!"
-- Fixed a memory problem that occured when the OpenCL folder was not found and e.g. the shared and session folder were the same
+- Fixed a memory problem that occurred when the OpenCL folder was not found and e.g. the shared and session folder were the same
 - Fixed a missing barrier() call in the RACF OpenCL kernel
 - Fixed a missing salt length value in benchmark mode for SIP
 - Fixed an integer overflow in hash buffer size calculation
@@ -1388,7 +1465,7 @@
 - Added support for filtering hccapx message pairs using --hccapx-message-pair
 - Added support for parsing 7-Zip hashes with LZMA/LZMA2 compression indicator set to a non-zero value
 - Added support for decompressing LZMA1/LZMA2 data for -m 11600 = 7-Zip to validate the CRC
-- Added support for automatic merge of LM halfes in case --show and --left is used
+- Added support for automatic merge of LM halves in case --show and --left is used
 - Added support for showing all user names with --show and --left if --username was specified
 - Added support for GPU temperature management on cygwin build
 
@@ -1463,7 +1540,7 @@
 - Hardware Management: Bring back kernel exec timeout detection for NVidia on user request
 - Hardware Monitor: Fixed several memory leaks in case hash-file writing (caused by --remove) failed
 - Hardware Monitor: Fixed several memory leaks in case no hardware monitor sensor is found
-- Hardware Monitor: In case NVML initialization failed, do not try to initialiaze NVAPI or XNVCTRL because they both depend on NVML
+- Hardware Monitor: In case NVML initialization failed, do not try to initialize NVAPI or XNVCTRL because they both depend on NVML
 - Hash Parsing: Added additional bound checks for the SIP digest authentication (MD5) parser (-m 11400)
 - Hash Parsing: Make sure that all files are correctly closed whenever a hash file parsing error occurs
 - Helper: Added functions to check existence, type, read- and write-permissions and rewrite sources to use them instead of stat()
@@ -1500,7 +1577,7 @@
 ## Features
 ##
 
-- Files: Use $HEX[...] in case the password includes the separater character, increases potfile reading performance
+- Files: Use $HEX[...] in case the password includes the separator character, increases potfile reading performance
 - Files: If the user specifies a folder to scan for wordlists instead of directly a wordlist, then ignore the hidden files
 - Loopback: Include passwords for removed hashes present in the potfile to next loopback iteration
 - New option --progress-only: Quickly provides ideal progress step size and time to process on the user hashes and selected options, then quit
@@ -1607,9 +1684,9 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 ## Bugs
 ##
 
-- Custom charset from file parsing code did not return an error if an error occured
+- Custom charset from file parsing code did not return an error if an error occurred
 - Fix some clSetKernelArg() size error that caused slow modes to not work anymore in -a 1 mode
-- Hash-mode 11600 = (7-Zip): Depending on input hash a clEnqueueReadBuffer(): CL_INVALID_VALUE error occured
+- Hash-mode 11600 = (7-Zip): Depending on input hash a clEnqueueReadBuffer(): CL_INVALID_VALUE error occurred
 - Hash-mode 22 = Juniper Netscreen/SSG (ScreenOS): Fix salt length for -m 22 in benchmark mode
 - Hash-Mode 5500 = NetNTLMv1 + ESS: Fix loading of NetNTLMv1 + SSP hash
 - Hash-mode 6000 = RipeMD160: Fix typo in array index number
@@ -1682,12 +1759,12 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 - Error handling (startup): Added some missing returncode checks to get_exec_path()
 - Fanspeed: Check both fanpolicy and fanspeed returncode and disable retain support if any of them fail
 - Fanspeed: Minimum fanspeed for retain support increased to 33%, same as NV uses as default on windows
-- Fanspeed: Reset PID controler settings to what they were initially
+- Fanspeed: Reset PID controller settings to what they were initially
 - Fanspeed: Set fan speed to default on quit
 - File handling: Do a single write test (for files to be written later) directly on startup
 - File locking: Use same locking mechanism in potfile as in outfile
 - Hardware management: Fixed calling conventions for ADL, NvAPI and NVML on windows
-- Hardware management: Improved checking for successfull load of the NVML API
+- Hardware management: Improved checking for successful load of the NVML API
 - Hardware management: In case fanspeed can not be set, disable --gpu-temp-retain automatically
 - Hardware management: In case of initialization error show it only once to the user on startup
 - Hardware management: Refactored all code to return returncode (0 or -1) instead of data for more easy error handling
@@ -1791,7 +1868,7 @@ The CLI (hashcat.bin or hashcat.exe) works as before but from a technical perspe
 
 * changes v2.01 -> v3.00:
 
-This release markes the fusion of "hashcat" and "oclHashcat" into "hashcat".
+This release marks the fusion of "hashcat" and "oclHashcat" into "hashcat".
 It combines all features of all hashcat projects in one project.
 
 ##
@@ -1876,7 +1953,7 @@ It combines all features of all hashcat projects in one project.
 - Fixed a bug in line counter: conditional jump or move depends on an uninitialised value
 - Fixed a bug in rule-engine for NVidia devices: code for left- and right-shift were switched
 - Fixed a bug in dive.rule: rules were not updated after the function 'x' was renamed to 'O'
-- Fixed a bug in memory allocation "OpenCL -4 error": used unitialized value in a special situation
+- Fixed a bug in memory allocation "OpenCL -4 error": used uninitialized value in a special situation
 - Fixed a bug in memory handling: heap buffer overflow
 - Fixed a bug in memory handling: out of bounds access
 - Fixed a bug in implementation of DCC2: forced default iteration count for hashes to 10240

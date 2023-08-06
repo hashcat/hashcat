@@ -119,6 +119,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     hc_token_t token;
 
+    memset (&token, 0, sizeof (hc_token_t));
+
     token.token_cnt  = 4;
 
     token.signatures_cnt    = 1;
@@ -128,16 +130,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_SIGNATURE;
 
+    token.sep[1]     = '$';
     token.len_min[1] = 1;
     token.len_max[1] = 6;
-    token.sep[1]     = '$';
     token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_DIGIT;
 
-    token.len_min[2] = 64;
-    token.len_max[2] = 64;
     token.sep[2]     = '$';
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[2]     = 64;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.len_min[3] = 128;
@@ -205,6 +206,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (strncmp (sigchk, SIGNATURE_SHA512MACOS_JOHN, 20) == 0)
   {
     hc_token_t token;
+
+    memset (&token, 0, sizeof (hc_token_t));
 
     token.token_cnt  = 7;
 
