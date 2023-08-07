@@ -99,7 +99,7 @@ sub pdf_compute_encryption_key_owner
   my $o_key;
   if ($R == 2)
   {
-    $o_key = substr ($o_digest, 0, 8);  # rc4 key is always 5 for revision 2, but for 3 or greather is dependent on the value of the encryption dictionaries length entry
+    $o_key = substr ($o_digest, 0, 8);  # rc4 key is always 5 for revision 2, but for 3 or greater is dependent on the value of the encryption dictionaries length entry
   }
   else
   {

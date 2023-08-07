@@ -30,6 +30,18 @@ class CryptData
     uint Lg2Count; // Log2 of PBKDF2 repetition count.
     byte PswCheckValue[SHA256_DIGEST_SIZE];
     byte HashKeyValue[SHA256_DIGEST_SIZE];
+
+    KDF5CacheItem() {Clean();}
+    ~KDF5CacheItem() {Clean();}
+
+    void Clean()
+    {
+      cleandata(Salt,sizeof(Salt));
+      cleandata(Key,sizeof(Key));
+      cleandata(&Lg2Count,sizeof(Lg2Count));
+      cleandata(PswCheckValue,sizeof(PswCheckValue));
+      cleandata(HashKeyValue,sizeof(HashKeyValue));
+    }
   };
 
   struct KDF3CacheItem
@@ -39,6 +51,17 @@ class CryptData
     byte Key[16];
     byte Init[16];
     bool SaltPresent;
+
+    KDF3CacheItem() {Clean();}
+    ~KDF3CacheItem() {Clean();}
+
+    void Clean()
+    {
+      cleandata(Salt,sizeof(Salt));
+      cleandata(Key,sizeof(Key));
+      cleandata(Init,sizeof(Init));
+      cleandata(&SaltPresent,sizeof(SaltPresent));
+    }
   };
 
 
@@ -77,7 +100,6 @@ class CryptData
     ushort Key15[4];
   public:
     CryptData();
-    ~CryptData();
     bool SetCryptKeys(bool Encrypt,CRYPT_METHOD Method,SecPassword *Password,
          const byte *Salt,const byte *InitV,uint Lg2Cnt,
          byte *HashKey,byte *PswCheck);
@@ -87,6 +109,54 @@ class CryptData
     void EncryptBlock(byte *Buf,size_t Size);
     void DecryptBlock(byte *Buf,size_t Size);
     static void SetSalt(byte *Salt,size_t SaltSize);
+};
+
+
+class CheckPassword
+{
+  public:
+    enum CONFIDENCE {CONFIDENCE_HIGH,CONFIDENCE_MEDIUM,CONFIDENCE_LOW};
+    virtual CONFIDENCE GetConfidence()=0;
+    virtual bool Check(SecPassword *Password)=0;
+};
+
+class RarCheckPassword:public CheckPassword
+{
+  private:
+    CryptData *Crypt;
+    uint Lg2Count;
+    byte Salt[SIZE_SALT50];
+    byte InitV[SIZE_INITV];
+    byte PswCheck[SIZE_PSWCHECK];
+  public:
+    RarCheckPassword()
+    {
+      Crypt=NULL;
+    }
+    ~RarCheckPassword()
+    {
+      delete Crypt;
+    }
+    void Set(byte *Salt,byte *InitV,uint Lg2Count,byte *PswCheck)
+    {
+      if (Crypt==NULL)
+        Crypt=new CryptData;
+      memcpy(this->Salt,Salt,sizeof(this->Salt));
+      memcpy(this->InitV,InitV,sizeof(this->InitV));
+      this->Lg2Count=Lg2Count;
+      memcpy(this->PswCheck,PswCheck,sizeof(this->PswCheck));
+    }
+    bool IsSet() {return Crypt!=NULL;}
+
+    // RAR5 provides the higly reliable 64 bit password verification value.
+    CONFIDENCE GetConfidence() {return CONFIDENCE_HIGH;}
+
+    bool Check(SecPassword *Password)
+    {
+      byte PswCheck[SIZE_PSWCHECK];
+      Crypt->SetCryptKeys(false,CRYPT_RAR50,Password,Salt,InitV,Lg2Count,NULL,PswCheck);
+      return memcmp(PswCheck,this->PswCheck,sizeof(this->PswCheck))==0;
+    }
 };
 
 void GetRnd(byte *RndBuf,size_t BufSize);

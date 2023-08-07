@@ -11,7 +11,7 @@ hashcat v6.2.6
 ==============
 
 AMD GPUs on Linux require "AMDGPU" (21.50 or later) and "ROCm" (5.0 or later)
-AMD GPUs on Windows require "AMD Adrenalin Edition" (Adrenalin 22.5.1 exactly)
+AMD GPUs on Windows require "AMD Adrenalin Edition" (23.7.2 or later) and "AMD HIP SDK" (23.Q3 or later)
 Intel CPUs require "OpenCL Runtime for Intel Core and Intel Xeon Processors" (16.1.1 or later)
 NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or later)
 
@@ -69,6 +69,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Keccak-384
 - Keccak-512
 - Whirlpool
+- CubeCart (Whirlpool($salt.$pass.$salt))
 - SipHash
 - md5(utf16le($pass))
 - sha1(utf16le($pass))
@@ -85,14 +86,20 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - md5($salt.md5($salt.$pass))
 - md5($salt.sha1($salt.$pass))
 - md5($salt.utf16le($pass))
+- md5($salt1.sha1($salt2.$pass))
 - md5($salt1.strtoupper(md5($salt2.$pass)))
 - md5(md5($pass))
 - md5(md5($pass).md5($salt))
+- md5(md5($pass.$salt))
 - md5(md5(md5($pass)))
+- md5(md5(md5($pass)).$salt)
+- md5(md5(md5($pass).$salt1).$salt2)
 - md5(sha1($pass))
 - md5(sha1($pass).$salt)
 - md5(sha1($pass).md5($pass).sha1($pass))
+- md5(sha1($pass.$salt))
 - md5(sha1($salt).md5($pass))
+- md5(sha1($salt.$pass))
 - md5(strtoupper(md5($pass)))
 - md5(utf16le($pass).$salt)
 - sha1($pass.$salt)
@@ -100,6 +107,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - sha1($salt.$pass.$salt)
 - sha1($salt.sha1($pass))
 - sha1($salt.sha1($pass.$salt))
+- sha1($salt.sha1(utf16le($username).':'.utf16le($pass)))
 - sha1($salt.utf16le($pass))
 - sha1($salt1.$pass.$salt2)
 - sha1(CX)
@@ -128,6 +136,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - sha512($pass.$salt)
 - sha512($salt.$pass)
 - sha512($salt.utf16le($pass))
+- sha512(sha512($pass).$salt)
+- sha512(sha512_bin($pass).$salt)
 - sha512(utf16le($pass).$salt)
 - HMAC-MD5 (key = $pass)
 - HMAC-MD5 (key = $salt)
@@ -191,9 +201,11 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Kerberos 5, etype 17, TGS-REP
 - Kerberos 5, etype 17, Pre-Auth
 - Kerberos 5, etype 17, DB
+- Kerberos 5, etype 17, AS-REP
 - Kerberos 5, etype 18, TGS-REP
 - Kerberos 5, etype 18, Pre-Auth
 - Kerberos 5, etype 18, DB
+- Kerberos 5, etype 18, AS-REP
 - Kerberos 5, etype 23, AS-REQ Pre-Auth
 - Kerberos 5, etype 23, TGS-REP
 - Kerberos 5, etype 23, AS-REP
@@ -246,7 +258,6 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - bcrypt $2*$, Blowfish (Unix)
 - md5crypt, MD5 (Unix), Cisco-IOS $1$ (MD5)
 - descrypt, DES (Unix), Traditional DES
-- sha1($salt.sha1(utf16le($username).':'.utf16le($pass)))
 - sha256crypt $5$, SHA256 (Unix)
 - sha512crypt $6$, SHA512 (Unix)
 - SQLCipher
@@ -286,8 +297,19 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SAP CODVN F/G (PASSCODE)
 - SAP CODVN F/G (PASSCODE) from RFC_READ_TABLE
 - SAP CODVN H (PWDSALTEDHASH) iSSHA-1
+- RSA Security Analytics / NetWitness (sha256)
+- Adobe AEM (SSPR, SHA-256 with Salt)
+- Adobe AEM (SSPR, SHA-512 with Salt)
 - PeopleSoft
 - PeopleSoft PS_TOKEN
+- NetIQ SSPR (MD5)
+- NetIQ SSPR (PBKDF2WithHmacSHA1)
+- NetIQ SSPR (PBKDF2WithHmacSHA256)
+- NetIQ SSPR (PBKDF2WithHmacSHA512)
+- NetIQ SSPR (SHA-1 with Salt)
+- NetIQ SSPR (SHA-256 with Salt)
+- NetIQ SSPR (SHA-512 with Salt)
+- NetIQ SSPR (SHA1)
 - SolarWinds Orion
 - SolarWinds Orion v2
 - SolarWinds Serv-U
@@ -336,6 +358,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Apple iWork
 - 1Password, agilekeychain
 - 1Password, cloudkeychain
+- 1Password, mobilekeychain (1Password 8)
 - Password Safe v2
 - Password Safe v3
 - LastPass + LastPass sniffed
@@ -347,8 +370,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Mozilla key4.db
 - Apple Keychain
 - 7-Zip
-- RAR3-hp
-- RAR3-p
+- RAR3
 - RAR5
 - PKZIP
 - PKZIP Master Key
@@ -372,6 +394,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - MediaWiki B type
 - Redmine
 - Umbraco HMAC-SHA1
+- Empire CMS (Admin password)
 - Joomla < 2.5.18
 - OpenCart
 - PrestaShop
@@ -405,6 +428,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - GPG (AES-128/AES-256 (SHA-1($pass)))
 - GPG (AES-128/AES-256 (SHA-512($pass)))
 - GPG (AES-128/AES-256 (SHA-256($pass)))
+- GPG (CAST5 (SHA-1($pass)))
 - RSA/DSA/EC/OpenSSH Private Keys ($0$)
 - RSA/DSA/EC/OpenSSH Private Keys ($6$)
 - RSA/DSA/EC/OpenSSH Private Keys ($1, $3$)
@@ -418,16 +442,23 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Skype
 - Anope IRC Services (enc_sha256)
 - Terra Station Wallet (AES256-CBC(PBKDF2($pass)))
+- MetaMask Mobile Wallet
 - MetaMask Wallet (needs all data, checks AES-GCM tag)
 - MetaMask Wallet (short hash, plaintext check)
 - Bisq .wallet (scrypt)
 - BitShares v0.x - sha512(sha512_bin(pass))
-- Bitcoin WIF private key (P2PKH)
-- Bitcoin WIF private key (P2WPKH, Bech32)
-- Bitcoin WIF private key (P2SH(P2WPKH))
-- Bitcoin raw private key (P2PKH)
-- Bitcoin raw private key (P2WPKH, Bech32)
-- Bitcoin raw private key (P2SH(P2WPKH))
+- Bitcoin WIF private key (P2PKH), compressed
+- Bitcoin WIF private key (P2PKH), uncompressed
+- Bitcoin WIF private key (P2WPKH, Bech32), compressed
+- Bitcoin WIF private key (P2WPKH, Bech32), uncompressed
+- Bitcoin WIF private key (P2SH(P2WPKH)), compressed
+- Bitcoin WIF private key (P2SH(P2WPKH)), uncompressed
+- Bitcoin raw private key (P2PKH), compressed
+- Bitcoin raw private key (P2PKH), uncompressed
+- Bitcoin raw private key (P2WPKH, Bech32), compressed
+- Bitcoin raw private key (P2WPKH, Bech32), uncompressed
+- Bitcoin raw private key (P2SH(P2WPKH)), compressed
+- Bitcoin raw private key (P2SH(P2WPKH)), uncompressed
 - Bitcoin/Litecoin wallet.dat
 - Electrum Wallet (Salt-Type 1-3)
 - Electrum Wallet (Salt-Type 4)
@@ -435,6 +466,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Blockchain, My Wallet
 - Blockchain, My Wallet, V2
 - Blockchain, My Wallet, Second Password (SHA256)
+- Dogechain.info Wallet
 - Stargazer Stellar Wallet XLM
 - Ethereum Pre-Sale Wallet, PBKDF2-HMAC-SHA256
 - Ethereum Wallet, PBKDF2-HMAC-SHA256

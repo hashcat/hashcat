@@ -77,6 +77,16 @@ typedef struct snmpv3
 
 } snmpv3_t;
 
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
+  {
+    return true;
+  }
+
+  return false;
+}
+
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 esalt_size = (const u64) sizeof (snmpv3_t);
@@ -116,6 +126,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 5;
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_SNMPV3;
@@ -125,28 +137,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   // packet number
+  token.sep[1]     = '$';
   token.len_min[1] = 1;
   token.len_max[1] = 8;
-  token.sep[1]     = '$';
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
   // salt
+  token.sep[2]     = '$';
   token.len_min[2] = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.len_max[2] = SNMPV3_SALT_MAX * 2;
-  token.sep[2]     = '$';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // engineid
+  token.sep[3]     = '$';
   token.len_min[3] = 26;
   token.len_max[3] = SNMPV3_ENGINEID_MAX;
-  token.sep[3]     = '$';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // digest
-  token.len[4]     = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.sep[4]     = '$';
+  token.len[4]     = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -327,6 +339,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

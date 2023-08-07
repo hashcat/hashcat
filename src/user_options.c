@@ -21,9 +21,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSz";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSY:z";
 #else
-static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMS";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSY:";
 #endif
 
 static char *const SEPARATOR = ":";
@@ -33,6 +33,7 @@ static const struct option long_options[] =
   {"advice-disable",            no_argument,       NULL, IDX_ADVICE_DISABLE},
   {"attack-mode",               required_argument, NULL, IDX_ATTACK_MODE},
   {"backend-devices",           required_argument, NULL, IDX_BACKEND_DEVICES},
+  {"backend-devices-virtual",   required_argument, NULL, IDX_BACKEND_DEVICES_VIRTUAL},
   {"backend-ignore-cuda",       no_argument,       NULL, IDX_BACKEND_IGNORE_CUDA},
   {"backend-ignore-hip",        no_argument,       NULL, IDX_BACKEND_IGNORE_HIP},
   #if defined (__APPLE__)
@@ -93,6 +94,7 @@ static const struct option long_options[] =
   {"markov-hcstat2",            required_argument, NULL, IDX_MARKOV_HCSTAT2},
   {"markov-inverse",            no_argument,       NULL, IDX_MARKOV_INVERSE},
   {"markov-threshold",          required_argument, NULL, IDX_MARKOV_THRESHOLD},
+  {"metal-compiler-runtime",    required_argument, NULL, IDX_METAL_COMPILER_RUNTIME},
   {"nonce-error-corrections",   required_argument, NULL, IDX_NONCE_ERROR_CORRECTIONS},
   {"opencl-device-types",       required_argument, NULL, IDX_OPENCL_DEVICE_TYPES},
   {"optimized-kernel-enable",   no_argument,       NULL, IDX_OPTIMIZED_KERNEL_ENABLE},
@@ -171,6 +173,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->attack_mode               = ATTACK_MODE;
   user_options->autodetect                = AUTODETECT;
   user_options->backend_devices           = NULL;
+  user_options->backend_devices_virtual   = BACKEND_DEVICES_VIRTUAL;
   user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
   user_options->backend_ignore_hip        = BACKEND_IGNORE_HIP;
   #if defined (__APPLE__)
@@ -234,6 +237,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->markov_hcstat2            = NULL;
   user_options->markov_inverse            = MARKOV_INVERSE;
   user_options->markov_threshold          = MARKOV_THRESHOLD;
+  user_options->metal_compiler_runtime    = METAL_COMPILER_RUNTIME;
   user_options->nonce_error_corrections   = NONCE_ERROR_CORRECTIONS;
   user_options->opencl_device_types       = NULL;
   user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
@@ -328,6 +332,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STATUS_TIMER:
       case IDX_HASH_MODE:
       case IDX_RUNTIME:
+      case IDX_METAL_COMPILER_RUNTIME:
       case IDX_ATTACK_MODE:
       case IDX_RP_GEN:
       case IDX_RP_GEN_FUNC_MIN:
@@ -353,6 +358,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_INCREMENT_MIN:
       case IDX_INCREMENT_MAX:
       case IDX_HOOK_THREADS:
+      case IDX_BACKEND_DEVICES_VIRTUAL:
       #ifdef WITH_BRAIN
       case IDX_BRAIN_PORT:
       #endif
@@ -384,7 +390,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   {
     switch (c)
     {
-      case IDX_HELP:                      user_options->usage                     = true;                            break;
+      case IDX_HELP:                      user_options->usage++;                                                     break;
       case IDX_VERSION:                   user_options->version                   = true;                            break;
       case IDX_RESTORE:                   user_options->restore                   = true;                            break;
       case IDX_QUIET:                     user_options->quiet                     = true;                            break;
@@ -433,6 +439,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->hash_mode_chgd            = true;                            break;
       case IDX_RUNTIME:                   user_options->runtime                   = hc_strtoul (optarg, NULL, 10);
                                           user_options->runtime_chgd              = true;                            break;
+      case IDX_METAL_COMPILER_RUNTIME:    user_options->metal_compiler_runtime    = hc_strtoul (optarg, NULL, 10);
+                                          user_options->metal_compiler_runtime_chgd = true;                          break;
       case IDX_ATTACK_MODE:               user_options->attack_mode               = hc_strtoul (optarg, NULL, 10);
                                           user_options->attack_mode_chgd          = true;                            break;
       case IDX_RP_FILE:                   user_options->rp_files[user_options->rp_files_cnt++] = optarg;             break;
@@ -467,6 +475,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BACKEND_IGNORE_OPENCL:     user_options->backend_ignore_opencl     = true;                            break;
       case IDX_BACKEND_INFO:              user_options->backend_info++;                                              break;
       case IDX_BACKEND_DEVICES:           user_options->backend_devices           = optarg;                          break;
+      case IDX_BACKEND_DEVICES_VIRTUAL:   user_options->backend_devices_virtual   = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BACKEND_VECTOR_WIDTH:      user_options->backend_vector_width      = hc_strtoul (optarg, NULL, 10);
                                           user_options->backend_vector_width_chgd = true;                            break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
@@ -559,24 +568,38 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if (user_options->usage > 2)
+  {
+    event_log_error (hashcat_ctx, "Invalid --help/-h value, must have a value greater or equal to 0 and lower than 3.");
+
+    return -1;
+  }
+
   #ifdef WITH_BRAIN
   if ((user_options->brain_client == true) && (user_options->brain_server == true))
   {
-    event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time");
+    event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time.");
 
     return -1;
   }
 
   if ((user_options->brain_client_features < 1) || (user_options->brain_client_features > 3))
   {
-    event_log_error (hashcat_ctx, "Invalid --brain-client-feature argument");
+    event_log_error (hashcat_ctx, "Invalid --brain-client-feature argument.");
+
+    return -1;
+  }
+
+  if (user_options->brain_port > 65535)
+  {
+    event_log_error (hashcat_ctx, "Invalid brain port specified (greater than 65535).");
 
     return -1;
   }
 
   if ((user_options->brain_client == true) && (user_options->brain_password_chgd == false))
   {
-    event_log_error (hashcat_ctx, "Brain clients need to set --brain-password");
+    event_log_error (hashcat_ctx, "Brain clients must specify --brain-password.");
 
     return -1;
   }
@@ -605,17 +628,20 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->separator_chgd == true)
   {
     bool error = false;
+
     if ((strlen (user_options->separator) != 1) && (strlen (user_options->separator) != 4))
     {
         error = true;
     }
+
     if (strlen (user_options->separator) == 4)
     {
       if ((user_options->separator[0] == '0') && (user_options->separator[1] == 'x'))
       {
-        if (is_valid_hex_string ((u8 * ) (&(user_options->separator[2])), 2))
+        if (is_valid_hex_string ((u8 *) (&(user_options->separator[2])), 2))
         {
-          u8 sep = hex_to_u8 ((u8 * ) (&(user_options->separator[2])));
+          u8 sep = hex_to_u8 ((u8 *) (&(user_options->separator[2])));
+
           user_options->separator[0] = sep;
           user_options->separator[1] = 0;
         }
@@ -624,7 +650,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
           error = true;
         }
       }
-      else{
+      else
+      {
         error = true;
       }
     }
@@ -717,6 +744,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  // --metal-compiler-runtime is really used only on Apple
+
+  if (user_options->metal_compiler_runtime_chgd == true && user_options->metal_compiler_runtime == 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid --metal-compiler-runtime value specified (must be > 0).");
+
+    return -1;
+  }
+
   if (user_options->limit_chgd == true && user_options->loopback == true)
   {
     event_log_error (hashcat_ctx, "Combining --limit with --loopback is not allowed.");
@@ -727,6 +763,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->hash_mode >= MODULE_HASH_MODES_MAXIMUM)
   {
     event_log_error (hashcat_ctx, "Invalid -m (hash type) value specified.");
+
+    return -1;
+  }
+
+  if (user_options->backend_devices_virtual == 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid --backend-devices-virtual value specified.");
 
     return -1;
   }
@@ -998,6 +1041,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+  }
+
+  if ((user_options->show == true) && (user_options->username == true))
+  {
+    event_log_error (hashcat_ctx, "Mixing --show with --username can cause exponential delay in output.");
+
+    return 0;
   }
 
   if (user_options->show == true || user_options->left == true)
@@ -1471,7 +1521,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     show_error = false;
   }
-  else if (user_options->usage == true)
+  else if (user_options->usage > 0)
   {
     show_error = false;
   }
@@ -1691,7 +1741,7 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "hash_info";
     }
 
-    if (user_options->usage == true)
+    if (user_options->usage > 0)
     {
       user_options->session = "usage";
     }
@@ -1774,7 +1824,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
    || user_options->speed_only       == true
    || user_options->progress_only    == true
    || user_options->identify         == true
-   || user_options->usage            == true
+   || user_options->usage             > 0
    || user_options->backend_info      > 0)
   {
     user_options->hwmon_disable       = true;
@@ -1831,7 +1881,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->quiet = true;
   }
 
-  if (user_options->usage == true)
+  if (user_options->usage > 0)
   {
     user_options->quiet = true;
   }
@@ -2044,6 +2094,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --backend-devices=%s", user_options->backend_devices);
     }
 
+    if (user_options->backend_devices_virtual)
+    {
+      event_log_info (hashcat_ctx, "* --backend-devices-virtual=%u", user_options->backend_devices_virtual);
+    }
+
     if (user_options->opencl_device_types)
     {
       event_log_info (hashcat_ctx, "* --opencl-device-types=%s", user_options->opencl_device_types);
@@ -2101,6 +2156,11 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     if (user_options->backend_devices)
     {
       event_log_info (hashcat_ctx, "# option: --backend-devices=%s", user_options->backend_devices);
+    }
+
+    if (user_options->backend_devices_virtual)
+    {
+      event_log_info (hashcat_ctx, "# option: --backend-devices-virtual=%u", user_options->backend_devices_virtual);
     }
 
     if (user_options->opencl_device_types)
@@ -3133,6 +3193,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint64 (user_options->limit);
   logfile_top_uint64 (user_options->skip);
   logfile_top_uint   (user_options->attack_mode);
+  logfile_top_uint   (user_options->backend_devices_virtual);
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->benchmark_all);
   logfile_top_uint   (user_options->bitmap_max);
@@ -3164,6 +3225,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->markov_disable);
   logfile_top_uint   (user_options->markov_inverse);
   logfile_top_uint   (user_options->markov_threshold);
+  logfile_top_uint   (user_options->metal_compiler_runtime);
   logfile_top_uint   (user_options->multiply_accel_disable);
   logfile_top_uint   (user_options->backend_info);
   logfile_top_uint   (user_options->backend_vector_width);

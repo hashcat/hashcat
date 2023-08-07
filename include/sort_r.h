@@ -20,7 +20,7 @@ void sort_r(void *base, size_t nel, size_t width,
             int (*compar)(const void *_a, const void *_b, void *_arg),
             void *arg);
 
-Slightly modified to work with hashcat to no falsly detect _SORT_R_LINUX with mingw
+Slightly modified to work with hashcat to no falsely detect _SORT_R_LINUX with mingw
 
 */
 

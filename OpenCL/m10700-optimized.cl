@@ -19,22 +19,24 @@
 
 typedef struct pdf
 {
-  int  V;
-  int  R;
-  int  P;
+  int V;
+  int R;
+  int P;
 
-  int  enc_md;
+  int enc_md;
 
-  u32  id_buf[8];
-  u32  u_buf[32];
-  u32  o_buf[32];
+  u32 id_buf[8];
+  u32 u_buf[32];
+  u32 o_buf[32];
 
-  int  id_len;
-  int  o_len;
-  int  u_len;
+  int id_len;
+  int o_len;
+  int u_len;
 
-  u32  rc4key[2];
-  u32  rc4data[2];
+  u32 rc4key[2];
+  u32 rc4data[2];
+
+  int P_minus;
 
 } pdf_t;
 
@@ -321,7 +323,7 @@ DECLSPEC u32 do_round (LOCAL_AS u32 *sc, PRIVATE_AS const u32 *pw, const u32 pw_
 
   make_sc (sc, pw, pw_len, ctx->dgst32, ctx->dgst_len);
 
-  // make sure pwbl_len is calculcated before it gets changed
+  // make sure pwbl_len is calculated before it gets changed
 
   const u32 pwbl_len = pw_len + ctx->dgst_len;
 

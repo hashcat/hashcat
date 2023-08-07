@@ -12,7 +12,7 @@ use Crypt::ScryptKDF qw (scrypt_raw);
 use Encode;
 use Crypt::CBC;
 
-sub module_constraints { [[0, 256], [8, 8], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[8, 256], [8, 8], [-1, -1], [-1, -1], [-1, -1]] }
 
 my $SCRYPT_N = 32768;
 my $SCRYPT_R = 8;

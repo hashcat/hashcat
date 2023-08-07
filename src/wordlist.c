@@ -695,20 +695,21 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
 
   wl_data->enabled = false;
 
+  if (user_options->usage         > 0)    return 0;
+  if (user_options->backend_info  > 0)    return 0;
+
   if (user_options->benchmark    == true) return 0;
   if (user_options->hash_info    == true) return 0;
   if (user_options->left         == true) return 0;
-  if (user_options->usage        == true) return 0;
   if (user_options->version      == true) return 0;
-  if (user_options->backend_info  > 0)    return 0;
 
   wl_data->enabled = true;
 
-  wl_data->buf   = (char *) hcmalloc (user_options->segment_size);
-  wl_data->avail = user_options->segment_size;
-  wl_data->incr  = user_options->segment_size;
-  wl_data->cnt   = 0;
-  wl_data->pos   = 0;
+  wl_data->buf     = (char *) hcmalloc (user_options->segment_size);
+  wl_data->avail   = user_options->segment_size;
+  wl_data->incr    = user_options->segment_size;
+  wl_data->cnt     = 0;
+  wl_data->pos     = 0;
 
   /**
    * choose dictionary parser

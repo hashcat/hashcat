@@ -17,11 +17,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <math.h>
-
-// workaround to get the rid of "redefinition of typedef 'Byte'" build warning
-#if !defined (__APPLE__)
-#include "zlib.h"
-#endif
+#include <zlib.h>
 
 #if !defined(__MACTYPES__)
 #define __MACTYPES__
@@ -628,6 +624,7 @@ typedef enum user_options_defaults
   ADVICE_DISABLE           = false,
   ATTACK_MODE              = ATTACK_MODE_STRAIGHT,
   AUTODETECT               = false,
+  BACKEND_DEVICES_VIRTUAL  = 1,
   BENCHMARK_ALL            = false,
   BENCHMARK                = false,
   BITMAP_MAX               = 18,
@@ -673,6 +670,7 @@ typedef enum user_options_defaults
   MARKOV_DISABLE           = false,
   MARKOV_INVERSE           = false,
   MARKOV_THRESHOLD         = 0,
+  METAL_COMPILER_RUNTIME   = 120,
   NONCE_ERROR_CORRECTIONS  = 8,
   BACKEND_IGNORE_CUDA      = false,
   BACKEND_IGNORE_HIP       = false,
@@ -713,7 +711,7 @@ typedef enum user_options_defaults
   STATUS_TIMER             = 10,
   STDIN_TIMEOUT_ABORT      = 120,
   STDOUT_FLAG              = false,
-  USAGE                    = false,
+  USAGE                    = 0,
   USERNAME                 = false,
   VERSION                  = false,
   VERACRYPT_PIM_START      = 485,
@@ -728,6 +726,7 @@ typedef enum user_options_map
   IDX_ADVICE_DISABLE            = 0xff00,
   IDX_ATTACK_MODE               = 'a',
   IDX_BACKEND_DEVICES           = 'd',
+  IDX_BACKEND_DEVICES_VIRTUAL   = 'Y',
   IDX_BACKEND_IGNORE_CUDA       = 0xff01,
   IDX_BACKEND_IGNORE_HIP        = 0xff02,
   IDX_BACKEND_IGNORE_METAL      = 0xff03,
@@ -791,56 +790,57 @@ typedef enum user_options_map
   IDX_MARKOV_HCSTAT2            = 0xff2d,
   IDX_MARKOV_INVERSE            = 0xff2e,
   IDX_MARKOV_THRESHOLD          = 't',
-  IDX_NONCE_ERROR_CORRECTIONS   = 0xff2f,
+  IDX_METAL_COMPILER_RUNTIME    = 0xff2f,
+  IDX_NONCE_ERROR_CORRECTIONS   = 0xff30,
   IDX_OPENCL_DEVICE_TYPES       = 'D',
   IDX_OPTIMIZED_KERNEL_ENABLE   = 'O',
   IDX_MULTIPLY_ACCEL_DISABLE    = 'M',
-  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff30,
-  IDX_OUTFILE_CHECK_DIR         = 0xff31,
-  IDX_OUTFILE_CHECK_TIMER       = 0xff32,
-  IDX_OUTFILE_FORMAT            = 0xff33,
+  IDX_OUTFILE_AUTOHEX_DISABLE   = 0xff31,
+  IDX_OUTFILE_CHECK_DIR         = 0xff32,
+  IDX_OUTFILE_CHECK_TIMER       = 0xff33,
+  IDX_OUTFILE_FORMAT            = 0xff34,
   IDX_OUTFILE                   = 'o',
-  IDX_POTFILE_DISABLE           = 0xff34,
-  IDX_POTFILE_PATH              = 0xff35,
-  IDX_PROGRESS_ONLY             = 0xff36,
-  IDX_QUIET                     = 0xff37,
-  IDX_REMOVE                    = 0xff38,
-  IDX_REMOVE_TIMER              = 0xff39,
-  IDX_RESTORE                   = 0xff3a,
-  IDX_RESTORE_DISABLE           = 0xff3b,
-  IDX_RESTORE_FILE_PATH         = 0xff3c,
+  IDX_POTFILE_DISABLE           = 0xff35,
+  IDX_POTFILE_PATH              = 0xff36,
+  IDX_PROGRESS_ONLY             = 0xff37,
+  IDX_QUIET                     = 0xff38,
+  IDX_REMOVE                    = 0xff39,
+  IDX_REMOVE_TIMER              = 0xff3a,
+  IDX_RESTORE                   = 0xff3b,
+  IDX_RESTORE_DISABLE           = 0xff3c,
+  IDX_RESTORE_FILE_PATH         = 0xff3d,
   IDX_RP_FILE                   = 'r',
-  IDX_RP_GEN_FUNC_MAX           = 0xff3d,
-  IDX_RP_GEN_FUNC_MIN           = 0xff3e,
-  IDX_RP_GEN_FUNC_SEL           = 0xff3f,
+  IDX_RP_GEN_FUNC_MAX           = 0xff3e,
+  IDX_RP_GEN_FUNC_MIN           = 0xff3f,
+  IDX_RP_GEN_FUNC_SEL           = 0xff40,
   IDX_RP_GEN                    = 'g',
-  IDX_RP_GEN_SEED               = 0xff40,
+  IDX_RP_GEN_SEED               = 0xff41,
   IDX_RULE_BUF_L                = 'j',
   IDX_RULE_BUF_R                = 'k',
-  IDX_RUNTIME                   = 0xff41,
-  IDX_SCRYPT_TMTO               = 0xff42,
+  IDX_RUNTIME                   = 0xff42,
+  IDX_SCRYPT_TMTO               = 0xff43,
   IDX_SEGMENT_SIZE              = 'c',
-  IDX_SELF_TEST_DISABLE         = 0xff43,
+  IDX_SELF_TEST_DISABLE         = 0xff44,
   IDX_SEPARATOR                 = 'p',
-  IDX_SESSION                   = 0xff44,
-  IDX_SHOW                      = 0xff45,
+  IDX_SESSION                   = 0xff45,
+  IDX_SHOW                      = 0xff46,
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
-  IDX_SPEED_ONLY                = 0xff46,
-  IDX_SPIN_DAMP                 = 0xff47,
-  IDX_STATUS                    = 0xff48,
-  IDX_STATUS_JSON               = 0xff49,
-  IDX_STATUS_TIMER              = 0xff4a,
-  IDX_STDOUT_FLAG               = 0xff4b,
-  IDX_STDIN_TIMEOUT_ABORT       = 0xff4c,
-  IDX_TRUECRYPT_KEYFILES        = 0xff4d,
-  IDX_USERNAME                  = 0xff4e,
-  IDX_VERACRYPT_KEYFILES        = 0xff4f,
-  IDX_VERACRYPT_PIM_START       = 0xff50,
-  IDX_VERACRYPT_PIM_STOP        = 0xff51,
+  IDX_SPEED_ONLY                = 0xff47,
+  IDX_SPIN_DAMP                 = 0xff48,
+  IDX_STATUS                    = 0xff49,
+  IDX_STATUS_JSON               = 0xff4a,
+  IDX_STATUS_TIMER              = 0xff4b,
+  IDX_STDOUT_FLAG               = 0xff4c,
+  IDX_STDIN_TIMEOUT_ABORT       = 0xff4d,
+  IDX_TRUECRYPT_KEYFILES        = 0xff4e,
+  IDX_USERNAME                  = 0xff4f,
+  IDX_VERACRYPT_KEYFILES        = 0xff50,
+  IDX_VERACRYPT_PIM_START       = 0xff51,
+  IDX_VERACRYPT_PIM_STOP        = 0xff52,
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
-  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff52,
+  IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff53,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -1073,6 +1073,7 @@ typedef struct hashconfig
   bool forced_jit_compile;
 
   u32 pwdump_column;
+
 } hashconfig_t;
 
 typedef struct pw_pre
@@ -1876,6 +1877,7 @@ typedef struct backend_ctx
   int                 backend_device_from_opencl_platform[CL_PLATFORMS_MAX][DEVICES_MAX]; // from opencl device index to backend device index (by platform)
 
   int                 backend_devices_cnt;
+  int                 backend_devices_virtual;
   int                 backend_devices_active;
 
   int                 cuda_devices_cnt;
@@ -2307,6 +2309,7 @@ typedef struct user_options
   bool         remove_timer_chgd;
   bool         rp_gen_seed_chgd;
   bool         runtime_chgd;
+  bool         metal_compiler_runtime_chgd;
   bool         segment_size_chgd;
   bool         workload_profile_chgd;
   bool         skip_chgd;
@@ -2359,7 +2362,6 @@ typedef struct user_options
   bool         status_json;
   bool         stdout_flag;
   bool         stdin_timeout_abort_chgd;
-  bool         usage;
   bool         username;
   bool         veracrypt_pim_start_chgd;
   bool         veracrypt_pim_stop_chgd;
@@ -2396,6 +2398,7 @@ typedef struct user_options
   const char  *rule_buf_r;
   const char  *session;
   u32          attack_mode;
+  u32          backend_devices_virtual;
   u32          backend_info;
   u32          bitmap_max;
   u32          bitmap_min;
@@ -2430,10 +2433,12 @@ typedef struct user_options
   u32          rp_gen_func_min;
   u32          rp_gen_seed;
   u32          runtime;
+  u32          metal_compiler_runtime;
   u32          scrypt_tmto;
   u32          segment_size;
   u32          status_timer;
   u32          stdin_timeout_abort;
+  u32          usage;
   u32          veracrypt_pim_start;
   u32          veracrypt_pim_stop;
   u32          workload_profile;

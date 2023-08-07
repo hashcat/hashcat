@@ -184,9 +184,9 @@ KERNEL_FQ void m31400_mxx (KERN_ATTR_RULES_ESALT (scrtv2_t))
    * base
    */
 
-  COPY_PW (pws[gid]);
-
   u32 ks[60];
+
+  COPY_PW (pws[gid]);
 
   /**
   * loop
@@ -208,7 +208,7 @@ KERNEL_FQ void m31400_mxx (KERN_ATTR_RULES_ESALT (scrtv2_t))
 
     u32 out[4] = { 0 };
 
-    aes256_scrt_format (ks, tmp.i, tmp.pw_len, ctx.h, out,s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes256_scrt_format (ks, tmp.i, tmp.pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     const u32 r0 = out[DGST_R0];
     const u32 r1 = out[DGST_R1];
@@ -280,9 +280,9 @@ KERNEL_FQ void m31400_sxx (KERN_ATTR_RULES_ESALT (scrtv2_t))
    * base
    */
 
-  COPY_PW (pws[gid]);
-
   u32 ks[60];
+
+  COPY_PW (pws[gid]);
 
   /**
   * loop
@@ -304,7 +304,7 @@ KERNEL_FQ void m31400_sxx (KERN_ATTR_RULES_ESALT (scrtv2_t))
 
     u32 out[4] = { 0 };
 
-    aes256_scrt_format (ks, tmp.i, tmp.pw_len, ctx.h, out,s_te0, s_te1, s_te2, s_te3, s_te4);
+    aes256_scrt_format (ks, tmp.i, tmp.pw_len, ctx.h, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 
     const u32 r0 = out[DGST_R0];
     const u32 r1 = out[DGST_R1];

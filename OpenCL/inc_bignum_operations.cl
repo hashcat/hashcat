@@ -1187,7 +1187,7 @@ DECLSPEC void mul_mod128 (PRIVATE_AS u32 *x, PRIVATE_AS const u32 *y, PRIVATE_AS
   t[62] += t[61] < p[125];
   t[63] += t[62] < p[126];
 
-  // VERY IMPORTANT: if we have an overflow at the highest u32, we need to do the substraction
+  // VERY IMPORTANT: if we have an overflow at the highest u32, we need to do the subtraction
 
   const u32 c = t[63] < p[127]; // carry / overflow
 

@@ -58,7 +58,7 @@ sub module_generate_hash
 
   ## convert_userpin_to_secretpin()
   ## this looks strange. what if the user password is outside 0x20 - 0x7f?
-  ## from some testing, it seems MS prevents the user to use any non-ascii charcters
+  ## from some testing, it seems MS prevents the user to use any non-ascii characters
 
   my $stage1_hexpin = uc (encode ("UTF-16LE", unpack ("H*", $word)));
 

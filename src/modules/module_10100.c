@@ -50,24 +50,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
 
   token.sep[0]     = ':';
-  token.len_min[0] = 16;
-  token.len_max[0] = 16;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 16;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[1]     = ':';
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 1;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = ':';
-  token.len_min[2] = 1;
-  token.len_max[2] = 1;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 1;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.len[3]     = 32;

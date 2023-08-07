@@ -95,12 +95,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_VMWARE_VMX;
 
-  token.sep[0]     = '$';
   token.len[0]     = 7;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
@@ -112,15 +113,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '$';
-  token.len_min[2] = 32;
-  token.len_max[2] = 32;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 32;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '$';
-  token.len_min[3] = 64;
-  token.len_max[3] = 64;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 64;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);

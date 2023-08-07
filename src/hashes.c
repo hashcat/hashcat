@@ -2545,7 +2545,7 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
   hash_t *hashes_buf = hashes->hashes_buf;
   u32     hashes_cnt = hashes->hashes_cnt;
 
-  // no solution for these special hash types (for instane because they use hashfile in output etc)
+  // no solution for these special hash types (for instance because they use hashfile in output etc)
 
   hash_t hash_buf;
 

@@ -212,11 +212,11 @@ typedef struct ADLThermalControllerInfo
 {
 /// Must be set to the size of the structure
   int iSize;
-/// Possible valies: \ref ADL_DL_THERMAL_DOMAIN_OTHER or \ref ADL_DL_THERMAL_DOMAIN_GPU.
+/// Possible values: \ref ADL_DL_THERMAL_DOMAIN_OTHER or \ref ADL_DL_THERMAL_DOMAIN_GPU.
   int iThermalDomain;
 ///    GPU 0, 1, etc.
   int iDomainIndex;
-/// Possible valies: \ref ADL_DL_THERMAL_FLAG_INTERRUPT or \ref ADL_DL_THERMAL_FLAG_FANCONTROL
+/// Possible values: \ref ADL_DL_THERMAL_FLAG_INTERRUPT or \ref ADL_DL_THERMAL_FLAG_FANCONTROL
   int iFlags;
 } ADLThermalControllerInfo;
 
@@ -269,7 +269,7 @@ typedef struct ADLFanSpeedValue
 {
 /// Must be set to the size of the structure
   int iSize;
-/// Possible valies: \ref ADL_DL_FANCTRL_SPEED_TYPE_PERCENT or \ref ADL_DL_FANCTRL_SPEED_TYPE_RPM
+/// Possible values: \ref ADL_DL_FANCTRL_SPEED_TYPE_PERCENT or \ref ADL_DL_FANCTRL_SPEED_TYPE_RPM
   int iSpeedType;
 /// Fan speed value
   int iFanSpeed;

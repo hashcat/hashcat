@@ -48,8 +48,6 @@ KERNEL_FQ void m31000_m04 (KERN_ATTR_RULES ())
   {
     u32x w0[4] = { 0 };
     u32x w1[4] = { 0 };
-    u32x w2[4] = { 0 };
-    u32x w3[4] = { 0 };
 
     const u32x out_len = apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
@@ -185,7 +183,7 @@ KERNEL_FQ void m31000_s04 (KERN_ATTR_RULES ())
     const u32x r1 = h[DGST_R1];
     const u32x r2 = h[DGST_R2];
     const u32x r3 = h[DGST_R3];
-    
+
     COMPARE_S_SIMD (r0, r1, r2, r3);
   }
 }

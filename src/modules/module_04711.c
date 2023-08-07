@@ -67,22 +67,21 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 2;
 
   token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 40;
-  token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 40;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[1] = 8;
-  token.len_max[1] = 8;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len[1]     = 8;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
 
   if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
   {
-    token.len_min[1] *= 2;
-    token.len_max[1] *= 2;
+    token.len[1] *= 2;
 
     token.attr[1] |= TOKEN_ATTR_VERIFY_HEX;
   }

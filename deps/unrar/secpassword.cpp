@@ -56,7 +56,6 @@ static CryptLoader GlobalCryptLoader;
 
 SecPassword::SecPassword()
 {
-  CrossProcess=false;
   Set(L"");
 }
 
@@ -70,7 +69,8 @@ SecPassword::~SecPassword()
 void SecPassword::Clean()
 {
   PasswordSet=false;
-  cleandata(Password,sizeof(Password));
+  if (Password.size()>0)
+    cleandata(&Password[0],Password.size());
 }
  
 
@@ -104,7 +104,7 @@ void SecPassword::Process(const wchar *Src,size_t SrcSize,wchar *Dst,size_t DstS
   // Source string can be shorter than destination as in case when we process
   // -p<pwd> parameter, so we need to take into account both sizes.
   memcpy(Dst,Src,Min(SrcSize,DstSize)*sizeof(*Dst));
-  SecHideData(Dst,DstSize*sizeof(*Dst),Encode,CrossProcess);
+  SecHideData(Dst,DstSize*sizeof(*Dst),Encode,false);
 }
 
 
@@ -112,7 +112,7 @@ void SecPassword::Get(wchar *Psw,size_t MaxSize)
 {
   if (PasswordSet)
   {
-    Process(Password,ASIZE(Password),Psw,MaxSize,false);
+    Process(&Password[0],Password.size(),Psw,MaxSize,false);
     Psw[MaxSize-1]=0;
   }
   else
@@ -124,15 +124,14 @@ void SecPassword::Get(wchar *Psw,size_t MaxSize)
 
 void SecPassword::Set(const wchar *Psw)
 {
-  if (*Psw==0)
-  {
-    PasswordSet=false;
-    memset(Password,0,sizeof(Password));
-  }
-  else
+  // Eliminate any traces of previously stored password for security reason
+  // in case it was longer than new one.
+  Clean();
+
+  if (*Psw!=0)
   {
     PasswordSet=true;
-    Process(Psw,wcslen(Psw)+1,Password,ASIZE(Password),true);
+    Process(Psw,wcslen(Psw)+1,&Password[0],Password.size(),true);
   }
 }
 
@@ -163,6 +162,9 @@ bool SecPassword::operator == (SecPassword &psw)
 }
 
 
+// Set CrossProcess to true if we need to pass a password to another process.
+// We use CrossProcess when transferring parameters to UAC elevated WinRAR
+// and Windows GUI SFX modules.
 void SecHideData(void *Data,size_t DataSize,bool Encode,bool CrossProcess)
 {
   // CryptProtectMemory is not available in UWP and CryptProtectData

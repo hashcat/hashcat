@@ -58,6 +58,7 @@ typedef struct odf12
   u32 iv[4];
   u32 checksum[8];
   u32 encrypted_data[256];
+  int encrypted_len;
 
 } odf12_t;
 
@@ -95,89 +96,82 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt = 12;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_ODF;
 
-  token.len_min[0] = 5;
-  token.len_max[0] = 5;
   token.sep[0]     = '*';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 5;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
   token.sep[1]     = '*';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 1;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[2] = 1;
-  token.len_max[2] = 1;
   token.sep[2]     = '*';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 1;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
+  token.sep[3]     = '*';
   token.len_min[3] = 4;
   token.len_max[3] = 6;
-  token.sep[3]     = '*';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[4] = 2;
-  token.len_max[4] = 2;
   token.sep[4]     = '*';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[4]     = 2;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[5] = 64;
-  token.len_max[5] = 64;
   token.sep[5]     = '*';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[5]     = 64;
+  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[6] = 2;
-  token.len_max[6] = 2;
   token.sep[6]     = '*';
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[6]     = 2;
+  token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[7] = 32;
-  token.len_max[7] = 32;
   token.sep[7]     = '*';
-  token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[7]     = 32;
+  token.attr[7]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[8] = 2;
-  token.len_max[8] = 2;
   token.sep[8]     = '*';
-  token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[8]     = 2;
+  token.attr[8]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[9] = 32;
-  token.len_max[9] = 32;
   token.sep[9]     = '*';
-  token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[9]     = 32;
+  token.attr[9]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[10] = 1;
-  token.len_max[10] = 1;
   token.sep[10]     = '*';
-  token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[10]     = 1;
+  token.attr[10]    = TOKEN_ATTR_FIXED_LENGTH
                     | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len[11]     = 2048;
-  token.attr[11]    = TOKEN_ATTR_FIXED_LENGTH
+  token.len_min[11] = 16;
+  token.len_max[11] = 2048;
+  token.sep[11]     = '*';
+  token.attr[11]    = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *checksum         = token.buf[5];
-  const u8 *iv               = token.buf[7];
-  const u8 *salt_buf         = token.buf[9];
-  const u8 *encrypted_data   = token.buf[11];
+  const u8 *checksum  = token.buf[5];
+  const u8 *iv        = token.buf[7];
+  const u8 *salt_buf  = token.buf[9];
 
   const u32 cipher_type   = strtol ((const char *) token.buf[1],  NULL, 10);
   const u32 checksum_type = strtol ((const char *) token.buf[2],  NULL, 10);
@@ -207,15 +201,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   odf12->checksum[6] = hex_to_u32 (&checksum[48]);
   odf12->checksum[7] = hex_to_u32 (&checksum[56]);
 
+  // iv
+
   odf12->iv[0] = hex_to_u32 (&iv[0]);
   odf12->iv[1] = hex_to_u32 (&iv[8]);
   odf12->iv[2] = hex_to_u32 (&iv[16]);
   odf12->iv[3] = hex_to_u32 (&iv[24]);
 
-  for (int i = 0, j = 0; i < 256; i += 1, j += 8)
-  {
-    odf12->encrypted_data[i] = hex_to_u32 (&encrypted_data[j]);
-  }
+  // ct
+
+  const int ct_len = token.len[11];
+  const u8 *ct_pos = token.buf[11];
+
+  odf12->encrypted_len = hex_decode (ct_pos, ct_len, (u8 *) odf12->encrypted_data);
 
   // salt
 
@@ -248,7 +246,17 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const odf12_t *odf12 = (const odf12_t *) esalt_buf;
 
-  int out_len = snprintf (line_buf, line_size, "%s*1*1*%u*32*%08x%08x%08x%08x%08x%08x%08x%08x*16*%08x%08x%08x%08x*16*%08x%08x%08x%08x*0*",
+  // ct
+
+  u8 ct_buf[(256 * 4 * 2) + 1];
+
+  memset (ct_buf, 0, sizeof (ct_buf));
+
+  const int ct_len = hex_encode ((const u8 *) odf12->encrypted_data, odf12->encrypted_len, ct_buf);
+
+  ct_buf[ct_len] = 0;
+
+  const int out_len = snprintf (line_buf, line_size, "%s*1*1*%u*32*%08x%08x%08x%08x%08x%08x%08x%08x*16*%08x%08x%08x%08x*16*%08x%08x%08x%08x*0*%s",
     SIGNATURE_ODF,
     odf12->iterations,
     byte_swap_32 (odf12->checksum[0]),
@@ -266,14 +274,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     byte_swap_32 (salt->salt_buf[0]),
     byte_swap_32 (salt->salt_buf[1]),
     byte_swap_32 (salt->salt_buf[2]),
-    byte_swap_32 (salt->salt_buf[3]));
-
-  u8 *out_buf = (u8 *) line_buf;
-
-  for (int i = 0; i < 256; i++)
-  {
-    u32_to_hex (odf12->encrypted_data[i], out_buf + out_len); out_len += 8;
-  }
+    byte_swap_32 (salt->salt_buf[3]),
+    (char *) ct_buf);
 
   return out_len;
 }

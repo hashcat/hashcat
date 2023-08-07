@@ -21,7 +21,7 @@ static void hmac_sha256(const byte *Key,size_t KeyLength,const byte *Data,
   sha256_context ICtx;
 
   if (ICtxOpt!=NULL && *SetIOpt)
-    ICtx=*ICtxOpt; // Use already calculated first block context.
+    ICtx=*ICtxOpt; // Use already calculated the first block context.
   else
   {
     // This calculation is the same for all iterations with same password.
@@ -90,10 +90,10 @@ void pbkdf2(const byte *Pwd, size_t PwdLength,
   byte SaltData[MaxSalt+4];
   memcpy(SaltData, Salt, Min(SaltLength,MaxSalt));
 
-  SaltData[SaltLength + 0] = 0; // Salt concatenated to 1.
-  SaltData[SaltLength + 1] = 0;
-  SaltData[SaltLength + 2] = 0;
-  SaltData[SaltLength + 3] = 1;
+  SaltData[SaltLength + 0] = 0; // Block index appened to salt.
+  SaltData[SaltLength + 1] = 0; //
+  SaltData[SaltLength + 2] = 0; // Since we do not request the key width
+  SaltData[SaltLength + 3] = 1; // exceeding HMAC width, it is always 1.
 
   // First iteration: HMAC of password, salt and block index (1).
   byte U1[SHA256_DIGEST_SIZE];
@@ -140,7 +140,7 @@ void CryptData::SetKey50(bool Encrypt,SecPassword *Password,const wchar *PwdW,
   for (uint I=0;I<ASIZE(KDF5Cache);I++)
   {
     KDF5CacheItem *Item=KDF5Cache+I;
-    if (Item->Lg2Count==Lg2Cnt && Item->Pwd==*Password &&
+    if (Item->Pwd==*Password && Item->Lg2Count==Lg2Cnt && 
         memcmp(Item->Salt,Salt,SIZE_SALT50)==0)
     {
       memcpy(Key,Item->Key,sizeof(Key));
