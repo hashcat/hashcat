@@ -102,6 +102,7 @@
 - Fixed bug in 23800/unrar with Apple Silicon
 - Fixed vector datatypes usage for HIP
 - Fixed out-of-boundary read when a fast hash defines a kernel_loops_min value higher than the amplifiers provided by the user
+- Fix missing check for -j and -k before writing hashcat.dictstat2 which can lead to false negatives
 
 ##
 ## Technical
