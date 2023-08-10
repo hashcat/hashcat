@@ -19,6 +19,10 @@
 #include <sys/sysctl.h>
 #endif
 
+#if defined (_WIN)
+#include <winsock2.h>
+#endif
+
 static const char *const PA_000 = "OK";
 static const char *const PA_001 = "Ignored due to comment";
 static const char *const PA_002 = "Ignored due to zero length";
@@ -908,7 +912,11 @@ int select_read_timeout (int sockfd, const int sec)
   fd_set fds;
 
   FD_ZERO (&fds);
+#if defined(_WIN)
+  FD_SET ((SOCKET)sockfd, &fds);
+#else
   FD_SET (sockfd, &fds);
+#endif
 
   return select (sockfd + 1, &fds, NULL, NULL, &tv);
 }
@@ -923,7 +931,11 @@ int select_write_timeout (int sockfd, const int sec)
   fd_set fds;
 
   FD_ZERO (&fds);
+#if defined(_WIN)
+  FD_SET ((SOCKET)sockfd, &fds);
+#else
   FD_SET (sockfd, &fds);
+#endif
 
   return select (sockfd + 1, NULL, &fds, NULL, &tv);
 }
