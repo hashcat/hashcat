@@ -8,7 +8,7 @@
 
 #ifdef WITH_BRAIN
 #if defined (_WIN)
-#include <winsock.h>
+#include <winsock2.h>
 #define SEND_FLAGS 0
 #endif
 
