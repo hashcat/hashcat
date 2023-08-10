@@ -2211,7 +2211,6 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
   hashes->digests_done_zero = digests_done_zero;
   hashes->digests_done_pot  = digests_done_pot;
 
-  hashes->salts_cnt         = salts_cnt;
   hashes->salts_done        = salts_done;
 
   return 0;
