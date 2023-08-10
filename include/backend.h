@@ -93,7 +93,9 @@ int run_kernel_decompress                   (hashcat_ctx_t *hashcat_ctx, hc_devi
 int run_copy                                (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
 int run_cracker                             (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt);
 
+HC_API_CALL
 void *hook12_thread (void *p);
+HC_API_CALL
 void *hook23_thread (void *p);
 
 #endif // HC_BACKEND_H
