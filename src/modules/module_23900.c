@@ -143,9 +143,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
-  salt->salt_buf[0] = salt->salt_buf[0];
-  salt->salt_buf[1] = salt->salt_buf[1];
-
   salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
   salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
 

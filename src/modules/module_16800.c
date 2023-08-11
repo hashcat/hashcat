@@ -269,8 +269,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param.digests_offset_host = 0;
   kernel_param.combs_mode          = 0;
   kernel_param.salt_repeat         = 0;
-  kernel_param.combs_mode          = 0;
-  kernel_param.salt_repeat         = 0;
   kernel_param.pws_pos             = 0;
   kernel_param.gid_max             = 1;
 

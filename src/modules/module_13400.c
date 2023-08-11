@@ -139,8 +139,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  if (line_len < 16) return (PARSER_SALT_LENGTH);
-
   const u8 version = line_buf[10];
 
   if (version == '1')
