@@ -636,7 +636,7 @@ CONSTANT_VK u64a MT7[256] =
   S7 = L7 ^ K7;                                   \
 }
 
-DECLSPEC void whirlpool_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest, SHM_TYPE const u64 *s_MT0, SHM_TYPE const u64 *s_MT1, SHM_TYPE const u64 *s_MT2, SHM_TYPE const u64 *s_MT3, SHM_TYPE const u64 *s_MT4, SHM_TYPE const u64 *s_MT5, SHM_TYPE const u64 *s_MT6, SHM_TYPE const u64 *s_MT7)
 {
   u64 W0 = hl32_to_64_S (w0[0], w0[1]);
   u64 W1 = hl32_to_64_S (w0[2], w0[3]);
@@ -2019,7 +2019,7 @@ DECLSPEC void whirlpool_hmac_final (PRIVATE_AS whirlpool_hmac_ctx_t *ctx)
   S7 = L7 ^ K7;                                   \
 }
 
-DECLSPEC void whirlpool_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u32x *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
+DECLSPEC void whirlpool_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u32x *digest, SHM_TYPE const u64 *s_MT0, SHM_TYPE const u64 *s_MT1, SHM_TYPE const u64 *s_MT2, SHM_TYPE const u64 *s_MT3, SHM_TYPE const u64 *s_MT4, SHM_TYPE const u64 *s_MT5, SHM_TYPE const u64 *s_MT6, SHM_TYPE const u64 *s_MT7)
 {
   u64x W0 = hl32_to_64 (w0[0], w0[1]);
   u64x W1 = hl32_to_64 (w0[2], w0[3]);
