@@ -32,7 +32,7 @@ typedef struct wpa_pbkdf2_tmp
   u32 dgst[10];
   u32 out[10];
 
-} wpa_pbkdf2_tmp_t;
+} __attribute__((aligned(128))) wpa_pbkdf2_tmp_t;
 
 typedef struct wpa_pmkid
 {
@@ -43,7 +43,7 @@ typedef struct wpa_pmkid
   u8   essid_len;
   u32  essid_buf[16];
 
-} wpa_pmkid_t;
+} __attribute__((aligned(128))) __attribute__((packed)) wpa_pmkid_t;
 
 DECLSPEC void hmac_sha1_run_V (u32x *w0, u32x *w1, u32x *w2, u32x *w3, u32x *ipad, u32x *opad, u32x *digest)
 {

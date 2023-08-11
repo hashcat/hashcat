@@ -46,14 +46,14 @@ typedef struct whirlpool_ctx
   SHM_TYPE u64 *s_MT6;
   SHM_TYPE u64 *s_MT7;
 
-} whirlpool_ctx_t;
+} __attribute__((aligned(128))) __attribute__((packed)) whirlpool_ctx_t;
 
 typedef struct whirlpool_hmac_ctx
 {
   whirlpool_ctx_t ipad;
   whirlpool_ctx_t opad;
 
-} whirlpool_hmac_ctx_t;
+} __attribute__((aligned(512))) whirlpool_hmac_ctx_t;
 
 typedef struct whirlpool_ctx_vector
 {
@@ -75,14 +75,14 @@ typedef struct whirlpool_ctx_vector
   SHM_TYPE u64 *s_MT6;
   SHM_TYPE u64 *s_MT7;
 
-} whirlpool_ctx_vector_t;
+} __attribute__((aligned(128))) __attribute__((packed)) whirlpool_ctx_vector_t;
 
 typedef struct whirlpool_hmac_ctx_vector
 {
   whirlpool_ctx_vector_t ipad;
   whirlpool_ctx_vector_t opad;
 
-} whirlpool_hmac_ctx_vector_t;
+} __attribute__((aligned(512))) whirlpool_hmac_ctx_vector_t;
 
 DECLSPEC void whirlpool_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7);
 DECLSPEC void whirlpool_init (PRIVATE_AS whirlpool_ctx_t *ctx, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7);

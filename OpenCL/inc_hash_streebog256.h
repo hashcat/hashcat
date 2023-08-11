@@ -51,14 +51,14 @@ typedef struct streebog256_ctx
 
   SHM_TYPE u64a (*s_sbob_sl64)[256];
 
-} streebog256_ctx_t;
+} __attribute__((aligned(128))) __attribute__((packed)) streebog256_ctx_t;
 
 typedef struct streebog256_hmac_ctx
 {
   streebog256_ctx_t ipad;
   streebog256_ctx_t opad;
 
-} streebog256_hmac_ctx_t;
+} __attribute__((aligned(128))) streebog256_hmac_ctx_t;
 
 typedef struct streebog256_ctx_vector
 {
@@ -77,14 +77,14 @@ typedef struct streebog256_ctx_vector
 
   SHM_TYPE u64a (*s_sbob_sl64)[256];
 
-} streebog256_ctx_vector_t;
+} __attribute__((aligned(128))) __attribute__((packed)) streebog256_ctx_vector_t;
 
 typedef struct streebog256_hmac_ctx_vector
 {
   streebog256_ctx_vector_t ipad;
   streebog256_ctx_vector_t opad;
 
-} streebog256_hmac_ctx_vector_t;
+} __attribute__((aligned(128))) streebog256_hmac_ctx_vector_t;
 
 DECLSPEC void streebog256_init (PRIVATE_AS streebog256_ctx_t *ctx, SHM_TYPE u64a (*s_sbob_sl64)[256]);
 DECLSPEC void streebog256_add (PRIVATE_AS u64 *x, PRIVATE_AS const u64 *y);

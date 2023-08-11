@@ -60,14 +60,14 @@ typedef struct sha224_ctx
 
   int len;
 
-} sha224_ctx_t;
+} __attribute__((aligned(128))) sha224_ctx_t;
 
 typedef struct sha224_hmac_ctx
 {
   sha224_ctx_t ipad;
   sha224_ctx_t opad;
 
-} sha224_hmac_ctx_t;
+} __attribute__((aligned(256))) sha224_hmac_ctx_t;
 
 typedef struct sha224_ctx_vector
 {
@@ -80,14 +80,14 @@ typedef struct sha224_ctx_vector
 
   int  len;
 
-} sha224_ctx_vector_t;
+} __attribute__((aligned(128))) sha224_ctx_vector_t;
 
 typedef struct sha224_hmac_ctx_vector
 {
   sha224_ctx_vector_t ipad;
   sha224_ctx_vector_t opad;
 
-} sha224_hmac_ctx_vector_t;
+} __attribute__((aligned(256))) sha224_hmac_ctx_vector_t;
 
 DECLSPEC void sha224_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest);
 DECLSPEC void sha224_init (PRIVATE_AS sha224_ctx_t *ctx);

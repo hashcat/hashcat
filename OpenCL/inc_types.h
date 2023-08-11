@@ -907,7 +907,7 @@ typedef union vconv32
     u16 a;
     u16 b;
 
-  } v16;
+  } __attribute__((aligned(4))) v16;
 
   struct
   {
@@ -916,7 +916,7 @@ typedef union vconv32
     u8 c;
     u8 d;
 
-  } v8;
+  } __attribute__((aligned(4))) v8;
 
 } vconv32_t;
 
@@ -929,7 +929,7 @@ typedef union vconv64
     u32 a;
     u32 b;
 
-  } v32;
+  } __attribute__((aligned(8))) v32;
 
   struct
   {
@@ -938,7 +938,7 @@ typedef union vconv64
     u16 c;
     u16 d;
 
-  } v16;
+  } __attribute__((aligned(8))) v16;
 
   struct
   {
@@ -951,7 +951,7 @@ typedef union vconv64
     u8 g;
     u8 h;
 
-  } v8;
+  } __attribute__((aligned(8))) v8;
 
 } vconv64_t;
 
@@ -1801,7 +1801,7 @@ typedef struct kernel_param
   u64 pws_pos;              // 35
   u64 gid_max;              // 36
 
-} kernel_param_t;
+} __attribute__((aligned(64))) kernel_param_t;
 
 typedef struct salt
 {
@@ -1826,27 +1826,27 @@ typedef struct salt
   u32 scrypt_r;
   u32 scrypt_p;
 
-} salt_t;
+} __attribute__((aligned(128))) salt_t;
 
 typedef struct
 {
   u32 key;
   u64 val;
 
-} hcstat_table_t;
+} __attribute__((aligned(16))) hcstat_table_t;
 
 typedef struct
 {
   u32 cs_buf[0x100];
   u32 cs_len;
 
-} cs_t;
+} __attribute__((aligned(128))) cs_t;
 
 typedef struct
 {
   u32 cmds[32];
 
-} kernel_rule_t;
+} __attribute__((aligned(128))) kernel_rule_t;
 
 typedef struct pw
 {
@@ -1854,7 +1854,7 @@ typedef struct pw
 
   u32 pw_len;
 
-} pw_t;
+} __attribute__((aligned(128))) pw_t __attribute__((aligned(128)));
 
 typedef struct pw_idx
 {
@@ -1862,7 +1862,7 @@ typedef struct pw_idx
   u32 cnt;
   u32 len;
 
-} pw_idx_t;
+} __attribute__((aligned(16))) pw_idx_t;
 
 typedef struct bf
 {
@@ -1874,7 +1874,7 @@ typedef struct bs_word
 {
   u32  b[32];
 
-} bs_word_t;
+} __attribute__((aligned(128))) bs_word_t;
 
 typedef struct plain
 {
@@ -1886,7 +1886,7 @@ typedef struct plain
   u32  extra1;
   u32  extra2;
 
-} plain_t;
+} __attribute__((aligned(32))) plain_t;
 
 typedef struct keyboard_layout_mapping
 {
@@ -1895,7 +1895,7 @@ typedef struct keyboard_layout_mapping
   u32 dst_char;
   int dst_len;
 
-} keyboard_layout_mapping_t;
+} __attribute__((aligned(16))) keyboard_layout_mapping_t;
 
 typedef struct hc_enc
 {
@@ -1904,6 +1904,6 @@ typedef struct hc_enc
   u32  cbuf;  // carry buffer
   int  clen;  // carry length
 
-} hc_enc_t;
+} __attribute__((aligned(16))) hc_enc_t;
 
 #endif

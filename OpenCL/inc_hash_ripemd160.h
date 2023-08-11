@@ -73,14 +73,14 @@ typedef struct ripemd160_ctx
 
   int len;
 
-} ripemd160_ctx_t;
+} __attribute__((aligned(128))) ripemd160_ctx_t;
 
 typedef struct ripemd160_hmac_ctx
 {
   ripemd160_ctx_t ipad;
   ripemd160_ctx_t opad;
 
-} ripemd160_hmac_ctx_t;
+} __attribute__((aligned(256))) ripemd160_hmac_ctx_t;
 
 typedef struct ripemd160_ctx_vector
 {
@@ -93,14 +93,14 @@ typedef struct ripemd160_ctx_vector
 
   int  len;
 
-} ripemd160_ctx_vector_t;
+} __attribute__((aligned(128))) ripemd160_ctx_vector_t;
 
 typedef struct ripemd160_hmac_ctx_vector
 {
   ripemd160_ctx_vector_t ipad;
   ripemd160_ctx_vector_t opad;
 
-} ripemd160_hmac_ctx_vector_t;
+} __attribute__((aligned(256))) ripemd160_hmac_ctx_vector_t;
 
 DECLSPEC void ripemd160_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest);
 DECLSPEC void ripemd160_init (PRIVATE_AS ripemd160_ctx_t *ctx);

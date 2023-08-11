@@ -70,14 +70,14 @@ typedef struct sha384_ctx
 
   int len;
 
-} sha384_ctx_t;
+} __attribute__((aligned(128))) __attribute__((packed)) sha384_ctx_t;
 
 typedef struct sha384_hmac_ctx
 {
   sha384_ctx_t ipad;
   sha384_ctx_t opad;
 
-} sha384_hmac_ctx_t;
+} __attribute__((aligned(512))) sha384_hmac_ctx_t;
 
 typedef struct sha384_ctx_vector
 {
@@ -94,14 +94,14 @@ typedef struct sha384_ctx_vector
 
   int  len;
 
-} sha384_ctx_vector_t;
+} __attribute__((aligned(128))) __attribute__((packed)) sha384_ctx_vector_t;
 
 typedef struct sha384_hmac_ctx_vector
 {
   sha384_ctx_vector_t ipad;
   sha384_ctx_vector_t opad;
 
-} sha384_hmac_ctx_vector_t;
+} __attribute__((aligned(512))) sha384_hmac_ctx_vector_t;
 
 DECLSPEC void sha384_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS const u32 *w4, PRIVATE_AS const u32 *w5, PRIVATE_AS const u32 *w6, PRIVATE_AS const u32 *w7, PRIVATE_AS u64 *digest);
 DECLSPEC void sha384_init (PRIVATE_AS sha384_ctx_t *ctx);
