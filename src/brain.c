@@ -2003,7 +2003,7 @@ void brain_server_handle_signal (int signo)
   }
 }
 
-void *brain_server_handle_dumps (void *p)
+HC_API_CALL void *brain_server_handle_dumps (void *p)
 {
   brain_server_dumper_options_t *brain_server_dumper_options = (brain_server_dumper_options_t *) p;
 
@@ -2035,7 +2035,7 @@ void *brain_server_handle_dumps (void *p)
   return NULL;
 }
 
-void *brain_server_handle_client (void *p)
+HC_API_CALL void *brain_server_handle_client (void *p)
 {
   brain_server_client_options_t *brain_server_client_options = (brain_server_client_options_t *) p;
 
