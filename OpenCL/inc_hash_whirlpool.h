@@ -84,7 +84,7 @@ typedef struct whirlpool_hmac_ctx_vector
 
 } whirlpool_hmac_ctx_vector_t;
 
-DECLSPEC void whirlpool_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7);
+DECLSPEC void whirlpool_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest, SHM_TYPE const u64 *s_MT0, SHM_TYPE const u64 *s_MT1, SHM_TYPE const u64 *s_MT2, SHM_TYPE const u64 *s_MT3, SHM_TYPE const u64 *s_MT4, SHM_TYPE const u64 *s_MT5, SHM_TYPE const u64 *s_MT6, SHM_TYPE const u64 *s_MT7);
 DECLSPEC void whirlpool_init (PRIVATE_AS whirlpool_ctx_t *ctx, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7);
 DECLSPEC void whirlpool_update_64 (PRIVATE_AS whirlpool_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len);
 DECLSPEC void whirlpool_update (PRIVATE_AS whirlpool_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
@@ -111,7 +111,7 @@ DECLSPEC void whirlpool_hmac_update_global_swap (PRIVATE_AS whirlpool_hmac_ctx_t
 DECLSPEC void whirlpool_hmac_update_global_utf16le (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void whirlpool_hmac_update_global_utf16le_swap (PRIVATE_AS whirlpool_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void whirlpool_hmac_final (PRIVATE_AS whirlpool_hmac_ctx_t *ctx);
-DECLSPEC void whirlpool_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u32x *digest, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7);
+DECLSPEC void whirlpool_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u32x *digest, SHM_TYPE const u64 *s_MT0, SHM_TYPE const u64 *s_MT1, SHM_TYPE const u64 *s_MT2, SHM_TYPE const u64 *s_MT3, SHM_TYPE const u64 *s_MT4, SHM_TYPE const u64 *s_MT5, SHM_TYPE const u64 *s_MT6, SHM_TYPE const u64 *s_MT7);
 DECLSPEC void whirlpool_init_vector (PRIVATE_AS whirlpool_ctx_vector_t *ctx, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7);
 DECLSPEC void whirlpool_init_vector_from_scalar (PRIVATE_AS whirlpool_ctx_vector_t *ctx, PRIVATE_AS whirlpool_ctx_t *ctx0);
 DECLSPEC void whirlpool_update_vector_64 (PRIVATE_AS whirlpool_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const int len);

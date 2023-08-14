@@ -1231,7 +1231,7 @@ DECLSPEC void point_double (PRIVATE_AS u32 *x, PRIVATE_AS u32 *y, PRIVATE_AS u32
  * y3 = t3-t4
  */
 
-DECLSPEC void point_add (PRIVATE_AS u32 *x1, PRIVATE_AS u32 *y1, PRIVATE_AS u32 *z1, PRIVATE_AS u32 *x2, PRIVATE_AS u32 *y2) // z2 = 1
+DECLSPEC void point_add (PRIVATE_AS u32 *x1, PRIVATE_AS u32 *y1, PRIVATE_AS u32 *z1, PRIVATE_AS const u32 *x2, PRIVATE_AS const u32 *y2) // z2 = 1
 {
   // How often does this really happen? it should "almost" never happen (but would be safer)
 
