@@ -85,7 +85,7 @@ void key_expansion (uchar * sha1sum, uchar * result)
   }
 }
 
-KERNEL_FQ void m32600_init (KERN_ATTR_TMPS (sha1_tmp_t))
+KERNEL_FQ void m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -106,7 +106,7 @@ KERNEL_FQ void m32600_init (KERN_ATTR_TMPS (sha1_tmp_t))
   tmps[gid].digest[4] = hc_swap32 (ctx.h[4]);
 }
 
-KERNEL_FQ void m32600_loop (KERN_ATTR_TMPS (sha1_tmp_t))
+KERNEL_FQ void m32700_loop (KERN_ATTR_TMPS (sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -152,7 +152,7 @@ KERNEL_FQ void m32600_loop (KERN_ATTR_TMPS (sha1_tmp_t))
   tmps[gid].digest[4] = ctx.h[4];
 }
 
-KERNEL_FQ void m32600_comp (KERN_ATTR_TMPS (sha1_tmp_t))
+KERNEL_FQ void m32700_comp (KERN_ATTR_TMPS (sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
