@@ -94,7 +94,7 @@ CONSTANT_VK u32 base64_table[64] =
 };
 
 // Wow it's the right file
-u32 base64_encode_three_bytes_better (u32 in)
+DECLSPEC u32 base64_encode_three_bytes_better (u32 in)
 {
   //in has 3 u8s in, first u8 is not set)
   u32 out;
@@ -107,7 +107,7 @@ u32 base64_encode_three_bytes_better (u32 in)
   return out;
 }
 
-void base64_encode_sha256 (u32 *out, const u32 *in)
+DECLSPEC void base64_encode_sha256 (u32 *out, const u32 *in)
 {
   out[0] = base64_encode_three_bytes_better(                (in[0] >>  8));
   out[1] = base64_encode_three_bytes_better((in[0] << 16) | (in[1] >> 16));
@@ -139,7 +139,7 @@ KERNEL_FQ void m32500_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
   sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
   sha256_final (&ctx);
 
-  u32 w[16] = { 0 }; // only uses 11, but have to be 16 for sha256_hmac_init_global function
+  u32 w[16] = { 0 }; // only uses 11, but have to be 16 for sha256_hmac_init function
 
   base64_encode_sha256 (w, ctx.h);
 
@@ -147,7 +147,7 @@ KERNEL_FQ void m32500_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 
   sha256_hmac_ctx_t sha256_hmac_ctx;
 
-  sha256_hmac_init_global (&sha256_hmac_ctx, w, 44);
+  sha256_hmac_init (&sha256_hmac_ctx, w, 44);
 
   tmps[gid].ipad[0] = sha256_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = sha256_hmac_ctx.ipad.h[1];
