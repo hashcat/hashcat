@@ -351,9 +351,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int out_len = 0;
 
-  u8 *ptr;
-
-  ptr = (u8 *) netntlm->userdomain_buf;
+  const u8 *ptr = (const u8 *) netntlm->userdomain_buf;
 
   for (int i = 0; i < netntlm->user_len; i += 2)
   {
@@ -372,7 +370,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_buf[out_len++] = ':';
 
-  ptr = (u8 *) netntlm->chall_buf;
+  ptr = (const u8 *) netntlm->chall_buf;
 
   for (int i = 0; i < netntlm->srvchall_len; i++)
   {

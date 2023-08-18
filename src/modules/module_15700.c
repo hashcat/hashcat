@@ -412,7 +412,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_salt[salt_len] = 0;
 
-  ethereum_scrypt_t *ethereum_scrypt = (ethereum_scrypt_t *) esalt_buf;
+  const ethereum_scrypt_t *ethereum_scrypt = (const ethereum_scrypt_t *) esalt_buf;
 
   const int line_len = snprintf (line_buf, line_size, "%s*%u*%u*%u*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
     SIGNATURE_ETHEREUM_SCRYPT,

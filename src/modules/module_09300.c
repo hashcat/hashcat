@@ -337,7 +337,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_buf[43] = 0; // cut it here
 
-  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_CISCO9, (unsigned char *) salt->salt_buf, tmp_buf);
+  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_CISCO9, (const unsigned char *) salt->salt_buf, tmp_buf);
 
   return line_len;
 }

@@ -627,7 +627,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   wpa_t *wpa = (wpa_t *) esalt_buf;
 
-  char *input_buf = (char *) line_buf;
+  const char *input_buf = (const char *) line_buf;
   int   input_len = line_len;
 
   // start old pmkid/hccapx compatibility parsing
@@ -641,7 +641,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (line_len == sizeof (hccapx_t))
   {
-    hccapx_t *hccapx = (hccapx_t *) line_buf;
+    const hccapx_t *hccapx = (const hccapx_t *) line_buf;
 
     if ((hccapx->signature == HCCAPX_SIGNATURE) && (hccapx->version == HCCAPX_VERSION))
     {

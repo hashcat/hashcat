@@ -224,7 +224,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  blocks_t *blocks = (blocks_t *) esalt_buf;
+  const blocks_t *blocks = (const blocks_t *) esalt_buf;
 
   u8 secure_session_identifier[2];
   u8 secure_session_identifier_hex[5] = { 0 };
@@ -233,7 +233,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (secure_session_identifier, &(blocks->b1[2]), 2);
 
-  memcpy (&public_value_xor[ 0], ((u8 *) &blocks->b1[2]) + 2,  6);
+  memcpy (&public_value_xor[ 0], ((const u8 *) &blocks->b1[2]) + 2,  6);
   memcpy (&public_value_xor[ 6], &(blocks->b2[0]), 16);
   memcpy (&public_value_xor[22], &(blocks->b3[0]), 10);
 

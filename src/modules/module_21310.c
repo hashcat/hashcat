@@ -164,7 +164,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  md5_double_salt_t *md5_double_salt = (md5_double_salt_t *) esalt_buf;
+  const md5_double_salt_t *md5_double_salt = (const md5_double_salt_t *) esalt_buf;
 
   // we can not change anything in the original buffer, otherwise destroying sorting
   // therefore create some local buffer

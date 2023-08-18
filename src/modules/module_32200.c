@@ -306,7 +306,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0, j = 0; i < krb5asrep->edata2_len; i += 1, j += 2)
   {
-    u8 *ptr_edata2 = (u8 *) krb5asrep->edata2;
+    const u8 *ptr_edata2 = (const u8 *) krb5asrep->edata2;
 
     snprintf (data + j, 3, "%02x", ptr_edata2[i]);
   }
@@ -317,8 +317,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x$%s",
       SIGNATURE_KRB5ASREP,
-      (char *) krb5asrep->user,
-      (char *) krb5asrep->domain,
+      (const char *) krb5asrep->user,
+      (const char *) krb5asrep->domain,
       krb5asrep->checksum[0],
       krb5asrep->checksum[1],
       krb5asrep->checksum[2],
@@ -328,7 +328,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x",
       SIGNATURE_KRB5ASREP,
-      (char *) krb5asrep->account_info,
+      (const char *) krb5asrep->account_info,
       data,
       krb5asrep->checksum[0],
       krb5asrep->checksum[1],

@@ -310,9 +310,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8   SID[512]            = { 0 };
   u8  *SID_tmp             = NULL;
 
-  u32 *ptr_SID      = (u32 *) dpapimk->SID;
-  u32 *ptr_iv       = (u32 *) dpapimk->iv;
-  u32 *ptr_contents = (u32 *) dpapimk->contents;
+  const u32 *ptr_SID      = (const u32 *) dpapimk->SID;
+  const u32 *ptr_iv       = (const u32 *) dpapimk->iv;
+  const u32 *ptr_contents = (const u32 *) dpapimk->contents;
 
   u32  u32_iv[4];
   u8   iv[32 + 1];

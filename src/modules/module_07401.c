@@ -373,7 +373,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 dgst[100] = { 0 };
 
-  sha256crypt_encode ((u8 *) digest_buf, dgst);
+  sha256crypt_encode ((const u8 *) digest_buf, dgst);
 
   // yeah, this is weird: we use hex-encoding for base64-encoded salt
   // this has to do with missing MySQL function to decode/encode this variant of base64

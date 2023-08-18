@@ -274,7 +274,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_buf[22 + 31] = 0; // base64_encode wants to pad
 
-  return snprintf (line_buf, line_size, "%s$%s", (char *) salt->salt_sign, tmp_buf);
+  return snprintf (line_buf, line_size, "%s$%s", (const char *) salt->salt_sign, tmp_buf);
 }
 
 void module_init (module_ctx_t *module_ctx)

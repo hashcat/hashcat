@@ -195,7 +195,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   line_len += snprintf (line_buf + line_len, line_size - line_len, "%s%u.", SIGNATURE_SHA512GRUB, salt->salt_iter + 1);
 
-  unsigned char *salt_buf_ptr = (unsigned char *) pbkdf2_sha512->salt_buf;
+  const unsigned char *salt_buf_ptr = (const unsigned char *) pbkdf2_sha512->salt_buf;
 
   for (u32 i = 0; i < salt->salt_len; i++)
   {

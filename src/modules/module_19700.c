@@ -265,15 +265,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
   {
-    u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
+    const u8 *ptr_edata2 = (const u8 *) krb5tgs->edata2;
 
     snprintf (data + j, 3, "%02x", ptr_edata2[i]);
   }
 
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x$%s",
     SIGNATURE_KRB5TGS,
-    (char *) krb5tgs->user,
-    (char *) krb5tgs->domain,
+    (const char *) krb5tgs->user,
+    (const char *) krb5tgs->domain,
     krb5tgs->checksum[0],
     krb5tgs->checksum[1],
     krb5tgs->checksum[2],

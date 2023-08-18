@@ -49,7 +49,7 @@ static void loopback_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_p
   }
   else
   {
-    hc_fwrite ((void *)plain_ptr, plain_len, 1, &loopback_ctx->fp);
+    hc_fwrite (plain_ptr, plain_len, 1, &loopback_ctx->fp);
   }
 }
 

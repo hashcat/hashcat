@@ -177,7 +177,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  pbkdf2_sha1_t *pbkdf2_sha1 = (pbkdf2_sha1_t *) esalt_buf;
+  const pbkdf2_sha1_t *pbkdf2_sha1 = (const pbkdf2_sha1_t *) esalt_buf;
 
   // salt
 
@@ -185,7 +185,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (salt_buf, 0, sizeof (salt_buf));
 
-  hex_encode ((u8 *) pbkdf2_sha1->salt_buf, salt->salt_len, salt_buf);
+  hex_encode ((const u8 *) pbkdf2_sha1->salt_buf, salt->salt_len, salt_buf);
 
   // digest
 

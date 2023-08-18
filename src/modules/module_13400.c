@@ -507,15 +507,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32 algorithm   = keepass->algorithm;
   u32 keyfile_len = keepass->keyfile_len;
 
-  u32 *ptr_final_random_seed  = (u32 *) keepass->final_random_seed;
-  u32 *ptr_transf_random_seed = (u32 *) keepass->transf_random_seed;
-  u32 *ptr_enc_iv             = (u32 *) keepass->enc_iv;
-  u32 *ptr_contents_hash      = (u32 *) keepass->contents_hash;
-  u32 *ptr_keyfile            = (u32 *) keepass->keyfile;
+  const u32 *ptr_final_random_seed  = (const u32 *) keepass->final_random_seed;
+  const u32 *ptr_transf_random_seed = (const u32 *) keepass->transf_random_seed;
+  const u32 *ptr_enc_iv             = (const u32 *) keepass->enc_iv;
+  const u32 *ptr_contents_hash      = (const u32 *) keepass->contents_hash;
+  const u32 *ptr_keyfile            = (const u32 *) keepass->keyfile;
 
   // specific to version 2
   u32 expected_bytes_len;
-  u32 *ptr_expected_bytes;
+  const u32 *ptr_expected_bytes;
 
   u32 final_random_seed_len;
   u32 transf_random_seed_len;
@@ -561,7 +561,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (version == 1)
   {
     u32  contents_len =         keepass->contents_len;
-    u32 *ptr_contents = (u32 *) keepass->contents;
+    const u32 *ptr_contents = (const u32 *) keepass->contents;
 
     for (u32 i = 0; i < contents_hash_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_contents_hash[i]);
 
@@ -591,7 +591,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   else if (version == 2)
   {
     expected_bytes_len = 8;
-    ptr_expected_bytes = (u32 *) keepass->expected_bytes;
+    ptr_expected_bytes = (const u32 *) keepass->expected_bytes;
 
     for (u32 i = 0; i < expected_bytes_len; i++, ptr_data += 8) snprintf (ptr_data, 9, "%08x", ptr_expected_bytes[i]);
 

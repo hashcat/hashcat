@@ -2031,8 +2031,8 @@ int run_opencl_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
     cl_kernel kernel = device_param->opencl_kernel_bzero;
 
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   (void *) &buf)    == -1) return -1;
-    if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_ulong), (void *) &num16d) == -1) return -1;
+    if (hc_clSetKernelArg (hashcat_ctx, kernel, 0, sizeof (cl_mem),   &buf)    == -1) return -1;
+    if (hc_clSetKernelArg (hashcat_ctx, kernel, 1, sizeof (cl_ulong), &num16d) == -1) return -1;
 
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };

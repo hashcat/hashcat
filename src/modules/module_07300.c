@@ -140,7 +140,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const rakp_t *rakp = (const rakp_t *) esalt_buf;
 
-  u8 *ptr = (u8 *) rakp->salt_buf;
+  const u8 *ptr = (const u8 *) rakp->salt_buf;
 
   int line_len = 0;
 

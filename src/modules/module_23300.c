@@ -230,13 +230,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 iv_hex[33] = { 0 };
 
-  hex_encode ((u8 *) iwork->iv, 16, iv_hex);
+  hex_encode ((const u8 *) iwork->iv, 16, iv_hex);
 
   // data
 
   u8 data_hex[129] = { 0 };
 
-  hex_encode ((u8 *) iwork->data, 64, data_hex);
+  hex_encode ((const u8 *) iwork->data, 64, data_hex);
 
   int out_len = snprintf (line_buf, line_size, "%s%u$%u$%u$%u$%s$%s$%s",
     SIGNATURE_IWORK,

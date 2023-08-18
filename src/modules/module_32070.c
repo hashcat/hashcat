@@ -182,9 +182,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  u64 *digest = (u64 *) digest_buf;
+  const u64 *digest = (const u64 *) digest_buf;
 
-  pbkdf2_sha512_t *pbkdf2_sha512 = (pbkdf2_sha512_t *) esalt_buf;
+  const pbkdf2_sha512_t *pbkdf2_sha512 = (const pbkdf2_sha512_t *) esalt_buf;
 
   // salt
 
@@ -192,7 +192,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (salt_buf, 0, sizeof (salt_buf));
 
-  hex_encode ((u8 *) pbkdf2_sha512->salt_buf, salt->salt_len, salt_buf);
+  hex_encode ((const u8 *) pbkdf2_sha512->salt_buf, salt->salt_len, salt_buf);
 
   // digest
 

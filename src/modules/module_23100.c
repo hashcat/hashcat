@@ -163,19 +163,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  keychain_t *keychain = (keychain_t *) esalt_buf;
+  const keychain_t *keychain = (const keychain_t *) esalt_buf;
 
   // iv
 
   u8 iv[17] = { 0 };
 
-  hex_encode ((u8 *) keychain->iv, 8, iv);
+  hex_encode ((const u8 *) keychain->iv, 8, iv);
 
   // data
 
   u8 data[97] = { 0 };
 
-  hex_encode ((u8 *) keychain->data, 48, data);
+  hex_encode ((const u8 *) keychain->data, 48, data);
 
   return snprintf (line_buf, line_size, "%s*%08x%08x%08x%08x%08x*%s*%s",
     SIGNATURE_KEYCHAIN,

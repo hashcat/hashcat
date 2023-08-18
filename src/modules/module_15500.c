@@ -224,18 +224,18 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char enc_key[16384 + 1] = { 0 };
 
-  u8 *ptr = (u8 *) jks_sha1->enc_key_buf;
+  const u8 *ptr = (const u8 *) jks_sha1->enc_key_buf;
 
   for (u32 i = 0, j = 0; i < jks_sha1->enc_key_len; i += 1, j += 2)
   {
     snprintf (enc_key + j, 3, "%02X", ptr[i]);
   }
 
-  u8 *der = (u8 *) jks_sha1->der;
+  const u8 *der = (const u8 *) jks_sha1->der;
 
   char alias[65] = { 0 };
 
-  memcpy (alias, (char *) jks_sha1->alias, 64);
+  memcpy (alias, (const char *) jks_sha1->alias, 64);
 
   const int line_len = snprintf (line_buf, line_size, "%s*%08X%08X%08X%08X%08X*%08X%08X%08X%08X%08X*%s*%02X*%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X*%s",
     SIGNATURE_JKS_SHA1,

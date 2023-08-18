@@ -138,7 +138,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   ptr_plain[27] = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%s.%s", (char *) salt->salt_buf, (char *) ptr_plain);
+  const int line_len = snprintf (line_buf, line_size, "%s.%s", (const char *) salt->salt_buf, (const char *) ptr_plain);
 
   return line_len;
 }

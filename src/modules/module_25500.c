@@ -243,7 +243,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  pbkdf2_sha256_aes_gcm_t *stellar = (pbkdf2_sha256_aes_gcm_t *) esalt_buf;
+  const pbkdf2_sha256_aes_gcm_t *stellar = (const pbkdf2_sha256_aes_gcm_t *) esalt_buf;
 
   // salt
 

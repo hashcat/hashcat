@@ -112,11 +112,11 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   if (vc_tmp->pim == 0)
   {
-    return snprintf ((char *) dst_buf, dst_sz, "%s", (char *) src_buf);
+    return snprintf ((char *) dst_buf, dst_sz, "%s", (const char *) src_buf);
   }
   else
   {
-    return snprintf ((char *) dst_buf, dst_sz, "%s   (PIM=%d)", (char *) src_buf, vc_tmp->pim - 15);
+    return snprintf ((char *) dst_buf, dst_sz, "%s   (PIM=%d)", (const char *) src_buf, vc_tmp->pim - 15);
   }
 }
 

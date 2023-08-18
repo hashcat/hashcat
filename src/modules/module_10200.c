@@ -155,7 +155,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   char tmp_buf[SALT_MAX * 2];
 
   const int tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "%s %08x%08x%08x%08x",
-    (char *) cram_md5->user,
+    (const char *) cram_md5->user,
     byte_swap_32 (digest[0]),
     byte_swap_32 (digest[1]),
     byte_swap_32 (digest[2]),

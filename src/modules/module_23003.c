@@ -210,13 +210,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 iv[33] = { 0 };
 
-  hex_encode ((u8 *) securezip->iv, securezip->iv_len, iv);
+  hex_encode ((const u8 *) securezip->iv, securezip->iv_len, iv);
 
   // data:
 
   u8 data[289] = { 0 };
 
-  hex_encode ((u8 *) securezip->data, 144, data);
+  hex_encode ((const u8 *) securezip->data, 144, data);
 
   // file:
 

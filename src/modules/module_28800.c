@@ -244,8 +244,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x%08x",
     SIGNATURE_KRB5DB,
-    (char *) krb5db->user,
-    (char *) krb5db->domain,
+    (const char *) krb5db->user,
+    (const char *) krb5db->domain,
     digest[0],
     digest[1],
     digest[2],

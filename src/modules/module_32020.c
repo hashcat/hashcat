@@ -143,7 +143,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  u8 *salt_buf = (u8 *) salt->salt_buf;
+  const u8 *salt_buf = (const u8 *) salt->salt_buf;
 
   // digest
 

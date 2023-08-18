@@ -236,7 +236,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  apple_secure_notes_t *apple_secure_notes = (apple_secure_notes_t *) esalt_buf;
+  const apple_secure_notes_t *apple_secure_notes = (const apple_secure_notes_t *) esalt_buf;
 
   const int out_len = snprintf (line_buf, line_size, "%s%u$16$%08x%08x%08x%08x$%u$%08x%08x%08x%08x%08x%08x%08x%08x%08x%08x",
     SIGNATURE_APFS,

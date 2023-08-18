@@ -138,10 +138,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (parse_rc2 == false) return (PARSER_SALT_LENGTH);
 
   const u8 *empire_salt1 = (const u8 *) "E!m^p-i(r#e.C:M?S";
-  const u32 empire_salt1_len = strlen ((char *) empire_salt1);
+  const u32 empire_salt1_len = strlen ((const char *) empire_salt1);
 
   const u8 *empire_salt2 = (const u8 *) "d)i.g^o-d";
-  const u32 empire_salt2_len = strlen ((char *) empire_salt2);
+  const u32 empire_salt2_len = strlen ((const char *) empire_salt2);
 
   memcpy ((u8 *) md5_triple_salt->salt2_buf + md5_triple_salt->salt2_len, empire_salt1, empire_salt1_len);
 

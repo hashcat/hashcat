@@ -256,9 +256,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  u32 *digest = (u32 *) digest_buf;
+  const u32 *digest = (const u32 *) digest_buf;
 
-  mongodb_sha256_t *mongodb_sha256 = (mongodb_sha256_t *) esalt_buf;
+  const mongodb_sha256_t *mongodb_sha256 = (const mongodb_sha256_t *) esalt_buf;
 
   // salt
 
@@ -297,7 +297,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 user[100] = { 0 };
 
-  memcpy (user, (char *) mongodb_sha256->user, 64);
+  memcpy (user, (const char *) mongodb_sha256->user, 64);
 
   u8 user_base64[100] = { 0 };
 

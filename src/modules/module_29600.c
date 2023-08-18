@@ -197,7 +197,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  u32 *digest = (u32 *) digest_buf;
+  const u32 *digest = (const u32 *) digest_buf;
 
   const terra_t *terra = (const terra_t *) esalt_buf;
 
@@ -205,7 +205,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char salt_hex[32 + 1] = { 0 };
 
-  hex_encode ((u8 *) terra->salt_buf, 16, (u8 *) salt_hex); // or use: generic_salt_encode ()
+  hex_encode ((const u8 *) terra->salt_buf, 16, (u8 *) salt_hex); // or use: generic_salt_encode ()
 
   salt_hex[32] = 0;
 
@@ -213,7 +213,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char iv_hex[32 + 1] = { 0 };
 
-  hex_encode ((u8 *) terra->iv, 16, (u8 *) iv_hex);
+  hex_encode ((const u8 *) terra->iv, 16, (u8 *) iv_hex);
 
   iv_hex[32] = 0;
 
