@@ -42,7 +42,7 @@ void sysfs_cpu_close (void *hashcat_ctx)
   }
 }
 
-char *hm_SYSFS_CPU_get_syspath_hwmon ()
+char *hm_SYSFS_CPU_get_syspath_hwmon (void)
 {
   char *found[4];
 

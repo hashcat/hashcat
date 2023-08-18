@@ -597,7 +597,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
   #endif
 }
 
-void setup_umask ()
+void setup_umask (void)
 {
   umask (077);
 }
@@ -681,7 +681,7 @@ void hc_string_trim_trailing (char *s)
   s[new_len] = 0;
 }
 
-int hc_get_processor_count ()
+int hc_get_processor_count (void)
 {
   int cnt = 0;
 

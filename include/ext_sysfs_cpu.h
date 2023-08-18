@@ -48,7 +48,7 @@ typedef hm_sysfs_cpu_lib_t SYSFS_CPU_PTR;
 
 bool sysfs_cpu_init (void *hashcat_ctx);
 void sysfs_cpu_close (void *hashcat_ctx);
-char *hm_SYSFS_CPU_get_syspath_hwmon ();
+char *hm_SYSFS_CPU_get_syspath_hwmon (void);
 int hm_SYSFS_CPU_get_temperature_current (void *hashcat_ctx, int *val);
 
 bool read_proc_stat (void *hashcat_ctx, proc_stat_t *proc_stat);

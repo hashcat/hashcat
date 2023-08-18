@@ -69,7 +69,7 @@ int  hc_string_bom_size (const u8 *s);
 void hc_string_trim_trailing (char *s);
 void hc_string_trim_leading (char *s);
 
-int hc_get_processor_count ();
+int hc_get_processor_count (void);
 
 bool hc_same_files (char *file1, char *file2);
 
