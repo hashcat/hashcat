@@ -15083,7 +15083,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // size_pws_idx
 
-      size_pws_idx = (u64) (kernel_power_max + 1) * sizeof (pw_idx_t);
+      size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
 
       // size_tmps
 

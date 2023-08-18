@@ -657,7 +657,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     for (u32 i = 0, j = 0; j < coder_attributes_len; i += 1, j += 2)
     {
-      seven_zip->coder_attributes[i] = hex_to_u8 ((const u8 *) &coder_attributes_pos[j]);
+      seven_zip->coder_attributes[i] = hex_to_u8 (&coder_attributes_pos[j]);
 
       seven_zip->coder_attributes_len++;
     }

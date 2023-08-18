@@ -185,7 +185,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     byte_swap_32 (salt->salt_buf[1]),
     pem->data_len);
 
-  out_len += hex_encode ((const u8 *) pem->data_buf, pem->data_len, (u8 *) out_buf + out_len);
+  out_len += hex_encode ((const u8 *) pem->data_buf, pem->data_len, out_buf + out_len);
 
   return out_len;
 }

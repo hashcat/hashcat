@@ -71,7 +71,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 tmp_buf[100] = { 0 };
 
-  base64_decode (itoa64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  base64_decode (itoa64_to_int, hash_pos, hash_len, tmp_buf);
 
   memcpy (digest, tmp_buf, 32);
 

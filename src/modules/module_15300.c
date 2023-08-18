@@ -215,7 +215,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0; i < dpapimk->contents_len / 8; i++)
   {
-    dpapimk->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
+    dpapimk->contents[i] = hex_to_u32 (&contents_pos[i * 8]);
 
     dpapimk->contents[i] = byte_swap_32 (dpapimk->contents[i]);
   }
@@ -246,10 +246,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // iv
 
-  dpapimk->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
-  dpapimk->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
-  dpapimk->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
-  dpapimk->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
+  dpapimk->iv[0] = hex_to_u32 (&iv_pos[ 0]);
+  dpapimk->iv[1] = hex_to_u32 (&iv_pos[ 8]);
+  dpapimk->iv[2] = hex_to_u32 (&iv_pos[16]);
+  dpapimk->iv[3] = hex_to_u32 (&iv_pos[24]);
 
   dpapimk->iv[0] = byte_swap_32 (dpapimk->iv[0]);
   dpapimk->iv[1] = byte_swap_32 (dpapimk->iv[1]);

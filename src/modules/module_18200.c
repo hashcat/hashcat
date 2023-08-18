@@ -142,7 +142,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     krb5asrep->format = 2;
   }
 
-  const char *account_info_start = (const char *) line_buf + strlen (SIGNATURE_KRB5ASREP) + parse_off;
+  const char *account_info_start = line_buf + strlen (SIGNATURE_KRB5ASREP) + parse_off;
   char *account_info_stop  = strchr (account_info_start, ':');
 
   if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);

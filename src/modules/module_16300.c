@@ -165,10 +165,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *encseed_pos = token.buf[1];
   const int encseed_len = token.len[1];
 
-  ethereum_presale->iv[0] = hex_to_u32 ((const u8 *) &encseed_pos[ 0]);
-  ethereum_presale->iv[1] = hex_to_u32 ((const u8 *) &encseed_pos[ 8]);
-  ethereum_presale->iv[2] = hex_to_u32 ((const u8 *) &encseed_pos[16]);
-  ethereum_presale->iv[3] = hex_to_u32 ((const u8 *) &encseed_pos[24]);
+  ethereum_presale->iv[0] = hex_to_u32 (&encseed_pos[ 0]);
+  ethereum_presale->iv[1] = hex_to_u32 (&encseed_pos[ 8]);
+  ethereum_presale->iv[2] = hex_to_u32 (&encseed_pos[16]);
+  ethereum_presale->iv[3] = hex_to_u32 (&encseed_pos[24]);
 
   ethereum_presale->iv[0] = byte_swap_32 (ethereum_presale->iv[0]);
   ethereum_presale->iv[1] = byte_swap_32 (ethereum_presale->iv[1]);
@@ -179,7 +179,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 32, j = 0; i < encseed_len; i += 8, j++)
   {
-    esalt_buf_ptr[j] = hex_to_u32 ((const u8 *) &encseed_pos[i]);
+    esalt_buf_ptr[j] = hex_to_u32 (&encseed_pos[i]);
 
     esalt_buf_ptr[j] = byte_swap_32 (esalt_buf_ptr[j]);
   }
@@ -201,10 +201,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *bkp_pos = token.buf[3];
 
-  digest[0] = hex_to_u32 ((const u8 *) &bkp_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &bkp_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &bkp_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &bkp_pos[24]);
+  digest[0] = hex_to_u32 (&bkp_pos[ 0]);
+  digest[1] = hex_to_u32 (&bkp_pos[ 8]);
+  digest[2] = hex_to_u32 (&bkp_pos[16]);
+  digest[3] = hex_to_u32 (&bkp_pos[24]);
 
   return (PARSER_OK);
 }

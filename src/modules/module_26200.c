@@ -92,7 +92,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u8 *hash_pos = (const u8 *) token.buf[0];
+  const u8 *hash_pos = token.buf[0];
   const u32 hash_len = token.len[0];
 
   /*

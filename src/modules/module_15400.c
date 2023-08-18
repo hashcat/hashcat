@@ -145,22 +145,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *position_marker = token.buf[1];
 
-  chacha20->position[0] = hex_to_u32 ((const u8 *) position_marker + 0);
-  chacha20->position[1] = hex_to_u32 ((const u8 *) position_marker + 8);
+  chacha20->position[0] = hex_to_u32 (position_marker + 0);
+  chacha20->position[1] = hex_to_u32 (position_marker + 8);
 
   // iv
 
   const u8 *iv_marker = token.buf[3];
 
-  chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
-  chacha20->iv[1] = hex_to_u32 ((const u8 *) iv_marker + 0);
+  chacha20->iv[0] = hex_to_u32 (iv_marker + 8);
+  chacha20->iv[1] = hex_to_u32 (iv_marker + 0);
 
   // plain
 
   const u8 *plain_marker = token.buf[4];
 
-  chacha20->plain[0] = hex_to_u32 ((const u8 *) plain_marker + 0);
-  chacha20->plain[1] = hex_to_u32 ((const u8 *) plain_marker + 8);
+  chacha20->plain[0] = hex_to_u32 (plain_marker + 0);
+  chacha20->plain[1] = hex_to_u32 (plain_marker + 8);
 
   /* some fake salt for the sorting mechanisms */
 
@@ -178,8 +178,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *cipher_marker = token.buf[5];
 
-  digest[0] = hex_to_u32 ((const u8 *) cipher_marker + 8);
-  digest[1] = hex_to_u32 ((const u8 *) cipher_marker + 0);
+  digest[0] = hex_to_u32 (cipher_marker + 8);
+  digest[1] = hex_to_u32 (cipher_marker + 0);
 
   return (PARSER_OK);
 }

@@ -295,7 +295,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     iv,
     pkcs->data_len);
 
-  out_len += hex_encode ((const u8 *) pkcs->data_buf, pkcs->data_len, (u8 *) out_buf + out_len);
+  out_len += hex_encode ((const u8 *) pkcs->data_buf, pkcs->data_len, out_buf + out_len);
 
   return out_len;
 }

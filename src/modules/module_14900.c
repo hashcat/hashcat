@@ -89,7 +89,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *hash_pos = token.buf[0];
 
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[0]);
+  digest[0] = hex_to_u32 (&hash_pos[0]);
   digest[1] = 0;
   digest[2] = 0;
   digest[3] = 0;
@@ -99,7 +99,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[1];
   const int salt_len = token.len[1];
 
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[0]);
+  salt->salt_buf[0] = hex_to_u32 (&salt_pos[0]);
 
   salt->salt_len = salt_len / 2; // 4
 

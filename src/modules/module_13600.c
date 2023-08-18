@@ -245,8 +245,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     if (salt_len != 16) return (PARSER_SALT_VALUE);
 
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
+    zip2->salt_buf[0] = hex_to_u32 (&salt_pos[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 (&salt_pos[ 8]);
     zip2->salt_buf[2] = 0;
     zip2->salt_buf[3] = 0;
 
@@ -256,9 +256,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     if (salt_len != 24) return (PARSER_SALT_VALUE);
 
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
-    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
+    zip2->salt_buf[0] = hex_to_u32 (&salt_pos[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 (&salt_pos[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 (&salt_pos[16]);
     zip2->salt_buf[3] = 0;
 
     zip2->salt_len = 12;
@@ -267,10 +267,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     if (salt_len != 32) return (PARSER_SALT_VALUE);
 
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
-    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
-    zip2->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_pos[24]);
+    zip2->salt_buf[0] = hex_to_u32 (&salt_pos[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 (&salt_pos[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 (&salt_pos[16]);
+    zip2->salt_buf[3] = hex_to_u32 (&salt_pos[24]);
 
     zip2->salt_len = 16;
   }

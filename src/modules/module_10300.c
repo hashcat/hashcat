@@ -117,7 +117,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 tmp_buf[100] = { 0 };
 
-  const u32 decoded_len = base64_decode (base64_to_int, (const u8 *) base64_pos, base64_len, tmp_buf);
+  const u32 decoded_len = base64_decode (base64_to_int, base64_pos, base64_len, tmp_buf);
 
   if (decoded_len < 24) return (PARSER_SALT_LENGTH);
 

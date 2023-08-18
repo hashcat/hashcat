@@ -155,7 +155,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // date
 
-  parse_rc = generic_salt_decode (hashconfig, (const u8 *) longdate_pos, 8, (u8 *) esalt->date, (int *) &esalt->date_len);
+  parse_rc = generic_salt_decode (hashconfig, longdate_pos, 8, (u8 *) esalt->date, (int *) &esalt->date_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 

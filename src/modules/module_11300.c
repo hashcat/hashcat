@@ -236,7 +236,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; j < cry_master_len; i += 1, j += 8)
   {
-    bitcoin_wallet->cry_master_buf[i] = hex_to_u32 ((const u8 *) &cry_master_buf_pos[j]);
+    bitcoin_wallet->cry_master_buf[i] = hex_to_u32 (&cry_master_buf_pos[j]);
   }
 
   bitcoin_wallet->cry_master_len = cry_master_len / 2;

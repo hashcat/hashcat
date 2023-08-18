@@ -133,8 +133,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     if (line_buf[token.len[0] + 3] == '*')
     {
-      const char *account_info_start = (const char *) line_buf + 12; // we want the * char included
-      char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
+      const char *account_info_start = line_buf + 12; // we want the * char included
+      char *account_info_stop  = strchr (account_info_start + 1, '*');
 
       if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 

@@ -173,10 +173,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *ZCRYPTOSALT_pos = token.buf[3];
 
-  apple_secure_notes->ZCRYPTOSALT[ 0] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[ 0]);
-  apple_secure_notes->ZCRYPTOSALT[ 1] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[ 8]);
-  apple_secure_notes->ZCRYPTOSALT[ 2] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[16]);
-  apple_secure_notes->ZCRYPTOSALT[ 3] = hex_to_u32 ((const u8 *) &ZCRYPTOSALT_pos[24]);
+  apple_secure_notes->ZCRYPTOSALT[ 0] = hex_to_u32 (&ZCRYPTOSALT_pos[ 0]);
+  apple_secure_notes->ZCRYPTOSALT[ 1] = hex_to_u32 (&ZCRYPTOSALT_pos[ 8]);
+  apple_secure_notes->ZCRYPTOSALT[ 2] = hex_to_u32 (&ZCRYPTOSALT_pos[16]);
+  apple_secure_notes->ZCRYPTOSALT[ 3] = hex_to_u32 (&ZCRYPTOSALT_pos[24]);
   apple_secure_notes->ZCRYPTOSALT[ 4] = 0;
   apple_secure_notes->ZCRYPTOSALT[ 5] = 0;
   apple_secure_notes->ZCRYPTOSALT[ 6] = 0;
@@ -202,16 +202,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *ZCRYPTOWRAPPEDKEY_pos = token.buf[5];
 
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[0] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[ 0]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[1] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[ 8]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[2] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[16]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[3] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[24]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[4] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[32]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[5] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[40]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[6] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[48]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[7] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[56]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[8] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[64]);
-  apple_secure_notes->ZCRYPTOWRAPPEDKEY[9] = hex_to_u32 ((const u8 *) &ZCRYPTOWRAPPEDKEY_pos[72]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[0] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[ 0]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[1] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[ 8]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[2] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[16]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[3] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[24]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[4] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[32]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[5] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[40]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[6] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[48]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[7] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[56]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[8] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[64]);
+  apple_secure_notes->ZCRYPTOWRAPPEDKEY[9] = hex_to_u32 (&ZCRYPTOWRAPPEDKEY_pos[72]);
 
   // fake salt
 

@@ -179,13 +179,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 secure_session_identifier[2];
   u8 public_value_xor[32];
 
-  hex_decode (secure_session_identifier_pos, secure_session_identifier_len, (u8 *) &secure_session_identifier);
-  hex_decode (public_value_xor_pos, public_value_xor_len, (u8 *) &public_value_xor);
+  hex_decode (secure_session_identifier_pos, secure_session_identifier_len, secure_session_identifier);
+  hex_decode (public_value_xor_pos, public_value_xor_len, public_value_xor);
 
-  digest[0] = hex_to_u32 ((const u8 *) &mac_pos[0]);
-  digest[1] = hex_to_u32 ((const u8 *) &mac_pos[8]);
-  digest[2] = hex_to_u32 ((const u8 *) &mac_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &mac_pos[24]);
+  digest[0] = hex_to_u32 (&mac_pos[0]);
+  digest[1] = hex_to_u32 (&mac_pos[8]);
+  digest[2] = hex_to_u32 (&mac_pos[16]);
+  digest[3] = hex_to_u32 (&mac_pos[24]);
 
   u8 b1[16] = { 0x00, //-x Length of the associated data
                 0x28, //_|

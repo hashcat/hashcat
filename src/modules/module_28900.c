@@ -116,7 +116,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // assume no signature found
   if (line_len < 11) return (PARSER_SALT_LENGTH);
 
-  char *spn_info_start  = strchr ((const char *) line_buf + 11 + 1, '*');
+  char *spn_info_start  = strchr (line_buf + 11 + 1, '*');
 
   int is_spn_provided = 0;
 

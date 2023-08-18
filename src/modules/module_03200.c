@@ -227,7 +227,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  base64_decode (bf64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+  base64_decode (bf64_to_int, salt_pos, salt_len, tmp_buf);
 
   memcpy (salt_buf_ptr, tmp_buf, 16);
 
@@ -238,7 +238,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  base64_decode (bf64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  base64_decode (bf64_to_int, hash_pos, hash_len, tmp_buf);
 
   memcpy (digest, tmp_buf, 24);
 

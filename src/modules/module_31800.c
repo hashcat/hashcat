@@ -341,7 +341,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // final
 
-  int out_len = snprintf ((char *) line_buf, line_size, "%s%s$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x$%u$%s$%s$%08x%08x%08x%08x",
+  int out_len = snprintf (line_buf, line_size, "%s%s$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x$%u$%s$%s$%08x%08x%08x%08x",
     SIGNATURE_1PASSWORD8,
     (const char *) onepassword8->email_buf,
     onepassword8->hkdf_salt_buf[0],
