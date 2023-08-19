@@ -44,7 +44,25 @@ sub module_generate_hash
     padding     => "none"
   });
 
-  my $pt = "[{\"type\":\"HD Key Tree\",\"data\":{\"mnemonic\":\"ocean hidden kidney famous rich season gloom husband spring convince attitude boy\",\"numberOfAccounts\":1,\"hdPath\":\"m/44'/60'/0'/0\"}}]";
+  my $pt = "";
+
+  if (! defined ($ct))
+  {
+    $pt = "[{\"type\":\"HD Key Tree\",\"data\":{\"mnemonic\":\"ocean hidden kidney famous rich season gloom husband spring convince attitude boy\",\"numberOfAccounts\":1,\"hdPath\":\"m/44'/60'/0'/0\"}}]";
+  }
+  else
+  {
+    $pt = $cipher->decrypt (pack ("H*", $ct));
+
+    if ($pt =~ m/^[ -~]*$/) # is_valid_printable_32 ()
+    {
+      # ok
+    }
+    else
+    {
+      $pt = ""; # fake
+    }
+  }
 
   my $ct1 = substr ($cipher->encrypt ($pt), 0, 16);
 
