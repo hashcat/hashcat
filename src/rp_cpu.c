@@ -127,7 +127,7 @@ static int mangle_num_incr (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
   for (int pos = 0; pos < arr_len; pos++)
   {
-    const u8 byte = arr[pos];
+    const char byte = arr[pos];
 
     if ((byte <= '9') && (byte >= '0'))
     {
