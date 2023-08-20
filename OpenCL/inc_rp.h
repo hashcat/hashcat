@@ -68,6 +68,7 @@
 #define RULE_OP_MANGLE_DUPEBLOCK_FIRST  'y'
 #define RULE_OP_MANGLE_DUPEBLOCK_LAST   'Y'
 #define RULE_OP_MANGLE_TITLE            'E'
+#define RULE_OP_MANGLE_NUM_INCR         '#'
 
 #define RP_PASSWORD_SIZE 256
 
@@ -118,6 +119,7 @@ DECLSPEC int mangle_replace_nm1 (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8
 DECLSPEC int mangle_dupeblock_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_dupeblock_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len);
+DECLSPEC int mangle_num_incr  (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int in_len);
 DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, PRIVATE_AS u32 *buf, const int in_len);
 

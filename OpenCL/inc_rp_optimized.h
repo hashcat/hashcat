@@ -74,6 +74,7 @@
 #define RULE_OP_MANGLE_DUPEBLOCK_FIRST  'y'
 #define RULE_OP_MANGLE_DUPEBLOCK_LAST   'Y'
 #define RULE_OP_MANGLE_TITLE            'E'
+#define RULE_OP_MANGLE_NUM_INCR         '#'
 
 DECLSPEC u32 generate_cmask_optimized (const u32 value);
 DECLSPEC void truncate_right_optimized (PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 offset);
@@ -127,6 +128,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_np1 (MAYBE_UNUSED const u32 p0,
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace_nm1 (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupeblock_first (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupeblock_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_num_incr (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC u32 toggle_on_register (const u32 in, const u32 r);
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 in_len);

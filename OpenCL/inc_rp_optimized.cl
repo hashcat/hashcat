@@ -1239,6 +1239,50 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_toggle_at_sep (MAYBE_UNUSED const u32 p
   return in_len;
 }
 
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_num_incr (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+{
+  u32 t[8];
+
+  t[0] = buf0[0];
+  t[1] = buf0[1];
+  t[2] = buf0[2];
+  t[3] = buf0[3];
+  t[4] = buf1[0];
+  t[5] = buf1[1];
+  t[6] = buf1[2];
+  t[7] = buf1[3];
+
+  PRIVATE_AS u8 *ptr = (PRIVATE_AS u8 *) t;
+
+  for (int pos = 0; pos < 32; pos++)
+  {
+    const u8 byte = ptr[pos];
+
+    if ((byte <= '9') && (byte >= '0'))
+    {
+      if (byte == '9')
+      {
+        ptr[pos] = '0';
+      }
+      else
+      {
+        ptr[pos]++;
+      }
+    }
+  }
+
+  buf0[0] = t[0];
+  buf0[1] = t[1];
+  buf0[2] = t[2];
+  buf0[3] = t[3];
+  buf1[0] = t[4];
+  buf1[1] = t[5];
+  buf1[2] = t[6];
+  buf1[3] = t[7];
+
+  return in_len;
+}
+
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_reverse (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   reverse_block_optimized (buf0, buf1, buf0, buf1, in_len);
@@ -2397,6 +2441,8 @@ DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, P
     case RULE_OP_MANGLE_DUPEBLOCK_LAST:   out_len = rule_op_mangle_dupeblock_last   (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_TITLE_SEP:        out_len = rule_op_mangle_title_sep        (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_TITLE:            out_len = rule_op_mangle_title_sep        (' ', p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_NUM_INCR:         out_len = rule_op_mangle_num_incr         (p0, p1, buf0, buf1, out_len); break;
+
   }
 
   return out_len;
