@@ -31,6 +31,7 @@ static const char grp_op_nop[] =
   RULE_OP_MANGLE_SWITCH_LAST,
   RULE_OP_MANGLE_DUPECHAR_ALL,
   RULE_OP_MANGLE_TITLE,
+  RULE_OP_MANGLE_NUM_INCR,
 };
 
 static const char grp_op_pos_p0[] =
@@ -281,6 +282,10 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_TREST:
+        SET_NAME (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_NUM_INCR:
         SET_NAME (rule, rule_buf[rule_pos]);
         break;
 
