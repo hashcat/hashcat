@@ -366,7 +366,7 @@ typedef enum rule_functions
   RULE_OP_MANGLE_DUPEBLOCK_FIRST = 'y',
   RULE_OP_MANGLE_DUPEBLOCK_LAST  = 'Y',
   RULE_OP_MANGLE_TITLE           = 'E',
-  RULE_OP_MANGLE_NUM_INCR        = '#',
+  RULE_OP_MANGLE_NUM_INCR        = 'F',
 
 } rule_functions_t;
 

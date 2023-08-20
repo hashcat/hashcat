@@ -74,7 +74,7 @@
 #define RULE_OP_MANGLE_DUPEBLOCK_FIRST  'y'
 #define RULE_OP_MANGLE_DUPEBLOCK_LAST   'Y'
 #define RULE_OP_MANGLE_TITLE            'E'
-#define RULE_OP_MANGLE_NUM_INCR         '#'
+#define RULE_OP_MANGLE_NUM_INCR         'F'
 
 DECLSPEC u32 generate_cmask_optimized (const u32 value);
 DECLSPEC void truncate_right_optimized (PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 offset);

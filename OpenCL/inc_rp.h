@@ -68,7 +68,7 @@
 #define RULE_OP_MANGLE_DUPEBLOCK_FIRST  'y'
 #define RULE_OP_MANGLE_DUPEBLOCK_LAST   'Y'
 #define RULE_OP_MANGLE_TITLE            'E'
-#define RULE_OP_MANGLE_NUM_INCR         '#'
+#define RULE_OP_MANGLE_NUM_INCR         'F'
 
 #define RP_PASSWORD_SIZE 256
 
