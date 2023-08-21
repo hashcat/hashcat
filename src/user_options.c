@@ -1384,6 +1384,22 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  #if defined (_WIN)
+  char invalid_characters[] = "/<>:\"\\|?*";
+  #else
+  char invalid_characters[] = "/";
+  #endif
+
+  for (size_t i = 0; strlen (user_options->session) > i; i++)
+  {
+    if (strchr (invalid_characters, user_options->session[i]) != NULL)
+    {
+      event_log_error (hashcat_ctx, "Invalid --session value - must not contain invalid characters.");
+
+      return -1;
+    }
+  }
+
   if (user_options->cpu_affinity != NULL)
   {
     if (strlen (user_options->cpu_affinity) == 0)
