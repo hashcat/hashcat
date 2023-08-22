@@ -12,7 +12,7 @@
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
-#include M2S(INCLUDE_PATH/inc_cipher_cast.h)
+#include M2S(INCLUDE_PATH/inc_cipher_cast.cl)
 #endif
 
 typedef struct gpg
