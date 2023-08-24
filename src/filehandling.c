@@ -477,7 +477,7 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
       if (inLeft == 0 && outLeft == 0)
       {
         /* partial read */
-        n = (size_t) (outPos / size);
+        n = (outPos / size);
         break;
       }
       outPos += outLeft;

@@ -126,7 +126,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int out_len = snprintf (line_buf, line_size, "%s", CONFIGPASSPHRASEV2_SIGNATURE);
 
-  out_len += hex_encode ((u8 *) scrtv2->ct_buf, scrtv2->ct_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) scrtv2->ct_buf, scrtv2->ct_len, out_buf + out_len);
 
   return out_len;
 }

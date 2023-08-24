@@ -169,16 +169,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 *wpky_buf_ptr = (u32 *) itunes_backup->wpky;
 
-  wpky_buf_ptr[0] = hex_to_u32 ((const u8 *) &wpky_pos[ 0]);
-  wpky_buf_ptr[1] = hex_to_u32 ((const u8 *) &wpky_pos[ 8]);
-  wpky_buf_ptr[2] = hex_to_u32 ((const u8 *) &wpky_pos[16]);
-  wpky_buf_ptr[3] = hex_to_u32 ((const u8 *) &wpky_pos[24]);
-  wpky_buf_ptr[4] = hex_to_u32 ((const u8 *) &wpky_pos[32]);
-  wpky_buf_ptr[5] = hex_to_u32 ((const u8 *) &wpky_pos[40]);
-  wpky_buf_ptr[6] = hex_to_u32 ((const u8 *) &wpky_pos[48]);
-  wpky_buf_ptr[7] = hex_to_u32 ((const u8 *) &wpky_pos[56]);
-  wpky_buf_ptr[8] = hex_to_u32 ((const u8 *) &wpky_pos[64]);
-  wpky_buf_ptr[9] = hex_to_u32 ((const u8 *) &wpky_pos[72]);
+  wpky_buf_ptr[0] = hex_to_u32 (&wpky_pos[ 0]);
+  wpky_buf_ptr[1] = hex_to_u32 (&wpky_pos[ 8]);
+  wpky_buf_ptr[2] = hex_to_u32 (&wpky_pos[16]);
+  wpky_buf_ptr[3] = hex_to_u32 (&wpky_pos[24]);
+  wpky_buf_ptr[4] = hex_to_u32 (&wpky_pos[32]);
+  wpky_buf_ptr[5] = hex_to_u32 (&wpky_pos[40]);
+  wpky_buf_ptr[6] = hex_to_u32 (&wpky_pos[48]);
+  wpky_buf_ptr[7] = hex_to_u32 (&wpky_pos[56]);
+  wpky_buf_ptr[8] = hex_to_u32 (&wpky_pos[64]);
+  wpky_buf_ptr[9] = hex_to_u32 (&wpky_pos[72]);
 
   wpky_buf_ptr[0] = byte_swap_32 (wpky_buf_ptr[0]);
   wpky_buf_ptr[1] = byte_swap_32 (wpky_buf_ptr[1]);
@@ -254,11 +254,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     u32 *dpsl_buf_ptr = (u32 *) itunes_backup->dpsl;
 
-    dpsl_buf_ptr[0] = hex_to_u32 ((const u8 *) &dpsl_pos[ 0]);
-    dpsl_buf_ptr[1] = hex_to_u32 ((const u8 *) &dpsl_pos[ 8]);
-    dpsl_buf_ptr[2] = hex_to_u32 ((const u8 *) &dpsl_pos[16]);
-    dpsl_buf_ptr[3] = hex_to_u32 ((const u8 *) &dpsl_pos[24]);
-    dpsl_buf_ptr[4] = hex_to_u32 ((const u8 *) &dpsl_pos[32]);
+    dpsl_buf_ptr[0] = hex_to_u32 (&dpsl_pos[ 0]);
+    dpsl_buf_ptr[1] = hex_to_u32 (&dpsl_pos[ 8]);
+    dpsl_buf_ptr[2] = hex_to_u32 (&dpsl_pos[16]);
+    dpsl_buf_ptr[3] = hex_to_u32 (&dpsl_pos[24]);
+    dpsl_buf_ptr[4] = hex_to_u32 (&dpsl_pos[32]);
 
     dpsl_buf_ptr[0] = byte_swap_32 (dpsl_buf_ptr[ 0]);
     dpsl_buf_ptr[1] = byte_swap_32 (dpsl_buf_ptr[ 1]);

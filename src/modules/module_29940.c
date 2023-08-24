@@ -154,15 +154,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *iv_pos = token.buf[3];
 
-  encdatavault->iv[0] = byte_swap_32 (hex_to_u32 ((const u8 *) &iv_pos[0]));
-  encdatavault->iv[1] = byte_swap_32 (hex_to_u32 ((const u8 *) &iv_pos[8]));
+  encdatavault->iv[0] = byte_swap_32 (hex_to_u32 (&iv_pos[0]));
+  encdatavault->iv[1] = byte_swap_32 (hex_to_u32 (&iv_pos[8]));
 
   // ct
 
   const u8 *ct_pos = token.buf[4];
 
-  encdatavault->ct[0] = byte_swap_32 (hex_to_u32 ((const u8 *) &ct_pos[0]));
-  encdatavault->ct[1] = byte_swap_32 (hex_to_u32 ((const u8 *) &ct_pos[8]));
+  encdatavault->ct[0] = byte_swap_32 (hex_to_u32 (&ct_pos[0]));
+  encdatavault->ct[1] = byte_swap_32 (hex_to_u32 (&ct_pos[8]));
 
   // keychain
 
@@ -170,7 +170,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; i < 32; i += 1, j+= 8)
   {
-    encdatavault->keychain[i] = byte_swap_32 (hex_to_u32 ((const u8 *) &keychain_pos[j]));
+    encdatavault->keychain[i] = byte_swap_32 (hex_to_u32 (&keychain_pos[j]));
   }
 
   // salt fixed

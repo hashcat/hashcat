@@ -109,11 +109,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *hash_pos = token.buf[1];
 
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
+  digest[0] = hex_to_u32 (&hash_pos[ 0]);
+  digest[1] = hex_to_u32 (&hash_pos[ 8]);
+  digest[2] = hex_to_u32 (&hash_pos[16]);
+  digest[3] = hex_to_u32 (&hash_pos[24]);
+  digest[4] = hex_to_u32 (&hash_pos[32]);
 
   digest[0] = byte_swap_32 (digest[0]);
   digest[1] = byte_swap_32 (digest[1]);

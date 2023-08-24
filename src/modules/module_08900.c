@@ -336,7 +336,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 tmp_buf[128] = { 0 };
 
-  const int tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+  const int tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
 
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
@@ -349,7 +349,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  const int digest_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  const int digest_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
   // digest_len should be safe because of 88 limit
 

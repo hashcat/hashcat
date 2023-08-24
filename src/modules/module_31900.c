@@ -231,11 +231,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  pbkdf2_sha512_aes_cbc_t *metamask = (pbkdf2_sha512_aes_cbc_t *) esalt_buf;
+  const pbkdf2_sha512_aes_cbc_t *metamask = (const pbkdf2_sha512_aes_cbc_t *) esalt_buf;
 
   // salt
 
-  u8 *salt_buf = (u8 *) salt->salt_buf;
+  const u8 *salt_buf = (const u8 *) salt->salt_buf;
 
   // iv
 

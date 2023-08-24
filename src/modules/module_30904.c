@@ -218,7 +218,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // note: here we work mostly with char/u8 type because it's easier to base32 encode
   // (at least conceptually), but this could be easily extended to u32 variable types:
 
-  u8 *digest = (u8 *) digest_buf;
+  const u8 *digest = (const u8 *) digest_buf;
 
   u8 b[20] = { 0 };
 

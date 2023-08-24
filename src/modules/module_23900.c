@@ -182,7 +182,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 data_hex[193] = { 0 };
 
-  hex_encode ((u8 *) bestcrypt->data, 96, data_hex);
+  hex_encode ((const u8 *) bestcrypt->data, 96, data_hex);
 
   int out_len = snprintf (line_buf, line_size, "%s3$08$%s$%s",
     SIGNATURE_BESTCRYPT,

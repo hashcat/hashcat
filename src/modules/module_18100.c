@@ -83,7 +83,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   // now we need to reduce our hash into a token
-  int otp_code = hc_strtoul ((const char *) line_buf, NULL, 10);
+  int otp_code = hc_strtoul (line_buf, NULL, 10);
 
   digest[0] = otp_code;
 

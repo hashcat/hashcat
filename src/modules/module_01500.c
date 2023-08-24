@@ -57,7 +57,7 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
 int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const void *tmps, const u32 *src_buf, MAYBE_UNUSED const size_t src_sz, MAYBE_UNUSED const int src_len, u32 *dst_buf, MAYBE_UNUSED const size_t dst_sz)
 {
-  u8 *ptr_src = (u8 *) src_buf;
+  const u8 *ptr_src = (const u8 *) src_buf;
   u8 *ptr_dst = (u8 *) dst_buf;
 
   for (int i = 0; i < src_len; i++)

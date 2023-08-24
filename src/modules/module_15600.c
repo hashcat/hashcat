@@ -198,27 +198,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *ciphertext_pos = token.buf[3];
 
-  ethereum_pbkdf2->ciphertext[0] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 0]);
-  ethereum_pbkdf2->ciphertext[1] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 8]);
-  ethereum_pbkdf2->ciphertext[2] = hex_to_u32 ((const u8 *) &ciphertext_pos[16]);
-  ethereum_pbkdf2->ciphertext[3] = hex_to_u32 ((const u8 *) &ciphertext_pos[24]);
-  ethereum_pbkdf2->ciphertext[4] = hex_to_u32 ((const u8 *) &ciphertext_pos[32]);
-  ethereum_pbkdf2->ciphertext[5] = hex_to_u32 ((const u8 *) &ciphertext_pos[40]);
-  ethereum_pbkdf2->ciphertext[6] = hex_to_u32 ((const u8 *) &ciphertext_pos[48]);
-  ethereum_pbkdf2->ciphertext[7] = hex_to_u32 ((const u8 *) &ciphertext_pos[56]);
+  ethereum_pbkdf2->ciphertext[0] = hex_to_u32 (&ciphertext_pos[ 0]);
+  ethereum_pbkdf2->ciphertext[1] = hex_to_u32 (&ciphertext_pos[ 8]);
+  ethereum_pbkdf2->ciphertext[2] = hex_to_u32 (&ciphertext_pos[16]);
+  ethereum_pbkdf2->ciphertext[3] = hex_to_u32 (&ciphertext_pos[24]);
+  ethereum_pbkdf2->ciphertext[4] = hex_to_u32 (&ciphertext_pos[32]);
+  ethereum_pbkdf2->ciphertext[5] = hex_to_u32 (&ciphertext_pos[40]);
+  ethereum_pbkdf2->ciphertext[6] = hex_to_u32 (&ciphertext_pos[48]);
+  ethereum_pbkdf2->ciphertext[7] = hex_to_u32 (&ciphertext_pos[56]);
 
   // hash
 
   const u8 *hash_pos = token.buf[4];
 
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
-  digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
-  digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
-  digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+  digest[0] = hex_to_u32 (&hash_pos[ 0]);
+  digest[1] = hex_to_u32 (&hash_pos[ 8]);
+  digest[2] = hex_to_u32 (&hash_pos[16]);
+  digest[3] = hex_to_u32 (&hash_pos[24]);
+  digest[4] = hex_to_u32 (&hash_pos[32]);
+  digest[5] = hex_to_u32 (&hash_pos[40]);
+  digest[6] = hex_to_u32 (&hash_pos[48]);
+  digest[7] = hex_to_u32 (&hash_pos[56]);
 
   return (PARSER_OK);
 }

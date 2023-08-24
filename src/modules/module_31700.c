@@ -120,11 +120,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[3] -= MD5M_D;
   }
 
-  const bool parse_rc1 = generic_salt_decode (hashconfig, token.buf[1], token.len[1], (u8 *) md5_double_salt->salt1_buf, (int *) &md5_double_salt->salt1_len);
+  const bool parse_rc1 = generic_salt_decode (hashconfig, token.buf[1], token.len[1], (u8 *) md5_double_salt->salt1_buf, &md5_double_salt->salt1_len);
 
   if (parse_rc1 == false) return (PARSER_SALT_LENGTH);
 
-  const bool parse_rc2 = generic_salt_decode (hashconfig, token.buf[2], token.len[2], (u8 *) md5_double_salt->salt2_buf, (int *) &md5_double_salt->salt2_len);
+  const bool parse_rc2 = generic_salt_decode (hashconfig, token.buf[2], token.len[2], (u8 *) md5_double_salt->salt2_buf, &md5_double_salt->salt2_len);
 
   if (parse_rc2 == false) return (PARSER_SALT_LENGTH);
 
@@ -184,13 +184,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len += 1;
 
-  out_len += generic_salt_encode (hashconfig, (const u8 *) md5_double_salt->salt1_buf, (const int) md5_double_salt->salt1_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) md5_double_salt->salt1_buf, md5_double_salt->salt1_len, out_buf + out_len);
 
   out_buf[out_len] = hashconfig->separator;
 
   out_len += 1;
 
-  out_len += generic_salt_encode (hashconfig, (const u8 *) md5_double_salt->salt2_buf, (const int) md5_double_salt->salt2_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) md5_double_salt->salt2_buf, md5_double_salt->salt2_len, out_buf + out_len);
 
   return out_len;
 }

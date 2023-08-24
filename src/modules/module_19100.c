@@ -115,14 +115,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (token.len[2] != 64) return (PARSER_HASH_LENGTH);
 
-  digest[0] = hex_to_u32 ((const u8 *) token.buf[2] +  0);
-  digest[1] = hex_to_u32 ((const u8 *) token.buf[2] +  8);
-  digest[2] = hex_to_u32 ((const u8 *) token.buf[2] + 16);
-  digest[3] = hex_to_u32 ((const u8 *) token.buf[2] + 24);
-  digest[4] = hex_to_u32 ((const u8 *) token.buf[2] + 32);
-  digest[5] = hex_to_u32 ((const u8 *) token.buf[2] + 40);
-  digest[6] = hex_to_u32 ((const u8 *) token.buf[2] + 48);
-  digest[7] = hex_to_u32 ((const u8 *) token.buf[2] + 56);
+  digest[0] = hex_to_u32 (token.buf[2] +  0);
+  digest[1] = hex_to_u32 (token.buf[2] +  8);
+  digest[2] = hex_to_u32 (token.buf[2] + 16);
+  digest[3] = hex_to_u32 (token.buf[2] + 24);
+  digest[4] = hex_to_u32 (token.buf[2] + 32);
+  digest[5] = hex_to_u32 (token.buf[2] + 40);
+  digest[6] = hex_to_u32 (token.buf[2] + 48);
+  digest[7] = hex_to_u32 (token.buf[2] + 56);
 
   // salt
 

@@ -108,7 +108,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u64 *digest = (const u64 *) digest_buf;
 
-  crc64_t *crc64 = (crc64_t *) esalt_buf;
+  const crc64_t *crc64 = (const crc64_t *) esalt_buf;
 
   u8 *out_buf = (u8 *) line_buf;
 

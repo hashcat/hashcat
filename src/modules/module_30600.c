@@ -220,7 +220,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  base64_decode (bf64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+  base64_decode (bf64_to_int, salt_pos, salt_len, tmp_buf);
 
   memcpy (salt_buf_ptr, tmp_buf, 16);
 
@@ -231,7 +231,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  base64_decode (bf64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  base64_decode (bf64_to_int, hash_pos, hash_len, tmp_buf);
 
   memcpy (digest, tmp_buf, 24);
 
@@ -274,7 +274,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_buf[22 + 31] = 0; // base64_encode wants to pad
 
-  return snprintf (line_buf, line_size, "%s$%s", (char *) salt->salt_sign, tmp_buf);
+  return snprintf (line_buf, line_size, "%s$%s", (const char *) salt->salt_sign, tmp_buf);
 }
 
 void module_init (module_ctx_t *module_ctx)

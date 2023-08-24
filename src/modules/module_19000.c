@@ -123,10 +123,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (token.len[2] != 32) return (PARSER_HASH_LENGTH);
 
-  digest[0] = hex_to_u32 ((const u8 *) token.buf[2] +  0);
-  digest[1] = hex_to_u32 ((const u8 *) token.buf[2] +  8);
-  digest[2] = hex_to_u32 ((const u8 *) token.buf[2] + 16);
-  digest[3] = hex_to_u32 ((const u8 *) token.buf[2] + 24);
+  digest[0] = hex_to_u32 (token.buf[2] +  0);
+  digest[1] = hex_to_u32 (token.buf[2] +  8);
+  digest[2] = hex_to_u32 (token.buf[2] + 16);
+  digest[3] = hex_to_u32 (token.buf[2] + 24);
 
   // salt
 

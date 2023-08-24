@@ -111,7 +111,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 tmp_buf[256] = { 0 };
 
-  const int tmp_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  const int tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
   if (tmp_len < 32 + 1) return (PARSER_HASH_LENGTH);
 
@@ -155,7 +155,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   char tmp_buf[SALT_MAX * 2];
 
   const int tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "%s %08x%08x%08x%08x",
-    (char *) cram_md5->user,
+    (const char *) cram_md5->user,
     byte_swap_32 (digest[0]),
     byte_swap_32 (digest[1]),
     byte_swap_32 (digest[2]),

@@ -313,7 +313,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   //  const u32 *digest = (const u32 *) digest_buf;
 
-  onepassword8_t *onepassword8 = (onepassword8_t *) esalt_buf;
+  const onepassword8_t *onepassword8 = (const onepassword8_t *) esalt_buf;
 
   // iv
 
@@ -341,9 +341,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // final
 
-  int out_len = snprintf ((char *) line_buf, line_size, "%s%s$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x$%u$%s$%s$%08x%08x%08x%08x",
+  int out_len = snprintf (line_buf, line_size, "%s%s$%08x%08x%08x%08x%08x%08x%08x%08x$%08x%08x%08x%08x%08x%08x%08x%08x$%u$%s$%s$%08x%08x%08x%08x",
     SIGNATURE_1PASSWORD8,
-    (char *) onepassword8->email_buf,
+    (const char *) onepassword8->email_buf,
     onepassword8->hkdf_salt_buf[0],
     onepassword8->hkdf_salt_buf[1],
     onepassword8->hkdf_salt_buf[2],
@@ -361,8 +361,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     onepassword8->hkdf_key_buf[6],
     onepassword8->hkdf_key_buf[7],
     salt->salt_iter + 1,
-    (char *) iv_buf8,
-    (char *) ct_buf8,
+    (const char *) iv_buf8,
+    (const char *) ct_buf8,
     onepassword8->tag_buf[0],
     onepassword8->tag_buf[1],
     onepassword8->tag_buf[2],

@@ -236,7 +236,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; i < 8 + 2; i += 1, j += 8)
   {
-    pdf->u_buf[i] = hex_to_u32 ((const u8 *) &u_buf_pos[j]);
+    pdf->u_buf[i] = hex_to_u32 (&u_buf_pos[j]);
   }
 
   salt->salt_buf[0] = pdf->u_buf[8];

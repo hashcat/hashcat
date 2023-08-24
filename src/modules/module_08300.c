@@ -175,7 +175,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char domain_buf_c[33] = { 0 };
 
-  memcpy (domain_buf_c, (char *) salt->salt_buf_pc, salt_pc_len);
+  memcpy (domain_buf_c, (const char *) salt->salt_buf_pc, salt_pc_len);
 
   for (u32 i = 0; i < salt_pc_len; i++)
   {

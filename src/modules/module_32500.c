@@ -131,7 +131,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 tmp_buf[256]  = { 0 };
 
-  int tmp_len = base64_decode (base64_to_int, (const u8 *) data_pos, data_len, tmp_buf);
+  int tmp_len = base64_decode (base64_to_int, data_pos, data_len, tmp_buf);
 
   memcpy (payload->pl_buf, tmp_buf, tmp_len);
 

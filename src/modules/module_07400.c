@@ -343,7 +343,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   char ptr_plain[48] = { 0 };
 
-  sha256crypt_encode ((unsigned char *) digest_buf, (unsigned char *) ptr_plain);
+  sha256crypt_encode ((const unsigned char *) digest_buf, (unsigned char *) ptr_plain);
 
   char tmp_salt[SALT_MAX * 2];
 
