@@ -19,8 +19,7 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
   my $iter = shift // 100100;
-
-  my $iv = random_bytes(16);
+  my $iv   = shift // random_bytes (16);
 
   my $hasher = Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256);
 
@@ -56,16 +55,21 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  my ($hash, $iter, $salt, $word) = split ":", $line;
+  my ($hash, $iter, $salt, $iv, $word) = split ":", $line;
 
   return unless defined $hash;
   return unless defined $iter;
   return unless defined $salt;
   return unless defined $word;
+  return unless defined $iv;
+
+  return unless ($iv =~ m/^[0-9a-fA-F]{32}$/);
+
+  $iv = pack ("H*", $iv);
 
   $word = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word, $salt, $iter);
+  my $new_hash = module_generate_hash ($word, $salt, $iter, $iv);
 
   return ($new_hash, $word);
 }
