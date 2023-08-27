@@ -72,38 +72,37 @@
 ## Bugs
 ##
 
-- Fixed keys extraction in luks2hashcat - now extracts all active keys
-- Prevent Hashcat from hanging by checking during startup whether the output file is a named pipe
-- Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
-- Skip chained generated rules that exceed the maximum number of function calls
-- Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes to prevent false positives.
-- Fixed bug in --stdout that caused certain rules to malfunction
+- Added verification of token buffer length when using TOKEN_ATTR_FIXED_LENGTH
+- Fixed a bug in all SCRYPT-based hash modes with Apple Metal
+- Fixed buffer overflow on module_26600.c / module_hash_encode()
 - Fixed bug in 18400 module_hash_encode
+- Fixed bug in 23800/unrar with Apple Silicon
 - Fixed bug in 26900 module_hash_encode
 - Fixed bug in 29600 module OPTS_TYPE setting
 - Fixed bug in grep out-of-memory workaround on Unit Test
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
-- Fixed a bug in all SCRYPT-based hash modes with Apple Metal
-- Added verification of token buffer length when using TOKEN_ATTR_FIXED_LENGTH
-- Fixed build failed for 4410 with vector width > 1
+- Fixed bug in --stdout that caused certain rules to malfunction
 - Fixed build failed for 10700 optimized with Apple Metal
 - Fixed build failed for 13772 and 13773 with Apple Metal
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
+- Fixed build failed for 4410 with vector width > 1
 - Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal
+- Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
-- Fixed minimum password length in module of hash-mode 28200
-- Fixed maximum password length in module/test_module of hash-mode 2410
-- Handle signed/unsigned PDF permission P value for all PDF hash-modes
-- Fixed minimum password length in module of hash-mode 29800
+- Fixed incorrect plaintext check for 25400 and 26610. Increased plaintext check to 32 bytes to prevent false positives.
+- Fixed keys extraction in luks2hashcat - now extracts all active keys
 - Fixed maximum password length in module/test_module of hash-mode 2400
-- Fixed buffer overflow on module_26600.c / module_hash_encode()
-- Fixed bug in 23800/unrar with Apple Silicon
-- Fixed vector datatypes usage for HIP
+- Fixed maximum password length in module/test_module of hash-mode 2410
+- Fixed minimum password length in module of hash-mode 28200
+- Fixed minimum password length in module of hash-mode 29800
 - Fixed out-of-boundary read when a fast hash defines a kernel_loops_min value higher than the amplifiers provided by the user
+- Fixed vector datatypes usage for HIP
 - Fix missing check for -j and -k before writing hashcat.dictstat2 which can lead to false negatives
-- Fixed a bug that --outfile-autohex-disable affects potfile
+- Handle signed/unsigned PDF permission P value for all PDF hash-modes
+- Prevent Hashcat from hanging by checking during startup whether the output file is a named pipe
+- Skip chained generated rules that exceed the maximum number of function calls
 
 ##
 ## Technical
