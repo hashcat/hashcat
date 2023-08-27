@@ -220,7 +220,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // check here that the hash_count is valid for the attack type
   if (pkzip->hash_count > 8) return PARSER_HASH_VALUE;
-  if (pkzip->hash_count < 3) return PARSER_HASH_VALUE;
 
   p = strtok_r (NULL, "*", &saveptr);
   if (p == NULL) return PARSER_HASH_LENGTH;
