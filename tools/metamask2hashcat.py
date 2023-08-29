@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 # Author: Gabriele 'matrix' Gristina
-# Version: 2.0
-# Date: Thu 12 Aug 2021 06:44:14 PM CEST
+# Version: 2.1
+# Date: Thu 28 Aug 2023 05:12:40 PM CEST
 # License: MIT
 
 # Extract metamask vault from browser and save to file, then you can use this tool
@@ -66,10 +66,10 @@ def metamask_parser(file, shortdata):
 
     else:
 
-      # extract only first 16 bytes of ciphertext
+      # extract first 32 bytes of ciphertext for enhanced resistance to false-positives
 
       cipher_bin = base64.b64decode(j['cipher'])
-      j['cipher'] = base64.b64encode(cipher_bin[:16]).decode("ascii")
+      j['cipher'] = base64.b64encode(cipher_bin[:32]).decode("ascii")
 
       print('$metamaskMobile$' + j['salt'] + '$' + j['iv'] + '$' + j['cipher'])
 
