@@ -52,11 +52,14 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  my ($hash, $salt, $word) = split (':', $line);
+  my ($signature, $digest, $salt, $word) = split (':', $line);
 
-  return unless defined $hash;
+  return unless defined $signature;
+  return unless defined $digest;
   return unless defined $salt;
   return unless defined $word;
+
+  return unless ($signature eq "sha256");
 
   my $word_packed = pack_if_HEX_notation ($word);
 
