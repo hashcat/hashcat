@@ -377,7 +377,7 @@ typedef hipError_t (HIP_API_CALL *HIP_HIPCTXDESTROY)             (hipCtx_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPCTXPOPCURRENT)          (hipCtx_t *);
 typedef hipError_t (HIP_API_CALL *HIP_HIPCTXPUSHCURRENT)         (hipCtx_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPCTXSETCURRENT)          (hipCtx_t);
-typedef hipError_t (HIP_API_CALL *HIP_HIPCTXSYNCHRONIZE)         ();
+typedef hipError_t (HIP_API_CALL *HIP_HIPCTXSYNCHRONIZE)         (void);
 typedef hipError_t (HIP_API_CALL *HIP_HIPDEVICEGETATTRIBUTE)     (int *, hipDeviceAttribute_t, hipDevice_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPDEVICEGETCOUNT)         (int *);
 typedef hipError_t (HIP_API_CALL *HIP_HIPDEVICEGET)              (hipDevice_t *, int);
