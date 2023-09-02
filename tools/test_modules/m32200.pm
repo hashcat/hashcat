@@ -105,9 +105,9 @@ sub module_generate_hash
 
     my $truncated_ticket_decrypted = byte2hex ($b_truncated_ticket_decrypted);
 
-    my $check_correct  = ((substr ($truncated_ticket_decrypted, 16, 4) eq "7981" || substr ($truncated_ticket_decrypted, 16, 4) eq "7a81") && (substr ($truncated_ticket_decrypted, 22, 2) eq "30")) ||
-                         ((substr ($truncated_ticket_decrypted, 16, 2) eq "79" || substr ($truncated_ticket_decrypted, 16, 2) eq "7a") && (substr ($truncated_ticket_decrypted, 20, 2) eq "30")) ||
-                         ((substr ($truncated_ticket_decrypted, 16, 4) eq "7982" || substr ($truncated_ticket_decrypted, 16, 4) eq "7a82")  && (substr ($truncated_ticket_decrypted, 24, 2) eq "30"));
+    my $check_correct  = ((substr ($truncated_ticket_decrypted, 32, 4) eq "7981" || substr ($truncated_ticket_decrypted, 32, 4) eq "7a81") && (substr ($truncated_ticket_decrypted, 38, 2) eq "30")) ||
+                         ((substr ($truncated_ticket_decrypted, 32, 2) eq "79" || substr ($truncated_ticket_decrypted, 32, 2) eq "7a") && (substr ($truncated_ticket_decrypted, 36, 2) eq "30")) ||
+                         ((substr ($truncated_ticket_decrypted, 32, 4) eq "7982" || substr ($truncated_ticket_decrypted, 32, 4) eq "7a82")  && (substr ($truncated_ticket_decrypted, 40, 2) eq "30"));
 
     if ($check_correct == 1)
     {
@@ -145,7 +145,7 @@ sub module_generate_hash
   }
   else
   {
-    if (!defined $edata2)
+    if (! defined $edata2)
     {
       my $nonce = unpack ("H*", random_bytes (16));
 
