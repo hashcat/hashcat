@@ -249,7 +249,6 @@ void potfile_write_close (hashcat_ctx_t *hashcat_ctx)
 void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, u8 *plain_ptr, unsigned int plain_len)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const user_options_t *user_options = hashcat_ctx->user_options;
         potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
