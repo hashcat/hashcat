@@ -2316,6 +2316,8 @@ typedef struct user_options
   bool         limit_chgd;
   bool         scrypt_tmto_chgd;
   bool         separator_chgd;
+  bool         rule_buf_l_chgd;
+  bool         rule_buf_r_chgd;
 
   bool         advice_disable;
   bool         benchmark;

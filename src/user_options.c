@@ -450,8 +450,10 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_RP_GEN_FUNC_SEL:           user_options->rp_gen_func_sel           = optarg;                          break;
       case IDX_RP_GEN_SEED:               user_options->rp_gen_seed               = hc_strtoul (optarg, NULL, 10);
                                           user_options->rp_gen_seed_chgd          = true;                            break;
-      case IDX_RULE_BUF_L:                user_options->rule_buf_l                = optarg;                          break;
-      case IDX_RULE_BUF_R:                user_options->rule_buf_r                = optarg;                          break;
+      case IDX_RULE_BUF_L:                user_options->rule_buf_l                = optarg;
+                                          user_options->rule_buf_l_chgd           = true;                            break;
+      case IDX_RULE_BUF_R:                user_options->rule_buf_r                = optarg;
+                                          user_options->rule_buf_r_chgd           = true;                            break;
       case IDX_MARKOV_DISABLE:            user_options->markov_disable            = true;                            break;
       case IDX_MARKOV_CLASSIC:            user_options->markov_classic            = true;                            break;
       case IDX_MARKOV_INVERSE:            user_options->markov_inverse            = true;                            break;
