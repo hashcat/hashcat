@@ -140,6 +140,7 @@ static const struct option long_options[] =
   {"veracrypt-pim-stop",        required_argument, NULL, IDX_VERACRYPT_PIM_STOP},
   {"version",                   no_argument,       NULL, IDX_VERSION},
   {"wordlist-autohex-disable",  no_argument,       NULL, IDX_WORDLIST_AUTOHEX_DISABLE},
+  {"wordlist-count",            required_argument, NULL, IDX_WORDLIST_COUNT},
   {"workload-profile",          required_argument, NULL, IDX_WORKLOAD_PROFILE},
   #ifdef WITH_BRAIN
   {"brain-client",              no_argument,       NULL, IDX_BRAIN_CLIENT},
@@ -288,6 +289,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->veracrypt_pim_stop        = VERACRYPT_PIM_STOP;
   user_options->version                   = VERSION;
   user_options->wordlist_autohex_disable  = WORDLIST_AUTOHEX_DISABLE;
+  user_options->wordlist_count            = WORDLIST_COUNT;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) hccalloc (256, sizeof (char *));
@@ -450,7 +452,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_RP_GEN_FUNC_SEL:           user_options->rp_gen_func_sel           = optarg;                          break;
       case IDX_RP_GEN_SEED:               user_options->rp_gen_seed               = hc_strtoul (optarg, NULL, 10);
                                           user_options->rp_gen_seed_chgd          = true;                            break;
-      case IDX_RULE_BUF_L:                user_options->rule_buf_l                = optarg;                          break;
+      case IDX_RULE_BUF_L:                user_options->rule_buf_l                = optarg;
+                                          user_options->rule_buf_l_chgd           = true;                            break;
       case IDX_RULE_BUF_R:                user_options->rule_buf_r                = optarg;                          break;
       case IDX_MARKOV_DISABLE:            user_options->markov_disable            = true;                            break;
       case IDX_MARKOV_CLASSIC:            user_options->markov_classic            = true;                            break;
@@ -462,6 +465,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->outfile_format_chgd       = true;                            break;
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_WORDLIST_COUNT:            user_options->wordlist_count            = hc_strtoull (optarg, NULL, 10);
+                                          user_options->wordlist_count_chgd       = true;                            break;
       case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex_disable  = true;                            break;
       case IDX_HEX_CHARSET:               user_options->hex_charset               = true;                            break;
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
@@ -1448,6 +1453,23 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if (user_options->hc_argc != hc_argc_expected)
     {
       event_log_error (hashcat_ctx, "Use of --stdin-timeout-abort is only allowed in stdin mode (pipe).");
+
+      return -1;
+    }
+  }
+
+  if (user_options->wordlist_count_chgd == true)
+  {
+    if (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+    {
+      event_log_error (hashcat_ctx, "Use of --wordlist-count is only allowed in attack mode 0 (straight).");
+
+      return -1;
+    }
+
+    if (user_options->rule_buf_l_chgd == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --wordlist-count with --rule-left is not allowed.");
 
       return -1;
     }

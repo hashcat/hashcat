@@ -1069,7 +1069,9 @@ time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
 
   time_t sec_etc = 0;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) ||
+      (user_options_extra->wordlist_mode == WL_MODE_STDIN) ||
+      (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
     if (status_ctx->devices_status != STATUS_CRACKED)
     {
