@@ -41,6 +41,27 @@ DECLSPEC void sha1_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1
   u32 we_t = w3[2];
   u32 wf_t = w3[3];
 
+  #ifdef SHA1_TRANSFORM_SWAP
+
+  w0_t = hc_swap32 (w0_t);
+  w1_t = hc_swap32 (w1_t);
+  w2_t = hc_swap32 (w2_t);
+  w3_t = hc_swap32 (w3_t);
+  w4_t = hc_swap32 (w4_t);
+  w5_t = hc_swap32 (w5_t);
+  w6_t = hc_swap32 (w6_t);
+  w7_t = hc_swap32 (w7_t);
+  w8_t = hc_swap32 (w8_t);
+  w9_t = hc_swap32 (w9_t);
+  wa_t = hc_swap32 (wa_t);
+  wb_t = hc_swap32 (wb_t);
+  wc_t = hc_swap32 (wc_t);
+  wd_t = hc_swap32 (wd_t);
+  we_t = hc_swap32 (we_t);
+  wf_t = hc_swap32 (wf_t);
+
+  #endif
+
   #define K SHA1C00
 
   SHA1_STEP_S (SHA1_F0o, a, b, c, d, e, w0_t);
@@ -220,6 +241,27 @@ DECLSPEC void sha1_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1
   u32 w4d_t;
   u32 w4e_t;
   u32 w4f_t;
+
+  #ifdef SHA1_TRANSFORM_SWAP
+
+  w00_t = hc_swap32 (w00_t);
+  w01_t = hc_swap32 (w01_t);
+  w02_t = hc_swap32 (w02_t);
+  w03_t = hc_swap32 (w03_t);
+  w04_t = hc_swap32 (w04_t);
+  w05_t = hc_swap32 (w05_t);
+  w06_t = hc_swap32 (w06_t);
+  w07_t = hc_swap32 (w07_t);
+  w08_t = hc_swap32 (w08_t);
+  w09_t = hc_swap32 (w09_t);
+  w0a_t = hc_swap32 (w0a_t);
+  w0b_t = hc_swap32 (w0b_t);
+  w0c_t = hc_swap32 (w0c_t);
+  w0d_t = hc_swap32 (w0d_t);
+  w0e_t = hc_swap32 (w0e_t);
+  w0f_t = hc_swap32 (w0f_t);
+
+  #endif
 
   #define K SHA1C00
 
