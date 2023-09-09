@@ -100,8 +100,8 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->dictstat_disable == true) return;
 
-  if (user_options->rule_buf_l != NULL) return;
-  if (user_options->rule_buf_r != NULL) return;
+  if (user_options->rule_buf_l_chgd == true) return;
+  if (user_options->rule_buf_r_chgd == true) return;
 
   HCFILE fp;
 
@@ -192,8 +192,8 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->dictstat_disable == true) return 0;
 
-  if (user_options->rule_buf_l != NULL) return 0;
-  if (user_options->rule_buf_r != NULL) return 0;
+  if (user_options->rule_buf_l_chgd == true) return 0;
+  if (user_options->rule_buf_r_chgd == true) return 0;
 
   HCFILE fp;
 
