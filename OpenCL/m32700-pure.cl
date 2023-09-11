@@ -19,7 +19,7 @@ typedef struct sha1_tmp
   u32 digest[5];
 } sha1_tmp_t;
 
-CONSTANT_AS uchar newdes_rotor[256] = {
+CONSTANT_VK uchar newdes_rotor[256] = {
   32, 137, 239, 188, 102, 125, 221, 72, 212, 68, 81, 37, 86, 237, 147, 149,
   70, 229, 17, 124, 115, 207, 33, 20, 122, 143, 25, 215, 51, 183, 138, 142,
   146, 211, 110, 173, 1, 228, 189, 14, 103, 78, 162, 36, 253, 167, 116, 255,
@@ -38,7 +38,7 @@ CONSTANT_AS uchar newdes_rotor[256] = {
   58, 55, 3, 244, 97, 197, 238, 227, 118, 49, 79, 230, 223, 165, 153, 59
 };
 
-void new_des (uchar * block, uchar * newdes_key)
+DECLSPEC void new_des (uchar * block, uchar * newdes_key)
 {
 #define B0 (*block)
 #define B1 (*(block+1))
@@ -70,7 +70,7 @@ void new_des (uchar * block, uchar * newdes_key)
   B7 = B7 ^ newdes_rotor[B3 ^ *(newdes_key++)];
 }
 
-void key_expansion (uchar * sha1sum, uchar * result)
+DECLSPEC void key_expansion (uchar * sha1sum, uchar * result)
 {
   uchar *shi = sha1sum;
 
