@@ -16,10 +16,13 @@
 
 typedef struct sha1_tmp
 {
-  u32 digest[5];
+  u32 salt[2];
+  u32 newdes_key[15];
+
 } sha1_tmp_t;
 
-CONSTANT_VK uchar newdes_rotor[256] = {
+CONSTANT_VK uchar newdes_rotor[256] =
+{
   32, 137, 239, 188, 102, 125, 221, 72, 212, 68, 81, 37, 86, 237, 147, 149,
   70, 229, 17, 124, 115, 207, 33, 20, 122, 143, 25, 215, 51, 183, 138, 142,
   146, 211, 110, 173, 1, 228, 189, 14, 103, 78, 162, 36, 253, 167, 116, 255,
@@ -40,16 +43,14 @@ CONSTANT_VK uchar newdes_rotor[256] = {
 
 DECLSPEC void new_des (uchar * block, uchar * newdes_key)
 {
-#define B0 (*block)
-#define B1 (*(block+1))
-#define B2 (*(block+2))
-#define B3 (*(block+3))
-#define B4 (*(block+4))
-#define B5 (*(block+5))
-#define B6 (*(block+6))
-#define B7 (*(block+7))
-
-
+  #define B0 (*(block+0))
+  #define B1 (*(block+1))
+  #define B2 (*(block+2))
+  #define B3 (*(block+3))
+  #define B4 (*(block+4))
+  #define B5 (*(block+5))
+  #define B6 (*(block+6))
+  #define B7 (*(block+7))
 
   for (int count = 0; count < 8; count++)
   {
@@ -89,8 +90,7 @@ KERNEL_FQ void m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_CNT)
-    return;
+  if (gid >= GID_CNT) return;
 
   // Initial "SHA-1" (with endianness bug)
   sha1_ctx_t ctx;
@@ -99,43 +99,71 @@ KERNEL_FQ void m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
   sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
   sha1_final (&ctx);
 
-  tmps[gid].digest[0] = hc_swap32 (ctx.h[0]);
-  tmps[gid].digest[1] = hc_swap32 (ctx.h[1]);
-  tmps[gid].digest[2] = hc_swap32 (ctx.h[2]);
-  tmps[gid].digest[3] = hc_swap32 (ctx.h[3]);
-  tmps[gid].digest[4] = hc_swap32 (ctx.h[4]);
+  ctx.h[0] = hc_swap32_S (ctx.h[0]);
+  ctx.h[1] = hc_swap32_S (ctx.h[1]);
+  ctx.h[2] = hc_swap32_S (ctx.h[2]);
+  ctx.h[3] = hc_swap32_S (ctx.h[3]);
+  ctx.h[4] = hc_swap32_S (ctx.h[4]);
+
+  // Crate a NewDES key
+  u32 newdes_key[15];
+
+  key_expansion ((uchar *) ctx.h, (uchar *) newdes_key);
+
+  for (int i = 0; i < 15; i++)
+  {
+    tmps[gid].newdes_key[i] = newdes_key[i];
+  }
+
+  // Run NewDES on salt using the expanded key
+  tmps[gid].salt[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
+  tmps[gid].salt[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
 }
 
 KERNEL_FQ void m32700_loop (KERN_ATTR_TMPS (sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
-  if (gid >= GID_CNT)
-    return;
+  if (gid >= GID_CNT) return;
 
-  u32 digest[5];
+  u32 newdes_key[15];
 
-  digest[0] = tmps[gid].digest[0];
-  digest[1] = tmps[gid].digest[1];
-  digest[2] = tmps[gid].digest[2];
-  digest[3] = tmps[gid].digest[3];
-  digest[4] = tmps[gid].digest[4];
+  for (int i = 0; i < 15; i++)
+  {
+    newdes_key[i] = tmps[gid].newdes_key[i];
+  }
 
-  // Crate a NewDES key
-  uchar newdes_key[60];
+  u32 salt[2];
 
-  key_expansion ((uchar *) digest, newdes_key);
-
-  // Run NewDES on salt using the expanded key
-  u32 salt[16] = { 0 };         // sha1_update_swap needs more space then our 8 byte salt; This seem to work!
-  salt[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
-  salt[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  salt[0] = tmps[gid].salt[0];
+  salt[1] = tmps[gid].salt[1];
 
   // Run 1000 iterations of NewDES on the derived salt
-  for (int i = 0; i < 1000; i++)
+  for (int i = 0; i < LOOP_CNT; i++)
   {
-    new_des ((uchar *) salt, newdes_key);
+    new_des ((uchar *) salt, (uchar *) newdes_key);
   }
+
+  for (int i = 0; i < 15; i++)
+  {
+    tmps[gid].newdes_key[i] = newdes_key[i];
+  }
+
+  // Run NewDES on salt using the expanded key
+  tmps[gid].salt[0] = salt[0];
+  tmps[gid].salt[1] = salt[1];
+}
+
+KERNEL_FQ void m32700_comp (KERN_ATTR_TMPS (sha1_tmp_t))
+{
+  const u64 gid = get_global_id (0);
+
+  if (gid >= GID_CNT) return;
+
+  u32 salt[16] = { 0 };
+
+  salt[0] = tmps[gid].salt[0];
+  salt[1] = tmps[gid].salt[1];
 
   // Final "SHA-1" (with endianness bug)
   sha1_ctx_t ctx;
@@ -145,28 +173,14 @@ KERNEL_FQ void m32700_loop (KERN_ATTR_TMPS (sha1_tmp_t))
   sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
   sha1_final (&ctx);
 
-  tmps[gid].digest[0] = ctx.h[0];
-  tmps[gid].digest[1] = ctx.h[1];
-  tmps[gid].digest[2] = ctx.h[2];
-  tmps[gid].digest[3] = ctx.h[3];
-  tmps[gid].digest[4] = ctx.h[4];
-}
+  const u32 r0 = ctx.h[0];
+  const u32 r1 = ctx.h[1];
+  const u32 r2 = ctx.h[2];
+  const u32 r3 = ctx.h[3];
 
-KERNEL_FQ void m32700_comp (KERN_ATTR_TMPS (sha1_tmp_t))
-{
-  const u64 gid = get_global_id (0);
+  #define il_pos 0
 
-  if (gid >= GID_CNT)
-    return;
-
-  const u32 r0 = tmps[gid].digest[DGST_R0];
-  const u32 r1 = tmps[gid].digest[DGST_R1];
-  const u32 r2 = tmps[gid].digest[DGST_R2];
-  const u32 r3 = tmps[gid].digest[DGST_R3];
-
-#define il_pos 0
-
-#ifdef KERNEL_STATIC
-#include COMPARE_M
-#endif
+  #ifdef KERNEL_STATIC
+  #include COMPARE_M
+  #endif
 }

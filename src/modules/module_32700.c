@@ -11,10 +11,10 @@
 #include "shared.h"
 
 static const u32 ATTACK_EXEC = ATTACK_EXEC_OUTSIDE_KERNEL;
-static const u32 DGST_POS0 = 3;
-static const u32 DGST_POS1 = 4;
+static const u32 DGST_POS0 = 0;
+static const u32 DGST_POS1 = 1;
 static const u32 DGST_POS2 = 2;
-static const u32 DGST_POS3 = 1;
+static const u32 DGST_POS3 = 3;
 static const u32 DGST_SIZE = DGST_SIZE_4_5;
 static const u32 HASH_CATEGORY = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME = "Kremlin Encrypt 3.0 w/NewDES";
@@ -24,6 +24,13 @@ static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_PT_GENERATE_LE |
 static const u32 SALT_TYPE = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS = "hashcat";
 static const char *ST_HASH = "$kgb$0ab30cf7a52dad93$82a7c454246fc7570224e9f24279791aa2a63bf4";
+
+typedef struct sha1_tmp
+{
+  u32 salt[2];
+  u32 newdes_key[15];
+
+} sha1_tmp_t;
 
 u32 module_attack_exec (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED const user_options_t * user_options, MAYBE_UNUSED const user_options_extra_t * user_options_extra)
 {
@@ -145,7 +152,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
     salt->salt_buf[i] = hex_to_u32 (salt_pos + j);
   }
   salt->salt_len = 8;
-  salt->salt_iter = 1;
+  salt->salt_iter = 1000;
 
   // final "sha-1"-ish hash
   const u8 *hash_pos = token.buf[2];
@@ -180,7 +187,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUS
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED const user_options_t * user_options, MAYBE_UNUSED const user_options_extra_t * user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (u32) * 5;
+  const u64 tmp_size = (const u64) sizeof (sha1_tmp_t);
 
   return tmp_size;
 }
