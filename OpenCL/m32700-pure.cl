@@ -73,17 +73,51 @@ DECLSPEC void new_des (uchar * block, uchar * newdes_key)
 
 DECLSPEC void key_expansion (uchar * sha1sum, uchar * result)
 {
-  uchar *shi = sha1sum;
-
   for (int count = 0; count < 15; count++)
   {
-    *result = *shi;
-    *(result + 1) = *shi ^ sha1sum[7];
-    *(result + 2) = *shi ^ sha1sum[8];
-    *(result + 3) = *shi++ ^ sha1sum[9];
+    const uchar shi = sha1sum[count];
+
+    *(result + 0) = shi;
+    *(result + 1) = shi ^ sha1sum[7];
+    *(result + 2) = shi ^ sha1sum[8];
+    *(result + 3) = shi ^ sha1sum[9];
 
     result += 4;
   }
+}
+
+DECLSPEC void sha1_final_32700 (PRIVATE_AS sha1_ctx_t *ctx)
+{
+  const int pos = ctx->len & 63;
+
+  append_0x80_4x4_S (ctx->w0, ctx->w1, ctx->w2, ctx->w3, pos);
+
+  if (pos >= 56)
+  {
+    sha1_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
+
+    ctx->w0[0] = 0;
+    ctx->w0[1] = 0;
+    ctx->w0[2] = 0;
+    ctx->w0[3] = 0;
+    ctx->w1[0] = 0;
+    ctx->w1[1] = 0;
+    ctx->w1[2] = 0;
+    ctx->w1[3] = 0;
+    ctx->w2[0] = 0;
+    ctx->w2[1] = 0;
+    ctx->w2[2] = 0;
+    ctx->w2[3] = 0;
+    ctx->w3[0] = 0;
+    ctx->w3[1] = 0;
+    ctx->w3[2] = 0;
+    ctx->w3[3] = 0;
+  }
+
+  ctx->w3[2] = 0;
+  ctx->w3[3] = hc_swap32_S (ctx->len * 8);
+
+  sha1_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
 KERNEL_FQ void m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
@@ -96,8 +130,9 @@ KERNEL_FQ void m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
   sha1_ctx_t ctx;
 
   sha1_init (&ctx);
-  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
-  sha1_final (&ctx);
+  sha1_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+  sha1_final_32700 (&ctx);
+  // sha1_final (&ctx);
 
   ctx.h[0] = hc_swap32_S (ctx.h[0]);
   ctx.h[1] = hc_swap32_S (ctx.h[1]);
@@ -169,9 +204,9 @@ KERNEL_FQ void m32700_comp (KERN_ATTR_TMPS (sha1_tmp_t))
   sha1_ctx_t ctx;
 
   sha1_init (&ctx);
-  sha1_update_swap (&ctx, salt, 8);
-  sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
-  sha1_final (&ctx);
+  sha1_update (&ctx, salt, 8);
+  sha1_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+  sha1_final_32700 (&ctx);
 
   const u32 r0 = ctx.h[0];
   const u32 r1 = ctx.h[1];
