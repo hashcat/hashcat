@@ -16,32 +16,32 @@
 
 typedef struct sha1_tmp
 {
-  u32 salt[2];
-  u32 newdes_key[15];
+  u32 salt32[8];
+  u32 newdes_key32[60];
 
 } sha1_tmp_t;
 
-CONSTANT_VK uchar newdes_rotor[256] =
+CONSTANT_VK u32 newdes_rotor[256] =
 {
-  32, 137, 239, 188, 102, 125, 221, 72, 212, 68, 81, 37, 86, 237, 147, 149,
-  70, 229, 17, 124, 115, 207, 33, 20, 122, 143, 25, 215, 51, 183, 138, 142,
-  146, 211, 110, 173, 1, 228, 189, 14, 103, 78, 162, 36, 253, 167, 116, 255,
-  158, 45, 185, 50, 98, 168, 250, 235, 54, 141, 195, 247, 240, 63, 148, 2,
-  224, 169, 214, 180, 62, 22, 117, 108, 19, 172, 161, 159, 160, 47, 43, 171,
-  194, 175, 178, 56, 196, 112, 23, 220, 89, 21, 164, 130, 157, 8, 85, 251,
-  216, 44, 94, 179, 226, 38, 90, 119, 40, 202, 34, 206, 35, 69, 231, 246,
-  29, 109, 74, 71, 176, 6, 60, 145, 65, 13, 77, 151, 12, 127, 95, 199,
-  57, 101, 5, 232, 150, 210, 129, 24, 181, 10, 121, 187, 48, 193, 139, 252,
-  219, 64, 88, 233, 96, 128, 80, 53, 191, 144, 218, 11, 106, 132, 155, 104,
-  91, 136, 31, 42, 243, 66, 126, 135, 30, 26, 87, 186, 182, 154, 242, 123,
-  82, 166, 208, 39, 152, 190, 113, 205, 114, 105, 225, 84, 73, 163, 99, 111,
-  204, 61, 200, 217, 170, 15, 198, 28, 192, 254, 134, 234, 222, 7, 236, 248,
-  201, 41, 177, 156, 92, 131, 67, 249, 245, 184, 203, 9, 241, 0, 27, 46,
-  133, 174, 75, 18, 93, 209, 100, 120, 76, 213, 16, 83, 4, 107, 140, 52,
-  58, 55, 3, 244, 97, 197, 238, 227, 118, 49, 79, 230, 223, 165, 153, 59
+  0x20, 0x89, 0xef, 0xbc, 0x66, 0x7d, 0xdd, 0x48, 0xd4, 0x44, 0x51, 0x25, 0x56, 0xed, 0x93, 0x95,
+  0x46, 0xe5, 0x11, 0x7c, 0x73, 0xcf, 0x21, 0x14, 0x7a, 0x8f, 0x19, 0xd7, 0x33, 0xb7, 0x8a, 0x8e,
+  0x92, 0xd3, 0x6e, 0xad, 0x01, 0xe4, 0xbd, 0x0e, 0x67, 0x4e, 0xa2, 0x24, 0xfd, 0xa7, 0x74, 0xff,
+  0x9e, 0x2d, 0xb9, 0x32, 0x62, 0xa8, 0xfa, 0xeb, 0x36, 0x8d, 0xc3, 0xf7, 0xf0, 0x3f, 0x94, 0x02,
+  0xe0, 0xa9, 0xd6, 0xb4, 0x3e, 0x16, 0x75, 0x6c, 0x13, 0xac, 0xa1, 0x9f, 0xa0, 0x2f, 0x2b, 0xab,
+  0xc2, 0xaf, 0xb2, 0x38, 0xc4, 0x70, 0x17, 0xdc, 0x59, 0x15, 0xa4, 0x82, 0x9d, 0x08, 0x55, 0xfb,
+  0xd8, 0x2c, 0x5e, 0xb3, 0xe2, 0x26, 0x5a, 0x77, 0x28, 0xca, 0x22, 0xce, 0x23, 0x45, 0xe7, 0xf6,
+  0x1d, 0x6d, 0x4a, 0x47, 0xb0, 0x06, 0x3c, 0x91, 0x41, 0x0d, 0x4d, 0x97, 0x0c, 0x7f, 0x5f, 0xc7,
+  0x39, 0x65, 0x05, 0xe8, 0x96, 0xd2, 0x81, 0x18, 0xb5, 0x0a, 0x79, 0xbb, 0x30, 0xc1, 0x8b, 0xfc,
+  0xdb, 0x40, 0x58, 0xe9, 0x60, 0x80, 0x50, 0x35, 0xbf, 0x90, 0xda, 0x0b, 0x6a, 0x84, 0x9b, 0x68,
+  0x5b, 0x88, 0x1f, 0x2a, 0xf3, 0x42, 0x7e, 0x87, 0x1e, 0x1a, 0x57, 0xba, 0xb6, 0x9a, 0xf2, 0x7b,
+  0x52, 0xa6, 0xd0, 0x27, 0x98, 0xbe, 0x71, 0xcd, 0x72, 0x69, 0xe1, 0x54, 0x49, 0xa3, 0x63, 0x6f,
+  0xcc, 0x3d, 0xc8, 0xd9, 0xaa, 0x0f, 0xc6, 0x1c, 0xc0, 0xfe, 0x86, 0xea, 0xde, 0x07, 0xec, 0xf8,
+  0xc9, 0x29, 0xb1, 0x9c, 0x5c, 0x83, 0x43, 0xf9, 0xf5, 0xb8, 0xcb, 0x09, 0xf1, 0x00, 0x1b, 0x2e,
+  0x85, 0xae, 0x4b, 0x12, 0x5d, 0xd1, 0x64, 0x78, 0x4c, 0xd5, 0x10, 0x53, 0x04, 0x6b, 0x8c, 0x34,
+  0x3a, 0x37, 0x03, 0xf4, 0x61, 0xc5, 0xee, 0xe3, 0x76, 0x31, 0x4f, 0xe6, 0xdf, 0xa5, 0x99, 0x3b,
 };
 
-DECLSPEC void new_des (uchar * block, uchar * newdes_key)
+DECLSPEC void new_des (u32 *block, u32 *newdes_key)
 {
   #define B0 (*(block+0))
   #define B1 (*(block+1))
@@ -71,16 +71,16 @@ DECLSPEC void new_des (uchar * block, uchar * newdes_key)
   B7 = B7 ^ newdes_rotor[B3 ^ *(newdes_key++)];
 }
 
-DECLSPEC void key_expansion (uchar * sha1sum, uchar * result)
+DECLSPEC void key_expansion (const u8 *sha1sum, u32 *result)
 {
   for (int count = 0; count < 15; count++)
   {
-    const uchar shi = sha1sum[count];
+    const u8 shi = sha1sum[count];
 
-    *(result + 0) = shi;
-    *(result + 1) = shi ^ sha1sum[7];
-    *(result + 2) = shi ^ sha1sum[8];
-    *(result + 3) = shi ^ sha1sum[9];
+    result[0] = shi;
+    result[1] = shi ^ sha1sum[7]; // ??? will be always zero for byte 24, 29, 34
+    result[2] = shi ^ sha1sum[8];
+    result[3] = shi ^ sha1sum[9];
 
     result += 4;
   }
@@ -141,18 +141,24 @@ KERNEL_FQ void m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
   ctx.h[4] = hc_swap32_S (ctx.h[4]);
 
   // Crate a NewDES key
-  u32 newdes_key[15];
+  u32 newdes_key32[60];
 
-  key_expansion ((uchar *) ctx.h, (uchar *) newdes_key);
+  key_expansion ((const u8 *) ctx.h, newdes_key32);
 
-  for (int i = 0; i < 15; i++)
+  for (int i = 0; i < 60; i++)
   {
-    tmps[gid].newdes_key[i] = newdes_key[i];
+    tmps[gid].newdes_key32[i] = newdes_key32[i];
   }
 
-  // Run NewDES on salt using the expanded key
-  tmps[gid].salt[0] = salt_bufs[SALT_POS_HOST].salt_buf[0];
-  tmps[gid].salt[1] = salt_bufs[SALT_POS_HOST].salt_buf[1];
+  for (int i = 0, j = 0; i < 8; i += 4, j += 1)
+  {
+    const u32 salt = salt_bufs[SALT_POS_HOST].salt_buf[j];
+
+    tmps[gid].salt32[i + 0] = unpack_v8a_from_v32_S (salt);
+    tmps[gid].salt32[i + 1] = unpack_v8b_from_v32_S (salt);
+    tmps[gid].salt32[i + 2] = unpack_v8c_from_v32_S (salt);
+    tmps[gid].salt32[i + 3] = unpack_v8d_from_v32_S (salt);
+  }
 }
 
 KERNEL_FQ void m32700_loop (KERN_ATTR_TMPS (sha1_tmp_t))
@@ -161,32 +167,30 @@ KERNEL_FQ void m32700_loop (KERN_ATTR_TMPS (sha1_tmp_t))
 
   if (gid >= GID_CNT) return;
 
-  u32 newdes_key[15];
+  u32 newdes_key32[60];
 
-  for (int i = 0; i < 15; i++)
+  for (int i = 0; i < 60; i++)
   {
-    newdes_key[i] = tmps[gid].newdes_key[i];
+    newdes_key32[i] = tmps[gid].newdes_key32[i];
   }
 
-  u32 salt[2];
+  u32 salt32[8];
 
-  salt[0] = tmps[gid].salt[0];
-  salt[1] = tmps[gid].salt[1];
+  for (int i = 0; i < 8; i++)
+  {
+    salt32[i] = tmps[gid].salt32[i];
+  }
 
   // Run 1000 iterations of NewDES on the derived salt
   for (int i = 0; i < LOOP_CNT; i++)
   {
-    new_des ((uchar *) salt, (uchar *) newdes_key);
+    new_des (salt32, newdes_key32);
   }
 
-  for (int i = 0; i < 15; i++)
+  for (int i = 0; i < 8; i++)
   {
-    tmps[gid].newdes_key[i] = newdes_key[i];
+    tmps[gid].salt32[i] = salt32[i];
   }
-
-  // Run NewDES on salt using the expanded key
-  tmps[gid].salt[0] = salt[0];
-  tmps[gid].salt[1] = salt[1];
 }
 
 KERNEL_FQ void m32700_comp (KERN_ATTR_TMPS (sha1_tmp_t))
@@ -197,8 +201,15 @@ KERNEL_FQ void m32700_comp (KERN_ATTR_TMPS (sha1_tmp_t))
 
   u32 salt[16] = { 0 };
 
-  salt[0] = tmps[gid].salt[0];
-  salt[1] = tmps[gid].salt[1];
+  salt[0] = (tmps[gid].salt32[0] <<  0)
+          | (tmps[gid].salt32[1] <<  8)
+          | (tmps[gid].salt32[2] << 16)
+          | (tmps[gid].salt32[3] << 24);
+
+  salt[1] = (tmps[gid].salt32[4] <<  0)
+          | (tmps[gid].salt32[5] <<  8)
+          | (tmps[gid].salt32[6] << 16)
+          | (tmps[gid].salt32[7] << 24);
 
   // Final "SHA-1" (with endianness bug)
   sha1_ctx_t ctx;
