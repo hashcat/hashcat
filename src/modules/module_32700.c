@@ -27,8 +27,8 @@ static const char *ST_HASH = "$kgb$0ab30cf7a52dad93$82a7c454246fc7570224e9f24279
 
 typedef struct sha1_tmp
 {
-  u32 salt[2];
-  u32 newdes_key[15];
+  u32 salt32[8];
+  u32 newdes_key32[60];
 
 } sha1_tmp_t;
 
@@ -100,6 +100,20 @@ const char *module_st_hash (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_
 const char *module_st_pass (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED const user_options_t * user_options, MAYBE_UNUSED const user_options_extra_t * user_options_extra)
 {
   return ST_PASS;
+}
+
+u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_min = 1000;
+
+  return kernel_loops_min;
+}
+
+u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_max = 1000;
+
+  return kernel_loops_max;
 }
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t * hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t * salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t * hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
@@ -235,8 +249,8 @@ void module_init (module_ctx_t * module_ctx)
   module_ctx->module_jit_cache_disable = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max = module_kernel_loops_max;
+  module_ctx->module_kernel_loops_min = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min = MODULE_DEFAULT;
   module_ctx->module_kern_type = module_kern_type;
