@@ -11,7 +11,6 @@
 #include "shared.h"
 #include "emu_inc_hash_sha512.h"
 #include "memory.h"
-#include <stdio.h>
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
