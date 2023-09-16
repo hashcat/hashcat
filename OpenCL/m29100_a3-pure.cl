@@ -41,13 +41,13 @@ KERNEL_FQ void m29100_mxx (KERN_ATTR_BASIC ())
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
-  u32 s[16] = { 0 };
+  u32 s[32] = { 0 };
 
   #pragma unroll
-  for (u32 id = 0; id < 16; id++)
+  for (u32 id = 0; id < 32; id++)
   {
     s[id] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[id]);
-  };
+  }
 
   /**
    * loop
@@ -149,13 +149,13 @@ KERNEL_FQ void m29100_sxx (KERN_ATTR_BASIC ())
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
-  u32 s[16] = { 0 };
+  u32 s[32] = { 0 };
 
   #pragma unroll
-  for (u32 id = 0; id < 16; id++)
+  for (u32 id = 0; id < 32; id++)
   {
     s[id] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[id]);
-  };
+  }
 
   /**
    * loop
