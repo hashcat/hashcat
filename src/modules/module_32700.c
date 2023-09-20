@@ -107,10 +107,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // 8 bytes salt
   const u8 *salt_pos = token.buf[1];
 
-  for (u32 i = 0, j = 0; i < 8 / 4; i += 1, j += 8)
-  {
-    salt->salt_buf[i] = hex_to_u32 (salt_pos + j);
-  }
+  salt->salt_buf[0] = hex_to_u32 (salt_pos + 0);
+  salt->salt_buf[1] = hex_to_u32 (salt_pos + 8);
 
   salt->salt_len = 8;
   salt->salt_iter = 1000;
