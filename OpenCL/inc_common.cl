@@ -2815,6 +2815,11 @@ DECLSPEC int is_valid_base58_8 (const u8 v)
   if ((v > (u8) '9') && (v < (u8) 'A')) return 0;
   if ((v > (u8) 'Z') && (v < (u8) 'a')) return 0;
 
+  // https://github.com/hashcat/hashcat/issues/3878
+  if (v == 'O') return 0;
+  if (v == 'I') return 0;
+  if (v == 'l') return 0;
+
   return 1;
 }
 
