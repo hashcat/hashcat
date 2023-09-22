@@ -2305,6 +2305,7 @@ typedef struct user_options
   bool         nonce_error_corrections_chgd;
   bool         spin_damp_chgd;
   bool         backend_vector_width_chgd;
+  bool         outfile_chgd;
   bool         outfile_format_chgd;
   bool         remove_timer_chgd;
   bool         rp_gen_seed_chgd;
