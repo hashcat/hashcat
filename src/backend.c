@@ -4396,7 +4396,10 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
 
       hiprtc_close (hashcat_ctx);
+    }
 
+    if ((rc_hip_init == 0) && (rc_hiprtc_init == -1))
+    {
       #if defined (_WIN)
       event_log_warning (hashcat_ctx, "Support for HIPRTC was dropped by AMD Adrenalin Edition 22.7.1 and later.");
       event_log_warning (hashcat_ctx, "This is not a hashcat problem.");
