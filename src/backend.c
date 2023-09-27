@@ -7259,6 +7259,22 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
                   event_log_warning (hashcat_ctx, "             Falling back to OpenCL runtime.");
 
                   event_log_warning (hashcat_ctx, NULL);
+
+                  if ((backend_ctx->rc_cuda_init == 0) && (backend_ctx->rc_nvrtc_init == -1))
+                  {
+                    #if defined (_WIN)
+                    event_log_warning (hashcat_ctx, "If you are using WSL2 you can use CUDA instead of OpenCL.");
+                    event_log_warning (hashcat_ctx, "Users must not install any NVIDIA GPU Linux driver within WSL 2");
+                    event_log_warning (hashcat_ctx, "For all details: https://docs.nvidia.com/cuda/wsl-user-guide/index.html");
+                    event_log_warning (hashcat_ctx, NULL);
+
+                    event_log_warning (hashcat_ctx, "TLDR; go to https://developer.nvidia.com/cuda-downloads and follow this path:");
+                    event_log_warning (hashcat_ctx, "  Linux -> Architecture -> Distribution -> Version -> deb (local)");
+                    event_log_warning (hashcat_ctx, "Follow the installation Instructions on the website.");
+                    event_log_warning (hashcat_ctx, NULL);
+
+                    #endif
+                  }
                 }
               }
             }
