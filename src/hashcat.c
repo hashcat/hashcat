@@ -1098,8 +1098,8 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
 
 void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  hcfree (hashcat_ctx->brain_ctx);
   hcfree (hashcat_ctx->bitmap_ctx);
+  hcfree (hashcat_ctx->brain_ctx);
   hcfree (hashcat_ctx->combinator_ctx);
   hcfree (hashcat_ctx->cpt_ctx);
   hcfree (hashcat_ctx->debugfile_ctx);
