@@ -13,6 +13,7 @@
 #include "restore.h"
 #include "status.h"
 #include "monitor.h"
+#include "memory.h"
 
 int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
 {
@@ -324,6 +325,35 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
           {
             EVENT_DATA (EVENT_MONITOR_NOINPUT_HINT, NULL, 0);
           }
+        }
+      }
+    }
+
+    if(user_options->bypass_delay_chgd == true)
+    {
+      time (&status_ctx->timer_bypass_cur);
+
+      // --bypass-delay check
+      if((status_ctx->timer_bypass_cur - status_ctx->timer_bypass_start) >= user_options->bypass_delay)
+      {
+        time (&status_ctx->timer_bypass_start);
+
+        // --bypass-threshold check
+        if((u32)(hashcat_ctx->hashes->digests_done - status_ctx->bypass_digests_done) < user_options->bypass_threshold)
+        {
+          event_log_info (hashcat_ctx, NULL);
+          event_log_info (hashcat_ctx, NULL);
+
+          bypass (hashcat_ctx);
+
+          event_log_info (hashcat_ctx, "Bypass threshold reached! Next dictionary / mask in queue selected. Bypassing current one.");
+
+          event_log_info (hashcat_ctx, NULL);
+          status_ctx->bypass_digests_done = 0;
+        } else
+        {
+              // enough recovered to continue the session
+              status_ctx->bypass_digests_done = hashcat_ctx->hashes->digests_done;
         }
       }
     }

@@ -842,6 +842,8 @@ typedef enum user_options_map
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff53,
   IDX_WORKLOAD_PROFILE          = 'w',
+  IDX_BYPASS_THRESHOLD          = 0xff54,
+  IDX_BYPASS_DELAY              = 0xff55,
 
 } user_options_map_t;
 
@@ -2294,6 +2296,8 @@ typedef struct user_options
   bool         brain_password_chgd;
   bool         brain_server_timer_chgd;
   #endif
+  bool         bypass_delay_chgd;
+  bool         bypass_threshold_chgd;
   bool         hash_mode_chgd;
   bool         hccapx_message_pair_chgd;
   bool         identify;
@@ -2412,6 +2416,8 @@ typedef struct user_options
   u32          brain_session;
   u32          brain_attack;
   #endif
+  u32          bypass_delay;
+  u32          bypass_threshold;
   u32          debug_mode;
   u32          hwmon_temp_abort;
   int          hash_mode;
@@ -2776,10 +2782,19 @@ typedef struct status_ctx
   time_t runtime_start;
   time_t runtime_stop;
 
+  time_t timer_bypass_start;
+  time_t timer_bypass_cur;
+
   hc_timer_t timer_running;     // timer on current dict
   hc_timer_t timer_paused;      // timer on current dict
 
   double  msec_paused;          // timer on current dict
+
+  /**
+    * --bypass-threshold cracked counter
+    */
+
+  int bypass_digests_done;
 
   /**
    * read timeouts

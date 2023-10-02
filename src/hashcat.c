@@ -295,6 +295,15 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
+   * Set time for --bypass-delay
+   */
+
+  if (user_options->bypass_delay_chgd == true)
+  {
+    time (&status_ctx->timer_bypass_start);
+  }
+
+  /**
    * Prepare cracking stats
    */
 
