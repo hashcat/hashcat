@@ -61,6 +61,7 @@
 ##
 
 - Added new feature (-Y) that creates N virtual instances for each device in your system at the cost of N times the device memory consumption
+- Added new feature (--bypass-delay / --bypass-threshold) that skips an attack if it does not produce enough cracks per $timeframe
 
 ##
 ## Performance
