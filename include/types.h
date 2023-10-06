@@ -685,6 +685,7 @@ typedef enum user_options_defaults
   OUTFILE_AUTOHEX          = true,
   OUTFILE_CHECK_TIMER      = 5,
   OUTFILE_FORMAT           = 3,
+  OUTFILE_JSON             = false,
   POTFILE_DISABLE          = false,
   PROGRESS_ONLY            = false,
   QUIET                    = false,
@@ -2108,6 +2109,7 @@ typedef struct outfile_ctx
 
   u32     outfile_format;
   bool    outfile_autohex;
+  bool    outfile_json;
   bool    is_fifo;
 
   char   *filename;
@@ -2356,6 +2358,7 @@ typedef struct user_options
   bool         optimized_kernel_enable;
   bool         multiply_accel_disable;
   bool         outfile_autohex;
+  bool         outfile_json;
   bool         potfile_disable;
   bool         progress_only;
   bool         quiet;
@@ -2776,6 +2779,8 @@ typedef struct status_ctx
   u64 *words_progress_rejected; // progress number of words rejected per salt
   u64 *words_progress_restored; // progress number of words restored per salt
 
+  int bypass_digests_done_new;  // --bypass-threshold cracked counter
+
   /**
    * timer
    */
@@ -2790,12 +2795,6 @@ typedef struct status_ctx
   hc_timer_t timer_paused;      // timer on current dict
 
   double  msec_paused;          // timer on current dict
-
-  /**
-    * --bypass-threshold cracked counter
-    */
-
-  int bypass_digests_done_new;
 
   /**
    * read timeouts
