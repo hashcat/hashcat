@@ -57,6 +57,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --restore-file-path        | File | Specific path to restore file                        | --restore-file-path=x.restore",
   " -o, --outfile                  | File | Define outfile for recovered hash                    | -o outfile.txt",
   "     --outfile-format           | Str  | Outfile format to use, separated with commas         | --outfile-format=1,3",
+  "     --outfile-json             |      | Force JSON format in outfile format                  |",
   "     --outfile-autohex-disable  |      | Disable the use of $HEX[] in output plains           |",
   "     --outfile-check-timer      | Num  | Sets seconds between outfile checks to X             | --outfile-check-timer=30",
   "     --wordlist-autohex-disable |      | Disable the conversion of $HEX[] from the wordlist   |",

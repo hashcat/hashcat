@@ -103,6 +103,7 @@ static const struct option long_options[] =
   {"outfile-check-dir",         required_argument, NULL, IDX_OUTFILE_CHECK_DIR},
   {"outfile-check-timer",       required_argument, NULL, IDX_OUTFILE_CHECK_TIMER},
   {"outfile-format",            required_argument, NULL, IDX_OUTFILE_FORMAT},
+  {"outfile-json",              no_argument,       NULL, IDX_OUTFILE_JSON},
   {"outfile",                   required_argument, NULL, IDX_OUTFILE},
   {"potfile-disable",           no_argument,       NULL, IDX_POTFILE_DISABLE},
   {"potfile-path",              required_argument, NULL, IDX_POTFILE_PATH},
@@ -246,6 +247,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->outfile_check_dir         = NULL;
   user_options->outfile_check_timer       = OUTFILE_CHECK_TIMER;
   user_options->outfile_format            = OUTFILE_FORMAT;
+  user_options->outfile_json              = OUTFILE_JSON;
   user_options->outfile                   = NULL;
   user_options->potfile_disable           = POTFILE_DISABLE;
   user_options->potfile_path              = NULL;
@@ -463,6 +465,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->outfile_chgd              = true;                            break;
       case IDX_OUTFILE_FORMAT:            user_options->outfile_format            = outfile_format_parse (optarg);
                                           user_options->outfile_format_chgd       = true;                            break;
+      case IDX_OUTFILE_JSON:              user_options->outfile_json              = true;                            break;
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex_disable  = true;                            break;
@@ -1075,6 +1078,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if (user_options->outfile_autohex == false)
     {
       event_log_error (hashcat_ctx, "Mixing --outfile-autohex-disable is not allowed with --show.");
+
+      return -1;
+    }
+
+    if (user_options->outfile_json == false)
+    {
+      event_log_error (hashcat_ctx, "Mixing --outfile-json is not allowed with --show.");
 
       return -1;
     }
@@ -3252,6 +3262,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->outfile_autohex);
   logfile_top_uint   (user_options->outfile_check_timer);
   logfile_top_uint   (user_options->outfile_format);
+  logfile_top_uint   (user_options->outfile_json);
   logfile_top_uint   (user_options->wordlist_autohex_disable);
   logfile_top_uint   (user_options->potfile_disable);
   logfile_top_uint   (user_options->progress_only);
