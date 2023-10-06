@@ -301,7 +301,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   if (user_options->bypass_delay_chgd == true)
   {
     time (&status_ctx->timer_bypass_start);
-    status_ctx->bypass_digests_done = hashcat_ctx->hashes->digests_done;
+    status_ctx->bypass_digests_done_new = hashcat_ctx->hashes->digests_done_new;
   }
 
   /**

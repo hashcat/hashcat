@@ -331,6 +331,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     if(user_options->bypass_delay_chgd == true)
     {
       time (&status_ctx->timer_bypass_cur);
+      printf("%d %d %d %d %d %d\n", status_ctx->timer_bypass_start, status_ctx->timer_bypass_cur, status_ctx->bypass_digests_done_new, hashcat_ctx->hashes->digests_done_new, (status_ctx->timer_bypass_cur - status_ctx->timer_bypass_start), (hashcat_ctx->hashes->digests_done_new - status_ctx->bypass_digests_done_new));
 
       if(status_ctx->devices_status == STATUS_RUNNING)
       {
@@ -340,7 +341,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
           time (&status_ctx->timer_bypass_start);
 
           // --bypass-threshold check
-          if((u32)(hashcat_ctx->hashes->digests_done - status_ctx->bypass_digests_done) < user_options->bypass_threshold)
+          if((u32)(hashcat_ctx->hashes->digests_done_new - status_ctx->bypass_digests_done_new) < user_options->bypass_threshold)
           {
             event_log_info (hashcat_ctx, NULL);
             event_log_info (hashcat_ctx, NULL);
@@ -350,12 +351,12 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
             event_log_info (hashcat_ctx, "Bypass threshold reached! Next dictionary / mask in queue selected. Bypassing current one.");
 
             event_log_info (hashcat_ctx, NULL);
-            status_ctx->bypass_digests_done = 0;
+            status_ctx->bypass_digests_done_new = 0;
           }
           else
           {
               // enough recovered to continue the session
-              status_ctx->bypass_digests_done = hashcat_ctx->hashes->digests_done;
+              status_ctx->bypass_digests_done_new = hashcat_ctx->hashes->digests_done_new;
           }
         }
       }
