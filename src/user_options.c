@@ -42,6 +42,8 @@ static const struct option long_options[] =
   {"backend-ignore-opencl",     no_argument,       NULL, IDX_BACKEND_IGNORE_OPENCL},
   {"backend-info",              no_argument,       NULL, IDX_BACKEND_INFO},
   {"backend-vector-width",      required_argument, NULL, IDX_BACKEND_VECTOR_WIDTH},
+  {"bypass-delay",              required_argument, NULL, IDX_BYPASS_DELAY},
+  {"bypass-threshold",          required_argument, NULL, IDX_BYPASS_THRESHOLD},
   {"benchmark-all",             no_argument,       NULL, IDX_BENCHMARK_ALL},
   {"benchmark",                 no_argument,       NULL, IDX_BENCHMARK},
   {"bitmap-max",                required_argument, NULL, IDX_BITMAP_MAX},
@@ -343,6 +345,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_MARKOV_THRESHOLD:
       case IDX_OUTFILE_CHECK_TIMER:
       case IDX_BACKEND_VECTOR_WIDTH:
+      case IDX_BYPASS_DELAY:
+      case IDX_BYPASS_THRESHOLD:
       case IDX_WORKLOAD_PROFILE:
       case IDX_KERNEL_ACCEL:
       case IDX_KERNEL_LOOPS:
@@ -484,6 +488,10 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BACKEND_DEVICES_VIRTUAL:   user_options->backend_devices_virtual   = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BACKEND_VECTOR_WIDTH:      user_options->backend_vector_width      = hc_strtoul (optarg, NULL, 10);
                                           user_options->backend_vector_width_chgd = true;                            break;
+      case IDX_BYPASS_DELAY:              user_options->bypass_delay              = hc_strtoul (optarg, NULL, 10);
+                                          user_options->bypass_delay_chgd         = true;                            break;
+      case IDX_BYPASS_THRESHOLD:          user_options->bypass_threshold          = hc_strtoul (optarg, NULL, 10);
+                                          user_options->bypass_threshold_chgd     = true;                            break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
       case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel_enable   = true;                            break;
       case IDX_MULTIPLY_ACCEL_DISABLE:    user_options->multiply_accel_disable    = true;                            break;
@@ -1540,6 +1548,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+  }
+
+  if ((user_options->bypass_delay_chgd && !user_options->bypass_threshold_chgd) || (!user_options->bypass_delay_chgd && user_options->bypass_threshold_chgd))
+  {
+    event_log_error (hashcat_ctx, "You must specify --bypass-delay and --bypass-threshold together.");
+
+    return -1;
   }
 
   // argc / argv checks
