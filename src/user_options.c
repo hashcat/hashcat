@@ -1082,7 +1082,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->outfile_json == false)
+    if (user_options->outfile_json == true)
     {
       event_log_error (hashcat_ctx, "Mixing --outfile-json is not allowed with --show.");
 
