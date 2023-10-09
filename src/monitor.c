@@ -331,8 +331,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
     if(user_options->bypass_delay_chgd == true)
     {
       time (&status_ctx->timer_bypass_cur);
-      printf("%d %d %d %d %d %d\n", status_ctx->timer_bypass_start, status_ctx->timer_bypass_cur, status_ctx->bypass_digests_done_new, hashcat_ctx->hashes->digests_done_new, (status_ctx->timer_bypass_cur - status_ctx->timer_bypass_start), (hashcat_ctx->hashes->digests_done_new - status_ctx->bypass_digests_done_new));
-
+      
       if(status_ctx->devices_status == STATUS_RUNNING)
       {
         // --bypass-delay check
