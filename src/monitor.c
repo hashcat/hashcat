@@ -328,19 +328,19 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    if(user_options->bypass_delay_chgd == true)
+    if (user_options->bypass_delay_chgd == true)
     {
       time (&status_ctx->timer_bypass_cur);
       
-      if(status_ctx->devices_status == STATUS_RUNNING)
+      if (status_ctx->devices_status == STATUS_RUNNING)
       {
         // --bypass-delay check
-        if((status_ctx->timer_bypass_cur - status_ctx->timer_bypass_start) >= user_options->bypass_delay)
+        if ((status_ctx->timer_bypass_cur - status_ctx->timer_bypass_start) >= user_options->bypass_delay)
         {
           time (&status_ctx->timer_bypass_start);
 
           // --bypass-threshold check
-          if((u32)(hashcat_ctx->hashes->digests_done_new - status_ctx->bypass_digests_done_new) < user_options->bypass_threshold)
+          if ((u32)(hashcat_ctx->hashes->digests_done_new - status_ctx->bypass_digests_done_new) < user_options->bypass_threshold)
           {
             event_log_info (hashcat_ctx, NULL);
             event_log_info (hashcat_ctx, NULL);
@@ -359,7 +359,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
           }
         }
       }
-      else if(status_ctx->devices_status == STATUS_PAUSED)
+      else if (status_ctx->devices_status == STATUS_PAUSED)
       {
         status_ctx->timer_bypass_start += 1;
       }
