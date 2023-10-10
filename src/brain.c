@@ -209,9 +209,9 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
     XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
 
-    const int wordlist_autohex_disable = user_options->wordlist_autohex_disable;
+    const int wordlist_autohex = user_options->wordlist_autohex;
 
-    XXH64_update (state, &wordlist_autohex_disable, sizeof (wordlist_autohex_disable));
+    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
 
     if (user_options->encoding_from)
     {
@@ -259,9 +259,9 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
     XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
 
-    const int wordlist_autohex_disable = user_options->wordlist_autohex_disable;
+    const int wordlist_autohex = user_options->wordlist_autohex;
 
-    XXH64_update (state, &wordlist_autohex_disable, sizeof (wordlist_autohex_disable));
+    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
 
     if (user_options->encoding_from)
     {
@@ -409,9 +409,9 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
     XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
 
-    const int wordlist_autohex_disable = user_options->wordlist_autohex_disable;
+    const int wordlist_autohex = user_options->wordlist_autohex;
 
-    XXH64_update (state, &wordlist_autohex_disable, sizeof (wordlist_autohex_disable));
+    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
 
     if (user_options->encoding_from)
     {
@@ -504,9 +504,9 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
     XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
 
-    const int wordlist_autohex_disable = user_options->wordlist_autohex_disable;
+    const int wordlist_autohex = user_options->wordlist_autohex;
 
-    XXH64_update (state, &wordlist_autohex_disable, sizeof (wordlist_autohex_disable));
+    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
 
     if (user_options->encoding_from)
     {
@@ -549,9 +549,9 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
     XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
 
-    const int wordlist_autohex_disable = user_options->wordlist_autohex_disable;
+    const int wordlist_autohex = user_options->wordlist_autohex;
 
-    XXH64_update (state, &wordlist_autohex_disable, sizeof (wordlist_autohex_disable));
+    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
 
     if (user_options->encoding_from)
     {

@@ -717,7 +717,7 @@ typedef enum user_options_defaults
   VERSION                  = false,
   VERACRYPT_PIM_START      = 485,
   VERACRYPT_PIM_STOP       = 485,
-  WORDLIST_AUTOHEX_DISABLE = false,
+  WORDLIST_AUTOHEX         = true,
   WORKLOAD_PROFILE         = 2,
 
 } user_options_defaults_t;
@@ -2373,7 +2373,7 @@ typedef struct user_options
   bool         veracrypt_pim_start_chgd;
   bool         veracrypt_pim_stop_chgd;
   bool         version;
-  bool         wordlist_autohex_disable;
+  bool         wordlist_autohex;
   #ifdef WITH_BRAIN
   char        *brain_host;
   char        *brain_password;

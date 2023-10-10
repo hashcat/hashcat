@@ -289,7 +289,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->veracrypt_pim_start       = VERACRYPT_PIM_START;
   user_options->veracrypt_pim_stop        = VERACRYPT_PIM_STOP;
   user_options->version                   = VERSION;
-  user_options->wordlist_autohex_disable  = WORDLIST_AUTOHEX_DISABLE;
+  user_options->wordlist_autohex          = WORDLIST_AUTOHEX;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) hccalloc (256, sizeof (char *));
@@ -468,7 +468,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_OUTFILE_JSON:              user_options->outfile_json              = true;                            break;
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex_disable  = true;                            break;
+      case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex          = false;                           break;
       case IDX_HEX_CHARSET:               user_options->hex_charset               = true;                            break;
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
       case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;                            break;
@@ -3263,7 +3263,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->outfile_check_timer);
   logfile_top_uint   (user_options->outfile_format);
   logfile_top_uint   (user_options->outfile_json);
-  logfile_top_uint   (user_options->wordlist_autohex_disable);
+  logfile_top_uint   (user_options->wordlist_autohex);
   logfile_top_uint   (user_options->potfile_disable);
   logfile_top_uint   (user_options->progress_only);
   logfile_top_uint   (user_options->quiet);
