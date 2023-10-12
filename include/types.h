@@ -621,7 +621,7 @@ typedef enum progress_mode
 
 typedef enum user_options_defaults
 {
-  ADVICE_DISABLE           = false,
+  ADVICE                   = true,
   ATTACK_MODE              = ATTACK_MODE_STRAIGHT,
   AUTODETECT               = false,
   BACKEND_DEVICES_VIRTUAL  = 1,
@@ -2323,7 +2323,7 @@ typedef struct user_options
   bool         rule_buf_l_chgd;
   bool         rule_buf_r_chgd;
 
-  bool         advice_disable;
+  bool         advice;
   bool         benchmark;
   bool         benchmark_all;
   #ifdef WITH_BRAIN

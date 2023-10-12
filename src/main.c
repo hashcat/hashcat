@@ -154,7 +154,7 @@ static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUS
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->advice_disable == true) return;
+  if (user_options->advice == false) return;
 
   main_log (hashcat_ctx, stdout, LOGLEVEL_ADVICE);
 }

@@ -170,7 +170,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  user_options->advice_disable            = ADVICE_DISABLE;
+  user_options->advice                    = ADVICE;
   user_options->attack_mode               = ATTACK_MODE;
   user_options->autodetect                = AUTODETECT;
   user_options->backend_devices           = NULL;
@@ -399,7 +399,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_SHOW:                      user_options->show                      = true;                            break;
       case IDX_DEPRECATED_CHECK_DISABLE:  user_options->deprecated_check_disable  = true;                            break;
       case IDX_LEFT:                      user_options->left                      = true;                            break;
-      case IDX_ADVICE_DISABLE:            user_options->advice_disable            = true;                            break;
+      case IDX_ADVICE_DISABLE:            user_options->advice                    = false;                           break;
       case IDX_USERNAME:                  user_options->username                  = true;                            break;
       case IDX_REMOVE:                    user_options->remove                    = true;                            break;
       case IDX_REMOVE_TIMER:              user_options->remove_timer              = hc_strtoul (optarg, NULL, 10);
