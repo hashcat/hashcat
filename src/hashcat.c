@@ -547,7 +547,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (module_ctx->module_deprecated_notice != MODULE_DEFAULT)
   {
-    if (user_options->deprecated_check_disable == false)
+    if (user_options->deprecated_check == true)
     {
       if ((user_options->show == true) || (user_options->left == true))
       {

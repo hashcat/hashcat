@@ -637,7 +637,7 @@ typedef enum user_options_defaults
   BRAIN_SESSION            = 0,
   #endif
   DEBUG_MODE               = 0,
-  DEPRECATED_CHECK_DISABLE = false,
+  DEPRECATED_CHECK         = true,
   FORCE                    = false,
   HWMON_DISABLE            = false,
   #if defined (__APPLE__)
@@ -2331,7 +2331,7 @@ typedef struct user_options
   bool         brain_server;
   #endif
   bool         force;
-  bool         deprecated_check_disable;
+  bool         deprecated_check;
   bool         hwmon_disable;
   bool         hash_info;
   bool         hex_charset;

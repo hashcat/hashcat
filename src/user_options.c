@@ -204,7 +204,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->custom_charset_4          = NULL;
   user_options->debug_file                = NULL;
   user_options->debug_mode                = DEBUG_MODE;
-  user_options->deprecated_check_disable  = DEPRECATED_CHECK_DISABLE;
+  user_options->deprecated_check          = DEPRECATED_CHECK;
   user_options->encoding_from             = ENCODING_FROM;
   user_options->encoding_to               = ENCODING_TO;
   user_options->force                     = FORCE;
@@ -397,7 +397,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_RESTORE:                   user_options->restore                   = true;                            break;
       case IDX_QUIET:                     user_options->quiet                     = true;                            break;
       case IDX_SHOW:                      user_options->show                      = true;                            break;
-      case IDX_DEPRECATED_CHECK_DISABLE:  user_options->deprecated_check_disable  = true;                            break;
+      case IDX_DEPRECATED_CHECK_DISABLE:  user_options->deprecated_check          = false;                           break;
       case IDX_LEFT:                      user_options->left                      = true;                            break;
       case IDX_ADVICE_DISABLE:            user_options->advice                    = false;                           break;
       case IDX_USERNAME:                  user_options->username                  = true;                            break;
