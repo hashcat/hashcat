@@ -639,7 +639,7 @@ typedef enum user_options_defaults
   DEBUG_MODE               = 0,
   DEPRECATED_CHECK         = true,
   FORCE                    = false,
-  HWMON_DISABLE            = false,
+  HWMON                    = true,
   #if defined (__APPLE__)
   HWMON_TEMP_ABORT         = 100,
   #else
@@ -2332,7 +2332,7 @@ typedef struct user_options
   #endif
   bool         force;
   bool         deprecated_check;
-  bool         hwmon_disable;
+  bool         hwmon;
   bool         hash_info;
   bool         hex_charset;
   bool         hex_salt;

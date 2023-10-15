@@ -208,7 +208,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->encoding_from             = ENCODING_FROM;
   user_options->encoding_to               = ENCODING_TO;
   user_options->force                     = FORCE;
-  user_options->hwmon_disable             = HWMON_DISABLE;
+  user_options->hwmon                     = HWMON;
   user_options->hwmon_temp_abort          = HWMON_TEMP_ABORT;
   user_options->hash_info                 = HASH_INFO;
   user_options->hash_mode                 = HASH_MODE;
@@ -497,7 +497,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->kernel_threads_chgd       = true;                            break;
       case IDX_SPIN_DAMP:                 user_options->spin_damp                 = hc_strtoul (optarg, NULL, 10);
                                           user_options->spin_damp_chgd            = true;                            break;
-      case IDX_HWMON_DISABLE:             user_options->hwmon_disable             = true;                            break;
+      case IDX_HWMON_DISABLE:             user_options->hwmon                     = false;                           break;
       case IDX_HWMON_TEMP_ABORT:          user_options->hwmon_temp_abort          = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_LOGFILE_DISABLE:           user_options->logfile_disable           = true;                            break;
       case IDX_HCCAPX_MESSAGE_PAIR:       user_options->hccapx_message_pair       = hc_strtoul (optarg, NULL, 10);
@@ -1832,7 +1832,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->stdout_flag)
   {
-    user_options->hwmon_disable       = true;
+    user_options->hwmon               = false;
     user_options->left                = false;
     user_options->logfile_disable     = true;
     user_options->spin_damp           = 0;
@@ -1856,7 +1856,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
    || user_options->usage             > 0
    || user_options->backend_info      > 0)
   {
-    user_options->hwmon_disable       = true;
+    user_options->hwmon               = false;
     user_options->left                = false;
     user_options->logfile_disable     = true;
     user_options->spin_damp           = 0;
@@ -2007,10 +2007,10 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
 
   #if !defined (WITH_HWMON)
-  user_options->hwmon_disable = true;
+  user_options->hwmon = false;
   #endif // WITH_HWMON
 
-  if (user_options->hwmon_disable == true)
+  if (user_options->hwmon == false)
   {
     user_options->hwmon_temp_abort = 0;
   }
@@ -3230,7 +3230,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->debug_mode);
   logfile_top_uint   (user_options->hash_info);
   logfile_top_uint   (user_options->force);
-  logfile_top_uint   (user_options->hwmon_disable);
+  logfile_top_uint   (user_options->hwmon);
   logfile_top_uint   (user_options->hwmon_temp_abort);
   logfile_top_uint   (user_options->hash_mode);
   logfile_top_uint   (user_options->hex_charset);
