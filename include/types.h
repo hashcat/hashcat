@@ -663,7 +663,7 @@ typedef enum user_options_defaults
   KEYSPACE                 = false,
   LEFT                     = false,
   LIMIT                    = 0,
-  LOGFILE_DISABLE          = false,
+  LOGFILE                  = true,
   LOOPBACK                 = false,
   MACHINE_READABLE         = false,
   MARKOV_CLASSIC           = false,
@@ -2341,7 +2341,7 @@ typedef struct user_options
   bool         keep_guessing;
   bool         keyspace;
   bool         left;
-  bool         logfile_disable;
+  bool         logfile;
   bool         loopback;
   bool         machine_readable;
   bool         markov_classic;

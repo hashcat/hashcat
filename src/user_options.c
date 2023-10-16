@@ -230,7 +230,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->keyspace                  = KEYSPACE;
   user_options->left                      = LEFT;
   user_options->limit                     = LIMIT;
-  user_options->logfile_disable           = LOGFILE_DISABLE;
+  user_options->logfile                   = LOGFILE;
   user_options->loopback                  = LOOPBACK;
   user_options->machine_readable          = MACHINE_READABLE;
   user_options->markov_classic            = MARKOV_CLASSIC;
@@ -499,7 +499,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->spin_damp_chgd            = true;                            break;
       case IDX_HWMON_DISABLE:             user_options->hwmon                     = false;                           break;
       case IDX_HWMON_TEMP_ABORT:          user_options->hwmon_temp_abort          = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_LOGFILE_DISABLE:           user_options->logfile_disable           = true;                            break;
+      case IDX_LOGFILE_DISABLE:           user_options->logfile                   = false;                           break;
       case IDX_HCCAPX_MESSAGE_PAIR:       user_options->hccapx_message_pair       = hc_strtoul (optarg, NULL, 10);
                                           user_options->hccapx_message_pair_chgd  = true;                            break;
       case IDX_NONCE_ERROR_CORRECTIONS:   user_options->nonce_error_corrections   = hc_strtoul (optarg, NULL, 10);
@@ -1834,7 +1834,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->hwmon               = false;
     user_options->left                = false;
-    user_options->logfile_disable     = true;
+    user_options->logfile             = false;
     user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile_disable     = true;
@@ -1858,7 +1858,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->hwmon               = false;
     user_options->left                = false;
-    user_options->logfile_disable     = true;
+    user_options->logfile             = false;
     user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile_disable     = true;
@@ -1881,7 +1881,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->hwmon_temp_abort    = 0;
     user_options->increment           = false;
     user_options->left                = false;
-    user_options->logfile_disable     = true;
+    user_options->logfile             = false;
     user_options->spin_damp           = 0;
     user_options->potfile_disable     = true;
     user_options->progress_only       = false;
@@ -3247,7 +3247,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->kernel_threads);
   logfile_top_uint   (user_options->keyspace);
   logfile_top_uint   (user_options->left);
-  logfile_top_uint   (user_options->logfile_disable);
+  logfile_top_uint   (user_options->logfile);
   logfile_top_uint   (user_options->loopback);
   logfile_top_uint   (user_options->machine_readable);
   logfile_top_uint   (user_options->markov_classic);
