@@ -234,7 +234,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->loopback                  = LOOPBACK;
   user_options->machine_readable          = MACHINE_READABLE;
   user_options->markov_classic            = MARKOV_CLASSIC;
-  user_options->markov_disable            = MARKOV_DISABLE;
+  user_options->markov                    = MARKOV;
   user_options->markov_hcstat2            = NULL;
   user_options->markov_inverse            = MARKOV_INVERSE;
   user_options->markov_threshold          = MARKOV_THRESHOLD;
@@ -456,7 +456,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->rule_buf_l_chgd           = true;                            break;
       case IDX_RULE_BUF_R:                user_options->rule_buf_r                = optarg;
                                           user_options->rule_buf_r_chgd           = true;                            break;
-      case IDX_MARKOV_DISABLE:            user_options->markov_disable            = true;                            break;
+      case IDX_MARKOV_DISABLE:            user_options->markov                    = false;                           break;
       case IDX_MARKOV_CLASSIC:            user_options->markov_classic            = true;                            break;
       case IDX_MARKOV_INVERSE:            user_options->markov_inverse            = true;                            break;
       case IDX_MARKOV_THRESHOLD:          user_options->markov_threshold          = hc_strtoul (optarg, NULL, 10);   break;
@@ -3251,7 +3251,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->loopback);
   logfile_top_uint   (user_options->machine_readable);
   logfile_top_uint   (user_options->markov_classic);
-  logfile_top_uint   (user_options->markov_disable);
+  logfile_top_uint   (user_options->markov);
   logfile_top_uint   (user_options->markov_inverse);
   logfile_top_uint   (user_options->markov_threshold);
   logfile_top_uint   (user_options->metal_compiler_runtime);

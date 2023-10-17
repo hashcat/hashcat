@@ -667,7 +667,7 @@ typedef enum user_options_defaults
   LOOPBACK                 = false,
   MACHINE_READABLE         = false,
   MARKOV_CLASSIC           = false,
-  MARKOV_DISABLE           = false,
+  MARKOV                   = true,
   MARKOV_INVERSE           = false,
   MARKOV_THRESHOLD         = 0,
   METAL_COMPILER_RUNTIME   = 120,
@@ -2345,7 +2345,7 @@ typedef struct user_options
   bool         loopback;
   bool         machine_readable;
   bool         markov_classic;
-  bool         markov_disable;
+  bool         markov;
   bool         markov_inverse;
   bool         backend_ignore_cuda;
   bool         backend_ignore_hip;
