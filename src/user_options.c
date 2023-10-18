@@ -242,7 +242,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->nonce_error_corrections   = NONCE_ERROR_CORRECTIONS;
   user_options->opencl_device_types       = NULL;
   user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
-  user_options->multiply_accel_disable    = MULTIPLY_ACCEL_DISABLE;
+  user_options->multiply_accel            = MULTIPLY_ACCEL;
   user_options->outfile_autohex           = OUTFILE_AUTOHEX;
   user_options->outfile_check_dir         = NULL;
   user_options->outfile_check_timer       = OUTFILE_CHECK_TIMER;
@@ -486,7 +486,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->backend_vector_width_chgd = true;                            break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
       case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel_enable   = true;                            break;
-      case IDX_MULTIPLY_ACCEL_DISABLE:    user_options->multiply_accel_disable    = true;                            break;
+      case IDX_MULTIPLY_ACCEL_DISABLE:    user_options->multiply_accel            = false;                           break;
       case IDX_WORKLOAD_PROFILE:          user_options->workload_profile          = hc_strtoul (optarg, NULL, 10);
                                           user_options->workload_profile_chgd     = true;                            break;
       case IDX_KERNEL_ACCEL:              user_options->kernel_accel              = hc_strtoul (optarg, NULL, 10);
@@ -2138,7 +2138,7 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --optimized-kernel-enable");
     }
 
-    if (user_options->multiply_accel_disable == true)
+    if (user_options->multiply_accel == false)
     {
       event_log_info (hashcat_ctx, "* --multiply-accel-disable");
     }
@@ -2202,7 +2202,7 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "# option: --optimized-kernel-enable");
     }
 
-    if (user_options->multiply_accel_disable == true)
+    if (user_options->multiply_accel == false)
     {
       event_log_info (hashcat_ctx, "# option: --multiply-accel-disable");
     }
@@ -3255,7 +3255,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->markov_inverse);
   logfile_top_uint   (user_options->markov_threshold);
   logfile_top_uint   (user_options->metal_compiler_runtime);
-  logfile_top_uint   (user_options->multiply_accel_disable);
+  logfile_top_uint   (user_options->multiply_accel);
   logfile_top_uint   (user_options->backend_info);
   logfile_top_uint   (user_options->backend_vector_width);
   logfile_top_uint   (user_options->optimized_kernel_enable);

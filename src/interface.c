@@ -282,7 +282,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->multiply_accel_disable == true)
+  if (user_options->multiply_accel == false)
   {
     hashconfig->opts_type |= OPTS_TYPE_MP_MULTI_DISABLE;
   }

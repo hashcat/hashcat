@@ -681,7 +681,7 @@ typedef enum user_options_defaults
   BACKEND_INFO             = 0,
   BACKEND_VECTOR_WIDTH     = 0,
   OPTIMIZED_KERNEL_ENABLE  = false,
-  MULTIPLY_ACCEL_DISABLE   = false,
+  MULTIPLY_ACCEL           = true,
   OUTFILE_AUTOHEX          = true,
   OUTFILE_CHECK_TIMER      = 5,
   OUTFILE_FORMAT           = 3,
@@ -2352,7 +2352,7 @@ typedef struct user_options
   bool         backend_ignore_metal;
   bool         backend_ignore_opencl;
   bool         optimized_kernel_enable;
-  bool         multiply_accel_disable;
+  bool         multiply_accel;
   bool         outfile_autohex;
   bool         outfile_json;
   bool         potfile_disable;
