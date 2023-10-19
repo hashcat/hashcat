@@ -269,7 +269,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->runtime                   = RUNTIME;
   user_options->scrypt_tmto               = SCRYPT_TMTO;
   user_options->segment_size              = SEGMENT_SIZE;
-  user_options->self_test_disable         = SELF_TEST_DISABLE;
+  user_options->self_test                 = SELF_TEST;
   user_options->separator                 = SEPARATOR;
   user_options->session                   = PROGNAME;
   user_options->show                      = SHOW;
@@ -414,7 +414,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;                          break;
       case IDX_HASH_INFO:                 user_options->hash_info                 = true;                            break;
       case IDX_FORCE:                     user_options->force                     = true;                            break;
-      case IDX_SELF_TEST_DISABLE:         user_options->self_test_disable         = true;                            break;
+      case IDX_SELF_TEST_DISABLE:         user_options->self_test                 = false;                           break;
       case IDX_SKIP:                      user_options->skip                      = hc_strtoull (optarg, NULL, 10);
                                           user_options->skip_chgd                 = true;                            break;
       case IDX_LIMIT:                     user_options->limit                     = hc_strtoull (optarg, NULL, 10);
@@ -3280,7 +3280,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->runtime);
   logfile_top_uint   (user_options->scrypt_tmto);
   logfile_top_uint   (user_options->segment_size);
-  logfile_top_uint   (user_options->self_test_disable);
+  logfile_top_uint   (user_options->self_test);
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);
   logfile_top_uint   (user_options->speed_only);

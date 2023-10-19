@@ -287,7 +287,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig->opts_type |= OPTS_TYPE_MP_MULTI_DISABLE;
   }
 
-  if (user_options->self_test_disable == true)
+  if (user_options->self_test == false)
   {
     hashconfig->opts_type |= OPTS_TYPE_SELF_TEST_DISABLE;
   }

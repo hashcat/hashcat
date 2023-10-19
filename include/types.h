@@ -701,7 +701,7 @@ typedef enum user_options_defaults
   RUNTIME                  = 0,
   SCRYPT_TMTO              = 0,
   SEGMENT_SIZE             = 33554432,
-  SELF_TEST_DISABLE        = false,
+  SELF_TEST                = true,
   SHOW                     = false,
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
@@ -2361,7 +2361,7 @@ typedef struct user_options
   bool         remove;
   bool         restore;
   bool         restore_disable;
-  bool         self_test_disable;
+  bool         self_test;
   bool         show;
   bool         slow_candidates;
   bool         speed_only;
