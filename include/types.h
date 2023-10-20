@@ -691,7 +691,7 @@ typedef enum user_options_defaults
   QUIET                    = false,
   REMOVE                   = false,
   REMOVE_TIMER             = 60,
-  RESTORE_DISABLE          = false,
+  RESTORE_ENABLE           = true,
   RESTORE                  = false,
   RESTORE_TIMER            = 1,
   RP_GEN                   = 0,
@@ -2360,7 +2360,7 @@ typedef struct user_options
   bool         quiet;
   bool         remove;
   bool         restore;
-  bool         restore_disable;
+  bool         restore_enable;
   bool         self_test;
   bool         show;
   bool         slow_candidates;

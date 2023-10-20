@@ -255,7 +255,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->quiet                     = QUIET;
   user_options->remove                    = REMOVE;
   user_options->remove_timer              = REMOVE_TIMER;
-  user_options->restore_disable           = RESTORE_DISABLE;
+  user_options->restore_enable            = RESTORE_ENABLE;
   user_options->restore_file_path         = NULL;
   user_options->restore                   = RESTORE;
   user_options->restore_timer             = RESTORE_TIMER;
@@ -429,7 +429,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_IDENTIFY:                  user_options->identify                  = true;                            break;
       case IDX_SPEED_ONLY:                user_options->speed_only                = true;                            break;
       case IDX_PROGRESS_ONLY:             user_options->progress_only             = true;                            break;
-      case IDX_RESTORE_DISABLE:           user_options->restore_disable           = true;                            break;
+      case IDX_RESTORE_DISABLE:           user_options->restore_enable            = false;                           break;
       case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
       case IDX_STATUS:                    user_options->status                    = true;                            break;
       case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
@@ -1838,7 +1838,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile_disable     = true;
-    user_options->restore_disable     = true;
+    user_options->restore_enable      = false;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
     user_options->show                = false;
@@ -1862,7 +1862,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
     user_options->potfile_disable     = true;
-    user_options->restore_disable     = true;
+    user_options->restore_enable      = false;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
     user_options->show                = false;
@@ -1885,7 +1885,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->spin_damp           = 0;
     user_options->potfile_disable     = true;
     user_options->progress_only       = false;
-    user_options->restore_disable     = true;
+    user_options->restore_enable      = false;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
     user_options->show                = false;
@@ -1986,7 +1986,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
   if (user_options->show == true || user_options->left == true)
   {
-    user_options->restore_disable = true;
+    user_options->restore_enable = false;
 
     user_options->restore = false;
   }
@@ -3270,7 +3270,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->remove);
   logfile_top_uint   (user_options->remove_timer);
   logfile_top_uint   (user_options->restore);
-  logfile_top_uint   (user_options->restore_disable);
+  logfile_top_uint   (user_options->restore_enable);
   logfile_top_uint   (user_options->restore_timer);
   logfile_top_uint   (user_options->rp_files_cnt);
   logfile_top_uint   (user_options->rp_gen);
