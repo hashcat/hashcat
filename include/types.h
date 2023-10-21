@@ -686,7 +686,7 @@ typedef enum user_options_defaults
   OUTFILE_CHECK_TIMER      = 5,
   OUTFILE_FORMAT           = 3,
   OUTFILE_JSON             = false,
-  POTFILE_DISABLE          = false,
+  POTFILE                  = true,
   PROGRESS_ONLY            = false,
   QUIET                    = false,
   REMOVE                   = false,
@@ -2355,7 +2355,7 @@ typedef struct user_options
   bool         multiply_accel;
   bool         outfile_autohex;
   bool         outfile_json;
-  bool         potfile_disable;
+  bool         potfile;
   bool         progress_only;
   bool         quiet;
   bool         remove;

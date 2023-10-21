@@ -615,7 +615,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * potfile removes
    */
 
-  if (user_options->potfile_disable == false)
+  if (user_options->potfile == true)
   {
     EVENT (EVENT_POTFILE_REMOVE_PARSE_PRE);
 

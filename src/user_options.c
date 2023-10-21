@@ -249,7 +249,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->outfile_format            = OUTFILE_FORMAT;
   user_options->outfile_json              = OUTFILE_JSON;
   user_options->outfile                   = NULL;
-  user_options->potfile_disable           = POTFILE_DISABLE;
+  user_options->potfile                   = POTFILE;
   user_options->potfile_path              = NULL;
   user_options->progress_only             = PROGRESS_ONLY;
   user_options->quiet                     = QUIET;
@@ -404,7 +404,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_REMOVE:                    user_options->remove                    = true;                            break;
       case IDX_REMOVE_TIMER:              user_options->remove_timer              = hc_strtoul (optarg, NULL, 10);
                                           user_options->remove_timer_chgd         = true;                            break;
-      case IDX_POTFILE_DISABLE:           user_options->potfile_disable           = true;                            break;
+      case IDX_POTFILE_DISABLE:           user_options->potfile                   = false;                           break;
       case IDX_POTFILE_PATH:              user_options->potfile_path              = optarg;                          break;
       case IDX_DEBUG_MODE:                user_options->debug_mode                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_DEBUG_FILE:                user_options->debug_file                = optarg;                          break;
@@ -1065,7 +1065,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->potfile_disable == true)
+    if (user_options->potfile == false)
     {
       event_log_error (hashcat_ctx, "Mixing --potfile-disable is not allowed with --show or --left.");
 
@@ -1481,7 +1481,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->brain_client == true) && (user_options->potfile_disable == true))
+  if ((user_options->brain_client == true) && (user_options->potfile == false))
   {
     event_log_error (hashcat_ctx, "Using --potfile-disable is not allowed if --brain-client is used.");
 
@@ -1837,7 +1837,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->logfile             = false;
     user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
-    user_options->potfile_disable     = true;
+    user_options->potfile             = false;
     user_options->restore_enable      = false;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
@@ -1861,7 +1861,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->logfile             = false;
     user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
-    user_options->potfile_disable     = true;
+    user_options->potfile             = false;
     user_options->restore_enable      = false;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
@@ -1883,7 +1883,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->left                = false;
     user_options->logfile             = false;
     user_options->spin_damp           = 0;
-    user_options->potfile_disable     = true;
+    user_options->potfile             = false;
     user_options->progress_only       = false;
     user_options->restore_enable      = false;
     user_options->restore             = false;
@@ -2070,7 +2070,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
-    user_options->potfile_disable = true;
+    user_options->potfile = false;
   }
 
   if (user_options->stdout_flag == false && user_options->benchmark == false && user_options->keyspace == false)
@@ -3264,7 +3264,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->outfile_format);
   logfile_top_uint   (user_options->outfile_json);
   logfile_top_uint   (user_options->wordlist_autohex);
-  logfile_top_uint   (user_options->potfile_disable);
+  logfile_top_uint   (user_options->potfile);
   logfile_top_uint   (user_options->progress_only);
   logfile_top_uint   (user_options->quiet);
   logfile_top_uint   (user_options->remove);
