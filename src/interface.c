@@ -357,7 +357,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->hash_info == false)
     {
-      if (user_options->optimized_kernel_enable == true)
+      if (user_options->optimized_kernel == true)
       {
         if (hashconfig->has_optimized_kernel == false)
         {

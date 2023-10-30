@@ -81,7 +81,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
   u32 pw_max = PW_MAX - 4;
 
-  if (user_options->optimized_kernel_enable == true && hashconfig->has_optimized_kernel == true)
+  if (user_options->optimized_kernel == true && hashconfig->has_optimized_kernel == true)
   {
     pw_max = PW_MAX_OLD - 4;
   }

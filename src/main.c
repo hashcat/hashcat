@@ -786,7 +786,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
   event_log_advice (hashcat_ctx, NULL);
 
-  if (user_options->optimized_kernel_enable == false)
+  if (user_options->optimized_kernel == false)
   {
     if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {

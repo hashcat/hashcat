@@ -73,7 +73,7 @@ static const char *SIGNATURE_RAR3 = "$RAR3$";
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const bool optimized_kernel = user_options->optimized_kernel_enable;
+  const bool optimized_kernel = user_options->optimized_kernel;
 
   u64 tmp_size = (u64) sizeof (rar3_tmp_t);
 
