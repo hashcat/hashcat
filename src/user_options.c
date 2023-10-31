@@ -54,6 +54,7 @@ static const struct option long_options[] =
   {"debug-file",                required_argument, NULL, IDX_DEBUG_FILE},
   {"debug-mode",                required_argument, NULL, IDX_DEBUG_MODE},
   {"deprecated-check-disable",  no_argument,       NULL, IDX_DEPRECATED_CHECK_DISABLE},
+  {"dynamic-x",                 no_argument,       NULL, IDX_DYNAMIC_X},
   {"encoding-from",             required_argument, NULL, IDX_ENCODING_FROM},
   {"encoding-to",               required_argument, NULL, IDX_ENCODING_TO},
   {"example-hashes",            no_argument,       NULL, IDX_HASH_INFO}, // alias of hash-info
