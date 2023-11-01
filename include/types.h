@@ -2334,6 +2334,7 @@ typedef struct user_options
   #endif
   bool         force;
   bool         deprecated_check;
+  bool         dynamic_x;
   bool         hwmon;
   bool         hash_info;
   bool         hex_charset;
