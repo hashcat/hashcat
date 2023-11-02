@@ -28,7 +28,7 @@ static void hlfmt_hash_hashcat (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *l
   const user_options_t *user_options = hashcat_ctx->user_options;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
 
-  if (user_options->username == 0)
+  if (user_options->username == false)
   {
     *hashbuf_pos = line_buf;
     *hashbuf_len = line_len;
