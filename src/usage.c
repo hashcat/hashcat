@@ -66,6 +66,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --show                     |      | Compare hashlist with potfile; show cracked hashes   |",
   "     --left                     |      | Compare hashlist with potfile; show uncracked hashes |",
   "     --username                 |      | Enable ignoring of usernames in hashfile             |",
+  "     --dynamic-x                |      | Ignore $dynamic_X$ prefix in hashes                  |",
   "     --remove                   |      | Enable removal of hashes once they are cracked       |",
   "     --remove-timer             | Num  | Update input hash file each X seconds                | --remove-timer=30",
   "     --potfile-disable          |      | Do not write potfile                                 |",
