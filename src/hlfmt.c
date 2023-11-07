@@ -28,14 +28,13 @@ static void hlfmt_hash_hashcat (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *l
   const user_options_t *user_options = hashcat_ctx->user_options;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
 
-  if ((user_options->username == true) && (user_options->dynamic_x == true))
-  {
+  *hashbuf_pos = line_buf;
+  *hashbuf_len = line_len;
 
-  }
-  else if (user_options->username == true)
+  if (user_options->username == true)
   {
-    char  *pos = line_buf;
-    size_t len = line_len;
+    char  *pos = *hashbuf_pos;
+    size_t len = *hashbuf_len;
 
     for (int i = 0; i < line_len; i++, pos++, len--)
     {
@@ -52,14 +51,10 @@ static void hlfmt_hash_hashcat (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *l
     *hashbuf_pos = pos;
     *hashbuf_len = len;
   }
-  else if (user_options->dynamic_x == true)
+
+  if (user_options->dynamic_x == true)
   {
 
-  }
-  else
-  {
-    *hashbuf_pos = line_buf;
-    *hashbuf_len = line_len;
   }
 }
 
