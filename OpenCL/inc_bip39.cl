@@ -294,16 +294,28 @@ DECLSPEC bool bip39_byte_from_password_test ()
 
 DECLSPEC u32 bip39_checksum_word_test ()
 {
-  u32 wordlist[11] = { 382, 566, 904, 858, 1836, 1147, 894, 1014, 1380, 1932, 744 };
-  u32 entropy[1] = { 0x0000005A };
-  entropy[0] += BIP39_BYTE_OFFSET + 7;
-  if (bip39_checksum_word (wordlist, 12, entropy, 0) != 1444)
+  u32 wordlist12[11] = { 382, 566, 904, 858, 1836, 1147, 894, 1014, 1380, 1932, 744 };
+  u32 entropy12[1] = { 0x0000005A };
+  entropy12[0] += BIP39_BYTE_OFFSET + 7;
+  if (bip39_checksum_word (wordlist12, 12, entropy12, 0) != 1444)
     return false;
 
-  u32 wordlist2[23] = { 70, 1828, 769, 514, 1812, 937, 323, 1091, 1874, 1275, 363, 1482, 1136, 1131, 1941, 1888, 672, 1584, 1493, 1015, 1090, 960, 920 };
-  u32 entropy2[1] = { 0x00000006 };
-  entropy2[0] += BIP39_BYTE_OFFSET + 3;
-  if (bip39_checksum_word (wordlist2, 24, entropy2, 0) != 1590)
+  u32 wordlist15[14] = { 1947, 789, 1517, 704, 1971, 1615, 502, 1720, 1704, 1086, 1550, 883, 1447, 929 };
+  u32 entropy15[1] = { 0x00000027 };
+  entropy15[0] += BIP39_BYTE_OFFSET + 6;
+  if (bip39_checksum_word (wordlist15, 15, entropy15, 0) != 1270)
+    return false;
+
+  u32 wordlist18[17] = { 388, 1081, 652, 1498, 1177, 1022, 302, 1762, 335, 1903, 1238, 1348, 649, 65, 1380, 769, 742 };
+  u32 entropy18[1] = { 0x00000019 };
+  entropy18[0] += BIP39_BYTE_OFFSET + 5;
+  if (bip39_checksum_word (wordlist18, 18, entropy18, 0) != 1612)
+    return false;
+
+  u32 wordlist24[23] = { 70, 1828, 769, 514, 1812, 937, 323, 1091, 1874, 1275, 363, 1482, 1136, 1131, 1941, 1888, 672, 1584, 1493, 1015, 1090, 960, 920 };
+  u32 entropy24[1] = { 0x00000006 };
+  entropy24[0] += BIP39_BYTE_OFFSET + 3;
+  if (bip39_checksum_word (wordlist24, 24, entropy24, 0) != 1590)
     return false;
 
   return true;

@@ -2,6 +2,11 @@
 
 set -e
 
+rm -f modules/module_28510.so
+rm -f kernels/*
+rm -f hashcat.potfile
+make
+
 TEST1="XPUB:m/:coral dice harvest:xpub661MyMwAqRbcFaizXLqdLrqBkUJo4JyyXYNucU2hWQBDfhmCd3TL7USdpjhUddedvEiSo31BRg9QB4a5PNKcuQRWT6DA2YveGA2tzsqZQwg"
 PASS1="hashca?4"
 
