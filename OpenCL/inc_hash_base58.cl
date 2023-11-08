@@ -578,7 +578,7 @@ DECLSPEC bool b58enc (PRIVATE_AS u8 *b58, PRIVATE_AS u32 *b58sz, PRIVATE_AS cons
 
   j = 0;
 
-  for (; j < (size && !buf[j]); j++) {}
+  for (; j < size && !buf[j]; j++) {}
 
   if (*b58sz <= zcount + size - j)
   {
