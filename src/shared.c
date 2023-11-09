@@ -1484,31 +1484,19 @@ char *file_to_buffer (const char *filename)
   return NULL;
 }
 
-int extract_dynamic_x (const u8 *input_buf)
+int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len)
 {
-/*
-  if (input_len < 12) return -1;
-
-  if (input_buf[0] != '$') return -1;
-  if (input_buf[1] != 'd') return -1;
-  if (input_buf[2] != 'y') return -1;
-  if (input_buf[3] != 'n') return -1;
-  if (input_buf[4] != 'a') return -1;
-  if (input_buf[5] != 'm') return -1;
-  if (input_buf[6] != 'i') return -1;
-  if (input_buf[7] != 'c') return -1;
-  if (input_buf[8] != '_') return -1;
-
-  int digit_len = 0;
-
-  for (int i = 0; i < input_len; i++)
-  {
-
-  }
-*/
   int hash_mode = -1;
 
   if (sscanf ((char *) input_buf, "$dynamic_%d$", &hash_mode) != 1) return -1;
+
+  *output_buf = (u8 *) index ((char *) input_buf + 10, '$');
+
+  if (*output_buf == NULL) return -1;
+
+  *output_buf += 1; // the $ itself
+
+  *output_len = input_len - (*output_buf - input_buf);
 
   return hash_mode;
 }

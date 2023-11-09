@@ -104,7 +104,7 @@ int  generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
 
 int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token);
 
-int extract_dynamic_x (const u8 *input_buf);
+int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len);
 
 #if defined (__APPLE__)
 bool is_apple_silicon (void);
