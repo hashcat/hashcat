@@ -54,7 +54,14 @@ static void hlfmt_hash_hashcat (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *l
 
   if (user_options->dynamic_x == true)
   {
+    char *pos = NULL;
+    int   len = 0;
 
+    if (extract_dynamicx_hash ((const u8 *) line_buf, line_len, (u8 **) &pos, &len) != -1)
+    {
+      *hashbuf_pos = pos;
+      *hashbuf_len = len;
+    }
   }
 }
 
