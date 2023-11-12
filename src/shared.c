@@ -1490,7 +1490,7 @@ int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output
 
   if (sscanf ((char *) input_buf, "$dynamic_%d$", &hash_mode) != 1) return -1;
 
-  *output_buf = (u8 *) index ((char *) input_buf + 10, '$');
+  *output_buf = (u8 *) strchr ((char *) input_buf + 10, '$');
 
   if (*output_buf == NULL) return -1;
 
