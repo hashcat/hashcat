@@ -688,7 +688,7 @@ bool default_potfile_keep_all_hashes (MAYBE_UNUSED const hashconfig_t *hashconfi
 
   // keep all hashes if --username was combined with --left or --show
 
-  if (user_options->username == true)
+  if ((user_options->username == true) || (user_options->dynamic_x == true))
   {
     if ((user_options->show == true) || (user_options->left == true))
     {
