@@ -1052,9 +1052,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if ((user_options->show == true) && (user_options->username == true))
+  if ((user_options->show == true) && ((user_options->username == true) || (user_options->dynamic_x == true)))
   {
-    event_log_error (hashcat_ctx, "Mixing --show with --username can cause exponential delay in output.");
+    event_log_error (hashcat_ctx, "Mixing --show with --username or --dynamic-x can cause exponential delay in output.");
 
     return 0;
   }
