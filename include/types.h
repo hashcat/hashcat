@@ -889,6 +889,13 @@ typedef void * hc_dynfunc_t;
  * structs
  */
 
+typedef struct dynamicx
+{
+  char *dynamicx_buf;
+  u32   dynamicx_len;
+
+} dynamicx_t;
+
 typedef struct user
 {
   char *user_name;
@@ -916,9 +923,10 @@ typedef struct split
 
 typedef struct hashinfo
 {
-  user_t  *user;
-  char    *orighash;
-  split_t *split;
+  dynamicx_t *dynamicx_t;
+  user_t     *user;
+  char       *orighash;
+  split_t    *split;
 
 } hashinfo_t;
 
