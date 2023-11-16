@@ -923,7 +923,7 @@ typedef struct split
 
 typedef struct hashinfo
 {
-  dynamicx_t *dynamicx_t;
+  dynamicx_t *dynamicx;
   user_t     *user;
   char       *orighash;
   split_t    *split;
