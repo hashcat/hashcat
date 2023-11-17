@@ -58,7 +58,7 @@ static int sort_by_hash_t_salt (const void *v1, const void *v2)
 }
 */
 
-// this function is special and only used whenever --username and --show are used together:
+// this function is special and only used whenever --username or --dynamic-x and --show are used together:
 // it will sort all tree entries according to the settings stored in hashconfig
 
 int sort_pot_tree_by_hash (const void *v1, const void *v2)
@@ -425,7 +425,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   }
 
   // we only need this variable in a very specific situation:
-  // whenever we use --username and --show together we want to keep all hashes sorted within a nice structure
+  // whenever we use --username or --dynamic-x and --show together we want to keep all hashes sorted within a nice structure
 
   pot_tree_entry_t *all_hashes_tree  = NULL;
   pot_tree_entry_t *tree_entry_cache = NULL;
@@ -698,6 +698,23 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
         }
 
         out_buf[out_len] = 0;
+
+        // dynamic-x
+
+        unsigned char *dynamicx_buf = NULL;
+
+        u32 dynamicx_len = 0;
+
+        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
+
+        if (dynamicx)
+        {
+          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
+
+          dynamicx_len = dynamicx->dynamicx_len;
+
+          dynamicx_buf[dynamicx_len] = 0;
+        }
 
         // user
         unsigned char *username = NULL;
