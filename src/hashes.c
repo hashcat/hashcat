@@ -1003,7 +1003,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   void   *esalts_buf     = NULL;
   void   *hook_salts_buf = NULL;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
+  if ((user_options->dynamic_x == true) || (user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     u64 hash_pos;
 
@@ -1012,6 +1012,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       hashinfo_t *hash_info = (hashinfo_t *) hcmalloc (sizeof (hashinfo_t));
 
       hashes_buf[hash_pos].hash_info = hash_info;
+
+      if (user_options->dynamic_x == true)
+      {
+        hash_info->dynamicx = (dynamicx_t *) hcmalloc (sizeof (dynamicx_t));
+      }
 
       if (user_options->username == true)
       {
