@@ -699,23 +699,6 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         out_buf[out_len] = 0;
 
-        // dynamic-x
-
-        unsigned char *dynamicx_buf = NULL;
-
-        u32 dynamicx_len = 0;
-
-        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
-
-        if (dynamicx)
-        {
-          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
-
-          dynamicx_len = dynamicx->dynamicx_len;
-
-          dynamicx_buf[dynamicx_len] = 0;
-        }
-
         // user
         unsigned char *username = NULL;
 
@@ -730,6 +713,22 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
           user_len = user->user_len;
 
           username[user_len] = 0;
+        }
+
+        // dynamic-x
+        unsigned char *dynamicx_buf = NULL;
+
+        u32 dynamicx_len = 0;
+
+        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
+
+        if (dynamicx)
+        {
+          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
+
+          dynamicx_len = dynamicx->dynamicx_len;
+
+          dynamicx_buf[dynamicx_len] = 0;
         }
 
         u8 *tmp_buf = potfile_ctx->tmp_buf;
@@ -825,6 +824,25 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
             user_len = user->user_len;
 
             username[user_len] = 0;
+          }
+        }
+
+        // dynamicx
+        unsigned char *dynamicx_buf = NULL;
+
+        u32 dynamicx_len = 0;
+
+        if (hash->hash_info != NULL)
+        {
+          dynamicx_t *dynamicx = hash->hash_info->dynamicx;
+
+          if (dynamicx)
+          {
+            dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
+
+            dynamicx_len = dynamicx->dynamicx_len;
+
+            dynamicx_buf[dynamicx_len] = 0;
           }
         }
 
@@ -974,6 +992,22 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
           username[user_len] = 0;
         }
 
+        // dynamic-x
+        unsigned char *dynamicx_buf = NULL;
+
+        u32 dynamicx_len = 0;
+
+        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
+
+        if (dynamicx)
+        {
+          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
+
+          dynamicx_len = dynamicx->dynamicx_len;
+
+          dynamicx_buf[dynamicx_len] = 0;
+        }
+
         u8 *tmp_buf = potfile_ctx->tmp_buf;
 
         tmp_buf[0] = 0;
@@ -1056,6 +1090,25 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
             user_len = user->user_len;
 
             username[user_len] = 0;
+          }
+        }
+
+        // dynamicx
+        unsigned char *dynamicx_buf = NULL;
+
+        u32 dynamicx_len = 0;
+
+        if (hash->hash_info != NULL)
+        {
+          dynamicx_t *dynamicx = hash->hash_info->dynamicx;
+
+          if (dynamicx)
+          {
+            dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
+
+            dynamicx_len = dynamicx->dynamicx_len;
+
+            dynamicx_buf[dynamicx_len] = 0;
           }
         }
 
