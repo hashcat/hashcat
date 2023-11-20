@@ -274,13 +274,13 @@ Radeon_RX_590                                   ALIAS_AMD_GCN4
 Radeon_RX_590_GME                               ALIAS_AMD_GCN4
 
 Radeon_RX_5500                                  ALIAS_AMD_RDNA
-Radeon_RX_5500 XT                               ALIAS_AMD_RDNA
+Radeon_RX_5500_XT                               ALIAS_AMD_RDNA
 Radeon_RX_5600                                  ALIAS_AMD_RDNA
-Radeon_RX_5600 XT                               ALIAS_AMD_RDNA
+Radeon_RX_5600_XT                               ALIAS_AMD_RDNA
 Radeon_RX_5700                                  ALIAS_AMD_RDNA
-Radeon_RX_5700 XT                               ALIAS_AMD_RDNA
+Radeon_RX_5700_XT                               ALIAS_AMD_RDNA
 
-Radeon_RX_6500 XT                               ALIAS_AMD_RDNA2
+Radeon_RX_6500_XT                               ALIAS_AMD_RDNA2
 Radeon_RX_6600                                  ALIAS_AMD_RDNA2
 Radeon_RX_6600_XT                               ALIAS_AMD_RDNA2
 Radeon_RX_6650_XT                               ALIAS_AMD_RDNA2
