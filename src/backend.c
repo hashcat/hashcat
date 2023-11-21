@@ -7472,11 +7472,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               #if defined (__APPLE__)
 
-              char *start130 = index (device_param->opencl_driver_version, '(');
-              char *stop130  = index (device_param->opencl_driver_version, ')');
+              char *start130 = strchr (device_param->opencl_driver_version, '(');
+              char *stop130  = strchr (device_param->opencl_driver_version, ')');
 
-              char *start131 = index (opencl_platform_version, '(');
-              char *stop131  = index (opencl_platform_version, ')');
+              char *start131 = strchr (opencl_platform_version, '(');
+              char *stop131  = strchr (opencl_platform_version, ')');
 
               // either none or one of these have a date string
 
