@@ -2992,6 +2992,24 @@ DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw
   return out_len;
 }
 
+DECLSPEC int count_bits_32 (const u32 v0, const u32 v1)
+{
+  u32 r = v0 ^ v1;
+
+  if (r == 0) return 0;
+
+  // from https://stackoverflow.com/questions/109023/count-the-number-of-set-bits-in-a-32-bit-integer
+
+  r = r - ((r >> 1) & 0x55555555);                  // add pairs of bits
+  r = (r & 0x33333333) + ((r >> 2) & 0x33333333);   // quads
+  r = (r + (r >> 4)) & 0x0F0F0F0F;                  // groups of 8
+  r *= 0x01010101;                                  // horizontal sum of bytes
+
+  // return just that top byte (after truncating to 32-bit even when int is wider than uint32_t)
+
+  return r >> 24;
+}
+
 /**
  * vector functions
  */
