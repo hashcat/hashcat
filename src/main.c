@@ -466,6 +466,7 @@ static void main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
   if (user_options->quiet == true) return;
 
   event_log_info (hashcat_ctx, "INFO: All hashes found as potfile and/or empty entries! Use --show to display them.");
+  event_log_info (hashcat_ctx, "For more information, see https://hashcat.net/faq/potfile");
   event_log_info (hashcat_ctx, NULL);
 }
 
