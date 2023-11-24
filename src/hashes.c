@@ -241,6 +241,17 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
           hc_fputc (separator, &fp);
         }
 
+        if (user_options->dynamic_x == true)
+        {
+          dynamicx_t *dynamicx = hashes->hash_info[idx]->dynamicx;
+
+          u32 i;
+
+          for (i = 0; i < dynamicx->dynamicx_len; i++) hc_fputc (dynamicx->dynamicx_buf[i], &fp);
+
+          hc_fputc (separator, &fp);
+        }
+
         const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
         out_buf[out_len] = 0;
