@@ -1918,7 +1918,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     event_log_advice (hashcat_ctx, "* Token length exception: %u/%u hashes", hashes->parser_token_length_cnt, hashes->parser_token_length_cnt + hashes->hashes_cnt);
     event_log_advice (hashcat_ctx, "  This error happens if the wrong hash type is specified, if the hashes are");
     event_log_advice (hashcat_ctx, "  malformed, or if input is otherwise not as expected (for example, if the");
-    event_log_advice (hashcat_ctx, "  --username option is used but no username is present)");
+    event_log_advice (hashcat_ctx, "  --username or --dynamic-x option is used but no username or dynamic-tag is present)");
     event_log_advice (hashcat_ctx, NULL);
   }
 
