@@ -2020,7 +2020,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashinfo_t **hash_info = NULL;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
+  if ((user_options->username == true) || (user_options->dynamic_x == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     hash_info = (hashinfo_t **) hccalloc (hashes_cnt, sizeof (hashinfo_t *));
   }
