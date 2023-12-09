@@ -138,7 +138,7 @@ static _SORT_R_INLINE void sort_r_simple(void *base, size_t nel, size_t w,
 
   /* Declare structs and functions */
 
-  #if defined _SORT_R_BSD
+  #if defined _SORT_R_BSD && !defined(qsort_r)
 
     /* Ensure qsort_r is defined */
     extern void qsort_r(void *base, size_t nel, size_t width, void *thunk,
