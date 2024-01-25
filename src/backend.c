@@ -157,13 +157,10 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 
       // show a warning for specifically listed devices if they are an alias
 
-      if (backend_ctx->backend_devices_filter != (u64) -1)
+      if (backend_ctx->backend_devices_filter[alias_device->device_id])
       {
-        if (backend_ctx->backend_devices_filter & (1ULL << alias_device->device_id))
-        {
-          event_log_warning (hashcat_ctx, "The device #%d specifically listed was skipped because it is an alias of device #%d", alias_device->device_id + 1, backend_device->device_id + 1);
-          event_log_warning (hashcat_ctx, NULL);
-        }
+        event_log_warning (hashcat_ctx, "The device #%d specifically listed was skipped because it is an alias of device #%d", alias_device->device_id + 1, backend_device->device_id + 1);
+        event_log_warning (hashcat_ctx, NULL);
       }
     }
   }
@@ -273,9 +270,9 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static bool setup_backend_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *backend_devices, u64 *out)
+static bool setup_backend_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *backend_devices, bool *out)
 {
-  u64 backend_devices_filter = 0;
+  bool backend_devices_filter[DEVICES_MAX + 1] = {false};
 
   if (backend_devices)
   {
@@ -291,7 +288,7 @@ static bool setup_backend_devices_filter (hashcat_ctx_t *hashcat_ctx, const char
     {
       const int backend_device_id = (const int) strtol (next, NULL, 10);
 
-      if ((backend_device_id <= 0) || (backend_device_id >= 64))
+      if ((backend_device_id <= 0) || (backend_device_id >= DEVICES_MAX))
       {
         event_log_error (hashcat_ctx, "Invalid device_id %d specified.", backend_device_id);
 
@@ -300,7 +297,7 @@ static bool setup_backend_devices_filter (hashcat_ctx_t *hashcat_ctx, const char
         return false;
       }
 
-      backend_devices_filter |= 1ULL << (backend_device_id - 1);
+      backend_devices_filter[backend_device_id - 1] = true;
 
     } while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
 
@@ -308,10 +305,16 @@ static bool setup_backend_devices_filter (hashcat_ctx_t *hashcat_ctx, const char
   }
   else
   {
-    backend_devices_filter = -1ULL;
+    for (int i = 0; i <= DEVICES_MAX; i++)
+    {
+      backend_devices_filter[i] = true;
+    }
   }
 
-  *out = backend_devices_filter;
+  for (int i = 0; i <= DEVICES_MAX; i++)
+  {
+    out[i] = backend_devices_filter[i];
+  }
 
   return true;
 }
@@ -4613,11 +4616,11 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * Backend device selection
    */
 
-  u64 backend_devices_filter;
+  bool backend_devices_filter[DEVICES_MAX + 1];
 
-  if (setup_backend_devices_filter (hashcat_ctx, user_options->backend_devices, &backend_devices_filter) == false) return -1;
+  if (setup_backend_devices_filter (hashcat_ctx, user_options->backend_devices, backend_devices_filter) == false) return -1;
 
-  backend_ctx->backend_devices_filter = backend_devices_filter;
+  for (int i = 0; i <= DEVICES_MAX; i++) backend_ctx->backend_devices_filter[i] = backend_devices_filter[i];
 
   /**
    * OpenCL device type selection
@@ -5276,7 +5279,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // skipped
 
-      if ((backend_ctx->backend_devices_filter & (1ULL << device_id)) == 0)
+      if (!backend_ctx->backend_devices_filter[device_id])
       {
         device_param->skipped = true;
       }
@@ -5693,7 +5696,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // skipped
 
-      if ((backend_ctx->backend_devices_filter & (1ULL << device_id)) == 0)
+      if (!backend_ctx->backend_devices_filter[device_id])
       {
         device_param->skipped = true;
       }
@@ -6190,7 +6193,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       // skipped
 
-      if ((backend_ctx->backend_devices_filter & (1ULL << device_id)) == 0)
+      if (!backend_ctx->backend_devices_filter[device_id])
       {
         device_param->skipped = true;
       }
@@ -6989,7 +6992,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         // skipped
 
-        if ((backend_ctx->backend_devices_filter & (1ULL << device_id)) == 0)
+        if (!backend_ctx->backend_devices_filter[device_id])
         {
           device_param->skipped = true;
         }
@@ -7592,7 +7595,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         if (device_param->skipped == false)
         {
-          if (backend_ctx->backend_devices_filter == -1ULL)
+          if (backend_ctx->backend_devices_filter[DEVICES_MAX])
           {
             if ((user_options->quiet == false) && (user_options->backend_info == 0))
             {
@@ -7605,7 +7608,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
           else
           {
-            if (backend_ctx->backend_devices_filter & (1ULL << device_param->device_id))
+            if (backend_ctx->backend_devices_filter[device_param->device_id])
             {
               // ok
             }
@@ -7661,7 +7664,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   // additional check to see if the user has chosen a device that is not within the range of available devices (i.e. larger than devices_cnt)
 
-  if (backend_ctx->backend_devices_cnt >= 64)
+  if (backend_ctx->backend_devices_cnt >= DEVICES_MAX)
   {
     event_log_error (hashcat_ctx, "Illegal use of the --backend-devices parameter because too many backend devices were found (%u).", backend_ctx->backend_devices_cnt);
     event_log_error (hashcat_ctx, "If possible, disable one of your backends to reduce the number of backend devices. For example \"--backend-ignore-cuda\" or \"--backend-ignore-opencl\" .");
@@ -7669,16 +7672,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     return -1;
   }
 
-  if (backend_ctx->backend_devices_filter != (u64) -1)
+  if (!backend_ctx->backend_devices_filter[DEVICES_MAX])
   {
     const u64 backend_devices_cnt_mask = ~(((u64) -1 >> backend_ctx->backend_devices_cnt) << backend_ctx->backend_devices_cnt);
 
-    if (backend_ctx->backend_devices_filter > backend_devices_cnt_mask)
+    for (int i = backend_ctx->backend_devices_cnt; i < DEVICES_MAX; i++)
     {
-      event_log_error (hashcat_ctx, "An invalid device was specified using the --backend-devices parameter.");
-      event_log_error (hashcat_ctx, "The specified device was higher than the number of available devices (%u).", backend_ctx->backend_devices_cnt);
+      if (backend_ctx->backend_devices_filter[i])
+      {
+        event_log_error (hashcat_ctx, "An invalid device was specified using the --backend-devices parameter.");
+        event_log_error (hashcat_ctx, "The specified device was higher than the number of available devices (%u).", backend_ctx->backend_devices_cnt);
 
-      return -1;
+        return -1;
+      }
     }
   }
 
