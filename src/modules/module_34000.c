@@ -1,5 +1,5 @@
 /**
- * Author......: 0xc0rs
+ * Author......: See docs/credits.txt
  * License.....: MIT
  */
 
