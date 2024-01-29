@@ -1901,7 +1901,7 @@ typedef struct backend_ctx
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
 
-  u64                 backend_devices_filter;
+  bool                backend_devices_filter[DEVICES_MAX + 1];
 
   hc_device_param_t  *devices_param;
 

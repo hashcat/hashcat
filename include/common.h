@@ -131,7 +131,7 @@ but this is needed for VS compiler which doesn't have inline keyword but has __i
 
 #define CPT_CACHE           0x20000
 #define PARAMCNT            64
-#define DEVICES_MAX         128
+#define DEVICES_MAX         256
 #define EXEC_CACHE          128
 #define SPEED_CACHE         4096
 #define SPEED_MAXAGE        4096
