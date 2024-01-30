@@ -55,9 +55,10 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   bool restore_check      = false;
   bool hwmon_check        = false;
   bool performance_check  = false;
+  bool performance_warned = false;
 
   const int    sleep_time = 1;
-  const double exec_low   = 50.0;  // in ms
+  const double exec_low   = 25.0;  // in ms
   const double util_low   = 90.0;  // in percent
 
   if (user_options->runtime)
@@ -245,7 +246,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    if (performance_check == true)
+    if (performance_check == true && status_ctx->devices_status == STATUS_RUNNING && performance_warned == false)
     {
       int exec_cnt = 0;
       int util_cnt = 0;
@@ -285,18 +286,22 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
       if (exec_cnt > 0) exec_avg = exec_total / exec_cnt;
       if (util_cnt > 0) util_avg = util_total / util_cnt;
 
-      if ((exec_avg > 0) && (exec_avg < exec_low))
+      if (((exec_avg > 0) && (exec_avg < exec_low)) || ((util_avg > 0) && (util_avg < util_low)))
       {
         performance_warnings++;
-
-        if (performance_warnings == 10) EVENT_DATA (EVENT_MONITOR_PERFORMANCE_HINT, NULL, 0);
+      }
+      else
+      {
+        if (performance_warnings > 0)
+        {
+          performance_warnings--;
+        }
       }
 
-      if ((util_avg > 0) && (util_avg < util_low))
+      if (performance_warnings == 10)
       {
-        performance_warnings++;
-
-        if (performance_warnings == 10) EVENT_DATA (EVENT_MONITOR_PERFORMANCE_HINT, NULL, 0);
+        performance_warned = true;
+        EVENT_DATA (EVENT_MONITOR_PERFORMANCE_HINT, NULL, 0);
       }
     }
 
