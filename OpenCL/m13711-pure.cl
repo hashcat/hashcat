@@ -19,9 +19,11 @@
 #include M2S(INCLUDE_PATH/inc_cipher_kuznyechik.cl)
 #endif
 
+#define VC_DATA_LEN (448)
+
 typedef struct vc
 {
-  u32 data_buf[112];
+  u32 data_buf[VC_DATA_LEN / 4];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
   u32 keyfile_enabled;
@@ -42,6 +44,8 @@ typedef struct vc
 #include M2S(INCLUDE_PATH/inc_veracrypt_xts.cl)
 #include M2S(INCLUDE_PATH/inc_veracrypt_keyfile.cl)
 #endif
+
+#define VC_DATA_LEN (448)
 
 typedef struct vc_tmp
 {
