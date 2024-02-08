@@ -20,6 +20,7 @@
 #endif
 
 #define VC_DATA_LEN (448)
+#define VC_SALT_LEN ( 64)
 
 typedef struct vc
 {
@@ -289,7 +290,7 @@ KERNEL_FQ void m13722_init (KERN_ATTR_TMPS_ESALT (vc64_tmp_t, vc_t))
   tmps[gid].opad[6] = sha512_hmac_ctx.opad.h[6];
   tmps[gid].opad[7] = sha512_hmac_ctx.opad.h[7];
 
-  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, 64);
+  sha512_hmac_update_global_swap (&sha512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, VC_SALT_LEN);
 
   for (u32 i = 0, j = 1; i < 16; i += 8, j += 1)
   {

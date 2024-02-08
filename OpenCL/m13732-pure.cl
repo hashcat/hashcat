@@ -20,6 +20,7 @@
 #endif
 
 #define VC_DATA_LEN (448)
+#define VC_SALT_LEN ( 64)
 
 typedef struct vc
 {
@@ -385,7 +386,7 @@ KERNEL_FQ void m13732_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   tmps[gid].opad[14] = whirlpool_hmac_ctx.opad.h[14];
   tmps[gid].opad[15] = whirlpool_hmac_ctx.opad.h[15];
 
-  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, 64);
+  whirlpool_hmac_update_global_swap (&whirlpool_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, VC_SALT_LEN);
 
   for (u32 i = 0, j = 1; i < 32; i += 16, j += 1)
   {
