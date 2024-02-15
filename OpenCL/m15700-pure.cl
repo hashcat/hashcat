@@ -135,6 +135,36 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 
 DECLSPEC void salsa_r (PRIVATE_AS uint4 *TI)
 {
+  #if SCRYPT_R > 1
+
+  uint4 TT[STATE_CNT4 / 2];
+
+  for (int dst_off = 0, src_off = 4; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
+  {
+    TT[dst_off + 0] = TI[src_off + 0];
+    TT[dst_off + 1] = TI[src_off + 1];
+    TT[dst_off + 2] = TI[src_off + 2];
+    TT[dst_off + 3] = TI[src_off + 3];
+  }
+
+  for (int dst_off = 4, src_off = 8; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
+  {
+    TI[dst_off + 0] = TI[src_off + 0];
+    TI[dst_off + 1] = TI[src_off + 1];
+    TI[dst_off + 2] = TI[src_off + 2];
+    TI[dst_off + 3] = TI[src_off + 3];
+  }
+
+  for (int dst_off = STATE_CNT4 / 2, src_off = 0; dst_off < STATE_CNT4; dst_off += 4, src_off += 4)
+  {
+    TI[dst_off + 0] = TT[src_off + 0];
+    TI[dst_off + 1] = TT[src_off + 1];
+    TI[dst_off + 2] = TT[src_off + 2];
+    TI[dst_off + 3] = TT[src_off + 3];
+  }
+
+  #endif
+
   uint4 R0 = TI[STATE_CNT4 - 4];
   uint4 R1 = TI[STATE_CNT4 - 3];
   uint4 R2 = TI[STATE_CNT4 - 2];
@@ -172,36 +202,6 @@ DECLSPEC void salsa_r (PRIVATE_AS uint4 *TI)
     TI[i + 2] = R2;
     TI[i + 3] = R3;
   }
-
-  #if SCRYPT_R > 1
-
-  uint4 TT[STATE_CNT4 / 2];
-
-  for (int dst_off = 0, src_off = 4; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
-  {
-    TT[dst_off + 0] = TI[src_off + 0];
-    TT[dst_off + 1] = TI[src_off + 1];
-    TT[dst_off + 2] = TI[src_off + 2];
-    TT[dst_off + 3] = TI[src_off + 3];
-  }
-
-  for (int dst_off = 4, src_off = 8; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
-  {
-    TI[dst_off + 0] = TI[src_off + 0];
-    TI[dst_off + 1] = TI[src_off + 1];
-    TI[dst_off + 2] = TI[src_off + 2];
-    TI[dst_off + 3] = TI[src_off + 3];
-  }
-
-  for (int dst_off = STATE_CNT4 / 2, src_off = 0; dst_off < STATE_CNT4; dst_off += 4, src_off += 4)
-  {
-    TI[dst_off + 0] = TT[src_off + 0];
-    TI[dst_off + 1] = TT[src_off + 1];
-    TI[dst_off + 2] = TT[src_off + 2];
-    TI[dst_off + 3] = TT[src_off + 3];
-  }
-
-  #endif
 }
 
 DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
@@ -223,6 +223,30 @@ DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
     case 2: V = V2; break;
     case 3: V = V3; break;
   }
+
+  #if SCRYPT_R > 1
+
+  uint4 TT[STATE_CNT4];
+
+  for (int z = 0; z < zSIZE; z++) TT[z] = X[z];
+
+  for (int dst_off = 8, src_off = 4; dst_off < zSIZE; dst_off += 8, src_off += 4)
+  {
+    X[dst_off + 0] = TT[src_off + 0];
+    X[dst_off + 1] = TT[src_off + 1];
+    X[dst_off + 2] = TT[src_off + 2];
+    X[dst_off + 3] = TT[src_off + 3];
+  }
+
+  for (int dst_off = 4, src_off = zSIZE / 2; dst_off < zSIZE; dst_off += 8, src_off += 4)
+  {
+    X[dst_off + 0] = TT[src_off + 0];
+    X[dst_off + 1] = TT[src_off + 1];
+    X[dst_off + 2] = TT[src_off + 2];
+    X[dst_off + 3] = TT[src_off + 3];
+  }
+
+  #endif
 
   for (u32 y = 0; y < ySIZE; y++)
   {
@@ -595,9 +619,14 @@ KERNEL_FQ void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
 
   sha256_hmac_init_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-  for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
+
+  for (u32 i = 0; i < SCRYPT_CNT4; i += STATE_CNT4)
   {
+   for (u32 j = 0; j < (STATE_CNT4 * 2); j += 8)
+   {
     uint4 X[4];
+
+    const u32 l =  i + j + ((j >= STATE_CNT4) ? (4 - STATE_CNT4) : 0);
 
     X[0] = tmps[gid].P[l + 0];
     X[1] = tmps[gid].P[l + 1];
@@ -646,6 +675,7 @@ KERNEL_FQ void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
     w3[3] = T[3].w;
 
     sha256_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
+   }
   }
 
   w0[0] = 1;
