@@ -7674,8 +7674,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (!backend_ctx->backend_devices_filter[DEVICES_MAX])
   {
-    const u64 backend_devices_cnt_mask = ~(((u64) -1 >> backend_ctx->backend_devices_cnt) << backend_ctx->backend_devices_cnt);
-
     for (int i = backend_ctx->backend_devices_cnt; i < DEVICES_MAX; i++)
     {
       if (backend_ctx->backend_devices_filter[i])
