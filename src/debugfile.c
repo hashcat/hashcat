@@ -76,6 +76,11 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
     if ((debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5)) hc_fputc (':', &debugfile_ctx->fp);
   }
 
+  if (hc_lockfile (&debugfile_ctx->fp) == -1)
+  {
+    event_log_error (hashcat_ctx, "%s: Failed to lock file.", debugfile_ctx->filename);
+  }
+
   hc_fwrite (rule_buf, rule_len, 1, &debugfile_ctx->fp);
 
   if ((debug_mode == 4) || (debug_mode == 5))
@@ -104,6 +109,13 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
   }
 
   hc_fwrite (EOL, strlen (EOL), 1, &debugfile_ctx->fp);
+
+  hc_fflush (&debugfile_ctx->fp);
+
+  if (hc_unlockfile (&debugfile_ctx->fp))
+  {
+    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", debugfile_ctx->filename);
+  }
 }
 
 int debugfile_init (hashcat_ctx_t *hashcat_ctx)
@@ -146,15 +158,6 @@ int debugfile_init (hashcat_ctx_t *hashcat_ctx)
   if (hc_fopen (&debugfile_ctx->fp, debugfile_ctx->filename, "ab") == false)
   {
     event_log_error (hashcat_ctx, "Could not open --debug-file file for writing.");
-
-    return -1;
-  }
-
-  if (hc_lockfile (&debugfile_ctx->fp) == -1)
-  {
-    hc_fclose (&debugfile_ctx->fp);
-
-    event_log_error (hashcat_ctx, "%s: %s", debugfile_ctx->filename, strerror (errno));
 
     return -1;
   }
