@@ -94,7 +94,7 @@ def metamask_parser(file, shortdata):
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description="metamask2hashcat.py extraction tool")
   parser.add_argument('--vault', required=True, help='set metamask vault (json) file from path', type=str)
-  parser.add_argument('--shortdata', help='force short data, can only be used with m26610, ', action='store_true')
+  parser.add_argument('--shortdata', help='force short data, can only be used with m26610/m26630, ', action='store_true')
 
   args = parser.parse_args()
 
