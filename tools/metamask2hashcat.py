@@ -54,11 +54,10 @@ def metamask_parser(file, shortdata):
 
     if isMobile is False:
 
-      if 'keyMetadata' in j and 'params' in j['keyMetadata'] and 'iterations' in j['keyMetadata']['params']:
+      try:
         iter_count = j['keyMetadata']['params']['iterations']
-      else:
-        iter_count = 10000
-
+      except KeyError:
+        iter_count = 10_000
       if((len(j['data']) > 3000) or shortdata):
         data_bin = base64.b64decode(j['data'])
         # TODO limit data to 16 bytes, we only check the first block of data, so we don't need more data.
