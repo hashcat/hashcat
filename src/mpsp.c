@@ -1072,6 +1072,26 @@ static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
   return 0;
 }
 
+// ?l?u?d -> ?d?u?l
+static char* reverseMask(const char *mask) {
+    int length = strlen(mask);
+    char *tmp_buf = (char *) hcmalloc (256);
+
+    for (int i = length - 1, j = 0; i >= 0; i--) {
+        if (mask[i] == '\0')
+          continue;
+        if (i != 0 && mask[i - 1] == '?') {
+            tmp_buf[j++] = '?';
+            tmp_buf[j++] = mask[i];
+            i--;
+        } else {
+            tmp_buf[j++] = mask[i];
+        }
+    }
+
+    return tmp_buf;
+}
+
 static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char *prepend)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -1108,11 +1128,25 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
         mask_truncated_next += snprintf (mask_truncated, 256, "%s,", prepend);
       }
 
-      if (mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len, mask_truncated_next) == -1)
+      if (user_options->increment_inverse == true)
       {
-        hcfree (mask_truncated);
+        if (mp_get_truncated_mask (hashcat_ctx, reverseMask(mask), strlen (mask), increment_len, mask_truncated_next) == -1)
+        {
+          hcfree (mask_truncated);
 
-        break;
+          break;
+        }
+
+        mask_truncated = reverseMask(mask_truncated);
+      }
+      else
+      {
+        if (mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len, mask_truncated_next) == -1)
+        {
+          hcfree (mask_truncated);
+
+          break;
+        }
       }
 
       const int rc = mask_append_final (hashcat_ctx, mask_truncated);
