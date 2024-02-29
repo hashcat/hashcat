@@ -90,6 +90,7 @@ static bool is_same_device (const hc_device_param_t *src, const hc_device_param_
 static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   // first identify all aliases
 
@@ -157,7 +158,7 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
 
       // show a warning for specifically listed devices if they are an alias
 
-      if (backend_ctx->backend_devices_filter[alias_device->device_id])
+      if (backend_ctx->backend_devices_filter[alias_device->device_id] && user_options->quiet == false)
       {
         event_log_warning (hashcat_ctx, "The device #%d specifically listed was skipped because it is an alias of device #%d", alias_device->device_id + 1, backend_device->device_id + 1);
         event_log_warning (hashcat_ctx, NULL);
