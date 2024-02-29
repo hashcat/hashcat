@@ -1073,8 +1073,8 @@ static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
 }
 
 // ?l?u?d -> ?d?u?l
-static char* reverseMask(const char *mask) {
-    int length = strlen(mask);
+static char* reverseMask (const char *mask) {
+    int length = strlen (mask);
     char *tmp_buf = (char *) hcmalloc (256);
 
     for (int i = length - 1, j = 0; i >= 0; i--) {
@@ -1130,14 +1130,14 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
 
       if (user_options->increment_inverse == true)
       {
-        if (mp_get_truncated_mask (hashcat_ctx, reverseMask(mask), strlen (mask), increment_len, mask_truncated_next) == -1)
+        if (mp_get_truncated_mask (hashcat_ctx, reverseMask (mask), strlen (mask), increment_len, mask_truncated_next) == -1)
         {
           hcfree (mask_truncated);
 
           break;
         }
 
-        mask_truncated = reverseMask(mask_truncated);
+        mask_truncated = reverseMask (mask_truncated);
       }
       else
       {
