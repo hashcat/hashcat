@@ -655,6 +655,7 @@ typedef enum user_options_defaults
   HOOK_THREADS             = 0,
   IDENTIFY                 = false,
   INCREMENT                = false,
+  INCREMENT_INVERSE        = false,
   INCREMENT_MAX            = PW_MAX,
   INCREMENT_MIN            = 1,
   KEEP_GUESSING            = false,
@@ -774,6 +775,7 @@ typedef enum user_options_map
   IDX_HOOK_THREADS              = 0xff1f,
   IDX_IDENTIFY                  = 0xff20,
   IDX_INCREMENT                 = 'i',
+  IDX_INCREMENT_INVERSE         = 0xff56,
   IDX_INCREMENT_MAX             = 0xff21,
   IDX_INCREMENT_MIN             = 0xff22,
   IDX_INDUCTION_DIR             = 0xff23,
@@ -2349,6 +2351,7 @@ typedef struct user_options
   bool         hex_salt;
   bool         hex_wordlist;
   bool         increment;
+  bool         increment_inverse;
   bool         keep_guessing;
   bool         keyspace;
   bool         left;
