@@ -525,7 +525,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BITMAP_MIN:                user_options->bitmap_min                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BITMAP_MAX:                user_options->bitmap_max                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_HOOK_THREADS:              user_options->hook_threads              = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_INCREMENT:                 user_options->increment                 = true;                            break;
+      case IDX_INCREMENT:                 increment_parse(hashcat_ctx);                                              break;
       case IDX_INCREMENT_INVERSE:         user_options->increment_inverse         = true;                            break;
       case IDX_INCREMENT_MIN:             user_options->increment_min             = hc_strtoul (optarg, NULL, 10);
                                           user_options->increment_min_chgd        = true;                            break;
@@ -3202,6 +3202,21 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   */
 
   return 0;
+}
+
+void increment_parse (hashcat_ctx_t *hashcat_ctx)
+{
+  user_options_t *user_options = hashcat_ctx->user_options;
+  
+  // Set increment inverse when -ii
+  if (user_options->increment == true)
+  {
+    user_options->increment_inverse = true;
+  }
+  else
+  {
+    user_options->increment = true;
+  }
 }
 
 void user_options_logger (hashcat_ctx_t *hashcat_ctx)
