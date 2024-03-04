@@ -1,0 +1,13 @@
+[wrap-file]
+directory = xxHash-0.8.2
+source_url = https://github.com/Cyan4973/xxHash/archive/v0.8.2.tar.gz
+source_filename = xxHash-0.8.2.tar.gz
+source_hash = baee0c6afd4f03165de7a4e67988d16f0f2b257b51d0e3cb91909302a26a79c4
+patch_filename = xxhash_0.8.2-1_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/xxhash_0.8.2-1/get_patch
+patch_hash = e721ef7a4c4ee0ade8b8440f6f7cb9f935b68e825249d74cb1c2503c53e68d25
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/xxhash_0.8.2-1/xxHash-0.8.2.tar.gz
+wrapdb_version = 0.8.2-1
+
+[provide]
+libxxhash = xxhash_dep

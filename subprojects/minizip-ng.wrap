@@ -1,0 +1,13 @@
+[wrap-file]
+directory = minizip-ng-4.0.4
+source_url = https://github.com/zlib-ng/minizip-ng/archive/refs/tags/4.0.4.tar.gz
+source_filename = 4.0.4.tar.gz
+source_hash = 955800fe39f9d830fcb84e60746952f6a48e41093ec7a233c63ad611b5fcfe9f
+patch_filename = minizip-ng_4.0.4-1_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/minizip-ng_4.0.4-1/get_patch
+patch_hash = ea85589c3b658728c97690cd7acaf05c8391ec1b99b63f234b9468e4a308c498
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/minizip-ng_4.0.4-1/4.0.4.tar.gz
+wrapdb_version = 4.0.4-1
+
+[provide]
+minizip = minizip_ng_dep

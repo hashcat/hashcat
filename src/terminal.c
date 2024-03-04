@@ -441,7 +441,7 @@ void SetConsoleWindowSize (const int x)
 }
 #endif
 
-#if defined (__FreeBSD__) || defined (__NetBSD__) || defined (__linux__) || defined (__CYGWIN__)
+#if defined (__DragonFly__) || (__FreeBSD__) || defined (__NetBSD__) || defined (__linux__) || defined (__CYGWIN__)
 static struct termios savemodes;
 static int havemodes = 0;
 

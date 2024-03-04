@@ -7,6 +7,7 @@
 #define HC_SHARED_H
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -22,6 +23,10 @@
 #include <winsock2.h> // needed for select()
 #else
 #include <sys/select.h>
+#endif
+
+#ifndef __MINGW_PRINTF_FORMAT
+#define __MINGW_PRINTF_FORMAT printf
 #endif
 
 int sort_by_string_sized (const void *p1, const void *p2);
@@ -44,7 +49,7 @@ char *filename_from_filepath (char *filepath);
 void naive_replace (char *s, const char key_char, const char replace_char);
 void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char);
 
-__attribute__ ((format (printf, 2, 3))) int hc_asprintf (char **strp, const char *fmt, ...);
+__attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3))) int hc_asprintf (char **strp, const char *fmt, ...);
 
 void setup_environment_variables (const folder_config_t *folder_config);
 void setup_umask (void);
