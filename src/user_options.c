@@ -868,13 +868,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->increment == false) && (user_options->increment_inverse == true))
-  {
-    event_log_error (hashcat_ctx, "Increment-inverse is only supported combined with -i/--increment.");
-
-    return -1;
-  }
-
   if (user_options->increment_min > user_options->increment_max)
   {
     event_log_error (hashcat_ctx, "Invalid --increment-min value specified - must be >= --increment-max.");
