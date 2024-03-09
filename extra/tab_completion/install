@@ -141,7 +141,7 @@ if [ -d "${COMPGENFOLDER}" ]; then
 
   # adjust paths to the main binaries of hashcat
 
-  sed -ri "s!^(ROOT=).*!\1\"${ROOT_PARENT}\"!" "${COMPGENTARGET}"
+  sed -ri 's!^(HASHCAT_ROOT=).*!\1\"${ROOT_PARENT}\"!' "${COMPGENTARGET}"
 
 
   # add the compgen to bashrc if not already there
