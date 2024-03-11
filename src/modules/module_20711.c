@@ -82,8 +82,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '$';
-  token.len[1]     = 16;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
+  token.len_min[1] = 16;
+  token.len_max[1] = 20;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_OPTIONAL_ROUNDS;
 
   token.sep[2]     = '$';
   token.len[2]     = 64;
