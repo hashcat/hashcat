@@ -128,13 +128,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[2]     = '*';
   token.len_min[2] = 1;
-  token.len_max[2] = 7;
+  token.len_max[2] = 10;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[3]     = '*';
   token.len_min[3] = 1;
-  token.len_max[3] = 7;
+  token.len_max[3] = 10;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
@@ -166,15 +166,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 iter1 = hc_strtoul ((const char *) iter1_pos, NULL, 10);
 
-  if (iter1 <      1) return (PARSER_SALT_ITERATION);
-  if (iter1 > 999999) return (PARSER_SALT_ITERATION);
+  if (iter1 <     1) return (PARSER_SALT_ITERATION);
+  if (iter1 > 10^10) return (PARSER_SALT_ITERATION);
 
   salt->salt_iter = iter1 - 1;
 
   const u32 iter2 = hc_strtoul ((const char *) iter2_pos, NULL, 10);
 
-  if (iter2 <      1) return (PARSER_SALT_ITERATION);
-  if (iter2 > 999999) return (PARSER_SALT_ITERATION);
+  if (iter2 <     1) return (PARSER_SALT_ITERATION);
+  if (iter2 > 10^10) return (PARSER_SALT_ITERATION);
 
   salt->salt_iter2 = iter2 - 1;
 
