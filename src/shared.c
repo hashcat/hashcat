@@ -183,10 +183,8 @@ bool overflow_check_u64_add (const u64 a, const u64 b)
 
 bool overflow_check_u64_mul (const u64 a, const u64 b)
 {
-  const int a_msb = get_msb64 (a);
-  const int b_msb = get_msb64 (b);
-
-  return ((a_msb + b_msb) < 64);
+  u64 c = a * b;
+  return c / a == b;
 }
 
 bool is_power_of_2 (const u32 v)
