@@ -104,6 +104,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  if (line_len < 46) return (PARSER_SALT_LENGTH);
+
+  /**
+   * Checking the signature for performance optimization
+   */
+
+  if (strncmp(line_buf, SIGNATURE_KRB5PA, strlen (SIGNATURE_KRB5PA))) {
+    return (PARSER_SIGNATURE_UNMATCHED);
+  }
+
   memset (&token, 0, sizeof (hc_token_t));
 
   token.token_cnt  = 6;
