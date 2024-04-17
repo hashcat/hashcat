@@ -67,6 +67,7 @@
 ##
 
 - DEScrypt Kernel (1500): Improved performance from 950MH/s to 2200MH/s (RX6900XT) on HIP backend by workaround invalid compile time optimizer
+- Performance of --show feature has been improved by removing unnecessary memset calls in potfile_remove_parse function.
 
 ##
 ## Bugs
