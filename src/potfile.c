@@ -535,21 +535,6 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     if (line_hash_len == 0) continue;
 
-    if (hash_buf.salt)
-    {
-      memset (hash_buf.salt, 0, sizeof (salt_t));
-    }
-
-    if (hash_buf.esalt)
-    {
-      memset (hash_buf.esalt, 0, hashconfig->esalt_size);
-    }
-
-    if (hash_buf.hook_salt)
-    {
-      memset (hash_buf.hook_salt, 0, hashconfig->hook_salt_size);
-    }
-
     if (module_ctx->module_hash_decode_potfile != MODULE_DEFAULT)
     {
       if (module_ctx->module_potfile_custom_check != MODULE_DEFAULT)
