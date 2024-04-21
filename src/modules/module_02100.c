@@ -78,6 +78,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  /**
+   * Checking the signature for performance optimization
+   */
+
+  if (line_len < 41) return (PARSER_SALT_LENGTH);
+
+  if (strncmp(line_buf, SIGNATURE_DCC2, strlen (SIGNATURE_DCC2))) {
+    return (PARSER_SIGNATURE_UNMATCHED);
+  }
+
   memset (&token, 0, sizeof (hc_token_t));
 
   token.token_cnt  = 4;

@@ -104,6 +104,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  if (line_len < 46) return (PARSER_SALT_LENGTH);
+
+  /**
+   * Checking the signature for performance optimization
+   */
+
+  if (strncmp(line_buf, SIGNATURE_KRB5ASREP, strlen (SIGNATURE_KRB5ASREP))) {
+    return (PARSER_SIGNATURE_UNMATCHED);
+  }
+
   memset (&token, 0, sizeof (hc_token_t));
 
   token.signatures_cnt    = 1;
@@ -120,8 +130,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * jtr
    * format 2: $krb5asrep$user_principal_name:checksum$edata2
    */
-
-  if (line_len < (int) strlen (SIGNATURE_KRB5ASREP)) return (PARSER_SALT_LENGTH);
 
   memset (krb5asrep, 0, sizeof (krb5asrep_t));
 
