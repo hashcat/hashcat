@@ -61,14 +61,14 @@ typedef struct sha1_ctx
 
   int len;
 
-} sha1_ctx_t;
+} __attribute__((aligned(128))) sha1_ctx_t;
 
 typedef struct sha1_hmac_ctx
 {
   sha1_ctx_t ipad;
   sha1_ctx_t opad;
 
-} sha1_hmac_ctx_t;
+} __attribute__((aligned(256))) sha1_hmac_ctx_t;
 
 typedef struct sha1_ctx_vector
 {
@@ -81,14 +81,14 @@ typedef struct sha1_ctx_vector
 
   int  len;
 
-} sha1_ctx_vector_t;
+} __attribute__((aligned(128))) sha1_ctx_vector_t;
 
 typedef struct sha1_hmac_ctx_vector
 {
   sha1_ctx_vector_t ipad;
   sha1_ctx_vector_t opad;
 
-} sha1_hmac_ctx_vector_t;
+} __attribute__((aligned(256))) sha1_hmac_ctx_vector_t;
 
 DECLSPEC void sha1_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest);
 DECLSPEC void sha1_init (PRIVATE_AS sha1_ctx_t *ctx);

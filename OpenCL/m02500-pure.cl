@@ -50,7 +50,7 @@ typedef struct wpa_eapol
   int  detected_le;
   int  detected_be;
 
-} wpa_eapol_t;
+} __attribute__((aligned(128))) __attribute__((packed)) wpa_eapol_t;
 
 typedef struct wpa_pbkdf2_tmp
 {
@@ -60,7 +60,7 @@ typedef struct wpa_pbkdf2_tmp
   u32 dgst[10];
   u32 out[10];
 
-} wpa_pbkdf2_tmp_t;
+} __attribute__((aligned(128))) wpa_pbkdf2_tmp_t;
 
 DECLSPEC void make_kn (PRIVATE_AS u32 *k)
 {

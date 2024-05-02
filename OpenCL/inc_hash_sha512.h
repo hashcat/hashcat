@@ -70,14 +70,14 @@ typedef struct sha512_ctx
 
   int len;
 
-} sha512_ctx_t;
+} __attribute__((aligned(128))) __attribute__((packed)) sha512_ctx_t;
 
 typedef struct sha512_hmac_ctx
 {
   sha512_ctx_t ipad;
   sha512_ctx_t opad;
 
-} sha512_hmac_ctx_t;
+} __attribute__((aligned(512))) sha512_hmac_ctx_t;
 
 typedef struct sha512_ctx_vector
 {
@@ -94,14 +94,14 @@ typedef struct sha512_ctx_vector
 
   int  len;
 
-} sha512_ctx_vector_t;
+} __attribute__((aligned(128))) __attribute__((packed)) sha512_ctx_vector_t;
 
 typedef struct sha512_hmac_ctx_vector
 {
   sha512_ctx_vector_t ipad;
   sha512_ctx_vector_t opad;
 
-} sha512_hmac_ctx_vector_t;
+} __attribute__((aligned(512))) sha512_hmac_ctx_vector_t;
 
 DECLSPEC void sha512_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS const u32 *w4, PRIVATE_AS const u32 *w5, PRIVATE_AS const u32 *w6, PRIVATE_AS const u32 *w7, PRIVATE_AS u64 *digest);
 DECLSPEC void sha512_init (PRIVATE_AS sha512_ctx_t *ctx);

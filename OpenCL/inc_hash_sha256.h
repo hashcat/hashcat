@@ -60,14 +60,14 @@ typedef struct sha256_ctx
 
   int len;
 
-} sha256_ctx_t;
+} __attribute__((aligned(128))) sha256_ctx_t;
 
 typedef struct sha256_hmac_ctx
 {
   sha256_ctx_t ipad;
   sha256_ctx_t opad;
 
-} sha256_hmac_ctx_t;
+} __attribute__((aligned(256))) sha256_hmac_ctx_t;
 
 typedef struct sha256_ctx_vector
 {
@@ -80,14 +80,14 @@ typedef struct sha256_ctx_vector
 
   int  len;
 
-} sha256_ctx_vector_t;
+} __attribute__((aligned(128))) sha256_ctx_vector_t;
 
 typedef struct sha256_hmac_ctx_vector
 {
   sha256_ctx_vector_t ipad;
   sha256_ctx_vector_t opad;
 
-} sha256_hmac_ctx_vector_t;
+} __attribute__((aligned(256))) sha256_hmac_ctx_vector_t;
 
 DECLSPEC void sha256_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest);
 DECLSPEC void sha256_init (PRIVATE_AS sha256_ctx_t *ctx);

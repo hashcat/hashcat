@@ -216,7 +216,7 @@ typedef struct secp256k1
 {
   u32 xy[SECP256K1_PRE_COMPUTED_XY_SIZE]; // pre-computed points: (x1,y1,-y1),(x3,y3,-y3),(x5,y5,-y5),(x7,y7,-y7)
 
-} secp256k1_t;
+} __attribute__((aligned(128))) secp256k1_t;
 
 
 DECLSPEC u32  transform_public (PRIVATE_AS secp256k1_t *r, PRIVATE_AS const u32 *x, const u32 first_byte);

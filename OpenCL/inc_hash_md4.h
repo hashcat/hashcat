@@ -53,14 +53,14 @@ typedef struct md4_ctx
 
   int len;
 
-} md4_ctx_t;
+} __attribute__((aligned(128))) md4_ctx_t;
 
 typedef struct md4_hmac_ctx
 {
   md4_ctx_t ipad;
   md4_ctx_t opad;
 
-} md4_hmac_ctx_t;
+} __attribute__((aligned(256))) md4_hmac_ctx_t;
 
 typedef struct md4_ctx_vector
 {
@@ -73,14 +73,14 @@ typedef struct md4_ctx_vector
 
   int  len;
 
-} md4_ctx_vector_t;
+} __attribute__((aligned(128))) md4_ctx_vector_t;
 
 typedef struct md4_hmac_ctx_vector
 {
   md4_ctx_vector_t ipad;
   md4_ctx_vector_t opad;
 
-} md4_hmac_ctx_vector_t;
+} __attribute__((aligned(256))) md4_hmac_ctx_vector_t;
 
 DECLSPEC void md4_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest);
 DECLSPEC void md4_init (PRIVATE_AS md4_ctx_t *ctx);

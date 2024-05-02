@@ -31,7 +31,7 @@ typedef struct wpa_pmk_tmp
 {
   u32 out[8];
 
-} wpa_pmk_tmp_t;
+} __attribute__((aligned(32))) wpa_pmk_tmp_t;
 
 typedef struct wpa_eapol
 {
@@ -53,7 +53,7 @@ typedef struct wpa_eapol
   int  detected_le;
   int  detected_be;
 
-} wpa_eapol_t;
+} __attribute__((aligned(128))) __attribute__((packed)) wpa_eapol_t;
 
 #ifdef KERNEL_STATIC
 DECLSPEC u8 hex_convert (const u8 c)
