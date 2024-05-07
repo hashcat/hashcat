@@ -440,9 +440,9 @@ KERNEL_FQ void m31900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
                        + is_valid_printable_32 (pt_buf[2])
                        + is_valid_printable_32 (pt_buf[3]);
 
-  if (correct_b1 != 4) return;  
+  if (correct_b1 != 4) return;
 
-  // proceed with second block to further reduce false-positives 
+  // proceed with second block to further reduce false-positives
 
   AES256_decrypt (ks, ct_buf+4, pt_buf+4, s_td0, s_td1, s_td2, s_td3, s_td4);
 
@@ -456,8 +456,8 @@ KERNEL_FQ void m31900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha512_tmp_t, pbkdf2_sh
                        + is_valid_printable_32 (pt_buf[6])
                        + is_valid_printable_32 (pt_buf[7]);
 
-  if (correct_b2 != 4) return;  
-  
+  if (correct_b2 != 4) return;
+
   const u32 r0 = ct_buf[0];
   const u32 r1 = ct_buf[1];
   const u32 r2 = ct_buf[2];
