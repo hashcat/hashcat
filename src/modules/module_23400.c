@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "limits.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -167,14 +168,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32 iter1 = hc_strtoul ((const char *) iter1_pos, NULL, 10);
 
   if (iter1 <     1) return (PARSER_SALT_ITERATION);
-  if (iter1 > 4294967294) return (PARSER_SALT_ITERATION);
+  if (iter1 > UINT_MAX) return (PARSER_SALT_ITERATION);
 
   salt->salt_iter = iter1 - 1;
 
   const u32 iter2 = hc_strtoul ((const char *) iter2_pos, NULL, 10);
 
   if (iter2 <     1) return (PARSER_SALT_ITERATION);
-  if (iter2 > 4294967294) return (PARSER_SALT_ITERATION);
+  if (iter2 > UINT_MAX) return (PARSER_SALT_ITERATION);
 
   salt->salt_iter2 = iter2 - 1;
 
