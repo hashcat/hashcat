@@ -1,0 +1,167 @@
+name: On PRs - meson
+
+on: pull_request
+
+concurrency:
+  group: ${{github.workflow}}-${{github.head_ref}}
+  cancel-in-progress: true
+
+jobs:
+  Alpine:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: ['x86_64', 'x86', 'armhf', 'armv7', 'aarch64', 'ppc64le', 'riscv64']
+    defaults:
+      run:
+        shell: alpine.sh {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jirutka/setup-alpine@v1
+        with:
+          branch: edge
+          arch: ${{matrix.platform}}
+          packages: >
+            build-base cmake meson pkgconf linux-headers opencl-dev minizip-dev xxhash-dev zlib-dev
+      - name: Compile and Test
+        run: |
+          meson setup "${{github.workspace}}/build" -Dwarning_level=3
+          meson compile -C "${{github.workspace}}/build" --verbose
+          meson test -C "${{github.workspace}}/build" --verbose
+  Ubuntu:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        cc: ['7', '13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: egor-tensin/setup-gcc@v1
+        with:
+          version: ${{matrix.cc}}
+      - uses: BSFishy/meson-build@v1.0.3
+        with:
+          action: build
+          directory: build
+          options: --verbose
+          meson-version: 0.57.0
+  Ubuntu-clang:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        cc: ['7', '18']
+    env:
+      CC_LD: lld-${{matrix.cc}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: egor-tensin/setup-clang@v1
+        with:
+          version: ${{matrix.cc}}
+      - name: Install packages
+        run: |
+          sudo apt install -y lld-${{matrix.cc}}
+      - uses: BSFishy/meson-build@v1.0.3
+        with:
+          action: build
+          directory: build
+          options: --verbose
+          meson-version: 0.57.0
+  Cygwin:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: 'MSYS'
+          install: >-
+            gcc
+            libiconv-devel
+            meson
+            ninja
+      - name: Compile and Test
+        run: |
+          meson setup build
+          meson compile -C build --verbose
+  MSYS2:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        platform: ['MINGW64', 'UCRT64', 'CLANG64']
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{matrix.platform}}
+          pacboy: >-
+            cc:p
+            dlfcn:p
+            meson:p
+            minizip:p
+            ninja:p
+            opencl-headers:p
+            pkgconf:p
+            xxhash:p
+      - name: Compile and Test
+        run: |
+          meson setup "${{github.workspace}}/build"
+          meson compile -C "${{github.workspace}}/build" --verbose
+  MacOS:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packages
+        run: |
+          python3 -m pip install meson ninja
+      - name: Compile and Test
+        run: |
+          meson setup "${{github.workspace}}/build"
+          meson compile -C "${{github.workspace}}/build" --verbose
+  DragonflyBSD:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/dragonflybsd-vm@v1
+        with:
+          prepare: |
+            pkg install -y meson ninja
+          run: |
+            meson setup "${{github.workspace}}/build"
+            meson compile -C "${{github.workspace}}/build" --verbose
+  FreeBSD:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/freebsd-vm@v1
+        with:
+          prepare: |
+            pkg install -y meson ninja
+          run: |
+            meson setup "${{github.workspace}}/build"
+            meson compile -C "${{github.workspace}}/build" --verbose
+  NetBSD:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/netbsd-vm@v1
+        with:
+          prepare: |
+            pkg_add meson
+          run: |
+            meson setup "${{github.workspace}}/build"
+            meson compile -C "${{github.workspace}}/build" --verbose
+  OpenBSD:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: vmactions/openbsd-vm@v1
+        with:
+          prepare: |
+            pkg_add meson ninja
+          run: |
+            meson setup "${{github.workspace}}/build"
+            meson compile -C "${{github.workspace}}/build" --verbose

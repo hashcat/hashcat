@@ -732,13 +732,6 @@ CXX_WIN                 := x86_64-w64-mingw32-g++
 AR_LINUX                := ar
 AR_WIN                  := x86_64-w64-mingw32-ar
 
-## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
-##
-## Then patch the makefile with the patches from tools/win-iconv-64.diff and run make install
-##
-
-WIN_ICONV               := /opt/win-iconv-64
-
 ##
 ## Compiler options
 ##
@@ -748,9 +741,7 @@ CFLAGS_CROSS_LINUX      += -fPIC
 CFLAGS_CROSS_LINUX      += -DWITH_HWMON
 CFLAGS_CROSS_WIN        := $(CFLAGS)
 CFLAGS_CROSS_WIN        += -fPIC
-CFLAGS_CROSS_WIN        += -I$(WIN_ICONV)/include/
 CFLAGS_CROSS_WIN        += -DWITH_HWMON
-CFLAGS_CROSS_WIN        += -D__USE_MINGW_ANSI_STDIO=0
 
 LFLAGS_CROSS_LINUX      := $(LFLAGS)
 LFLAGS_CROSS_LINUX      += -lpthread
@@ -759,6 +750,7 @@ LFLAGS_CROSS_LINUX      += -lm
 LFLAGS_CROSS_WIN        := $(LFLAGS)
 LFLAGS_CROSS_WIN        += -Wl,--dynamicbase
 LFLAGS_CROSS_WIN        += -Wl,--nxcompat
+LFLAGS_CROSS_WIN        += -liconv
 LFLAGS_CROSS_WIN        += -lpsapi
 LFLAGS_CROSS_WIN        += -lws2_32
 LFLAGS_CROSS_WIN        += -lpowrprof
@@ -875,10 +867,10 @@ obj/combined.WIN.a: $(WIN_OBJS)
 hashcat.bin: src/main.c obj/combined.LINUX.a
 	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX)    -o $@ $^ $(LFLAGS_CROSS_LINUX) -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -DINSTALL_FOLDER=\"$(INSTALL_FOLDER)\" -DSHARED_FOLDER=\"$(SHARED_FOLDER)\" -DDOCUMENT_FOLDER=\"$(DOCUMENT_FOLDER)\"
 
-hashcat.exe: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
+hashcat.exe: src/main.c obj/combined.WIN.a
 	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\"
 
-hashcat.dll: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
+hashcat.dll: src/main.c obj/combined.WIN.a
 	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
 endif

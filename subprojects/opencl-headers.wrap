@@ -1,0 +1,13 @@
+[wrap-file]
+directory = OpenCL-Headers-2023.04.17
+source_url = https://github.com/KhronosGroup/OpenCL-Headers/archive/refs/tags/v2023.04.17.tar.gz
+source_filename = OpenCL-Headers-2023.04.17.tar.gz
+source_hash = 0ce992f4167f958f68a37918dec6325be18f848dee29a4521c633aae3304915d
+patch_filename = opencl-headers_2023.04.17-1_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/opencl-headers_2023.04.17-1/get_patch
+patch_hash = 7f948e8da8d5c654f05e7d9e8832669645d69e712fed836541f029e4f65712c6
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/opencl-headers_2023.04.17-1/OpenCL-Headers-2023.04.17.tar.gz
+wrapdb_version = 2023.04.17-1
+
+[provide]
+OpenCL-Headers = opencl_headers_dep

@@ -8,6 +8,10 @@
 #include "thread.h"
 #include "event.h"
 
+#ifndef __MINGW_PRINTF_FORMAT
+#define __MINGW_PRINTF_FORMAT printf
+#endif
+
 void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
@@ -62,7 +66,7 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
   }
 }
 
-__attribute__ ((format (printf, 1, 0)))
+__attribute__ ((format (__MINGW_PRINTF_FORMAT, 1, 0)))
 static int event_log (const char *fmt, va_list ap, char *s, const size_t sz)
 {
   size_t length;
