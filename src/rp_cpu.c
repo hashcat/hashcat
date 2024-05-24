@@ -123,6 +123,28 @@ static int mangle_reverse (char arr[RP_PASSWORD_SIZE], int arr_len)
   return (arr_len);
 }
 
+static int mangle_num_incr (char arr[RP_PASSWORD_SIZE], int arr_len)
+{
+  for (int pos = 0; pos < arr_len; pos++)
+  {
+    const char byte = arr[pos];
+
+    if ((byte <= '9') && (byte >= '0'))
+    {
+      if (byte == '9')
+      {
+        arr[pos] = '0';
+      }
+      else
+      {
+        arr[pos]++;
+      }
+    }
+  }
+
+  return (arr_len);
+}
+
 static int mangle_double (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
   if ((arr_len * 2) >= RP_PASSWORD_SIZE) return (arr_len);
@@ -590,6 +612,10 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_TREST:
         out_len = mangle_trest (out, out_len);
+        break;
+
+      case RULE_OP_MANGLE_NUM_INCR:
+        out_len = mangle_num_incr (out, out_len);
         break;
 
       case RULE_OP_MANGLE_TOGGLE_AT:
