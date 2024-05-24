@@ -1,80 +1,125 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
-# Based on "pyvboxdie-cracker" (https://github.com/axcheron/pyvboxdie-cracker) (MIT license)
+#
+# Author......: See docs/credits.txt
+# License.....: MIT
+#
 
-# Author: Gabriele 'matrix' Gristina
-# Version: 1.0
-# Date: Sat 17 Jul 2021 05:36:37 PM CEST
-# License: MIT
+import binascii
+import struct
+from argparse import ArgumentParser
+from base64 import b64decode
+from collections import namedtuple
+from struct import Struct
+from sys import stderr
+from xml.dom import minidom
 
-import argparse
-import xml.dom.minidom
-import base64
-from struct import *
-from binascii import hexlify
+SIGNATURE = "$vbox$0$"
 
-keystore_struct = {
-    'FileHeader': None,
-    'Version':  None,
-    'EVP_Algorithm': None,
-    'PBKDF2_Hash': None,
-    'Key_Length': None,
-    'Final_Hash': None,
-    'KL2_PBKDF2': None,
-    'Salt2_PBKDF2' : None,
-    'Iteration2_PBKDF2': None,
-    'Salt1_PBKDF2': None,
-    'Iteration1_PBKDF2': None,
-    'EVP_Length': None,
-    'Enc_Password': None
-}
+KEY_STORE_PROPERTY_NAME = "CRYPT/KeyStore"
 
-def parse_keystore(file):
-    keystore = None
+KEY_STORE_STRUCT_FMT = "<4sxb32s32sI32sI32sI32sII64s"
+KEY_STORE_STRUCT = Struct(KEY_STORE_STRUCT_FMT)
 
+KeyStore = namedtuple(
+    "KeyStore",
+    [
+        "FileHeader",
+        "Version",
+        "EVP_Algorithm",
+        "PBKDF2_Hash",
+        "Key_Length",
+        "Final_Hash",
+        "KL2_PBKDF2",
+        "Salt2_PBKDF2",
+        "Iteration2_PBKDF2",
+        "Salt1_PBKDF2",
+        "Iteration1_PBKDF2",
+        "EVP_Length",
+        "Enc_Password",
+    ],
+)
+
+
+def print_warning(msg):
+    print("Warning!", msg + ".", file=stderr)
+
+
+def print_error(msg):
+    print("Error!", msg + "!", file=stderr)
+    exit(1)
+
+
+def process_hard_disk(hard_disk):
+    props = hard_disk.getElementsByTagName("Property")
+    props = filter(lambda prop: prop.getAttribute("name") == KEY_STORE_PROPERTY_NAME, props)
     try:
-        fh_vbox = xml.dom.minidom.parse(file)
-    except IOError:
-        print('[-] Cannot open:', file)
-        exit(1)
+        prop = next(props)  # assuming there is only one key store property per hard disk
+        key_store = process_property(prop)
+    except StopIteration:
+        return None
+    return key_store
 
-    hds = fh_vbox.getElementsByTagName("HardDisk")
 
-    # TODO - Clean up & exceptions
-    if len(hds) == 0:
-        print('[-] No hard drive found')
-        exit(1)
-    else:
-        for disk in hds:
-            is_enc = disk.getElementsByTagName("Property")
-            if is_enc:
-                data = disk.getElementsByTagName("Property")[1]
-                keystore = data.getAttribute("value")
+def process_property(property):
+    if not property.hasAttribute("value"):
+        raise RuntimeWarning("Malformed key store property")
+    key_store = property.getAttribute("value")
+    try:
+        key_store = b64decode(key_store)
+        key_store = KEY_STORE_STRUCT.unpack(key_store)
+        key_store = KeyStore(*key_store)
+        int(key_store.Key_Length)
+        return key_store
+    except binascii.Error as error:
+        raise RuntimeError("Malformed Base64 payload in key store property") from error
+    except (ValueError, struct.error) as error:
+        raise RuntimeError("Malformed payload in key store property") from error
 
-    raw_ks = base64.decodebytes(keystore.encode())
-    unpkt_ks = unpack('<4sxb32s32sI32sI32sI32sII64s', raw_ks)
-
-    idx = 0
-    ks = keystore_struct
-    for key in ks.keys():
-        ks[key] = unpkt_ks[idx]
-        idx += 1
-
-    return ks
-
-def pyvboxdie(vbox):
-    keystore = parse_keystore(vbox)
-    print("$vbox$0$" + str(keystore['Iteration1_PBKDF2']) + "$" + hexlify(keystore['Salt1_PBKDF2']).decode() + "$" + str(int(keystore['Key_Length'] / 4)) + "$" + hexlify(keystore['Enc_Password'][0:keystore['Key_Length']]).decode() + "$" + str(keystore['Iteration2_PBKDF2']) + "$" + hexlify(keystore['Salt2_PBKDF2']).decode() + "$" + hexlify(keystore['Final_Hash'].rstrip(b'\x00')).decode())
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="virtualbox2hashcat extraction tool")
-    parser.add_argument('--vbox', required=True, help='set virtualbox vbox file from path', type=str)
+    parser = ArgumentParser(description="virtualbox2hashcat extraction tool")
+    parser.add_argument("path", type=str, help="path to VirtualBox file")
 
     args = parser.parse_args()
 
-    if args.vbox:
-        pyvboxdie(args.vbox)
-    else:
-        parser.print_help()
-        exit(1)
+    try:
+        document = minidom.parse(args.path)
+    except IOError as error:
+        print_error("Cannot read a file: " + error.strerror)
+
+    hds = document.getElementsByTagName("HardDisk")
+    if len(hds) == 0:
+        print_error("No configured hard drives detected!")
+
+    key_stores = []
+    for hd in hds:
+        try:
+            key_store = process_hard_disk(hd)
+            if key_store is not None:
+                key_stores.append(key_store)
+        except RuntimeWarning as warning:
+            print_warning(warning)
+        except RuntimeError as error:
+            print_error(error)
+    if len(key_stores) == 0:
+        print_error("No valid key store found")
+    for key_store in key_stores:
+        key_length = int(key_store.Key_Length)
+        hash = (
+            SIGNATURE
+            + str(key_store.Iteration1_PBKDF2)
+            + "$"
+            + key_store.Salt1_PBKDF2.hex()
+            + "$"
+            + str(key_length // 4)  # key_length in bits divided by sizeof(u32) to get the length in 32-bit words
+            + "$"
+            + key_store.Enc_Password[:key_length].hex()
+            + "$"
+            + str(key_store.Iteration2_PBKDF2)
+            + "$"
+            + key_store.Salt2_PBKDF2.hex()
+            + "$"
+            + key_store.Final_Hash.rstrip(b"\x00").hex()
+        )
+        print(hash)
