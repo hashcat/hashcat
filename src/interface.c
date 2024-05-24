@@ -125,130 +125,130 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (module_ctx->module_context_size != MODULE_CONTEXT_SIZE_CURRENT)
   {
-    event_log_error (hashcat_ctx, "module context size is invalid. Old template?");
+    event_log_error (hashcat_ctx, "Module context size in 'module_init()' for hash-mode '%d' is invalid. Old template?", user_options->hash_mode);
 
     return -1;
   }
 
   if (module_ctx->module_interface_version < MODULE_INTERFACE_VERSION_MINIMUM)
   {
-    event_log_error (hashcat_ctx, "module interface version is outdated, please compile");
+    event_log_error (hashcat_ctx, "Interface version in module context in 'module_init()' for hash-mode '%d' is outdated. Please recompile.", user_options->hash_mode);
 
     return -1;
   }
 
   // check for missing pointer assignments
 
-  #define CHECK_DEFINED(func)                                                     \
-    if ((func) == NULL)                                                           \
+  #define CHECK_DEFINED(module_ctx, func)                                         \
+    if ((module_ctx)->func == NULL)                                               \
     {                                                                             \
-      event_log_error (hashcat_ctx, "Missing symbol definitions module for in hash-mode '%d'. Old template?", user_options->hash_mode); \
+      event_log_error (hashcat_ctx, "Module context missing field '%s' in 'module_init()' for hash-mode '%d'. Old template?", #func, user_options->hash_mode); \
                                                                                   \
       return -1;                                                                  \
     }
 
-  CHECK_DEFINED (module_ctx->module_attack_exec);
-  CHECK_DEFINED (module_ctx->module_benchmark_esalt);
-  CHECK_DEFINED (module_ctx->module_benchmark_hook_salt);
-  CHECK_DEFINED (module_ctx->module_benchmark_mask);
-  CHECK_DEFINED (module_ctx->module_benchmark_charset);
-  CHECK_DEFINED (module_ctx->module_benchmark_salt);
-  CHECK_DEFINED (module_ctx->module_build_plain_postprocess);
-  CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
-  CHECK_DEFINED (module_ctx->module_deprecated_notice);
-  CHECK_DEFINED (module_ctx->module_dgst_pos0);
-  CHECK_DEFINED (module_ctx->module_dgst_pos1);
-  CHECK_DEFINED (module_ctx->module_dgst_pos2);
-  CHECK_DEFINED (module_ctx->module_dgst_pos3);
-  CHECK_DEFINED (module_ctx->module_dgst_size);
-  CHECK_DEFINED (module_ctx->module_dictstat_disable);
-  CHECK_DEFINED (module_ctx->module_esalt_size);
-  CHECK_DEFINED (module_ctx->module_extra_buffer_size);
-  CHECK_DEFINED (module_ctx->module_extra_tmp_size);
-  CHECK_DEFINED (module_ctx->module_extra_tuningdb_block);
-  CHECK_DEFINED (module_ctx->module_forced_outfile_format);
-  CHECK_DEFINED (module_ctx->module_hash_binary_count);
-  CHECK_DEFINED (module_ctx->module_hash_binary_parse);
-  CHECK_DEFINED (module_ctx->module_hash_binary_save);
-  CHECK_DEFINED (module_ctx->module_hash_category);
-  CHECK_DEFINED (module_ctx->module_hash_decode);
-  CHECK_DEFINED (module_ctx->module_hash_decode_postprocess);
-  CHECK_DEFINED (module_ctx->module_hash_decode_potfile);
-  CHECK_DEFINED (module_ctx->module_hash_decode_zero_hash);
-  CHECK_DEFINED (module_ctx->module_hash_encode);
-  CHECK_DEFINED (module_ctx->module_hash_encode_potfile);
-  CHECK_DEFINED (module_ctx->module_hash_encode_status);
-  CHECK_DEFINED (module_ctx->module_hash_init_selftest);
-  CHECK_DEFINED (module_ctx->module_hash_mode);
-  CHECK_DEFINED (module_ctx->module_hash_name);
-  CHECK_DEFINED (module_ctx->module_hashes_count_max);
-  CHECK_DEFINED (module_ctx->module_hashes_count_min);
-  CHECK_DEFINED (module_ctx->module_hlfmt_disable);
-  CHECK_DEFINED (module_ctx->module_hook_extra_param_size);
-  CHECK_DEFINED (module_ctx->module_hook_extra_param_init);
-  CHECK_DEFINED (module_ctx->module_hook_extra_param_term);
-  CHECK_DEFINED (module_ctx->module_hook12);
-  CHECK_DEFINED (module_ctx->module_hook23);
-  CHECK_DEFINED (module_ctx->module_hook_salt_size);
-  CHECK_DEFINED (module_ctx->module_hook_size);
-  CHECK_DEFINED (module_ctx->module_jit_build_options);
-  CHECK_DEFINED (module_ctx->module_jit_cache_disable);
-  CHECK_DEFINED (module_ctx->module_kern_type);
-  CHECK_DEFINED (module_ctx->module_kern_type_dynamic);
-  CHECK_DEFINED (module_ctx->module_kernel_accel_max);
-  CHECK_DEFINED (module_ctx->module_kernel_accel_min);
-  CHECK_DEFINED (module_ctx->module_kernel_loops_max);
-  CHECK_DEFINED (module_ctx->module_kernel_loops_min);
-  CHECK_DEFINED (module_ctx->module_kernel_threads_max);
-  CHECK_DEFINED (module_ctx->module_kernel_threads_min);
-  CHECK_DEFINED (module_ctx->module_opti_type);
-  CHECK_DEFINED (module_ctx->module_opts_type);
-  CHECK_DEFINED (module_ctx->module_outfile_check_disable);
-  CHECK_DEFINED (module_ctx->module_outfile_check_nocomp);
-  CHECK_DEFINED (module_ctx->module_potfile_custom_check);
-  CHECK_DEFINED (module_ctx->module_potfile_disable);
-  CHECK_DEFINED (module_ctx->module_potfile_keep_all_hashes);
-  CHECK_DEFINED (module_ctx->module_pw_max);
-  CHECK_DEFINED (module_ctx->module_pw_min);
-  CHECK_DEFINED (module_ctx->module_pwdump_column);
-  CHECK_DEFINED (module_ctx->module_salt_max);
-  CHECK_DEFINED (module_ctx->module_salt_min);
-  CHECK_DEFINED (module_ctx->module_salt_type);
-  CHECK_DEFINED (module_ctx->module_separator);
-  CHECK_DEFINED (module_ctx->module_st_hash);
-  CHECK_DEFINED (module_ctx->module_st_pass);
-  CHECK_DEFINED (module_ctx->module_tmp_size);
-  CHECK_DEFINED (module_ctx->module_unstable_warning);
-  CHECK_DEFINED (module_ctx->module_warmup_disable);
+  CHECK_DEFINED (module_ctx, module_attack_exec);
+  CHECK_DEFINED (module_ctx, module_benchmark_esalt);
+  CHECK_DEFINED (module_ctx, module_benchmark_hook_salt);
+  CHECK_DEFINED (module_ctx, module_benchmark_mask);
+  CHECK_DEFINED (module_ctx, module_benchmark_charset);
+  CHECK_DEFINED (module_ctx, module_benchmark_salt);
+  CHECK_DEFINED (module_ctx, module_build_plain_postprocess);
+  CHECK_DEFINED (module_ctx, module_deep_comp_kernel);
+  CHECK_DEFINED (module_ctx, module_deprecated_notice);
+  CHECK_DEFINED (module_ctx, module_dgst_pos0);
+  CHECK_DEFINED (module_ctx, module_dgst_pos1);
+  CHECK_DEFINED (module_ctx, module_dgst_pos2);
+  CHECK_DEFINED (module_ctx, module_dgst_pos3);
+  CHECK_DEFINED (module_ctx, module_dgst_size);
+  CHECK_DEFINED (module_ctx, module_dictstat_disable);
+  CHECK_DEFINED (module_ctx, module_esalt_size);
+  CHECK_DEFINED (module_ctx, module_extra_buffer_size);
+  CHECK_DEFINED (module_ctx, module_extra_tmp_size);
+  CHECK_DEFINED (module_ctx, module_extra_tuningdb_block);
+  CHECK_DEFINED (module_ctx, module_forced_outfile_format);
+  CHECK_DEFINED (module_ctx, module_hash_binary_count);
+  CHECK_DEFINED (module_ctx, module_hash_binary_parse);
+  CHECK_DEFINED (module_ctx, module_hash_binary_save);
+  CHECK_DEFINED (module_ctx, module_hash_category);
+  CHECK_DEFINED (module_ctx, module_hash_decode);
+  CHECK_DEFINED (module_ctx, module_hash_decode_postprocess);
+  CHECK_DEFINED (module_ctx, module_hash_decode_potfile);
+  CHECK_DEFINED (module_ctx, module_hash_decode_zero_hash);
+  CHECK_DEFINED (module_ctx, module_hash_encode);
+  CHECK_DEFINED (module_ctx, module_hash_encode_potfile);
+  CHECK_DEFINED (module_ctx, module_hash_encode_status);
+  CHECK_DEFINED (module_ctx, module_hash_init_selftest);
+  CHECK_DEFINED (module_ctx, module_hash_mode);
+  CHECK_DEFINED (module_ctx, module_hash_name);
+  CHECK_DEFINED (module_ctx, module_hashes_count_max);
+  CHECK_DEFINED (module_ctx, module_hashes_count_min);
+  CHECK_DEFINED (module_ctx, module_hlfmt_disable);
+  CHECK_DEFINED (module_ctx, module_hook_extra_param_size);
+  CHECK_DEFINED (module_ctx, module_hook_extra_param_init);
+  CHECK_DEFINED (module_ctx, module_hook_extra_param_term);
+  CHECK_DEFINED (module_ctx, module_hook12);
+  CHECK_DEFINED (module_ctx, module_hook23);
+  CHECK_DEFINED (module_ctx, module_hook_salt_size);
+  CHECK_DEFINED (module_ctx, module_hook_size);
+  CHECK_DEFINED (module_ctx, module_jit_build_options);
+  CHECK_DEFINED (module_ctx, module_jit_cache_disable);
+  CHECK_DEFINED (module_ctx, module_kern_type);
+  CHECK_DEFINED (module_ctx, module_kern_type_dynamic);
+  CHECK_DEFINED (module_ctx, module_kernel_accel_max);
+  CHECK_DEFINED (module_ctx, module_kernel_accel_min);
+  CHECK_DEFINED (module_ctx, module_kernel_loops_max);
+  CHECK_DEFINED (module_ctx, module_kernel_loops_min);
+  CHECK_DEFINED (module_ctx, module_kernel_threads_max);
+  CHECK_DEFINED (module_ctx, module_kernel_threads_min);
+  CHECK_DEFINED (module_ctx, module_opti_type);
+  CHECK_DEFINED (module_ctx, module_opts_type);
+  CHECK_DEFINED (module_ctx, module_outfile_check_disable);
+  CHECK_DEFINED (module_ctx, module_outfile_check_nocomp);
+  CHECK_DEFINED (module_ctx, module_potfile_custom_check);
+  CHECK_DEFINED (module_ctx, module_potfile_disable);
+  CHECK_DEFINED (module_ctx, module_potfile_keep_all_hashes);
+  CHECK_DEFINED (module_ctx, module_pw_max);
+  CHECK_DEFINED (module_ctx, module_pw_min);
+  CHECK_DEFINED (module_ctx, module_pwdump_column);
+  CHECK_DEFINED (module_ctx, module_salt_max);
+  CHECK_DEFINED (module_ctx, module_salt_min);
+  CHECK_DEFINED (module_ctx, module_salt_type);
+  CHECK_DEFINED (module_ctx, module_separator);
+  CHECK_DEFINED (module_ctx, module_st_hash);
+  CHECK_DEFINED (module_ctx, module_st_pass);
+  CHECK_DEFINED (module_ctx, module_tmp_size);
+  CHECK_DEFINED (module_ctx, module_unstable_warning);
+  CHECK_DEFINED (module_ctx, module_warmup_disable);
 
   #undef CHECK_DEFINED
 
   // mandatory functions check
 
-  #define CHECK_MANDATORY(func)                                               \
-    if ((func) == MODULE_DEFAULT)                                             \
+  #define CHECK_MANDATORY(module_ctx, func)                                   \
+    if ((module_ctx)->func == MODULE_DEFAULT)                                 \
     {                                                                         \
-      event_log_error (hashcat_ctx, "Missing mandatory symbol definitions");  \
+      event_log_error (hashcat_ctx, "Module context field '%s' in 'module_init()' for hash-mode '%d' is set to MODULE_DEFAULT, but must be explicitly set.", #func, user_options->hash_mode); \
                                                                               \
       return -1;                                                              \
     }
 
-  CHECK_MANDATORY (module_ctx->module_attack_exec);
-  CHECK_MANDATORY (module_ctx->module_dgst_pos0);
-  CHECK_MANDATORY (module_ctx->module_dgst_pos1);
-  CHECK_MANDATORY (module_ctx->module_dgst_pos2);
-  CHECK_MANDATORY (module_ctx->module_dgst_pos3);
-  CHECK_MANDATORY (module_ctx->module_dgst_size);
-  CHECK_MANDATORY (module_ctx->module_hash_decode);
-  // CHECK_MANDATORY (module_ctx->module_hash_encode); we do that one later
-  CHECK_MANDATORY (module_ctx->module_hash_category);
-  CHECK_MANDATORY (module_ctx->module_hash_name);
-  CHECK_MANDATORY (module_ctx->module_kern_type);
-  CHECK_MANDATORY (module_ctx->module_opti_type);
-  CHECK_MANDATORY (module_ctx->module_opts_type);
-  CHECK_MANDATORY (module_ctx->module_salt_type);
-  CHECK_MANDATORY (module_ctx->module_st_hash);
-  CHECK_MANDATORY (module_ctx->module_st_pass);
+  CHECK_MANDATORY (module_ctx, module_attack_exec);
+  CHECK_MANDATORY (module_ctx, module_dgst_pos0);
+  CHECK_MANDATORY (module_ctx, module_dgst_pos1);
+  CHECK_MANDATORY (module_ctx, module_dgst_pos2);
+  CHECK_MANDATORY (module_ctx, module_dgst_pos3);
+  CHECK_MANDATORY (module_ctx, module_dgst_size);
+  CHECK_MANDATORY (module_ctx, module_hash_decode);
+  // CHECK_MANDATORY (module_ctx, module_hash_encode); we do that one later
+  CHECK_MANDATORY (module_ctx, module_hash_category);
+  CHECK_MANDATORY (module_ctx, module_hash_name);
+  CHECK_MANDATORY (module_ctx, module_kern_type);
+  CHECK_MANDATORY (module_ctx, module_opti_type);
+  CHECK_MANDATORY (module_ctx, module_opts_type);
+  CHECK_MANDATORY (module_ctx, module_salt_type);
+  CHECK_MANDATORY (module_ctx, module_st_hash);
+  CHECK_MANDATORY (module_ctx, module_st_pass);
 
   hashconfig->attack_exec   = module_ctx->module_attack_exec    (hashconfig, user_options, user_options_extra);
   hashconfig->dgst_pos0     = module_ctx->module_dgst_pos0      (hashconfig, user_options, user_options_extra);
@@ -267,7 +267,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if ((hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE) == 0)
   {
-    CHECK_MANDATORY (module_ctx->module_hash_encode);
+    CHECK_MANDATORY (module_ctx, module_hash_encode);
   }
 
   #undef CHECK_MANDATORY
