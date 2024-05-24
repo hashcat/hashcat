@@ -77,7 +77,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
   int out_cnt = 0;
 
-  u32 check_left = outfile_check_timer; // or 1 if we want to check it at startup
+  u32 check_left = 1; // or outfile_check_timer if we want to check it after the --outfile-check-timer delay
 
   while (status_ctx->shutdown_inner == false)
   {
