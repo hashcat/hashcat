@@ -1,5 +1,7 @@
-// m12150-pure.cl
-//#pragma OPENCL EXTENSION cl_khr_byte_addressable_store : enable
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
 
 #define NEW_SIMD_CODE
 
@@ -39,28 +41,16 @@ KERNEL_FQ void m12150_init (KERN_ATTR_TMPS_ESALT (shiro1_sha512_tmp_t, shiro1_sh
 
   sha512_init (&ctx);
 
-  /*printf("Salt length: %d\n", salt_bufs[SALT_POS_HOST].salt_len);
-  printf("Iterations: %d\n",  esalt_bufs[DIGESTS_OFFSET_HOST].iterations);
-  printf("Password: %s length: %d\n", pws[gid].i, pws[gid].pw_len);
-  printf("Salt: ");
-  for (int i = 0; i < 4; i++) {
-    printf("%08x", esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf[i]);
-  }
-  printf("\n");*/
-
   sha512_update_global_swap (&ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
   sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
   sha512_final (&ctx);
 
-  //printf("Initial hash: ");
   for (int i = 0; i < 8; i++) {
     tmps[gid].dgst[i] = ctx.h[i];
     tmps[gid].out[i] = ctx.h[i];
-    //printf("%016llx", ctx.h[i]);
   }
-  //printf("\n");
 }
 
 KERNEL_FQ void m12150_loop(KERN_ATTR_TMPS_ESALT(shiro1_sha512_tmp_t, shiro1_sha512_t)) {
@@ -92,9 +82,9 @@ KERNEL_FQ void m12150_loop(KERN_ATTR_TMPS_ESALT(shiro1_sha512_tmp_t, shiro1_sha5
   digest_u32[15] = l32_from_64_S(tmps[gid].dgst[7]);
 
   for (u32 i = 0; i < LOOP_CNT; i++) {
-    sha512_init(&sha512_ctx);
-    sha512_update_global(&sha512_ctx, digest_u32, SHA512_DIGEST_LENGTH);
-    sha512_final(&sha512_ctx);
+    sha512_init (&sha512_ctx);
+    sha512_update (&sha512_ctx, digest_u32, SHA512_DIGEST_LENGTH);
+    sha512_final (&sha512_ctx);
 
     for (int j = 0; j < 8; j++) {      
       tmps[gid].dgst[j] = sha512_ctx.h[j];
@@ -130,12 +120,6 @@ KERNEL_FQ void m12150_comp (KERN_ATTR_TMPS_ESALT (shiro1_sha512_tmp_t, shiro1_sh
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
-
-  /*printf("Comparing hash: ");
-  for (int i = 0; i < 8; i++) {
-    printf("%016llx", tmps[gid].out[i]);
-  }
-  printf("\n");*/
 
   const u64 lid = get_local_id (0);
 

@@ -1,4 +1,8 @@
-// https://github.com/hashcat/hashcat/blob/master/docs/hashcat-plugin-development-guide.md
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
 #include "common.h"
 #include "types.h"
 #include "modules.h"
@@ -120,11 +124,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  /*for (int i = 0; i < token.token_cnt; i++) {
-    printf("Token %d: %.*s (length: %d)\n", i, token.len[i], token.buf[i], token.len[i]);
-  }
-  printf("\n");*/
-
   if (rc_tokenizer != PARSER_OK) { return (rc_tokenizer); }
 
   u8  tmp_buf[512];
@@ -140,31 +139,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[3];
   const int salt_len = token.len[3];
   memset (tmp_buf, 0, sizeof (tmp_buf));
-  //printf("Salt (b64): %.*s\n", salt_len, salt_pos);
   tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
-  /*printf("Decoded Salt (hex): ");
-  for (size_t i = 0; i < tmp_len; i++) {
-    printf("%02x", tmp_buf[i]);
-  }
-  printf("\n");*/
   memcpy (shiro_sha512->salt_buf, tmp_buf, tmp_len);
   salt->salt_len = tmp_len;
   salt->salt_buf[0] = shiro_sha512->salt_buf[0];
   salt->salt_buf[1] = shiro_sha512->salt_buf[1];
   salt->salt_buf[2] = shiro_sha512->salt_buf[2];
   salt->salt_buf[3] = shiro_sha512->salt_buf[3];
-  // Print the salt as u32 values
-  /*printf("Salt (interpreted as u32): ");
-  for (int i = 0; i < 4; i++) {
-    printf("%08x", salt->salt_buf[i]);
-  }
-  printf("\n");*/
-  // Print the salt as bytes for comparison
-  /*printf("Salt (interpreted as bytes): ");
-  for (int i = 0; i < tmp_len; i++) {
-    printf("%02x", ((u8 *)salt->salt_buf)[i]);
-  }
-  printf("\n");*/
 
   // hash
   const u8 *hash_pos = token.buf[4];
@@ -181,11 +162,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[5] = byte_swap_64 (digest[5]);
   digest[6] = byte_swap_64 (digest[6]);
   digest[7] = byte_swap_64 (digest[7]);
-  /*printf("Hash: ");
-  for (int i = 0; i < 8; i++) {
-    printf("%016llx", digest[i]);
-  }
-  printf("\n");*/
 
   return (PARSER_OK);
 }
