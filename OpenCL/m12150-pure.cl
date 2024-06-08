@@ -31,7 +31,7 @@ typedef struct shiro1_sha512_tmp
   u64 out[8];  // Final output hash
 } shiro1_sha512_tmp_t;
 
-KERNEL_FQ void m12150_init (KERN_ATTR_TMPS_ESALT (shiro1_sha512_tmp_t, shiro1_sha512_t))
+KERNEL_FQ void m12150_init (KERN_ATTR_TMPS (shiro1_sha512_tmp_t))
 {
   const u32 gid = get_global_id (0);
 
@@ -53,7 +53,7 @@ KERNEL_FQ void m12150_init (KERN_ATTR_TMPS_ESALT (shiro1_sha512_tmp_t, shiro1_sh
   }
 }
 
-KERNEL_FQ void m12150_loop(KERN_ATTR_TMPS_ESALT(shiro1_sha512_tmp_t, shiro1_sha512_t)) {
+KERNEL_FQ void m12150_loop(KERN_ATTR_TMPS (shiro1_sha512_tmp_t)) {
   const u32 gid = get_global_id(0);
 
   if (gid >= GID_CNT) return;
@@ -115,7 +115,7 @@ KERNEL_FQ void m12150_loop(KERN_ATTR_TMPS_ESALT(shiro1_sha512_tmp_t, shiro1_sha5
   }
 }
 
-KERNEL_FQ void m12150_comp (KERN_ATTR_TMPS_ESALT (shiro1_sha512_tmp_t, shiro1_sha512_t))
+KERNEL_FQ void m12150_comp (KERN_ATTR_TMPS (shiro1_sha512_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
