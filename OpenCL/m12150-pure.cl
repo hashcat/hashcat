@@ -19,12 +19,6 @@
 
 #define SHA512_DIGEST_LENGTH 64
 
-typedef struct shiro1_sha512
-{
-  u32 salt_buf[4];
-  u32 iterations;
-} shiro1_sha512_t;
-
 typedef struct shiro1_sha512_tmp
 {
   u64 dgst[8];
