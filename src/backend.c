@@ -11251,8 +11251,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_param.digests_offset_host = 0;
     device_param->kernel_param.combs_mode          = 0;
     device_param->kernel_param.salt_repeat         = 0;
-    device_param->kernel_param.combs_mode          = 0;
-    device_param->kernel_param.salt_repeat         = 0;
     device_param->kernel_param.pws_pos             = 0;
     device_param->kernel_param.gid_max             = 0;
 
