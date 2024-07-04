@@ -796,7 +796,7 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     cpt_ctx->cpt_total += cpt_cracked;
 
-    if (cpt_ctx->cpt_pos == CPT_CACHE) cpt_ctx->cpt_pos = 0;
+    if (cpt_ctx->cpt_total == CPT_CACHE) cpt_ctx->cpt_pos = 0;
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
   }
