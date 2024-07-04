@@ -1151,7 +1151,7 @@ u32 mp_get_length (const char *mask, const u32 opts_type)
 {
   bool ignore_next = false;
 
-  u32 len = 0;
+  size_t len = 0;
 
   const size_t mask_len = strlen (mask);
 
