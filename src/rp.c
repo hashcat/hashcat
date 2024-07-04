@@ -770,7 +770,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     {
       rule_len = (u32) fgetl (&fp, rule_buf, HCBUFSIZ_LARGE);
 
-      if (rule_line == (u32) -1)
+      if (rule_len == (u32) -1)
       {
         event_log_error (hashcat_ctx, "Unsupported number of lines in rule file %s.", rp_file);
 
