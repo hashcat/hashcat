@@ -2929,9 +2929,9 @@ HC_API_CALL void *brain_server_handle_client (void *p)
 
       // opportunity to set counters for stats
 
-      int local_lookup_new = 0;
+      u64 local_lookup_new = 0;
 
-      for (i64 hashes_idx = 0; hashes_idx < hashes_cnt; hashes_idx++)
+      for (u64 hashes_idx = 0; hashes_idx < hashes_cnt; hashes_idx++)
       {
         if (send_buf[hashes_idx] == 0)
         {

@@ -1113,7 +1113,7 @@ typedef struct link_speed
 {
   hc_timer_t timer[LINK_SPEED_COUNT];
   ssize_t    bytes[LINK_SPEED_COUNT];
-  int        pos;
+  u16        pos;
 
 } link_speed_t;
 
@@ -2107,7 +2107,7 @@ typedef struct loopback_ctx
 typedef struct mf
 {
   char mf_buf[0x400];
-  int  mf_len;
+  u16  mf_len;
 
 } mf_t;
 
