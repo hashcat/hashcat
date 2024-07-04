@@ -228,7 +228,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_len -= 16;
 
-  if (tmp_len < 30 || tmp_len > 3136) return (PARSER_CT_LENGTH);
+  if (tmp_len < 30 || tmp_len >= 3136) return (PARSER_CT_LENGTH);
 
   memcpy ((u8 *) metamask->ct_buf, tmp_buf, tmp_len);
 
