@@ -302,7 +302,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake digest
 
-  memcpy (digest, vc->data_buf, 112);
+  memcpy (digest, vc->data_buf, sizeof(vc->data_buf));
 
   return (PARSER_OK);
 }

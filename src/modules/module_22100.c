@@ -343,7 +343,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake digest:
 
-  memcpy (digest, bitlocker->data, 16);
+  memcpy (digest, bitlocker->data, sizeof(bitlocker->data));
 
   return (PARSER_OK);
 }

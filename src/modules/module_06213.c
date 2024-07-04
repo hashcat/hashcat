@@ -218,7 +218,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  memcpy (salt->salt_buf, line_buf, TC_SALT_LEN);
+  memcpy (salt->salt_buf, line_buf, sizeof(salt->salt_buf));
 
   salt->salt_len = TC_SALT_LEN;
 
@@ -236,7 +236,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake digest
 
-  memcpy (digest, tc->data_buf, TC_DATA_LEN / 4);
+  memcpy (digest, tc->data_buf, sizeof(tc->data_buf));
 
   return (PARSER_OK);
 }
