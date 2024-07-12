@@ -154,6 +154,7 @@ static const struct option long_options[] =
   {"brain-session",             required_argument, NULL, IDX_BRAIN_SESSION},
   {"brain-session-whitelist",   required_argument, NULL, IDX_BRAIN_SESSION_WHITELIST},
   #endif
+  {"hashcat-config",            required_argument, NULL, IDX_HASHCAT_CONFIG},
   {NULL,                        0,                 NULL, 0 }
 };
 
@@ -324,8 +325,121 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   optopt = 0;
 
   option_index = 0;
+  char *hashcat_config = "hashcat.config";
+  bool hashcat_config_loaded = false;
 
   while ((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1)
+  {
+    switch (c)
+    {
+      case IDX_HASHCAT_CONFIG: hashcat_config = optarg; hashcat_config_loaded = true; break;
+    }
+  }
+
+  int new_argc = argc;
+  char **new_argv = malloc (sizeof (char *) * new_argc);
+
+  for (int i = 0; i < argc; i++)
+  {
+    new_argv[i] = argv[i];
+  }
+
+  if (hc_path_read (hashcat_config))
+  {
+    FILE *file = fopen (hashcat_config, "r");
+
+    event_log_info (hashcat_ctx, "Reading hashcat config file: %s", hashcat_config);
+
+    if (file == NULL)
+    {
+      event_log_error (hashcat_ctx, "Failed to open hashcat config file: %s", hashcat_config);
+
+      return -1;
+    }
+
+    char *line = NULL;
+    char **config_argv = malloc (sizeof (char *) * 256);
+    int config_argc = 0;
+
+    size_t len = 0;
+    ssize_t read;
+
+    while ((read = getline (&line, &len, file)) != -1 || config_argc == 256)
+    {
+      if (line[read - 1] == '\n')
+      {
+        line[read - 1] = '\0';
+      }
+
+      char *k = strtok (line, "=");
+      char *v = strtok (NULL, "=");
+
+      if (k != NULL && v != NULL)
+      {
+        char *k_d = malloc (strlen (k) + 3);
+        strcpy (k_d, "--");
+        strcat (k_d, k);
+        
+        config_argv[config_argc] = k_d; 
+        config_argc++;
+
+        char *_v = malloc (strlen (v) + 1);
+        strcpy(_v, v);
+
+        config_argv[config_argc] = _v;
+        config_argc++;
+
+        event_log_info (hashcat_ctx, "Loaded hashcat config parameter: %s=%s", k, v);
+      }
+    }
+
+    hcfree (line);
+    fclose (file);
+
+    char **new_argv_w_config = malloc (sizeof (char *) * (new_argc + config_argc));
+    
+    int j = 0;
+    for (int i = 0; i < new_argc; i++)
+    {
+      if ((!hashcat_config_loaded && i == 1) || strcmp(new_argv[i], "--hashcat-config") == 0)
+      {
+        for (int k = 0; k < config_argc; k++)
+        {
+          new_argv_w_config[j] = config_argv[k];
+          j++;
+        }
+
+        if (hashcat_config_loaded)
+        {
+          i++;
+        }
+        else
+        {
+          new_argv_w_config[j] = argv[i];
+          j++;
+        }
+      }
+      else
+      {
+        new_argv_w_config[j] = argv[i];
+        j++;
+      }
+    }
+
+    new_argc = j;
+
+    hcfree (new_argv);
+    hcfree (config_argv);
+
+    new_argv = new_argv_w_config;
+  }
+
+  optind = 1;
+  optopt = 0;
+
+  option_index = 0;
+
+  while ((c = getopt_long (new_argc, new_argv, short_options, long_options, &option_index)) != -1)
   {
     switch (c)
     {
@@ -390,7 +504,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   option_index = 0;
 
-  while ((c = getopt_long (argc, argv, short_options, long_options, &option_index)) != -1)
+  while ((c = getopt_long (new_argc, new_argv, short_options, long_options, &option_index)) != -1)
   {
     switch (c)
     {
@@ -553,8 +667,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   user_options->hc_bin = argv[0];
 
-  user_options->hc_argc = argc - optind;
-  user_options->hc_argv = argv + optind;
+  user_options->hc_argc = new_argc - optind;
+  user_options->hc_argv = new_argv + optind;
 
   return 0;
 }

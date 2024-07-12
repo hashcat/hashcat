@@ -846,6 +846,7 @@ typedef enum user_options_map
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff54,
   IDX_WORKLOAD_PROFILE          = 'w',
+  IDX_HASHCAT_CONFIG            = 'C',
 
 } user_options_map_t;
 
