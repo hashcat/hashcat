@@ -185,7 +185,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  const u32 type = atoi ((char *)token.buf[1]);
+  const u32 type = atoi ((const char *)token.buf[1]);
 
   if (type > 14) return (PARSER_CRYPTOAPI_KERNELTYPE);
 
@@ -208,7 +208,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     case 14: cryptoapi->kern_type = KERN_TYPE_CRYPTOAPI_WHIRLPOOL_TWOFISH; break;
   }
 
-  const u32 key_size = atoi ((char *)token.buf[2]);
+  const u32 key_size = atoi ((const char *)token.buf[2]);
 
   if (key_size > 2) return (PARSER_CRYPTOAPI_KEYSIZE);
 

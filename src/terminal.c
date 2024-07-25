@@ -125,7 +125,7 @@ void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const 
   event_log_info_nn (hashcat_ctx, "Stopped: %s", ctime_r (&proc_stop,  stop_buf));
 }
 
-int setup_console ()
+int setup_console (void)
 {
   #if defined (_WIN)
   SetConsoleWindowSize (132);
@@ -445,7 +445,7 @@ void SetConsoleWindowSize (const int x)
 static struct termios savemodes;
 static int havemodes = 0;
 
-int tty_break ()
+int tty_break (void)
 {
   struct termios modmodes;
 
@@ -461,7 +461,7 @@ int tty_break ()
   return tcsetattr (fileno (stdin), TCSANOW, &modmodes);
 }
 
-int tty_getchar ()
+int tty_getchar (void)
 {
   fd_set rfds;
 
@@ -482,7 +482,7 @@ int tty_getchar ()
   return getchar ();
 }
 
-int tty_fix ()
+int tty_fix (void)
 {
   if (!havemodes) return 0;
 
@@ -490,11 +490,11 @@ int tty_fix ()
 }
 #endif
 
-#if defined (__APPLE__) || defined (__FreeBSD__)
+#if defined (__APPLE__)
 static struct termios savemodes;
 static int havemodes = 0;
 
-int tty_break ()
+int tty_break (void)
 {
   struct termios modmodes;
 
@@ -510,7 +510,7 @@ int tty_break ()
   return ioctl (fileno (stdin), TIOCSETAW, &modmodes);
 }
 
-int tty_getchar ()
+int tty_getchar (void)
 {
   fd_set rfds;
 
@@ -542,7 +542,7 @@ int tty_fix ()
 #if defined (_WIN)
 static DWORD saveMode = 0;
 
-int tty_break ()
+int tty_break (void)
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
@@ -552,7 +552,7 @@ int tty_break ()
   return 0;
 }
 
-int tty_getchar ()
+int tty_getchar (void)
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
@@ -592,7 +592,7 @@ int tty_getchar ()
   return 0;
 }
 
-int tty_fix ()
+int tty_fix (void)
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
@@ -1899,14 +1899,18 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
   printf (" \"devices\": [");
 
-  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  for (int device_id = 0, first_dev = 1; device_id < hashcat_status->device_info_cnt; device_id++)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
     if (device_info->skipped_dev == true) continue;
     if (device_info->skipped_warning_dev == true) continue;
 
-    if (device_id != 0)
+    if (first_dev)
+    {
+      first_dev = 0;
+    }
+    else
     {
       printf (",");
     }

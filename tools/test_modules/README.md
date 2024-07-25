@@ -13,12 +13,12 @@ During `verify` tests the `module_verify_hash` function must parse the hash:pass
 
 **Important**: You have to call `pack_if_HEX_notation` as soon as you have parsed the password, or your tests will fail on passwords in the `$HEX[...]` format.
 
-If the algorithm has ambiguous hashes (e.g. partial case-insensetivity), the test module can provide an optional function `module_preprocess_hashlist`. It recieves a reference to the hashlist array and can unify the hashes in a way that guarantees the match with the output of `module_verify_hash`.
+If the algorithm has ambiguous hashes (e.g. partial case-insensitivity), the test module can provide an optional function `module_preprocess_hashlist`. It receives a reference to the hashlist array and can unify the hashes in a way that guarantees the match with the output of `module_verify_hash`.
 
 #### Examples ####
 
 * For the most basic test modules, see [m00000.pm](m00000.pm) and [m00100.pm](m00100.pm)
 * For the basic salted hash tests, see [m00110.pm](m00110.pm) and [m00120.pm](m00120.pm)
-* For some sligthly more complex modules with PBKDF2 and encryption, see [m18400.pm](m18400.pm) and [m18600.pm](m18600.pm)
+* For some slightly more complex modules with PBKDF2 and encryption, see [m18400.pm](m18400.pm) and [m18600.pm](m18600.pm)
 * For a test module with hashlist preprocessing and a custom salt generation algorithm, see [m05600.pm](m05600.pm)
 

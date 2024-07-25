@@ -133,8 +133,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     if (line_buf[token.len[0] + 3] == '*')
     {
-      char *account_info_start = (char *) line_buf + 12; // we want the * char included
-      char *account_info_stop  = strchr ((const char *) account_info_start + 1, '*');
+      const char *account_info_start = line_buf + 12; // we want the * char included
+      char *account_info_stop  = strchr (account_info_start + 1, '*');
 
       if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -311,9 +311,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
   {
-    u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
+    const u8 *ptr_edata2 = (const u8 *) krb5tgs->edata2;
 
-    sprintf (data + j, "%02x", ptr_edata2[i]);
+    snprintf (data + j, 3, "%02x", ptr_edata2[i]);
   }
 
   int line_len;
@@ -324,7 +324,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     line_len = snprintf (line_buf, line_size, "%s23$%s%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5TGS,
-      (char *) krb5tgs->account_info,
+      (const char *) krb5tgs->account_info,
       byte_swap_32 (krb5tgs->checksum[0]),
       byte_swap_32 (krb5tgs->checksum[1]),
       byte_swap_32 (krb5tgs->checksum[2]),
@@ -335,7 +335,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     line_len = snprintf (line_buf, line_size, "%s%s:%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5TGS,
-      (char *) krb5tgs->account_info,
+      (const char *) krb5tgs->account_info,
       byte_swap_32 (krb5tgs->checksum[0]),
       byte_swap_32 (krb5tgs->checksum[1]),
       byte_swap_32 (krb5tgs->checksum[2]),

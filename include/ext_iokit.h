@@ -9,6 +9,9 @@
 #if defined(__APPLE__)
 #include <IOKit/IOKitLib.h>
 
+// kIOMasterPortDefault/kIOMainPortDefault is 0
+static const mach_port_t hc_IOMasterPortDefault = 0;
+
 // Apple SMC Keys
 #define HM_IOKIT_SMC_SENSOR_GRAPHICS_HOT "SGHT"
 #define HM_IOKIT_SMC_CPU_PROXIMITY       "TC0P"

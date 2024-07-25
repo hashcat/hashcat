@@ -408,10 +408,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * digest
    */
 
-  digest[0] = hex_to_u32 ((const u8 *) &digest_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &digest_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &digest_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &digest_pos[24]);
+  digest[0] = hex_to_u32 (&digest_pos[ 0]);
+  digest[1] = hex_to_u32 (&digest_pos[ 8]);
+  digest[2] = hex_to_u32 (&digest_pos[16]);
+  digest[3] = hex_to_u32 (&digest_pos[24]);
 
   return (PARSER_OK);
 }

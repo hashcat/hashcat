@@ -121,19 +121,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *iv_pos = token.buf[2];
 
-  electrum_wallet->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
-  electrum_wallet->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
-  electrum_wallet->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
-  electrum_wallet->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
+  electrum_wallet->iv[0] = hex_to_u32 (&iv_pos[ 0]);
+  electrum_wallet->iv[1] = hex_to_u32 (&iv_pos[ 8]);
+  electrum_wallet->iv[2] = hex_to_u32 (&iv_pos[16]);
+  electrum_wallet->iv[3] = hex_to_u32 (&iv_pos[24]);
 
   // encrypted
 
   const u8 *encrypted_pos = token.buf[3];
 
-  electrum_wallet->encrypted[0] = hex_to_u32 ((const u8 *) &encrypted_pos[ 0]);
-  electrum_wallet->encrypted[1] = hex_to_u32 ((const u8 *) &encrypted_pos[ 8]);
-  electrum_wallet->encrypted[2] = hex_to_u32 ((const u8 *) &encrypted_pos[16]);
-  electrum_wallet->encrypted[3] = hex_to_u32 ((const u8 *) &encrypted_pos[24]);
+  electrum_wallet->encrypted[0] = hex_to_u32 (&encrypted_pos[ 0]);
+  electrum_wallet->encrypted[1] = hex_to_u32 (&encrypted_pos[ 8]);
+  electrum_wallet->encrypted[2] = hex_to_u32 (&encrypted_pos[16]);
+  electrum_wallet->encrypted[3] = hex_to_u32 (&encrypted_pos[24]);
 
   // salt fake
 

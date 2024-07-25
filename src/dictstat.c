@@ -94,10 +94,14 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   if (dictstat_ctx->enabled == false) return;
 
   if (hashconfig->dictstat_disable == true) return;
+
+  if (user_options->rule_buf_l_chgd == true) return;
+  if (user_options->rule_buf_r_chgd == true) return;
 
   HCFILE fp;
 
@@ -182,10 +186,14 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   if (dictstat_ctx->enabled == false) return 0;
 
   if (hashconfig->dictstat_disable == true) return 0;
+
+  if (user_options->rule_buf_l_chgd == true) return 0;
+  if (user_options->rule_buf_r_chgd == true) return 0;
 
   HCFILE fp;
 

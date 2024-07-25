@@ -48,7 +48,7 @@ kern_return_t hm_IOKIT_SMCOpen (void *hashcat_ctx, io_connect_t *conn)
 
   CFMutableDictionaryRef matchingDictionary = IOServiceMatching ("AppleSMC");
 
-  result = IOServiceGetMatchingServices (kIOMasterPortDefault, matchingDictionary, &iterator);
+  result = IOServiceGetMatchingServices (hc_IOMasterPortDefault, matchingDictionary, &iterator);
 
   if (result != kIOReturnSuccess)
   {
@@ -231,7 +231,7 @@ int hm_IOKIT_get_utilization_current (void *hashcat_ctx, int *utilization)
 
   CFMutableDictionaryRef matching = IOServiceMatching ("IOAccelerator");
 
-  if (IOServiceGetMatchingServices (kIOMasterPortDefault, matching, &iterator) != kIOReturnSuccess)
+  if (IOServiceGetMatchingServices (hc_IOMasterPortDefault, matching, &iterator) != kIOReturnSuccess)
   {
     event_log_error (hashcat_ctx, "IOServiceGetMatchingServices(): failure");
 

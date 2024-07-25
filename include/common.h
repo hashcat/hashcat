@@ -76,7 +76,7 @@
 #endif
 
 /* The C++ standard denies redefinition of keywords,
-but this is nededed for VS compiler which doesn't have inline keyword but has __inline
+but this is needed for VS compiler which doesn't have inline keyword but has __inline
 */
 #ifndef __cplusplus
 #if defined (_MSC_VER)
@@ -131,7 +131,7 @@ but this is nededed for VS compiler which doesn't have inline keyword but has __
 
 #define CPT_CACHE           0x20000
 #define PARAMCNT            64
-#define DEVICES_MAX         128
+#define DEVICES_MAX         256
 #define EXEC_CACHE          128
 #define SPEED_CACHE         4096
 #define SPEED_MAXAGE        4096

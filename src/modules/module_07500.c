@@ -216,8 +216,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const krb5pa_t *krb5pa = (const krb5pa_t *) esalt_buf;
 
-  u8 *ptr_timestamp = (u8 *) krb5pa->timestamp;
-  u8 *ptr_checksum  = (u8 *) krb5pa->checksum;
+  const u8 *ptr_timestamp = (const u8 *) krb5pa->timestamp;
+  const u8 *ptr_checksum  = (const u8 *) krb5pa->checksum;
 
   char data[128] = { 0 };
 
@@ -225,21 +225,21 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0; i < 36; i++, ptr_data += 2)
   {
-    sprintf (ptr_data, "%02x", ptr_timestamp[i]);
+    snprintf (ptr_data, 3, "%02x", ptr_timestamp[i]);
   }
 
   for (u32 i = 0; i < 16; i++, ptr_data += 2)
   {
-    sprintf (ptr_data, "%02x", ptr_checksum[i]);
+    snprintf (ptr_data, 3, "%02x", ptr_checksum[i]);
   }
 
   *ptr_data = 0;
 
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%s$%s",
     SIGNATURE_KRB5PA,
-    (char *) krb5pa->user,
-    (char *) krb5pa->realm,
-    (char *) krb5pa->salt,
+    (const char *) krb5pa->user,
+    (const char *) krb5pa->realm,
+    (const char *) krb5pa->salt,
     data);
 
   return line_len;

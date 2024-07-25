@@ -1,6 +1,10 @@
 static const uint MaxVolumes=65535;
 
-RecVolumes5::RecVolumes5(RAROptions *Cmd,bool TestOnly)
+// We select this limit arbitrarily, to prevent user creating too many
+// rev files by mistake.
+#define MAX_REV_TO_DATA_RATIO 10 // 1000% of rev files.
+
+RecVolumes5::RecVolumes5(CommandData *Cmd,bool TestOnly)
 {
   RealBuf=NULL;
   RealReadBuffer=NULL;
@@ -66,7 +70,7 @@ THREAD_PROC(RecThreadRS)
 #endif
 
 
-void RecVolumes5::ProcessRS(RAROptions *Cmd,uint DataNum,const byte *Data,uint MaxRead,bool Encode)
+void RecVolumes5::ProcessRS(CommandData *Cmd,uint DataNum,const byte *Data,uint MaxRead,bool Encode)
 {
 /*
   RSCoder16 RS;
@@ -137,7 +141,7 @@ void RecVolumes5::ProcessAreaRS(RecRSThreadData *td)
 
 
 
-bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
+bool RecVolumes5::Restore(CommandData *Cmd,const wchar *Name,bool Silent)
 {
   wchar ArcName[NM];
   wcsncpyz(ArcName,Name,ASIZE(ArcName));
@@ -145,12 +149,15 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
   wchar *Num=GetVolNumPart(ArcName);
   while (Num>ArcName && IsDigit(*(Num-1)))
     Num--;
-  if (Num==ArcName)
+  if (Num<=PointToName(ArcName))
     return false; // Numeric part is missing or entire volume name is numeric, not possible for RAR or REV volume.
   wcsncpyz(Num,L"*.*",ASIZE(ArcName)-(Num-ArcName));
   
   wchar FirstVolName[NM];
   *FirstVolName=0;
+
+  wchar LongestRevName[NM];
+  *LongestRevName=0;
 
   int64 RecFileSize=0;
 
@@ -164,7 +171,7 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
 
     Archive *Vol=new Archive(Cmd);
     int ItemPos=-1;
-    if (Vol->WOpen(fd.Name))
+    if (!fd.IsDir && Vol->WOpen(fd.Name))
     {
       if (CmpExt(fd.Name,L"rev"))
       {
@@ -176,6 +183,9 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
 
           ItemPos=RecNum;
           FoundRecVolumes++;
+
+          if (wcslen(fd.Name)>wcslen(LongestRevName))
+            wcsncpyz(LongestRevName,fd.Name,ASIZE(LongestRevName));
         }
       }
       else
@@ -230,6 +240,15 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
     uiMsg(UIMSG_RECVOLFOUND,FoundRecVolumes);
   if (FoundRecVolumes==0)
     return false;
+
+  // If we did not find even a single .rar volume, create .rar volume name
+  // based on the longest .rev file name. Use longest .rev, so we have
+  // enough space for volume number.
+  if (*FirstVolName==0)
+  {
+    SetExt(LongestRevName,L"rar",ASIZE(LongestRevName));
+    VolNameToFirstName(LongestRevName,FirstVolName,ASIZE(FirstVolName),true);
+  }
 
   uiMsg(UIMSG_RECVOLCALCCHECKSUM);
 
@@ -301,7 +320,7 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       Item->f=NULL;
     }
 
-    if ((Item->New=(Item->f==NULL))) // Additional parentheses to avoid GCC warning.
+    if ((Item->New=(Item->f==NULL))==true)
     {
       wcsncpyz(Item->Name,FirstVolName,ASIZE(Item->Name));
       uiMsg(UIMSG_CREATING,Item->Name);
@@ -316,7 +335,6 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       }
       NewVol->Prealloc(Item->FileSize);
       Item->f=NewVol;
-      Item->New=true;
     }
     NextVolumeName(FirstVolName,ASIZE(FirstVolName),false);
   }
@@ -346,13 +364,11 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
   RecBufferSize&=~(SSE_ALIGNMENT-1); // Align for SSE.
 #endif
 
-  uint *Data=new uint[TotalCount];
-
   RSCoder16 RS;
   if (!RS.Init(DataCount,RecCount,ValidFlags))
   {
+    uiMsg(UIERROR_OPFAILED);
     delete[] ValidFlags;
-    delete[] Data;
     return false; // Should not happen, we check parameter validity above.
   }
 
@@ -415,7 +431,6 @@ bool RecVolumes5::Restore(RAROptions *Cmd,const wchar *Name,bool Silent)
       RecItems[I].f->Close();
 
   delete[] ValidFlags;
-  delete[] Data;
 #if !defined(SILENT)
   if (!Cmd->DisablePercentage)
     mprintf(L"\b\b\b\b100%%");
@@ -479,7 +494,7 @@ uint RecVolumes5::ReadHeader(File *RecFile,bool FirstRev)
 }
 
 
-void RecVolumes5::Test(RAROptions *Cmd,const wchar *Name)
+void RecVolumes5::Test(CommandData *Cmd,const wchar *Name)
 {
   wchar VolName[NM];
   wcsncpyz(VolName,Name,ASIZE(VolName));

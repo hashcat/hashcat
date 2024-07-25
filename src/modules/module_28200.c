@@ -362,7 +362,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+  tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
 
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
@@ -377,7 +377,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  tmp_len = base64_decode (base64_to_int, (const u8 *) iv_pos, iv_len, tmp_buf);
+  tmp_len = base64_decode (base64_to_int, iv_pos, iv_len, tmp_buf);
 
   memcpy (exodus->iv, tmp_buf, tmp_len);
 
@@ -390,7 +390,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  tmp_len = base64_decode (base64_to_int, (const u8 *) data_pos, data_len, tmp_buf);
+  tmp_len = base64_decode (base64_to_int, data_pos, data_len, tmp_buf);
 
   memcpy (exodus->data, tmp_buf, tmp_len);
 
@@ -403,7 +403,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  tmp_len = base64_decode (base64_to_int, (const u8 *) tag_pos, tag_len, tmp_buf);
+  tmp_len = base64_decode (base64_to_int, tag_pos, tag_len, tmp_buf);
 
   memcpy (exodus->tag, tmp_buf, tmp_len);
 

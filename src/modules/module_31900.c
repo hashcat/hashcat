@@ -26,7 +26,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
-static const char *ST_HASH        = "$metamaskMobile$MjU1NTA5MTU2ODY5MjY4OQ==$3cccb51c401e54abc82987fd9310a8d3$WQhIECN0blOaV31RC3lKfQ==";
+static const char *ST_HASH        = "$metamaskMobile$JV4j2dUDl7n+sujyqW3Wvg==$398f9b04c822d36bfcbdd1e68c82d1e8$auj3J2TwOZ4ev3UIGmNa7VXLh0Nmzr3rDbpXRRrONr4=";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -58,7 +58,7 @@ typedef struct pbkdf2_sha512_aes_cbc
   u32 salt_buf[64];
   u32 iv_buf[4];
   u32 iv_len;
-  u32 ct_buf[4];
+  u32 ct_buf[8];
   u32 ct_len;
 
 } pbkdf2_sha512_aes_cbc_t;
@@ -153,7 +153,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '$';
-  token.len[3]     = 24;
+  token.len[3]     = 44;
   token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
@@ -200,13 +200,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *ct_pos = token.buf[3];
   const int ct_len = token.len[3];
 
-  u8 tmp_buf[24+1];
+  u8 tmp_buf[44+1];
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
   tmp_len = base64_decode (base64_to_int, ct_pos, ct_len, tmp_buf);
 
-  if (tmp_len != 16) return (PARSER_CT_LENGTH);
+  if (tmp_len != 32) return (PARSER_CT_LENGTH);
 
   memcpy ((u8 *) metamask->ct_buf, tmp_buf, tmp_len);
 
@@ -214,6 +214,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   metamask->ct_buf[1] = byte_swap_32 (metamask->ct_buf[1]);
   metamask->ct_buf[2] = byte_swap_32 (metamask->ct_buf[2]);
   metamask->ct_buf[3] = byte_swap_32 (metamask->ct_buf[3]);
+  metamask->ct_buf[4] = byte_swap_32 (metamask->ct_buf[4]);
+  metamask->ct_buf[5] = byte_swap_32 (metamask->ct_buf[5]);
+  metamask->ct_buf[6] = byte_swap_32 (metamask->ct_buf[6]);
+  metamask->ct_buf[7] = byte_swap_32 (metamask->ct_buf[7]);
 
   metamask->ct_len = tmp_len / 4;
 
@@ -229,8 +233,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const u32 *digest = (const u32 *) digest_buf;
-
   pbkdf2_sha512_aes_cbc_t *metamask = (pbkdf2_sha512_aes_cbc_t *) esalt_buf;
 
   // salt
@@ -250,14 +252,18 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // ct
 
-  u32 tmp_buf[4];
+  u32 tmp_buf[8];
 
-  tmp_buf[0] = byte_swap_32 (digest[0]);
-  tmp_buf[1] = byte_swap_32 (digest[1]);
-  tmp_buf[2] = byte_swap_32 (digest[2]);
-  tmp_buf[3] = byte_swap_32 (digest[3]);
+  tmp_buf[0] = byte_swap_32 (metamask->ct_buf[0]);
+  tmp_buf[1] = byte_swap_32 (metamask->ct_buf[1]);
+  tmp_buf[2] = byte_swap_32 (metamask->ct_buf[2]);
+  tmp_buf[3] = byte_swap_32 (metamask->ct_buf[3]);
+  tmp_buf[4] = byte_swap_32 (metamask->ct_buf[4]);
+  tmp_buf[5] = byte_swap_32 (metamask->ct_buf[5]);
+  tmp_buf[6] = byte_swap_32 (metamask->ct_buf[6]);
+  tmp_buf[7] = byte_swap_32 (metamask->ct_buf[7]);
 
-  u8 ct_buf[24+1];
+  u8 ct_buf[44+1];
 
   memset (ct_buf, 0, sizeof (ct_buf));
 

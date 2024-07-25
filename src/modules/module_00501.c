@@ -107,7 +107,7 @@ static void juniper_decrypt_hash (const u8 *in, const int in_len, u8 *out)
 
   u8 base64_buf[100] = { 0 };
 
-  base64_decode (base64_to_int, (const u8 *) in, in_len, base64_buf);
+  base64_decode (base64_to_int, in, in_len, base64_buf);
 
   // iv stuff
 

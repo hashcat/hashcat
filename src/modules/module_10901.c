@@ -165,7 +165,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  const pbkdf2_sha256_t *pbkdf2_sha256 = (pbkdf2_sha256_t *) esalt_buf;
+  const pbkdf2_sha256_t *pbkdf2_sha256 = (const pbkdf2_sha256_t *) esalt_buf;
 
   u32 tmp_digest[64];
 

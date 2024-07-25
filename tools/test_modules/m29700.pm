@@ -243,14 +243,32 @@ sub module_generate_hash
     $final_algorithm = "Crypt::Rijndael";
   }
 
-  my $cipher = Crypt::CBC->new ({
+  my $cipher;
+
+  if ($version == 1)
+  {
+    $cipher = Crypt::CBC->new ({
                  key         => $final_key,
                  cipher      => $final_algorithm,
                  iv          => $enc_iv,
                  literal_key => 1,
                  header      => "none",
+                 padding     => "standard",
                  keysize     => 32
                });
+  }
+  else
+  {
+    $cipher = Crypt::CBC->new ({
+                 key         => $final_key,
+                 cipher      => $final_algorithm,
+                 iv          => $enc_iv,
+                 literal_key => 1,
+                 header      => "none",
+                 padding     => "none",
+                 keysize     => 32
+               });
+  }
 
   my $hash;
 

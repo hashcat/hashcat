@@ -293,7 +293,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     secondBlockData[0] = '*';
 
-    u8 *ptr = (u8 *) oldoffice34->secondBlockData;
+    const u8 *ptr = (const u8 *) oldoffice34->secondBlockData;
 
     for (int i = 0, j = 1; i < 32; i += 1, j += 2)
     {

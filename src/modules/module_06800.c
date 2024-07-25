@@ -175,7 +175,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   lastpass_t *lastpass = (lastpass_t *) esalt_buf;
 
-  const int iv_size = hex_decode ((const u8 *) token.buf[3], token.len[3], (u8 *) lastpass->iv);
+  const int iv_size = hex_decode (token.buf[3], token.len[3], (u8 *) lastpass->iv);
 
   if (iv_size != sizeof (lastpass->iv)) return (PARSER_IV_LENGTH);
 

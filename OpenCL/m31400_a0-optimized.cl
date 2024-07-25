@@ -496,7 +496,7 @@ KERNEL_FQ void m31400_m04 (KERN_ATTR_RULES_ESALT (scrtv2_t))
     we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, SHA256C3e);
     wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, SHA256C3f);
 
-    u32x digest[8]; 
+    u32x digest[8];
 
     digest[0] = a + make_u32x (SHA256M_A);
     digest[1] = b + make_u32x (SHA256M_B);
@@ -725,7 +725,7 @@ KERNEL_FQ void m31400_s04 (KERN_ATTR_RULES_ESALT (scrtv2_t))
     we_t = SHA256_EXPAND (wc_t, w7_t, wf_t, we_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, c, d, e, f, g, h, a, b, we_t, SHA256C3e);
     wf_t = SHA256_EXPAND (wd_t, w8_t, w0_t, wf_t); SHA256_STEP (SHA256_F0o, SHA256_F1o, b, c, d, e, f, g, h, a, wf_t, SHA256C3f);
 
-    u32x digest[8]; 
+    u32x digest[8];
 
     digest[0] = a + make_u32x (SHA256M_A);
     digest[1] = b + make_u32x (SHA256M_B);

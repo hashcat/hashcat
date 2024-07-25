@@ -140,7 +140,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // hash
 
-  hex_decode ((const u8 *) token.buf[4], 40, (u8 *) digest);
+  hex_decode (token.buf[4], 40, (u8 *) digest);
 
   return (PARSER_OK);
 }
@@ -159,7 +159,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len += 1;
 
-  out_len += hex_encode ((const u8 *) digest, 20, (u8 *) out_buf + out_len);
+  out_len += hex_encode ((const u8 *) digest, 20, out_buf + out_len);
 
   return out_len;
 }

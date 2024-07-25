@@ -250,6 +250,8 @@ GeForce_RTX_3080_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_3090                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_3090_Ti                             ALIAS_nv_sm50_or_higher
 
+GeForce_RTX_4060                                ALIAS_nv_sm50_or_higher
+GeForce_RTX_4060_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_4070                                ALIAS_nv_sm50_or_higher
 GeForce_RTX_4070_Ti                             ALIAS_nv_sm50_or_higher
 GeForce_RTX_4080                                ALIAS_nv_sm50_or_higher
@@ -260,6 +262,43 @@ GeForce_RTX_4090                                ALIAS_nv_sm50_or_higher
 ##
 ## Unmapped GPU
 ##
+
+Radeon_RX_460                                   ALIAS_AMD_GCN4
+Radeon_RX_470                                   ALIAS_AMD_GCN4
+Radeon_RX_480                                   ALIAS_AMD_GCN4
+Radeon_RX_550                                   ALIAS_AMD_GCN4
+Radeon_RX_560                                   ALIAS_AMD_GCN4
+Radeon_RX_570                                   ALIAS_AMD_GCN4
+Radeon_RX_580                                   ALIAS_AMD_GCN4
+Radeon_RX_590                                   ALIAS_AMD_GCN4
+Radeon_RX_590_GME                               ALIAS_AMD_GCN4
+
+Radeon_RX_5500                                  ALIAS_AMD_RDNA
+Radeon_RX_5500_XT                               ALIAS_AMD_RDNA
+Radeon_RX_5600                                  ALIAS_AMD_RDNA
+Radeon_RX_5600_XT                               ALIAS_AMD_RDNA
+Radeon_RX_5700                                  ALIAS_AMD_RDNA
+Radeon_RX_5700_XT                               ALIAS_AMD_RDNA
+
+Radeon_RX_6500_XT                               ALIAS_AMD_RDNA2
+Radeon_RX_6600                                  ALIAS_AMD_RDNA2
+Radeon_RX_6600_XT                               ALIAS_AMD_RDNA2
+Radeon_RX_6650_XT                               ALIAS_AMD_RDNA2
+Radeon_RX_6700                                  ALIAS_AMD_RDNA2
+Radeon_RX_6700_XT                               ALIAS_AMD_RDNA2
+Radeon_RX_6750_GRE                              ALIAS_AMD_RDNA2
+Radeon_RX_6750_XT                               ALIAS_AMD_RDNA2
+Radeon_RX_6800                                  ALIAS_AMD_RDNA2
+Radeon_RX_6800_XT                               ALIAS_AMD_RDNA2
+Radeon_RX_6900_XT                               ALIAS_AMD_RDNA2
+Radeon_RX_6950_XT                               ALIAS_AMD_RDNA2
+
+Radeon_RX_7600                                  ALIAS_AMD_RDNA3
+Radeon_RX_7700_XT                               ALIAS_AMD_RDNA3
+Radeon_RX_7800_XT                               ALIAS_AMD_RDNA3
+Radeon_RX_7900_XT                               ALIAS_AMD_RDNA3
+Radeon_RX_7900_XTX                              ALIAS_AMD_RDNA3
+Radeon_RX_7900_GRE                              ALIAS_AMD_RDNA3
 
 Radeon_(TM)_RX_480_Graphics                     ALIAS_AMD_RX480
 

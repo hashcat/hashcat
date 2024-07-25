@@ -109,10 +109,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *session_ptr = (u8 *) tacacs_plus->session_buf;
 
-  session_ptr[0] = hex_to_u8 ((const u8 *) session_pos + 0);
-  session_ptr[1] = hex_to_u8 ((const u8 *) session_pos + 2);
-  session_ptr[2] = hex_to_u8 ((const u8 *) session_pos + 4);
-  session_ptr[3] = hex_to_u8 ((const u8 *) session_pos + 6);
+  session_ptr[0] = hex_to_u8 (session_pos + 0);
+  session_ptr[1] = hex_to_u8 (session_pos + 2);
+  session_ptr[2] = hex_to_u8 (session_pos + 4);
+  session_ptr[3] = hex_to_u8 (session_pos + 6);
 
   // ct_buf
 
@@ -123,7 +123,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; j < ct_buf_len; i += 1, j += 2)
   {
-    ct_data_ptr[i] = hex_to_u8 ((const u8 *) &ct_buf_pos[j]);
+    ct_data_ptr[i] = hex_to_u8 (&ct_buf_pos[j]);
 
     tacacs_plus->ct_data_len++;
   }
@@ -134,8 +134,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *sequence_ptr = (u8 *) tacacs_plus->sequence_buf;
 
-  sequence_ptr[0] = hex_to_u8 ((const u8 *) sequence_pos + 0);
-  sequence_ptr[1] = hex_to_u8 ((const u8 *) sequence_pos + 2);
+  sequence_ptr[0] = hex_to_u8 (sequence_pos + 0);
+  sequence_ptr[1] = hex_to_u8 (sequence_pos + 2);
 
   // fake salt
 
@@ -166,7 +166,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0, j = 0; i < tacacs_plus->ct_data_len; i += 1, j += 2)
   {
-    sprintf (ct_data + j, "%02x", ct_data_ptr[i]);
+    snprintf (ct_data + j, 3, "%02x", ct_data_ptr[i]);
   }
 
   const u8 *session_ptr  = (const u8 *) tacacs_plus->session_buf;

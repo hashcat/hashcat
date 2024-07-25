@@ -69,8 +69,8 @@ DECLSPEC bool b58dec (PRIVATE_AS u8 *bin, PRIVATE_AS u32 *binszp, PRIVATE_AS con
 {
   u32 binsz = *binszp;
 
-  PRIVATE_AS const u8 *b58u = (PRIVATE_AS u8*) b58;
-  PRIVATE_AS       u8 *binu = (PRIVATE_AS u8*) bin;
+  PRIVATE_AS const u8 *b58u = b58;
+  PRIVATE_AS       u8 *binu = bin;
 
   u32 outisz = (binsz + sizeof (u32) - 1) / sizeof (u32);
 
@@ -144,7 +144,7 @@ DECLSPEC bool b58dec (PRIVATE_AS u8 *bin, PRIVATE_AS u32 *binszp, PRIVATE_AS con
 
   // Count canonical base58 byte count
 
-  binu = (PRIVATE_AS u8*) bin;
+  binu = bin;
 
   for (u32 i = 0; i < binsz; i++)
   {
@@ -255,7 +255,7 @@ DECLSPEC bool b58check (PRIVATE_AS const u8 *bin, PRIVATE_AS const u32 binsz)
   u32 data[64] = { 0 }; // 64 * 4 = 256 bytes (should be enough)
 
   PRIVATE_AS u8 *datac = (PRIVATE_AS u8*) data;
-  PRIVATE_AS u8 *binc  = (PRIVATE_AS u8*) bin;
+  PRIVATE_AS const u8 *binc  = bin;
 
   if (binsz <   4) return false;
   if (binsz > 256) return false;
@@ -288,7 +288,7 @@ DECLSPEC bool b58check (PRIVATE_AS const u8 *bin, PRIVATE_AS const u32 binsz)
   ctx.h[0] = hc_swap32_S (ctx.h[0]);
 
   PRIVATE_AS u8 *ph4 = (PRIVATE_AS u8*) ctx.h;
-  PRIVATE_AS u8 *sum = (PRIVATE_AS u8*) (binc + (binsz - 4)); // offset: binsz - 4, last 4 bytes
+  PRIVATE_AS const u8 *sum = (binc + (binsz - 4)); // offset: binsz - 4, last 4 bytes
 
   if (ph4[0] != sum[0]) return false;
   if (ph4[1] != sum[1]) return false;
@@ -547,7 +547,7 @@ DECLSPEC bool b58check_38 (PRIVATE_AS const u32 *bin)
 
 DECLSPEC bool b58enc (PRIVATE_AS u8 *b58, PRIVATE_AS u32 *b58sz, PRIVATE_AS const u8 *data, PRIVATE_AS const u32 binsz)
 {
-  PRIVATE_AS const u8 *bin = (PRIVATE_AS u8 *) data;
+  PRIVATE_AS const u8 *bin = data;
 
   int carry;
   u32 j      = 0;
@@ -578,7 +578,7 @@ DECLSPEC bool b58enc (PRIVATE_AS u8 *b58, PRIVATE_AS u32 *b58sz, PRIVATE_AS cons
 
   j = 0;
 
-  for (; j < (size && !buf[j]); j++) {}
+  for (; j < size && !buf[j]; j++) {}
 
   if (*b58sz <= zcount + size - j)
   {
@@ -609,7 +609,7 @@ DECLSPEC bool b58check_enc (PRIVATE_AS u8 *b58c, PRIVATE_AS u32 *b58c_sz, PRIVAT
   u8   buf[128] = { 0 };
 
   PRIVATE_AS u32 *buf32 = (PRIVATE_AS u32*) buf;
-  PRIVATE_AS u8  *data8 = (PRIVATE_AS u8 *) data;
+  PRIVATE_AS const u8  *data8 = data;
 
   PRIVATE_AS u8  *hash  = &buf[1 + datasz];
 
@@ -641,7 +641,7 @@ DECLSPEC bool b58check_enc (PRIVATE_AS u8 *b58c, PRIVATE_AS u32 *b58c_sz, PRIVAT
 
   for (u32 i = 0; i < 4; i++)
   {
-    ((PRIVATE_AS u8 *) hash)[i] = ((PRIVATE_AS u8 *) ctx.h)[i];
+    (hash)[i] = ((PRIVATE_AS u8 *) ctx.h)[i];
   }
 
   return b58enc (b58c, b58c_sz, buf, 1 + datasz + 4);

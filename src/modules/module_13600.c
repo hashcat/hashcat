@@ -245,8 +245,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     if (salt_len != 16) return (PARSER_SALT_VALUE);
 
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
+    zip2->salt_buf[0] = hex_to_u32 (&salt_pos[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 (&salt_pos[ 8]);
     zip2->salt_buf[2] = 0;
     zip2->salt_buf[3] = 0;
 
@@ -256,9 +256,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     if (salt_len != 24) return (PARSER_SALT_VALUE);
 
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
-    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
+    zip2->salt_buf[0] = hex_to_u32 (&salt_pos[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 (&salt_pos[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 (&salt_pos[16]);
     zip2->salt_buf[3] = 0;
 
     zip2->salt_len = 12;
@@ -267,10 +267,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     if (salt_len != 32) return (PARSER_SALT_VALUE);
 
-    zip2->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[ 0]);
-    zip2->salt_buf[1] = hex_to_u32 ((const u8 *) &salt_pos[ 8]);
-    zip2->salt_buf[2] = hex_to_u32 ((const u8 *) &salt_pos[16]);
-    zip2->salt_buf[3] = hex_to_u32 ((const u8 *) &salt_pos[24]);
+    zip2->salt_buf[0] = hex_to_u32 (&salt_pos[ 0]);
+    zip2->salt_buf[1] = hex_to_u32 (&salt_pos[ 8]);
+    zip2->salt_buf[2] = hex_to_u32 (&salt_pos[16]);
+    zip2->salt_buf[3] = hex_to_u32 (&salt_pos[24]);
 
     zip2->salt_len = 16;
   }
@@ -358,7 +358,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     const u8 *ptr = (const u8 *) zip2->salt_buf;
 
-    sprintf (salt_tmp + j, "%02x", ptr[i]);
+    snprintf (salt_tmp + j, 3, "%02x", ptr[i]);
   }
 
   const u32 data_len = zip2->data_len;
@@ -369,7 +369,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     const u8 *ptr = (const u8 *) zip2->data_buf;
 
-    sprintf (data_tmp + j, "%02x", ptr[i]);
+    snprintf (data_tmp + j, 3, "%02x", ptr[i]);
   }
 
   const u32 auth_len = zip2->auth_len;
@@ -380,7 +380,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     const u8 *ptr = (const u8 *) zip2->auth_buf;
 
-    sprintf (auth_tmp + j, "%02x", ptr[i]);
+    snprintf (auth_tmp + j, 3, "%02x", ptr[i]);
   }
 
   const int line_len = snprintf (line_buf, line_size, "%s*%u*%u*%u*%s*%x*%x*%s*%s*%s",

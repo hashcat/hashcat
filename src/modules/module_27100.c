@@ -212,7 +212,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[3] = hex_to_u32 (hash_pos + 24);
 
   /**
-   * reuse challange data as salt_buf, its the buffer that is most likely unique
+   * reuse challenge data as salt_buf, its the buffer that is most likely unique
    */
 
   salt->salt_buf[0] = 0;
@@ -265,9 +265,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int out_len = 0;
 
-  u8 *ptr;
+  const u8 *ptr;
 
-  ptr = (u8 *) netntlm->userdomain_buf;
+  ptr = (const u8 *) netntlm->userdomain_buf;
 
   for (int i = 0; i < netntlm->user_len; i += 2)
   {
@@ -286,7 +286,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_buf[out_len++] = ':';
 
-  ptr = (u8 *) netntlm->chall_buf;
+  ptr = (const u8 *) netntlm->chall_buf;
 
   for (int i = 0; i < netntlm->srvchall_len; i++)
   {

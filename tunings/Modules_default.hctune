@@ -45,6 +45,7 @@ ALIAS_nv_real_simd                              3       11100   2       A       
 ALIAS_nv_real_simd                              3       11900   2       A       A
 ALIAS_nv_real_simd                              3       13300   4       A       A
 ALIAS_nv_real_simd                              3       18700   8       A       A
+ALIAS_nv_real_simd                              3       99999   4       A       A
 
 ALIAS_nv_sm50_or_higher                         3       0       8       A       A
 ALIAS_nv_sm50_or_higher                         3       10      8       A       A
@@ -68,6 +69,7 @@ ALIAS_nv_sm50_or_higher                         3       5500    2       A       
 ALIAS_nv_sm50_or_higher                         3       9900    4       A       A
 ALIAS_nv_sm50_or_higher                         3       16400   8       A       A
 ALIAS_nv_sm50_or_higher                         3       18700   8       A       A
+ALIAS_nv_sm50_or_higher                         3       99999   8       A       A
 
 ##
 ## CryptoAPI

@@ -77,6 +77,16 @@ typedef struct snmpv3
 
 } snmpv3_t;
 
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
+  {
+    return true;
+  }
+
+  return false;
+}
+
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 esalt_size = (const u64) sizeof (snmpv3_t);
@@ -163,7 +173,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (snmpv3->packet_number, 0, sizeof (snmpv3->packet_number));
 
-  strncpy ((char *) snmpv3->packet_number, (char *) packet_number_pos, packet_number_len);
+  strncpy ((char *) snmpv3->packet_number, (const char *) packet_number_pos, packet_number_len);
 
   // salt
 
@@ -215,19 +225,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  snmpv3_t *snmpv3 = (snmpv3_t *) esalt_buf;
+  const snmpv3_t *snmpv3 = (const snmpv3_t *) esalt_buf;
 
   u8 *out_buf = (u8 *) line_buf;
 
-  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (char *) snmpv3->packet_number);
+  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (const char *) snmpv3->packet_number);
 
-  out_len += hex_encode ((u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 
   out_len++;
 
-  out_len += hex_encode ((u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 
@@ -318,6 +328,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

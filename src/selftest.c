@@ -1048,7 +1048,7 @@ HC_API_CALL void *thread_selftest (void *p)
 
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->self_test_disable == true) return NULL;
+  if (user_options->self_test == false) return NULL;
 
   hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
 

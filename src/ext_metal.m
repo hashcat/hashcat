@@ -47,7 +47,7 @@ static bool iokit_getGPUCore (void *hashcat_ctx, int *gpu_core)
 
   CFMutableDictionaryRef matching = IOServiceMatching ("IOAccelerator");
 
-  io_service_t service = IOServiceGetMatchingService (kIOMasterPortDefault, matching);
+  io_service_t service = IOServiceGetMatchingService (hc_IOMasterPortDefault, matching);
 
   if (!service)
   {

@@ -4,7 +4,7 @@
 #
 # 1. For example, to find the value for 15700, first create a valid hash for 15700 as follows:
 #
-# $ ./hashcat --example-hashes -m 15700 | grep Example.Hash | grep -v Format | cut -b 25- > tmp.hash.15700
+# $ ./hashcat --example-hashes --mach -m 15700 | grep -Eo '\$ethereum\$s[*a-f0-9]{1,}' > tmp.hash.15700
 #
 # 2. Now let it iterate through all -n values to a certain point. In this case, I'm using 200, but in general it's a value that is at least twice that of the multiprocessor. If you don't mind you can just leave it as it is, it just runs a little longer.
 #

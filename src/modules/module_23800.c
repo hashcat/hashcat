@@ -293,10 +293,10 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
   rar3_hook_t *hook_items = (rar3_hook_t *) device_param->hooks_buf;
   rar3_hook_t *hook_item  = &hook_items[pw_pos];
 
-  rar3_hook_salt_t *rar3s = (rar3_hook_salt_t *) hook_salts_buf;
-  rar3_hook_salt_t *rar3  = &rar3s[salt_pos];
+  const rar3_hook_salt_t *rar3s = (const rar3_hook_salt_t *) hook_salts_buf;
+  const rar3_hook_salt_t *rar3  = &rar3s[salt_pos];
 
-  rar3_hook_extra_t *rar3_hook_extra = (rar3_hook_extra_t *) hook_extra_param;
+  const rar3_hook_extra_t *rar3_hook_extra = (const rar3_hook_extra_t *) hook_extra_param;
 
   const unsigned int pack_size   = (const unsigned int) rar3->pack_size;
   const unsigned int unpack_size = (const unsigned int) rar3->unpack_size;
@@ -323,7 +323,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
     }
   }
 
-  const u8 *data = (u8 *) rar3->data;
+  const u8 *data = (const u8 *) rar3->data;
 
   const u8 *key = (u8 *) hook_item->key;
   const u8 *iv  = (u8 *) hook_item->iv;
@@ -356,7 +356,7 @@ u64 module_hook_extra_param_size (MAYBE_UNUSED const hashconfig_t *hashconfig, M
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const bool optimized_kernel = user_options->optimized_kernel_enable;
+  const bool optimized_kernel = user_options->optimized_kernel;
 
   u64 tmp_size = (u64) sizeof (rar3_tmp_t);
 
@@ -567,7 +567,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  rar3_hook_salt_t *rar3_hook_salt = (rar3_hook_salt_t *) hook_salt_buf;
+  const rar3_hook_salt_t *rar3_hook_salt = (const rar3_hook_salt_t *) hook_salt_buf;
 
   const u32 data_len = rar3_hook_salt->pack_size;
 

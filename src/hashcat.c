@@ -547,7 +547,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (module_ctx->module_deprecated_notice != MODULE_DEFAULT)
   {
-    if (user_options->deprecated_check_disable == false)
+    if (user_options->deprecated_check == true)
     {
       if ((user_options->show == true) || (user_options->left == true))
       {
@@ -615,7 +615,7 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
    * potfile removes
    */
 
-  if (user_options->potfile_disable == false)
+  if (user_options->potfile == true)
   {
     EVENT (EVENT_POTFILE_REMOVE_PARSE_PRE);
 
@@ -1063,8 +1063,8 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
     hashcat_ctx->event = event;
   }
 
-  hashcat_ctx->brain_ctx          = (brain_ctx_t *)           hcmalloc (sizeof (brain_ctx_t));
   hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (sizeof (bitmap_ctx_t));
+  hashcat_ctx->brain_ctx          = (brain_ctx_t *)           hcmalloc (sizeof (brain_ctx_t));
   hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (sizeof (combinator_ctx_t));
   hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             hcmalloc (sizeof (cpt_ctx_t));
   hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       hcmalloc (sizeof (debugfile_ctx_t));
@@ -1098,8 +1098,8 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
 
 void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  hcfree (hashcat_ctx->brain_ctx);
   hcfree (hashcat_ctx->bitmap_ctx);
+  hcfree (hashcat_ctx->brain_ctx);
   hcfree (hashcat_ctx->combinator_ctx);
   hcfree (hashcat_ctx->cpt_ctx);
   hcfree (hashcat_ctx->debugfile_ctx);
@@ -1400,6 +1400,7 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
 
   hashinfo_t *hash_info = (hashinfo_t *) hcmalloc (sizeof (hashinfo_t));
 
+  hash_info->dynamicx = (dynamicx_t *) hcmalloc (sizeof (dynamicx_t));
   hash_info->user = (user_t *) hcmalloc (sizeof (user_t));
   hash_info->orighash = (char *) hcmalloc (256);
   hash_info->split = (split_t *) hcmalloc (sizeof (split_t));

@@ -243,7 +243,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  aescrypt_t *aescrypt = (aescrypt_t *) esalt_buf;
+  const aescrypt_t *aescrypt = (const aescrypt_t *) esalt_buf;
 
   // salt
 

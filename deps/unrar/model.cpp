@@ -532,13 +532,15 @@ inline bool RARPPM_CONTEXT::decodeSymbol2(ModelPPM *Model)
     Model->Coder.SubRange.LowCount=HiCnt;
     Model->Coder.SubRange.HighCount=Model->Coder.SubRange.scale;
     i=NumStats-Model->NumMasked;
-    pps--;
+
+    // 2022.12.02: we removed pps-- here and changed the code below to avoid
+    // "array subscript -1 is outside array bounds" warning in some compilers.
     do 
     { 
-      pps++;
       if (pps>=ps+ASIZE(ps)) // Extra safety check.
         return false;
       Model->CharMask[(*pps)->Symbol]=Model->EscCount; 
+      pps++;
     } while ( --i );
     psee2c->Summ += Model->Coder.SubRange.scale;
     Model->NumMasked = NumStats;
@@ -566,17 +568,14 @@ void ModelPPM::CleanUp()
 }
 
 
-bool ModelPPM::DecodeInit(Unpack *UnpackRead,int &EscChar,byte *hcppm)
+bool ModelPPM::DecodeInit(Unpack *UnpackRead,int &EscChar)
 {
   int MaxOrder=UnpackRead->GetChar();
   bool Reset=(MaxOrder & 0x20)!=0;
 
   int MaxMB;
   if (Reset)
-  {
     MaxMB=UnpackRead->GetChar();
-    if (MaxMB>128) return(false);
-  }
   else
     if (SubAlloc.GetAllocatedMemory()==0)
       return(false);
@@ -593,7 +592,6 @@ bool ModelPPM::DecodeInit(Unpack *UnpackRead,int &EscChar,byte *hcppm)
       SubAlloc.StopSubAllocator();
       return(false);
     }
-    SubAlloc.SetHeapStartFixed(hcppm);
     SubAlloc.StartSubAllocator(MaxMB+1);
     StartModelRare(MaxOrder);
   }

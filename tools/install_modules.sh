@@ -22,6 +22,7 @@ cpan install Authen::Passphrase::LANManager \
              Crypt::CBC                     \
              Crypt::DES                     \
              Crypt::DES_EDE3                \
+             Crypt::Digest::BLAKE2s_256     \
              Crypt::Digest::RIPEMD160       \
              Crypt::Digest::Whirlpool       \
              Crypt::ECB                     \

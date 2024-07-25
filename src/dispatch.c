@@ -247,12 +247,12 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       char rule_buf_out[RP_PASSWORD_SIZE];
 
       int   rule_jk_len = (int)    user_options_extra->rule_len_l;
-      char *rule_jk_buf = (char *) user_options->rule_buf_l;
+      const char *rule_jk_buf = user_options->rule_buf_l;
 
       if (attack_mode == ATTACK_MODE_HYBRID2)
       {
         rule_jk_len = (int)    user_options_extra->rule_len_r;
-        rule_jk_buf = (char *) user_options->rule_buf_r;
+        rule_jk_buf = user_options->rule_buf_r;
       }
 
       if (run_rule_engine (rule_jk_len, rule_jk_buf))
@@ -1426,12 +1426,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             // post-process rule engine
 
             int   rule_jk_len = (int)    user_options_extra->rule_len_l;
-            char *rule_jk_buf = (char *) user_options->rule_buf_l;
+            const char *rule_jk_buf = user_options->rule_buf_l;
 
             if (attack_mode == ATTACK_MODE_HYBRID2)
             {
               rule_jk_len = (int)    user_options_extra->rule_len_r;
-              rule_jk_buf = (char *) user_options->rule_buf_r;
+              rule_jk_buf = user_options->rule_buf_r;
             }
 
             if (run_rule_engine (rule_jk_len, rule_jk_buf))

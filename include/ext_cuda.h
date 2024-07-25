@@ -675,10 +675,10 @@ typedef enum CUjit_option_enum
   CU_JIT_FAST_COMPILE,
 
   /**
-   * Array of device symbol names that will be relocated to the corresponing
+   * Array of device symbol names that will be relocated to the corresponding
    * host addresses stored in ::CU_JIT_GLOBAL_SYMBOL_ADDRESSES.\n
    * Must contain ::CU_JIT_GLOBAL_SYMBOL_COUNT entries.\n
-   * When loding a device module, driver will relocate all encountered
+   * When loading a device module, driver will relocate all encountered
    * unresolved symbols to the host addresses.\n
    * It is only allowed to register symbols that correspond to unresolved
    * global variables.\n
@@ -1022,7 +1022,7 @@ typedef CUresult (CUDA_API_CALL *CUDA_CUCTXPUSHCURRENT)         (CUcontext);
 typedef CUresult (CUDA_API_CALL *CUDA_CUCTXSETCACHECONFIG)      (CUfunc_cache);
 typedef CUresult (CUDA_API_CALL *CUDA_CUCTXSETCURRENT)          (CUcontext);
 typedef CUresult (CUDA_API_CALL *CUDA_CUCTXSETSHAREDMEMCONFIG)  (CUsharedconfig);
-typedef CUresult (CUDA_API_CALL *CUDA_CUCTXSYNCHRONIZE)         ();
+typedef CUresult (CUDA_API_CALL *CUDA_CUCTXSYNCHRONIZE)         (void);
 typedef CUresult (CUDA_API_CALL *CUDA_CUDEVICEGETATTRIBUTE)     (int *, CUdevice_attribute, CUdevice);
 typedef CUresult (CUDA_API_CALL *CUDA_CUDEVICEGETCOUNT)         (int *);
 typedef CUresult (CUDA_API_CALL *CUDA_CUDEVICEGET)              (CUdevice *, int);
@@ -1059,8 +1059,8 @@ typedef CUresult (CUDA_API_CALL *CUDA_CUMODULELOAD)             (CUmodule *, con
 typedef CUresult (CUDA_API_CALL *CUDA_CUMODULELOADDATA)         (CUmodule *, const void *);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMODULELOADDATAEX)       (CUmodule *, const void *, unsigned int, CUjit_option *, void **);
 typedef CUresult (CUDA_API_CALL *CUDA_CUMODULEUNLOAD)           (CUmodule);
-typedef CUresult (CUDA_API_CALL *CUDA_CUPROFILERSTART)          ();
-typedef CUresult (CUDA_API_CALL *CUDA_CUPROFILERSTOP)           ();
+typedef CUresult (CUDA_API_CALL *CUDA_CUPROFILERSTART)          (void);
+typedef CUresult (CUDA_API_CALL *CUDA_CUPROFILERSTOP)           (void);
 typedef CUresult (CUDA_API_CALL *CUDA_CUSTREAMCREATE)           (CUstream *, unsigned int);
 typedef CUresult (CUDA_API_CALL *CUDA_CUSTREAMDESTROY)          (CUstream);
 typedef CUresult (CUDA_API_CALL *CUDA_CUSTREAMSYNCHRONIZE)      (CUstream);

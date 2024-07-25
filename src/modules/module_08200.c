@@ -62,6 +62,11 @@ typedef struct pbkdf2_sha512_tmp
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
+  {
+    return true;
+  }
+
   // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
   if (device_param->is_metal == true)
   {
@@ -237,7 +242,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; i < 512; i += 1, j += 8)
   {
-    sprintf (data_buf + j, "%08x", cloudkey->data_buf[i]);
+    snprintf (data_buf + j, 9, "%08x", cloudkey->data_buf[i]);
   }
 
   data_buf[cloudkey->data_len * 2] = 0;

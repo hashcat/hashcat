@@ -81,7 +81,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
   u32 pw_max = PW_MAX - 4;
 
-  if (user_options->optimized_kernel_enable == true && hashconfig->has_optimized_kernel == true)
+  if (user_options->optimized_kernel == true && hashconfig->has_optimized_kernel == true)
   {
     pw_max = PW_MAX_OLD - 4;
   }
@@ -155,7 +155,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // date
 
-  parse_rc = generic_salt_decode (hashconfig, (u8 *) longdate_pos, 8, (u8 *) esalt->date, (int *) &esalt->date_len);
+  parse_rc = generic_salt_decode (hashconfig, longdate_pos, 8, (u8 *) esalt->date, (int *) &esalt->date_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
@@ -242,7 +242,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   stringtosign_ptr[off] = 0x0a;
   off += 1;
 
-  memcpy (stringtosign_ptr + off, (char *) canonical_pos, canonical_len);
+  memcpy (stringtosign_ptr + off, (const char *) canonical_pos, canonical_len);
   off += canonical_len;
 
   esalt->stringtosign_len = off;
@@ -276,7 +276,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  aws4_sig_v4_t *esalt = (aws4_sig_v4_t *) esalt_buf;
+  const aws4_sig_v4_t *esalt = (const aws4_sig_v4_t *) esalt_buf;
 
   u8 *out_buf = (u8 *) line_buf;
 
@@ -310,7 +310,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // canonical
 
-  out_len += hex_encode ((u8 *) esalt->canonical, esalt->canonical_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) esalt->canonical, esalt->canonical_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 

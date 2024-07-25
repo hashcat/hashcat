@@ -128,7 +128,7 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   if (pkzip_extra->len == 0)
   {
-    return snprintf ((char *) dst_buf, dst_sz, "%s", (char *) src_buf);
+    return snprintf ((char *) dst_buf, dst_sz, "%s", (const char *) src_buf);
   }
   else
   {
@@ -136,7 +136,7 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
     memcpy (dst_ptr, pkzip_extra->buf, pkzip_extra->len);
 
-    return pkzip_extra->len + snprintf (dst_ptr + pkzip_extra->len, dst_sz - pkzip_extra->len, "%s", (char *) src_buf);
+    return pkzip_extra->len + snprintf (dst_ptr + pkzip_extra->len, dst_sz - pkzip_extra->len, "%s", (const char *) src_buf);
   }
 }
 

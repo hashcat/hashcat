@@ -55,7 +55,7 @@ typedef struct scrtv2
 
 } scrtv2_t;
 
-static const char *CONFIGPASSPHRASEV2_SIGNATURE = "S:\"Config Passphrase\"=02:"; //The whole line is part of the format to prevent confusion with other similiar tokens also prefixed with 02: in the config files
+static const char *CONFIGPASSPHRASEV2_SIGNATURE = "S:\"Config Passphrase\"=02:"; //The whole line is part of the format to prevent confusion with other similar tokens also prefixed with 02: in the config files
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -126,7 +126,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int out_len = snprintf (line_buf, line_size, "%s", CONFIGPASSPHRASEV2_SIGNATURE);
 
-  out_len += hex_encode ((u8 *) scrtv2->ct_buf, scrtv2->ct_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) scrtv2->ct_buf, scrtv2->ct_len, out_buf + out_len);
 
   return out_len;
 }

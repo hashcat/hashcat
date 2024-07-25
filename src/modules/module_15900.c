@@ -53,7 +53,7 @@ typedef struct dpapimk
   u32 SID_offset;
 
   /* here only for possible
-     forward compatibiliy
+     forward compatibility
   */
   // u8 cipher_algo[16];
   // u8 hash_algo[16];
@@ -228,7 +228,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0; i < dpapimk->contents_len / 8; i++)
   {
-    dpapimk->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
+    dpapimk->contents[i] = hex_to_u32 (&contents_pos[i * 8]);
 
     dpapimk->contents[i] = byte_swap_32 (dpapimk->contents[i]);
   }
@@ -259,10 +259,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // iv
 
-  dpapimk->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
-  dpapimk->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
-  dpapimk->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
-  dpapimk->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
+  dpapimk->iv[0] = hex_to_u32 (&iv_pos[ 0]);
+  dpapimk->iv[1] = hex_to_u32 (&iv_pos[ 8]);
+  dpapimk->iv[2] = hex_to_u32 (&iv_pos[16]);
+  dpapimk->iv[3] = hex_to_u32 (&iv_pos[24]);
 
   dpapimk->iv[0] = byte_swap_32 (dpapimk->iv[0]);
   dpapimk->iv[1] = byte_swap_32 (dpapimk->iv[1]);
@@ -304,9 +304,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 SID[512]            = { 0 };
   u8* SID_tmp;
 
-  u32 *ptr_SID      = (u32 *) dpapimk->SID;
-  u32 *ptr_iv       = (u32 *) dpapimk->iv;
-  u32 *ptr_contents = (u32 *) dpapimk->contents;
+  const u32 *ptr_SID      = (const u32 *) dpapimk->SID;
+  const u32 *ptr_iv       = (const u32 *) dpapimk->iv;
+  const u32 *ptr_contents = (const u32 *) dpapimk->contents;
 
   u32 u32_iv[4];
   u8 iv[32 + 1];

@@ -29,15 +29,16 @@ sub module_verify_hash
 {
   my $line = shift;
 
-  my ($hash, $salt, $word) = split (':', $line);
+  my ($hash, $salt1, $salt2, $word) = split (':', $line);
 
   return unless defined $hash;
-  return unless defined $salt;
+  return unless defined $salt1;
+  return unless defined $salt2;
   return unless defined $word;
 
   my $word_packed = pack_if_HEX_notation ($word);
 
-  my $new_hash = module_generate_hash ($word_packed, $salt);
+  my $new_hash = module_generate_hash ($word_packed, $salt1, $salt2);
 
   return ($new_hash, $word);
 }

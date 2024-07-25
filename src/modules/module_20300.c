@@ -116,14 +116,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  // salt in alternate base64 repretentation
+  // salt in alternate base64 representation
   token.sep[3]     = '$';
   token.len_min[3] = SALT_MIN;
   token.len_max[3] = SALT_MAX;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64B;
 
-  // payload in alternate base64 representanion
+  // payload in alternate base64 representation
   token.sep[4]     = '$';
   token.len[4]     = HASH_LEN_B64;
   token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
@@ -144,7 +144,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 tmp_buf[256] = { 0 };
 
-  const size_t salt_len_decoded = base64_decode (ab64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+  const size_t salt_len_decoded = base64_decode (ab64_to_int, salt_pos, salt_len, tmp_buf);
 
   u8 *salt_buf_ptr = (u8 *) pbkdf2_sha256->salt_buf;
   memcpy (salt_buf_ptr, tmp_buf, salt_len_decoded);
@@ -157,7 +157,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *hash_pos = token.buf[4];
   const int hash_len = token.len[4];
 
-  base64_decode (ab64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  base64_decode (ab64_to_int, hash_pos, hash_len, tmp_buf);
   memcpy (digest, tmp_buf, HASH_LEN_RAW);
 
   digest[0] = byte_swap_32 (digest[0]);

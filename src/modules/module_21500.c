@@ -127,7 +127,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // save original salt for encode function
   // this is the only reason why we have an esalt in this hash-mode
 
-  const char *salt_pos = (char *) token.buf[1];
+  const char *salt_pos = (const char *) token.buf[1];
   const int   salt_len = token.len[1];
 
   memcpy (solarwinds->salt_buf, salt_pos, salt_len);
@@ -182,7 +182,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const u64 *digest = (u64 *) digest_buf;
+  const u64 *digest = (const u64 *) digest_buf;
 
   const solarwinds_t *solarwinds = (const solarwinds_t *) esalt_buf;
 

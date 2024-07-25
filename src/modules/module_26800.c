@@ -170,7 +170,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (snmpv3->packet_number, 0, sizeof (snmpv3->packet_number));
 
-  strncpy ((char *) snmpv3->packet_number, (char *) packet_number_pos, packet_number_len);
+  strncpy ((char *) snmpv3->packet_number, (const char *) packet_number_pos, packet_number_len);
 
   // salt
 
@@ -231,19 +231,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  snmpv3_t *snmpv3 = (snmpv3_t *) esalt_buf;
+  const snmpv3_t *snmpv3 = (const snmpv3_t *) esalt_buf;
 
   u8 *out_buf = (u8 *) line_buf;
 
-  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (char *) snmpv3->packet_number);
+  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (const char *) snmpv3->packet_number);
 
-  out_len += hex_encode ((u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 
   out_len++;
 
-  out_len += hex_encode ((u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 

@@ -44,9 +44,27 @@ sub module_generate_hash
     padding     => "none"
   });
 
-  my $pt = "[{\"type\":\"HD Key Tree\",\"data\":{\"mnemonic\":\"ocean hidden kidney famous rich season gloom husband spring convince attitude boy\",\"numberOfAccounts\":1,\"hdPath\":\"m/44'/60'/0'/0\"}}]";
+  my $pt = "";
 
-  my $ct1 = substr ($cipher->encrypt ($pt), 0, 16);
+  if (! defined ($ct))
+  {
+    $pt = "[{\"type\":\"HD Key Tree\",\"data\":{\"mnemonic\":\"ocean hidden kidney famous rich season gloom husband spring convince attitude boy\",\"numberOfAccounts\":1,\"hdPath\":\"m/44'/60'/0'/0\"}}]";
+  }
+  else
+  {
+    $pt = $cipher->decrypt (pack ("H*", $ct));
+
+    if ($pt =~ m/^[ -~]*$/) # is_valid_printable_32 ()
+    {
+      # ok
+    }
+    else
+    {
+      $pt = ""; # fake
+    }
+  }
+
+  my $ct1 = substr ($cipher->encrypt ($pt), 0, 32);
 
   my $hash = sprintf ('$metamaskMobile$%s$%s$%s', $salt_b64, $iv, encode_base64 ($ct1, ""));
 
@@ -79,7 +97,7 @@ sub module_verify_hash
 
   return unless length $salt_b64 == 16;
   return unless length $iv_bin   == 16;
-  return unless length $ct_bin   == 16;
+  return unless length $ct_bin   == 32;
 
   my $word_packed = pack_if_HEX_notation ($word);
 

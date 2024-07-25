@@ -377,27 +377,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *ciphertext_pos = token.buf[5];
 
-  ethereum_scrypt->ciphertext[0] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 0]);
-  ethereum_scrypt->ciphertext[1] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 8]);
-  ethereum_scrypt->ciphertext[2] = hex_to_u32 ((const u8 *) &ciphertext_pos[16]);
-  ethereum_scrypt->ciphertext[3] = hex_to_u32 ((const u8 *) &ciphertext_pos[24]);
-  ethereum_scrypt->ciphertext[4] = hex_to_u32 ((const u8 *) &ciphertext_pos[32]);
-  ethereum_scrypt->ciphertext[5] = hex_to_u32 ((const u8 *) &ciphertext_pos[40]);
-  ethereum_scrypt->ciphertext[6] = hex_to_u32 ((const u8 *) &ciphertext_pos[48]);
-  ethereum_scrypt->ciphertext[7] = hex_to_u32 ((const u8 *) &ciphertext_pos[56]);
+  ethereum_scrypt->ciphertext[0] = hex_to_u32 (&ciphertext_pos[ 0]);
+  ethereum_scrypt->ciphertext[1] = hex_to_u32 (&ciphertext_pos[ 8]);
+  ethereum_scrypt->ciphertext[2] = hex_to_u32 (&ciphertext_pos[16]);
+  ethereum_scrypt->ciphertext[3] = hex_to_u32 (&ciphertext_pos[24]);
+  ethereum_scrypt->ciphertext[4] = hex_to_u32 (&ciphertext_pos[32]);
+  ethereum_scrypt->ciphertext[5] = hex_to_u32 (&ciphertext_pos[40]);
+  ethereum_scrypt->ciphertext[6] = hex_to_u32 (&ciphertext_pos[48]);
+  ethereum_scrypt->ciphertext[7] = hex_to_u32 (&ciphertext_pos[56]);
 
   // hash
 
   const u8 *hash_pos = token.buf[6];
 
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
-  digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
-  digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
-  digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+  digest[0] = hex_to_u32 (&hash_pos[ 0]);
+  digest[1] = hex_to_u32 (&hash_pos[ 8]);
+  digest[2] = hex_to_u32 (&hash_pos[16]);
+  digest[3] = hex_to_u32 (&hash_pos[24]);
+  digest[4] = hex_to_u32 (&hash_pos[32]);
+  digest[5] = hex_to_u32 (&hash_pos[40]);
+  digest[6] = hex_to_u32 (&hash_pos[48]);
+  digest[7] = hex_to_u32 (&hash_pos[56]);
 
   return (PARSER_OK);
 }
@@ -412,7 +412,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_salt[salt_len] = 0;
 
-  ethereum_scrypt_t *ethereum_scrypt = (ethereum_scrypt_t *) esalt_buf;
+  const ethereum_scrypt_t *ethereum_scrypt = (const ethereum_scrypt_t *) esalt_buf;
 
   const int line_len = snprintf (line_buf, line_size, "%s*%u*%u*%u*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
     SIGNATURE_ETHEREUM_SCRYPT,

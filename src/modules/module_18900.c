@@ -185,28 +185,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; j < 128; i += 1, j += 8)
   {
-    android_backup->user_salt[i] = hex_to_u32 ((const u8 *) user_salt_pos + j);
+    android_backup->user_salt[i] = hex_to_u32 (user_salt_pos + j);
   }
 
   // ck_salt
 
   for (int i = 0, j = 0; j < 128; i += 1, j += 8)
   {
-    android_backup->ck_salt[i] = hex_to_u32 ((const u8 *) ck_salt_pos + j);
+    android_backup->ck_salt[i] = hex_to_u32 (ck_salt_pos + j);
   }
 
   // user_iv
 
   for (int i = 0, j = 0; j < 32; i += 1, j += 8)
   {
-    android_backup->user_iv[i] = hex_to_u32 ((const u8 *) user_iv_pos + j);
+    android_backup->user_iv[i] = hex_to_u32 (user_iv_pos + j);
   }
 
   // masterkey_blob
 
   for (int i = 0, j = 0; j < 192; i += 1, j += 8)
   {
-    android_backup->masterkey_blob[i] = hex_to_u32 ((const u8 *) masterkey_blob_pos + j);
+    android_backup->masterkey_blob[i] = hex_to_u32 (masterkey_blob_pos + j);
   }
 
   // make the entry unique in our databases

@@ -132,11 +132,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  const bool parse_rc1 = generic_salt_decode (hashconfig, token.buf[1], token.len[1], (u8 *) devise_double_salt->salt_buf, (int *) &devise_double_salt->salt_len);
+  const bool parse_rc1 = generic_salt_decode (hashconfig, token.buf[1], token.len[1], (u8 *) devise_double_salt->salt_buf, &devise_double_salt->salt_len);
 
   if (parse_rc1 == false) return (PARSER_SALT_LENGTH);
 
-  const bool parse_rc2 = generic_salt_decode (hashconfig, token.buf[2], token.len[2], (u8 *) devise_double_salt->site_key_buf, (int *) &devise_double_salt->site_key_len);
+  const bool parse_rc2 = generic_salt_decode (hashconfig, token.buf[2], token.len[2], (u8 *) devise_double_salt->site_key_buf, &devise_double_salt->site_key_len);
 
   if (parse_rc2 == false) return (PARSER_SALT_LENGTH);
 
@@ -196,13 +196,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len += 1;
 
-  out_len += generic_salt_encode (hashconfig, (const u8 *) devise_double_salt->salt_buf, (const int) devise_double_salt->salt_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) devise_double_salt->salt_buf, devise_double_salt->salt_len, out_buf + out_len);
 
   out_buf[out_len] = hashconfig->separator;
 
   out_len += 1;
 
-  out_len += generic_salt_encode (hashconfig, (const u8 *) devise_double_salt->site_key_buf, (const int) devise_double_salt->site_key_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) devise_double_salt->site_key_buf, devise_double_salt->site_key_len, out_buf + out_len);
 
   return out_len;
 }

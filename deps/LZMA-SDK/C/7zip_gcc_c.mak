@@ -5,6 +5,7 @@ MY_ASM = jwasm
 MY_ASM = asmc
 
 PROGPATH = $(O)/$(PROG)
+PROGPATH_STATIC = $(O)/$(PROG)s
 
 
 # for object file
@@ -15,12 +16,32 @@ CFLAGS_BASE = $(MY_ARCH_2) -O2 $(CFLAGS_BASE_LIST) -Wall -Werror -Wextra $(CFLAG
  -DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
 
 
-LDFLAGS_STATIC = -DNDEBUG
-# -static
-
 ifdef SystemDrive
 IS_MINGW = 1
+else
+ifdef SYSTEMDRIVE
+# ifdef OS
+IS_MINGW = 1
 endif
+endif
+
+ifdef IS_MINGW
+LDFLAGS_STATIC_2 = -static
+else
+ifndef DEF_FILE
+ifndef IS_NOT_STANDALONE
+ifndef MY_DYNAMIC_LINK
+ifneq ($(CC), clang)
+LDFLAGS_STATIC_2 =
+# -static
+# -static-libstdc++ -static-libgcc
+endif
+endif
+endif
+endif
+endif
+
+LDFLAGS_STATIC = -DNDEBUG $(LDFLAGS_STATIC_2)
 
 ifdef DEF_FILE
 
@@ -53,7 +74,7 @@ endif
 
 
 PROGPATH = $(O)/$(PROG)$(SHARED_EXT)
-
+PROGPATH_STATIC = $(O)/$(PROG)s$(SHARED_EXT)
 	
 ifndef O
 O=_o
@@ -61,15 +82,22 @@ endif
 
 ifdef IS_MINGW
 
+ifdef MSYSTEM
+RM = rm -f
+MY_MKDIR=mkdir -p
+DEL_OBJ_EXE = -$(RM) $(PROGPATH) $(PROGPATH_STATIC) $(OBJS)
+else
 RM = del
 MY_MKDIR=mkdir
-LIB2 = -loleaut32 -luuid -ladvapi32 -lUser32
+DEL_OBJ_EXE = -$(RM) $(O)\*.o $(O)\$(PROG).exe $(O)\$(PROG).dll
+endif
 
+
+LIB2 = -lOle32 -loleaut32 -luuid -ladvapi32 -lUser32
 
 CXXFLAGS_EXTRA = -DUNICODE -D_UNICODE
 # -Wno-delete-non-virtual-dtor
 
-DEL_OBJ_EXE = -$(RM) $(O)\*.o $(O)\$(PROG).exe $(O)\$(PROG).dll
  
 else
 
@@ -82,7 +110,7 @@ MY_MKDIR=mkdir -p
 # LOCAL_LIBS_DLL=$(LOCAL_LIBS) -ldl
 LIB2 = -lpthread -ldl
 
-DEL_OBJ_EXE = -$(RM) $(PROGPATH) $(OBJS)
+DEL_OBJ_EXE = -$(RM) $(PROGPATH) $(PROGPATH_STATIC) $(OBJS)
 
 endif
 
@@ -108,14 +136,23 @@ CXX_WARN_FLAGS =
 
 CXXFLAGS = $(LOCAL_FLAGS) $(CXXFLAGS_BASE2) $(CFLAGS_BASE) $(CXXFLAGS_EXTRA) $(CC_SHARED) -o $@ $(CXX_WARN_FLAGS)
 
-all: $(O) $(PROGPATH)
+STATIC_TARGET=
+ifdef COMPL_STATIC
+STATIC_TARGET=$(PROGPATH_STATIC)
+endif
+
+
+all: $(O) $(PROGPATH) $(STATIC_TARGET)
 
 $(O):
 	$(MY_MKDIR) $(O)
 
+LFLAGS_ALL = -s $(MY_ARCH_2) $(LDFLAGS) $(LD_arch) $(OBJS) $(MY_LIBS) $(LIB2)
 $(PROGPATH): $(OBJS)
-	$(CXX) -s -o $(PROGPATH) $(MY_ARCH_2) $(LDFLAGS) $(OBJS) $(MY_LIBS) $(LIB2)
+	$(CXX) -o $(PROGPATH) $(LFLAGS_ALL)
 
+$(PROGPATH_STATIC): $(OBJS)
+	$(CXX) -static -o $(PROGPATH_STATIC) $(LFLAGS_ALL)
 
 
 ifndef NO_DEFAULT_RES
@@ -173,6 +210,8 @@ $O/LzFind.o: ../../../C/LzFind.c
 
 # ifdef MT_FILES
 $O/LzFindMt.o: ../../../C/LzFindMt.c
+	$(CC) $(CFLAGS) $<
+$O/LzFindOpt.o: ../../../C/LzFindOpt.c
 	$(CC) $(CFLAGS) $<
 
 $O/Threads.o: ../../../C/Threads.c
@@ -294,7 +333,10 @@ $O/7zMain.o: ../../../C/Util/7z/7zMain.c
 	$(CC) $(CFLAGS) $<
 $O/LzmaUtil.o: ../../../C/Util/Lzma/LzmaUtil.c
 	$(CC) $(CFLAGS) $<
-
+$O/7zipInstall.o: ../../../C/Util/7zipInstall/7zipInstall.c
+	$(CC) $(CFLAGS) $<
+$O/7zipUninstall.o: ../../../C/Util/7zipUninstall/7zipUninstall.c
+	$(CC) $(CFLAGS) $<
 
 
 clean:

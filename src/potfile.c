@@ -58,7 +58,7 @@ static int sort_by_hash_t_salt (const void *v1, const void *v2)
 }
 */
 
-// this function is special and only used whenever --username and --show are used together:
+// this function is special and only used whenever --username or --dynamic-x and --show are used together:
 // it will sort all tree entries according to the settings stored in hashconfig
 
 int sort_pot_tree_by_hash (const void *v1, const void *v2)
@@ -110,20 +110,20 @@ int potfile_init (hashcat_ctx_t *hashcat_ctx)
 
   potfile_ctx->enabled = false;
 
-  if (user_options->usage            > 0)    return 0;
-  if (user_options->backend_info     > 0)    return 0;
+  if (user_options->usage            > 0)     return 0;
+  if (user_options->backend_info     > 0)     return 0;
 
-  if (user_options->benchmark       == true) return 0;
-  if (user_options->hash_info       == true) return 0;
-  if (user_options->keyspace        == true) return 0;
-  if (user_options->stdout_flag     == true) return 0;
-  if (user_options->speed_only      == true) return 0;
-  if (user_options->progress_only   == true) return 0;
-  if (user_options->version         == true) return 0;
-  if (user_options->identify        == true) return 0;
-  if (user_options->potfile_disable == true) return 0;
+  if (user_options->benchmark       == true)  return 0;
+  if (user_options->hash_info       == true)  return 0;
+  if (user_options->keyspace        == true)  return 0;
+  if (user_options->stdout_flag     == true)  return 0;
+  if (user_options->speed_only      == true)  return 0;
+  if (user_options->progress_only   == true)  return 0;
+  if (user_options->version         == true)  return 0;
+  if (user_options->identify        == true)  return 0;
+  if (user_options->potfile         == false) return 0;
 
-  if (hashconfig->potfile_disable   == true) return 0;
+  if (hashconfig->potfile_disable   == true)  return 0;
 
   potfile_ctx->enabled = true;
 
@@ -249,7 +249,6 @@ void potfile_write_close (hashcat_ctx_t *hashcat_ctx)
 void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, u8 *plain_ptr, unsigned int plain_len)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const user_options_t *user_options = hashcat_ctx->user_options;
         potfile_ctx_t  *potfile_ctx  = hashcat_ctx->potfile_ctx;
 
   if (potfile_ctx->enabled == false) return;
@@ -275,7 +274,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
   {
     const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
 
-    if ((user_options->outfile_autohex == true) && (need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii) == true))
+    if (need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii) == true)
     {
       tmp_buf[tmp_len++] = '$';
       tmp_buf[tmp_len++] = 'H';
@@ -397,7 +396,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   hash_t *hashes_buf = hashes->hashes_buf;
   u32     hashes_cnt = hashes->hashes_cnt;
 
-  // no solution for these special hash types (for instane because they use hashfile in output etc)
+  // no solution for these special hash types (for instance because they use hashfile in output etc)
 
   hash_t hash_buf;
 
@@ -426,7 +425,7 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   }
 
   // we only need this variable in a very specific situation:
-  // whenever we use --username and --show together we want to keep all hashes sorted within a nice structure
+  // whenever we use --username or --dynamic-x and --show together we want to keep all hashes sorted within a nice structure
 
   pot_tree_entry_t *all_hashes_tree  = NULL;
   pot_tree_entry_t *tree_entry_cache = NULL;
@@ -716,6 +715,22 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
           username[user_len] = 0;
         }
 
+        // dynamic-x
+        unsigned char *dynamicx_buf = NULL;
+
+        u32 dynamicx_len = 0;
+
+        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
+
+        if (dynamicx)
+        {
+          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
+
+          dynamicx_len = dynamicx->dynamicx_len;
+
+          dynamicx_buf[dynamicx_len] = 0;
+        }
+
         u8 *tmp_buf = potfile_ctx->tmp_buf;
 
         tmp_buf[0] = 0;
@@ -809,6 +824,25 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
             user_len = user->user_len;
 
             username[user_len] = 0;
+          }
+        }
+
+        // dynamicx
+        unsigned char *dynamicx_buf = NULL;
+
+        u32 dynamicx_len = 0;
+
+        if (hash->hash_info != NULL)
+        {
+          dynamicx_t *dynamicx = hash->hash_info->dynamicx;
+
+          if (dynamicx)
+          {
+            dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
+
+            dynamicx_len = dynamicx->dynamicx_len;
+
+            dynamicx_buf[dynamicx_len] = 0;
           }
         }
 
@@ -958,6 +992,22 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
           username[user_len] = 0;
         }
 
+        // dynamic-x
+        unsigned char *dynamicx_buf = NULL;
+
+        u32 dynamicx_len = 0;
+
+        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
+
+        if (dynamicx)
+        {
+          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
+
+          dynamicx_len = dynamicx->dynamicx_len;
+
+          dynamicx_buf[dynamicx_len] = 0;
+        }
+
         u8 *tmp_buf = potfile_ctx->tmp_buf;
 
         tmp_buf[0] = 0;
@@ -1040,6 +1090,25 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
             user_len = user->user_len;
 
             username[user_len] = 0;
+          }
+        }
+
+        // dynamicx
+        unsigned char *dynamicx_buf = NULL;
+
+        u32 dynamicx_len = 0;
+
+        if (hash->hash_info != NULL)
+        {
+          dynamicx_t *dynamicx = hash->hash_info->dynamicx;
+
+          if (dynamicx)
+          {
+            dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
+
+            dynamicx_len = dynamicx->dynamicx_len;
+
+            dynamicx_buf[dynamicx_len] = 0;
           }
         }
 

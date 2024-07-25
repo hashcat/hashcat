@@ -1,1 +1,2 @@
 src/Makefile export-subst
+* -text

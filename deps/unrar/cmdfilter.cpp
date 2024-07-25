@@ -262,6 +262,8 @@ bool CommandData::TimeCheck(RarTime &ftm,RarTime &ftc,RarTime &fta)
 // Return 'true' if we need to exclude the file from processing.
 bool CommandData::SizeCheck(int64 Size)
 {
+  if (Size==INT64NDF) // If called from archive formats like bzip2, not storing the file size.
+    return false;
   if (FileSizeLess!=INT64NDF && Size>=FileSizeLess)
     return true;
   if (FileSizeMore!=INT64NDF && Size<=FileSizeMore)
@@ -287,8 +289,8 @@ int CommandData::IsProcessFile(FileHeader &FileHead,bool *ExactMatch,int MatchTy
     return 0;
   if ((FileHead.FileAttr & ExclFileAttr)!=0 || FileHead.Dir && ExclDir)
     return 0;
-  if (InclAttrSet && (!FileHead.Dir && (FileHead.FileAttr & InclFileAttr)==0 ||
-      FileHead.Dir && !InclDir))
+  if (InclAttrSet && (FileHead.FileAttr & InclFileAttr)==0 &&
+      (!FileHead.Dir || !InclDir))
     return 0;
   if (!Dir && SizeCheck(FileHead.UnpSize))
     return 0;

@@ -140,21 +140,21 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *checksum_pos = token.buf[1];
 
-  jks_sha1->checksum[0] = hex_to_u32 ((const u8 *) &checksum_pos[ 0]);
-  jks_sha1->checksum[1] = hex_to_u32 ((const u8 *) &checksum_pos[ 8]);
-  jks_sha1->checksum[2] = hex_to_u32 ((const u8 *) &checksum_pos[16]);
-  jks_sha1->checksum[3] = hex_to_u32 ((const u8 *) &checksum_pos[24]);
-  jks_sha1->checksum[4] = hex_to_u32 ((const u8 *) &checksum_pos[32]);
+  jks_sha1->checksum[0] = hex_to_u32 (&checksum_pos[ 0]);
+  jks_sha1->checksum[1] = hex_to_u32 (&checksum_pos[ 8]);
+  jks_sha1->checksum[2] = hex_to_u32 (&checksum_pos[16]);
+  jks_sha1->checksum[3] = hex_to_u32 (&checksum_pos[24]);
+  jks_sha1->checksum[4] = hex_to_u32 (&checksum_pos[32]);
 
   // iv
 
   const u8 *iv_pos = token.buf[2];
 
-  jks_sha1->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
-  jks_sha1->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
-  jks_sha1->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
-  jks_sha1->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
-  jks_sha1->iv[4] = hex_to_u32 ((const u8 *) &iv_pos[32]);
+  jks_sha1->iv[0] = hex_to_u32 (&iv_pos[ 0]);
+  jks_sha1->iv[1] = hex_to_u32 (&iv_pos[ 8]);
+  jks_sha1->iv[2] = hex_to_u32 (&iv_pos[16]);
+  jks_sha1->iv[3] = hex_to_u32 (&iv_pos[24]);
+  jks_sha1->iv[4] = hex_to_u32 (&iv_pos[32]);
 
   // enc_key
 
@@ -165,7 +165,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; j < enc_key_len; i += 1, j += 2)
   {
-    enc_key_buf[i] = hex_to_u8 ((const u8 *) &enc_key_pos[j]);
+    enc_key_buf[i] = hex_to_u8 (&enc_key_pos[j]);
 
     jks_sha1->enc_key_len++;
   }
@@ -176,7 +176,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *der = (u8 *) jks_sha1->der;
 
-  der[0] = hex_to_u8 ((const u8 *) &der1_pos[0]);
+  der[0] = hex_to_u8 (&der1_pos[0]);
 
   // der2
 
@@ -184,7 +184,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 6, j = 0; j < 28; i += 1, j += 2)
   {
-    der[i] = hex_to_u8 ((const u8 *) &der2_pos[j]);
+    der[i] = hex_to_u8 (&der2_pos[j]);
   }
 
   der[1] = 0;
@@ -224,18 +224,18 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char enc_key[16384 + 1] = { 0 };
 
-  u8 *ptr = (u8 *) jks_sha1->enc_key_buf;
+  const u8 *ptr = (const u8 *) jks_sha1->enc_key_buf;
 
   for (u32 i = 0, j = 0; i < jks_sha1->enc_key_len; i += 1, j += 2)
   {
-    sprintf (enc_key + j, "%02X", ptr[i]);
+    snprintf (enc_key + j, 3, "%02X", ptr[i]);
   }
 
-  u8 *der = (u8 *) jks_sha1->der;
+  const u8 *der = (const u8 *) jks_sha1->der;
 
   char alias[65] = { 0 };
 
-  memcpy (alias, (char *) jks_sha1->alias, 64);
+  memcpy (alias, (const char *) jks_sha1->alias, 64);
 
   const int line_len = snprintf (line_buf, line_size, "%s*%08X%08X%08X%08X%08X*%08X%08X%08X%08X%08X*%s*%02X*%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X%02X*%s",
     SIGNATURE_JKS_SHA1,

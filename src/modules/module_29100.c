@@ -64,7 +64,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[0]     = '.';
   token.len_min[0] =  0;
-  token.len_max[0] = 56;
+  token.len_max[0] = 120;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64C;
 
@@ -96,6 +96,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
   memcpy (salt->salt_buf, line_buf, salt_len);
+  salt->salt_buf[salt_len] = '\0';
 
   u8 tmp_buf[100] = { 0 };
 
@@ -120,8 +121,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest32 = (const u32 *) digest_buf;
 
-  char tmp_buf[128] = { 0 };
-
   char ptr_plain[128];
 
   u32 tmp[5];
@@ -132,13 +131,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   tmp[3] = byte_swap_32 (digest32[3]);
   tmp[4] = byte_swap_32 (digest32[4]);
 
-  memcpy (tmp_buf, tmp, 20);
-
-  base64_encode (int_to_base64url, (const u8 *) tmp_buf, 48, (u8 *) ptr_plain);
+  base64_encode (int_to_base64url, (const u8 *) tmp, 20, (u8 *) ptr_plain);
 
   ptr_plain[27] = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%s.%s", (char *) salt->salt_buf, (char *) ptr_plain);
+  const int line_len = snprintf (line_buf, line_size, "%s.%s", (const char *) salt->salt_buf, (const char *) ptr_plain);
 
   return line_len;
 }

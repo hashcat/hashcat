@@ -37,7 +37,7 @@ size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_
     return (i);
   }
 
-  if (user_options->wordlist_autohex_disable == false)
+  if (user_options->wordlist_autohex == true)
   {
     if (is_hexify ((const u8 *) line_buf, line_len) == true)
     {
@@ -730,7 +730,7 @@ int wl_data_init (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      if (user_options->wordlist_autohex_disable == false)
+      if (user_options->wordlist_autohex == true)
       {
         wl_data->func = get_next_word_lm_hex_or_text; // might be $HEX[] notation
       }

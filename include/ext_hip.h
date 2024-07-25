@@ -152,7 +152,7 @@ typedef enum __HIP_NODISCARD hipError_t {
                                              ///< hipStreamEndCapture in a different thread.
     hipErrorGraphExecUpdateFailure = 910,  ///< This error indicates that the graph update
                                            ///< not performed because it included changes which
-                                           ///< violated constraintsspecific to instantiated graph
+                                           ///< violated constraints specific to instantiated graph
                                            ///< update.
     hipErrorUnknown = 999,  //< Unknown error.
     // HSA Runtime Error Codes start here.
@@ -216,7 +216,7 @@ typedef enum hipDeviceAttribute_t {
                                                         ///< Use cudaDeviceGetTexture1DLinearMaxWidth() instead on Cuda.
     hipDeviceAttributeMaxTexture1DMipmap,               ///< Cuda only. Maximum size of 1D mipmapped texture.
     hipDeviceAttributeMaxTexture2DWidth,                ///< Maximum dimension width of 2D texture.
-    hipDeviceAttributeMaxTexture2DHeight,               ///< Maximum dimension hight of 2D texture.
+    hipDeviceAttributeMaxTexture2DHeight,               ///< Maximum dimension height of 2D texture.
     hipDeviceAttributeMaxTexture2DGather,               ///< Cuda only. Maximum dimensions of 2D texture if gather operations  performed.
     hipDeviceAttributeMaxTexture2DLayered,              ///< Cuda only. Maximum dimensions of 2D layered texture.
     hipDeviceAttributeMaxTexture2DLinear,               ///< Cuda only. Maximum dimensions (width, height, pitch) of 2D textures bound to pitched memory.
@@ -258,7 +258,7 @@ typedef enum hipDeviceAttribute_t {
     hipDeviceAttributeTextureAlignment,                 ///< Alignment requirement for textures
     hipDeviceAttributeTexturePitchAlignment,            ///< Pitch alignment requirement for 2D texture references bound to pitched memory;
     hipDeviceAttributeTotalConstantMemory,              ///< Constant memory size in bytes.
-    hipDeviceAttributeTotalGlobalMem,                   ///< Global memory available on devicice.
+    hipDeviceAttributeTotalGlobalMem,                   ///< Global memory available on device.
     hipDeviceAttributeUnifiedAddressing,                ///< Cuda only. An unified address space shared with the host.
     hipDeviceAttributeUuid,                             ///< Cuda only. Unique ID in 16 byte.
     hipDeviceAttributeWarpSize,                         ///< Warp size in threads.
@@ -315,7 +315,7 @@ typedef enum hipDeviceAttribute_t {
 /** Disable event's capability to record timing information. May improve performance.*/
 #define hipEventDisableTiming  0x2
 
-/** Event can support IPC. Warnig: It is not supported in HIP.*/
+/** Event can support IPC. Warning: It is not supported in HIP.*/
 #define hipEventInterprocess 0x4
 
 /** Use a device-scope release when recording this event. This flag is useful to obtain more
@@ -377,7 +377,7 @@ typedef hipError_t (HIP_API_CALL *HIP_HIPCTXDESTROY)             (hipCtx_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPCTXPOPCURRENT)          (hipCtx_t *);
 typedef hipError_t (HIP_API_CALL *HIP_HIPCTXPUSHCURRENT)         (hipCtx_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPCTXSETCURRENT)          (hipCtx_t);
-typedef hipError_t (HIP_API_CALL *HIP_HIPCTXSYNCHRONIZE)         ();
+typedef hipError_t (HIP_API_CALL *HIP_HIPCTXSYNCHRONIZE)         (void);
 typedef hipError_t (HIP_API_CALL *HIP_HIPDEVICEGETATTRIBUTE)     (int *, hipDeviceAttribute_t, hipDevice_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPDEVICEGETCOUNT)         (int *);
 typedef hipError_t (HIP_API_CALL *HIP_HIPDEVICEGET)              (hipDevice_t *, int);

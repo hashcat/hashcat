@@ -84,10 +84,13 @@ static const int   ROUNDS_PDF17L8 = 64;
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // AppleM1, OpenCL, MTLCompilerService, createKernel: newComputePipelineState failed (or never-end with pure kernel)
+  // AppleM1, OpenCL, MTLCompilerService, createKernel never-end with pure kernel
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    return true;
+    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
+    {
+      return true;
+    }
   }
 
   return false;
@@ -131,6 +134,11 @@ u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
+
+  if (device_param->is_metal == true)
+  {
+    hc_asprintf (&jit_build_options, "-D FORCE_DISABLE_SHM");
+  }
 
   if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
   {
@@ -307,7 +315,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; i < 8 + 2; i += 1, j += 8)
   {
-    pdf->u_buf[i] = hex_to_u32 ((const u8 *) &u_buf_pos[j]);
+    pdf->u_buf[i] = hex_to_u32 (&u_buf_pos[j]);
   }
 
   salt->salt_buf[0] = pdf->u_buf[8];

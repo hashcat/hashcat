@@ -212,11 +212,11 @@ typedef struct ADLThermalControllerInfo
 {
 /// Must be set to the size of the structure
   int iSize;
-/// Possible valies: \ref ADL_DL_THERMAL_DOMAIN_OTHER or \ref ADL_DL_THERMAL_DOMAIN_GPU.
+/// Possible values: \ref ADL_DL_THERMAL_DOMAIN_OTHER or \ref ADL_DL_THERMAL_DOMAIN_GPU.
   int iThermalDomain;
 ///    GPU 0, 1, etc.
   int iDomainIndex;
-/// Possible valies: \ref ADL_DL_THERMAL_FLAG_INTERRUPT or \ref ADL_DL_THERMAL_FLAG_FANCONTROL
+/// Possible values: \ref ADL_DL_THERMAL_FLAG_INTERRUPT or \ref ADL_DL_THERMAL_FLAG_FANCONTROL
   int iFlags;
 } ADLThermalControllerInfo;
 
@@ -269,7 +269,7 @@ typedef struct ADLFanSpeedValue
 {
 /// Must be set to the size of the structure
   int iSize;
-/// Possible valies: \ref ADL_DL_FANCTRL_SPEED_TYPE_PERCENT or \ref ADL_DL_FANCTRL_SPEED_TYPE_RPM
+/// Possible values: \ref ADL_DL_FANCTRL_SPEED_TYPE_PERCENT or \ref ADL_DL_FANCTRL_SPEED_TYPE_RPM
   int iSpeedType;
 /// Fan speed value
   int iFanSpeed;
@@ -596,7 +596,7 @@ typedef int (ADL_API_CALL *ADL_ADAPTER_ACTIVE_GET ) ( int, int* );
 typedef int (ADL_API_CALL *ADL_ADAPTER_ADAPTERINFO_GET ) ( LPAdapterInfo, int );
 typedef int (ADL_API_CALL *ADL_ADAPTER_NUMBEROFADAPTERS_GET ) ( int* );
 typedef int (ADL_API_CALL *ADL_MAIN_CONTROL_CREATE )(ADL_MAIN_MALLOC_CALLBACK, int );
-typedef int (ADL_API_CALL *ADL_MAIN_CONTROL_DESTROY )();
+typedef int (ADL_API_CALL *ADL_MAIN_CONTROL_DESTROY )(void);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE5_CURRENTACTIVITY_GET ) (int iAdapterIndex, ADLPMActivity *lpActivity);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEEDINFO_GET ) (int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedInfo *lpFanSpeedInfo);
 typedef int (ADL_API_CALL *ADL_OVERDRIVE5_FANSPEED_GET ) (int iAdapterIndex, int iThermalControllerIndex, ADLFanSpeedValue *lpFanSpeedValue);

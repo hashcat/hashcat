@@ -19,6 +19,10 @@
 #include <sys/sysctl.h>
 #endif
 
+#if defined (_WIN)
+#include <winsock2.h>
+#endif
+
 static const char *const PA_000 = "OK";
 static const char *const PA_001 = "Ignored due to comment";
 static const char *const PA_002 = "Ignored due to zero length";
@@ -593,7 +597,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
   #endif
 }
 
-void setup_umask ()
+void setup_umask (void)
 {
   umask (077);
 }
@@ -622,11 +626,11 @@ u32 get_random_num (const u32 min, const u32 max)
 
   #if defined (_WIN)
 
-  return (((u32) rand () % (max - min)) + min);
+  return (((u32) rand () % (max - min + 1)) + min);
 
   #else
 
-  return (((u32) random () % (max - min)) + min);
+  return (((u32) random () % (max - min + 1)) + min);
 
   #endif
 }
@@ -677,7 +681,7 @@ void hc_string_trim_trailing (char *s)
   s[new_len] = 0;
 }
 
-int hc_get_processor_count ()
+int hc_get_processor_count (void)
 {
   int cnt = 0;
 
@@ -908,7 +912,11 @@ int select_read_timeout (int sockfd, const int sec)
   fd_set fds;
 
   FD_ZERO (&fds);
+#if defined(_WIN)
+  FD_SET ((SOCKET)sockfd, &fds);
+#else
   FD_SET (sockfd, &fds);
+#endif
 
   return select (sockfd + 1, &fds, NULL, NULL, &tv);
 }
@@ -923,7 +931,11 @@ int select_write_timeout (int sockfd, const int sec)
   fd_set fds;
 
   FD_ZERO (&fds);
+#if defined(_WIN)
+  FD_SET ((SOCKET)sockfd, &fds);
+#else
   FD_SET (sockfd, &fds);
+#endif
 
   return select (sockfd + 1, NULL, &fds, NULL, &tv);
 }
@@ -1470,4 +1482,21 @@ char *file_to_buffer (const char *filename)
   }
 
   return NULL;
+}
+
+int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len)
+{
+  int hash_mode = -1;
+
+  if (sscanf ((char *) input_buf, "$dynamic_%d$", &hash_mode) != 1) return -1;
+
+  *output_buf = (u8 *) strchr ((char *) input_buf + 10, '$');
+
+  if (*output_buf == NULL) return -1;
+
+  *output_buf += 1; // the $ itself
+
+  *output_len = input_len - (*output_buf - input_buf);
+
+  return hash_mode;
 }

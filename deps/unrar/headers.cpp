@@ -49,13 +49,5 @@ FileHeader& FileHeader::operator = (FileHeader &hd)
 
 void MainHeader::Reset()
 {
-  HighPosAV=0;
-  PosAV=0;
-  CommentInHeader=false;
-  PackComment=false;
-  Locator=false;
-  QOpenOffset=0;
-  QOpenMaxSize=0;
-  RROffset=0;
-  RRMaxSize=0;
+  *this={};
 }

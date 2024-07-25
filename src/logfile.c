@@ -77,7 +77,7 @@ int logfile_init (hashcat_ctx_t *hashcat_ctx)
   logfile_ctx_t   *logfile_ctx   = hashcat_ctx->logfile_ctx;
   user_options_t  *user_options  = hashcat_ctx->user_options;
 
-  if (user_options->logfile_disable == true) return 0;
+  if (user_options->logfile == false) return 0;
 
   hc_asprintf (&logfile_ctx->logfile, "%s/%s.log", folder_config->session_dir, user_options->session);
 

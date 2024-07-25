@@ -176,6 +176,36 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 
 DECLSPEC void salsa_r (PRIVATE_AS uint4 *TI)
 {
+  #if SCRYPT_R > 1
+
+  uint4 TT[STATE_CNT4 / 2];
+
+  for (int dst_off = 0, src_off = 4; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
+  {
+    TT[dst_off + 0] = TI[src_off + 0];
+    TT[dst_off + 1] = TI[src_off + 1];
+    TT[dst_off + 2] = TI[src_off + 2];
+    TT[dst_off + 3] = TI[src_off + 3];
+  }
+
+  for (int dst_off = 4, src_off = 8; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
+  {
+    TI[dst_off + 0] = TI[src_off + 0];
+    TI[dst_off + 1] = TI[src_off + 1];
+    TI[dst_off + 2] = TI[src_off + 2];
+    TI[dst_off + 3] = TI[src_off + 3];
+  }
+
+  for (int dst_off = STATE_CNT4 / 2, src_off = 0; dst_off < STATE_CNT4; dst_off += 4, src_off += 4)
+  {
+    TI[dst_off + 0] = TT[src_off + 0];
+    TI[dst_off + 1] = TT[src_off + 1];
+    TI[dst_off + 2] = TT[src_off + 2];
+    TI[dst_off + 3] = TT[src_off + 3];
+  }
+
+  #endif
+
   uint4 R0 = TI[STATE_CNT4 - 4];
   uint4 R1 = TI[STATE_CNT4 - 3];
   uint4 R2 = TI[STATE_CNT4 - 2];
@@ -213,36 +243,6 @@ DECLSPEC void salsa_r (PRIVATE_AS uint4 *TI)
     TI[i + 2] = R2;
     TI[i + 3] = R3;
   }
-
-  #if SCRYPT_R > 1
-
-  uint4 TT[STATE_CNT4 / 2];
-
-  for (int dst_off = 0, src_off = 4; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
-  {
-    TT[dst_off + 0] = TI[src_off + 0];
-    TT[dst_off + 1] = TI[src_off + 1];
-    TT[dst_off + 2] = TI[src_off + 2];
-    TT[dst_off + 3] = TI[src_off + 3];
-  }
-
-  for (int dst_off = 4, src_off = 8; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
-  {
-    TI[dst_off + 0] = TI[src_off + 0];
-    TI[dst_off + 1] = TI[src_off + 1];
-    TI[dst_off + 2] = TI[src_off + 2];
-    TI[dst_off + 3] = TI[src_off + 3];
-  }
-
-  for (int dst_off = STATE_CNT4 / 2, src_off = 0; dst_off < STATE_CNT4; dst_off += 4, src_off += 4)
-  {
-    TI[dst_off + 0] = TT[src_off + 0];
-    TI[dst_off + 1] = TT[src_off + 1];
-    TI[dst_off + 2] = TT[src_off + 2];
-    TI[dst_off + 3] = TT[src_off + 3];
-  }
-
-  #endif
 }
 
 DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
@@ -264,6 +264,30 @@ DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
     case 2: V = V2; break;
     case 3: V = V3; break;
   }
+
+  #if SCRYPT_R > 1
+
+  uint4 TT[STATE_CNT4];
+
+  for (int z = 0; z < zSIZE; z++) TT[z] = X[z];
+
+  for (int dst_off = 8, src_off = 4; dst_off < zSIZE; dst_off += 8, src_off += 4)
+  {
+    X[dst_off + 0] = TT[src_off + 0];
+    X[dst_off + 1] = TT[src_off + 1];
+    X[dst_off + 2] = TT[src_off + 2];
+    X[dst_off + 3] = TT[src_off + 3];
+  }
+
+  for (int dst_off = 4, src_off = zSIZE / 2; dst_off < zSIZE; dst_off += 8, src_off += 4)
+  {
+    X[dst_off + 0] = TT[src_off + 0];
+    X[dst_off + 1] = TT[src_off + 1];
+    X[dst_off + 2] = TT[src_off + 2];
+    X[dst_off + 3] = TT[src_off + 3];
+  }
+
+  #endif
 
   for (u32 y = 0; y < ySIZE; y++)
   {
@@ -400,6 +424,9 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
     #if defined IS_CUDA || defined IS_HIP
     const uint4 tmp0 = make_uint4 (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = make_uint4 (digest[4], digest[5], digest[6], digest[7]);
+    #elif defined IS_METAL
+    const uint4 tmp0 = uint4 (digest[0], digest[1], digest[2], digest[3]);
+    const uint4 tmp1 = uint4 (digest[4], digest[5], digest[6], digest[7]);
     #else
     const uint4 tmp0 = (uint4) (digest[0], digest[1], digest[2], digest[3]);
     const uint4 tmp1 = (uint4) (digest[4], digest[5], digest[6], digest[7]);
@@ -430,6 +457,11 @@ KERNEL_FQ void m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
     X[1] = make_uint4 (T[1].x, T[2].y, T[3].z, T[0].w);
     X[2] = make_uint4 (T[2].x, T[3].y, T[0].z, T[1].w);
     X[3] = make_uint4 (T[3].x, T[0].y, T[1].z, T[2].w);
+    #elif defined IS_METAL
+    X[0] = uint4 (T[0].x, T[1].y, T[2].z, T[3].w);
+    X[1] = uint4 (T[1].x, T[2].y, T[3].z, T[0].w);
+    X[2] = uint4 (T[2].x, T[3].y, T[0].z, T[1].w);
+    X[3] = uint4 (T[3].x, T[0].y, T[1].z, T[2].w);
     #else
     X[0] = (uint4) (T[0].x, T[1].y, T[2].z, T[3].w);
     X[1] = (uint4) (T[1].x, T[2].y, T[3].z, T[0].w);
@@ -589,9 +621,13 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
   u32 w2[4];
   u32 w3[4];
 
-  for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
+  for (u32 i = 0; i < SCRYPT_CNT4; i += STATE_CNT4)
   {
+   for (u32 j = 0; j < (STATE_CNT4 * 2); j += 8)
+   {
     uint4 X[4];
+
+    const u32 l =  i + j + ((j >= STATE_CNT4) ? (4 - STATE_CNT4) : 0);
 
     X[0] = tmps[gid].P[l + 0];
     X[1] = tmps[gid].P[l + 1];
@@ -605,6 +641,11 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
     T[1] = make_uint4 (X[1].x, X[0].y, X[3].z, X[2].w);
     T[2] = make_uint4 (X[2].x, X[1].y, X[0].z, X[3].w);
     T[3] = make_uint4 (X[3].x, X[2].y, X[1].z, X[0].w);
+    #elif defined IS_METAL
+    T[0] = uint4 (X[0].x, X[3].y, X[2].z, X[1].w);
+    T[1] = uint4 (X[1].x, X[0].y, X[3].z, X[2].w);
+    T[2] = uint4 (X[2].x, X[1].y, X[0].z, X[3].w);
+    T[3] = uint4 (X[3].x, X[2].y, X[1].z, X[0].w);
     #else
     T[0] = (uint4) (X[0].x, X[3].y, X[2].z, X[1].w);
     T[1] = (uint4) (X[1].x, X[0].y, X[3].z, X[2].w);
@@ -635,6 +676,7 @@ KERNEL_FQ void m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
     w3[3] = T[3].w;
 
     sha256_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
+   }
   }
 
   w0[0] = 1;

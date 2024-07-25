@@ -757,12 +757,15 @@ local int log_recover(struct log *log, int op)
             }
             if ((fd = open(log->path, O_RDONLY, 0)) < 0) {
                 log_log(log, op, ".add file read failure");
+                if (data != NULL)
+                    free(data);
                 return -1;
             }
             ret = (size_t)read(fd, data, len) != len;
             close(fd);
             if (ret) {
                 log_log(log, op, ".add file read failure");
+              
                 return -1;
             }
             log_log(log, op, "loaded .add file");

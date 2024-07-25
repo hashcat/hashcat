@@ -241,6 +241,17 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
           hc_fputc (separator, &fp);
         }
 
+        if (user_options->dynamic_x == true)
+        {
+          dynamicx_t *dynamicx = hashes->hash_info[idx]->dynamicx;
+
+          u32 i;
+
+          for (i = 0; i < dynamicx->dynamicx_len; i++) hc_fputc (dynamicx->dynamicx_buf[i], &fp);
+
+          hc_fputc (separator, &fp);
+        }
+
         const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
         out_buf[out_len] = 0;
@@ -1003,7 +1014,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   void   *esalts_buf     = NULL;
   void   *hook_salts_buf = NULL;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
+  if ((user_options->dynamic_x == true) || (user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     u64 hash_pos;
 
@@ -1012,6 +1023,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       hashinfo_t *hash_info = (hashinfo_t *) hcmalloc (sizeof (hashinfo_t));
 
       hashes_buf[hash_pos].hash_info = hash_info;
+
+      if (user_options->dynamic_x == true)
+      {
+        hash_info->dynamicx = (dynamicx_t *) hcmalloc (sizeof (dynamicx_t));
+      }
 
       if (user_options->username == true)
       {
@@ -1902,7 +1918,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     event_log_advice (hashcat_ctx, "* Token length exception: %u/%u hashes", hashes->parser_token_length_cnt, hashes->parser_token_length_cnt + hashes->hashes_cnt);
     event_log_advice (hashcat_ctx, "  This error happens if the wrong hash type is specified, if the hashes are");
     event_log_advice (hashcat_ctx, "  malformed, or if input is otherwise not as expected (for example, if the");
-    event_log_advice (hashcat_ctx, "  --username option is used but no username is present)");
+    event_log_advice (hashcat_ctx, "  --username or --dynamic-x option is used but no username or dynamic-tag is present)");
     event_log_advice (hashcat_ctx, NULL);
   }
 
@@ -2004,7 +2020,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   hashinfo_t **hash_info = NULL;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
+  if ((user_options->username == true) || (user_options->dynamic_x == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     hash_info = (hashinfo_t **) hccalloc (hashes_cnt, sizeof (hashinfo_t *));
   }
@@ -2211,7 +2227,6 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
   hashes->digests_done_zero = digests_done_zero;
   hashes->digests_done_pot  = digests_done_pot;
 
-  hashes->salts_cnt         = salts_cnt;
   hashes->salts_done        = salts_done;
 
   return 0;
@@ -2545,7 +2560,7 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
   hash_t *hashes_buf = hashes->hashes_buf;
   u32     hashes_cnt = hashes->hashes_cnt;
 
-  // no solution for these special hash types (for instane because they use hashfile in output etc)
+  // no solution for these special hash types (for instance because they use hashfile in output etc)
 
   hash_t hash_buf;
 

@@ -1317,6 +1317,16 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
   #endif
 
+  #elif defined IS_METAL
+
+  const u32x a0 = h32_from_64 (v);
+  const u32x a1 = l32_from_64 (v);
+
+  u32x t0 = hc_swap32 (a0);
+  u32x t1 = hc_swap32 (a1);
+
+  r = hl32_to_64 (t1, t0);
+
   #else
 
   #if defined USE_BITSELECT && defined USE_ROTATE
@@ -1380,7 +1390,19 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
   asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
 
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+
+  #elif defined IS_METAL
+
+  const u32 v0 = h32_from_64_S (v);
+  const u32 v1 = l32_from_64_S (v);
+
+  u32 t0 = hc_swap32_S (v0);
+  u32 t1 = hc_swap32_S (v1);
+
+  r = hl32_to_64_S (t1, t0);
+
   #else
+
   #ifdef USE_SWIZZLE
   r = as_ulong (as_uchar8 (v).s76543210);
   #else
@@ -2793,6 +2815,11 @@ DECLSPEC int is_valid_base58_8 (const u8 v)
   if ((v > (u8) '9') && (v < (u8) 'A')) return 0;
   if ((v > (u8) 'Z') && (v < (u8) 'a')) return 0;
 
+  // https://github.com/hashcat/hashcat/issues/3878
+  if (v == 'O') return 0;
+  if (v == 'I') return 0;
+  if (v == 'l') return 0;
+
   return 1;
 }
 
@@ -2963,6 +2990,24 @@ DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw
   w[31] = out_buf[31];
 
   return out_len;
+}
+
+DECLSPEC int count_bits_32 (const u32 v0, const u32 v1)
+{
+  u32 r = v0 ^ v1;
+
+  if (r == 0) return 0;
+
+  // from https://stackoverflow.com/questions/109023/count-the-number-of-set-bits-in-a-32-bit-integer
+
+  r = r - ((r >> 1) & 0x55555555);                  // add pairs of bits
+  r = (r & 0x33333333) + ((r >> 2) & 0x33333333);   // quads
+  r = (r + (r >> 4)) & 0x0F0F0F0F;                  // groups of 8
+  r *= 0x01010101;                                  // horizontal sum of bytes
+
+  // return just that top byte (after truncating to 32-bit even when int is wider than uint32_t)
+
+  return r >> 24;
 }
 
 /**

@@ -116,7 +116,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // assume no signature found
   if (line_len < 11) return (PARSER_SALT_LENGTH);
 
-  char *spn_info_start  = strchr ((const char *) line_buf + 11 + 1, '*');
+  char *spn_info_start  = strchr (line_buf + 11 + 1, '*');
 
   int is_spn_provided = 0;
 
@@ -244,8 +244,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x%08x",
     SIGNATURE_KRB5DB,
-    (char *) krb5db->user,
-    (char *) krb5db->domain,
+    (const char *) krb5db->user,
+    (const char *) krb5db->domain,
     digest[0],
     digest[1],
     digest[2],

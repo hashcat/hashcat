@@ -90,7 +90,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 pubkey_len = PUBKEY_MAXLEN;
 
-  bool res = b58dec (pubkey, &pubkey_len, (u8 *) line_buf, line_len);
+  bool res = b58dec (pubkey, &pubkey_len, (const u8 *) line_buf, line_len);
 
   if (res == false) return (PARSER_HASH_LENGTH);
 
@@ -129,7 +129,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  u8 *digest = (u8 *) digest_buf;
+  const u8 *digest = (const u8 *) digest_buf;
 
   u8 buf[64] = { 0 };
 

@@ -503,6 +503,7 @@ int outfile_init (hashcat_ctx_t *hashcat_ctx)
   outfile_ctx->filename        = user_options->outfile;
   outfile_ctx->outfile_format  = user_options->outfile_format;
   outfile_ctx->outfile_autohex = user_options->outfile_autohex;
+  outfile_ctx->outfile_json    = user_options->outfile_json;
   outfile_ctx->is_fifo         = hc_path_is_fifo (outfile_ctx->filename);
 
   return 0;
@@ -570,146 +571,213 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
 int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, const bool print_eol, char *tmp_buf)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
   const user_options_t *user_options = hashcat_ctx->user_options;
   outfile_ctx_t        *outfile_ctx  = hashcat_ctx->outfile_ctx;
   status_ctx_t         *status_ctx   = hashcat_ctx->status_ctx;
 
-  const u32 outfile_format = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY) ? 5 : outfile_ctx->outfile_format;
-
   int tmp_len = 0;
 
-  if (user_len > 0)
+  if (outfile_ctx->outfile_json == true)
   {
-    if (username != NULL)
+    tmp_buf[0] = '{'; tmp_len += 1;
+
+    if (user_len > 0)
     {
-      memcpy (tmp_buf + tmp_len, username, user_len);
+      if (username != NULL)
+      {
+        tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "\"username_hex\": ");
 
-      tmp_len += user_len;
+        tmp_buf[tmp_len] = '"'; tmp_len += 1;
 
-      if (outfile_format & (OUTFILE_FMT_TIME_ABS | OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+        tmp_len += hex_encode ((const u8 *) username, user_len, (u8 *) tmp_buf + tmp_len);
+
+        tmp_buf[tmp_len] = '"'; tmp_len += 1;
+
+        tmp_buf[tmp_len] = ','; tmp_len += 1;
+        tmp_buf[tmp_len] = ' '; tmp_len += 1;
+      }
+    }
+
+    if (hashes->hashlist_mode == HL_MODE_FILE_BINARY)
+    {
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "\"filename_hex\": ");
+
+      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+
+      tmp_len += hex_encode ((const u8 *) hashes->hashfile, strlen (hashes->hashfile), (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+
+      tmp_buf[tmp_len] = ','; tmp_len += 1;
+      tmp_buf[tmp_len] = ' '; tmp_len += 1;
+    }
+    else
+    {
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "\"hash_hex\": ");
+
+      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+
+      tmp_len += hex_encode ((const u8 *) out_buf, out_len, (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+
+      tmp_buf[tmp_len] = ','; tmp_len += 1;
+      tmp_buf[tmp_len] = ' '; tmp_len += 1;
+    }
+
+    if (1) // plain
+    {
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "\"password_hex\": ");
+
+      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+
+      tmp_len += hex_encode ((const u8 *) plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
+
+      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+    }
+
+    tmp_buf[tmp_len] = '}';
+
+    tmp_len += 1;
+  }
+  else
+  {
+    const u32 outfile_format = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_HEXIFY) ? 5 : outfile_ctx->outfile_format;
+
+    if (user_len > 0)
+    {
+      if (username != NULL)
+      {
+        memcpy (tmp_buf + tmp_len, username, user_len);
+
+        tmp_len += user_len;
+
+        if (outfile_format & (OUTFILE_FMT_TIME_ABS | OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+        {
+          tmp_buf[tmp_len] = hashconfig->separator;
+
+          tmp_len += 1;
+        }
+      }
+    }
+
+    if (outfile_format & OUTFILE_FMT_TIME_ABS)
+    {
+      time_t now;
+
+      time (&now);
+
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, (u64) now);
+
+      if (outfile_format & (OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
         tmp_buf[tmp_len] = hashconfig->separator;
 
         tmp_len += 1;
       }
     }
-  }
 
-  if (outfile_format & OUTFILE_FMT_TIME_ABS)
-  {
-    time_t now;
-
-    time (&now);
-
-    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, (u64) now);
-
-    if (outfile_format & (OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+    if (outfile_format & OUTFILE_FMT_TIME_REL)
     {
-      tmp_buf[tmp_len] = hashconfig->separator;
+      time_t time_now;
 
-      tmp_len += 1;
-    }
-  }
+      time (&time_now);
 
-  if (outfile_format & OUTFILE_FMT_TIME_REL)
-  {
-    time_t time_now;
+      time_t time_started = status_ctx->runtime_start;
 
-    time (&time_now);
+      u64 diff = 0;
 
-    time_t time_started = status_ctx->runtime_start;
-
-    u64 diff = 0;
-
-    if (time_now > time_started) // should always be true, but you never know
-    {
-      diff = (u64) time_now - (u64) time_started;
-    }
-
-    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, diff);
-
-    if (outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
-    {
-      tmp_buf[tmp_len] = hashconfig->separator;
-
-      tmp_len += 1;
-    }
-  }
-
-  if (outfile_format & OUTFILE_FMT_HASH)
-  {
-    memcpy (tmp_buf + tmp_len, out_buf, out_len);
-
-    tmp_len += out_len;
-
-    if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
-    {
-      tmp_buf[tmp_len] = hashconfig->separator;
-
-      tmp_len += 1;
-    }
-  }
-
-  if (outfile_format & OUTFILE_FMT_PLAIN)
-  {
-    bool convert_to_hex = false;
-
-    if (user_options->show == false)
-    {
-      if (user_options->outfile_autohex == true)
+      if (time_now > time_started) // should always be true, but you never know
       {
-        const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
+        diff = (u64) time_now - (u64) time_started;
+      }
 
-        convert_to_hex = need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii);
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, diff);
+
+      if (outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+      {
+        tmp_buf[tmp_len] = hashconfig->separator;
+
+        tmp_len += 1;
       }
     }
 
-    if (convert_to_hex)
+    if (outfile_format & OUTFILE_FMT_HASH)
     {
-      tmp_buf[tmp_len++] = '$';
-      tmp_buf[tmp_len++] = 'H';
-      tmp_buf[tmp_len++] = 'E';
-      tmp_buf[tmp_len++] = 'X';
-      tmp_buf[tmp_len++] = '[';
+      memcpy (tmp_buf + tmp_len, out_buf, out_len);
 
+      tmp_len += out_len;
+
+      if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+      {
+        tmp_buf[tmp_len] = hashconfig->separator;
+
+        tmp_len += 1;
+      }
+    }
+
+    if (outfile_format & OUTFILE_FMT_PLAIN)
+    {
+      bool convert_to_hex = false;
+
+      if (user_options->show == false)
+      {
+        if (user_options->outfile_autohex == true)
+        {
+          const bool always_ascii = (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII) ? true : false;
+
+          convert_to_hex = need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii);
+        }
+      }
+
+      if (convert_to_hex)
+      {
+        tmp_buf[tmp_len++] = '$';
+        tmp_buf[tmp_len++] = 'H';
+        tmp_buf[tmp_len++] = 'E';
+        tmp_buf[tmp_len++] = 'X';
+        tmp_buf[tmp_len++] = '[';
+
+        exec_hexify (plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
+
+        tmp_len += plain_len * 2;
+
+        tmp_buf[tmp_len++] = ']';
+      }
+      else
+      {
+        memcpy (tmp_buf + tmp_len, plain_ptr, plain_len);
+
+        tmp_len += plain_len;
+      }
+
+      if (outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
+      {
+        tmp_buf[tmp_len] = hashconfig->separator;
+
+        tmp_len += 1;
+      }
+    }
+
+    if (outfile_format & OUTFILE_FMT_HEXPLAIN)
+    {
       exec_hexify (plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
 
       tmp_len += plain_len * 2;
 
-      tmp_buf[tmp_len++] = ']';
+      if (outfile_format & (OUTFILE_FMT_CRACKPOS))
+      {
+        tmp_buf[tmp_len] = hashconfig->separator;
+
+        tmp_len += 1;
+      }
     }
-    else
+
+    if (outfile_format & OUTFILE_FMT_CRACKPOS)
     {
-      memcpy (tmp_buf + tmp_len, plain_ptr, plain_len);
-
-      tmp_len += plain_len;
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, crackpos);
     }
-
-    if (outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
-    {
-      tmp_buf[tmp_len] = hashconfig->separator;
-
-      tmp_len += 1;
-    }
-  }
-
-  if (outfile_format & OUTFILE_FMT_HEXPLAIN)
-  {
-    exec_hexify (plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
-
-    tmp_len += plain_len * 2;
-
-    if (outfile_format & (OUTFILE_FMT_CRACKPOS))
-    {
-      tmp_buf[tmp_len] = hashconfig->separator;
-
-      tmp_len += 1;
-    }
-  }
-
-  if (outfile_format & OUTFILE_FMT_CRACKPOS)
-  {
-    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, crackpos);
   }
 
   tmp_buf[tmp_len] = 0;

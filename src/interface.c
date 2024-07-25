@@ -137,7 +137,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  // check for missing pointer assignements
+  // check for missing pointer assignments
 
   #define CHECK_DEFINED(func)                                                     \
     if ((func) == NULL)                                                           \
@@ -282,12 +282,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->multiply_accel_disable == true)
+  if (user_options->multiply_accel == false)
   {
     hashconfig->opts_type |= OPTS_TYPE_MP_MULTI_DISABLE;
   }
 
-  if (user_options->self_test_disable == true)
+  if (user_options->self_test == false)
   {
     hashconfig->opts_type |= OPTS_TYPE_SELF_TEST_DISABLE;
   }
@@ -357,7 +357,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->hash_info == false)
     {
-      if (user_options->optimized_kernel_enable == true)
+      if (user_options->optimized_kernel == true)
       {
         if (hashconfig->has_optimized_kernel == false)
         {
@@ -469,18 +469,18 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   {
     const int hook_threads = (int) user_options->hook_threads;
 
-    module_ctx->hook_extra_params = (void *) hccalloc (hook_threads, sizeof (void *));
+    module_ctx->hook_extra_params = hccalloc (hook_threads, sizeof (void *));
 
     for (int i = 0; i < hook_threads; i++)
     {
-      module_ctx->hook_extra_params[i] = (void *) hcmalloc (hashconfig->hook_extra_param_size);
+      module_ctx->hook_extra_params[i] = hcmalloc (hashconfig->hook_extra_param_size);
     }
   }
   else
   {
-    module_ctx->hook_extra_params = (void *) hccalloc (1, sizeof (void *));
+    module_ctx->hook_extra_params = hccalloc (1, sizeof (void *));
 
-    module_ctx->hook_extra_params[0] = (void *) hcmalloc (1);
+    module_ctx->hook_extra_params[0] = hcmalloc (1);
   }
 
   if (module_ctx->module_hook_extra_param_init != MODULE_DEFAULT)
@@ -688,7 +688,7 @@ bool default_potfile_keep_all_hashes (MAYBE_UNUSED const hashconfig_t *hashconfi
 
   // keep all hashes if --username was combined with --left or --show
 
-  if (user_options->username == true)
+  if ((user_options->username == true) || (user_options->dynamic_x == true))
   {
     if ((user_options->show == true) || (user_options->left == true))
     {
@@ -818,7 +818,7 @@ u32 default_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED co
 
 u32 default_salt_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // salt_min : this limit is only interessting for generic hash types that support a salt
+  // salt_min : this limit is only interesting for generic hash types that support a salt
 
   u32 salt_min = SALT_MIN;
 
@@ -837,7 +837,7 @@ u32 default_salt_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
 {
   const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
 
-  // salt_max : this limit is only interessting for generic hash types that support a salt
+  // salt_max : this limit is only interesting for generic hash types that support a salt
 
   u32 salt_max = SALT_MAX;
 

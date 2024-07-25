@@ -69,7 +69,7 @@ int  hc_string_bom_size (const u8 *s);
 void hc_string_trim_trailing (char *s);
 void hc_string_trim_leading (char *s);
 
-int hc_get_processor_count ();
+int hc_get_processor_count (void);
 
 bool hc_same_files (char *file1, char *file2);
 
@@ -103,6 +103,8 @@ bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
 int  generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf);
 
 int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token);
+
+int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len);
 
 #if defined (__APPLE__)
 bool is_apple_silicon (void);

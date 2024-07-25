@@ -582,8 +582,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param.digests_offset_host = 0;
   kernel_param.combs_mode          = 0;
   kernel_param.salt_repeat         = 0;
-  kernel_param.combs_mode          = 0;
-  kernel_param.salt_repeat         = 0;
   kernel_param.pws_pos             = 0;
   kernel_param.gid_max             = 1;
 
@@ -627,7 +625,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   wpa_t *wpa = (wpa_t *) esalt_buf;
 
-  char *input_buf = (char *) line_buf;
+  const char *input_buf = line_buf;
   int   input_len = line_len;
 
   // start old pmkid/hccapx compatibility parsing
@@ -641,7 +639,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (line_len == sizeof (hccapx_t))
   {
-    hccapx_t *hccapx = (hccapx_t *) line_buf;
+    const hccapx_t *hccapx = (const hccapx_t *) line_buf;
 
     if ((hccapx->signature == HCCAPX_SIGNATURE) && (hccapx->version == HCCAPX_VERSION))
     {
@@ -685,7 +683,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       tmp_len++;
 
-      tmp_len += hex_encode ((const u8 *) &hccapx->message_pair, 1, (u8 *) tmp_buf + tmp_len);
+      tmp_len += hex_encode (&hccapx->message_pair, 1, (u8 *) tmp_buf + tmp_len);
 
       tmp_buf[tmp_len] = 0;
 
@@ -944,7 +942,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     u8 *eapol_ptr = (u8 *) wpa->eapol;
 
-    wpa->eapol_len = hex_decode ((const u8 *) eapol_pos, token.len[7], eapol_ptr);
+    wpa->eapol_len = hex_decode (eapol_pos, token.len[7], eapol_ptr);
 
     memset (eapol_ptr + wpa->eapol_len, 0, (256 + 64) - wpa->eapol_len);
 

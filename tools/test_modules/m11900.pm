@@ -29,7 +29,7 @@ sub module_generate_hash
   my $word_buf_base64 = encode_base64 ($word, "");
   my $salt_buf_base64 = encode_base64 ($salt, "");
 
-  # sanitize lenghs
+  # sanitize lengths
 
   $out_len = int ($out_len);
 

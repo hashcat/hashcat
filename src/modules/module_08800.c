@@ -183,7 +183,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0, j = 0; i < 384; i += 1, j += 8)
   {
-    sprintf (tmp + j, "%08x", androidfde->data[i]);
+    snprintf (tmp + j, 9, "%08x", androidfde->data[i]);
   }
 
   tmp[3072] = 0;

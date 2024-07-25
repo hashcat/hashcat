@@ -176,15 +176,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *iv_pos = token.buf[3];
 
-  encdatavault->iv[0] = byte_swap_32 (hex_to_u32 ((const u8 *) &iv_pos[0]));
-  encdatavault->iv[1] = byte_swap_32 (hex_to_u32 ((const u8 *) &iv_pos[8]));
+  encdatavault->iv[0] = byte_swap_32 (hex_to_u32 (&iv_pos[0]));
+  encdatavault->iv[1] = byte_swap_32 (hex_to_u32 (&iv_pos[8]));
 
   // ct
 
   const u8 *ct_pos = token.buf[4];
 
-  encdatavault->ct[0] = byte_swap_32 (hex_to_u32 ((const u8 *) &ct_pos[0]));
-  encdatavault->ct[1] = byte_swap_32 (hex_to_u32 ((const u8 *) &ct_pos[8]));
+  encdatavault->ct[0] = byte_swap_32 (hex_to_u32 (&ct_pos[0]));
+  encdatavault->ct[1] = byte_swap_32 (hex_to_u32 (&ct_pos[8]));
 
   // salt length
 
@@ -198,14 +198,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *salt_pos = token.buf[6];
 
-  salt->salt_buf[0] = byte_swap_32 (hex_to_u32 ((const u8 *) &salt_pos[ 0]));
-  salt->salt_buf[1] = byte_swap_32 (hex_to_u32 ((const u8 *) &salt_pos[ 8]));
-  salt->salt_buf[2] = byte_swap_32 (hex_to_u32 ((const u8 *) &salt_pos[16]));
-  salt->salt_buf[3] = byte_swap_32 (hex_to_u32 ((const u8 *) &salt_pos[24]));
-  salt->salt_buf[4] = byte_swap_32 (hex_to_u32 ((const u8 *) &salt_pos[32]));
-  salt->salt_buf[5] = byte_swap_32 (hex_to_u32 ((const u8 *) &salt_pos[40]));
-  salt->salt_buf[6] = byte_swap_32 (hex_to_u32 ((const u8 *) &salt_pos[48]));
-  salt->salt_buf[7] = byte_swap_32 (hex_to_u32 ((const u8 *) &salt_pos[56]));
+  salt->salt_buf[0] = byte_swap_32 (hex_to_u32 (&salt_pos[ 0]));
+  salt->salt_buf[1] = byte_swap_32 (hex_to_u32 (&salt_pos[ 8]));
+  salt->salt_buf[2] = byte_swap_32 (hex_to_u32 (&salt_pos[16]));
+  salt->salt_buf[3] = byte_swap_32 (hex_to_u32 (&salt_pos[24]));
+  salt->salt_buf[4] = byte_swap_32 (hex_to_u32 (&salt_pos[32]));
+  salt->salt_buf[5] = byte_swap_32 (hex_to_u32 (&salt_pos[40]));
+  salt->salt_buf[6] = byte_swap_32 (hex_to_u32 (&salt_pos[48]));
+  salt->salt_buf[7] = byte_swap_32 (hex_to_u32 (&salt_pos[56]));
 
   salt->salt_len = 32;
 
@@ -221,7 +221,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0, j = 0; i < 32; i += 1, j+= 8)
   {
-    encdatavault->keychain[i] = byte_swap_32 (hex_to_u32 ((const u8 *) &keychain_pos[j]));
+    encdatavault->keychain[i] = byte_swap_32 (hex_to_u32 (&keychain_pos[j]));
   }
 
   // hash
