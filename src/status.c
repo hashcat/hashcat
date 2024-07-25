@@ -787,7 +787,7 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
   const char *custom_charset_7 = user_options->custom_charset_7;
   const char *custom_charset_8 = user_options->custom_charset_8;
 
-  if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL) || (custom_charset_5 != NULL) || (custom_charset_6 != NULL) || (custom_charset_7 != NULL) || (custom_charset_8 != NULL));
+  if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL) || (custom_charset_5 != NULL) || (custom_charset_6 != NULL) || (custom_charset_7 != NULL) || (custom_charset_8 != NULL))
   {
     char *tmp_buf;
 

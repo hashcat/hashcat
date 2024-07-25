@@ -374,7 +374,6 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
       XXH64_update (state, custom_charset_8, strlen (custom_charset_8));
     }
   }
-
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
     const u64 wordlist_hash = brain_compute_attack_wordlist (straight_ctx->dict);
