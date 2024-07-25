@@ -373,13 +373,6 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
       XXH64_update (state, custom_charset_8, strlen (custom_charset_8));
     }
-
-    if (user_options->custom_charset_9)
-    {
-      const char *custom_charset_9 = user_options->custom_charset_9;
-
-      XXH64_update (state, custom_charset_9, strlen (custom_charset_9));
-    }
   }
 
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
@@ -467,13 +460,6 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
       const char *custom_charset_8 = user_options->custom_charset_8;
 
       XXH64_update (state, custom_charset_8, strlen (custom_charset_8));
-    }
-
-    if (user_options->custom_charset_9)
-    {
-      const char *custom_charset_9 = user_options->custom_charset_9;
-
-      XXH64_update (state, custom_charset_9, strlen (custom_charset_9));
     }
 
     const int hex_wordlist = user_options->hex_wordlist;

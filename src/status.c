@@ -398,7 +398,6 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
   if (user_options->custom_charset_6) has_mask_cs = true;
   if (user_options->custom_charset_7) has_mask_cs = true;
   if (user_options->custom_charset_8) has_mask_cs = true;
-  if (user_options->custom_charset_9) has_mask_cs = true;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
@@ -787,23 +786,21 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
   const char *custom_charset_6 = user_options->custom_charset_6;
   const char *custom_charset_7 = user_options->custom_charset_7;
   const char *custom_charset_8 = user_options->custom_charset_8;
-  const char *custom_charset_9 = user_options->custom_charset_9;
 
-  if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL) || (custom_charset_5 != NULL) || (custom_charset_6 != NULL) || (custom_charset_7 != NULL) || (custom_charset_8 != NULL) || (custom_charset_9 != NULL))
+  if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL) || (custom_charset_5 != NULL) || (custom_charset_6 != NULL) || (custom_charset_7 != NULL) || (custom_charset_8 != NULL));
   {
     char *tmp_buf;
 
-    if (custom_charset_1 == NULL) custom_charset_1 = "Undef";
-    if (custom_charset_2 == NULL) custom_charset_2 = "Undef";
-    if (custom_charset_3 == NULL) custom_charset_3 = "Undef";
-    if (custom_charset_4 == NULL) custom_charset_4 = "Undef";
-    if (custom_charset_5 == NULL) custom_charset_5 = "Undef";
-    if (custom_charset_6 == NULL) custom_charset_6 = "Undef";
-    if (custom_charset_7 == NULL) custom_charset_7 = "Undef";
-    if (custom_charset_8 == NULL) custom_charset_8 = "Undef";
-    if (custom_charset_9 == NULL) custom_charset_9 = "Undef";
+    if (custom_charset_1 == NULL) custom_charset_1 = "N/A";
+    if (custom_charset_2 == NULL) custom_charset_2 = "N/A";
+    if (custom_charset_3 == NULL) custom_charset_3 = "N/A";
+    if (custom_charset_4 == NULL) custom_charset_4 = "N/A";
+    if (custom_charset_5 == NULL) custom_charset_5 = "N/A";
+    if (custom_charset_6 == NULL) custom_charset_6 = "N/A";
+    if (custom_charset_7 == NULL) custom_charset_7 = "N/A";
+    if (custom_charset_8 == NULL) custom_charset_8 = "N/A";
 
-    hc_asprintf (&tmp_buf, "-1 %s, -2 %s, -3 %s, -4 %s, -5 %s, -6 %s, -7 %s, -8 %s, -9 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4, custom_charset_5, custom_charset_6, custom_charset_7, custom_charset_8, custom_charset_9);
+    hc_asprintf (&tmp_buf, "-1 %s, -2 %s, -3 %s, -4 %s, -5 %s, -6 %s, -7 %s, -8 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4, custom_charset_5, custom_charset_6, custom_charset_7, custom_charset_8);
 
     return tmp_buf;
   }

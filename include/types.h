@@ -759,7 +759,6 @@ typedef enum user_options_map
   IDX_CUSTOM_CHARSET_6          = '6',
   IDX_CUSTOM_CHARSET_7          = '7',
   IDX_CUSTOM_CHARSET_8          = '8',
-  IDX_CUSTOM_CHARSET_9          = '9',
   IDX_DEBUG_FILE                = 0xff12,
   IDX_DEBUG_MODE                = 0xff13,
   IDX_DEPRECATED_CHECK_DISABLE  = 0xff14,
@@ -2396,7 +2395,6 @@ typedef struct user_options
   char        *brain_session_whitelist;
   #endif
   char        *cpu_affinity;
-  char        *custom_charset_9;
   char        *debug_file;
   char        *induction_dir;
   char        *keyboard_layout_mapping;

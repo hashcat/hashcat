@@ -134,7 +134,6 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -6, --custom-charset6          | CS   | User-defined charset ?6                              |",
   " -7, --custom-charset7          | CS   | User-defined charset ?7                              |",
   " -8, --custom-charset8          | CS   | User-defined charset ?8                              |",
-  " -9, --custom-charset9          | CS   | User-defined charset ?9                              |",
   "     --identify                 |      | Shows all supported algorithms for input hashes      | --identify my.hash",
   " -i, --increment                |      | Enable mask increment mode                           |",
   "     --increment-min            | Num  | Start mask incrementing at X                         | --increment-min=4",
