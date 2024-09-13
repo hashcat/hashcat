@@ -178,13 +178,11 @@ def main():
 
     p = argparse.ArgumentParser()
     p.add_argument('image_path', help="Path to encrypted BitLocker image")
-    p.add_argument('-o', '--offset', help='Offset in image where BitLocker partition starts, default=0')
+    p.add_argument('-o', '--offset', default=0, type=int, help='Offset in image where BitLocker partition starts')
     args = p.parse_args()
     bitlocker_partition = args.image_path
 
-    bitlocker_offset = 0
-    if args.offset:
-       bitlocker_offset = int(args.offset)  
+    bitlocker_offset = args.offset
 
     with open(bitlocker_partition, 'rb') as fp:
 
