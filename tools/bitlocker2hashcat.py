@@ -29,12 +29,13 @@ def guid_to_hex(guid):
 
 def hex_to_guid(hex_str):
 
-    guid_parts = [0] * 5
-    guid_parts[0] = hex_str[0:8]
-    guid_parts[1] = hex_str[8:12]
-    guid_parts[2] = hex_str[12:16]
-    guid_parts[3] = hex_str[16:20]
-    guid_parts[4] = hex_str[20:]
+    guid_parts = [
+        hex_str[0:8],
+        hex_str[8:12],
+        hex_str[12:16],
+        hex_str[16:20],
+        hex_str[20:],
+    ]
 
     guid = ''.join([guid_parts[0][i:i+2] for i in range(0, len(guid_parts[0]), 2)][::-1])
     guid += '-'
