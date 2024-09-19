@@ -48,6 +48,8 @@
 use strict;
 use warnings;
 use utf8;
+use Encode;
+use Encode::Guess;
 
 
 #
@@ -93,197 +95,248 @@ if (! open ($fh, "<", $file_name))
 
 binmode ($fh);
 
-my $file_content = "";
+# Strip out any leading info from the registry file or the registry dumping program
+# Then break up the registry keys into an array so each one can be processed if there are multiple
+# Radmin users
+my @sections;
+my $current_section = '';
 
 {
-  local $/ = undef;
+  local $/;  # Enable slurp mode
+  my $file_info = <$fh>;
 
-  $file_content = <$fh>;
+  # Registry dumps are often UTF-16LE, but some programs might dump
+  # it as a different format
+  my $enc = guess_encoding($file_info, qw/ ascii cp1252 iso-8859-1 utf-8 UTF-16LE /);
+
+  # Decode using the encoding detected
+  $file_info = decode($enc->name, $file_info);
+  
+  # Split lines, handling both Unix and Windows line endings
+  my @lines = split /\r?\n/, $file_info;
+
+  # Read the file line by line
+  foreach my $line (@lines) {
+    chomp $line;
+
+    # Check if the line is a section header
+    if ($line =~ /^\[HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Radmin\\v3\.0\\Server\\Parameters\\Radmin Security\\/) {
+        # If we already have a section, push it to the array
+        if ($current_section) {
+            push @sections, $current_section;
+        }
+        
+        # Start a new section with the header
+        $current_section = "$line\n";
+    }
+    elsif ($current_section) {
+        # If we are in a section, continue adding lines to it
+        if ($line =~ /^\[.*\]$/) {
+            # New section starts, save the current one
+            push @sections, $current_section;
+            $current_section = '';
+        } else {
+            # Add data to the current section
+            $current_section .= "$line\n";
+        }
+    }
+  }
 }
 
-close ($fh);
+# Push the last section if there was one
+if ($current_section) {
+    push @sections, $current_section;
+}
+close $fh;
 
-
-if (length ($file_content) < 5 + 0) # replace 0 with minimum expected length
-{
-  print STDERR "ERROR: File size of file '$file_name' is invalid\n";
+if (!@sections) {
+  print STDERR "ERROR: Did not find any Radmin users in the file'\n";
 
   exit (1);
 }
 
-$file_content =~ s/[\x00]//g; # this could be true if UTF16 + BOM are being used
+# Loop over the data
+my $file_content = '';
+while($file_content=shift(@sections)) {
 
-my $prefix_idx = index ($file_content, $REGISTRY_PREFIX);
-
-if ($prefix_idx < 0)
-{
-  print STDERR "ERROR: Could not find the key '=hex:' within the file content\n";
-
-  exit (1);
-}
-
-$file_content = substr ($file_content, $prefix_idx + length ($REGISTRY_PREFIX));
-
-# $file_content =~ s/[ \r\n,\\]//g;
-
-# we could also remove every character that is not an hexadecimal symbol:
-$file_content =~ s/[^0-9a-fA-F]//g;
-
-$file_content = pack ("H*", $file_content);
-
-
-# final length check (needed ?):
-
-my $file_content_len = length ($file_content);
-
-if ($file_content_len < 2 + 1 + 2 + 1 + 2 + 32 + 2 + 256 + 2 + 256) # replace with min length
-{
-  print STDERR "ERROR: File content of file '$file_name' is too short\n";
-
-  exit (1);
-}
-
-
-# loop over the data:
-
-my $user     = "";
-my $salt     = "";
-my $verifier = "";
-
-my $found_user      = 0;
-my $found_modulus   = 0;
-my $found_generator = 0;
-my $found_salt      = 0;
-my $found_verifier  = 0;
-
-for (my $i = 0; $i < $file_content_len; $i += 4)
-{
-  if ($i + 4 > $file_content_len)
+  if (length ($file_content) < 5 + 0) # replace 0 with minimum expected length
   {
-    print STDERR "ERROR: Unexpected EOF (end of file) in file '$file_name'\n";
+    print STDERR "ERROR: File size of file '$file_name' is invalid\n";
 
     exit (1);
   }
 
-  my $type = ord (substr ($file_content, $i + 1, 1)) * 256 +
-             ord (substr ($file_content, $i + 0, 1));
-  my $len  = ord (substr ($file_content, $i + 2, 1)) * 256 +
-             ord (substr ($file_content, $i + 3, 1));
+  $file_content =~ s/[\x00]//g; # this could be true if UTF16 + BOM are being used
 
-  my $pos = $i + 4;
+  my $prefix_idx = index ($file_content, $REGISTRY_PREFIX);
 
-  $i += $len;
-
-  # we are not interested in other values than what we need:
-
-  if (($type != $ENTRY_KEY_USER)      &&
-      ($type != $ENTRY_KEY_MODULUS)   &&
-      ($type != $ENTRY_KEY_GENERATOR) &&
-      ($type != $ENTRY_KEY_SALT)      &&
-      ($type != $ENTRY_KEY_VERIFIER))
+  if ($prefix_idx < 0)
   {
-    next;
+    print STDERR "ERROR: Could not find the key '=hex:' within the file content\n";
+
+    exit (1);
   }
 
-  if ($i > $file_content_len)
+  $file_content = substr ($file_content, $prefix_idx + length ($REGISTRY_PREFIX));
+
+  # $file_content =~ s/[ \r\n,\\]//g;
+
+  # we could also remove every character that is not an hexadecimal symbol:
+  $file_content =~ s/[^0-9a-fA-F]//g;
+
+  $file_content = pack ("H*", $file_content);
+
+
+  # final length check (needed ?):
+
+  my $file_content_len = length ($file_content);
+
+  if ($file_content_len < 2 + 1 + 2 + 1 + 2 + 32 + 2 + 256 + 2 + 256) # replace with min length
   {
-    print STDERR "ERROR: Unexpected EOF (end of file) in file '$file_name'\n";
+    print STDERR "ERROR: File content of file '$file_name' is too short\n";
+
+    exit (1);
+  }
+
+  my $user     = "";
+  my $salt     = "";
+  my $verifier = "";
+
+  my $found_user      = 0;
+  my $found_modulus   = 0;
+  my $found_generator = 0;
+  my $found_salt      = 0;
+  my $found_verifier  = 0;
+
+  for (my $i = 0; $i < $file_content_len; $i += 4)
+  {
+    if ($i + 4 > $file_content_len)
+    {
+      print STDERR "ERROR: Unexpected EOF (end of file) in file '$file_name'\n";
+
+      exit (1);
+    }
+
+    my $type = ord (substr ($file_content, $i + 1, 1)) * 256 +
+              ord (substr ($file_content, $i + 0, 1));
+    my $len  = ord (substr ($file_content, $i + 2, 1)) * 256 +
+              ord (substr ($file_content, $i + 3, 1));
+
+    my $pos = $i + 4;
+
+    $i += $len;
+
+    # we are not interested in other values than what we need:
+
+    if (($type != $ENTRY_KEY_USER)      &&
+        ($type != $ENTRY_KEY_MODULUS)   &&
+        ($type != $ENTRY_KEY_GENERATOR) &&
+        ($type != $ENTRY_KEY_SALT)      &&
+        ($type != $ENTRY_KEY_VERIFIER))
+    {
+      next;
+    }
+
+    if ($i > $file_content_len)
+    {
+      print STDERR "ERROR: Unexpected EOF (end of file) in file '$file_name'\n";
+
+      exit (1);
+    }
+
+
+    #
+    # get the data, finally:
+    #
+
+    my $value = substr ($file_content, $pos, $len);
+
+    $value = unpack ("H*", $value);
+
+    if ($type == $ENTRY_KEY_USER)
+    {
+      $user = $value;
+
+      $found_user = 1;
+    }
+    elsif ($type == $ENTRY_KEY_MODULUS)
+    {
+      if ($value ne $HARD_CODED_MODULUS)
+      {
+        print STDERR "ERROR: Non-default modulus found in file '$file_name'\n";
+
+        exit (1);
+      }
+
+      $found_modulus = 1;
+    }
+    elsif ($type == $ENTRY_KEY_GENERATOR)
+    {
+      if ($value ne $HARD_CODED_GENERATOR)
+      {
+        print STDERR "ERROR: Non-default generator found in file '$file_name'\n";
+
+        exit (1);
+      }
+
+      $found_generator = 1;
+    }
+    elsif ($type == $ENTRY_KEY_SALT)
+    {
+      $salt = $value;
+
+      $found_salt = 1;
+    }
+    elsif ($type == $ENTRY_KEY_VERIFIER)
+    {
+      $verifier = $value;
+
+      $found_verifier = 1;
+    }
+  }
+
+  if ($found_user == 0)
+  {
+    print STDERR "ERROR: No user name found in file '$file_name'\n";
+
+    exit (1);
+  }
+
+  if ($found_modulus == 0)
+  {
+    print STDERR "ERROR: No modulus found in file '$file_name'\n";
+
+    exit (1);
+  }
+
+  if ($found_generator == 0)
+  {
+    print STDERR "ERROR: No generator found in file '$file_name'\n";
+
+    exit (1);
+  }
+
+  if ($found_salt == 0)
+  {
+    print STDERR "ERROR: No salt found in file '$file_name'\n";
+
+    exit (1);
+  }
+
+  if ($found_verifier == 0)
+  {
+    print STDERR "ERROR: No verifier found in file '$file_name'\n";
 
     exit (1);
   }
 
 
   #
-  # get the data, finally:
+  # Output:
   #
 
-  my $value = substr ($file_content, $pos, $len);
-
-  $value = unpack ("H*", $value);
-
-  if ($type == $ENTRY_KEY_USER)
-  {
-    $user = $value;
-
-    $found_user = 1;
-  }
-  elsif ($type == $ENTRY_KEY_MODULUS)
-  {
-    if ($value ne $HARD_CODED_MODULUS)
-    {
-      print STDERR "ERROR: Non-default modulus found in file '$file_name'\n";
-
-      exit (1);
-    }
-
-    $found_modulus = 1;
-  }
-  elsif ($type == $ENTRY_KEY_GENERATOR)
-  {
-    if ($value ne $HARD_CODED_GENERATOR)
-    {
-      print STDERR "ERROR: Non-default generator found in file '$file_name'\n";
-
-      exit (1);
-    }
-
-    $found_generator = 1;
-  }
-  elsif ($type == $ENTRY_KEY_SALT)
-  {
-    $salt = $value;
-
-    $found_salt = 1;
-  }
-  elsif ($type == $ENTRY_KEY_VERIFIER)
-  {
-    $verifier = $value;
-
-    $found_verifier = 1;
-  }
+  print sprintf ("\$radmin3\$%s*%s*%s\n",
+    $user,
+    $salt,
+    $verifier);
 }
-
-if ($found_user == 0)
-{
-  print STDERR "ERROR: No user name found in file '$file_name'\n";
-
-  exit (1);
-}
-
-if ($found_modulus == 0)
-{
-  print STDERR "ERROR: No modulus found in file '$file_name'\n";
-
-  exit (1);
-}
-
-if ($found_generator == 0)
-{
-  print STDERR "ERROR: No generator found in file '$file_name'\n";
-
-  exit (1);
-}
-
-if ($found_salt == 0)
-{
-  print STDERR "ERROR: No salt found in file '$file_name'\n";
-
-  exit (1);
-}
-
-if ($found_verifier == 0)
-{
-  print STDERR "ERROR: No verifier found in file '$file_name'\n";
-
-  exit (1);
-}
-
-
-#
-# Output:
-#
-
-print sprintf ("\$radmin3\$%s*%s*%s\n",
-  $user,
-  $salt,
-  $verifier);
