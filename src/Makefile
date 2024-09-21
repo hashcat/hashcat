@@ -218,7 +218,11 @@ CFLAGS_UNRAR            += -Wno-class-memaccess
 CFLAGS_UNRAR            += -Wno-misleading-indentation
 CFLAGS_UNRAR            += -Wno-format-overflow
 else
+ifeq ($(UNAME),Darwin)
+CFLAGS_UNRAR            += -std=c++11 -isystem /Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/include/c++/v1
+else
 CFLAGS_UNRAR            += -std=c++11
+endif
 endif
 CFLAGS_UNRAR            += -Wno-missing-braces
 CFLAGS_UNRAR            += -Wno-unused-variable
