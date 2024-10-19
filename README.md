@@ -4,7 +4,7 @@
 
 ### License ###
 
-**hashcat** is licensed under the MIT license. Refer to [docs/license.txt](docs/license.txt) for more information.
+**hashcat** is licensed under the MIT license. Refer to MIT License tab for more information.
 
 ### Installation ###
 
