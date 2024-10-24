@@ -91,7 +91,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --progress-only            |      | Return ideal progress step size and time to process  |",
   " -c, --segment-size             | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
   "     --bitmap-min               | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
-  "     --bitmap-max               | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",
+  "     --bitmap-max               | Num  | Sets maximum bits allowed for bitmaps to X (max: 31) | --bitmap-max=24",
   "     --cpu-affinity             | Str  | Locks to CPU devices, separated with commas          | --cpu-affinity=1,2,3",
   "     --hook-threads             | Num  | Sets number of threads for a hook (per compute unit) | --hook-threads=8",
   "     --hash-info                |      | Show information for each hash-mode                  |",
