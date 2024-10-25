@@ -345,7 +345,11 @@ LFLAGS_NATIVE           += -lpthread
 endif # NetBSD
 
 ifeq ($(UNAME),Darwin)
+ifeq ($(IS_APPLE_SILICON),1)
 export MACOSX_DEPLOYMENT_TARGET=10.15
+else
+export MACOSX_DEPLOYMENT_TARGET=10.9
+endif
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 
@@ -364,9 +368,14 @@ LFLAGS_NATIVE           += -liconv
 
 ifeq ($(IS_APPLE_SILICON),1)
 CFLAGS_NATIVE           += -arch arm64
-CFLAGS_NATIVE           += -arch x86_64
 ifeq ($(SHARED),1)
 LFLAGS_NATIVE           += -arch arm64
+endif
+endif
+
+ifneq ($(IS_APPLE_SILICON),1)
+CFLAGS_NATIVE           += -arch x86_64
+ifeq ($(SHARED),1)
 LFLAGS_NATIVE           += -arch x86_64
 endif
 endif
