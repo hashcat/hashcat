@@ -1059,6 +1059,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return 0;
   }
 
+  if (user_options->show == true && user_options->restore == true)
+  {
+    event_log_error (hashcat_ctx, "Mixing --show and --restore is not allowed.");
+
+    return -1;
+  }
+
   if (user_options->show == true || user_options->left == true)
   {
     if (user_options->remove == true)
