@@ -168,7 +168,7 @@ KERNEL_FQ void m21310_mxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
   }
 }
 
-KERNEL_FQ void m21310_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt))
+KERNEL_FQ void m21310_sxx (KERN_ATTR_VECTOR_ESALT (md5_double_salt_t))
 {
   /**
    * modifier
