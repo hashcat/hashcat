@@ -569,22 +569,22 @@ DECLSPEC void Cast5Encrypt (PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBloc
 	u32 t;
 
 	/* Do the work */
-	_CAST_F1(l, r,  0, 16);
-	_CAST_F2(r, l,  1, 16);
-	_CAST_F3(l, r,  2, 16);
-	_CAST_F1(r, l,  3, 16);
-	_CAST_F2(l, r,  4, 16);
-	_CAST_F3(r, l,  5, 16);
-	_CAST_F1(l, r,  6, 16);
-	_CAST_F2(r, l,  7, 16);
-	_CAST_F3(l, r,  8, 16);
-	_CAST_F1(r, l,  9, 16);
-	_CAST_F2(l, r, 10, 16);
-	_CAST_F3(r, l, 11, 16);
-	_CAST_F1(l, r, 12, 16);
-	_CAST_F2(r, l, 13, 16);
-	_CAST_F3(l, r, 14, 16);
-	_CAST_F1(r, l, 15, 16);
+	CAST_F1(l, r,  0, 16);
+	CAST_F2(r, l,  1, 16);
+	CAST_F3(l, r,  2, 16);
+	CAST_F1(r, l,  3, 16);
+	CAST_F2(l, r,  4, 16);
+	CAST_F3(r, l,  5, 16);
+	CAST_F1(l, r,  6, 16);
+	CAST_F2(r, l,  7, 16);
+	CAST_F3(l, r,  8, 16);
+	CAST_F1(r, l,  9, 16);
+	CAST_F2(l, r, 10, 16);
+	CAST_F3(r, l, 11, 16);
+	CAST_F1(l, r, 12, 16);
+	CAST_F2(r, l, 13, 16);
+	CAST_F3(l, r, 14, 16);
+	CAST_F1(r, l, 15, 16);
 
 	/* Put l,r into outblock */
 	PUT_UINT32BE(r, outBlock, 0);
@@ -599,22 +599,22 @@ DECLSPEC void Cast5Decrypt (PRIVATE_AS const u8 *inBlock, PRIVATE_AS u8 *outBloc
 	u32 t;
 
 	/* Only do full 16 rounds if key length > 80 bits */
-	_CAST_F1(r, l, 15, 16);
-	_CAST_F3(l, r, 14, 16);
-	_CAST_F2(r, l, 13, 16);
-	_CAST_F1(l, r, 12, 16);
-	_CAST_F3(r, l, 11, 16);
-	_CAST_F2(l, r, 10, 16);
-	_CAST_F1(r, l,  9, 16);
-	_CAST_F3(l, r,  8, 16);
-	_CAST_F2(r, l,  7, 16);
-	_CAST_F1(l, r,  6, 16);
-	_CAST_F3(r, l,  5, 16);
-	_CAST_F2(l, r,  4, 16);
-	_CAST_F1(r, l,  3, 16);
-	_CAST_F3(l, r,  2, 16);
-	_CAST_F2(r, l,  1, 16);
-	_CAST_F1(l, r,  0, 16);
+	CAST_F1(r, l, 15, 16);
+	CAST_F3(l, r, 14, 16);
+	CAST_F2(r, l, 13, 16);
+	CAST_F1(l, r, 12, 16);
+	CAST_F3(r, l, 11, 16);
+	CAST_F2(l, r, 10, 16);
+	CAST_F1(r, l,  9, 16);
+	CAST_F3(l, r,  8, 16);
+	CAST_F2(r, l,  7, 16);
+	CAST_F1(l, r,  6, 16);
+	CAST_F3(r, l,  5, 16);
+	CAST_F2(l, r,  4, 16);
+	CAST_F1(r, l,  3, 16);
+	CAST_F3(l, r,  2, 16);
+	CAST_F2(r, l,  1, 16);
+	CAST_F1(l, r,  0, 16);
 	/* Put l,r into outblock */
 	PUT_UINT32BE(r, outBlock, 0);
 	PUT_UINT32BE(l, outBlock, 4);
@@ -633,8 +633,8 @@ DECLSPEC void Cast5SetKey (PRIVATE_AS CAST_KEY *key, u32 keylength, PRIVATE_AS c
 	GET_UINT32BE(X[2], userKey, 8);
 	GET_UINT32BE(X[3], userKey, 12);
 
-  #define x(i) GETBYTE(X[i/4], 3-i%4)
-  #define z(i) GETBYTE(Z[i/4], 3-i%4)
+	#define x(i) GETBYTE(X[i/4], 3-i%4)
+	#define z(i) GETBYTE(Z[i/4], 3-i%4)
 
 	for (i=0; i<=16; i+=16) {
 		// this part is copied directly from RFC 2144 (with some search and replace) by Wei Dai
@@ -673,11 +673,11 @@ DECLSPEC void Cast5SetKey (PRIVATE_AS CAST_KEY *key, u32 keylength, PRIVATE_AS c
 	}
 
 	u32 data[32];
-    for (i = 0; i < 16; i++) {
-        data[i * 2] = K[i];
-        data[i * 2 + 1] = ((K[i + 16]) + 16) & 0x1f; // here only the lowest 5 bits are set..
-    }
 
-	for (i=16; i<32; i++)
-		K[i] &= 0x1f;
+	for (i = 0; i < 16; i++) {
+		data[i * 2] = K[i];
+		data[i * 2 + 1] = ((K[i + 16]) + 16) & 0x1f; // here only the lowest 5 bits are set..
+	}
+
+	for (i=16; i<32; i++) K[i] &= 0x1f;
 }
