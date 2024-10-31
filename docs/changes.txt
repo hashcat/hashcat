@@ -134,6 +134,7 @@
 - Help: show supported hash-modes only with -hh
 - Makefile: prevent make failure with Apple Silicon in case of partial rebuild
 - Rules: Rename best64.rule to best66.rule and remove the unknown section from it
+- Kernel: Renamed multiple defines in CAST cipher to fit expected naming convention of the C++ language standard
 
 * changes v6.2.5 -> v6.2.6
 
