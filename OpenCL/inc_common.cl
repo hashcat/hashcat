@@ -1317,7 +1317,7 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
   #endif
 
-  #elif defined IS_METAL
+  #elif defined IS_METAL || defined IS_APPLE_SILICON
 
   const u32x a0 = h32_from_64 (v);
   const u32x a1 = l32_from_64 (v);
@@ -1391,7 +1391,7 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
 
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
 
-  #elif defined IS_METAL
+  #elif defined IS_METAL || defined IS_APPLE_SILICON
 
   const u32 v0 = h32_from_64_S (v);
   const u32 v1 = l32_from_64_S (v);
