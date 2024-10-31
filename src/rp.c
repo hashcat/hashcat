@@ -106,6 +106,21 @@ bool class_upper (const u8 c)
   return ((c >= 'A') && (c <= 'Z'));
 }
 
+bool class_lower_hex (const u8 c)
+{
+  return ((c >= '0') && (c <= '9')) || ((c >= 'a') && (c <= 'f'));
+}
+
+bool class_upper_hex (const u8 c)
+{
+  return ((c >= '0') && (c <= '9')) || ((c >= 'A') && (c <= 'F'));
+}
+
+bool class_sym (const u8 c)
+{
+  return ((c == ' ') || ((c >= '!') && (c <= '/')) || ((c >= ':') && (c <= '@')) || ((c >= '[') && (c <= '`')) || ((c >= '{') && (c <= '~')));
+}
+
 bool class_alpha (const u8 c)
 {
   return (class_lower (c) || class_upper (c));
@@ -373,6 +388,52 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:
+        if ((rule_pos + 1) < rule_len && rule_buf[rule_pos+1] == '?')
+        {
+          if ((rule_pos + 2) == rule_len) return -1;
+
+          switch (rule_buf[rule_pos+2]) {
+            case '?':
+              SET_NAME (rule, rule_buf[rule_pos]);
+              SET_P0   (rule, rule_buf[rule_pos]);
+              INCR_POS;
+              break;
+            case 'l':
+              SET_NAME (rule, RULE_OP_MANGLE_PURGECLASS_L);
+              INCR_POS;
+              INCR_POS;
+              break;
+            case 'u':
+              SET_NAME (rule, RULE_OP_MANGLE_PURGECLASS_U);
+              INCR_POS;
+              INCR_POS;
+              break;
+            case 'd':
+              SET_NAME (rule, RULE_OP_MANGLE_PURGECLASS_D);
+              INCR_POS;
+              INCR_POS;
+              break;
+            case 'h':
+              SET_NAME (rule, RULE_OP_MANGLE_PURGECLASS_LH);
+              INCR_POS;
+              INCR_POS;
+              break;
+            case 'H':
+              SET_NAME (rule, RULE_OP_MANGLE_PURGECLASS_UH);
+              INCR_POS;
+              INCR_POS;
+              break;
+            case 's':
+              SET_NAME (rule, RULE_OP_MANGLE_PURGECLASS_S);
+              INCR_POS;
+              INCR_POS;
+              break;
+            default :
+              return -1;
+          }
+          break;
+        }
+
         SET_NAME (rule, rule_buf[rule_pos]);
         SET_P0   (rule, rule_buf[rule_pos]);
         break;
@@ -604,6 +665,38 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
       case RULE_OP_MANGLE_PURGECHAR:
         rule_buf[rule_pos] = rule_cmd;
         GET_P0 (rule);
+        if (rule_buf[rule_pos] == '?') rule_buf[++rule_pos] = '?';
+        break;
+
+      case RULE_OP_MANGLE_PURGECLASS_L:
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
+        rule_buf[rule_pos++] = '?';
+        rule_buf[rule_pos] = 'l';
+        break;
+      case RULE_OP_MANGLE_PURGECLASS_U:
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
+        rule_buf[rule_pos++] = '?';
+        rule_buf[rule_pos] = 'u';
+        break;
+      case RULE_OP_MANGLE_PURGECLASS_D:
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
+        rule_buf[rule_pos++] = '?';
+        rule_buf[rule_pos] = 'd';
+        break;
+      case RULE_OP_MANGLE_PURGECLASS_LH:
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
+        rule_buf[rule_pos++] = '?';
+        rule_buf[rule_pos] = 'h';
+        break;
+      case RULE_OP_MANGLE_PURGECLASS_UH:
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
+        rule_buf[rule_pos++] = '?';
+        rule_buf[rule_pos] = 'H';
+        break;
+      case RULE_OP_MANGLE_PURGECLASS_S:
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
+        rule_buf[rule_pos++] = '?';
+        rule_buf[rule_pos] = 's';
         break;
 
       case RULE_OP_MANGLE_TOGGLECASE_REC:

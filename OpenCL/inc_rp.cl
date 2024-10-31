@@ -28,6 +28,50 @@
 #define PASTE_PW pw;
 #endif
 
+CONSTANT_AS u8 s_lookup[128] =
+{
+  [0 ... 31]    = 0, // control characters
+  [32]          = 1, // whitespace
+  [33 ... 47]   = 1, // from '!' to '/'
+  [48 ... 57]   = 0, // digits
+  [58 ... 64]   = 1, // from ':' to '@'
+  [65 ... 90]   = 0, // uppercase
+  [91 ... 96]   = 1, // from '[' to '`'
+  [97 ... 122]  = 0, // lowercase
+  [123 ... 126] = 1, // from '{' to '~'
+  [127]         = 0  // del
+};
+
+HC_INLINE bool is_l (u8 c)
+{
+  return (c >= 'a' && c <= 'z');
+}
+
+HC_INLINE bool is_u (u8 c)
+{
+  return (c >= 'A' && c <= 'Z');
+}
+
+HC_INLINE bool is_d (u8 c)
+{
+  return (c >= '0' && c <= '9');
+}
+
+HC_INLINE bool is_lh (u8 c)
+{
+  return (is_d (c) || (c >= 'a' && c <= 'f'));
+}
+
+HC_INLINE bool is_uh (u8 c)
+{
+  return (is_d (c) || (c >= 'A' && c <= 'F'));
+}
+
+HC_INLINE bool is_s (u8 c)
+{
+  return s_lookup[c] == 1;
+}
+
 DECLSPEC u32 generate_cmask (const u32 value)
 {
   const u32 rmask =  ((value & 0x40404040u) >> 1u)
@@ -543,6 +587,132 @@ DECLSPEC int mangle_purgechar (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
   return (out_len);
 }
 
+DECLSPEC int mangle_purgeclass_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  int out_len = 0;
+
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (is_l (buf[pos])) continue;
+
+    buf[out_len] = buf[pos];
+
+    out_len++;
+  }
+
+  for (int pos = out_len; pos < len; pos++)
+  {
+    buf[pos] = 0;
+  }
+
+  return (out_len);
+}
+
+DECLSPEC int mangle_purgeclass_u (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  int out_len = 0;
+
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (is_u (buf[pos])) continue;
+
+    buf[out_len] = buf[pos];
+
+    out_len++;
+  }
+
+  for (int pos = out_len; pos < len; pos++)
+  {
+    buf[pos] = 0;
+  }
+
+  return (out_len);
+}
+
+DECLSPEC int mangle_purgeclass_d (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  int out_len = 0;
+
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (is_d (buf[pos])) continue;
+
+    buf[out_len] = buf[pos];
+
+    out_len++;
+  }
+
+  for (int pos = out_len; pos < len; pos++)
+  {
+    buf[pos] = 0;
+  }
+
+  return (out_len);
+}
+
+DECLSPEC int mangle_purgeclass_lh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  int out_len = 0;
+
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (is_lh (buf[pos])) continue;
+
+    buf[out_len] = buf[pos];
+
+    out_len++;
+  }
+
+  for (int pos = out_len; pos < len; pos++)
+  {
+    buf[pos] = 0;
+  }
+
+  return (out_len);
+}
+
+DECLSPEC int mangle_purgeclass_uh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  int out_len = 0;
+
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (is_uh (buf[pos])) continue;
+
+    buf[out_len] = buf[pos];
+
+    out_len++;
+  }
+
+  for (int pos = out_len; pos < len; pos++)
+  {
+    buf[pos] = 0;
+  }
+
+  return (out_len);
+}
+
+DECLSPEC int mangle_purgeclass_s (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  int out_len = 0;
+
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (is_s (buf[pos])) continue;
+
+    buf[out_len] = buf[pos];
+
+    out_len++;
+  }
+
+  for (int pos = out_len; pos < len; pos++)
+  {
+    buf[pos] = 0;
+  }
+
+  return (out_len);
+}
+
 DECLSPEC int mangle_dupechar_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   const int out_len = len + p0;
@@ -748,21 +918,21 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
 
   switch (name)
   {
-    case RULE_OP_MANGLE_LREST:            out_len = mangle_lrest            (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_LREST_UFIRST:     out_len = mangle_lrest_ufirst     (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_UREST:            out_len = mangle_urest            (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_UREST_LFIRST:     out_len = mangle_urest_lfirst     (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_TREST:            out_len = mangle_trest            (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_TOGGLE_AT:        out_len = mangle_toggle_at        (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_TOGGLE_AT_SEP:    out_len = mangle_toggle_at_sep    (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_REVERSE:          out_len = mangle_reverse          (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_DUPEWORD:         out_len = mangle_dupeword         (p0, p1,        buf, out_len); break;
+    case RULE_OP_MANGLE_LREST:            out_len = mangle_lrest            (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_LREST_UFIRST:     out_len = mangle_lrest_ufirst     (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_UREST:            out_len = mangle_urest            (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_UREST_LFIRST:     out_len = mangle_urest_lfirst     (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_TREST:            out_len = mangle_trest            (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_TOGGLE_AT:        out_len = mangle_toggle_at        (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_TOGGLE_AT_SEP:    out_len = mangle_toggle_at_sep    (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_REVERSE:          out_len = mangle_reverse          (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_DUPEWORD:         out_len = mangle_dupeword         (p0, p1,                   buf, out_len); break;
     case RULE_OP_MANGLE_DUPEWORD_TIMES:   out_len = mangle_dupeword_times   (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_REFLECT:          out_len = mangle_reflect          (p0, p1,        buf, out_len); break;
+    case RULE_OP_MANGLE_REFLECT:          out_len = mangle_reflect          (p0, p1,                   buf, out_len); break;
     case RULE_OP_MANGLE_APPEND:           out_len = mangle_append           (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_PREPEND:          out_len = mangle_prepend          (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_ROTATE_LEFT:      out_len = mangle_rotate_left      (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_ROTATE_RIGHT:     out_len = mangle_rotate_right     (p0, p1,        buf, out_len); break;
+    case RULE_OP_MANGLE_ROTATE_LEFT:      out_len = mangle_rotate_left      (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_ROTATE_RIGHT:     out_len = mangle_rotate_right     (p0, p1,                   buf, out_len); break;
     case RULE_OP_MANGLE_DELETE_FIRST:     out_len = mangle_delete_first     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DELETE_LAST:      out_len = mangle_delete_last      (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DELETE_AT:        out_len = mangle_delete_at        (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
@@ -773,12 +943,18 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
     case RULE_OP_MANGLE_TRUNCATE_AT:      out_len = mangle_truncate_at      (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_REPLACE:          out_len = mangle_replace          (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR:        out_len = mangle_purgechar        (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_PURGECLASS_L:     out_len = mangle_purgeclass_l     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_PURGECLASS_U:     out_len = mangle_purgeclass_u     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_PURGECLASS_D:     out_len = mangle_purgeclass_d     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_PURGECLASS_LH:    out_len = mangle_purgeclass_lh    (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_PURGECLASS_UH:    out_len = mangle_purgeclass_uh    (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_PURGECLASS_S:     out_len = mangle_purgeclass_s     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_FIRST:   out_len = mangle_dupechar_first   (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_LAST:    out_len = mangle_dupechar_last    (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_ALL:     out_len = mangle_dupechar_all     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_SWITCH_FIRST:     out_len = mangle_switch_first     (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_SWITCH_LAST:      out_len = mangle_switch_last      (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_SWITCH_AT:        out_len = mangle_switch_at        (p0, p1,        buf, out_len); break;
+    case RULE_OP_MANGLE_SWITCH_FIRST:     out_len = mangle_switch_first     (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_SWITCH_LAST:      out_len = mangle_switch_last      (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_SWITCH_AT:        out_len = mangle_switch_at        (p0, p1,                   buf, out_len); break;
     case RULE_OP_MANGLE_CHR_SHIFTL:       out_len = mangle_chr_shiftl       (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_CHR_SHIFTR:       out_len = mangle_chr_shiftr       (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_CHR_INCR:         out_len = mangle_chr_incr         (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
@@ -787,8 +963,8 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
     case RULE_OP_MANGLE_REPLACE_NM1:      out_len = mangle_replace_nm1      (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPEBLOCK_FIRST:  out_len = mangle_dupeblock_first  (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPEBLOCK_LAST:   out_len = mangle_dupeblock_last   (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_TITLE_SEP:        out_len = mangle_title_sep        (p0, p1,        buf, out_len); break;
-    case RULE_OP_MANGLE_TITLE:            out_len = mangle_title_sep        (' ', p1,       buf, out_len); break;
+    case RULE_OP_MANGLE_TITLE_SEP:        out_len = mangle_title_sep        (p0, p1,                   buf, out_len); break;
+    case RULE_OP_MANGLE_TITLE:            out_len = mangle_title_sep        (' ', p1,                  buf, out_len); break;
   }
 
   return out_len;

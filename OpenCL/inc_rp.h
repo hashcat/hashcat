@@ -40,6 +40,12 @@
 #define RULE_OP_MANGLE_TRUNCATE_AT      '\''
 #define RULE_OP_MANGLE_REPLACE          's'
 #define RULE_OP_MANGLE_PURGECHAR        '@'
+#define RULE_OP_MANGLE_PURGECLASS_L     0x01
+#define RULE_OP_MANGLE_PURGECLASS_U     0x02
+#define RULE_OP_MANGLE_PURGECLASS_D     0x03
+#define RULE_OP_MANGLE_PURGECLASS_LH    0x04
+#define RULE_OP_MANGLE_PURGECLASS_UH    0x05
+#define RULE_OP_MANGLE_PURGECLASS_S     0x06
 #define RULE_OP_MANGLE_TOGGLECASE_REC   'a'
 #define RULE_OP_MANGLE_DUPECHAR_FIRST   'z'
 #define RULE_OP_MANGLE_DUPECHAR_LAST    'Z'
@@ -103,6 +109,12 @@ DECLSPEC int mangle_overstrike (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 
 DECLSPEC int mangle_truncate_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_replace (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_purgechar (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
+DECLSPEC int mangle_purgeclass_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
+DECLSPEC int mangle_purgeclass_u (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
+DECLSPEC int mangle_purgeclass_d (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
+DECLSPEC int mangle_purgeclass_lh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
+DECLSPEC int mangle_purgeclass_uh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
+DECLSPEC int mangle_purgeclass_s (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_dupechar_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_dupechar_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_dupechar_all (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);

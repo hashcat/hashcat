@@ -23,7 +23,7 @@
 #define RULE_OP_MANGLE_OVERSTRIKE       'o' // overwrite with char X at pos N
 #define RULE_OP_MANGLE_TRUNCATE_AT      '\''// cut the word at pos N
 #define RULE_OP_MANGLE_REPLACE          's' // replace all chars X with char Y
-#define RULE_OP_MANGLE_PURGECHAR        '@' // purge all instances of char X
+#define RULE_OP_MANGLE_PURGECHAR        '@' // purge all instances of char X (@X) or purge all instances of chars in class X (@?X)
 #define RULE_OP_MANGLE_DUPECHAR_FIRST   'z' // prepend first char of word to itself N times. ex: hello -> hhhello
 #define RULE_OP_MANGLE_DUPECHAR_LAST    'Z' // append last char of word to itself N times.   ex: hello -> hellooo
 #define RULE_OP_MANGLE_DUPECHAR_ALL     'q' // duplicate all chars. ex: hello -> hheelllloo

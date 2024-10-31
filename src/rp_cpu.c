@@ -347,6 +347,114 @@ static int mangle_purgechar (char arr[RP_PASSWORD_SIZE], int arr_len, char c)
   return (ret_len);
 }
 
+static int mangle_purgeclass_l (char arr[RP_PASSWORD_SIZE], int arr_len)
+{
+  int arr_pos;
+
+  int ret_len;
+
+  for (ret_len = 0, arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_lower (arr[arr_pos])) continue;
+
+    arr[ret_len] = arr[arr_pos];
+
+    ret_len++;
+  }
+
+  return (ret_len);
+}
+
+static int mangle_purgeclass_u (char arr[RP_PASSWORD_SIZE], int arr_len)
+{
+  int arr_pos;
+
+  int ret_len;
+
+  for (ret_len = 0, arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_upper (arr[arr_pos])) continue;
+
+    arr[ret_len] = arr[arr_pos];
+
+    ret_len++;
+  }
+
+  return (ret_len);
+}
+
+static int mangle_purgeclass_d (char arr[RP_PASSWORD_SIZE], int arr_len)
+{
+  int arr_pos;
+
+  int ret_len;
+
+  for (ret_len = 0, arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_num (arr[arr_pos])) continue;
+
+    arr[ret_len] = arr[arr_pos];
+
+    ret_len++;
+  }
+
+  return (ret_len);
+}
+
+static int mangle_purgeclass_lh (char arr[RP_PASSWORD_SIZE], int arr_len)
+{
+  int arr_pos;
+
+  int ret_len;
+
+  for (ret_len = 0, arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_lower_hex (arr[arr_pos])) continue;
+
+    arr[ret_len] = arr[arr_pos];
+
+    ret_len++;
+  }
+
+  return (ret_len);
+}
+
+static int mangle_purgeclass_uh (char arr[RP_PASSWORD_SIZE], int arr_len)
+{
+  int arr_pos;
+
+  int ret_len;
+
+  for (ret_len = 0, arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_upper_hex (arr[arr_pos])) continue;
+
+    arr[ret_len] = arr[arr_pos];
+
+    ret_len++;
+  }
+
+  return (ret_len);
+}
+
+static int mangle_purgeclass_s (char arr[RP_PASSWORD_SIZE], int arr_len)
+{
+  int arr_pos;
+
+  int ret_len;
+
+  for (ret_len = 0, arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_sym (arr[arr_pos])) continue;
+
+    arr[ret_len] = arr[arr_pos];
+
+    ret_len++;
+  }
+
+  return (ret_len);
+}
+
 static int mangle_dupeblock_prepend (char arr[RP_PASSWORD_SIZE], int arr_len, int ulen)
 {
   if (ulen > arr_len) return (arr_len);
@@ -699,6 +807,23 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_PURGECHAR:
         NEXT_RULEPOS (rule_pos);
+        if (rule_new[rule_pos] == '?')
+        {
+          NEXT_RULEPOS (rule_pos);
+          switch (rule_new[rule_pos])
+          {
+            case '?': out_len = mangle_purgechar     (out, out_len, rule_new[rule_pos]); break;
+            case 'l': out_len = mangle_purgeclass_l  (out, out_len); break;
+            case 'u': out_len = mangle_purgeclass_u  (out, out_len); break;
+            case 'd': out_len = mangle_purgeclass_d  (out, out_len); break;
+            case 'h': out_len = mangle_purgeclass_lh (out, out_len); break;
+            case 'H': out_len = mangle_purgeclass_uh (out, out_len); break;
+            case 's': out_len = mangle_purgeclass_s  (out, out_len); break;
+            default : return (RULE_RC_SYNTAX_ERROR);
+          }
+          break;
+        }
+
         out_len = mangle_purgechar (out, out_len, rule_new[rule_pos]);
         break;
 
@@ -921,7 +1046,9 @@ int run_rule_engine (const int rule_len, const char *rule_buf)
   if (rule_len == 0) return 0;
 
   if (rule_len == 1)
+  {
     if (rule_buf[0] == RULE_OP_MANGLE_NOOP) return 0;
+  }
 
   return 1;
 }
