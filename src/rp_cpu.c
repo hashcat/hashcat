@@ -455,6 +455,18 @@ static int mangle_purgeclass_s (char arr[RP_PASSWORD_SIZE], int arr_len)
   return (ret_len);
 }
 
+static int mangle_purgeclass (char arr[RP_PASSWORD_SIZE], int arr_len, char c)
+{
+       if (c == 'l') return mangle_purgeclass_l  (arr, arr_len);
+  else if (c == 'u') return mangle_purgeclass_u  (arr, arr_len);
+  else if (c == 'd') return mangle_purgeclass_d  (arr, arr_len);
+  else if (c == 'h') return mangle_purgeclass_lh (arr, arr_len);
+  else if (c == 'H') return mangle_purgeclass_uh (arr, arr_len);
+  else if (c == 's') return mangle_purgeclass_s  (arr, arr_len);
+
+  return (arr_len);
+}
+
 static int mangle_dupeblock_prepend (char arr[RP_PASSWORD_SIZE], int arr_len, int ulen)
 {
   if (ulen > arr_len) return (arr_len);
@@ -807,6 +819,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_PURGECHAR:
         NEXT_RULEPOS (rule_pos);
+
         if (rule_new[rule_pos] == '?')
         {
           if ((rule_pos + 1) == rule_len_new)
@@ -816,18 +829,20 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
           }
 
           NEXT_RULEPOS (rule_pos);
+
           switch (rule_new[rule_pos])
           {
-            case ' ': out_len = mangle_purgechar     (out, out_len, rule_new[rule_pos-1]); break;
-            case '?': out_len = mangle_purgechar     (out, out_len, rule_new[rule_pos]); break;
-            case 'l': out_len = mangle_purgeclass_l  (out, out_len); break;
-            case 'u': out_len = mangle_purgeclass_u  (out, out_len); break;
-            case 'd': out_len = mangle_purgeclass_d  (out, out_len); break;
-            case 'h': out_len = mangle_purgeclass_lh (out, out_len); break;
-            case 'H': out_len = mangle_purgeclass_uh (out, out_len); break;
-            case 's': out_len = mangle_purgeclass_s  (out, out_len); break;
-            default : return (RULE_RC_SYNTAX_ERROR);
+            case ' ': out_len = mangle_purgechar (out, out_len, rule_new[rule_pos-1]); break;
+            case '?': out_len = mangle_purgechar (out, out_len, rule_new[rule_pos]); break;
+            case 'l':
+            case 'u':
+            case 'd':
+            case 'h':
+            case 'H':
+            case 's': out_len = mangle_purgeclass (out, out_len, rule_new[rule_pos]); break;
+            default : HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
           }
+
           break;
         }
 
