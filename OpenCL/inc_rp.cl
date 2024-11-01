@@ -713,6 +713,18 @@ DECLSPEC int mangle_purgeclass_s (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u
   return (out_len);
 }
 
+DECLSPEC int mangle_purgeclass (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+       if (p0 == 'l') return mangle_purgeclass_l  (p0, p1, buf, len);
+  else if (p0 == 'u') return mangle_purgeclass_u  (p0, p1, buf, len);
+  else if (p0 == 'd') return mangle_purgeclass_d  (p0, p1, buf, len);
+  else if (p0 == 'h') return mangle_purgeclass_lh (p0, p1, buf, len);
+  else if (p0 == 'H') return mangle_purgeclass_uh (p0, p1, buf, len);
+  else if (p0 == 's') return mangle_purgeclass_s  (p0, p1, buf, len);
+
+  return len;
+}
+
 DECLSPEC int mangle_dupechar_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   const int out_len = len + p0;
@@ -943,12 +955,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
     case RULE_OP_MANGLE_TRUNCATE_AT:      out_len = mangle_truncate_at      (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_REPLACE:          out_len = mangle_replace          (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR:        out_len = mangle_purgechar        (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_PURGECLASS_L:     out_len = mangle_purgeclass_l     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_PURGECLASS_U:     out_len = mangle_purgeclass_u     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_PURGECLASS_D:     out_len = mangle_purgeclass_d     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_PURGECLASS_LH:    out_len = mangle_purgeclass_lh    (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_PURGECLASS_UH:    out_len = mangle_purgeclass_uh    (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_PURGECLASS_S:     out_len = mangle_purgeclass_s     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_PURGECLASS:       out_len = mangle_purgeclass       (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_FIRST:   out_len = mangle_dupechar_first   (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_LAST:    out_len = mangle_dupechar_last    (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_ALL:     out_len = mangle_dupechar_all     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;

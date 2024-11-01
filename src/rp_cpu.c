@@ -809,9 +809,16 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         NEXT_RULEPOS (rule_pos);
         if (rule_new[rule_pos] == '?')
         {
+          if ((rule_pos + 1) == rule_len_new)
+          {
+            out_len = mangle_purgechar (out, out_len, rule_new[rule_pos]);
+            break;
+          }
+
           NEXT_RULEPOS (rule_pos);
           switch (rule_new[rule_pos])
           {
+            case ' ': out_len = mangle_purgechar     (out, out_len, rule_new[rule_pos-1]); break;
             case '?': out_len = mangle_purgechar     (out, out_len, rule_new[rule_pos]); break;
             case 'l': out_len = mangle_purgeclass_l  (out, out_len); break;
             case 'u': out_len = mangle_purgeclass_u  (out, out_len); break;
