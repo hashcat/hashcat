@@ -388,42 +388,6 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_PURGECHAR:
-        if ((rule_pos + 1) < rule_len && rule_buf[rule_pos+1] == '?')
-        {
-          if ((rule_pos + 2) == rule_len)
-          {
-            SET_NAME (rule, rule_buf[rule_pos]);
-            SET_P0   (rule, rule_buf[rule_pos]);
-            break;
-          }
-
-          switch (rule_buf[rule_pos+2]) {
-            case '\'':
-              SET_NAME (rule, rule_buf[rule_pos]);
-              SET_P0   (rule, rule_buf[rule_pos]);
-              break;
-            case ' ':
-            case '?':
-              SET_NAME (rule, rule_buf[rule_pos]);
-              SET_P0   (rule, rule_buf[rule_pos]);
-              INCR_POS;
-              break;
-            case 'l':
-            case 'u':
-            case 'd':
-            case 'h':
-            case 'H':
-            case 's':
-              SET_NAME (rule, RULE_OP_MANGLE_PURGECHAR_CLASS);
-              SET_P0   (rule, rule_buf[rule_pos+1]);
-              INCR_POS;
-              break;
-            default :
-              return -1;
-          }
-          break;
-        }
-
         SET_NAME (rule, rule_buf[rule_pos]);
         SET_P0   (rule, rule_buf[rule_pos]);
         break;
@@ -512,6 +476,68 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         SET_NAME    (rule, rule_buf[rule_pos]);
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         SET_P1      (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_CLASS_BASED: // ~
+        switch (rule_buf[rule_pos+1])
+        {
+          case RULE_OP_MANGLE_REPLACE: // ~s?CY
+            SET_NAME  (rule, RULE_OP_MANGLE_REPLACE_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            SET_P1    (rule, rule_buf[rule_pos]);
+            break;
+          case RULE_OP_MANGLE_PURGECHAR: // ~@?C
+            SET_NAME  (rule, RULE_OP_MANGLE_PURGECHAR_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+          /*
+          case '!': // ~!?C
+            SET_NAME  (rule, RULE_OP_REJECT_CONTAIN_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+          case '/': // ~/?C
+            SET_NAME  (rule, RULE_OP_REJECT_NOT_CONTAIN_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+          case '(': // ~(?C
+            SET_NAME  (rule, RULE_OP_REJECT_EQUAL_FIRST_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+          case '(': // ~)?C
+            SET_NAME  (rule, RULE_OP_REJECT_EQUAL_LAST_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+          case '=': // ~=N?C
+            SET_NAME  (rule, RULE_OP_REJECT_EQUAL_AT_CLASS);
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            INCR_POS;
+            SET_P1    (rule, rule_buf[rule_pos]);
+            break;
+          case '%': // ~%N?C
+            SET_NAME  (rule, RULE_OP_REJECT_CONTAINS_CLASS);
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            INCR_POS;
+            SET_P1    (rule, rule_buf[rule_pos]);
+            break;
+          */
+          default:
+            return -1;
+        }
+
         break;
 
       default:
@@ -655,13 +681,6 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
       case RULE_OP_MANGLE_PURGECHAR:
         rule_buf[rule_pos] = rule_cmd;
         GET_P0 (rule);
-        if (rule_buf[rule_pos] == '?') rule_buf[++rule_pos] = '?'; // force @??
-        break;
-
-      case RULE_OP_MANGLE_PURGECHAR_CLASS:
-        rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
-        rule_buf[rule_pos] = '?';
-        GET_P0 (rule);
         break;
 
       case RULE_OP_MANGLE_TOGGLECASE_REC:
@@ -748,6 +767,21 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         rule_buf[rule_pos] = rule_cmd;
         GET_P0_CONV (rule);
         GET_P1      (rule);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_CLASS:
+        rule_buf[rule_pos++] = RULE_OP_CLASS_BASED;
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_REPLACE;
+        rule_buf[rule_pos]   = '?';
+        GET_P0 (rule);
+        GET_P1 (rule);
+        break;
+
+      case RULE_OP_MANGLE_PURGECHAR_CLASS:
+        rule_buf[rule_pos++] = RULE_OP_CLASS_BASED;
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
+        rule_buf[rule_pos]   = '?';
+        GET_P0 (rule);
         break;
 
       case 0:

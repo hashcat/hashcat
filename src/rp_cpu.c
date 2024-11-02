@@ -329,6 +329,102 @@ static int mangle_replace (char arr[RP_PASSWORD_SIZE], int arr_len, char oldc, c
   return (arr_len);
 }
 
+static int mangle_replace_class_l (char arr[RP_PASSWORD_SIZE], int arr_len, char newc)
+{
+  int arr_pos;
+
+  for (arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (!class_lower (arr[arr_pos])) continue;
+
+    arr[arr_pos] = newc;
+  }
+
+  return (arr_len);
+}
+
+static int mangle_replace_class_u (char arr[RP_PASSWORD_SIZE], int arr_len, char newc)
+{
+  int arr_pos;
+
+  for (arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (!class_upper (arr[arr_pos])) continue;
+
+    arr[arr_pos] = newc;
+  }
+
+  return (arr_len);
+}
+
+static int mangle_replace_class_d (char arr[RP_PASSWORD_SIZE], int arr_len, char newc)
+{
+  int arr_pos;
+
+  for (arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (!class_num (arr[arr_pos])) continue;
+
+    arr[arr_pos] = newc;
+  }
+
+  return (arr_len);
+}
+
+static int mangle_replace_class_lh (char arr[RP_PASSWORD_SIZE], int arr_len, char newc)
+{
+  int arr_pos;
+
+  for (arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (!class_lower_hex (arr[arr_pos])) continue;
+
+    arr[arr_pos] = newc;
+  }
+
+  return (arr_len);
+}
+
+static int mangle_replace_class_uh (char arr[RP_PASSWORD_SIZE], int arr_len, char newc)
+{
+  int arr_pos;
+
+  for (arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (!class_upper_hex (arr[arr_pos])) continue;
+
+    arr[arr_pos] = newc;
+  }
+
+  return (arr_len);
+}
+
+static int mangle_replace_class_s (char arr[RP_PASSWORD_SIZE], int arr_len, char newc)
+{
+  int arr_pos;
+
+  for (arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (!class_sym (arr[arr_pos])) continue;
+
+    arr[arr_pos] = newc;
+  }
+
+  return (arr_len);
+}
+
+static int mangle_replace_class (char arr[RP_PASSWORD_SIZE], int arr_len, char oldc, char newc)
+{
+       if (oldc == 'l') return mangle_replace_class_l  (arr, arr_len, newc);
+  else if (oldc == 'u') return mangle_replace_class_u  (arr, arr_len, newc);
+  else if (oldc == 'd') return mangle_replace_class_d  (arr, arr_len, newc);
+  else if (oldc == 'h') return mangle_replace_class_lh (arr, arr_len, newc);
+  else if (oldc == 'H') return mangle_replace_class_uh (arr, arr_len, newc);
+  else if (oldc == 's') return mangle_replace_class_s  (arr, arr_len, newc);
+
+  return (arr_len);
+}
+
 static int mangle_purgechar (char arr[RP_PASSWORD_SIZE], int arr_len, char c)
 {
   int arr_pos;
@@ -630,6 +726,236 @@ static int mangle_title_sep (char arr[RP_PASSWORD_SIZE], int arr_len, char c)
   return (arr_len);
 }
 
+static bool reject_contain_class_l (char arr[RP_PASSWORD_SIZE], int arr_len, int *pos_mem)
+{
+  for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_lower (arr[arr_pos]))
+    {
+      *pos_mem = arr_pos;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool reject_contain_class_u (char arr[RP_PASSWORD_SIZE], int arr_len, int *pos_mem)
+{
+  for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_upper (arr[arr_pos]))
+    {
+      *pos_mem = arr_pos;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool reject_contain_class_d (char arr[RP_PASSWORD_SIZE], int arr_len, int *pos_mem)
+{
+  for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_num (arr[arr_pos]))
+    {
+      *pos_mem = arr_pos;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool reject_contain_class_lh (char arr[RP_PASSWORD_SIZE], int arr_len, int *pos_mem)
+{
+  for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_lower_hex (arr[arr_pos]))
+    {
+      *pos_mem = arr_pos;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool reject_contain_class_uh (char arr[RP_PASSWORD_SIZE], int arr_len, int *pos_mem)
+{
+  for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_upper_hex (arr[arr_pos]))
+    {
+      *pos_mem = arr_pos;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool reject_contain_class_s (char arr[RP_PASSWORD_SIZE], int arr_len, int *pos_mem)
+{
+  for (int arr_pos = 0; arr_pos < arr_len; arr_pos++)
+  {
+    if (class_sym (arr[arr_pos]))
+    {
+      *pos_mem = arr_pos;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool reject_contain_class (char arr[RP_PASSWORD_SIZE], int arr_len, char c, int *pos_mem)
+{
+       if (c == 'l') return reject_contain_class_l  (arr, arr_len, pos_mem);
+  else if (c == 'u') return reject_contain_class_u  (arr, arr_len, pos_mem);
+  else if (c == 'd') return reject_contain_class_d  (arr, arr_len, pos_mem);
+  else if (c == 'h') return reject_contain_class_lh (arr, arr_len, pos_mem);
+  else if (c == 'H') return reject_contain_class_uh (arr, arr_len, pos_mem);
+  else if (c == 's') return reject_contain_class_s  (arr, arr_len, pos_mem);
+
+  return false;
+}
+
+static bool reject_contain (char arr[RP_PASSWORD_SIZE], char c, int *pos_mem)
+{
+  const char *match = strchr (arr, c);
+  if (match == NULL) return false;
+
+  *pos_mem = (int)(match - arr);
+
+  return true;
+}
+
+static bool reject_contains_class_l (char arr[RP_PASSWORD_SIZE], int arr_len, int upos, int *pos_mem)
+{
+  int cnt = 0;
+
+  for (int arr_pos = 0; arr_pos < arr_len && cnt < upos; arr_pos++)
+  {
+    if (class_lower (arr[arr_pos]))
+    {
+      cnt++;
+      *pos_mem = arr_pos;
+    }
+  }
+
+  return (cnt < upos);
+}
+
+static bool reject_contains_class_u (char arr[RP_PASSWORD_SIZE], int arr_len, int upos, int *pos_mem)
+{
+  int cnt = 0;
+
+  for (int arr_pos = 0; arr_pos < arr_len && cnt < upos; arr_pos++)
+  {
+    if (class_upper (arr[arr_pos]))
+    {
+      cnt++;
+      *pos_mem = arr_pos;
+    }
+  }
+
+  return (cnt < upos);
+}
+
+static bool reject_contains_class_d (char arr[RP_PASSWORD_SIZE], int arr_len, int upos, int *pos_mem)
+{
+  int cnt = 0;
+
+  for (int arr_pos = 0; arr_pos < arr_len && cnt < upos; arr_pos++)
+  {
+    if (class_num (arr[arr_pos]))
+    {
+      cnt++;
+      *pos_mem = arr_pos;
+    }
+  }
+
+  return (cnt < upos);
+}
+
+static bool reject_contains_class_lh (char arr[RP_PASSWORD_SIZE], int arr_len, int upos, int *pos_mem)
+{
+  int cnt = 0;
+
+  for (int arr_pos = 0; arr_pos < arr_len && cnt < upos; arr_pos++)
+  {
+    if (class_lower_hex (arr[arr_pos]))
+    {
+      cnt++;
+      *pos_mem = arr_pos;
+    }
+  }
+
+  return (cnt < upos);
+}
+
+static bool reject_contains_class_uh (char arr[RP_PASSWORD_SIZE], int arr_len, int upos, int *pos_mem)
+{
+  int cnt = 0;
+
+  for (int arr_pos = 0; arr_pos < arr_len && cnt < upos; arr_pos++)
+  {
+    if (class_upper_hex (arr[arr_pos]))
+    {
+      cnt++;
+      *pos_mem = arr_pos;
+    }
+  }
+
+  return (cnt < upos);
+}
+
+static bool reject_contains_class_s (char arr[RP_PASSWORD_SIZE], int arr_len, int upos, int *pos_mem)
+{
+  int cnt = 0;
+
+  for (int arr_pos = 0; arr_pos < arr_len && cnt < upos; arr_pos++)
+  {
+    if (class_sym (arr[arr_pos]))
+    {
+      cnt++;
+      *pos_mem = arr_pos;
+    }
+  }
+
+  return (cnt < upos);
+}
+
+static bool reject_contains_class (char arr[RP_PASSWORD_SIZE], int arr_len, char c, int upos, int *pos_mem)
+{
+       if (c == 'l') return reject_contains_class_l  (arr, arr_len, upos, pos_mem);
+  else if (c == 'u') return reject_contains_class_u  (arr, arr_len, upos, pos_mem);
+  else if (c == 'd') return reject_contains_class_d  (arr, arr_len, upos, pos_mem);
+  else if (c == 'h') return reject_contains_class_lh (arr, arr_len, upos, pos_mem);
+  else if (c == 'H') return reject_contains_class_uh (arr, arr_len, upos, pos_mem);
+  else if (c == 's') return reject_contains_class_s  (arr, arr_len, upos, pos_mem);
+
+  return false;
+}
+
+static bool reject_contains (const char arr[RP_PASSWORD_SIZE], int arr_len, char c, int upos, int *pos_mem)
+{
+  int cnt = 0;
+
+  for (int arr_pos = 0; arr_pos < arr_len && cnt < upos; arr_pos++)
+  {
+    if (arr[arr_pos] == c)
+    {
+      cnt++;
+      *pos_mem = arr_pos;
+    }
+  }
+
+  return (cnt < upos);
+}
+
 int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], int in_len, char out[RP_PASSWORD_SIZE])
 {
   char mem[RP_PASSWORD_SIZE] = { 0 };
@@ -819,33 +1145,6 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_MANGLE_PURGECHAR:
         NEXT_RULEPOS (rule_pos);
-
-        if (rule_new[rule_pos] == '?')
-        {
-          if ((rule_pos + 1) == rule_len_new || ((rule_pos + 1) < rule_len_new && rule_new[rule_pos+1] == '\''))
-          {
-            out_len = mangle_purgechar (out, out_len, rule_new[rule_pos]);
-            break;
-          }
-
-          NEXT_RULEPOS (rule_pos);
-
-          switch (rule_new[rule_pos])
-          {
-            case ' ': out_len = mangle_purgechar (out, out_len, rule_new[rule_pos-1]); break;
-            case '?': out_len = mangle_purgechar (out, out_len, rule_new[rule_pos]); break;
-            case 'l':
-            case 'u':
-            case 'd':
-            case 'h':
-            case 'H':
-            case 's': out_len = mangle_purgechar_class (out, out_len, rule_new[rule_pos]); break;
-            default : HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
-          }
-
-          break;
-        }
-
         out_len = mangle_purgechar (out, out_len, rule_new[rule_pos]);
         break;
 
@@ -993,22 +1292,12 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_REJECT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
-        if (strchr (out, rule_new[rule_pos]) != NULL) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (reject_contain (out, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_NOT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
-        {
-          const char *match = strchr (out, rule_new[rule_pos]);
-          if (match != NULL)
-          {
-            pos_mem = (int)(match - out);
-          }
-          else
-          {
-            HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
-          }
-        }
+        if (!reject_contain (out, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL_FIRST:
@@ -1034,21 +1323,246 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         NEXT_RPTOI (rule_new, rule_pos, upos);
         if ((upos + 1) > out_len) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
-        int c; int cnt;
-        for (c = 0, cnt = 0; c < out_len && cnt < upos; c++)
-        {
-          if (out[c] == rule_new[rule_pos])
-          {
-            cnt++;
-            pos_mem = c;
-          }
-        }
-
-        if (cnt < upos) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (reject_contains (out, out_len, rule_new[rule_pos], upos, &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_MEMORY:
         if ((out_len == mem_len) && (memcmp (out, mem, out_len) == 0)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        break;
+
+      case RULE_OP_CLASS_BASED:
+        NEXT_RULEPOS (rule_pos);
+        switch (rule_new[rule_pos])
+        {
+          case RULE_OP_MANGLE_REPLACE: // ~s?CY
+            NEXT_RULEPOS (rule_pos);
+            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            switch (rule_new[rule_pos])
+            {
+              case '?':
+                NEXT_RULEPOS (rule_pos);
+                out_len = mangle_replace (out, out_len, rule_new[rule_pos - 1], rule_new[rule_pos]);
+                break;
+              case 'l':
+              case 'u':
+              case 'd':
+              case 'h':
+              case 'H':
+              case 's':
+                NEXT_RULEPOS (rule_pos);
+                out_len = mangle_replace_class (out, out_len, rule_new[rule_pos - 1], rule_new[rule_pos]);
+                break;
+              default :
+                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            }
+
+            break;
+          case RULE_OP_MANGLE_PURGECHAR: // ~@?C
+            NEXT_RULEPOS (rule_pos);
+            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            switch (rule_new[rule_pos])
+            {
+              case '?':
+                out_len = mangle_purgechar (out, out_len, rule_new[rule_pos]);
+                break;
+              case 'l':
+              case 'u':
+              case 'd':
+              case 'h':
+              case 'H':
+              case 's':
+                out_len = mangle_purgechar_class (out, out_len, rule_new[rule_pos]);
+                break;
+              default :
+                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            }
+
+            break;
+          case RULE_OP_REJECT_CONTAIN: // ~!?C
+            NEXT_RULEPOS (rule_pos);
+            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            switch (rule_new[rule_pos])
+            {
+              case '?':
+                if (reject_contain (out, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'l':
+              case 'u':
+              case 'd':
+              case 'h':
+              case 'H':
+              case 's':
+                if (reject_contain_class (out, out_len, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              default :
+                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            }
+
+            break;
+          case RULE_OP_REJECT_NOT_CONTAIN: // ~/?C
+            NEXT_RULEPOS (rule_pos);
+            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            switch (rule_new[rule_pos])
+            {
+              case '?':
+                if (!reject_contain (out, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'l':
+              case 'u':
+              case 'd':
+              case 'h':
+              case 'H':
+              case 's':
+                if (!reject_contain_class (out, out_len, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              default :
+                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            }
+
+            break;
+          case RULE_OP_REJECT_EQUAL_FIRST: // ~(?C
+            NEXT_RULEPOS (rule_pos);
+            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            switch (rule_new[rule_pos])
+            {
+              case '?':
+                if (out[0] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'l':
+                if (!class_lower (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'u':
+                if (!class_upper (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'd':
+                if (!class_num (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'h':
+                if (!class_lower_hex (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'H':
+                if (!class_upper_hex (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 's':
+                if (!class_sym (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              default :
+                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            }
+
+            break;
+          case RULE_OP_REJECT_EQUAL_LAST: // ~)?C
+            NEXT_RULEPOS (rule_pos);
+            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            switch (rule_new[rule_pos])
+            {
+              case '?':
+                if (out[out_len - 1] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'l':
+                if (!class_lower (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'u':
+                if (!class_upper (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'd':
+                if (!class_num (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'h':
+                if (!class_lower_hex (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'H':
+                if (!class_upper_hex (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 's':
+                if (!class_sym (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              default :
+                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            }
+
+            break;
+          case RULE_OP_REJECT_EQUAL_AT: // ~=N?C
+            NEXT_RULEPOS (rule_pos);
+            NEXT_RPTOI (rule_new, rule_pos, upos);
+            if ((upos + 1) > out_len) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            switch (rule_new[rule_pos])
+            {
+              case '?':
+                if (out[upos] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'l':
+                if (!class_lower (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'u':
+                if (!class_upper (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'd':
+                if (!class_num (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'h':
+                if (!class_lower_hex (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'H':
+                if (!class_upper_hex (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 's':
+                if (!class_sym (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              default :
+                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            }
+
+            break;
+          case RULE_OP_REJECT_CONTAINS: // ~%N?C
+            NEXT_RULEPOS (rule_pos);
+            NEXT_RPTOI (rule_new, rule_pos, upos);
+            if ((upos + 1) > out_len) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+
+            NEXT_RULEPOS (rule_pos);
+            switch (rule_new[rule_pos])
+            {
+              case '?':
+                if (reject_contains (out, out_len, rule_new[rule_pos], upos, &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              case 'l':
+              case 'u':
+              case 'd':
+              case 'h':
+              case 'H':
+              case 's':
+                if (reject_contains_class (out, out_len, rule_new[rule_pos], upos, &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                break;
+              default :
+                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            }
+
+            break;
+
+          default:
+            HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+        }
+
         break;
 
       default:

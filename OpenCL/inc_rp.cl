@@ -577,6 +577,90 @@ DECLSPEC int mangle_replace (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1,
   return (len);
 }
 
+DECLSPEC int mangle_replace_class_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (!is_l (buf[pos])) continue;
+
+    buf[pos] = p1;
+  }
+
+  return (len);
+}
+
+DECLSPEC int mangle_replace_class_u (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (!is_u (buf[pos])) continue;
+
+    buf[pos] = p1;
+  }
+
+  return (len);
+}
+
+DECLSPEC int mangle_replace_class_d (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (!is_d (buf[pos])) continue;
+
+    buf[pos] = p1;
+  }
+
+  return (len);
+}
+
+DECLSPEC int mangle_replace_class_lh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (!is_lh (buf[pos])) continue;
+
+    buf[pos] = p1;
+  }
+
+  return (len);
+}
+
+DECLSPEC int mangle_replace_class_uh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (!is_uh (buf[pos])) continue;
+
+    buf[pos] = p1;
+  }
+
+  return (len);
+}
+
+DECLSPEC int mangle_replace_class_s (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  for (int pos = 0; pos < len; pos++)
+  {
+    if (!is_s (buf[pos])) continue;
+
+    buf[pos] = p1;
+  }
+
+  return (len);
+}
+
+DECLSPEC int mangle_replace_class (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+       if (p0 == 'l') return mangle_replace_class_l  (p0, p1, buf, len);
+  else if (p0 == 'u') return mangle_replace_class_u  (p0, p1, buf, len);
+  else if (p0 == 'd') return mangle_replace_class_d  (p0, p1, buf, len);
+  else if (p0 == 'h') return mangle_replace_class_lh (p0, p1, buf, len);
+  else if (p0 == 'H') return mangle_replace_class_uh (p0, p1, buf, len);
+  else if (p0 == 's') return mangle_replace_class_s  (p0, p1, buf, len);
+
+  return len;
+}
+
 DECLSPEC int mangle_purgechar (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   int out_len = 0;
@@ -965,6 +1049,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
     case RULE_OP_MANGLE_OVERSTRIKE:       out_len = mangle_overstrike       (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_TRUNCATE_AT:      out_len = mangle_truncate_at      (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_REPLACE:          out_len = mangle_replace          (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_REPLACE_CLASS:    out_len = mangle_replace_class    (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR:        out_len = mangle_purgechar        (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR_CLASS:  out_len = mangle_purgechar_class  (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_FIRST:   out_len = mangle_dupechar_first   (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
