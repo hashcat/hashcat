@@ -410,7 +410,7 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
             case 'h':
             case 'H':
             case 's':
-              SET_NAME (rule, RULE_OP_MANGLE_PURGECLASS);
+              SET_NAME (rule, RULE_OP_MANGLE_PURGECHAR_CLASS);
               SET_P0   (rule, rule_buf[rule_pos+1]);
               INCR_POS;
               break;
@@ -654,7 +654,7 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         if (rule_buf[rule_pos] == '?') rule_buf[++rule_pos] = '?'; // force @??
         break;
 
-      case RULE_OP_MANGLE_PURGECLASS:
+      case RULE_OP_MANGLE_PURGECHAR_CLASS:
         rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
         rule_buf[rule_pos] = '?';
         GET_P0 (rule);

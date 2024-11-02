@@ -21,7 +21,7 @@ CONSTANT_AS u8 s_lookup_optimized[128] =
   // 32: whitespace (1)
   1,
   // 33-47: punctuation (1)
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
   // 48-57: digits (0)
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   // 58-64: punctuation (1)
@@ -1879,7 +1879,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar (MAYBE_UNUSED const u32 p0, M
   return out_len;
 }
 
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_l (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_l (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   u32 out_len = 0;
 
@@ -1920,7 +1920,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_l (MAYBE_UNUSED const u32 p0
   return out_len;
 }
 
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_u (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_u (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   u32 out_len = 0;
 
@@ -1961,7 +1961,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_u (MAYBE_UNUSED const u32 p0
   return out_len;
 }
 
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_d (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_d (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   u32 out_len = 0;
 
@@ -2002,7 +2002,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_d (MAYBE_UNUSED const u32 p0
   return out_len;
 }
 
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_lh (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_lh (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   u32 out_len = 0;
 
@@ -2043,7 +2043,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_lh (MAYBE_UNUSED const u32 p
   return out_len;
 }
 
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_uh (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_uh (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   u32 out_len = 0;
 
@@ -2084,7 +2084,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_uh (MAYBE_UNUSED const u32 p
   return out_len;
 }
 
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_s (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class_s (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   u32 out_len = 0;
 
@@ -2125,14 +2125,14 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass_s (MAYBE_UNUSED const u32 p0
   return out_len;
 }
 
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
-       if ((u8)p0 == 'l') return rule_op_mangle_purgeclass_l  (p0, p1, buf0, buf1, in_len);
-  else if ((u8)p0 == 'u') return rule_op_mangle_purgeclass_u  (p0, p1, buf0, buf1, in_len);
-  else if ((u8)p0 == 'd') return rule_op_mangle_purgeclass_d  (p0, p1, buf0, buf1, in_len);
-  else if ((u8)p0 == 'h') return rule_op_mangle_purgeclass_lh (p0, p1, buf0, buf1, in_len);
-  else if ((u8)p0 == 'H') return rule_op_mangle_purgeclass_uh (p0, p1, buf0, buf1, in_len);
-  else if ((u8)p0 == 's') return rule_op_mangle_purgeclass_s  (p0, p1, buf0, buf1, in_len);
+       if ((u8)p0 == 'l') return rule_op_mangle_purgechar_class_l  (p0, p1, buf0, buf1, in_len);
+  else if ((u8)p0 == 'u') return rule_op_mangle_purgechar_class_u  (p0, p1, buf0, buf1, in_len);
+  else if ((u8)p0 == 'd') return rule_op_mangle_purgechar_class_d  (p0, p1, buf0, buf1, in_len);
+  else if ((u8)p0 == 'h') return rule_op_mangle_purgechar_class_lh (p0, p1, buf0, buf1, in_len);
+  else if ((u8)p0 == 'H') return rule_op_mangle_purgechar_class_uh (p0, p1, buf0, buf1, in_len);
+  else if ((u8)p0 == 's') return rule_op_mangle_purgechar_class_s  (p0, p1, buf0, buf1, in_len);
 
   return in_len;
 }
@@ -2693,7 +2693,7 @@ DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, P
     case RULE_OP_MANGLE_TRUNCATE_AT:      out_len = rule_op_mangle_truncate_at      (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_REPLACE:          out_len = rule_op_mangle_replace          (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR:        out_len = rule_op_mangle_purgechar        (p0, p1, buf0, buf1, out_len); break;
-    case RULE_OP_MANGLE_PURGECLASS:       out_len = rule_op_mangle_purgeclass       (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_PURGECHAR_CLASS:  out_len = rule_op_mangle_purgechar_class  (p0, p1, buf0, buf1, out_len); break;
     //case RULE_OP_MANGLE_TOGGLECASE_REC:   out_len = rule_op_mangle_togglecase_rec   (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_FIRST:   out_len = rule_op_mangle_dupechar_first   (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_LAST:    out_len = rule_op_mangle_dupechar_last    (p0, p1, buf0, buf1, out_len); break;

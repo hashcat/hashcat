@@ -46,7 +46,7 @@
 #define RULE_OP_MANGLE_TRUNCATE_AT      '\''
 #define RULE_OP_MANGLE_REPLACE          's'
 #define RULE_OP_MANGLE_PURGECHAR        '@'
-#define RULE_OP_MANGLE_PURGECLASS       0x01
+#define RULE_OP_MANGLE_PURGECHAR_CLASS  0x01
 #define RULE_OP_MANGLE_TOGGLECASE_REC   'a'
 #define RULE_OP_MANGLE_DUPECHAR_FIRST   'z'
 #define RULE_OP_MANGLE_DUPECHAR_LAST    'Z'
@@ -114,7 +114,7 @@ DECLSPEC u32 search_on_register (const u32 in, const u32 p0);
 DECLSPEC u32 replace_on_register (const u32 in, const u32 r, const u32 p1);
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_replace (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
-DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgeclass (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_purgechar_class (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupechar_first (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupechar_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupechar_all (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);

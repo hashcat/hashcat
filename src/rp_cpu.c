@@ -347,7 +347,7 @@ static int mangle_purgechar (char arr[RP_PASSWORD_SIZE], int arr_len, char c)
   return (ret_len);
 }
 
-static int mangle_purgeclass_l (char arr[RP_PASSWORD_SIZE], int arr_len)
+static int mangle_purgechar_class_l (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
   int arr_pos;
 
@@ -365,7 +365,7 @@ static int mangle_purgeclass_l (char arr[RP_PASSWORD_SIZE], int arr_len)
   return (ret_len);
 }
 
-static int mangle_purgeclass_u (char arr[RP_PASSWORD_SIZE], int arr_len)
+static int mangle_purgechar_class_u (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
   int arr_pos;
 
@@ -383,7 +383,7 @@ static int mangle_purgeclass_u (char arr[RP_PASSWORD_SIZE], int arr_len)
   return (ret_len);
 }
 
-static int mangle_purgeclass_d (char arr[RP_PASSWORD_SIZE], int arr_len)
+static int mangle_purgechar_class_d (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
   int arr_pos;
 
@@ -401,7 +401,7 @@ static int mangle_purgeclass_d (char arr[RP_PASSWORD_SIZE], int arr_len)
   return (ret_len);
 }
 
-static int mangle_purgeclass_lh (char arr[RP_PASSWORD_SIZE], int arr_len)
+static int mangle_purgechar_class_lh (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
   int arr_pos;
 
@@ -419,7 +419,7 @@ static int mangle_purgeclass_lh (char arr[RP_PASSWORD_SIZE], int arr_len)
   return (ret_len);
 }
 
-static int mangle_purgeclass_uh (char arr[RP_PASSWORD_SIZE], int arr_len)
+static int mangle_purgechar_class_uh (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
   int arr_pos;
 
@@ -437,7 +437,7 @@ static int mangle_purgeclass_uh (char arr[RP_PASSWORD_SIZE], int arr_len)
   return (ret_len);
 }
 
-static int mangle_purgeclass_s (char arr[RP_PASSWORD_SIZE], int arr_len)
+static int mangle_purgechar_class_s (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
   int arr_pos;
 
@@ -455,14 +455,14 @@ static int mangle_purgeclass_s (char arr[RP_PASSWORD_SIZE], int arr_len)
   return (ret_len);
 }
 
-static int mangle_purgeclass (char arr[RP_PASSWORD_SIZE], int arr_len, char c)
+static int mangle_purgechar_class (char arr[RP_PASSWORD_SIZE], int arr_len, char c)
 {
-       if (c == 'l') return mangle_purgeclass_l  (arr, arr_len);
-  else if (c == 'u') return mangle_purgeclass_u  (arr, arr_len);
-  else if (c == 'd') return mangle_purgeclass_d  (arr, arr_len);
-  else if (c == 'h') return mangle_purgeclass_lh (arr, arr_len);
-  else if (c == 'H') return mangle_purgeclass_uh (arr, arr_len);
-  else if (c == 's') return mangle_purgeclass_s  (arr, arr_len);
+       if (c == 'l') return mangle_purgechar_class_l  (arr, arr_len);
+  else if (c == 'u') return mangle_purgechar_class_u  (arr, arr_len);
+  else if (c == 'd') return mangle_purgechar_class_d  (arr, arr_len);
+  else if (c == 'h') return mangle_purgechar_class_lh (arr, arr_len);
+  else if (c == 'H') return mangle_purgechar_class_uh (arr, arr_len);
+  else if (c == 's') return mangle_purgechar_class_s  (arr, arr_len);
 
   return (arr_len);
 }
@@ -839,7 +839,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
             case 'd':
             case 'h':
             case 'H':
-            case 's': out_len = mangle_purgeclass (out, out_len, rule_new[rule_pos]); break;
+            case 's': out_len = mangle_purgechar_class (out, out_len, rule_new[rule_pos]); break;
             default : HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
           }
 

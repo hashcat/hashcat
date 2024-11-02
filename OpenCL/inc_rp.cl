@@ -36,7 +36,7 @@ CONSTANT_AS u8 s_lookup[128] =
   // 32: whitespace (1)
   1,
   // 33-47: punctuation (1)
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
   // 48-57: digits (0)
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   // 58-64: punctuation (1)
@@ -598,7 +598,7 @@ DECLSPEC int mangle_purgechar (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
   return (out_len);
 }
 
-DECLSPEC int mangle_purgeclass_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+DECLSPEC int mangle_purgechar_class_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   int out_len = 0;
 
@@ -619,7 +619,7 @@ DECLSPEC int mangle_purgeclass_l (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u
   return (out_len);
 }
 
-DECLSPEC int mangle_purgeclass_u (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+DECLSPEC int mangle_purgechar_class_u (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   int out_len = 0;
 
@@ -640,7 +640,7 @@ DECLSPEC int mangle_purgeclass_u (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u
   return (out_len);
 }
 
-DECLSPEC int mangle_purgeclass_d (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+DECLSPEC int mangle_purgechar_class_d (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   int out_len = 0;
 
@@ -661,7 +661,7 @@ DECLSPEC int mangle_purgeclass_d (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u
   return (out_len);
 }
 
-DECLSPEC int mangle_purgeclass_lh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+DECLSPEC int mangle_purgechar_class_lh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   int out_len = 0;
 
@@ -682,7 +682,7 @@ DECLSPEC int mangle_purgeclass_lh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const 
   return (out_len);
 }
 
-DECLSPEC int mangle_purgeclass_uh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+DECLSPEC int mangle_purgechar_class_uh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   int out_len = 0;
 
@@ -703,7 +703,7 @@ DECLSPEC int mangle_purgeclass_uh (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const 
   return (out_len);
 }
 
-DECLSPEC int mangle_purgeclass_s (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+DECLSPEC int mangle_purgechar_class_s (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
   int out_len = 0;
 
@@ -724,14 +724,14 @@ DECLSPEC int mangle_purgeclass_s (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u
   return (out_len);
 }
 
-DECLSPEC int mangle_purgeclass (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+DECLSPEC int mangle_purgechar_class (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
 {
-       if (p0 == 'l') return mangle_purgeclass_l  (p0, p1, buf, len);
-  else if (p0 == 'u') return mangle_purgeclass_u  (p0, p1, buf, len);
-  else if (p0 == 'd') return mangle_purgeclass_d  (p0, p1, buf, len);
-  else if (p0 == 'h') return mangle_purgeclass_lh (p0, p1, buf, len);
-  else if (p0 == 'H') return mangle_purgeclass_uh (p0, p1, buf, len);
-  else if (p0 == 's') return mangle_purgeclass_s  (p0, p1, buf, len);
+       if (p0 == 'l') return mangle_purgechar_class_l  (p0, p1, buf, len);
+  else if (p0 == 'u') return mangle_purgechar_class_u  (p0, p1, buf, len);
+  else if (p0 == 'd') return mangle_purgechar_class_d  (p0, p1, buf, len);
+  else if (p0 == 'h') return mangle_purgechar_class_lh (p0, p1, buf, len);
+  else if (p0 == 'H') return mangle_purgechar_class_uh (p0, p1, buf, len);
+  else if (p0 == 's') return mangle_purgechar_class_s  (p0, p1, buf, len);
 
   return len;
 }
@@ -966,7 +966,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
     case RULE_OP_MANGLE_TRUNCATE_AT:      out_len = mangle_truncate_at      (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_REPLACE:          out_len = mangle_replace          (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_PURGECHAR:        out_len = mangle_purgechar        (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
-    case RULE_OP_MANGLE_PURGECLASS:       out_len = mangle_purgeclass       (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
+    case RULE_OP_MANGLE_PURGECHAR_CLASS:  out_len = mangle_purgechar_class  (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_FIRST:   out_len = mangle_dupechar_first   (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_LAST:    out_len = mangle_dupechar_last    (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_DUPECHAR_ALL:     out_len = mangle_dupechar_all     (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
