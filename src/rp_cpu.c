@@ -822,7 +822,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
         if (rule_new[rule_pos] == '?')
         {
-          if ((rule_pos + 1) == rule_len_new)
+          if ((rule_pos + 1) == rule_len_new || ((rule_pos + 1) < rule_len_new && rule_new[rule_pos+1] == '\''))
           {
             out_len = mangle_purgechar (out, out_len, rule_new[rule_pos]);
             break;

@@ -398,6 +398,10 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
           }
 
           switch (rule_buf[rule_pos+2]) {
+            case '\'':
+              SET_NAME (rule, rule_buf[rule_pos]);
+              SET_P0   (rule, rule_buf[rule_pos]);
+              break;
             case ' ':
             case '?':
               SET_NAME (rule, rule_buf[rule_pos]);
