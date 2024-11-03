@@ -72,12 +72,13 @@
 /* using character classes */
 #define RULE_OP_MANGLE_REPLACE_CLASS     0x01
 #define RULE_OP_MANGLE_PURGECHAR_CLASS   0x02
-#define RULE_OP_REJECT_CONTAIN_CLASS     0x03
-#define RULE_OP_REJECT_NOT_CONTAIN_CLASS 0x04
-#define RULE_OP_REJECT_EQUAL_FIRST_CLASS 0x05
-#define RULE_OP_REJECT_EQUAL_LAST_CLASS  0x06
-#define RULE_OP_REJECT_EQUAL_AT_CLASS    0x07
-#define RULE_OP_REJECT_CONTAINS_CLASS    0x08
+#define RULE_OP_MANGLE_TITLE_SEP_CLASS   0x03
+#define RULE_OP_REJECT_CONTAIN_CLASS     0x04
+#define RULE_OP_REJECT_NOT_CONTAIN_CLASS 0x05
+#define RULE_OP_REJECT_EQUAL_FIRST_CLASS 0x06
+#define RULE_OP_REJECT_EQUAL_LAST_CLASS  0x07
+#define RULE_OP_REJECT_EQUAL_AT_CLASS    0x08
+#define RULE_OP_REJECT_CONTAINS_CLASS    0x09
 
 
 #define RP_PASSWORD_SIZE 256
@@ -131,6 +132,7 @@ DECLSPEC int mangle_replace_nm1 (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8
 DECLSPEC int mangle_dupeblock_first (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_dupeblock_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len);
+DECLSPEC int mangle_title_sep_class (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len);
 DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int in_len);
 DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, PRIVATE_AS u32 *buf, const int in_len);
 

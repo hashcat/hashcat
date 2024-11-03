@@ -78,12 +78,13 @@
 /* using character classes */
 #define RULE_OP_MANGLE_REPLACE_CLASS     0x01
 #define RULE_OP_MANGLE_PURGECHAR_CLASS   0x02
-#define RULE_OP_REJECT_CONTAIN_CLASS     0x03
-#define RULE_OP_REJECT_NOT_CONTAIN_CLASS 0x04
-#define RULE_OP_REJECT_EQUAL_FIRST_CLASS 0x05
-#define RULE_OP_REJECT_EQUAL_LAST_CLASS  0x06
-#define RULE_OP_REJECT_EQUAL_AT_CLASS    0x07
-#define RULE_OP_REJECT_CONTAINS_CLASS    0x08
+#define RULE_OP_MANGLE_TITLE_SEP_CLASS   0x03
+#define RULE_OP_REJECT_CONTAIN_CLASS     0x04
+#define RULE_OP_REJECT_NOT_CONTAIN_CLASS 0x05
+#define RULE_OP_REJECT_EQUAL_FIRST_CLASS 0x06
+#define RULE_OP_REJECT_EQUAL_LAST_CLASS  0x07
+#define RULE_OP_REJECT_EQUAL_AT_CLASS    0x08
+#define RULE_OP_REJECT_CONTAINS_CLASS    0x09
 
 DECLSPEC u32 generate_cmask_optimized (const u32 value);
 DECLSPEC void truncate_right_optimized (PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 offset);
@@ -141,6 +142,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupeblock_first (MAYBE_UNUSED const u32
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_dupeblock_last (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC u32 toggle_on_register (const u32 in, const u32 r);
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 in_len);
 DECLSPEC u32 apply_rules_optimized (CONSTANT_AS const u32 *cmds, PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 len);
 DECLSPEC u32x apply_rules_vect_optimized (PRIVATE_AS const u32 *pw_buf0, PRIVATE_AS const u32 *pw_buf1, const u32 pw_len, CONSTANT_AS const kernel_rule_t *kernel_rules, const u32 il_pos, PRIVATE_AS u32x *buf0, PRIVATE_AS u32x *buf1);

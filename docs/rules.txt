@@ -65,12 +65,13 @@
 #define RULE_OP_CLASS_BASED              '~'
 #define RULE_OP_MANGLE_REPLACE_CLASS     0x01 // replace all instances of chars in class C with char Y, ~s?CY
 #define RULE_OP_MANGLE_PURGECHAR_CLASS   0x02 // purge all instances of chars in class C, ~@?C
+#define RULE_OP_MANGLE_TITLE_SEP_CLASS   0x03 // lowercase everything then upper case the first letter and every letter after chars in class C, ~e?C
 
 /* using character classes, with -j or -k only */
 
-#define RULE_OP_REJECT_CONTAIN_CLASS     0x03 // reject plains that contain chars in class C, ~!?C
-#define RULE_OP_REJECT_NOT_CONTAIN_CLASS 0x04 // reject plains that do not contain chars in class C, ~/?C
-#define RULE_OP_REJECT_EQUAL_FIRST_CLASS 0x05 // reject plains that do not contain char in class C at first pos, ~(?C
-#define RULE_OP_REJECT_EQUAL_LAST_CLASS  0x06 // reject plains that do not contain char in class C at last pos, ~)?C
-#define RULE_OP_REJECT_EQUAL_AT_CLASS    0x07 // reject plains that do not contain char in class C at pos N, ~=N?C
-#define RULE_OP_REJECT_CONTAINS_CLASS    0x08 // reject plains that contain char in class C less than N times, ~%N?C
+#define RULE_OP_REJECT_CONTAIN_CLASS     0x04 // reject plains that contain chars in class C, ~!?C
+#define RULE_OP_REJECT_NOT_CONTAIN_CLASS 0x05 // reject plains that do not contain chars in class C, ~/?C
+#define RULE_OP_REJECT_EQUAL_FIRST_CLASS 0x06 // reject plains that do not contain chars in class C at first pos, ~(?C
+#define RULE_OP_REJECT_EQUAL_LAST_CLASS  0x07 // reject plains that do not contain chars in class C at last pos, ~)?C
+#define RULE_OP_REJECT_EQUAL_AT_CLASS    0x08 // reject plains that do not contain chars in class C at pos N, ~=N?C
+#define RULE_OP_REJECT_CONTAINS_CLASS    0x09 // reject plains that contain chars in class C less than N times, ~%N?C
