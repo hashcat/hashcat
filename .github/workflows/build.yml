@@ -49,13 +49,13 @@ jobs:
     name: Build Linux (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build
         env:
           SHARED: ${{ matrix.shared }}
         run: make
       - name: Generate artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hashcat-linux-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
@@ -68,13 +68,13 @@ jobs:
     name: Build macOS (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build
         env:
           SHARED: ${{ matrix.shared }}
         run: make
       - name: Generate artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hashcat-macos-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
@@ -97,14 +97,14 @@ jobs:
             libiconv
             libiconv-devel
             make
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build
         shell: msys2 {0}
         env:
           SHARED: ${{ matrix.shared }}
         run: make
       - name: Generate artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hashcat-windows-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
