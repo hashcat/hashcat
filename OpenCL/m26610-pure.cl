@@ -406,7 +406,7 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
                     + is_valid_printable_32 (pt2[6])
                     + is_valid_printable_32 (pt2[7]);
 
-  // We need to check a second and third block to avoid extremely rare false-positives. See:
+  // We need to check a third and fourth block to avoid extremely rare false-positives. See:
   // https://github.com/hashcat/hashcat/issues/4121
   if (correct != 8) return;
 
