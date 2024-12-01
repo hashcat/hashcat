@@ -8035,7 +8035,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && ((device_param->opencl_platform_vendor_id != VENDOR_ID_INTEL_SDK) || (device_param->device_host_unified_memory == 0)))
+        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) &&
+         (((device_param->opencl_platform_vendor_id != VENDOR_ID_INTEL_SDK) && (device_param->opencl_platform_vendor_id != VENDOR_ID_GENERIC)) || (device_param->device_host_unified_memory == 0)))
         {
           // OK, so the problem here is the following:
           // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
