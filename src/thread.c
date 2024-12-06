@@ -214,8 +214,6 @@ int bypass (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status != STATUS_RUNNING) return -1;
-
   status_ctx->devices_status = STATUS_BYPASS;
 
   status_ctx->run_main_level1   = true;
@@ -262,8 +260,6 @@ int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status != STATUS_RUNNING) return -1;
-
   // this feature only makes sense if --restore-disable was not specified
 
   restore_ctx_t *restore_ctx = hashcat_ctx->restore_ctx;
@@ -304,8 +300,6 @@ int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
 int finish_after_attack (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-  if (status_ctx->devices_status != STATUS_RUNNING) return -1;
 
   // Enable or Disable
 

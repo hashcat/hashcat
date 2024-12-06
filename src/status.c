@@ -35,6 +35,8 @@ static const char *const  ST_0013 = "Error";
 static const char *const  ST_0014 = "Aborted (Finish)";
 static const char *const  ST_0015 = "Running (Quit after attack requested)";
 static const char *const  ST_0016 = "Autodetect";
+static const char *const  ST_0017 = "Paused (Checkpoint Quit requested)";
+static const char *const  ST_0018 = "Paused (Quit after attack requested)";
 static const char *const  ST_9999 = "Unknown! Bug!";
 
 static const char UNITS[7] = { ' ', 'k', 'M', 'G', 'T', 'P', 'E' };
@@ -262,8 +264,6 @@ const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
 
   const int devices_status = status_ctx->devices_status;
 
-  // special case: running but checkpoint quit requested
-
   if (devices_status == STATUS_RUNNING)
   {
     if (status_ctx->checkpoint_shutdown == true)
@@ -274,6 +274,18 @@ const char *status_get_status_string (const hashcat_ctx_t *hashcat_ctx)
     if (status_ctx->finish_shutdown == true)
     {
       return ST_0015;
+    }
+  }
+  else if (devices_status == STATUS_PAUSED)
+  {
+    if (status_ctx->checkpoint_shutdown == true)
+    {
+      return ST_0017;
+    }
+
+    if (status_ctx->finish_shutdown == true)
+    {
+      return ST_0018;
     }
   }
 
