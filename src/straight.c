@@ -91,6 +91,13 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
+      if (rc == -2)
+      {
+        event_log_error (hashcat_ctx, "Error reading wordlist: %s", straight_ctx->dict);
+
+        return -1;
+      }
+
       if (status_ctx->words_cnt == 0)
       {
         logfile_sub_msg ("STOP");
@@ -125,6 +132,13 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
         return -1;
       }
+      
+      if (rc == -2)
+      {
+        event_log_error (hashcat_ctx, "Error reading wordlist: %s", combinator_ctx->dict1);
+
+        return -1;
+      }
     }
     else if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
     {
@@ -144,6 +158,13 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       if (rc == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", combinator_ctx->dict2);
+
+        return -1;
+      }
+
+      if (rc == -2)
+      {
+        event_log_error (hashcat_ctx, "Error reading wordlist: %s", combinator_ctx->dict2);
 
         return -1;
       }
@@ -194,6 +215,13 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
+    if (rc == -2)
+    {
+      event_log_error (hashcat_ctx, "Error reading wordlist: %s", straight_ctx->dict);
+
+      return -1;
+    }
+
     if (status_ctx->words_cnt == 0)
     {
       logfile_sub_msg ("STOP");
@@ -230,6 +258,13 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       if (rc == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", straight_ctx->dict);
+
+        return -1;
+      }
+
+      if (rc == -2)
+      {
+        event_log_error (hashcat_ctx, "Error reading wordlist: %s", straight_ctx->dict);
 
         return -1;
       }

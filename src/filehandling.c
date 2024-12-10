@@ -410,6 +410,17 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   else if (fp->gfp)
   {
     n = gzfread (ptr, size, nmemb, fp->gfp);
+
+    // Double check to make sure that it successfully read 0 bytes instead of erroring
+    if (n == 0)
+    {
+      int errnum;
+      gzerror (fp->gfp, &errnum);
+      if (errnum != Z_OK)
+      {
+        return (size_t) -1;
+      }
+    }
   }
   else if (fp->ufp)
   {
