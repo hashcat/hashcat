@@ -118,8 +118,16 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   out_buf[out_len] = hashconfig->separator;
   out_len += 1;
 
-  u8_to_hex ((const u8 *) salt->salt_buf, 4, out_buf + out_len);
-  out_len += 8;
+  // Convert salt to hex (4 bytes)
+  const u8 *salt_ptr = (const u8 *) salt->salt_buf;
+  u8 hex[2];
+
+  for (int i = 0; i < 4; i++)
+  {
+    u8_to_hex (salt_ptr[i], hex);
+    out_buf[out_len++] = hex[0];
+    out_buf[out_len++] = hex[1];
+  }
 
   return out_len;
 }
