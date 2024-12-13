@@ -77,8 +77,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int hash_len = token.len[1];
 
   u8 tmp_buf[100] = { 0 };
+  u8 padded_input[100] = { 0 };
+  int padded_len = hash_len;
 
-  const int decoded_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
+  // Handle base64 padding if needed
+  memcpy (padded_input, hash_pos, hash_len);
+  while (padded_len % 4 != 0)
+  {
+    padded_input[padded_len++] = '=';
+  }
+
+  const int decoded_len = base64_decode (base64_to_int, padded_input, padded_len, tmp_buf);
 
   if (decoded_len < 4) return (PARSER_SALT_LENGTH);
 
@@ -97,20 +106,28 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  // Format: hash:salt in hex
+  // Format: hash:salt in hex format matching Python example
   char tmp_buf[BLOCK_SIZE] = { 0 };
+  int offset = 0;
 
-  const int hash_len = 16; // MD5 length
-  const int salt_len = 4;  // Salt length
-
-  for (int i = 0; i < hash_len / 4; i++)
+  // Convert hash to hex (16 bytes MD5)
+  for (int i = 0; i < 16; i++)
   {
-    u8_to_hex ((const u8 *) (digest + i), 4, tmp_buf + (i * 8));
+    const u8 *ptr = (const u8 *) digest + i;
+    snprintf (tmp_buf + offset, BLOCK_SIZE - offset, "%02x", *ptr);
+    offset += 2;
   }
 
-  tmp_buf[hash_len * 2] = ':';
+  // Add separator
+  tmp_buf[offset++] = ':';
 
-  u8_to_hex ((const u8 *) salt->salt_buf, salt_len, tmp_buf + (hash_len * 2) + 1);
+  // Convert salt to hex (4 bytes)
+  for (int i = 0; i < 4; i++)
+  {
+    const u8 *ptr = (const u8 *) salt->salt_buf + i;
+    snprintf (tmp_buf + offset, BLOCK_SIZE - offset, "%02x", *ptr);
+    offset += 2;
+  }
 
   const int out_len = snprintf (line_buf, line_size, "%s", tmp_buf);
 
