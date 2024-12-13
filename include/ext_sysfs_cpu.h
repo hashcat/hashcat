@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _EXT_SYSFS_CPU_H
-#define _EXT_SYSFS_CPU_H
+#ifndef HC_EXT_SYSFS_CPU_H
+#define HC_EXT_SYSFS_CPU_H
 
 #include <stdbool.h>
 
@@ -48,10 +48,10 @@ typedef hm_sysfs_cpu_lib_t SYSFS_CPU_PTR;
 
 bool sysfs_cpu_init (void *hashcat_ctx);
 void sysfs_cpu_close (void *hashcat_ctx);
-char *hm_SYSFS_CPU_get_syspath_hwmon ();
+char *hm_SYSFS_CPU_get_syspath_hwmon (void);
 int hm_SYSFS_CPU_get_temperature_current (void *hashcat_ctx, int *val);
 
 bool read_proc_stat (void *hashcat_ctx, proc_stat_t *proc_stat);
 int hm_SYSFS_CPU_get_utilization_current (void *hashcat_ctx, int *val);
 
-#endif // _EXT_SYSFS_CPU_H
+#endif // HC_EXT_SYSFS_CPU_H

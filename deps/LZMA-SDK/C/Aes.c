@@ -1,5 +1,5 @@
 /* Aes.c -- AES encryption / decryption
-2021-04-01 : Igor Pavlov : Public domain */
+2021-05-13 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -365,10 +365,10 @@ void MY_FAST_CALL AesCtr_Code(UInt32 *p, Byte *data, size_t numBlocks)
       #ifdef MY_CPU_LE_UNALIGN
         *((UInt32 *)(void *)data) ^= t;
       #else
-        data[0] ^= (t & 0xFF);
-        data[1] ^= ((t >> 8) & 0xFF);
-        data[2] ^= ((t >> 16) & 0xFF);
-        data[3] ^= ((t >> 24));
+        data[0] = (Byte)(data[0] ^ (t & 0xFF));
+        data[1] = (Byte)(data[1] ^ ((t >> 8) & 0xFF));
+        data[2] = (Byte)(data[2] ^ ((t >> 16) & 0xFF));
+        data[3] = (Byte)(data[3] ^ ((t >> 24)));
       #endif
     }
   }

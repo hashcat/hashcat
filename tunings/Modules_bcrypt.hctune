@@ -1,0 +1,11 @@
+
+#Device                                         Attack  Hash    Vector  Kernel  Kernel
+#Name                                           Mode    Type    Width   Accel   Loops
+
+DEVICE_TYPE_CPU                                 *       3200    1       N       A
+DEVICE_TYPE_CPU                                 *       9000    1       N       A
+DEVICE_TYPE_CPU                                 *       18600   1       N       A
+DEVICE_TYPE_CPU                                 *       25600   1       N       A
+DEVICE_TYPE_CPU                                 *       25800   1       N       A
+DEVICE_TYPE_CPU                                 *       28400   1       N       A
+DEVICE_TYPE_CPU                                 *       30600   1       N       A

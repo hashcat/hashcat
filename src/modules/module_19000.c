@@ -52,6 +52,13 @@ typedef struct qnx_md5_tmp
 
 static const int ROUNDS_QNX = 1000;
 
+u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_threads_max = 64;
+
+  return kernel_threads_max;
+}
+
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 tmp_size = (const u64) sizeof (qnx_md5_tmp_t);
@@ -65,12 +72,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
 
   token.sep[0]     = '@';
-  token.len_min[0] = 0;
-  token.len_max[0] = 0;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len[0]     = 0;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH;
 
   token.sep[1]     = '@';
   token.len_min[1] = 1;
@@ -107,7 +115,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     iter = hc_strtoul ((const char *) token.buf[1] + 2, NULL, 10);
   }
 
-  // iter++; the additinal round is added in the init kernel
+  // iter++; the additional round is added in the init kernel
 
   salt->salt_iter = iter;
 
@@ -115,10 +123,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (token.len[2] != 32) return (PARSER_HASH_LENGTH);
 
-  digest[0] = hex_to_u32 ((const u8 *) token.buf[2] +  0);
-  digest[1] = hex_to_u32 ((const u8 *) token.buf[2] +  8);
-  digest[2] = hex_to_u32 ((const u8 *) token.buf[2] + 16);
-  digest[3] = hex_to_u32 ((const u8 *) token.buf[2] + 24);
+  digest[0] = hex_to_u32 (token.buf[2] +  0);
+  digest[1] = hex_to_u32 (token.buf[2] +  8);
+  digest[2] = hex_to_u32 (token.buf[2] + 16);
+  digest[3] = hex_to_u32 (token.buf[2] + 24);
 
   // salt
 
@@ -232,7 +240,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;

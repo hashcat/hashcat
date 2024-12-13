@@ -13,7 +13,7 @@ use Digest::HMAC qw (hmac);
 use Encode       qw (encode);
 use MIME::Base64 qw (encode_base64);
 
-sub module_constraints { [[0, 256], [0, 256], [0, 27], [0, 27], [0, 27]] }
+sub module_constraints { [[0, 256], [-1, -1], [0, 27], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

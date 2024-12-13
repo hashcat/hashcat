@@ -35,6 +35,10 @@ because we basically add a zero byte every second byte within the kernel convers
 
 Since hashcat v6.2.1 there is true UTF-16 support for pure kernels. UTF-16 is fully supported.
 
+There is an exception for mask attacks combined with compute devices that require vector data-types
+to achieve full performance. For example a modern CPU. For these devices, the recommendation is to use a
+combination of mask processor piped to hashcat. For modern GPUs it works as expected.
+
 ##
 ## The use of --keep-guessing eventually skips reporting duplicate passwords
 ##

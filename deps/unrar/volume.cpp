@@ -1,15 +1,15 @@
 #include "rar.hpp"
 
 #ifdef RARDLL
-static bool DllVolChange(RAROptions *Cmd,wchar *NextName,size_t NameSize);
-static bool DllVolNotify(RAROptions *Cmd,wchar *NextName);
+static bool DllVolChange(CommandData *Cmd,wchar *NextName,size_t NameSize);
+static bool DllVolNotify(CommandData *Cmd,wchar *NextName);
 #endif
 
 
 
 bool MergeArchive(Archive &Arc,ComprDataIO *DataIO,bool ShowFileName,wchar Command)
 {
-  RAROptions *Cmd=Arc.GetRAROptions();
+  CommandData *Cmd=Arc.GetCommandData();
 
   HEADER_TYPE HeaderType=Arc.GetHeaderType();
   FileHeader *hd=HeaderType==HEAD_SERVICE ? &Arc.SubHead:&Arc.FileHead;
@@ -25,10 +25,12 @@ bool MergeArchive(Archive &Arc,ComprDataIO *DataIO,bool ShowFileName,wchar Comma
       uiMsg(UIERROR_CHECKSUMPACKED, Arc.FileName, hd->FileName);
   }
 
+  bool PrevVolEncrypted=Arc.Encrypted;
+
   int64 PosBeforeClose=Arc.Tell();
 
   if (DataIO!=NULL)
-    DataIO->ProcessedArcSize+=Arc.FileLength();
+    DataIO->ProcessedArcSize+=DataIO->LastArcSize;
 
 
   Arc.Close();
@@ -40,12 +42,20 @@ bool MergeArchive(Archive &Arc,ComprDataIO *DataIO,bool ShowFileName,wchar Comma
 #if !defined(SFX_MODULE) && !defined(RARDLL)
   bool RecoveryDone=false;
 #endif
-  bool FailedOpen=false,OldSchemeTested=false;
+  bool OldSchemeTested=false;
 
+  bool FailedOpen=false; // No more next volume open attempts if true.
 #if !defined(SILENT)
   // In -vp mode we force the pause before next volume even if it is present
   // and even if we are on the hard disk. It is important when user does not
   // want to process partially downloaded volumes preliminary.
+  // 2022.01.11: In WinRAR 6.10 beta versions we tried to ignore VolumePause
+  // if we could open the next volume with FMF_OPENEXCLUSIVE. But another
+  // developer asked us to return the previous behavior and always prompt
+  // for confirmation. They want to control when unrar continues, because
+  // the next file might not be fully decoded yet. They write chunks of data
+  // and then close the file again until the next chunk comes in.
+
   if (Cmd->VolumePause && !uiAskNextVolume(NextName,ASIZE(NextName)))
     FailedOpen=true;
 #endif
@@ -127,6 +137,16 @@ bool MergeArchive(Archive &Arc,ComprDataIO *DataIO,bool ShowFileName,wchar Comma
     return false;
 #endif
 
+  if (Arc.Encrypted!=PrevVolEncrypted)
+  {
+    // There is no legitimate reason for encrypted header state to be
+    // changed in the middle of volume sequence. So we abort here to prevent
+    // replacing an encrypted header volume to unencrypted and adding
+    // unexpected files by third party to encrypted extraction.
+    uiMsg(UIERROR_BADARCHIVE,Arc.FileName);
+    ErrHandler.Exit(RARX_FATAL);
+  }
+
   if (SplitHeader)
     Arc.SearchBlock(HeaderType);
   else
@@ -151,10 +171,9 @@ bool MergeArchive(Archive &Arc,ComprDataIO *DataIO,bool ShowFileName,wchar Comma
       DataIO->UnpVolume=hd->SplitAfter;
       DataIO->SetPackedSizeToRead(hd->PackSize);
     }
-#ifdef SFX_MODULE
-    DataIO->UnpArcSize=Arc.FileLength();
-#endif
-    
+
+    DataIO->AdjustTotalArcSize(&Arc);
+      
     // Reset the size of packed data read from current volume. It is used
     // to display the total progress and preceding volumes are already
     // compensated with ProcessedArcSize, so we need to reset this variable.
@@ -171,14 +190,7 @@ bool MergeArchive(Archive &Arc,ComprDataIO *DataIO,bool ShowFileName,wchar Comma
 
 
 #ifdef RARDLL
-#if defined(RARDLL) && defined(_MSC_VER) && !defined(_WIN_64)
-// Disable the run time stack check for unrar.dll, so we can manipulate
-// with ChangeVolProc call type below. Run time check would intercept
-// a wrong ESP before we restore it.
-#pragma runtime_checks( "s", off )
-#endif
-
-bool DllVolChange(RAROptions *Cmd,wchar *NextName,size_t NameSize)
+bool DllVolChange(CommandData *Cmd,wchar *NextName,size_t NameSize)
 {
   bool DllVolChanged=false,DllVolAborted=false;
 
@@ -212,28 +224,7 @@ bool DllVolChange(RAROptions *Cmd,wchar *NextName,size_t NameSize)
   {
     char NextNameA[NM];
     WideToChar(NextName,NextNameA,ASIZE(NextNameA));
-    // Here we preserve ESP value. It is necessary for those developers,
-    // who still define ChangeVolProc callback as "C" type function,
-    // even though in year 2001 we announced in unrar.dll whatsnew.txt
-    // that it will be PASCAL type (for compatibility with Visual Basic).
-#if defined(_MSC_VER)
-#ifndef _WIN_64
-    __asm mov ebx,esp
-#endif
-#elif defined(_WIN_ALL) && defined(__BORLANDC__)
-    _EBX=_ESP;
-#endif
     int RetCode=Cmd->ChangeVolProc(NextNameA,RAR_VOL_ASK);
-
-    // Restore ESP after ChangeVolProc with wrongly defined calling
-    // convention broken it.
-#if defined(_MSC_VER)
-#ifndef _WIN_64
-    __asm mov esp,ebx
-#endif
-#elif defined(_WIN_ALL) && defined(__BORLANDC__)
-    _ESP=_EBX;
-#endif
     if (RetCode==0)
       DllVolAborted=true;
     else
@@ -255,7 +246,7 @@ bool DllVolChange(RAROptions *Cmd,wchar *NextName,size_t NameSize)
 
 
 #ifdef RARDLL
-bool DllVolNotify(RAROptions *Cmd,wchar *NextName)
+bool DllVolNotify(CommandData *Cmd,wchar *NextName)
 {
   char NextNameA[NM];
   WideToChar(NextName,NextNameA,ASIZE(NextNameA));
@@ -268,21 +259,10 @@ bool DllVolNotify(RAROptions *Cmd,wchar *NextName)
   }
   if (Cmd->ChangeVolProc!=NULL)
   {
-#if defined(_WIN_ALL) && !defined(_MSC_VER) && !defined(__MINGW32__)
-    _EBX=_ESP;
-#endif
     int RetCode=Cmd->ChangeVolProc(NextNameA,RAR_VOL_NOTIFY);
-#if defined(_WIN_ALL) && !defined(_MSC_VER) && !defined(__MINGW32__)
-    _ESP=_EBX;
-#endif
     if (RetCode==0)
       return false;
   }
   return true;
 }
-
-#if defined(RARDLL) && defined(_MSC_VER) && !defined(_WIN_64)
-// Restore the run time stack check for unrar.dll.
-#pragma runtime_checks( "s", restore )
-#endif
 #endif

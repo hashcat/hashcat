@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_SHA224_H
-#define _INC_HASH_SHA224_H
+#ifndef INC_HASH_SHA224_H
+#define INC_HASH_SHA224_H
 
 #define SHIFT_RIGHT_32(x,n) ((x) >> (n))
 
@@ -132,4 +132,4 @@ DECLSPEC void sha224_hmac_update_vector_64 (PRIVATE_AS sha224_hmac_ctx_vector_t 
 DECLSPEC void sha224_hmac_update_vector (PRIVATE_AS sha224_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void sha224_hmac_final_vector (PRIVATE_AS sha224_hmac_ctx_vector_t *ctx);
 
-#endif // _INC_HASH_SHA224_H
+#endif // INC_HASH_SHA224_H

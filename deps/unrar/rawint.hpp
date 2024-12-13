@@ -84,7 +84,7 @@ inline uint32 RawGetBE4(const byte *m)
 {
 #if defined(USE_MEM_BYTESWAP) && defined(_MSC_VER)
   return _byteswap_ulong(*(uint32 *)m);
-#elif defined(USE_MEM_BYTESWAP) && (__GNUC__ > 3) && (__GNUC_MINOR__ > 2)
+#elif defined(USE_MEM_BYTESWAP) && (defined(__clang__) || defined(__GNUC__))
   return __builtin_bswap32(*(uint32 *)m);
 #else
   return uint32(m[0]<<24) | uint32(m[1]<<16) | uint32(m[2]<<8) | m[3];
@@ -97,7 +97,7 @@ inline void RawPutBE4(uint32 i,byte *mem)
 {
 #if defined(USE_MEM_BYTESWAP) && defined(_MSC_VER)
   *(uint32*)mem = _byteswap_ulong(i);
-#elif defined(USE_MEM_BYTESWAP) && (__GNUC__ > 3) && (__GNUC_MINOR__ > 2)
+#elif defined(USE_MEM_BYTESWAP) && (defined(__clang__) || defined(__GNUC__))
   *(uint32*)mem = __builtin_bswap32(i);
 #else
   mem[0]=byte(i>>24);
@@ -112,7 +112,7 @@ inline uint32 ByteSwap32(uint32 i)
 {
 #ifdef _MSC_VER
   return _byteswap_ulong(i);
-#elif (__GNUC__ > 3) && (__GNUC_MINOR__ > 2)
+#elif defined(__clang__) || defined(__GNUC__)
   return  __builtin_bswap32(i);
 #else
   return (rotl32(i,24)&0xFF00FF00)|(rotl32(i,8)&0x00FF00FF);

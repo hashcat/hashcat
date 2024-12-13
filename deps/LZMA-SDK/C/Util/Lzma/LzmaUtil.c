@@ -1,5 +1,5 @@
 /* LzmaUtil.c -- Test application for LZMA compression
-2021-02-15 : Igor Pavlov : Public domain */
+2021-11-01 : Igor Pavlov : Public domain */
 
 #include "../../Precomp.h"
 
@@ -12,6 +12,7 @@
 #include "../../Alloc.h"
 #include "../../7zFile.h"
 #include "../../7zVersion.h"
+#include "../../LzFind.h"
 #include "../../LzmaDec.h"
 #include "../../LzmaEnc.h"
 
@@ -195,6 +196,8 @@ static int main2(int numArgs, const char *args[], char *rs)
   int encodeMode;
   BoolInt useOutFile = False;
 
+  LzFindPrepare();
+
   FileSeqInStream_CreateVTable(&inStream);
   File_Construct(&inStream.file);
   inStream.wres = 0;
@@ -276,7 +279,7 @@ static int main2(int numArgs, const char *args[], char *rs)
 
 int MY_CDECL main(int numArgs, const char *args[])
 {
-  char rs[800] = { 0 };
+  char rs[1000] = { 0 };
   int res = main2(numArgs, args, rs);
   fputs(rs, stdout);
   return res;

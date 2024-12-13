@@ -660,7 +660,8 @@ DECLSPEC void blake2b_init_vector (PRIVATE_AS blake2b_ctx_vector_t *ctx)
   ctx->len = 0;
 }
 
-DECLSPEC void blake2b_init_vector_from_scalar(blake2b_ctx_vector_t* ctx, blake2b_ctx_t* ctx0) {
+DECLSPEC void blake2b_init_vector_from_scalar (PRIVATE_AS blake2b_ctx_vector_t *ctx, PRIVATE_AS blake2b_ctx_t *ctx0)
+{
   ctx->h[0] = ctx0->h[0];
   ctx->h[1] = ctx0->h[1];
   ctx->h[2] = ctx0->h[2];

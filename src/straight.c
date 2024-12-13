@@ -262,12 +262,13 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   straight_ctx->enabled = false;
 
+  if (user_options->usage         > 0)    return 0;
+  if (user_options->backend_info  > 0)    return 0;
+
   if (user_options->left         == true) return 0;
   if (user_options->show         == true) return 0;
-  if (user_options->usage        == true) return 0;
   if (user_options->version      == true) return 0;
   if (user_options->hash_info    == true) return 0;
-  if (user_options->backend_info  > 0)    return 0;
 
   if (user_options->attack_mode  == ATTACK_MODE_BF) return 0;
 
@@ -289,7 +290,11 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->rp_files_cnt)
     {
+      EVENT (EVENT_RULESFILES_PARSE_PRE);
+
       if (kernel_rules_load (hashcat_ctx, &straight_ctx->kernel_rules_buf, &straight_ctx->kernel_rules_cnt) == -1) return -1;
+
+      EVENT (EVENT_RULESFILES_PARSE_POST);
     }
     else if (user_options->rp_gen)
     {

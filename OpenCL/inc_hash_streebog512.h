@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_STREEBOG512_H
-#define _INC_HASH_STREEBOG512_H
+#ifndef INC_HASH_STREEBOG512_H
+#define INC_HASH_STREEBOG512_H
 
 #define BOX_S(S,n,i)      ((S)[(n)][(i)])
 
@@ -130,4 +130,4 @@ DECLSPEC void streebog512_hmac_update_vector (PRIVATE_AS streebog512_hmac_ctx_ve
 DECLSPEC void streebog512_hmac_update_vector_swap (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void streebog512_hmac_final_vector (PRIVATE_AS streebog512_hmac_ctx_vector_t *ctx);
 
-#endif // _INC_HASH_STREEBOG512_H
+#endif // INC_HASH_STREEBOG512_H

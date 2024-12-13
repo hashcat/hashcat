@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-OPTS="--quiet --potfile-disable --hwmon-disable"
+OPTS="--quiet --potfile-disable --hwmon-disable --logfile-disable"
 
 FORCE=0
 RUNTIME=400
@@ -42,7 +42,7 @@ SLOW_ALGOS=$(   grep -l ATTACK_EXEC_OUTSIDE_KERNEL "${TDIR}"/../src/modules/modu
 # fake slow algos, due to specific password pattern (e.g. ?d from "mask_3" is invalid):
 # ("only" drawback is that just -a 0 is tested with this workaround)
 
-SLOW_ALGOS="${SLOW_ALGOS} 28501 28502 28503 28504 28505 28506"
+SLOW_ALGOS="${SLOW_ALGOS} 28501 28502 28503 28504 28505 28506 30901 30902 30903 30904 30905 30906"
 
 OUTD="test_$(date +%s)"
 
@@ -218,7 +218,7 @@ function init()
       echo "They will be fetched from ${luks_tests_url}"
       echo "Note: this needs to be done only once and could take a little bit to download/extract."
       echo "These luks test files are not shipped directly with hashcat because the file sizes are"
-      echo "particularily large and therefore a bandwidth burner for users who do not run these tests."
+      echo "particularly large and therefore a bandwidth burner for users who do not run these tests."
       echo ""
 
       # download:
@@ -256,8 +256,8 @@ function init()
   grep " ${hash_type} '" "${OUTD}/all.sh" > "${cmd_file}" 2>/dev/null
 
   # create separate list of password and hashes
-  sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                  > "${OUTD}/${hash_type}_passwords.txt"
-  sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{print $10}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes.txt"
+  sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords.txt"
+  sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{t="";for(i=10;i<=NF;i++){if(t){t=t" "$i}else{t=$i}};print t}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes.txt"
 
   if [ "${hash_type}" -eq 10300 ]; then
     #cat ${OUTD}/${hash_type}.sh | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes.txt
@@ -368,8 +368,8 @@ function init()
 
       perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
 
-      sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                  > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
-      sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{print $10}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
+      sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
+      sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{t="";for(i=10;i<=NF;i++){if(t){t=t" "$i}else{t=$i}};print t}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
 
       if [ "${hash_type}" -eq 10300 ]; then
         #cat ${OUTD}/${hash_type}_multi_${i}.txt | cut -d' ' -f11- | cut -d"'" -f2 > ${OUTD}/${hash_type}_hashes_multi_${i}.txt
@@ -591,7 +591,7 @@ function attack_0()
 
           # out-of-memory, workaround
 
-          echo "${output}" | head -1 > tmp_file_out
+          echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
           echo "${search}" > tmp_file_search
 
           out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -874,7 +874,7 @@ function attack_1()
 
             # out-of-memory, workaround
 
-            echo "${output}" | head -1 > tmp_file_out
+            echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
             echo "${search}" > tmp_file_search
 
             out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -1180,7 +1180,7 @@ function attack_3()
 
           # out-of-memory, workaround
 
-          echo "${output}" | head -1 > tmp_file_out
+          echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
           echo "${search}" > tmp_file_search
 
           out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -1840,9 +1840,10 @@ function attack_6()
           newRet=$?
 
           if [ "${newRet}" -eq 2 ]; then
+
             # out-of-memory, workaround
 
-            echo "${output}" | head -1 > tmp_file_out
+            echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
             echo "${search}" > tmp_file_search
 
             out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -2273,7 +2274,7 @@ function attack_7()
 
             # out-of-memory, workaround
 
-            echo "${output}" | head -1 > tmp_file_out
+            echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
             echo "${search}" > tmp_file_search
 
             out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
@@ -2287,7 +2288,6 @@ function attack_7()
           fi
 
           if [ "${newRet}" -ne 0 ]; then
-
             if [ "${newRet}" -eq 2 ]; then
               ret=20
             else

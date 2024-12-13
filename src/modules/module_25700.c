@@ -62,18 +62,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt = 2;
 
-  token.len_min[0] = 8;
-  token.len_max[0] = 8;
   token.sep[0]     = hashconfig->separator;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 8;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[1] = 8;
-  token.len_max[1] = 8;
   token.sep[1]     = hashconfig->separator;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 8;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -84,7 +84,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *hash_pos = token.buf[0];
 
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[0]);
+  digest[0] = hex_to_u32 (&hash_pos[0]);
   digest[1] = 0;
   digest[2] = 0;
   digest[3] = 0;
@@ -96,7 +96,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[1];
   const int salt_len = token.len[1];
 
-  salt->salt_buf[0] = hex_to_u32 ((const u8 *) &salt_pos[0]);
+  salt->salt_buf[0] = hex_to_u32 (&salt_pos[0]);
 
   salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
 

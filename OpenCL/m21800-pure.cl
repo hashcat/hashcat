@@ -375,6 +375,11 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
   if (gid >= GID_CNT) return;
 
+  const u32 digest_pos = LOOP_POS;
+
+  const u32 digest_cur = DIGESTS_OFFSET_HOST + digest_pos;
+
+  GLOBAL_AS const electrum_t *electrum = &esalt_bufs[digest_cur];
 
   /*
    * Start by copying/aligning the data
@@ -434,7 +439,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
    * the main secp256k1 point multiplication by a scalar/tweak:
    */
 
-  GLOBAL_AS secp256k1_t *coords = (GLOBAL_AS secp256k1_t *) &esalt_bufs[DIGESTS_OFFSET_HOST].coords;
+  GLOBAL_AS const secp256k1_t *coords = (GLOBAL_AS const secp256k1_t *) &electrum->coords;
 
   u32 pubkey[64] = { 0 }; // for point_mul () we need: 1 + 32 bytes (for sha512 () we need more)
 
@@ -499,7 +504,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
   // we need to run it at least once:
 
-  GLOBAL_AS u32 *data_buf = (GLOBAL_AS u32 *) esalt_bufs[DIGESTS_OFFSET_HOST].data_buf;
+  GLOBAL_AS const u32 *data_buf = (GLOBAL_AS const u32 *) electrum->data_buf;
 
   u32 data[4];
 
@@ -574,7 +579,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
   // input:
 
   infstream.avail_in  = AES_LEN;
-  infstream.next_in   = (u8 *) buf_full;
+  infstream.next_in   = (PRIVATE_AS u8 *) buf_full;
 
   // output:
 
@@ -599,7 +604,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
     return;
   }
 
-  for (int i = 1; i < infstream.total_out; i++)
+  for (mz_ulong i = 1; i < infstream.total_out; i++)
   {
     if (tmp[i] == '\t') continue;
     if (tmp[i] == '\r') continue;
@@ -638,7 +643,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
     int qcnt2 = 0;
     int ccnt2 = 0;
 
-    for (int i = 1; i < infstream.total_out; i++)
+    for (mz_ulong i = 1; i < infstream.total_out; i++)
     {
       if (tmp[i] == '"') qcnt2++;
       if (tmp[i] == ':') ccnt2++;
@@ -646,7 +651,7 @@ KERNEL_FQ void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 
     if ((qcnt1 >= 1) && (ccnt1 >= 1) && (qcnt2 >= 4) && (ccnt2 >= 3))
     {
-      const float entropy = hc_get_entropy ((const u32 *) tmp, infstream.total_out / 4);
+      const float entropy = hc_get_entropy ((PRIVATE_AS const u32 *) tmp, infstream.total_out / 4);
 
       if ((entropy >= MIN_ENTROPY) && (entropy <= MAX_ENTROPY))
       {

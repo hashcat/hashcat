@@ -56,6 +56,12 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // Extra treatment for Apple systems
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
+    // Metal
+    if (device_param->is_metal == true)
+    {
+      hc_asprintf (&jit_build_options, "-D _unroll");
+    }
+
     return jit_build_options;
   }
 
@@ -80,12 +86,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 2;
 
   token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 128;
-  token.len_max[0] = 128;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 128;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.len_min[1] = SALT_MIN;

@@ -10,7 +10,7 @@ use warnings;
 
 use Digest::CRC;
 
-sub module_constraints { [[-1, -1], [-1, -1], [0, 31], [8, 8], [-1, -1]] }
+sub module_constraints { [[0, 256], [8, 8], [0, 31], [8, 8], [-1, -1]] }
 
 sub module_generate_hash
 {

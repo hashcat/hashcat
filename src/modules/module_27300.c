@@ -24,8 +24,7 @@ static const u64   KERN_TYPE      = 27300;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_MAXIMUM_THREADS;
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
 static const char *ST_HASH        = "$SNMPv3$6$45889431$3081b702010330110204367c80d4020300ffe30401010201030460305e041180001f88808106d566db57fd600000000002011002020118040e6d61747269785f5348412d35313204300000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a22602046ea3546f0201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$9e4681768d5dee9e2d0ca7380dfa19f0a0f805c550142b889af548f5506c2c3587df980707600b58d97ed1beaa9feaf9";
@@ -164,6 +163,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 5;
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_SNMPV3;
@@ -173,28 +174,28 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   // packet number
+  token.sep[1]     = '$';
   token.len_min[1] = 1;
   token.len_max[1] = 8;
-  token.sep[1]     = '$';
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
   // salt
+  token.sep[2]     = '$';
   token.len_min[2] = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.len_max[2] = SNMPV3_SALT_MAX * 2;
-  token.sep[2]     = '$';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // engineid
+  token.sep[3]     = '$';
   token.len_min[3] = 26;
   token.len_max[3] = SNMPV3_ENGINEID_MAX;
-  token.sep[3]     = '$';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // digest
-  token.len[4]     = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.sep[4]     = '$';
+  token.len[4]     = SNMPV3_MSG_AUTH_PARAMS_LEN * 2;
   token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -209,7 +210,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (snmpv3->packet_number, 0, sizeof (snmpv3->packet_number));
 
-  strncpy ((char *) snmpv3->packet_number, (char *) packet_number_pos, packet_number_len);
+  strncpy ((char *) snmpv3->packet_number, (const char *) packet_number_pos, packet_number_len);
 
   // salt
 
@@ -275,19 +276,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u64 *digest = (const u64 *) digest_buf;
 
-  snmpv3_t *snmpv3 = (snmpv3_t *) esalt_buf;
+  const snmpv3_t *snmpv3 = (const snmpv3_t *) esalt_buf;
 
   u8 *out_buf = (u8 *) line_buf;
 
-  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (char *) snmpv3->packet_number);
+  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (const char *) snmpv3->packet_number);
 
-  out_len += hex_encode ((u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 
   out_len++;
 
-  out_len += hex_encode ((u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 

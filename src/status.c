@@ -865,16 +865,40 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   const bool need_hex1 = need_hexify (plain_ptr1, plain_len1, 0, always_ascii);
   const bool need_hex2 = need_hexify (plain_ptr2, plain_len2, 0, always_ascii);
 
-  if ((need_hex1 == true) || (need_hex2 == true))
+  if((need_hex1 == true) || (need_hex2 == true))
   {
+    // Right candidate needs to be $HEX-ed
+    if(need_hex1 == false)
+    {
+      exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
+
+      plain_ptr1[plain_len1] = 0;
+      plain_ptr2[plain_len2 * 2] = 0;
+
+      snprintf (display, HCBUFSIZ_TINY, "%s -> $HEX[%s]", plain_ptr1, plain_ptr2);
+    }
+    // Left candidate needs to be $HEX-ed
+    else if(need_hex2 == false)
+    {
     exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
-    exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
 
     plain_ptr1[plain_len1 * 2] = 0;
-    plain_ptr2[plain_len2 * 2] = 0;
+    plain_ptr2[plain_len2] = 0;
 
-    snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> $HEX[%s]", plain_ptr1, plain_ptr2);
+    snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> %s", plain_ptr1, plain_ptr2);
+    }
+    // Both candidates need to be $HEX-ed
+    else {
+      exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
+      exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
+
+      plain_ptr1[plain_len1 * 2] = 0;
+      plain_ptr2[plain_len2 * 2] = 0;
+
+      snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> $HEX[%s]", plain_ptr1, plain_ptr2);
+    }
   }
+  // Neither candidate needs to be $HEX-ed
   else
   {
     plain_ptr1[plain_len1] = 0;
@@ -882,7 +906,6 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
 
     snprintf (display, HCBUFSIZ_TINY, "%s -> %s", plain_ptr1, plain_ptr2);
   }
-
   return display;
 }
 
@@ -900,6 +923,20 @@ int status_get_digests_done_pot (const hashcat_ctx_t *hashcat_ctx)
   return hashes->digests_done_pot;
 }
 
+int status_get_digests_done_zero (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  return hashes->digests_done_zero;
+}
+
+int status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  return hashes->digests_done_new;
+}
+
 int status_get_digests_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
@@ -914,6 +951,15 @@ double status_get_digests_percent (const hashcat_ctx_t *hashcat_ctx)
   if (hashes->digests_cnt == 0) return 0;
 
   return ((double) hashes->digests_done / (double) hashes->digests_cnt) * 100;
+}
+
+double status_get_digests_percent_new (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  if (hashes->digests_cnt == 0) return 0;
+
+  return ((double) hashes->digests_done_new / (double) hashes->digests_cnt) * 100;
 }
 
 int status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
@@ -1729,7 +1775,7 @@ char *status_get_cpt (const hashcat_ctx_t *hashcat_ctx)
   }
   else if ((cpt_ctx->cpt_start + (60 * 60)) < now)
   {
-    hc_asprintf (&cpt, "CUR:%u,%u,N/A AVG:%.2f,%.2f,N/a (Min,Hour,Day)",
+    hc_asprintf (&cpt, "CUR:%u,%u,N/A AVG:%.2f,%.2f,N/A (Min,Hour,Day)",
       cpt_cur_min,
       cpt_cur_hour,
       cpt_avg_min,
@@ -1922,7 +1968,6 @@ char *status_get_brain_rx_all (const hashcat_ctx_t *hashcat_ctx)
   format_speed_display_1k (brain_rx_all, display, HCBUFSIZ_TINY);
 
   return display;
-
 }
 
 char *status_get_brain_link_send_bytes_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)

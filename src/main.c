@@ -154,7 +154,7 @@ static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUS
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->advice_disable == true) return;
+  if (user_options->advice == false) return;
 
   main_log (hashcat_ctx, stdout, LOGLEVEL_ADVICE);
 }
@@ -392,6 +392,24 @@ static void main_potfile_remove_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_
   event_log_info_nn (hashcat_ctx, "Compared hashes with potfile entries");
 }
 
+static void main_rulesfiles_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Loading rules. Please be patient...");
+}
+
+static void main_rulesfiles_parse_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Loading rules finished");
+}
+
 static void main_potfile_hash_show (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
@@ -414,24 +432,30 @@ static void main_potfile_hash_left (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 static void main_potfile_num_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
+  hashes_t             *hashes       = hashcat_ctx->hashes;
 
   if (user_options->quiet == true) return;
 
-  hashes->digests_done_pot = hashes->digests_done;
-
-  if (hashes->digests_done_pot > 0)
+  if (hashes->digests_done_zero == 1)
   {
-    if (hashes->digests_done_pot == 1)
-    {
-      event_log_info (hashcat_ctx, "INFO: Removed 1 hash found as potfile entry or as empty hash.");
-      event_log_info (hashcat_ctx, NULL);
-    }
-    else
-    {
-      event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries or as empty hashes.", hashes->digests_done_pot);
-      event_log_info (hashcat_ctx, NULL);
-    }
+    event_log_info (hashcat_ctx, "INFO: Removed hash found as empty hash.");
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (hashes->digests_done_zero > 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as empty hashes.", hashes->digests_done_zero);
+    event_log_info (hashcat_ctx, NULL);
+  }
+
+  if (hashes->digests_done_pot == 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed hash found as potfile entry.");
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (hashes->digests_done_pot > 1)
+  {
+    event_log_info (hashcat_ctx, "INFO: Removed %d hashes found as potfile entries.", hashes->digests_done_pot);
+    event_log_info (hashcat_ctx, NULL);
   }
 }
 
@@ -441,7 +465,7 @@ static void main_potfile_all_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, M
 
   if (user_options->quiet == true) return;
 
-  event_log_info (hashcat_ctx, "INFO: All hashes found in potfile! Use --show to display them.");
+  event_log_info (hashcat_ctx, "INFO: All hashes found as potfile and/or empty entries! Use --show to display them.");
   event_log_info (hashcat_ctx, NULL);
 }
 
@@ -535,11 +559,29 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_advice (hashcat_ctx, NULL);
   }
 
-  if (hashconfig->potfile_disable == true)
+  if (hashconfig->potfile_disable == true && user_options->attack_mode != ATTACK_MODE_ASSOCIATION)
   {
     event_log_advice (hashcat_ctx, "ATTENTION! Potfile storage is disabled for this hash mode.");
     event_log_advice (hashcat_ctx, "Passwords cracked during this session will NOT be stored to the potfile.");
-    event_log_advice (hashcat_ctx, "Consider using -o to save cracked passwords.");
+
+    if(user_options->outfile_chgd == false)
+    {
+      event_log_advice (hashcat_ctx, "Consider using -o to save cracked passwords.");
+    }
+
+    event_log_advice (hashcat_ctx, NULL);
+  }
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    event_log_advice (hashcat_ctx, "ATTENTION! Potfile read/write is disabled for this attack mode.");
+    event_log_advice (hashcat_ctx, "Passwords cracked during this session will NOT be stored to the potfile.");
+
+    if(user_options->outfile_chgd == false)
+    {
+      event_log_advice (hashcat_ctx, "Consider using -o to save cracked passwords.");
+    }
+
     event_log_advice (hashcat_ctx, NULL);
   }
   /**
@@ -744,7 +786,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   event_log_advice (hashcat_ctx, "Cracking performance lower than expected?");
   event_log_advice (hashcat_ctx, NULL);
 
-  if (user_options->optimized_kernel_enable == false)
+  if (user_options->optimized_kernel == false)
   {
     if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
     {
@@ -815,9 +857,8 @@ static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (user_options->quiet == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  if (((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK)) && user_options->quiet == false)
   {
     clear_prompt (hashcat_ctx);
   }
@@ -957,7 +998,7 @@ static void main_hashconfig_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE
   {
     if (hashconfig->opti_type & OPTI_TYPE_RAW_HASH)
     {
-      event_log_info (hashcat_ctx, "Minimim salt length supported by kernel: %u", hashconfig->salt_min);
+      event_log_info (hashcat_ctx, "Minimum salt length supported by kernel: %u", hashconfig->salt_min);
       event_log_info (hashcat_ctx, "Maximum salt length supported by kernel: %u", hashconfig->salt_max);
     }
   }
@@ -1171,6 +1212,8 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_POTFILE_NUM_CRACKED:       main_potfile_num_cracked       (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_REMOVE_PARSE_POST: main_potfile_remove_parse_post (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_REMOVE_PARSE_PRE:  main_potfile_remove_parse_pre  (hashcat_ctx, buf, len); break;
+    case EVENT_RULESFILES_PARSE_POST:     main_rulesfiles_parse_post     (hashcat_ctx, buf, len); break;
+    case EVENT_RULESFILES_PARSE_PRE:      main_rulesfiles_parse_pre      (hashcat_ctx, buf, len); break;
     case EVENT_SET_KERNEL_POWER_FINAL:    main_set_kernel_power_final    (hashcat_ctx, buf, len); break;
     case EVENT_WORDLIST_CACHE_GENERATE:   main_wordlist_cache_generate   (hashcat_ctx, buf, len); break;
     case EVENT_WORDLIST_CACHE_HIT:        main_wordlist_cache_hit        (hashcat_ctx, buf, len); break;
@@ -1279,7 +1322,7 @@ int main (int argc, char **argv)
 
   if (hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME) == 0)
   {
-    if (user_options->usage == true)
+    if (user_options->usage > 0)
     {
       usage_big_print (hashcat_ctx);
 

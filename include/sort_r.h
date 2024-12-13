@@ -1,6 +1,6 @@
 /* Isaac Turner 29 April 2014 Public Domain */
-#ifndef SORT_R_H_
-#define SORT_R_H_
+#ifndef HC_SORT_R_H
+#define HC_SORT_R_H
 
 #include <stdlib.h>
 #include <string.h>
@@ -20,7 +20,7 @@ void sort_r(void *base, size_t nel, size_t width,
             int (*compar)(const void *_a, const void *_b, void *_arg),
             void *arg);
 
-Slightly modified to work with hashcat to no falsly detect _SORT_R_LINUX with mingw
+Slightly modified to work with hashcat to no falsely detect _SORT_R_LINUX with mingw
 
 */
 
@@ -231,4 +231,4 @@ static _SORT_R_INLINE void sort_r_simple(void *base, size_t nel, size_t w,
 #undef _SORT_R_LINUX
 #undef _SORT_R_BSD
 
-#endif /* SORT_R_H_ */
+#endif /* HC_SORT_R_H */

@@ -53,10 +53,8 @@ static const char *SIGNATURE_DRUPAL7 = "$S$";
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
-  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : cat test_1619943729/7900_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 7900 test_1619943729/7900_hashes.txt
-  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : cat test_1619955152/7900_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 7900 test_1619955152/7900_hashes.txt
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
+  if (device_param->is_metal == true)
   {
     return true;
   }
@@ -336,6 +334,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
@@ -428,7 +428,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // ugly hack start
 
-  char *tmpx = (char *) salt->salt_buf_pc;
+  const char *tmpx = (const char *) salt->salt_buf_pc;
 
   ptr_plain[42] = tmpx[0];
 
@@ -436,7 +436,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   ptr_plain[43] = 0;
 
-  const int line_len = snprintf (line_buf, line_size, "%s%s%s", (char *) salt->salt_sign, (char *) salt->salt_buf, ptr_plain);
+  const int line_len = snprintf (line_buf, line_size, "%s%s%s", (const char *) salt->salt_sign, (const char *) salt->salt_buf, ptr_plain);
 
   return line_len;
 }

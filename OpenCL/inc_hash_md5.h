@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_MD5_H
-#define _INC_HASH_MD5_H
+#ifndef INC_HASH_MD5_H
+#define INC_HASH_MD5_H
 
 #define MD5_F_S(x,y,z)  ((z) ^ ((x) & ((y) ^ (z))))
 #define MD5_G_S(x,y,z)  ((y) ^ ((z) & ((x) ^ (y))))

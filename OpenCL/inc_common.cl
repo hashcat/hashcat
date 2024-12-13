@@ -872,12 +872,12 @@ DECLSPEC u64x hl32_to_64 (const u32x a, const u32x b)
 
 // bit rotates
 //
-// For _CPU_OPENCL_EMU_H we dont need to care about vector functions
+// For HC_CPU_OPENCL_EMU_H we dont need to care about vector functions
 // The VECT_SIZE is guaranteed to be set to 1 from cpu_opencl_emu.h
 
 DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined HC_CPU_OPENCL_EMU_H
   return rotl32 (a, n);
   #elif defined IS_CUDA || defined IS_HIP
   return rotl32 (a, n);
@@ -892,7 +892,7 @@ DECLSPEC u32x hc_rotl32 (const u32x a, const int n)
 
 DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined HC_CPU_OPENCL_EMU_H
   return rotr32 (a, n);
   #elif defined IS_CUDA || defined IS_HIP
   return rotr32 (a, n);
@@ -907,7 +907,7 @@ DECLSPEC u32x hc_rotr32 (const u32x a, const int n)
 
 DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined HC_CPU_OPENCL_EMU_H
   return rotl32 (a, n);
   #elif defined IS_CUDA || defined IS_HIP
   return rotl32_S (a, n);
@@ -922,7 +922,7 @@ DECLSPEC u32 hc_rotl32_S (const u32 a, const int n)
 
 DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined HC_CPU_OPENCL_EMU_H
   return rotr32 (a, n);
   #elif defined IS_CUDA || defined IS_HIP
   return rotr32_S (a, n);
@@ -937,7 +937,7 @@ DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
 
 DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined HC_CPU_OPENCL_EMU_H
   return rotl64 (a, n);
   #elif defined IS_CUDA
   return rotl64 (a, n);
@@ -954,7 +954,7 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 
 DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined HC_CPU_OPENCL_EMU_H
   return rotr64 (a, n);
   #elif defined IS_CUDA
   return rotr64 (a, n);
@@ -971,7 +971,7 @@ DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
 
 DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined HC_CPU_OPENCL_EMU_H
   return rotl64 (a, n);
   #elif defined IS_CUDA
   return rotl64_S (a, n);
@@ -988,7 +988,7 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
 
 DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
 {
-  #if   defined _CPU_OPENCL_EMU_H
+  #if   defined HC_CPU_OPENCL_EMU_H
   return rotr64 (a, n);
   #elif defined IS_CUDA
   return rotr64_S (a, n);
@@ -1009,7 +1009,7 @@ DECLSPEC u32x hc_swap32 (const u32x v)
 {
   u32x r;
 
-  #ifdef _CPU_OPENCL_EMU_H
+  #ifdef HC_CPU_OPENCL_EMU_H
   r = byte_swap_32 (v);
   #else
   #if   (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
@@ -1106,7 +1106,7 @@ DECLSPEC u32 hc_swap32_S (const u32 v)
 {
   u32 r;
 
-  #ifdef _CPU_OPENCL_EMU_H
+  #ifdef HC_CPU_OPENCL_EMU_H
   r = byte_swap_32 (v);
   #else
   #if   (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
@@ -1132,7 +1132,7 @@ DECLSPEC u64x hc_swap64 (const u64x v)
 {
   u64x r;
 
-  #ifdef _CPU_OPENCL_EMU_H
+  #ifdef HC_CPU_OPENCL_EMU_H
   r = byte_swap_64 (v);
   #else
   #if   (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
@@ -1317,6 +1317,16 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
   #endif
 
+  #elif defined IS_METAL
+
+  const u32x a0 = h32_from_64 (v);
+  const u32x a1 = l32_from_64 (v);
+
+  u32x t0 = hc_swap32 (a0);
+  u32x t1 = hc_swap32 (a1);
+
+  r = hl32_to_64 (t1, t0);
+
   #else
 
   #if defined USE_BITSELECT && defined USE_ROTATE
@@ -1351,7 +1361,7 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
 {
   u64 r;
 
-  #ifdef _CPU_OPENCL_EMU_H
+  #ifdef HC_CPU_OPENCL_EMU_H
   r = byte_swap_64 (v);
   #else
   #if   (defined IS_AMD || defined IS_HIP) && HAS_VPERM == 1
@@ -1380,7 +1390,19 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
   asm volatile ("prmt.b32 %0, %1, 0, 0x0123;" : "=r"(tr) : "r"(ir));
 
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
+
+  #elif defined IS_METAL
+
+  const u32 v0 = h32_from_64_S (v);
+  const u32 v1 = l32_from_64_S (v);
+
+  u32 t0 = hc_swap32_S (v0);
+  u32 t1 = hc_swap32_S (v1);
+
+  r = hl32_to_64_S (t1, t0);
+
   #else
+
   #ifdef USE_SWIZZLE
   r = as_ulong (as_uchar8 (v).s76543210);
   #else
@@ -2242,11 +2264,13 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
     if (c >= 0xfc)
     {
-      extraBytesToRead = 5;
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      //extraBytesToRead = 5;
     }
     else if (c >= 0xf8)
     {
-      extraBytesToRead = 4;
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      //extraBytesToRead = 4;
     }
     else if (c >= 0xf0)
     {
@@ -2283,9 +2307,11 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
     switch (extraBytesToRead)
     {
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      /*
       case 5:
-        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
-        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
+        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
@@ -2293,13 +2319,14 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
         ch -= offsetsFromUTF8_5;
         break;
       case 4:
-        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++];
         ch -= offsetsFromUTF8_4;
         break;
+      */
       case 3:
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
@@ -2388,11 +2415,13 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 
     if (c >= 0xfc)
     {
-      extraBytesToRead = 5;
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      //extraBytesToRead = 5;
     }
     else if (c >= 0xf8)
     {
-      extraBytesToRead = 4;
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      //extraBytesToRead = 4;
     }
     else if (c >= 0xf0)
     {
@@ -2429,9 +2458,11 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 
     switch (extraBytesToRead)
     {
+      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
+      /*
       case 5:
-        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
-        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
+        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
@@ -2439,13 +2470,14 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
         ch -= offsetsFromUTF8_5;
         break;
       case 4:
-        ch += src_ptr[src_pos++]; ch <<= 6; /* remember, illegal UTF-8 */
+        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++];
         ch -= offsetsFromUTF8_4;
         break;
+      */
       case 3:
         ch += src_ptr[src_pos++]; ch <<= 6;
         ch += src_ptr[src_pos++]; ch <<= 6;
@@ -2783,6 +2815,11 @@ DECLSPEC int is_valid_base58_8 (const u8 v)
   if ((v > (u8) '9') && (v < (u8) 'A')) return 0;
   if ((v > (u8) 'Z') && (v < (u8) 'a')) return 0;
 
+  // https://github.com/hashcat/hashcat/issues/3878
+  if (v == 'O') return 0;
+  if (v == 'I') return 0;
+  if (v == 'l') return 0;
+
   return 1;
 }
 
@@ -2792,6 +2829,24 @@ DECLSPEC int is_valid_base58_32 (const u32 v)
   if (is_valid_base58_8 ((u8) (v >>  8)) == 0) return 0;
   if (is_valid_base58_8 ((u8) (v >> 16)) == 0) return 0;
   if (is_valid_base58_8 ((u8) (v >> 24)) == 0) return 0;
+
+  return 1;
+}
+
+DECLSPEC int is_valid_printable_8 (const u8 v)
+{
+  if (v > (u8) 0x7e) return 0;
+  if (v < (u8) 0x20) return 0;
+
+  return 1;
+}
+
+DECLSPEC int is_valid_printable_32 (const u32 v)
+{
+  if (is_valid_printable_8 ((u8) (v >>  0)) == 0) return 0;
+  if (is_valid_printable_8 ((u8) (v >>  8)) == 0) return 0;
+  if (is_valid_printable_8 ((u8) (v >> 16)) == 0) return 0;
+  if (is_valid_printable_8 ((u8) (v >> 24)) == 0) return 0;
 
   return 1;
 }
@@ -2935,6 +2990,24 @@ DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw
   w[31] = out_buf[31];
 
   return out_len;
+}
+
+DECLSPEC int count_bits_32 (const u32 v0, const u32 v1)
+{
+  u32 r = v0 ^ v1;
+
+  if (r == 0) return 0;
+
+  // from https://stackoverflow.com/questions/109023/count-the-number-of-set-bits-in-a-32-bit-integer
+
+  r = r - ((r >> 1) & 0x55555555);                  // add pairs of bits
+  r = (r & 0x33333333) + ((r >> 2) & 0x33333333);   // quads
+  r = (r + (r >> 4)) & 0x0F0F0F0F;                  // groups of 8
+  r *= 0x01010101;                                  // horizontal sum of bytes
+
+  // return just that top byte (after truncating to 32-bit even when int is wider than uint32_t)
+
+  return r >> 24;
 }
 
 /**

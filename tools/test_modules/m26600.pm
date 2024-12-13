@@ -58,6 +58,11 @@ sub module_generate_hash
     }
     else
     {
+      # generate plaintext
+
+      # TODO now the data is all 0xff, would be better to have it mimic the same structure as the reference data:
+      # [{"type":"HD Key Tree","data":{"mnemonic":[112,97,121,109,101,110,116,32,117,112,115,101,116,32,109,101,116,97,108,32,99,104,97,112,116,101,114,32,114,117,110,32,97,100,109,105,116,32,109,101,97,115,117,114,101,32,114,101,109,105,110,100,32,115,117,112,112,108,121,32,104,111,112,101,32,101,110,101,109,121,32,104,101,100,103,101,104,111,103],"numberOfAccounts":1,"hdPath":"m/44'/60'/0'/0"}}]
+      # generated from tools/2hashcat_tests/metamask2hashcat-test.py
       $pt = "\xff" x ($ct_min_len + int (rand ($ct_max_len - $ct_min_len)) + 1);
     }
   }

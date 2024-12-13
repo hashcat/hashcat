@@ -61,6 +61,33 @@ KERNEL_FQ void m01100_mxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
+    #if VECT_SIZE == 1
+
+    md4_ctx_t ctx0;
+
+    md4_init (&ctx0);
+
+    md4_update_utf16le (&ctx0, w, pw_len);
+
+    md4_final (&ctx0);
+
+    md4_ctx_t ctx;
+
+    md4_init (&ctx);
+
+    ctx.w0[0] = ctx0.h[0];
+    ctx.w0[1] = ctx0.h[1];
+    ctx.w0[2] = ctx0.h[2];
+    ctx.w0[3] = ctx0.h[3];
+
+    ctx.len = 16;
+
+    md4_update_utf16le (&ctx, s, salt_len);
+
+    md4_final (&ctx);
+
+    #else
+
     md4_ctx_vector_t ctx0;
 
     md4_init_vector (&ctx0);
@@ -83,6 +110,8 @@ KERNEL_FQ void m01100_mxx (KERN_ATTR_VECTOR ())
     md4_update_vector_utf16le (&ctx, s, salt_len);
 
     md4_final_vector (&ctx);
+
+    #endif
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];
@@ -152,6 +181,33 @@ KERNEL_FQ void m01100_sxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
+    #if VECT_SIZE == 1
+
+    md4_ctx_t ctx0;
+
+    md4_init (&ctx0);
+
+    md4_update_utf16le (&ctx0, w, pw_len);
+
+    md4_final (&ctx0);
+
+    md4_ctx_t ctx;
+
+    md4_init (&ctx);
+
+    ctx.w0[0] = ctx0.h[0];
+    ctx.w0[1] = ctx0.h[1];
+    ctx.w0[2] = ctx0.h[2];
+    ctx.w0[3] = ctx0.h[3];
+
+    ctx.len = 16;
+
+    md4_update_utf16le (&ctx, s, salt_len);
+
+    md4_final (&ctx);
+
+    #else
+
     md4_ctx_vector_t ctx0;
 
     md4_init_vector (&ctx0);
@@ -174,6 +230,8 @@ KERNEL_FQ void m01100_sxx (KERN_ATTR_VECTOR ())
     md4_update_vector_utf16le (&ctx, s, salt_len);
 
     md4_final_vector (&ctx);
+
+    #endif
 
     const u32x r0 = ctx.h[DGST_R0];
     const u32x r1 = ctx.h[DGST_R1];

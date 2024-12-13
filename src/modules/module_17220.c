@@ -171,11 +171,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   // it leads to CL_KERNEL_WORK_GROUP_SIZE to return 0 and later we will divide with 0
   // workaround would be to rewrite kernel to use global memory
 
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
-  {
-    return true;
-  }
-
   if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
   {
     return true;

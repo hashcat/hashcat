@@ -19,6 +19,10 @@
 #include <sys/sysctl.h>
 #endif
 
+#if defined (_WIN)
+#include <winsock2.h>
+#endif
+
 static const char *const PA_000 = "OK";
 static const char *const PA_001 = "Ignored due to comment";
 static const char *const PA_002 = "Ignored due to zero length";
@@ -80,7 +84,9 @@ static const char *const OPTI_STR_BRUTE_FORCE          = "Brute-Force";
 static const char *const OPTI_STR_RAW_HASH             = "Raw-Hash";
 static const char *const OPTI_STR_REGISTER_LIMIT       = "Register-Limit";
 static const char *const OPTI_STR_SLOW_HASH_SIMD_INIT  = "Slow-Hash-SIMD-INIT";
+static const char *const OPTI_STR_SLOW_HASH_SIMD_INIT2 = "Slow-Hash-SIMD-INIT-2";
 static const char *const OPTI_STR_SLOW_HASH_SIMD_LOOP  = "Slow-Hash-SIMD-LOOP";
+static const char *const OPTI_STR_SLOW_HASH_SIMD_LOOP2 = "Slow-Hash-SIMD-LOOP-2";
 static const char *const OPTI_STR_SLOW_HASH_SIMD_COMP  = "Slow-Hash-SIMD-COMP";
 static const char *const OPTI_STR_USES_BITS_8          = "Uses-8-Bit";
 static const char *const OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
@@ -111,6 +117,7 @@ static const char *const HASH_CATEGORY_FRAMEWORK_STR              = "Framework";
 static const char *const HASH_CATEGORY_PRIVATE_KEY_STR            = "Private Key";
 static const char *const HASH_CATEGORY_IMS_STR                    = "Instant Messaging Service";
 static const char *const HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR  = "Cryptocurrency Wallet";
+static const char *const HASH_CATEGORY_APPLICATION_DATABASE_STR   = "Application Database";
 
 int sort_by_string_sized (const void *p1, const void *p2)
 {
@@ -336,6 +343,19 @@ bool hc_path_is_directory (const char *path)
   if (stat (path, &s) == -1) return false;
 
   if (S_ISDIR (s.st_mode)) return true;
+
+  return false;
+}
+
+bool hc_path_is_fifo (const char *path)
+{
+  struct stat s;
+
+  memset (&s, 0, sizeof (s));
+
+  if (stat (path, &s) == -1) return false;
+
+  if (S_ISFIFO (s.st_mode) == true) return true;
 
   return false;
 }
@@ -577,7 +597,7 @@ void setup_environment_variables (const folder_config_t *folder_config)
   #endif
 }
 
-void setup_umask ()
+void setup_umask (void)
 {
   umask (077);
 }
@@ -606,11 +626,11 @@ u32 get_random_num (const u32 min, const u32 max)
 
   #if defined (_WIN)
 
-  return (((u32) rand () % (max - min)) + min);
+  return (((u32) rand () % (max - min + 1)) + min);
 
   #else
 
-  return (((u32) random () % (max - min)) + min);
+  return (((u32) random () % (max - min + 1)) + min);
 
   #endif
 }
@@ -661,7 +681,7 @@ void hc_string_trim_trailing (char *s)
   s[new_len] = 0;
 }
 
-int hc_get_processor_count ()
+int hc_get_processor_count (void)
 {
   int cnt = 0;
 
@@ -686,6 +706,11 @@ bool hc_same_files (char *file1, char *file2)
 {
   if ((file1 != NULL) && (file2 != NULL))
   {
+    if (hc_path_is_fifo (file1) == true || hc_path_is_fifo (file2) == true)
+    {
+      return false;
+    }
+
     struct stat tmpstat_file1;
     struct stat tmpstat_file2;
 
@@ -887,7 +912,11 @@ int select_read_timeout (int sockfd, const int sec)
   fd_set fds;
 
   FD_ZERO (&fds);
+#if defined(_WIN)
+  FD_SET ((SOCKET)sockfd, &fds);
+#else
   FD_SET (sockfd, &fds);
+#endif
 
   return select (sockfd + 1, &fds, NULL, NULL, &tv);
 }
@@ -902,7 +931,11 @@ int select_write_timeout (int sockfd, const int sec)
   fd_set fds;
 
   FD_ZERO (&fds);
+#if defined(_WIN)
+  FD_SET ((SOCKET)sockfd, &fds);
+#else
   FD_SET (sockfd, &fds);
+#endif
 
   return select (sockfd + 1, NULL, &fds, NULL, &tv);
 }
@@ -985,6 +1018,7 @@ const char *strhashcategory (const u32 hash_category)
     case HASH_CATEGORY_PRIVATE_KEY:             return HASH_CATEGORY_PRIVATE_KEY_STR;
     case HASH_CATEGORY_IMS:                     return HASH_CATEGORY_IMS_STR;
     case HASH_CATEGORY_CRYPTOCURRENCY_WALLET:   return HASH_CATEGORY_CRYPTOCURRENCY_WALLET_STR;
+    case HASH_CATEGORY_APPLICATION_DATABASE:    return HASH_CATEGORY_APPLICATION_DATABASE_STR;
   }
 
   return NULL;
@@ -994,27 +1028,29 @@ const char *stroptitype (const u32 opti_type)
 {
   switch (opti_type)
   {
-    case OPTI_TYPE_OPTIMIZED_KERNEL:    return OPTI_STR_OPTIMIZED_KERNEL;
-    case OPTI_TYPE_ZERO_BYTE:           return OPTI_STR_ZERO_BYTE;
-    case OPTI_TYPE_PRECOMPUTE_INIT:     return OPTI_STR_PRECOMPUTE_INIT;
-    case OPTI_TYPE_MEET_IN_MIDDLE:      return OPTI_STR_MEET_IN_MIDDLE;
-    case OPTI_TYPE_EARLY_SKIP:          return OPTI_STR_EARLY_SKIP;
-    case OPTI_TYPE_NOT_SALTED:          return OPTI_STR_NOT_SALTED;
-    case OPTI_TYPE_NOT_ITERATED:        return OPTI_STR_NOT_ITERATED;
-    case OPTI_TYPE_PREPENDED_SALT:      return OPTI_STR_PREPENDED_SALT;
-    case OPTI_TYPE_APPENDED_SALT:       return OPTI_STR_APPENDED_SALT;
-    case OPTI_TYPE_SINGLE_HASH:         return OPTI_STR_SINGLE_HASH;
-    case OPTI_TYPE_SINGLE_SALT:         return OPTI_STR_SINGLE_SALT;
-    case OPTI_TYPE_BRUTE_FORCE:         return OPTI_STR_BRUTE_FORCE;
-    case OPTI_TYPE_RAW_HASH:            return OPTI_STR_RAW_HASH;
-    case OPTI_TYPE_REGISTER_LIMIT:      return OPTI_STR_REGISTER_LIMIT;
-    case OPTI_TYPE_SLOW_HASH_SIMD_INIT: return OPTI_STR_SLOW_HASH_SIMD_INIT;
-    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP: return OPTI_STR_SLOW_HASH_SIMD_LOOP;
-    case OPTI_TYPE_SLOW_HASH_SIMD_COMP: return OPTI_STR_SLOW_HASH_SIMD_COMP;
-    case OPTI_TYPE_USES_BITS_8:         return OPTI_STR_USES_BITS_8;
-    case OPTI_TYPE_USES_BITS_16:        return OPTI_STR_USES_BITS_16;
-    case OPTI_TYPE_USES_BITS_32:        return OPTI_STR_USES_BITS_32;
-    case OPTI_TYPE_USES_BITS_64:        return OPTI_STR_USES_BITS_64;
+    case OPTI_TYPE_OPTIMIZED_KERNEL:     return OPTI_STR_OPTIMIZED_KERNEL;
+    case OPTI_TYPE_ZERO_BYTE:            return OPTI_STR_ZERO_BYTE;
+    case OPTI_TYPE_PRECOMPUTE_INIT:      return OPTI_STR_PRECOMPUTE_INIT;
+    case OPTI_TYPE_MEET_IN_MIDDLE:       return OPTI_STR_MEET_IN_MIDDLE;
+    case OPTI_TYPE_EARLY_SKIP:           return OPTI_STR_EARLY_SKIP;
+    case OPTI_TYPE_NOT_SALTED:           return OPTI_STR_NOT_SALTED;
+    case OPTI_TYPE_NOT_ITERATED:         return OPTI_STR_NOT_ITERATED;
+    case OPTI_TYPE_PREPENDED_SALT:       return OPTI_STR_PREPENDED_SALT;
+    case OPTI_TYPE_APPENDED_SALT:        return OPTI_STR_APPENDED_SALT;
+    case OPTI_TYPE_SINGLE_HASH:          return OPTI_STR_SINGLE_HASH;
+    case OPTI_TYPE_SINGLE_SALT:          return OPTI_STR_SINGLE_SALT;
+    case OPTI_TYPE_BRUTE_FORCE:          return OPTI_STR_BRUTE_FORCE;
+    case OPTI_TYPE_RAW_HASH:             return OPTI_STR_RAW_HASH;
+    case OPTI_TYPE_REGISTER_LIMIT:       return OPTI_STR_REGISTER_LIMIT;
+    case OPTI_TYPE_SLOW_HASH_SIMD_INIT:  return OPTI_STR_SLOW_HASH_SIMD_INIT;
+    case OPTI_TYPE_SLOW_HASH_SIMD_INIT2: return OPTI_STR_SLOW_HASH_SIMD_INIT2;
+    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP:  return OPTI_STR_SLOW_HASH_SIMD_LOOP;
+    case OPTI_TYPE_SLOW_HASH_SIMD_LOOP2: return OPTI_STR_SLOW_HASH_SIMD_LOOP2;
+    case OPTI_TYPE_SLOW_HASH_SIMD_COMP:  return OPTI_STR_SLOW_HASH_SIMD_COMP;
+    case OPTI_TYPE_USES_BITS_8:          return OPTI_STR_USES_BITS_8;
+    case OPTI_TYPE_USES_BITS_16:         return OPTI_STR_USES_BITS_16;
+    case OPTI_TYPE_USES_BITS_32:         return OPTI_STR_USES_BITS_32;
+    case OPTI_TYPE_USES_BITS_64:         return OPTI_STR_USES_BITS_64;
   }
 
   return NULL;
@@ -1129,10 +1165,6 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
       int len = token->len[token_idx];
 
       if (len_left < len) return (PARSER_TOKEN_LENGTH);
-
-      token->buf[token_idx + 1] = token->buf[token_idx] + len;
-
-      len_left -= len;
     }
     else
     {
@@ -1151,7 +1183,10 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
           len_left -= len + 1; // +1 = separator
         }
       }
+    }
 
+    if (token->sep[token_idx] != 0x00)
+    {
       const u8 *next_pos = NULL;
 
       if (token->attr[token_idx] & TOKEN_ATTR_SEPARATOR_FARTHEST)
@@ -1167,11 +1202,31 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
 
       const int len = next_pos - token->buf[token_idx];
 
+      if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
+      {
+        if (len != token->len[token_idx]) return (PARSER_TOKEN_LENGTH);
+      }
+
       token->len[token_idx] = len;
 
       token->buf[token_idx + 1] = next_pos + 1; // +1 = separator
 
       len_left -= len + 1; // +1 = separator
+    }
+    else
+    {
+      const int len = token->len[token_idx];
+
+      token->buf[token_idx + 1] = token->buf[token_idx] + len;
+
+      len_left -= len;
+
+      if (token->sep[token_idx] != 0)
+      {
+        token->buf[token_idx + 1]++; // +1 = separator
+
+        len_left--; // -1 = separator
+      }
     }
   }
 
@@ -1397,3 +1452,51 @@ bool is_apple_silicon (void)
 }
 
 #endif // __APPLE__
+
+char *file_to_buffer (const char *filename)
+{
+  HCFILE fp;
+
+  if (hc_fopen (&fp, filename, "r") == true)
+  {
+    struct stat st;
+
+    memset (&st, 0, sizeof (st));
+
+    if (hc_fstat (&fp, &st))
+    {
+      hc_fclose (&fp);
+
+      return NULL;
+    }
+
+    char *buffer = malloc (st.st_size + 1);
+
+    const size_t nread = hc_fread (buffer, 1, st.st_size, &fp);
+
+    hc_fclose (&fp);
+
+    buffer[nread] = 0;
+
+    return buffer;
+  }
+
+  return NULL;
+}
+
+int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len)
+{
+  int hash_mode = -1;
+
+  if (sscanf ((char *) input_buf, "$dynamic_%d$", &hash_mode) != 1) return -1;
+
+  *output_buf = (u8 *) strchr ((char *) input_buf + 10, '$');
+
+  if (*output_buf == NULL) return -1;
+
+  *output_buf += 1; // the $ itself
+
+  *output_len = input_len - (*output_buf - input_buf);
+
+  return hash_mode;
+}

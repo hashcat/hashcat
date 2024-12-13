@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_LUKS_SERPENT_H
-#define _INC_LUKS_SERPENT_H
+#ifndef INC_LUKS_SERPENT_H
+#define INC_LUKS_SERPENT_H
 
 DECLSPEC void serpent128_decrypt_cbc (PRIVATE_AS const u32 *ks1, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *essiv);
 DECLSPEC void serpent256_decrypt_cbc (PRIVATE_AS const u32 *ks1, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, PRIVATE_AS u32 *essiv);
@@ -70,4 +70,4 @@ DECLSPEC void luks_af_sha256_then_serpent_decrypt (GLOBAL_AS const luks_t *luks_
 DECLSPEC void luks_af_sha512_then_serpent_decrypt (GLOBAL_AS const luks_t *luks_bufs, GLOBAL_AS luks_tmp_t *tmps, PRIVATE_AS u32 *pt_buf);
 DECLSPEC void luks_af_ripemd160_then_serpent_decrypt (GLOBAL_AS const luks_t *luks_bufs, GLOBAL_AS luks_tmp_t *tmps, PRIVATE_AS u32 *pt_buf);
 
-#endif // _INC_LUKS_SERPENT_H
+#endif // INC_LUKS_SERPENT_H

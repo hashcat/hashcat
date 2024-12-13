@@ -96,18 +96,6 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
   return esalt_size;
 }
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 18200  test_1619967069/18200_multihash_bruteforce.txt test_1619967069/18200_passwords.txt
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  return false;
-}
-
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -115,6 +103,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   krb5asrep_t *krb5asrep = (krb5asrep_t *) esalt_buf;
 
   hc_token_t token;
+
+  memset (&token, 0, sizeof (hc_token_t));
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5ASREP;
@@ -143,7 +133,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     krb5asrep->format = 1;
 
-    parse_off += 2;
+    parse_off += 3;
   }
   else
   {
@@ -152,12 +142,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     krb5asrep->format = 2;
   }
 
-  char *account_info_start = (char *) line_buf + strlen (SIGNATURE_KRB5ASREP) + parse_off;
-  char *account_info_stop  = strchr ((const char *) account_info_start, ':');
+  const char *account_info_start = line_buf + strlen (SIGNATURE_KRB5ASREP) + parse_off;
+  char *account_info_stop  = strchr (account_info_start, ':');
 
   if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
-
-  account_info_stop++; // we want the : char included
 
   const int account_info_len = account_info_stop - account_info_start;
 
@@ -183,9 +171,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     // checksum
 
     token.sep[3]     = '$';
-    token.len_min[3] = 32;
-    token.len_max[3] = 32;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[3]     = 32;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     // edata2
@@ -207,9 +194,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     // checksum
 
     token.sep[2]     = '$';
-    token.len_min[2] = 32;
-    token.len_max[2] = 32;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[2]     = 32;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     // edata2
@@ -295,18 +281,18 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0, j = 0; i < krb5asrep->edata2_len; i += 1, j += 2)
   {
-    u8 *ptr_edata2 = (u8 *) krb5asrep->edata2;
+    const u8 *ptr_edata2 = (const u8 *) krb5asrep->edata2;
 
-    sprintf (data + j, "%02x", ptr_edata2[i]);
+    snprintf (data + j, 3, "%02x", ptr_edata2[i]);
   }
 
   int line_len = 0;
 
   if (krb5asrep->format == 1)
   {
-    line_len = snprintf (line_buf, line_size, "%s23%s%08x%08x%08x%08x$%s",
+    line_len = snprintf (line_buf, line_size, "%s23$%s:%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5ASREP,
-      (char *) krb5asrep->account_info,
+      (const char *) krb5asrep->account_info,
       byte_swap_32 (krb5asrep->checksum[0]),
       byte_swap_32 (krb5asrep->checksum[1]),
       byte_swap_32 (krb5asrep->checksum[2]),
@@ -315,9 +301,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   }
   else
   {
-    line_len = snprintf (line_buf, line_size, "%s%s%08x%08x%08x%08x$%s",
+    line_len = snprintf (line_buf, line_size, "%s%s:%08x%08x%08x%08x$%s",
       SIGNATURE_KRB5ASREP,
-      (char *) krb5asrep->account_info,
+      (const char *) krb5asrep->account_info,
       byte_swap_32 (krb5asrep->checksum[0]),
       byte_swap_32 (krb5asrep->checksum[1]),
       byte_swap_32 (krb5asrep->checksum[2]),
@@ -404,6 +390,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

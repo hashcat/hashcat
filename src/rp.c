@@ -893,11 +893,25 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) hccalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
 
+  if (kernel_rules_buf == NULL)
+  {
+    event_log_error (hashcat_ctx, "Not enough allocatable memory (RAM) for this ruleset.");
+
+    hcfree (all_kernel_rules_cnt);
+    hcfree (all_kernel_rules_buf);
+
+    hcfree (repeats);
+
+    return -1;
+  }
+
+  u32 invalid_cnt = 0;
+
   for (u32 i = 0; i < kernel_rules_cnt; i++)
   {
     u32 out_pos = 0;
 
-    kernel_rule_t *out = &kernel_rules_buf[i];
+    kernel_rule_t *out = &kernel_rules_buf[i - invalid_cnt];
 
     for (u32 j = 0; j < user_options->rp_files_cnt; j++)
     {
@@ -910,7 +924,9 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         if (out_pos == RULES_MAX - 1)
         {
-          // event_log_warning (hashcat_ctx, "Truncated chaining of rules %d and %d - maximum functions per rule exceeded.", i, in_off);
+          event_log_warning (hashcat_ctx, "Maximum functions per rule exceeded during chaining of rules, skipping...");
+
+          invalid_cnt++;
 
           break;
         }
@@ -921,6 +937,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   }
 
   hcfree (repeats);
+
+  kernel_rules_cnt -= invalid_cnt;
 
   hcfree (all_kernel_rules_cnt);
   hcfree (all_kernel_rules_buf);

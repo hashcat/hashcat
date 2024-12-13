@@ -24,8 +24,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
                                   | OPTS_TYPE_HOOK23
-                                  | OPTS_TYPE_POST_AMP_UTF16LE
-                                  | OPTS_TYPE_MAXIMUM_THREADS;
+                                  | OPTS_TYPE_POST_AMP_UTF16LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$RAR3$*1*ad56eb40219c9da2*834064ce*32*13*1*eb47b1abe17a1a75bce6c92ab1cef3f4126035ea95deaf08b3f32a0c7b8078e1*33";
@@ -294,10 +293,10 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
   rar3_hook_t *hook_items = (rar3_hook_t *) device_param->hooks_buf;
   rar3_hook_t *hook_item  = &hook_items[pw_pos];
 
-  rar3_hook_salt_t *rar3s = (rar3_hook_salt_t *) hook_salts_buf;
-  rar3_hook_salt_t *rar3  = &rar3s[salt_pos];
+  const rar3_hook_salt_t *rar3s = (const rar3_hook_salt_t *) hook_salts_buf;
+  const rar3_hook_salt_t *rar3  = &rar3s[salt_pos];
 
-  rar3_hook_extra_t *rar3_hook_extra = (rar3_hook_extra_t *) hook_extra_param;
+  const rar3_hook_extra_t *rar3_hook_extra = (const rar3_hook_extra_t *) hook_extra_param;
 
   const unsigned int pack_size   = (const unsigned int) rar3->pack_size;
   const unsigned int unpack_size = (const unsigned int) rar3->unpack_size;
@@ -324,7 +323,7 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
     }
   }
 
-  const u8 *data = (u8 *) rar3->data;
+  const u8 *data = (const u8 *) rar3->data;
 
   const u8 *key = (u8 *) hook_item->key;
   const u8 *iv  = (u8 *) hook_item->iv;
@@ -357,7 +356,7 @@ u64 module_hook_extra_param_size (MAYBE_UNUSED const hashconfig_t *hashconfig, M
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const bool optimized_kernel = user_options->optimized_kernel_enable;
+  const bool optimized_kernel = user_options->optimized_kernel;
 
   u64 tmp_size = (u64) sizeof (rar3_tmp_t);
 
@@ -421,33 +420,31 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 9;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_RAR3;
 
   token.sep[0]     = '*';
-  token.len_min[0] = 6;
-  token.len_max[0] = 6;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 6;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '*';
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 1;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '*';
-  token.len_min[2] = 16;
-  token.len_max[2] = 16;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 16;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '*';
-  token.len_min[3] = 8;
-  token.len_max[3] = 8;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 8;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[4]     = '*';
@@ -463,9 +460,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[6]     = '*';
-  token.len_min[6] = 1;
-  token.len_max[6] = 1;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[6]     = 1;
+  token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[7]     = '*';
@@ -571,7 +567,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  rar3_hook_salt_t *rar3_hook_salt = (rar3_hook_salt_t *) hook_salt_buf;
+  const rar3_hook_salt_t *rar3_hook_salt = (const rar3_hook_salt_t *) hook_salt_buf;
 
   const u32 data_len = rar3_hook_salt->pack_size;
 

@@ -123,6 +123,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 3;
 
   token.sep[0]     = '.';
@@ -325,7 +327,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     ptr_plain[86] = 0;
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%s.%s", (char *) jwt->salt_buf, (char *) ptr_plain);
+  const int line_len = snprintf (line_buf, line_size, "%s.%s", (const char *) jwt->salt_buf, (const char *) ptr_plain);
 
   return line_len;
 }

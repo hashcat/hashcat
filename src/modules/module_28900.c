@@ -99,6 +99,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5DB;
 
@@ -114,7 +116,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // assume no signature found
   if (line_len < 11) return (PARSER_SALT_LENGTH);
 
-  char *spn_info_start  = strchr ((const char *) line_buf + 11 + 1, '*');
+  char *spn_info_start  = strchr (line_buf + 11 + 1, '*');
 
   int is_spn_provided = 0;
 
@@ -134,9 +136,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
     token.sep[3]     = '$';
-    token.len_min[3] = 64;
-    token.len_max[3] = 64;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[3]     = 64;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
   }
@@ -168,9 +169,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH;
 
     token.sep[4]     = '$';
-    token.len_min[4] = 64;
-    token.len_max[4] = 64;
-    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[4]     = 64;
+    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     is_spn_provided = 1;
@@ -249,8 +249,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x%08x%08x%08x%08x%08x",
     SIGNATURE_KRB5DB,
-    (char *) krb5db->user,
-    (char *) krb5db->domain,
+    (const char *) krb5db->user,
+    (const char *) krb5db->domain,
     digest[0],
     digest[1],
     digest[2],

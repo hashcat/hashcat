@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_MARKOV_H
-#define _INC_MARKOV_H
+#ifndef INC_MARKOV_H
+#define INC_MARKOV_H
 
 #ifdef IS_METAL
 
@@ -83,5 +83,5 @@
 
 #endif // IS_METAL
 
-#endif // _INC_MARKOV_H
+#endif // INC_MARKOV_H
 

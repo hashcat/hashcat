@@ -132,6 +132,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt = 4;
 
   token.signatures_cnt = 1;
@@ -139,31 +141,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // Signature
   token.sep[0]     = '*';
-  token.len_min[0] = 42;
-  token.len_max[0] = 42;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 42;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   // Secure Session Identifier    (from SESSION_RESPONSE)
   token.sep[1]     = '*';
-  token.len_min[1] = 4;
-  token.len_max[1] = 4;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 4;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // XOR of Client Public Value X (from SESSION_REQUEST)
   //    and Server Public Value Y (from SESSION_RESPONSE)
   token.sep[2]     = '*';
-  token.len_min[2] = 64;
-  token.len_max[2] = 64;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 64;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // Message Authentication Code  (from SESSION_RESPONSE)
   token.sep[3]     = '*';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 32;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -181,13 +179,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 secure_session_identifier[2];
   u8 public_value_xor[32];
 
-  hex_decode (secure_session_identifier_pos, secure_session_identifier_len, (u8 *) &secure_session_identifier);
-  hex_decode (public_value_xor_pos, public_value_xor_len, (u8 *) &public_value_xor);
+  hex_decode (secure_session_identifier_pos, secure_session_identifier_len, secure_session_identifier);
+  hex_decode (public_value_xor_pos, public_value_xor_len, public_value_xor);
 
-  digest[0] = hex_to_u32 ((const u8 *) &mac_pos[0]);
-  digest[1] = hex_to_u32 ((const u8 *) &mac_pos[8]);
-  digest[2] = hex_to_u32 ((const u8 *) &mac_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &mac_pos[24]);
+  digest[0] = hex_to_u32 (&mac_pos[0]);
+  digest[1] = hex_to_u32 (&mac_pos[8]);
+  digest[2] = hex_to_u32 (&mac_pos[16]);
+  digest[3] = hex_to_u32 (&mac_pos[24]);
 
   u8 b1[16] = { 0x00, //-x Length of the associated data
                 0x28, //_|
@@ -226,7 +224,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  blocks_t *blocks = (blocks_t *) esalt_buf;
+  const blocks_t *blocks = (const blocks_t *) esalt_buf;
 
   u8 secure_session_identifier[2];
   u8 secure_session_identifier_hex[5] = { 0 };
@@ -235,7 +233,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memcpy (secure_session_identifier, &(blocks->b1[2]), 2);
 
-  memcpy (&public_value_xor[ 0], ((u8 *) &blocks->b1[2]) + 2,  6);
+  memcpy (&public_value_xor[ 0], ((const u8 *) &blocks->b1[2]) + 2,  6);
   memcpy (&public_value_xor[ 6], &(blocks->b2[0]), 16);
   memcpy (&public_value_xor[22], &(blocks->b3[0]), 10);
 

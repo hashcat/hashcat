@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _BRAIN_H
-#define _BRAIN_H
+#ifndef HC_BRAIN_H
+#define HC_BRAIN_H
 
 #include <stdio.h>
 #include <stdint.h>
@@ -240,7 +240,9 @@ int   brain_server_sort_hash_long       (const void *v1, const void *v2);
 int   brain_server_sort_hash_short      (const void *v1, const void *v2);
 int   brain_server_sort_hash_unique     (const void *v1, const void *v2);
 void  brain_server_handle_signal        (int signo);
+HC_API_CALL
 void *brain_server_handle_client        (void *p);
+HC_API_CALL
 void *brain_server_handle_dumps         (void *p);
 void  brain_server_db_hash_init         (brain_server_db_hash_t *brain_server_db_hash, const u32 brain_session);
 bool  brain_server_db_hash_realloc      (brain_server_db_hash_t *brain_server_db_hash, const i64 new_long_cnt);
@@ -252,4 +254,4 @@ void  brain_server_db_attack_free       (brain_server_db_attack_t *brain_server_
 int   brain_ctx_init                    (hashcat_ctx_t *hashcat_ctx);
 void  brain_ctx_destroy                 (hashcat_ctx_t *hashcat_ctx);
 
-#endif // _BRAIN_H
+#endif // HC_BRAIN_H

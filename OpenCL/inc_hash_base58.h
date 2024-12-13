@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_BASE58_H
-#define _INC_HASH_BASE58_H
+#ifndef INC_HASH_BASE58_H
+#define INC_HASH_BASE58_H
 
 DECLSPEC bool is_valid_base58 (PRIVATE_AS const u32 *data, PRIVATE_AS const u32 offset, PRIVATE_AS const u32 len);
 
@@ -21,4 +21,4 @@ DECLSPEC bool b58check_38 (PRIVATE_AS const u32 *bin);
 DECLSPEC bool b58enc       (PRIVATE_AS u8 *b58,  PRIVATE_AS u32 *b58sz,   PRIVATE_AS const u8 *data, PRIVATE_AS const u32 binsz);
 DECLSPEC bool b58check_enc (PRIVATE_AS u8 *b58c, PRIVATE_AS u32 *b58c_sz, PRIVATE_AS const u8 ver,   PRIVATE_AS const u8 *data, PRIVATE_AS u32 datasz);
 
-#endif // _INC_HASH_BASE58_H
+#endif // INC_HASH_BASE58_H

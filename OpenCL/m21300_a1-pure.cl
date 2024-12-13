@@ -64,7 +64,7 @@ KERNEL_FQ void m21300_mxx (KERN_ATTR_BASIC ())
 
   sha1_init (&ctx00);
 
-  sha1_update_global_swap (&ctx00, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
+  sha1_update_global (&ctx00, salt_bufs[SALT_POS_HOST].salt_buf_pc, salt_bufs[SALT_POS_HOST].salt_len_pc);
 
   sha1_update_global_swap (&ctx00, pws[gid].i, pws[gid].pw_len);
 
@@ -189,7 +189,7 @@ KERNEL_FQ void m21300_sxx (KERN_ATTR_BASIC ())
 
   sha1_init (&ctx00);
 
-  sha1_update_global_swap (&ctx00, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
+  sha1_update_global (&ctx00, salt_bufs[SALT_POS_HOST].salt_buf_pc, salt_bufs[SALT_POS_HOST].salt_len_pc);
 
   sha1_update_global_swap (&ctx00, pws[gid].i, pws[gid].pw_len);
 

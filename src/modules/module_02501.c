@@ -136,8 +136,8 @@ static void to_hccapx_t (const hashes_t *hashes, hccapx_t *hccapx, const u32 sal
 
   memcpy (hccapx->essid, salt->salt_buf, hccapx->essid_len);
 
-  wpa_eapol_t *wpa_eapols = (wpa_eapol_t *) esalts_buf;
-  wpa_eapol_t *wpa_eapol  = &wpa_eapols[digest_cur];
+  const wpa_eapol_t *wpa_eapols = (const wpa_eapol_t *) esalts_buf;
+  const wpa_eapol_t *wpa_eapol  = &wpa_eapols[digest_cur];
 
   hccapx->message_pair = wpa_eapol->message_pair;
   hccapx->keyver = wpa_eapol->keyver;
@@ -533,8 +533,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param.digests_offset_host = 0;
   kernel_param.combs_mode          = 0;
   kernel_param.salt_repeat         = 0;
-  kernel_param.combs_mode          = 0;
-  kernel_param.salt_repeat         = 0;
   kernel_param.pws_pos             = 0;
   kernel_param.gid_max             = 1;
 
@@ -574,10 +572,10 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
 
 int module_hash_encode_status (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) esalt_buf;
+  const wpa_eapol_t *wpa_eapol = (const wpa_eapol_t *) esalt_buf;
 
   const int line_len = snprintf (line_buf, line_size, "%s (AP:%02x:%02x:%02x:%02x:%02x:%02x STA:%02x:%02x:%02x:%02x:%02x:%02x)",
-    (char *) salt->salt_buf,
+    (const char *) salt->salt_buf,
     wpa_eapol->orig_mac_ap[0],
     wpa_eapol->orig_mac_ap[1],
     wpa_eapol->orig_mac_ap[2],

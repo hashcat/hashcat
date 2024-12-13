@@ -1231,7 +1231,7 @@ DECLSPEC void point_double (PRIVATE_AS u32 *x, PRIVATE_AS u32 *y, PRIVATE_AS u32
  * y3 = t3-t4
  */
 
-DECLSPEC void point_add (PRIVATE_AS u32 *x1, PRIVATE_AS u32 *y1, PRIVATE_AS u32 *z1, PRIVATE_AS u32 *x2, PRIVATE_AS u32 *y2) // z2 = 1
+DECLSPEC void point_add (PRIVATE_AS u32 *x1, PRIVATE_AS u32 *y1, PRIVATE_AS u32 *z1, PRIVATE_AS const u32 *x2, PRIVATE_AS const u32 *y2) // z2 = 1
 {
   // How often does this really happen? it should "almost" never happen (but would be safer)
 
@@ -2024,7 +2024,7 @@ DECLSPEC void point_mul (PRIVATE_AS u32 *r, PRIVATE_AS const u32 *k, SECP256K1_T
  * @param r out: x and y coordinates.
  * @param x in: x coordinate which should be converted, a pointer to an u32 array with a size of 8.
  * @param first_byte in: The parity of the y coordinate, a u32.
- * @return Returns 0 if successfull, returns 1 if x is greater than the basepoint.
+ * @return Returns 0 if successful, returns 1 if x is greater than the basepoint.
  */
 DECLSPEC u32 transform_public (PRIVATE_AS secp256k1_t *r, PRIVATE_AS const u32 *x, const u32 first_byte)
 {
@@ -2084,7 +2084,7 @@ DECLSPEC u32 transform_public (PRIVATE_AS secp256k1_t *r, PRIVATE_AS const u32 *
  * Parse a x coordinate with leading parity to secp256k1_t.
  * @param r out: x and y coordinates.
  * @param k in: x coordinate which should be converted with leading parity, a pointer to an u32 array with a size of 9.
- * @return Returns 0 if successfull, returns 1 if x is greater than the basepoint or the parity has an unexpected value.
+ * @return Returns 0 if successful, returns 1 if x is greater than the basepoint or the parity has an unexpected value.
  */
 DECLSPEC u32 parse_public (PRIVATE_AS secp256k1_t *r, PRIVATE_AS const u32 *k)
 {

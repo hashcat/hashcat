@@ -22,6 +22,17 @@ class RarTime
 
     // Internal time representation in 1/TICKS_PER_SECOND since 01.01.1601.
     // We use nanoseconds here to handle the high precision Unix time.
+    // It allows dates up to July 2185.
+    //
+    // If we'll ever need to extend the date range, we can define a lower
+    // precision Windows version of TICKS_PER_SECOND. But then Unix and Windows
+    // versions can differ in least significant digits of "lt" time output
+    // for Unix archives.
+    // Alternatively we can introduce 'bool HighPrecision' set to true
+    // in SetUnixNS() and TicksPerSecond() instead of constant above.
+    // It might be more reliable than defining TicksPerSecond variable,
+    // which wouldn't survive memset of any structure hosting RarTime.
+    // We would need to eliminate all such memsets in the entire code first.
     uint64 itime;
   public:
     // RarLocalTime::Reminder precision. Must be equal to TICKS_PER_SECOND.

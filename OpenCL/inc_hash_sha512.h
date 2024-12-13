@@ -3,20 +3,20 @@
  * License.....: MIT
  */
 
-#ifndef _INC_HASH_SHA512_H
-#define _INC_HASH_SHA512_H
+#ifndef INC_HASH_SHA512_H
+#define INC_HASH_SHA512_H
 
-#define SHIFT_RIGHT_64(x,n) ((x) >> (n))
+#define SHA512_SHR_64(x,n) ((x) >> (n))
 
 #define SHA512_S0_S(x) (hc_rotr64_S ((x), 28) ^ hc_rotr64_S ((x), 34) ^ hc_rotr64_S ((x), 39))
 #define SHA512_S1_S(x) (hc_rotr64_S ((x), 14) ^ hc_rotr64_S ((x), 18) ^ hc_rotr64_S ((x), 41))
-#define SHA512_S2_S(x) (hc_rotr64_S ((x),  1) ^ hc_rotr64_S ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
-#define SHA512_S3_S(x) (hc_rotr64_S ((x), 19) ^ hc_rotr64_S ((x), 61) ^ SHIFT_RIGHT_64 ((x), 6))
+#define SHA512_S2_S(x) (hc_rotr64_S ((x),  1) ^ hc_rotr64_S ((x),  8) ^ SHA512_SHR_64 ((x), 7))
+#define SHA512_S3_S(x) (hc_rotr64_S ((x), 19) ^ hc_rotr64_S ((x), 61) ^ SHA512_SHR_64 ((x), 6))
 
 #define SHA512_S0(x) (hc_rotr64 ((x), 28) ^ hc_rotr64 ((x), 34) ^ hc_rotr64 ((x), 39))
 #define SHA512_S1(x) (hc_rotr64 ((x), 14) ^ hc_rotr64 ((x), 18) ^ hc_rotr64 ((x), 41))
-#define SHA512_S2(x) (hc_rotr64 ((x),  1) ^ hc_rotr64 ((x),  8) ^ SHIFT_RIGHT_64 ((x), 7))
-#define SHA512_S3(x) (hc_rotr64 ((x), 19) ^ hc_rotr64 ((x), 61) ^ SHIFT_RIGHT_64 ((x), 6))
+#define SHA512_S2(x) (hc_rotr64 ((x),  1) ^ hc_rotr64 ((x),  8) ^ SHA512_SHR_64 ((x), 7))
+#define SHA512_S3(x) (hc_rotr64 ((x), 19) ^ hc_rotr64 ((x), 61) ^ SHA512_SHR_64 ((x), 6))
 
 #define SHA512_F0(x,y,z) ((z) ^ ((x) & ((y) ^ (z))))
 #define SHA512_F1(x,y,z) (((x) & (y)) | ((z) & ((x) ^ (y))))
@@ -147,4 +147,4 @@ DECLSPEC void sha512_hmac_update_vector_128 (PRIVATE_AS sha512_hmac_ctx_vector_t
 DECLSPEC void sha512_hmac_update_vector (PRIVATE_AS sha512_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void sha512_hmac_final_vector (PRIVATE_AS sha512_hmac_ctx_vector_t *ctx);
 
-#endif // _INC_HASH_SHA512_H
+#endif // INC_HASH_SHA512_H

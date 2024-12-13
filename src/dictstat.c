@@ -56,21 +56,22 @@ int dictstat_init (hashcat_ctx_t *hashcat_ctx)
 
   dictstat_ctx->enabled = false;
 
+  if (user_options->usage          > 0)    return 0;
+  if (user_options->backend_info   > 0)    return 0;
+
   if (user_options->benchmark     == true) return 0;
   if (user_options->hash_info     == true) return 0;
   if (user_options->keyspace      == true) return 0;
   if (user_options->left          == true) return 0;
   if (user_options->show          == true) return 0;
-  if (user_options->usage         == true) return 0;
   if (user_options->version       == true) return 0;
   if (user_options->identify      == true) return 0;
-  if (user_options->backend_info   > 0)    return 0;
 
   if (user_options->attack_mode == ATTACK_MODE_BF) return 0;
 
-  dictstat_ctx->enabled  = true;
-  dictstat_ctx->base     = (dictstat_t *) hccalloc (MAX_DICTSTAT, sizeof (dictstat_t));
-  dictstat_ctx->cnt      = 0;
+  dictstat_ctx->enabled = true;
+  dictstat_ctx->base    = (dictstat_t *) hccalloc (MAX_DICTSTAT, sizeof (dictstat_t));
+  dictstat_ctx->cnt     = 0;
 
   hc_asprintf (&dictstat_ctx->filename, "%s/%s", folder_config->profile_dir, DICTSTAT_FILENAME);
 
@@ -93,10 +94,14 @@ void dictstat_read (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   if (dictstat_ctx->enabled == false) return;
 
   if (hashconfig->dictstat_disable == true) return;
+
+  if (user_options->rule_buf_l_chgd == true) return;
+  if (user_options->rule_buf_r_chgd == true) return;
 
   HCFILE fp;
 
@@ -181,10 +186,14 @@ int dictstat_write (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   dictstat_ctx_t *dictstat_ctx = hashcat_ctx->dictstat_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
 
   if (dictstat_ctx->enabled == false) return 0;
 
   if (hashconfig->dictstat_disable == true) return 0;
+
+  if (user_options->rule_buf_l_chgd == true) return 0;
+  if (user_options->rule_buf_r_chgd == true) return 0;
 
   HCFILE fp;
 

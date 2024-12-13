@@ -133,15 +133,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt = 5;
 
   token.signatures_cnt = 1;
   token.signatures_buf[0] = SIGNATURE_POSTGRES_SHA256;
 
   token.sep[0]     = '$';
-  token.len_min[0] = 13;
-  token.len_max[0] = 13;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 13;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = ':';
@@ -157,9 +158,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
   token.sep[3]     = ':';
-  token.len_min[3] = 44;
-  token.len_max[3] = 44;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 44;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
   token.len[4]     = 44;
@@ -268,9 +268,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  u32 *digest = (u32 *) digest_buf;
+  const u32 *digest = (const u32 *) digest_buf;
 
-  postgres_sha256_t *postgres_sha256 = (postgres_sha256_t *) esalt_buf;
+  const postgres_sha256_t *postgres_sha256 = (const postgres_sha256_t *) esalt_buf;
 
   // salt
 
@@ -310,7 +310,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 stored_key_bin[100] = { 0 };
 
-  memcpy (stored_key_bin, (char *) postgres_sha256->storedKey, postgres_sha256->storedKey_len);
+  memcpy (stored_key_bin, (const char *) postgres_sha256->storedKey, postgres_sha256->storedKey_len);
 
   u8 stored_key_base64[64] = { 0 };
 

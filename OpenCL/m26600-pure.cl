@@ -334,12 +334,12 @@ KERNEL_FQ void m26600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   // iv
 
-  const u32 iv[4] = {
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0],
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1],
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2],
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3]
-  };
+  u32 iv[4];
+
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
 
   const u32 iv_len = esalt_bufs[DIGESTS_OFFSET_HOST].iv_len;
 

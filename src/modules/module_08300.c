@@ -49,12 +49,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
 
   token.sep[0]     = ':';
-  token.len_min[0] = 32;
-  token.len_max[0] = 32;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len[0]     = 32;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH;
 
   token.sep[1]     = ':';
   token.len_min[1] = 0;
@@ -174,7 +175,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char domain_buf_c[33] = { 0 };
 
-  memcpy (domain_buf_c, (char *) salt->salt_buf_pc, salt_pc_len);
+  memcpy (domain_buf_c, (const char *) salt->salt_buf_pc, salt_pc_len);
 
   for (u32 i = 0; i < salt_pc_len; i++)
   {

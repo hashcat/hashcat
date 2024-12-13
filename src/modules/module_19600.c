@@ -67,20 +67,6 @@ typedef struct krb5tgs_17_tmp
 
 static const char *SIGNATURE_KRB5TGS = "$krb5tgs$17$";
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
-  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-  {
-    if (device_param->is_metal == false)
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 tmp_size = (const u64) sizeof (krb5tgs_17_tmp_t);
@@ -103,6 +89,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_KRB5TGS;
 
@@ -118,7 +106,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // assume no signature found
   if (line_len < 12) return (PARSER_SALT_LENGTH);
 
-  char *spn_info_start  = strchr ((const char *) line_buf + 12 + 1, '*');
+  char *spn_info_start  = strchr (line_buf + 12 + 1, '*');
 
   int is_spn_provided = 0;
 
@@ -139,16 +127,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     token.sep[3]     = '$';
     // hmac-sha1 stripped to 12bytes
-    token.len_min[3] = 24;
-    token.len_max[3] = 24;
-    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
+    token.len[3]     = 24;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[4]     = '$';
     token.len_min[4] = 64;
     token.len_max[4] = 40960;
     token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
+                     | TOKEN_ATTR_VERIFY_HEX;
   }
   // assume $krb5tgs$17$user$realm$*spn*$checksum$edata2
   else
@@ -178,16 +165,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH;
 
     token.sep[4]     = '$';
-    token.len_min[4] = 24;
-    token.len_max[4] = 24;
-    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
+    token.len[4]     = 24;
+    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[5]     = '$';
     token.len_min[5] = 64;
     token.len_max[5] = 40960;
     token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                       | TOKEN_ATTR_VERIFY_HEX;
+                     | TOKEN_ATTR_VERIFY_HEX;
 
     is_spn_provided = 1;
   }
@@ -279,15 +265,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
   {
-    u8 *ptr_edata2 = (u8 *) krb5tgs->edata2;
+    const u8 *ptr_edata2 = (const u8 *) krb5tgs->edata2;
 
-    sprintf (data + j, "%02x", ptr_edata2[i]);
+    snprintf (data + j, 3, "%02x", ptr_edata2[i]);
   }
 
   const int line_len = snprintf (line_buf, line_size, "%s%s$%s$%08x%08x%08x$%s",
     SIGNATURE_KRB5TGS,
-    (char *) krb5tgs->user,
-    (char *) krb5tgs->domain,
+    (const char *) krb5tgs->user,
+    (const char *) krb5tgs->domain,
     krb5tgs->checksum[0],
     krb5tgs->checksum[1],
     krb5tgs->checksum[2],
@@ -372,6 +358,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

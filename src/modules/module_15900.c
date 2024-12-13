@@ -53,7 +53,7 @@ typedef struct dpapimk
   u32 SID_offset;
 
   /* here only for possible
-     forward compatibiliy
+     forward compatibility
   */
   // u8 cipher_algo[16];
   // u8 hash_algo[16];
@@ -76,6 +76,17 @@ typedef struct dpapimk_tmp_v2
 } dpapimk_tmp_v2_t;
 
 static const char *SIGNATURE_DPAPIMK = "$DPAPImk$";
+
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
+  if (device_param->is_metal == true)
+  {
+    return true;
+  }
+
+  return false;
+}
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -106,6 +117,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 10;
 
   token.signatures_cnt    = 1;
@@ -117,41 +130,39 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   // version
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
   token.sep[1]     = '*';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 1;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // context
-  token.len_min[2] = 1;
-  token.len_max[2] = 1;
   token.sep[2]     = '*';
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 1;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   // sid
+  token.sep[3]     = '*';
   token.len_min[3] = 10;
   token.len_max[3] = 60;
-  token.sep[3]     = '*';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // cipher
+  token.sep[4]     = '*';
   token.len_min[4] = 4;
   token.len_max[4] = 6;
-  token.sep[4]     = '*';
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // hash
+  token.sep[5]     = '*';
   token.len_min[5] = 4;
   token.len_max[5] = 6;
-  token.sep[5]     = '*';
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // iterations
+  token.sep[6]     = '*';
   token.len_min[6] = 1;
   token.len_max[6] = 6;
-  token.sep[6]     = '*';
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
@@ -163,9 +174,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // content len
+  token.sep[8]     = '*';
   token.len_min[8] = 1;
   token.len_max[8] = 6;
-  token.sep[8]     = '*';
   token.attr[8]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
@@ -217,7 +228,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (u32 i = 0; i < dpapimk->contents_len / 8; i++)
   {
-    dpapimk->contents[i] = hex_to_u32 ((const u8 *) &contents_pos[i * 8]);
+    dpapimk->contents[i] = hex_to_u32 (&contents_pos[i * 8]);
 
     dpapimk->contents[i] = byte_swap_32 (dpapimk->contents[i]);
   }
@@ -248,10 +259,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // iv
 
-  dpapimk->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
-  dpapimk->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
-  dpapimk->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
-  dpapimk->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
+  dpapimk->iv[0] = hex_to_u32 (&iv_pos[ 0]);
+  dpapimk->iv[1] = hex_to_u32 (&iv_pos[ 8]);
+  dpapimk->iv[2] = hex_to_u32 (&iv_pos[16]);
+  dpapimk->iv[3] = hex_to_u32 (&iv_pos[24]);
 
   dpapimk->iv[0] = byte_swap_32 (dpapimk->iv[0]);
   dpapimk->iv[1] = byte_swap_32 (dpapimk->iv[1]);
@@ -293,9 +304,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 SID[512]            = { 0 };
   u8* SID_tmp;
 
-  u32 *ptr_SID      = (u32 *) dpapimk->SID;
-  u32 *ptr_iv       = (u32 *) dpapimk->iv;
-  u32 *ptr_contents = (u32 *) dpapimk->contents;
+  const u32 *ptr_SID      = (const u32 *) dpapimk->SID;
+  const u32 *ptr_iv       = (const u32 *) dpapimk->iv;
+  const u32 *ptr_contents = (const u32 *) dpapimk->contents;
 
   u32 u32_iv[4];
   u8 iv[32 + 1];
@@ -446,6 +457,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

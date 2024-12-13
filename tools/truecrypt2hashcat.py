@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+#
+# Author......: See docs/credits.txt
+# License.....: MIT
+#
+
 from argparse import ArgumentParser, ArgumentTypeError
 
 
@@ -23,9 +28,10 @@ def validate_offset(offset):
         offset = BOOTABLE_OFFSET + HIDDEN_OFFSET
     try:
         offset = int(offset)
-        assert offset >= 0
-    except (AssertionError, ValueError):
-        raise ArgumentTypeError("offset is nether non-negative number nor bootable, hidden or bootable+hidden value")
+    except ValueError as e:
+        raise ArgumentTypeError("value is nether number nor allowed string") from e
+    if offset < 0:
+        raise ArgumentTypeError("value cannot be less than zero")
     return offset
 
 
@@ -42,14 +48,18 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    with open(args.path, "rb") as file:
-        file.seek(args.offset)
+    try:
+        with open(args.path, "rb") as file:
+            file.seek(args.offset)
 
-        header = file.read(HEADER_LENGTH)
+            header = file.read(HEADER_LENGTH)
 
-    assert len(header) == HEADER_LENGTH, "less data than needed"
+        if len(header) < HEADER_LENGTH:
+            parser.error("file contains less data than needed")
 
-    salt, data = header[:SALT_LENGTH], header[SALT_LENGTH:]
+        salt, data = header[:SALT_LENGTH], header[SALT_LENGTH:]
 
-    hash = SIGNATURE + salt.hex() + "$" + data.hex()
-    print(hash)
+        hash = SIGNATURE + salt.hex() + "$" + data.hex()
+        print(hash)
+    except IOError as e:
+        parser.error(e.strerror.lower())

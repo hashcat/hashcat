@@ -128,7 +128,7 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
   if (pkzip_extra->len == 0)
   {
-    return snprintf ((char *) dst_buf, dst_sz, "%s", (char *) src_buf);
+    return snprintf ((char *) dst_buf, dst_sz, "%s", (const char *) src_buf);
   }
   else
   {
@@ -136,7 +136,7 @@ int module_build_plain_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
     memcpy (dst_ptr, pkzip_extra->buf, pkzip_extra->len);
 
-    return pkzip_extra->len + snprintf (dst_ptr + pkzip_extra->len, dst_sz - pkzip_extra->len, "%s", (char *) src_buf);
+    return pkzip_extra->len + snprintf (dst_ptr + pkzip_extra->len, dst_sz - pkzip_extra->len, "%s", (const char *) src_buf);
   }
 }
 
@@ -146,11 +146,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 1;
 
-  token.len_min[0] = 24;
-  token.len_max[0] = 24;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 24;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);

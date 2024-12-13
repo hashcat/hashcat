@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _SHARED_H
-#define _SHARED_H
+#ifndef HC_SHARED_H
+#define HC_SHARED_H
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -55,6 +55,7 @@ void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size
 
 bool hc_path_is_file (const char *path);
 bool hc_path_is_directory (const char *path);
+bool hc_path_is_fifo (const char *path);
 bool hc_path_is_empty (const char *path);
 bool hc_path_exist (const char *path);
 bool hc_path_read (const char *path);
@@ -68,7 +69,7 @@ int  hc_string_bom_size (const u8 *s);
 void hc_string_trim_trailing (char *s);
 void hc_string_trim_leading (char *s);
 
-int hc_get_processor_count ();
+int hc_get_processor_count (void);
 
 bool hc_same_files (char *file1, char *file2);
 
@@ -103,8 +104,12 @@ int  generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
 
 int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token);
 
+int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len);
+
 #if defined (__APPLE__)
 bool is_apple_silicon (void);
 #endif
 
-#endif // _SHARED_H
+char *file_to_buffer (const char *filename);
+
+#endif // HC_SHARED_H

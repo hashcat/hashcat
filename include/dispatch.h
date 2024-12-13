@@ -3,12 +3,12 @@
  * License.....: MIT
  */
 
-#ifndef _DISPATCH_H
-#define _DISPATCH_H
+#ifndef HC_DISPATCH_H
+#define HC_DISPATCH_H
 
 #ifdef WITH_BRAIN
 #if defined (_WIN)
-#include <winsock.h>
+#include <winsock2.h>
 #define SEND_FLAGS 0
 #endif
 
@@ -25,4 +25,4 @@
 HC_API_CALL void *thread_calc_stdin (void *p);
 HC_API_CALL void *thread_calc (void *p);
 
-#endif // _DISPATCH_H
+#endif // HC_DISPATCH_H

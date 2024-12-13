@@ -81,7 +81,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
   u32 pw_max = PW_MAX - 4;
 
-  if (user_options->optimized_kernel_enable == true && hashconfig->has_optimized_kernel == true)
+  if (user_options->optimized_kernel == true && hashconfig->has_optimized_kernel == true)
   {
     pw_max = PW_MAX_OLD - 4;
   }
@@ -97,6 +97,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 6;
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_AWS_SIG_V4;
@@ -106,35 +108,32 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   // longdate
-  token.len_min[1] = 16;
-  token.len_max[1] = 16;
   token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len[1]     = 16;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
 
   // region
+  token.sep[2]     = '$';
   token.len_min[2] = 1;
   token.len_max[2] = 16;
-  token.sep[2]     = '$';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // service
+  token.sep[3]     = '$';
   token.len_min[3] = 1;
   token.len_max[3] = 16;
-  token.sep[3]     = '$';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // canonical
-  token.len_min[4] = 32 * 2;
-  token.len_max[4] = 32 * 2;
   token.sep[4]     = '$';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[4]     = 32 * 2;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // digest
-  token.len_min[5] = 32 * 2;
-  token.len_max[5] = 32 * 2;
   token.sep[5]     = '$';
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[5]     = 32 * 2;
+  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -156,7 +155,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // date
 
-  parse_rc = generic_salt_decode (hashconfig, (u8 *) longdate_pos, 8, (u8 *) esalt->date, (int *) &esalt->date_len);
+  parse_rc = generic_salt_decode (hashconfig, longdate_pos, 8, (u8 *) esalt->date, (int *) &esalt->date_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
@@ -243,7 +242,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   stringtosign_ptr[off] = 0x0a;
   off += 1;
 
-  memcpy (stringtosign_ptr + off, (char *) canonical_pos, canonical_len);
+  memcpy (stringtosign_ptr + off, (const char *) canonical_pos, canonical_len);
   off += canonical_len;
 
   esalt->stringtosign_len = off;
@@ -277,7 +276,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  aws4_sig_v4_t *esalt = (aws4_sig_v4_t *) esalt_buf;
+  const aws4_sig_v4_t *esalt = (const aws4_sig_v4_t *) esalt_buf;
 
   u8 *out_buf = (u8 *) line_buf;
 
@@ -311,7 +310,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // canonical
 
-  out_len += hex_encode ((u8 *) esalt->canonical, esalt->canonical_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) esalt->canonical, esalt->canonical_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 

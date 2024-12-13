@@ -21,9 +21,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSz";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSY:z";
 #else
-static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMS";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSY:";
 #endif
 
 static char *const SEPARATOR = ":";
@@ -33,6 +33,7 @@ static const struct option long_options[] =
   {"advice-disable",            no_argument,       NULL, IDX_ADVICE_DISABLE},
   {"attack-mode",               required_argument, NULL, IDX_ATTACK_MODE},
   {"backend-devices",           required_argument, NULL, IDX_BACKEND_DEVICES},
+  {"backend-devices-virtual",   required_argument, NULL, IDX_BACKEND_DEVICES_VIRTUAL},
   {"backend-ignore-cuda",       no_argument,       NULL, IDX_BACKEND_IGNORE_CUDA},
   {"backend-ignore-hip",        no_argument,       NULL, IDX_BACKEND_IGNORE_HIP},
   #if defined (__APPLE__)
@@ -53,6 +54,7 @@ static const struct option long_options[] =
   {"debug-file",                required_argument, NULL, IDX_DEBUG_FILE},
   {"debug-mode",                required_argument, NULL, IDX_DEBUG_MODE},
   {"deprecated-check-disable",  no_argument,       NULL, IDX_DEPRECATED_CHECK_DISABLE},
+  {"dynamic-x",                 no_argument,       NULL, IDX_DYNAMIC_X},
   {"encoding-from",             required_argument, NULL, IDX_ENCODING_FROM},
   {"encoding-to",               required_argument, NULL, IDX_ENCODING_TO},
   {"example-hashes",            no_argument,       NULL, IDX_HASH_INFO}, // alias of hash-info
@@ -93,6 +95,7 @@ static const struct option long_options[] =
   {"markov-hcstat2",            required_argument, NULL, IDX_MARKOV_HCSTAT2},
   {"markov-inverse",            no_argument,       NULL, IDX_MARKOV_INVERSE},
   {"markov-threshold",          required_argument, NULL, IDX_MARKOV_THRESHOLD},
+  {"metal-compiler-runtime",    required_argument, NULL, IDX_METAL_COMPILER_RUNTIME},
   {"nonce-error-corrections",   required_argument, NULL, IDX_NONCE_ERROR_CORRECTIONS},
   {"opencl-device-types",       required_argument, NULL, IDX_OPENCL_DEVICE_TYPES},
   {"optimized-kernel-enable",   no_argument,       NULL, IDX_OPTIMIZED_KERNEL_ENABLE},
@@ -101,6 +104,7 @@ static const struct option long_options[] =
   {"outfile-check-dir",         required_argument, NULL, IDX_OUTFILE_CHECK_DIR},
   {"outfile-check-timer",       required_argument, NULL, IDX_OUTFILE_CHECK_TIMER},
   {"outfile-format",            required_argument, NULL, IDX_OUTFILE_FORMAT},
+  {"outfile-json",              no_argument,       NULL, IDX_OUTFILE_JSON},
   {"outfile",                   required_argument, NULL, IDX_OUTFILE},
   {"potfile-disable",           no_argument,       NULL, IDX_POTFILE_DISABLE},
   {"potfile-path",              required_argument, NULL, IDX_POTFILE_PATH},
@@ -167,10 +171,11 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  user_options->advice_disable            = ADVICE_DISABLE;
+  user_options->advice                    = ADVICE;
   user_options->attack_mode               = ATTACK_MODE;
   user_options->autodetect                = AUTODETECT;
   user_options->backend_devices           = NULL;
+  user_options->backend_devices_virtual   = BACKEND_DEVICES_VIRTUAL;
   user_options->backend_ignore_cuda       = BACKEND_IGNORE_CUDA;
   user_options->backend_ignore_hip        = BACKEND_IGNORE_HIP;
   #if defined (__APPLE__)
@@ -200,11 +205,12 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->custom_charset_4          = NULL;
   user_options->debug_file                = NULL;
   user_options->debug_mode                = DEBUG_MODE;
-  user_options->deprecated_check_disable  = DEPRECATED_CHECK_DISABLE;
+  user_options->deprecated_check          = DEPRECATED_CHECK;
+  user_options->dynamic_x                 = DYNAMIC_X;
   user_options->encoding_from             = ENCODING_FROM;
   user_options->encoding_to               = ENCODING_TO;
   user_options->force                     = FORCE;
-  user_options->hwmon_disable             = HWMON_DISABLE;
+  user_options->hwmon                     = HWMON;
   user_options->hwmon_temp_abort          = HWMON_TEMP_ABORT;
   user_options->hash_info                 = HASH_INFO;
   user_options->hash_mode                 = HASH_MODE;
@@ -226,30 +232,32 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->keyspace                  = KEYSPACE;
   user_options->left                      = LEFT;
   user_options->limit                     = LIMIT;
-  user_options->logfile_disable           = LOGFILE_DISABLE;
+  user_options->logfile                   = LOGFILE;
   user_options->loopback                  = LOOPBACK;
   user_options->machine_readable          = MACHINE_READABLE;
   user_options->markov_classic            = MARKOV_CLASSIC;
-  user_options->markov_disable            = MARKOV_DISABLE;
+  user_options->markov                    = MARKOV;
   user_options->markov_hcstat2            = NULL;
   user_options->markov_inverse            = MARKOV_INVERSE;
   user_options->markov_threshold          = MARKOV_THRESHOLD;
+  user_options->metal_compiler_runtime    = METAL_COMPILER_RUNTIME;
   user_options->nonce_error_corrections   = NONCE_ERROR_CORRECTIONS;
   user_options->opencl_device_types       = NULL;
-  user_options->optimized_kernel_enable   = OPTIMIZED_KERNEL_ENABLE;
-  user_options->multiply_accel_disable    = MULTIPLY_ACCEL_DISABLE;
+  user_options->optimized_kernel          = OPTIMIZED_KERNEL;
+  user_options->multiply_accel            = MULTIPLY_ACCEL;
   user_options->outfile_autohex           = OUTFILE_AUTOHEX;
   user_options->outfile_check_dir         = NULL;
   user_options->outfile_check_timer       = OUTFILE_CHECK_TIMER;
   user_options->outfile_format            = OUTFILE_FORMAT;
+  user_options->outfile_json              = OUTFILE_JSON;
   user_options->outfile                   = NULL;
-  user_options->potfile_disable           = POTFILE_DISABLE;
+  user_options->potfile                   = POTFILE;
   user_options->potfile_path              = NULL;
   user_options->progress_only             = PROGRESS_ONLY;
   user_options->quiet                     = QUIET;
   user_options->remove                    = REMOVE;
   user_options->remove_timer              = REMOVE_TIMER;
-  user_options->restore_disable           = RESTORE_DISABLE;
+  user_options->restore_enable            = RESTORE_ENABLE;
   user_options->restore_file_path         = NULL;
   user_options->restore                   = RESTORE;
   user_options->restore_timer             = RESTORE_TIMER;
@@ -263,7 +271,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->runtime                   = RUNTIME;
   user_options->scrypt_tmto               = SCRYPT_TMTO;
   user_options->segment_size              = SEGMENT_SIZE;
-  user_options->self_test_disable         = SELF_TEST_DISABLE;
+  user_options->self_test                 = SELF_TEST;
   user_options->separator                 = SEPARATOR;
   user_options->session                   = PROGNAME;
   user_options->show                      = SHOW;
@@ -283,7 +291,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->veracrypt_pim_start       = VERACRYPT_PIM_START;
   user_options->veracrypt_pim_stop        = VERACRYPT_PIM_STOP;
   user_options->version                   = VERSION;
-  user_options->wordlist_autohex_disable  = WORDLIST_AUTOHEX_DISABLE;
+  user_options->wordlist_autohex          = WORDLIST_AUTOHEX;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) hccalloc (256, sizeof (char *));
@@ -328,6 +336,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STATUS_TIMER:
       case IDX_HASH_MODE:
       case IDX_RUNTIME:
+      case IDX_METAL_COMPILER_RUNTIME:
       case IDX_ATTACK_MODE:
       case IDX_RP_GEN:
       case IDX_RP_GEN_FUNC_MIN:
@@ -353,6 +362,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_INCREMENT_MIN:
       case IDX_INCREMENT_MAX:
       case IDX_HOOK_THREADS:
+      case IDX_BACKEND_DEVICES_VIRTUAL:
       #ifdef WITH_BRAIN
       case IDX_BRAIN_PORT:
       #endif
@@ -384,19 +394,20 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
   {
     switch (c)
     {
-      case IDX_HELP:                      user_options->usage                     = true;                            break;
+      case IDX_HELP:                      user_options->usage++;                                                     break;
       case IDX_VERSION:                   user_options->version                   = true;                            break;
       case IDX_RESTORE:                   user_options->restore                   = true;                            break;
       case IDX_QUIET:                     user_options->quiet                     = true;                            break;
       case IDX_SHOW:                      user_options->show                      = true;                            break;
-      case IDX_DEPRECATED_CHECK_DISABLE:  user_options->deprecated_check_disable  = true;                            break;
+      case IDX_DEPRECATED_CHECK_DISABLE:  user_options->deprecated_check          = false;                           break;
       case IDX_LEFT:                      user_options->left                      = true;                            break;
-      case IDX_ADVICE_DISABLE:            user_options->advice_disable            = true;                            break;
+      case IDX_ADVICE_DISABLE:            user_options->advice                    = false;                           break;
       case IDX_USERNAME:                  user_options->username                  = true;                            break;
+      case IDX_DYNAMIC_X:                 user_options->dynamic_x                 = true;                            break;
       case IDX_REMOVE:                    user_options->remove                    = true;                            break;
       case IDX_REMOVE_TIMER:              user_options->remove_timer              = hc_strtoul (optarg, NULL, 10);
                                           user_options->remove_timer_chgd         = true;                            break;
-      case IDX_POTFILE_DISABLE:           user_options->potfile_disable           = true;                            break;
+      case IDX_POTFILE_DISABLE:           user_options->potfile                   = false;                           break;
       case IDX_POTFILE_PATH:              user_options->potfile_path              = optarg;                          break;
       case IDX_DEBUG_MODE:                user_options->debug_mode                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_DEBUG_FILE:                user_options->debug_file                = optarg;                          break;
@@ -406,7 +417,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;                          break;
       case IDX_HASH_INFO:                 user_options->hash_info                 = true;                            break;
       case IDX_FORCE:                     user_options->force                     = true;                            break;
-      case IDX_SELF_TEST_DISABLE:         user_options->self_test_disable         = true;                            break;
+      case IDX_SELF_TEST_DISABLE:         user_options->self_test                 = false;                           break;
       case IDX_SKIP:                      user_options->skip                      = hc_strtoull (optarg, NULL, 10);
                                           user_options->skip_chgd                 = true;                            break;
       case IDX_LIMIT:                     user_options->limit                     = hc_strtoull (optarg, NULL, 10);
@@ -421,7 +432,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_IDENTIFY:                  user_options->identify                  = true;                            break;
       case IDX_SPEED_ONLY:                user_options->speed_only                = true;                            break;
       case IDX_PROGRESS_ONLY:             user_options->progress_only             = true;                            break;
-      case IDX_RESTORE_DISABLE:           user_options->restore_disable           = true;                            break;
+      case IDX_RESTORE_DISABLE:           user_options->restore_enable            = false;                           break;
       case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
       case IDX_STATUS:                    user_options->status                    = true;                            break;
       case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
@@ -433,6 +444,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->hash_mode_chgd            = true;                            break;
       case IDX_RUNTIME:                   user_options->runtime                   = hc_strtoul (optarg, NULL, 10);
                                           user_options->runtime_chgd              = true;                            break;
+      case IDX_METAL_COMPILER_RUNTIME:    user_options->metal_compiler_runtime    = hc_strtoul (optarg, NULL, 10);
+                                          user_options->metal_compiler_runtime_chgd = true;                          break;
       case IDX_ATTACK_MODE:               user_options->attack_mode               = hc_strtoul (optarg, NULL, 10);
                                           user_options->attack_mode_chgd          = true;                            break;
       case IDX_RP_FILE:                   user_options->rp_files[user_options->rp_files_cnt++] = optarg;             break;
@@ -442,19 +455,23 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_RP_GEN_FUNC_SEL:           user_options->rp_gen_func_sel           = optarg;                          break;
       case IDX_RP_GEN_SEED:               user_options->rp_gen_seed               = hc_strtoul (optarg, NULL, 10);
                                           user_options->rp_gen_seed_chgd          = true;                            break;
-      case IDX_RULE_BUF_L:                user_options->rule_buf_l                = optarg;                          break;
-      case IDX_RULE_BUF_R:                user_options->rule_buf_r                = optarg;                          break;
-      case IDX_MARKOV_DISABLE:            user_options->markov_disable            = true;                            break;
+      case IDX_RULE_BUF_L:                user_options->rule_buf_l                = optarg;
+                                          user_options->rule_buf_l_chgd           = true;                            break;
+      case IDX_RULE_BUF_R:                user_options->rule_buf_r                = optarg;
+                                          user_options->rule_buf_r_chgd           = true;                            break;
+      case IDX_MARKOV_DISABLE:            user_options->markov                    = false;                           break;
       case IDX_MARKOV_CLASSIC:            user_options->markov_classic            = true;                            break;
       case IDX_MARKOV_INVERSE:            user_options->markov_inverse            = true;                            break;
       case IDX_MARKOV_THRESHOLD:          user_options->markov_threshold          = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MARKOV_HCSTAT2:            user_options->markov_hcstat2            = optarg;                          break;
-      case IDX_OUTFILE:                   user_options->outfile                   = optarg;                          break;
+      case IDX_OUTFILE:                   user_options->outfile                   = optarg;
+                                          user_options->outfile_chgd              = true;                            break;
       case IDX_OUTFILE_FORMAT:            user_options->outfile_format            = outfile_format_parse (optarg);
                                           user_options->outfile_format_chgd       = true;                            break;
+      case IDX_OUTFILE_JSON:              user_options->outfile_json              = true;                            break;
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex_disable  = true;                            break;
+      case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex          = false;                           break;
       case IDX_HEX_CHARSET:               user_options->hex_charset               = true;                            break;
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
       case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;                            break;
@@ -467,11 +484,12 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BACKEND_IGNORE_OPENCL:     user_options->backend_ignore_opencl     = true;                            break;
       case IDX_BACKEND_INFO:              user_options->backend_info++;                                              break;
       case IDX_BACKEND_DEVICES:           user_options->backend_devices           = optarg;                          break;
+      case IDX_BACKEND_DEVICES_VIRTUAL:   user_options->backend_devices_virtual   = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BACKEND_VECTOR_WIDTH:      user_options->backend_vector_width      = hc_strtoul (optarg, NULL, 10);
                                           user_options->backend_vector_width_chgd = true;                            break;
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
-      case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel_enable   = true;                            break;
-      case IDX_MULTIPLY_ACCEL_DISABLE:    user_options->multiply_accel_disable    = true;                            break;
+      case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel          = true;                            break;
+      case IDX_MULTIPLY_ACCEL_DISABLE:    user_options->multiply_accel            = false;                           break;
       case IDX_WORKLOAD_PROFILE:          user_options->workload_profile          = hc_strtoul (optarg, NULL, 10);
                                           user_options->workload_profile_chgd     = true;                            break;
       case IDX_KERNEL_ACCEL:              user_options->kernel_accel              = hc_strtoul (optarg, NULL, 10);
@@ -482,9 +500,9 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->kernel_threads_chgd       = true;                            break;
       case IDX_SPIN_DAMP:                 user_options->spin_damp                 = hc_strtoul (optarg, NULL, 10);
                                           user_options->spin_damp_chgd            = true;                            break;
-      case IDX_HWMON_DISABLE:             user_options->hwmon_disable             = true;                            break;
+      case IDX_HWMON_DISABLE:             user_options->hwmon                     = false;                           break;
       case IDX_HWMON_TEMP_ABORT:          user_options->hwmon_temp_abort          = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_LOGFILE_DISABLE:           user_options->logfile_disable           = true;                            break;
+      case IDX_LOGFILE_DISABLE:           user_options->logfile                   = false;                           break;
       case IDX_HCCAPX_MESSAGE_PAIR:       user_options->hccapx_message_pair       = hc_strtoul (optarg, NULL, 10);
                                           user_options->hccapx_message_pair_chgd  = true;                            break;
       case IDX_NONCE_ERROR_CORRECTIONS:   user_options->nonce_error_corrections   = hc_strtoul (optarg, NULL, 10);
@@ -559,24 +577,38 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if (user_options->usage > 2)
+  {
+    event_log_error (hashcat_ctx, "Invalid --help/-h value, must have a value greater or equal to 0 and lower than 3.");
+
+    return -1;
+  }
+
   #ifdef WITH_BRAIN
   if ((user_options->brain_client == true) && (user_options->brain_server == true))
   {
-    event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time");
+    event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time.");
 
     return -1;
   }
 
   if ((user_options->brain_client_features < 1) || (user_options->brain_client_features > 3))
   {
-    event_log_error (hashcat_ctx, "Invalid --brain-client-feature argument");
+    event_log_error (hashcat_ctx, "Invalid --brain-client-feature argument.");
+
+    return -1;
+  }
+
+  if (user_options->brain_port > 65535)
+  {
+    event_log_error (hashcat_ctx, "Invalid brain port specified (greater than 65535).");
 
     return -1;
   }
 
   if ((user_options->brain_client == true) && (user_options->brain_password_chgd == false))
   {
-    event_log_error (hashcat_ctx, "Brain clients need to set --brain-password");
+    event_log_error (hashcat_ctx, "Brain clients must specify --brain-password.");
 
     return -1;
   }
@@ -605,17 +637,20 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->separator_chgd == true)
   {
     bool error = false;
+
     if ((strlen (user_options->separator) != 1) && (strlen (user_options->separator) != 4))
     {
         error = true;
     }
+
     if (strlen (user_options->separator) == 4)
     {
       if ((user_options->separator[0] == '0') && (user_options->separator[1] == 'x'))
       {
-        if (is_valid_hex_string ((u8 * ) (&(user_options->separator[2])), 2))
+        if (is_valid_hex_string ((u8 *) (&(user_options->separator[2])), 2))
         {
-          u8 sep = hex_to_u8 ((u8 * ) (&(user_options->separator[2])));
+          u8 sep = hex_to_u8 ((u8 *) (&(user_options->separator[2])));
+
           user_options->separator[0] = sep;
           user_options->separator[1] = 0;
         }
@@ -624,7 +659,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
           error = true;
         }
       }
-      else{
+      else
+      {
         error = true;
       }
     }
@@ -717,6 +753,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  // --metal-compiler-runtime is really used only on Apple
+
+  if (user_options->metal_compiler_runtime_chgd == true && user_options->metal_compiler_runtime == 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid --metal-compiler-runtime value specified (must be > 0).");
+
+    return -1;
+  }
+
   if (user_options->limit_chgd == true && user_options->loopback == true)
   {
     event_log_error (hashcat_ctx, "Combining --limit with --loopback is not allowed.");
@@ -727,6 +772,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if (user_options->hash_mode >= MODULE_HASH_MODES_MAXIMUM)
   {
     event_log_error (hashcat_ctx, "Invalid -m (hash type) value specified.");
+
+    return -1;
+  }
+
+  if (user_options->backend_devices_virtual == 0)
+  {
+    event_log_error (hashcat_ctx, "Invalid --backend-devices-virtual value specified.");
 
     return -1;
   }
@@ -1000,6 +1052,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if ((user_options->show == true) && ((user_options->username == true) || (user_options->dynamic_x == true)))
+  {
+    event_log_error (hashcat_ctx, "Mixing --show with --username or --dynamic-x can cause exponential delay in output.");
+
+    return 0;
+  }
+
   if (user_options->show == true || user_options->left == true)
   {
     if (user_options->remove == true)
@@ -1009,7 +1068,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->potfile_disable == true)
+    if (user_options->potfile == false)
     {
       event_log_error (hashcat_ctx, "Mixing --potfile-disable is not allowed with --show or --left.");
 
@@ -1022,6 +1081,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if (user_options->outfile_autohex == false)
     {
       event_log_error (hashcat_ctx, "Mixing --outfile-autohex-disable is not allowed with --show.");
+
+      return -1;
+    }
+
+    if (user_options->outfile_json == true)
+    {
+      event_log_error (hashcat_ctx, "Mixing --outfile-json is not allowed with --show.");
 
       return -1;
     }
@@ -1334,6 +1400,22 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  #if defined (_WIN)
+  char invalid_characters[] = "/<>:\"\\|?*";
+  #else
+  char invalid_characters[] = "/";
+  #endif
+
+  for (size_t i = 0; strlen (user_options->session) > i; i++)
+  {
+    if (strchr (invalid_characters, user_options->session[i]) != NULL)
+    {
+      event_log_error (hashcat_ctx, "Invalid --session value - must not contain invalid characters.");
+
+      return -1;
+    }
+  }
+
   if (user_options->cpu_affinity != NULL)
   {
     if (strlen (user_options->cpu_affinity) == 0)
@@ -1402,7 +1484,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->brain_client == true) && (user_options->potfile_disable == true))
+  if ((user_options->brain_client == true) && (user_options->potfile == false))
   {
     event_log_error (hashcat_ctx, "Using --potfile-disable is not allowed if --brain-client is used.");
 
@@ -1471,7 +1553,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     show_error = false;
   }
-  else if (user_options->usage == true)
+  else if (user_options->usage > 0)
   {
     show_error = false;
   }
@@ -1691,7 +1773,7 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "hash_info";
     }
 
-    if (user_options->usage == true)
+    if (user_options->usage > 0)
     {
       user_options->session = "usage";
     }
@@ -1753,13 +1835,13 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->stdout_flag)
   {
-    user_options->hwmon_disable       = true;
+    user_options->hwmon               = false;
     user_options->left                = false;
-    user_options->logfile_disable     = true;
+    user_options->logfile             = false;
     user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
-    user_options->potfile_disable     = true;
-    user_options->restore_disable     = true;
+    user_options->potfile             = false;
+    user_options->restore_enable      = false;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
     user_options->show                = false;
@@ -1774,16 +1856,16 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
    || user_options->speed_only       == true
    || user_options->progress_only    == true
    || user_options->identify         == true
-   || user_options->usage            == true
+   || user_options->usage             > 0
    || user_options->backend_info      > 0)
   {
-    user_options->hwmon_disable       = true;
+    user_options->hwmon               = false;
     user_options->left                = false;
-    user_options->logfile_disable     = true;
+    user_options->logfile             = false;
     user_options->spin_damp           = 0;
     user_options->outfile_check_timer = 0;
-    user_options->potfile_disable     = true;
-    user_options->restore_disable     = true;
+    user_options->potfile             = false;
+    user_options->restore_enable      = false;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
     user_options->show                = false;
@@ -1802,11 +1884,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->hwmon_temp_abort    = 0;
     user_options->increment           = false;
     user_options->left                = false;
-    user_options->logfile_disable     = true;
+    user_options->logfile             = false;
     user_options->spin_damp           = 0;
-    user_options->potfile_disable     = true;
+    user_options->potfile             = false;
     user_options->progress_only       = false;
-    user_options->restore_disable     = true;
+    user_options->restore_enable      = false;
     user_options->restore             = false;
     user_options->restore_timer       = 0;
     user_options->show                = false;
@@ -1821,8 +1903,8 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->workload_profile_chgd == false)
     {
-      user_options->optimized_kernel_enable = true;
-      user_options->workload_profile        = 3;
+      user_options->optimized_kernel  = true;
+      user_options->workload_profile  = 3;
     }
   }
 
@@ -1831,7 +1913,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->quiet = true;
   }
 
-  if (user_options->usage == true)
+  if (user_options->usage > 0)
   {
     user_options->quiet = true;
   }
@@ -1907,7 +1989,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   // this allows the user to use --show and --left while cracking (i.e. while another instance of hashcat is running)
   if (user_options->show == true || user_options->left == true)
   {
-    user_options->restore_disable = true;
+    user_options->restore_enable = false;
 
     user_options->restore = false;
   }
@@ -1928,10 +2010,10 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
 
   #if !defined (WITH_HWMON)
-  user_options->hwmon_disable = true;
+  user_options->hwmon = false;
   #endif // WITH_HWMON
 
-  if (user_options->hwmon_disable == true)
+  if (user_options->hwmon == false)
   {
     user_options->hwmon_temp_abort = 0;
   }
@@ -1991,7 +2073,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
-    user_options->potfile_disable = true;
+    user_options->potfile = false;
   }
 
   if (user_options->stdout_flag == false && user_options->benchmark == false && user_options->keyspace == false)
@@ -2044,17 +2126,22 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --backend-devices=%s", user_options->backend_devices);
     }
 
+    if (user_options->backend_devices_virtual)
+    {
+      event_log_info (hashcat_ctx, "* --backend-devices-virtual=%u", user_options->backend_devices_virtual);
+    }
+
     if (user_options->opencl_device_types)
     {
       event_log_info (hashcat_ctx, "* --opencl-device-types=%s", user_options->opencl_device_types);
     }
 
-    if (user_options->optimized_kernel_enable == true)
+    if (user_options->optimized_kernel == true)
     {
       event_log_info (hashcat_ctx, "* --optimized-kernel-enable");
     }
 
-    if (user_options->multiply_accel_disable == true)
+    if (user_options->multiply_accel == false)
     {
       event_log_info (hashcat_ctx, "* --multiply-accel-disable");
     }
@@ -2103,17 +2190,22 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "# option: --backend-devices=%s", user_options->backend_devices);
     }
 
+    if (user_options->backend_devices_virtual)
+    {
+      event_log_info (hashcat_ctx, "# option: --backend-devices-virtual=%u", user_options->backend_devices_virtual);
+    }
+
     if (user_options->opencl_device_types)
     {
       event_log_info (hashcat_ctx, "# option: --opencl-device-types=%s", user_options->opencl_device_types);
     }
 
-    if (user_options->optimized_kernel_enable == true)
+    if (user_options->optimized_kernel == true)
     {
       event_log_info (hashcat_ctx, "# option: --optimized-kernel-enable");
     }
 
-    if (user_options->multiply_accel_disable == true)
+    if (user_options->multiply_accel == false)
     {
       event_log_info (hashcat_ctx, "# option: --multiply-accel-disable");
     }
@@ -3133,14 +3225,16 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint64 (user_options->limit);
   logfile_top_uint64 (user_options->skip);
   logfile_top_uint   (user_options->attack_mode);
+  logfile_top_uint   (user_options->backend_devices_virtual);
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->benchmark_all);
   logfile_top_uint   (user_options->bitmap_max);
   logfile_top_uint   (user_options->bitmap_min);
   logfile_top_uint   (user_options->debug_mode);
+  logfile_top_uint   (user_options->dynamic_x);
   logfile_top_uint   (user_options->hash_info);
   logfile_top_uint   (user_options->force);
-  logfile_top_uint   (user_options->hwmon_disable);
+  logfile_top_uint   (user_options->hwmon);
   logfile_top_uint   (user_options->hwmon_temp_abort);
   logfile_top_uint   (user_options->hash_mode);
   logfile_top_uint   (user_options->hex_charset);
@@ -3157,28 +3251,30 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->kernel_threads);
   logfile_top_uint   (user_options->keyspace);
   logfile_top_uint   (user_options->left);
-  logfile_top_uint   (user_options->logfile_disable);
+  logfile_top_uint   (user_options->logfile);
   logfile_top_uint   (user_options->loopback);
   logfile_top_uint   (user_options->machine_readable);
   logfile_top_uint   (user_options->markov_classic);
-  logfile_top_uint   (user_options->markov_disable);
+  logfile_top_uint   (user_options->markov);
   logfile_top_uint   (user_options->markov_inverse);
   logfile_top_uint   (user_options->markov_threshold);
-  logfile_top_uint   (user_options->multiply_accel_disable);
+  logfile_top_uint   (user_options->metal_compiler_runtime);
+  logfile_top_uint   (user_options->multiply_accel);
   logfile_top_uint   (user_options->backend_info);
   logfile_top_uint   (user_options->backend_vector_width);
-  logfile_top_uint   (user_options->optimized_kernel_enable);
+  logfile_top_uint   (user_options->optimized_kernel);
   logfile_top_uint   (user_options->outfile_autohex);
   logfile_top_uint   (user_options->outfile_check_timer);
   logfile_top_uint   (user_options->outfile_format);
-  logfile_top_uint   (user_options->wordlist_autohex_disable);
-  logfile_top_uint   (user_options->potfile_disable);
+  logfile_top_uint   (user_options->outfile_json);
+  logfile_top_uint   (user_options->wordlist_autohex);
+  logfile_top_uint   (user_options->potfile);
   logfile_top_uint   (user_options->progress_only);
   logfile_top_uint   (user_options->quiet);
   logfile_top_uint   (user_options->remove);
   logfile_top_uint   (user_options->remove_timer);
   logfile_top_uint   (user_options->restore);
-  logfile_top_uint   (user_options->restore_disable);
+  logfile_top_uint   (user_options->restore_enable);
   logfile_top_uint   (user_options->restore_timer);
   logfile_top_uint   (user_options->rp_files_cnt);
   logfile_top_uint   (user_options->rp_gen);
@@ -3188,7 +3284,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->runtime);
   logfile_top_uint   (user_options->scrypt_tmto);
   logfile_top_uint   (user_options->segment_size);
-  logfile_top_uint   (user_options->self_test_disable);
+  logfile_top_uint   (user_options->self_test);
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);
   logfile_top_uint   (user_options->speed_only);

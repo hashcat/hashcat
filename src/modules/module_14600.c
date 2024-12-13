@@ -155,14 +155,14 @@ typedef enum hc_luks_cipher_mode
 
 typedef struct luks
 {
-  int hash_type;    // hc_luks_hash_type_t
-  int key_size;     // hc_luks_key_size_t
-  int cipher_type;  // hc_luks_cipher_type_t
-  int cipher_mode;  // hc_luks_cipher_mode_t
+  int hash_type;   // hc_luks_hash_type_t
+  int key_size;    // hc_luks_key_size_t
+  int cipher_type; // hc_luks_cipher_type_t
+  int cipher_mode; // hc_luks_cipher_mode_t
 
   u32 ct_buf[128];
 
-  u32 af_buf[((HC_LUKS_KEY_SIZE_512 / 8) * LUKS_STRIPES) / 4];
+  u32 af_buf[HC_LUKS_KEY_SIZE_512 / 8 * LUKS_STRIPES / 4];
   u32 af_len;
 
 } luks_t;
@@ -187,9 +187,9 @@ void *module_benchmark_esalt (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 {
   luks_t *luks = (luks_t *) hcmalloc (sizeof (luks_t));
 
-  luks->key_size      = HC_LUKS_KEY_SIZE_256;
-  luks->cipher_type   = HC_LUKS_CIPHER_TYPE_AES;
-  luks->cipher_mode   = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
+  luks->key_size    = HC_LUKS_KEY_SIZE_256;
+  luks->cipher_type = HC_LUKS_CIPHER_TYPE_AES;
+  luks->cipher_mode = HC_LUKS_CIPHER_MODE_XTS_PLAIN;
 
   return luks;
 }
@@ -243,7 +243,10 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
     if (parser_status != PARSER_OK)
     {
-      last_error = parser_status;
+      if (parser_status != PARSER_LUKS_KEY_DISABLED)
+      {
+        last_error = parser_status;
+      }
       continue;
     }
 
@@ -252,7 +255,14 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
   if (hashes_cnt == 0)
   {
-    return last_error;
+    if (last_error != 0)
+    {
+      return last_error;
+    }
+    else
+    {
+      return PARSER_LUKS_KEY_DISABLED;
+    }
   }
   else
   {
@@ -370,7 +380,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   HCFILE fp;
 
-  if (hc_fopen (&fp, (const char *) line_buf, "rb") == false) return (PARSER_HAVE_ERRNO);
+  if (hc_fopen (&fp, line_buf, "rb") == false) return (PARSER_HAVE_ERRNO);
 
   struct luks_phdr hdr;
 
@@ -554,7 +564,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_seek1 == -1)
   {
-      hc_fclose (&fp);
+    hc_fclose (&fp);
 
     return (PARSER_LUKS_FILE_SIZE);
   }

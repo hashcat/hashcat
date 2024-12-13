@@ -53,19 +53,18 @@ typedef struct devise_hash
 
 } devise_hash_t;
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
-  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : cat test_1619943729/19500_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 0 -m 19500 test_1619943729/19500_hashes.txt
-  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 19500  test_1619950656/19500_multihash_bruteforce.txt test_1619950656/19500_passwords.txt
-  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : cat test_1619955152/19500_passwords.txt | ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 0 -m 19500 test_1619955152/19500_hashes.txt
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 19500  test_1619967069/19500_multihash_bruteforce.txt test_1619967069/19500_passwords.txt
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
+  char *jit_build_options = NULL;
+
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
   {
-    return true;
+    // this is a workaround to avoid a compile time of over an hour (and then to not work) on ROCM in pure kernel mode
+
+    hc_asprintf (&jit_build_options, "-D NO_INLINE");
   }
 
-  return false;
+  return jit_build_options;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -83,12 +82,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 3;
 
   token.sep[0]     = hashconfig->separator;
-  token.len_min[0] = 40;
-  token.len_max[0] = 40;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 40;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[1]     = hashconfig->separator;
@@ -132,11 +132,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[3] = byte_swap_32 (digest[3]);
   digest[4] = byte_swap_32 (digest[4]);
 
-  const bool parse_rc1 = generic_salt_decode (hashconfig, token.buf[1], token.len[1], (u8 *) devise_double_salt->salt_buf, (int *) &devise_double_salt->salt_len);
+  const bool parse_rc1 = generic_salt_decode (hashconfig, token.buf[1], token.len[1], (u8 *) devise_double_salt->salt_buf, &devise_double_salt->salt_len);
 
   if (parse_rc1 == false) return (PARSER_SALT_LENGTH);
 
-  const bool parse_rc2 = generic_salt_decode (hashconfig, token.buf[2], token.len[2], (u8 *) devise_double_salt->site_key_buf, (int *) &devise_double_salt->site_key_len);
+  const bool parse_rc2 = generic_salt_decode (hashconfig, token.buf[2], token.len[2], (u8 *) devise_double_salt->site_key_buf, &devise_double_salt->site_key_len);
 
   if (parse_rc2 == false) return (PARSER_SALT_LENGTH);
 
@@ -196,13 +196,13 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_len += 1;
 
-  out_len += generic_salt_encode (hashconfig, (const u8 *) devise_double_salt->salt_buf, (const int) devise_double_salt->salt_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) devise_double_salt->salt_buf, devise_double_salt->salt_len, out_buf + out_len);
 
   out_buf[out_len] = hashconfig->separator;
 
   out_len += 1;
 
-  out_len += generic_salt_encode (hashconfig, (const u8 *) devise_double_salt->site_key_buf, (const int) devise_double_salt->site_key_len, out_buf + out_len);
+  out_len += generic_salt_encode (hashconfig, (const u8 *) devise_double_salt->site_key_buf, devise_double_salt->site_key_len, out_buf + out_len);
 
   return out_len;
 }
@@ -256,7 +256,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
   module_ctx->module_hook_size                = MODULE_DEFAULT;
-  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
+  module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
@@ -283,6 +283,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

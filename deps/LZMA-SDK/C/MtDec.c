@@ -1,5 +1,5 @@
 /* MtDec.c -- Multi-thread Decoder
-2021-02-27 : Igor Pavlov : Public domain */
+2021-12-21 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -102,7 +102,7 @@ typedef struct __CMtDecBufLink CMtDecBufLink;
 
 
 
-static THREAD_FUNC_RET_TYPE THREAD_FUNC_CALL_TYPE ThreadFunc(void *pp);
+static THREAD_FUNC_DECL ThreadFunc(void *pp);
 
 
 static WRes MtDecThread_CreateEvents(CMtDecThread *t)
@@ -836,7 +836,7 @@ static WRes ThreadFunc2(CMtDecThread *t)
 #endif
 
 
-static THREAD_FUNC_RET_TYPE THREAD_FUNC_CALL_TYPE ThreadFunc1(void *pp)
+static THREAD_FUNC_DECL ThreadFunc1(void *pp)
 {
   WRes res;
 
@@ -862,7 +862,7 @@ static THREAD_FUNC_RET_TYPE THREAD_FUNC_CALL_TYPE ThreadFunc1(void *pp)
   return (THREAD_FUNC_RET_TYPE)(UINT_PTR)res;
 }
 
-static MY_NO_INLINE THREAD_FUNC_RET_TYPE THREAD_FUNC_CALL_TYPE ThreadFunc(void *pp)
+static MY_NO_INLINE THREAD_FUNC_DECL ThreadFunc(void *pp)
 {
   #ifdef USE_ALLOCA
   CMtDecThread *t = (CMtDecThread *)pp;

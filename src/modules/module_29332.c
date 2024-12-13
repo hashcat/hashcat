@@ -26,8 +26,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_MP_MULTI_DISABLE
-                                  | OPTS_TYPE_MAXIMUM_THREADS;
+                                  | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$truecrypt$e9e503972b72dee996b0bfced2df003a54b42399e3586520cf1f69475ba32aff564e40e604a505af95ce15220f558ae815e94ce4953882a8299ee3fffb12e9bd$62bf8e2c41c0a8337ce20d45715440cc83e394200d351c5b04be5b70fa11b8467320a091a1d703c88cc7b26fd114795c04a973b3266ba97f55d4b4e4771bb1b4a6aabc9d57e03f0ae7c8a77dfc3d37078efba45031e7d63bb514726e2f2dc6da8cce167a17e36b32c326a5bcaa2c4b445f6e10e1f899a9adcc2a698769f900b7909f7aec52fc9862d75286ffda67933f9c52e5c681d590ad0329b85f8db0f6bb6daa3b2d55b62c65da37e3e7fcb99954e0abe20c39724e8fb2c7f839ec67d35f151dfd8c4dd4bc8dc4393fab291efa08cc0099277d219a0ba4c6272af3684d8043ed3f502b98e196dc7aa0291627613179199976f28eff08649acf70aa0c0dc5896ed13eb18ea28fdd6c460a9c7cfedeab5ac80a3c195226cfca094a7590fa2ae5ed2133ba09b5466b2049b6291f8dcf345e5718a4c0ef3f9c8d8e07d0e5dddd07452b533fbf243ef063fb6d26759ae725d8ca430f8cf17b86665d23bdff1c9dbdfe601b88e87cb7c89f23abc4a8bb1f0b7375cc29b1d81c950ffe92e16e2080e1d6270bbb3ba753322d2b623caed87213e552c33e699d4010f0f61df2b7f460d7cd82e70a711388f1c0b591d424259d3de8b3628daf62c6c5b71864eb0e7d31";
@@ -47,8 +46,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-#define TC_SALT_LEN 64
-#define TC_DATA_LEN 448
+#define TC_SALT_LEN     (             64)
+#define TC_SALT_HEX_LEN (TC_SALT_LEN * 2)
+
+#define TC_DATA_LEN     (            448)
+#define TC_DATA_HEX_LEN (TC_DATA_LEN * 2)
 
 typedef struct tc_tmp
 {
@@ -62,7 +64,7 @@ typedef struct tc_tmp
 
 typedef struct tc
 {
-  u32 data_buf[112];
+  u32 data_buf[TC_DATA_LEN / 4];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
   u32 keyfile_enabled;
@@ -76,29 +78,6 @@ typedef struct tc
 static const int   ROUNDS_TRUECRYPT_1K         = 1000;
 static const float MIN_SUFFICIENT_ENTROPY_FILE = 7.0f;
 static const char *SIGNATURE_TRUECRYPT         = "$truecrypt$";
-
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // amdgpu-pro-20.50-1234664-ubuntu-20.04 (legacy)
-  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_aes-twofish.tc hashca?l
-  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_serpent-aes.tc hashca?l
-  // test_1619943729/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 1 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_twofish-serpent.tc hashca?l
-  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_aes-twofish.tc hashca?l
-  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_serpent-aes.tc hashca?l
-  // test_1619950656/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -O -D 2 --backend-vector-width 4 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_twofish-serpent.tc hashca?l
-  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_aes-twofish.tc hashca?l
-  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_serpent-aes.tc hashca?l
-  // test_1619955152/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_twofish-serpent.tc hashca?l
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_aes-twofish.tc hashca?l
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_serpent-aes.tc hashca?l
-  // test_1619967069/test_report.log:! unhandled return code 255, cmdline : ./hashcat --quiet --potfile-disable --runtime 400 --hwmon-disable -D 2 --backend-vector-width 4 -a 3 -m 6232 /root/hashcat/tools/tc_tests/hashcat_whirlpool_twofish-serpent.tc hashca?l
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == false))
-  {
-    return true;
-  }
-
-  return false;
-}
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -132,6 +111,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 3;
 
   token.signatures_cnt    = 1;
@@ -142,15 +123,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '$';
-  token.len_min[1] = 128;
-  token.len_max[1] = 128;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = TC_SALT_HEX_LEN;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[2]     = '$';
-  token.len_min[2] = 896;
-  token.len_max[2] = 896;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = TC_DATA_HEX_LEN;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -161,12 +140,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *salt_pos = token.buf[1];
 
-  for (u32 i = 0, j = 0; i < TC_SALT_LEN / 4; i += 1, j += 8)
-  {
-    salt->salt_buf[i] = hex_to_u32 (salt_pos + j);
-  }
-
-  salt->salt_len = TC_SALT_LEN;
+  salt->salt_len = hex_decode (salt_pos, TC_SALT_HEX_LEN, (u8 *) salt->salt_buf);
 
   // iter
 
@@ -176,10 +150,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *data_pos = token.buf[2];
 
-  for (u32 i = 0, j = 0; i < TC_DATA_LEN / 4; i += 1, j += 8)
-  {
-    tc->data_buf[i] = hex_to_u32 (data_pos + j);
-  }
+  hex_decode (data_pos, TC_DATA_HEX_LEN, (u8 *) tc->data_buf);
 
   // entropy
 
@@ -193,7 +164,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake digest
 
-  memcpy (digest, tc->data_buf, 112);
+  memcpy (digest, tc->data_buf, TC_DATA_LEN / 4);
 
   return (PARSER_OK);
 }
@@ -243,29 +214,19 @@ int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  tc_t *tc = (tc_t *) esalt_buf;
+  const tc_t *tc = (const tc_t *) esalt_buf;
 
   // salt
 
-  #define TC_SALT_HEX_LEN TC_SALT_LEN * 2 + 1
+  char salt_buf[TC_SALT_HEX_LEN + 1] = { 0 };
 
-  char salt_buf[TC_SALT_HEX_LEN] = { 0 };
-
-  for (u32 i = 0, j = 0; i < TC_SALT_LEN / 4; i += 1, j += 8)
-  {
-    snprintf (salt_buf + j, TC_SALT_HEX_LEN - j, "%08x", byte_swap_32 (salt->salt_buf[i]));
-  }
+  hex_encode ((const u8 *) salt->salt_buf, TC_SALT_LEN, (u8 *) salt_buf);
 
   // data
 
-  #define TC_DATA_HEX_LEN TC_DATA_LEN * 2 + 1
+  char data_buf[TC_DATA_HEX_LEN + 1] = { 0 };
 
-  char data_buf[TC_DATA_HEX_LEN] = { 0 };
-
-  for (u32 i = 0, j = 0; i < TC_DATA_LEN / 4; i += 1, j += 8)
-  {
-    snprintf (data_buf + j, TC_DATA_HEX_LEN - j, "%08x", byte_swap_32 (tc->data_buf[i]));
-  }
+  hex_encode ((const u8 *) tc->data_buf, TC_DATA_LEN, (u8 *) data_buf);
 
   // output
 
@@ -353,6 +314,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

@@ -57,6 +57,12 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // Extra treatment for Apple systems
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
+    // Metal
+    if (device_param->is_metal == true)
+    {
+      hc_asprintf (&jit_build_options, "-D _unroll");
+    }
+
     return jit_build_options;
   }
 
@@ -80,6 +86,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u64 *digest = (u64 *) digest_buf;
 
   hc_token_t token;
+
+  memset (&token, 0, sizeof (hc_token_t));
 
   token.token_cnt = 2;
 

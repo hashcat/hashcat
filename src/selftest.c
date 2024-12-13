@@ -624,7 +624,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     salt_t *salt_buf = &hashes->st_salts_buf[salt_pos];
 
-    const u32 salt_repeats = hashes->salts_buf[salt_pos].salt_repeats;
+    const u32 salt_repeats = salt_buf->salt_repeats;
 
     for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
     {
@@ -1048,7 +1048,7 @@ HC_API_CALL void *thread_selftest (void *p)
 
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->self_test_disable == true) return NULL;
+  if (user_options->self_test == false) return NULL;
 
   hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
 

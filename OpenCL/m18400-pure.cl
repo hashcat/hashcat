@@ -35,6 +35,7 @@ typedef struct odf12
   u32 iv[4];
   u32 checksum[8];
   u32 encrypted_data[256];
+  int encrypted_len;
 
 } odf12_t;
 
@@ -352,111 +353,49 @@ KERNEL_FQ void m18400_comp (KERN_ATTR_TMPS_ESALT (odf12_tmp_t, odf12_t))
   iv[2] = es->iv[2];
   iv[3] = es->iv[3];
 
-  u32 ct[4];
+  u32 pt[256];
 
-  u32 pt1[4];
-  u32 pt2[4];
-  u32 pt3[4];
-  u32 pt4[4];
+  for (int i = 0, j = 0; i < es->encrypted_len; i += 16, j += 4)
+  {
+    u32 ct[4];
+
+    ct[0] = es->encrypted_data[j + 0];
+    ct[1] = es->encrypted_data[j + 1];
+    ct[2] = es->encrypted_data[j + 2];
+    ct[3] = es->encrypted_data[j + 3];
+
+    aes256_decrypt (ks, ct, pt + j, s_td0, s_td1, s_td2, s_td3, s_td4);
+
+    pt[j + 0] ^= iv[0];
+    pt[j + 1] ^= iv[1];
+    pt[j + 2] ^= iv[2];
+    pt[j + 3] ^= iv[3];
+
+    iv[0] = ct[0];
+    iv[1] = ct[1];
+    iv[2] = ct[2];
+    iv[3] = ct[3];
+  }
+
+  const int full64 = es->encrypted_len / 64;
+
+  const int encrypted_len64 = full64 * 64;
 
   sha256_ctx_t sha256_ctx;
 
   sha256_init (&sha256_ctx);
 
-  // decrypt aes-cbc and calculate plaintext checksum at the same time
-  for (int i = 0; i < 16; i++)
+  sha256_update_swap (&sha256_ctx, pt, encrypted_len64);
+
+  const int remaining64 = es->encrypted_len - encrypted_len64;
+
+  if (remaining64)
   {
-    const int i16 = i * 16;
+    PRIVATE_AS u32 *pt_remaining = pt + (encrypted_len64 / 4);
 
-    ct[0] = es->encrypted_data[i16 + 0];
-    ct[1] = es->encrypted_data[i16 + 1];
-    ct[2] = es->encrypted_data[i16 + 2];
-    ct[3] = es->encrypted_data[i16 + 3];
+    truncate_block_16x4_be_S (pt_remaining + 0, pt_remaining + 4, pt_remaining + 8, pt_remaining + 12, remaining64);
 
-    aes256_decrypt (ks, ct, pt1, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-    pt1[0] ^= iv[0];
-    pt1[1] ^= iv[1];
-    pt1[2] ^= iv[2];
-    pt1[3] ^= iv[3];
-
-    iv[0] = ct[0];
-    iv[1] = ct[1];
-    iv[2] = ct[2];
-    iv[3] = ct[3];
-
-    ct[0] = es->encrypted_data[i16 + 4];
-    ct[1] = es->encrypted_data[i16 + 5];
-    ct[2] = es->encrypted_data[i16 + 6];
-    ct[3] = es->encrypted_data[i16 + 7];
-
-    aes256_decrypt (ks, ct, pt2, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-    pt2[0] ^= iv[0];
-    pt2[1] ^= iv[1];
-    pt2[2] ^= iv[2];
-    pt2[3] ^= iv[3];
-
-    iv[0] = ct[0];
-    iv[1] = ct[1];
-    iv[2] = ct[2];
-    iv[3] = ct[3];
-
-    ct[0] = es->encrypted_data[i16 +  8];
-    ct[1] = es->encrypted_data[i16 +  9];
-    ct[2] = es->encrypted_data[i16 + 10];
-    ct[3] = es->encrypted_data[i16 + 11];
-
-    aes256_decrypt (ks, ct, pt3, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-    pt3[0] ^= iv[0];
-    pt3[1] ^= iv[1];
-    pt3[2] ^= iv[2];
-    pt3[3] ^= iv[3];
-
-    iv[0] = ct[0];
-    iv[1] = ct[1];
-    iv[2] = ct[2];
-    iv[3] = ct[3];
-
-    ct[0] = es->encrypted_data[i16 + 12];
-    ct[1] = es->encrypted_data[i16 + 13];
-    ct[2] = es->encrypted_data[i16 + 14];
-    ct[3] = es->encrypted_data[i16 + 15];
-
-    aes256_decrypt (ks, ct, pt4, s_td0, s_td1, s_td2, s_td3, s_td4);
-
-    pt4[0] ^= iv[0];
-    pt4[1] ^= iv[1];
-    pt4[2] ^= iv[2];
-    pt4[3] ^= iv[3];
-
-    iv[0] = ct[0];
-    iv[1] = ct[1];
-    iv[2] = ct[2];
-    iv[3] = ct[3];
-
-    pt1[0] = hc_swap32_S (pt1[0]);
-    pt1[1] = hc_swap32_S (pt1[1]);
-    pt1[2] = hc_swap32_S (pt1[2]);
-    pt1[3] = hc_swap32_S (pt1[3]);
-
-    pt2[0] = hc_swap32_S (pt2[0]);
-    pt2[1] = hc_swap32_S (pt2[1]);
-    pt2[2] = hc_swap32_S (pt2[2]);
-    pt2[3] = hc_swap32_S (pt2[3]);
-
-    pt3[0] = hc_swap32_S (pt3[0]);
-    pt3[1] = hc_swap32_S (pt3[1]);
-    pt3[2] = hc_swap32_S (pt3[2]);
-    pt3[3] = hc_swap32_S (pt3[3]);
-
-    pt4[0] = hc_swap32_S (pt4[0]);
-    pt4[1] = hc_swap32_S (pt4[1]);
-    pt4[2] = hc_swap32_S (pt4[2]);
-    pt4[3] = hc_swap32_S (pt4[3]);
-
-    sha256_update_64 (&sha256_ctx, pt1, pt2, pt3, pt4, 64);
+    sha256_update_swap (&sha256_ctx, pt_remaining, remaining64);
   }
 
   sha256_final (&sha256_ctx);

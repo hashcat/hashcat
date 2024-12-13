@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_SIMD_H
-#define _INC_SIMD_H
+#ifndef INC_SIMD_H
+#define INC_SIMD_H
 
 // vliw1
 

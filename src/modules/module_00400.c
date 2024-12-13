@@ -172,6 +172,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt = 4;
 
   token.signatures_cnt    = 2;
@@ -226,7 +228,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   phpass_encode (digest_buf, tmp);
 
-  return snprintf (line_buf, line_size, "%s%s%s", (char *) salt->salt_sign, (char *) salt->salt_buf, tmp);
+  return snprintf (line_buf, line_size, "%s%s%s", (const char *) salt->salt_sign, (const char *) salt->salt_buf, tmp);
 }
 
 void module_init (module_ctx_t *module_ctx)

@@ -90,21 +90,21 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 6;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_CHACHA20;
 
   token.sep[0]     = '*';
-  token.len_min[0] = 10;
-  token.len_max[0] = 10;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 10;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '*';
-  token.len_min[1] = 16;
-  token.len_max[1] = 16;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 16;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[2]     = '*';
@@ -113,21 +113,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[3]     = '*';
-  token.len_min[3] = 16;
-  token.len_max[3] = 16;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 16;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[4]     = '*';
-  token.len_min[4] = 16;
-  token.len_max[4] = 16;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[4]     = 16;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[5]     = '*';
-  token.len_min[5] = 16;
-  token.len_max[5] = 16;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[5]     = 16;
+  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -148,22 +145,22 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *position_marker = token.buf[1];
 
-  chacha20->position[0] = hex_to_u32 ((const u8 *) position_marker + 0);
-  chacha20->position[1] = hex_to_u32 ((const u8 *) position_marker + 8);
+  chacha20->position[0] = hex_to_u32 (position_marker + 0);
+  chacha20->position[1] = hex_to_u32 (position_marker + 8);
 
   // iv
 
   const u8 *iv_marker = token.buf[3];
 
-  chacha20->iv[0] = hex_to_u32 ((const u8 *) iv_marker + 8);
-  chacha20->iv[1] = hex_to_u32 ((const u8 *) iv_marker + 0);
+  chacha20->iv[0] = hex_to_u32 (iv_marker + 8);
+  chacha20->iv[1] = hex_to_u32 (iv_marker + 0);
 
   // plain
 
   const u8 *plain_marker = token.buf[4];
 
-  chacha20->plain[0] = hex_to_u32 ((const u8 *) plain_marker + 0);
-  chacha20->plain[1] = hex_to_u32 ((const u8 *) plain_marker + 8);
+  chacha20->plain[0] = hex_to_u32 (plain_marker + 0);
+  chacha20->plain[1] = hex_to_u32 (plain_marker + 8);
 
   /* some fake salt for the sorting mechanisms */
 
@@ -181,8 +178,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *cipher_marker = token.buf[5];
 
-  digest[0] = hex_to_u32 ((const u8 *) cipher_marker + 8);
-  digest[1] = hex_to_u32 ((const u8 *) cipher_marker + 0);
+  digest[0] = hex_to_u32 (cipher_marker + 8);
+  digest[1] = hex_to_u32 (cipher_marker + 0);
 
   return (PARSER_OK);
 }

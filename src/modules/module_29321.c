@@ -27,8 +27,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_MP_MULTI_DISABLE
-                                  | OPTS_TYPE_MAXIMUM_THREADS;
+                                  | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$truecrypt$5ebff6b4050aaa3374f9946166a9c4134dd3ec0df1176da2fb103909d20e8b3c9b95cbbd6d1a7ad05411a1443ad6254e059e924d78bab6a0463e71cf7c3109b7$ef4e837bf6d7a548dd8333c451b59d1132098f44c6ff19c6cb921b1de3bd0aa675e0478a05f90204d46a5d6ff598bfa40370ac8795928a6d2e0f1347696e3cfa329738170fe54298981d84f40c63d1a338c5db62679338e849124a28a79a8e505bb89a4673f0457b2737a00b908116310281b5b2eb66c6fda5599196b313d51ef26201335d715c18f6b128454a5601671e619bdcce8e54acb47d498c4161614a05063bff5497a4a3d99bff1fce2a163727af2fe9ae7512461b9dcebf3a4f1031d6235d8ce09b734294d0cedc04eafc6295f212b1b080e7b9745580d0dd18e99cfd95afef982762d5aabeaa2d3a928dcf36322cc06b07fd719c88e0b9a2625a94a77502d4bd40a85ba138cbd0cf9561aa395dc552801f68cce16e5484a672aa5b78665dc531ab1e3e728185929dc443b7f4c8a5cb687c6589bb3f4ddc2a8639d959b839b0813d50e7711b761622c3693a92e540e4f932c6c89bf4e1bff1d69151848c3d01b2f6aba52b58e5b393f6cd58ff0d2e040b1205b042b5a28d5b12cb0cc95fa32f1bcdebd4c82d889a5d87c45dcfd34e80b19bf7be35696e0fa0cbd9338b314de24c1ee7bbc0a3b6824f86af2aa5d127d21444985ff566e921431938f6";
@@ -48,8 +47,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-#define TC_SALT_LEN 64
-#define TC_DATA_LEN 448
+#define TC_SALT_LEN     (             64)
+#define TC_SALT_HEX_LEN (TC_SALT_LEN * 2)
+
+#define TC_DATA_LEN     (            448)
+#define TC_DATA_HEX_LEN (TC_DATA_LEN * 2)
 
 typedef struct tc64_tmp
 {
@@ -63,7 +65,7 @@ typedef struct tc64_tmp
 
 typedef struct tc
 {
-  u32 data_buf[112];
+  u32 data_buf[TC_DATA_LEN / 4];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
   u32 keyfile_enabled;
@@ -124,6 +126,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 3;
 
   token.signatures_cnt    = 1;
@@ -134,15 +138,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '$';
-  token.len_min[1] = 128;
-  token.len_max[1] = 128;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = TC_SALT_HEX_LEN;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[2]     = '$';
-  token.len_min[2] = 896;
-  token.len_max[2] = 896;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = TC_DATA_HEX_LEN;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -153,12 +155,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *salt_pos = token.buf[1];
 
-  for (u32 i = 0, j = 0; i < TC_SALT_LEN / 4; i += 1, j += 8)
-  {
-    salt->salt_buf[i] = hex_to_u32 (salt_pos + j);
-  }
-
-  salt->salt_len = TC_SALT_LEN;
+  salt->salt_len = hex_decode (salt_pos, TC_SALT_HEX_LEN, (u8 *) salt->salt_buf);
 
   // iter
 
@@ -168,10 +165,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *data_pos = token.buf[2];
 
-  for (u32 i = 0, j = 0; i < TC_DATA_LEN / 4; i += 1, j += 8)
-  {
-    tc->data_buf[i] = hex_to_u32 (data_pos + j);
-  }
+  hex_decode (data_pos, TC_DATA_HEX_LEN, (u8 *) tc->data_buf);
 
   // entropy
 
@@ -185,7 +179,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake digest
 
-  memcpy (digest, tc->data_buf, 112);
+  memcpy (digest, tc->data_buf, TC_DATA_LEN / 4);
 
   return (PARSER_OK);
 }
@@ -235,29 +229,19 @@ int module_hash_decode_postprocess (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  tc_t *tc = (tc_t *) esalt_buf;
+  const tc_t *tc = (const tc_t *) esalt_buf;
 
   // salt
 
-  #define TC_SALT_HEX_LEN TC_SALT_LEN * 2 + 1
+  char salt_buf[TC_SALT_HEX_LEN + 1] = { 0 };
 
-  char salt_buf[TC_SALT_HEX_LEN] = { 0 };
-
-  for (u32 i = 0, j = 0; i < TC_SALT_LEN / 4; i += 1, j += 8)
-  {
-    snprintf (salt_buf + j, TC_SALT_HEX_LEN - j, "%08x", byte_swap_32 (salt->salt_buf[i]));
-  }
+  hex_encode ((const u8 *) salt->salt_buf, TC_SALT_LEN, (u8 *) salt_buf);
 
   // data
 
-  #define TC_DATA_HEX_LEN TC_DATA_LEN * 2 + 1
+  char data_buf[TC_DATA_HEX_LEN + 1] = { 0 };
 
-  char data_buf[TC_DATA_HEX_LEN] = { 0 };
-
-  for (u32 i = 0, j = 0; i < TC_DATA_LEN / 4; i += 1, j += 8)
-  {
-    snprintf (data_buf + j, TC_DATA_HEX_LEN - j, "%08x", byte_swap_32 (tc->data_buf[i]));
-  }
+  hex_encode ((const u8 *) tc->data_buf, TC_DATA_LEN, (u8 *) data_buf);
 
   // output
 

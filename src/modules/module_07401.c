@@ -288,6 +288,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 5;
 
   token.signatures_cnt    = 1;
@@ -297,27 +299,24 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
   token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len[1]     = 1;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
 
+  token.sep[2]     = '*';
   token.len_min[2] = 3;
   token.len_max[2] = 4;
-  token.sep[2]     = '*';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.len_min[3] = 40;
-  token.len_max[3] = 40;
   token.sep[3]     = '*';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 40;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  token.len_min[4] = 86;
-  token.len_max[4] = 86;
   token.sep[4]     = '*';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[4]     = 86;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -359,7 +358,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 tmp_dgst[100] = { 0 };
 
-  const int dgst_len = hex_decode ((const u8 *) hash_pos, hash_len, (u8 *) tmp_dgst);
+  const int dgst_len = hex_decode (hash_pos, hash_len, (u8 *) tmp_dgst);
 
   if (dgst_len != 43) return (PARSER_HASH_ENCODING);
 
@@ -374,7 +373,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 dgst[100] = { 0 };
 
-  sha256crypt_encode ((u8 *) digest_buf, dgst);
+  sha256crypt_encode ((const u8 *) digest_buf, dgst);
 
   // yeah, this is weird: we use hex-encoding for base64-encoded salt
   // this has to do with missing MySQL function to decode/encode this variant of base64

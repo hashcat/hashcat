@@ -291,8 +291,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param.digests_offset_host = 0;
   kernel_param.combs_mode          = 0;
   kernel_param.salt_repeat         = 0;
-  kernel_param.combs_mode          = 0;
-  kernel_param.salt_repeat         = 0;
   kernel_param.pws_pos             = 0;
   kernel_param.gid_max             = 1;
 
@@ -355,26 +353,25 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   // real 16801 pmkid hash-lines
 
   token.token_cnt  = 3;
 
   token.sep[0]     = sep;
-  token.len_min[0] = 32;
-  token.len_max[0] = 32;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 32;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[1]     = sep;
-  token.len_min[1] = 12;
-  token.len_max[1] = 12;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 12;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[2]     = sep;
-  token.len_min[2] = 12;
-  token.len_max[2] = 12;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 12;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -386,21 +383,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     token.token_cnt  = 4;
 
     token.sep[0]     = sep;
-    token.len_min[0] = 32;
-    token.len_max[0] = 32;
-    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[0]     = 32;
+    token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[1]     = sep;
-    token.len_min[1] = 12;
-    token.len_max[1] = 12;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[1]     = 12;
+    token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[2]     = sep;
-    token.len_min[2] = 12;
-    token.len_max[2] = 12;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[2]     = 12;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[3]     = sep;

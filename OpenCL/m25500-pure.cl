@@ -334,12 +334,12 @@ KERNEL_FQ void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   // iv
 
-  const u32 iv[4] = {
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0],
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1],
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2],
-    esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3]
-  };
+  u32 iv[4];
+
+  iv[0] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[0];
+  iv[1] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[1];
+  iv[2] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[2];
+  iv[3] = esalt_bufs[DIGESTS_OFFSET_HOST].iv_buf[3];
 
   const u32 iv_len = esalt_bufs[DIGESTS_OFFSET_HOST].iv_len;
 
@@ -371,7 +371,7 @@ KERNEL_FQ void m25500_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
   */
 
   /*
-  // decrypt buffer is not usefull here, skip
+  // decrypt buffer is not useful here, skip
   u32 dec[14] = { 0 };
 
   AES_GCM_GCTR (key, J0, enc, enc_len, dec, s_te0, s_te1, s_te2, s_te3, s_te4);

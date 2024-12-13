@@ -1,5 +1,5 @@
 /* CpuArch.h -- CPU specific code
-2021-04-25 : Igor Pavlov : Public domain */
+2022-07-15 : Igor Pavlov : Public domain */
 
 #ifndef __CPU_ARCH_H
 #define __CPU_ARCH_H
@@ -123,12 +123,15 @@ MY_CPU_64BIT means that processor can work with 64-bit registers.
 #endif
 
 
-#if  defined(__sparc64__)
-  #define MY_CPU_NAME "sparc64"
-  #define MY_CPU_64BIT
-#elif defined(__sparc__)
-  #define MY_CPU_NAME "sparc"
-  /* #define MY_CPU_32BIT */
+#if  defined(__riscv) \
+  || defined(__riscv__)
+  #if __riscv_xlen == 32
+    #define MY_CPU_NAME "riscv32"
+  #elif __riscv_xlen == 64
+    #define MY_CPU_NAME "riscv64"
+  #else
+    #define MY_CPU_NAME "riscv"
+  #endif
 #endif
 
 
@@ -225,7 +228,6 @@ MY_CPU_64BIT means that processor can work with 64-bit registers.
   #endif
 #else
   #ifdef __xlC__
-    // for XLC compiler:
     #define MY_CPU_pragma_pack_push_1   _Pragma("pack(1)")
     #define MY_CPU_pragma_pop           _Pragma("pack()")
   #else
@@ -253,8 +255,12 @@ MY_CPU_64BIT means that processor can work with 64-bit registers.
 
 #ifdef MY_CPU_LE
   #if defined(MY_CPU_X86_OR_AMD64) \
-      || defined(MY_CPU_ARM64) \
-      || defined(__ARM_FEATURE_UNALIGNED)
+      || defined(MY_CPU_ARM64)
+    #define MY_CPU_LE_UNALIGN
+    #define MY_CPU_LE_UNALIGN_64
+  #elif defined(__ARM_FEATURE_UNALIGNED)
+    /* gcc9 for 32-bit arm can use LDRD instruction that requires 32-bit alignment.
+       So we can't use unaligned 64-bit operations. */
     #define MY_CPU_LE_UNALIGN
   #endif
 #endif
@@ -264,11 +270,15 @@ MY_CPU_64BIT means that processor can work with 64-bit registers.
 
 #define GetUi16(p) (*(const UInt16 *)(const void *)(p))
 #define GetUi32(p) (*(const UInt32 *)(const void *)(p))
+#ifdef MY_CPU_LE_UNALIGN_64
 #define GetUi64(p) (*(const UInt64 *)(const void *)(p))
+#endif
 
 #define SetUi16(p, v) { *(UInt16 *)(void *)(p) = (v); }
 #define SetUi32(p, v) { *(UInt32 *)(void *)(p) = (v); }
+#ifdef MY_CPU_LE_UNALIGN_64
 #define SetUi64(p, v) { *(UInt64 *)(void *)(p) = (v); }
+#endif
 
 #else
 
@@ -282,8 +292,6 @@ MY_CPU_64BIT means that processor can work with 64-bit registers.
     ((UInt32)((const Byte *)(p))[2] << 16) | \
     ((UInt32)((const Byte *)(p))[3] << 24))
 
-#define GetUi64(p) (GetUi32(p) | ((UInt64)GetUi32(((const Byte *)(p)) + 4) << 32))
-
 #define SetUi16(p, v) { Byte *_ppp_ = (Byte *)(p); UInt32 _vvv_ = (v); \
     _ppp_[0] = (Byte)_vvv_; \
     _ppp_[1] = (Byte)(_vvv_ >> 8); }
@@ -294,11 +302,21 @@ MY_CPU_64BIT means that processor can work with 64-bit registers.
     _ppp_[2] = (Byte)(_vvv_ >> 16); \
     _ppp_[3] = (Byte)(_vvv_ >> 24); }
 
+#endif
+
+
+#ifndef MY_CPU_LE_UNALIGN_64
+
+#define GetUi64(p) (GetUi32(p) | ((UInt64)GetUi32(((const Byte *)(p)) + 4) << 32))
+
 #define SetUi64(p, v) { Byte *_ppp2_ = (Byte *)(p); UInt64 _vvv2_ = (v); \
     SetUi32(_ppp2_    , (UInt32)_vvv2_); \
     SetUi32(_ppp2_ + 4, (UInt32)(_vvv2_ >> 32)); }
 
 #endif
+
+
+
 
 #ifdef __has_builtin
   #define MY__has_builtin(x) __has_builtin(x)
@@ -392,6 +410,7 @@ int x86cpuid_GetFirm(const Cx86cpuid *p);
 BoolInt CPU_Is_InOrder(void);
 
 BoolInt CPU_IsSupported_AES(void);
+BoolInt CPU_IsSupported_AVX2(void);
 BoolInt CPU_IsSupported_VAES_AVX2(void);
 BoolInt CPU_IsSupported_SSSE3(void);
 BoolInt CPU_IsSupported_SSE41(void);
@@ -401,6 +420,7 @@ BoolInt CPU_IsSupported_PageGB(void);
 #elif defined(MY_CPU_ARM_OR_ARM64)
 
 BoolInt CPU_IsSupported_CRC32(void);
+BoolInt CPU_IsSupported_NEON(void);
 
 #if defined(_WIN32)
 BoolInt CPU_IsSupported_CRYPTO(void);

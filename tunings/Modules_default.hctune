@@ -1,0 +1,79 @@
+
+#Device                                         Attack  Hash    Vector  Kernel  Kernel
+#Name                                           Mode    Type    Width   Accel   Loops
+
+DEVICE_TYPE_CPU                                 *       6100    1       A       A
+DEVICE_TYPE_CPU                                 *       6231    1       A       A
+DEVICE_TYPE_CPU                                 *       6232    1       A       A
+DEVICE_TYPE_CPU                                 *       6233    1       A       A
+DEVICE_TYPE_CPU                                 *       13731   1       A       A
+DEVICE_TYPE_CPU                                 *       13732   1       A       A
+DEVICE_TYPE_CPU                                 *       13733   1       A       A
+
+#Device                                         Attack  Hash    Vector  Kernel  Kernel
+#Name                                           Mode    Type    Width   Accel   Loops
+
+ALIAS_nv_real_simd                              3       0       2       A       A
+ALIAS_nv_real_simd                              3       10      2       A       A
+ALIAS_nv_real_simd                              3       11      2       A       A
+ALIAS_nv_real_simd                              3       12      2       A       A
+ALIAS_nv_real_simd                              3       20      2       A       A
+ALIAS_nv_real_simd                              3       21      2       A       A
+ALIAS_nv_real_simd                              3       22      2       A       A
+ALIAS_nv_real_simd                              3       23      2       A       A
+ALIAS_nv_real_simd                              3       200     2       A       A
+ALIAS_nv_real_simd                              3       400     2       A       A
+ALIAS_nv_real_simd                              3       900     4       A       A
+ALIAS_nv_real_simd                              3       1000    4       A       A
+ALIAS_nv_real_simd                              3       1100    4       A       A
+ALIAS_nv_real_simd                              3       2400    2       A       A
+ALIAS_nv_real_simd                              3       2410    2       A       A
+ALIAS_nv_real_simd                              3       2600    4       A       A
+ALIAS_nv_real_simd                              3       2611    4       A       A
+ALIAS_nv_real_simd                              3       2612    4       A       A
+ALIAS_nv_real_simd                              3       2711    4       A       A
+ALIAS_nv_real_simd                              3       2811    4       A       A
+ALIAS_nv_real_simd                              3       3711    2       A       A
+ALIAS_nv_real_simd                              3       5100    2       A       A
+ALIAS_nv_real_simd                              3       5300    2       A       A
+ALIAS_nv_real_simd                              3       5500    4       A       A
+ALIAS_nv_real_simd                              3       5600    2       A       A
+ALIAS_nv_real_simd                              3       8700    4       A       A
+ALIAS_nv_real_simd                              3       9900    2       A       A
+ALIAS_nv_real_simd                              3       11000   4       A       A
+ALIAS_nv_real_simd                              3       11100   2       A       A
+ALIAS_nv_real_simd                              3       11900   2       A       A
+ALIAS_nv_real_simd                              3       13300   4       A       A
+ALIAS_nv_real_simd                              3       18700   8       A       A
+ALIAS_nv_real_simd                              3       99999   4       A       A
+
+ALIAS_nv_sm50_or_higher                         3       0       8       A       A
+ALIAS_nv_sm50_or_higher                         3       10      8       A       A
+ALIAS_nv_sm50_or_higher                         3       11      8       A       A
+ALIAS_nv_sm50_or_higher                         3       12      8       A       A
+ALIAS_nv_sm50_or_higher                         3       20      4       A       A
+ALIAS_nv_sm50_or_higher                         3       21      4       A       A
+ALIAS_nv_sm50_or_higher                         3       22      4       A       A
+ALIAS_nv_sm50_or_higher                         3       23      4       A       A
+ALIAS_nv_sm50_or_higher                         3       30      4       A       A
+ALIAS_nv_sm50_or_higher                         3       40      4       A       A
+ALIAS_nv_sm50_or_higher                         3       200     8       A       A
+ALIAS_nv_sm50_or_higher                         3       900     8       A       A
+ALIAS_nv_sm50_or_higher                         3       1000    8       A       A
+ALIAS_nv_sm50_or_higher                         3       1100    4       A       A
+ALIAS_nv_sm50_or_higher                         3       2400    8       A       A
+ALIAS_nv_sm50_or_higher                         3       2410    4       A       A
+ALIAS_nv_sm50_or_higher                         3       3800    4       A       A
+ALIAS_nv_sm50_or_higher                         3       4800    8       A       A
+ALIAS_nv_sm50_or_higher                         3       5500    2       A       A
+ALIAS_nv_sm50_or_higher                         3       9900    4       A       A
+ALIAS_nv_sm50_or_higher                         3       16400   8       A       A
+ALIAS_nv_sm50_or_higher                         3       18700   8       A       A
+ALIAS_nv_sm50_or_higher                         3       99999   8       A       A
+
+##
+## CryptoAPI
+##
+
+DEVICE_TYPE_CPU                                 *       14500   1       A       A
+DEVICE_TYPE_GPU                                 *       14500   1       A       A

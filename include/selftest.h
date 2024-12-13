@@ -3,9 +3,9 @@
  * License.....: MIT
  */
 
-#ifndef _SELFTEST_H
-#define _SELFTEST_H
+#ifndef HC_SELFTEST_H
+#define HC_SELFTEST_H
 
 HC_API_CALL void *thread_selftest (void *p);
 
-#endif // _SELFTEST_H
+#endif // HC_SELFTEST_H

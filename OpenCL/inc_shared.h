@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_SHARED_H
-#define _INC_SHARED_H
+#ifndef INC_SHARED_H
+#define INC_SHARED_H
 
 #ifdef IS_METAL
 
@@ -63,4 +63,4 @@
 
 #endif // IS_METAL
 
-#endif // _INC_SHARED_H
+#endif // INC_SHARED_H

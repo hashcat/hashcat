@@ -70,6 +70,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
@@ -80,21 +82,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '*';
-  token.len_min[1] = 1;
-  token.len_max[1] = 1;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 1;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[2]     = '*';
-  token.len_min[2] = 32;
-  token.len_max[2] = 32;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 32;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '*';
-  token.len_min[3] = 32;
-  token.len_max[3] = 32;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 32;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -122,19 +121,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *iv_pos = token.buf[2];
 
-  electrum_wallet->iv[0] = hex_to_u32 ((const u8 *) &iv_pos[ 0]);
-  electrum_wallet->iv[1] = hex_to_u32 ((const u8 *) &iv_pos[ 8]);
-  electrum_wallet->iv[2] = hex_to_u32 ((const u8 *) &iv_pos[16]);
-  electrum_wallet->iv[3] = hex_to_u32 ((const u8 *) &iv_pos[24]);
+  electrum_wallet->iv[0] = hex_to_u32 (&iv_pos[ 0]);
+  electrum_wallet->iv[1] = hex_to_u32 (&iv_pos[ 8]);
+  electrum_wallet->iv[2] = hex_to_u32 (&iv_pos[16]);
+  electrum_wallet->iv[3] = hex_to_u32 (&iv_pos[24]);
 
   // encrypted
 
   const u8 *encrypted_pos = token.buf[3];
 
-  electrum_wallet->encrypted[0] = hex_to_u32 ((const u8 *) &encrypted_pos[ 0]);
-  electrum_wallet->encrypted[1] = hex_to_u32 ((const u8 *) &encrypted_pos[ 8]);
-  electrum_wallet->encrypted[2] = hex_to_u32 ((const u8 *) &encrypted_pos[16]);
-  electrum_wallet->encrypted[3] = hex_to_u32 ((const u8 *) &encrypted_pos[24]);
+  electrum_wallet->encrypted[0] = hex_to_u32 (&encrypted_pos[ 0]);
+  electrum_wallet->encrypted[1] = hex_to_u32 (&encrypted_pos[ 8]);
+  electrum_wallet->encrypted[2] = hex_to_u32 (&encrypted_pos[16]);
+  electrum_wallet->encrypted[3] = hex_to_u32 (&encrypted_pos[24]);
 
   // salt fake
 

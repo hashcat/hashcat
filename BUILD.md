@@ -3,7 +3,7 @@ hashcat build documentation
 
 ### Revision ###
 
-* 1.5
+* 1.6
 
 ### Author ###
 
@@ -60,6 +60,10 @@ Otherwise:
 - Session related files go to: $HOME/.local/share/hashcat/sessions/
 - Cached kernels go to: $HOME/.cache/hashcat
 - Potfiles go to: $HOME/.local/share/hashcat/
+
+### Building hashcat for Windows (using macOS) ###
+
+Refer to [BUILD_macOS.md](BUILD_macOS.md)
 
 ### Building hashcat for Windows (using Windows Subsystem for Linux) ###
 

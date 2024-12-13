@@ -171,6 +171,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
 
   token.signatures_cnt    = 4;
@@ -183,10 +185,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.len_min[1] = 2;
-  token.len_max[1] = 2;
   token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 2;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.len[2]     = 22;
@@ -219,7 +220,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  base64_decode (bf64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+  base64_decode (bf64_to_int, salt_pos, salt_len, tmp_buf);
 
   memcpy (salt_buf_ptr, tmp_buf, 16);
 
@@ -230,7 +231,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  base64_decode (bf64_to_int, (const u8 *) hash_pos, hash_len, tmp_buf);
+  base64_decode (bf64_to_int, hash_pos, hash_len, tmp_buf);
 
   memcpy (digest, tmp_buf, 24);
 
@@ -273,7 +274,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_buf[22 + 31] = 0; // base64_encode wants to pad
 
-  return snprintf (line_buf, line_size, "%s$%s", (char *) salt->salt_sign, tmp_buf);
+  return snprintf (line_buf, line_size, "%s$%s", (const char *) salt->salt_sign, tmp_buf);
 }
 
 void module_init (module_ctx_t *module_ctx)

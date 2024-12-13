@@ -584,8 +584,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param.digests_offset_host = 0;
   kernel_param.combs_mode          = 0;
   kernel_param.salt_repeat         = 0;
-  kernel_param.combs_mode          = 0;
-  kernel_param.salt_repeat         = 0;
   kernel_param.pws_pos             = 0;
   kernel_param.gid_max             = 1;
 
@@ -629,7 +627,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   wpa_t *wpa = (wpa_t *) esalt_buf;
 
-  char *input_buf = (char *) line_buf;
+  const char *input_buf = line_buf;
   int   input_len = line_len;
 
   // start old pmkid/hccapx compatibility parsing
@@ -643,7 +641,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (line_len == sizeof (hccapx_t))
   {
-    hccapx_t *hccapx = (hccapx_t *) line_buf;
+    const hccapx_t *hccapx = (const hccapx_t *) line_buf;
 
     if ((hccapx->signature == HCCAPX_SIGNATURE) && (hccapx->version == HCCAPX_VERSION))
     {
@@ -687,7 +685,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       tmp_len++;
 
-      tmp_len += hex_encode ((const u8 *) &hccapx->message_pair, 1, (u8 *) tmp_buf + tmp_len);
+      tmp_len += hex_encode (&hccapx->message_pair, 1, (u8 *) tmp_buf + tmp_len);
 
       tmp_buf[tmp_len] = 0;
 
@@ -719,24 +717,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     hc_token_t token;
 
+    memset (&token, 0, sizeof (hc_token_t));
+
     token.token_cnt  = 4;
 
     token.sep[0]     = sep;
-    token.len_min[0] = 32;
-    token.len_max[0] = 32;
-    token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[0]     = 32;
+    token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[1]     = sep;
-    token.len_min[1] = 12;
-    token.len_max[1] = 12;
-    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[1]     = 12;
+    token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[2]     = sep;
-    token.len_min[2] = 12;
-    token.len_max[2] = 12;
-    token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+    token.len[2]     = 12;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
     token.sep[3]     = sep;
@@ -760,39 +757,36 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 9;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = "WPA";
 
   token.sep[0]     = '*';
-  token.len_min[0] = 3;
-  token.len_max[0] = 3;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 3;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '*';
-  token.len_min[1] = 2;
-  token.len_max[1] = 2;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[1]     = 2;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[2]     = '*';
-  token.len_min[2] = 32;
-  token.len_max[2] = 32;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 32;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '*';
-  token.len_min[3] = 12;
-  token.len_max[3] = 12;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 12;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[4]     = '*';
-  token.len_min[4] = 12;
-  token.len_max[4] = 12;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[4]     = 12;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[5]     = '*';
@@ -949,7 +943,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     u8 *eapol_ptr = (u8 *) wpa->eapol;
 
-    wpa->eapol_len = hex_decode ((const u8 *) eapol_pos, token.len[7], eapol_ptr);
+    wpa->eapol_len = hex_decode (eapol_pos, token.len[7], eapol_ptr);
 
     memset (eapol_ptr + wpa->eapol_len, 0, (256 + 64) - wpa->eapol_len);
 

@@ -59,17 +59,6 @@ static const u64 SCRYPT_N = 262144;
 static const u64 SCRYPT_R = 8;
 static const u64 SCRYPT_P = 1;
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
-  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-  {
-    return true;
-  }
-
-  return false;
-}
-
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u32 kernel_loops_min = 1024;
@@ -298,15 +287,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 7;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_ETHEREUM_SCRYPT;
 
   token.sep[0]     = '*';
-  token.len_min[0] = 11;
-  token.len_max[0] = 11;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 11;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '*';
@@ -328,21 +318,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[4]     = '*';
-  token.len_min[4] = 64;
-  token.len_max[4] = 64;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[4]     = 64;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[5]     = '*';
-  token.len_min[5] = 64;
-  token.len_max[5] = 64;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[5]     = 64;
+  token.attr[5]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[6]     = '*';
-  token.len_min[6] = 64;
-  token.len_max[6] = 64;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[6]     = 64;
+  token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -390,27 +377,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *ciphertext_pos = token.buf[5];
 
-  ethereum_scrypt->ciphertext[0] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 0]);
-  ethereum_scrypt->ciphertext[1] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 8]);
-  ethereum_scrypt->ciphertext[2] = hex_to_u32 ((const u8 *) &ciphertext_pos[16]);
-  ethereum_scrypt->ciphertext[3] = hex_to_u32 ((const u8 *) &ciphertext_pos[24]);
-  ethereum_scrypt->ciphertext[4] = hex_to_u32 ((const u8 *) &ciphertext_pos[32]);
-  ethereum_scrypt->ciphertext[5] = hex_to_u32 ((const u8 *) &ciphertext_pos[40]);
-  ethereum_scrypt->ciphertext[6] = hex_to_u32 ((const u8 *) &ciphertext_pos[48]);
-  ethereum_scrypt->ciphertext[7] = hex_to_u32 ((const u8 *) &ciphertext_pos[56]);
+  ethereum_scrypt->ciphertext[0] = hex_to_u32 (&ciphertext_pos[ 0]);
+  ethereum_scrypt->ciphertext[1] = hex_to_u32 (&ciphertext_pos[ 8]);
+  ethereum_scrypt->ciphertext[2] = hex_to_u32 (&ciphertext_pos[16]);
+  ethereum_scrypt->ciphertext[3] = hex_to_u32 (&ciphertext_pos[24]);
+  ethereum_scrypt->ciphertext[4] = hex_to_u32 (&ciphertext_pos[32]);
+  ethereum_scrypt->ciphertext[5] = hex_to_u32 (&ciphertext_pos[40]);
+  ethereum_scrypt->ciphertext[6] = hex_to_u32 (&ciphertext_pos[48]);
+  ethereum_scrypt->ciphertext[7] = hex_to_u32 (&ciphertext_pos[56]);
 
   // hash
 
   const u8 *hash_pos = token.buf[6];
 
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
-  digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
-  digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
-  digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+  digest[0] = hex_to_u32 (&hash_pos[ 0]);
+  digest[1] = hex_to_u32 (&hash_pos[ 8]);
+  digest[2] = hex_to_u32 (&hash_pos[16]);
+  digest[3] = hex_to_u32 (&hash_pos[24]);
+  digest[4] = hex_to_u32 (&hash_pos[32]);
+  digest[5] = hex_to_u32 (&hash_pos[40]);
+  digest[6] = hex_to_u32 (&hash_pos[48]);
+  digest[7] = hex_to_u32 (&hash_pos[56]);
 
   return (PARSER_OK);
 }
@@ -425,7 +412,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_salt[salt_len] = 0;
 
-  ethereum_scrypt_t *ethereum_scrypt = (ethereum_scrypt_t *) esalt_buf;
+  const ethereum_scrypt_t *ethereum_scrypt = (const ethereum_scrypt_t *) esalt_buf;
 
   const int line_len = snprintf (line_buf, line_size, "%s*%u*%u*%u*%s*%08x%08x%08x%08x%08x%08x%08x%08x*%08x%08x%08x%08x%08x%08x%08x%08x",
     SIGNATURE_ETHEREUM_SCRYPT,
@@ -454,48 +441,6 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   return line_len;
 }
 
-/*
-
-Find the right -n value for your GPU:
-=====================================
-
-1. For example, to find the value for 15700, first create a valid hash for 15700 as follows:
-
-$ ./hashcat --example-hashes -m 15700 | grep Example.Hash | grep -v Format | cut -b 25- > tmp.hash.15700
-
-2. Now let it iterate through all -n values to a certain point. In this case, I'm using 200, but in general it's a value that is at least twice that of the multiprocessor. If you don't mind you can just leave it as it is, it just runs a little longer.
-
-$ export i=1; while [ $i -ne 201 ]; do echo $i; ./hashcat --quiet tmp.hash.15700 --keep-guessing --self-test-disable --markov-disable --restore-disable --outfile-autohex-disable --wordlist-autohex-disable --potfile-disable --logfile-disable --hwmon-disable --status --status-timer 1 --runtime 28 --machine-readable --optimized-kernel-enable --workload-profile 3 --hash-type 15700 --attack-mode 3 ?b?b?b?b?b?b?b --backend-devices 1 --force -n $i; i=$(($i+1)); done | tee x
-
-3. Determine the highest measured H/s speed. But don't just use the highest value. Instead, use the number that seems most stable, usually at the beginning.
-
-$ grep "$(printf 'STATUS\t3')" x | cut -f4 -d$'\t' | sort -n | tail
-
-4. To match the speed you have chosen to the correct value in the 'x' file, simply search for it in it. Then go up a little on the block where you found him. The value -n is the single value that begins before the block start. If you have multiple blocks at the same speed, choose the lowest value for -n
-
-*/
-
-const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const char *extra_tuningdb_block =
-    "DEVICE_TYPE_CPU                                 *       15700   1       N       A\n"
-    "DEVICE_TYPE_GPU                                 *       15700   1       1       A\n"
-    "GeForce_GTX_980                                 *       15700   1      24       A\n"
-    "GeForce_GTX_1080                                *       15700   1      28       A\n"
-    "GeForce_RTX_2080_Ti                             *       15700   1      68       A\n"
-    "GeForce_RTX_3060_Ti                             *       15700   1      11       A\n"
-    "GeForce_RTX_3070                                *       15700   1      22       A\n"
-    "GeForce_RTX_3090                                *       15700   1      82       A\n"
-    "GeForce_RTX_3090_Ti                             *       22700   1      84       A\n"
-    "ALIAS_AMD_RX480                                 *       15700   1      58       A\n"
-    "ALIAS_AMD_Vega64                                *       15700   1      53       A\n"
-    "ALIAS_AMD_MI100                                 *       15700   1     120       A\n"
-    "ALIAS_AMD_RX6900XT                              *       15700   1      56       A\n"
-  ;
-
-  return extra_tuningdb_block;
-}
-
 void module_init (module_ctx_t *module_ctx)
 {
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
@@ -519,7 +464,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = module_extra_buffer_size;
   module_ctx->module_extra_tmp_size           = module_extra_tmp_size;
-  module_ctx->module_extra_tuningdb_block     = module_extra_tuningdb_block;
+  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
@@ -572,6 +517,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = module_warmup_disable;
 }

@@ -79,6 +79,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 4;
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_RADMIN3;
@@ -95,9 +97,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // SHA1 salt
   token.sep[2]     = '*';
-  token.len_min[2] = 64;
-  token.len_max[2] = 64;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[2]     = 64;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // verifier
@@ -191,7 +192,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  radmin3_t *esalt = (radmin3_t *) esalt_buf;
+  const radmin3_t *esalt = (const radmin3_t *) esalt_buf;
 
   u8 *out_buf = (u8 *) line_buf;
 

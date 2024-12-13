@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-// https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/pdf_reference_archives/PDFReference.pdf
+// https://web.archive.org/web/20220306152229/https://www.adobe.com/content/dam/acom/en/devnet/pdf/pdfs/pdf_reference_archives/PDFReference.pdf
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
@@ -38,12 +38,14 @@ typedef struct pdf
   u32 rc4key[2];
   u32 rc4data[2];
 
+  int P_minus;
+
 } pdf_t;
 
 typedef struct pdf14_tmp
 {
   u32 digest[4];
-  u32 out[4];
+  u32 out[8];
 
 } pdf14_tmp_t;
 
@@ -183,6 +185,10 @@ KERNEL_FQ void m25400_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   tmps[gid].out[1] = rc4data[1];
   tmps[gid].out[2] = 0;
   tmps[gid].out[3] = 0;
+  tmps[gid].out[4] = 0; // we only need the size of out for the plaintext check
+  tmps[gid].out[5] = 0; // we only need the size of out for the plaintext check
+  tmps[gid].out[6] = 0; // we only need the size of out for the plaintext check
+  tmps[gid].out[7] = 0; // we only need the size of out for the plaintext check
 }
 
 KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
@@ -211,12 +217,6 @@ KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   digest[1] = tmps[gid].digest[1];
   digest[2] = tmps[gid].digest[2];
   digest[3] = tmps[gid].digest[3];
-
-  u32 out[4];
-  out[0] = tmps[gid].out[0];
-  out[1] = tmps[gid].out[1];
-  out[2] = tmps[gid].out[2];
-  out[3] = tmps[gid].out[3];
 
   for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
@@ -255,10 +255,19 @@ KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
     }
   }
 
+
+  u32 out[4];
   out[0] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[0]; // store original o-value in out (scratchpad)
   out[1] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[1];
   out[2] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[2];
   out[3] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[3];
+
+  u32 out2[4];
+  out2[0] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[4]; // store original o-value in out (scratchpad)
+  out2[1] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[5];
+  out2[2] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[6];
+  out2[3] = esalt_bufs[DIGESTS_OFFSET_HOST].o_buf[7];
+
   u32 o_rc4_decryption_key[4];
   o_rc4_decryption_key[0] = digest[0]; // store the owner-key
   o_rc4_decryption_key[1] = digest[1];
@@ -268,6 +277,7 @@ KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   // we decrypt the o-value to obtain either the owner-password (or user-password if no owner-password is set)
   //  see: "Algorithm 3.3 Computing the encryption dictionary’s O (owner password) value": "If there is no owner password, use the user password instead".
   u32 tmp[4];
+  u8 j;
   for (u32 i = 19; i>0; i--)
   {
     // xor the iterator into the rc4 key
@@ -282,21 +292,27 @@ KERNEL_FQ void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
     tmp[3] = o_rc4_decryption_key[3] ^ xv;
 
     rc4_init_128 (S, tmp, lid);
-    rc4_next_16 (S, 0, 0, out, out, lid);
+    j = rc4_next_16 (S, 0, 0, out, out, lid);
+    rc4_next_16 (S, 16, j, out2, out2, lid);
   }
 
   rc4_init_128 (S, o_rc4_decryption_key, lid);
-  rc4_next_16 (S, 0, 0, out, out, lid); // output of the rc4 decrypt of the o-value should be the padded user-password
+  j = rc4_next_16 (S, 0, 0, out, out, lid); // output of the rc4 decrypt of the o-value should be the padded user-password
+  tmps[gid].out[0] = out[0];
+  tmps[gid].out[1] = out[1];
+  tmps[gid].out[2] = out[2];
+  tmps[gid].out[3] = out[3];
+
+  rc4_next_16 (S, 16, j, out2, out2, lid); // decrypt a second block of rc4 to improve plaintext check and limit false positives
+  tmps[gid].out[4] = out2[0];
+  tmps[gid].out[5] = out2[1];
+  tmps[gid].out[6] = out2[2];
+  tmps[gid].out[7] = out2[3];
 
   tmps[gid].digest[0] = digest[0];
   tmps[gid].digest[1] = digest[1];
   tmps[gid].digest[2] = digest[2];
   tmps[gid].digest[3] = digest[3];
-
-  tmps[gid].out[0] = out[0];
-  tmps[gid].out[1] = out[1];
-  tmps[gid].out[2] = out[2];
-  tmps[gid].out[3] = out[3];
 }
 
 KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
@@ -334,12 +350,16 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   #define il_pos 0
 
 
-  const u32 out[4] =
+  const u32 out[8] =
   {
     tmps[gid].out[0],
     tmps[gid].out[1],
     tmps[gid].out[2],
-    tmps[gid].out[3]
+    tmps[gid].out[3],
+    tmps[gid].out[4],
+    tmps[gid].out[5],
+    tmps[gid].out[6],
+    tmps[gid].out[7]
   };
 
 
@@ -351,7 +371,7 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
   int i_padding=0;
 
-  for (int i = 0; i < 16; i++)
+  for (int i = 0; i < 32; i++) // check all 32 bytes of the decrypted o-value, this including the padding.
   {
     // cast out buffer to byte such that we can do a byte per byte comparison
     PRIVATE_AS const u32 *u32OutBufPtr = (PRIVATE_AS u32 *) out;
@@ -363,39 +383,40 @@ KERNEL_FQ void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
     // we don't use the user-password in the attack now (as we don't need it),
     //  however we could use it in the comparison of the decrypted o-value,
-    //  yet it may make this attack a bit more fragile, as now we just check for ASCII
-    if ((u8OutBufPtr[i] >= 20 && u8OutBufPtr[i] <= 0x7e) ||
+    //  yet it may make this attack a bit more fragile, as now we just check for padding and ASCII
+    if (is_valid_printable_8(u8OutBufPtr[i]) ||
         (u8OutBufPtr[i] == u8OutPadPtr[i_padding]))
     {
       if (u8OutBufPtr[i] == u8OutPadPtr[i_padding])
       {
-        //printf("correct padding byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
+        //if ((gid == 0) && (lid == 0)) printf("correct padding byte[%d]=0x%02x==0x%02x\n", i, u8OutBufPtr[i], u8OutPadPtr[i_padding]);
         i_padding = i_padding + 1;
       }
       else
       {
-        if (u8OutBufPtr[i] >= 20 && u8OutBufPtr[i] <= 0x7e)
+        if (is_valid_printable_8(u8OutBufPtr[i]))
         {
-          //printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
+          //if ((gid == 0) && (lid == 0)) printf("correct ASCII byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
         }
       }
     }
     else
     {
-      //printf("wrong byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
+      //if ((gid == 0) && (lid == 0)) {
+      //  printf("wrong byte[%d]=0x%02x\n", i, u8OutBufPtr[i]);
       //
-      //printf("u8OutBufPtr=0x");
-      //for(int j=0;j<16;j++) {
-      //  printf("%02x", u8OutBufPtr[j]);
-      //}
-      //printf("\n");
+      //  printf("u8OutBufPtr=0x");
+      //  for(int j=0;j<32;j++) {
+      //    printf("%02x", u8OutBufPtr[j]);
+      //  }
+      //  printf("\n");
       //
-      //printf("u8OutPadPtr=0x");
-      //for(int j=0;j<16;j++) {
-      //  printf("%02x", u8OutPadPtr[j]);
+      //  printf("u8OutPadPtr=0x");
+      //  for(int j=0;j<32;j++) {
+      //    printf("%02x", u8OutPadPtr[j]);
+      //  }
+      //  printf("\n");
       //}
-      //printf("\n");
-
       correct = false;
       break;
     }

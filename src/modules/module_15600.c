@@ -126,15 +126,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 5;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_ETHEREUM_PBKDF2;
 
   token.sep[0]     = '*';
-  token.len_min[0] = 11;
-  token.len_max[0] = 11;
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 11;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '*';
@@ -150,15 +151,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[3]     = '*';
-  token.len_min[3] = 64;
-  token.len_max[3] = 64;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 64;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[4]     = '*';
-  token.len_min[4] = 64;
-  token.len_max[4] = 64;
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[4]     = 64;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -199,27 +198,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *ciphertext_pos = token.buf[3];
 
-  ethereum_pbkdf2->ciphertext[0] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 0]);
-  ethereum_pbkdf2->ciphertext[1] = hex_to_u32 ((const u8 *) &ciphertext_pos[ 8]);
-  ethereum_pbkdf2->ciphertext[2] = hex_to_u32 ((const u8 *) &ciphertext_pos[16]);
-  ethereum_pbkdf2->ciphertext[3] = hex_to_u32 ((const u8 *) &ciphertext_pos[24]);
-  ethereum_pbkdf2->ciphertext[4] = hex_to_u32 ((const u8 *) &ciphertext_pos[32]);
-  ethereum_pbkdf2->ciphertext[5] = hex_to_u32 ((const u8 *) &ciphertext_pos[40]);
-  ethereum_pbkdf2->ciphertext[6] = hex_to_u32 ((const u8 *) &ciphertext_pos[48]);
-  ethereum_pbkdf2->ciphertext[7] = hex_to_u32 ((const u8 *) &ciphertext_pos[56]);
+  ethereum_pbkdf2->ciphertext[0] = hex_to_u32 (&ciphertext_pos[ 0]);
+  ethereum_pbkdf2->ciphertext[1] = hex_to_u32 (&ciphertext_pos[ 8]);
+  ethereum_pbkdf2->ciphertext[2] = hex_to_u32 (&ciphertext_pos[16]);
+  ethereum_pbkdf2->ciphertext[3] = hex_to_u32 (&ciphertext_pos[24]);
+  ethereum_pbkdf2->ciphertext[4] = hex_to_u32 (&ciphertext_pos[32]);
+  ethereum_pbkdf2->ciphertext[5] = hex_to_u32 (&ciphertext_pos[40]);
+  ethereum_pbkdf2->ciphertext[6] = hex_to_u32 (&ciphertext_pos[48]);
+  ethereum_pbkdf2->ciphertext[7] = hex_to_u32 (&ciphertext_pos[56]);
 
   // hash
 
   const u8 *hash_pos = token.buf[4];
 
-  digest[0] = hex_to_u32 ((const u8 *) &hash_pos[ 0]);
-  digest[1] = hex_to_u32 ((const u8 *) &hash_pos[ 8]);
-  digest[2] = hex_to_u32 ((const u8 *) &hash_pos[16]);
-  digest[3] = hex_to_u32 ((const u8 *) &hash_pos[24]);
-  digest[4] = hex_to_u32 ((const u8 *) &hash_pos[32]);
-  digest[5] = hex_to_u32 ((const u8 *) &hash_pos[40]);
-  digest[6] = hex_to_u32 ((const u8 *) &hash_pos[48]);
-  digest[7] = hex_to_u32 ((const u8 *) &hash_pos[56]);
+  digest[0] = hex_to_u32 (&hash_pos[ 0]);
+  digest[1] = hex_to_u32 (&hash_pos[ 8]);
+  digest[2] = hex_to_u32 (&hash_pos[16]);
+  digest[3] = hex_to_u32 (&hash_pos[24]);
+  digest[4] = hex_to_u32 (&hash_pos[32]);
+  digest[5] = hex_to_u32 (&hash_pos[40]);
+  digest[6] = hex_to_u32 (&hash_pos[48]);
+  digest[7] = hex_to_u32 (&hash_pos[56]);
 
   return (PARSER_OK);
 }

@@ -436,7 +436,7 @@ KERNEL_FQ void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, androidfde_t
 
     u32 r[16];
 
-    // not needed because of cbc mode -- implementation flaw !!. first 16 byte are not interessting
+    // not needed because of cbc mode -- implementation flaw !!. first 16 bytes are not interesting
 
     r[0] = 0;
     r[1] = 0;

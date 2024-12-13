@@ -39,24 +39,26 @@ int hiprtc_init (void *hashcat_ctx)
   memset (hiprtc, 0, sizeof (HIPRTC_PTR));
 
   #if   defined (_WIN)
-  hiprtc->lib = hc_dlopen ("amdhip64.dll");
+  hiprtc->lib = hc_dlopen ("hiprtc.dll");
+
+  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("C:/Program Files/AMD/ROCm/5.5/bin/hiprtc0505.dll");
+  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("amdhip64.dll");
   #elif defined (__APPLE__)
   hiprtc->lib = hc_dlopen ("fixme.dylib");
   #elif defined (__CYGWIN__)
-  hiprtc->lib = hc_dlopen ("amdhip64.dll");
-  #else
-  hiprtc->lib = hc_dlopen ("libamdhip64.so");
+  hiprtc->lib = hc_dlopen ("hiprtc.dll");
 
-  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("libamdhip64.so.4");
+  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("C:/Program Files/AMD/ROCm/5.5/bin/hiprtc0505.dll");
+  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("amdhip64.dll");
+  #else
+  hiprtc->lib = hc_dlopen ("libhiprtc.so");
   #endif
 
   if (hiprtc->lib == NULL) return -1;
 
-  HC_LOAD_FUNC (hiprtc, hiprtcAddNameExpression,  HIPRTC_HIPRTCADDNAMEEXPRESSION, HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcCompileProgram,     HIPRTC_HIPRTCCOMPILEPROGRAM,    HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcCreateProgram,      HIPRTC_HIPRTCCREATEPROGRAM,     HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcDestroyProgram,     HIPRTC_HIPRTCDESTROYPROGRAM,    HIPRTC, 1);
-  HC_LOAD_FUNC (hiprtc, hiprtcGetLoweredName,     HIPRTC_HIPRTCGETLOWEREDNAME,    HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetCode,            HIPRTC_HIPRTCGETCODE,           HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetCodeSize,        HIPRTC_HIPRTCGETCODESIZE,       HIPRTC, 1);
   HC_LOAD_FUNC (hiprtc, hiprtcGetProgramLog,      HIPRTC_HIPRTCGETPROGRAMLOG,     HIPRTC, 1);

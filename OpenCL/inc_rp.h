@@ -3,8 +3,8 @@
  * License.....: MIT
  */
 
-#ifndef _INC_RP_H
-#define _INC_RP_H
+#ifndef INC_RP_H
+#define INC_RP_H
 
 #ifndef DECLSPEC
 #define DECLSPEC
@@ -121,4 +121,4 @@ DECLSPEC int mangle_title_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p
 DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int in_len);
 DECLSPEC int apply_rules (CONSTANT_AS const u32 *cmds, PRIVATE_AS u32 *buf, const int in_len);
 
-#endif // _INC_RP_H
+#endif // INC_RP_H

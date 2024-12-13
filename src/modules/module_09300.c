@@ -52,20 +52,6 @@ static const u64 SCRYPT_N = 16384;
 static const u64 SCRYPT_R = 1;
 static const u64 SCRYPT_P = 1;
 
-bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
-{
-  // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
-  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-  {
-    if (device_param->is_metal == false)
-    {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u32 kernel_loops_min = 1024;
@@ -78,6 +64,13 @@ u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   const u32 kernel_loops_max = 1024;
 
   return kernel_loops_max;
+}
+
+u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_threads_max = 32;
+
+  return kernel_threads_max;
 }
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -278,6 +271,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 3;
 
   token.signatures_cnt    = 1;
@@ -287,10 +282,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.len_min[1] = 14;
-  token.len_max[1] = 14;
   token.sep[1]     = '$';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len[1]     = 14;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
 
   token.len[2]     = 43;
   token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
@@ -343,50 +337,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_buf[43] = 0; // cut it here
 
-  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_CISCO9, (unsigned char *) salt->salt_buf, tmp_buf);
+  const int line_len = snprintf (line_buf, line_size, "%s%s$%s", SIGNATURE_CISCO9, (const unsigned char *) salt->salt_buf, tmp_buf);
 
   return line_len;
-}
-
-/*
-
-Find the right -n value for your GPU:
-=====================================
-
-1. For example, to find the value for 9300, first create a valid hash for 9300 as follows:
-
-$ ./hashcat --example-hashes -m 9300 | grep Example.Hash | grep -v Format | cut -b 25- > tmp.hash.9300
-
-2. Now let it iterate through all -n values to a certain point. In this case, I'm using 1032, but in general it's a value that is at least twice that of the multiprocessor. If you don't mind you can just leave it as it is, it just runs a little longer.
-
-$ export i=8; while [ $i -ne 1032 ]; do echo $i; ./hashcat --quiet tmp.hash.9300 --keep-guessing --self-test-disable --markov-disable --restore-disable --outfile-autohex-disable --wordlist-autohex-disable --potfile-disable --logfile-disable --hwmon-disable --status --status-timer 1 --runtime 28 --machine-readable --optimized-kernel-enable --workload-profile 3 --hash-type 9300 --attack-mode 3 ?b?b?b?b?b?b?b --backend-devices 1 --force -n $i; i=$(($i+8)); done | tee x
-
-3. Determine the highest measured H/s speed. But don't just use the highest value. Instead, use the number that seems most stable, usually at the beginning.
-
-$ grep "$(printf 'STATUS\t3')" x | cut -f4 -d$'\t' | sort -n | tail
-
-4. To match the speed you have chosen to the correct value in the 'x' file, simply search for it in it. Then go up a little on the block where you found him. The value -n is the single value that begins before the block start. If you have multiple blocks at the same speed, choose the lowest value for -n
-
-*/
-
-const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const char *extra_tuningdb_block =
-    "DEVICE_TYPE_CPU                                 *       9300    1       N       A\n"
-    "DEVICE_TYPE_GPU                                 *       9300    1       N       A\n"
-    "GeForce_GTX_980                                 *       9300    1     128       A\n"
-    "GeForce_GTX_1080                                *       9300    1     256       A\n"
-    "GeForce_RTX_2080_Ti                             *       9300    1     528       A\n"
-    "GeForce_RTX_3060_Ti                             *       9300    1     256       A\n"
-    "GeForce_RTX_3070                                *       9300    1     368       A\n"
-    "GeForce_RTX_3090                                *       9300    1     984       A\n"
-    "ALIAS_AMD_RX480                                 *       9300    1     232       A\n"
-    "ALIAS_AMD_Vega64                                *       9300    1     440       A\n"
-    "ALIAS_AMD_MI100                                 *       9300    1    1000       A\n"
-    "ALIAS_AMD_RX6900XT                              *       9300    1     720       A\n"
-  ;
-
-  return extra_tuningdb_block;
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -412,7 +365,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = module_extra_buffer_size;
   module_ctx->module_extra_tmp_size           = module_extra_tmp_size;
-  module_ctx->module_extra_tuningdb_block     = module_extra_tuningdb_block;
+  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
@@ -444,7 +397,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
-  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
@@ -465,6 +418,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = module_warmup_disable;
 }

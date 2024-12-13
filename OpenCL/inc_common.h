@@ -3,15 +3,15 @@
  * License.....: MIT
  */
 
-#ifndef _INC_COMMON_H
-#define _INC_COMMON_H
+#ifndef INC_COMMON_H
+#define INC_COMMON_H
 
 /*
  * Prototype kernel function that fits all kernel macros
  *
  * There are four variables where major differences occur:
  *
- *   -  P2: Adress space of kernel_rules_t struct.
+ *   -  P2: Address space of kernel_rules_t struct.
  *          If the kernel uses rules_buf, it will be stored in CONSTANT_AS.
  *          If it does not, cheaper GLOBAL_AS space is used.
  *
@@ -311,8 +311,12 @@ DECLSPEC int is_valid_hex_8 (const u8 v);
 DECLSPEC int is_valid_hex_32 (const u32 v);
 DECLSPEC int is_valid_base58_8 (const u8 v);
 DECLSPEC int is_valid_base58_32 (const u32 v);
+DECLSPEC int is_valid_printable_8 (const u8 v);
+DECLSPEC int is_valid_printable_32 (const u32 v);
 DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
 DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt);
+DECLSPEC int count_bits_32 (const u32 v0, const u32 v1);
+
 DECLSPEC void make_utf16be (PRIVATE_AS const u32x *in, PRIVATE_AS u32x *out1, PRIVATE_AS u32x *out2);
 DECLSPEC void make_utf16beN (PRIVATE_AS const u32x *in, PRIVATE_AS u32x *out1, PRIVATE_AS u32x *out2);
 DECLSPEC void make_utf16beN_S (PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out1, PRIVATE_AS u32 *out2);
@@ -376,4 +380,4 @@ DECLSPEC void append_0x80_2x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, cons
 DECLSPEC void append_0x80_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
 DECLSPEC void append_0x2d_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
 
-#endif // _INC_COMMON_H
+#endif // INC_COMMON_H

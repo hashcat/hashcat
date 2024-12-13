@@ -241,6 +241,17 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
           hc_fputc (separator, &fp);
         }
 
+        if (user_options->dynamic_x == true)
+        {
+          dynamicx_t *dynamicx = hashes->hash_info[idx]->dynamicx;
+
+          u32 i;
+
+          for (i = 0; i < dynamicx->dynamicx_len; i++) hc_fputc (dynamicx->dynamicx_buf[i], &fp);
+
+          hc_fputc (separator, &fp);
+        }
+
         const int out_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
 
         out_buf[out_len] = 0;
@@ -691,6 +702,8 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       hashes->digests_done++;
 
+      hashes->digests_done_new++;
+
       cpt_cracked++;
 
       salt_buf->digests_done++;
@@ -1001,7 +1014,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   void   *esalts_buf     = NULL;
   void   *hook_salts_buf = NULL;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
+  if ((user_options->dynamic_x == true) || (user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     u64 hash_pos;
 
@@ -1010,6 +1023,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       hashinfo_t *hash_info = (hashinfo_t *) hcmalloc (sizeof (hashinfo_t));
 
       hashes_buf[hash_pos].hash_info = hash_info;
+
+      if (user_options->dynamic_x == true)
+      {
+        hash_info->dynamicx = (dynamicx_t *) hcmalloc (sizeof (dynamicx_t));
+      }
 
       if (user_options->username == true)
       {
@@ -1900,7 +1918,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     event_log_advice (hashcat_ctx, "* Token length exception: %u/%u hashes", hashes->parser_token_length_cnt, hashes->parser_token_length_cnt + hashes->hashes_cnt);
     event_log_advice (hashcat_ctx, "  This error happens if the wrong hash type is specified, if the hashes are");
     event_log_advice (hashcat_ctx, "  malformed, or if input is otherwise not as expected (for example, if the");
-    event_log_advice (hashcat_ctx, "  --username option is used but no username is present)");
+    event_log_advice (hashcat_ctx, "  --username or --dynamic-x option is used but no username or dynamic-tag is present)");
     event_log_advice (hashcat_ctx, NULL);
   }
 
@@ -1995,14 +2013,14 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
   u32 digests_cnt  = hashes_cnt;
   u32 digests_done = 0;
 
-  u32 *digests_shown     = (u32 *) hccalloc (digests_cnt, sizeof (u32));
+  u32 *digests_shown = (u32 *) hccalloc (digests_cnt, sizeof (u32));
 
   u32 salts_cnt   = 0;
   u32 salts_done  = 0;
 
   hashinfo_t **hash_info = NULL;
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
+  if ((user_options->username == true) || (user_options->dynamic_x == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT))
   {
     hash_info = (hashinfo_t **) hccalloc (hashes_cnt, sizeof (hashinfo_t *));
   }
@@ -2150,16 +2168,17 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t *hashes = hashcat_ctx->hashes;
 
-  u32  digests_done  = hashes->digests_done;
-  u32 *digests_shown = hashes->digests_shown;
+  u32  digests_done      = hashes->digests_done;
+  u32  digests_done_zero = hashes->digests_done_zero;
+  u32  digests_done_pot  = hashes->digests_done_pot;
+  u32 *digests_shown     = hashes->digests_shown;
 
-  u32  salts_cnt     = hashes->salts_cnt;
-  u32  salts_done    = hashes->salts_done;
-  u32 *salts_shown   = hashes->salts_shown;
+  u32  salts_cnt         = hashes->salts_cnt;
+  u32  salts_done        = hashes->salts_done;
+  u32 *salts_shown       = hashes->salts_shown;
 
-  hash_t *hashes_buf = hashes->hashes_buf;
-
-  salt_t *salts_buf  = hashes->salts_buf;
+  hash_t *hashes_buf     = hashes->hashes_buf;
+  salt_t *salts_buf      = hashes->salts_buf;
 
   for (u32 salt_idx = 0; salt_idx < salts_cnt; salt_idx++)
   {
@@ -2171,11 +2190,24 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
     {
       const u32 hashes_idx = salt_buf->digests_offset + digest_idx;
 
-      if (hashes_buf[hashes_idx].cracked == 1)
+      if (hashes_buf[hashes_idx].cracked_pot == 1)
       {
         digests_shown[hashes_idx] = 1;
 
         digests_done++;
+
+        digests_done_pot++;
+
+        salt_buf->digests_done++;
+      }
+
+      if (hashes_buf[hashes_idx].cracked_zero == 1)
+      {
+        digests_shown[hashes_idx] = 1;
+
+        digests_done++;
+
+        digests_done_zero++;
 
         salt_buf->digests_done++;
       }
@@ -2191,10 +2223,11 @@ int hashes_init_stage3 (hashcat_ctx_t *hashcat_ctx)
     if (salts_done == salts_cnt) mycracked (hashcat_ctx);
   }
 
-  hashes->digests_done = digests_done;
+  hashes->digests_done      = digests_done;
+  hashes->digests_done_zero = digests_done_zero;
+  hashes->digests_done_pot  = digests_done_pot;
 
-  hashes->salts_cnt   = salts_cnt;
-  hashes->salts_done  = salts_done;
+  hashes->salts_done        = salts_done;
 
   return 0;
 }
@@ -2242,6 +2275,21 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
           hashconfig->opts_type &= ~OPTS_TYPE_ST_ADDBITS15;
           hashconfig->opts_type |=  OPTS_TYPE_PT_ADDBITS15;
         }
+      }
+    }
+  }
+
+  // https://github.com/hashcat/hashcat/issues/3641
+
+  if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
+  {
+    if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+    {
+      if (hashes->digests_cnt != hashes->salts_cnt)
+      {
+        event_log_error (hashcat_ctx, "This hash-mode plugin cannot crack multiple hashes with the same salt, please select one of the hashes.");
+
+        return -1;
       }
     }
   }
@@ -2512,7 +2560,7 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
   hash_t *hashes_buf = hashes->hashes_buf;
   u32     hashes_cnt = hashes->hashes_cnt;
 
-  // no solution for these special hash types (for instane because they use hashfile in output etc)
+  // no solution for these special hash types (for instance because they use hashfile in output etc)
 
   hash_t hash_buf;
 
@@ -2553,7 +2601,7 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
       next->pw_buf = (char *) hcmalloc (1);
       next->pw_len = 0;
 
-      next->cracked = 1;
+      next->cracked_zero = 1;
 
       // should we show the cracked zero hash to the user?
 
@@ -2674,6 +2722,8 @@ void hashes_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (hashes->hashlist_format);
   logfile_top_uint   (hashes->hashes_cnt);
   logfile_top_uint   (hashes->digests_cnt);
+  logfile_top_uint   (hashes->digests_done_pot);
+  logfile_top_uint   (hashes->digests_done_zero);
   logfile_top_uint   (hashes->digests_done);
   logfile_top_uint   (hashes->salts_cnt);
   logfile_top_uint   (hashes->salts_done);

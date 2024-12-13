@@ -16,6 +16,7 @@
 #include <Foundation/Foundation.h>
 #include <Metal/Metal.h>
 
+/*
 typedef NS_ENUM(NSUInteger, hc_mtlFeatureSet)
 {
   MTL_FEATURESET_MACOS_GPUFAMILY_1_V1 = 10000,
@@ -25,6 +26,7 @@ typedef NS_ENUM(NSUInteger, hc_mtlFeatureSet)
   MTL_FEATURESET_MACOS_GPUFAMILY_2_V1 = 10005,
 
 } metalDeviceFeatureSet_macOS_t;
+*/
 
 typedef NS_ENUM(NSUInteger, hc_mtlLanguageVersion)
 {
@@ -45,7 +47,7 @@ static bool iokit_getGPUCore (void *hashcat_ctx, int *gpu_core)
 
   CFMutableDictionaryRef matching = IOServiceMatching ("IOAccelerator");
 
-  io_service_t service = IOServiceGetMatchingService (kIOMasterPortDefault, matching);
+  io_service_t service = IOServiceGetMatchingService (hc_IOMasterPortDefault, matching);
 
   if (!service)
   {
@@ -197,6 +199,8 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
   {
     NSString *path_key = @"INCLUDE_PATH";
     NSString *path_value = [NSString stringWithCString: include_path encoding: NSUTF8StringEncoding];
+    // Include path may contain spaces, escape them with a backslash
+    path_value = [path_value stringByReplacingOccurrencesOfString:@" " withString:@"\\ "];
 
     [build_options_dict setObject:path_value forKey:path_key];
   }
@@ -408,6 +412,7 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
       *pi = 32;
       break;
 
+    /* unused and deprecated
     case MTL_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MAJOR:
       *pi = 0;
 
@@ -424,7 +429,9 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
       }
 
       break;
+    */
 
+    /* unused and deprecated
     case MTL_DEVICE_ATTRIBUTE_COMPUTE_CAPABILITY_MINOR:
       *pi = 0;
 
@@ -441,6 +448,7 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
       }
 
       break;
+    */
 
     case MTL_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK:
       // M1 max is 1024
@@ -673,7 +681,8 @@ int hc_mtlCreateCommandQueue (void *hashcat_ctx, mtl_device_id metal_device, mtl
 
 int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_library metal_library, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline)
 {
-  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+  backend_ctx_t  *backend_ctx  = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+  user_options_t *user_options = ((hashcat_ctx_t *) hashcat_ctx)->user_options;
 
   MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
 
@@ -700,7 +709,7 @@ int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_libra
     return -1;
   }
 
-  NSError *error = nil;
+  __block NSError *error = nil;
 
   NSString *f_name = [NSString stringWithCString: func_name encoding: NSUTF8StringEncoding];
 
@@ -713,11 +722,54 @@ int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_libra
     return -1;
   }
 
+  // workaround for MTLCompilerService 'Infinite Loop' bug
+
+  /*
   mtl_pipeline mtl_pipe = [metal_device newComputePipelineStateWithFunction: mtl_func error: &error];
 
   if (error != nil)
   {
     event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
+
+    return -1;
+  }
+  */
+
+  error = nil;
+
+  __block mtl_pipeline mtl_pipe;
+
+  dispatch_group_t group = dispatch_group_create ();
+  dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+
+  // if no user-defined runtime, set to METAL_COMPILER_RUNTIME
+  long timeout = (user_options->metal_compiler_runtime > 0) ? user_options->metal_compiler_runtime : METAL_COMPILER_RUNTIME;
+
+  dispatch_time_t when = dispatch_time (DISPATCH_TIME_NOW,NSEC_PER_SEC * timeout);
+
+  __block int rc_async_err = 0;
+
+  dispatch_group_async (group, queue, ^(void)
+  {
+    mtl_pipe = [metal_device newComputePipelineStateWithFunction: mtl_func error: &error];
+
+    if (error != nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
+
+      rc_async_err = -1;
+    }
+  });
+
+  long rc_queue = dispatch_group_wait (group, when);
+
+  dispatch_release (group);
+
+  if (rc_async_err != 0) return -1;
+
+  if (rc_queue != 0)
+  {
+    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, timeout reached (status %ld)", __func__, func_name, rc_queue);
 
     return -1;
   }

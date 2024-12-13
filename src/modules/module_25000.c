@@ -23,8 +23,7 @@ static const char *HASH_NAME      = "SNMPv3 HMAC-MD5-96/HMAC-SHA1-96";
 static const u64   KERN_TYPE      = 25000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_MAXIMUM_THREADS;
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
 static const char *ST_HASH        = "$SNMPv3$0$45889431$30818f0201033011020409242fc0020300ffe304010102010304383036041180001f88808106d566db57fd600000000002011002020118040a6d61747269785f4d4435040c0000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411f319300201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$1b37c3ea872731f922959e90";
@@ -82,11 +81,14 @@ typedef struct snmpv3
 
 } snmpv3_t;
 
-u32 module_pw_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  const u32 pw_min = 8;
+  if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
+  {
+    return true;
+  }
 
-  return pw_min;
+  return false;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -127,6 +129,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   snmpv3_t *snmpv3 = (snmpv3_t *) esalt_buf;
 
   hc_token_t token;
+
+  memset (&token, 0, sizeof (hc_token_t));
 
   token.token_cnt  = 5;
   token.signatures_cnt    = 1;
@@ -173,7 +177,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (snmpv3->packet_number, 0, sizeof (snmpv3->packet_number));
 
-  strncpy ((char *) snmpv3->packet_number, (char *) packet_number_pos, packet_number_len);
+  strncpy ((char *) snmpv3->packet_number, (const char *) packet_number_pos, packet_number_len);
 
   // salt
 
@@ -232,19 +236,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  snmpv3_t *snmpv3 = (snmpv3_t *) esalt_buf;
+  const snmpv3_t *snmpv3 = (const snmpv3_t *) esalt_buf;
 
   u8 *out_buf = (u8 *) line_buf;
 
-  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (char *) snmpv3->packet_number);
+  int out_len = snprintf (line_buf, line_size, "%s%s$", SIGNATURE_SNMPV3, (const char *) snmpv3->packet_number);
 
-  out_len += hex_encode ((u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) snmpv3->salt_buf, snmpv3->salt_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 
   out_len++;
 
-  out_len += hex_encode ((u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
+  out_len += hex_encode ((const u8 *) snmpv3->engineID_buf, snmpv3->engineID_len, out_buf + out_len);
 
   out_buf[out_len] = '$';
 
@@ -335,7 +339,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
   module_ctx->module_pw_max                   = MODULE_DEFAULT;
-  module_ctx->module_pw_min                   = module_pw_min;
+  module_ctx->module_pw_min                   = MODULE_DEFAULT;
   module_ctx->module_salt_max                 = MODULE_DEFAULT;
   module_ctx->module_salt_min                 = MODULE_DEFAULT;
   module_ctx->module_salt_type                = module_salt_type;
@@ -343,6 +347,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_hash                  = module_st_hash;
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
-  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_unstable_warning         = module_unstable_warning;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

@@ -72,7 +72,7 @@ if ($version ne "\x02")
 }
 
 
-read_bytes ($file_handle, 1); # reservered/skip (normally should be just \x00)
+read_bytes ($file_handle, 1); # reserved/skip (normally should be just \x00)
 
 
 # Loop over the extensions until we got extension size 0

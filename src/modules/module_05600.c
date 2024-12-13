@@ -73,19 +73,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
+  memset (&token, 0, sizeof (hc_token_t));
+
   token.token_cnt  = 6;
 
   // username
+  token.sep[0]     = ':';
   token.len_min[0] = 0;
   token.len_max[0] = 60;
-  token.sep[0]     = ':';
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // unused
-  token.len_min[1] = 0;
-  token.len_max[1] = 0;
   token.sep[1]     = ':';
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+  token.len[1]     = 0;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
 
   // domain
   token.len_min[2] = 0;
@@ -94,23 +95,21 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   // lm response
-  token.len_min[3] = 16;
-  token.len_max[3] = 16;
   token.sep[3]     = ':';
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[3]     = 16;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // ntlm response
-  token.len_min[4] = 32;
-  token.len_max[4] = 32;
   token.sep[4]     = ':';
-  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[4]     = 32;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // challenge
+  token.sep[5]     = ':';
   token.len_min[5] = 2;
   token.len_max[5] = 1024;
-  token.sep[5]     = ':';
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -197,7 +196,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[3] = hex_to_u32 (hash_pos + 24);
 
   /**
-   * reuse challange data as salt_buf, its the buffer that is most likely unique
+   * reuse challenge data as salt_buf, its the buffer that is most likely unique
    */
 
   salt->salt_buf[0] = 0;
@@ -250,9 +249,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int out_len = 0;
 
-  u8 *ptr;
-
-  ptr = (u8 *) netntlm->userdomain_buf;
+  const u8 *ptr = (const u8 *) netntlm->userdomain_buf;
 
   for (int i = 0; i < netntlm->user_len; i += 2)
   {
@@ -271,7 +268,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   out_buf[out_len++] = ':';
 
-  ptr = (u8 *) netntlm->chall_buf;
+  ptr = (const u8 *) netntlm->chall_buf;
 
   for (int i = 0; i < netntlm->srvchall_len; i++)
   {

@@ -324,7 +324,7 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, const char *in_buf, size_t in_
     }
     else
     {
-      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
+      if (hashconfig->opts_type & OPTS_TYPE_MT_HEX)
       {
         in_pos++;
 
@@ -437,7 +437,7 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
     }
     else
     {
-      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
+      if (hashconfig->opts_type & OPTS_TYPE_MT_HEX)
       {
         mask_pos++;
 
@@ -519,7 +519,7 @@ static int mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask_b
     }
     else
     {
-      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
+      if (hashconfig->opts_type & OPTS_TYPE_MT_HEX)
       {
         mask_pos++;
 
@@ -657,7 +657,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   char *shared_dir = folder_config->shared_dir;
 
   char *hcstat  = user_options->markov_hcstat2;
-  u32   disable = user_options->markov_disable;
+  u32   markov  = user_options->markov;
   u32   classic = user_options->markov_classic;
   bool  inverse = user_options->markov_inverse;
 
@@ -826,7 +826,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
    * Markov modifier of hcstat_table on user request
    */
 
-  if (disable)
+  if (markov == false)
   {
     memset (root_stats_buf,   0, SP_ROOT_CNT   * sizeof (u64));
     memset (markov_stats_buf, 0, SP_MARKOV_CNT * sizeof (u64));
@@ -1168,7 +1168,7 @@ u32 mp_get_length (const char *mask, const u32 opts_type)
         ignore_next = true;
       }
 
-      if (opts_type & OPTS_TYPE_PT_HEX)
+      if (opts_type & OPTS_TYPE_MT_HEX)
       {
         ignore_next = true;
       }
@@ -1401,12 +1401,13 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   mask_ctx->enabled = false;
 
+  if (user_options->usage         > 0)    return 0;
+  if (user_options->backend_info  > 0)    return 0;
+
   if (user_options->hash_info    == true) return 0;
   if (user_options->left         == true) return 0;
   if (user_options->show         == true) return 0;
-  if (user_options->usage        == true) return 0;
   if (user_options->version      == true) return 0;
-  if (user_options->backend_info  > 0)    return 0;
 
   if (user_options->attack_mode  == ATTACK_MODE_ASSOCIATION) return 0;
   if (user_options->attack_mode  == ATTACK_MODE_STRAIGHT)    return 0;
