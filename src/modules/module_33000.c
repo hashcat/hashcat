@@ -17,18 +17,22 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 1;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
-static const char *HASH_NAME      = "enc8 (Base64 + Salt)";
-static const u64   KERN_TYPE      = 10;  // Use existing md5($pass.$salt) kernel
+static const char *HASH_NAME      = "enc8 (base64 encoded MD5 with 4-byte salt)";
+static const u64   KERN_TYPE      = 10;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                  | OPTI_TYPE_PRECOMPUTE_INIT
+                                 | OPTI_TYPE_MEET_IN_MIDDLE
+                                 | OPTI_TYPE_EARLY_SKIP
                                  | OPTI_TYPE_NOT_ITERATED
-                                 | OPTI_TYPE_APPENDED_SALT;
+                                 | OPTI_TYPE_APPENDED_SALT
+                                 | OPTI_TYPE_RAW_HASH;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                  | OPTS_TYPE_PT_GENERATE_LE
-                                 | OPTS_TYPE_ST_BASE64;
+                                 | OPTS_TYPE_ST_ADD80
+                                 | OPTS_TYPE_ST_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "{enc8}D5CJdzcm8Wkn1hmHleiN9xE8wl0=";  // From example
+static const char *ST_HASH        = "{enc8}D5CJdzcm8Wkn1hmHleiN9xE8wl0=";
 
 static const char *SIGNATURE_ENC8 = "{enc8}";
 
@@ -55,49 +59,36 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 2;
+  token.token_cnt = 1;
 
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_ENC8;
+  // Check for {enc8} prefix
+  const int signature_len = strlen (SIGNATURE_ENC8);
 
-  token.len[0]     = 6;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+  if (line_len < signature_len) return (PARSER_SALT_LENGTH);
 
-  token.len_min[1] = 16; // Minimum base64 length
-  token.len_max[1] = 64; // Maximum base64 length
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
+  if (strncmp (line_buf, SIGNATURE_ENC8, signature_len) != 0) return (PARSER_SIGNATURE_UNMATCHED);
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  const char *base64_str = line_buf + signature_len;
+  const int base64_len = line_len - signature_len;
 
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  const u8 *hash_pos = token.buf[1];
-  const int hash_len = token.len[1];
+  if (base64_len < 16) return (PARSER_HASH_LENGTH);
 
   u8 tmp_buf[100] = { 0 };
-  u8 padded_input[100] = { 0 };
-  int padded_len = hash_len;
+  int tmp_len = base64_decode (base64_to_int, (const u8 *) base64_str, base64_len, tmp_buf);
 
-  // Handle base64 padding if needed
-  memcpy (padded_input, hash_pos, hash_len);
-  while (padded_len % 4 != 0)
-  {
-    padded_input[padded_len++] = '=';
-  }
+  if (tmp_len < 20) return (PARSER_HASH_LENGTH); // 16 bytes hash + 4 bytes salt
 
-  const int decoded_len = base64_decode (base64_to_int, padded_input, padded_len, tmp_buf);
+  const u8 *hash_pos = tmp_buf;
+  const u8 *salt_pos = tmp_buf + 16;  // Last 4 bytes are salt
 
-  if (decoded_len < 4) return (PARSER_SALT_LENGTH);
+  // Convert raw bytes to u32 values (4 bytes each)
+  digest[0] = byte_swap_32 (*(u32 *)(hash_pos +  0));
+  digest[1] = byte_swap_32 (*(u32 *)(hash_pos +  4));
+  digest[2] = byte_swap_32 (*(u32 *)(hash_pos +  8));
+  digest[3] = byte_swap_32 (*(u32 *)(hash_pos + 12));
 
-  const int salt_len = 4; // Last 4 bytes
-  const int hash_len_decoded = decoded_len - salt_len;
-
-  memcpy (salt->salt_buf, tmp_buf + hash_len_decoded, salt_len);
-  salt->salt_len = salt_len;
-
-  memcpy (digest, tmp_buf, hash_len_decoded);
+  salt->salt_len = 4;
+  memcpy (salt->salt_buf, salt_pos, salt->salt_len);
 
   return (PARSER_OK);
 }
@@ -106,28 +97,27 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  // Format: hash:salt in hex format matching Python example
-  u8 *out_buf = (u8 *) line_buf;
+  // Prepare the combined buffer (16 bytes hash + 4 bytes salt)
+  u8 tmp_buf[20] = { 0 };
+
+  // Store hash bytes directly
+  u32 *tmp_ptr = (u32 *) tmp_buf;
+  tmp_ptr[0] = byte_swap_32 (digest[0]);
+  tmp_ptr[1] = byte_swap_32 (digest[1]);
+  tmp_ptr[2] = byte_swap_32 (digest[2]);
+  tmp_ptr[3] = byte_swap_32 (digest[3]);
+
+  // Append salt
+  memcpy (tmp_buf + 16, salt->salt_buf, salt->salt_len);
+
+  // Base64 encode the combined buffer
+  char *out_buf = line_buf;
   int out_len = 0;
 
-  u32_to_hex (digest[0], out_buf + out_len); out_len += 8;
-  u32_to_hex (digest[1], out_buf + out_len); out_len += 8;
-  u32_to_hex (digest[2], out_buf + out_len); out_len += 8;
-  u32_to_hex (digest[3], out_buf + out_len); out_len += 8;
+  memcpy (out_buf, SIGNATURE_ENC8, strlen (SIGNATURE_ENC8));
+  out_len += strlen (SIGNATURE_ENC8);
 
-  out_buf[out_len] = hashconfig->separator;
-  out_len += 1;
-
-  // Convert salt to hex (4 bytes)
-  const u8 *salt_ptr = (const u8 *) salt->salt_buf;
-  u8 hex[2];
-
-  for (int i = 0; i < 4; i++)
-  {
-    u8_to_hex (salt_ptr[i], hex);
-    out_buf[out_len++] = hex[0];
-    out_buf[out_len++] = hex[1];
-  }
+  out_len += base64_encode (int_to_base64, tmp_buf, 20, (u8 *) out_buf + out_len);
 
   return out_len;
 }
@@ -210,4 +200,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_tmp_size                = MODULE_DEFAULT;
   module_ctx->module_unstable_warning        = MODULE_DEFAULT;
   module_ctx->module_warmup_disable          = MODULE_DEFAULT;
+
+  return;
 }
