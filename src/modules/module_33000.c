@@ -107,29 +107,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32 *digest = (const u32 *) digest_buf;
 
   // Format: hash:salt in hex format matching Python example
-  char tmp_buf[BLOCK_SIZE] = { 0 };
-  int offset = 0;
+  u8 *out_buf = (u8 *) line_buf;
+  int out_len = 0;
 
-  // Convert hash to hex (16 bytes MD5)
-  for (int i = 0; i < 16; i++)
-  {
-    const u8 *ptr = (const u8 *) digest + i;
-    snprintf (tmp_buf + offset, BLOCK_SIZE - offset, "%02x", *ptr);
-    offset += 2;
-  }
+  u32_to_hex (digest[0], out_buf + out_len); out_len += 8;
+  u32_to_hex (digest[1], out_buf + out_len); out_len += 8;
+  u32_to_hex (digest[2], out_buf + out_len); out_len += 8;
+  u32_to_hex (digest[3], out_buf + out_len); out_len += 8;
 
-  // Add separator
-  tmp_buf[offset++] = ':';
+  out_buf[out_len] = hashconfig->separator;
+  out_len += 1;
 
-  // Convert salt to hex (4 bytes)
-  for (int i = 0; i < 4; i++)
-  {
-    const u8 *ptr = (const u8 *) salt->salt_buf + i;
-    snprintf (tmp_buf + offset, BLOCK_SIZE - offset, "%02x", *ptr);
-    offset += 2;
-  }
-
-  const int out_len = snprintf (line_buf, line_size, "%s", tmp_buf);
+  u8_to_hex ((const u8 *) salt->salt_buf, 4, out_buf + out_len);
+  out_len += 8;
 
   return out_len;
 }
