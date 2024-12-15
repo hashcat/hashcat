@@ -12,6 +12,10 @@
 #include "emu_inc_hash_md5.h"
 #include "memory.h"
 
+// 函数声明
+void module_hash_decode_test(void);
+
+// 定义攻击类型为内核内部执行
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 3;
@@ -34,7 +38,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_PT_GENERATE_LE
                                  | OPTS_TYPE_ST_ADDBITS14;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "123456";
-static const char *ST_HASH        = "{enc8}EUxNIpbzGlnJbM4KKjYl+za4fmA=";
+static const char *ST_HASH        = "{enc8}EUxNIpbzGlnJbM4KKjYl+za4fmA="; // 示例哈希值
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
@@ -148,14 +152,17 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
+  // 设置令牌解析规则
   token.token_cnt  = 2;
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = "{enc8}";
+  token.signatures_buf[0] = "{enc8}"; // 验证前缀
 
+  // 验证前缀长度
   token.len[0]     = 6;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
+  // 验证base64编码部分长度
   token.len_min[1] = 28;
   token.len_max[1] = 28;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
@@ -163,38 +170,97 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+  if (rc_tokenizer != PARSER_OK) {
+    return (rc_tokenizer);
+  }
 
+  // 获取base64编码部分
   const u8 *hash_pos = token.buf[1];
   const int hash_len = token.len[1];
 
+  // base64解码
   u8 tmp_buf[100] = { 0 };
   int tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
-  if (tmp_len != 20) return (PARSER_HASH_LENGTH);
+  if (tmp_len != 20) {
+    return (PARSER_HASH_LENGTH);
+  }
 
+  // 提取MD5哈希值
   memcpy (digest, tmp_buf, 16);
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
+
+  // 不进行字节交换,保持原始字节序
+  // digest[0] = byte_swap_32(digest[0]);
+  // digest[1] = byte_swap_32(digest[1]);
+  // digest[2] = byte_swap_32(digest[2]);
+  // digest[3] = byte_swap_32(digest[3]);
+
+  // 提取4字节salt
+  salt->salt_len = 4;
+  memcpy (salt->salt_buf, tmp_buf + 16, 4);
+
+  // 不需要转换字节序，保持原样
+
+  return (PARSER_OK);
+}
+
+int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
+{
+  const u32 *digest = (const u32 *) digest_buf;
+
+  // 准备MD5哈希值
+  u32 tmp[4];
+
+  tmp[0] = digest[0];
+  tmp[1] = digest[1];
+  tmp[2] = digest[2];
+  tmp[3] = digest[3];
 
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
-    digest[0] -= MD5M_A;
-    digest[1] -= MD5M_B;
-    digest[2] -= MD5M_C;
-    digest[3] -= MD5M_D;
+    tmp[0] += MD5M_A;
+    tmp[1] += MD5M_B;
+    tmp[2] += MD5M_C;
+    tmp[3] += MD5M_D;
   }
 
-  u8 salt_hex[9] = { 0 };
-  u32 salt_val = byte_swap_32 (*(u32 *)(tmp_buf + 16));
-  snprintf ((char *)salt_hex, sizeof(salt_hex), "%08x", salt_val);
+  // 准备20字节缓冲区(16字节MD5 + 4字节salt)
+  u8 tmp_buf[20] = { 0 };
+  u8 *ptr = tmp_buf;
 
-  const bool parse_rc = generic_salt_decode (hashconfig, salt_hex, 8, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
-  if (parse_rc == false) return (PARSER_SALT_LENGTH);
+  // 转换MD5哈希值为大端序
+  ptr[0] = (tmp[0] >> 24) & 0xff;
+  ptr[1] = (tmp[0] >> 16) & 0xff;
+  ptr[2] = (tmp[0] >>  8) & 0xff;
+  ptr[3] = (tmp[0] >>  0) & 0xff;
+  ptr[4] = (tmp[1] >> 24) & 0xff;
+  ptr[5] = (tmp[1] >> 16) & 0xff;
+  ptr[6] = (tmp[1] >>  8) & 0xff;
+  ptr[7] = (tmp[1] >>  0) & 0xff;
+  ptr[8] = (tmp[2] >> 24) & 0xff;
+  ptr[9] = (tmp[2] >> 16) & 0xff;
+  ptr[10] = (tmp[2] >>  8) & 0xff;
+  ptr[11] = (tmp[2] >>  0) & 0xff;
+  ptr[12] = (tmp[3] >> 24) & 0xff;
+  ptr[13] = (tmp[3] >> 16) & 0xff;
+  ptr[14] = (tmp[3] >>  8) & 0xff;
+  ptr[15] = (tmp[3] >>  0) & 0xff;
 
-  return (PARSER_OK);
+  // 添加salt
+  memcpy(tmp_buf + 16, salt->salt_buf, 4);
+
+  // 生成最终输出
+  char *out_buf = line_buf;
+  int out_len = 0;
+
+  // 添加{enc8}前缀
+  memcpy (out_buf, "{enc8}", 6);
+  out_len += 6;
+
+  // base64编码
+  out_len += base64_encode (int_to_base64, tmp_buf, 20, (u8 *) out_buf + out_len);
+
+  return out_len;
 }
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -244,60 +310,11 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   return jit_build_options;
 }
 
-int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
-{
-  const u32 *digest = (const u32 *) digest_buf;
-
-  u32 tmp[4];
-
-  tmp[0] = digest[0];
-  tmp[1] = digest[1];
-  tmp[2] = digest[2];
-  tmp[3] = digest[3];
-
-  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-  {
-    tmp[0] += MD5M_A;
-    tmp[1] += MD5M_B;
-    tmp[2] += MD5M_C;
-    tmp[3] += MD5M_D;
-  }
-
-  u8 tmp_buf[20] = { 0 };
-  u8 *ptr = tmp_buf;
-
-  ptr[0] = (tmp[0] >> 24) & 0xff;
-  ptr[1] = (tmp[0] >> 16) & 0xff;
-  ptr[2] = (tmp[0] >>  8) & 0xff;
-  ptr[3] = (tmp[0] >>  0) & 0xff;
-  ptr[4] = (tmp[1] >> 24) & 0xff;
-  ptr[5] = (tmp[1] >> 16) & 0xff;
-  ptr[6] = (tmp[1] >>  8) & 0xff;
-  ptr[7] = (tmp[1] >>  0) & 0xff;
-  ptr[8] = (tmp[2] >> 24) & 0xff;
-  ptr[9] = (tmp[2] >> 16) & 0xff;
-  ptr[10] = (tmp[2] >>  8) & 0xff;
-  ptr[11] = (tmp[2] >>  0) & 0xff;
-  ptr[12] = (tmp[3] >> 24) & 0xff;
-  ptr[13] = (tmp[3] >> 16) & 0xff;
-  ptr[14] = (tmp[3] >>  8) & 0xff;
-  ptr[15] = (tmp[3] >>  0) & 0xff;
-
-  memcpy (tmp_buf + 16, salt->salt_buf, 4);
-
-  char *out_buf = line_buf;
-  int out_len = 0;
-
-  memcpy (out_buf, "{enc8}", 6);
-  out_len += 6;
-
-  out_len += base64_encode (int_to_base64, tmp_buf, 20, (u8 *) out_buf + out_len);
-
-  return out_len;
-}
-
 void module_init (module_ctx_t *module_ctx)
 {
+  // 运行测试用例
+  module_hash_decode_test();
+
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
   module_ctx->module_hash_decode_zero_hash    = module_hash_decode_zero_hash;
@@ -374,4 +391,26 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
+}
+
+void module_hash_decode_test()
+{
+  printf("\n[TEST] Running enc8 hash decode test\n");
+  
+  // 测试用例1: 使用示例哈希
+  const char *test_hash = "{enc8}EUxNIpbzGlnJbM4KKjYl+za4fmA=";
+  u32 test_digest[4] = {0};
+  salt_t test_salt;
+  memset(&test_salt, 0, sizeof(salt_t));
+  
+  hashconfig_t test_config;
+  memset(&test_config, 0, sizeof(hashconfig_t));
+  test_config.opti_type = OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_OPTIMIZED_KERNEL;
+  
+  printf("\n[TEST] Testing hash: %s\n", test_hash);
+  
+  int rc = module_hash_decode(&test_config, test_digest, &test_salt, NULL, NULL, NULL, test_hash, strlen(test_hash));
+  
+  printf("[TEST] Decode result: %s (code: %d)\n", 
+         rc == PARSER_OK ? "SUCCESS" : "FAILED", rc);
 }
