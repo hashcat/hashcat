@@ -27,7 +27,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
 // hash generated using with python3 tools/metamask2hashcat.py --vault tools/2hashcat_tests/metamask2hashcat.json
-static const char *ST_HASH        = "$metamask$jfGI3TXguhb8GPnKSXFrMzRk2NCEc131Gt5G3kZr5+s=$h+BoIf2CQ5BEjaIOShFE7g==$R95fzGt4UQ0uwrcrVYnIi4UcSlWn9wlmer+//526ZDwYAp50K82F1u1oacYcdjjhuEvbZnWk/uBG00UkgLLlO3WbINljqmu2QWdDEwjTgo/qWR6MU9d/82rxNiONHQE8UrZ8SV+htVr6XIB0ze3aCV0E+fwI93EeP79ZeDxuOEhuHoiYT0bHWMv5nA48AdluG4DbOo7SrDAWBVCBsEdXsOfYsS3/TIh0a/iFCMX4uhxY2824JwcWp4H36SFWyBYMZCJ3/U4DYFbbjWZtGRthoJlIik5BJq4FLu3Y1jEgza0AWlAvu4MKTEqrYSpUIghfxf1a1f+kPvxsHNq0as0kRwCXu09DObbdsiggbmeoBkxMZiFq0d9ar/3Gon0r3hfc3c124Wlivzbzu1JcZ3wURhLSsUS7b5cfG86aXHJkxmQDA5urBz6lw3bsIvlEUB2ErkQy/zD+cPwCG1Rs/WKt7KNh45lppCUkHccbf+xlpdc8OfUwj01Xp7BdH8LMR7Vx1C4hZCvSdtURVl0VaAMxHDX0MjRkwmqS";
+static const char *ST_HASH        = "$metamask$jReEwKFNQ5y3hfwOSQtTALWcKtlB26y5Tu1mk7LkJA8=$600000$3M/kKrGbjM/I00+RjQ9KUw==$l4UkKy22JQqCpKVqMPI99fHAyekOMgjw2lsCcA6a0oy9UHn0kXczWuqZ/aw809INGF9Ib1k/bYZQU0wtIEST/9cucpMaU7RYbp2CnjB4KzQrMU0tiK8oneVMJKBQdRL7An8S9huUq3Mu3MA1hyD7Nhi1WIIDpBPSlRa9q7waYA1m3IFKi7SgoeNeqy8GA3QeEJdimN0VgD+CCYyvHltPYqQ9BxY9cgMY+cD3FWrMe2vddBV/ylNYOXjYwaKtQWhRPwkkMj3/TR5jW2wKb3VGX8aH+M6dxO5iAsRWdKrNVg+bPQ9+8k4FUDWcmefBySd9zIyrVTsfrRYGfaPRSkUBcEOOFPpnWZdLlamuOr3MwPSjOKUi6XIzVCoO71AWM3lSntIJKOf50/2ybhlX2DKpIb0HBc6Rf+eAI0bALZ2mnq/ATviRb6aKongmk6chlbnmZdroE5ylze3TgAl1F+GleVwuL76XWacj6ft2HyVAkzkJFTn+LY7+9TinImAPXElZ67wOJn12ip03ZQOWgfehwIhcs9wVPo07e73lHvEVIE1sPuxcZqNMzc5WzR6elhCSEavv4UzCVYpJfB+nbcLvF4nME85Gls9nRSMItDRlkDrGR5dbJuJMENLpEvMgirDPYffbnKrFz7r4p7J0kchmanCWhIVnegIRGu6IDIzBjkbtZ7WfksH3TV5Q0G0rEQ==";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -134,42 +134,49 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 4;
+  token.token_cnt  = 5;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_METAMASK_WALLET;
 
-  token.len[0]     = 10;
+  token.len[0]     = 10; // signature
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.sep[1]     = '$';
+  token.sep[1]     = '$'; // salt
   token.len[1]     = 44;
   token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
+  
+  token.sep[2]     = '$'; // iterations
+  token.len_min[2] = 0;
+  token.len_max[2] = 10;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_OPTIONAL_ROUNDS;
 
-  token.sep[2]     = '$';
-  token.len[2]     = 24;
-  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+  token.sep[3]     = '$'; // iv
+  token.len[3]     = 24;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
-  token.sep[3]     = '$';
-  token.len_min[3] = 64;
-  token.len_max[3] = CT_MAX_LEN_BASE64;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.sep[4]     = '$'; // cipher
+  token.len_min[4] = 64;
+  token.len_max[4] = CT_MAX_LEN_BASE64;
+  token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+  // printf("\n\nSalt: %.*s\n", token.len[1], token.buf[1]);
+  // printf("Iteration: %.*s\n", token.len[2], token.buf[2]);
+  // printf("IV: %.*s\n", token.len[3], token.buf[3]);
+  // printf("Ciphertext: %.*s\n", token.len[4], token.buf[4]);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   u8 tmp_buf[CT_MAX_LEN_BASE64] = { 0 };
 
   size_t tmp_len = 0;
-
-  // iter
-
-  salt->salt_iter = 10000 - 1;
 
   // salt
 
@@ -195,10 +202,16 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   metamask->salt_buf[6] = salt->salt_buf[6];
   metamask->salt_buf[7] = salt->salt_buf[7];
 
+
+  // iter
+  const u8 *iter_pos = token.buf[2];
+  u32 iterations = hc_strtoul ((const char *) iter_pos, NULL, 10);
+  salt->salt_iter = iterations - 1;
+
   // iv
 
-  const u8 *iv_pos = token.buf[2];
-  const int iv_len = token.len[2];
+  const u8 *iv_pos = token.buf[3];
+  const int iv_len = token.len[3];
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
@@ -217,8 +230,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // ciphertext
 
-  const u8 *ct_pos = token.buf[3];
-  const int ct_len = token.len[3];
+  const u8 *ct_pos = token.buf[4];
+  const int ct_len = token.len[4];
 
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
