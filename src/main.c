@@ -996,7 +996,7 @@ static void main_hashconfig_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE
 
   if (hashconfig->is_salted == true)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_RAW_HASH)
+    if (hashconfig->opti_type & OPTI_TYPE_RAW_HASH || hashconfig->salt_type & SALT_TYPE_GENERIC)
     {
       event_log_info (hashcat_ctx, "Minimum salt length supported by kernel: %u", hashconfig->salt_min);
       event_log_info (hashcat_ctx, "Maximum salt length supported by kernel: %u", hashconfig->salt_max);
