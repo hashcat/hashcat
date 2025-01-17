@@ -352,16 +352,11 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt (hashcat_ctx);
   }
 
-  #if defined (_WIN)
+  // cyan color for cracked hashes
+  if (user_options->color == true) fputs("\033[0;36m", stdout);
   fwrite (buf, len,          1, stdout);
+  if (user_options->color == true) fwrite("\033[0m", 4, 1, stdout);
   fwrite (EOL, strlen (EOL), 1, stdout);
-  #else
-  // make cracked hash output in cyan
-  fputs("\033[36m", stdout);
-  fwrite (buf, len,          1, stdout);
-  fwrite("\033[0m", 4, 1, stdout);
-  fwrite (EOL, strlen (EOL), 1, stdout);
-  #endif
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
