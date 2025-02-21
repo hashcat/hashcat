@@ -7,7 +7,6 @@
 import argparse
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-# KNOWN_RECOVERY_HASHES = ['ebc6c064000011aaaa1100306543ecac', 'ec1c2ad9b6184ed6bd8d50f361c27507']
 KNOWN_RECOVERY_HASHES = ['64C0C6EB-0000-AA11-AA11-00306543ECAC', 'D92A1CEC-18B6-D64E-BD8D-50F361C27507']
 TAG_DICT = {'unk_80' : {'tag' : b'\x80', 'expected_len' : 1},
             'uuid' : {'tag' : b'\x81', 'expected_len' : 0x10},
@@ -15,7 +14,6 @@ TAG_DICT = {'unk_80' : {'tag' : b'\x80', 'expected_len' : 1},
             'wrapped_kek' : {'tag' : b'\x83', 'expected_len' : 0x28},
             'iterations' : {'tag' : b'\x84'},
             'salt' : {'tag' : b'\x85', 'expected_len' : 0x10}}
-# HEX_APFS_CONTAINER_GUID = 'ef57347c0000aa11aa1100306543ecac'
 HEX_APFS_CONTAINER_GUID = '7C3457EF-0000-11AA-AA11-00306543ECAC'
 AES_XTS_SECTOR_SIZE = 512
 EFI_PARTITION_HEADER = b'EFI PART'
