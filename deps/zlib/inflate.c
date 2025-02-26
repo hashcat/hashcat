@@ -758,9 +758,10 @@ int flush;
                 copy = state->length;
                 if (copy > have) copy = have;
                 if (copy) {
+                    len = state->head->extra_len - state->length;
                     if (state->head != Z_NULL &&
-                        state->head->extra != Z_NULL) {
-                        len = state->head->extra_len - state->length;
+                        state->head->extra != Z_NULL &&
+                        len < state->head->extra_max) {
                         zmemcpy(state->head->extra + len, next,
                                 len + copy > state->head->extra_max ?
                                 state->head->extra_max - len : copy);
