@@ -55,7 +55,7 @@ jobs:
           SHARED: ${{ matrix.shared }}
         run: make
       - name: Generate artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hashcat-linux-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
@@ -74,7 +74,7 @@ jobs:
           SHARED: ${{ matrix.shared }}
         run: make
       - name: Generate artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hashcat-macos-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
@@ -104,7 +104,7 @@ jobs:
           SHARED: ${{ matrix.shared }}
         run: make
       - name: Generate artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: hashcat-windows-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
