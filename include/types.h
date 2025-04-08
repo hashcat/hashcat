@@ -887,6 +887,12 @@ typedef void * hc_dynlib_t;
 typedef void * hc_dynfunc_t;
 #endif
 
+typedef enum increment {
+  INCREMENT_NONE,
+  INCREMENT_NORMAL,
+  INCREMENT_INVERSED,
+} increment_t;
+
 /**
  * structs
  */
@@ -2350,8 +2356,7 @@ typedef struct user_options
   bool         hex_charset;
   bool         hex_salt;
   bool         hex_wordlist;
-  bool         increment;
-  bool         increment_inverse;
+  increment_t  increment;
   bool         keep_guessing;
   bool         keyspace;
   bool         left;

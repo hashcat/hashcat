@@ -1114,7 +1114,7 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->increment == true)
+  if (user_options->increment != INCREMENT_NONE)
   {
     const u32 mask_length = mp_get_length (mask, hashconfig->opts_type);
 
@@ -1145,7 +1145,7 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
         mask_truncated_next += snprintf (mask_truncated, 256, "%s,", prepend);
       }
 
-      if (user_options->increment_inverse == true)
+      if (user_options->increment == INCREMENT_INVERSED)
       {
         if (mp_get_truncated_mask (hashcat_ctx, reverseMask (mask, ""), strlen (mask), increment_len, mask_truncated_next) == -1)
         {
