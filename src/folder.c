@@ -34,9 +34,23 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   #elif defined (_WIN)
 
-  memset (exec_path, 0, exec_path_sz);
+  static char path[MAX_PATH];
 
-  const int len = 0;
+  // Get full path of executable
+  int length = GetModuleFileName (NULL, path, MAX_PATH);
+  if (length == 0 || length >= MAX_PATH)
+  {
+    // Failed to get folder path, fall back to current directory
+    exec_path[0] = '.';
+    exec_path[1] = 0;
+    return;
+  }
+  
+  naive_replace (path, '\\', '/');
+  
+  strncpy (exec_path, path, exec_path_sz);
+
+  const size_t len = strlen (exec_path);
 
   #elif defined (__APPLE__)
 
@@ -101,35 +115,8 @@ static void get_install_dir (char *install_dir, const char *exec_path)
   }
   else
   {
-    #if defined (_WIN)
-
-    static char path[MAX_PATH];
-
-    // Get full path of executable
-    int length = GetModuleFileName (NULL, path, MAX_PATH);
-    if (length == 0 || length >= MAX_PATH)
-    {
-      // Failed to get folder path, fall back to current directory
-      install_dir[0] = '.';
-      install_dir[1] = 0;
-      return;
-    }
-    
-    naive_replace (path, '\\', '/');
-
-    char *last_slash = NULL;
-    
-    // Find last backslash and overwrite with \0 to keep only the directory
-    if ((last_slash = strrchr (path, '/')) != NULL)
-    {
-      *last_slash = 0;
-    }
-    
-    strncpy (install_dir, path, HCBUFSIZ_TINY - 1);
-    #else
     install_dir[0] = '.';
     install_dir[1] = 0;
-    #endif
   }
 }
 
