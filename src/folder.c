@@ -101,8 +101,35 @@ static void get_install_dir (char *install_dir, const char *exec_path)
   }
   else
   {
+    #if defined (_WIN)
+
+    static char path[MAX_PATH];
+
+    // Get full path of executable
+    int length = GetModuleFileName (NULL, path, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH)
+    {
+      // Failed to get folder path, fall back to current directory
+      install_dir[0] = '.';
+      install_dir[1] = 0;
+      return;
+    }
+    
+    naive_replace (path, '\\', '/');
+
+    char *last_slash = NULL;
+    
+    // Find last backslash and overwrite with \0 to keep only the directory
+    if ((last_slash = strrchr (path, '/')) != NULL)
+    {
+      *last_slash = 0;
+    }
+    
+    strncpy (install_dir, path, HCBUFSIZ_TINY - 1);
+    #else
     install_dir[0] = '.';
     install_dir[1] = 0;
+    #endif
   }
 }
 
