@@ -10,13 +10,11 @@
 #include M2S(INCLUDE_PATH/inc_types.h)
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
-#include M2S(INCLUDE_PATH/inc_rp.h)
-#include M2S(INCLUDE_PATH/inc_rp.cl)
 #include M2S(INCLUDE_PATH/inc_scalar.cl)
 #include M2S(INCLUDE_PATH/inc_hash_blake2s.cl)
 #endif
 
-KERNEL_FQ void m67890_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m33300_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -31,7 +29,14 @@ KERNEL_FQ void m67890_mxx (KERN_ATTR_RULES ())
    * base
    */
 
-  COPY_PW (pws[gid]);
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32 w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
@@ -48,13 +53,31 @@ KERNEL_FQ void m67890_mxx (KERN_ATTR_RULES ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    const u32 comb_len = combs_buf[il_pos].pw_len;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+    u32 c[64];
+
+    #ifdef _unroll
+    #pragma unroll
+    #endif
+    for (int idx = 0; idx < 64; idx++)
+    {
+      c[idx] = combs_buf[il_pos].i[idx];
+    }
+
+    switch_buffer_by_offset_1x64_le_S (c, pw_len);
+
+    #ifdef _unroll
+    #pragma unroll
+    #endif
+    for (int i = 0; i < 64; i++)
+    {
+      c[i] |= w[i];
+    }
 
     blake2s_hmac_ctx_t ctx;
 
-    blake2s_hmac_init (&ctx, tmp.i, tmp.pw_len);
+    blake2s_hmac_init (&ctx, c, pw_len + comb_len);
 
     blake2s_hmac_update (&ctx, s, salt_len);
 
@@ -69,7 +92,7 @@ KERNEL_FQ void m67890_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m67890_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void m33300_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -96,7 +119,14 @@ KERNEL_FQ void m67890_sxx (KERN_ATTR_RULES ())
    * base
    */
 
-  COPY_PW (pws[gid]);
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32 w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
 
   const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
 
@@ -113,13 +143,31 @@ KERNEL_FQ void m67890_sxx (KERN_ATTR_RULES ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    pw_t tmp = PASTE_PW;
+    const u32 comb_len = combs_buf[il_pos].pw_len;
 
-    tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
+    u32 c[64];
+
+    #ifdef _unroll
+    #pragma unroll
+    #endif
+    for (int idx = 0; idx < 64; idx++)
+    {
+      c[idx] = combs_buf[il_pos].i[idx];
+    }
+
+    switch_buffer_by_offset_1x64_le_S (c, pw_len);
+
+    #ifdef _unroll
+    #pragma unroll
+    #endif
+    for (int i = 0; i < 64; i++)
+    {
+      c[i] |= w[i];
+    }
 
     blake2s_hmac_ctx_t ctx;
 
-    blake2s_hmac_init (&ctx, tmp.i, tmp.pw_len);
+    blake2s_hmac_init (&ctx, c, pw_len + comb_len);
 
     blake2s_hmac_update (&ctx, s, salt_len);
 
