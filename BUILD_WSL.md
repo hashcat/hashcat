@@ -16,6 +16,7 @@ sudo apt install gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 make git unzip
 git clone https://github.com/hashcat/hashcat
 wget https://github.com/win-iconv/win-iconv/archive/refs/tags/v0.0.8.zip -O win-iconv.zip
 unzip win-iconv.zip
+rm win-iconv.zip
 cd ./win-iconv-0.0.8/
 patch < ../hashcat/tools/win-iconv-64.diff
 sudo make install
