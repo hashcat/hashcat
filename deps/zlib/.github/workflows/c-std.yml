@@ -1,0 +1,230 @@
+name: C Standard
+
+# Compile with as many C standards as possible.
+# The worflow is setup to fail on any compilation warnings.
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+
+  main:
+    name: ${{ matrix.os.name }} ${{ matrix.compiler }} ${{ matrix.arch.name }} ${{ matrix.std.name }}  ${{ matrix.builder }}
+    runs-on: ${{ matrix.os.value }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - name: Linux
+            value: ubuntu-latest
+
+          - name: MacOS
+            value: macos-latest
+
+          - name: Windows
+            value: windows-latest
+            cmake-opt: -G Ninja
+
+        compiler:
+          - gcc
+          - clang
+
+        arch:
+          - name: 64-bit
+            tag: amd64
+            compiler-opt: -m64
+            cmake-opt: -A x64
+
+          - name: 32-bit
+            tag: i386
+            compiler-opt: -m32
+            cmake-opt: -A Win32
+
+
+        builder:
+          - configure
+          - cmake
+
+        std:
+          - name: c89
+            value: c89
+
+          - name: gnu89
+            value: gnu89
+
+          - name: c94
+            value: iso9899:199409
+
+          - name: c99
+            value: c99
+
+          - name: gnu99
+            value: gnu99
+
+          - name: c11
+            value: c11
+
+          - name: gnu11
+            value: gnu11
+
+          - name: c17
+            value: c17
+
+          - name: gnu17
+            value: gnu17
+
+          - name: c2x
+            value: c2x
+
+          - name: gnu2x
+            value: gnu2x
+
+        exclude:
+            # Don't run 32-bit on MacOS
+          - { os:   { name: MacOS },
+              arch: { tag:  i386  } }
+
+            # Don't run configure on Windows
+          - { os:   { name: Windows },
+              builder: configure }
+
+            # Don't run gcc 32-bit on Windows
+          - { os:   { name: Windows },
+              arch: { tag:  i386  } }
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        show-progress: 'false'
+
+    - name: Install packages (Linux)
+      if: runner.os == 'Linux' && matrix.arch.tag == 'i386'
+      run: |
+        sudo apt-get update
+        sudo apt install gcc-multilib libc6-dev-i386-cross
+
+    - name: Install packages (Windows)
+      if: runner.os == 'Windows'
+      run: |
+          choco install --no-progress ninja
+
+    - name: Generate project files (configure)
+      if: matrix.builder == 'configure'
+      run: |
+        ./configure
+      env:
+        CC: ${{ matrix.compiler }}
+        CFLAGS: -std=${{ matrix.std.value }} ${{ matrix.arch.compiler-opt }} -Werror -Wall -Wextra
+
+    - name: Compile source code (configure)
+      if: matrix.builder == 'configure'
+      run: make -j2
+
+    - name: Run test cases (configure)
+      if: matrix.builder == 'configure'
+      run: |
+        make test
+        make cover
+
+    - name: Generate project files (cmake)
+      if: matrix.builder == 'cmake'
+      run: |
+        cmake -S . -B ./build1 -D CMAKE_BUILD_TYPE=Release ${{ matrix.os.cmake-opt }} -DZLIB_BUILD_TESTING=OFF
+      env:
+        CC: ${{ matrix.compiler }}
+        CFLAGS: -std=${{ matrix.std.value }} ${{ matrix.arch.compiler-opt }} -Werror -Wall -Wextra
+
+    - name: Generate project files with tests (cmake)
+      if: matrix.builder == 'cmake'
+      run: |
+        cmake -S . -B ./build2 -D CMAKE_BUILD_TYPE=Release ${{ matrix.os.cmake-opt }} -DZLIB_BUILD_MINIZIP=ON -DMINIZIP_ENABLE_BZIP2=OFF
+      env:
+        CC: ${{ matrix.compiler }}
+        CFLAGS: -std=${{ matrix.std.value }} ${{ matrix.arch.compiler-opt }} -Wall -Wextra
+
+    - name: Compile source code (cmake)
+      if: matrix.builder == 'cmake'
+      run: cmake --build ./build1 --config Release
+
+    - name: Compile source code with tests (cmake)
+      if: matrix.builder == 'cmake'
+      run: cmake --build ./build2 --config Release
+
+    - name: Run test cases (cmake)
+      if: matrix.builder == 'cmake'
+      run: ctest ./build2 -C Release --output-on-failure --max-width 120
+
+
+  msvc:
+    name: ${{ matrix.os.name }} ${{ matrix.compiler }} ${{ matrix.arch.name }} ${{ matrix.std.name }}  ${{ matrix.builder }}
+    runs-on: ${{ matrix.os.value }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - name: Windows
+            value: windows-latest
+
+        compiler:
+          - cl
+
+        arch:
+          - name: 32-bit
+            value: -A Win32
+
+          - name: 64-bit
+            value: -A x64
+
+        builder:
+          - cmake
+
+        std:
+          - name: default
+            value: ""
+
+          - name: C11
+            value: /std:c11
+
+          - name: C17
+            value: /std:c17
+
+          # not available on the runner yet
+          # - name: C20
+          #   value: /std:c20
+
+          - name: latest
+            value: /std:clatest
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        show-progress: 'false'
+
+    - name: Generate project files (cmake)
+      run: |
+        cmake -S . -B ./build1 ${{ matrix.arch.value }} -D CMAKE_BUILD_TYPE=Release -DZLIB_BUILD_TESTING=OFF
+      env:
+        CC: ${{ matrix.compiler }}
+        CFLAGS: /WX ${{ matrix.std.value }}
+
+    - name: Generate project files with tests (cmake)
+      run: |
+        cmake -S . -B ./build2 ${{ matrix.arch.value }} -D CMAKE_BUILD_TYPE=Release -DZLIB_BUILD_MINIZIP=ON -DMINIZIP_ENABLE_BZIP2=OFF
+      env:
+        CC: ${{ matrix.compiler }}
+        CFLAGS: ${{ matrix.std.value }}
+
+    - name: Compile source code (cmake)
+      run: cmake --build ./build1 --config Release -v
+
+    - name: Compile source code with tests(cmake)
+      run: cmake --build ./build2 --config Release -v
+
+    - name: Run test cases (cmake)
+      run: ctest ./build2 -C Release --output-on-failure --max-width 120

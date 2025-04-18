@@ -1,0 +1,77 @@
+name: mingw/cygwin
+
+on: [push, pull_request]
+
+jobs:
+  MSys:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sys: [mingw32, mingw64, ucrt64, clang64]
+    name: MSys - ${{ matrix.sys }}
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Setup MSYS2
+      uses: msys2/setup-msys2@v2
+      with:
+        msystem: ${{ matrix.sys }}
+        update: true
+        install: >-
+          make
+        pacboy: >-
+          toolchain:p
+          cmake:p
+    - name: Configure
+      run: |
+        cmake -G"Unix Makefiles" \
+          -S . \
+          -B build \
+          -DCMAKE_VERBOSE_MAKEFILE=ON \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DMINIZIP_ENABLE_BZIP2=ON
+    - name: Build
+      run: cmake --build build --config Release
+    - name: Run tests
+      run: ctest --output-on-failure --test-dir build -C Release
+
+  cygwin:
+    strategy:
+      fail-fast: false
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: C:\cygwin\bin\bash.exe --login -o igncr '{0}'
+    name: Cygwin
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Setup cygwin
+      uses: cygwin/cygwin-install-action@master
+      with:
+        packages: >-
+          cmake
+          cygwin-devel
+          gcc-core
+          gcc-g++
+          ninja
+    - name: Configure
+      run: |
+        cmake /cygdrive/d/a/zlib/zlib \
+          -B build \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DZLIB_BUILD_MINIZIP=ON \
+          -DMINIZIP_ENABLE_BZIP2=OFF \
+          -G Ninja
+    - name: Build
+      run: cmake --build build --config Release -v -j1
+    - name: Run tests
+      run: ctest --output-on-failure --test-dir build -C Release
