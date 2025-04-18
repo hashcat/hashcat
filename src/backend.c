@@ -1462,11 +1462,15 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             device_param->kernel_param.loop_pos = loops_pos;
             device_param->kernel_param.loop_cnt = loops_cnt;
 
+            int aux_cnt = 0;
+
             if (hashconfig->opts_type & OPTS_TYPE_AUX1)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, pws_pos, pws_cnt, false, 0) == -1) return -1;
 
               if (status_ctx->run_thread_level2 == false) break;
+
+              aux_cnt++;
             }
 
             if (hashconfig->opts_type & OPTS_TYPE_AUX2)
@@ -1474,6 +1478,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, pws_pos, pws_cnt, false, 0) == -1) return -1;
 
               if (status_ctx->run_thread_level2 == false) break;
+
+              aux_cnt++;
             }
 
             if (hashconfig->opts_type & OPTS_TYPE_AUX3)
@@ -1481,11 +1487,22 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, pws_pos, pws_cnt, false, 0) == -1) return -1;
 
               if (status_ctx->run_thread_level2 == false) break;
+
+              aux_cnt++;
             }
 
             if (hashconfig->opts_type & OPTS_TYPE_AUX4)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, pws_pos, pws_cnt, false, 0) == -1) return -1;
+
+              if (status_ctx->run_thread_level2 == false) break;
+
+              aux_cnt++;
+            }
+
+            if (aux_cnt == 0)
+            {
+              if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, pws_pos, pws_cnt, false, 0) == -1) return -1;
 
               if (status_ctx->run_thread_level2 == false) break;
             }
