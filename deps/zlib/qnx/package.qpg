@@ -25,10 +25,10 @@
       <QPG:Files>
          <QPG:Add file="../zconf.h" install="/opt/include/" user="root:sys" permission="644"/>
          <QPG:Add file="../zlib.h" install="/opt/include/" user="root:sys" permission="644"/>
-         <QPG:Add file="../libz.so.1.2.11" install="/opt/lib/" user="root:bin" permission="644"/>
-         <QPG:Add file="libz.so" install="/opt/lib/" component="dev" filetype="symlink" linkto="libz.so.1.2.11"/>
-         <QPG:Add file="libz.so.1" install="/opt/lib/" filetype="symlink" linkto="libz.so.1.2.11"/>
-         <QPG:Add file="../libz.so.1.2.11" install="/opt/lib/" component="slib"/>
+         <QPG:Add file="../libz.so.1.3.1.1" install="/opt/lib/" user="root:bin" permission="644"/>
+         <QPG:Add file="libz.so" install="/opt/lib/" component="dev" filetype="symlink" linkto="libz.so.1.3.1.1"/>
+         <QPG:Add file="libz.so.1" install="/opt/lib/" filetype="symlink" linkto="libz.so.1.3.1.1"/>
+         <QPG:Add file="../libz.so.1.3.1.1" install="/opt/lib/" component="slib"/>
       </QPG:Files>
 
       <QPG:PackageFilter>
@@ -58,12 +58,12 @@
                <QPM:ProductIconLarge></QPM:ProductIconLarge>
                <QPM:ProductDescriptionShort>A massively spiffy yet delicately unobtrusive compression library.</QPM:ProductDescriptionShort>
                <QPM:ProductDescriptionLong>zlib is designed to be a free, general-purpose, legally unencumbered, lossless data compression library for use on virtually any computer hardware and operating system.</QPM:ProductDescriptionLong>
-               <QPM:ProductDescriptionURL>http://www.gzip.org/zlib</QPM:ProductDescriptionURL>
+               <QPM:ProductDescriptionURL>https://zlib.net/</QPM:ProductDescriptionURL>
                <QPM:ProductDescriptionEmbedURL></QPM:ProductDescriptionEmbedURL>
             </QPM:ProductDescription>
 
             <QPM:ReleaseDescription>
-               <QPM:ReleaseVersion>1.2.11</QPM:ReleaseVersion>
+               <QPM:ReleaseVersion>1.3.1.1</QPM:ReleaseVersion>
                <QPM:ReleaseUrgency>Medium</QPM:ReleaseUrgency>
                <QPM:ReleaseStability>Stable</QPM:ReleaseStability>
                <QPM:ReleaseNoteMinor></QPM:ReleaseNoteMinor>

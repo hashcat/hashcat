@@ -3,7 +3,7 @@
   <ItemGroup>
     <Filter Include="Source Files">
       <UniqueIdentifier>{048af943-022b-4db6-beeb-a54c34774ee2}</UniqueIdentifier>
-      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm</Extensions>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat</Extensions>
     </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{c1d600d2-888f-4aea-b73e-8b0dd9befa0c}</UniqueIdentifier>

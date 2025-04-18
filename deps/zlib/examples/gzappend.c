@@ -33,7 +33,7 @@
  *                      - Add L to constants in lseek() calls
  *                      - Remove some debugging information in error messages
  *                      - Use new data_type definition for zlib 1.2.1
- *                      - Simplfy and unify file operations
+ *                      - Simplify and unify file operations
  *                      - Finish off gzip file in gztack()
  *                      - Use deflatePrime() instead of adding empty blocks
  *                      - Keep gzip file clean on appended file read errors
@@ -54,7 +54,7 @@
    block boundary to facilitate locating and modifying the last block bit at
    the start of the final deflate block.  Also whether using Z_BLOCK or not,
    another required feature of zlib 1.2.x is that inflate() now provides the
-   number of unusued bits in the last input byte used.  gzappend will not work
+   number of unused bits in the last input byte used.  gzappend will not work
    with versions of zlib earlier than 1.2.1.
 
    gzappend first decompresses the gzip file internally, discarding all but
@@ -137,7 +137,7 @@ local void rotate(unsigned char *list, unsigned len, unsigned rot)
     /* do simple left shift by one */
     if (rot == 1) {
         tmp = *list;
-        memcpy(list, list + 1, len - 1);
+        memmove(list, list + 1, len - 1);
         *last = tmp;
         return;
     }

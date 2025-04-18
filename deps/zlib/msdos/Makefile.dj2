@@ -30,7 +30,7 @@ CC=gcc
 #CFLAGS=-MMD -O
 #CFLAGS=-O -DMAX_WBITS=14 -DMAX_MEM_LEVEL=7
 #CFLAGS=-MMD -g -DZLIB_DEBUG
-CFLAGS=-MMD -O3 $(BUTT) -Wall -Wwrite-strings -Wpointer-arith -Wconversion \
+CFLAGS=-MMD -O3 $(BUTT) -Wall -Wwrite-strings -Wpointer-arith \
              -Wstrict-prototypes -Wmissing-prototypes
 
 # If cp.exe is available, replace "copy /Y" with "cp -fp" .

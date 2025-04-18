@@ -114,7 +114,7 @@ package ZLib is
    -- Compression strategy constants --
    ------------------------------------
 
-   --  RLE stategy could be used only in version 1.2.0 and later.
+   --  RLE strategy could be used only in version 1.2.0 and later.
 
    Filtered         : constant Strategy_Type;
    Huffman_Only     : constant Strategy_Type;

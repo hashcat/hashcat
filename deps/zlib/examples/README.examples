@@ -34,6 +34,10 @@ gzlog.h
       and deflateSetDictionary()
     - illustrates use of a gzip header extra field
 
+gznorm.c
+    normalize a gzip file by combining members into a single member
+    - demonstrates how to concatenate deflate streams using Z_BLOCK
+
 zlib_how.html
     painfully comprehensive description of zpipe.c (see below)
     - describes in excruciating detail the use of deflate() and inflate()
@@ -44,6 +48,7 @@ zpipe.c
     - deeply commented in zlib_how.html (see above)
 
 zran.c
+zran.h
     index a zlib or gzip stream and randomly access it
     - illustrates the use of Z_BLOCK, inflatePrime(), and
       inflateSetDictionary() to provide random access

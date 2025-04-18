@@ -1,7 +1,7 @@
       *  ZLIB.INC - Interface to the general purpose compression library
       *
       *  ILE RPG400 version by Patrick Monnerat, DATASPHERE.
-      *  Version 1.2.11
+      *  Version 1.3.1.1
       *
       *
       *  WARNING:
@@ -22,14 +22,14 @@
       *
       *  Versioning information.
       *
-     D ZLIB_VERSION    C                   '1.2.11'
+     D ZLIB_VERSION    C                   '1.3.1.1'
      D ZLIB_VERNUM     C                   X'12a0'
      D ZLIB_VER_MAJOR  C                   1
-     D ZLIB_VER_MINOR  C                   2
+     D ZLIB_VER_MINOR  C                   3
      D ZLIB_VER_REVISION...
-     D                 C                   11
+     D                 C                   1
      D ZLIB_VER_SUBREVISION...
-     D                 C                   0
+     D                 C                   1
       *
       *  Other equates.
       *
@@ -370,6 +370,10 @@
      D  strm                               like(z_stream)                       Compression stream
      D  pending                      10U 0                                      Pending bytes
      D  bits                         10I 0                                      Pending bits
+      *
+     D deflateUsed  PR               10I 0 extproc('deflateUsed')               Get used bits
+     D  strm                               like(z_stream)                       Compression stream
+     D  bits                         10I 0                                      Used bits
       *
      D deflatePrime    PR            10I 0 extproc('deflatePrime')              Change level & strat
      D  strm                               like(z_stream)                       Compression stream

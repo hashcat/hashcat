@@ -12,6 +12,10 @@
                      Avoid some compiler warnings for input and output buffers
  */
 
+#if defined(_WIN32) && !defined(_CRT_NONSTDC_NO_DEPRECATE)
+#  define _CRT_NONSTDC_NO_DEPRECATE
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>

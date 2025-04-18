@@ -15,6 +15,17 @@
 
 /* @(#) $Id$ */
 
+#ifndef _POSIX_C_SOURCE
+#  define _POSIX_C_SOURCE 200112L
+#endif
+
+#if defined(_WIN32) && !defined(_CRT_SECURE_NO_WARNINGS)
+#  define _CRT_SECURE_NO_WARNINGS
+#endif
+#if defined(_WIN32) && !defined(_CRT_NONSTDC_NO_DEPRECATE)
+#  define _CRT_NONSTDC_NO_DEPRECATE
+#endif
+
 #include "zlib.h"
 #include <stdio.h>
 
@@ -40,18 +51,16 @@
 #  define SET_BINARY_MODE(file)
 #endif
 
-#if defined(_MSC_VER) && _MSC_VER < 1900
-#  define snprintf _snprintf
-#endif
-
 #ifdef VMS
 #  define unlink delete
 #  define GZ_SUFFIX "-gz"
 #endif
-#ifdef RISCOS
-#  define unlink remove
-#  define GZ_SUFFIX "-gz"
-#  define fileno(file) file->__file
+#if defined(__riscos) && !defined(__TARGET_UNIXLIB__)
+#  define GZ_SUFFIX "/gz"
+#  ifndef __GNUC__
+#    define unlink remove
+#    define fileno(file) file->__file
+#  endif
 #endif
 #if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
 #  include <unix.h> /* for fileno */
@@ -59,7 +68,7 @@
 
 #if !defined(Z_HAVE_UNISTD_H) && !defined(_LARGEFILE64_SOURCE)
 #ifndef WIN32 /* unlink already in stdio.h for WIN32 */
-  extern int unlink OF((const char *));
+  extern int unlink(const char *);
 #endif
 #endif
 
@@ -142,6 +151,25 @@ static void pwinerror (s)
 #  define local
 #endif
 
+/* ===========================================================================
+ * Safe string copy. Copy up to len bytes from src to dst, if src terminates
+ * with a null by then. If not, copy len-1 bytes from src, terminating it with
+ * a null in dst[len-1], cutting src short. Return a pointer to the terminating
+ * null. If len is zero, nothing is written to *dst and NULL is returned.
+ */
+static char *string_copy(char *dst, char const *src, z_size_t len) {
+    if (len == 0)
+        return NULL;
+    while (--len) {
+        *dst = *src++;
+        if (*dst == 0)
+            return dst;
+        dst++;
+    }
+    *dst = 0;
+    return dst;
+}
+
 #ifdef Z_SOLO
 /* for Z_SOLO, create simplified gz* functions using deflate and inflate */
 
@@ -149,20 +177,12 @@ static void pwinerror (s)
 #  include <unistd.h>       /* for unlink() */
 #endif
 
-void *myalloc OF((void *, unsigned, unsigned));
-void myfree OF((void *, void *));
-
-void *myalloc(q, n, m)
-    void *q;
-    unsigned n, m;
-{
+static void *myalloc(void *q, unsigned n, unsigned m) {
     (void)q;
     return calloc(n, m);
 }
 
-void myfree(q, p)
-    void *q, *p;
-{
+static void myfree(void *q, void *p) {
     (void)q;
     free(p);
 }
@@ -175,29 +195,7 @@ typedef struct gzFile_s {
     z_stream strm;
 } *gzFile;
 
-gzFile gzopen OF((const char *, const char *));
-gzFile gzdopen OF((int, const char *));
-gzFile gz_open OF((const char *, int, const char *));
-
-gzFile gzopen(path, mode)
-const char *path;
-const char *mode;
-{
-    return gz_open(path, -1, mode);
-}
-
-gzFile gzdopen(fd, mode)
-int fd;
-const char *mode;
-{
-    return gz_open(NULL, fd, mode);
-}
-
-gzFile gz_open(path, fd, mode)
-    const char *path;
-    int fd;
-    const char *mode;
-{
+static gzFile gz_open(const char *path, int fd, const char *mode) {
     gzFile gz;
     int ret;
 
@@ -231,13 +229,15 @@ gzFile gz_open(path, fd, mode)
     return gz;
 }
 
-int gzwrite OF((gzFile, const void *, unsigned));
+static gzFile gzopen(const char *path, const char *mode) {
+    return gz_open(path, -1, mode);
+}
 
-int gzwrite(gz, buf, len)
-    gzFile gz;
-    const void *buf;
-    unsigned len;
-{
+static gzFile gzdopen(int fd, const char *mode) {
+    return gz_open(NULL, fd, mode);
+}
+
+static int gzwrite(gzFile gz, const void *buf, unsigned len) {
     z_stream *strm;
     unsigned char out[BUFLEN];
 
@@ -255,13 +255,7 @@ int gzwrite(gz, buf, len)
     return len;
 }
 
-int gzread OF((gzFile, void *, unsigned));
-
-int gzread(gz, buf, len)
-    gzFile gz;
-    void *buf;
-    unsigned len;
-{
+static int gzread(gzFile gz, void *buf, unsigned len) {
     int ret;
     unsigned got;
     unsigned char in[1];
@@ -292,11 +286,7 @@ int gzread(gz, buf, len)
     return len - strm->avail_out;
 }
 
-int gzclose OF((gzFile));
-
-int gzclose(gz)
-    gzFile gz;
-{
+static int gzclose(gzFile gz) {
     z_stream *strm;
     unsigned char out[BUFLEN];
 
@@ -321,12 +311,7 @@ int gzclose(gz)
     return Z_OK;
 }
 
-const char *gzerror OF((gzFile, int *));
-
-const char *gzerror(gz, err)
-    gzFile gz;
-    int *err;
-{
+static const char *gzerror(gzFile gz, int *err) {
     *err = gz->err;
     return gz->msg;
 }
@@ -335,67 +320,20 @@ const char *gzerror(gz, err)
 
 static char *prog;
 
-void error            OF((const char *msg));
-void gz_compress      OF((FILE   *in, gzFile out));
-#ifdef USE_MMAP
-int  gz_compress_mmap OF((FILE   *in, gzFile out));
-#endif
-void gz_uncompress    OF((gzFile in, FILE   *out));
-void file_compress    OF((char  *file, char *mode));
-void file_uncompress  OF((char  *file));
-int  main             OF((int argc, char *argv[]));
-
 /* ===========================================================================
  * Display error message and exit
  */
-void error(msg)
-    const char *msg;
-{
+static void error(const char *msg) {
     fprintf(stderr, "%s: %s\n", prog, msg);
     exit(1);
-}
-
-/* ===========================================================================
- * Compress input to output then close both files.
- */
-
-void gz_compress(in, out)
-    FILE   *in;
-    gzFile out;
-{
-    local char buf[BUFLEN];
-    int len;
-    int err;
-
-#ifdef USE_MMAP
-    /* Try first compressing with mmap. If mmap fails (minigzip used in a
-     * pipe), use the normal fread loop.
-     */
-    if (gz_compress_mmap(in, out) == Z_OK) return;
-#endif
-    for (;;) {
-        len = (int)fread(buf, 1, sizeof(buf), in);
-        if (ferror(in)) {
-            perror("fread");
-            exit(1);
-        }
-        if (len == 0) break;
-
-        if (gzwrite(out, buf, (unsigned)len) != len) error(gzerror(out, &err));
-    }
-    fclose(in);
-    if (gzclose(out) != Z_OK) error("failed gzclose");
 }
 
 #ifdef USE_MMAP /* MMAP version, Miguel Albrecht <malbrech@eso.org> */
 
 /* Try compressing the input file at once using mmap. Return Z_OK if
- * if success, Z_ERRNO otherwise.
+ * success, Z_ERRNO otherwise.
  */
-int gz_compress_mmap(in, out)
-    FILE   *in;
-    gzFile out;
-{
+static int gz_compress_mmap(FILE *in, gzFile out) {
     int len;
     int err;
     int ifd = fileno(in);
@@ -425,12 +363,38 @@ int gz_compress_mmap(in, out)
 #endif /* USE_MMAP */
 
 /* ===========================================================================
+ * Compress input to output then close both files.
+ */
+
+static void gz_compress(FILE *in, gzFile out) {
+    local char buf[BUFLEN];
+    int len;
+    int err;
+
+#ifdef USE_MMAP
+    /* Try first compressing with mmap. If mmap fails (minigzip used in a
+     * pipe), use the normal fread loop.
+     */
+    if (gz_compress_mmap(in, out) == Z_OK) return;
+#endif
+    for (;;) {
+        len = (int)fread(buf, 1, sizeof(buf), in);
+        if (ferror(in)) {
+            perror("fread");
+            exit(1);
+        }
+        if (len == 0) break;
+
+        if (gzwrite(out, buf, (unsigned)len) != len) error(gzerror(out, &err));
+    }
+    fclose(in);
+    if (gzclose(out) != Z_OK) error("failed gzclose");
+}
+
+/* ===========================================================================
  * Uncompress input to output then close both files.
  */
-void gz_uncompress(in, out)
-    gzFile in;
-    FILE   *out;
-{
+static void gz_uncompress(gzFile in, FILE *out) {
     local char buf[BUFLEN];
     int len;
     int err;
@@ -454,11 +418,8 @@ void gz_uncompress(in, out)
  * Compress the given file: create a corresponding .gz file and remove the
  * original.
  */
-void file_compress(file, mode)
-    char  *file;
-    char  *mode;
-{
-    local char outfile[MAX_NAME_LEN];
+static void file_compress(char *file, char *mode) {
+    local char outfile[MAX_NAME_LEN+1], *end;
     FILE  *in;
     gzFile out;
 
@@ -467,12 +428,8 @@ void file_compress(file, mode)
         exit(1);
     }
 
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-    snprintf(outfile, sizeof(outfile), "%s%s", file, GZ_SUFFIX);
-#else
-    strcpy(outfile, file);
-    strcat(outfile, GZ_SUFFIX);
-#endif
+    end = string_copy(outfile, file, sizeof(outfile));
+    string_copy(end, GZ_SUFFIX, sizeof(outfile) - (z_size_t)(end - outfile));
 
     in = fopen(file, "rb");
     if (in == NULL) {
@@ -493,25 +450,19 @@ void file_compress(file, mode)
 /* ===========================================================================
  * Uncompress the given file and remove the original.
  */
-void file_uncompress(file)
-    char  *file;
-{
-    local char buf[MAX_NAME_LEN];
+static void file_uncompress(char *file) {
+    local char buf[MAX_NAME_LEN+1];
     char *infile, *outfile;
     FILE  *out;
     gzFile in;
-    unsigned len = strlen(file);
+    z_size_t len = strlen(file);
 
     if (len + strlen(GZ_SUFFIX) >= sizeof(buf)) {
         fprintf(stderr, "%s: filename too long\n", prog);
         exit(1);
     }
 
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-    snprintf(buf, sizeof(buf), "%s", file);
-#else
-    strcpy(buf, file);
-#endif
+    string_copy(buf, file, sizeof(buf));
 
     if (len > SUFFIX_LEN && strcmp(file+len-SUFFIX_LEN, GZ_SUFFIX) == 0) {
         infile = file;
@@ -520,11 +471,7 @@ void file_uncompress(file)
     } else {
         outfile = file;
         infile = buf;
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-        snprintf(buf + len, sizeof(buf) - len, "%s", GZ_SUFFIX);
-#else
-        strcat(infile, GZ_SUFFIX);
-#endif
+        string_copy(buf + len, GZ_SUFFIX, sizeof(buf) - len);
     }
     in = gzopen(infile, "rb");
     if (in == NULL) {
@@ -553,21 +500,13 @@ void file_uncompress(file)
  *   -1 to -9 : compression level
  */
 
-int main(argc, argv)
-    int argc;
-    char *argv[];
-{
+int main(int argc, char *argv[]) {
     int copyout = 0;
     int uncompr = 0;
     gzFile file;
-    char *bname, outmode[20];
+    char *bname, outmode[5];
 
-#if !defined(NO_snprintf) && !defined(NO_vsnprintf)
-    snprintf(outmode, sizeof(outmode), "%s", "wb6 ");
-#else
-    strcpy(outmode, "wb6 ");
-#endif
-
+    string_copy(outmode, "wb6 ", sizeof(outmode));
     prog = argv[0];
     bname = strrchr(argv[0], '/');
     if (bname)

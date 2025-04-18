@@ -40,7 +40,7 @@
    its new size at that time.  After each write operation, the log file is a
    valid gzip file that can decompressed to recover what was written.
 
-   The gzlog operations can be interupted at any point due to an application or
+   The gzlog operations can be interrupted at any point due to an application or
    system crash, and the log file will be recovered the next time the log is
    opened with gzlog_open().
  */

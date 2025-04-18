@@ -43,7 +43,7 @@
    gun will also decompress files made by Unix compress, which uses LZW
    compression.  These files are automatically detected by virtue of their
    magic header bytes.  Since the end of Unix compress stream is marked by the
-   end-of-file, they cannot be concantenated.  If a Unix compress stream is
+   end-of-file, they cannot be concatenated.  If a Unix compress stream is
    encountered in an input file, it is the last stream in that file.
 
    Like gunzip and uncompress, the file attributes of the original compressed
@@ -227,12 +227,12 @@ local int lunpipe(unsigned have, z_const unsigned char *next, struct ind *indp,
     if (last == -1)
         return Z_BUF_ERROR;
     if (flags & 0x60) {
-        strm->msg = (char *)"unknown lzw flags set";
+        strm->msg = (z_const char *)"unknown lzw flags set";
         return Z_DATA_ERROR;
     }
     max = flags & 0x1f;
     if (max < 9 || max > 16) {
-        strm->msg = (char *)"lzw bits out of range";
+        strm->msg = (z_const char *)"lzw bits out of range";
         return Z_DATA_ERROR;
     }
     if (max == 9)                           /* 9 doesn't really mean 9 */
@@ -252,7 +252,7 @@ local int lunpipe(unsigned have, z_const unsigned char *next, struct ind *indp,
     if (NEXT() == -1)                       /* missing a bit */
         return Z_BUF_ERROR;
     if (last & 1) {                         /* code must be < 256 */
-        strm->msg = (char *)"invalid lzw code";
+        strm->msg = (z_const char *)"invalid lzw code";
         return Z_DATA_ERROR;
     }
     rem = (unsigned)last >> 1;              /* remaining 7 bits */
@@ -319,7 +319,7 @@ local int lunpipe(unsigned have, z_const unsigned char *next, struct ind *indp,
                to detect random or corrupted input after a compress header.
                In any case, the prev > end check must be retained. */
             if (code != end + 1 || prev > end) {
-                strm->msg = (char *)"invalid lzw code";
+                strm->msg = (z_const char *)"invalid lzw code";
                 return Z_DATA_ERROR;
             }
             match[stack++] = (unsigned char)final;
@@ -404,7 +404,7 @@ local int gunpipe(z_stream *strm, int infile, int outfile)
             break;                          /* empty gzip stream is ok */
         }
         if (last != 31 || (NEXT() != 139 && last != 157)) {
-            strm->msg = (char *)"incorrect header check";
+            strm->msg = (z_const char *)"incorrect header check";
             ret = first ? Z_DATA_ERROR : Z_ERRNO;
             break;                          /* not a gzip or compress header */
         }
@@ -420,7 +420,7 @@ local int gunpipe(z_stream *strm, int infile, int outfile)
         ret = Z_BUF_ERROR;
         if (NEXT() != 8) {                  /* only deflate method allowed */
             if (last == -1) break;
-            strm->msg = (char *)"unknown compression method";
+            strm->msg = (z_const char *)"unknown compression method";
             ret = Z_DATA_ERROR;
             break;
         }
@@ -433,7 +433,7 @@ local int gunpipe(z_stream *strm, int infile, int outfile)
         NEXT();
         if (last == -1) break;
         if (flags & 0xe0) {
-            strm->msg = (char *)"unknown header flags set";
+            strm->msg = (z_const char *)"unknown header flags set";
             ret = Z_DATA_ERROR;
             break;
         }
@@ -486,7 +486,7 @@ local int gunpipe(z_stream *strm, int infile, int outfile)
             NEXT() != (int)((outd.crc >> 24) & 0xff)) {
             /* crc error */
             if (last != -1) {
-                strm->msg = (char *)"incorrect data check";
+                strm->msg = (z_const char *)"incorrect data check";
                 ret = Z_DATA_ERROR;
             }
             break;
@@ -497,7 +497,7 @@ local int gunpipe(z_stream *strm, int infile, int outfile)
             NEXT() != (int)((outd.total >> 24) & 0xff)) {
             /* length error */
             if (last != -1) {
-                strm->msg = (char *)"incorrect length check";
+                strm->msg = (z_const char *)"incorrect length check";
                 ret = Z_DATA_ERROR;
             }
             break;

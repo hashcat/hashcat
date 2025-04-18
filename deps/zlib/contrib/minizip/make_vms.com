@@ -2,7 +2,7 @@ $ if f$search("ioapi.h_orig") .eqs. "" then copy ioapi.h ioapi.h_orig
 $ open/write zdef vmsdefs.h
 $ copy sys$input: zdef
 $ deck
-#define unix
+#define __unix__
 #define fill_zlib_filefunc64_32_def_from_filefunc32 fillzffunc64from
 #define Write_Zip64EndOfCentralDirectoryLocator Write_Zip64EoDLocator
 #define Write_Zip64EndOfCentralDirectoryRecord Write_Zip64EoDRecord
