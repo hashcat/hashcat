@@ -47,6 +47,10 @@ extern "C" unsigned int hc_decompress_rar (unsigned char *Win, unsigned char *In
 
   Unp.DoUnpack (METHOD, SOLID); // sets output
 
+  unsigned int wfs = (unsigned int) Unp.GetWrittenFileSize();
+
+  if (wfs != UnpackSize) return 0;
+
   unsigned int crc32 = (unsigned int) DataIO.UnpHash.GetCRC32 ();
 
   return crc32;

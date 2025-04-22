@@ -383,6 +383,7 @@ class Unpack:PackDef
     bool IsFileExtracted() {return(FileExtracted);}
     void SetDestSize(int64 DestSize) {DestUnpSize=DestSize;FileExtracted=false;}
     void SetSuspended(bool Suspended) {Unpack::Suspended=Suspended;}
+    int64 GetWrittenFileSize() {return(WrittenFileSize);}
 
 #ifdef RAR_SMP
     void SetThreads(uint Threads);
