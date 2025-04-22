@@ -28,7 +28,7 @@
 #define PASTE_PW pw;
 #endif
 
-CONSTANT_AS u8 s_lookup[128] =
+CONSTANT_VK u8 s_lookup[128] =
 {
   // 0-31: control characters (0)
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -53,32 +53,32 @@ CONSTANT_AS u8 s_lookup[128] =
   0
 };
 
-HC_INLINE bool is_l (u8 c)
+DECLSPEC bool is_l (u8 c)
 {
   return (c >= 'a' && c <= 'z');
 }
 
-HC_INLINE bool is_u (u8 c)
+DECLSPEC bool is_u (u8 c)
 {
   return (c >= 'A' && c <= 'Z');
 }
 
-HC_INLINE bool is_d (u8 c)
+DECLSPEC bool is_d (u8 c)
 {
   return (c >= '0' && c <= '9');
 }
 
-HC_INLINE bool is_lh (u8 c)
+DECLSPEC bool is_lh (u8 c)
 {
   return (is_d (c) || (c >= 'a' && c <= 'f'));
 }
 
-HC_INLINE bool is_uh (u8 c)
+DECLSPEC bool is_uh (u8 c)
 {
   return (is_d (c) || (c >= 'A' && c <= 'F'));
 }
 
-HC_INLINE bool is_s (u8 c)
+DECLSPEC bool is_s (u8 c)
 {
   return s_lookup[c] == 1;
 }
