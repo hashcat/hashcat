@@ -12,7 +12,7 @@
 #define SOLID   false
 #define METHOD  VER_UNPACK // 29 for RAR3 archives
 
-extern "C" unsigned int hc_decompress_rar (unsigned char *Win, unsigned char *Inp, unsigned char *VM, unsigned char *PPM, const unsigned int OutputSize, const unsigned char *Input, const unsigned int PackSize, const unsigned int UnpackSize, const unsigned char *Key, const unsigned char *IV)
+extern "C" unsigned int hc_decompress_rar (unsigned char *Win, unsigned char *Inp, unsigned char *VM, unsigned char *PPM, const unsigned int OutputSize, const unsigned char *Input, const unsigned int PackSize, const unsigned int UnpackSize, const unsigned char *Key, const unsigned char *IV, unsigned int *unpack_failed)
 {
   ComprDataIO DataIO;
 
@@ -47,9 +47,7 @@ extern "C" unsigned int hc_decompress_rar (unsigned char *Win, unsigned char *In
 
   Unp.DoUnpack (METHOD, SOLID); // sets output
 
-  unsigned int wfs = (unsigned int) Unp.GetWrittenFileSize();
-
-  if (wfs != UnpackSize) return 0;
+  *unpack_failed = (Unp.WrittenFileSize != UnpackSize);
 
   unsigned int crc32 = (unsigned int) DataIO.UnpHash.GetCRC32 ();
 

@@ -44,6 +44,8 @@ typedef struct rar3_hook
 
   u32 first_block_decrypted[4];
 
+  u32 unpack_failed;
+
   u32 crc32;
 
 } rar3_hook_t;
@@ -494,6 +496,8 @@ KERNEL_FQ void m23800_comp (KERN_ATTR_TMPS_HOOKS_ESALT (rar3_tmp_t, rar3_hook_t,
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
+
+  if (hooks[gid].unpack_failed == 1) return;
 
   u32 crc32 = hooks[gid].crc32;
 
