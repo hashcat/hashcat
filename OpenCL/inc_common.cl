@@ -2703,7 +2703,7 @@ DECLSPEC int asn1_detect (PRIVATE_AS const u32 *buf, const int len)
 
 DECLSPEC int asn1_check_int_tag (PRIVATE_AS const u32 *buf, const int len)
 {
-  const u8 *bytes = (const u8 *) buf;
+  PRIVATE_AS const u8 *bytes = (PRIVATE_AS const u8 *) buf;
 
   int seq_len_offset = 0;
 
