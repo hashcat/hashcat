@@ -24,6 +24,71 @@ typedef struct pem
 
 } pem_t;
 
+DECLSPEC int asn1_check_int_tag (PRIVATE_AS const u32 *buf, const int len)
+{
+  const u8 *bytes = (const u8 *) buf;
+
+  int seq_len_offset = 0;
+
+  if (bytes[1] < 0x80)
+  {
+    seq_len_offset = 2;
+  }
+  else if (bytes[1] == 0x81)
+  {
+    seq_len_offset = 3;
+  }
+  else if (bytes[1] == 0x82)
+  {
+    seq_len_offset = 4;
+  }
+  else
+  {
+    return 0;
+  }
+
+  int pos = seq_len_offset;
+
+  if (pos >= len) return 0;
+  if (pos + 2 > len) return 0;
+
+  u8 tag = bytes[pos];
+
+  if (tag != 0x02) return 0;
+
+  u8 len_byte = bytes[pos + 1];
+
+  int val_len = 0;
+  int tmp_len = 1;
+
+  if (len_byte < 0x80)
+  {
+    val_len = len_byte;
+  }
+  else if (len_byte == 0x81)
+  {
+    if (pos + 2 >= len) return 0;
+    val_len = bytes[pos + 2];
+    tmp_len = 2;
+  }
+  else if (len_byte == 0x82)
+  {
+    if (pos + 3 >= len) return 0;
+    val_len = (bytes[pos + 2] << 8) | bytes[pos + 3];
+    tmp_len = 3;
+  }
+  else
+  {
+    return 0;
+  }
+
+  if (pos + 1 + tmp_len + val_len > len) return 0;
+
+  if (val_len != 1) return 0;
+
+  return 1;
+}
+
 KERNEL_FQ void m22931_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
@@ -236,6 +301,10 @@ KERNEL_FQ void m22931_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     const int asn1_ok = asn1_detect (dec, real_len);
 
     if (asn1_ok == 0) continue;
+
+    const int asn1_tag_ok = asn1_check_int_tag (dec, real_len);
+
+    if (asn1_tag_ok == 0) continue;
 
     const u32 r0 = search[0];
     const u32 r1 = search[1];
@@ -458,6 +527,10 @@ KERNEL_FQ void m22931_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     const int asn1_ok = asn1_detect (dec, real_len);
 
     if (asn1_ok == 0) continue;
+
+    const int asn1_tag_ok = asn1_check_int_tag (dec, real_len);
+
+    if (asn1_tag_ok == 0) continue;
 
     const u32 r0 = search[0];
     const u32 r1 = search[1];
