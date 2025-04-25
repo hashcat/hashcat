@@ -2701,6 +2701,71 @@ DECLSPEC int asn1_detect (PRIVATE_AS const u32 *buf, const int len)
   return 1;
 }
 
+DECLSPEC int asn1_check_int_tag (PRIVATE_AS const u32 *buf, const int len)
+{
+  const u8 *bytes = (const u8 *) buf;
+
+  int seq_len_offset = 0;
+
+  if (bytes[1] < 0x80)
+  {
+    seq_len_offset = 2;
+  }
+  else if (bytes[1] == 0x81)
+  {
+    seq_len_offset = 3;
+  }
+  else if (bytes[1] == 0x82)
+  {
+    seq_len_offset = 4;
+  }
+  else
+  {
+    return 0;
+  }
+
+  int pos = seq_len_offset;
+
+  if (pos >= len) return 0;
+  if (pos + 2 > len) return 0;
+
+  u8 tag = bytes[pos];
+
+  if (tag != 0x02) return 0;
+
+  u8 len_byte = bytes[pos + 1];
+
+  int val_len = 0;
+  int tmp_len = 1;
+
+  if (len_byte < 0x80)
+  {
+    val_len = len_byte;
+  }
+  else if (len_byte == 0x81)
+  {
+    if (pos + 2 >= len) return 0;
+    val_len = bytes[pos + 2];
+    tmp_len = 2;
+  }
+  else if (len_byte == 0x82)
+  {
+    if (pos + 3 >= len) return 0;
+    val_len = (bytes[pos + 2] << 8) | bytes[pos + 3];
+    tmp_len = 3;
+  }
+  else
+  {
+    return 0;
+  }
+
+  if (pos + 1 + tmp_len + val_len > len) return 0;
+
+  if (val_len != 1) return 0;
+
+  return 1;
+}
+
 DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
 {
   return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
