@@ -46,6 +46,7 @@ const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
 static const char *SIGNATURE_PBKDF1 = "PBKDF1";
+static const char *SIGNATURE_SHA1 = "sha1";
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
@@ -57,8 +58,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 5;
 
-  token.signatures_cnt    = 1;
+  token.signatures_cnt    = 2;
   token.signatures_buf[0] = SIGNATURE_PBKDF1;
+  token.signatures_buf[1] = SIGNATURE_SHA1;
 
   // Signature
   token.sep[0]     = ':';
@@ -69,7 +71,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // Primitive "sha1"
   token.sep[1]     = ':';
   token.len[1]     = 4;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   // Iterations
   token.sep[2]     = ':';
@@ -163,7 +166,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // output
 
-  const int line_len = snprintf (line_buf, line_size, "%s:sha1:%u:%s:%s", SIGNATURE_PBKDF1, salt->salt_iter + 1, (const char *) salt_buf, tmp_buf);
+  const int line_len = snprintf (line_buf, line_size, "%s:%s:%u:%s:%s", SIGNATURE_PBKDF1, SIGNATURE_SHA1, salt->salt_iter + 1, (const char *) salt_buf, tmp_buf);
 
   return line_len;
 }

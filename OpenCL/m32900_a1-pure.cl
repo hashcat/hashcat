@@ -40,14 +40,12 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_BASIC ())
 
   const u32 salt_iter = salt_bufs[SALT_POS_HOST].salt_iter;
 
-  u32 buf[5];
+  sha1_ctx_t ctx0;
+  sha1_init (&ctx0);
 
-  sha1_ctx_t ctx1;
-  sha1_init (&ctx1);
+  sha1_ctx_t ctx1 = ctx0;
 
-  sha1_ctx_t ctx0 = ctx1;
-
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -55,13 +53,15 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx2 = ctx0;
+    sha1_ctx_t ctx2 = ctx1;
 
     sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha1_update (&ctx2, s, salt_len);
 
     sha1_final (&ctx2);
+
+    u32 buf[5];
 
     buf[0] = ctx2.h[0];
     buf[1] = ctx2.h[1];
@@ -71,13 +71,13 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_BASIC ())
 
     for (int i = 0; i < salt_iter; i++)
     {
-      sha1_ctx_t ctx = ctx1;
+      sha1_ctx_t ctx = ctx0;
       
-      ctx.w0[0] = (buf[0]);
-      ctx.w0[1] = (buf[1]);
-      ctx.w0[2] = (buf[2]);
-      ctx.w0[3] = (buf[3]);
-      ctx.w1[0] = (buf[4]);
+      ctx.w0[0] = buf[0];
+      ctx.w0[1] = buf[1];
+      ctx.w0[2] = buf[2];
+      ctx.w0[3] = buf[3];
+      ctx.w1[0] = buf[4];
 
       ctx.len = 20;
 
@@ -137,14 +137,12 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_BASIC ())
 
   const u32 salt_iter = salt_bufs[SALT_POS_HOST].salt_iter;
 
-  u32 buf[5];
+  sha1_ctx_t ctx0;
+  sha1_init (&ctx0);
 
-  sha1_ctx_t ctx1;
-  sha1_init (&ctx1);
+  sha1_ctx_t ctx1 = ctx0;
 
-  sha1_ctx_t ctx0 = ctx1;
-
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -152,13 +150,15 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx2 = ctx0;
+    sha1_ctx_t ctx2 = ctx1;
 
     sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
 
     sha1_update (&ctx2, s, salt_len);
 
     sha1_final (&ctx2);
+
+    u32 buf[5];
 
     buf[0] = ctx2.h[0];
     buf[1] = ctx2.h[1];
@@ -168,13 +168,13 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_BASIC ())
 
     for (int i = 0; i < salt_iter; i++)
     {
-      sha1_ctx_t ctx = ctx1;
+      sha1_ctx_t ctx = ctx0;
       
-      ctx.w0[0] = (buf[0]);
-      ctx.w0[1] = (buf[1]);
-      ctx.w0[2] = (buf[2]);
-      ctx.w0[3] = (buf[3]);
-      ctx.w1[0] = (buf[4]);
+      ctx.w0[0] = buf[0];
+      ctx.w0[1] = buf[1];
+      ctx.w0[2] = buf[2];
+      ctx.w0[3] = buf[3];
+      ctx.w1[0] = buf[4];
 
       ctx.len = 20;
 

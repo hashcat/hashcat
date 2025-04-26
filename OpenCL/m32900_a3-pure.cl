@@ -49,10 +49,8 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_VECTOR ())
 
   const u32 salt_iter = salt_bufs[SALT_POS_HOST].salt_iter;
 
-  u32x buf[5];
-
-  sha1_ctx_vector_t ctx1;
-  sha1_init_vector (&ctx1);
+  sha1_ctx_vector_t ctx0;
+  sha1_init_vector (&ctx0);
 
   /**
    * loop
@@ -68,29 +66,31 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
-    sha1_ctx_vector_t ctx0 = ctx1;
+    sha1_ctx_vector_t ctx1 = ctx0;
 
-    sha1_update_vector (&ctx0, w, pw_len);
+    sha1_update_vector (&ctx1, w, pw_len);
 
-    sha1_update_vector (&ctx0, s, salt_len);
+    sha1_update_vector (&ctx1, s, salt_len);
 
-    sha1_final_vector (&ctx0);
+    sha1_final_vector (&ctx1);
 
-    buf[0] = ctx0.h[0];
-    buf[1] = ctx0.h[1];
-    buf[2] = ctx0.h[2];
-    buf[3] = ctx0.h[3];
-    buf[4] = ctx0.h[4];
+    u32x buf[5];
+
+    buf[0] = ctx1.h[0];
+    buf[1] = ctx1.h[1];
+    buf[2] = ctx1.h[2];
+    buf[3] = ctx1.h[3];
+    buf[4] = ctx1.h[4];
 
     for (int i = 0; i < salt_iter; i++)
     {
-      sha1_ctx_vector_t ctx = ctx1;
+      sha1_ctx_vector_t ctx = ctx0;
       
-      ctx.w0[0] = (buf[0]);
-      ctx.w0[1] = (buf[1]);
-      ctx.w0[2] = (buf[2]);
-      ctx.w0[3] = (buf[3]);
-      ctx.w1[0] = (buf[4]);
+      ctx.w0[0] = buf[0];
+      ctx.w0[1] = buf[1];
+      ctx.w0[2] = buf[2];
+      ctx.w0[3] = buf[3];
+      ctx.w1[0] = buf[4];
 
       ctx.len = 20;
 
@@ -159,10 +159,8 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_VECTOR ())
 
   const u32 salt_iter = salt_bufs[SALT_POS_HOST].salt_iter;
 
-  u32x buf[5];
-
-  sha1_ctx_vector_t ctx1;
-  sha1_init_vector (&ctx1);
+  sha1_ctx_vector_t ctx0;
+  sha1_init_vector (&ctx0);
 
   /**
    * loop
@@ -178,29 +176,31 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
-    sha1_ctx_vector_t ctx0 = ctx1;
+    sha1_ctx_vector_t ctx1 = ctx0;
 
-    sha1_update_vector (&ctx0, w, pw_len);
+    sha1_update_vector (&ctx1, w, pw_len);
 
-    sha1_update_vector (&ctx0, s, salt_len);
+    sha1_update_vector (&ctx1, s, salt_len);
 
-    sha1_final_vector (&ctx0);
+    sha1_final_vector (&ctx1);
 
-    buf[0] = ctx0.h[0];
-    buf[1] = ctx0.h[1];
-    buf[2] = ctx0.h[2];
-    buf[3] = ctx0.h[3];
-    buf[4] = ctx0.h[4];
+    u32x buf[5];
+
+    buf[0] = ctx1.h[0];
+    buf[1] = ctx1.h[1];
+    buf[2] = ctx1.h[2];
+    buf[3] = ctx1.h[3];
+    buf[4] = ctx1.h[4];
 
     for (int i = 0; i < salt_iter; i++)
     {
-      sha1_ctx_vector_t ctx = ctx1;
+      sha1_ctx_vector_t ctx = ctx0;
       
-      ctx.w0[0] = (buf[0]);
-      ctx.w0[1] = (buf[1]);
-      ctx.w0[2] = (buf[2]);
-      ctx.w0[3] = (buf[3]);
-      ctx.w1[0] = (buf[4]);
+      ctx.w0[0] = buf[0];
+      ctx.w0[1] = buf[1];
+      ctx.w0[2] = buf[2];
+      ctx.w0[3] = buf[3];
+      ctx.w1[0] = buf[4];
 
       ctx.len = 20;
 
