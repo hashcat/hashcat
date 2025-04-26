@@ -49,10 +49,10 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_VECTOR ())
 
   const u32 salt_iter = salt_bufs[SALT_POS_HOST].salt_iter;
 
-  u32 buf[5];
+  u32x buf[5];
 
-  sha1_ctx_t ctx1;
-  sha1_init (&ctx1);
+  sha1_ctx_vector_t ctx1;
+  sha1_init_vector (&ctx1);
 
   /**
    * loop
@@ -68,13 +68,13 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
-    sha1_ctx_t ctx0 = ctx1;
+    sha1_ctx_vector_t ctx0 = ctx1;
 
-    sha1_update (&ctx0, w, pw_len);
+    sha1_update_vector (&ctx0, w, pw_len);
 
-    sha1_update (&ctx0, s, salt_len);
+    sha1_update_vector (&ctx0, s, salt_len);
 
-    sha1_final (&ctx0);
+    sha1_final_vector (&ctx0);
 
     buf[0] = ctx0.h[0];
     buf[1] = ctx0.h[1];
@@ -84,7 +84,7 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_VECTOR ())
 
     for (int i = 0; i < salt_iter; i++)
     {
-      sha1_ctx_t ctx = ctx1;
+      sha1_ctx_vector_t ctx = ctx1;
       
       ctx.w0[0] = (buf[0]);
       ctx.w0[1] = (buf[1]);
@@ -94,7 +94,7 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_VECTOR ())
 
       ctx.len = 20;
 
-      sha1_final (&ctx);
+      sha1_final_vector (&ctx);
 
       buf[0] = ctx.h[0];
       buf[1] = ctx.h[1];
@@ -103,10 +103,10 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_VECTOR ())
       buf[4] = ctx.h[4];
     }
 
-    const u32 r0 = buf[DGST_R0];
-    const u32 r1 = buf[DGST_R1];
-    const u32 r2 = buf[DGST_R2];
-    const u32 r3 = buf[DGST_R3];
+    const u32x r0 = buf[DGST_R0];
+    const u32x r1 = buf[DGST_R1];
+    const u32x r2 = buf[DGST_R2];
+    const u32x r3 = buf[DGST_R3];
 
     COMPARE_M_SIMD (r0, r1, r2, r3);
   }
@@ -159,10 +159,10 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_VECTOR ())
 
   const u32 salt_iter = salt_bufs[SALT_POS_HOST].salt_iter;
 
-  u32 buf[5];
+  u32x buf[5];
 
-  sha1_ctx_t ctx1;
-  sha1_init (&ctx1);
+  sha1_ctx_vector_t ctx1;
+  sha1_init_vector (&ctx1);
 
   /**
    * loop
@@ -178,13 +178,13 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
-    sha1_ctx_t ctx0 = ctx1;
+    sha1_ctx_vector_t ctx0 = ctx1;
 
-    sha1_update (&ctx0, w, pw_len);
+    sha1_update_vector (&ctx0, w, pw_len);
 
-    sha1_update (&ctx0, s, salt_len);
+    sha1_update_vector (&ctx0, s, salt_len);
 
-    sha1_final (&ctx0);
+    sha1_final_vector (&ctx0);
 
     buf[0] = ctx0.h[0];
     buf[1] = ctx0.h[1];
@@ -194,7 +194,7 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_VECTOR ())
 
     for (int i = 0; i < salt_iter; i++)
     {
-      sha1_ctx_t ctx = ctx1;
+      sha1_ctx_vector_t ctx = ctx1;
       
       ctx.w0[0] = (buf[0]);
       ctx.w0[1] = (buf[1]);
@@ -204,7 +204,7 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_VECTOR ())
 
       ctx.len = 20;
 
-      sha1_final (&ctx);
+      sha1_final_vector (&ctx);
 
       buf[0] = ctx.h[0];
       buf[1] = ctx.h[1];
@@ -213,10 +213,10 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_VECTOR ())
       buf[4] = ctx.h[4];
     }
 
-    const u32 r0 = buf[DGST_R0];
-    const u32 r1 = buf[DGST_R1];
-    const u32 r2 = buf[DGST_R2];
-    const u32 r3 = buf[DGST_R3];
+    const u32x r0 = buf[DGST_R0];
+    const u32x r1 = buf[DGST_R1];
+    const u32x r2 = buf[DGST_R2];
+    const u32x r3 = buf[DGST_R3];
 
     COMPARE_S_SIMD (r0, r1, r2, r3);
   }

@@ -47,7 +47,7 @@ KERNEL_FQ void m32900_mxx (KERN_ATTR_BASIC ())
 
   sha1_ctx_t ctx0 = ctx1;
 
-  sha1_update_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -144,7 +144,7 @@ KERNEL_FQ void m32900_sxx (KERN_ATTR_BASIC ())
 
   sha1_ctx_t ctx0 = ctx1;
 
-  sha1_update_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
