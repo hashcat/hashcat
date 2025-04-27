@@ -325,6 +325,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - LUKS v1
 - VeraCrypt
 - BestCrypt v3 Volume Encryption
+- BestCrypt v4 Volume Encryption
 - FileVault 2
 - VirtualBox (PBKDF2-HMAC-SHA256 & AES-128-XTS)
 - VirtualBox (PBKDF2-HMAC-SHA256 & AES-256-XTS)
