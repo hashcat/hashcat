@@ -9,6 +9,7 @@
 #include "inc_common.h"
 #include "inc_hash_blake2s.h"
 
+
 DECLSPEC u32 blake2s_rot16_S (const u32 a)
 {
   vconv32_t in;
@@ -217,7 +218,7 @@ DECLSPEC void blake2s_update_64 (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS u32 *
 
   if (pos == 0)
   {
-    if (ctx->len > 0) // if new block (pos == 0) AND the (old) len is not zero => transform
+    if (ctx->len > 0)
     {
       blake2s_transform (ctx->h, ctx->m, ctx->len, BLAKE2S_UPDATE);
     }
@@ -287,8 +288,6 @@ DECLSPEC void blake2s_update_64 (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS u32 *
       ctx->m[13] |= w3[1];
       ctx->m[14] |= w3[2];
       ctx->m[15] |= w3[3];
-
-      // len must be a multiple of 64 (not ctx->len) for BLAKE2S_UPDATE:
 
       const u32 cur_len = ((ctx->len + len) / 64) * 64;
 
@@ -424,9 +423,518 @@ DECLSPEC void blake2s_update_global (PRIVATE_AS blake2s_ctx_t *ctx, GLOBAL_AS co
   blake2s_update_64 (ctx, w0, w1, w2, w3, len - (u32) pos1);
 }
 
+DECLSPEC void blake2s_update_swap (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    w0[0] = hc_swap32_S (w0[0]);
+    w0[1] = hc_swap32_S (w0[1]);
+    w0[2] = hc_swap32_S (w0[2]);
+    w0[3] = hc_swap32_S (w0[3]);
+    w1[0] = hc_swap32_S (w1[0]);
+    w1[1] = hc_swap32_S (w1[1]);
+    w1[2] = hc_swap32_S (w1[2]);
+    w1[3] = hc_swap32_S (w1[3]);
+    w2[0] = hc_swap32_S (w2[0]);
+    w2[1] = hc_swap32_S (w2[1]);
+    w2[2] = hc_swap32_S (w2[2]);
+    w2[3] = hc_swap32_S (w2[3]);
+    w3[0] = hc_swap32_S (w3[0]);
+    w3[1] = hc_swap32_S (w3[1]);
+    w3[2] = hc_swap32_S (w3[2]);
+    w3[3] = hc_swap32_S (w3[3]);
+
+    blake2s_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
+
+  blake2s_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
+DECLSPEC void blake2s_update_global_swap (PRIVATE_AS blake2s_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  const int limit = (const int) len - 64; // int type needed, could be negative
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < limit; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    w0[0] = hc_swap32_S (w0[0]);
+    w0[1] = hc_swap32_S (w0[1]);
+    w0[2] = hc_swap32_S (w0[2]);
+    w0[3] = hc_swap32_S (w0[3]);
+    w1[0] = hc_swap32_S (w1[0]);
+    w1[1] = hc_swap32_S (w1[1]);
+    w1[2] = hc_swap32_S (w1[2]);
+    w1[3] = hc_swap32_S (w1[3]);
+    w2[0] = hc_swap32_S (w2[0]);
+    w2[1] = hc_swap32_S (w2[1]);
+    w2[2] = hc_swap32_S (w2[2]);
+    w2[3] = hc_swap32_S (w2[3]);
+    w3[0] = hc_swap32_S (w3[0]);
+    w3[1] = hc_swap32_S (w3[1]);
+    w3[2] = hc_swap32_S (w3[2]);
+    w3[3] = hc_swap32_S (w3[3]);
+
+    blake2s_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  w0[0] = w[pos4 +  0];
+  w0[1] = w[pos4 +  1];
+  w0[2] = w[pos4 +  2];
+  w0[3] = w[pos4 +  3];
+  w1[0] = w[pos4 +  4];
+  w1[1] = w[pos4 +  5];
+  w1[2] = w[pos4 +  6];
+  w1[3] = w[pos4 +  7];
+  w2[0] = w[pos4 +  8];
+  w2[1] = w[pos4 +  9];
+  w2[2] = w[pos4 + 10];
+  w2[3] = w[pos4 + 11];
+  w3[0] = w[pos4 + 12];
+  w3[1] = w[pos4 + 13];
+  w3[2] = w[pos4 + 14];
+  w3[3] = w[pos4 + 15];
+
+  w0[0] = hc_swap32_S (w0[0]);
+  w0[1] = hc_swap32_S (w0[1]);
+  w0[2] = hc_swap32_S (w0[2]);
+  w0[3] = hc_swap32_S (w0[3]);
+  w1[0] = hc_swap32_S (w1[0]);
+  w1[1] = hc_swap32_S (w1[1]);
+  w1[2] = hc_swap32_S (w1[2]);
+  w1[3] = hc_swap32_S (w1[3]);
+  w2[0] = hc_swap32_S (w2[0]);
+  w2[1] = hc_swap32_S (w2[1]);
+  w2[2] = hc_swap32_S (w2[2]);
+  w2[3] = hc_swap32_S (w2[3]);
+  w3[0] = hc_swap32_S (w3[0]);
+  w3[1] = hc_swap32_S (w3[1]);
+  w3[2] = hc_swap32_S (w3[2]);
+  w3[3] = hc_swap32_S (w3[3]);
+
+  blake2s_update_64 (ctx, w0, w1, w2, w3, len - (u32) pos1);
+}
+
+
 DECLSPEC void blake2s_final (PRIVATE_AS blake2s_ctx_t *ctx)
 {
   blake2s_transform (ctx->h, ctx->m, ctx->len, BLAKE2S_FINAL);
+}
+
+
+DECLSPEC void blake2s_hmac_init_64 (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3)
+{
+  u32 a0[4];
+  u32 a1[4];
+  u32 a2[4];
+  u32 a3[4];
+
+  // ipad
+
+  a0[0] = w0[0] ^ 0x36363636;
+  a0[1] = w0[1] ^ 0x36363636;
+  a0[2] = w0[2] ^ 0x36363636;
+  a0[3] = w0[3] ^ 0x36363636;
+  a1[0] = w1[0] ^ 0x36363636;
+  a1[1] = w1[1] ^ 0x36363636;
+  a1[2] = w1[2] ^ 0x36363636;
+  a1[3] = w1[3] ^ 0x36363636;
+  a2[0] = w2[0] ^ 0x36363636;
+  a2[1] = w2[1] ^ 0x36363636;
+  a2[2] = w2[2] ^ 0x36363636;
+  a2[3] = w2[3] ^ 0x36363636;
+  a3[0] = w3[0] ^ 0x36363636;
+  a3[1] = w3[1] ^ 0x36363636;
+  a3[2] = w3[2] ^ 0x36363636;
+  a3[3] = w3[3] ^ 0x36363636;
+
+  blake2s_init (&ctx->ipad);
+
+  blake2s_update_64 (&ctx->ipad, a0, a1, a2, a3, 64);
+
+  // opad
+
+  u32 b0[4];
+  u32 b1[4];
+  u32 b2[4];
+  u32 b3[4];
+
+  b0[0] = w0[0] ^ 0x5c5c5c5c;
+  b0[1] = w0[1] ^ 0x5c5c5c5c;
+  b0[2] = w0[2] ^ 0x5c5c5c5c;
+  b0[3] = w0[3] ^ 0x5c5c5c5c;
+  b1[0] = w1[0] ^ 0x5c5c5c5c;
+  b1[1] = w1[1] ^ 0x5c5c5c5c;
+  b1[2] = w1[2] ^ 0x5c5c5c5c;
+  b1[3] = w1[3] ^ 0x5c5c5c5c;
+  b2[0] = w2[0] ^ 0x5c5c5c5c;
+  b2[1] = w2[1] ^ 0x5c5c5c5c;
+  b2[2] = w2[2] ^ 0x5c5c5c5c;
+  b2[3] = w2[3] ^ 0x5c5c5c5c;
+  b3[0] = w3[0] ^ 0x5c5c5c5c;
+  b3[1] = w3[1] ^ 0x5c5c5c5c;
+  b3[2] = w3[2] ^ 0x5c5c5c5c;
+  b3[3] = w3[3] ^ 0x5c5c5c5c;
+
+  blake2s_init (&ctx->opad);
+
+  blake2s_update_64 (&ctx->opad, b0, b1, b2, b3, 64);
+}
+
+DECLSPEC void blake2s_hmac_init (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    blake2s_ctx_t tmp;
+
+    blake2s_init (&tmp);
+
+    blake2s_update (&tmp, w, len);
+
+    blake2s_final (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = tmp.h[5];
+    w1[2] = tmp.h[6];
+    w1[3] = tmp.h[7];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+  }
+
+  blake2s_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
+DECLSPEC void blake2s_hmac_init_swap (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    blake2s_ctx_t tmp;
+
+    blake2s_init (&tmp);
+
+    blake2s_update_swap (&tmp, w, len);
+
+    blake2s_final (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = tmp.h[5];
+    w1[2] = tmp.h[6];
+    w1[3] = tmp.h[7];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = hc_swap32_S (w[ 0]);
+    w0[1] = hc_swap32_S (w[ 1]);
+    w0[2] = hc_swap32_S (w[ 2]);
+    w0[3] = hc_swap32_S (w[ 3]);
+    w1[0] = hc_swap32_S (w[ 4]);
+    w1[1] = hc_swap32_S (w[ 5]);
+    w1[2] = hc_swap32_S (w[ 6]);
+    w1[3] = hc_swap32_S (w[ 7]);
+    w2[0] = hc_swap32_S (w[ 8]);
+    w2[1] = hc_swap32_S (w[ 9]);
+    w2[2] = hc_swap32_S (w[10]);
+    w2[3] = hc_swap32_S (w[11]);
+    w3[0] = hc_swap32_S (w[12]);
+    w3[1] = hc_swap32_S (w[13]);
+    w3[2] = hc_swap32_S (w[14]);
+    w3[3] = hc_swap32_S (w[15]);
+  }
+
+  blake2s_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
+DECLSPEC void blake2s_hmac_init_global (PRIVATE_AS blake2s_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    blake2s_ctx_t tmp;
+
+    blake2s_init (&tmp);
+
+    blake2s_update_global (&tmp, w, len);
+
+    blake2s_final (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = tmp.h[5];
+    w1[2] = tmp.h[6];
+    w1[3] = tmp.h[7];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+  }
+
+  blake2s_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
+DECLSPEC void blake2s_hmac_init_global_swap (PRIVATE_AS blake2s_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  if (len > 64)
+  {
+    blake2s_ctx_t tmp;
+
+    blake2s_init (&tmp);
+
+    blake2s_update_global_swap (&tmp, w, len);
+
+    blake2s_final (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = tmp.h[5];
+    w1[2] = tmp.h[6];
+    w1[3] = tmp.h[7];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = hc_swap32_S (w[ 0]);
+    w0[1] = hc_swap32_S (w[ 1]);
+    w0[2] = hc_swap32_S (w[ 2]);
+    w0[3] = hc_swap32_S (w[ 3]);
+    w1[0] = hc_swap32_S (w[ 4]);
+    w1[1] = hc_swap32_S (w[ 5]);
+    w1[2] = hc_swap32_S (w[ 6]);
+    w1[3] = hc_swap32_S (w[ 7]);
+    w2[0] = hc_swap32_S (w[ 8]);
+    w2[1] = hc_swap32_S (w[ 9]);
+    w2[2] = hc_swap32_S (w[10]);
+    w2[3] = hc_swap32_S (w[11]);
+    w3[0] = hc_swap32_S (w[12]);
+    w3[1] = hc_swap32_S (w[13]);
+    w3[2] = hc_swap32_S (w[14]);
+    w3[3] = hc_swap32_S (w[15]);
+  }
+
+  blake2s_hmac_init_64 (ctx, w0, w1, w2, w3);
+}
+
+DECLSPEC void blake2s_hmac_update_64 (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len)
+{
+  blake2s_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
+}
+
+DECLSPEC void blake2s_hmac_update (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+{
+  blake2s_update (&ctx->ipad, w, len);
+}
+
+DECLSPEC void blake2s_hmac_update_swap (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+{
+  blake2s_update_swap (&ctx->ipad, w, len);
+}
+
+DECLSPEC void blake2s_hmac_update_global (PRIVATE_AS blake2s_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  blake2s_update_global (&ctx->ipad, w, len);
+}
+
+DECLSPEC void blake2s_hmac_update_global_swap (PRIVATE_AS blake2s_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  blake2s_update_global_swap (&ctx->ipad, w, len);
+}
+
+DECLSPEC void blake2s_hmac_final (PRIVATE_AS blake2s_hmac_ctx_t *ctx)
+{
+  blake2s_final (&ctx->ipad);
+
+  for (int n = 0; n < 8; n += 1)
+  {
+    blake2s_update(&ctx->opad, &ctx->ipad.h[n], 4);
+  }
+
+  ctx->opad.m[8] = 0;
+  ctx->opad.m[9] = 0;
+  ctx->opad.m[10]= 0;
+  ctx->opad.m[11]= 0;
+  ctx->opad.m[12]= 0;
+  ctx->opad.m[13]= 0;
+  ctx->opad.m[14]= 0;
+  ctx->opad.m[15]= 0;
+
+  blake2s_final (&ctx->opad);
 }
 
 DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32x *m, const u32x len, const u32 f0)
@@ -451,6 +959,7 @@ DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32
   v[13] = BLAKE2S_IV_05; // ^ t1;
   v[14] = BLAKE2S_IV_06 ^ f0;
   v[15] = BLAKE2S_IV_07; // ^ f1;
+
 
   BLAKE2S_ROUND_VECTOR ( 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15);
   BLAKE2S_ROUND_VECTOR (14, 10,  4,  8,  9, 15, 13,  6,  1, 12,  0,  2, 11,  7,  5,  3);
@@ -699,4 +1208,153 @@ DECLSPEC void blake2s_update_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx, PRIVA
 DECLSPEC void blake2s_final_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx)
 {
   blake2s_transform_vector (ctx->h, ctx->m, (u32x) ctx->len, BLAKE2S_FINAL);
+}
+
+DECLSPEC void blake2s_hmac_init_vector_64 (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3)
+{
+  u32x a0[4];
+  u32x a1[4];
+  u32x a2[4];
+  u32x a3[4];
+
+  // ipad
+
+  a0[0] = w0[0] ^ 0x36363636;
+  a0[1] = w0[1] ^ 0x36363636;
+  a0[2] = w0[2] ^ 0x36363636;
+  a0[3] = w0[3] ^ 0x36363636;
+  a1[0] = w1[0] ^ 0x36363636;
+  a1[1] = w1[1] ^ 0x36363636;
+  a1[2] = w1[2] ^ 0x36363636;
+  a1[3] = w1[3] ^ 0x36363636;
+  a2[0] = w2[0] ^ 0x36363636;
+  a2[1] = w2[1] ^ 0x36363636;
+  a2[2] = w2[2] ^ 0x36363636;
+  a2[3] = w2[3] ^ 0x36363636;
+  a3[0] = w3[0] ^ 0x36363636;
+  a3[1] = w3[1] ^ 0x36363636;
+  a3[2] = w3[2] ^ 0x36363636;
+  a3[3] = w3[3] ^ 0x36363636;
+
+  blake2s_init_vector (&ctx->ipad);
+
+  blake2s_update_vector_64 (&ctx->ipad, a0, a1, a2, a3, 64);
+
+  // opad
+
+  u32x b0[4];
+  u32x b1[4];
+  u32x b2[4];
+  u32x b3[4];
+
+  b0[0] = w0[0] ^ 0x5c5c5c5c;
+  b0[1] = w0[1] ^ 0x5c5c5c5c;
+  b0[2] = w0[2] ^ 0x5c5c5c5c;
+  b0[3] = w0[3] ^ 0x5c5c5c5c;
+  b1[0] = w1[0] ^ 0x5c5c5c5c;
+  b1[1] = w1[1] ^ 0x5c5c5c5c;
+  b1[2] = w1[2] ^ 0x5c5c5c5c;
+  b1[3] = w1[3] ^ 0x5c5c5c5c;
+  b2[0] = w2[0] ^ 0x5c5c5c5c;
+  b2[1] = w2[1] ^ 0x5c5c5c5c;
+  b2[2] = w2[2] ^ 0x5c5c5c5c;
+  b2[3] = w2[3] ^ 0x5c5c5c5c;
+  b3[0] = w3[0] ^ 0x5c5c5c5c;
+  b3[1] = w3[1] ^ 0x5c5c5c5c;
+  b3[2] = w3[2] ^ 0x5c5c5c5c;
+  b3[3] = w3[3] ^ 0x5c5c5c5c;
+
+  blake2s_init_vector (&ctx->opad);
+
+  blake2s_update_vector_64 (&ctx->opad, b0, b1, b2, b3, 64);
+}
+
+
+DECLSPEC void blake2s_hmac_init_vector (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
+{
+  u32x w0[4];
+  u32x w1[4];
+  u32x w2[4];
+  u32x w3[4];
+
+  if (len > 64)
+  {
+    blake2s_ctx_vector_t tmp;
+
+    blake2s_init_vector (&tmp);
+
+    blake2s_update_vector (&tmp, w, len);
+
+    blake2s_final_vector (&tmp);
+
+    w0[0] = tmp.h[0];
+    w0[1] = tmp.h[1];
+    w0[2] = tmp.h[2];
+    w0[3] = tmp.h[3];
+    w1[0] = tmp.h[4];
+    w1[1] = tmp.h[5];
+    w1[2] = tmp.h[6];
+    w1[3] = tmp.h[7];
+    w2[0] = 0;
+    w2[1] = 0;
+    w2[2] = 0;
+    w2[3] = 0;
+    w3[0] = 0;
+    w3[1] = 0;
+    w3[2] = 0;
+    w3[3] = 0;
+  }
+  else
+  {
+    w0[0] = w[ 0];
+    w0[1] = w[ 1];
+    w0[2] = w[ 2];
+    w0[3] = w[ 3];
+    w1[0] = w[ 4];
+    w1[1] = w[ 5];
+    w1[2] = w[ 6];
+    w1[3] = w[ 7];
+    w2[0] = w[ 8];
+    w2[1] = w[ 9];
+    w2[2] = w[10];
+    w2[3] = w[11];
+    w3[0] = w[12];
+    w3[1] = w[13];
+    w3[2] = w[14];
+    w3[3] = w[15];
+  }
+
+  blake2s_hmac_init_vector_64 (ctx, w0, w1, w2, w3);
+}
+
+DECLSPEC void blake2s_hmac_update_vector_64 (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const int len)
+{
+  blake2s_update_vector_64 (&ctx->ipad, w0, w1, w2, w3, len);
+}
+
+DECLSPEC void blake2s_hmac_update_vector (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len)
+{
+  blake2s_update_vector (&ctx->ipad, w, len);
+}
+
+DECLSPEC void blake2s_hmac_final_vector (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx)
+{
+
+  blake2s_final_vector (&ctx->ipad);
+
+  for (int n = 0; n < 8; n += 1)
+  {
+    blake2s_update_vector(&ctx->opad, &ctx->ipad.h[n], 4);
+  }
+
+  ctx->opad.m[8] = 0;
+  ctx->opad.m[9] = 0;
+  ctx->opad.m[10]= 0;
+  ctx->opad.m[11]= 0;
+  ctx->opad.m[12]= 0;
+  ctx->opad.m[13]= 0;
+  ctx->opad.m[14]= 0;
+  ctx->opad.m[15]= 0;
+
+  blake2s_final_vector (&ctx->opad);
 }
