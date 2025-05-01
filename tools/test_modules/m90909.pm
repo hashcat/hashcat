@@ -47,7 +47,7 @@ sub module_generate_hash
     die "not supported hash\n";
   }
 
-  my $hash = sprintf ("%s$%s", $payload, encode_base64url ($digest, ""));
+  my $hash = sprintf("%s\$%s", $payload, encode_base64url($digest));
 
   return $hash;
 }
