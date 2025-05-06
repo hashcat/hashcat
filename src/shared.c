@@ -67,6 +67,10 @@ static const char *const PA_040 = "Invalid or unsupported cipher";
 static const char *const PA_041 = "Invalid filesize";
 static const char *const PA_042 = "IV length exception";
 static const char *const PA_043 = "CT length exception";
+static const char *const PA_044 = "PT length exception";
+static const char *const PA_045 = "PT offset exception";
+static const char *const PA_046 = "Invalid or unsupported CryptoAPI hash type";
+static const char *const PA_047 = "Invalid CryptoAPI key size";
 static const char *const PA_255 = "Unknown error";
 
 static const char *const OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
@@ -1104,6 +1108,10 @@ const char *strparser (const u32 parser_status)
     case PARSER_FILE_SIZE:            return PA_041;
     case PARSER_IV_LENGTH:            return PA_042;
     case PARSER_CT_LENGTH:            return PA_043;
+    case PARSER_PT_LENGTH:            return PA_044;
+    case PARSER_PT_OFFSET:            return PA_045;
+    case PARSER_CRYPTOAPI_KERNELTYPE: return PA_046;
+    case PARSER_CRYPTOAPI_KEYSIZE:    return PA_047;
   }
 
   return PA_255;

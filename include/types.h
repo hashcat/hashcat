@@ -584,8 +584,10 @@ typedef enum parser_rc
   PARSER_FILE_SIZE            = -41,
   PARSER_IV_LENGTH            = -42,
   PARSER_CT_LENGTH            = -43,
-  PARSER_CRYPTOAPI_KERNELTYPE = -44,
-  PARSER_CRYPTOAPI_KEYSIZE    = -45,
+  PARSER_PT_LENGTH            = -44,
+  PARSER_PT_OFFSET            = -45,
+  PARSER_CRYPTOAPI_KERNELTYPE = -46,
+  PARSER_CRYPTOAPI_KEYSIZE    = -47,
   PARSER_HAVE_ERRNO           = -100,
   PARSER_UNKNOWN_ERROR        = -255
 
