@@ -19,7 +19,9 @@ cpan install Authen::Passphrase::LANManager \
              Compress::Zlib                 \
              Convert::EBCDIC                \
              Crypt::AuthEnc::GCM            \
+             Crypt::Camellia                \
              Crypt::CBC                     \
+             Crypt::Cipher::Serpent         \
              Crypt::DES                     \
              Crypt::DES_EDE3                \
              Crypt::Digest::BLAKE2s_256     \
