@@ -368,7 +368,7 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
 
   AES_GCM_decrypt (key, J0, ct, 32, pt, s_te0, s_te1, s_te2, s_te3, s_te4);
 
-  const int correct = is_valid_printable_32 (pt[0])
+  int correct = is_valid_printable_32 (pt[0])
                     + is_valid_printable_32 (pt[1])
                     + is_valid_printable_32 (pt[2])
                     + is_valid_printable_32 (pt[3])
@@ -377,6 +377,37 @@ KERNEL_FQ void m26610_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, pbkdf2_sh
                     + is_valid_printable_32 (pt[6])
                     + is_valid_printable_32 (pt[7]);
 
+  if (correct != 8) return;
+
+  u32 ct2[8];
+
+  ct2[0] = pbkdf2_sha256_aes_gcm->ct_buf[8]; // third block of ciphertext
+  ct2[1] = pbkdf2_sha256_aes_gcm->ct_buf[9];
+  ct2[2] = pbkdf2_sha256_aes_gcm->ct_buf[10];
+  ct2[3] = pbkdf2_sha256_aes_gcm->ct_buf[11];
+  ct2[4] = pbkdf2_sha256_aes_gcm->ct_buf[12]; // fourth block of ciphertext
+  ct2[5] = pbkdf2_sha256_aes_gcm->ct_buf[13];
+  ct2[6] = pbkdf2_sha256_aes_gcm->ct_buf[14];
+  ct2[7] = pbkdf2_sha256_aes_gcm->ct_buf[15];
+
+  // Only a single increment as the previous AES_GCM_DECRYPT already does one for us
+  J0[3]++;
+
+  u32 pt2[8] = { 0 };
+
+  AES_GCM_decrypt (key, J0, ct2, 32, pt2, s_te0, s_te1, s_te2, s_te3, s_te4);
+
+  correct = is_valid_printable_32 (pt2[0])
+                    + is_valid_printable_32 (pt2[1])
+                    + is_valid_printable_32 (pt2[2])
+                    + is_valid_printable_32 (pt2[3])
+                    + is_valid_printable_32 (pt2[4])
+                    + is_valid_printable_32 (pt2[5])
+                    + is_valid_printable_32 (pt2[6])
+                    + is_valid_printable_32 (pt2[7]);
+
+  // We need to check a third and fourth block to avoid extremely rare false-positives. See:
+  // https://github.com/hashcat/hashcat/issues/4121
   if (correct != 8) return;
 
   /*
