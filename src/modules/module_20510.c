@@ -81,7 +81,8 @@ static const u32   OPTI_TYPE      = 0;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_COPY_TMPS
                                   | OPTS_TYPE_MAXIMUM_THREADS
-                                  | OPTS_TYPE_AUTODETECT_DISABLE;
+                                  | OPTS_TYPE_AUTODETECT_DISABLE
+                                  | OPTS_TYPE_SUGGEST_KG;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
 static const char *ST_PASS        = "t"; // actually "hashcat"
 static const char *ST_HASH        = "f1eff5c0368d10311dcfc419";
