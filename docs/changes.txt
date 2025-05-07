@@ -98,6 +98,7 @@
 - Fixed minimum password length in module of hash-mode 28200
 - Fixed minimum password length in module of hash-mode 29800
 - Fixed out-of-boundary read when a fast hash defines a kernel_loops_min value higher than the amplifiers provided by the user
+- Fixed stack buffer overflow in PKZIP modules (17200, 17210, 17220, 17225, 17230)
 - Fixed vector datatypes usage for HIP
 - Fix missing check for -j and -k before writing hashcat.dictstat2 which can lead to false negatives
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
