@@ -19,9 +19,12 @@
 #include M2S(INCLUDE_PATH/inc_cipher_kuznyechik.cl)
 #endif
 
+#define VC_DATA_LEN (448)
+#define VC_SALT_LEN ( 64)
+
 typedef struct vc
 {
-  u32 data_buf[112];
+  u32 data_buf[VC_DATA_LEN / 4];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
   u32 keyfile_enabled;
@@ -42,6 +45,9 @@ typedef struct vc
 #include M2S(INCLUDE_PATH/inc_veracrypt_xts.cl)
 #include M2S(INCLUDE_PATH/inc_veracrypt_keyfile.cl)
 #endif
+
+#define VC_DATA_LEN (448)
+#define VC_SALT_LEN ( 64)
 
 typedef struct vc_tmp
 {
@@ -208,7 +214,7 @@ KERNEL_FQ void m13711_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   tmps[gid].opad[3] = ripemd160_hmac_ctx.opad.h[3];
   tmps[gid].opad[4] = ripemd160_hmac_ctx.opad.h[4];
 
-  ripemd160_hmac_update_global (&ripemd160_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, 64);
+  ripemd160_hmac_update_global (&ripemd160_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, VC_SALT_LEN);
 
   for (u32 i = 0, j = 1; i < 16; i += 5, j += 1)
   {

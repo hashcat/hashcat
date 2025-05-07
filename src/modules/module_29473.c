@@ -49,8 +49,11 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-#define VC_SALT_LEN 64
-#define VC_DATA_LEN 448
+#define VC_SALT_LEN     (             64)
+#define VC_SALT_HEX_LEN (VC_SALT_LEN * 2)
+
+#define VC_DATA_LEN     (            448)
+#define VC_DATA_HEX_LEN (VC_DATA_LEN * 2)
 
 typedef struct vc64_sbog_tmp
 {
@@ -71,7 +74,7 @@ typedef struct vc64_sbog_tmp
 
 typedef struct vc
 {
-  u32 data_buf[112];
+  u32 data_buf[VC_DATA_LEN / 4];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
   u32 keyfile_enabled;
@@ -181,12 +184,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '$';
-  token.len[1]     = 128;
+  token.len[1]     = VC_SALT_HEX_LEN;
   token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
   token.sep[2]     = '$';
-  token.len[2]     = 896;
+  token.len[2]     = VC_DATA_HEX_LEN;
   token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -198,12 +201,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *salt_pos = token.buf[1];
 
-  for (u32 i = 0, j = 0; i < VC_SALT_LEN / 4; i += 1, j += 8)
-  {
-    salt->salt_buf[i] = hex_to_u32 (salt_pos + j);
-  }
-
-  salt->salt_len = VC_SALT_LEN;
+  salt->salt_len = hex_decode (salt_pos, VC_SALT_HEX_LEN, (u8 *) salt->salt_buf);
 
   // iter
 
@@ -213,10 +211,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *data_pos = token.buf[2];
 
-  for (u32 i = 0, j = 0; i < VC_DATA_LEN / 4; i += 1, j += 8)
-  {
-    vc->data_buf[i] = hex_to_u32 (data_pos + j);
-  }
+  hex_decode (data_pos, VC_DATA_HEX_LEN, (u8 *) vc->data_buf);
 
   // entropy
 
@@ -236,7 +231,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake digest
 
-  memcpy (digest, vc->data_buf, 112);
+  memcpy (digest, vc->data_buf, VC_DATA_LEN / 4);
 
   return (PARSER_OK);
 }
@@ -300,25 +295,15 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  #define SALT_HEX_LEN VC_SALT_LEN * 2 + 1
+  char salt_buf[VC_SALT_HEX_LEN + 1] = { 0 };
 
-  char salt_buf[SALT_HEX_LEN] = { 0 };
-
-  for (u32 i = 0, j = 0; i < VC_SALT_LEN / 4; i += 1, j += 8)
-  {
-    snprintf (salt_buf + j, SALT_HEX_LEN - j, "%08x", byte_swap_32 (salt->salt_buf[i]));
-  }
+  hex_encode ((const u8 *) salt->salt_buf, VC_SALT_LEN, (u8 *) salt_buf);
 
   // data
 
-  #define DATA_HEX_LEN VC_DATA_LEN * 2 + 1
+  char data_buf[VC_DATA_HEX_LEN + 1] = { 0 };
 
-  char data_buf[DATA_HEX_LEN] = { 0 };
-
-  for (u32 i = 0, j = 0; i < VC_DATA_LEN / 4; i += 1, j += 8)
-  {
-    snprintf (data_buf + j, DATA_HEX_LEN - j, "%08x", byte_swap_32 (vc->data_buf[i]));
-  }
+  hex_encode ((const u8 *) vc->data_buf, VC_DATA_LEN, (u8 *) data_buf);
 
   // output
 

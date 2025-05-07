@@ -19,9 +19,12 @@
 #include M2S(INCLUDE_PATH/inc_cipher_kuznyechik.cl)
 #endif
 
+#define VC_DATA_LEN (448)
+#define VC_SALT_LEN ( 64)
+
 typedef struct vc
 {
-  u32 data_buf[112];
+  u32 data_buf[VC_DATA_LEN / 4];
   u32 keyfile_buf16[16];
   u32 keyfile_buf32[32];
   u32 keyfile_enabled;
@@ -304,7 +307,7 @@ KERNEL_FQ void m13771_init (KERN_ATTR_TMPS_ESALT (vc64_sbog_tmp_t, vc_t))
   tmps[gid].opad_raw[6] = streebog512_hmac_ctx.opad.s[6];
   tmps[gid].opad_raw[7] = streebog512_hmac_ctx.opad.s[7];
 
-  streebog512_hmac_update_global_swap (&streebog512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, 64);
+  streebog512_hmac_update_global_swap (&streebog512_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, VC_SALT_LEN);
 
   for (u32 i = 0, j = 1; i < 8; i += 8, j += 1)
   {
