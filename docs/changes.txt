@@ -115,6 +115,7 @@
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
 - Dependencies: Updated LZMA SDK to 22.01
 - Dependencies: Updated unrar source to 6.2.7
+- Dependencies: Updated xxHash to 0.8.3 (commit 50f4226)
 - Building: Support building windows binaries on macOS using MinGW
 - Dependencies: Updated OpenCL-Headers to v2023.04.17
 - Documents: Updated BUILD.md and added BUILD_macOS.md (containing instructions for building windows binaries on macOS)
