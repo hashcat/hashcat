@@ -14,10 +14,6 @@ environment:
     ARCH: "x64"
     TEST_XXHSUM: "true"
   - COMPILER: "visual"
-    ARCH: "x64"
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    TEST_XXHSUM: "true"
-  - COMPILER: "visual"
     ARCH: "Win32"
     TEST_XXHSUM: "true"
   - COMPILER: "visual"
@@ -26,16 +22,24 @@ environment:
     TEST_XXHSUM: "true"
   - COMPILER: "visual"
     ARCH: "ARM"
-  - COMPILER: "visual"
-    ARCH: "ARM64"
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    # note: ARM64 is not available with Visual Studio 14 2015, which is default for Appveyor
-  - COMPILER: "gcc"
-    PLATFORM: "mingw64"
-  - COMPILER: "gcc"
-    PLATFORM: "mingw32"
-  - COMPILER: "gcc"
-    PLATFORM: "clang"
+# Below tests are now disabled due to redundancy.
+# Their equivalent already runs correctly on Github Actions.
+#  - COMPILER: "visual"
+#    ARCH: "x64"
+#    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+#    TEST_XXHSUM: "true"
+#  - COMPILER: "visual"
+#    ARCH: "ARM64"
+#    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+#    # note: ARM64 is not available with Visual Studio 14 2015, which is default for Appveyor
+
+# The following tests were also flacky on Appveyor, for various reasons.
+#  - COMPILER: "gcc"
+#    PLATFORM: "mingw64"
+#  - COMPILER: "gcc"
+#    PLATFORM: "mingw32"
+#  - COMPILER: "gcc"
+#    PLATFORM: "clang"
 
 install:
   - ECHO Installing %COMPILER% %PLATFORM% %ARCH%

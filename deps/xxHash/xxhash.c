@@ -1,6 +1,6 @@
 /*
  * xxHash - Extremely Fast Hash algorithm
- * Copyright (C) 2012-2020 Yann Collet
+ * Copyright (C) 2012-2023 Yann Collet
  *
  * BSD 2-Clause License (https://www.opensource.org/licenses/bsd-license.php)
  *
@@ -32,12 +32,11 @@
  *   - xxHash source repository: https://github.com/Cyan4973/xxHash
  */
 
-
 /*
  * xxhash.c instantiates functions defined in xxhash.h
  */
 
-#define XXH_STATIC_LINKING_ONLY   /* access advanced declarations */
-#define XXH_IMPLEMENTATION   /* access definitions */
+#define XXH_STATIC_LINKING_ONLY /* access advanced declarations */
+#define XXH_IMPLEMENTATION      /* access definitions */
 
 #include "xxhash.h"

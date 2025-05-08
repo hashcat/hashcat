@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2020 Yann Collet, Facebook, Inc.
+ * Copyright (C) 2016-2021 Yann Collet, Facebook, Inc.
  * All rights reserved.
  *
  * This source code is licensed under both the BSD-style license (found in the
@@ -90,6 +90,7 @@ static BMK_runOutcome_t BMK_runOutcome_error(size_t errorResult)
 static BMK_runOutcome_t BMK_setValid_runTime(BMK_runTime_t runTime)
 {
     BMK_runOutcome_t outcome;
+    memset(&outcome, 0, sizeof(outcome));
     outcome.error_tag_never_ever_use_directly = 0;
     outcome.internal_never_ever_use_directly = runTime;
     return outcome;

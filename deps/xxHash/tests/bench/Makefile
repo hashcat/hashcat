@@ -1,6 +1,6 @@
 # ################################################################
 # xxHash benchHash Makefile
-# Copyright (C) 2019-2020 Yann Collet
+# Copyright (C) 2019-2021 Yann Collet
 #
 # GPL v2 License
 #
@@ -29,7 +29,8 @@
 
 CPPFLAGS += -I../..   # directory of xxHash source files
 CFLAGS   ?= -O3
-CFLAGS   += -std=c99 -Wall -Wextra -Wstrict-aliasing=1
+CFLAGS   += -Wall -Wextra -Wstrict-aliasing=1 \
+            -std=c99
 CFLAGS   += $(MOREFLAGS)   # custom way to add flags
 CXXFLAGS ?= -O3
 LDFLAGS  += $(MOREFLAGS)
@@ -48,11 +49,14 @@ benchHash32: CXXFLAGS += -m32
 benchHash_avx2: CFLAGS   += -mavx2
 benchHash_avx2: CXXFLAGS += -mavx2
 
+benchHash_avx512: CFLAGS   += -mavx512f
+benchHash_avx512: CXXFLAGS += -mavx512f
+
 benchHash_hw: CPPFLAGS += -DHARDWARE_SUPPORT
 benchHash_hw: CFLAGS   += -mavx2 -maes
 benchHash_hw: CXXFLAGS += -mavx2 -mpclmul -std=c++14
 
-benchHash benchHash32 benchHash_avx2 benchHash_nosimd benchHash_hw: $(OBJ_LIST)
+benchHash benchHash32 benchHash_avx2 benchHash_avx512 benchHash_nosimd benchHash_hw: $(OBJ_LIST)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
 
 
@@ -64,4 +68,4 @@ benchHash.o: benchHash.h
 
 
 clean:
-	$(RM) *.o benchHash benchHash32 benchHash_avx2 benchHash_hw
+	$(RM) *.o benchHash benchHash32 benchHash_avx2 benchHash_avx512 benchHash_hw

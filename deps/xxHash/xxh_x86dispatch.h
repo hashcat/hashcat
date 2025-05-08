@@ -1,6 +1,6 @@
 /*
  * xxHash - XXH3 Dispatcher for x86-based targets
- * Copyright (C) 2020 Yann Collet
+ * Copyright (C) 2020-2024 Yann Collet
  *
  * BSD 2-Clause License (https://www.opensource.org/licenses/bsd-license.php)
  *
@@ -41,15 +41,23 @@
 extern "C" {
 #endif
 
-XXH_PUBLIC_API XXH64_hash_t  XXH3_64bits_dispatch(const void* input, size_t len);
-XXH_PUBLIC_API XXH64_hash_t  XXH3_64bits_withSeed_dispatch(const void* input, size_t len, XXH64_hash_t seed);
-XXH_PUBLIC_API XXH64_hash_t  XXH3_64bits_withSecret_dispatch(const void* input, size_t len, const void* secret, size_t secretLen);
-XXH_PUBLIC_API XXH_errorcode XXH3_64bits_update_dispatch(XXH3_state_t* state, const void* input, size_t len);
+/*!
+ * @brief Returns the best XXH3 implementation for x86
+ *
+ * @return The best @ref XXH_VECTOR implementation.
+ * @see XXH_VECTOR_TYPES
+ */
+XXH_PUBLIC_API int XXH_featureTest(void);
 
-XXH_PUBLIC_API XXH128_hash_t XXH3_128bits_dispatch(const void* input, size_t len);
-XXH_PUBLIC_API XXH128_hash_t XXH3_128bits_withSeed_dispatch(const void* input, size_t len, XXH64_hash_t seed);
-XXH_PUBLIC_API XXH128_hash_t XXH3_128bits_withSecret_dispatch(const void* input, size_t len, const void* secret, size_t secretLen);
-XXH_PUBLIC_API XXH_errorcode XXH3_128bits_update_dispatch(XXH3_state_t* state, const void* input, size_t len);
+XXH_PUBLIC_API XXH64_hash_t  XXH3_64bits_dispatch(XXH_NOESCAPE const void* input, size_t len);
+XXH_PUBLIC_API XXH64_hash_t  XXH3_64bits_withSeed_dispatch(XXH_NOESCAPE const void* input, size_t len, XXH64_hash_t seed);
+XXH_PUBLIC_API XXH64_hash_t  XXH3_64bits_withSecret_dispatch(XXH_NOESCAPE const void* input, size_t len, XXH_NOESCAPE const void* secret, size_t secretLen);
+XXH_PUBLIC_API XXH_errorcode XXH3_64bits_update_dispatch(XXH_NOESCAPE XXH3_state_t* state, XXH_NOESCAPE const void* input, size_t len);
+
+XXH_PUBLIC_API XXH128_hash_t XXH3_128bits_dispatch(XXH_NOESCAPE const void* input, size_t len);
+XXH_PUBLIC_API XXH128_hash_t XXH3_128bits_withSeed_dispatch(XXH_NOESCAPE const void* input, size_t len, XXH64_hash_t seed);
+XXH_PUBLIC_API XXH128_hash_t XXH3_128bits_withSecret_dispatch(XXH_NOESCAPE const void* input, size_t len, XXH_NOESCAPE const void* secret, size_t secretLen);
+XXH_PUBLIC_API XXH_errorcode XXH3_128bits_update_dispatch(XXH_NOESCAPE XXH3_state_t* state, XXH_NOESCAPE const void* input, size_t len);
 
 #if defined (__cplusplus)
 }
@@ -71,7 +79,6 @@ XXH_PUBLIC_API XXH_errorcode XXH3_128bits_update_dispatch(XXH3_state_t* state, c
 
 # undef  XXH128
 # define XXH128 XXH3_128bits_withSeed_dispatch
-# define XXH3_128bits XXH3_128bits_dispatch
 # undef  XXH3_128bits
 # define XXH3_128bits XXH3_128bits_dispatch
 # undef  XXH3_128bits_withSeed

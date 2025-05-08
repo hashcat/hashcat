@@ -1,6 +1,6 @@
 /*
  * sort.hh - headers for C++ sort functions
- * Copyright (C) 2019-2020 Yann Collet
+ * Copyright (C) 2019-2021 Yann Collet
  * GPL v2 License
  *
  * This program is free software; you can redistribute it and/or modify

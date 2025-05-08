@@ -1,7 +1,7 @@
 /*
  * xxHash - Extremely Fast Hash algorithm
  * Development source file for `xxh3`
- * Copyright (C) 2019-2020 Yann Collet
+ * Copyright (C) 2019-2021 Yann Collet
  *
  * BSD 2-Clause License (https://www.opensource.org/licenses/bsd-license.php)
  *
@@ -42,7 +42,7 @@
  * but it is still provided for compatibility with source code
  * which used to include it directly.
  *
- * Programs are now highly discourage to include xxh3.h.
+ * Programs are now highly discouraged to include xxh3.h.
  * Include `xxhash.h` instead, which is the officially supported interface.
  *
  * In the future, xxh3.h will start to generate warnings, then errors,

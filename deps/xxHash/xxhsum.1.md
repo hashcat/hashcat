@@ -4,42 +4,45 @@ xxhsum(1) -- print or check xxHash non-cryptographic checksums
 SYNOPSIS
 --------
 
-`xxhsum [<OPTION>] ... [<FILE>] ...`
-`xxhsum -b [<OPTION>] ...`
+`xxhsum` [*OPTION*]... [*FILE*]...
 
-`xxh32sum` is equivalent to `xxhsum -H0`
-`xxh64sum` is equivalent to `xxhsum -H1`
-`xxh128sum` is equivalent to `xxhsum -H2`
+`xxhsum -b` [*OPTION*]...
+
+`xxh32sum` is equivalent to `xxhsum -H0`,
+`xxh64sum` is equivalent to `xxhsum -H1`,
+`xxh128sum` is equivalent to `xxhsum -H2`,
+`xxh3sum` is equivalent to `xxhsum -H3`.
 
 
 DESCRIPTION
 -----------
 
 Print or check xxHash (32, 64 or 128 bits) checksums.
-When no <FILE>, read standard input, except if it's the console.
-When <FILE> is `-`, read standard input even if it's the console.
+When no *FILE*, read standard input, except if it's the console.
+When *FILE* is `-`, read standard input even if it's the console.
 
-`xxhsum` supports a command line syntax similar but not identical to md5sum(1).
-Differences are:
-`xxhsum` doesn't have text/binary mode switch (`-b`, `-t`);
-`xxhsum` always treats files as binary file;
-`xxhsum` has a hash bit width switch (`-H`);
+`xxhsum` supports a command line syntax similar but not identical to md5sum(1).  Differences are:
+
+* `xxhsum` doesn't have text mode switch (`-t`)
+* `xxhsum` doesn't have short binary mode switch (`-b`)
+* `xxhsum` always treats files as binary file
+* `xxhsum` has a hash selection switch (`-H`)
 
 As xxHash is a fast non-cryptographic checksum algorithm,
 `xxhsum` should not be used for security related purposes.
 
-`xxhsum -b` invokes benchmark mode. See [OPTIONS](#OPTIONS) and [EXAMPLES](#EXAMPLES) for details.
+`xxhsum -b` invokes benchmark mode. See OPTIONS and EXAMPLES for details.
 
 OPTIONS
 -------
 
-* `-V`, `--version`:
-  Displays xxhsum version and exits
+* `-H`*HASHTYPE*:
+  Hash selection. *HASHTYPE* means `0`=XXH32, `1`=XXH64, `2`=XXH128, `3`=XXH3.
+  Alternatively, *HASHTYPE* `32`=XXH32, `64`=XXH64, `128`=XXH128.
+  Default value is `1` (XXH64)
 
-* `-H`<HASHTYPE>:
-  Hash selection. <HASHTYPE> means `0`=32bits, `1`=64bits, `2`=128bits.
-  Alternatively, <HASHTYPE> `32`=32bits, `64`=64bits, `128`=128bits.
-  Default value is `1` (64bits)
+* `--binary`:
+  Read in binary mode.
 
 * `--tag`:
   Output in the BSD style.
@@ -48,46 +51,59 @@ OPTIONS
   Set output hexadecimal checksum value as little endian convention.
   By default, value is displayed as big endian.
 
+* `-V`, `--version`:
+  Displays xxhsum version and exits
+
 * `-h`, `--help`:
   Displays help and exits
 
-**The following four options are useful only when verifying checksums (`-c`)**
+### Advanced file input options
 
-* `-c`, `--check` <FILE>:
-  Read xxHash sums from <FILE> and check them
+* `--files-from`, `--filelist` *FILE*:
+  Read filenames from *FILE* and generate hashes for them.
+  `stdin` is also a valid way to provide filenames (when no *FILE* or `-` provided).
+  Valid format is one filename per line, which can include embedded spaces, etc with no need for quotes, escapes, etc.
+  A line commencing with '\\' will enable the convention used in the encoding of filenames against output hashes,
+  whereby subsequent \\\\, \n and \r seqeuences are converted to the single
+  character 0x5C, 0x0A and 0x0D respectively.
 
-* `-q`, `--quiet`:
-  Don't print OK for each successfully verified file
+### The following options are useful only for checksum verification:
+
+* `-c`, `--check` *FILE*:
+  Read xxHash sums from *FILE* and check them
 
 * `--strict`:
-  Return an error code if any line in the file is invalid,
+  Return an error code if any line in *FILE* is invalid,
   not just if some checksums are wrong.
   This policy is disabled by default,
   though UI will prompt an informational message
   if any line in the file is detected invalid.
 
-* `--status`:
-  Don't output anything. Status code shows success.
-
 * `-w`, `--warn`:
-  Emit a warning message about each improperly formatted checksum line.
+  Emit a warning message about each improperly formatted line in *FILE*.
 
-**The following options are useful only benchmark purpose**
+* `-q`, `--quiet`:
+   Don't print OK for each successfully verified hash
+
+* `--status`:
+  Don't output anything. Only generate a Status code to show success.
+
+### The following options are useful only benchmark purpose:
 
 * `-b`:
-  Benchmark mode.  See [EXAMPLES](#EXAMPLES) for details.
+  Benchmark mode.  See EXAMPLES for details.
 
 * `-b#`:
   Specify ID of variant to be tested.
   Multiple variants can be selected, separated by a ',' comma.
 
-* `-B`<BLOCKSIZE>:
-  Only useful for benchmark mode (`-b`). See [EXAMPLES](#EXAMPLES) for details.
+* `-B`*BLOCKSIZE*:
+  Only useful for benchmark mode (`-b`). See *EXAMPLES* for details.
   <BLOCKSIZE> specifies benchmark mode's test data block size in bytes.
   Default value is 102400
 
-* `-i`<ITERATIONS>:
-  Only useful for benchmark mode (`-b`). See [EXAMPLES](#EXAMPLES) for details.
+* `-i`*ITERATIONS*:
+  Only useful for benchmark mode (`-b`). See *EXAMPLES* for details.
   <ITERATIONS> specifies number of iterations in benchmark. Single iteration
   lasts approximately 1000 milliseconds. Default value is 3
 
@@ -113,6 +129,19 @@ output, and redirect it to `xyz.xxh32` and `qux.xxh64`
 Read xxHash sums from specific files and check them
 
     $ xxhsum -c xyz.xxh32 qux.xxh64
+
+Produce a list of files, then generate hashes for that list
+
+    $ find . -type f -name '*.[ch]' > c-files.txt
+    $ xxhsum --files-from c-files.txt
+
+Read the list of files from standard input to avoid the need for an intermediate file
+
+    $ find . -type f -name '*.[ch]' | xxhsum --files-from -
+
+Note that if shell expansion, length of argument list, clarity of use of spaces in filenames, etc allow it then the same output as the previous example can be generated like this
+
+    $ xxhsum `find . -name '*.[ch]'`
 
 Benchmark xxHash algorithm.
 By default, `xxhsum` benchmarks xxHash main variants
