@@ -1,11 +1,11 @@
 /* Ppmd7.h -- Ppmd7 (PPMdH) compression codec
-2021-04-13 : Igor Pavlov : Public domain
+2023-04-02 : Igor Pavlov : Public domain
 This code is based on:
   PPMd var.H (2001): Dmitry Shkarin : Public domain */
  
 
-#ifndef __PPMD7_H
-#define __PPMD7_H
+#ifndef ZIP7_INC_PPMD7_H
+#define ZIP7_INC_PPMD7_H
 
 #include "Ppmd.h"
 
@@ -55,7 +55,7 @@ typedef struct
   UInt32 Range;
   UInt32 Code;
   UInt32 Low;
-  IByteIn *Stream;
+  IByteInPtr Stream;
 } CPpmd7_RangeDec;
 
 
@@ -66,7 +66,7 @@ typedef struct
   // Byte _dummy_[3];
   UInt64 Low;
   UInt64 CacheSize;
-  IByteOut *Stream;
+  IByteOutPtr Stream;
 } CPpmd7z_RangeEnc;
 
 

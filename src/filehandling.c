@@ -214,7 +214,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     lookStream.buf = xfp->inBuf;
     lookStream.bufSize = HCFILE_BUFFER_SIZE;
     lookStream.realStream = &inStream->vt;
-    LookToRead2_Init (&lookStream);
+    LookToRead2_INIT (&lookStream);
     Xzs_Construct (&xfp->streams);
     Int64 offset = 0;
     SRes res = Xzs_ReadBackward (&xfp->streams, &lookStream.vt, &offset, NULL, alloc);

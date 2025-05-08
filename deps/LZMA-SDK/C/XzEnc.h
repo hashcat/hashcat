@@ -1,8 +1,8 @@
 /* XzEnc.h -- Xz Encode
-2017-06-27 : Igor Pavlov : Public domain */
+2023-04-13 : Igor Pavlov : Public domain */
 
-#ifndef __XZ_ENC_H
-#define __XZ_ENC_H
+#ifndef ZIP7_INC_XZ_ENC_H
+#define ZIP7_INC_XZ_ENC_H
 
 #include "Lzma2Enc.h"
 
@@ -11,8 +11,8 @@
 EXTERN_C_BEGIN
 
 
-#define XZ_PROPS__BLOCK_SIZE__AUTO   LZMA2_ENC_PROPS__BLOCK_SIZE__AUTO
-#define XZ_PROPS__BLOCK_SIZE__SOLID  LZMA2_ENC_PROPS__BLOCK_SIZE__SOLID
+#define XZ_PROPS_BLOCK_SIZE_AUTO   LZMA2_ENC_PROPS_BLOCK_SIZE_AUTO
+#define XZ_PROPS_BLOCK_SIZE_SOLID  LZMA2_ENC_PROPS_BLOCK_SIZE_SOLID
 
 
 typedef struct
@@ -41,19 +41,20 @@ typedef struct
 
 void XzProps_Init(CXzProps *p);
 
-
-typedef void * CXzEncHandle;
+typedef struct CXzEnc CXzEnc;
+typedef CXzEnc * CXzEncHandle;
+// Z7_DECLARE_HANDLE(CXzEncHandle)
 
 CXzEncHandle XzEnc_Create(ISzAllocPtr alloc, ISzAllocPtr allocBig);
 void XzEnc_Destroy(CXzEncHandle p);
 SRes XzEnc_SetProps(CXzEncHandle p, const CXzProps *props);
 void XzEnc_SetDataSize(CXzEncHandle p, UInt64 expectedDataSiize);
-SRes XzEnc_Encode(CXzEncHandle p, ISeqOutStream *outStream, ISeqInStream *inStream, ICompressProgress *progress);
+SRes XzEnc_Encode(CXzEncHandle p, ISeqOutStreamPtr outStream, ISeqInStreamPtr inStream, ICompressProgressPtr progress);
 
-SRes Xz_Encode(ISeqOutStream *outStream, ISeqInStream *inStream,
-    const CXzProps *props, ICompressProgress *progress);
+SRes Xz_Encode(ISeqOutStreamPtr outStream, ISeqInStreamPtr inStream,
+    const CXzProps *props, ICompressProgressPtr progress);
 
-SRes Xz_EncodeEmpty(ISeqOutStream *outStream);
+SRes Xz_EncodeEmpty(ISeqOutStreamPtr outStream);
 
 EXTERN_C_END
 

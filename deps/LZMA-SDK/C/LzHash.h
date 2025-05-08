@@ -1,8 +1,8 @@
-/* LzHash.h -- HASH functions for LZ algorithms
-2019-10-30 : Igor Pavlov : Public domain */
+/* LzHash.h -- HASH constants for LZ algorithms
+2023-03-05 : Igor Pavlov : Public domain */
 
-#ifndef __LZ_HASH_H
-#define __LZ_HASH_H
+#ifndef ZIP7_INC_LZ_HASH_H
+#define ZIP7_INC_LZ_HASH_H
 
 /*
   (kHash2Size >= (1 <<  8)) : Required

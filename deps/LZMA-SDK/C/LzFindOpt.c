@@ -1,5 +1,5 @@
 /* LzFindOpt.c -- multithreaded Match finder for LZ algorithms
-2021-07-13 : Igor Pavlov : Public domain */
+2023-04-02 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -41,8 +41,8 @@ UInt64 g_NumIters_Bytes;
 // #define CYC_TO_POS_OFFSET 1 // for debug
 
 /*
-MY_NO_INLINE
-UInt32 * MY_FAST_CALL GetMatchesSpecN_1(const Byte *lenLimit, size_t pos, const Byte *cur, CLzRef *son,
+Z7_NO_INLINE
+UInt32 * Z7_FASTCALL GetMatchesSpecN_1(const Byte *lenLimit, size_t pos, const Byte *cur, CLzRef *son,
     UInt32 _cutValue, UInt32 *d, size_t _maxLen, const UInt32 *hash, const UInt32 *limit, const UInt32 *size, UInt32 *posRes)
 {
   do
@@ -214,13 +214,13 @@ else
   to eliminate "movsx" BUG in old MSVC x64 compiler.
 */
 
-UInt32 * MY_FAST_CALL GetMatchesSpecN_2(const Byte *lenLimit, size_t pos, const Byte *cur, CLzRef *son,
+UInt32 * Z7_FASTCALL GetMatchesSpecN_2(const Byte *lenLimit, size_t pos, const Byte *cur, CLzRef *son,
     UInt32 _cutValue, UInt32 *d, size_t _maxLen, const UInt32 *hash, const UInt32 *limit, const UInt32 *size,
     size_t _cyclicBufferPos, UInt32 _cyclicBufferSize,
     UInt32 *posRes);
 
-MY_NO_INLINE
-UInt32 * MY_FAST_CALL GetMatchesSpecN_2(const Byte *lenLimit, size_t pos, const Byte *cur, CLzRef *son,
+Z7_NO_INLINE
+UInt32 * Z7_FASTCALL GetMatchesSpecN_2(const Byte *lenLimit, size_t pos, const Byte *cur, CLzRef *son,
     UInt32 _cutValue, UInt32 *d, size_t _maxLen, const UInt32 *hash, const UInt32 *limit, const UInt32 *size,
     size_t _cyclicBufferPos, UInt32 _cyclicBufferSize,
     UInt32 *posRes)
@@ -404,7 +404,7 @@ else
 /*
 typedef UInt32 uint32plus; // size_t
 
-UInt32 * MY_FAST_CALL GetMatchesSpecN_3(uint32plus lenLimit, size_t pos, const Byte *cur, CLzRef *son,
+UInt32 * Z7_FASTCALL GetMatchesSpecN_3(uint32plus lenLimit, size_t pos, const Byte *cur, CLzRef *son,
     UInt32 _cutValue, UInt32 *d, uint32plus _maxLen, const UInt32 *hash, const UInt32 *limit, const UInt32 *size,
     size_t _cyclicBufferPos, UInt32 _cyclicBufferSize,
     UInt32 *posRes)

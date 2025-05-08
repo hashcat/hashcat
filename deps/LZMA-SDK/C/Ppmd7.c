@@ -1,5 +1,5 @@
 /* Ppmd7.c -- PPMdH codec
-2021-04-13 : Igor Pavlov : Public domain
+2023-09-07 : Igor Pavlov : Public domain
 This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 
 #include "Precomp.h"
@@ -14,7 +14,7 @@ This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 MY_ALIGN(16)
 static const Byte PPMD7_kExpEscape[16] = { 25, 14, 9, 7, 5, 5, 4, 4, 4, 3, 3, 3, 2, 2, 2, 2 };
 MY_ALIGN(16)
-static const UInt16 kInitBinEsc[] = { 0x3CDD, 0x1F3F, 0x59BF, 0x48F3, 0x64A1, 0x5ABC, 0x6632, 0x6051};
+static const UInt16 PPMD7_kInitBinEsc[] = { 0x3CDD, 0x1F3F, 0x59BF, 0x48F3, 0x64A1, 0x5ABC, 0x6632, 0x6051};
 
 #define MAX_FREQ 124
 #define UNIT_SIZE 12
@@ -33,7 +33,7 @@ static const UInt16 kInitBinEsc[] = { 0x3CDD, 0x1F3F, 0x59BF, 0x48F3, 0x64A1, 0x
 #define ONE_STATE(ctx) Ppmd7Context_OneState(ctx)
 #define SUFFIX(ctx) CTX((ctx)->Suffix)
 
-typedef CPpmd7_Context * CTX_PTR;
+typedef CPpmd7_Context * PPMD7_CTX_PTR;
 
 struct CPpmd7_Node_;
 
@@ -107,14 +107,14 @@ BoolInt Ppmd7_Alloc(CPpmd7 *p, UInt32 size, ISzAllocPtr alloc)
 // ---------- Internal Memory Allocator ----------
 
 /* We can use CPpmd7_Node in list of free units (as in Ppmd8)
-   But we still need one additional list walk pass in GlueFreeBlocks().
-   So we use simple CPpmd_Void_Ref instead of CPpmd7_Node in InsertNode() / RemoveNode()
+   But we still need one additional list walk pass in Ppmd7_GlueFreeBlocks().
+   So we use simple CPpmd_Void_Ref instead of CPpmd7_Node in Ppmd7_InsertNode() / Ppmd7_RemoveNode()
 */
 
 #define EMPTY_NODE 0
 
 
-static void InsertNode(CPpmd7 *p, void *node, unsigned indx)
+static void Ppmd7_InsertNode(CPpmd7 *p, void *node, unsigned indx)
 {
   *((CPpmd_Void_Ref *)node) = p->FreeList[indx];
   // ((CPpmd7_Node *)node)->Next = (CPpmd7_Node_Ref)p->FreeList[indx];
@@ -124,7 +124,7 @@ static void InsertNode(CPpmd7 *p, void *node, unsigned indx)
 }
 
 
-static void *RemoveNode(CPpmd7 *p, unsigned indx)
+static void *Ppmd7_RemoveNode(CPpmd7 *p, unsigned indx)
 {
   CPpmd_Void_Ref *node = (CPpmd_Void_Ref *)Ppmd7_GetPtr(p, p->FreeList[indx]);
   p->FreeList[indx] = *node;
@@ -134,32 +134,32 @@ static void *RemoveNode(CPpmd7 *p, unsigned indx)
 }
 
 
-static void SplitBlock(CPpmd7 *p, void *ptr, unsigned oldIndx, unsigned newIndx)
+static void Ppmd7_SplitBlock(CPpmd7 *p, void *ptr, unsigned oldIndx, unsigned newIndx)
 {
   unsigned i, nu = I2U(oldIndx) - I2U(newIndx);
   ptr = (Byte *)ptr + U2B(I2U(newIndx));
   if (I2U(i = U2I(nu)) != nu)
   {
     unsigned k = I2U(--i);
-    InsertNode(p, ((Byte *)ptr) + U2B(k), nu - k - 1);
+    Ppmd7_InsertNode(p, ((Byte *)ptr) + U2B(k), nu - k - 1);
   }
-  InsertNode(p, ptr, i);
+  Ppmd7_InsertNode(p, ptr, i);
 }
 
 
 /* we use CPpmd7_Node_Union union to solve XLC -O2 strict pointer aliasing problem */
 
-typedef union _CPpmd7_Node_Union
+typedef union
 {
   CPpmd7_Node     Node;
   CPpmd7_Node_Ref NextRef;
 } CPpmd7_Node_Union;
 
-/* Original PPmdH (Ppmd7) code uses doubly linked list in GlueFreeBlocks()
+/* Original PPmdH (Ppmd7) code uses doubly linked list in Ppmd7_GlueFreeBlocks()
    we use single linked list similar to Ppmd8 code */
 
 
-static void GlueFreeBlocks(CPpmd7 *p)
+static void Ppmd7_GlueFreeBlocks(CPpmd7 *p)
 {
   /*
   we use first UInt16 field of 12-bytes UNITs as record type stamp
@@ -239,27 +239,27 @@ static void GlueFreeBlocks(CPpmd7 *p)
     if (nu == 0)
       continue;
     for (; nu > 128; nu -= 128, node += 128)
-      InsertNode(p, node, PPMD_NUM_INDEXES - 1);
+      Ppmd7_InsertNode(p, node, PPMD_NUM_INDEXES - 1);
     if (I2U(i = U2I(nu)) != nu)
     {
       unsigned k = I2U(--i);
-      InsertNode(p, node + k, (unsigned)nu - k - 1);
+      Ppmd7_InsertNode(p, node + k, (unsigned)nu - k - 1);
     }
-    InsertNode(p, node, i);
+    Ppmd7_InsertNode(p, node, i);
   }
 }
 
 
-MY_NO_INLINE
-static void *AllocUnitsRare(CPpmd7 *p, unsigned indx)
+Z7_NO_INLINE
+static void *Ppmd7_AllocUnitsRare(CPpmd7 *p, unsigned indx)
 {
   unsigned i;
   
   if (p->GlueCount == 0)
   {
-    GlueFreeBlocks(p);
+    Ppmd7_GlueFreeBlocks(p);
     if (p->FreeList[indx] != 0)
-      return RemoveNode(p, indx);
+      return Ppmd7_RemoveNode(p, indx);
   }
   
   i = indx;
@@ -277,17 +277,17 @@ static void *AllocUnitsRare(CPpmd7 *p, unsigned indx)
   while (p->FreeList[i] == 0);
 
   {
-    void *block = RemoveNode(p, i);
-    SplitBlock(p, block, i, indx);
+    void *block = Ppmd7_RemoveNode(p, i);
+    Ppmd7_SplitBlock(p, block, i, indx);
     return block;
   }
 }
 
 
-static void *AllocUnits(CPpmd7 *p, unsigned indx)
+static void *Ppmd7_AllocUnits(CPpmd7 *p, unsigned indx)
 {
   if (p->FreeList[indx] != 0)
-    return RemoveNode(p, indx);
+    return Ppmd7_RemoveNode(p, indx);
   {
     UInt32 numBytes = U2B(I2U(indx));
     Byte *lo = p->LoUnit;
@@ -297,13 +297,22 @@ static void *AllocUnits(CPpmd7 *p, unsigned indx)
       return lo;
     }
   }
-  return AllocUnitsRare(p, indx);
+  return Ppmd7_AllocUnitsRare(p, indx);
 }
 
 
-#define MyMem12Cpy(dest, src, num) \
-  { UInt32 *d = (UInt32 *)dest; const UInt32 *z = (const UInt32 *)src; UInt32 n = num; \
-    do { d[0] = z[0]; d[1] = z[1]; d[2] = z[2]; z += 3; d += 3; } while (--n); }
+#define MEM_12_CPY(dest, src, num) \
+  { UInt32 *d = (UInt32 *)(dest); \
+    const UInt32 *z = (const UInt32 *)(src); \
+    unsigned n = (num); \
+    do { \
+      d[0] = z[0]; \
+      d[1] = z[1]; \
+      d[2] = z[2]; \
+      z += 3; \
+      d += 3; \
+    } while (--n); \
+  }
 
 
 /*
@@ -315,12 +324,12 @@ static void *ShrinkUnits(CPpmd7 *p, void *oldPtr, unsigned oldNU, unsigned newNU
     return oldPtr;
   if (p->FreeList[i1] != 0)
   {
-    void *ptr = RemoveNode(p, i1);
-    MyMem12Cpy(ptr, oldPtr, newNU);
-    InsertNode(p, oldPtr, i0);
+    void *ptr = Ppmd7_RemoveNode(p, i1);
+    MEM_12_CPY(ptr, oldPtr, newNU)
+    Ppmd7_InsertNode(p, oldPtr, i0);
     return ptr;
   }
-  SplitBlock(p, oldPtr, i0, i1);
+  Ppmd7_SplitBlock(p, oldPtr, i0, i1);
   return oldPtr;
 }
 */
@@ -329,14 +338,14 @@ static void *ShrinkUnits(CPpmd7 *p, void *oldPtr, unsigned oldNU, unsigned newNU
 #define SUCCESSOR(p) Ppmd_GET_SUCCESSOR(p)
 static void SetSuccessor(CPpmd_State *p, CPpmd_Void_Ref v)
 {
-  Ppmd_SET_SUCCESSOR(p, v);
+  Ppmd_SET_SUCCESSOR(p, v)
 }
 
 
 
-MY_NO_INLINE
+Z7_NO_INLINE
 static
-void RestartModel(CPpmd7 *p)
+void Ppmd7_RestartModel(CPpmd7 *p)
 {
   unsigned i, k;
 
@@ -352,8 +361,8 @@ void RestartModel(CPpmd7 *p)
   p->PrevSuccess = 0;
 
   {
-    CPpmd7_Context *mc = (CTX_PTR)(void *)(p->HiUnit -= UNIT_SIZE); /* AllocContext(p); */
-    CPpmd_State *s = (CPpmd_State *)p->LoUnit; /* AllocUnits(p, PPMD_NUM_INDEXES - 1); */
+    CPpmd7_Context *mc = (PPMD7_CTX_PTR)(void *)(p->HiUnit -= UNIT_SIZE); /* AllocContext(p); */
+    CPpmd_State *s = (CPpmd_State *)p->LoUnit; /* Ppmd7_AllocUnits(p, PPMD_NUM_INDEXES - 1); */
     
     p->LoUnit += U2B(256 / 2);
     p->MaxContext = p->MinContext = mc;
@@ -391,7 +400,7 @@ void RestartModel(CPpmd7 *p)
     {
       unsigned m;
       UInt16 *dest = p->BinSumm[i] + k;
-      UInt16 val = (UInt16)(PPMD_BIN_SCALE - kInitBinEsc[k] / (i + 2));
+      const UInt16 val = (UInt16)(PPMD_BIN_SCALE - PPMD7_kInitBinEsc[k] / (i + 2));
       for (m = 0; m < 64; m += 8)
         dest[m] = val;
     }
@@ -423,13 +432,13 @@ void Ppmd7_Init(CPpmd7 *p, unsigned maxOrder)
 {
   p->MaxOrder = maxOrder;
 
-  RestartModel(p);
+  Ppmd7_RestartModel(p);
 }
 
 
 
 /*
-  CreateSuccessors()
+  Ppmd7_CreateSuccessors()
   It's called when (FoundState->Successor) is RAW-Successor,
   that is the link to position in Raw text.
   So we create Context records and write the links to
@@ -445,10 +454,10 @@ void Ppmd7_Init(CPpmd7 *p, unsigned maxOrder)
   also it can return pointer to real context of same order,
 */
 
-MY_NO_INLINE
-static CTX_PTR CreateSuccessors(CPpmd7 *p)
+Z7_NO_INLINE
+static PPMD7_CTX_PTR Ppmd7_CreateSuccessors(CPpmd7 *p)
 {
-  CTX_PTR c = p->MinContext;
+  PPMD7_CTX_PTR c = p->MinContext;
   CPpmd_Byte_Ref upBranch = (CPpmd_Byte_Ref)SUCCESSOR(p->FoundState);
   Byte newSym, newFreq;
   unsigned numPs = 0;
@@ -522,15 +531,15 @@ static CTX_PTR CreateSuccessors(CPpmd7 *p)
 
   do
   {
-    CTX_PTR c1;
+    PPMD7_CTX_PTR c1;
     /* = AllocContext(p); */
     if (p->HiUnit != p->LoUnit)
-      c1 = (CTX_PTR)(void *)(p->HiUnit -= UNIT_SIZE);
+      c1 = (PPMD7_CTX_PTR)(void *)(p->HiUnit -= UNIT_SIZE);
     else if (p->FreeList[0] != 0)
-      c1 = (CTX_PTR)RemoveNode(p, 0);
+      c1 = (PPMD7_CTX_PTR)Ppmd7_RemoveNode(p, 0);
     else
     {
-      c1 = (CTX_PTR)AllocUnitsRare(p, 0);
+      c1 = (PPMD7_CTX_PTR)Ppmd7_AllocUnitsRare(p, 0);
       if (!c1)
         return NULL;
     }
@@ -550,16 +559,16 @@ static CTX_PTR CreateSuccessors(CPpmd7 *p)
 
 
 
-#define SwapStates(s) \
+#define SWAP_STATES(s) \
   { CPpmd_State tmp = s[0]; s[0] = s[-1]; s[-1] = tmp; }
 
 
 void Ppmd7_UpdateModel(CPpmd7 *p);
-MY_NO_INLINE
+Z7_NO_INLINE
 void Ppmd7_UpdateModel(CPpmd7 *p)
 {
   CPpmd_Void_Ref maxSuccessor, minSuccessor;
-  CTX_PTR c, mc;
+  PPMD7_CTX_PTR c, mc;
   unsigned s0, ns;
 
 
@@ -592,7 +601,7 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
         
         if (s[0].Freq >= s[-1].Freq)
         {
-          SwapStates(s);
+          SWAP_STATES(s)
           s--;
         }
       }
@@ -610,10 +619,10 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
   {
     /* MAX ORDER context */
     /* (FoundState->Successor) is RAW-Successor. */
-    p->MaxContext = p->MinContext = CreateSuccessors(p);
+    p->MaxContext = p->MinContext = Ppmd7_CreateSuccessors(p);
     if (!p->MinContext)
     {
-      RestartModel(p);
+      Ppmd7_RestartModel(p);
       return;
     }
     SetSuccessor(p->FoundState, REF(p->MinContext));
@@ -629,7 +638,7 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
     p->Text = text;
     if (text >= p->UnitsStart)
     {
-      RestartModel(p);
+      Ppmd7_RestartModel(p);
       return;
     }
     maxSuccessor = REF(text);
@@ -645,10 +654,10 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
     if (minSuccessor <= maxSuccessor)
     {
       // minSuccessor is RAW-Successor. So we will create real contexts records:
-      CTX_PTR cs = CreateSuccessors(p);
+      PPMD7_CTX_PTR cs = Ppmd7_CreateSuccessors(p);
       if (!cs)
       {
-        RestartModel(p);
+        Ppmd7_RestartModel(p);
         return;
       }
       minSuccessor = REF(cs);
@@ -711,27 +720,27 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
       if ((ns1 & 1) == 0)
       {
         /* Expand for one UNIT */
-        unsigned oldNU = ns1 >> 1;
-        unsigned i = U2I(oldNU);
+        const unsigned oldNU = ns1 >> 1;
+        const unsigned i = U2I(oldNU);
         if (i != U2I((size_t)oldNU + 1))
         {
-          void *ptr = AllocUnits(p, i + 1);
+          void *ptr = Ppmd7_AllocUnits(p, i + 1);
           void *oldPtr;
           if (!ptr)
           {
-            RestartModel(p);
+            Ppmd7_RestartModel(p);
             return;
           }
           oldPtr = STATS(c);
-          MyMem12Cpy(ptr, oldPtr, oldNU);
-          InsertNode(p, oldPtr, i);
+          MEM_12_CPY(ptr, oldPtr, oldNU)
+          Ppmd7_InsertNode(p, oldPtr, i);
           c->Union4.Stats = STATS_REF(ptr);
         }
       }
       sum = c->Union2.SummFreq;
       /* max increase of Escape_Freq is 3 here.
          total increase of Union2.SummFreq for all symbols is less than 256 here */
-      sum += (UInt32)(2 * ns1 < ns) + 2 * ((unsigned)(4 * ns1 <= ns) & (sum <= 8 * ns1));
+      sum += (UInt32)(unsigned)((2 * ns1 < ns) + 2 * ((unsigned)(4 * ns1 <= ns) & (sum <= 8 * ns1)));
       /* original PPMdH uses 16-bit variable for (sum) here.
          But (sum < 0x9000). So we don't truncate (sum) to 16-bit */
       // sum = (UInt16)sum;
@@ -739,10 +748,10 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
     else
     {
       // instead of One-symbol context we create 2-symbol context
-      CPpmd_State *s = (CPpmd_State*)AllocUnits(p, 0);
+      CPpmd_State *s = (CPpmd_State*)Ppmd7_AllocUnits(p, 0);
       if (!s)
       {
-        RestartModel(p);
+        Ppmd7_RestartModel(p);
         return;
       }
       {
@@ -761,7 +770,7 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
         // (max(s->freq) == 120), when we convert from 1-symbol into 2-symbol context
         s->Freq = (Byte)freq;
         // max(InitEsc = PPMD7_kExpEscape[*]) is 25. So the max(escapeFreq) is 26 here
-        sum = freq + p->InitEsc + (ns > 3);
+        sum = (UInt32)(freq + p->InitEsc + (ns > 3));
       }
     }
     
@@ -795,8 +804,8 @@ void Ppmd7_UpdateModel(CPpmd7 *p)
   
 
 
-MY_NO_INLINE
-static void Rescale(CPpmd7 *p)
+Z7_NO_INLINE
+static void Ppmd7_Rescale(CPpmd7 *p)
 {
   unsigned i, adder, sumFreq, escFreq;
   CPpmd_State *stats = STATS(p->MinContext);
@@ -885,7 +894,7 @@ static void Rescale(CPpmd7 *p)
       *s = *stats;
       s->Freq = (Byte)freq; // (freq <= 260 / 4)
       p->FoundState = s;
-      InsertNode(p, stats, U2I(n0));
+      Ppmd7_InsertNode(p, stats, U2I(n0));
       return;
     }
     
@@ -899,13 +908,13 @@ static void Rescale(CPpmd7 *p)
       {
         if (p->FreeList[i1] != 0)
         {
-          void *ptr = RemoveNode(p, i1);
+          void *ptr = Ppmd7_RemoveNode(p, i1);
           p->MinContext->Union4.Stats = STATS_REF(ptr);
-          MyMem12Cpy(ptr, (const void *)stats, n1);
-          InsertNode(p, stats, i0);
+          MEM_12_CPY(ptr, (const void *)stats, n1)
+          Ppmd7_InsertNode(p, stats, i0);
         }
         else
-          SplitBlock(p, stats, i0, i1);
+          Ppmd7_SplitBlock(p, stats, i0, i1);
       }
     }
   }
@@ -933,10 +942,10 @@ CPpmd_See *Ppmd7_MakeEscFreq(CPpmd7 *p, unsigned numMasked, UInt32 *escFreq)
         p->HiBitsFlag;
     {
       // if (see->Summ) field is larger than 16-bit, we need only low 16 bits of Summ
-      unsigned summ = (UInt16)see->Summ; // & 0xFFFF
-      unsigned r = (summ >> see->Shift);
+      const unsigned summ = (UInt16)see->Summ; // & 0xFFFF
+      const unsigned r = (summ >> see->Shift);
       see->Summ = (UInt16)(summ - r);
-      *escFreq = r + (r == 0);
+      *escFreq = (UInt32)(r + (r == 0));
     }
   }
   else
@@ -948,9 +957,9 @@ CPpmd_See *Ppmd7_MakeEscFreq(CPpmd7 *p, unsigned numMasked, UInt32 *escFreq)
 }
 
 
-static void NextContext(CPpmd7 *p)
+static void Ppmd7_NextContext(CPpmd7 *p)
 {
-  CTX_PTR c = CTX(SUCCESSOR(p->FoundState));
+  PPMD7_CTX_PTR c = CTX(SUCCESSOR(p->FoundState));
   if (p->OrderFall == 0 && (const Byte *)c > p->Text)
     p->MaxContext = p->MinContext = c;
   else
@@ -967,12 +976,12 @@ void Ppmd7_Update1(CPpmd7 *p)
   s->Freq = (Byte)freq;
   if (freq > s[-1].Freq)
   {
-    SwapStates(s);
+    SWAP_STATES(s)
     p->FoundState = --s;
     if (freq > MAX_FREQ)
-      Rescale(p);
+      Ppmd7_Rescale(p);
   }
-  NextContext(p);
+  Ppmd7_NextContext(p);
 }
 
 
@@ -981,15 +990,15 @@ void Ppmd7_Update1_0(CPpmd7 *p)
   CPpmd_State *s = p->FoundState;
   CPpmd7_Context *mc = p->MinContext;
   unsigned freq = s->Freq;
-  unsigned summFreq = mc->Union2.SummFreq;
+  const unsigned summFreq = mc->Union2.SummFreq;
   p->PrevSuccess = (2 * freq > summFreq);
-  p->RunLength += (int)p->PrevSuccess;
+  p->RunLength += (Int32)p->PrevSuccess;
   mc->Union2.SummFreq = (UInt16)(summFreq + 4);
   freq += 4;
   s->Freq = (Byte)freq;
   if (freq > MAX_FREQ)
-    Rescale(p);
-  NextContext(p);
+    Ppmd7_Rescale(p);
+  Ppmd7_NextContext(p);
 }
 
 
@@ -1000,7 +1009,7 @@ void Ppmd7_UpdateBin(CPpmd7 *p)
   p->FoundState->Freq = (Byte)(freq + (freq < 128));
   p->PrevSuccess = 1;
   p->RunLength++;
-  NextContext(p);
+  Ppmd7_NextContext(p);
 }
 */
 
@@ -1013,7 +1022,7 @@ void Ppmd7_Update2(CPpmd7 *p)
   p->MinContext->Union2.SummFreq = (UInt16)(p->MinContext->Union2.SummFreq + 4);
   s->Freq = (Byte)freq;
   if (freq > MAX_FREQ)
-    Rescale(p);
+    Ppmd7_Rescale(p);
   Ppmd7_UpdateModel(p);
 }
 
@@ -1042,8 +1051,8 @@ Last UNIT of array at offset (Size - 12) is root order-0 CPpmd7_Context record.
 The code can free UNITs memory blocks that were allocated to store CPpmd_State vectors.
 The code doesn't free UNITs allocated for CPpmd7_Context records.
 
-The code calls RestartModel(), when there is no free memory for allocation.
-And RestartModel() changes the state to orignal start state, with full free block.
+The code calls Ppmd7_RestartModel(), when there is no free memory for allocation.
+And Ppmd7_RestartModel() changes the state to orignal start state, with full free block.
 
 
 The code allocates UNITs with the following order:
@@ -1051,14 +1060,14 @@ The code allocates UNITs with the following order:
 Allocation of 1 UNIT for Context record
   - from free space (HiUnit) down to (LoUnit)
   - from FreeList[0]
-  - AllocUnitsRare()
+  - Ppmd7_AllocUnitsRare()
 
-AllocUnits() for CPpmd_State vectors:
+Ppmd7_AllocUnits() for CPpmd_State vectors:
   - from FreeList[i]
   - from free space (LoUnit) up to (HiUnit)
-  - AllocUnitsRare()
+  - Ppmd7_AllocUnitsRare()
 
-AllocUnitsRare()
+Ppmd7_AllocUnitsRare()
   - if (GlueCount == 0)
        {  Glue lists, GlueCount = 255, allocate from FreeList[i]] }
   - loop for all higher sized FreeList[...] lists
@@ -1093,8 +1102,8 @@ The PPMd code tries to fulfill the condition:
 We have (Sum(Stats[].Freq) <= 256 * 124), because of (MAX_FREQ = 124)
 So (4 = 128 - 124) is average reserve for Escape_Freq for each symbol.
 If (CPpmd_State::Freq) is not aligned for 4, the reserve can be 5, 6 or 7.
-SummFreq and Escape_Freq can be changed in Rescale() and *Update*() functions.
-Rescale() can remove symbols only from max-order contexts. So Escape_Freq can increase after multiple calls of Rescale() for
+SummFreq and Escape_Freq can be changed in Ppmd7_Rescale() and *Update*() functions.
+Ppmd7_Rescale() can remove symbols only from max-order contexts. So Escape_Freq can increase after multiple calls of Ppmd7_Rescale() for
 max-order context.
 
 When the PPMd code still break (Total <= RC::Range) condition in range coder,
@@ -1102,3 +1111,21 @@ we have two ways to resolve that problem:
   1) we can report error, if we want to keep compatibility with original PPMd code that has no fix for such cases.
   2) we can reduce (Total) value to (RC::Range) by reducing (Escape_Freq) part of (Total) value.
 */
+
+#undef MAX_FREQ
+#undef UNIT_SIZE
+#undef U2B
+#undef U2I
+#undef I2U
+#undef I2U_UInt16
+#undef REF
+#undef STATS_REF
+#undef CTX
+#undef STATS
+#undef ONE_STATE
+#undef SUFFIX
+#undef NODE
+#undef EMPTY_NODE
+#undef MEM_12_CPY
+#undef SUCCESSOR
+#undef SWAP_STATES

@@ -1,9 +1,9 @@
 /* Ppmd.h -- PPMD codec common code
-2021-04-13 : Igor Pavlov : Public domain
+2023-03-05 : Igor Pavlov : Public domain
 This code is based on PPMd var.H (2001): Dmitry Shkarin : Public domain */
 
-#ifndef __PPMD_H
-#define __PPMD_H
+#ifndef ZIP7_INC_PPMD_H
+#define ZIP7_INC_PPMD_H
 
 #include "CpuArch.h"
 
@@ -48,8 +48,10 @@ typedef struct
   Byte Count;  /* Count to next change of Shift */
 } CPpmd_See;
 
-#define Ppmd_See_Update(p)  if ((p)->Shift < PPMD_PERIOD_BITS && --(p)->Count == 0) \
-    { (p)->Summ = (UInt16)((p)->Summ << 1); (p)->Count = (Byte)(3 << (p)->Shift++); }
+#define Ppmd_See_UPDATE(p) \
+  { if ((p)->Shift < PPMD_PERIOD_BITS && --(p)->Count == 0) \
+    { (p)->Summ = (UInt16)((p)->Summ << 1); \
+      (p)->Count = (Byte)(3 << (p)->Shift++); }}
 
 
 typedef struct

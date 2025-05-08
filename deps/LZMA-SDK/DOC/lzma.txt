@@ -1,6 +1,6 @@
 LZMA compression
 ----------------
-Version: 9.35
+Version: 24.07
 
 This file describes LZMA encoding and decoding functions written in C language.
 
@@ -169,12 +169,14 @@ How To compress data
 Compile files: 
   7zTypes.h
   Threads.h	
+  Threads.c	
   LzmaEnc.h
   LzmaEnc.c
   LzFind.h
   LzFind.c
   LzFindMt.h
   LzFindMt.c
+  LzFindOpt.c
   LzHash.h
 
 Memory Requirements:
@@ -283,17 +285,26 @@ Return code:
 Defines
 -------
 
-_LZMA_SIZE_OPT - Enable some optimizations in LZMA Decoder to get smaller executable code.
+Z7_LZMA_SIZE_OPT - Enable some code size optimizations in LZMA Decoder to get smaller executable code.
 
-_LZMA_PROB32   - It can increase the speed on some 32-bit CPUs, but memory usage for 
-                 some structures will be doubled in that case.
+Z7_LZMA_PROB32   - It can increase the speed on some 32-bit CPUs, but memory usage for 
+                   some structures will be doubled in that case.
 
-_LZMA_UINT32_IS_ULONG  - Define it if int is 16-bit on your compiler and long is 32-bit.
+Z7_DECL_Int32_AS_long  - Define it if int is 16-bit on your compiler and long is 32-bit.
 
-_LZMA_NO_SYSTEM_SIZE_T  - Define it if you don't want to use size_t type.
+Z7_DECL_SizeT_AS_unsigned_int  - Define it if you don't want to use size_t type.
 
 
-_7ZIP_PPMD_SUPPPORT - Define it if you don't want to support PPMD method in AMSI-C .7z decoder.
+Defines for 7z decoder written in C
+-----------------------------------
+These defines are for 7zDec.c only (the decoder in C). 
+C++ 7z decoder doesn't uses these macros.
+
+Z7_PPMD_SUPPORT        - define it if you need PPMD method support.
+Z7_NO_METHODS_FILTERS  - do not use filters (except of BCJ2 filter).
+Z7_USE_NATIVE_BRANCH_FILTER - use filter for native ISA:
+                                 use x86 filter, if compiled to x86 executable,
+                		 use arm64 filter, if compiled to arm64 executable. 
 
 
 C++ LZMA Encoder/Decoder 
@@ -305,20 +316,26 @@ C++ LZMA code is just wrapper over ANSI-C code.
 
 C++ Notes
 ~~~~~~~~~~~~~~~~~~~~~~~~
-If you use some C++ code folders in 7-Zip (for example, C++ code for .7z handling),
+If you use some C++ code folders in 7-Zip (for example, C++ code for 7z archive handling),
 you must check that you correctly work with "new" operator.
 7-Zip can be compiled with MSVC 6.0 that doesn't throw "exception" from "new" operator.
-So 7-Zip uses "CPP\Common\NewHandler.cpp" that redefines "new" operator:
+So 7-Zip uses "CPP\Common\NewHandler.cpp" that redefines "new" operator,
+if compiled by old MSVC compilers (MSVC before version VS 2010):
+
 operator new(size_t size)
 {
   void *p = ::malloc(size);
-  if (p == 0)
+  if (!p)
     throw CNewException();
   return p;
 }
-If you use MSCV that throws exception for "new" operator, you can compile without 
-"NewHandler.cpp". So standard exception will be used. Actually some code of 
-7-Zip catches any exception in internal code and converts it to HRESULT code.
+
+If the compiler is VS 2010 or newer, NewHandler.cpp doesn't redefine "new" operator.
+Sp if you use new compiler (VS 2010 or newer), you still can include "NewHandler.cpp" 
+to compilation, and it will not redefine operator new.
+Also you can compile without "NewHandler.cpp" with new compilers. 
+If 7-zip doesn't redefine operator "new", standard exception will be used instead of CNewException. 
+Some code of 7-Zip catches any exception in internal code and converts it to HRESULT code.
 So you don't need to catch CNewException, if you call COM interfaces of 7-Zip.
 
 ---

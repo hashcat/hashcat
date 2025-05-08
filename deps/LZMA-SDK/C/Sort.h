@@ -1,8 +1,8 @@
 /* Sort.h -- Sort functions
-2014-04-05 : Igor Pavlov : Public domain */
+2023-03-05 : Igor Pavlov : Public domain */
 
-#ifndef __7Z_SORT_H
-#define __7Z_SORT_H
+#ifndef ZIP7_INC_SORT_H
+#define ZIP7_INC_SORT_H
 
 #include "7zTypes.h"
 

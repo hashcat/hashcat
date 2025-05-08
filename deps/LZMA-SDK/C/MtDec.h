@@ -1,46 +1,46 @@
 /* MtDec.h -- Multi-thread Decoder
-2020-03-05 : Igor Pavlov : Public domain */
+2023-04-02 : Igor Pavlov : Public domain */
 
-#ifndef __MT_DEC_H
-#define __MT_DEC_H
+#ifndef ZIP7_INC_MT_DEC_H
+#define ZIP7_INC_MT_DEC_H
 
 #include "7zTypes.h"
 
-#ifndef _7ZIP_ST
+#ifndef Z7_ST
 #include "Threads.h"
 #endif
 
 EXTERN_C_BEGIN
 
-#ifndef _7ZIP_ST
+#ifndef Z7_ST
 
-#ifndef _7ZIP_ST
-  #define MTDEC__THREADS_MAX 32
+#ifndef Z7_ST
+  #define MTDEC_THREADS_MAX 32
 #else
-  #define MTDEC__THREADS_MAX 1
+  #define MTDEC_THREADS_MAX 1
 #endif
 
 
 typedef struct
 {
-  ICompressProgress *progress;
+  ICompressProgressPtr progress;
   SRes res;
   UInt64 totalInSize;
   UInt64 totalOutSize;
   CCriticalSection cs;
 } CMtProgress;
 
-void MtProgress_Init(CMtProgress *p, ICompressProgress *progress);
+void MtProgress_Init(CMtProgress *p, ICompressProgressPtr progress);
 SRes MtProgress_Progress_ST(CMtProgress *p);
 SRes MtProgress_ProgressAdd(CMtProgress *p, UInt64 inSize, UInt64 outSize);
 SRes MtProgress_GetError(CMtProgress *p);
 void MtProgress_SetError(CMtProgress *p, SRes res);
 
-struct _CMtDec;
+struct CMtDec;
 
 typedef struct
 {
-  struct _CMtDec *mtDec;
+  struct CMtDec_ *mtDec;
   unsigned index;
   void *inBuf;
 
@@ -117,7 +117,7 @@ typedef struct
 
 
 
-typedef struct _CMtDec
+typedef struct CMtDec_
 {
   /* input variables */
   
@@ -126,11 +126,11 @@ typedef struct _CMtDec
   // size_t inBlockMax;
   unsigned numThreadsMax_2;
 
-  ISeqInStream *inStream;
+  ISeqInStreamPtr inStream;
   // const Byte *inData;
   // size_t inDataSize;
 
-  ICompressProgress *progress;
+  ICompressProgressPtr progress;
   ISzAllocPtr alloc;
 
   IMtDecCallback2 *mtCallback;
@@ -171,11 +171,11 @@ typedef struct _CMtDec
   unsigned filledThreadStart;
   unsigned numFilledThreads;
 
-  #ifndef _7ZIP_ST
+  #ifndef Z7_ST
   BoolInt needInterrupt;
   UInt64 interruptIndex;
   CMtProgress mtProgress;
-  CMtDecThread threads[MTDEC__THREADS_MAX];
+  CMtDecThread threads[MTDEC_THREADS_MAX];
   #endif
 } CMtDec;
 

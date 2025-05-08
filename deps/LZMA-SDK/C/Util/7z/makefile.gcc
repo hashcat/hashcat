@@ -1,6 +1,6 @@
 PROG = 7zdec
 
-LOCAL_FLAGS = -D_7ZIP_PPMD_SUPPPORT
+LOCAL_FLAGS = -DZ7_PPMD_SUPPORT -DZ7_EXTRACT_ONLY
 
 include ../../../CPP/7zip/LzmaDec_gcc.mak
 
@@ -19,8 +19,6 @@ OBJS = \
   $O/Ppmd7Dec.o \
   $O/7zCrc.o \
   $O/7zCrcOpt.o \
-  $O/Sha256.o \
-  $O/Sha256Opt.o \
   $O/7zAlloc.o \
   $O/7zArcIn.o \
   $O/7zBuf.o \
