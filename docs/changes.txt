@@ -116,7 +116,7 @@
 - Dependencies: Updated LZMA SDK to 22.01
 - Dependencies: Updated unrar source to 6.2.7
 - Building: Support building windows binaries on macOS using MinGW
-- Dependencies: Updated OpenCL-Headers to v2023.04.17
+- Dependencies: Updated OpenCL-Headers to v2024.10.24 (commit 265df85)
 - Documents: Updated BUILD.md and added BUILD_macOS.md (containing instructions for building windows binaries on macOS)
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Open Document Format: Added support for small documents with content length < 1024
