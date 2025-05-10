@@ -87,6 +87,8 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --veracrypt-pim-stop       | Num  | VeraCrypt personal iterations multiplier stop        | --veracrypt-pim-stop=500",
   " -b, --benchmark                |      | Run benchmark of selected hash-modes                 |",
   "     --benchmark-all            |      | Run benchmark of all hash-modes (requires -b)        |",
+  "     --benchmark-min            |      | Set benchmark min hash-mode (requires -b)            | --benchmark-min=100",
+  "     --benchmark-max            |      | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000",
   "     --speed-only               |      | Return expected speed of the attack, then quit       |",
   "     --progress-only            |      | Return ideal progress step size and time to process  |",
   " -c, --segment-size             | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",

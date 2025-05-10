@@ -56,6 +56,15 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
         event_log_advice (hashcat_ctx, "To disable the optimized kernel code in benchmark mode, use the -w option.");
         event_log_advice (hashcat_ctx, NULL);
       }
+
+      if (user_options->benchmark_min != BENCHMARK_MIN || user_options->benchmark_max != BENCHMARK_MAX)
+      {
+        if (user_options->hash_mode_chgd == true)
+        {
+          event_log_advice (hashcat_ctx, "Benchmark min/max is ignored because --hash-type is set.");
+          event_log_advice (hashcat_ctx, NULL);
+        }
+      }
     }
     else
     {

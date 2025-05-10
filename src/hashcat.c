@@ -1771,6 +1771,9 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
       while ((hash_mode = benchmark_next (hashcat_ctx)) != -1)
       {
+        if ((u32) hash_mode < user_options->benchmark_min) continue;
+        if ((u32) hash_mode > user_options->benchmark_max) continue;
+
         user_options->hash_mode = hash_mode;
 
         rc_final = outer_loop (hashcat_ctx);
