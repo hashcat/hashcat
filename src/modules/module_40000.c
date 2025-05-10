@@ -65,10 +65,13 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 {
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    if ((device_param->is_metal == true) && (device_param->is_apple_silicon == false))
+    if (device_param->is_metal == true)
     {
-      // Intel Iris Graphics, Metal Version 244.303, compiler timeout but only with -a0
-      return true;
+      if (strncmp (device_param->device_name, "Intel", 5) == 0)
+      {
+        // Intel Iris Graphics, Metal Version 244.303, compiler timeout but only with -a0
+        return true;
+      }
     }
   }
 
