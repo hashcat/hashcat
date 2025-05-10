@@ -336,6 +336,7 @@ function init()
   done 9< "${OUTD}/${hash_type}_passwords.txt"
 
   min_len=0
+  fixed_len=0
 
   if   [ "${hash_type}" -eq  2500 ]; then
     min_len=7 # means length 8, since we start with 0
@@ -351,6 +352,14 @@ function init()
     min_len=7 # means length 8, since we start with 0
   elif [ "${hash_type}" -eq 22000 ]; then
     min_len=7 # means length 8, since we start with 0
+  elif [ "${hash_type}" -eq 40000 ]; then
+    fixed_len=5
+  elif [ "${hash_type}" -eq 40001 ]; then
+    min_len=5
+    fixed_len=9
+  elif [ "${hash_type}" -eq 40002 ]; then
+    min_len=5
+    fixed_len=13
   fi
 
   # generate multiple pass/hash foreach len (2 to 8)
@@ -366,7 +375,11 @@ function init()
       rm -rf "${OUTD}/${hash_type}_dict1_multi_${i}" "${OUTD}/${hash_type}_dict2_multi_${i}"
       touch "${OUTD}/${hash_type}_dict1_multi_${i}" "${OUTD}/${hash_type}_dict2_multi_${i}"
 
-      perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+      if [ "${fixed_len}" -eq "${i}" ]; then
+        perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+      else
+        perl tools/test.pl single "${hash_type}" ${fixed_len} > "${cmd_file}"
+      fi
 
       sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
       sed 's/^echo *|/echo "" |/' "${cmd_file}" | awk '{t="";for(i=10;i<=NF;i++){if(t){t=t" "$i}else{t=$i}};print t}' | cut -d"'" -f2 > "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
@@ -768,6 +781,7 @@ function attack_1()
     fi
 
     echo "> Testing hash type $hash_type with attack mode 1, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
     i=1
     while read -r -u 9 hash; do
 
@@ -1915,6 +1929,7 @@ function attack_6()
     e_nm=0
     cnt=0
 
+    min=1
     max=9
 
     if   [ "${hash_type}" -eq  2500 ]; then
@@ -1929,6 +1944,12 @@ function attack_6()
       max=5
     elif [ "${hash_type}" -eq 22000 ]; then
       max=5
+    elif [ "${hash_type}" -eq 40000 ]; then
+      min=5
+    elif [ "${hash_type}" -eq 40001 ]; then
+      min=8
+    elif [ "${hash_type}" -eq 40002 ]; then
+      min=8
     fi
 
     if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
@@ -1940,6 +1961,11 @@ function attack_6()
 
     i=2
     while [ "$i" -lt "$max" ]; do
+
+      if [ "$i" -lt "$min" ]; then
+        i=$((i + 1))
+        continue
+      fi
 
       hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
 
@@ -2368,6 +2394,12 @@ function attack_7()
       max=5
     elif [ "${hash_type}" -eq 22000 ]; then
       max=5
+    elif [ "${hash_type}" -eq 40000 ]; then
+      min=5
+    elif [ "${hash_type}" -eq 40001 ]; then
+      max=3
+    elif [ "${hash_type}" -eq 40002 ]; then
+      max=3
     fi
 
     if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
@@ -2383,7 +2415,13 @@ function attack_7()
       hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
       dict_file=${OUTD}/${hash_type}_dict2_multi_${i}
 
-      mask=${mask_7[$i]}
+      if [ "${hash_type}" -eq 40001 ]; then
+        mask=${mask_7[((i+10))]}
+      elif [ "${hash_type}" -eq 40002 ]; then
+        mask=${mask_7[((i+10))]}
+      else
+        mask=${mask_7[$i]}
+      fi
 
       # if file_only -> decode all base64 "hashes" and put them in the temporary file
 
