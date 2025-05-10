@@ -4384,6 +4384,17 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hip_close (hashcat_ctx);
     }
 
+    #if defined (_WIN)
+    if ((rc_hip_init == 0) && (rc_hiprtc_init == -1))
+    {
+      event_log_warning (hashcat_ctx, "Support for HIPRTC was dropped by AMD Adrenalin Edition 22.7.1 and later.");
+      event_log_warning (hashcat_ctx, "This is not a hashcat problem.");
+      event_log_warning (hashcat_ctx, NULL);
+      event_log_warning (hashcat_ctx, "Please install the AMD HIP SDK");
+      event_log_warning (hashcat_ctx, NULL);
+    }
+    #endif
+
     /**
      * Load and map HIPRTC library calls
      */
@@ -4399,17 +4410,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       backend_ctx->rc_hiprtc_init = rc_hiprtc_init;
 
       hiprtc_close (hashcat_ctx);
-    }
-
-    if ((rc_hip_init == 0) && (rc_hiprtc_init == -1))
-    {
-      #if defined (_WIN)
-      event_log_warning (hashcat_ctx, "Support for HIPRTC was dropped by AMD Adrenalin Edition 22.7.1 and later.");
-      event_log_warning (hashcat_ctx, "This is not a hashcat problem.");
-      event_log_warning (hashcat_ctx, NULL);
-      event_log_warning (hashcat_ctx, "Please install the AMD HIP SDK");
-      event_log_warning (hashcat_ctx, NULL);
-      #endif
     }
 
     /**
@@ -7149,6 +7149,39 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
             device_param->pcie_bus      = amdtopo.pcie.bus;
             device_param->pcie_device   = amdtopo.pcie.device;
             device_param->pcie_function = amdtopo.pcie.function;
+
+            if (user_options->stdout_flag == false)
+            {
+              // recommend HIP
+
+              if ((backend_ctx->hip == NULL) || (backend_ctx->hiprtc == NULL))
+              {
+                if (user_options->backend_ignore_hip == false)
+                {
+                  if (backend_ctx->rc_hip_init == -1)
+                  {
+                    event_log_warning (hashcat_ctx, "Failed to initialize the AMD main driver HIP runtime library. Please install the AMD HIP SDK.");
+                    event_log_warning (hashcat_ctx, NULL);
+                  }
+                  else
+                  {
+                    event_log_warning (hashcat_ctx, "Successfully initialized the AMD main driver HIP runtime library.");
+                    event_log_warning (hashcat_ctx, NULL);
+                  }
+
+                  if (backend_ctx->rc_hiprtc_init == -1)
+                  {
+                    event_log_warning (hashcat_ctx, "Failed to initialize AMD HIP RTC library. Please install the AMD HIP SDK.");
+                    event_log_warning (hashcat_ctx, NULL);
+                  }
+                  else
+                  {
+                    event_log_warning (hashcat_ctx, "Successfully initialized AMD HIP RTC library.");
+                    event_log_warning (hashcat_ctx, NULL);
+                  }
+                }
+              }
+            }
           }
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
