@@ -646,7 +646,7 @@ typedef enum user_options_defaults
   #else
   HWMON_TEMP_ABORT         = 90,
   #endif
-  HASH_INFO                = false,
+  HASH_INFO                = 0,
   HASH_MODE                = 0,
   HCCAPX_MESSAGE_PAIR      = 0,
   HEX_CHARSET              = false,
@@ -761,7 +761,7 @@ typedef enum user_options_map
   IDX_DYNAMIC_X                 = 0xff55,
   IDX_ENCODING_FROM             = 0xff15,
   IDX_ENCODING_TO               = 0xff16,
-  IDX_HASH_INFO                 = 0xff17,
+  IDX_HASH_INFO                 = 'H', // 0xff17
   IDX_FORCE                     = 0xff18,
   IDX_HWMON_DISABLE             = 0xff19,
   IDX_HWMON_TEMP_ABORT          = 0xff1a,
@@ -2344,7 +2344,6 @@ typedef struct user_options
   bool         deprecated_check;
   bool         dynamic_x;
   bool         hwmon;
-  bool         hash_info;
   bool         hex_charset;
   bool         hex_salt;
   bool         hex_wordlist;
@@ -2429,6 +2428,7 @@ typedef struct user_options
   #endif
   u32          debug_mode;
   u32          hwmon_temp_abort;
+  u32          hash_info;
   int          hash_mode;
   u32          hccapx_message_pair;
   u32          hook_threads;
