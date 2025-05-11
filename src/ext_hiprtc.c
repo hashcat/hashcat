@@ -8,44 +8,38 @@
 #include "memory.h"
 #include "event.h"
 #include "ext_hiprtc.h"
+#include "shared.h"
 
 #include "dynloader.h"
-
 
 char* hiprtcDllPath(char* hipSDKPath)
 {
   /*
       AMD HIP RTC DLLs is stored at "C:\Program Files\ROCm\X.Y\bin\hiprtc0X0Y.dll"
-      Tried using regex to simplify, but had compilation issues on mingw64 (linker
-      had troubles with pcre.h)
 
       This function can return complete dll path based on major release version
       X.Y parsed from the ENV variable HIP_PATH.
   */
 
-    // Identifying major release version X.Y
-    char* majorVersion = malloc(strlen("X.Y")+1);
-    memcpy(majorVersion, hipSDKPath + (strlen(hipSDKPath) - 4), 3);
-    memcpy(majorVersion+0x3, "\0", 1);
+  const char *marker = "\\ROCm\\";
 
-    // Preparing DLL name "hiprtc0X0Y.dll"
-    char* hiprtcDllName = malloc(strlen("hiprtcXXXX.dll")+1);
-    memcpy(hiprtcDllName, "hiprtc0", strlen("hiprtc0"));
- 
-    memcpy(hiprtcDllName + 0x7, majorVersion, 1);
-    memcpy(hiprtcDllName + 0x8, "0", 1);
-    memcpy(hiprtcDllName + 0x9, majorVersion + 2, 1);
-    memcpy(hiprtcDllName + 0xa, ".dll\0", 5);
+  int major = 0;
+  int minor = 0;
 
-    // Preparing complete path as "C:\Program Files\ROCm\X.Y\bin\hiprtc0X0Y.dll" to 
-    // return to the caller.
-    char* hiprtcDllPath = malloc(strlen(hipSDKPath) + strlen("bin/") + strlen("hiprtcXXXX.dll") + 1);
-    strcpy(hiprtcDllPath, hipSDKPath);
-    strcat(hiprtcDllPath, "bin\\");
-    strcat(hiprtcDllPath, hiprtcDllName);
-    return(hiprtcDllPath);   
+  const char *version_start = strstr (hipSDKPath, marker);
+
+  if (version_start == NULL) return NULL;
+
+  version_start += strlen (marker); // now points at "6.2\\"
+
+  if (sscanf (version_start, "%d.%d", &major, &minor) != 2) return NULL;
+
+  char *hiprtcdllpath = NULL;
+
+  hc_asprintf (&hiprtcdllpath, "%s\\bin\\hiprtc%02d%02d.dll", hipSDKPath, major, minor);
+
+  return (hiprtcdllpath);
 }
-
 
 int hiprtc_make_options_array_from_string (char *string, char **options)
 {
@@ -75,26 +69,31 @@ int hiprtc_init (void *hashcat_ctx)
   memset (hiprtc, 0, sizeof (HIPRTC_PTR));
 
   #if   defined (_WIN)
-  hiprtc->lib = hc_dlopen ("hiprtc.dll");
+  char *hipSDKPath = getenv ("HIP_PATH");
 
-  // Check for HIP SDK installation from ENV
-  const char* hipSDKPath = getenv("HIP_PATH");
-  if (hipSDKPath != NULL && hiprtc->lib == NULL) 
-  {
-    hiprtc->lib = hc_dlopen (hiprtcDllPath(hipSDKPath));
-  }
-  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("amdhip64.dll");
+  if (hipSDKPath == NULL) return -1;
+
+  char *hiprtcdllpath = hiprtcDllPath (hipSDKPath);
+
+  if (hiprtcdllpath == NULL) return -1;
+
+  hiprtc->lib = hc_dlopen (hiprtcdllpath);
+
+  free (hiprtcdllpath);
   #elif defined (__APPLE__)
   hiprtc->lib = hc_dlopen ("fixme.dylib");
   #elif defined (__CYGWIN__)
-  hiprtc->lib = hc_dlopen ("hiprtc.dll");
-  // Check for HIP SDK installation from ENV
-  const char* hipSDKPath = getenv("HIP_PATH");
-  if (hipSDKPath != NULL && hiprtc->lib == NULL) 
-  {
-    hiprtc->lib = hc_dlopen (hiprtcDllPath(hipSDKPath));
-  }
-  if (hiprtc->lib == NULL) hiprtc->lib = hc_dlopen ("amdhip64.dll");
+  char *hipSDKPath = getenv ("HIP_PATH");
+
+  if (hipSDKPath == NULL) return -1;
+
+  char *hiprtcdllpath = hiprtcDllPath (hipSDKPath);
+
+  if (hiprtcdllpath == NULL) return -1;
+
+  hiprtc->lib = hc_dlopen (hiprtcdllpath);
+
+  free (hiprtcdllpath);
   #else
   hiprtc->lib = hc_dlopen ("libhiprtc.so");
   #endif

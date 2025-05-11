@@ -4384,17 +4384,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
       hip_close (hashcat_ctx);
     }
 
-    #if defined (_WIN)
-    if ((rc_hip_init == 0) && (rc_hiprtc_init == -1))
-    {
-      event_log_warning (hashcat_ctx, "Support for HIPRTC was dropped by AMD Adrenalin Edition 22.7.1 and later.");
-      event_log_warning (hashcat_ctx, "This is not a hashcat problem.");
-      event_log_warning (hashcat_ctx, NULL);
-      event_log_warning (hashcat_ctx, "Please install the AMD HIP SDK");
-      event_log_warning (hashcat_ctx, NULL);
-    }
-    #endif
-
     /**
      * Load and map HIPRTC library calls
      */
@@ -4456,8 +4445,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
         // hiprtc_close (hashcat_ctx);
       }
       #else
-      // 500 is ok
-      if (hip_runtimeVersion < 50013601)
+      if (hip_runtimeVersion < 60200000)
       {
         int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
         int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
@@ -7707,7 +7695,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   if (!backend_ctx->backend_devices_filter[DEVICES_MAX])
   {
-    const u64 backend_devices_cnt_mask = ~(((u64) -1 >> backend_ctx->backend_devices_cnt) << backend_ctx->backend_devices_cnt);
+    // maybe we will need this in the future
+    //const u64 backend_devices_cnt_mask = ~(((u64) -1 >> backend_ctx->backend_devices_cnt) << backend_ctx->backend_devices_cnt);
 
     for (int i = backend_ctx->backend_devices_cnt; i < DEVICES_MAX; i++)
     {
@@ -8791,6 +8780,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       hiprtc_options[2] = "";
       hiprtc_options[3] = "";
       hiprtc_options[4] = "";
+      hiprtc_options[5] = "";
 
       // untested but it should work
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)

@@ -36,7 +36,7 @@ char *hipDllPath (char *hipSDKPath)
 
   char *hipdllpath = NULL;
 
-  hc_asprintf (&hipdllpath, "%s\\bin\\amdhip64_%d.dll", hipSDKPath, major);
+  hc_asprintf (&hipdllpath, "%sbin\\amdhip64_%d.dll", hipSDKPath, major);
 
   return (hipdllpath);
 }
@@ -56,20 +56,37 @@ int hip_init (void *hashcat_ctx)
 
   char *hipdllpath = hipDllPath (hipSDKPath);
 
-  if (hipdllpath)
-  {
-    hip->lib = hc_dlopen (hipdllpath);
+  if (hipdllpath == NULL) return -1;
 
-    free (hipdllpath);
-  }
-  else
+  hip->lib = hc_dlopen (hipdllpath);
+
+  free (hipdllpath);
+
+  if (hip->lib == NULL)
   {
-    return -1;
+    hip->lib = hc_dlopen ("amdhip64.dll");
   }
+
   #elif defined (__APPLE__)
   hip->lib = hc_dlopen ("fixme.dylib");
   #elif defined (__CYGWIN__)
-  hip->lib = hc_dlopen ("amdhip64.dll");
+  char *hipSDKPath = getenv ("HIP_PATH");
+
+  if (hipSDKPath == NULL) return -1;
+
+  char *hipdllpath = hipDllPath (hipSDKPath);
+
+  if (hipdllpath == NULL) return -1;
+
+  hip->lib = hc_dlopen (hipdllpath);
+
+  free (hipdllpath);
+
+  if (hip->lib == NULL)
+  {
+    hip->lib = hc_dlopen ("amdhip64.dll");
+  }
+
   #else
   hip->lib = hc_dlopen ("libamdhip64.so");
   #endif
