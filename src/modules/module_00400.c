@@ -198,7 +198,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  memcpy ((u8 *) salt->salt_sign, line_buf, 4);
+  memcpy ((u8 *) salt->salt_sign, line_buf, sizeof(salt->salt_sign));
 
   const u8 *iter_pos = token.buf[1];
 

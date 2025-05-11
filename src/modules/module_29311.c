@@ -178,7 +178,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fake digest
 
-  memcpy (digest, tc->data_buf, TC_DATA_LEN / 4);
+  memcpy (digest, tc->data_buf, sizeof(tc->data_buf));
 
   return (PARSER_OK);
 }
