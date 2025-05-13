@@ -184,6 +184,10 @@ KERNEL_FQ void m22921_mxx (KERN_ATTR_ESALT (pem_t))
 
     if (asn1_ok == 0) continue;
 
+    const int asn1_tag_ok = asn1_check_int_tag (dec, real_len);
+
+    if (asn1_tag_ok == 0) continue;
+
     const u32 r0 = search[0];
     const u32 r1 = search[1];
     const u32 r2 = search[2];
@@ -352,6 +356,10 @@ KERNEL_FQ void m22921_sxx (KERN_ATTR_ESALT (pem_t))
     const int asn1_ok = asn1_detect (dec, real_len);
 
     if (asn1_ok == 0) continue;
+
+    const int asn1_tag_ok = asn1_check_int_tag (dec, real_len);
+
+    if (asn1_tag_ok == 0) continue;
 
     const u32 r0 = search[0];
     const u32 r1 = search[1];
