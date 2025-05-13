@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 ##
-## Author......: Custom Hashcat Test
+## Author......: See docs/credits.txt
 ## License.....: MIT
 ##
 
@@ -17,7 +17,7 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
 
-  my $digest   = md5_hex($salt . md5_hex($word) . $salt);
+  my $digest = md5_hex ($salt . md5_hex ($word) .$salt);
 
   my $hash = sprintf ("%s:%s", $digest, $salt);
 
