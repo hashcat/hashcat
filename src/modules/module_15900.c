@@ -79,10 +79,22 @@ static const char *SIGNATURE_DPAPIMK = "$DPAPImk$";
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
-  if (device_param->is_metal == true)
+  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    return true;
+    if (device_param->is_metal == true)
+    {
+      if (strncmp (device_param->device_name, "Intel", 5) == 0)
+      {
+        // Intel Iris Graphics, Metal Version 244.303: failed to create 'm15900_init' pipeline, timeout reached
+        return true;
+      }
+
+      if (strncmp (device_param->device_name, "AMD Radeon", 10) == 0)
+      {
+        // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
+        return true;
+      }
+    }
   }
 
   return false;
