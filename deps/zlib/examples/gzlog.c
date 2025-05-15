@@ -1,8 +1,8 @@
 /*
  * gzlog.c
- * Copyright (C) 2004, 2008, 2012, 2016 Mark Adler, all rights reserved
+ * Copyright (C) 2004, 2008, 2012, 2016, 2019 Mark Adler, all rights reserved
  * For conditions of distribution and use, see copyright notice in gzlog.h
- * version 2.2, 14 Aug 2012
+ * version 2.3, 25 May 2019
  */
 
 /*
@@ -212,8 +212,8 @@
      to the appropriate recovery below.  If there is no foo.add file, provide
      a zero data length to the recovery.  In that case, the append recovery
      restores the foo.gz to the previous compressed + uncompressed data state.
-     For the the compress recovery, a missing foo.add file results in foo.gz
-     being restored to the previous compressed-only data state.
+     For the compress recovery, a missing foo.add file results in foo.gz being
+     restored to the previous compressed-only data state.
    - Append recovery:
      - Pick up append at + step above
    - Compress recovery:
@@ -756,16 +756,15 @@ local int log_recover(struct log *log, int op)
                 return -2;
             }
             if ((fd = open(log->path, O_RDONLY, 0)) < 0) {
+                free(data);
                 log_log(log, op, ".add file read failure");
-                if (data != NULL)
-                    free(data);
                 return -1;
             }
             ret = (size_t)read(fd, data, len) != len;
             close(fd);
             if (ret) {
+                free(data);
                 log_log(log, op, ".add file read failure");
-              
                 return -1;
             }
             log_log(log, op, "loaded .add file");

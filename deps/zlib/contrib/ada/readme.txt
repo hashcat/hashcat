@@ -2,14 +2,14 @@
                         Release 1.3
 
 ZLib.Ada is a thick binding interface to the popular ZLib data
-compression library, available at http://www.gzip.org/zlib/.
+compression library, available at https://zlib.net/.
 It provides Ada-style access to the ZLib C library.
 
 
         Here are the main changes since ZLib.Ada 1.2:
 
-- Attension: ZLib.Read generic routine have a initialization requirement
-  for Read_Last parameter now. It is a bit incompartible with previous version,
+- Attention: ZLib.Read generic routine have a initialization requirement
+  for Read_Last parameter now. It is a bit incompatible with previous version,
   but extends functionality, we could use new parameters Allow_Read_Some and
   Flush now.
 

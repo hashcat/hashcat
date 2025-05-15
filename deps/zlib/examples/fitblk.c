@@ -17,7 +17,7 @@
    data in order to determine how much of that input will compress to
    nearly the requested output block size.  The first pass generates
    enough deflate blocks to produce output to fill the requested
-   output size plus a specfied excess amount (see the EXCESS define
+   output size plus a specified excess amount (see the EXCESS define
    below).  The last deflate block may go quite a bit past that, but
    is discarded.  The second pass decompresses and recompresses just
    the compressed data that fit in the requested plus excess sized
@@ -109,7 +109,7 @@ local int recompress(z_streamp inf, z_streamp def)
         if (ret == Z_MEM_ERROR)
             return ret;
 
-        /* compress what was decompresed until done or no room */
+        /* compress what was decompressed until done or no room */
         def->avail_in = RAWLEN - inf->avail_out;
         def->next_in = raw;
         if (inf->avail_out != 0)
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
     if (ret == Z_MEM_ERROR)
         quit("out of memory");
 
-    /* set up for next reocmpression */
+    /* set up for next recompression */
     ret = inflateReset(&inf);
     assert(ret != Z_STREAM_ERROR);
     ret = deflateReset(&def);

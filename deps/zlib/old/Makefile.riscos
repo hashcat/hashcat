@@ -3,7 +3,7 @@
 # test works out-of-the-box, installs `somewhere' on demand
 
 # Toolflags:
-CCflags = -c -depend !Depend -IC: -g -throwback  -DRISCOS  -fah
+CCflags = -c -depend !Depend -IC: -g -throwback -fah
 C++flags = -c -depend !Depend -IC: -throwback
 Linkflags = -aif -c++ -o $@
 ObjAsmflags = -throwback -NoCache -depend !Depend

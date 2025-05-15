@@ -413,7 +413,7 @@ template<typename T1, typename T2>
   class gzomanip2
   {
   public:
-    // Allows insertor to peek at internals
+    // Allows inserter to peek at internals
     template <typename Ta, typename Tb>
       friend gzofstream&
       operator<<(gzofstream&,
@@ -452,7 +452,7 @@ template<typename T1, typename T2>
   : func(f), val1(v1), val2(v2)
   { }
 
-// Insertor applies underlying manipulator function to stream
+// Inserter applies underlying manipulator function to stream
 template<typename T1, typename T2>
   inline gzofstream&
   operator<<(gzofstream& s, const gzomanip2<T1,T2>& m)

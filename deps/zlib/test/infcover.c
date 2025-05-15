@@ -1,5 +1,5 @@
 /* infcover.c -- test zlib's inflate routines with full code coverage
- * Copyright (C) 2011, 2016 Mark Adler
+ * Copyright (C) 2011, 2016, 2024 Mark Adler
  * For conditions of distribution and use, see copyright notice in zlib.h
  */
 
@@ -185,7 +185,7 @@ local void mem_used(z_stream *strm, char *prefix)
 {
     struct mem_zone *zone = strm->opaque;
 
-    fprintf(stderr, "%s: %lu allocated\n", prefix, zone->total);
+    fprintf(stderr, "%s: %zu allocated\n", prefix, zone->total);
 }
 
 /* show the high water allocation in bytes */
@@ -193,7 +193,7 @@ local void mem_high(z_stream *strm, char *prefix)
 {
     struct mem_zone *zone = strm->opaque;
 
-    fprintf(stderr, "%s: %lu high water mark\n", prefix, zone->highwater);
+    fprintf(stderr, "%s: %zu high water mark\n", prefix, zone->highwater);
 }
 
 /* release the memory allocation zone -- if there are any surprises, notify */
@@ -218,7 +218,7 @@ local void mem_done(z_stream *strm, char *prefix)
 
     /* issue alerts about anything unexpected */
     if (count || zone->total)
-        fprintf(stderr, "** %s: %lu bytes in %d blocks not freed\n",
+        fprintf(stderr, "** %s: %zu bytes in %d blocks not freed\n",
                 prefix, zone->total, count);
     if (zone->notlifo)
         fprintf(stderr, "** %s: %d frees not LIFO\n", prefix, zone->notlifo);
@@ -373,7 +373,7 @@ local void cover_support(void)
     mem_setup(&strm);
     strm.avail_in = 0;
     strm.next_in = Z_NULL;
-    ret = inflateInit_(&strm, ZLIB_VERSION - 1, (int)sizeof(z_stream));
+    ret = inflateInit_(&strm, "!", (int)sizeof(z_stream));
                                                 assert(ret == Z_VERSION_ERROR);
     mem_done(&strm, "wrong version");
 
@@ -444,7 +444,7 @@ local void cover_wrap(void)
 }
 
 /* input and output functions for inflateBack() */
-local unsigned pull(void *desc, unsigned char **buf)
+local unsigned pull(void *desc, unsigned char z_const **buf)
 {
     static unsigned int next = 0;
     static unsigned char dat[] = {0x63, 0, 2, 0};
@@ -462,7 +462,8 @@ local unsigned pull(void *desc, unsigned char **buf)
 
 local int push(void *desc, unsigned char *buf, unsigned len)
 {
-    buf += len;
+    (void)buf;
+    (void)len;
     return desc != Z_NULL;      /* force error if desc not null */
 }
 

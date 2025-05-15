@@ -169,7 +169,7 @@ int main(int argc, char *argv[])
         printf("error reading %s\n",argv[1]);
         return 1;
     }
-    else printf("file %s read, %u bytes\n",argv[1],lFileSize);
+    else printf("file %s read, %ld bytes\n",argv[1],lFileSize);
 
     if (argc>=3)
         BlockSizeCompress=atol(argv[2]);

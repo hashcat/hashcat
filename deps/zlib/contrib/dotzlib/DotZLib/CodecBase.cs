@@ -139,7 +139,7 @@ namespace DotZLib
         /// <remarks>This must be implemented by a derived class</remarks>
         protected abstract void CleanUp();
 
-        // performs the release of the handles and calls the dereived CleanUp()
+        // performs the release of the handles and calls the derived CleanUp()
         private void CleanUp(bool isDisposing)
         {
             if (!_isDisposed)
@@ -160,7 +160,7 @@ namespace DotZLib
         #region Helper methods
 
         /// <summary>
-        /// Copies a number of bytes to the internal codec buffer - ready for proccesing
+        /// Copies a number of bytes to the internal codec buffer - ready for processing
         /// </summary>
         /// <param name="data">The byte array that contains the data to copy</param>
         /// <param name="startIndex">The index of the first byte to copy</param>
