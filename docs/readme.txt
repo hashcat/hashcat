@@ -480,6 +480,9 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - ENCsecurity Datavault (MD5/no keychain)
 - ENCsecurity Datavault (MD5/keychain)
 - SecureCRT MasterPassphrase v2
+- RC4 40-bit DropN
+- RC4 72-bit DropN
+- RC4 104-bit DropN
 
 ##
 ## Attack-Modes
