@@ -1,0 +1,5 @@
+#Device                                         Attack  Hash    Vector  Kernel  Kernel
+#Name                                           Mode    Type    Width   Accel   Loops
+
+DEVICE_TYPE_CPU                                 *       24000   1       N       A
+DEVICE_TYPE_GPU                                 *       24000   1       1       A
