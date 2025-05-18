@@ -26,13 +26,9 @@ typedef struct rc4
 
 } rc4_t;
 
-CONSTANT_VK u32 pt_masks[16] =
+CONSTANT_VK u32 pt_masks[12] =
 {
   0x00000000,
-  0x000000FF,
-  0x0000FFFF,
-  0x00FFFFFF,
-  0xFFFFFFFF,
   0x000000FF,
   0x0000FFFF,
   0x00FFFFFF,
@@ -46,7 +42,7 @@ CONSTANT_VK u32 pt_masks[16] =
   0
 };
 
-DECLSPEC void m40002m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (rc4_t))
+DECLSPEC void m33501m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (rc4_t))
 {
   /**
    * modifiers are taken from args
@@ -77,7 +73,7 @@ DECLSPEC void m40002m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 
     w0[0] = w0lr;
 
-    rc4_init_104 (S, w0, lid);
+    rc4_init_72 (S, w0, lid);
 
     u32 out[4];
 
@@ -91,43 +87,36 @@ DECLSPEC void m40002m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 
     rc4_next_16 (S, i, j, ct, out, lid);
 
-    if (pt_len == 13)
+    if (pt_len == 9)
     {
-      out[3] &= pt_masks[1];
+      out[2] &= pt_masks[1];
     }
     else
     {
-      out[3] = 0;
+      out[2] = 0;
 
-      if (pt_len < 9)
+      if (pt_len < 5)
       {
-        out[2] = 0;
+        out[1] = 0;
 
-        if (pt_len < 5)
+        if (pt_len >= 1 && pt_len <= 3)
         {
-          out[1] = 0;
-
-          if (pt_len >= 1 && pt_len <= 3)
-          {
-            out[0] &= pt_masks[pt_len];
-          }
-        }
-        else if (pt_len <= 7)
-        {
-          out[1] &= pt_masks[pt_len];
+          out[0] &= pt_masks[pt_len];
         }
       }
-      else if (pt_len <= 11)
+      else if (pt_len <= 7)
       {
-        out[2] &= pt_masks[pt_len];
+        out[1] &= pt_masks[pt_len];
       }
     }
+
+    out[3] = 0;
 
     COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
-DECLSPEC void m40002s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (rc4_t))
+DECLSPEC void m33501s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (rc4_t))
 {
   /**
    * modifiers are taken from args
@@ -170,7 +159,7 @@ DECLSPEC void m40002s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 
     w0[0] = w0lr;
 
-    rc4_init_104 (S, w0, lid);
+    rc4_init_72 (S, w0, lid);
 
     u32 out[4];
 
@@ -184,43 +173,36 @@ DECLSPEC void m40002s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 
     rc4_next_16 (S, i, j, ct, out, lid);
 
-    if (pt_len == 13)
+    if (pt_len == 9)
     {
-      out[3] &= pt_masks[1];
+      out[2] &= pt_masks[1];
     }
     else
     {
-      out[3] = 0;
+      out[2] = 0;
 
-      if (pt_len < 9)
+      if (pt_len < 5)
       {
-        out[2] = 0;
+        out[1] = 0;
 
-        if (pt_len < 5)
+        if (pt_len >= 1 && pt_len <= 3)
         {
-          out[1] = 0;
-
-          if (pt_len >= 1 && pt_len <= 3)
-          {
-            out[0] &= pt_masks[pt_len];
-          }
-        }
-        else if (pt_len <= 7)
-        {
-          out[1] &= pt_masks[pt_len];
+          out[0] &= pt_masks[pt_len];
         }
       }
-      else if (pt_len <= 11)
+      else if (pt_len <= 7)
       {
-        out[2] &= pt_masks[pt_len];
+        out[1] &= pt_masks[pt_len];
       }
     }
+
+    out[3] = 0;
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m04 (KERN_ATTR_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33501_m04 (KERN_ATTR_ESALT (rc4_t))
 {
   /**
    * base
@@ -268,10 +250,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m04 (KERN_ATTR_ESALT 
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m40002m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m33501m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m08 (KERN_ATTR_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33501_m08 (KERN_ATTR_ESALT (rc4_t))
 {
   /**
    * base
@@ -319,10 +301,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m08 (KERN_ATTR_ESALT 
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m40002m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m33501m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m16 (KERN_ATTR_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33501_m16 (KERN_ATTR_ESALT (rc4_t))
 {
   /**
    * base
@@ -370,10 +352,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m16 (KERN_ATTR_ESALT 
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m40002m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m33501m (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s04 (KERN_ATTR_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33501_s04 (KERN_ATTR_ESALT (rc4_t))
 {
   /**
    * base
@@ -421,10 +403,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s04 (KERN_ATTR_ESALT 
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m40002s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m33501s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s08 (KERN_ATTR_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33501_s08 (KERN_ATTR_ESALT (rc4_t))
 {
   /**
    * base
@@ -472,10 +454,10 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s08 (KERN_ATTR_ESALT 
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m40002s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m33501s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s16 (KERN_ATTR_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33501_s16 (KERN_ATTR_ESALT (rc4_t))
 {
   /**
    * base
@@ -523,5 +505,5 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s16 (KERN_ATTR_ESALT 
 
   LOCAL_VK u32 S[64 * FIXED_LOCAL_SIZE];
 
-  m40002s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m33501s (S, w0, w1, w2, w3, pw_len, pws, rules_buf, combs_buf, bfs_buf, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }

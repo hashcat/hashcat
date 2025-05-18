@@ -28,17 +28,9 @@ typedef struct rc4
 
 } rc4_t;
 
-CONSTANT_VK u32 pt_masks[16] =
+CONSTANT_VK u32 pt_masks[8] =
 {
   0x00000000,
-  0x000000FF,
-  0x0000FFFF,
-  0x00FFFFFF,
-  0xFFFFFFFF,
-  0x000000FF,
-  0x0000FFFF,
-  0x00FFFFFF,
-  0xFFFFFFFF,
   0x000000FF,
   0x0000FFFF,
   0x00FFFFFF,
@@ -48,7 +40,7 @@ CONSTANT_VK u32 pt_masks[16] =
   0
 };
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m04 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33500_m04 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
   /**
    * base
@@ -56,17 +48,16 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m04 (KERN_ATTR_RULES_
 
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
-  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4] = { 0 };
 
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = 0;
+  pw_buf0[3] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
@@ -98,7 +89,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m04 (KERN_ATTR_RULES_
 
     apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    rc4_init_104 (S, w0, lid);
+    rc4_init_40 (S, w0, lid);
 
     u32 out[4];
 
@@ -112,51 +103,35 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m04 (KERN_ATTR_RULES_
 
     rc4_next_16 (S, i, j, ct, out, lid);
 
-    if (pt_len == 13)
+    if (pt_len == 5)
     {
-      out[3] &= pt_masks[1];
+      out[1] &= pt_masks[1];
     }
     else
     {
-      out[3] = 0;
+      out[1] = 0;
 
-      if (pt_len < 9)
+      if (pt_len >= 1 && pt_len <= 3)
       {
-        out[2] = 0;
-
-        if (pt_len < 5)
-        {
-          out[1] = 0;
-
-          if (pt_len >= 1 && pt_len <= 3)
-          {
-            out[0] &= pt_masks[pt_len];
-          }
-        }
-        else if (pt_len <= 7)
-        {
-          out[1] &= pt_masks[pt_len];
-        }
-      }
-      else if (pt_len <= 11)
-      {
-        out[2] &= pt_masks[pt_len];
+        out[0] &= pt_masks[pt_len];
       }
     }
+
+    out[2] = out[3] = 0;
 
     COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m08 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33500_m08 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_m16 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33500_m16 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s04 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33500_s04 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
   /**
    * base
@@ -164,17 +139,16 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s04 (KERN_ATTR_RULES_
 
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
-  const u64 lsz = get_local_size (0);
 
   if (gid >= GID_CNT) return;
 
   u32 pw_buf0[4];
   u32 pw_buf1[4] = { 0 };
 
-  pw_buf0[0] = pws[gid].i[ 0];
-  pw_buf0[1] = pws[gid].i[ 1];
-  pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = pws[gid].i[ 3];
+  pw_buf0[0] = pws[gid].i[0];
+  pw_buf0[1] = pws[gid].i[1];
+  pw_buf0[2] = 0;
+  pw_buf0[3] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
@@ -222,7 +196,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s04 (KERN_ATTR_RULES_
      * pdf
      */
 
-    rc4_init_104 (S, w0, lid);
+    rc4_init_40 (S, w0, lid);
 
     u32 out[4];
 
@@ -236,46 +210,30 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s04 (KERN_ATTR_RULES_
 
     rc4_next_16 (S, i, j, ct, out, lid);
 
-    if (pt_len == 13)
+    if (pt_len == 5)
     {
-      out[3] &= pt_masks[1];
+      out[1] &= pt_masks[1];
     }
     else
     {
-      out[3] = 0;
+      out[1] = 0;
 
-      if (pt_len < 9)
+      if (pt_len >= 1 && pt_len <= 3)
       {
-        out[2] = 0;
-
-        if (pt_len < 5)
-        {
-          out[1] = 0;
-
-          if (pt_len >= 1 && pt_len <= 3)
-          {
-            out[0] &= pt_masks[pt_len];
-          }
-        }
-        else if (pt_len <= 7)
-        {
-          out[1] &= pt_masks[pt_len];
-        }
-      }
-      else if (pt_len <= 11)
-      {
-        out[2] &= pt_masks[pt_len];
+        out[0] &= pt_masks[pt_len];
       }
     }
+
+    out[2] = out[3] = 0;
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s08 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33500_s08 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40002_s16 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33500_s16 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
 }

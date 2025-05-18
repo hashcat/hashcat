@@ -16,10 +16,10 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4; // originally DGST_SIZE_4_2
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_CIPHER_KPA;
-static const char *HASH_NAME      = "RC4 72-bit DropN";
-static const u64   KERN_TYPE      = 40001;
+static const char *HASH_NAME      = "RC4 40-bit DropN";
+static const u64   KERN_TYPE      = 33500;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
                                   | OPTI_TYPE_NOT_SALTED;
@@ -27,8 +27,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_SUGGEST_KG // collisions by using pt_len != pass_len
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat12";
-static const char *ST_HASH        = "$rc4$72$0$90eaa8d71c$0$48656c6c6f";
+static const char *ST_PASS        = "hashc";
+static const char *ST_HASH        = "$rc4$40$0$e9a41693b759cf88929ca31203694f$0$48656c6c6f";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -58,8 +58,8 @@ typedef struct rc4
 } rc4_t;
 
 static const char *SIGNATURE_RC4 = "$rc4$";
-static const u32   RC4_KEY_BITS  = 72;
-static const u32   PW_LEN        = RC4_KEY_BITS / 8; // 9
+static const u32   RC4_KEY_BITS  = 40;
+static const u32   PW_LEN        = RC4_KEY_BITS / 8; // 5
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {

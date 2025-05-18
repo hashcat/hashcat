@@ -28,9 +28,13 @@ typedef struct rc4
 
 } rc4_t;
 
-CONSTANT_VK u32 pt_masks[12] =
+CONSTANT_VK u32 pt_masks[16] =
 {
   0x00000000,
+  0x000000FF,
+  0x0000FFFF,
+  0x00FFFFFF,
+  0xFFFFFFFF,
   0x000000FF,
   0x0000FFFF,
   0x00FFFFFF,
@@ -44,7 +48,7 @@ CONSTANT_VK u32 pt_masks[12] =
   0
 };
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_m04 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33502_m04 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
   /**
    * base
@@ -62,7 +66,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_m04 (KERN_ATTR_RULES_
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = 0;
+  pw_buf0[3] = pws[gid].i[ 3];
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
@@ -94,7 +98,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_m04 (KERN_ATTR_RULES_
 
     apply_rules_vect_optimized (pw_buf0, pw_buf1, pw_len, rules_buf, il_pos, w0, w1);
 
-    rc4_init_72 (S, w0, lid);
+    rc4_init_104 (S, w0, lid);
 
     u32 out[4];
 
@@ -108,44 +112,51 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_m04 (KERN_ATTR_RULES_
 
     rc4_next_16 (S, i, j, ct, out, lid);
 
-    if (pt_len == 9)
+    if (pt_len == 13)
     {
-      out[2] &= pt_masks[1];
+      out[3] &= pt_masks[1];
     }
     else
     {
-      out[2] = 0;
+      out[3] = 0;
 
-      if (pt_len < 5)
+      if (pt_len < 9)
       {
-        out[1] = 0;
+        out[2] = 0;
 
-        if (pt_len >= 1 && pt_len <= 3)
+        if (pt_len < 5)
         {
-          out[0] &= pt_masks[pt_len];
+          out[1] = 0;
+
+          if (pt_len >= 1 && pt_len <= 3)
+          {
+            out[0] &= pt_masks[pt_len];
+          }
+        }
+        else if (pt_len <= 7)
+        {
+          out[1] &= pt_masks[pt_len];
         }
       }
-      else if (pt_len <= 7)
+      else if (pt_len <= 11)
       {
-        out[1] &= pt_masks[pt_len];
+        out[2] &= pt_masks[pt_len];
       }
     }
-
-    out[3] = 0;
 
     COMPARE_M_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_m08 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33502_m08 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_m16 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33502_m16 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_s04 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33502_s04 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
   /**
    * base
@@ -163,7 +174,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_s04 (KERN_ATTR_RULES_
   pw_buf0[0] = pws[gid].i[ 0];
   pw_buf0[1] = pws[gid].i[ 1];
   pw_buf0[2] = pws[gid].i[ 2];
-  pw_buf0[3] = 0;
+  pw_buf0[3] = pws[gid].i[ 3];
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
@@ -211,7 +222,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_s04 (KERN_ATTR_RULES_
      * pdf
      */
 
-    rc4_init_72 (S, w0, lid);
+    rc4_init_104 (S, w0, lid);
 
     u32 out[4];
 
@@ -225,39 +236,46 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_s04 (KERN_ATTR_RULES_
 
     rc4_next_16 (S, i, j, ct, out, lid);
 
-    if (pt_len == 9)
+    if (pt_len == 13)
     {
-      out[2] &= pt_masks[1];
+      out[3] &= pt_masks[1];
     }
     else
     {
-      out[2] = 0;
+      out[3] = 0;
 
-      if (pt_len < 5)
+      if (pt_len < 9)
       {
-        out[1] = 0;
+        out[2] = 0;
 
-        if (pt_len >= 1 && pt_len <= 3)
+        if (pt_len < 5)
         {
-          out[0] &= pt_masks[pt_len];
+          out[1] = 0;
+
+          if (pt_len >= 1 && pt_len <= 3)
+          {
+            out[0] &= pt_masks[pt_len];
+          }
+        }
+        else if (pt_len <= 7)
+        {
+          out[1] &= pt_masks[pt_len];
         }
       }
-      else if (pt_len <= 7)
+      else if (pt_len <= 11)
       {
-        out[1] &= pt_masks[pt_len];
+        out[2] &= pt_masks[pt_len];
       }
     }
-
-    out[3] = 0;
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_s08 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33502_s08 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m40001_s16 (KERN_ATTR_RULES_ESALT (rc4_t))
+KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m33502_s16 (KERN_ATTR_RULES_ESALT (rc4_t))
 {
 }
