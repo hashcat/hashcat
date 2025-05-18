@@ -21,9 +21,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSY:z";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:z";
 #else
-static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:iIbw:OMSY:";
+static const char *const short_options = "hVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:";
 #endif
 
 static char *const SEPARATOR = ":";
@@ -53,6 +53,10 @@ static const struct option long_options[] =
   {"custom-charset2",           required_argument, NULL, IDX_CUSTOM_CHARSET_2},
   {"custom-charset3",           required_argument, NULL, IDX_CUSTOM_CHARSET_3},
   {"custom-charset4",           required_argument, NULL, IDX_CUSTOM_CHARSET_4},
+  {"custom-charset5",           required_argument, NULL, IDX_CUSTOM_CHARSET_5},
+  {"custom-charset6",           required_argument, NULL, IDX_CUSTOM_CHARSET_6},
+  {"custom-charset7",           required_argument, NULL, IDX_CUSTOM_CHARSET_7},
+  {"custom-charset8",           required_argument, NULL, IDX_CUSTOM_CHARSET_8},
   {"debug-file",                required_argument, NULL, IDX_DEBUG_FILE},
   {"debug-mode",                required_argument, NULL, IDX_DEBUG_MODE},
   {"deprecated-check-disable",  no_argument,       NULL, IDX_DEPRECATED_CHECK_DISABLE},
@@ -207,6 +211,10 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->custom_charset_2          = NULL;
   user_options->custom_charset_3          = NULL;
   user_options->custom_charset_4          = NULL;
+  user_options->custom_charset_5          = NULL;
+  user_options->custom_charset_6          = NULL;
+  user_options->custom_charset_7          = NULL;
+  user_options->custom_charset_8          = NULL;
   user_options->debug_file                = NULL;
   user_options->debug_mode                = DEBUG_MODE;
   user_options->deprecated_check          = DEPRECATED_CHECK;
@@ -540,6 +548,10 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_CUSTOM_CHARSET_2:          user_options->custom_charset_2          = optarg;                          break;
       case IDX_CUSTOM_CHARSET_3:          user_options->custom_charset_3          = optarg;                          break;
       case IDX_CUSTOM_CHARSET_4:          user_options->custom_charset_4          = optarg;                          break;
+      case IDX_CUSTOM_CHARSET_5:          user_options->custom_charset_5          = optarg;                          break;
+      case IDX_CUSTOM_CHARSET_6:          user_options->custom_charset_6          = optarg;                          break;
+      case IDX_CUSTOM_CHARSET_7:          user_options->custom_charset_7          = optarg;                          break;
+      case IDX_CUSTOM_CHARSET_8:          user_options->custom_charset_8          = optarg;                          break;
       case IDX_SLOW_CANDIDATES:           user_options->slow_candidates           = true;                            break;
       #ifdef WITH_BRAIN
       case IDX_BRAIN_CLIENT:              user_options->brain_client              = true;                            break;
@@ -1357,7 +1369,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if ((user_options->custom_charset_1 != NULL)
      || (user_options->custom_charset_2 != NULL)
      || (user_options->custom_charset_3 != NULL)
-     || (user_options->custom_charset_4 != NULL))
+     || (user_options->custom_charset_4 != NULL)
+     || (user_options->custom_charset_5 != NULL)
+     || (user_options->custom_charset_6 != NULL)
+     || (user_options->custom_charset_7 != NULL)
+     || (user_options->custom_charset_8 != NULL))
     {
       if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
       {
@@ -1525,7 +1541,11 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if ((user_options->custom_charset_1 != NULL)
    || (user_options->custom_charset_2 != NULL)
    || (user_options->custom_charset_3 != NULL)
-   || (user_options->custom_charset_4 != NULL))
+   || (user_options->custom_charset_4 != NULL)
+   || (user_options->custom_charset_5 != NULL)
+   || (user_options->custom_charset_6 != NULL)
+   || (user_options->custom_charset_7 != NULL)
+   || (user_options->custom_charset_8 != NULL))
   {
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
@@ -3250,6 +3270,10 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->custom_charset_2);
   logfile_top_string (user_options->custom_charset_3);
   logfile_top_string (user_options->custom_charset_4);
+  logfile_top_string (user_options->custom_charset_5);
+  logfile_top_string (user_options->custom_charset_6);
+  logfile_top_string (user_options->custom_charset_7);
+  logfile_top_string (user_options->custom_charset_8);
   logfile_top_string (user_options->debug_file);
   logfile_top_string (user_options->encoding_from);
   logfile_top_string (user_options->encoding_to);
