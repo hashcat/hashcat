@@ -154,9 +154,7 @@ static const struct option long_options[] =
   {"brain-session",             required_argument, NULL, IDX_BRAIN_SESSION},
   {"brain-session-whitelist",   required_argument, NULL, IDX_BRAIN_SESSION_WHITELIST},
   #endif
-  #if !defined(_WIN)
   {"color",                     no_argument,       NULL, IDX_COLOR},
-  #endif
   {NULL,                        0,                 NULL, 0 }
 };
 
@@ -201,9 +199,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->brain_session             = BRAIN_SESSION;
   user_options->brain_session_whitelist   = NULL;
   #endif
-  #if !defined(_WIN)
   user_options->color                     = COLOR;
-  #endif
   user_options->cpu_affinity              = NULL;
   user_options->custom_charset_1          = NULL;
   user_options->custom_charset_2          = NULL;
@@ -554,9 +550,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BRAIN_SESSION:             user_options->brain_session             = hc_strtoul (optarg, NULL, 16);   break;
       case IDX_BRAIN_SESSION_WHITELIST:   user_options->brain_session_whitelist   = optarg;                          break;
       #endif
-      #if !defined(_WIN)
       case IDX_COLOR:                     user_options->color                     = true;                            break;
-      #endif
     }
   }
 

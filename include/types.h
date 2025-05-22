@@ -636,9 +636,7 @@ typedef enum user_options_defaults
   BRAIN_SERVER             = false,
   BRAIN_SESSION            = 0,
   #endif
-  #if !defined(_WIN)
   COLOR                    = false,
-  #endif
   DEBUG_MODE               = 0,
   DEPRECATED_CHECK         = true,
   DYNAMIC_X                = false,
@@ -753,9 +751,7 @@ typedef enum user_options_map
   IDX_BRAIN_SESSION             = 0xff0f,
   IDX_BRAIN_SESSION_WHITELIST   = 0xff10,
   #endif
-  #if !defined(_WIN)
   IDX_COLOR                     = 0xff56,
-  #endif
   IDX_CPU_AFFINITY              = 0xff11,
   IDX_CUSTOM_CHARSET_1          = '1',
   IDX_CUSTOM_CHARSET_2          = '2',
@@ -2346,9 +2342,7 @@ typedef struct user_options
   bool         brain_client;
   bool         brain_server;
   #endif
-  #if !defined(_WIN)
   bool         color;
-  #endif
   bool         force;
   bool         deprecated_check;
   bool         dynamic_x;
