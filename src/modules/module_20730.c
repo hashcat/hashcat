@@ -1,5 +1,5 @@
 /**
- * Author......: Andreas Vikerup @ Shelltrail 
+ * Author......: Andreas Vikerup @ Shelltrail
  * License.....: MIT
  */
 
@@ -19,7 +19,7 @@ static const u32   DGST_POS3      = 6;
 static const u32   DGST_SIZE      = DGST_SIZE_4_8;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_RAW_HASH_SALTED;
 static const char *HASH_NAME      = "sha256(sha256($pass.$salt))";
-static const u64   KERN_TYPE      = 20713;
+static const u64   KERN_TYPE      = 20730;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP
