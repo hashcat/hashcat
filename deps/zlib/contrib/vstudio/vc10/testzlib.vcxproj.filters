@@ -3,7 +3,7 @@
   <ItemGroup>
     <Filter Include="Source Files">
       <UniqueIdentifier>{c1f6a2e3-5da5-4955-8653-310d3efe05a9}</UniqueIdentifier>
-      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm</Extensions>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat</Extensions>
     </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{c2aaffdc-2c95-4d6f-8466-4bec5890af2c}</UniqueIdentifier>
@@ -28,9 +28,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\infback.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\masmx64\inffas8664.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\inffast.c">
