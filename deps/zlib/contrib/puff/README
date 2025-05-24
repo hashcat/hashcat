@@ -38,7 +38,7 @@ Then you can call puff() to decompress a deflate stream that is in memory in
 its entirety at source, to a sufficiently sized block of memory for the
 decompressed data at dest.  puff() is the only external symbol in puff.c  The
 only C library functions that puff.c needs are setjmp() and longjmp(), which
-are used to simplify error checking in the code to improve readabilty.  puff.c
+are used to simplify error checking in the code to improve readability.  puff.c
 does no memory allocation, and uses less than 2K bytes off of the stack.
 
 If destlen is not enough space for the uncompressed data, then inflate will

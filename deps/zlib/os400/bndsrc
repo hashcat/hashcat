@@ -116,4 +116,18 @@ STRPGMEXP PGMLVL(*CURRENT) SIGNATURE('ZLIB')
   EXPORT SYMBOL("inflateValidate")
   EXPORT SYMBOL("uncompress2")
 
+/*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+/*   Version 1.2.12 additional entry points.                        */
+/*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
+  EXPORT SYMBOL("crc32_combine_gen64")
+  EXPORT SYMBOL("crc32_combine_gen")
+  EXPORT SYMBOL("crc32_combine_op")
+
+/*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+/*   Version 1.3.2 additional entry points.                        */
+/*@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@*/
+
+  EXPORT SYMBOL("deflateUsed")
+
 ENDPGMEXP

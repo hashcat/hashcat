@@ -4,15 +4,28 @@ MY_ARCH_2 = $(MY_ARCH)
 MY_ASM = jwasm
 MY_ASM = asmc
 
+ifndef RC
+#RC=windres.exe --target=pe-x86-64
+#RC=windres.exe -F pe-i386
+RC=windres.exe
+endif
+
 PROGPATH = $(O)/$(PROG)
 PROGPATH_STATIC = $(O)/$(PROG)s
 
+ifneq ($(CC), xlc)
+CFLAGS_WARN_WALL = -Wall -Werror -Wextra
+endif
 
 # for object file
 CFLAGS_BASE_LIST = -c
 # for ASM file
 # CFLAGS_BASE_LIST = -S
-CFLAGS_BASE = $(MY_ARCH_2) -O2 $(CFLAGS_BASE_LIST) -Wall -Werror -Wextra $(CFLAGS_WARN) \
+
+FLAGS_FLTO = -flto
+FLAGS_FLTO =
+
+CFLAGS_BASE = $(MY_ARCH_2) -O2 $(CFLAGS_BASE_LIST) $(CFLAGS_WARN_WALL) $(CFLAGS_WARN) \
  -DNDEBUG -D_REENTRANT -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
 
 
@@ -93,9 +106,9 @@ DEL_OBJ_EXE = -$(RM) $(O)\*.o $(O)\$(PROG).exe $(O)\$(PROG).dll
 endif
 
 
-LIB2 = -lOle32 -loleaut32 -luuid -ladvapi32 -lUser32
+LIB2 = -lOle32 -loleaut32 -luuid -ladvapi32 -lUser32 -lShell32
 
-CXXFLAGS_EXTRA = -DUNICODE -D_UNICODE
+CFLAGS_EXTRA = -DUNICODE -D_UNICODE
 # -Wno-delete-non-virtual-dtor
 
  
@@ -103,8 +116,8 @@ else
 
 RM = rm -f
 MY_MKDIR=mkdir -p
-# CFLAGS_BASE := $(CFLAGS_BASE) -D_7ZIP_ST
-# CXXFLAGS_EXTRA = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
+# CFLAGS_BASE := $(CFLAGS_BASE) -DZ7_ST
+# CFLAGS_EXTRA = -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
 
 # LOCAL_LIBS=-lpthread
 # LOCAL_LIBS_DLL=$(LOCAL_LIBS) -ldl
@@ -113,10 +126,6 @@ LIB2 = -lpthread -ldl
 DEL_OBJ_EXE = -$(RM) $(PROGPATH) $(PROGPATH_STATIC) $(OBJS)
 
 endif
-
-
-
-CFLAGS = $(LOCAL_FLAGS) $(CFLAGS_BASE2) $(CFLAGS_BASE) $(CC_SHARED) -o $@
 
 
 ifdef IS_X64
@@ -129,12 +138,9 @@ AFLAGS_ABI = -elf -DABI_LINUX -DABI_CDECL
 endif
 AFLAGS = $(AFLAGS_ABI) -Fo$(O)/
 
+C_WARN_FLAGS =
 
-CXX_WARN_FLAGS =
-#-Wno-invalid-offsetof
-#-Wno-reorder
-
-CXXFLAGS = $(LOCAL_FLAGS) $(CXXFLAGS_BASE2) $(CFLAGS_BASE) $(CXXFLAGS_EXTRA) $(CC_SHARED) -o $@ $(CXX_WARN_FLAGS)
+CFLAGS = $(LOCAL_FLAGS) $(CFLAGS_BASE2) $(CFLAGS_BASE) $(CFLAGS_EXTRA) $(C_WARN_FLAGS) $(FLAGS_FLTO) $(CC_SHARED) -o $@
 
 STATIC_TARGET=
 ifdef COMPL_STATIC
@@ -147,18 +153,27 @@ all: $(O) $(PROGPATH) $(STATIC_TARGET)
 $(O):
 	$(MY_MKDIR) $(O)
 
-LFLAGS_ALL = -s $(MY_ARCH_2) $(LDFLAGS) $(LD_arch) $(OBJS) $(MY_LIBS) $(LIB2)
+ifneq ($(CC), $(CROSS_COMPILE)clang)
+LFLAGS_STRIP = -s
+endif
+
+LFLAGS_ALL = $(LFLAGS_STRIP) $(MY_ARCH_2) $(LDFLAGS) $(FLAGS_FLTO) $(LD_arch) $(OBJS) $(MY_LIBS) $(LIB2)
 $(PROGPATH): $(OBJS)
-	$(CXX) -o $(PROGPATH) $(LFLAGS_ALL)
+	$(CC) -o $(PROGPATH) $(LFLAGS_ALL)
 
 $(PROGPATH_STATIC): $(OBJS)
-	$(CXX) -static -o $(PROGPATH_STATIC) $(LFLAGS_ALL)
+	$(CC) -static -o $(PROGPATH_STATIC) $(LFLAGS_ALL)
 
 
 ifndef NO_DEFAULT_RES
+# old mingw without -FO
+# windres.exe $(RFLAGS) resource.rc $O/resource.o
 $O/resource.o: resource.rc
-	windres.exe $(RFLAGS) resource.rc $O/resource.o
+	$(RC) $(RFLAGS) resource.rc $(O)/resource.o
 endif
+# windres.exe $(RFLAGS) resource.rc $(O)\resource.o
+# windres.exe $(RFLAGS) resource.rc -FO $(O)/resource.o
+# $(RC) $(RFLAGS) resource.rc -FO $(O)/resource.o
 
 
 
@@ -256,9 +271,17 @@ $O/Sha256.o: ../../../C/Sha256.c
 	$(CC) $(CFLAGS) $<
 $O/Sort.o: ../../../C/Sort.c
 	$(CC) $(CFLAGS) $<
+$O/SwapBytes.o: ../../../C/SwapBytes.c
+	$(CC) $(CFLAGS) $<
 $O/Xz.o: ../../../C/Xz.c
 	$(CC) $(CFLAGS) $<
 $O/XzCrc64.o: ../../../C/XzCrc64.c
+	$(CC) $(CFLAGS) $<
+$O/XzDec.o: ../../../C/XzDec.c
+	$(CC) $(CFLAGS) $<
+$O/XzEnc.o: ../../../C/XzEnc.c
+	$(CC) $(CFLAGS) $<
+$O/XzIn.o: ../../../C/XzIn.c
 	$(CC) $(CFLAGS) $<
 
 
@@ -306,11 +329,11 @@ endif
 
 ifdef IS_ARM64
 $O/LzmaDecOpt.o: ../../../Asm/arm64/LzmaDecOpt.S ../../../Asm/arm64/7zAsm.S
-	$(CC) $(CFLAGS) $<
+	$(CC) $(CFLAGS) $(ASM_FLAGS) $<
 endif
 
 $O/LzmaDec.o: ../../LzmaDec.c
-	$(CC) $(CFLAGS) -D_LZMA_DEC_OPT $<
+	$(CC) $(CFLAGS) -DZ7_LZMA_DEC_OPT $<
 
 else
 
@@ -321,21 +344,15 @@ endif
 
 
 
-$O/XzDec.o: ../../../C/XzDec.c
-	$(CC) $(CFLAGS) $<
-$O/XzEnc.o: ../../../C/XzEnc.c
-	$(CC) $(CFLAGS) $<
-$O/XzIn.o: ../../../C/XzIn.c
-	$(CC) $(CFLAGS) $<
-
-
 $O/7zMain.o: ../../../C/Util/7z/7zMain.c
-	$(CC) $(CFLAGS) $<
-$O/LzmaUtil.o: ../../../C/Util/Lzma/LzmaUtil.c
 	$(CC) $(CFLAGS) $<
 $O/7zipInstall.o: ../../../C/Util/7zipInstall/7zipInstall.c
 	$(CC) $(CFLAGS) $<
 $O/7zipUninstall.o: ../../../C/Util/7zipUninstall/7zipUninstall.c
+	$(CC) $(CFLAGS) $<
+$O/LzmaUtil.o: ../../../C/Util/Lzma/LzmaUtil.c
+	$(CC) $(CFLAGS) $<
+$O/XzUtil.o: ../../../C/Util/Xz/XzUtil.c
 	$(CC) $(CFLAGS) $<
 
 

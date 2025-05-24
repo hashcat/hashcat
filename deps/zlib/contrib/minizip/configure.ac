@@ -1,13 +1,13 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([minizip], [1.2.11], [bugzilla.redhat.com])
+AC_INIT([minizip], [1.3.1.1], [bugzilla.redhat.com])
 AC_CONFIG_SRCDIR([minizip.c])
 AM_INIT_AUTOMAKE([foreign])
 LT_INIT
 
 AC_MSG_CHECKING([whether to build example programs])
-AC_ARG_ENABLE([demos], AC_HELP_STRING([--enable-demos], [build example programs]))
+AC_ARG_ENABLE([demos], AS_HELP_STRING([--enable-demos], [build example programs]))
 AM_CONDITIONAL([COND_DEMOS], [test "$enable_demos" = yes])
 if test "$enable_demos" = yes
 then
