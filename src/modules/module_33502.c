@@ -58,8 +58,8 @@ typedef struct rc4
 } rc4_t;
 
 static const char *SIGNATURE_RC4 = "$rc4$";
-static const u32   RC4_KEY_BITS  = 104;
-static const u32   PW_LEN        = RC4_KEY_BITS / 8; // 13
+#define RC4_KEY_BITS 104
+#define PW_LEN (RC4_KEY_BITS / 8) // 13
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
