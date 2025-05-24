@@ -539,7 +539,7 @@ bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, si
   {
     struct stat st;
 
-    if (stat (kernel_file, &st))
+    if (hc_stat (kernel_file, &st))
     {
       hc_fclose (&fp);
 

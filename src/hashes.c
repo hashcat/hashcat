@@ -955,7 +955,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     {
       struct stat st;
 
-      if (stat (hashes->hashfile, &st) == -1)
+      if (hc_stat (hashes->hashfile, &st) == -1)
       {
         event_log_error (hashcat_ctx, "%s: %s", hashes->hashfile, strerror (errno));
 

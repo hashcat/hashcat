@@ -232,6 +232,21 @@ char *filename_from_filepath (char *filepath)
   return ptr;
 }
 
+// Required for Windows multibyte paths
+int utf8_to_widechar(const char *utf8, wchar_t **wide_out) {
+    *wide_out = (wchar_t *)malloc(MAX_PATH * sizeof(wchar_t));
+    if (!*wide_out) return -1;
+
+    int result = MultiByteToWideChar(CP_UTF8, 0, utf8, -1, *wide_out, MAX_PATH);
+    if (result <= 0) {
+        free(*wide_out);
+        *wide_out = NULL;
+        return -1;
+    }
+
+    return 0;
+}
+
 void naive_replace (char *s, const char key_char, const char replace_char)
 {
   const size_t len = strlen (s);
@@ -327,7 +342,7 @@ bool hc_path_is_file (const char *path)
 
   memset (&s, 0, sizeof (s));
 
-  if (stat (path, &s) == -1) return false;
+  if (hc_stat (path, &s) == -1) return false;
 
   if (S_ISREG (s.st_mode)) return true;
 
@@ -340,7 +355,7 @@ bool hc_path_is_directory (const char *path)
 
   memset (&s, 0, sizeof (s));
 
-  if (stat (path, &s) == -1) return false;
+  if (hc_stat (path, &s) == -1) return false;
 
   if (S_ISDIR (s.st_mode)) return true;
 
@@ -353,7 +368,7 @@ bool hc_path_is_fifo (const char *path)
 
   memset (&s, 0, sizeof (s));
 
-  if (stat (path, &s) == -1) return false;
+  if (hc_stat (path, &s) == -1) return false;
 
   if (S_ISFIFO (s.st_mode) == true) return true;
 
@@ -366,32 +381,41 @@ bool hc_path_is_empty (const char *path)
 
   memset (&s, 0, sizeof (s));
 
-  if (stat (path, &s) == -1) return false;
+  if (hc_stat (path, &s) == -1) return false;
 
   if (s.st_size == 0) return true;
 
   return false;
 }
 
-bool hc_path_exist (const char *path)
+bool hc_access (const char *path, const int mode)
 {
-  if (access (path, F_OK) == -1) return false;
+  #if defined (_WIN)
+    wchar_t *wpath = NULL;
+    if(utf8_to_widechar (path, &wpath) == -1) return -1;
+    int result = _waccess (wpath, mode);
+  #else
+    int result = access (wpath, mode);
+  #endif
+
+  if (result == -1) return false;
 
   return true;
+}
+
+bool hc_path_exist (const char *path)
+{
+  return hc_access (path, F_OK);
 }
 
 bool hc_path_read (const char *path)
 {
-  if (access (path, R_OK) == -1) return false;
-
-  return true;
+  return hc_access (path, R_OK);
 }
 
 bool hc_path_write (const char *path)
 {
-  if (access (path, W_OK) == -1) return false;
-
-  return true;
+  return hc_access (path, W_OK);
 }
 
 bool hc_path_create (const char *path)
@@ -791,6 +815,35 @@ bool hc_same_files (char *file1, char *file2)
   }
 
   return false;
+}
+
+
+int hc_stat (const char* path, struct stat *buf)
+{
+  #if defined (_WIN)
+    wchar_t *wpath = NULL;
+    if(utf8_to_widechar (path, &wpath) == -1) return -1;
+
+    struct _stat tmp;
+    int result = _wstat(wpath, &tmp);
+
+    // Copy all fields from _stat to stat, potentially unsafe to cast
+    buf->st_dev = tmp.st_dev;
+    buf->st_ino = tmp.st_ino;
+    buf->st_mode = tmp.st_mode;
+    buf->st_nlink = tmp.st_nlink;
+    buf->st_uid = tmp.st_uid;
+    buf->st_gid = tmp.st_gid;
+    buf->st_rdev = tmp.st_rdev;
+    buf->st_size = tmp.st_size;
+    buf->st_atime = tmp.st_atime;
+    buf->st_mtime = tmp.st_mtime;
+    buf->st_ctime = tmp.st_ctime;
+
+    return result;
+  #else
+    return stat (path, buf);
+  #endif
 }
 
 u32 hc_strtoul (const char *nptr, char **endptr, int base)

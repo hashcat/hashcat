@@ -1631,7 +1631,7 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
 
   memset (&sb, 0, sizeof (struct stat));
 
-  if (stat (file, &sb) == -1)
+  if (hc_stat (file, &sb) == -1)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
@@ -1723,7 +1723,7 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
 
   memset (&sb, 0, sizeof (struct stat));
 
-  if (stat (file, &sb) == -1)
+  if (hc_stat (file, &sb) == -1)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
@@ -1830,7 +1830,7 @@ bool brain_server_read_attack_dump (brain_server_db_attack_t *brain_server_db_at
 
   memset (&sb, 0, sizeof (struct stat));
 
-  if (stat (file, &sb) == -1)
+  if (hc_stat (file, &sb) == -1)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
@@ -1924,7 +1924,7 @@ bool brain_server_write_attack_dump (brain_server_db_attack_t *brain_server_db_a
 
   memset (&sb, 0, sizeof (struct stat));
 
-  if (stat (file, &sb) == -1)
+  if (hc_stat (file, &sb) == -1)
   {
     brain_logging (stderr, 0, "%s: %s\n", file, strerror (errno));
 
