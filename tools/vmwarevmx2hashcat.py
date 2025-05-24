@@ -14,7 +14,7 @@ from binascii import hexlify
 import re
 import base64
 
-ks_re = '.+phrase/(.*?)/pass2key=(.*?):cipher=(.*?):rounds=(.*?):salt=(.*?),(.*?),(.*?)\)'
+ks_re = '.+phrase/(.*?)/pass2key=(.*?):cipher=(.*?):rounds=(.*?):salt=(.*?),(.*?),(.*?)\\)'
 
 ks_struct = {
     'password_hash': None,
