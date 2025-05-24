@@ -1,11 +1,8 @@
 #include <winver.h>
 #include "../zlib.h"
 
-#ifdef GCC_WINDRES
 VS_VERSION_INFO		VERSIONINFO
-#else
-VS_VERSION_INFO		VERSIONINFO	MOVEABLE IMPURE LOADONCALL DISCARDABLE
-#endif
+
   FILEVERSION		ZLIB_VER_MAJOR,ZLIB_VER_MINOR,ZLIB_VER_REVISION,0
   PRODUCTVERSION	ZLIB_VER_MAJOR,ZLIB_VER_MINOR,ZLIB_VER_REVISION,0
   FILEFLAGSMASK		VS_FFI_FILEFLAGSMASK
@@ -26,7 +23,7 @@ BEGIN
       VALUE "FileDescription",	"zlib data compression library\0"
       VALUE "FileVersion",	ZLIB_VERSION "\0"
       VALUE "InternalName",	"zlib1.dll\0"
-      VALUE "LegalCopyright",	"(C) 1995-2017 Jean-loup Gailly & Mark Adler\0"
+      VALUE "LegalCopyright",	"(C) 1995-2022 Jean-loup Gailly & Mark Adler\0"
       VALUE "OriginalFilename",	"zlib1.dll\0"
       VALUE "ProductName",	"zlib\0"
       VALUE "ProductVersion",	ZLIB_VERSION "\0"

@@ -41,53 +41,30 @@ on:
       - '.github/workflows/build.yml'
 
 jobs:
-  build-linux:
+  build:
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         shared: [0, 1]
-    name: Build Linux (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - name: Build
-        env:
-          SHARED: ${{ matrix.shared }}
-        run: make
-      - name: Generate artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: hashcat-linux-${{ matrix.shared == 0 && 'static' || 'shared' }}
-          path: ${{ env.include_paths }}
+        include:
+          - os: ubuntu-latest
+            os_name: Linux
+            os_name_lowercase: linux
+          - os: macos-latest
+            os_name: macOS
+            os_name_lowercase: macos
+          - os: windows-latest
+            os_name: Windows
+            os_name_lowercase: windows
 
-  build-macos:
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [0, 1]
-    name: Build macOS (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
-    runs-on: macos-latest
+    name: Build ${{ matrix.os_name }} (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - name: Build
-        env:
-          SHARED: ${{ matrix.shared }}
-        run: make
-      - name: Generate artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: hashcat-macos-${{ matrix.shared == 0 && 'static' || 'shared' }}
-          path: ${{ env.include_paths }}
+      - uses: actions/checkout@v4
 
-  build-windows:
-    strategy:
-      fail-fast: false
-      matrix:
-        shared: [0, 1]
-    name: Build Windows (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
-    runs-on: windows-latest
-    steps:
-      - name: Install libiconv
+      - name: Install dependencies (Windows only)
+        if: matrix.os_name_lowercase == 'windows'
         uses: msys2/setup-msys2@v2
         with:
           update: true
@@ -97,14 +74,22 @@ jobs:
             libiconv
             libiconv-devel
             make
-      - uses: actions/checkout@v3
-      - name: Build
+
+      - name: Build (Windows)
+        if: matrix.os_name_lowercase == 'windows'
         shell: msys2 {0}
         env:
           SHARED: ${{ matrix.shared }}
         run: make
+
+      - name: Build (Linux/macOS)
+        if: matrix.os_name_lowercase != 'windows'
+        env:
+          SHARED: ${{ matrix.shared }}
+        run: make
+
       - name: Generate artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: hashcat-windows-${{ matrix.shared == 0 && 'static' || 'shared' }}
+          name: hashcat-${{ matrix.os_name_lowercase }}-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}

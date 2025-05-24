@@ -1,7 +1,7 @@
 /*
 *  List hash algorithms to benchmark
 *  Part of xxHash project
-*  Copyright (C) 2019-2020 Yann Collet
+*  Copyright (C) 2019-2021 Yann Collet
 *
 *  GPL v2 License
 *

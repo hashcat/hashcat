@@ -4,6 +4,22 @@
  * written by Pedro A. Aranda Gutierrez <paag@tid.es>
  * adaptation to Unix by Jean-loup Gailly <jloup@gzip.org>
  * various fixes by Cosmin Truta <cosmint@cs.ubbcluj.ro>
+ *
+ * This software is provided 'as-is', without any express or implied
+ * warranty.  In no event will the authors be held liable for any damages
+ * arising from the use of this software.
+ *
+ * Permission is granted to anyone to use this software for any purpose,
+ * including commercial applications, and to alter it and redistribute it
+ * freely, subject to the following restrictions:
+ *
+ * 1. The origin of this software must not be misrepresented; you must not
+ *    claim that you wrote the original software. If you use this software
+ *    in a product, an acknowledgment in the product documentation would be
+ *    appreciated but is not required.
+ * 2. Altered source versions must be plainly marked as such, and must not be
+ *    misrepresented as being the original software.
+ * 3. This notice may not be removed or altered from any source distribution.
  */
 
 #include <stdio.h>
@@ -14,15 +30,10 @@
 
 #include "zlib.h"
 
-#ifdef unix
-#  include <unistd.h>
-#else
+#ifdef _WIN32
 #  include <direct.h>
 #  include <io.h>
-#endif
-
-#ifdef WIN32
-#include <windows.h>
+#  include <windows.h>
 #  ifndef F_OK
 #    define F_OK  0
 #  endif
@@ -33,6 +44,8 @@
 #    define strdup(str)         _strdup(str)
 #  endif
 #else
+#  include <sys/stat.h>
+#  include <unistd.h>
 #  include <utime.h>
 #endif
 
@@ -102,27 +115,13 @@ struct attr_item
 
 enum { TGZ_EXTRACT, TGZ_LIST, TGZ_INVALID };
 
-char *TGZfname          OF((const char *));
-void TGZnotfound        OF((const char *));
-
-int getoct              OF((char *, int));
-char *strtime           OF((time_t *));
-int setfiletime         OF((char *, time_t));
-void push_attr          OF((struct attr_item **, char *, int, time_t));
-void restore_attr       OF((struct attr_item **));
-
-int ExprMatch           OF((char *, char *));
-
-int makedir             OF((char *));
-int matchname           OF((int, int, char **, char *));
-
-void error              OF((const char *));
-int tar                 OF((gzFile, int, int, int, char **));
-
-void help               OF((int));
-int main                OF((int, char **));
-
 char *prog;
+
+void error(const char *msg)
+{
+  fprintf(stderr, "%s: %s\n", prog, msg);
+  exit(1);
+}
 
 const char *TGZsuffix[] = { "\0", ".tar", ".tar.gz", ".taz", ".tgz", NULL };
 
@@ -205,7 +204,7 @@ char *strtime (time_t *t)
 
 int setfiletime (char *fname,time_t ftime)
 {
-#ifdef WIN32
+#ifdef _WIN32
   static int isWinNT = -1;
   SYSTEMTIME st;
   FILETIME locft, modft;
@@ -590,12 +589,6 @@ void help(int exitval)
   exit(exitval);
 }
 
-void error(const char *msg)
-{
-  fprintf(stderr, "%s: %s\n", prog, msg);
-  exit(1);
-}
-
 
 /* ============================================================ */
 
@@ -608,7 +601,7 @@ int main(int argc,char **argv)
     int         action = TGZ_EXTRACT;
     int         arg = 1;
     char        *TGZfile;
-    gzFile      *f;
+    gzFile      f;
 
     prog = strrchr(argv[0],'\\');
     if (prog == NULL)
