@@ -2342,7 +2342,7 @@ typedef struct user_options
   bool         brain_client;
   bool         brain_server;
   #endif
-  bool         color;
+  bool         color_cracked;
   bool         force;
   bool         deprecated_check;
   bool         dynamic_x;

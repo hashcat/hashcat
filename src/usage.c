@@ -146,7 +146,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --brain-session            | Hex  | Overrides automatically calculated brain session     | --brain-session=0x2ae611db",
   "     --brain-session-whitelist  | Hex  | Allow given sessions only, separated with commas     | --brain-session-whitelist=0x2ae611db",
   #endif
-  "     --color                    |      | Enables color output for cracked hashes              |",
+  "     --color-cracked            |      | Enables color output for cracked hashes              |",
   "",
   NULL
 };
