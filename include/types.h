@@ -481,6 +481,7 @@ typedef enum dgst_size
   DGST_SIZE_4_6  = (6  * sizeof (u32)), // 24
   DGST_SIZE_4_7  = (7  * sizeof (u32)), // 28
   DGST_SIZE_4_8  = (8  * sizeof (u32)), // 32
+  DGST_SIZE_4_10 = (10 * sizeof (u32)), // 40
   DGST_SIZE_4_16 = (16 * sizeof (u32)), // 64 !!!
   DGST_SIZE_4_32 = (32 * sizeof (u32)), // 128 !!!
   DGST_SIZE_4_64 = (64 * sizeof (u32)), // 256
