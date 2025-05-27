@@ -353,9 +353,9 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   }
 
   // color option for cracked hashes
-  if (user_options->color_cracked == true && isatty(fileno(stdout))) fputs("\033[0;36m", stdout);
+  if (user_options->color_cracked == true && is_stdout_terminal()) fputs("\033[0;36m", stdout);
   fwrite (buf, len,          1, stdout);
-  if (user_options->color_cracked == true && isatty(fileno(stdout))) fwrite("\033[0m", 4, 1, stdout);
+  if (user_options->color_cracked == true && is_stdout_terminal()) fwrite("\033[0m", 4, 1, stdout);
   fwrite (EOL, strlen (EOL), 1, stdout);
 
   if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
