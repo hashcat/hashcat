@@ -352,12 +352,12 @@ function init()
     min_len=7 # means length 8, since we start with 0
   elif [ "${hash_type}" -eq 22000 ]; then
     min_len=7 # means length 8, since we start with 0
-  elif [ "${hash_type}" -eq 40000 ]; then
+  elif [ "${hash_type}" -eq 33500 ]; then
     fixed_len=5
-  elif [ "${hash_type}" -eq 40001 ]; then
+  elif [ "${hash_type}" -eq 33501 ]; then
     min_len=5
     fixed_len=9
-  elif [ "${hash_type}" -eq 40002 ]; then
+  elif [ "${hash_type}" -eq 33502 ]; then
     min_len=5
     fixed_len=13
   fi
@@ -375,10 +375,14 @@ function init()
       rm -rf "${OUTD}/${hash_type}_dict1_multi_${i}" "${OUTD}/${hash_type}_dict2_multi_${i}"
       touch "${OUTD}/${hash_type}_dict1_multi_${i}" "${OUTD}/${hash_type}_dict2_multi_${i}"
 
-      if [ "${fixed_len}" -eq "${i}" ]; then
-        perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+      if [ "${fixed_len}" -ne 0 ]; then
+        if [ "${fixed_len}" -eq "${i}" ]; then
+          perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+        else
+          perl tools/test.pl single "${hash_type}" ${fixed_len} > "${cmd_file}"
+        fi
       else
-        perl tools/test.pl single "${hash_type}" ${fixed_len} > "${cmd_file}"
+        perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
       fi
 
       sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
@@ -1944,11 +1948,11 @@ function attack_6()
       max=5
     elif [ "${hash_type}" -eq 22000 ]; then
       max=5
-    elif [ "${hash_type}" -eq 40000 ]; then
+    elif [ "${hash_type}" -eq 33500 ]; then
       min=5
-    elif [ "${hash_type}" -eq 40001 ]; then
+    elif [ "${hash_type}" -eq 33501 ]; then
       min=8
-    elif [ "${hash_type}" -eq 40002 ]; then
+    elif [ "${hash_type}" -eq 33502 ]; then
       min=8
     fi
 
@@ -2394,11 +2398,11 @@ function attack_7()
       max=5
     elif [ "${hash_type}" -eq 22000 ]; then
       max=5
-    elif [ "${hash_type}" -eq 40000 ]; then
+    elif [ "${hash_type}" -eq 33500 ]; then
       min=5
-    elif [ "${hash_type}" -eq 40001 ]; then
+    elif [ "${hash_type}" -eq 33501 ]; then
       max=3
-    elif [ "${hash_type}" -eq 40002 ]; then
+    elif [ "${hash_type}" -eq 33502 ]; then
       max=3
     fi
 
