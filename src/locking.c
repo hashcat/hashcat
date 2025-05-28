@@ -20,9 +20,18 @@ int hc_lockfile (HCFILE *fp)
 
   lock.l_type = F_WRLCK;
 
-  /* Needs this loop because a signal may interrupt a wait for lock */
   while (fcntl (fp->fd, F_SETLKW, &lock))
   {
+    // These shouldn't happen with F_SETLKW yet are (rarely) seen IRL. Recoverable!
+    if (errno == EAGAIN || errno == ENOLCK)
+    {
+      struct timeval tv = { .tv_sec = 0, .tv_usec = 10000 };
+      select (0, NULL, NULL, NULL, &tv);
+
+      continue;
+    }
+
+    // A signal may interrupt a wait for lock with EINTR. Anything else is fatal
     if (errno != EINTR) return -1;
   }
 
