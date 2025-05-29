@@ -106,6 +106,10 @@ typedef enum event_identifier
   EVENT_BITMAP_INIT_POST          = 0x00000010,
   EVENT_BITMAP_INIT_PRE           = 0x00000011,
   EVENT_BITMAP_FINAL_OVERFLOW     = 0x00000012,
+  EVENT_BRIDGES_INIT_POST         = 0x00000120,
+  EVENT_BRIDGES_INIT_PRE          = 0x00000121,
+  EVENT_BRIDGES_SALT_POST         = 0x00000122,
+  EVENT_BRIDGES_SALT_PRE          = 0x00000123,
   EVENT_CALCULATED_WORDS_BASE     = 0x00000020,
   EVENT_CRACKER_FINISHED          = 0x00000030,
   EVENT_CRACKER_HASH_CRACKED      = 0x00000031,
@@ -470,8 +474,31 @@ typedef enum opts_type
   OPTS_TYPE_AUTODETECT_DISABLE
                               = (1ULL << 56), // skip autodetect engine
   OPTS_TYPE_STOCK_MODULE      = (1ULL << 57), // module included with hashcat default distribution
+  OPTS_TYPE_MULTIHASH_DESPITE_ESALT
+                              = (1ULL << 58), // overrule multihash cracking check same salt but not same esalt
 
 } opts_type_t;
+
+typedef enum bridge_type
+{
+  BRIDGE_TYPE_NONE                = 0,            // no bridge support
+  BRIDGE_TYPE_MATCH_TUNINGS       = (1ULL <<  1), // Disables autotune and adjusts -n, -u and -T for the backend device according to match bridge dimensions
+  BRIDGE_TYPE_UPDATE_SELFTEST     = (1ULL <<  2), // updates the selftest configured in the module. Can be useful for generic hash modes such as the python one
+
+  BRIDGE_TYPE_LAUNCH_LOOP         = (1ULL << 11),
+  BRIDGE_TYPE_LAUNCH_LOOP2        = (1ULL << 12),
+
+  BRIDGE_TYPE_FORCE_WORKITEMS_001 = (1ULL << 20), // This override the workitem counts reported from the bridge device
+  BRIDGE_TYPE_FORCE_WORKITEMS_002 = (1ULL << 21), // Can be useful if this is not a physical hardware
+  BRIDGE_TYPE_FORCE_WORKITEMS_004 = (1ULL << 22),
+  BRIDGE_TYPE_FORCE_WORKITEMS_008 = (1ULL << 23),
+  BRIDGE_TYPE_FORCE_WORKITEMS_016 = (1ULL << 24),
+  BRIDGE_TYPE_FORCE_WORKITEMS_032 = (1ULL << 25),
+  BRIDGE_TYPE_FORCE_WORKITEMS_064 = (1ULL << 26),
+  BRIDGE_TYPE_FORCE_WORKITEMS_128 = (1ULL << 27),
+  BRIDGE_TYPE_FORCE_WORKITEMS_256 = (1ULL << 26),
+
+} bridge_type_t;
 
 typedef enum dgst_size
 {
@@ -626,7 +653,8 @@ typedef enum user_options_defaults
   ADVICE                   = true,
   ATTACK_MODE              = ATTACK_MODE_STRAIGHT,
   AUTODETECT               = false,
-  BACKEND_DEVICES_VIRTUAL  = 1,
+  BACKEND_DEVICES_VIRTMULTI = 1,
+  BACKEND_DEVICES_VIRTHOST = 1,
   BENCHMARK_ALL            = false,
   BENCHMARK_MAX            = 99999,
   BENCHMARK_MIN            = 0,
@@ -732,7 +760,8 @@ typedef enum user_options_map
   IDX_ADVICE_DISABLE            = 0xff00,
   IDX_ATTACK_MODE               = 'a',
   IDX_BACKEND_DEVICES           = 'd',
-  IDX_BACKEND_DEVICES_VIRTUAL   = 'Y',
+  IDX_BACKEND_DEVICES_VIRTMULTI = 'Y',
+  IDX_BACKEND_DEVICES_VIRTHOST  = 'R',
   IDX_BACKEND_IGNORE_CUDA       = 0xff01,
   IDX_BACKEND_IGNORE_HIP        = 0xff02,
   IDX_BACKEND_IGNORE_METAL      = 0xff03,
@@ -756,6 +785,10 @@ typedef enum user_options_map
   IDX_BRAIN_SESSION             = 0xff0f,
   IDX_BRAIN_SESSION_WHITELIST   = 0xff10,
   #endif
+  IDX_BRIDGE_PARAMETER1         = 0xff80,
+  IDX_BRIDGE_PARAMETER2         = 0xff81,
+  IDX_BRIDGE_PARAMETER3         = 0xff82,
+  IDX_BRIDGE_PARAMETER4         = 0xff83,
   IDX_CPU_AFFINITY              = 0xff11,
   IDX_CUSTOM_CHARSET_1          = '1',
   IDX_CUSTOM_CHARSET_2          = '2',
@@ -1092,6 +1125,11 @@ typedef struct hashconfig
 
   u32 pwdump_column;
 
+  // bridge
+
+  u64         bridge_type;
+  const char *bridge_name;
+
 } hashconfig_t;
 
 typedef struct pw_pre
@@ -1183,6 +1221,8 @@ typedef struct hc_device_param
   u32     kernel_exec_timeout;
 
   u32     kernel_preferred_wgs_multiple;
+
+  int     bridge_link_device;
 
   st_status_t st_status;        // selftest status
 
@@ -1373,6 +1413,8 @@ typedef struct hc_device_param
 
   pw_pre_t *pws_base_buf; // for debug mode
   u64       pws_base_cnt;
+
+  void    *h_tmps; // we need this only for bridges
 
   u64     words_off;
   u64     words_done;
@@ -1895,19 +1937,20 @@ typedef struct backend_ctx
   int                 backend_device_from_opencl_platform[CL_PLATFORMS_MAX][DEVICES_MAX]; // from opencl device index to backend device index (by platform)
 
   int                 backend_devices_cnt;
-  int                 backend_devices_virtual;
+  int                 backend_devices_virtmulti;
+  int                 backend_devices_virthost;
   int                 backend_devices_active;
 
   int                 cuda_devices_cnt;
   int                 cuda_devices_active;
   int                 hip_devices_cnt;
-  int                 hip_devices_active;
+  int                 hip_devices_active; 
   int                 metal_devices_cnt;
   int                 metal_devices_active;
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
 
-  bool                backend_devices_filter[DEVICES_MAX + 1];
+  int                 backend_devices_filter[DEVICES_MAX];
 
   hc_device_param_t  *devices_param;
 
@@ -2396,6 +2439,10 @@ typedef struct user_options
   char        *brain_password;
   char        *brain_session_whitelist;
   #endif
+  char        *bridge_parameter1;
+  char        *bridge_parameter2;
+  char        *bridge_parameter3;
+  char        *bridge_parameter4;
   char        *cpu_affinity;
   char        *custom_charset_4;
   char        *debug_file;
@@ -2422,7 +2469,8 @@ typedef struct user_options
   const char  *rule_buf_r;
   const char  *session;
   u32          attack_mode;
-  u32          backend_devices_virtual;
+  u32          backend_devices_virtmulti;
+  u32          backend_devices_virthost;
   u32          backend_info;
   u32          benchmark_max;
   u32          benchmark_min;
@@ -2872,6 +2920,50 @@ typedef struct event_ctx
 
 } event_ctx_t;
 
+#define BRIDGE_DEFAULT (void *) -1
+
+typedef void (*BRIDGE_INIT) (void *);
+
+typedef struct bridge_ctx
+{
+  // local variables
+
+  size_t      bridge_context_size;
+  int         bridge_interface_version;
+
+  hc_dynlib_t bridge_handle;
+
+  BRIDGE_INIT bridge_init;
+
+  bool        enabled;
+
+  void       *platform_context;
+
+  void       *pws_buf; // transfer buffer for tmps[]
+
+  // functions
+
+  void     *(*platform_init)      (user_options_t *);
+  void      (*platform_term)      (void *);
+
+  int       (*get_unit_count)     (void *);
+  char     *(*get_unit_info)      (void *, const int);
+  int       (*get_workitem_count) (void *, const int);
+
+  bool      (*salt_prepare)       (void *, hashconfig_t *, hashes_t *);
+  void      (*salt_destroy)       (void *, hashconfig_t *, hashes_t *);
+
+  bool      (*thread_init)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+  void      (*thread_term)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+
+  bool      (*launch_loop)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+  bool      (*launch_loop2)       (void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+
+  const char *(*st_update_pass)  (void *);
+  const char *(*st_update_hash)  (void *);
+
+} bridge_ctx_t;
+
 #define MODULE_DEFAULT (void *) -1
 
 typedef void (*MODULE_INIT) (void *);
@@ -2969,12 +3061,16 @@ typedef struct module_ctx
 
   bool        (*module_potfile_custom_check)    (const hashconfig_t *, const hash_t *, const hash_t *, const void *);
 
+  u64         (*module_bridge_type)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_bridge_name)             (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+
 } module_ctx_t;
 
 typedef struct hashcat_ctx
 {
   brain_ctx_t           *brain_ctx;
   bitmap_ctx_t          *bitmap_ctx;
+  bridge_ctx_t          *bridge_ctx;
   combinator_ctx_t      *combinator_ctx;
   cpt_ctx_t             *cpt_ctx;
   debugfile_ctx_t       *debugfile_ctx;
@@ -3020,6 +3116,7 @@ typedef struct hook_thread_param
   int tid;
   int tsz;
 
+  bridge_ctx_t *bridge_ctx;
   module_ctx_t *module_ctx;
   status_ctx_t *status_ctx;
 

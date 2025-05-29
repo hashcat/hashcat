@@ -87,6 +87,7 @@ void module_unload (module_ctx_t *module_ctx)
 int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
+  const bridge_ctx_t         *bridge_ctx         = hashcat_ctx->bridge_ctx;
   const folder_config_t      *folder_config      = hashcat_ctx->folder_config;
         hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
         module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
@@ -153,6 +154,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx->module_benchmark_mask);
   CHECK_DEFINED (module_ctx->module_benchmark_charset);
   CHECK_DEFINED (module_ctx->module_benchmark_salt);
+  CHECK_DEFINED (module_ctx->module_bridge_name);
+  CHECK_DEFINED (module_ctx->module_bridge_type);
   CHECK_DEFINED (module_ctx->module_build_plain_postprocess);
   CHECK_DEFINED (module_ctx->module_deep_comp_kernel);
   CHECK_DEFINED (module_ctx->module_deprecated_notice);
@@ -464,6 +467,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_kernel_loops_max   != MODULE_DEFAULT) hashconfig->kernel_loops_max   = module_ctx->module_kernel_loops_max   (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kernel_threads_min != MODULE_DEFAULT) hashconfig->kernel_threads_min = module_ctx->module_kernel_threads_min (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_kernel_threads_max != MODULE_DEFAULT) hashconfig->kernel_threads_max = module_ctx->module_kernel_threads_max (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_bridge_name        != MODULE_DEFAULT) hashconfig->bridge_name        = module_ctx->module_bridge_name        (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_bridge_type        != MODULE_DEFAULT) hashconfig->bridge_type        = module_ctx->module_bridge_type        (hashconfig, user_options, user_options_extra);
 
   if (hashconfig->hook_extra_param_size)
   {
@@ -494,6 +499,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       if (rc_hook_extra_param_init == false) return -1;
     }
   }
+
+  // selftest bridge update
+
+  if (hashconfig->bridge_type & BRIDGE_TYPE_UPDATE_SELFTEST)
+  {
+    if (bridge_ctx->st_update_hash) hashconfig->st_hash = bridge_ctx->st_update_hash (bridge_ctx->platform_context);
+    if (bridge_ctx->st_update_pass) hashconfig->st_pass = bridge_ctx->st_update_pass (bridge_ctx->platform_context);
+  }  
 
   return 0;
 }
