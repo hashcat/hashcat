@@ -37,6 +37,8 @@ endif
 
 ifeq ($(DEBUG),1)
 $(info "## Detected Operating System : $(UNAME)")
+$(info "## Detected CC : $(CC)")
+$(info "## Detected CXX : $(CXX)")
 endif
 
 ##
@@ -189,15 +191,17 @@ CFLAGS                  += -Wextra
 endif
 
 ## because LZMA SDK
-ifeq ($(CC),clang)
-#No longer supported in clang 10.0.0
-#CFLAGS                  += -Wno-enum-conversion
+ifneq (,$(findstring clang, $(CC)))
 CFLAGS                  += -Wno-typedef-redefinition
+else
+ifeq ($(CC),cc)
+CFLAGS                  += -Wno-typedef-redefinition
+endif
 endif
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 CFLAGS_LZMA             += -D_7ZIP_ST
-ifneq ($(CC),clang)
+ifeq (,$(findstring clang, $(CC)))
 CFLAGS_LZMA             += -Wno-misleading-indentation
 endif
 endif
@@ -209,6 +213,9 @@ CFLAGS_ZLIB             += -Wno-implicit-function-declaration
 CFLAGS_ZLIB             += -Wno-unused-parameter
 CFLAGS_ZLIB             += -DIOAPI_NO_64
 CFLAGS_ZLIB             += -DUNZ_BUFSIZE=262144
+ifneq (,$(findstring clang, $(CC)))
+CFLAGS_ZLIB             += -Wno-deprecated-non-prototype -Wno-unknown-warning-option
+endif
 endif
 
 ## because UNRAR
