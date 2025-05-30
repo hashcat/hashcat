@@ -214,7 +214,9 @@ endif
 ## because UNRAR
 ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
+ifeq ($(UNAME),Darwin)
 CFLAGS_UNRAR            += -std=c++14
+endif
 ifneq ($(CC),clang)
 CFLAGS_UNRAR            += -Wno-class-memaccess
 CFLAGS_UNRAR            += -Wno-misleading-indentation
