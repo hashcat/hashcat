@@ -60,6 +60,11 @@ int load_segment (hashcat_ctx_t *hashcat_ctx, HCFILE *fp)
 
   wl_data->cnt = hc_fread (wl_data->buf, 1, wl_data->incr - 1000, fp);
 
+  if (wl_data->cnt == (size_t) -1)
+  {
+    return -1;
+  }
+
   wl_data->buf[wl_data->cnt] = 0;
 
   if (wl_data->cnt == 0) return 0;
@@ -339,7 +344,12 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, char **out_buf, u32 
     return;
   }
 
-  load_segment (hashcat_ctx, fp);
+  if (load_segment (hashcat_ctx, fp) == -1)
+  {
+    event_log_error (hashcat_ctx, "Error reading file!\n");
+
+    return;
+  }
 
   get_next_word (hashcat_ctx, fp, out_buf, out_len);
 }
@@ -559,9 +569,12 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
   u64 cnt2 = 0;
 
   while (!hc_feof (fp))
-  {
-    load_segment (hashcat_ctx, fp);
-
+  {   
+    if (load_segment (hashcat_ctx, fp) == -1)
+    {
+      return -2;
+    }
+    
     comp += wl_data->cnt;
 
     u64 i = 0;
