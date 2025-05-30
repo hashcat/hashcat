@@ -28,12 +28,13 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->quiet       == true) return;
-  if (user_options->keyspace    == true) return;
-  if (user_options->stdout_flag == true) return;
-  if (user_options->show        == true) return;
-  if (user_options->left        == true) return;
-  if (user_options->identify    == true) return;
+  if (user_options->quiet       == true)      return;
+  if (user_options->keyspace    == true)      return;
+  if (user_options->total_candidates == true) return;
+  if (user_options->stdout_flag == true)      return;
+  if (user_options->show        == true)      return;
+  if (user_options->left        == true)      return;
+  if (user_options->identify    == true)      return;
 
   if (user_options->usage > 0)
   {
