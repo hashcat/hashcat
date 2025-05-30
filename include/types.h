@@ -2171,6 +2171,8 @@ typedef struct outfile_ctx
 
   char   *filename;
 
+  hc_thread_mutex_t mux_outfile;
+
 } outfile_ctx_t;
 
 typedef struct pot
