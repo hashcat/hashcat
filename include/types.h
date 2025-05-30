@@ -107,6 +107,7 @@ typedef enum event_identifier
   EVENT_BITMAP_INIT_PRE           = 0x00000011,
   EVENT_BITMAP_FINAL_OVERFLOW     = 0x00000012,
   EVENT_CALCULATED_WORDS_BASE     = 0x00000020,
+  EVENT_CALCULATED_WORDS_CNT      = 0x00000021,
   EVENT_CRACKER_FINISHED          = 0x00000030,
   EVENT_CRACKER_HASH_CRACKED      = 0x00000031,
   EVENT_CRACKER_STARTING          = 0x00000032,
@@ -666,6 +667,7 @@ typedef enum user_options_defaults
   KERNEL_LOOPS             = 0,
   KERNEL_THREADS           = 0,
   KEYSPACE                 = false,
+  TOTAL_CANDIDATES         = false,
   LEFT                     = false,
   LIMIT                    = 0,
   LOGFILE                  = true,
@@ -843,6 +845,7 @@ typedef enum user_options_map
   IDX_STATUS_TIMER              = 0xff4c,
   IDX_STDOUT_FLAG               = 0xff4d,
   IDX_STDIN_TIMEOUT_ABORT       = 0xff4e,
+  IDX_TOTAL_CANDIDATES          = 0xff58,
   IDX_TRUECRYPT_KEYFILES        = 0xff4f,
   IDX_USERNAME                  = 0xff50,
   IDX_VERACRYPT_KEYFILES        = 0xff51,
@@ -2357,6 +2360,7 @@ typedef struct user_options
   bool         increment;
   bool         keep_guessing;
   bool         keyspace;
+  bool         total_candidates;
   bool         left;
   bool         logfile;
   bool         loopback;

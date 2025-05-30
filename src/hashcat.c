@@ -131,6 +131,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->words_base = status_ctx->words_cnt / amplifier_cnt;
 
   EVENT (EVENT_CALCULATED_WORDS_BASE);
+  EVENT (EVENT_CALCULATED_WORDS_CNT);
 
   if (user_options->keyspace == true)
   {
