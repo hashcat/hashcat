@@ -107,6 +107,7 @@
 - Fixed vector datatypes usage for HIP
 - Fix missing check for -j and -k before writing hashcat.dictstat2 which can lead to false negatives
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
+- Improve ASN.1 check for RSA/DSA/EC/OpenSSH Private Keys modules (22911, 22921, 22931, 22941, 22951)
 - Prevent Hashcat from hanging by checking during startup whether the output file is a named pipe
 - Skip chained generated rules that exceed the maximum number of function calls
 
@@ -137,6 +138,7 @@
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
 - Metal Backend: allow use of devices with Metal if runtime version is >= 200
 - Metal Backend: disable Metal devices only if at least one OpenCL device is active
+- Modules: Check UnpackSize to raise false positive with hc_decompress_rar
 - User Options: added --metal-compiler-runtime option
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
 - Help: show supported hash-modes only with -hh

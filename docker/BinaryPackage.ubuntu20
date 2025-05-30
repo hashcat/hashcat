@@ -1,0 +1,104 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+## Change to bash
+
+RUN echo "dash dash/sh boolean false" | debconf-set-selections && dpkg-reconfigure dash
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    build-essential \
+    git \
+    wget \
+    pkg-config \
+    make \
+    gcc-mingw-w64-x86-64 \
+    g++-mingw-w64-x86-64 \
+    dos2unix \
+    libssl-dev \
+    zlib1g-dev \
+    libncurses5-dev \
+    libncursesw5-dev \
+    libreadline-dev \
+    libsqlite3-dev \
+    libgdbm-dev \
+    libdb5.3-dev \
+    libbz2-dev \
+    libexpat1-dev \
+    liblzma-dev tk-dev \
+    unzip \
+    zstd \
+    tar
+
+WORKDIR /root
+
+## Ubuntu 20.04 cmake version is incompatible to recent win-iconv so we use our own
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.25.3/cmake-3.25.3-linux-x86_64.sh && \
+    chmod +x cmake-3.25.3-linux-x86_64.sh && \
+    ./cmake-3.25.3-linux-x86_64.sh --skip-license --prefix=/usr/local
+
+## Also 7z on ubuntu 20.04 is very outdated
+WORKDIR /root
+RUN git clone --branch 24.09 https://github.com/ip7z/7zip.git
+WORKDIR /root/7zip/CPP/7zip/Bundles/Alone2
+RUN make -f makefile.gcc -j
+RUN cp /root/7zip/CPP/7zip/Bundles/Alone2/_o/7zz /usr/local/bin/7z
+
+## Iconv for windows
+WORKDIR /root
+RUN git clone --branch v0.0.10 https://github.com/win-iconv/win-iconv.git
+
+WORKDIR /root/win-iconv
+RUN cmake \
+    -D WIN_ICONV_BUILD_EXECUTABLE=OFF \
+    -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 \
+    -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc) \
+    -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) \
+    . && \
+    make install
+
+## Ubuntu 20.04 python version 3.10 is too old, it lacks support for non-GIL mode
+
+WORKDIR /root
+
+ENV PYTHON_VERSION=3.13.3
+
+RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
+    tar xzf Python-${PYTHON_VERSION}.tgz
+
+WORKDIR /root/Python-${PYTHON_VERSION}
+
+RUN ./configure --prefix=/opt/linux-python && \
+    make -j && make install
+
+ENV PATH="/opt/linux-python/bin:$PATH"
+
+## For Windows we also need python
+
+WORKDIR /root
+
+RUN mkdir /opt/cpython-mingw
+WORKDIR /opt/cpython-mingw
+RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
+RUN unzstd mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
+RUN tar -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar
+
+## Custom patches
+
+WORKDIR /root
+
+COPY docker/patches/ /root/patches/
+
+RUN git clone https://github.com/hashcat/hashcat.git
+
+WORKDIR /root/hashcat
+
+RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do pwd && git apply "$p"; done'
+
+RUN make -s binaries
+
+RUN tools/package_bin.sh
+
+RUN ["/bin/bash"]

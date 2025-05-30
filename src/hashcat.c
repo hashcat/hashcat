@@ -20,6 +20,7 @@
 #include "autotune.h"
 #include "benchmark.h"
 #include "bitmap.h"
+#include "bridges.h"
 #include "combinator.h"
 #include "cpt.h"
 #include "debugfile.h"
@@ -837,6 +838,21 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   EVENT (EVENT_POTFILE_NUM_CRACKED);
 
   /**
+   * setup salts for bridges, needs to be after bridge init, but before session start
+   */
+
+  EVENT (EVENT_BRIDGES_SALT_PRE);
+
+  if (bridges_salt_prepare (hashcat_ctx) == false)
+  {
+    event_log_error (hashcat_ctx, "Bridge salt preparation for hash-mode '%u' failed.", user_options->hash_mode);
+
+    return -1;
+  }
+
+  EVENT (EVENT_BRIDGES_SALT_POST);
+
+  /**
    * inform the user
    */
 
@@ -858,6 +874,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
         brain_ctx_destroy       (hashcat_ctx);
         #endif
 
+        bridges_salt_destroy    (hashcat_ctx);
+        bridges_destroy         (hashcat_ctx);
         bitmap_ctx_destroy      (hashcat_ctx);
         combinator_ctx_destroy  (hashcat_ctx);
         cpt_ctx_destroy         (hashcat_ctx);
@@ -1034,6 +1052,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   brain_ctx_destroy       (hashcat_ctx);
   #endif
 
+  bridges_salt_destroy    (hashcat_ctx);
+  bridges_destroy         (hashcat_ctx);
   bitmap_ctx_destroy      (hashcat_ctx);
   combinator_ctx_destroy  (hashcat_ctx);
   cpt_ctx_destroy         (hashcat_ctx);
@@ -1065,6 +1085,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
 
   hashcat_ctx->bitmap_ctx         = (bitmap_ctx_t *)          hcmalloc (sizeof (bitmap_ctx_t));
   hashcat_ctx->brain_ctx          = (brain_ctx_t *)           hcmalloc (sizeof (brain_ctx_t));
+  hashcat_ctx->bridge_ctx         = (bridge_ctx_t *)          hcmalloc (sizeof (bridge_ctx_t));
   hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (sizeof (combinator_ctx_t));
   hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             hcmalloc (sizeof (cpt_ctx_t));
   hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       hcmalloc (sizeof (debugfile_ctx_t));
@@ -1100,6 +1121,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   hcfree (hashcat_ctx->bitmap_ctx);
   hcfree (hashcat_ctx->brain_ctx);
+  hcfree (hashcat_ctx->bridge_ctx);
   hcfree (hashcat_ctx->combinator_ctx);
   hcfree (hashcat_ctx->cpt_ctx);
   hcfree (hashcat_ctx->debugfile_ctx);
@@ -1290,6 +1312,21 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    */
 
   if (user_options_check_files (hashcat_ctx) == -1) return -1;
+
+  /**
+   * Load bridge a bit too early actually, but we need to know the unit count so we can automatically configure virtualization for the user
+   */
+
+  EVENT (EVENT_BRIDGES_INIT_PRE);
+
+  if (bridges_init (hashcat_ctx) == false)
+  {
+    event_log_error (hashcat_ctx, "Bridge initialization for hash-mode '%u' failed.", user_options->hash_mode);
+
+    return -1;
+  }
+
+  EVENT (EVENT_BRIDGES_INIT_POST);
 
   /**
    * Init backend library loader
