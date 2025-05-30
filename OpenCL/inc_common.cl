@@ -1317,7 +1317,7 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
   #endif
 
-  #elif defined IS_METAL
+  #elif defined IS_METAL || defined IS_APPLE_SILICON
 
   const u32x a0 = h32_from_64 (v);
   const u32x a1 = l32_from_64 (v);
@@ -1391,7 +1391,7 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
 
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
 
-  #elif defined IS_METAL
+  #elif defined IS_METAL || defined IS_APPLE_SILICON
 
   const u32 v0 = h32_from_64_S (v);
   const u32 v1 = l32_from_64_S (v);
@@ -2697,6 +2697,71 @@ DECLSPEC int asn1_detect (PRIVATE_AS const u32 *buf, const int len)
 
     if ((lenb + 4) != len) return 0;
   }
+
+  return 1;
+}
+
+DECLSPEC int asn1_check_int_tag (PRIVATE_AS const u32 *buf, const int len)
+{
+  PRIVATE_AS const u8 *bytes = (PRIVATE_AS const u8 *) buf;
+
+  int seq_len_offset = 0;
+
+  if (bytes[1] < 0x80)
+  {
+    seq_len_offset = 2;
+  }
+  else if (bytes[1] == 0x81)
+  {
+    seq_len_offset = 3;
+  }
+  else if (bytes[1] == 0x82)
+  {
+    seq_len_offset = 4;
+  }
+  else
+  {
+    return 0;
+  }
+
+  int pos = seq_len_offset;
+
+  if (pos >= len) return 0;
+  if (pos + 2 > len) return 0;
+
+  u8 tag = bytes[pos];
+
+  if (tag != 0x02) return 0;
+
+  u8 len_byte = bytes[pos + 1];
+
+  int val_len = 0;
+  int tmp_len = 1;
+
+  if (len_byte < 0x80)
+  {
+    val_len = len_byte;
+  }
+  else if (len_byte == 0x81)
+  {
+    if (pos + 2 >= len) return 0;
+    val_len = bytes[pos + 2];
+    tmp_len = 2;
+  }
+  else if (len_byte == 0x82)
+  {
+    if (pos + 3 >= len) return 0;
+    val_len = (bytes[pos + 2] << 8) | bytes[pos + 3];
+    tmp_len = 3;
+  }
+  else
+  {
+    return 0;
+  }
+
+  if (pos + 1 + tmp_len + val_len > len) return 0;
+
+  if (val_len != 1) return 0;
 
   return 1;
 }

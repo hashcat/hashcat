@@ -1,10 +1,10 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"
-  "http://www.w3.org/TR/REC-html40/loose.dtd">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>zlib Usage Example</title>
-<!--  Copyright (c) 2004, 2005 Mark Adler.  -->
+<!--  Copyright (c) 2004-2023 Mark Adler.  -->
 </head>
 <body bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#00A000">
 <h2 align="center"> zlib Usage Example </h2>
@@ -17,7 +17,7 @@ from an input file to an output file using <tt>deflate()</tt> and <tt>inflate()<
 annotations are interspersed between lines of the code.  So please read between the lines.
 We hope this helps explain some of the intricacies of <em>zlib</em>.
 <p>
-Without further adieu, here is the program <a href="zpipe.c"><tt>zpipe.c</tt></a>:
+Without further ado, here is the program <a href="zpipe.c"><tt>zpipe.c</tt></a>:
 <pre><b>
 /* zpipe.c: example of proper use of zlib's inflate() and deflate()
    Not copyrighted -- provided to the public domain
@@ -155,13 +155,11 @@ before we fall out of the loop at the bottom.
 </b></pre>
 We start off by reading data from the input file.  The number of bytes read is put directly
 into <tt>avail_in</tt>, and a pointer to those bytes is put into <tt>next_in</tt>.  We also
-check to see if end-of-file on the input has been reached.  If we are at the end of file, then <tt>flush</tt> is set to the
+check to see if end-of-file on the input has been reached using feof().
+If we are at the end of file, then <tt>flush</tt> is set to the
 <em>zlib</em> constant <tt>Z_FINISH</tt>, which is later passed to <tt>deflate()</tt> to
-indicate that this is the last chunk of input data to compress.  We need to use <tt>feof()</tt>
-to check for end-of-file as opposed to seeing if fewer than <tt>CHUNK</tt> bytes have been read.  The
-reason is that if the input file length is an exact multiple of <tt>CHUNK</tt>, we will miss
-the fact that we got to the end-of-file, and not know to tell <tt>deflate()</tt> to finish
-up the compressed stream.  If we are not yet at the end of the input, then the <em>zlib</em>
+indicate that this is the last chunk of input data to compress.
+If we are not yet at the end of the input, then the <em>zlib</em>
 constant <tt>Z_NO_FLUSH</tt> will be passed to <tt>deflate</tt> to indicate that we are still
 in the middle of the uncompressed data.
 <p>
@@ -540,6 +538,12 @@ int main(int argc, char **argv)
 }
 </b></pre>
 <hr>
-<i>Copyright (c) 2004, 2005 by Mark Adler<br>Last modified 11 December 2005</i>
+<i>Last modified 24 January 2023<br>
+Copyright &#169; 2004-2023 Mark Adler</i><br>
+<a rel="license" href="http://creativecommons.org/licenses/by-nd/4.0/">
+<img alt="Creative Commons License" style="border-width:0"
+src="https://i.creativecommons.org/l/by-nd/4.0/88x31.png"></a>
+<a rel="license" href="http://creativecommons.org/licenses/by-nd/4.0/">
+Creative Commons Attribution-NoDerivatives 4.0 International License</a>.
 </body>
 </html>

@@ -30,29 +30,38 @@
 /* Normal include, gives access to public symbols */
 #include "../xxhash.h"
 
+/* Multiple consecutive inclusions are handled properly. */
+#include "../xxhash.h"
+
 /*
  * Advanced include, gives access to experimental symbols
- * This test ensure that xxhash.h can be included multiple times and in any
- * order. This order is more difficult: Without care, the declaration of
- * experimental symbols could be skipped.
+ * This test ensures that xxhash.h can be included multiple times
+ * and in any order. The tested order is more difficult:
+ * without care, the declaration of experimental symbols could be skipped.
  */
 #define XXH_STATIC_LINKING_ONLY
 #include "../xxhash.h"
 
 /*
- * Inlining: Re-define all identifiers, keep them private to the unit.
+ * Inlining: redefine all identifiers, keep them private to the unit.
  * Note: Without specific efforts, the identifier names would collide.
  *
- * To be linked with and without xxhash.o to test the symbol's presence and
- * naming collisions.
+ * To be linked with and without xxhash.o
+ * to test the symbol's presence and naming collisions.
+ */
+#define XXH_INLINE_ALL
+#include "../xxhash.h"
+
+/*
+ * Multiple consecutive inclusions with XXH_INLINE_ALL are handled properly.
  */
 #define XXH_INLINE_ALL
 #include "../xxhash.h"
 
 
-int main(void)
+void hash_advanced(void)
 {
-    XXH3_state_t state;   /* part of experimental API */
+    XXH3_state_t state;   /* this type is part of experimental API */
 
     XXH3_64bits_reset(&state);
     const char input[] = "Hello World !";
@@ -61,6 +70,9 @@ int main(void)
 
     XXH64_hash_t const h = XXH3_64bits_digest(&state);
     printf("hash '%s': %08x%08x \n", input, (unsigned)(h >> 32), (unsigned)h);
+}
 
-    return 0;
+int main(void)
+{
+    hash_advanced();
 }

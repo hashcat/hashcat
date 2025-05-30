@@ -14,6 +14,7 @@ rm -rf $OUT.7z
 mkdir -p $OUT
 
 mkdir -p $OUT/tools
+mkdir -p $OUT/Python
 
 cp    $IN/hashcat.exe                   $OUT/
 cp    $IN/hashcat.bin                   $OUT/
@@ -23,6 +24,7 @@ cp -r $IN/docs                          $OUT/
 cp -r $IN/charsets                      $OUT/
 cp -r $IN/layouts                       $OUT/
 cp -r $IN/masks                         $OUT/
+cp -r $IN/bridges                       $OUT/
 cp -r $IN/modules                       $OUT/
 cp -r $IN/rules                         $OUT/
 cp -r $IN/extra                         $OUT/
@@ -30,6 +32,7 @@ cp -r $IN/tunings                       $OUT/
 cp    $IN/example.dict                  $OUT/
 cp    $IN/example[0123456789]*.hash     $OUT/
 cp    $IN/example[0123456789]*.cmd      $OUT/
+cp -r $IN/Python/*.py                   $OUT/Python/
 cp -r $IN/OpenCL                        $OUT/
 cp    $IN/tools/*hashcat.pl             $OUT/tools/
 cp    $IN/tools/*hashcat.py             $OUT/tools/
@@ -60,6 +63,7 @@ unix2dos $OUT/rules/hybrid/*.rule
 unix2dos $OUT/docs/*
 unix2dos $OUT/docs/license_libs/*
 unix2dos $OUT/example*.cmd
+unix2dos $OUT/Python/*
 unix2dos $OUT/OpenCL/*
 unix2dos $OUT/tools/*
 unix2dos $OUT/tunings/*
@@ -79,6 +83,8 @@ chmod 755 $OUT/layouts
 chmod 644 $OUT/layouts/*
 chmod 755 $OUT/masks
 chmod 644 $OUT/masks/*
+chmod 755 $OUT/bridges
+chmod 644 $OUT/bridges/*
 chmod 755 $OUT/modules
 chmod 644 $OUT/modules/*
 chmod 644 $OUT/example*
@@ -86,6 +92,8 @@ chmod 755 $OUT/example*.sh
 chmod 755 $OUT/extra
 chmod 755 $OUT/extra/tab_completion/*.sh
 chmod 755 $OUT/extra/tab_completion/install
+chmod 755 $OUT/Python
+chmod 644 $OUT/Python/*
 chmod 755 $OUT/OpenCL
 chmod 644 $OUT/OpenCL/*
 chmod 755 $OUT/tunings
