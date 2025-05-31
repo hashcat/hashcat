@@ -748,10 +748,10 @@ $(BRIDGES_DISABLE): ;
 
 ifeq ($(SHARED),1)
 bridges/bridge_%.$(BRIDGE_SUFFIX): src/bridges/bridge_%.c $(HASHCAT_LIBRARY)
-	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) -march=native
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
 else
 bridges/bridge_%.$(BRIDGE_SUFFIX): src/bridges/bridge_%.c obj/combined.NATIVE.a
-	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) -march=native
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
 endif
 
 BRIDGES_LIB   := $(patsubst src/bridges/bridge_%.c, bridges/bridge_%.$(BRIDGE_SUFFIX), $(BRIDGES_SRC))
@@ -877,11 +877,10 @@ bridges_linux: $(BRIDGES_LIB_LINUX)
 bridges_win:   $(BRIDGES_LIB_WIN)
 
 bridges/bridge_%.so:  src/bridges/bridge_%.c obj/combined.LINUX.a
-	$(CC_LINUX)  $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) -march=native
+	$(CC_LINUX)  $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
 
 bridges/bridge_%.dll: src/bridges/bridge_%.c obj/combined.WIN.a
-	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) -march=native
-
+	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
 
 ##
 ## cross compiled hashcat
