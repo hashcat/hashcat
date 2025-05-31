@@ -149,6 +149,8 @@ DEPS_UNRAR_PATH         := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 endif
 
+DEPS_SSE2NEON           := deps/sse2neon
+
 ##
 ## Filenames for library and frontend
 ##
@@ -361,6 +363,8 @@ LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -liconv
 
 ifeq ($(IS_APPLE_SILICON),1)
+CFLAGS_NATIVE           += -DSSE2NEON_SUPPRESS_WARNINGS
+CFLAGS_NATIVE           += -I$(DEPS_SSE2NEON)
 CFLAGS_NATIVE           += -arch arm64
 CFLAGS_NATIVE           += -arch x86_64
 ifeq ($(SHARED),1)
@@ -820,6 +824,11 @@ CFLAGS_LZMA_WIN         += -Wno-misleading-indentation
 
 CFLAGS_UNRAR_WIN        += -Wno-misleading-indentation
 CFLAGS_UNRAR_WIN        += -Wno-class-memaccess
+
+ifeq ($(IS_APPLE_SILICON),1)
+CFLAGS_CROSS_LINUX      += -DSSE2NEON_SUPPRESS_WARNINGS
+CFLAGS_CROSS_LINUX      += -I$(DEPS_SSE2NEON)
+endif
 endif
 
 ##

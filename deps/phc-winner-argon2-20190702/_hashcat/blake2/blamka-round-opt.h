@@ -20,7 +20,12 @@
 
 #include "blake2-impl.h"
 
+#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__) || defined(_M_IX86)
 #include <emmintrin.h>
+#elif defined(__aarch64__)
+#include <sse2neon.h>
+#endif
+
 #if defined(__SSSE3__)
 #include <tmmintrin.h> /* for _mm_shuffle_epi8 and _mm_alignr_epi8 */
 #endif
