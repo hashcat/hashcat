@@ -5494,7 +5494,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           if (device_param->kernel_exec_timeout != 0)
           {
-            if (user_options->quiet == false)
+            if ((user_options->quiet == false) && (is_virtualized == false))
             {
               event_log_advice (hashcat_ctx, "* Device #%u: WARNING! Kernel exec timeout is not disabled.", device_id + 1);
               event_log_advice (hashcat_ctx, "             This may cause \"CL_OUT_OF_RESOURCES\" or related errors.");
@@ -5930,7 +5930,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           if (device_param->kernel_exec_timeout != 0)
           {
-            if (user_options->quiet == false)
+            if ((user_options->quiet == false) && (is_virtualized == false))
             {
               event_log_advice (hashcat_ctx, "* Device #%u: WARNING! Kernel exec timeout is not disabled.", device_id + 1);
               event_log_advice (hashcat_ctx, "             This may cause \"CL_OUT_OF_RESOURCES\" or related errors.");
@@ -7721,7 +7721,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
                 if (device_param->kernel_exec_timeout != 0)
                 {
-                  if (user_options->quiet == false)
+                  if ((user_options->quiet == false) && (is_virtualized == false))
                   {
                     event_log_warning (hashcat_ctx, "* Device #%u: WARNING! Kernel exec timeout is not disabled.", device_id + 1);
                     event_log_warning (hashcat_ctx, "             This may cause \"CL_OUT_OF_RESOURCES\" or related errors.");

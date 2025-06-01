@@ -39,6 +39,12 @@ ifeq ($(DEBUG),1)
 $(info "## Detected Operating System : $(UNAME)")
 endif
 
+BUILD_MODE := native
+
+ifneq ($(filter binaries linux host_linux modules_linux bridges_linux win host_win modules_win bridges_win,$(MAKECMDGOALS)),)
+  BUILD_MODE := cross
+endif
+
 ##
 ## Makefile flags
 ##
