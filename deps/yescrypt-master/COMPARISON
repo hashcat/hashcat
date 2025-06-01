@@ -1,0 +1,129 @@
+	Comparison of yescrypt to scrypt and Argon2.
+
+yescrypt's advantages:
+
+ + Greater resistance to offline attacks (increasing attacker's cost at
+   same defender's cost)
+
+   + yescrypt supports optional ROM for protection from use of botnet
+     nodes (and other relatively small memory devices)
+
+   + yescrypt has a dependency not only on RAM and maybe ROM, but
+     also on fast on-die local memory (such as a CPU's L1 or L2 cache),
+     which provides bcrypt-like anti-GPU properties even at very low
+     per-hash RAM sizes (where scrypt and Argon2 are more likely to lose
+     to bcrypt in terms of GPU attack speed) and even without ROM
+
+   + yescrypt and scrypt currently have little low-level
+     parallelism within processing of a block (yescrypt allows for
+     tuning this later, scrypt does not), whereas Argon2 has a fixed and
+     currently commonly excessive amount of such parallelism, which may
+     be extracted to speed up e.g. GPU attacks through use of more
+     computing resources per the same total memory size due to each hash
+     computation's memory needs being split between 32 threads (yescrypt
+     currently has four 16-byte lanes that can be processed in parallel
+     within a 64-byte sub-block before running into a data dependency
+     for the next sub-block, whereas Argon2 allows for parallel
+     processing of eight 128-byte chunks within a 1 KiB block with only
+     two synchronization points for the entire block, as well as of four
+     32-byte parts of the 128-byte chunks with only two more
+     synchronization points for the entire 1 KiB block)
+
+   + yescrypt uses computation latency hardening based on integer
+     multiplication and local memory access speed, which ties its
+     per-hash RAMs up for a guaranteed minimum amount of time regardless
+     of possibly much higher memory bandwidth on the attacker's
+     hardware, whereas Argon2 uses only the multiplications and performs
+     6 times fewer of those sequentially (96 sequential multiplications
+     per 1 KiB for yescrypt vs. 16 per 1 KiB for Argon2, providing
+     correspondingly different minimum time guarantees) and scrypt does
+     not use this technique at all (but is no worse than Argon2 in this
+     respect anyway due to having less low-level parallelism)
+
+   + yescrypt and Argon2 are time-memory trade-off (TMTO) resistant
+     (thus, computing them in less memory takes disproportionately
+     longer), whereas scrypt is deliberately TMTO-friendly (and
+     moreover, computing it in less memory takes up to 4x less than
+     proportionately longer)
+
+ + Extra optional built-in features
+
+   + Hash encryption so that the hashes are not crackable without
+     the key (to be stored separately)
+
+   + Hash upgrade to higher settings without knowledge of password
+     (temporarily removed from 1.0, to be re-added later)
+
+   + SCRAM-like client-side computation of challenge responses
+     (already part of the algorithm, not yet exposed via the API)
+
+   + yescrypt's and Argon2's running time is tunable on top of
+     memory usage and parallelism, unlike in scrypt's
+
+ + Cryptographic security provided by NIST-approved primitives
+
+   + (ye)scrypt's cryptographic security is provided by SHA-256,
+     HMAC, and PBKDF2, which are NIST-approved and time-tested (the rest
+     of yescrypt's processing, while most crucial for its offline attack
+     resistance properties, provably does not affect its basic
+     cryptographic hash properties), whereas Argon2 relies on the newer
+     BLAKE2 (either choice is just fine for security, but use of
+     approved algorithms may sometimes be required for compliance)
+
+ + SHA-256, HMAC, PBKDF2, and scrypt are usable from the same codebase
+
+yescrypt's drawbacks:
+
+ - Complex (higher risk of human error occurring and remaining
+   unnoticed for long)
+
+ - Cache-timing unsafe (like bcrypt, scrypt, and Argon2d, but
+   unlike Argon2i)
+
+ - Not the PHC winner (Argon2 is), but is merely a "special recognition"
+
+ - Supported in fewer third-party projects (as of this writing, there's
+   yescrypt support in libxcrypt, Linux-PAM, shadow, and mkpasswd)
+
+Other observations:
+
+ * yescrypt's complexity is related to its current primary target use
+   case (mass user authentication) and is relatively small compared to
+   the total complexity of the authentication service, so the risk may
+   be justified
+
+ * Cache-timing safety is unimportant on dedicated servers, is
+   mitigated for some use cases and threat models by proper use of
+   salts, and is fully achieved in Argon2 only in its 2i flavor and only
+   through reduction of resistance to the usual offline attacks compared
+   to the 2d flavor
+
+ * yescrypt's single-threaded memory filling speed on an otherwise
+   idle machine and at our currently recommended settings is lower than
+   Argon2's, but that's a result of our deliberate tuning (there's a
+   knob to change that, but we don't recommend doing so) preventing
+   yescrypt from bumping into memory access speed prematurely, and is
+   irrelevant for determining server request rate capacity and maximum
+   response latency where multiple instances or threads would be run
+   (under that scenario, the algorithms deliver similar speeds)
+
+ * yescrypt has been designed and currently configured to fit the
+   SSE2 and NEON instruction sets and 128-bit SIMD perfectly, not
+   benefiting from AVX's 3-register instructions (unlike classic scrypt,
+   which doesn't fit SSE2 as perfectly and thus benefits from AVX and
+   XOP) nor from AVX2's and AVX-512's wider SIMD (although it can be
+   reconfigured for wider SIMD later), whereas Argon2 significantly
+   benefits from those at least when running fewer threads or concurrent
+   instances than are supported by the hardware (yet yescrypt's SSE2
+   code is competitive with Argon2's AVX2 code under full server load)
+
+ * yescrypt vs. Argon2 benchmarks are further complicated by these
+   two schemes having different minimum amount of processing over memory
+   (yescrypt's is 4/3 of Argon2's), and thus different average memory
+   usage (5/8 of peak for yescrypt t=0 vs. 1/2 of peak for Argon2 t=1),
+   which needs to be taken into account
+
+ * scrypt benchmarks are also different in amount of processing over
+   memory (twice Argon2's minimum) and average memory usage (3/4 of
+   peak), but that's even further complicated by scrypt's
+   TMTO-friendliness providing up to a 4x advantage to some attackers

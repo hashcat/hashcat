@@ -1,0 +1,197 @@
+	What is yescrypt?
+
+yescrypt is a password-based key derivation function (KDF) and password
+hashing scheme.  It builds upon Colin Percival's scrypt.  This
+implementation is able to compute native yescrypt hashes as well as
+classic scrypt.
+
+As of this writing, yescrypt is the default password hashing scheme on
+recent ALT Linux, Arch Linux, Debian 11+, Fedora 35+, Kali Linux 2021.1+,
+and Ubuntu 22.04+.  It is also supported in Fedora 29+, RHEL 9+, and
+Ubuntu 20.04+, and is recommended for new passwords in Fedora CoreOS.
+
+
+	Why yescrypt?
+
+Like it or not, password authentication remains relevant (including as
+one of several authentication factors), password hash database leaks
+happen, the leaks are not always detected and fully dealt with right
+away, and even once they are many users' same or similar passwords
+reused elsewhere remain exposed.  To mitigate these risks (as well as
+those present in other scenarios where password-based key derivation or
+password hashing is relevant), computationally expensive (bcrypt,
+PBKDF2, etc.) and more recently also memory-hard (scrypt, Argon2, etc.)
+password hashing schemes have been introduced.  Unfortunately, at high
+target throughput and/or low target latency their memory usage is
+unreasonably low, up to the point where they're not obviously better
+than the much older bcrypt (considering attackers with pre-existing
+hardware).  This is a primary drawback that yescrypt addresses.
+
+Most notable for large-scale deployments is yescrypt's optional
+initialization and reuse of a large lookup table, typically occupying
+at least tens of gigabytes of RAM and essentially forming a
+site-specific ROM.  This limits attackers' use of pre-existing hardware
+such as botnet nodes.
+
+yescrypt's other changes from scrypt additionally slow down GPUs and to
+a lesser extent FPGAs and ASICs even when its memory usage is low and
+even when there's no ROM, and provide extra knobs and built-in features.
+
+Technically, yescrypt is the most scalable password hashing scheme so
+far, providing near-optimal security from offline password cracking
+across the whole range from kilobytes to terabytes and beyond.  However,
+the price for this is complexity, and we recognize that complexity is a
+major drawback of any software.  Thus, at this time we focus on
+large-scale deployments, where the added complexity is relatively small
+compared to the total complexity of the authentication service setup.
+For smaller deployments, bcrypt with its simplicity and existing library
+support is a reasonable short-term choice (although we're making
+progress towards more efficient FPGA attacks on bcrypt under a separate
+project).  We might introduce a cut-down yescrypt-lite later or/and
+yescrypt might become part of standard or popular libraries, making it
+more suitable for smaller deployments as well.
+
+
+	Parameter selection.
+
+Please refer to PARAMETERS for guidelines on parameter selection and the
+currently recommended parameter sets by use case (password hashing with
+or without a ROM, and KDF).
+
+
+	Performance.
+
+Please refer to PERFORMANCE for example setup and benchmarks relevant to
+the mass user authentication use case.
+
+The test system is a server (kindly provided by Packet.net) with dual
+Xeon Gold 5120 CPUs (2.2 GHz, turbo to up to 3.2 GHz) and 384 GiB RAM
+(12x DDR4-2400 ECC Reg).  These CPUs have 14 cores and 6 memory channels
+each, for a total of 28 physical cores, 56 logical CPUs (HT is enabled),
+and 12 memory channels.
+
+Some highlights: initialization of a 368 GiB ROM takes 22 seconds (to
+be done on server bootup), and while using the ROM we're able to compute
+over 21k, over 10k, or around 1200 hashes per second with per-hash RAM
+usage of 1.4375 MiB, 2.875 MiB, or 23 MiB, respectively.
+
+When not using a ROM, we're able to compute over 21k, over 10k, or
+around 1200 hashes per second with per-hash RAM usage of 2 MiB, 4 MiB,
+or 32 MiB, respectively.
+
+
+	Comparison to scrypt and Argon2.
+
+yescrypt's advantages:
+
+ + Greater resistance to offline attacks
+ + Extra optional built-in features
+ + Cryptographic security provided by NIST-approved primitives
+ + SHA-256, HMAC, PBKDF2, and scrypt are usable from the same codebase
+
+yescrypt's drawbacks:
+
+ - Complex
+ - Cache-timing unsafe (like scrypt and Argon2d, but unlike Argon2i)
+ - Not the PHC winner (Argon2 is), but is merely a "special recognition"
+ - Supported in fewer third-party projects
+
+Please refer to COMPARISON for a lot more detail and other observations.
+
+
+	A note on cryptocurrencies.
+
+For historical reasons, multiple CPU mining focused cryptocurrencies use
+yescrypt 0.5'ish as their proof-of-work (PoW) scheme.  We currently have
+a separate project for the PoW use case: yespower.  Thus, rather than
+misuse yescrypt 1.0+ for PoW, those and other projects are advised to
+use yespower 1.0+ instead.  The yespower homepage is:
+
+    https://www.openwall.com/yespower/
+
+
+	How to test yescrypt for proper operation.
+
+On a Unix-like system, invoke "make check".  This will build and run a
+program called "tests", and check its output against the supplied file
+TESTS-OK.  It will also build a program called "phc-test", and if a file
+called PHC-TEST-OK-SHA256 is present will run that program and check its
+output against that file's contents.  If everything matches, each of
+these two sets of tests prints one word "PASSED", so there will be two
+such lines among "make check" output, one of them being the final line
+of output.
+
+We do most of our testing on Linux systems with gcc.  The supplied
+Makefile assumes that you use gcc.
+
+
+	ROM in SysV shared memory demo and benchmark.
+
+Also included with this version of yescrypt are "initrom" and "userom"
+demo programs.  They're built by simply typing "make".  Please refer to
+PERFORMANCE for their usage.
+
+
+	Alternate code versions and make targets.
+
+Two implementations of yescrypt are included: reference and optimized.
+By default, the optimized implementation is built.  Internally, the
+optimized implementation uses conditional compilation to choose between
+usage of various SIMD instruction sets where supported and scalar code.
+
+The reference implementation is unoptimized and is very slow, but it has
+simpler and shorter source code.  Its purpose is to provide a simple
+human- and machine-readable specification that implementations intended
+for actual use should be tested against.  It is deliberately mostly not
+optimized, and it is not meant to be used in production.
+
+Similarly to "make check", there's "make check-ref" to build and test
+the reference implementation.  There's also "make ref" to build the
+reference implementation and have the "initrom" and "userom" programs
+use it.
+
+"make clean" may need to be run between making different builds.
+
+
+	Development status.
+
+This yescrypt distribution is a work-in-progress.  Its interfaces other
+than crypto_scrypt() are subject to change in future revisions, however
+no incompatible changes to the yescrypt algorithm are expected.
+
+
+	Credits.
+
+scrypt has been designed by Colin Percival.  yescrypt has been designed
+by Solar Designer building upon scrypt.
+
+The following other people and projects have also indirectly helped make
+yescrypt what it is:
+
+ - Bill Cox
+ - Rich Felker
+ - Anthony Ferrara
+ - Christian Forler
+ - Taylor Hornby
+ - Dmitry Khovratovich
+ - Samuel Neves
+ - Marcos Simplicio
+ - Ken T Takusagawa
+ - Jakob Wenzel
+ - Christian Winnerlein
+
+ - DARPA Cyber Fast Track
+ - Password Hashing Competition
+
+
+	Contact info.
+
+First, please check the yescrypt homepage for new versions, etc.:
+
+    https://www.openwall.com/yescrypt/
+
+If you have anything valuable to add or a non-trivial question to ask,
+you may join and post to the yescrypt mailing list (referenced on the
+yescrypt homepage above) or contact the maintainer of yescrypt at:
+
+    Solar Designer <solar at openwall.com>
