@@ -1818,52 +1818,110 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       event_log_info (hashcat_ctx, "%s", line);
 
-      for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
+      if (bridge_ctx->enabled == true)
       {
-        const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
+        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
 
-        const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
-
-        int   device_id            = device_param->device_id;
-        char *device_name          = device_param->device_name;
-        u32   device_processors    = device_param->device_processors;
-        u64   device_maxmem_alloc  = device_param->device_maxmem_alloc;
-        u64   device_global_mem    = device_param->device_global_mem;
-        u64   device_available_mem = device_param->device_available_mem;
-
-        if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+        for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
         {
-          if (strncmp (device_name, "Apple M", 7) == 0)
+          const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
+
+          const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+          int   device_id            = device_param->device_id;
+          char *device_name          = device_param->device_name;
+          u32   device_processors    = device_param->device_processors;
+          u64   device_maxmem_alloc  = device_param->device_maxmem_alloc;
+          u64   device_global_mem    = device_param->device_global_mem;
+          u64   device_available_mem = device_param->device_available_mem;
+
+          if ((device_param->skipped == false) && (device_param->skipped_warning == false))
           {
-            cl_device_type opencl_device_type = device_param->opencl_device_type;
+            if (strncmp (device_name, "Apple M", 7) == 0)
+            {
+              cl_device_type opencl_device_type = device_param->opencl_device_type;
 
-            const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
 
-            event_log_info (hashcat_ctx, "* Device #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
-                      device_id + 1,
-                      device_name,
-                      device_type_desc,
-                      device_available_mem / 1024 / 1024,
-                      device_global_mem    / 1024 / 1024,
-                      device_maxmem_alloc  / 1024 / 1024,
-                      device_processors);
+              event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                        device_id + 1, unit_count,
+                        device_name,
+                        device_type_desc,
+                        device_available_mem / 1024 / 1024,
+                        device_global_mem    / 1024 / 1024,
+                        device_maxmem_alloc  / 1024 / 1024,
+                        device_processors);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                        device_id + 1, unit_count,
+                        device_name,
+                        device_available_mem / 1024 / 1024,
+                        device_global_mem    / 1024 / 1024,
+                        device_maxmem_alloc  / 1024 / 1024,
+                        device_processors);
+            }
+
+            break;
           }
           else
           {
-            event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
-                      device_id + 1,
-                      device_name,
-                      device_available_mem / 1024 / 1024,
-                      device_global_mem    / 1024 / 1024,
-                      device_maxmem_alloc  / 1024 / 1024,
-                      device_processors);
+            event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, skipped",
+                      device_id + 1, unit_count,
+                      device_name);
           }
         }
-        else
+      }
+      else
+      {
+        for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
         {
-          event_log_info (hashcat_ctx, "* Device #%02u: %s, skipped",
-                    device_id + 1,
-                    device_name);
+          const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
+
+          const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+          int   device_id            = device_param->device_id;
+          char *device_name          = device_param->device_name;
+          u32   device_processors    = device_param->device_processors;
+          u64   device_maxmem_alloc  = device_param->device_maxmem_alloc;
+          u64   device_global_mem    = device_param->device_global_mem;
+          u64   device_available_mem = device_param->device_available_mem;
+
+          if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+          {
+            if (strncmp (device_name, "Apple M", 7) == 0)
+            {
+              cl_device_type opencl_device_type = device_param->opencl_device_type;
+
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+
+              event_log_info (hashcat_ctx, "* Device #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                        device_id + 1,
+                        device_name,
+                        device_type_desc,
+                        device_available_mem / 1024 / 1024,
+                        device_global_mem    / 1024 / 1024,
+                        device_maxmem_alloc  / 1024 / 1024,
+                        device_processors);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                        device_id + 1,
+                        device_name,
+                        device_available_mem / 1024 / 1024,
+                        device_global_mem    / 1024 / 1024,
+                        device_maxmem_alloc  / 1024 / 1024,
+                        device_processors);
+            }
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, skipped",
+                      device_id + 1,
+                      device_name);
+          }
         }
       }
 

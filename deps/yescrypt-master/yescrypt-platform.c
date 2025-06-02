@@ -97,7 +97,6 @@ static inline void init_region(yescrypt_region_t *region)
 
 static int free_region(yescrypt_region_t *region)
 {
-return 0;
 	if (region->base) {
 #ifdef MAP_ANON
 		if (munmap(region->base, region->base_size))
