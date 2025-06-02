@@ -1,0 +1,4 @@
+*.md text=auto
+LICENSE text=auto
+
+sse2neon.h -text linguist-language=c

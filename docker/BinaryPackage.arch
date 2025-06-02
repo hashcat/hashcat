@@ -1,0 +1,66 @@
+FROM archlinux:latest
+
+# Set environment
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
+    locale-gen && \
+    echo "LANG=en_US.UTF-8" > /etc/locale.conf && \
+    ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+
+# Install all necessary packages
+RUN pacman -Sy --noconfirm \
+    base-devel \
+    git \
+    cmake \
+    unzip \
+    wget \
+    zstd \
+    python \
+    mingw-w64-gcc \
+    mingw-w64-crt \
+    mingw-w64-headers \
+    mingw-w64-binutils \
+    mingw-w64-winpthreads \
+    p7zip \
+    dos2unix \
+    && pacman -Scc --noconfirm
+
+# Set source working directory
+WORKDIR /root
+
+# Clone hashcat and win-iconv repositories
+RUN git clone https://github.com/win-iconv/win-iconv.git
+
+# Build win-iconv for Windows target
+WORKDIR /root/win-iconv
+RUN cmake \
+    -D WIN_ICONV_BUILD_EXECUTABLE=OFF \
+    -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 \
+    -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc) \
+    -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) \
+    . && \
+    make -j$(nproc) && make install
+
+# Download and extract MSYS2 Python headers (still 3.12)
+RUN mkdir /opt/cpython-mingw
+WORKDIR /opt/cpython-mingw
+RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst && \
+    zstd -d mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst && \
+    tar -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar
+
+## Custom patches
+WORKDIR /root
+COPY docker/patches/ /root/patches/
+
+## hashcat
+WORKDIR /root
+RUN git clone https://github.com/hashcat/hashcat.git
+
+## Compile
+WORKDIR /root/hashcat
+RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do pwd && git apply "$p"; done'
+RUN make -s binaries
+RUN tools/package_bin.sh
+
+CMD ["/bin/bash"]

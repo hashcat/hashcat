@@ -24,3 +24,9 @@ obj/*.o
 obj/*.a
 include/CL
 tools/luks_tests
+.vscode
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
