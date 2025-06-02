@@ -11,12 +11,12 @@ Make sure to have the system upgraded after install (otherwise it will fail to f
 Enable WSL.
 
 Press the win + r key on your keyboard simultaneously and in the "Run" popup window type bash and make sure to install additional dependencies necessary for hashcat compilation
-```
+```bash
 sudo apt install gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 make git
 git clone https://github.com/hashcat/hashcat
 git clone https://github.com/win-iconv/win-iconv
 cd win-iconv/
-patch < ../hashcat/tools/win-iconv-64.diff
+cmake -D WIN_ICONV_BUILD_EXECUTABLE=OFF -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc)
 sudo make install
 cd ../
 ```

@@ -42,7 +42,7 @@ RSC=rc.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /c
-# ADD CPP /nologo /MD /W4 /WX /GX /O2 /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_UNICODE" /D "UNICODE" /FAcs /Yu"Precomp.h" /FD /c
+# ADD CPP /nologo /MD /W4 /WX /GX /O2 /D "NDEBUG" /D "WIN32" /D "_CONSOLE" /D "_UNICODE" /D "UNICODE" /D "Z7_PPMD_SUPPORT" /D "Z7_EXTRACT_ONLY" /FAcs /Yu"Precomp.h" /FD /c
 # ADD BASE RSC /l 0x419 /d "NDEBUG"
 # ADD RSC /l 0x419 /d "NDEBUG"
 BSC32=bscmake.exe
@@ -67,7 +67,7 @@ LINK32=link.exe
 # PROP Ignore_Export_Lib 0
 # PROP Target_Dir ""
 # ADD BASE CPP /nologo /W3 /Gm /GX /ZI /Od /D "WIN32" /D "_DEBUG" /D "_CONSOLE" /D "_MBCS" /YX /FD /GZ /c
-# ADD CPP /nologo /W4 /WX /Gm /GX /ZI /Od /D "_DEBUG" /D "_SZ_ALLOC_DEBUG2" /D "_SZ_NO_INT_64_A" /D "WIN32" /D "_CONSOLE" /D "_UNICODE" /D "UNICODE" /Yu"Precomp.h" /FD /GZ /c
+# ADD CPP /nologo /W4 /WX /Gm /GX /ZI /Od /D "_DEBUG" /D "_SZ_ALLOC_DEBUG2" /D "_SZ_NO_INT_64_A" /D "WIN32" /D "_CONSOLE" /D "_UNICODE" /D "UNICODE" /D "Z7_PPMD_SUPPORT" /D "Z7_EXTRACT_ONLY" /Yu"Precomp.h" /FD /GZ /c
 # ADD BASE RSC /l 0x419 /d "_DEBUG"
 # ADD RSC /l 0x419 /d "_DEBUG"
 BSC32=bscmake.exe
@@ -142,6 +142,10 @@ SOURCE=..\..\7zStream.c
 # Begin Source File
 
 SOURCE=..\..\7zTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\7zWindows.h
 # End Source File
 # Begin Source File
 
@@ -227,6 +231,10 @@ SOURCE=..\..\Compiler.h
 
 SOURCE=.\Precomp.c
 # ADD CPP /Yc"Precomp.h"
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Precomp.h
 # End Source File
 # Begin Source File
 

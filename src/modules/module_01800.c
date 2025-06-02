@@ -426,20 +426,19 @@ u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYB
 
 bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    if (device_param->is_metal == true)
     {
-      return true;
+      if (strncmp (device_param->device_name, "AMD Radeon", 10) == 0)
+      {
+        // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
+        return true;
+      }
     }
-  }
-
-  // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
-  if (device_param->is_metal == true)
-  {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    else if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL))
     {
+      // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
       return true;
     }
   }
@@ -455,12 +454,6 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
   {
     return jit_build_options;
-  }
-
-  // HIP
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
-  {
-    hc_asprintf (&jit_build_options, "-fno-unroll-loops");
   }
 
   // ROCM
@@ -577,6 +570,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_bridge_name              = MODULE_DEFAULT;
+  module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;

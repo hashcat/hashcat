@@ -1,7 +1,7 @@
 /*
 *  CSV Display module for the hash benchmark program
 *  Part of the xxHash project
-*  Copyright (C) 2019-2020 Yann Collet
+*  Copyright (C) 2019-2021 Yann Collet
 *
 *  GPL v2 License
 *
@@ -84,7 +84,8 @@ static void bench_throughput_oneHash_smallInputs(Bench_Entry hashDesc, size_t si
 
 void bench_throughput_smallInputs(Bench_Entry const* hashDescTable, int nbHashes, size_t sizeMin, size_t sizeMax)
 {
-    printf("Throughput small inputs of fixed size : \n");
+    printf("Throughput small inputs of fixed size (from %zu to %zu bytes): \n",
+            sizeMin, sizeMax);
     for (int i=0; i<nbHashes; i++)
         bench_throughput_oneHash_smallInputs(hashDescTable[i], sizeMin, sizeMax);
 }

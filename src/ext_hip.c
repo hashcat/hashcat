@@ -8,8 +8,38 @@
 #include "memory.h"
 #include "event.h"
 #include "ext_hip.h"
+#include "shared.h"
 
 #include "dynloader.h"
+
+char *hipDllPath (char *hipSDKPath)
+{
+  /*
+    AMD HIP DLLs is stored at "C:\Program Files\ROCm\X.Y\bin\amdhip64_X.dll"
+
+    This function can return complete dll path based on major release version
+    X.Y parsed from the ENV variable HIP_PATH.
+  */
+
+  const char *marker = "\\ROCm\\";
+
+  int major = 0;
+  int minor = 0;
+
+  const char *version_start = strstr (hipSDKPath, marker);
+
+  if (version_start == NULL) return NULL;
+
+  version_start += strlen (marker); // now points at "6.2\\"
+
+  if (sscanf (version_start, "%d.%d", &major, &minor) != 2) return NULL;
+
+  char *hipdllpath = NULL;
+
+  hc_asprintf (&hipdllpath, "%sbin\\amdhip64_%d.dll", hipSDKPath, major);
+
+  return (hipdllpath);
+}
 
 int hip_init (void *hashcat_ctx)
 {
@@ -20,11 +50,43 @@ int hip_init (void *hashcat_ctx)
   memset (hip, 0, sizeof (HIP_PTR));
 
   #if   defined (_WIN)
-  hip->lib = hc_dlopen ("amdhip64.dll");
+  char *hipSDKPath = getenv ("HIP_PATH");
+
+  if (hipSDKPath == NULL) return -1;
+
+  char *hipdllpath = hipDllPath (hipSDKPath);
+
+  if (hipdllpath == NULL) return -1;
+
+  hip->lib = hc_dlopen (hipdllpath);
+
+  free (hipdllpath);
+
+  if (hip->lib == NULL)
+  {
+    hip->lib = hc_dlopen ("amdhip64.dll");
+  }
+
   #elif defined (__APPLE__)
   hip->lib = hc_dlopen ("fixme.dylib");
   #elif defined (__CYGWIN__)
-  hip->lib = hc_dlopen ("amdhip64.dll");
+  char *hipSDKPath = getenv ("HIP_PATH");
+
+  if (hipSDKPath == NULL) return -1;
+
+  char *hipdllpath = hipDllPath (hipSDKPath);
+
+  if (hipdllpath == NULL) return -1;
+
+  hip->lib = hc_dlopen (hipdllpath);
+
+  free (hipdllpath);
+
+  if (hip->lib == NULL)
+  {
+    hip->lib = hc_dlopen ("amdhip64.dll");
+  }
+
   #else
   hip->lib = hc_dlopen ("libamdhip64.so");
   #endif

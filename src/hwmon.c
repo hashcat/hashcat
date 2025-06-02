@@ -1216,11 +1216,16 @@ int hm_get_throttle_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
 int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
   hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
   backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   hwmon_ctx->enabled = false;
+
+  int backend_devices_cnt = backend_ctx->backend_devices_cnt;
+
+  if (bridge_ctx->enabled == true) backend_devices_cnt = 1;
 
   #if !defined (WITH_HWMON)
   return 0;
@@ -1352,7 +1357,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int tmp_in = hm_get_adapter_index_nvml (hashcat_ctx, nvmlGPUHandle);
 
-      for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+      for (int backend_devices_idx = 0; backend_devices_idx < backend_devices_cnt; backend_devices_idx++)
       {
         hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
@@ -1431,7 +1436,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
       int tmp_in = hm_get_adapter_index_nvapi (hashcat_ctx, nvGPUHandle);
 
-      for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+      for (int backend_devices_idx = 0; backend_devices_idx < backend_devices_cnt; backend_devices_idx++)
       {
         hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
@@ -1522,7 +1527,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+      for (int backend_devices_idx = 0; backend_devices_idx < backend_devices_cnt; backend_devices_idx++)
       {
         hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
@@ -1580,7 +1585,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (true)
     {
-      for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+      for (int backend_devices_idx = 0; backend_devices_idx < backend_devices_cnt; backend_devices_idx++)
       {
         hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
@@ -1645,7 +1650,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (true)
     {
-      for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+      for (int backend_devices_idx = 0; backend_devices_idx < backend_devices_cnt; backend_devices_idx++)
       {
         hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
@@ -1708,7 +1713,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * HM devices: copy
    */
 
-  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_devices_cnt; backend_devices_idx++)
   {
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 

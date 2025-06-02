@@ -1,7 +1,7 @@
 /*
  * Brute force collision tester for 64-bit hashes
  * Part of the xxHash project
- * Copyright (C) 2019-2020 Yann Collet
+ * Copyright (C) 2019-2021 Yann Collet
  *
  * GPL v2 License
  *
@@ -54,12 +54,22 @@
 #include "sort.hh"    /* sort64 */
 
 
+#ifdef __MINGW32__
+/* MINGW claims C11 complians, yet doesn't provide aligned_alloc().
+ * _aligned_malloc() isn't a good workaround,
+ * as it seems incompatible with realloc().
+ * Let's use malloc() instead, array will not be fully aligned,
+ * resulting in some performance degradation, but nothing major.
+ * This policy can be updated once MINGW becomes really C11 compliant.
+ */
+# define aligned_alloc(a,s)  ((void)(a), malloc(s))
+#endif
 
 typedef enum { ht32, ht64, ht128 } Htype_e;
 
 /* ===  Debug  === */
 
-#define EXIT(...) { printf(__VA_ARGS__); printf("\n"); exit(1); }
+#define EXIT(...) { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\n"); fflush(NULL); exit(1); }
 
 static void hexRaw(const void* buffer, size_t size)
 {
@@ -69,13 +79,7 @@ static void hexRaw(const void* buffer, size_t size)
     }
 }
 
-void hexDisp(const void* buffer, size_t size)
-{
-    hexRaw(buffer, size);
-    printf("\n");
-}
-
-static void printHash(const void* table, size_t n, Htype_e htype)
+void printHash(const void* table, size_t n, Htype_e htype)
 {
     if ((htype == ht64) || (htype == ht32)){
         uint64_t const h64 = ((const uint64_t*)table)[n];
@@ -112,7 +116,7 @@ static uint64_t avalanche64(uint64_t h64)
     return h64;
 }
 
-static unsigned char randomByte(size_t n)
+static unsigned char randomByte(uint64_t n)
 {
     uint64_t n64 = avalanche64(n+1);
     n64 *= prime64_1;
@@ -212,7 +216,7 @@ static double Cnm(int n, int m)
 {
     assert(n > 0);
     assert(m > 0);
-    assert(m <= m);
+    assert(m <= n);
     double acc = 1;
     for (int i=0; i<m; i++) {
         acc *= n - i;
@@ -246,7 +250,7 @@ typedef struct {
     /* slab5 */
     size_t nbSlabs;
     size_t current;
-    size_t prngSeed;
+    uint64_t prngSeed;
 } sampleFactory;
 
 static void init_sampleFactory(sampleFactory* sf, uint64_t htotal)
@@ -288,7 +292,7 @@ static void free_sampleFactory(sampleFactory* sf)
 
 static void flipbit(void* buffer, uint64_t bitID)
 {
-    size_t const pos = bitID >> 3;
+    size_t const pos = (size_t)(bitID >> 3);
     unsigned char const mask = (unsigned char)(1 << (bitID & 7));
     unsigned char* const p = (unsigned char*)buffer;
     p[pos] ^= mask;
@@ -338,10 +342,14 @@ typedef unsigned char Filter;
 Filter* create_Filter(int bflog)
 {
     assert(bflog < 64 && bflog > 1);
-    size_t bfsize = (size_t)1 << bflog;
-    Filter* bf = malloc(bfsize);
-    assert(((void)"Filter creation failed", bf));
-    memset(bf, 0, bfsize);
+    size_t const bfsize = (size_t)1 << bflog;
+    size_t const cacheline_size = 64;
+    Filter* const bf = aligned_alloc(cacheline_size, bfsize);  // requires C11
+    if (bf==NULL) {
+        fprintf(stderr, "Filter creation failed (need %zu MB) \n", bfsize >> 20);
+        exit(1);
+    }
+    memset(bf, 0, bfsize);  // we want memory to be actually used
     return bf;
 }
 
@@ -410,70 +418,82 @@ inline int Filter_check(const Filter* bf, int bflog, uint64_t hash)
  * Attach hash to 2 slots
  * return: Nb of potential candidates detected
  *          0: position not yet occupied
- *          2: position previously occupied by a single candidate (at most)
- *          1: position already occupied by multiple candidates
+ *          1: position may be already occupied
  */
 static inline int Filter_insert(Filter* bf, int bflog, uint64_t hash)
- {
-     hash = avalanche64(hash);
-     unsigned const slot1 = hash & 255;
-     hash >>= 8;
-     unsigned const slot2 = hash & 255;
-     hash >>= 8;
+{
+    hash = avalanche64(hash);
+    unsigned const slot1 = hash & 255;
+    hash >>= 8;
+    unsigned const slot2 = hash & 255;
+    hash >>= 8;
 
-     size_t const fclmask = ((size_t)1 << (bflog-6)) - 1;
-     size_t const cacheLineNb = hash & fclmask;
+    size_t const fclmask = ((size_t)1 << (bflog-6)) - 1;
+    size_t const cacheLineNb = (size_t)hash & fclmask;
 
-     size_t const pos1 = (cacheLineNb << 6) + (slot1 >> 2);
-     unsigned const shift1 = (slot1 & 3) * 2;
-     unsigned const ex1 = (bf[pos1] >> shift1) & 3;
+    size_t const pos1 = (cacheLineNb << 6) + (slot1 >> 3);
+    unsigned const shift1 = slot1 & 7;
+    unsigned const bit1 = 1U << shift1;
+    unsigned present1 = bf[pos1] & bit1;
 
-     size_t const pos2 = (cacheLineNb << 6) + (slot2 >> 2);
-     unsigned const shift2 = (slot2 & 3) * 2;
-     unsigned const ex2 = (bf[pos2] >> shift2) & 3;
+    size_t const pos2 = (cacheLineNb << 6) + (slot2 >> 3);
+    unsigned const shift2 = slot2 & 7;
+    unsigned const bit2 = 1U << shift2;
+    unsigned present2 = bf[pos2] & bit2;
 
-     unsigned const existing = MIN(ex1, ex2);
+    unsigned const maybePresent = (present1 >> shift1) & (present2 >> shift2);
+    present1 &= -maybePresent;
+    present2 &= -maybePresent;
 
-     static const int addCandidates[4] = { 0, 2, 1, 1 };
-     static const unsigned nextValue[4] = { 1, 2, 3, 3 };
+    // Write presence
+    bf[pos1 + 32] |= (Filter)present1;
+    bf[pos2 + 32] |= (Filter)present2;
+    bf[pos1] |= (Filter)bit1;
+    bf[pos2] |= (Filter)bit2;
 
-     bf[pos1] &= (Filter)(~(3 << shift1)); /* erase previous value */
-     bf[pos1] |= (Filter)(MAX(ex1, nextValue[existing]) << shift1);
-     bf[pos2] |= (Filter)(MAX(ex2, nextValue[existing]) << shift2);
+    return (int)maybePresent;
+}
 
-     return addCandidates[existing];
- }
 
+static Filter* Filter_reduce(Filter* bf, int bflog)
+{
+    assert(6 < bflog && bflog < 64);
+    size_t const nbLines = (size_t)1 << (bflog - 6);
+    for (size_t lineNb = 0; lineNb < nbLines; lineNb++) {
+        memcpy(bf + lineNb*32, bf + lineNb*64 + 32, 32);
+    }
+    return realloc(bf, nbLines << 5);
+}
 
 /*
  * Check if provided 64-bit hash is a collision candidate
- * Requires the slot to be occupied by at least 2 candidates.
+ * Requires both bit positions to be set.
  * return >0 if hash is a collision candidate
  *         0 otherwise (slot unoccupied, or only one candidate)
  * note: unoccupied slots should not happen in this algorithm,
  *       since all hashes are supposed to have been inserted at least once.
  */
 static inline int Filter_check(const Filter* bf, int bflog, uint64_t hash)
- {
-     hash = avalanche64(hash);
-     unsigned const slot1 = hash & 255;
-     hash >>= 8;
-     unsigned const slot2 = hash & 255;
-     hash >>= 8;
+{
+    hash = avalanche64(hash);
+    unsigned const slot1 = hash & 255;
+    hash >>= 8;
+    unsigned const slot2 = hash & 255;
+    hash >>= 8;
 
-     size_t const fclmask = ((size_t)1 << (bflog-6)) - 1;
-     size_t const cacheLineNb = hash & fclmask;
+    size_t const fclmask = ((size_t)1 << (bflog-6)) - 1;
+    size_t const lineNb = (size_t)hash & fclmask;
 
-     size_t const pos1 = (cacheLineNb << 6) + (slot1 >> 2);
-     unsigned const shift1 = (slot1 & 3) * 2;
-     unsigned const ex1 = (bf[pos1] >> shift1) & 3;
+    size_t const pos1 = (lineNb << 5) + (slot1 >> 3);
+    unsigned const shift1 = slot1 & 7;
+    unsigned const present1 = (bf[pos1] >> shift1) & 1;
 
-     size_t const pos2 = (cacheLineNb << 6) + (slot2 >> 2);
-     unsigned const shift2 = (slot2 & 3) * 2;
-     unsigned const ex2 = (bf[pos2] >> shift2) & 3;
+    size_t const pos2 = (lineNb << 5) + (slot2 >> 3);
+    unsigned const shift2 = slot2 & 7;
+    unsigned const present2 = (bf[pos2] >> shift2) & 1;
 
-     return (ex1 >= 2) && (ex2 >= 2);
- }
+    return (int)(present1 & present2);
+}
 
 #endif // FILTER_1_PROBE
 
@@ -673,7 +693,7 @@ static size_t search_collisions(
     /* ===  filter hashes (optional)  === */
 
     Filter* bf = NULL;
-    uint64_t nbPresents = totalH;
+    uint64_t maxNbH = totalH;
 
     if (filter) {
         time_t const filterTBegin = time(NULL);
@@ -681,10 +701,9 @@ static size_t search_collisions(
         bf = create_Filter(bflog);
         if (!bf) EXIT("not enough memory for filter");
 
-
         DISPLAY(" Generate %llu hashes from samples of %u bytes \n",
                 (unsigned long long)totalH, (unsigned)sampleSize);
-        nbPresents = 0;
+        maxNbH = 0;
 
         for (uint64_t n=0; n < totalH; n++) {
             if (display && ((n&0xFFFFF) == 1) )
@@ -694,10 +713,10 @@ static size_t search_collisions(
             UniHash const h = hfunction(sf->buffer, sampleSize);
             if ((h.h64 & hMask) != hSelector) continue;
 
-            nbPresents += (uint64_t)Filter_insert(bf, bflog, h.h64);
+            maxNbH += 2 * (uint64_t)Filter_insert(bf, bflog, h.h64);
         }
 
-        if (nbPresents==0) {
+        if (maxNbH==0) {
             DISPLAY(" Analysis completed: No collision detected \n");
             if (param.resultPtr) param.resultPtr->nbCollisions = 0;
             free_Filter(bf);
@@ -707,16 +726,19 @@ static size_t search_collisions(
 
         {   double const filterDelay = difftime(time(NULL), filterTBegin);
             DISPLAY(" Generation and filter completed in %s, detected up to %llu candidates \n",
-                    displayDelay(filterDelay), (unsigned long long) nbPresents);
-    }   }
+                    displayDelay(filterDelay), (unsigned long long) maxNbH);
+        }
 
+        bf = Filter_reduce(bf, bflog);
+        if (bf == NULL) EXIT("filter reduction failed");
+    }
 
     /* === store hash candidates: duplicates will be present here === */
 
     time_t const storeTBegin = time(NULL);
     size_t const hashByteSize = (htype == ht128) ? 16 : 8;
-    size_t const tableSize = (nbPresents+1) * hashByteSize;
-    assert(tableSize > nbPresents);  /* check tableSize calculation overflow */
+    size_t const tableSize = (size_t)((maxNbH+1) * hashByteSize);
+    assert(tableSize > maxNbH);  /* check tableSize calculation overflow */
     DISPLAY(" Storing hash candidates (%i MB) \n", (int)(tableSize >> 20));
 
     /* Generate and store hashes */
@@ -733,15 +755,16 @@ static size_t search_collisions(
 
         if (filter) {
             if (Filter_check(bf, bflog, h.h64)) {
-                assert(nbCandidates < nbPresents);
+                //printf("found %zu candidates / %llu generated \n", nbCandidates, n);
+                assert(nbCandidates < maxNbH);
                 addHashCandidate(hashCandidates, h, htype, nbCandidates++);
             }
         } else {
-            assert(nbCandidates < nbPresents);
+            assert(nbCandidates < maxNbH);
             addHashCandidate(hashCandidates, h, htype, nbCandidates++);
         }
     }
-    if (nbCandidates < nbPresents) {
+    if (nbCandidates < maxNbH) {
         /* Try to mitigate gnuc_quicksort behavior, by reducing allocated memory,
          * since gnuc_quicksort uses a lot of additional memory for mergesort */
         void* const checkPtr = realloc(hashCandidates, nbCandidates * hashByteSize);
@@ -785,11 +808,13 @@ static size_t search_collisions(
     size_t collisions = 0;
     for (size_t n=1; n<nbCandidates; n++) {
         if (isEqual(hashCandidates, n, n-1, htype)) {
+#if defined(COL_DISPLAY_DUPLICATES)
             printf("collision: ");
             printHash(hashCandidates, n, htype);
             printf(" / ");
             printHash(hashCandidates, n-1, htype);
             printf(" \n");
+#endif
             collisions++;
     }   }
 
@@ -802,7 +827,7 @@ static size_t search_collisions(
         for (int nbHBits = 1; nbHBits < hashBits; nbHBits++) {
             uint64_t const nbSlots = (uint64_t)1 << nbHBits;
             double const expectedCollisions = estimateNbCollisions(nbCandidates, nbHBits);
-            if ( (nbSlots > nbCandidates * 100)  /* within range for meaningfull collision analysis results */
+            if ( (nbSlots > nbCandidates * 100)  /* within range for meaningful collision analysis results */
               && (expectedCollisions > 18.0) ) {
                 int const rShift = hashBits - nbHBits;
                 size_t HBits_collisions = 0;
@@ -839,6 +864,7 @@ static size_t search_collisions(
 
 
 #if defined(__MACH__) || defined(__linux__)
+
 #include <sys/resource.h>
 static size_t getProcessMemUsage(int children)
 {
@@ -847,8 +873,9 @@ static size_t getProcessMemUsage(int children)
       return (size_t)stats.ru_maxrss;
     return 0;
 }
+
 #else
-static size_t getProcessMemUsage(int ignore) { return 0; }
+static size_t getProcessMemUsage(int ignore) { (void)ignore; return 0; }
 #endif
 
 void time_collisions(searchCollisions_parameters param)
@@ -985,7 +1012,7 @@ int bad_argument(const char* exeName)
 
 int main(int argc, const char** argv)
 {
-    if (sizeof(size_t) < 8) return 1;  // cannot work on systems without ability to allocate objects >= 4 GB
+    printf(" *** Collision tester for 64+ bit hashes ***  \n\n");
 
     assert(argc > 0);
     const char* const exeName = argv[0];
@@ -1031,11 +1058,10 @@ int main(int argc, const char** argv)
     if (bflog == 0) bflog = highestBitSet(totalH) + 1;   /* auto-size filter */
     if (!filter) bflog = -1; // disable filter
 
-    if (sizeof(size_t) < 8)
-      EXIT("This program has not been validated on architectures other than "
-           "64bit \n");
+    if (sizeof(size_t) < 8) {
+        printf("warning: in 32-bit mode, the program is more likely going to lack address space \n");
+    }
 
-    printf(" *** Collision tester for 64+ bit hashes ***  \n\n");
     printf("Testing %s algorithm (%i-bit) \n", hname, hwidth);
     printf("This program will allocate a lot of memory,\n");
     printf("generate %llu %i-bit hashes from samples of %u bytes, \n",
@@ -1074,9 +1100,9 @@ int main(int argc, const char** argv)
         time_t const programTBegin = time(NULL);
         POOL_ctx* const pt = POOL_create((size_t)nbThreads, 1);
         if (!pt) EXIT("not enough memory for threads");
-        searchCollisions_results* const MTresults = calloc (sizeof(searchCollisions_results), (size_t)nbThreads);
+        searchCollisions_results* const MTresults = calloc ((size_t)nbThreads, sizeof(searchCollisions_results));
         if (!MTresults) EXIT("not enough memory");
-        searchCollisions_parameters* const MTparams = calloc (sizeof(searchCollisions_parameters), (size_t)nbThreads);
+        searchCollisions_parameters* const MTparams = calloc ((size_t)nbThreads, sizeof(searchCollisions_parameters));
         if (!MTparams) EXIT("not enough memory");
 
         /* distribute jobs */
