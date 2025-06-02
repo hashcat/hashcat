@@ -591,6 +591,10 @@ void setup_environment_variables (const folder_config_t *folder_config)
     // we can't free tmpdir at this point!
   }
 
+  // creates too much cpu load
+  if (getenv ("AMD_DIRECT_DISPATCH") == NULL)
+    putenv ((char *) "AMD_DIRECT_DISPATCH=0");
+
   /*
   if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
     putenv ((char *) "CL_CONFIG_USE_VECTORIZER=False");

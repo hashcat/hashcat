@@ -34,20 +34,6 @@ typedef struct
 
 typedef struct
 {
-  u32 salt_buf[64];
-  u32 salt_len;
-
-  u32 digest_buf[64];
-  u32 digest_len;
-
-  u32 N;
-  u32 r;
-  u32 p;
-
-} scrypt_t;
-
-typedef struct
-{
   void *V;
 	//void *X;
 	void *Y;
@@ -177,24 +163,24 @@ bool salt_prepare (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig
 {
   // selftest hash
 
-  scrypt_t *scrypt_st = (scrypt_t *) hashes->st_esalts_buf;
+  salt_t *scrypt_st = (salt_t *) hashes->st_salts_buf;
 
-  const size_t chunk_bytes = 64 * 2 * scrypt_st->r;
+  const size_t chunk_bytes = 64 * 2 * scrypt_st->scrypt_r;
 
-  size_t largest_V = chunk_bytes * scrypt_st->N;
-  //size_t largest_X = chunk_bytes * scrypt_st->p;
+  size_t largest_V = chunk_bytes * scrypt_st->scrypt_N;
+  //size_t largest_X = chunk_bytes * scrypt_st->scrypt_p;
   size_t largest_Y = chunk_bytes;
 
   // from here regular hashes
 
-  scrypt_t *scrypt = (scrypt_t *) hashes->esalts_buf;
+  salt_t *scrypt = (salt_t *) hashes->salts_buf;
 
   for (u32 salt_idx = 0; salt_idx < hashes->salts_cnt; salt_idx++, scrypt++)
   {
-    const size_t chunk_bytes = 64 * 2 * scrypt->r;
+    const size_t chunk_bytes = 64 * 2 * scrypt->scrypt_r;
 
-    const size_t sz_V = chunk_bytes * scrypt->N;
-    //const size_t sz_X = chunk_bytes * scrypt->p;
+    const size_t sz_V = chunk_bytes * scrypt->scrypt_N;
+    //const size_t sz_X = chunk_bytes * scrypt->scrypt_p;
     const size_t sz_Y = chunk_bytes;
 
     if (sz_V > largest_V) largest_V = sz_V;
@@ -238,9 +224,9 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
   unit_t *unit_buf = &bridge_scrypt_jane->units_buf[unit_idx];
 
-  scrypt_t *esalts_buf = (scrypt_t *) hashes->esalts_buf;
+  salt_t *salts_buf = (salt_t *) hashes->salts_buf;
 
-  scrypt_t *esalt_buf = &esalts_buf[salt_pos];
+  salt_t *salt_buf = &salts_buf[salt_pos];
 
   scrypt_tmp_t *scrypt_tmp = (scrypt_tmp_t *) device_param->h_tmps;
 
@@ -248,9 +234,9 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 	//scrypt_mix_word_t *X = unit_buf->X;
 	scrypt_mix_word_t *Y = unit_buf->Y;
 
-	const u32 N = esalt_buf->N;
-	const u32 r = esalt_buf->r;
-	const u32 p = esalt_buf->p;
+	const u32 N = salt_buf->scrypt_N;
+	const u32 r = salt_buf->scrypt_r;
+	const u32 p = salt_buf->scrypt_p;
 
 	const size_t chunk_bytes = 64 * 2 * r;
 

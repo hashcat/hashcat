@@ -26,7 +26,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_MATCH_TUNINGS // optional - improves performance
-                                  | BRIDGE_TYPE_LAUNCH_LOOP;
+                                  | BRIDGE_TYPE_REPLACE_LOOP;
 static const char *BRIDGE_NAME    = "argon2id_reference";
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$argon2id$v=19$m=4096,t=3,p=1$FoIjFnZlM2JSJWYXUgMFAw$eYKMzhbW8uyT1LLtKRdRcJj2CQeRrdr2pKv/Y71YbAQ";

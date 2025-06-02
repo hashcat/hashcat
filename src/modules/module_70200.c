@@ -15,7 +15,7 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   DGST_SIZE      = DGST_SIZE_4_16;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
 static const char *HASH_NAME      = "scrypt [Bridged: Scrypt-Yescrypt]";
 static const u64   KERN_TYPE      = 70100;
@@ -26,10 +26,10 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_MATCH_TUNINGS // optional - improves performance
-                                  | BRIDGE_TYPE_LAUNCH_LOOP;
+                                  | BRIDGE_TYPE_REPLACE_LOOP;
 static const char *BRIDGE_NAME    = "scrypt_yescrypt";
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "SCRYPT:16384:8:2:ODEzMTA2Mw==:NuOcXzv+MOqXmwTXnH6bbUEjN/vjlDG28IM7WXaUkk0=";
+static const char *ST_HASH        = "SCRYPT:16384:8:1:OTEyNzU0ODg=:Cc8SPjRH1hFQhuIPCdF51uNGtJ2aOY/isuoMlMUsJ8c=";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -50,20 +50,6 @@ u64         module_bridge_type    (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 static const char *SIGNATURE_SCRYPT = "SCRYPT";
 
-typedef struct
-{
-  u32 salt_buf[64];
-  u32 salt_len;
-
-  u32 digest_buf[64];
-  u32 digest_len;
-
-  u32 N;
-  u32 r;
-  u32 p;
-
-} scrypt_t;
-
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   // this overrides the reductions of PW_MAX in case optimized kernel is selected
@@ -72,13 +58,6 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   const u32 pw_max = PW_MAX;
 
   return pw_max;
-}
-
-u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 esalt_size = (const u64) sizeof (scrypt_t);
-
-  return esalt_size;
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -95,45 +74,44 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   u32 *digest = (u32 *) digest_buf;
 
-  scrypt_t *scrypt = (scrypt_t *) esalt_buf;
-
   hc_token_t token;
+
+  memset (&token, 0, sizeof (hc_token_t));
 
   token.token_cnt  = 6;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_SCRYPT;
 
-  token.len_min[0] = 6;
-  token.len_max[0] = 6;
   token.sep[0]     = ':';
-  token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH
+  token.len[0]     = 6;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
+  token.sep[1]     = ':';
   token.len_min[1] = 1;
   token.len_max[1] = 6;
-  token.sep[1]     = ':';
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
+  token.sep[2]     = ':';
   token.len_min[2] = 1;
   token.len_max[2] = 6;
-  token.sep[2]     = ':';
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH;
 
+  token.sep[3]     = ':';
   token.len_min[3] = 1;
   token.len_max[3] = 6;
-  token.sep[3]     = ':';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH;
 
+  token.sep[4]     = ':';
   token.len_min[4] = 0;
   token.len_max[4] = 45;
-  token.sep[4]     = ':';
   token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
+  token.sep[5]     = ':';
   token.len_min[5] = 44;
   token.len_max[5] = 88;
-  token.sep[5]     = ':';
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
@@ -147,68 +125,60 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *r_pos = token.buf[2];
   const u8 *p_pos = token.buf[3];
 
-  scrypt->N = hc_strtoul ((const char *) N_pos, NULL, 10);
-  scrypt->r = hc_strtoul ((const char *) r_pos, NULL, 10);
-  scrypt->p = hc_strtoul ((const char *) p_pos, NULL, 10);
+  salt->scrypt_N = hc_strtoul ((const char *) N_pos, NULL, 10);
+  salt->scrypt_r = hc_strtoul ((const char *) r_pos, NULL, 10);
+  salt->scrypt_p = hc_strtoul ((const char *) p_pos, NULL, 10);
 
-  if (scrypt->r > 16) return (PARSER_SALT_VALUE);
-  if (scrypt->p > 16) return (PARSER_SALT_VALUE);
+  salt->salt_iter = 1;
+
+  if (salt->scrypt_N % 1024) return (PARSER_SALT_VALUE); // we set loop count to 1024 fixed
 
   // salt
 
   const u8 *salt_pos = token.buf[4];
   const int salt_len = token.len[4];
 
-  scrypt->salt_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, (u8 *) scrypt->salt_buf);
+  u8 tmp_buf[128] = { 0 };
+
+  const int tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
+
+  memcpy (salt->salt_buf, tmp_buf, tmp_len);
+
+  salt->salt_len = tmp_len;
 
   // digest - base64 decode
 
   const u8 *hash_pos = token.buf[5];
   const int hash_len = token.len[5];
 
-  scrypt->digest_len = base64_decode (base64_to_int, (const u8 *) hash_pos, hash_len, (u8 *) scrypt->digest_buf);
+  memset (tmp_buf, 0, sizeof (tmp_buf));
 
-  // comparison digest
+  const int digest_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
-  digest[0] = scrypt->digest_buf[0];
-  digest[1] = scrypt->digest_buf[1];
-  digest[2] = scrypt->digest_buf[2];
-  digest[3] = scrypt->digest_buf[3];
+  // digest_len should be safe because of 88 limit
 
-  // fake salt, we just need to make this unique
+  memcpy (digest, tmp_buf, digest_len);
 
-  salt->salt_buf[0] = digest[0];
-  salt->salt_buf[1] = digest[1];
-  salt->salt_buf[2] = digest[2];
-  salt->salt_buf[3] = digest[3];
-  salt->salt_buf[4] = scrypt->N;
-  salt->salt_buf[5] = scrypt->r;
-  salt->salt_buf[6] = scrypt->p;
-  salt->salt_buf[7] = 0;
-
-  salt->salt_len  = 32;
-  salt->salt_iter = 1;
+  salt->salt_len_pc = digest_len;
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  const scrypt_t *scrypt = (const scrypt_t *) esalt_buf;
-
   char base64_salt[64] = { 0 };
 
-  base64_encode (int_to_base64, (const u8 *) scrypt->salt_buf, scrypt->salt_len, (u8 *) base64_salt);
+  base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) base64_salt);
 
   char base64_digest[128] = { 0 };
 
-  base64_encode (int_to_base64, (const u8 *) scrypt->digest_buf, scrypt->digest_len, (u8 *) base64_digest);
+  base64_encode (int_to_base64, (const u8 *) digest_buf, salt->salt_len_pc, (u8 *) base64_digest);
 
   const int line_len = snprintf (line_buf, line_size, "%s:%u:%u:%u:%s:%s",
     SIGNATURE_SCRYPT,
-    scrypt->N,
-    scrypt->r,
-    scrypt->p,
+    salt->scrypt_N,
+    salt->scrypt_r,
+    salt->scrypt_p,
     base64_salt,
     base64_digest);
 
@@ -237,7 +207,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
-  module_ctx->module_esalt_size               = module_esalt_size;
+  module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
   module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;

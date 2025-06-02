@@ -113,7 +113,7 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
     hashconfig_destroy (hashcat_ctx);
 
     return true;
-  } 
+  }
 
   bridge_ctx->enabled = true;
 
@@ -181,8 +181,10 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_MANDATORY (bridge_ctx->get_unit_info);
   CHECK_MANDATORY (bridge_ctx->get_workitem_count);
 
-  if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)  CHECK_MANDATORY (bridge_ctx->launch_loop);
-  if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP2) CHECK_MANDATORY (bridge_ctx->launch_loop2);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)  CHECK_MANDATORY (bridge_ctx->launch_loop);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP2) CHECK_MANDATORY (bridge_ctx->launch_loop2);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)   CHECK_MANDATORY (bridge_ctx->launch_loop);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP2)  CHECK_MANDATORY (bridge_ctx->launch_loop2);
 
   #undef CHECK_MANDATORY
 

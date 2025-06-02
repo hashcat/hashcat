@@ -37,20 +37,6 @@ typedef struct
 
 typedef struct
 {
-  u32 salt_buf[64];
-  u32 salt_len;
-
-  u32 digest_buf[64];
-  u32 digest_len;
-
-  u32 N;
-  u32 r;
-  u32 p;
-
-} scrypt_t;
-
-typedef struct
-{
   void *V;
 	void *XY;
 
@@ -179,19 +165,19 @@ bool salt_prepare (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig
 {
   // selftest hash
 
-  scrypt_t *scrypt_st = (scrypt_t *) hashes->st_esalts_buf;
+  salt_t *scrypt_st = (salt_t *) hashes->st_salts_buf;
 
-  size_t largest_V  = 128 * scrypt_st->r * scrypt_st->N; // yescrypt: the temporary storage V must be 128rN bytes in length
-  size_t largest_XY = 256 * scrypt_st->r * scrypt_st->p; // yescrypt: the temporary storage XY must be 256r or 256rp bytes in length
+  size_t largest_V  = 128 * scrypt_st->scrypt_r * scrypt_st->scrypt_N; // yescrypt: the temporary storage V must be 128rN bytes in length
+  size_t largest_XY = 256 * scrypt_st->scrypt_r * scrypt_st->scrypt_p; // yescrypt: the temporary storage XY must be 256r or 256rp bytes in length
 
   // from here regular hashes
 
-  scrypt_t *scrypt = (scrypt_t *) hashes->esalts_buf;
+  salt_t *scrypt = (salt_t *) hashes->salts_buf;
 
   for (u32 salt_idx = 0; salt_idx < hashes->salts_cnt; salt_idx++, scrypt++)
   {
-    const size_t sz_V  = 128 * scrypt->r * scrypt->N; // yescrypt: the temporary storage V must be 128rN bytes in length
-    const size_t sz_XY = 256 * scrypt->r * scrypt->p; // yescrypt: the temporary storage XY must be 256r or 256rp bytes in length
+    const size_t sz_V  = 128 * scrypt->scrypt_r * scrypt->scrypt_N; // yescrypt: the temporary storage V must be 128rN bytes in length
+    const size_t sz_XY = 256 * scrypt->scrypt_r * scrypt->scrypt_p; // yescrypt: the temporary storage XY must be 256r or 256rp bytes in length
 
     if (sz_V  > largest_V)  largest_V  = sz_V;
     if (sz_XY > largest_XY) largest_XY = sz_XY;
@@ -231,9 +217,9 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
   unit_t *unit_buf = &bridge_scrypt_yescrypt->units_buf[unit_idx];
 
-  scrypt_t *esalts_buf = (scrypt_t *) hashes->esalts_buf;
+  salt_t *salts_buf = (salt_t *) hashes->salts_buf;
 
-  scrypt_t *esalt_buf = &esalts_buf[salt_pos];
+  salt_t *salt_buf = &salts_buf[salt_pos];
 
   // hashcat guarantees h_tmps[] is 64 byte aligned, so is *B
 
@@ -248,14 +234,14 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
     // With that in mind, we can optimize by using a constant p=1,
     // allowing the compiler to eliminate branches in smix().
 
-    for (u32 i = 0; i < esalt_buf->p; i++)
+    for (u32 i = 0; i < salt_buf->scrypt_p; i++)
     {
       // Same here: using constants allows the compiler to optimize away branches in smix(),
       // so there's no need to call smix1()/smix2() directly and unnecessarily complicate the code.
 
-      smix (B, esalt_buf->r, esalt_buf->N, 1, 0, 0, unit_buf->V, 0, NULL, unit_buf->XY, NULL, NULL);
+      smix (B, salt_buf->scrypt_r, salt_buf->scrypt_N, 1, 0, 0, unit_buf->V, 0, NULL, unit_buf->XY, NULL, NULL);
 
-      B += 128 * esalt_buf->r;
+      B += 128 * salt_buf->scrypt_r;
     }
 
     scrypt_tmp++;

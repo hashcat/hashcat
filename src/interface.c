@@ -336,6 +336,11 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+  {
+    hashconfig->opts_type |= OPTS_TYPE_INIT |  OPTS_TYPE_LOOP | OPTS_TYPE_COMP;
+  }
+
   hashconfig->has_optimized_kernel  = false;
   hashconfig->has_pure_kernel       = false;
 
@@ -500,13 +505,27 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // selftest bridge update
+  // bridges have some serious impact on hashconfig
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
+  {
+    hashconfig->opts_type &= ~OPTS_TYPE_LOOP;
 
+    hashconfig->bridge_type |= BRIDGE_TYPE_LAUNCH_LOOP;
+  }
+
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP2)
+  {
+    hashconfig->opts_type &= ~OPTS_TYPE_LOOP2;
+
+    hashconfig->bridge_type |= BRIDGE_TYPE_LAUNCH_LOOP2;
+  }
+
+  // selftest bridge update
   if (hashconfig->bridge_type & BRIDGE_TYPE_UPDATE_SELFTEST)
   {
     if (bridge_ctx->st_update_hash) hashconfig->st_hash = bridge_ctx->st_update_hash (bridge_ctx->platform_context);
     if (bridge_ctx->st_update_pass) hashconfig->st_pass = bridge_ctx->st_update_pass (bridge_ctx->platform_context);
-  }  
+  }
 
   return 0;
 }

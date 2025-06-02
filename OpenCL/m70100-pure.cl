@@ -26,21 +26,7 @@ typedef struct
 
 } scrypt_tmp_t;
 
-typedef struct
-{
-  u32 salt_buf[64];
-  u32 salt_len;
-
-  u32 digest_buf[64];
-  u32 digest_len;
-
-  u32 N;
-  u32 r;
-  u32 p;
-
-} scrypt_t;
-
-KERNEL_FQ void m70100_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, scrypt_t))
+KERNEL_FQ void m70100_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base
@@ -54,10 +40,10 @@ KERNEL_FQ void m70100_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, scrypt_t))
 
   sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len);
 
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, esalt_bufs[DIGESTS_OFFSET_HOST].salt_buf, esalt_bufs[DIGESTS_OFFSET_HOST].salt_len);
+  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
-	u32 r = esalt_bufs[DIGESTS_OFFSET_HOST].r;
-	u32 p = esalt_bufs[DIGESTS_OFFSET_HOST].p;
+	u32 r = salt_bufs[SALT_POS_HOST].scrypt_r;
+	u32 p = salt_bufs[SALT_POS_HOST].scrypt_p;
 
 	u32 chunk_bytes = 64 * r * 2;
 
@@ -115,11 +101,11 @@ KERNEL_FQ void m70100_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, scrypt_t))
   }
 }
 
-KERNEL_FQ void m70100_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, scrypt_t))
+KERNEL_FQ void m70100_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
 }
 
-KERNEL_FQ void m70100_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, scrypt_t))
+KERNEL_FQ void m70100_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base
@@ -143,8 +129,8 @@ KERNEL_FQ void m70100_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, scrypt_t))
 
   sha256_hmac_init_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-	u32 r = esalt_bufs[DIGESTS_OFFSET_HOST].r;
-	u32 p = esalt_bufs[DIGESTS_OFFSET_HOST].p;
+	u32 r = salt_bufs[SALT_POS_HOST].scrypt_r;
+	u32 p = salt_bufs[SALT_POS_HOST].scrypt_p;
 
 	u32 chunk_bytes = 64 * r * 2;
 
