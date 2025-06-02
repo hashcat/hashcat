@@ -76,6 +76,7 @@ jobs:
             libiconv
             libiconv-devel
             make
+            python
 
       - name: Build (Windows)
         if: matrix.os_name_lowercase == 'windows'
