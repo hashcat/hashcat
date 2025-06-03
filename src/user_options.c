@@ -34,7 +34,7 @@ static const struct option long_options[] =
   {"attack-mode",               required_argument, NULL, IDX_ATTACK_MODE},
   {"backend-devices",           required_argument, NULL, IDX_BACKEND_DEVICES},
   {"backend-devices-virtmulti", required_argument, NULL, IDX_BACKEND_DEVICES_VIRTMULTI},
-  {"backend-devices-virthost",  required_argument, NULL, IDX_BACKEND_DEVICES_VIRTHOST},  
+  {"backend-devices-virthost",  required_argument, NULL, IDX_BACKEND_DEVICES_VIRTHOST},
   {"backend-ignore-cuda",       no_argument,       NULL, IDX_BACKEND_IGNORE_CUDA},
   {"backend-ignore-hip",        no_argument,       NULL, IDX_BACKEND_IGNORE_HIP},
   #if defined (__APPLE__)
@@ -161,6 +161,7 @@ static const struct option long_options[] =
   {"brain-session",             required_argument, NULL, IDX_BRAIN_SESSION},
   {"brain-session-whitelist",   required_argument, NULL, IDX_BRAIN_SESSION_WHITELIST},
   #endif
+  {"color-cracked",             no_argument,       NULL, IDX_COLOR},
   {NULL,                        0,                 NULL, 0 }
 };
 
@@ -208,6 +209,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->brain_session             = BRAIN_SESSION;
   user_options->brain_session_whitelist   = NULL;
   #endif
+  user_options->color_cracked             = COLOR;
   user_options->bridge_parameter1         = NULL;
   user_options->bridge_parameter2         = NULL;
   user_options->bridge_parameter3         = NULL;
@@ -377,7 +379,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_INCREMENT_MAX:
       case IDX_HOOK_THREADS:
       case IDX_BACKEND_DEVICES_VIRTMULTI:
-      case IDX_BACKEND_DEVICES_VIRTHOST:      
+      case IDX_BACKEND_DEVICES_VIRTHOST:
       case IDX_BENCHMARK_MAX:
       case IDX_BENCHMARK_MIN:
       #ifdef WITH_BRAIN
@@ -572,6 +574,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BRAIN_SESSION:             user_options->brain_session             = hc_strtoul (optarg, NULL, 16);   break;
       case IDX_BRAIN_SESSION_WHITELIST:   user_options->brain_session_whitelist   = optarg;                          break;
       #endif
+      case IDX_COLOR:                     user_options->color_cracked             = true;                            break;
     }
   }
 
@@ -812,7 +815,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "Invalid --backend-devices-virthost value specified.");
 
     return -1;
-  }  
+  }
 
   if (user_options->outfile_format == 0)
   {
@@ -3314,7 +3317,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint64 (user_options->skip);
   logfile_top_uint   (user_options->attack_mode);
   logfile_top_uint   (user_options->backend_devices_virtmulti);
-  logfile_top_uint   (user_options->backend_devices_virthost);  
+  logfile_top_uint   (user_options->backend_devices_virthost);
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->benchmark_all);
   logfile_top_uint   (user_options->benchmark_max);
