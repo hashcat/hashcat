@@ -370,8 +370,20 @@ static void main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->keyspace == false) return;
+  if (user_options->total_candidates == true) return;
 
   event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
+}
+
+static void main_calculated_words_cnt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->keyspace == false) return;
+  if (user_options->total_candidates == false) return;
+
+  event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_cnt);
 }
 
 static void main_potfile_remove_parse_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -1211,6 +1223,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_BRIDGES_SALT_POST:         main_bridges_salt_post         (hashcat_ctx, buf, len); break;
     case EVENT_BRIDGES_SALT_PRE:          main_bridges_salt_pre          (hashcat_ctx, buf, len); break;
     case EVENT_CALCULATED_WORDS_BASE:     main_calculated_words_base     (hashcat_ctx, buf, len); break;
+    case EVENT_CALCULATED_WORDS_CNT:      main_calculated_words_cnt      (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_FINISHED:          main_cracker_finished          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_STARTING:          main_cracker_starting          (hashcat_ctx, buf, len); break;
