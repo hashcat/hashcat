@@ -4,7 +4,7 @@ This document is a comprehensive guide for writing custom hash modes in Python v
 
 ## 1. Introduction
 
-The The Assimilation Bridge enables developers to implement complete hash mode logic in languages other than C, most notably Python. Traditionally, customizing Hashcat required writing a module in C and a kernel in OpenCL/CUDA. With the bridge, you can now implement a complete hash mode in Python.
+The Assimilation Bridge enables developers to implement complete hash mode logic in languages other than C, most notably Python. Traditionally, customizing Hashcat required writing a module in C and a kernel in OpenCL/CUDA. With the bridge, you can now implement a complete hash mode in Python.
 
 The bridge supports two hash modes to run python code:
 
@@ -81,7 +81,7 @@ def term(ctx):
   hcsp.term(ctx)
 ```
 
-This should be used in case you had open files, open networking connection, or similar. We are good citizen!
+This should be used in case you had open files, open networking connection, or similar. We are good citizens!
 
 Here's our main function `kernel_loop()` where we spend almost all our time:
 
@@ -180,7 +180,7 @@ The `salt` variable is one of the parameters from the calc_hash():
 def calc_hash(password: bytes, salt: dict) -> str:
 ```
 
-Note that if fully exhaust the Hashcat keyspace, your function has been called X times Y. X is the number of candidates, and Y is all the salts (except if a salt has been cracked). What's important to realize that within your function, you implement hashing logic only for precisely that situation where you have one password and one salt.
+Note that if you fully exhaust the Hashcat keyspace, your function has been called X times Y.. X is the number of candidates, and Y is all the salts (except if a salt has been cracked). What's important to realize that within your function, you implement hashing logic only for precisely that situation where you have one password and one salt.
 
 
 ### Merging Salts and Esalts into a Single Object
@@ -196,7 +196,7 @@ Initially, salts and esalts are unpacked separately from their respective binary
 
 ## 6. Python generic hash mode `-m 72000` and `-m 73000`
 
-The "generic hash" support in hashcat is using python. The main idea behind "generic" is the goal is to write freely ideal for rapid prototyping.
+The "generic hash" support in hashcat is using python. The main idea behind "generic" is to write freely. Ideal for rapid prototyping and achieving your goal.
 
 The most straight-forward way is to edit the following files directly:
 

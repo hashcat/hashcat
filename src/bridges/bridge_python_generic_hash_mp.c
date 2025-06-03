@@ -191,11 +191,180 @@ static char *DEFAULT_SOURCE_FILENAME = "generic_hash_sp";
 static char *DEFAULT_SOURCE_FILENAME = "generic_hash_mp";
 #endif
 
+#if defined (_WIN)
+#define DEVNULL "NUL"
+#else
+#define DEVNULL "/dev/null"
+#endif
+
+static int suppress_stderr (void)
+{
+  int null_fd = open (DEVNULL, O_WRONLY);
+
+  if (null_fd < 0) return -1;
+
+  int saved_fd = dup (fileno (stderr));
+
+  if (saved_fd < 0)
+  {
+    close (null_fd);
+
+    return -1;
+  }
+
+  dup2 (null_fd, fileno (stderr));
+
+  close (null_fd);
+
+  return saved_fd;
+}
+
+static void restore_stderr (int saved_fd)
+{
+  if (saved_fd < 0) return;
+
+  dup2 (saved_fd, fileno (stderr));
+
+  close (saved_fd);
+}
+
+static char *expand_pyenv_libpath (const char *prefix, const int maj, const int min)
+{
+  char *out = NULL;
+
+  #if defined (_WIN)
+  const int len = asprintf (&out, "%s/python%d%d.dll",           prefix, maj, min); //untested
+  #elif defined (__MSYS__)
+  const int len = asprintf (&out, "%s/msys-python%d.%d.dll",     prefix, maj, min); //untested could be wrong
+  #elif defined (__APPLE__)
+  const int len = asprintf (&out, "%s/lib/libpython%d.%d.dylib", prefix, maj, min); //untested
+  #elif defined (__CYGWIN__)
+  const int len = asprintf (&out, "%s/lib/python%d%d.dll",       prefix, maj, min); //untested
+  #else
+  const int len = asprintf (&out, "%s/lib/libpython%d.%d.so",    prefix, maj, min);
+  #endif
+
+  if (len == -1) return NULL;
+
+  struct stat st;
+
+  if (stat (out, &st) != 0)
+  {
+    free (out);
+
+    return NULL;
+  }
+
+  return out;
+}
+
+static int resolve_pyenv_libpath (char *out_buf, const size_t out_sz)
+{
+  // prefix
+
+  FILE *fp1 = popen ("pyenv prefix", "r");
+
+  if (fp1 == NULL) return -1;
+
+  char prefix_path[PATH_MAX];
+
+  if (fgets (prefix_path, sizeof (prefix_path), fp1) == NULL)
+  {
+    pclose (fp1);
+
+    return -1;
+  }
+
+  pclose (fp1);
+
+  superchop_with_length (prefix_path, strlen (prefix_path));
+
+  int maj = 0;
+  int min = 0;
+
+  // local
+
+  FILE *fp2 = popen ("pyenv local", "r");
+
+  if (fp2 == NULL) return -1;
+
+  if (fscanf (fp2, "%d.%d", &maj, &min) == 2)
+  {
+    pclose (fp2);
+
+    char *pyenv_libpath = expand_pyenv_libpath (prefix_path, maj, min);
+
+    if (pyenv_libpath != NULL)
+    {
+      strncpy (out_buf, pyenv_libpath, out_sz - 1);
+
+      free (pyenv_libpath);
+
+      return 0;
+    }
+
+    return -1;
+  }
+
+  pclose (fp2);
+
+  // global
+
+  FILE *fp3 = popen ("pyenv global", "r");
+
+  if (fp3 == NULL) return -1;
+
+  if (fscanf (fp3, "%d.%d", &maj, &min) == 2)
+  {
+    pclose (fp3);
+
+    char *pyenv_libpath = expand_pyenv_libpath (prefix_path, maj, min);
+
+    if (pyenv_libpath != NULL)
+    {
+      strncpy (out_buf, pyenv_libpath, out_sz - 1);
+
+      free (pyenv_libpath);
+
+      return 0;
+    }
+
+    return -1;
+  }
+
+  pclose (fp3);
+
+  return -1;
+}
+
 static bool init_python (hc_python_lib_t *python)
 {
-  char *pythondll_path = NULL;
+  char pythondll_path[PATH_MAX];
 
   python->lib = NULL;
+
+  // let's see if we have pyenv, that will save us a lot of guessing...
+
+  int saved_stderr = suppress_stderr ();
+
+  const int pyenv_rc = resolve_pyenv_libpath (pythondll_path, sizeof (pythondll_path));
+
+  restore_stderr (saved_stderr);
+
+  if (pyenv_rc == 0)
+  {
+    #if defined (_WIN)
+    python->lib = hc_dlopen (pythondll_path);
+    #elif defined (__MSYS__)
+    python->lib = dlopen (pythondll_path, RTLD_NOW | RTLD_GLOBAL);
+    #elif defined (__APPLE__)
+    python->lib = dlopen (pythondll_path, RTLD_NOW | RTLD_GLOBAL);
+    #elif defined (__CYGWIN__)
+    python->lib = hc_dlopen (pythondll_path);
+    #else
+    python->lib = dlopen (pythondll_path, RTLD_NOW | RTLD_GLOBAL);
+    #endif
+  }
 
   #define MIN_MAJ 3
   #define MAX_MAJ 8
@@ -203,14 +372,16 @@ static bool init_python (hc_python_lib_t *python)
   #define MIN_MIN 0
   #define MAX_MIN 50
 
-  #if defined (_WIN)
-
   for (int maj = MAX_MAJ; maj >= MIN_MAJ; --maj)
   {
+    if (python->lib != NULL) break;
+
     for (int min = MAX_MIN; min >= MIN_MIN; --min)
     {
+      #if defined (_WIN)
+
       // first try %LocalAppData% default path
-      char expandedPath[MAX_PATH];
+      char expandedPath[MAX_PATH - 1];
 
       char *libpython_namelocal = NULL;
 
@@ -224,7 +395,7 @@ static bool init_python (hc_python_lib_t *python)
 
         if (python->lib != NULL)
         {
-          pythondll_path = hcstrdup (expandedPath);
+          strncpy (pythondll_path, expandedPath, sizeof (pythondll_path) - 1);
 
           hcfree (libpython_namelocal);
 
@@ -245,7 +416,9 @@ static bool init_python (hc_python_lib_t *python)
 
       if (python->lib != NULL)
       {
-        pythondll_path = libpython_namepath;
+        strncpy (pythondll_path, libpython_namepath, sizeof (pythondll_path) - 1);
+
+        hcfree (libpython_namepath);
 
         break;
       }
@@ -254,18 +427,8 @@ static bool init_python (hc_python_lib_t *python)
         hcfree (libpython_namepath);
       };
 
-      if (python->lib != NULL) break;
-    }
+      #elif defined (__MSYS__)
 
-    if (python->lib != NULL) break;
-  }
-  
-  #elif defined (__MSYS__)
-
-  for (int maj = MAX_MAJ; maj >= MIN_MAJ; --maj)
-  {
-    for (int min = MAX_MIN; min >= MIN_MIN; --min)
-    {
       char *libpython_name = NULL;
 
       hc_asprintf (&libpython_name, "msys-python%d.%d.dll", maj, min);
@@ -274,7 +437,9 @@ static bool init_python (hc_python_lib_t *python)
 
       if (python->lib != NULL)
       {
-        pythondll_path = libpython_name;
+        strncpy (pythondll_path, libpython_name, sizeof (pythondll_path) - 1);
+
+        hcfree (libpython_name);
 
         break;
       }
@@ -283,19 +448,8 @@ static bool init_python (hc_python_lib_t *python)
         hcfree (libpython_name);
       };
 
-      if (python->lib != NULL) break;
-    }
+      #elif defined (__APPLE__)
 
-    if (python->lib != NULL) break;
-  }  
-
-  #elif defined (__APPLE__)
-
-  // untested
-  for (int maj = MAX_MAJ; maj >= MIN_MAJ; --maj)
-  {
-    for (int min = MAX_MIN; min >= MIN_MIN; --min)
-    {
       char *libpython_name = NULL;
 
       hc_asprintf (&libpython_name, "libpython%d.%d.dylib", maj, min);
@@ -304,7 +458,9 @@ static bool init_python (hc_python_lib_t *python)
 
       if (python->lib != NULL)
       {
-        pythondll_path = libpython_name;
+        strncpy (pythondll_path, libpython_name, sizeof (pythondll_path) - 1);
+
+        hcfree (libpython_name);
 
         break;
       }
@@ -313,19 +469,8 @@ static bool init_python (hc_python_lib_t *python)
         hcfree (libpython_name);
       };
 
-      if (python->lib != NULL) break;
-    }
+      #elif defined (__CYGWIN__)
 
-    if (python->lib != NULL) break;
-  }
-
-  #elif defined (__CYGWIN__)
-
-  // untested
-  for (int maj = MAX_MAJ; maj >= MIN_MAJ; --maj)
-  {
-    for (int min = MAX_MIN; min >= MIN_MIN; --min)
-    {
       char *libpython_name = NULL;
 
       hc_asprintf (&libpython_name, "python%d%d.dll", maj, min);
@@ -334,7 +479,9 @@ static bool init_python (hc_python_lib_t *python)
 
       if (python->lib != NULL)
       {
-        pythondll_path = libpython_name;
+        strncpy (pythondll_path, libpython_name, sizeof (pythondll_path) - 1);
+
+        hcfree (libpython_name);
 
         break;
       }
@@ -343,18 +490,8 @@ static bool init_python (hc_python_lib_t *python)
         hcfree (libpython_name);
       };
 
-      if (python->lib != NULL) break;
-    }
+      #else
 
-    if (python->lib != NULL) break;
-  }
-
-  #else
-
-  for (int maj = MAX_MAJ; maj >= MIN_MAJ; --maj)
-  {
-    for (int min = MAX_MIN; min >= MIN_MIN; --min)
-    {
       char *libpython_name = NULL;
 
       hc_asprintf (&libpython_name, "libpython%d.%d.so", maj, min);
@@ -363,7 +500,9 @@ static bool init_python (hc_python_lib_t *python)
 
       if (python->lib != NULL)
       {
-        pythondll_path = libpython_name;
+        strncpy (pythondll_path, libpython_name, sizeof (pythondll_path) - 1);
+
+        hcfree (libpython_name);
 
         break;
       }
@@ -372,13 +511,13 @@ static bool init_python (hc_python_lib_t *python)
         hcfree (libpython_name);
       };
 
+      #endif
+
       if (python->lib != NULL) break;
     }
 
     if (python->lib != NULL) break;
   }
-
-  #endif
 
   if (python->lib == NULL)
   {
