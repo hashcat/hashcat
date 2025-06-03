@@ -8,6 +8,7 @@
 - Added hash-mode: Adobe AEM (SSPR, SHA-256 with Salt)
 - Added hash-mode: Adobe AEM (SSPR, SHA-512 with Salt)
 - Added hash-mode: Anope IRC Services (enc_sha256)
+- Added hash-mode: BestCrypt v4 Volume Encryption
 - Added hash-mode: Bisq .wallet (scrypt)
 - Added hash-mode: Bitcoin raw private key (P2PKH)
 - Added hash-mode: Bitcoin raw private key (P2SH(P2WPKH))
@@ -38,6 +39,9 @@
 - Added hash-mode: NetIQ SSPR (SHA-1 with Salt)
 - Added hash-mode: NetIQ SSPR (SHA-256 with Salt)
 - Added hash-mode: NetIQ SSPR (SHA-512 with Salt)
+- Added hash-mode: RC4 104-bit DropN
+- Added hash-mode: RC4 40-bit DropN
+- Added hash-mode: RC4 72-bit DropN
 - Added hash-mode: RSA Security Analytics / NetWitness (sha256)
 - Added hash-mode: SecureCRT MasterPassphrase v2
 - Added hash-mode: Veeam VB
@@ -61,6 +65,7 @@
 ##
 
 - Added new feature (-Y) that creates N virtual instances for each device in your system at the cost of N times the device memory consumption
+- Added options --benchmark-min and --benchmark-max to set a hash-mode range to be used during the benchmark
 
 ##
 ## Performance
@@ -87,7 +92,7 @@
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
 - Fixed build failed for 4410 with vector width > 1
-- Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal
+- Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal / Apple Silicon
 - Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
@@ -101,6 +106,7 @@
 - Fixed vector datatypes usage for HIP
 - Fix missing check for -j and -k before writing hashcat.dictstat2 which can lead to false negatives
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
+- Improve ASN.1 check for RSA/DSA/EC/OpenSSH Private Keys modules (22911, 22921, 22931, 22941, 22951)
 - Prevent Hashcat from hanging by checking during startup whether the output file is a named pipe
 - Skip chained generated rules that exceed the maximum number of function calls
 
@@ -113,12 +119,15 @@
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
-- Dependencies: Updated LZMA SDK to 22.01
+- Dependencies: Added sse2neon v1.8.0 (commit 658eeac)
+- Dependencies: Updated LZMA SDK to 24.09
 - Dependencies: Updated unrar source to 6.2.7
+- Dependencies: Updated xxHash to 0.8.3 (commit 50f4226)
 - Building: Support building windows binaries on macOS using MinGW
-- Dependencies: Updated OpenCL-Headers to v2023.04.17
+- Dependencies: Updated OpenCL-Headers to v2024.10.24 (commit 265df85)
 - Documents: Updated BUILD.md and added BUILD_macOS.md (containing instructions for building windows binaries on macOS)
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
+- Modules: Updated module_unstable_warning
 - Open Document Format: Added support for small documents with content length < 1024
 - Status Code: Add specific return code for self-test fail (-11)
 - Scrypt: Increase buffer sizes in module for hash mode 8900 to allow longer scrypt digests
@@ -129,6 +138,7 @@
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
 - Metal Backend: allow use of devices with Metal if runtime version is >= 200
 - Metal Backend: disable Metal devices only if at least one OpenCL device is active
+- Modules: Check UnpackSize to raise false positive with hc_decompress_rar
 - User Options: added --metal-compiler-runtime option
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
 - Help: show supported hash-modes only with -hh

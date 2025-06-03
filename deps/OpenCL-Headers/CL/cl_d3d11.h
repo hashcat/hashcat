@@ -65,6 +65,9 @@ extern "C" {
 #define CL_KHR_D3D11_SHARING_EXTENSION_NAME \
     "cl_khr_d3d11_sharing"
 
+
+#define CL_KHR_D3D11_SHARING_EXTENSION_VERSION CL_MAKE_VERSION(1, 0, 0)
+
 typedef cl_uint             cl_d3d11_device_source_khr;
 typedef cl_uint             cl_d3d11_device_set_khr;
 
@@ -97,56 +100,74 @@ typedef cl_uint             cl_d3d11_device_set_khr;
 #define CL_COMMAND_RELEASE_D3D11_OBJECTS_KHR                0x4021
 
 
-typedef cl_int (CL_API_CALL *
-clGetDeviceIDsFromD3D11KHR_fn)(
+typedef cl_int CL_API_CALL
+clGetDeviceIDsFromD3D11KHR_t(
     cl_platform_id platform,
     cl_d3d11_device_source_khr d3d_device_source,
     void* d3d_object,
     cl_d3d11_device_set_khr d3d_device_set,
     cl_uint num_entries,
     cl_device_id* devices,
-    cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_2;
+    cl_uint* num_devices);
 
-typedef cl_mem (CL_API_CALL *
-clCreateFromD3D11BufferKHR_fn)(
+typedef clGetDeviceIDsFromD3D11KHR_t *
+clGetDeviceIDsFromD3D11KHR_fn CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_mem CL_API_CALL
+clCreateFromD3D11BufferKHR_t(
     cl_context context,
     cl_mem_flags flags,
     ID3D11Buffer* resource,
-    cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2;
+    cl_int* errcode_ret);
 
-typedef cl_mem (CL_API_CALL *
-clCreateFromD3D11Texture2DKHR_fn)(
+typedef clCreateFromD3D11BufferKHR_t *
+clCreateFromD3D11BufferKHR_fn CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_mem CL_API_CALL
+clCreateFromD3D11Texture2DKHR_t(
     cl_context context,
     cl_mem_flags flags,
     ID3D11Texture2D* resource,
     UINT subresource,
-    cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2;
+    cl_int* errcode_ret);
 
-typedef cl_mem (CL_API_CALL *
-clCreateFromD3D11Texture3DKHR_fn)(
+typedef clCreateFromD3D11Texture2DKHR_t *
+clCreateFromD3D11Texture2DKHR_fn CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_mem CL_API_CALL
+clCreateFromD3D11Texture3DKHR_t(
     cl_context context,
     cl_mem_flags flags,
     ID3D11Texture3D* resource,
     UINT subresource,
-    cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2;
+    cl_int* errcode_ret);
 
-typedef cl_int (CL_API_CALL *
-clEnqueueAcquireD3D11ObjectsKHR_fn)(
+typedef clCreateFromD3D11Texture3DKHR_t *
+clCreateFromD3D11Texture3DKHR_fn CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_int CL_API_CALL
+clEnqueueAcquireD3D11ObjectsKHR_t(
     cl_command_queue command_queue,
     cl_uint num_objects,
     const cl_mem* mem_objects,
     cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list,
-    cl_event* event) CL_API_SUFFIX__VERSION_1_2;
+    cl_event* event);
 
-typedef cl_int (CL_API_CALL *
-clEnqueueReleaseD3D11ObjectsKHR_fn)(
+typedef clEnqueueAcquireD3D11ObjectsKHR_t *
+clEnqueueAcquireD3D11ObjectsKHR_fn CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_int CL_API_CALL
+clEnqueueReleaseD3D11ObjectsKHR_t(
     cl_command_queue command_queue,
     cl_uint num_objects,
     const cl_mem* mem_objects,
     cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list,
-    cl_event* event) CL_API_SUFFIX__VERSION_1_2;
+    cl_event* event);
+
+typedef clEnqueueReleaseD3D11ObjectsKHR_t *
+clEnqueueReleaseD3D11ObjectsKHR_fn CL_API_SUFFIX__VERSION_1_2;
 
 #if !defined(CL_NO_ICD_DISPATCH_EXTENSION_PROTOTYPES)
 
@@ -210,17 +231,23 @@ clEnqueueReleaseD3D11ObjectsKHR(
 #define CL_INTEL_SHARING_FORMAT_QUERY_D3D11_EXTENSION_NAME \
     "cl_intel_sharing_format_query_d3d11"
 
+
+#define CL_INTEL_SHARING_FORMAT_QUERY_D3D11_EXTENSION_VERSION CL_MAKE_VERSION(0, 0, 0)
+
 /* when cl_khr_d3d11_sharing is supported */
 
-typedef cl_int (CL_API_CALL *
-clGetSupportedD3D11TextureFormatsINTEL_fn)(
+typedef cl_int CL_API_CALL
+clGetSupportedD3D11TextureFormatsINTEL_t(
     cl_context context,
     cl_mem_flags flags,
     cl_mem_object_type image_type,
     cl_uint plane,
     cl_uint num_entries,
     DXGI_FORMAT* d3d11_formats,
-    cl_uint* num_texture_formats) ;
+    cl_uint* num_texture_formats);
+
+typedef clGetSupportedD3D11TextureFormatsINTEL_t *
+clGetSupportedD3D11TextureFormatsINTEL_fn ;
 
 #if !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES)
 

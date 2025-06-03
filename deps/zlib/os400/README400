@@ -1,9 +1,9 @@
-        ZLIB version 1.2.11 for OS/400 installation instructions
+        ZLIB version 1.3.1.1 for OS/400 installation instructions
 
 1) Download and unpack the zlib tarball to some IFS directory.
    (i.e.: /path/to/the/zlib/ifs/source/directory)
 
-   If the installed IFS command suppors gzip format, this is straightforward,
+   If the installed IFS command supports gzip format, this is straightforward,
 else you have to unpack first to some directory on a system supporting it,
 then move the whole directory to the IFS via the network (via SMB or FTP).
 
@@ -43,6 +43,6 @@ Notes:  For OS/400 ILE RPG programmers, a /copy member defining the ZLIB
 
         Remember that most foreign textual data are ASCII coded: this
                 implementation does not handle conversion from/to ASCII, so
-                text data code conversions must be done explicitely.
+                text data code conversions must be done explicitly.
 
         Mainly for the reason above, always open zipped files in binary mode.

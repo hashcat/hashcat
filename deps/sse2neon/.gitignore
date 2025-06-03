@@ -1,0 +1,10 @@
+*.exe
+*.o
+*.gch
+tests/*.d
+tests/main
+gcc-arm-*
+.vs/
+Debug/
+Release/
+*.vcxproj.user

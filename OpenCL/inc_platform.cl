@@ -122,22 +122,94 @@ DECLSPEC size_t get_local_size (const u32 dimindx __attribute__((unused)))
 
 DECLSPEC u32x rotl32 (const u32x a, const int n)
 {
-  return ((a << n) | ((a >> (32 - n))));
+  #if VECT_SIZE == 1
+  return __funnelshift_l(a, a, n);
+  #endif
+
+  u32x t;
+
+  #if VECT_SIZE >= 2
+  t.s0 = __funnelshift_l(a.s0, a.s0, n);
+  t.s1 = __funnelshift_l(a.s1, a.s1, n);
+  #endif
+
+  #if VECT_SIZE >= 4
+  t.s2 = __funnelshift_l(a.s2, a.s2, n);
+  t.s3 = __funnelshift_l(a.s3, a.s3, n);
+  #endif
+
+  #if VECT_SIZE >= 8
+  t.s4 = __funnelshift_l(a.s4, a.s4, n);
+  t.s5 = __funnelshift_l(a.s5, a.s5, n);
+  t.s6 = __funnelshift_l(a.s6, a.s6, n);
+  t.s7 = __funnelshift_l(a.s7, a.s7, n);
+  #endif
+
+  #if VECT_SIZE >= 16
+  t.s8 = __funnelshift_l(a.s8, a.s8, n);
+  t.s9 = __funnelshift_l(a.s9, a.s9, n);
+  t.sa = __funnelshift_l(a.sa, a.sa, n);
+  t.sb = __funnelshift_l(a.sb, a.sb, n);
+  t.sc = __funnelshift_l(a.sc, a.sc, n);
+  t.sd = __funnelshift_l(a.sd, a.sd, n);
+  t.se = __funnelshift_l(a.se, a.se, n);
+  t.sf = __funnelshift_l(a.sf, a.sf, n);
+  #endif
+
+  return t;
+  //return ((a << n) | ((a >> (32 - n))));
 }
 
 DECLSPEC u32x rotr32 (const u32x a, const int n)
 {
-  return ((a >> n) | ((a << (32 - n))));
+  #if VECT_SIZE == 1
+  return __funnelshift_r(a, a, n);
+  #endif
+
+  u32x t;
+
+  #if VECT_SIZE >= 2
+  t.s0 = __funnelshift_r(a.s0, a.s0, n);
+  t.s1 = __funnelshift_r(a.s1, a.s1, n);
+  #endif
+
+  #if VECT_SIZE >= 4
+  t.s2 = __funnelshift_r(a.s2, a.s2, n);
+  t.s3 = __funnelshift_r(a.s3, a.s3, n);
+  #endif
+
+  #if VECT_SIZE >= 8
+  t.s4 = __funnelshift_r(a.s4, a.s4, n);
+  t.s5 = __funnelshift_r(a.s5, a.s5, n);
+  t.s6 = __funnelshift_r(a.s6, a.s6, n);
+  t.s7 = __funnelshift_r(a.s7, a.s7, n);
+  #endif
+
+  #if VECT_SIZE >= 16
+  t.s8 = __funnelshift_r(a.s8, a.s8, n);
+  t.s9 = __funnelshift_r(a.s9, a.s9, n);
+  t.sa = __funnelshift_r(a.sa, a.sa, n);
+  t.sb = __funnelshift_r(a.sb, a.sb, n);
+  t.sc = __funnelshift_r(a.sc, a.sc, n);
+  t.sd = __funnelshift_r(a.sd, a.sd, n);
+  t.se = __funnelshift_r(a.se, a.se, n);
+  t.sf = __funnelshift_r(a.sf, a.sf, n);
+  #endif
+
+  return t;
+  //return ((a >> n) | ((a << (32 - n))));
 }
 
 DECLSPEC u32 rotl32_S (const u32 a, const int n)
 {
-  return ((a << n) | ((a >> (32 - n))));
+  return __funnelshift_l(a, a, n);
+  //return ((a << n) | ((a >> (32 - n))));
 }
 
 DECLSPEC u32 rotr32_S (const u32 a, const int n)
 {
-  return ((a >> n) | ((a << (32 - n))));
+  return __funnelshift_r(a, a, n);
+  //return ((a >> n) | ((a << (32 - n))));
 }
 
 DECLSPEC u64x rotl64 (const u64x a, const int n)
@@ -226,36 +298,103 @@ DECLSPEC size_t get_local_size (const u32 dimindx __attribute__((unused)))
 
 DECLSPEC u32x rotl32 (const u32x a, const int n)
 {
-  return ((a << n) | ((a >> (32 - n))));
+  #if VECT_SIZE == 1
+  return __funnelshift_l(a, a, n);
+  #endif
+
+  u32x t;
+
+  #if VECT_SIZE >= 2
+  t.s0 = __funnelshift_l(a.s0, a.s0, n);
+  t.s1 = __funnelshift_l(a.s1, a.s1, n);
+  #endif
+
+  #if VECT_SIZE >= 4
+  t.s2 = __funnelshift_l(a.s2, a.s2, n);
+  t.s3 = __funnelshift_l(a.s3, a.s3, n);
+  #endif
+
+  #if VECT_SIZE >= 8
+  t.s4 = __funnelshift_l(a.s4, a.s4, n);
+  t.s5 = __funnelshift_l(a.s5, a.s5, n);
+  t.s6 = __funnelshift_l(a.s6, a.s6, n);
+  t.s7 = __funnelshift_l(a.s7, a.s7, n);
+  #endif
+
+  #if VECT_SIZE >= 16
+  t.s8 = __funnelshift_l(a.s8, a.s8, n);
+  t.s9 = __funnelshift_l(a.s9, a.s9, n);
+  t.sa = __funnelshift_l(a.sa, a.sa, n);
+  t.sb = __funnelshift_l(a.sb, a.sb, n);
+  t.sc = __funnelshift_l(a.sc, a.sc, n);
+  t.sd = __funnelshift_l(a.sd, a.sd, n);
+  t.se = __funnelshift_l(a.se, a.se, n);
+  t.sf = __funnelshift_l(a.sf, a.sf, n);
+  #endif
+
+  return t;
+  //return ((a << n) | ((a >> (32 - n))));
 }
 
 DECLSPEC u32x rotr32 (const u32x a, const int n)
 {
-  return ((a >> n) | ((a << (32 - n))));
+  #if VECT_SIZE == 1
+  return __funnelshift_r(a, a, n);
+  #endif
+
+  u32x t;
+
+  #if VECT_SIZE >= 2
+  t.s0 = __funnelshift_r(a.s0, a.s0, n);
+  t.s1 = __funnelshift_r(a.s1, a.s1, n);
+  #endif
+
+  #if VECT_SIZE >= 4
+  t.s2 = __funnelshift_r(a.s2, a.s2, n);
+  t.s3 = __funnelshift_r(a.s3, a.s3, n);
+  #endif
+
+  #if VECT_SIZE >= 8
+  t.s4 = __funnelshift_r(a.s4, a.s4, n);
+  t.s5 = __funnelshift_r(a.s5, a.s5, n);
+  t.s6 = __funnelshift_r(a.s6, a.s6, n);
+  t.s7 = __funnelshift_r(a.s7, a.s7, n);
+  #endif
+
+  #if VECT_SIZE >= 16
+  t.s8 = __funnelshift_r(a.s8, a.s8, n);
+  t.s9 = __funnelshift_r(a.s9, a.s9, n);
+  t.sa = __funnelshift_r(a.sa, a.sa, n);
+  t.sb = __funnelshift_r(a.sb, a.sb, n);
+  t.sc = __funnelshift_r(a.sc, a.sc, n);
+  t.sd = __funnelshift_r(a.sd, a.sd, n);
+  t.se = __funnelshift_r(a.se, a.se, n);
+  t.sf = __funnelshift_r(a.sf, a.sf, n);
+  #endif
+
+  return t;
+  //return ((a >> n) | ((a << (32 - n))));
 }
 
 DECLSPEC u32 rotl32_S (const u32 a, const int n)
 {
-  return ((a << n) | ((a >> (32 - n))));
+  return __funnelshift_l(a, a, n);
+  //return ((a << n) | ((a >> (32 - n))));
 }
 
 DECLSPEC u32 rotr32_S (const u32 a, const int n)
 {
-  return ((a >> n) | ((a << (32 - n))));
+  return __funnelshift_r(a, a, n);
+  //return ((a >> n) | ((a << (32 - n))));
 }
 
 DECLSPEC u64x rotl64 (const u64x a, const int n)
 {
-  return rotr64 (a, 64 - n);
-}
-
-DECLSPEC u32 amd_bitalign_S (const u32 a, const u32 b, const int n)
-{
-  u32 r = 0;
-
-  __asm__ ("V_ALIGNBIT_B32 %0, %1, %2, %3;" : "=v"(r): "v"(a), "v"(b), "I"(n));
-
-  return r;
+  #if VECT_SIZE == 1
+  return rotl64_S (a, n);
+  #else
+  return ((a << n) | ((a >> (64 - n))));
+  #endif
 }
 
 DECLSPEC u64x rotr64 (const u64x a, const int n)
@@ -285,13 +424,13 @@ DECLSPEC u64 rotr64_S (const u64 a, const int n)
 
   if (n < 32)
   {
-    out.v32.a = amd_bitalign_S (a1, a0, n);
-    out.v32.b = amd_bitalign_S (a0, a1, n);
+    out.v32.a = __funnelshift_r (a0, a1, n);
+    out.v32.b = __funnelshift_r (a1, a0, n);
   }
   else
   {
-    out.v32.a = amd_bitalign_S (a0, a1, n - 32);
-    out.v32.b = amd_bitalign_S (a1, a0, n - 32);
+    out.v32.a = __funnelshift_r (a1, a0, n - 32);
+    out.v32.b = __funnelshift_r (a0, a1, n - 32);
   }
 
   return out.v64;

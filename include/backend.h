@@ -22,6 +22,7 @@ static const char CL_VENDOR_INTEL_SDK[]         = "Intel(R) Corporation";
 static const char CL_VENDOR_MESA[]              = "Mesa";
 static const char CL_VENDOR_NV[]                = "NVIDIA Corporation";
 static const char CL_VENDOR_POCL[]              = "The pocl project";
+static const char CL_VENDOR_MICROSOFT[]         = "Microsoft";
 
 int  backend_ctx_init                       (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_destroy                    (hashcat_ctx_t *hashcat_ctx);
@@ -38,8 +39,6 @@ void backend_session_reset                  (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_combinator      (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp              (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp_rl           (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r);
-
-u32  backend_device_idx_real_from_virtual   (const u32 device_idx, const u32 backend_devices_virtual);
 
 void generate_source_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
 void generate_cached_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
