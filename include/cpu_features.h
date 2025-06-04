@@ -7,7 +7,10 @@
 #define HC_CPU_FEATURES_H
 
 #include <stdio.h>
+
+#if defined(__x86_64__) || defined(_M_X64)
 #include <cpuid.h>
+#endif
 
 // SIMD detection
 

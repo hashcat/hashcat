@@ -7,6 +7,16 @@
 #include "types.h"
 #include "cpu_features.h"
 
+#if defined(__aarch64__) || defined(__arm64__)
+
+int cpu_supports_sse2 ()     { return 1; }
+int cpu_supports_ssse3 ()    { return 0; }
+int cpu_supports_xop ()      { return 0; }
+int cpu_supports_avx2 ()     { return 0; }
+int cpu_supports_avx512f ()  { return 0; }
+int cpu_supports_avx512vl () { return 0; }
+
+#else
 static inline void cpuid (u32 leaf, u32 subleaf, u32 *eax, u32 *ebx, u32 *ecx, u32 *edx)
 {
   __cpuid_count (leaf, subleaf, *eax, *ebx, *ecx, *edx);
@@ -28,7 +38,7 @@ int cpu_supports_sse2 ()
 {
   u32 eax, ebx, ecx, edx;
 
-  cpuid(1, 0, &eax, &ebx, &ecx, &edx);
+  cpuid (1, 0, &eax, &ebx, &ecx, &edx);
 
   return (edx & bit_SSE2) != 0;
 }
@@ -120,6 +130,7 @@ int cpu_supports_avx512vl ()
 
   return (ebx & (1u << 31)) != 0;
 }
+#endif
 
 int cpu_chipset_test ()
 {
