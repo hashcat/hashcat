@@ -7,6 +7,8 @@
 #include "types.h"
 #include "bridges.h"
 #include "memory.h"
+#include "shared.h"
+#include "cpu_features.h"
 
 // argon2 reference
 
@@ -133,7 +135,11 @@ static void units_term (bridge_argon2id_t *bridge_argon2id)
 
 void *platform_init ()
 {
-  // bridge_argon2id_t will be our platform context
+  // Verify CPU features
+
+  if (cpu_chipset_test () == -1) return NULL;
+
+  // Allocate platform context
 
   bridge_argon2id_t *bridge_argon2id = (bridge_argon2id_t *) hcmalloc (sizeof (bridge_argon2id_t));
 

@@ -7,6 +7,8 @@
 #include "types.h"
 #include "bridges.h"
 #include "memory.h"
+#include "shared.h"
+#include "cpu_features.h"
 
 #include "code/scrypt-jane-portable.h"
 #include "code/scrypt-jane-hash.h"
@@ -106,7 +108,11 @@ static void units_term (bridge_scrypt_jane_t *bridge_scrypt_jane)
 
 void *platform_init ()
 {
-  // bridge_scrypt_jane_t will be our platform context
+  // Verify CPU features
+
+  if (cpu_chipset_test () == -1) return NULL;
+
+  // Allocate platform context
 
   bridge_scrypt_jane_t *bridge_scrypt_jane = (bridge_scrypt_jane_t *) hcmalloc (sizeof (bridge_scrypt_jane_t));
 

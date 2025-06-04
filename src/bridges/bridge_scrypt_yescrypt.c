@@ -7,6 +7,8 @@
 #include "types.h"
 #include "bridges.h"
 #include "memory.h"
+#include "shared.h"
+#include "cpu_features.h"
 
 #include "yescrypt.h"
 
@@ -108,7 +110,11 @@ static void units_term (bridge_scrypt_yescrypt_t *bridge_scrypt_yescrypt)
 
 void *platform_init ()
 {
-  // bridge_scrypt_yescrypt_t will be our platform context
+  // Verify CPU features
+
+  if (cpu_chipset_test () == -1) return NULL;
+
+  // Allocate platform context
 
   bridge_scrypt_yescrypt_t *bridge_scrypt_yescrypt = (bridge_scrypt_yescrypt_t *) hcmalloc (sizeof (bridge_scrypt_yescrypt_t));
 

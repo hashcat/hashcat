@@ -8,6 +8,7 @@
 #include "bridges.h"
 #include "memory.h"
 #include "shared.h"
+#include "cpu_features.h"
 #include "dynloader.h"
 
 #if defined (_WIN)
@@ -679,6 +680,12 @@ static void units_term (python_interpreter_t *python_interpreter)
 
 void *platform_init (user_options_t *user_options)
 {
+  // Verify CPU features
+
+  if (cpu_chipset_test () == -1) return NULL;
+
+  // Allocate platform context
+
   python_interpreter_t *python_interpreter = (python_interpreter_t *) hcmalloc (sizeof (python_interpreter_t));
 
   hc_python_lib_t *python = (hc_python_lib_t *) hcmalloc (sizeof (hc_python_lib_t));
