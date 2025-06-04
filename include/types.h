@@ -670,6 +670,7 @@ typedef enum user_options_defaults
   AUTODETECT               = false,
   BACKEND_DEVICES_VIRTMULTI = 1,
   BACKEND_DEVICES_VIRTHOST = 1,
+  BACKEND_DEVICES_KEEPFREE = 20,
   BENCHMARK_ALL            = false,
   BENCHMARK_MAX            = 99999,
   BENCHMARK_MIN            = 0,
@@ -777,6 +778,7 @@ typedef enum user_options_map
   IDX_BACKEND_DEVICES           = 'd',
   IDX_BACKEND_DEVICES_VIRTMULTI = 'Y',
   IDX_BACKEND_DEVICES_VIRTHOST  = 'R',
+  IDX_BACKEND_DEVICES_KEEPFREE  = 0xff60,
   IDX_BACKEND_IGNORE_CUDA       = 0xff01,
   IDX_BACKEND_IGNORE_HIP        = 0xff02,
   IDX_BACKEND_IGNORE_METAL      = 0xff03,
@@ -1954,6 +1956,7 @@ typedef struct backend_ctx
   int                 backend_devices_cnt;
   int                 backend_devices_virtmulti;
   int                 backend_devices_virthost;
+  int                 backend_devices_keepfree;
   int                 backend_devices_active;
 
   int                 cuda_devices_cnt;
@@ -2486,6 +2489,7 @@ typedef struct user_options
   u32          attack_mode;
   u32          backend_devices_virtmulti;
   u32          backend_devices_virthost;
+  u32          backend_devices_keepfree;
   u32          backend_info;
   u32          benchmark_max;
   u32          benchmark_min;

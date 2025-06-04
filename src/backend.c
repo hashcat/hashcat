@@ -5608,7 +5608,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         continue;
       }
 
-      device_param->device_available_mem = (u64) free;
+      device_param->device_available_mem = ((u64) free * (100 - user_options->backend_devices_keepfree)) / 100;
 
       if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context) == -1)
       {
@@ -6037,7 +6037,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         continue;
       }
 
-      device_param->device_available_mem = (u64) free;
+      device_param->device_available_mem = ((u64) free * (100 - user_options->backend_devices_keepfree)) / 100;
 
       if (hc_hipCtxPopCurrent (hashcat_ctx, &hip_context) == -1)
       {
@@ -8116,7 +8116,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-      if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+      if (user_options->backend_devices_keepfree)
+      {
+        device_param->device_available_mem = (device_param->device_global_mem * (100 - user_options->backend_devices_keepfree)) / 100;
+      }
+      // this section is creating more problems than it solves, so lets use a fixed multiplier instead
+      // users can override with --backend-devices-keepfree=0
+      else if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
       {
         // following the same logic as for OpenCL, explained later
 
@@ -8341,8 +8347,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) &&
-         (((device_param->opencl_platform_vendor_id != VENDOR_ID_INTEL_SDK) && (device_param->opencl_platform_vendor_id != VENDOR_ID_MICROSOFT) && (device_param->opencl_platform_vendor_id != VENDOR_ID_GENERIC)) || (device_param->device_host_unified_memory == 0)))
+        if (user_options->backend_devices_keepfree)
+        {
+          device_param->device_available_mem = (device_param->device_global_mem * (100 - user_options->backend_devices_keepfree)) / 100;
+        }
+        // this section is creating more problems than it solves, so lets use a fixed multiplier instead
+        // users can override with --backend-devices-keepfree=0
+        else if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
         {
           // OK, so the problem here is the following:
           // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,

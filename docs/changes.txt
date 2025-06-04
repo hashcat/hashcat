@@ -66,6 +66,7 @@
 
 - Added new feature (-Y) that creates N virtual instances for each device in your system at the cost of N times the device memory consumption
 - Added options --benchmark-min and --benchmark-max to set a hash-mode range to be used during the benchmark
+- Added option --backend-devices-keepfree to configure X percentage of device memory available to keep free
 
 ##
 ## Performance
