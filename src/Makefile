@@ -39,6 +39,12 @@ ifeq ($(DEBUG),1)
 $(info "## Detected Operating System : $(UNAME)")
 endif
 
+BUILD_MODE := native
+
+ifneq ($(filter binaries linux host_linux modules_linux bridges_linux win host_win modules_win bridges_win,$(MAKECMDGOALS)),)
+  BUILD_MODE := cross
+endif
+
 ##
 ## Makefile flags
 ##
@@ -148,6 +154,8 @@ else
 DEPS_UNRAR_PATH         := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 endif
+
+DEPS_SSE2NEON           := deps/sse2neon
 
 ##
 ## Filenames for library and frontend
@@ -361,6 +369,8 @@ LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -liconv
 
 ifeq ($(IS_APPLE_SILICON),1)
+CFLAGS_NATIVE           += -DSSE2NEON_SUPPRESS_WARNINGS
+CFLAGS_NATIVE           += -I$(DEPS_SSE2NEON)
 CFLAGS_NATIVE           += -arch arm64
 CFLAGS_NATIVE           += -arch x86_64
 ifeq ($(SHARED),1)
@@ -748,10 +758,10 @@ $(BRIDGES_DISABLE): ;
 
 ifeq ($(SHARED),1)
 bridges/bridge_%.$(BRIDGE_SUFFIX): src/bridges/bridge_%.c $(HASHCAT_LIBRARY)
-	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) -march=native
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
 else
 bridges/bridge_%.$(BRIDGE_SUFFIX): src/bridges/bridge_%.c obj/combined.NATIVE.a
-	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) -march=native
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
 endif
 
 BRIDGES_LIB   := $(patsubst src/bridges/bridge_%.c, bridges/bridge_%.$(BRIDGE_SUFFIX), $(BRIDGES_SRC))
@@ -777,12 +787,9 @@ CXX_WIN                 := x86_64-w64-mingw32-g++
 AR_LINUX                := ar
 AR_WIN                  := x86_64-w64-mingw32-ar
 
-## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
-##
-## Then patch the makefile with the patches from tools/win-iconv-64.diff and run make install
-##
-
+# See BUILD_WSL.md to make these
 WIN_ICONV               := /opt/win-iconv-64
+WIN_PYTHON              := /opt/win-python
 
 ##
 ## Compiler options
@@ -820,6 +827,11 @@ CFLAGS_LZMA_WIN         += -Wno-misleading-indentation
 
 CFLAGS_UNRAR_WIN        += -Wno-misleading-indentation
 CFLAGS_UNRAR_WIN        += -Wno-class-memaccess
+
+ifeq ($(IS_APPLE_SILICON),1)
+CFLAGS_CROSS_LINUX      += -DSSE2NEON_SUPPRESS_WARNINGS
+CFLAGS_CROSS_LINUX      += -I$(DEPS_SSE2NEON)
+endif
 endif
 
 ##
@@ -834,7 +846,7 @@ binaries: win
 host_win:   hashcat.exe
 
 .PHONY: win
-win:   host_win   modules_win
+win:   host_win   modules_win   bridges_win
 else
 .PHONY: binaries
 binaries: linux win
@@ -877,11 +889,10 @@ bridges_linux: $(BRIDGES_LIB_LINUX)
 bridges_win:   $(BRIDGES_LIB_WIN)
 
 bridges/bridge_%.so:  src/bridges/bridge_%.c obj/combined.LINUX.a
-	$(CC_LINUX)  $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) -march=native
+	$(CC_LINUX)  $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
 
 bridges/bridge_%.dll: src/bridges/bridge_%.c obj/combined.WIN.a
-	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) -march=native
-
+	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
 
 ##
 ## cross compiled hashcat

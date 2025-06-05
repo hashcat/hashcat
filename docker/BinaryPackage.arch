@@ -43,8 +43,8 @@ RUN cmake \
     make -j$(nproc) && make install
 
 # Download and extract MSYS2 Python headers (still 3.12)
-RUN mkdir /opt/cpython-mingw
-WORKDIR /opt/cpython-mingw
+RUN mkdir /opt/win-python
+WORKDIR /opt/win-python
 RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst && \
     zstd -d mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst && \
     tar -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar

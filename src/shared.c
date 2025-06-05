@@ -549,7 +549,7 @@ bool hc_string_is_digit (const char *s)
   return true;
 }
 
-void setup_environment_variables (const folder_config_t *folder_config)
+void setup_environment_variables (const folder_config_t *folder_config, const user_options_t *user_options)
 {
   char *compute = getenv ("COMPUTE");
 
@@ -590,6 +590,14 @@ void setup_environment_variables (const folder_config_t *folder_config)
 
     // we can't free tmpdir at this point!
   }
+
+  // creates too much cpu load
+  if (getenv ("AMD_DIRECT_DISPATCH") == NULL)
+    putenv ((char *) "AMD_DIRECT_DISPATCH=0");
+
+  if (user_options->hash_mode == 72000) // ugly but rare hack, we might move this to modules at a later stage
+    if (getenv ("PYTHON_GIL") == NULL)
+     putenv ((char *) "PYTHON_GIL=0");
 
   /*
   if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)

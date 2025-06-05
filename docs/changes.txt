@@ -66,6 +66,7 @@
 
 - Added new feature (-Y) that creates N virtual instances for each device in your system at the cost of N times the device memory consumption
 - Added options --benchmark-min and --benchmark-max to set a hash-mode range to be used during the benchmark
+- Added option --backend-devices-keepfree to configure X percentage of device memory available to keep free
 
 ##
 ## Performance
@@ -119,6 +120,7 @@
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
+- Dependencies: Added sse2neon v1.8.0 (commit 658eeac)
 - Dependencies: Updated LZMA SDK to 24.09
 - Dependencies: Updated unrar source to 6.2.7
 - Dependencies: Updated xxHash to 0.8.3 (commit 50f4226)
