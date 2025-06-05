@@ -18,15 +18,32 @@ bridges/bridge_python_generic_hash_sp.$(BRIDGE_SUFFIX): src/bridges/bridge_pytho
 endif
 endif
 
-PYTHON_INCLUDE_PATH := $(shell echo $(PYTHON_CONFIG_FLAGS_LINUX) | sed -n 's/-I\([^ ]*\).*/\1/p')
-PYTHON_HAS_OWN_GIL := $(shell grep -r -q 'PyInterpreterConfig_OWN_GIL' $(PYTHON_INCLUDE_PATH) && echo yes || echo no)
-
 ifeq ($(BRIDGE_SUFFIX),so)
-ifeq ($(PYTHON_HAS_OWN_GIL),no)
+
+PYTHON_INCLUDE_PATH := $(shell echo "$(PYTHON_CFLAGS)" | sed -n 's/-I\([^ ]*\).*/\1/p')
+PYTHON_HAS_OWN_GIL := $(shell grep -r -q 'PyInterpreterConfig_OWN_GIL' "$(PYTHON_INCLUDE_PATH)" && echo true || echo false)
+
+REPORTS_MISSING := false
+
+ifeq ($(PYTHON_INCLUDE_PATH),)
+	REPORTS_MISSING := true
+endif
+
+ifeq ($(PYTHON_HAS_OWN_GIL),false)
+	REPORTS_MISSING := true
+endif
+
+RED = \033[1;31m
+RESET = \033[0m
+
+ifeq ($(REPORTS_MISSING),true)
 bridges/bridge_python_generic_hash_sp.so:
 	@echo ""
-	@echo "WARNING: Skipping freethreaded plugin 70200: Python 3.12+ headers not found."
-	@echo "         Please read 'docs/hashcat-python-plugin-requirements.md'."
+	@echo "$(RED)WARNING$(RESET): Skipping freethreaded plugin 70200: Python 3.12+ headers not found."
+	@echo "         To use -m 70200, you must install the required Python headers."
+	@echo "         Otherwise, you can safely ignore this warning."
+	@echo "         For more information, see 'docs/hashcat-python-plugin-requirements.md'."
 	@echo ""
 endif
+
 endif

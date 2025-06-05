@@ -11,9 +11,9 @@ ST_PASS = "hashcat"
 
 def calc_hash(password: bytes, salt: dict) -> str:
   salt_buf = hcshared.get_salt_buf(salt)
-  hash = hashlib.sha256(salt_buf + password)   
-  for i in range(10000):     
-    hash = hashlib.sha256(hash.digest())   
+  hash = hashlib.sha256(salt_buf + password)
+  for i in range(10000):
+    hash = hashlib.sha256(hash.digest())
   return hash.hexdigest()
 
 # ...except when using an esalt. The esalt void* structure is both dynamic and specific to a hash mode.
@@ -47,11 +47,11 @@ def term(ctx):
 # Read passwords from stdin
 
 if __name__ == '__main__':
-  ctx = { 
-    "salts_buf": bytes(568), 
-    "esalts_buf": bytes(131080), 
-    "st_salts_buf": bytes(568), 
-    "st_esalts_buf": bytes(131080) 
+  ctx = {
+    "salts_buf": bytes(568),
+    "esalts_buf": bytes(131080),
+    "st_salts_buf": bytes(568),
+    "st_esalts_buf": bytes(131080)
   }
   init(ctx)
   hashcat_passwords = 256

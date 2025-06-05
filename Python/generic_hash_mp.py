@@ -47,11 +47,11 @@ def term(ctx):
 # Read passwords from stdin
 
 if __name__ == '__main__':
-  ctx = { 
-    "salts_buf": bytes(568), 
-    "esalts_buf": bytes(131080), 
-    "st_salts_buf": bytes(568), 
-    "st_esalts_buf": bytes(131080) 
+  ctx = {
+    "salts_buf": bytes(568),
+    "esalts_buf": bytes(131080),
+    "st_salts_buf": bytes(568),
+    "st_esalts_buf": bytes(131080)
   }
   init(ctx)
   hashcat_passwords = 256

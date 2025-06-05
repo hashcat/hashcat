@@ -27,6 +27,7 @@ GeForce_GTX_1080                                *       9300    1       256     
 GeForce_RTX_2080_Ti                             *       9300    1       528     A
 GeForce_RTX_3060_Ti                             *       9300    1       256     A
 GeForce_RTX_3070                                *       9300    1       368     A
+GeForce_RTX_3080_Ti_Laptop_GPU                  *       9300    1       272     A
 GeForce_RTX_3090                                *       9300    1       984     A
 ALIAS_AMD_RX480                                 *       9300    1       232     A
 ALIAS_AMD_Vega64                                *       9300    1       440     A

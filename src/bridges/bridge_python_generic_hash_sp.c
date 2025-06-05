@@ -769,8 +769,8 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   PyObject *sys = python->PyImport_ImportModule ("sys");
   PyObject *path = python->PyObject_GetAttrString (sys, "path");
   python->PyList_Append (path, python->PyUnicode_FromString ("./Python"));
-  //python->Py_DecRef (path);
-  //python->Py_DecRef (sys);
+  python->Py_DecRef (path);
+  python->Py_DecRef (sys);
 
   PyObject *pName = python->PyUnicode_DecodeFSDefault (python_interpreter->source_filename);
 
@@ -790,7 +790,7 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
     return false;
   }
 
-  //python->Py_DecRef (pName);
+  python->Py_DecRef (pName);
 
   unit_buf->pFunc_Init = python->PyObject_GetAttrString (unit_buf->pModule, "init");
 
@@ -863,7 +863,18 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
-  python->PyObject_CallObject (unit_buf->pFunc_Init, pArgs);
+  PyObject *pReturn = python->PyObject_CallObject (unit_buf->pFunc_Init, pArgs);
+
+  if (pReturn == NULL)
+  {
+    python->PyErr_Print ();
+
+    return false;
+  }
+
+  python->Py_DecRef (pReturn);
+
+  //python->Py_DecRef (pArgs);
 
   // for later calls
 
@@ -893,19 +904,6 @@ void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
   hc_python_lib_t *python = python_interpreter->python;
 
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "salts_cnt"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "salts_size"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "salts_buf"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "esalts_cnt"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "esalts_size"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "esalts_buf"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_salts_cnt"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_salts_size"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_salts_buf"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_esalts_cnt"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_esalts_size"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_esalts_buf"));
-
   python->PyDict_DelItemString (unit_buf->pContext, "salts_cnt");
   python->PyDict_DelItemString (unit_buf->pContext, "salts_size");
   python->PyDict_DelItemString (unit_buf->pContext, "salts_buf");
@@ -932,13 +930,14 @@ void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
   python->PyObject_CallObject (unit_buf->pFunc_Term, pArgs);
 
-  //python->Py_DecRef (pArgs);
-  //python->Py_DecRef (unit_buf->pFunc_kernel_loop);
-  //python->Py_DecRef (unit_buf->pFunc_Term);
-  //python->Py_DecRef (unit_buf->pFunc_Init);
-  //python->Py_DecRef (unit_buf->pModule);
-  //python->Py_DecRef (unit_buf->pContext);
-  //python->Py_DecRef (unit_buf->pArgs);
+  python->Py_DecRef (pArgs);
+
+  python->Py_DecRef (unit_buf->pArgs);
+  python->Py_DecRef (unit_buf->pContext);
+  python->Py_DecRef (unit_buf->pFunc_kernel_loop);
+  python->Py_DecRef (unit_buf->pFunc_Term);
+  python->Py_DecRef (unit_buf->pFunc_Init);
+  python->Py_DecRef (unit_buf->pModule);
 
   python->Py_EndInterpreter (unit_buf->tstate);
 }
@@ -1023,8 +1022,6 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
     return false;
   }
 
-  //python->Py_DecRef (pws);
-
   Py_ssize_t retsz = python->PyList_Size (pReturn);
 
   if (retsz != (Py_ssize_t) pws_cnt) return false;
@@ -1046,12 +1043,10 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
       generic_io_tmp->out_len = len;
     }
 
-    //python->Py_DecRef (hash);
-
     generic_io_tmp++;
   }
 
-  //python->Py_DecRef (pReturn);
+  python->Py_DecRef (pReturn);
 
   return true;
 }
@@ -1067,8 +1062,8 @@ const char *st_update_hash (MAYBE_UNUSED void *platform_context)
   PyObject *sys = python->PyImport_ImportModule ("sys");
   PyObject *path = python->PyObject_GetAttrString (sys, "path");
   python->PyList_Append (path, python->PyUnicode_FromString ("./Python"));
-  //python->Py_DecRef (path);
-  //python->Py_DecRef (sys);
+  python->Py_DecRef (path);
+  python->Py_DecRef (sys);
 
   PyObject *pName = python->PyUnicode_DecodeFSDefault (python_interpreter->source_filename);
 
@@ -1103,6 +1098,8 @@ const char *st_update_hash (MAYBE_UNUSED void *platform_context)
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
 
+  python->Py_DecRef (constant);
+
   python_interpreter->thread_state = python->PyEval_SaveThread ();
 
   return s;
@@ -1119,8 +1116,8 @@ const char *st_update_pass (MAYBE_UNUSED void *platform_context)
   PyObject *sys = python->PyImport_ImportModule ("sys");
   PyObject *path = python->PyObject_GetAttrString (sys, "path");
   python->PyList_Append (path, python->PyUnicode_FromString ("./Python"));
-  //python->Py_DecRef (path);
-  //python->Py_DecRef (sys);
+  python->Py_DecRef (path);
+  python->Py_DecRef (sys);
 
   PyObject *pName = python->PyUnicode_DecodeFSDefault (python_interpreter->source_filename);
 
@@ -1154,6 +1151,8 @@ const char *st_update_pass (MAYBE_UNUSED void *platform_context)
   }
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
+
+  python->Py_DecRef (constant);
 
   python_interpreter->thread_state = python->PyEval_SaveThread ();
 
