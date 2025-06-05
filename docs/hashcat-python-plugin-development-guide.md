@@ -206,7 +206,7 @@ The most straight-forward way is to edit the following files directly:
 Notes:
 
 - Even though `-m 72000` uses single-threaded Python, the bridge plugin above it manages multiple Python interpreters (one per thread) making it effectively multi-threaded.
-- On Windows, if `-m 73000` is selected, it silently falls back to `generic_hash_sp.py` due to limitations with multiprocessing. This behavior is important to understand and you might otherwise wonder why your code changes have no effect.
+- On Windows/macOS, if `-m 73000` is selected, it silently falls back to `generic_hash_sp.py` due to limitations with multiprocessing. This behavior is important to understand and you might otherwise wonder why your code changes have no effect.
 
 If you modify one of these plugin files, there's a trade-off: you won’t be able to contribute that code directly to the upstream Hashcat repository, since those files are meant to remain clean for demonstration purposes.
 

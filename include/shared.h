@@ -46,7 +46,7 @@ void naive_escape (char *s, size_t s_max, const char key_char, const char escape
 
 __attribute__ ((format (printf, 2, 3))) int hc_asprintf (char **strp, const char *fmt, ...);
 
-void setup_environment_variables (const folder_config_t *folder_config);
+void setup_environment_variables (const folder_config_t *folder_config, const user_options_t *user_options);
 void setup_umask (void);
 void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
 

@@ -62,7 +62,7 @@ pip install pyescrypt
 
 Then in your plugin (either `generic_hash_mp.py` for `-m 73000` or `generic_hash_sp.py` for `-m 72000`):
 
-**Note for Windows users:** Mode `73000` automatically switches to `generic_hash_sp.py`, so be sure to edit that file.
+**Note for Windows and MacOS users:** Mode `73000` automatically switches to `generic_hash_sp.py`, so be sure to edit that file.
 
 ```python
 from pyescrypt import Yescrypt, Mode

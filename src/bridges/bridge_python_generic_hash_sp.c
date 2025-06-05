@@ -340,9 +340,6 @@ static bool init_python (hc_python_lib_t *python)
 
   python->lib = NULL;
 
-  if (getenv ("PYTHON_GIL") == NULL)
-    putenv ((char *) "PYTHON_GIL=0");
-
   // let's see if we have pyenv, that will save us a lot of guessing...
 
   int saved_stderr = suppress_stderr ();
@@ -524,8 +521,8 @@ static bool init_python (hc_python_lib_t *python)
     fprintf (stderr, "Unable to find suitable Python library for -m 72000.\n\n");
     fprintf (stderr, "Most users who encounter this error are just missing the so called 'free-threaded' library support.\n");
     fprintf (stderr, "* On Windows, during install, there's an option 'free-threaded' that you need to click, it's just disabled by default.\n");
-    fprintf (stderr, "* On Linux, use `pyenv` and select a version that ends with a `t` (for instance `3.13t`).\n");
-    fprintf (stderr, "  However, on Linux it's better to use -m 73000 instead. So you probably want to ignore this.\n");
+    fprintf (stderr, "* On Linux and MacOS, use `pyenv` and select a version that ends with a `t` (for instance `3.13t`).\n");
+    fprintf (stderr, "  However, on Linux (not MacOS) it's better to use -m 73000 instead. So you probably want to ignore this.\n");
     fprintf (stderr, "\n");
 
     return false;
@@ -535,13 +532,13 @@ static bool init_python (hc_python_lib_t *python)
     printf ("Loaded python library from: %s\n\n", pythondll_path);
   }
 
-  #if defined (_WIN)
+  #if defined (_WIN) || defined (__APPLE__)
 
   #else
   fprintf (stderr, "Attention!!! The 'free-threaded' python library has some major downsides.\n");
-  fprintf (stderr, "  The main purpose of this module is to give windows users a multithreading option.\n");
-  fprintf (stderr, "  It seems to be a lot slower, and relevant modules such as cffi are incompatibile.\n");
-  fprintf (stderr, "  Since your are on Linux/MacOS we highly recommend to stick to multiprocessing module.\n");
+  fprintf (stderr, "  The main purpose of this module is to give Windows and macOS users a multithreading option.\n");
+  fprintf (stderr, "  It seems to be a lot slower, and relevant modules such as `cffi` are incompatibile.\n");
+  fprintf (stderr, "  Since your are on Linux we highly recommend to stick to multiprocessing module.\n");
   fprintf (stderr, "  Maybe 'free-threaded' mode will become more mature in the future.\n");
   fprintf (stderr, "  For now, we high recommend to stick to -m 73000 instead.\n\n");
   #endif

@@ -162,6 +162,8 @@ typedef struct
 
   // implementation specific
 
+  int     parallelism;
+
   PyGILState_STATE gstate;
 
   PyObject *pArgs;
@@ -186,7 +188,7 @@ typedef struct
 
 } python_interpreter_t;
 
-#if defined (_WIN)
+#if defined (_WIN) || defined (__APPLE__)
 static char *DEFAULT_SOURCE_FILENAME = "generic_hash_sp";
 #else
 static char *DEFAULT_SOURCE_FILENAME = "generic_hash_mp";
@@ -657,6 +659,7 @@ static bool units_init (python_interpreter_t *python_interpreter)
 
     unit_buf->unit_info_buf[unit_buf->unit_info_len] = 0;
 
+    unit_buf->parallelism = num_devices_sav;
     unit_buf->workitem_count = N_ACCEL * num_devices_sav;
 
     units_cnt++;
@@ -711,10 +714,10 @@ void *platform_init (user_options_t *user_options)
 
   unit_t *unit_buf = &python_interpreter->units_buf[0];
 
-  #if defined (_WIN)
+  #if defined (_WIN) || defined (__APPLE__)
   fprintf (stderr, "Attention!!! Falling back to single-threaded mode.\n");
-  fprintf (stderr, " Windows does not support multiprocessing module cleanly!\n");
-  fprintf (stderr, " For multithreading on Windows, please use -m 72000 instead.\n\n");
+  fprintf (stderr, " Windows and MacOS ds not support multiprocessing module cleanly!\n");
+  fprintf (stderr, " For multithreading on Windows and MacOS, please use -m 72000 instead.\n\n");
   #endif
 
   python_interpreter->source_filename = (user_options->bridge_parameter1) ? user_options->bridge_parameter1 : DEFAULT_SOURCE_FILENAME;
@@ -837,6 +840,7 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
   int rc = 0;
 
+  rc |= python->PyDict_SetItemString (unit_buf->pContext, "parallelism",    python->PyLong_FromLong (unit_buf->parallelism));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_cnt",      python->PyLong_FromLong (hashes->salts_cnt));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_size",     python->PyLong_FromLong (sizeof (salt_t)));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_buf",      python->PyBytes_FromStringAndSize ((const char *) hashes->salts_buf, sizeof (salt_t) * hashes->salts_cnt));
