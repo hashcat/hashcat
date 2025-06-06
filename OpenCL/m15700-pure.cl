@@ -62,145 +62,145 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 #define STATE_CNT   GET_STATE_CNT  (SCRYPT_R)
 #define STATE_CNT4  (STATE_CNT / 4)
 
-#define ADD_ROTATE_XOR(r,i1,i2,s) (r) ^= rotate ((i1) + (i2), (s));
-
-#if defined IS_CUDA || defined IS_HIP
-
-#define SALSA20_2R()                        \
-{                                           \
-  ADD_ROTATE_XOR (X1, X0, X3,  7);          \
-  ADD_ROTATE_XOR (X2, X1, X0,  9);          \
-  ADD_ROTATE_XOR (X3, X2, X1, 13);          \
-  ADD_ROTATE_XOR (X0, X3, X2, 18);          \
-                                            \
-  X1 = make_uint4 (X1.w, X1.x, X1.y, X1.z); \
-  X2 = make_uint4 (X2.z, X2.w, X2.x, X2.y); \
-  X3 = make_uint4 (X3.y, X3.z, X3.w, X3.x); \
-                                            \
-  ADD_ROTATE_XOR (X3, X0, X1,  7);          \
-  ADD_ROTATE_XOR (X2, X3, X0,  9);          \
-  ADD_ROTATE_XOR (X1, X2, X3, 13);          \
-  ADD_ROTATE_XOR (X0, X1, X2, 18);          \
-                                            \
-  X1 = make_uint4 (X1.y, X1.z, X1.w, X1.x); \
-  X2 = make_uint4 (X2.z, X2.w, X2.x, X2.y); \
-  X3 = make_uint4 (X3.w, X3.x, X3.y, X3.z); \
-}
-#elif defined IS_METAL
-#define SALSA20_2R()                        \
-{                                           \
-  ADD_ROTATE_XOR (X1, X0, X3,  7);          \
-  ADD_ROTATE_XOR (X2, X1, X0,  9);          \
-  ADD_ROTATE_XOR (X3, X2, X1, 13);          \
-  ADD_ROTATE_XOR (X0, X3, X2, 18);          \
-                                            \
-  X1 = X1.wxyz;                             \
-  X2 = X2.zwxy;                             \
-  X3 = X3.yzwx;                             \
-                                            \
-  ADD_ROTATE_XOR (X3, X0, X1,  7);          \
-  ADD_ROTATE_XOR (X2, X3, X0,  9);          \
-  ADD_ROTATE_XOR (X1, X2, X3, 13);          \
-  ADD_ROTATE_XOR (X0, X1, X2, 18);          \
-                                            \
-  X1 = X1.yzwx;                             \
-  X2 = X2.zwxy;                             \
-  X3 = X3.wxyz;                             \
-}
-#else
-#define SALSA20_2R()                        \
-{                                           \
-  ADD_ROTATE_XOR (X1, X0, X3,  7);          \
-  ADD_ROTATE_XOR (X2, X1, X0,  9);          \
-  ADD_ROTATE_XOR (X3, X2, X1, 13);          \
-  ADD_ROTATE_XOR (X0, X3, X2, 18);          \
-                                            \
-  X1 = X1.s3012;                            \
-  X2 = X2.s2301;                            \
-  X3 = X3.s1230;                            \
-                                            \
-  ADD_ROTATE_XOR (X3, X0, X1,  7);          \
-  ADD_ROTATE_XOR (X2, X3, X0,  9);          \
-  ADD_ROTATE_XOR (X1, X2, X3, 13);          \
-  ADD_ROTATE_XOR (X0, X1, X2, 18);          \
-                                            \
-  X1 = X1.s1230;                            \
-  X2 = X2.s2301;                            \
-  X3 = X3.s3012;                            \
-}
-#endif
-
 #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
 #define CO Coord(xd4,y,z)
 
-DECLSPEC void salsa_r (PRIVATE_AS uint4 *TI)
+
+DECLSPEC void salsa_r (PRIVATE_AS u32 *TI)
 {
   #if SCRYPT_R > 1
 
-  uint4 TT[STATE_CNT4 / 2];
+  u32 TT[STATE_CNT / 2];
 
-  for (int dst_off = 0, src_off = 4; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
+  for (int dst_off = 0, src_off = 16; src_off < STATE_CNT; dst_off += 16, src_off += 32)
   {
-    TT[dst_off + 0] = TI[src_off + 0];
-    TT[dst_off + 1] = TI[src_off + 1];
-    TT[dst_off + 2] = TI[src_off + 2];
-    TT[dst_off + 3] = TI[src_off + 3];
+    for (int j = 0; j < 16; j++) TT[dst_off + j] = TI[src_off + j];
   }
 
-  for (int dst_off = 4, src_off = 8; src_off < STATE_CNT4; dst_off += 4, src_off += 8)
+  for (int dst_off = 16, src_off = 32; src_off < STATE_CNT; dst_off += 16, src_off += 32)
   {
-    TI[dst_off + 0] = TI[src_off + 0];
-    TI[dst_off + 1] = TI[src_off + 1];
-    TI[dst_off + 2] = TI[src_off + 2];
-    TI[dst_off + 3] = TI[src_off + 3];
+    for (int j = 0; j < 16; j++) TI[dst_off + j] = TI[src_off + j];
   }
 
-  for (int dst_off = STATE_CNT4 / 2, src_off = 0; dst_off < STATE_CNT4; dst_off += 4, src_off += 4)
+  for (int dst_off = STATE_CNT / 2, src_off = 0; dst_off < STATE_CNT; dst_off += 16, src_off += 16)
   {
-    TI[dst_off + 0] = TT[src_off + 0];
-    TI[dst_off + 1] = TT[src_off + 1];
-    TI[dst_off + 2] = TT[src_off + 2];
-    TI[dst_off + 3] = TT[src_off + 3];
+    for (int j = 0; j < 16; j++) TI[dst_off + j] = TT[src_off + j];
   }
 
   #endif
 
-  uint4 R0 = TI[STATE_CNT4 - 4];
-  uint4 R1 = TI[STATE_CNT4 - 3];
-  uint4 R2 = TI[STATE_CNT4 - 2];
-  uint4 R3 = TI[STATE_CNT4 - 1];
+  u32 x[16];
 
-  for (int i = 0; i < STATE_CNT4; i += 4)
+  for (int j = 0; j < 16; j++) x[j] = TI[STATE_CNT - 16 + j];
+
+  for (int i = 0; i < STATE_CNT; i += 16)
   {
-    uint4 Y0 = TI[i + 0];
-    uint4 Y1 = TI[i + 1];
-    uint4 Y2 = TI[i + 2];
-    uint4 Y3 = TI[i + 3];
+    for (int j = 0; j < 16; j++)
+    {
+      x[j] ^= TI[i + j];
+    }
 
-    R0 = R0 ^ Y0;
-    R1 = R1 ^ Y1;
-    R2 = R2 ^ Y2;
-    R3 = R3 ^ Y3;
+    for (int j = 0; j < 16; j++)
+    {
+      TI[i + j] = x[j];
+    }
 
-    uint4 X0 = R0;
-    uint4 X1 = R1;
-    uint4 X2 = R2;
-    uint4 X3 = R3;
+    for (int r = 0; r < 4; r++)
+    {
+      u32 t0, t1, t2, t3;
 
-    SALSA20_2R ();
-    SALSA20_2R ();
-    SALSA20_2R ();
-    SALSA20_2R ();
+      t0 = x[ 0] + x[12];
+      t1 = x[ 1] + x[13];
+      t2 = x[ 2] + x[14];
+      t3 = x[ 3] + x[15];
+      x[ 4] ^= hc_rotl32_S (t0, 7);
+      x[ 5] ^= hc_rotl32_S (t1, 7);
+      x[ 6] ^= hc_rotl32_S (t2, 7);
+      x[ 7] ^= hc_rotl32_S (t3, 7);
 
-    R0 = R0 + X0;
-    R1 = R1 + X1;
-    R2 = R2 + X2;
-    R3 = R3 + X3;
+      t0 = x[ 4] + x[ 0];
+      t1 = x[ 5] + x[ 1];
+      t2 = x[ 6] + x[ 2];
+      t3 = x[ 7] + x[ 3];
+      x[ 8] ^= hc_rotl32_S (t0, 9);
+      x[ 9] ^= hc_rotl32_S (t1, 9);
+      x[10] ^= hc_rotl32_S (t2, 9);
+      x[11] ^= hc_rotl32_S (t3, 9);
 
-    TI[i + 0] = R0;
-    TI[i + 1] = R1;
-    TI[i + 2] = R2;
-    TI[i + 3] = R3;
+      t0 = x[ 8] + x[ 4];
+      t1 = x[ 9] + x[ 5];
+      t2 = x[10] + x[ 6];
+      t3 = x[11] + x[ 7];
+      x[12] ^= hc_rotl32_S (t0, 13);
+      x[13] ^= hc_rotl32_S (t1, 13);
+      x[14] ^= hc_rotl32_S (t2, 13);
+      x[15] ^= hc_rotl32_S (t3, 13);
+
+      t0 = x[12] + x[ 8];
+      t1 = x[13] + x[ 9];
+      t2 = x[14] + x[10];
+      t3 = x[15] + x[11];
+      x[ 0] ^= hc_rotl32_S (t0, 18);
+      x[ 1] ^= hc_rotl32_S (t1, 18);
+      x[ 2] ^= hc_rotl32_S (t2, 18);
+      x[ 3] ^= hc_rotl32_S (t3, 18);
+
+      t0 = x[ 4]; x[ 4] = x[ 7]; x[ 7] = x[ 6]; x[ 6] = x[ 5]; x[ 5] = t0;
+      t0 = x[ 8]; x[ 8] = x[10]; x[10] = t0;
+      t0 = x[ 9]; x[ 9] = x[11]; x[11] = t0;
+      t0 = x[12]; x[12] = x[13]; x[13] = x[14]; x[14] = x[15]; x[15] = t0;
+
+      t0 = x[ 0] + x[ 4];
+      t1 = x[ 1] + x[ 5];
+      t2 = x[ 2] + x[ 6];
+      t3 = x[ 3] + x[ 7];
+      x[12] ^= hc_rotl32_S (t0, 7);
+      x[13] ^= hc_rotl32_S (t1, 7);
+      x[14] ^= hc_rotl32_S (t2, 7);
+      x[15] ^= hc_rotl32_S (t3, 7);
+
+      t0 = x[12] + x[ 0];
+      t1 = x[13] + x[ 1];
+      t2 = x[14] + x[ 2];
+      t3 = x[15] + x[ 3];
+      x[ 8] ^= hc_rotl32_S (t0, 9);
+      x[ 9] ^= hc_rotl32_S (t1, 9);
+      x[10] ^= hc_rotl32_S (t2, 9);
+      x[11] ^= hc_rotl32_S (t3, 9);
+
+      t0 = x[ 8] + x[12];
+      t1 = x[ 9] + x[13];
+      t2 = x[10] + x[14];
+      t3 = x[11] + x[15];
+      x[ 4] ^= hc_rotl32_S (t0, 13);
+      x[ 5] ^= hc_rotl32_S (t1, 13);
+      x[ 6] ^= hc_rotl32_S (t2, 13);
+      x[ 7] ^= hc_rotl32_S (t3, 13);
+
+      t0 = x[ 4] + x[ 8];
+      t1 = x[ 5] + x[ 9];
+      t2 = x[ 6] + x[10];
+      t3 = x[ 7] + x[11];
+      x[ 0] ^= hc_rotl32_S (t0, 18);
+      x[ 1] ^= hc_rotl32_S (t1, 18);
+      x[ 2] ^= hc_rotl32_S (t2, 18);
+      x[ 3] ^= hc_rotl32_S (t3, 18);
+
+      t0 = x[ 4]; x[ 4] = x[ 5]; x[ 5] = x[ 6]; x[ 6] = x[ 7]; x[ 7] = t0;
+      t0 = x[ 8]; x[ 8] = x[10]; x[10] = t0;
+      t0 = x[ 9]; x[ 9] = x[11]; x[11] = t0;
+      t0 = x[15]; x[15] = x[14]; x[14] = x[13]; x[13] = x[12]; x[12] = t0;
+    }
+
+    for (int j = 0; j < 16; j++)
+    {
+      x[j] += TI[i + j];
+    }
+
+    for (int j = 0; j < 16; j++)
+    {
+      TI[i + j] = x[j];
+    }
   }
 }
 
@@ -252,7 +252,7 @@ DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
   {
     for (u32 z = 0; z < zSIZE; z++) V[CO] = X[z];
 
-    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r (X);
+    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r ((u32 *) X);
   }
 }
 
@@ -290,11 +290,11 @@ DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
 
     for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
 
-    for (u32 i = 0; i < km; i++) salsa_r (T);
+    for (u32 i = 0; i < km; i++) salsa_r ((u32 *) T);
 
     for (u32 z = 0; z < zSIZE; z++) X[z] ^= T[z];
 
-    salsa_r (X);
+    salsa_r ((u32 *) X);
   }
 }
 
@@ -619,14 +619,9 @@ KERNEL_FQ void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
 
   sha256_hmac_init_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
 
-
-  for (u32 i = 0; i < SCRYPT_CNT4; i += STATE_CNT4)
+  for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
   {
-   for (u32 j = 0; j < (STATE_CNT4 * 2); j += 8)
-   {
     uint4 X[4];
-
-    const u32 l =  i + j + ((j >= STATE_CNT4) ? (4 - STATE_CNT4) : 0);
 
     X[0] = tmps[gid].P[l + 0];
     X[1] = tmps[gid].P[l + 1];
@@ -675,7 +670,6 @@ KERNEL_FQ void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
     w3[3] = T[3].w;
 
     sha256_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
-   }
   }
 
   w0[0] = 1;
