@@ -3,27 +3,91 @@ hashcat build documentation
 
 ### Revision ###
 
-* 1.6
+* 1.7
 
 ### Author ###
 
 See docs/credits.txt
 
-### Building hashcat for Linux and macOS ###
+### Building hashcat
+
+Check your python3 version
+
+```
+$ python3 --version
+Python 3.13.3
+```
+
+If you cannot globally install a version of python >= 3.12, you can use pyenv. If you want to use pyenv please follow all the steps described below, otherwise only steps 3 and 5.
+
+### Building hashcat - Step 1
+
+#### Linux
+
+Install deps for build python3 with pyenv
+
+```
+$ sudo apt install libbz2-dev libssl-dev libncurses5-dev libffi-dev libreadline-dev libsqlite3-dev liblzma-dev
+```
+
+Install pyenv and follow the instructions at the end to properly set up your environment
+
+```
+$ curl https://pyenv.run | bash
+```
+
+#### macOS
+
+Install pyenv and follow the instructions at the end to properly set up your environment
+
+```
+$ brew install pyenv
+```
+
+### Building hashcat - Step 2
+
+Install python 3.12 (or or higher) with pyenv
+
+```
+$ pyenv install 3.12
+```
+
+Get the precise python3 version to activate
+
+```
+$ pyenv versions
+* system (set by [...]/.pyenv/version)
+  3.12.11
+```
+
+### Building hashcat - Step 3
 
 Get a copy of the **hashcat** repository
 
 ```
 $ git clone https://github.com/hashcat/hashcat.git
+$ cd hashcat
 ```
 
-Run "make"
+### Building hashcat - Step 4
+
+Sets a local application-specific Python version for hashcat
 
 ```
-$ make
+$ pyenv local 3.12.11
 ```
 
-### Install hashcat for Linux ###
+### Building hashcat - Step 5
+
+Build hashcat
+
+```
+$ make clean && make
+```
+
+### Building hashcat - Step 6 (optional)
+
+#### Install hashcat for Linux ####
 
 The install target is linux FHS compatible and can be used like this:
 
