@@ -6838,6 +6838,33 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->device_processors = device_processors;
 
+        #if defined (__APPLE__)
+        if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+        {
+          if (backend_ctx->metal_devices_cnt > 0 && backend_ctx->metal_devices_active > 0)
+          {
+            for (int metal_devices_idx = 0; metal_devices_idx < backend_ctx->metal_devices_cnt; metal_devices_idx++)
+            {
+              const int tmp_backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
+
+              hc_device_param_t *tmp_device_param = backend_ctx->devices_param + tmp_backend_devices_idx;
+
+              if (strstr (device_param->device_name, tmp_device_param->device_name) || strstr (tmp_device_param->device_name, device_param->device_name))
+              {
+                // can't detect the actual value of device_processors on macOS Intel with Metal
+                // set the value of Metal device_processor from OpenCL to solve the issue
+                if (tmp_device_param->device_processors != device_param->device_processors)
+                {
+                  tmp_device_param->device_processors = device_param->device_processors;
+
+                  break;
+                }
+              }
+            }
+          }
+        }
+        #endif // __APPLE__
+
         // device_host_unified_memory
 
         cl_bool device_host_unified_memory = false;
