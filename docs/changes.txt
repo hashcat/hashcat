@@ -137,6 +137,7 @@
 - MetaMask: update extraction tool to support MetaMask Mobile wallets
 - SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
+- Metal Backend: added workaround to set the true Processor value in Metal devices on Apple Intel
 - Metal Backend: allow use of devices with Metal if runtime version is >= 200
 - Metal Backend: disable Metal devices only if at least one OpenCL device is active
 - Modules: Check UnpackSize to raise false positive with hc_decompress_rar
