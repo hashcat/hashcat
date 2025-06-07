@@ -243,6 +243,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - Cisco-PIX MD5
 - Citrix NetScaler (SHA1)
 - Citrix NetScaler (SHA512)
+- Citrix NetScaler (PBKDF2-HMAC-SHA256)
 - Domain Cached Credentials (DCC), MS Cache
 - Domain Cached Credentials 2 (DCC2), MS Cache 2
 - FortiGate (FortiOS)
