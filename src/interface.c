@@ -363,7 +363,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     hashconfig->has_optimized_kernel = hc_path_read (source_file);
 
-    if (user_options->hash_info == false)
+    if (user_options->hash_info == 0 || user_options->hash_info > 1)
     {
       if (user_options->optimized_kernel == true)
       {
