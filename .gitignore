@@ -17,6 +17,8 @@ hashcat.dll
 *.dSYM
 kernels/**
 lib/*.a
+bridges/*.dll
+bridges/*.so
 modules/*.dll
 modules/*.so
 obj/*/*/*.o
