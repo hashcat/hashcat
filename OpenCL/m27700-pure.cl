@@ -219,7 +219,7 @@ DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
   {
     for (u32 z = 0; z < zSIZE; z++) V[CO] = X[z];
 
-    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r ((u32 *) X);
+    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r ((PRIVATE_AS u32 *) X);
   }
 }
 
@@ -257,11 +257,11 @@ DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
 
     for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
 
-    for (u32 i = 0; i < km; i++) salsa_r ((u32 *) T);
+    for (u32 i = 0; i < km; i++) salsa_r ((PRIVATE_AS u32 *) T);
 
     for (u32 z = 0; z < zSIZE; z++) X[z] ^= T[z];
 
-    salsa_r ((u32 *) X);
+    salsa_r ((PRIVATE_AS u32 *) X);
   }
 }
 

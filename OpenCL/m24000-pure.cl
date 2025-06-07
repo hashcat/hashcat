@@ -257,7 +257,7 @@ DECLSPEC void scrypt_smix (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL_AS u
   {
     for (u32 z = 0; z < zSIZE; z++) V[CO] = X[z];
 
-    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r ((u32 *) X);
+    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r ((PRIVATE_AS u32 *) X);
   }
 
   for (u32 i = 0; i < SCRYPT_N; i++)
@@ -270,11 +270,11 @@ DECLSPEC void scrypt_smix (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL_AS u
 
     for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
 
-    for (u32 i = 0; i < km; i++) salsa_r ((u32 *) T);
+    for (u32 i = 0; i < km; i++) salsa_r ((PRIVATE_AS u32 *) T);
 
     for (u32 z = 0; z < zSIZE; z++) X[z] ^= T[z];
 
-    salsa_r ((u32 *) X);
+    salsa_r ((PRIVATE_AS u32 *) X);
   }
 
   #ifdef _unroll
