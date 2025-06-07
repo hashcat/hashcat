@@ -1,155 +1,138 @@
-hashcat build documentation
-=
 
-### Revision ###
+# Hashcat – Build Documentation
 
-* 1.7
+**Revision**: 1.7  
+**Author**: See `docs/credits.txt`
 
-### Author ###
+---
 
-See docs/credits.txt
+## ✅ Requirements
 
-### Building hashcat
+- **Python 3.12** or higher
 
-Check your python3 version
+Check your Python version:
 
-```
+```bash
 $ python3 --version
-Python 3.13.3
+# Expected output: Python 3.13.3
 ```
 
-If you cannot globally install a version of python >= 3.12, you can use pyenv. If you want to use pyenv please follow all the steps described below, otherwise only steps 3 and 5.
+If you can't install Python ≥ 3.12 globally, you can use **pyenv**.
 
-### Building hashcat - Step 1
+> If you're using `pyenv`, follow **all steps** below. Otherwise, follow only **steps 3 and 5**.
 
-#### Linux
+---
 
-Install deps for build python3 with pyenv
+## 🛠️ Building Hashcat – Step-by-Step
 
-```
+### 🔹 Step 1: Install dependencies and pyenv
+
+#### On Linux
+
+Install required libraries to build Python:
+
+```bash
 $ sudo apt install libbz2-dev libssl-dev libncurses5-dev libffi-dev libreadline-dev libsqlite3-dev liblzma-dev
 ```
 
-Install pyenv and follow the instructions at the end to properly set up your environment
+Install `pyenv`:
 
-```
+```bash
 $ curl https://pyenv.run | bash
 ```
 
-#### macOS
+> Follow the instructions shown after installation to set up your shell correctly.
 
-Install pyenv and follow the instructions at the end to properly set up your environment
+#### On macOS
 
-```
+Install `pyenv` via Homebrew:
+
+```bash
 $ brew install pyenv
 ```
 
-### Building hashcat - Step 2
+---
 
-Install python 3.12 (or or higher) with pyenv
+### 🔹 Step 2: Install Python using pyenv
 
-```
+Install Python 3.12 (or newer):
+
+```bash
 $ pyenv install 3.12
 ```
 
-Get the precise python3 version to activate
+Check installed versions:
 
-```
+```bash
 $ pyenv versions
-* system (set by [...]/.pyenv/version)
-  3.12.11
+# Example:
+# * system
+#   3.12.11
 ```
 
-### Building hashcat - Step 3
+---
 
-Get a copy of the **hashcat** repository
+### 🔹 Step 3: Clone the Hashcat repository
 
-```
+```bash
 $ git clone https://github.com/hashcat/hashcat.git
 $ cd hashcat
 ```
 
-### Building hashcat - Step 4
+---
 
-Sets a local application-specific Python version for hashcat
+### 🔹 Step 4: Set the local Python version
 
-```
+```bash
 $ pyenv local 3.12.11
 ```
 
-### Building hashcat - Step 5
+---
 
-Build hashcat
+### 🔹 Step 5: Build Hashcat
 
-```
+```bash
 $ make clean && make
 ```
 
-### Building hashcat - Step 6 (optional)
+---
 
-#### Install hashcat for Linux ####
+### 🔹 Step 6 (Optional): Install Hashcat (Linux only)
 
-The install target is linux FHS compatible and can be used like this:
-
-```
+```bash
 $ make install
 ```
 
-If the $HOME/.hashcat folder exists, then:
+Hashcat will use the following locations depending on your environment:
 
-- Session related files go to: $HOME/.hashcat/sessions/
-- Cached kernels go to: $HOME/.hashcat/kernels/
-- Potfiles go to: $HOME/.hashcat/
+| Condition                                   | Session Files                          | Kernel Cache                          | Potfiles                              |
+|--------------------------------------------|----------------------------------------|---------------------------------------|----------------------------------------|
+| `$HOME/.hashcat` exists                    | `$HOME/.hashcat/sessions/`             | `$HOME/.hashcat/kernels/`             | `$HOME/.hashcat/`                      |
+| `$XDG_DATA_HOME` and `$XDG_CACHE_HOME` set | `$XDG_DATA_HOME/hashcat/sessions/`     | `$XDG_CACHE_HOME/hashcat/kernels/`    | `$XDG_DATA_HOME/hashcat/`              |
+| Only `$XDG_DATA_HOME` set                  | `$XDG_DATA_HOME/hashcat/sessions/`     | `$HOME/.cache/hashcat/`               | `$XDG_DATA_HOME/hashcat/`              |
+| Only `$XDG_CACHE_HOME` set                 | `$HOME/.local/share/hashcat/sessions/` | `$XDG_CACHE_HOME/hashcat/kernels/`    | `$HOME/.local/share/hashcat/`          |
+| None of the above                          | `$HOME/.local/share/hashcat/sessions/` | `$HOME/.cache/hashcat/`               | `$HOME/.local/share/hashcat/`          |
 
-Otherwise, if environment variable XDG_DATA_HOME and XDG_CACHE_HOME exists, then:
+---
 
-- Session related files go to: $XDG_DATA_HOME/hashcat/sessions/
-- Cached kernels go to: $XDG_CACHE_HOME/hashcat/kernels/
-- Potfiles go to: $XDG_DATA_HOME/hashcat/
+## 🐳 Building Hashcat with Docker
 
-Otherwise, if environment variable XDG_DATA_HOME exists, then:
+See: [BUILD_Docker.md](BUILD_Docker.md)
 
-- Session related files go to: $XDG_DATA_HOME/hashcat/sessions/
-- Cached kernels go to: $HOME/.cache/hashcat
-- Potfiles go to: $XDG_DATA_HOME/hashcat/
+---
 
-Otherwise, if environment variable XDG_CACHE_HOME exists, then:
+## 🪟 Building Hashcat for Windows
 
-- Session related files go to: $HOME/.local/share/hashcat/sessions/
-- Cached kernels go to: $XDG_CACHE_HOME/hashcat/kernels/
-- Potfiles go to: $HOME/.local/share/hashcat/
+| Method                                 | Documentation                        |
+|----------------------------------------|--------------------------------------|
+| From macOS                             | [BUILD_macOS.md](BUILD_macOS.md)     |
+| Using Windows Subsystem for Linux (WSL)| [BUILD_WSL.md](BUILD_WSL.md)         |
+| Using Cygwin                           | [BUILD_CYGWIN.md](BUILD_CYGWIN.md)   |
+| Using MSYS2                            | [BUILD_MSYS2.md](BUILD_MSYS2.md)     |
+| From Linux                             | Run: `make win`                      |
 
-Otherwise:
+---
 
-- Session related files go to: $HOME/.local/share/hashcat/sessions/
-- Cached kernels go to: $HOME/.cache/hashcat
-- Potfiles go to: $HOME/.local/share/hashcat/
+## 🎉 Done
 
-### Building hashcat binaries using Docker ###
-
-Refer to [BUILD_Docker.md](BUILD_Docker.md)
-
-### Building hashcat for Windows (using macOS) ###
-
-Refer to [BUILD_macOS.md](BUILD_macOS.md)
-
-### Building hashcat for Windows (using Windows Subsystem for Linux) ###
-
-Refer to [BUILD_WSL.md](BUILD_WSL.md)
-
-### Building hashcat for Windows (using Cygwin) ###
-
-Refer to [BUILD_CYGWIN.md](BUILD_CYGWIN.md)
-
-### Building hashcat for Windows (using MSYS2) ###
-
-Refer to [BUILD_MSYS2.md](BUILD_MSYS2.md)
-
-### Building hashcat for Windows from Linux ###
-
-```
-$ make win
-```
-
-=
-Enjoy your fresh **hashcat** binaries ;)
+Enjoy your fresh **Hashcat** binaries! 😎
