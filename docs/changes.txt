@@ -31,6 +31,7 @@
 - Added hash-mode: Kerberos 5, etype 18, AS-REP
 - Added hash-mode: MetaMask Mobile Wallet
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
+- Added hash-mode: Microsoft Online Account (PBKDF2-HMAC-SHA256 + AES256)
 - Added hash-mode: NetIQ SSPR (MD5)
 - Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA1)
 - Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA256)
