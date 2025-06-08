@@ -188,7 +188,7 @@ typedef struct
 
 } python_interpreter_t;
 
-#if defined (_WIN) || defined (__APPLE__)
+#if defined (_WIN) || defined (__CYGWIN__) || defined (__APPLE__)
 static char *DEFAULT_SOURCE_FILENAME = "generic_hash_sp";
 #else
 static char *DEFAULT_SOURCE_FILENAME = "generic_hash_mp";
