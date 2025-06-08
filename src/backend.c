@@ -8143,12 +8143,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-      if (user_options->backend_devices_keepfree)
+      if (user_options->backend_devices_keepfree < 100)
       {
         device_param->device_available_mem = (device_param->device_global_mem * (100 - user_options->backend_devices_keepfree)) / 100;
       }
       // this section is creating more problems than it solves, so lets use a fixed multiplier instead
-      // users can override with --backend-devices-keepfree=0
+      // users can override with --backend-devices-keepfree=100
       else if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
       {
         // following the same logic as for OpenCL, explained later
@@ -8424,12 +8424,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-          if (user_options->backend_devices_keepfree)
+          if (user_options->backend_devices_keepfree < 100)
           {
             device_param->device_available_mem = (device_param->device_global_mem * (100 - user_options->backend_devices_keepfree)) / 100;
           }
           // this section is creating more problems than it solves, so lets use a fixed multiplier instead
-          // users can override with --backend-devices-keepfree=0
+          // users can override with --backend-devices-keepfree=100
           else if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
           {
             // OK, so the problem here is the following:
@@ -9649,7 +9649,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (module_ctx->module_extra_tuningdb_block != MODULE_DEFAULT)
     {
-      const char *extra_tuningdb_block = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra);
+      const char *extra_tuningdb_block = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra, backend_ctx, hashes);
 
       char *lines_buf = hcstrdup (extra_tuningdb_block);
 
@@ -9669,7 +9669,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (next[0] == '#') continue;
 
-        tuning_db_process_line (hashcat_ctx, next, line_num);
+        tuning_db_process_line (hashcat_ctx, next, line_num, 2);
 
       } while ((next = strtok_r ((char *) NULL, "\n", &saveptr)) != NULL);
 

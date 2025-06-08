@@ -43,6 +43,11 @@ int sort_by_tuning_db_entry (const void *v1, const void *v2)
 
   if (res3 != 0) return (res3);
 
+  const int res4 = t1->source
+                 - t2->source;
+
+  if (res4 != 0) return (res4);
+
   return 0;
 }
 
@@ -113,7 +118,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
       if (line_buf[0] == '#') continue;
 
-      tuning_db_process_line (hashcat_ctx, line_buf, line_num);
+      tuning_db_process_line (hashcat_ctx, line_buf, line_num, 1);
     }
 
     hcfree (buf);
@@ -162,7 +167,7 @@ void tuning_db_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (tuning_db, 0, sizeof (tuning_db_t));
 }
 
-bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, const int line_num)
+bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, const int line_num, const int source)
 {
   tuning_db_t           *tuning_db          = hashcat_ctx->tuning_db;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
@@ -348,6 +353,7 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
     entry->vector_width = vector_width;
     entry->kernel_accel = kernel_accel;
     entry->kernel_loops = kernel_loops;
+    entry->source       = source;
 
     tuning_db->entry_cnt++;
   }
@@ -365,7 +371,7 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
   return true;
 }
 
-tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
+static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
 {
   tuning_db_t *tuning_db = hashcat_ctx->tuning_db;
 
@@ -424,11 +430,12 @@ tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char
 
   // this will produce all 2^3 combinations required
 
-  for (i = 0; i < 8; i++)
+  for (i = 0; i < 16; i++)
   {
-    s.device_name = (i & 1) ? "*" : device_name_nospace;
+    s.source      = (i & 1) ?   2 : 1;
     s.attack_mode = (i & 2) ?  -1 : attack_mode;
     s.hash_mode   = (i & 4) ?  -1 : hash_mode;
+    s.device_name = (i & 8) ? "*" : device_name_nospace;
 
     entry = (tuning_db_entry_t *) bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
 
@@ -436,7 +443,7 @@ tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char
 
     // in non-wildcard mode do some additional checks:
 
-    if ((i & 1) == 0)
+    if ((i & 8) == 0)
     {
       // in case we have an alias-name
 
@@ -501,5 +508,7 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   entry = tuning_db_search_real (hashcat_ctx, device_name, device_type, attack_mode, hash_mode);
 
-  return entry;
+  if (entry) return entry;
+
+  return NULL;
 }

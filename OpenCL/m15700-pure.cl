@@ -68,27 +68,6 @@ DECLSPEC uint4 hc_swap32_4 (uint4 v)
 
 DECLSPEC void salsa_r (PRIVATE_AS u32 *TI)
 {
-  #if SCRYPT_R > 1
-
-  u32 TT[STATE_CNT / 2];
-
-  for (int dst_off = 0, src_off = 16; src_off < STATE_CNT; dst_off += 16, src_off += 32)
-  {
-    for (int j = 0; j < 16; j++) TT[dst_off + j] = TI[src_off + j];
-  }
-
-  for (int dst_off = 16, src_off = 32; src_off < STATE_CNT; dst_off += 16, src_off += 32)
-  {
-    for (int j = 0; j < 16; j++) TI[dst_off + j] = TI[src_off + j];
-  }
-
-  for (int dst_off = STATE_CNT / 2, src_off = 0; dst_off < STATE_CNT; dst_off += 16, src_off += 16)
-  {
-    for (int j = 0; j < 16; j++) TI[dst_off + j] = TT[src_off + j];
-  }
-
-  #endif
-
   u32 x[16];
 
   for (int j = 0; j < 16; j++) x[j] = TI[STATE_CNT - 16 + j];
@@ -202,6 +181,27 @@ DECLSPEC void salsa_r (PRIVATE_AS u32 *TI)
       TI[i + j] = x[j];
     }
   }
+
+  #if SCRYPT_R > 1
+
+  u32 TT[STATE_CNT / 2];
+
+  for (int dst_off = 0, src_off = 16; src_off < STATE_CNT; dst_off += 16, src_off += 32)
+  {
+    for (int j = 0; j < 16; j++) TT[dst_off + j] = TI[src_off + j];
+  }
+
+  for (int dst_off = 16, src_off = 32; src_off < STATE_CNT; dst_off += 16, src_off += 32)
+  {
+    for (int j = 0; j < 16; j++) TI[dst_off + j] = TI[src_off + j];
+  }
+
+  for (int dst_off = STATE_CNT / 2, src_off = 0; dst_off < STATE_CNT; dst_off += 16, src_off += 16)
+  {
+    for (int j = 0; j < 16; j++) TI[dst_off + j] = TT[src_off + j];
+  }
+
+  #endif
 }
 
 DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)

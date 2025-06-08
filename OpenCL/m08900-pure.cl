@@ -194,7 +194,6 @@ DECLSPEC void salsa_r (PRIVATE_AS u32 *TI)
   }
 
   #endif
-
 }
 
 DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)

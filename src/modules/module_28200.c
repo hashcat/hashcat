@@ -10,6 +10,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -93,6 +94,93 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
   const u64 esalt_size = (const u64) sizeof (exodus_t);
 
   return esalt_size;
+}
+
+const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes)
+{
+  // we enforce the same configuration for all hashes, so this should be fine
+
+  const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
+  const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
+
+  const u64 req1 = 128 * scrypt_r * scrypt_N * module_kernel_threads_max (hashconfig, user_options, user_options_extra);
+
+  int   lines_sz  = 4096;
+  char *lines_buf = hcmalloc (lines_sz);
+  int   lines_pos = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+
+    const u64 avail = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - (2 * req1);
+
+    char *new_device_name = hcstrdup (device_param->device_name);
+
+    for (size_t i = 0; i < strlen (new_device_name); i++)
+    {
+      if (new_device_name[i] == ' ') new_device_name[i] = '_';
+    }
+
+    char *out_name = new_device_name;
+
+    if (memcmp (new_device_name, "AMD_",    4) == 0) out_name += 4;
+    if (memcmp (new_device_name, "NVIDIA_", 7) == 0) out_name += 7;
+
+    // ok, try to find a nice accel programmatically
+
+    u32 accel = device_param->device_processors;
+
+    if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+    {
+      // expect to change any of this
+
+      if (avail < (req1 * accel)) // not enough memory
+      {
+        const float multi = (float) avail / req1;
+
+        accel = multi;
+
+        for (int i = 1; i <= 4; i++) // this is tmto
+        {
+          if (device_param->device_processors > accel)
+          {
+            accel = ((u64) multi << i) & ~3;
+          }
+        }
+      }
+      else
+      {
+        for (int i = 1; i <= 8; i++)
+        {
+          if ((avail * 2) > (req1 * accel))
+          {
+            accel = device_param->device_processors * i;
+          }
+        }
+      }
+    }
+    else
+    {
+      const u64 req1 = 128 * scrypt_r * scrypt_N;
+
+      for (int i = 1; i <= 8; i++)
+      {
+        if (avail > (req1 * accel))
+        {
+          accel = device_param->device_processors * i;
+        }
+      }
+    }
+
+    lines_pos += snprintf (lines_buf + lines_pos, lines_sz - lines_pos, "%s * %u 1 %u A\n", out_name, user_options->hash_mode, accel);
+
+    hcfree (new_device_name);
+  }
+
+  return lines_buf;
 }
 
 u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -513,7 +601,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = module_extra_buffer_size;
   module_ctx->module_extra_tmp_size           = module_extra_tmp_size;
-  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block     = module_extra_tuningdb_block;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;

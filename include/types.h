@@ -670,7 +670,7 @@ typedef enum user_options_defaults
   AUTODETECT               = false,
   BACKEND_DEVICES_VIRTMULTI = 1,
   BACKEND_DEVICES_VIRTHOST = 1,
-  BACKEND_DEVICES_KEEPFREE = 20,
+  BACKEND_DEVICES_KEEPFREE = 0,
   BENCHMARK_ALL            = false,
   BENCHMARK_MAX            = 99999,
   BENCHMARK_MIN            = 0,
@@ -2324,6 +2324,7 @@ typedef struct tuning_db_entry
   int         vector_width;
   int         kernel_accel;
   int         kernel_loops;
+  int         source; // 1 = dbfile, 2 = module
 
 } tuning_db_entry_t;
 
@@ -3012,7 +3013,7 @@ typedef struct module_ctx
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_dictstat_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const backend_ctx_t *, const hashes_t *);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
