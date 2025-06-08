@@ -532,7 +532,7 @@ static bool init_python (hc_python_lib_t *python)
     printf ("Loaded python library from: %s\n\n", pythondll_path);
   }
 
-  #if defined (_WIN) || defined (__APPLE__)
+  #if defined (_WIN) || defined (__CYGWIN__) || defined (__APPLE__)
 
   #else
   fprintf (stderr, "Attention!!! The 'free-threaded' python library has some major downsides.\n");
