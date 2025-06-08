@@ -714,7 +714,7 @@ void *platform_init (user_options_t *user_options)
 
   unit_t *unit_buf = &python_interpreter->units_buf[0];
 
-  #if defined (_WIN) || defined (__APPLE__)
+  #if defined (_WIN) || defined (__CYGWIN__) || defined (__APPLE__)
   fprintf (stderr, "Attention!!! Falling back to single-threaded mode.\n");
   fprintf (stderr, " Windows and MacOS ds not support multiprocessing module cleanly!\n");
   fprintf (stderr, " For multithreading on Windows and MacOS, please use -m 72000 instead.\n\n");
