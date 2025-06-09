@@ -26,7 +26,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_UTF16LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$MSONLINEACCOUNT$0$10000$91869d1d5d3a1df25dd3f0e57bbc226aaae0b6e3a61991083f314886b26c7477c4c6bfb99e48cb0eed6d76d9a59c2e8462c308fd681fd5ac591500b7f6b3c9eec87c1c2f8f563cc0cd24f411f44d5cc74e44b6b12d5f31c9f5c6818b6472bb37116d2584f6938f8b797fdd71449d844e10277e8d2f1eb5a57d6abc9ccf0b681ca463a0f18080a464cbfd859f955c67a9f06427638893d6331f5e529e0e59f4b6e1a775a93a9df5573010886265786ce8c6dfa65a0e9de99f9fdbfa5ff9668534fccc419c9f99c9853e04d4455130712486c643b5aca11a9aba85be271deef6bad064936bb86a96303fc430f31ed5b172";
+static const char *ST_HASH        = "$MSONLINEACCOUNT$0$10000$91869d1d5d3a1df25dd3f0e57bbc226a43641bc03086dcb5b6672941fcabce01";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -55,7 +55,7 @@ typedef struct pkcs_sha256_tmp
 
 typedef struct pkcs
 {
-  u32 data_buf[60];
+  u32 data_buf[8];
   int data_len;
 
 } pkcs_t;
@@ -107,7 +107,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[3]     = '$';
-  token.len[3]     = 480;
+  token.len[3]     = 64;
   token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -136,7 +136,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pkcs->data_len = hex_decode (data_pos, data_len, (u8 *) pkcs->data_buf);
 
-  // hash
+  // fake digest
 
   digest[0] = pkcs->data_buf[0];
   digest[1] = pkcs->data_buf[1];
@@ -145,10 +145,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // set fake salt
 
-  salt->salt_buf[0] = digest[0];
-  salt->salt_buf[1] = digest[1];
-  salt->salt_buf[2] = digest[2];
-  salt->salt_buf[3] = digest[3];
+  salt->salt_buf[0] = pkcs->data_buf[0];
+  salt->salt_buf[1] = pkcs->data_buf[1];
+  salt->salt_buf[2] = pkcs->data_buf[2];
+  salt->salt_buf[3] = pkcs->data_buf[3];
+
+  salt->salt_len = 16;
 
   return (PARSER_OK);
 }

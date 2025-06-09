@@ -28,7 +28,7 @@ typedef struct pkcs_sha256_tmp
 
 typedef struct pkcs
 {
-  u32 data_buf[60];
+  u32 data_buf[8];
   int data_len;
 
 } pkcs_t;
@@ -360,10 +360,6 @@ KERNEL_FQ void m33700_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha256_tmp_t, pkcs_t))
   ukey[6] = tmps[gid].out[6];
   ukey[7] = tmps[gid].out[7];
 
-  //const int data_len = esalt_bufs[DIGESTS_OFFSET_HOST].data_len;
-
-  u32 iv[4] = { 0 };
-
   // decrypt first block
 
   u32 enc[4];
@@ -380,15 +376,13 @@ KERNEL_FQ void m33700_comp (KERN_ATTR_TMPS_ESALT (pkcs_sha256_tmp_t, pkcs_t))
 
   aes256_decrypt (ks, enc, dec, s_td0, s_td1, s_td2, s_td3, s_td4);
 
-  dec[0] ^= iv[0];
-  dec[0] = hc_swap32_S (dec[0]);
+  dec[0] ^= 0x00000000;
 
   if (dec[0] != 0x00000000) return;
 
-  dec[1] ^= iv[1];
-  dec[1] = hc_swap32_S (dec[1]);
+  dec[1] ^= 0x00000000;
 
-  if (dec[1] != 0x01000000) return;
+  if (dec[1] != 0x00000001) return;
 
   if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
   {
