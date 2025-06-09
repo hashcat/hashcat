@@ -24,6 +24,7 @@
 #include "dynloader.h"
 #include "backend.h"
 #include "terminal.h"
+#include "hwmon.h"
 
 #if defined (__linux__)
 static const char *const  dri_card0_path = "/dev/dri/card0";
@@ -9649,7 +9650,44 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (module_ctx->module_extra_tuningdb_block != MODULE_DEFAULT)
     {
-      const char *extra_tuningdb_block = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra, backend_ctx, hashes);
+      // We need this because we can't trust CUDA/HIP to give us the real free device memory
+      // The only way to do so is through low level APIs
+
+      for (int i = 0; i < 10; i++)
+      {
+        const u64 used_bytes = hm_get_memoryused_with_devices_idx (hashcat_ctx, device_id);
+
+        if (used_bytes)
+        {
+          if ((used_bytes > (2ULL * 1024 * 1024 * 1024))
+           || (used_bytes > (device_param->device_global_mem * 0.5)))
+          {
+            event_log_warning (hashcat_ctx, "* Device #%u: Memory usage is too high: %" PRIu64 "/%" PRIu64 ", waiting...", device_id + 1, used_bytes, device_param->device_global_mem);
+
+            sleep (1);
+
+            continue;
+          }
+
+          device_param->device_available_mem -= used_bytes;
+
+          break;
+        }
+        else
+        {
+          break;
+        }
+      }
+
+      u32 _kernel_accel = 0;
+
+      tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+
+      if (tuningdb_entry != NULL) _kernel_accel = tuningdb_entry->kernel_accel;
+
+      if (user_options->kernel_accel_chgd == true) _kernel_accel = user_options->kernel_accel;
+
+      const char *extra_tuningdb_block = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra, backend_ctx, hashes, device_id, _kernel_accel);
 
       char *lines_buf = hcstrdup (extra_tuningdb_block);
 
@@ -9669,7 +9707,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (next[0] == '#') continue;
 
-        tuning_db_process_line (hashcat_ctx, next, line_num, 2);
+        tuning_db_process_line (hashcat_ctx, next, line_num);
 
       } while ((next = strtok_r ((char *) NULL, "\n", &saveptr)) != NULL);
 

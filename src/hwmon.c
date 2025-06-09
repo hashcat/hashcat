@@ -1214,6 +1214,60 @@ int hm_get_throttle_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
   return -1;
 }
 
+u64 hm_get_memoryused_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (hwmon_ctx->enabled == false) return 0;
+
+  if (hwmon_ctx->hm_device[backend_device_idx].memoryused_get_supported == false) return 0;
+
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true) || (backend_ctx->devices_param[backend_device_idx].is_cuda == true))
+  {
+    if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
+    {
+      if ((backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD) || (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
+      {
+        if (hwmon_ctx->hm_sysfs_amdgpu)
+        {
+          u64 used = 0;
+
+          if (hm_SYSFS_AMDGPU_get_mem_info_vram_used (hashcat_ctx, backend_device_idx, &used) == -1)
+          {
+            hwmon_ctx->hm_device[backend_device_idx].memoryused_get_supported = false;
+
+            return 0;
+          }
+
+          return used;
+        }
+      }
+
+      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_NV)
+      {
+        if (hwmon_ctx->hm_nvml)
+        {
+          nvmlMemory_t mem;
+
+          if (hm_NVML_nvmlDeviceGetMemoryInfo (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &mem) == -1)
+          {
+            hwmon_ctx->hm_device[backend_device_idx].memoryused_get_supported = false;
+
+            return 0;
+          }
+
+          return mem.used;
+        }
+      }
+    }
+  }
+
+  hwmon_ctx->hm_device[backend_device_idx].memoryused_get_supported = false;
+
+  return 0;
+}
+
 int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
@@ -1227,12 +1281,12 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true) backend_devices_cnt = 1;
 
-  #if !defined (WITH_HWMON)
-  return 0;
-  #endif // WITH_HWMON
+  //#if !defined (WITH_HWMON)
+  //return 0;
+  //#endif // WITH_HWMON
 
   if (user_options->usage          > 0)     return 0;
-  if (user_options->backend_info   > 0)     return 0;
+  //if (user_options->backend_info   > 0)     return 0;
 
   if (user_options->hash_info     == true)  return 0;
   if (user_options->keyspace      == true)  return 0;
@@ -1241,7 +1295,9 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->stdout_flag   == true)  return 0;
   if (user_options->version       == true)  return 0;
   if (user_options->identify      == true)  return 0;
-  if (user_options->hwmon         == false) return 0;
+  //we need hwmon support to get free memory per device support
+  //its a joke, but there's no way around
+  //if (user_options->hwmon         == false) return 0;
 
   hwmon_ctx->hm_device = (hm_attrs_t *) hccalloc (DEVICES_MAX, sizeof (hm_attrs_t));
 
@@ -1387,6 +1443,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
               hm_adapters_nvml[device_id].threshold_shutdown_get_supported  = true;
               hm_adapters_nvml[device_id].threshold_slowdown_get_supported  = true;
               hm_adapters_nvml[device_id].utilization_get_supported         = true;
+              hm_adapters_nvml[device_id].memoryused_get_supported          = true;
             }
           }
         }
@@ -1419,6 +1476,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
               hm_adapters_nvml[device_id].threshold_shutdown_get_supported  = true;
               hm_adapters_nvml[device_id].threshold_slowdown_get_supported  = true;
               hm_adapters_nvml[device_id].utilization_get_supported         = true;
+              hm_adapters_nvml[device_id].memoryused_get_supported          = true;
             }
           }
         }
@@ -1640,6 +1698,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hm_adapters_sysfs_amdgpu[device_id].memoryspeed_get_supported = true;
             hm_adapters_sysfs_amdgpu[device_id].temperature_get_supported = true;
             hm_adapters_sysfs_amdgpu[device_id].utilization_get_supported = true;
+            hm_adapters_sysfs_amdgpu[device_id].memoryused_get_supported  = true;
           }
         }
       }
@@ -1746,6 +1805,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_nvml[device_id].threshold_slowdown_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_nvml[device_id].throttle_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_nvml[device_id].utilization_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].memoryused_get_supported          |= hm_adapters_nvml[device_id].memoryused_get_supported;
       }
 
       if (hwmon_ctx->hm_nvapi)
@@ -1875,6 +1935,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_sysfs_amdgpu[device_id].threshold_slowdown_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_sysfs_amdgpu[device_id].throttle_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_sysfs_amdgpu[device_id].utilization_get_supported;
+            hwmon_ctx->hm_device[backend_devices_idx].memoryused_get_supported          |= hm_adapters_sysfs_amdgpu[device_id].memoryused_get_supported;
           }
         }
 
@@ -1895,6 +1956,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hwmon_ctx->hm_device[backend_devices_idx].threshold_slowdown_get_supported  |= hm_adapters_nvml[device_id].threshold_slowdown_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].throttle_get_supported            |= hm_adapters_nvml[device_id].throttle_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_nvml[device_id].utilization_get_supported;
+            hwmon_ctx->hm_device[backend_devices_idx].memoryused_get_supported          |= hm_adapters_nvml[device_id].memoryused_get_supported;
           }
 
           if (hwmon_ctx->hm_nvapi)
@@ -1927,6 +1989,7 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
     hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx, backend_devices_idx);
     hm_get_throttle_with_devices_idx           (hashcat_ctx, backend_devices_idx);
     hm_get_utilization_with_devices_idx        (hashcat_ctx, backend_devices_idx);
+    hm_get_memoryused_with_devices_idx         (hashcat_ctx, backend_devices_idx);
   }
 
   FREE_ADAPTERS;

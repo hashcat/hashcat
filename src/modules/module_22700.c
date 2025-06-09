@@ -49,6 +49,8 @@ const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 static const char *SIGNATURE_MULTIBIT = "$multibit$";
 
+static const u32 SCRYPT_THREADS = 32;
+
 static const u64 SCRYPT_N = 16384;
 static const u64 SCRYPT_R = 8;
 static const u64 SCRYPT_P = 1;
@@ -67,9 +69,16 @@ u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   return kernel_loops_max;
 }
 
+u32 module_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_threads_min = (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : SCRYPT_THREADS;
+
+  return kernel_threads_min;
+}
+
 u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_threads_max = 32;
+  const u32 kernel_threads_max = (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : SCRYPT_THREADS;
 
   return kernel_threads_max;
 }
@@ -84,89 +93,121 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
   return pw_max;
 }
 
-const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes)
+u32 tmto = 0;
+
+const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel)
 {
+  // preprocess tmto in case user has overridden
+  // it's important to set to 0 otherwise so we can postprocess tmto in that case
+
+  tmto = (user_options->scrypt_tmto_chgd == true) ? user_options->scrypt_tmto : 0;
+
   // we enforce the same configuration for all hashes, so this should be fine
 
   const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
   const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
 
-  const u64 req1 = 128 * scrypt_r * scrypt_N * module_kernel_threads_max (hashconfig, user_options, user_options_extra);
+  const u64 size_per_accel = (128 * scrypt_r * scrypt_N * module_kernel_threads_max (hashconfig, user_options, user_options_extra)) >> tmto;
 
   int   lines_sz  = 4096;
   char *lines_buf = hcmalloc (lines_sz);
   int   lines_pos = 0;
 
-  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
+
+  const u32 device_processors = device_param->device_processors;
+
+  const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4));
+
+  u32 kernel_accel_new = device_processors;
+
+  if (kernel_accel)
   {
-    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+    // from command line or tuning db has priority
 
-    if (device_param->skipped == true) continue;
-
-    const u64 avail = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - (2 * req1);
-
-    char *new_device_name = hcstrdup (device_param->device_name);
-
-    for (size_t i = 0; i < strlen (new_device_name); i++)
-    {
-      if (new_device_name[i] == ' ') new_device_name[i] = '_';
-    }
-
-    char *out_name = new_device_name;
-
-    if (memcmp (new_device_name, "AMD_",    4) == 0) out_name += 4;
-    if (memcmp (new_device_name, "NVIDIA_", 7) == 0) out_name += 7;
-
-    // ok, try to find a nice accel programmatically
-
-    u32 accel = device_param->device_processors;
+    kernel_accel_new = user_options->kernel_accel;
+  }
+  else
+  {
+    // find a nice kernel_accel programmatically
 
     if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
-      // expect to change any of this
-
-      if (avail < (req1 * accel)) // not enough memory
+      if ((size_per_accel * device_processors) > available_mem) // not enough memory
       {
-        const float multi = (float) avail / req1;
+        const float multi = (float) available_mem / size_per_accel;
 
-        accel = multi;
+        int accel_multi;
 
-        for (int i = 1; i <= 4; i++) // this is tmto
+        for (accel_multi = 1; accel_multi <= 2; accel_multi++)
         {
-          if (device_param->device_processors > accel)
-          {
-            accel = ((u64) multi << i) & ~3;
-          }
+          kernel_accel_new = multi * (1 << accel_multi);
+
+          if (kernel_accel_new >= device_processors) break;
+        }
+
+        // we need some space for tmps[], ...
+
+        kernel_accel_new -= (1 << accel_multi);
+
+        // clamp if close to device processors -- 10% good?
+
+        if ((kernel_accel_new > device_processors) && ((kernel_accel_new - device_processors) <= (device_processors / 10)))
+        {
+          kernel_accel_new = device_processors;
         }
       }
       else
       {
         for (int i = 1; i <= 8; i++)
         {
-          if ((avail * 2) > (req1 * accel))
+          if ((size_per_accel * device_processors * i) < available_mem)
           {
-            accel = device_param->device_processors * i;
+            kernel_accel_new = device_processors * i;
           }
         }
       }
     }
     else
     {
-      const u64 req1 = 128 * scrypt_r * scrypt_N;
-
       for (int i = 1; i <= 8; i++)
       {
-        if (avail > (req1 * accel))
+        if ((size_per_accel * device_processors * i) < available_mem)
         {
-          accel = device_param->device_processors * i;
+          kernel_accel_new = device_processors * i;
         }
       }
     }
-
-    lines_pos += snprintf (lines_buf + lines_pos, lines_sz - lines_pos, "%s * %u 1 %u A\n", out_name, user_options->hash_mode, accel);
-
-    hcfree (new_device_name);
   }
+
+  // fix tmto if user allows
+
+  if (tmto == 0)
+  {
+    const u32 tmto_start = 1;
+    const u32 tmto_stop  = 5;
+
+    for (u32 tmto_new = tmto_start; tmto_new <= tmto_stop; tmto_new++)
+    {
+      if (available_mem > (kernel_accel_new * (size_per_accel >> tmto_new)))
+      {
+        tmto = tmto_new;
+
+        break;
+      }
+    }
+  }
+
+  char *new_device_name = hcstrdup (device_param->device_name);
+
+  for (size_t i = 0; i < strlen (new_device_name); i++)
+  {
+    if (new_device_name[i] == ' ') new_device_name[i] = '_';
+  }
+
+  lines_pos += snprintf (lines_buf + lines_pos, lines_sz - lines_pos, "%s * %u 1 %u A\n", new_device_name, user_options->hash_mode, kernel_accel_new);
+
+  hcfree (new_device_name);
 
   return lines_buf;
 }
@@ -179,115 +220,11 @@ u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
   const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
 
-  const u64 kernel_power_max = ((OPTS_TYPE & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * device_param->kernel_threads_max * device_param->kernel_accel_max;
+  const u64 size_per_accel = 128 * scrypt_r * scrypt_N * module_kernel_threads_max (hashconfig, user_options, user_options_extra);
 
-  u64 tmto_start = 0;
-  u64 tmto_stop  = 4;
+  u64 size_scrypt = size_per_accel * device_param->kernel_accel_max;
 
-  if (user_options->scrypt_tmto_chgd == true)
-  {
-    tmto_start = user_options->scrypt_tmto;
-    tmto_stop  = user_options->scrypt_tmto;
-  }
-
-  // size_pws
-
-  const u64 size_pws = kernel_power_max * sizeof (pw_t);
-
-  const u64 size_pws_amp = size_pws;
-
-  // size_pws_comp
-
-  const u64 size_pws_comp = kernel_power_max * (sizeof (u32) * 64);
-
-  // size_pws_idx
-
-  const u64 size_pws_idx = (kernel_power_max + 1) * sizeof (pw_idx_t);
-
-  // size_tmps
-
-  const u64 size_tmps = kernel_power_max * hashconfig->tmp_size;
-
-  // size_hooks
-
-  const u64 size_hooks = kernel_power_max * hashconfig->hook_size;
-
-  u64 size_pws_pre  = 4;
-  u64 size_pws_base = 4;
-
-  if (user_options->slow_candidates == true)
-  {
-    // size_pws_pre
-
-    size_pws_pre = kernel_power_max * sizeof (pw_pre_t);
-
-    // size_pws_base
-
-    size_pws_base = kernel_power_max * sizeof (pw_pre_t);
-  }
-
-  // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
-  // let's add some extra space just to be sure.
-  // now depends on the kernel-accel value (where scrypt and similar benefits), but also hard minimum 64mb and maximum 1024mb limit
-
-  u64 EXTRA_SPACE = (1024ULL * 1024ULL) * device_param->kernel_accel_max;
-
-  EXTRA_SPACE = MAX (EXTRA_SPACE, (  64ULL * 1024ULL * 1024ULL));
-  EXTRA_SPACE = MIN (EXTRA_SPACE, (1024ULL * 1024ULL * 1024ULL));
-
-  const u64 scrypt_extra_space
-    = device_param->size_bfs
-    + device_param->size_combs
-    + device_param->size_digests
-    + device_param->size_esalts
-    + device_param->size_markov_css
-    + device_param->size_plains
-    + device_param->size_results
-    + device_param->size_root_css
-    + device_param->size_rules
-    + device_param->size_rules_c
-    + device_param->size_salts
-    + device_param->size_shown
-    + device_param->size_tm
-    + device_param->size_st_digests
-    + device_param->size_st_salts
-    + device_param->size_st_esalts
-    + size_pws
-    + size_pws_amp
-    + size_pws_comp
-    + size_pws_idx
-    + size_tmps
-    + size_hooks
-    + size_pws_pre
-    + size_pws_base
-    + EXTRA_SPACE;
-
-  bool not_enough_memory = true;
-
-  u64 size_scrypt = 0;
-
-  u64 tmto;
-
-  for (tmto = tmto_start; tmto <= tmto_stop; tmto++)
-  {
-    size_scrypt = (128ULL * scrypt_r) * scrypt_N;
-
-    size_scrypt /= 1ull << tmto;
-
-    size_scrypt *= kernel_power_max;
-
-    if ((size_scrypt / 4) > device_param->device_maxmem_alloc) continue;
-
-    if ((size_scrypt + scrypt_extra_space) > device_param->device_available_mem) continue;
-
-    not_enough_memory = false;
-
-    break;
-  }
-
-  if (not_enough_memory == true) return -1;
-
-  return size_scrypt;
+  return size_scrypt / (1 << tmto);
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -526,7 +463,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
-  module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_min       = module_kernel_threads_min;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
   module_ctx->module_opti_type                = module_opti_type;

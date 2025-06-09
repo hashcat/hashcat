@@ -24,4 +24,3 @@
 # It's better to derive the tuning based on the hash information (handled by the hash-mode plugin).
 # The tunings from the hash-mode plugin may be slightly off, so if you have better values, you can hardcode them here.
 
-

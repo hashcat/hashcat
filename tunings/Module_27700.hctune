@@ -19,7 +19,3 @@
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
 #Name                                           Mode    Type    Width   Accel   Loops
 
-GeForce_RTX_4090                                *       27700   1       180     A
-ALIAS_AMD_RX6900XT                              *       27700   1       56      A
-ALIAS_AMD_RX7900XTX                             *       27700   1       92      A
-
