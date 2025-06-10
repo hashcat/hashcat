@@ -2216,7 +2216,7 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->backend_devices_virthost)
     {
-      event_log_info (hashcat_ctx, "* --backend-devices-virthost%u", user_options->backend_devices_virthost);
+      event_log_info (hashcat_ctx, "* --backend-devices-virthost=%u", user_options->backend_devices_virthost);
     }
 
     if (user_options->opencl_device_types)

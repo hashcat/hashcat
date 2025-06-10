@@ -5,7 +5,7 @@
 ## License.....: MIT
 ##
 
-export IN=$HOME/hashcat
+export IN=.
 export OUT=$HOME/xy/hashcat-6.2.6
 
 rm -rf $OUT

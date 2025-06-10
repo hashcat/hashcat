@@ -6914,10 +6914,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->device_maxmem_alloc /= 2;
         }
 
-        // note we'll limit to 2gb, otherwise this causes all kinds of weird errors because of possible integer overflows in opencl runtimes
-        // testwise disabling that
-        //device_param->device_maxmem_alloc = MIN (device_maxmem_alloc, 0x7fffffff);
-
         // max_work_group_size
 
         size_t device_maxworkgroup_size = 0;
@@ -8457,6 +8453,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               // typically runs into trap 6
               // maybe 32/64 bit problem affecting size_t?
               // this seems to affect global memory as well no just single allocations
+              // this is really ugly, and still in place 2025/06/09
+              //  Version.: OpenCL 1.2 (Apr 18 2025 21:45:30)
+              //  Driver.Version.: 1.2 (Apr 22 2025 20:11:41)
 
               if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->is_metal == false))
               {
@@ -9659,7 +9658,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (used_bytes)
         {
-          if ((used_bytes > (2ULL * 1024 * 1024 * 1024))
+          if ((used_bytes > (3ULL * 1024 * 1024 * 1024))
            || (used_bytes > (device_param->device_global_mem * 0.5)))
           {
             event_log_warning (hashcat_ctx, "* Device #%u: Memory usage is too high: %" PRIu64 "/%" PRIu64 ", waiting...", device_id + 1, used_bytes, device_param->device_global_mem);
@@ -9675,6 +9674,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
+          if (user_options->backend_devices_keepfree == 0)
+          {
+            const u64 device_available_mem_sav = device_param->device_available_mem;
+
+            const u64 device_available_mem_new = device_available_mem_sav - (device_available_mem_sav * 0.2);
+
+            event_log_warning (hashcat_ctx, "* Device #%u: This system does not offer any reliable method to query actual free memory. Estimated base: %" PRIu64, device_id + 1, device_available_mem_sav);
+            event_log_warning (hashcat_ctx, "             Assuming normal desktop activity, reducing estimate by 20%%: %" PRIu64, device_available_mem_new);
+            event_log_warning (hashcat_ctx, "             This can hurt performance drastically, especially on memory-heavy algorithms.");
+            event_log_warning (hashcat_ctx, "             You can adjust this percentage using --backend-devices-keepfree");
+            event_log_warning (hashcat_ctx, NULL);
+
+            device_param->device_available_mem = device_available_mem_new;
+          }
+
           break;
         }
       }
@@ -15658,6 +15672,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // work around, for some reason apple opencl can't have buffers larger 2^31
       // typically runs into trap 6
       // maybe 32/64 bit problem affecting size_t?
+      // this is really ugly, and still in place 2025/06/09
+      //  Version.: OpenCL 1.2 (Apr 18 2025 21:45:30)
+      //  Driver.Version.: 1.2 (Apr 22 2025 20:11:41)
 
       if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->is_metal == false))
       {
@@ -15680,7 +15697,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (size_rules              > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_rules_c            > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_salts              > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_extra_buffer       > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if ((size_extra_buffer / 4) > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_shown              > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_tm                 > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_tmps               > undocumented_single_allocation_apple) memory_limit_hit = 1;
