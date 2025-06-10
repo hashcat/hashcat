@@ -117,6 +117,7 @@
 ##
 
 - AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (23.7.2 or later) and "AMD HIP SDK" (23.Q3 or later)
+- Alias Devices: Prevents hashcat, when started with x86_64 emulation on Apple Silicon, from showing the Apple M1 OpenCL CPU as an alias for the Apple M1 Metal GPU
 - Apple Driver: Automatically enable GPU support on Apple OpenCL instead of CPU support
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
