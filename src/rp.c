@@ -106,6 +106,21 @@ bool class_upper (const u8 c)
   return ((c >= 'A') && (c <= 'Z'));
 }
 
+bool class_lower_hex (const u8 c)
+{
+  return ((c >= '0') && (c <= '9')) || ((c >= 'a') && (c <= 'f'));
+}
+
+bool class_upper_hex (const u8 c)
+{
+  return ((c >= '0') && (c <= '9')) || ((c >= 'A') && (c <= 'F'));
+}
+
+bool class_sym (const u8 c)
+{
+  return ((c == ' ') || ((c >= '!') && (c <= '/')) || ((c >= ':') && (c <= '@')) || ((c >= '[') && (c <= '`')) || ((c >= '{') && (c <= '~')));
+}
+
 bool class_alpha (const u8 c)
 {
   return (class_lower (c) || class_upper (c));
@@ -217,7 +232,7 @@ int generate_random_rule (char rule_buf[RP_RULE_SIZE], const u32 rp_gen_func_min
     }
   }
 
-  return (rule_pos);
+  return rule_pos;
 }
 
 #define INCR_POS if (++rule_pos == rule_len) return (-1)
@@ -463,6 +478,77 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         SET_P1      (rule, rule_buf[rule_pos]);
         break;
 
+      case RULE_OP_CLASS_BASED: // ~
+        switch (rule_buf[rule_pos+1])
+        {
+          case RULE_OP_MANGLE_REPLACE: // ~s?CY
+            SET_NAME  (rule, RULE_OP_MANGLE_REPLACE_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            SET_P1    (rule, rule_buf[rule_pos]);
+            break;
+
+          case RULE_OP_MANGLE_PURGECHAR: // ~@?C
+            SET_NAME  (rule, RULE_OP_MANGLE_PURGECHAR_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+
+          case RULE_OP_MANGLE_TITLE_SEP: // ~e?C
+            SET_NAME  (rule, RULE_OP_MANGLE_TITLE_SEP_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+
+          /*
+          case '!': // ~!?C
+            SET_NAME  (rule, RULE_OP_REJECT_CONTAIN_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+          case '/': // ~/?C
+            SET_NAME  (rule, RULE_OP_REJECT_NOT_CONTAIN_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+          case '(': // ~(?C
+            SET_NAME  (rule, RULE_OP_REJECT_EQUAL_FIRST_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+          case '(': // ~)?C
+            SET_NAME  (rule, RULE_OP_REJECT_EQUAL_LAST_CLASS);
+            INCR_POS;
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            break;
+          case '=': // ~=N?C
+            SET_NAME  (rule, RULE_OP_REJECT_EQUAL_AT_CLASS);
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            INCR_POS;
+            SET_P1    (rule, rule_buf[rule_pos]);
+            break;
+          case '%': // ~%N?C
+            SET_NAME  (rule, RULE_OP_REJECT_CONTAINS_CLASS);
+            INCR_POS;
+            SET_P0    (rule, rule_buf[rule_pos]);
+            INCR_POS;
+            SET_P1    (rule, rule_buf[rule_pos]);
+            break;
+          */
+          default:
+            return -1;
+        }
+
+        break;
+
       default:
         return -1;
     }
@@ -690,6 +776,28 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         rule_buf[rule_pos] = rule_cmd;
         GET_P0_CONV (rule);
         GET_P1      (rule);
+        break;
+
+      case RULE_OP_MANGLE_REPLACE_CLASS:
+        rule_buf[rule_pos++] = RULE_OP_CLASS_BASED;
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_REPLACE;
+        rule_buf[rule_pos]   = '?';
+        GET_P0 (rule);
+        GET_P1 (rule);
+        break;
+
+      case RULE_OP_MANGLE_PURGECHAR_CLASS:
+        rule_buf[rule_pos++] = RULE_OP_CLASS_BASED;
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_PURGECHAR;
+        rule_buf[rule_pos]   = '?';
+        GET_P0 (rule);
+        break;
+
+      case RULE_OP_MANGLE_TITLE_SEP_CLASS:
+        rule_buf[rule_pos++] = RULE_OP_CLASS_BASED;
+        rule_buf[rule_pos++] = RULE_OP_MANGLE_TITLE_SEP;
+        rule_buf[rule_pos]   = '?';
+        GET_P0 (rule);
         break;
 
       case 0:
