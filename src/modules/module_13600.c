@@ -383,7 +383,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     snprintf (auth_tmp + j, 3, "%02x", ptr[i]);
   }
 
-  const int line_len = snprintf (line_buf, line_size, "%s*%u*%u*%u*%s*%x*%x*%s*%s*%s",
+  const int line_len = snprintf (line_buf, line_size, "%s*%u*%u*%u*%s*%04x*%x*%s*%s*%s",
     SIGNATURE_ZIP2_START,
     zip2->type,
     zip2->mode,
