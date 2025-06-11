@@ -13,6 +13,7 @@ $ pacman -S git
 $ pacman -S make
 $ pacman -S gcc
 $ pacman -S libiconv-devel
+$ pacman -S python3
 ```
 
 ### Building ###
