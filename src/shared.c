@@ -23,6 +23,11 @@
 #include <winsock2.h>
 #endif
 
+#if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MSYS__)
+#else
+#include <sys/utsname.h>
+#endif
+
 static const char *const PA_000 = "OK";
 static const char *const PA_001 = "Ignored due to comment";
 static const char *const PA_002 = "Ignored due to zero length";
@@ -1453,6 +1458,38 @@ int generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *
   memcpy (out_buf, tmp_u8, tmp_len);
 
   return tmp_len;
+}
+
+int get_current_arch()
+{
+  #if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MSYS__)
+
+  SYSTEM_INFO sysinfo;
+
+  GetNativeSystemInfo(&sysinfo);
+
+  switch (sysinfo.wProcessorArchitecture)
+  {
+    case PROCESSOR_ARCHITECTURE_AMD64: return 1;
+    case PROCESSOR_ARCHITECTURE_INTEL: return 2;
+    case PROCESSOR_ARCHITECTURE_ARM64: return 3;
+    case PROCESSOR_ARCHITECTURE_ARM: return 4;
+    default: return 0;
+  }
+
+  #else
+
+  struct utsname uts;
+
+  if (uname(&uts) != 0) return 0; // same as default, it doesn't matter if it fails here
+
+  if (strstr(uts.machine, "x86_64")) return 1;
+  else if (strstr(uts.machine, "i386") || strstr(uts.machine, "i686")) return 2;
+  else if (strstr(uts.machine, "aarch64") || strstr(uts.machine, "arm64")) return 3;
+  else if (strstr(uts.machine, "arm")) return 4;
+  else return 0;
+
+  #endif
 }
 
 #if defined (__APPLE__)
