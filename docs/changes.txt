@@ -27,6 +27,8 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-256($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
 - Added hash-mode: GPG (CAST5 (SHA-1($pass)))
+- Added hash-mode: HMAC-RIPEMD320 (key = $pass)
+- Added hash-mode: HMAC-RIPEMD320 (key = $salt)
 - Added hash-mode: Kerberos 5, etype 17, AS-REP
 - Added hash-mode: Kerberos 5, etype 18, AS-REP
 - Added hash-mode: MetaMask Mobile Wallet
@@ -40,6 +42,7 @@
 - Added hash-mode: NetIQ SSPR (SHA-1 with Salt)
 - Added hash-mode: NetIQ SSPR (SHA-256 with Salt)
 - Added hash-mode: NetIQ SSPR (SHA-512 with Salt)
+- Added hash-mode: RIPEMD-320
 - Added hash-mode: RC4 104-bit DropN
 - Added hash-mode: RC4 40-bit DropN
 - Added hash-mode: RC4 72-bit DropN

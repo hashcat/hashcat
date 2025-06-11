@@ -57,6 +57,7 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - SHA3-384
 - SHA3-512
 - RIPEMD-160
+- RIPEMD-320
 - BLAKE2b-512
 - BLAKE2s-256
 - SM3
@@ -143,6 +144,8 @@ NVIDIA GPUs require "NVIDIA Driver" (440.64 or later) and "CUDA Toolkit" (9.0 or
 - HMAC-MD5 (key = $salt)
 - HMAC-RIPEMD160 (key = $pass)
 - HMAC-RIPEMD160 (key = $salt)
+- HMAC-RIPEMD320 (key = $pass)
+- HMAC-RIPEMD320 (key = $salt)
 - HMAC-SHA1 (key = $pass)
 - HMAC-SHA1 (key = $salt)
 - HMAC-SHA256 (key = $pass)
