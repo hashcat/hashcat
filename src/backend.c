@@ -9677,7 +9677,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             continue;
           }
 
-          device_param->device_available_mem -= used_bytes;
+          device_param->device_available_mem = device_param->device_global_mem - used_bytes;
 
           break;
         }
@@ -9730,7 +9730,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         if (next[0] == '#') continue;
 
-        tuning_db_process_line (hashcat_ctx, next, line_num);
+        char *search_name = NULL;
+
+        hc_asprintf (&search_name, "MODULE_%02d_%s", device_param->device_id, next);
+
+        tuning_db_process_line (hashcat_ctx, search_name, line_num);
+
+        hcfree (search_name);
 
       } while ((next = strtok_r ((char *) NULL, "\n", &saveptr)) != NULL);
 
@@ -9891,13 +9897,31 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     tuning_db_entry_t *tuningdb_entry = NULL;
 
-    if (user_options->slow_candidates == true)
+    for (int i = 0; i < 2; i++)
     {
-      tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, 0, hashconfig->hash_mode);
-    }
-    else
-    {
-      tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+      char *search_name = NULL;
+
+      if (i == 0)
+      {
+        hc_asprintf (&search_name, "MODULE_%02d_%s", device_param->device_id, device_param->device_name);
+      }
+      else
+      {
+        search_name = device_param->device_name;
+      }
+
+      if (user_options->slow_candidates == true)
+      {
+        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, 0, hashconfig->hash_mode);
+      }
+      else
+      {
+        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+      }
+
+      if (i == 0) hcfree (search_name);
+
+      if (tuningdb_entry != NULL) break;
     }
 
     // user commandline option override tuning db
