@@ -712,7 +712,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   struct stat s;
 
-  if (stat (hcstat, &s) == -1)
+  if (hc_stat (hcstat, &s) == -1)
   {
     event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
 

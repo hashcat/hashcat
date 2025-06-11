@@ -19,8 +19,8 @@ static int sort_by_mtime (const void *p1, const void *p2)
   struct stat s1;
   struct stat s2;
 
-  const int rc1 = stat (*f1, &s1);
-  const int rc2 = stat (*f2, &s2);
+  const int rc1 = hc_stat (*f1, &s1);
+  const int rc2 = hc_stat (*f2, &s2);
 
   if (rc1 < rc2) return  1;
   if (rc1 > rc2) return -1;
