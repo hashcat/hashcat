@@ -34,9 +34,13 @@
 #define logfile_top_string(var) logfile_top_var_string (#var, (var))
 #define logfile_sub_string(var) logfile_sub_var_string (#var, (var))
 
+#ifndef __MINGW_PRINTF_FORMAT
+#define __MINGW_PRINTF_FORMAT printf
+#endif
+
 void logfile_generate_topid (hashcat_ctx_t *hashcat_ctx);
 void logfile_generate_subid (hashcat_ctx_t *hashcat_ctx);
-void logfile_append         (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...) __attribute__ ((format (printf, 2, 3)));
+void logfile_append         (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...) __attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3)));
 int  logfile_init           (hashcat_ctx_t *hashcat_ctx);
 void logfile_destroy        (hashcat_ctx_t *hashcat_ctx);
 
