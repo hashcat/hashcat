@@ -70,6 +70,15 @@ static bool is_same_device (const hc_device_param_t *src, const hc_device_param_
   // Metal can't have aliases
 
   if ((src->is_metal == true) && (dst->is_metal == true)) return false;
+
+  // But Metal and OpenCL can have aliases
+
+  if ((src->is_metal == true) && (dst->is_opencl == true))
+  {
+    // Prevents hashcat, when started with x86_64 emulation on Apple Silicon, from showing the Apple M1 OpenCL CPU as an alias for the Apple M1 Metal GPU
+
+    if (src->opencl_device_type != dst->opencl_device_type) return false;
+  }
   #endif
 
   // But OpenCL can have aliases
