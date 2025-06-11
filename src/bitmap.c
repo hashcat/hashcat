@@ -110,6 +110,8 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   u32 *bitmap_s2_c = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
   u32 *bitmap_s2_d = (u32 *) hcmalloc ((1U << bitmap_max) * sizeof (u32));
 
+  if (!bitmap_s1_a || !bitmap_s1_b || !bitmap_s1_c || !bitmap_s1_d || !bitmap_s2_a || !bitmap_s2_b || !bitmap_s2_c || !bitmap_s2_d) return -1;
+
   u32 bitmap_bits;
   u32 bitmap_nums;
   u32 bitmap_mask;
