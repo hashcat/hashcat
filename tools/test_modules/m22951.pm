@@ -11,7 +11,7 @@ use warnings;
 use Crypt::CBC;
 use Digest::MD5 qw (md5);
 
-sub module_constraints { [[0, 256], [32, 32], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[0, 128], [32, 32], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub generate_key
 {

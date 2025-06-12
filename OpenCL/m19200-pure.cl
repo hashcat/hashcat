@@ -155,7 +155,7 @@ DECLSPEC u32 sha512_update_128_qnxbug (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS 
   return sav;
 }
 
-DECLSPEC u32 sha512_update_global_swap_qnxbug (PRIVATE_AS sha512_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len, u32 sav)
+DECLSPEC u32 sha512_update_qnxbug (PRIVATE_AS sha512_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len, u32 sav)
 {
   u32 w0[4];
   u32 w1[4];
@@ -204,39 +204,6 @@ DECLSPEC u32 sha512_update_global_swap_qnxbug (PRIVATE_AS sha512_ctx_t *ctx, GLO
     w7[2] = w[pos4 + 30];
     w7[3] = w[pos4 + 31];
 
-    w0[0] = hc_swap32_S (w0[0]);
-    w0[1] = hc_swap32_S (w0[1]);
-    w0[2] = hc_swap32_S (w0[2]);
-    w0[3] = hc_swap32_S (w0[3]);
-    w1[0] = hc_swap32_S (w1[0]);
-    w1[1] = hc_swap32_S (w1[1]);
-    w1[2] = hc_swap32_S (w1[2]);
-    w1[3] = hc_swap32_S (w1[3]);
-    w2[0] = hc_swap32_S (w2[0]);
-    w2[1] = hc_swap32_S (w2[1]);
-    w2[2] = hc_swap32_S (w2[2]);
-    w2[3] = hc_swap32_S (w2[3]);
-    w3[0] = hc_swap32_S (w3[0]);
-    w3[1] = hc_swap32_S (w3[1]);
-    w3[2] = hc_swap32_S (w3[2]);
-    w3[3] = hc_swap32_S (w3[3]);
-    w4[0] = hc_swap32_S (w4[0]);
-    w4[1] = hc_swap32_S (w4[1]);
-    w4[2] = hc_swap32_S (w4[2]);
-    w4[3] = hc_swap32_S (w4[3]);
-    w5[0] = hc_swap32_S (w5[0]);
-    w5[1] = hc_swap32_S (w5[1]);
-    w5[2] = hc_swap32_S (w5[2]);
-    w5[3] = hc_swap32_S (w5[3]);
-    w6[0] = hc_swap32_S (w6[0]);
-    w6[1] = hc_swap32_S (w6[1]);
-    w6[2] = hc_swap32_S (w6[2]);
-    w6[3] = hc_swap32_S (w6[3]);
-    w7[0] = hc_swap32_S (w7[0]);
-    w7[1] = hc_swap32_S (w7[1]);
-    w7[2] = hc_swap32_S (w7[2]);
-    w7[3] = hc_swap32_S (w7[3]);
-
     sav = sha512_update_128_qnxbug (ctx, w0, w1, w2, w3, w4, w5, w6, w7, 128, sav);
   }
 
@@ -272,39 +239,6 @@ DECLSPEC u32 sha512_update_global_swap_qnxbug (PRIVATE_AS sha512_ctx_t *ctx, GLO
   w7[1] = w[pos4 + 29];
   w7[2] = w[pos4 + 30];
   w7[3] = w[pos4 + 31];
-
-  w0[0] = hc_swap32_S (w0[0]);
-  w0[1] = hc_swap32_S (w0[1]);
-  w0[2] = hc_swap32_S (w0[2]);
-  w0[3] = hc_swap32_S (w0[3]);
-  w1[0] = hc_swap32_S (w1[0]);
-  w1[1] = hc_swap32_S (w1[1]);
-  w1[2] = hc_swap32_S (w1[2]);
-  w1[3] = hc_swap32_S (w1[3]);
-  w2[0] = hc_swap32_S (w2[0]);
-  w2[1] = hc_swap32_S (w2[1]);
-  w2[2] = hc_swap32_S (w2[2]);
-  w2[3] = hc_swap32_S (w2[3]);
-  w3[0] = hc_swap32_S (w3[0]);
-  w3[1] = hc_swap32_S (w3[1]);
-  w3[2] = hc_swap32_S (w3[2]);
-  w3[3] = hc_swap32_S (w3[3]);
-  w4[0] = hc_swap32_S (w4[0]);
-  w4[1] = hc_swap32_S (w4[1]);
-  w4[2] = hc_swap32_S (w4[2]);
-  w4[3] = hc_swap32_S (w4[3]);
-  w5[0] = hc_swap32_S (w5[0]);
-  w5[1] = hc_swap32_S (w5[1]);
-  w5[2] = hc_swap32_S (w5[2]);
-  w5[3] = hc_swap32_S (w5[3]);
-  w6[0] = hc_swap32_S (w6[0]);
-  w6[1] = hc_swap32_S (w6[1]);
-  w6[2] = hc_swap32_S (w6[2]);
-  w6[3] = hc_swap32_S (w6[3]);
-  w7[0] = hc_swap32_S (w7[0]);
-  w7[1] = hc_swap32_S (w7[1]);
-  w7[2] = hc_swap32_S (w7[2]);
-  w7[3] = hc_swap32_S (w7[3]);
 
   sav = sha512_update_128_qnxbug (ctx, w0, w1, w2, w3, w4, w5, w6, w7, len - pos1, sav);
 
@@ -382,9 +316,27 @@ KERNEL_FQ void HC_ATTR_SEQ m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 
   sha512_init (&sha512_ctx);
 
-  sha512_update_global_swap (&sha512_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
+  const u32 pw_len = pws[gid].pw_len;
 
-  sha512_update_global_swap (&sha512_ctx, pws[gid].i, pws[gid].pw_len);
+  u32 w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
+  }
+
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
+
+  u32 s[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  {
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
+  }
+
+  sha512_update (&sha512_ctx, s, salt_len);
+
+  sha512_update (&sha512_ctx, w, pw_len);
 
   tmps[gid].sha512_ctx = sha512_ctx;
   tmps[gid].sav = 0;
@@ -400,12 +352,21 @@ KERNEL_FQ void HC_ATTR_SEQ m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 
   if (gid >= GID_CNT) return;
 
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32 w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
+  }
+
   sha512_ctx_t sha512_ctx = tmps[gid].sha512_ctx;
   u32 sav = tmps[gid].sav;
 
   for (u32 i = 0; i < LOOP_CNT; i++)
   {
-    sav = sha512_update_global_swap_qnxbug (&sha512_ctx, pws[gid].i, pws[gid].pw_len, sav);
+    sav = sha512_update_qnxbug (&sha512_ctx, w, pw_len, sav);
   }
 
   tmps[gid].sha512_ctx = sha512_ctx;

@@ -37,13 +37,31 @@ KERNEL_FQ void HC_ATTR_SEQ m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
    * init
    */
 
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32 w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
+  }
+
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
+
+  u32 s[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  {
+    s[idx] = hc_swap32_S (salt_bufs[SALT_POS_HOST].salt_buf[idx]);
+  }
+
   sha256_ctx_t sha256_ctx;
 
   sha256_init (&sha256_ctx);
 
-  sha256_update_global_swap (&sha256_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
+  sha256_update (&sha256_ctx, s, salt_len);
 
-  sha256_update_global_swap (&sha256_ctx, pws[gid].i, pws[gid].pw_len);
+  sha256_update (&sha256_ctx, w, pw_len);
 
   tmps[gid].sha256_ctx = sha256_ctx;
 }
@@ -58,11 +76,20 @@ KERNEL_FQ void HC_ATTR_SEQ m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 
   if (gid >= GID_CNT) return;
 
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32 w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (pws[gid].i[idx]);
+  }
+
   sha256_ctx_t sha256_ctx = tmps[gid].sha256_ctx;
 
   for (u32 i = 0; i < LOOP_CNT; i++)
   {
-    sha256_update_global_swap (&sha256_ctx, pws[gid].i, pws[gid].pw_len);
+    sha256_update (&sha256_ctx, w, pw_len);
   }
 
   tmps[gid].sha256_ctx = sha256_ctx;
