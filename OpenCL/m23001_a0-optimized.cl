@@ -26,7 +26,7 @@ typedef struct securezip
 
 } securezip_t;
 
-KERNEL_FQ void m23001_m04 (KERN_ATTR_RULES_ESALT (securezip_t))
+KERNEL_FQ void HC_ATTR_SEQ m23001_m04 (KERN_ATTR_RULES_ESALT (securezip_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -352,15 +352,15 @@ KERNEL_FQ void m23001_m04 (KERN_ATTR_RULES_ESALT (securezip_t))
   }
 }
 
-KERNEL_FQ void m23001_m08 (KERN_ATTR_RULES_ESALT (securezip_t))
+KERNEL_FQ void HC_ATTR_SEQ m23001_m08 (KERN_ATTR_RULES_ESALT (securezip_t))
 {
 }
 
-KERNEL_FQ void m23001_m16 (KERN_ATTR_RULES_ESALT (securezip_t))
+KERNEL_FQ void HC_ATTR_SEQ m23001_m16 (KERN_ATTR_RULES_ESALT (securezip_t))
 {
 }
 
-KERNEL_FQ void m23001_s04 (KERN_ATTR_RULES_ESALT (securezip_t))
+KERNEL_FQ void HC_ATTR_SEQ m23001_s04 (KERN_ATTR_RULES_ESALT (securezip_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -686,10 +686,10 @@ KERNEL_FQ void m23001_s04 (KERN_ATTR_RULES_ESALT (securezip_t))
   }
 }
 
-KERNEL_FQ void m23001_s08 (KERN_ATTR_RULES_ESALT (securezip_t))
+KERNEL_FQ void HC_ATTR_SEQ m23001_s08 (KERN_ATTR_RULES_ESALT (securezip_t))
 {
 }
 
-KERNEL_FQ void m23001_s16 (KERN_ATTR_RULES_ESALT (securezip_t))
+KERNEL_FQ void HC_ATTR_SEQ m23001_s16 (KERN_ATTR_RULES_ESALT (securezip_t))
 {
 }

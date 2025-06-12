@@ -188,7 +188,7 @@ CONSTANT_VK u32a c_pc_len[1024] =
   3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4
 };
 
-KERNEL_FQ void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -218,7 +218,7 @@ KERNEL_FQ void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
   tmps[gid].digest_buf[4] = ctx.h[4];
 }
 
-KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * base
@@ -317,7 +317,7 @@ KERNEL_FQ void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-KERNEL_FQ void m05800_comp (KERN_ATTR_TMPS (androidpin_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m05800_comp (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * modifier

@@ -73,7 +73,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m26500_init (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_passcode_t))
+KERNEL_FQ void HC_ATTR_SEQ m26500_init (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_passcode_t))
 {
   /**
    * base
@@ -167,7 +167,7 @@ KERNEL_FQ void m26500_init (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
   tmps[gid].iv[3] = 0;
 }
 
-KERNEL_FQ void m26500_loop (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_passcode_t))
+KERNEL_FQ void HC_ATTR_SEQ m26500_loop (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_passcode_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -298,7 +298,7 @@ KERNEL_FQ void m26500_loop (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_
   tmps[gid].iv[3] = iv[3];
 }
 
-KERNEL_FQ void m26500_comp (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_passcode_t))
+KERNEL_FQ void HC_ATTR_SEQ m26500_comp (KERN_ATTR_TMPS_ESALT (iphone_passcode_tmp_t, iphone_passcode_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

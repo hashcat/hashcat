@@ -33,7 +33,7 @@ typedef struct office2007
 
 } office2007_t;
 
-KERNEL_FQ void m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
+KERNEL_FQ void HC_ATTR_SEQ m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
 {
   /**
    * base
@@ -60,7 +60,7 @@ KERNEL_FQ void m09400_init (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
   tmps[gid].out[4] = ctx.h[4];
 }
 
-KERNEL_FQ void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
+KERNEL_FQ void HC_ATTR_SEQ m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -127,7 +127,7 @@ KERNEL_FQ void m09400_loop (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t
   unpackv (tmps, out, gid, 4, t4);
 }
 
-KERNEL_FQ void m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
+KERNEL_FQ void HC_ATTR_SEQ m09400_comp (KERN_ATTR_TMPS_ESALT (office2007_tmp_t, office2007_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

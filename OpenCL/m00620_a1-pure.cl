@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_blake2b.cl)
 #endif
 
-KERNEL_FQ void m00620_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m00620_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -57,7 +57,7 @@ KERNEL_FQ void m00620_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m00620_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m00620_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * base

@@ -82,7 +82,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m31600_init (KERN_ATTR_TMPS (dcc2_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m31600_init (KERN_ATTR_TMPS (dcc2_tmp_t))
 {
   /**
    * base
@@ -210,7 +210,7 @@ KERNEL_FQ void m31600_init (KERN_ATTR_TMPS (dcc2_tmp_t))
   tmps[gid].out[3] = tmps[gid].dgst[3];
 }
 
-KERNEL_FQ void m31600_loop (KERN_ATTR_TMPS (dcc2_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m31600_loop (KERN_ATTR_TMPS (dcc2_tmp_t))
 {
   /**
    * base
@@ -297,7 +297,7 @@ KERNEL_FQ void m31600_loop (KERN_ATTR_TMPS (dcc2_tmp_t))
   unpackv (tmps, out, gid, 3, out[3]);
 }
 
-KERNEL_FQ void m31600_comp (KERN_ATTR_TMPS (dcc2_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m31600_comp (KERN_ATTR_TMPS (dcc2_tmp_t))
 {
   /**
    * base

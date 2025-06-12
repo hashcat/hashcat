@@ -31,7 +31,7 @@ typedef struct rar3_tmp
 
 } rar3_tmp_t;
 
-KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   /**
    * base
@@ -48,7 +48,7 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
   tmps[gid].dgst[0][4] = SHA1M_E;
 }
 
-KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -237,7 +237,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
   tmps[gid].dgst[init_pos + 1][4] = dgst[4];
 }
 
-KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

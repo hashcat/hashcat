@@ -406,7 +406,7 @@ DECLSPEC inline void SET_KEY32 (LOCAL_AS u32 *S, const u64 key, const u32 val)
 extern __shared__ u32 S[];
 #endif
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m09000_init (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base
@@ -636,7 +636,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_init (KERN_ATTR_TMPS 
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m09000_loop (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base
@@ -705,7 +705,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m09000_loop (KERN_ATTR_TMPS 
   tmps[gid].digest[1] = R0;
 }
 
-KERNEL_FQ void m09000_comp (KERN_ATTR_TMPS (pwsafe2_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m09000_comp (KERN_ATTR_TMPS (pwsafe2_tmp_t))
 {
   /**
    * base

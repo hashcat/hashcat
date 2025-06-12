@@ -131,7 +131,7 @@ DECLSPEC void sha1_run (PRIVATE_AS u32 *w, PRIVATE_AS u32 *res)
   res[4] = digest[4];
 }
 
-KERNEL_FQ void m24500_init (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
+KERNEL_FQ void HC_ATTR_SEQ m24500_init (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
 {
   /**
    * base
@@ -266,7 +266,7 @@ KERNEL_FQ void m24500_init (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
   }
 }
 
-KERNEL_FQ void m24500_loop (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
+KERNEL_FQ void HC_ATTR_SEQ m24500_loop (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -392,7 +392,7 @@ KERNEL_FQ void m24500_loop (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
   }
 }
 
-KERNEL_FQ void m24500_comp (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
+KERNEL_FQ void HC_ATTR_SEQ m24500_comp (KERN_ATTR_TMPS_ESALT (telegram_tmp_t, telegram_t))
 {
   /**
    * base

@@ -51,7 +51,7 @@ typedef struct pdf
 
 } pdf_t;
 
-KERNEL_FQ void m10420_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void HC_ATTR_SEQ m10420_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
   /**
    * modifier
@@ -204,15 +204,15 @@ KERNEL_FQ void m10420_m04 (KERN_ATTR_RULES_ESALT (pdf_t))
   }
 }
 
-KERNEL_FQ void m10420_m08 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void HC_ATTR_SEQ m10420_m08 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
 }
 
-KERNEL_FQ void m10420_m16 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void HC_ATTR_SEQ m10420_m16 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
 }
 
-KERNEL_FQ void m10420_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void HC_ATTR_SEQ m10420_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
   /**
    * modifier
@@ -377,10 +377,10 @@ KERNEL_FQ void m10420_s04 (KERN_ATTR_RULES_ESALT (pdf_t))
   }
 }
 
-KERNEL_FQ void m10420_s08 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void HC_ATTR_SEQ m10420_s08 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
 }
 
-KERNEL_FQ void m10420_s16 (KERN_ATTR_RULES_ESALT (pdf_t))
+KERNEL_FQ void HC_ATTR_SEQ m10420_s16 (KERN_ATTR_RULES_ESALT (pdf_t))
 {
 }

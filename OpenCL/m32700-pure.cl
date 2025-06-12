@@ -120,7 +120,7 @@ DECLSPEC void sha1_final_32700 (PRIVATE_AS sha1_ctx_t *ctx)
   sha1_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
-KERNEL_FQ void m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -161,7 +161,7 @@ KERNEL_FQ void m32700_init (KERN_ATTR_TMPS (sha1_tmp_t))
   }
 }
 
-KERNEL_FQ void m32700_loop (KERN_ATTR_TMPS (sha1_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m32700_loop (KERN_ATTR_TMPS (sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -193,7 +193,7 @@ KERNEL_FQ void m32700_loop (KERN_ATTR_TMPS (sha1_tmp_t))
   }
 }
 
-KERNEL_FQ void m32700_comp (KERN_ATTR_TMPS (sha1_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m32700_comp (KERN_ATTR_TMPS (sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 

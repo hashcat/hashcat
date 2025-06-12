@@ -19,7 +19,7 @@ DECLSPEC void whirlpool_transform_transport_vector (PRIVATE_AS const u32x *w, PR
   whirlpool_transform_vector (w + 0, w + 4, w + 8, w + 12, digest, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 }
 
-KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06100_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -212,15 +212,15 @@ KERNEL_FQ void m06100_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m06100_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06100_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m06100_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06100_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06100_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -425,10 +425,10 @@ KERNEL_FQ void m06100_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m06100_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06100_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m06100_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06100_s16 (KERN_ATTR_BASIC ())
 {
 }

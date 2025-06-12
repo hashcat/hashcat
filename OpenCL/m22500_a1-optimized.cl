@@ -28,7 +28,7 @@ DECLSPEC int is_valid_bitcoinj_8 (const u8 v)
   return 1;
 }
 
-KERNEL_FQ void m22500_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m22500_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -675,15 +675,15 @@ KERNEL_FQ void m22500_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m22500_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m22500_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m22500_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m22500_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m22500_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m22500_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -1330,10 +1330,10 @@ KERNEL_FQ void m22500_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m22500_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m22500_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m22500_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m22500_s16 (KERN_ATTR_BASIC ())
 {
 }

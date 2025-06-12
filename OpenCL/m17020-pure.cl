@@ -216,7 +216,7 @@ DECLSPEC int check_decoded_data (PRIVATE_AS u32 *decoded_data, const u32 decoded
       && (expected_sha1[4] == hc_swap32_S (ctx.h[4]));
 }
 
-KERNEL_FQ void m17020_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void HC_ATTR_SEQ m17020_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -266,7 +266,7 @@ KERNEL_FQ void m17020_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].len = 0;
 }
 
-KERNEL_FQ void m17020_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void HC_ATTR_SEQ m17020_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -308,7 +308,7 @@ KERNEL_FQ void m17020_loop_prepare (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].len = 0;
 }
 
-KERNEL_FQ void m17020_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void HC_ATTR_SEQ m17020_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -386,12 +386,12 @@ KERNEL_FQ void m17020_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   tmps[gid].len = ctx.len;
 }
 
-KERNEL_FQ void m17020_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void HC_ATTR_SEQ m17020_comp (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   // not in use here, special case...
 }
 
-KERNEL_FQ void m17020_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void HC_ATTR_SEQ m17020_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   /**
    * modifier
@@ -464,7 +464,7 @@ KERNEL_FQ void m17020_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
   }
 }
 
-KERNEL_FQ void m17020_aux2 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
+KERNEL_FQ void HC_ATTR_SEQ m17020_aux2 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 {
   /**
    * modifier

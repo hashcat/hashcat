@@ -23,7 +23,7 @@ typedef struct phpass_tmp
 
 } phpass_tmp_t;
 
-KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**
    * base
@@ -120,7 +120,7 @@ KERNEL_FQ void m00400_init (KERN_ATTR_TMPS (phpass_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**
    * base
@@ -211,7 +211,7 @@ KERNEL_FQ void m00400_loop (KERN_ATTR_TMPS (phpass_tmp_t))
   unpackv (tmps, digest_buf, gid, 3, digest[3]);
 }
 
-KERNEL_FQ void m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m00400_comp (KERN_ATTR_TMPS (phpass_tmp_t))
 {
   /**
    * modifier

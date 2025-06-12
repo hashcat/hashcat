@@ -112,7 +112,7 @@ DECLSPEC void hmac_md5_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS
   md5_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m05600_m04 (KERN_ATTR_ESALT (netntlm_t))
+KERNEL_FQ void HC_ATTR_SEQ m05600_m04 (KERN_ATTR_ESALT (netntlm_t))
 {
   /**
    * modifier
@@ -401,15 +401,15 @@ KERNEL_FQ void m05600_m04 (KERN_ATTR_ESALT (netntlm_t))
   }
 }
 
-KERNEL_FQ void m05600_m08 (KERN_ATTR_ESALT (netntlm_t))
+KERNEL_FQ void HC_ATTR_SEQ m05600_m08 (KERN_ATTR_ESALT (netntlm_t))
 {
 }
 
-KERNEL_FQ void m05600_m16 (KERN_ATTR_ESALT (netntlm_t))
+KERNEL_FQ void HC_ATTR_SEQ m05600_m16 (KERN_ATTR_ESALT (netntlm_t))
 {
 }
 
-KERNEL_FQ void m05600_s04 (KERN_ATTR_ESALT (netntlm_t))
+KERNEL_FQ void HC_ATTR_SEQ m05600_s04 (KERN_ATTR_ESALT (netntlm_t))
 {
   /**
    * modifier
@@ -710,10 +710,10 @@ KERNEL_FQ void m05600_s04 (KERN_ATTR_ESALT (netntlm_t))
   }
 }
 
-KERNEL_FQ void m05600_s08 (KERN_ATTR_ESALT (netntlm_t))
+KERNEL_FQ void HC_ATTR_SEQ m05600_s08 (KERN_ATTR_ESALT (netntlm_t))
 {
 }
 
-KERNEL_FQ void m05600_s16 (KERN_ATTR_ESALT (netntlm_t))
+KERNEL_FQ void HC_ATTR_SEQ m05600_s16 (KERN_ATTR_ESALT (netntlm_t))
 {
 }

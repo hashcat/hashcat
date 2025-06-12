@@ -20,7 +20,7 @@ typedef struct saph_sha1_tmp
 
 } saph_sha1_tmp_t;
 
-KERNEL_FQ void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 {
   /**
    * base
@@ -47,7 +47,7 @@ KERNEL_FQ void m10300_init (KERN_ATTR_TMPS (saph_sha1_tmp_t))
   tmps[gid].digest_buf[4] = ctx.h[4];
 }
 
-KERNEL_FQ void m10300_loop (KERN_ATTR_TMPS (saph_sha1_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m10300_loop (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 {
   /**
    * base
@@ -127,7 +127,7 @@ KERNEL_FQ void m10300_loop (KERN_ATTR_TMPS (saph_sha1_tmp_t))
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-KERNEL_FQ void m10300_comp (KERN_ATTR_TMPS (saph_sha1_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m10300_comp (KERN_ATTR_TMPS (saph_sha1_tmp_t))
 {
   /**
    * modifier

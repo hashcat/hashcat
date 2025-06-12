@@ -497,7 +497,7 @@ DECLSPEC void _des_crypt_encrypt (PRIVATE_AS u32 *iv, u32 mask, u32 rounds, PRIV
   iv[1] = l;
 }
 
-KERNEL_FQ void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 {
   /**
    * base
@@ -633,7 +633,7 @@ KERNEL_FQ void m12400_init (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
   tmps[gid].iv[1] = 0;
 }
 
-KERNEL_FQ void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 {
   /**
    * base
@@ -730,7 +730,7 @@ KERNEL_FQ void m12400_loop (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
   tmps[gid].iv[1] = iv[1];
 }
 
-KERNEL_FQ void m12400_comp (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12400_comp (KERN_ATTR_TMPS (bsdicrypt_tmp_t))
 {
   /**
    * base

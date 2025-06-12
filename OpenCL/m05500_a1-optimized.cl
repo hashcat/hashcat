@@ -500,7 +500,7 @@ DECLSPEC void transform_netntlmv1_key (const u32x w0, const u32x w1, PRIVATE_AS 
          | ((k[7] & 0xff) << 24);
 }
 
-KERNEL_FQ void m05500_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m05500_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -767,15 +767,15 @@ KERNEL_FQ void m05500_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m05500_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m05500_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m05500_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m05500_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m05500_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m05500_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -1061,10 +1061,10 @@ KERNEL_FQ void m05500_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m05500_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m05500_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m05500_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m05500_s16 (KERN_ATTR_BASIC ())
 {
 }

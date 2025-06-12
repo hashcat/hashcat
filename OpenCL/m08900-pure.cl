@@ -266,7 +266,7 @@ DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
   }
 }
 
-KERNEL_FQ void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base
@@ -378,7 +378,7 @@ KERNEL_FQ void m08900_init (KERN_ATTR_TMPS (scrypt_tmp_t))
   }
 }
 
-KERNEL_FQ void m08900_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m08900_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base
@@ -409,7 +409,7 @@ KERNEL_FQ void m08900_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
   for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
-KERNEL_FQ void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -434,7 +434,7 @@ KERNEL_FQ void m08900_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
   for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
-KERNEL_FQ void m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m08900_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base

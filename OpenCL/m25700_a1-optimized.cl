@@ -50,7 +50,7 @@ DECLSPEC u32 MurmurHash (const u32 seed, PRIVATE_AS const u32 *w, const u32 pw_l
   return hash;
 }
 
-KERNEL_FQ void m25700_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m25700_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -163,15 +163,15 @@ KERNEL_FQ void m25700_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m25700_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m25700_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m25700_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m25700_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m25700_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m25700_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -296,10 +296,10 @@ KERNEL_FQ void m25700_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m25700_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m25700_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m25700_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m25700_s16 (KERN_ATTR_BASIC ())
 {
 }

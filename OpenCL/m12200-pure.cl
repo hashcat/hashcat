@@ -23,7 +23,7 @@ typedef struct ecryptfs_tmp
 
 } ecryptfs_tmp_t;
 
-KERNEL_FQ void m12200_init (KERN_ATTR_TMPS (ecryptfs_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12200_init (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 {
   /**
    * base
@@ -53,7 +53,7 @@ KERNEL_FQ void m12200_init (KERN_ATTR_TMPS (ecryptfs_tmp_t))
   tmps[gid].out[7] = ctx.h[7];
 }
 
-KERNEL_FQ void m12200_loop (KERN_ATTR_TMPS (ecryptfs_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12200_loop (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -162,7 +162,7 @@ KERNEL_FQ void m12200_loop (KERN_ATTR_TMPS (ecryptfs_tmp_t))
   unpack64v (tmps, out, gid, 7, t7);
 }
 
-KERNEL_FQ void m12200_comp (KERN_ATTR_TMPS (ecryptfs_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12200_comp (KERN_ATTR_TMPS (ecryptfs_tmp_t))
 {
   /**
    * base

@@ -23,7 +23,7 @@ typedef struct electrum_wallet
 
 } electrum_wallet_t;
 
-KERNEL_FQ void m16600_mxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
+KERNEL_FQ void HC_ATTR_SEQ m16600_mxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -252,7 +252,7 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
   }
 }
 
-KERNEL_FQ void m16600_sxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
+KERNEL_FQ void HC_ATTR_SEQ m16600_sxx (KERN_ATTR_VECTOR_ESALT (electrum_wallet_t))
 {
   /**
    * base

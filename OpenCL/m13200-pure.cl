@@ -20,7 +20,7 @@ typedef struct axcrypt_tmp
 
 } axcrypt_tmp_t;
 
-KERNEL_FQ void m13200_init (KERN_ATTR_TMPS (axcrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m13200_init (KERN_ATTR_TMPS (axcrypt_tmp_t))
 {
   /**
    * base
@@ -74,7 +74,7 @@ KERNEL_FQ void m13200_init (KERN_ATTR_TMPS (axcrypt_tmp_t))
   tmps[gid].cipher[3] = 0;
 }
 
-KERNEL_FQ void m13200_loop (KERN_ATTR_TMPS (axcrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m13200_loop (KERN_ATTR_TMPS (axcrypt_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -211,7 +211,7 @@ KERNEL_FQ void m13200_loop (KERN_ATTR_TMPS (axcrypt_tmp_t))
   tmps[gid].cipher[3] = cipher[3];
 }
 
-KERNEL_FQ void m13200_comp (KERN_ATTR_TMPS (axcrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m13200_comp (KERN_ATTR_TMPS (axcrypt_tmp_t))
 {
   /**
    * base

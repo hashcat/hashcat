@@ -23,7 +23,7 @@ typedef struct qnx_md5_tmp
 
 } qnx_md5_tmp_t;
 
-KERNEL_FQ void m19000_init (KERN_ATTR_TMPS (qnx_md5_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m19000_init (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 {
   /**
    * base
@@ -48,7 +48,7 @@ KERNEL_FQ void m19000_init (KERN_ATTR_TMPS (qnx_md5_tmp_t))
   tmps[gid].md5_ctx = md5_ctx;
 }
 
-KERNEL_FQ void m19000_loop (KERN_ATTR_TMPS (qnx_md5_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m19000_loop (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 {
   /**
    * base
@@ -68,7 +68,7 @@ KERNEL_FQ void m19000_loop (KERN_ATTR_TMPS (qnx_md5_tmp_t))
   tmps[gid].md5_ctx = md5_ctx;
 }
 
-KERNEL_FQ void m19000_comp (KERN_ATTR_TMPS (qnx_md5_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m19000_comp (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 {
   /**
    * modifier

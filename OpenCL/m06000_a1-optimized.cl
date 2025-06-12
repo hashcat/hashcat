@@ -19,7 +19,7 @@ DECLSPEC void ripemd160_transform_transport_vector (PRIVATE_AS const u32x *w, PR
   ripemd160_transform_vector (w + 0, w + 4, w + 8, w + 12, dgst);
 }
 
-KERNEL_FQ void m06000_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06000_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -159,15 +159,15 @@ KERNEL_FQ void m06000_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m06000_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06000_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m06000_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06000_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m06000_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06000_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -319,10 +319,10 @@ KERNEL_FQ void m06000_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m06000_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06000_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m06000_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m06000_s16 (KERN_ATTR_BASIC ())
 {
 }

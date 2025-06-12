@@ -427,7 +427,7 @@ DECLSPEC void keccak_transform_S (PRIVATE_AS u64 *st)
   }
 }
 
-KERNEL_FQ void m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+KERNEL_FQ void HC_ATTR_SEQ m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   /**
    * base
@@ -539,7 +539,7 @@ KERNEL_FQ void m15700_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_
   }
 }
 
-KERNEL_FQ void m15700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m15700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base
@@ -570,7 +570,7 @@ KERNEL_FQ void m15700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
   for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
-KERNEL_FQ void m15700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m15700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -595,7 +595,7 @@ KERNEL_FQ void m15700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
   for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
-KERNEL_FQ void m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
+KERNEL_FQ void HC_ATTR_SEQ m15700_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, ethereum_scrypt_t))
 {
   /**
    * base

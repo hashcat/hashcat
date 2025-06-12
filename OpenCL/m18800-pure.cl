@@ -23,7 +23,7 @@ typedef struct bsp_tmp
 
 } bsp_tmp_t;
 
-KERNEL_FQ void m18800_init (KERN_ATTR_TMPS (bsp_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m18800_init (KERN_ATTR_TMPS (bsp_tmp_t))
 {
   /**
    * base
@@ -53,7 +53,7 @@ KERNEL_FQ void m18800_init (KERN_ATTR_TMPS (bsp_tmp_t))
   tmps[gid].hash[7] = ctx.h[7];
 }
 
-KERNEL_FQ void m18800_loop (KERN_ATTR_TMPS (bsp_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m18800_loop (KERN_ATTR_TMPS (bsp_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -116,7 +116,7 @@ KERNEL_FQ void m18800_loop (KERN_ATTR_TMPS (bsp_tmp_t))
   unpackv (tmps, hash, gid, 7, digest[7]);
 }
 
-KERNEL_FQ void m18800_comp (KERN_ATTR_TMPS (bsp_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m18800_comp (KERN_ATTR_TMPS (bsp_tmp_t))
 {
   /**
    * modifier

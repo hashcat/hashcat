@@ -525,7 +525,7 @@ DECLSPEC int check_inflate_code1 (u8 *next, int left)
   }
 }
 
-KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
+KERNEL_FQ void HC_ATTR_SEQ m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -804,7 +804,7 @@ KERNEL_FQ void m17220_sxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
   }
 }
 
-KERNEL_FQ void m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
+KERNEL_FQ void HC_ATTR_SEQ m17220_mxx (KERN_ATTR_VECTOR_ESALT (pkzip_t))
 {
   /**
    * modifier

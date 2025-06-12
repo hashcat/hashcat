@@ -9183,7 +9183,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       //hiprtc_options[1] = "--device-as-default-execution-space";
       //hiprtc_options[2] = "--gpu-architecture";
 
-      hc_asprintf (&hiprtc_options[0], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
+      hc_asprintf (&hiprtc_options[0], "-D MAX_THREADS_PER_BLOCK=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
 
       /* 4.3 linux
       hiprtc_options[1] = "-I";
