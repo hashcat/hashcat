@@ -10365,8 +10365,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     u32 aligned_rules_cnt = MAX (MAX (straight_ctx->kernel_rules_cnt, device_param->kernel_loops_min), KERNEL_RULES);
 
-    u64 size_rules   = (u64) aligned_rules_cnt * sizeof (kernel_rule_t);
-    u64 size_rules_c = (u64) KERNEL_RULES      * sizeof (kernel_rule_t);
+    u64 size_rules     = (u64) aligned_rules_cnt * sizeof (kernel_rule_t);
+    u64 size_rules_src = (u64) straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t);  // size of source rules buffer can be less than aligned_rules_cnt
+    u64 size_rules_c   = (u64) KERNEL_RULES      * sizeof (kernel_rule_t);
 
     device_param->size_rules    = size_rules;
     device_param->size_rules_c  = size_rules_c;
@@ -11422,7 +11423,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_rules_c, size_rules_c) == -1) return -1;
           }
 
-          if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_rules, straight_ctx->kernel_rules_buf, size_rules, device_param->cuda_stream) == -1) return -1;
+          if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_rules, straight_ctx->kernel_rules_buf, size_rules_src, device_param->cuda_stream) == -1) return -1;
         }
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
@@ -11533,7 +11534,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_rules_c, size_rules_c) == -1) return -1;
           }
 
-          if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_rules, straight_ctx->kernel_rules_buf, size_rules, device_param->hip_stream) == -1) return -1;
+          if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_rules, straight_ctx->kernel_rules_buf, size_rules_src, device_param->hip_stream) == -1) return -1;
         }
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
@@ -11650,7 +11651,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_rules, NULL, &device_param->metal_d_rules) == -1) return -1;
           if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_rules_c, NULL, &device_param->metal_d_rules_c) == -1) return -1;
 
-          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_rules, 0, straight_ctx->kernel_rules_buf, size_rules) == -1) return -1;
+          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_rules, 0, straight_ctx->kernel_rules_buf, size_rules_src) == -1) return -1;
         }
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
@@ -11744,7 +11745,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_rules,   NULL, &device_param->opencl_d_rules)   == -1) return -1;
           if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY, size_rules_c, NULL, &device_param->opencl_d_rules_c) == -1) return -1;
 
-          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, CL_FALSE, 0, size_rules, straight_ctx->kernel_rules_buf, 0, NULL, NULL) == -1) return -1;
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, CL_FALSE, 0, size_rules_src, straight_ctx->kernel_rules_buf, 0, NULL, NULL) == -1) return -1;
         }
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
