@@ -72,6 +72,8 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
   char **tuning_db_files = scan_directory (tuning_db_folder);
 
+  hcfree (tuning_db_folder);
+
   for (int i = 0; tuning_db_files[i] != NULL; i++)
   {
     char *tuning_db_file = tuning_db_files[i];
@@ -80,15 +82,27 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
     const size_t dblen = strlen (tuning_db_file);
 
-    if (dblen < suflen) continue; // make sure to not do any out-of-boundary reads
+    if (dblen < suflen)
+    {
+      hcfree (tuning_db_file);
 
-    if (memcmp (tuning_db_file + dblen - suflen, TUNING_DB_SUFFIX, suflen) != 0) continue;
+      continue; // make sure to not do any out-of-boundary reads
+    }
+
+    if (memcmp (tuning_db_file + dblen - suflen, TUNING_DB_SUFFIX, suflen) != 0)
+    {
+      hcfree (tuning_db_file);
+
+      continue;
+    }
 
     HCFILE fp;
 
     if (hc_fopen (&fp, tuning_db_file, "rb") == false)
     {
       event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, strerror (errno));
+
+      for (int j = 0; tuning_db_files[j] != NULL; j++) hcfree (tuning_db_files[j]);
 
       return -1;
     }

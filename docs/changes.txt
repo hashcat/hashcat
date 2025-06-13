@@ -102,6 +102,7 @@
 - Fixed keys extraction in luks2hashcat - now extracts all active keys
 - Fixed maximum password length in module/test_module of hash-mode 2400
 - Fixed maximum password length in module/test_module of hash-mode 2410
+- Fixed memory leaks in tuning_db_init in tuningdb.c
 - Fixed minimum password length in module of hash-mode 28200
 - Fixed minimum password length in module of hash-mode 29800
 - Fixed out-of-boundary read when a fast hash defines a kernel_loops_min value higher than the amplifiers provided by the user
