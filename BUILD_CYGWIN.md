@@ -14,6 +14,8 @@ gcc-core
 gcc-g++
 make
 git
+python312
+python312-devel
 ```
 
 ### Building ###
