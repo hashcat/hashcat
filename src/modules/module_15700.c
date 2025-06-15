@@ -58,10 +58,6 @@ static const char *SIGNATURE_ETHEREUM_SCRYPT = "$ethereum$s";
 
 static const u32 SCRYPT_THREADS = 4;
 
-static const u64 SCRYPT_N = 262144;
-static const u64 SCRYPT_R = 8;
-static const u64 SCRYPT_P = 1;
-
 #include "scrypt_common.c"
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

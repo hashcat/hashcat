@@ -729,6 +729,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx)
   if (hashes_init_selftest (hashcat_ctx) == -1) return -1;
 
   /**
+   * load hashes, post automatisation
+   */
+
+  if (hashes_init_stage5 (hashcat_ctx) == -1) return -1;
+
+  /**
    * load hashes, benchmark
    */
 

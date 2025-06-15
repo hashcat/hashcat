@@ -50,10 +50,6 @@ static const char *SIGNATURE_MULTIBIT = "$multibit$";
 
 static const u32 SCRYPT_THREADS = 32;
 
-static const u64 SCRYPT_N = 16384;
-static const u64 SCRYPT_R = 8;
-static const u64 SCRYPT_P = 1;
-
 #include "scrypt_common.c"
 
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)

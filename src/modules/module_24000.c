@@ -58,10 +58,6 @@ static const char *SIGNATURE_BESTCRYPT_SCRYPT = "$bcve$";
 
 static const u32 SCRYPT_THREADS = 16;
 
-static const u64 SCRYPT_N = 32768;
-static const u64 SCRYPT_R = 16;
-static const u64 SCRYPT_P = 1;
-
 #include "scrypt_common.c"
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -123,9 +119,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // scrypt settings
 
-  const u32 scrypt_N = SCRYPT_N;
-  const u32 scrypt_r = SCRYPT_R;
-  const u32 scrypt_p = SCRYPT_P;
+  const u32 scrypt_N = 32768;
+  const u32 scrypt_r = 16;
+  const u32 scrypt_p = 1;
 
   salt->scrypt_N = scrypt_N;
   salt->scrypt_r = scrypt_r;

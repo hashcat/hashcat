@@ -9677,7 +9677,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             continue;
           }
 
-          device_param->device_available_mem = device_param->device_global_mem - used_bytes;
+          device_param->device_available_mem = MIN (device_param->device_available_mem, device_param->device_global_mem - used_bytes);
+          device_param->device_available_mem = MIN (device_param->device_available_mem, device_param->device_maxmem_alloc);
 
           break;
         }

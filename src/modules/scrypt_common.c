@@ -55,15 +55,14 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   tmto = (user_options->scrypt_tmto_chgd == true) ? user_options->scrypt_tmto : 0;
 
-  // we enforce the same configuration for all hashes, so this should be fine
+  // we enforce the same configuration for all hashes, so the next lines should be fine
 
-  const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
-  const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
-  const u64 scrypt_p = (hashes->salts_buf[0].scrypt_p) ? hashes->salts_buf[0].scrypt_p : SCRYPT_P;
+  const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
+  const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
+  const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
 
-  const u64 size_per_accel = (128 * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param)) >> tmto;
-
-  const u64 state_per_accel = (128 * scrypt_r * scrypt_p * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param));
+  const u64 size_per_accel = (128ULL * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param)) >> tmto;
+  const u64 state_per_accel = (128ULL * scrypt_r * scrypt_p * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param));
 
   int   lines_sz  = 4096;
   char *lines_buf = hcmalloc (lines_sz);
@@ -140,11 +139,14 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   if (tmto == 0)
   {
-    const u32 tmto_start = 1;
+    const u32 tmto_start = 0;
     const u32 tmto_stop  = 5;
 
     for (u32 tmto_new = tmto_start; tmto_new <= tmto_stop; tmto_new++)
     {
+      // we have 1024 hard-coded in the kernel
+      if ((scrypt_N / (1 << tmto_new)) < 1024) continue;
+
       // global memory check
       if (available_mem < (kernel_accel_new * (size_per_accel >> tmto_new))) continue;
 
@@ -177,12 +179,21 @@ u64 scrypt_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
   // we need to set the self-test hash settings to pass the self-test
   // the decoder for the self-test is called after this function
 
-  const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
-  const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
+  const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
+  const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
+  //const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
 
-  const u64 size_per_accel = 128 * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param);
+  const u64 size_per_accel = 128ULL * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param);
 
   u64 size_scrypt = size_per_accel * device_param->kernel_accel_max;
+
+  // We must maintain at least 1024 iteration it's hard-coded in the kernel
+  if ((scrypt_N / (1 << tmto)) < 1024)
+  {
+    fprintf (stderr, "ERROR: SCRYPT-N parameter too low. Invalid tmto specified?\n");
+
+    return -1;
+  }
 
   return size_scrypt / (1 << tmto);
 }
@@ -196,19 +207,32 @@ u64 scrypt_module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
 
 u64 scrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes)
 {
-  const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
-  const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
-  const u64 scrypt_p = (hashes->salts_buf[0].scrypt_p) ? hashes->salts_buf[0].scrypt_p : SCRYPT_P;
+  const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
+  const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
+  const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
 
+  // in general, since we compile the kernel based on N, r, p, so the JIT can optimize it, we can't have other configuration settings
   // we need to check that all hashes have the same scrypt settings
 
   for (u32 i = 1; i < hashes->salts_cnt; i++)
   {
-    if ((hashes->salts_buf[i].scrypt_N != scrypt_N)
-     || (hashes->salts_buf[i].scrypt_r != scrypt_r)
-     || (hashes->salts_buf[i].scrypt_p != scrypt_p))
+    if ((scrypt_N != hashes->salts_buf[i].scrypt_N)
+     || (scrypt_r != hashes->salts_buf[i].scrypt_r)
+     || (scrypt_p != hashes->salts_buf[i].scrypt_p))
     {
-      return -1;
+      return (1ULL << 63) + i;
+    }
+  }
+
+  // now that we know they all have the same settings, we also need to check the self-test hash is different to what the user hash is using
+
+  if (user_options->self_test == true)
+  {
+    if ((scrypt_N != hashes->st_salts_buf[0].scrypt_N)
+     || (scrypt_r != hashes->st_salts_buf[0].scrypt_r)
+     || (scrypt_p != hashes->st_salts_buf[0].scrypt_p))
+    {
+      return (1ULL << 62);
     }
   }
 
@@ -224,27 +248,19 @@ bool scrypt_module_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
 char *scrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  const u64 scrypt_N = (hashes->salts_buf[0].scrypt_N) ? hashes->salts_buf[0].scrypt_N : SCRYPT_N;
-  const u64 scrypt_r = (hashes->salts_buf[0].scrypt_r) ? hashes->salts_buf[0].scrypt_r : SCRYPT_R;
-  const u64 scrypt_p = (hashes->salts_buf[0].scrypt_p) ? hashes->salts_buf[0].scrypt_p : SCRYPT_P;
-
-  const u64 extra_buffer_size = device_param->extra_buffer_size;
-
-  const u64 kernel_power_max = ((OPTS_TYPE & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * device_param->kernel_threads_max * device_param->kernel_accel_max;
-
-  const u64 size_scrypt = 128ULL * scrypt_r * scrypt_N;
-
-  const u64 scrypt_tmto_final = (kernel_power_max * size_scrypt) / extra_buffer_size;
+  const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
+  const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
+  const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
 
   const u64 tmp_size = 128ULL * scrypt_r * scrypt_p;
 
   char *jit_build_options = NULL;
 
-  hc_asprintf (&jit_build_options, "-D SCRYPT_N=%u -D SCRYPT_R=%u -D SCRYPT_P=%u -D SCRYPT_TMTO=%" PRIu64 " -D SCRYPT_TMP_ELEM=%" PRIu64,
-    hashes->salts_buf[0].scrypt_N,
-    hashes->salts_buf[0].scrypt_r,
-    hashes->salts_buf[0].scrypt_p,
-    scrypt_tmto_final,
+  hc_asprintf (&jit_build_options, "-D SCRYPT_N=%u -D SCRYPT_R=%u -D SCRYPT_P=%u -D SCRYPT_TMTO=%u -D SCRYPT_TMP_ELEM=%" PRIu64,
+    scrypt_N,
+    scrypt_r,
+    scrypt_p,
+    tmto + 1,
     tmp_size / 16);
 
   return jit_build_options;
