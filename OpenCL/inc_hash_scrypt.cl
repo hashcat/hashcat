@@ -345,9 +345,11 @@ DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL
     case 3: V = V3; break;
   }
 
-  // note: fixed 1024 iterations = forced -u 1024
+  // note: max 2048 iterations = forced -u 2048
 
-  for (u32 N_pos = 0; N_pos < 1024; N_pos++)
+  const u32 N_max = (2048 > ySIZE) ? ySIZE : 2048;
+
+  for (u32 N_pos = 0; N_pos < N_max; N_pos++)
   {
     const u32 k = X[zSIZE - 4].x & (SCRYPT_N - 1);
 

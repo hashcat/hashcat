@@ -26,8 +26,20 @@ inline __device__ uint4 operator +  (const uint4  a, const uint4 b) { return mak
 inline __device__ uint4 operator ^  (const uint4  a, const uint4 b) { return make_uint4 ((a.x ^  b.x), (a.y ^  b.y), (a.z ^  b.z), (a.w ^  b.w));  }
 inline __device__ uint4 operator |  (const uint4  a, const uint4 b) { return make_uint4 ((a.x |  b.x), (a.y |  b.y), (a.z |  b.z), (a.w |  b.w));  }
 inline __device__ void  operator ^= (      uint4 &a, const uint4 b) {                     a.x ^= b.x;   a.y ^= b.y;   a.z ^= b.z;   a.w ^= b.w;    }
+#endif
 
-inline __device__ uint4 rotate (const uint4 a, const int n) { return ((a << n) | ((a >> (32 - n)))); }
+#if defined IS_CUDA || defined IS_HIP
+inline __device__ uint4 rotate (const uint4 a, const int n)
+{
+  uint4 r;
+
+  r.x = hc_rotl32_S (r.x, n);
+  r.y = hc_rotl32_S (r.y, n);
+  r.z = hc_rotl32_S (r.z, n);
+  r.w = hc_rotl32_S (r.w, n);
+
+  return r;
+}
 #endif
 
 #endif

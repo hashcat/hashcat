@@ -10,14 +10,14 @@
 
 u32 scrypt_module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_min = 1024;
+  const u32 kernel_loops_min = 2048;
 
   return kernel_loops_min;
 }
 
 u32 scrypt_module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_loops_max = 1024;
+  const u32 kernel_loops_max = 2048;
 
   return kernel_loops_max;
 }
@@ -84,7 +84,8 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
   }
   else
   {
-    // find a nice kernel_accel programmatically
+    // find a nice kernel_accel for gpus programmatically
+    // on cpus there's no need for over subscription with scrypt
 
     if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
     {
@@ -92,45 +93,51 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
       {
         const float multi = (float) available_mem / size_per_accel;
 
-        int accel_multi;
-
-        for (accel_multi = 1; accel_multi <= 2; accel_multi++)
+        if ((multi * 2) >= device_processors)
         {
-          kernel_accel_new = multi * (1 << accel_multi);
+          kernel_accel_new  = multi * 2;
+          kernel_accel_new -= 2;
 
-          if (kernel_accel_new >= device_processors) break;
+          if ((multi * 4) >= device_processors * 2)
+          {
+            kernel_accel_new  = multi * 4;
+            kernel_accel_new -= 4;
+          }
         }
-
-        // we need some space for tmps[], ...
-
-        kernel_accel_new -= (1 << accel_multi);
+        else if ((multi * 4) >= device_processors)
+        {
+          kernel_accel_new  = multi * 4;
+          kernel_accel_new -= 4;
+        }
 
         // clamp if close to device processors -- 16% seems fine on a 2080ti, and on a 4090
 
-        if ((kernel_accel_new > device_processors) && ((device_processors * 1.16) > kernel_accel_new))
+        if (kernel_accel_new > device_processors)
         {
-          kernel_accel_new = device_processors;
+          const u32 extra = kernel_accel_new % device_processors;
+
+          if (extra < (device_processors * 0.16))
+          {
+            kernel_accel_new -= extra;
+          }
         }
       }
       else
       {
-        for (int i = 1; i <= 8; i++)
+        u64 multi = available_mem / size_per_accel;
+
+        if (tmto == 0)
         {
-          if ((size_per_accel * device_processors * i) < available_mem)
-          {
-            kernel_accel_new = device_processors * i;
-          }
+          tmto = 2; // we radically assign tmto = 2, since most gpus seem to enjoy that tmto
+
+          multi = available_mem / (size_per_accel >> tmto);
         }
-      }
-    }
-    else
-    {
-      for (int i = 1; i <= 8; i++)
-      {
-        if ((size_per_accel * device_processors * i) < available_mem)
-        {
-          kernel_accel_new = device_processors * i;
-        }
+
+        multi /= device_processors;
+        multi -= 4;
+        multi  = MIN (16, multi);
+
+        kernel_accel_new = device_processors * multi; // should be safe because of tmto
       }
     }
   }
@@ -144,9 +151,6 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
     for (u32 tmto_new = tmto_start; tmto_new <= tmto_stop; tmto_new++)
     {
-      // we have 1024 hard-coded in the kernel
-      if ((scrypt_N / (1 << tmto_new)) < 1024) continue;
-
       // global memory check
       if (available_mem < (kernel_accel_new * (size_per_accel >> tmto_new))) continue;
 
@@ -186,14 +190,6 @@ u64 scrypt_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
   const u64 size_per_accel = 128ULL * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param);
 
   u64 size_scrypt = size_per_accel * device_param->kernel_accel_max;
-
-  // We must maintain at least 1024 iteration it's hard-coded in the kernel
-  if ((scrypt_N / (1 << tmto)) < 1024)
-  {
-    fprintf (stderr, "ERROR: SCRYPT-N parameter too low. Invalid tmto specified?\n");
-
-    return -1;
-  }
 
   return size_scrypt / (1 << tmto);
 }
