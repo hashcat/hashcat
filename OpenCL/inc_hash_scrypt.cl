@@ -291,7 +291,7 @@ DECLSPEC void scrypt_smix_init (LOCAL_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_A
 DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
 #endif
 {
-  const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
+  const u32 ySIZE = SCRYPT_N >> SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
   const u32 x = (u32) gid;
@@ -314,9 +314,9 @@ DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
     for (u32 z = 0; z < zSIZE; z++) V[CO] = X[z];
 
     #ifdef IS_HIP
-    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r_l ((LOCAL_AS u32 *) X);
+    for (u32 i = 0; i < (1 << SCRYPT_TMTO); i++) salsa_r_l ((LOCAL_AS u32 *) X);
     #else
-    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r_p ((PRIVATE_AS u32 *) X);
+    for (u32 i = 0; i < (1 << SCRYPT_TMTO); i++) salsa_r_p ((PRIVATE_AS u32 *) X);
     #endif
   }
 }
@@ -327,7 +327,7 @@ DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, LOCAL_AS uint4 *T, GLOBAL_A
 DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
 #endif
 {
-  const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
+  const u32 ySIZE = SCRYPT_N >> SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
   const u32 x = (u32) gid;
@@ -351,9 +351,9 @@ DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL
   {
     const u32 k = X[zSIZE - 4].x & (SCRYPT_N - 1);
 
-    const u32 y = k / SCRYPT_TMTO;
+    const u32 y = k >> SCRYPT_TMTO;
 
-    const u32 km = k - (y * SCRYPT_TMTO);
+    const u32 km = k - (y << SCRYPT_TMTO);
 
     for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
 

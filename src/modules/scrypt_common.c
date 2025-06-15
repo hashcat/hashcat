@@ -57,9 +57,9 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   // we enforce the same configuration for all hashes, so the next lines should be fine
 
-  const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
-  const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
-  const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
+  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N == 0) ? hashes->st_salts_buf[0].scrypt_N : hashes->salts_buf[0].scrypt_N;
+  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
+  const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
 
   const u64 size_per_accel = (128ULL * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param)) >> tmto;
   const u64 state_per_accel = (128ULL * scrypt_r * scrypt_p * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param));
@@ -179,9 +179,9 @@ u64 scrypt_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
   // we need to set the self-test hash settings to pass the self-test
   // the decoder for the self-test is called after this function
 
-  const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
-  const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
-  //const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
+  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N == 0) ? hashes->st_salts_buf[0].scrypt_N : hashes->salts_buf[0].scrypt_N;
+  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
+  //const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
 
   const u64 size_per_accel = 128ULL * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param);
 
@@ -207,9 +207,9 @@ u64 scrypt_module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_U
 
 u64 scrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes)
 {
-  const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
-  const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
-  const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
+  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N == 0) ? hashes->st_salts_buf[0].scrypt_N : hashes->salts_buf[0].scrypt_N;
+  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
+  const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
 
   // in general, since we compile the kernel based on N, r, p, so the JIT can optimize it, we can't have other configuration settings
   // we need to check that all hashes have the same scrypt settings
@@ -241,16 +241,11 @@ u64 scrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   return tmp_size;
 }
 
-bool scrypt_module_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  return true;
-}
-
 char *scrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  const u32 scrypt_N = hashes->salts_buf[0].scrypt_N;
-  const u32 scrypt_r = hashes->salts_buf[0].scrypt_r;
-  const u32 scrypt_p = hashes->salts_buf[0].scrypt_p;
+  const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N == 0) ? hashes->st_salts_buf[0].scrypt_N : hashes->salts_buf[0].scrypt_N;
+  const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
+  const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
 
   const u64 tmp_size = 128ULL * scrypt_r * scrypt_p;
 
@@ -260,7 +255,7 @@ char *scrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
     scrypt_N,
     scrypt_r,
     scrypt_p,
-    tmto + 1,
+    tmto,
     tmp_size / 16);
 
   return jit_build_options;
