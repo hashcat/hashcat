@@ -16,6 +16,15 @@
 #include <Xz.h>
 #include <XzCrc64.h>
 
+
+#if defined (_WIN)
+#include <fcntl.h>
+#include <io.h>
+#include <stdio.h>
+#include <wchar.h>
+#include <locale.h>
+#endif
+
 /* Maybe _LZMA_NO_SYSTEM_SIZE_T defined? */
 #if defined (__clang__) || defined (__GNUC__)
 #include <assert.h>
@@ -144,14 +153,30 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     }
   }
 
-  if (fmode == -1)
-  {
-    fp->fd = open (path, oflag);
-  }
-  else
-  {
-    fp->fd = open (path, oflag, fmode);
-  }
+  #if defined (_WIN)
+    wchar_t *wpath = NULL;
+    if(utf8_to_widechar (path, &wpath) == -1) return false;
+
+    // Use _wopen to open the file safer on Windows
+    if (fmode == -1)
+    {
+      fp->fd = _wopen(wpath, oflag);
+    }
+    else
+    {
+      fp->fd = _wopen(wpath, oflag, fmode);
+    }
+
+  #else
+    if (fmode == -1)
+    {
+      fp->fd = open (path, oflag);
+    }
+    else
+    {
+      fp->fd = open (path, oflag, fmode);
+    }
+  #endif
 
   if (fp->fd == -1) return false;
 
@@ -340,14 +365,30 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
     return false;
   }
 
-  if (fmode == -1)
-  {
-    fp->fd = open (path, oflag);
-  }
-  else
-  {
-    fp->fd = open (path, oflag, fmode);
-  }
+  #if defined (_WIN)
+    wchar_t *wpath = NULL;
+    if(utf8_to_widechar (path, &wpath) == -1) return false;
+
+    // Use _wopen to open the file safer on Windows
+    if (fmode == -1)
+    {
+      fp->fd = _wopen(wpath, oflag);
+    }
+    else
+    {
+      fp->fd = _wopen(wpath, oflag, fmode);
+    }
+
+  #else
+    if (fmode == -1)
+    {
+      fp->fd = open (path, oflag);
+    }
+    else
+    {
+      fp->fd = open (path, oflag, fmode);
+    }
+  #endif
 
   if (fp->fd == -1) return false;
 

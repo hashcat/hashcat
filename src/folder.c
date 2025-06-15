@@ -34,9 +34,35 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   #elif defined (_WIN)
 
-  memset (exec_path, 0, exec_path_sz);
+    wchar_t wpath[MAX_PATH];
+    DWORD length = GetModuleFileNameW(NULL, wpath, MAX_PATH);
+    if (length == 0 || length >= MAX_PATH) {
+        exec_path[0] = '.';
+        exec_path[1] = 0;
+        return 0;
+    }
 
-  const int len = 0;
+    // Convert UTF-16 to UTF-8 directly
+    int converted = WideCharToMultiByte(
+        CP_UTF8,             // Code page
+        0,                   // Flags
+        wpath,               // Wide-char input
+        -1,                  // Null-terminated input
+        exec_path,           // Output buffer
+        (int)exec_path_sz,   // Output buffer size
+        NULL, NULL           // No default char / no used default char flag
+    );
+
+    
+    if (converted == 0) {
+      exec_path[0] = '.';
+      exec_path[1] = 0;
+      return 0;
+    }
+    
+    naive_replace (exec_path, '\\', '/');
+
+  const size_t len = strlen (exec_path);
 
   #elif defined (__APPLE__)
 
