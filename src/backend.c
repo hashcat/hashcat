@@ -544,7 +544,7 @@ bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, si
   {
     struct stat st;
 
-    if (stat (kernel_file, &st))
+    if (hc_stat (kernel_file, &st))
     {
       hc_fclose (&fp);
 
@@ -8943,12 +8943,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
 
-      // untested on windows, but it should work
-      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-      hc_asprintf (&nvrtc_options[4], "-D INCLUDE_PATH=%s", "OpenCL");
-      #else
       hc_asprintf (&nvrtc_options[4], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
-      #endif
 
       hc_asprintf (&nvrtc_options[5], "-D XM2S(x)=#x");
       hc_asprintf (&nvrtc_options[6], "-D M2S(x)=XM2S(x)");

@@ -99,7 +99,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
     struct stat outfile_check_stat;
 
-    if (stat (root_directory, &outfile_check_stat) == -1)
+    if (hc_stat (root_directory, &outfile_check_stat) == -1)
     {
       event_log_error (hashcat_ctx, "%s: %s", root_directory, strerror (errno));
 
@@ -133,7 +133,7 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
             struct stat outfile_stat;
 
-            if (stat (out_info_new[i].file_name, &outfile_stat) != 0) continue;
+            if (hc_stat (out_info_new[i].file_name, &outfile_stat) != 0) continue;
 
             if (outfile_stat.st_ctime != out_info[j].ctime) continue;
 

@@ -41,6 +41,8 @@ u64 mydivc64 (const u64 dividend, const u64 divisor);
 
 char *filename_from_filepath (char *filepath);
 
+int utf8_to_widechar (const char *utf8, wchar_t **wide_out);
+
 void naive_replace (char *s, const char key_char, const char replace_char);
 void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char);
 
@@ -57,6 +59,7 @@ bool hc_path_is_file (const char *path);
 bool hc_path_is_directory (const char *path);
 bool hc_path_is_fifo (const char *path);
 bool hc_path_is_empty (const char *path);
+bool hc_access (const char *path, const int mode);
 bool hc_path_exist (const char *path);
 bool hc_path_read (const char *path);
 bool hc_path_write (const char *path);
@@ -72,6 +75,8 @@ void hc_string_trim_leading (char *s);
 int hc_get_processor_count (void);
 
 bool hc_same_files (char *file1, char *file2);
+
+int hc_stat (const char* path, struct stat *buf);
 
 u32 hc_strtoul  (const char *nptr, char **endptr, int base);
 u64 hc_strtoull (const char *nptr, char **endptr, int base);
