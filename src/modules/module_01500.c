@@ -60,6 +60,12 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
       return false;
     }
 
+    if (device_param->opencl_platform_vendor_id != VENDOR_ID_INTEL_SDK)
+    {
+      // works on Linux/POCL
+      return false;
+    }
+
     // skip by default for now
     return true;
   }
