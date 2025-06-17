@@ -15,8 +15,7 @@
 #define STATE_CNT   GET_STATE_CNT  (SCRYPT_R)
 #define STATE_CNT4  (STATE_CNT / 4)
 
-#define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
-#define CO Coord(xd4,y,z)
+#define VIDX(bid4,lsz,lid,ySIZE,zSIZE,y,z) (((bid4) * (lsz) * (ySIZE) * (zSIZE)) + ((lid) * (ySIZE) * (zSIZE)) + ((y) * (zSIZE)) + (z))
 
 #if defined IS_CUDA
 inline __device__ uint4 operator &  (const uint4  a, const u32   b) { return make_uint4 ((a.x &  b  ), (a.y &  b  ), (a.z &  b  ), (a.w &  b  ));  }

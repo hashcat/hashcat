@@ -294,10 +294,12 @@ DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
   const u32 ySIZE = SCRYPT_N >> SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
-  const u32 x = (u32) gid;
+  const u64 bid = get_group_id(0);
+  const u64 lsz = get_local_size(0);
+  const u64 lid = get_local_id(0);
 
-  const u32 xd4 = x / 4;
-  const u32 xm4 = x & 3;
+  const u32 xd4 = bid / 4;
+  const u32 xm4 = bid & 3;
 
   GLOBAL_AS uint4 *V;
 
@@ -311,7 +313,7 @@ DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
 
   for (u32 y = 0; y < ySIZE; y++)
   {
-    for (u32 z = 0; z < zSIZE; z++) V[CO] = X[z];
+    for (u32 z = 0; z < zSIZE; z++) V[VIDX(xd4, lsz, lid, ySIZE, zSIZE, y, z)] = X[z];
 
     #ifdef IS_HIP
     for (u32 i = 0; i < (1 << SCRYPT_TMTO); i++) salsa_r_l ((LOCAL_AS u32 *) X);
@@ -330,10 +332,12 @@ DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL
   const u32 ySIZE = SCRYPT_N >> SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
 
-  const u32 x = (u32) gid;
+  const u64 bid = get_group_id(0);
+  const u64 lsz = get_local_size(0);
+  const u64 lid = get_local_id(0);
 
-  const u32 xd4 = x / 4;
-  const u32 xm4 = x & 3;
+  const u32 xd4 = bid / 4;
+  const u32 xm4 = bid & 3;
 
   GLOBAL_AS uint4 *V;
 
@@ -347,7 +351,7 @@ DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL
 
   // note: max 2048 iterations = forced -u 2048
 
-  const u32 N_max = (2048 > ySIZE) ? ySIZE : 2048;
+  const u32 N_max = (SCRYPT_N < 2048) ? SCRYPT_N : 2048;
 
   for (u32 N_pos = 0; N_pos < N_max; N_pos++)
   {
@@ -357,7 +361,7 @@ DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL
 
     const u32 km = k - (y << SCRYPT_TMTO);
 
-    for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
+    for (u32 z = 0; z < zSIZE; z++) T[z] = V[VIDX(xd4, lsz, lid, ySIZE, zSIZE, y, z)];
 
     #ifdef IS_HIP
     for (u32 i = 0; i < km; i++) salsa_r_l ((LOCAL_AS u32 *) T);

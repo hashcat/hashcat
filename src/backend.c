@@ -5305,6 +5305,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       hc_string_trim_trailing (device_name);
 
+      // unified memory
+
+      int device_host_unified_memory = 0;
+
+      if (hc_cuDeviceGetAttribute (hashcat_ctx, &device_host_unified_memory, CU_DEVICE_ATTRIBUTE_INTEGRATED, cuda_device) == -1)
+      {
+        device_param->skipped = true;
+
+        continue;
+      }
+
+      device_param->device_host_unified_memory = device_host_unified_memory;
+
       // device_processors
 
       int device_processors = 0;
@@ -5734,6 +5747,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       hc_string_trim_leading (device_name);
 
       hc_string_trim_trailing (device_name);
+
+      // unified memory
+
+      int device_host_unified_memory = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_host_unified_memory, hipDeviceAttributeIntegrated, hip_device) == -1)
+      {
+        device_param->skipped = true;
+
+        continue;
+      }
+
+      device_param->device_host_unified_memory = device_host_unified_memory;
 
       // device_processors
 
@@ -9705,11 +9731,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       u32 _kernel_accel = 0;
 
-      tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+      if (user_options->kernel_accel_chgd == true)
+      {
+        _kernel_accel = user_options->kernel_accel;
+      } 
+      else
+      {
+        tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
 
-      if (tuningdb_entry != NULL) _kernel_accel = tuningdb_entry->kernel_accel;
-
-      if (user_options->kernel_accel_chgd == true) _kernel_accel = user_options->kernel_accel;
+        if (tuningdb_entry != NULL) _kernel_accel = tuningdb_entry->kernel_accel;
+      }
 
       const char *extra_tuningdb_block = module_ctx->module_extra_tuningdb_block (hashconfig, user_options, user_options_extra, backend_ctx, hashes, device_id, _kernel_accel);
 
@@ -10405,7 +10436,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // extra buffer
 
-    u64 size_extra_buffer = 4;
+    u64 size_extra_buffer1 = 4;
+    u64 size_extra_buffer2 = 4;
+    u64 size_extra_buffer3 = 4;
+    u64 size_extra_buffer4 = 4;
 
     if (module_ctx->module_extra_buffer_size != MODULE_DEFAULT)
     {
@@ -10423,20 +10457,51 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       device_param->extra_buffer_size = extra_buffer_size;
 
-      // for the size we actually allocate we need to cheat a bit in order to make it more easy for plugin developer.
-      //
-      // we will divide this size by 4 to workaround opencl limitation.
-      // this collides with a theoretical scenario (like -n1 -T1) where there's only one workitem,
-      // because inside the kernel the target buffer is selected by workitem_id / 4.
-      // but the maximum size of the buffer would be only 1/4 of what is needed -> overflow.
-      //
-      // to workaround this we make sure that there's always a full buffer in each of the 4 allocated buffers available.
+      /**
+       * We use a "4-buffer" strategy for certain hash types (like scrypt)
+       * that require large scratch buffers per work-item.
+       *
+       * The kernel assigns each work-item to one of 4 sub-buffers using:
+       *   buffer index = workitem_id % 4
+       *
+       * This means that each of the 4 sub-buffers must be large enough to hold
+       * all work-items that map to it. However, the total number of work-items
+       * is not always a multiple of 4. If we naively split the total buffer size
+       * evenly into 4 parts, the last chunk may be too small and cause buffer
+       * overflows for configurations where work-items spill into a partially sized chunk.
+       *
+       * Previous versions worked around this by over-allocating a full extra buffer,
+       * but this wasted gpu memory for large hashes like scrypt with high N.
+       *
+       * This improved logic computes the exact number of work-items assigned to
+       * each of the 4 chunks and sizes each chunk precisely:
+       *
+       * - The first 'leftover' chunks get one extra work-item to cover any remainder.
+       * - This guarantees each chunk is large enough for its assigned work-items.
+       */
 
-      const u64 kernel_power_max = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * device_param->kernel_threads_max * device_param->kernel_accel_max;
+      const u64 kernel_power_max = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors) * device_param->kernel_accel_max;
 
-      const u64 extra_buffer_size_one = extra_buffer_size / kernel_power_max;
+      const u64 extra_buffer_size_threads = extra_buffer_size / kernel_power_max;
 
-      size_extra_buffer = extra_buffer_size + (extra_buffer_size_one * 4);
+      const u64 workitems_per_chunk = kernel_power_max / 4;
+
+      const u64 base_chunk_size = workitems_per_chunk * extra_buffer_size_threads;
+
+      size_extra_buffer1 = base_chunk_size;
+      size_extra_buffer2 = base_chunk_size;
+      size_extra_buffer3 = base_chunk_size;
+      size_extra_buffer4 = base_chunk_size;
+
+      const u64 leftover = kernel_power_max % 4;
+
+      switch (leftover)
+      {
+        case 3: size_extra_buffer3 += extra_buffer_size_threads; // fall-through
+        case 2: size_extra_buffer2 += extra_buffer_size_threads; // fall-through
+        case 1: size_extra_buffer1 += extra_buffer_size_threads; // fall-through
+        case 0: break;
+      }
     }
 
     // kern type
@@ -11343,7 +11408,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       + size_shown
       + size_salts
       + size_results
-      + size_extra_buffer
+      + size_extra_buffer1
+      + size_extra_buffer2
+      + size_extra_buffer3
+      + size_extra_buffer4
       + size_st_digests
       + size_st_salts
       + size_st_esalts
@@ -11380,10 +11448,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_digests_shown,  size_shown)              == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_salt_bufs,      size_salts)              == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_result,         size_results)            == -1) return -1;
-      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra0_buf,     size_extra_buffer / 4)   == -1) return -1;
-      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra1_buf,     size_extra_buffer / 4)   == -1) return -1;
-      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra2_buf,     size_extra_buffer / 4)   == -1) return -1;
-      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra3_buf,     size_extra_buffer / 4)   == -1) return -1;
+      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra0_buf,     size_extra_buffer1)      == -1) return -1;
+      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra1_buf,     size_extra_buffer2)      == -1) return -1;
+      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra2_buf,     size_extra_buffer3)      == -1) return -1;
+      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_extra3_buf,     size_extra_buffer4)      == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_st_digests_buf, size_st_digests)         == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_st_salts_buf,   size_st_salts)           == -1) return -1;
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_kernel_param,   size_kernel_params)      == -1) return -1;
@@ -11491,10 +11559,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_digests_shown,  size_shown)              == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_salt_bufs,      size_salts)              == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_result,         size_results)            == -1) return -1;
-      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra0_buf,     size_extra_buffer / 4)   == -1) return -1;
-      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra1_buf,     size_extra_buffer / 4)   == -1) return -1;
-      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra2_buf,     size_extra_buffer / 4)   == -1) return -1;
-      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra3_buf,     size_extra_buffer / 4)   == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra0_buf,     size_extra_buffer1)      == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra1_buf,     size_extra_buffer2)      == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra2_buf,     size_extra_buffer3)      == -1) return -1;
+      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_extra3_buf,     size_extra_buffer4)      == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_st_digests_buf, size_st_digests)         == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_st_salts_buf,   size_st_salts)           == -1) return -1;
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_kernel_param,   size_kernel_params)      == -1) return -1;
@@ -11614,10 +11682,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // shared
       if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_results,            NULL, &device_param->metal_d_result)         == -1) return -1;
-      if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_extra_buffer / 4,   NULL, &device_param->metal_d_extra0_buf)     == -1) return -1;
-      if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_extra_buffer / 4,   NULL, &device_param->metal_d_extra1_buf)     == -1) return -1;
-      if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_extra_buffer / 4,   NULL, &device_param->metal_d_extra2_buf)     == -1) return -1;
-      if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_extra_buffer / 4,   NULL, &device_param->metal_d_extra3_buf)     == -1) return -1;
+      if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_extra_buffer1,      NULL, &device_param->metal_d_extra0_buf)     == -1) return -1;
+      if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_extra_buffer2,      NULL, &device_param->metal_d_extra1_buf)     == -1) return -1;
+      if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_extra_buffer3,      NULL, &device_param->metal_d_extra2_buf)     == -1) return -1;
+      if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_extra_buffer4,      NULL, &device_param->metal_d_extra3_buf)     == -1) return -1;
 
       // gpu only
       if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, size_st_digests,         NULL, &device_param->metal_d_st_digests_buf) == -1) return -1;
@@ -11712,10 +11780,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_shown,              NULL, &device_param->opencl_d_digests_shown)  == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_salts,              NULL, &device_param->opencl_d_salt_bufs)      == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_results,            NULL, &device_param->opencl_d_result)         == -1) return -1;
-      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra0_buf)     == -1) return -1;
-      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra1_buf)     == -1) return -1;
-      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra2_buf)     == -1) return -1;
-      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer / 4,   NULL, &device_param->opencl_d_extra3_buf)     == -1) return -1;
+      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer1,      NULL, &device_param->opencl_d_extra0_buf)     == -1) return -1;
+      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer2,      NULL, &device_param->opencl_d_extra1_buf)     == -1) return -1;
+      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer3,      NULL, &device_param->opencl_d_extra2_buf)     == -1) return -1;
+      if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_WRITE,  size_extra_buffer4,      NULL, &device_param->opencl_d_extra3_buf)     == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_digests,         NULL, &device_param->opencl_d_st_digests_buf) == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_st_salts,           NULL, &device_param->opencl_d_st_salts_buf)   == -1) return -1;
       if (hc_clCreateBuffer (hashcat_ctx, device_param->opencl_context, CL_MEM_READ_ONLY,   size_kernel_params,      NULL, &device_param->opencl_d_kernel_param)   == -1) return -1;
@@ -15734,7 +15802,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (size_rules              > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_rules_c            > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_salts              > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if ((size_extra_buffer / 4) > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_extra_buffer1      > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_extra_buffer2      > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_extra_buffer3      > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_extra_buffer4      > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_shown              > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_tm                 > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_tmps               > undocumented_single_allocation_apple) memory_limit_hit = 1;
@@ -15769,7 +15840,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_rules
         + size_rules_c
         + size_salts
-        + size_extra_buffer
+        + size_extra_buffer1
+        + size_extra_buffer2
+        + size_extra_buffer3
+        + size_extra_buffer4
         + size_shown
         + size_tm
         + size_tmps

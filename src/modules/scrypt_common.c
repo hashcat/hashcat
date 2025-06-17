@@ -46,14 +46,9 @@ u32 scrypt_exptected_threads (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return threads;
 }
 
-const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel)
+const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel_user)
 {
   hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
-
-  // preprocess tmto in case user has overridden
-  // it's important to set to 0 otherwise so we can postprocess tmto in that case
-
-  tmto = (user_options->scrypt_tmto_chgd == true) ? user_options->scrypt_tmto : 0;
 
   // we enforce the same configuration for all hashes, so the next lines should be fine
 
@@ -61,7 +56,7 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
   const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
   const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
 
-  const u64 size_per_accel = (128ULL * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param)) >> tmto;
+  const u64 size_per_accel = (128ULL * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param));
   const u64 state_per_accel = (128ULL * scrypt_r * scrypt_p * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param));
 
   int   lines_sz  = 4096;
@@ -72,95 +67,144 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   const u32 device_local_mem_size = device_param->device_local_mem_size;
 
-  const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4));
+  const u64 fixed_mem = (512 * 1024 * 1024); // some storage we need for pws[], tmps[], and others
+
+  const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - fixed_mem;
+
+  tmto = 0;
 
   u32 kernel_accel_new = device_processors;
 
-  if (kernel_accel)
+  if (kernel_accel_user)
   {
-    // from command line or tuning db has priority
+    kernel_accel_new = kernel_accel_user;
 
-    kernel_accel_new = user_options->kernel_accel;
-  }
-  else
-  {
-    // find a nice kernel_accel for gpus programmatically
-    // on cpus there's no need for over subscription with scrypt
-
-    if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+    if (user_options->scrypt_tmto_chgd == true)
     {
-      if ((size_per_accel * device_processors) > available_mem) // not enough memory
+      // in this branch the user can shoot themselves into the foot
+
+      tmto = user_options->scrypt_tmto;
+    }
+    else
+    {
+      // only option to save the user is to increase tmto
+
+      for (tmto = 0; tmto < 6; tmto++)
       {
-        const float multi = (float) available_mem / size_per_accel;
+        const u64 size_per_accel_tmto = size_per_accel >> tmto;
 
-        if ((multi * 2) >= device_processors)
-        {
-          kernel_accel_new  = multi * 2;
-          kernel_accel_new -= 2;
+        if ((size_per_accel_tmto * kernel_accel_new) > available_mem) continue; // not enough memory
 
-          if ((multi * 4) >= device_processors * 2)
-          {
-            kernel_accel_new  = multi * 4;
-            kernel_accel_new -= 4;
-          }
-        }
-        else if ((multi * 4) >= device_processors)
-        {
-          kernel_accel_new  = multi * 4;
-          kernel_accel_new -= 4;
-        }
-
-        // clamp if close to device processors -- 16% seems fine on a 2080ti, and on a 4090
-
-        if (kernel_accel_new > device_processors)
-        {
-          const u32 extra = kernel_accel_new % device_processors;
-
-          if (extra < (device_processors * 0.16))
-          {
-            kernel_accel_new -= extra;
-          }
-        }
-      }
-      else
-      {
-        u64 multi = available_mem / size_per_accel;
-
-        if (tmto == 0)
-        {
-          tmto = 2; // we radically assign tmto = 2, since most gpus seem to enjoy that tmto
-
-          multi = available_mem / (size_per_accel >> tmto);
-        }
-
-        multi /= device_processors;
-        multi -= 4;
-        multi  = MIN (16, multi);
-
-        kernel_accel_new = device_processors * multi; // should be safe because of tmto
+        break;
       }
     }
   }
-
-  // fix tmto if user allows
-
-  if (tmto == 0)
+  else
   {
-    const u32 tmto_start = 0;
-    const u32 tmto_stop  = 5;
-
-    for (u32 tmto_new = tmto_start; tmto_new <= tmto_stop; tmto_new++)
+    if (user_options->scrypt_tmto_chgd == true)
     {
-      // global memory check
-      if (available_mem < (kernel_accel_new * (size_per_accel >> tmto_new))) continue;
+      tmto = user_options->scrypt_tmto;
+    }
+    else
+    {
+      // This is the typical case and the main challenge: choosing the right TMTO value.
+      // Finding a consistently good algorithm is nearly impossible due to the many factors
+      // that influence performance. There is no clear rule of thumb.
+      // 
+      // For example, consider the default scrypt configuration with N=16k and r=8.
+      //
+      // In one test with an NVIDIA mobile GPU with 16 GiB of memory (minus X), the device could
+      // use 28/58 processors. In theory, increasing the TMTO should increase
+      // performance, but in practice it had no effect at all.
+      //
+      // In another test with an NVIDIA discrete GPU with 11 GiB (minus X), the device initially
+      // used 19/68 processors. Increasing the TMTO to utilize all 68 processors
+      // did yield the expected performance improvement, matching the theory.
+      //
+      // However, with an AMD discrete GPU with 24 GiB (minus X), the optimal case used 46/48
+      // processors. Increasing the TMTO should have reduced performance, but
+      // instead it nearly doubled the speed?! This might be related to AMD GPUs performing
+      // best with a thread count of 64 instead of 32, but in practice, using 64 threads
+      // shows little difference compared to 32, suggesting that at a very low level,
+      // only 32 threads may actually be active.
+      //
+      // This algorithm is far from ideal. Fortunately, we have a tuning database,
+      // so users can find the best -n value for their specific setup, and a forced -n value
+      // allows to easily calculate the TMTO.
 
-      // also need local memory check because in kernel we have:
-      // LOCAL_VK uint4 T_s[MAX_THREADS_PER_BLOCK][STATE_CNT4]; // 32 * 128 * r * p = 32KiB we're close if there's no TMTO
-      if (device_local_mem_size < (state_per_accel >> tmto_new)) continue;
+      if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
+      {
+        for (tmto = 0; tmto < 2; tmto++) // results in tmto = 2
+        {
+          if (device_param->device_host_unified_memory == 1) break; // do not touch
 
-      tmto = tmto_new;
+          if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+           || (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
+          {
+            if (tmto == 0) continue; // at least 1
+          }
 
-      break;
+          const u64 size_per_accel_tmto = size_per_accel >> tmto;
+
+          const float blocks = (float) available_mem / size_per_accel_tmto;
+
+          const float blocks_perc = device_processors / blocks;
+
+          if (blocks_perc > 1.16) continue;
+
+          // probably very low scrypt configuration = register pressure becomes a bottleneck
+          if ((blocks_perc * (1 << tmto)) < 0.4) continue;
+
+          break;
+        }
+
+        if (device_param->is_hip == true)
+        {
+          // we use some local memory to speed up things, so 
+          // we need to make sure there's enough local memory available
+
+          u64 state_per_accel_tmto = state_per_accel >> tmto;
+
+          while (state_per_accel_tmto > device_local_mem_size)
+          {
+            tmto++;
+
+            state_per_accel_tmto = state_per_accel >> tmto;
+          }
+        }
+      }
+    }
+
+    // from here tmto is known, and we need to update kernel_accel
+
+    if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == false))
+    {
+      const u64 size_per_accel_tmto = size_per_accel >> tmto;
+
+      kernel_accel_new = available_mem / size_per_accel_tmto;
+
+      kernel_accel_new = MIN (kernel_accel_new, 1024); // max supported
+
+      // luxury option, clamp if we have twice the processors
+
+      if (kernel_accel_new > (device_processors * 2))
+      {
+        const u32 extra = kernel_accel_new % device_processors;
+
+        kernel_accel_new -= extra;
+      }
+
+      // clamp if close to device processors -- 16% seems fine on a 2080ti, and on a 4090
+
+      if (kernel_accel_new > device_processors)
+      {
+        const u32 extra = kernel_accel_new % device_processors;
+
+        if (extra < (device_processors * 0.16))
+        {
+          kernel_accel_new -= extra;
+        }
+      }
     }
   }
 
@@ -189,9 +233,11 @@ u64 scrypt_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
 
   const u64 size_per_accel = 128ULL * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param);
 
-  u64 size_scrypt = size_per_accel * device_param->kernel_accel_max;
+  const u64 size_per_accel_tmto = size_per_accel >> tmto;
 
-  return size_scrypt / (1 << tmto);
+  const u64 size_scrypt = device_param->kernel_accel_max * size_per_accel_tmto;
+
+  return size_scrypt;
 }
 
 u64 scrypt_module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -256,3 +302,4 @@ char *scrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
 
   return jit_build_options;
 }
+
