@@ -286,17 +286,13 @@ DECLSPEC void salsa_r_p (PRIVATE_AS u32 *TI)
 }
 
 #ifdef IS_HIP
-DECLSPEC void scrypt_smix_init (LOCAL_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
+DECLSPEC void scrypt_smix_init (LOCAL_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid, const u64 lid, const u64 lsz, const u64 bid)
 #else
-DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
+DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid, const u64 lid, const u64 lsz, const u64 bid)
 #endif
 {
   const u32 ySIZE = SCRYPT_N >> SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
-
-  const u64 bid = get_group_id(0);
-  const u64 lsz = get_local_size(0);
-  const u64 lid = get_local_id(0);
 
   const u32 xd4 = bid / 4;
   const u32 xm4 = bid & 3;
@@ -324,17 +320,13 @@ DECLSPEC void scrypt_smix_init (PRIVATE_AS uint4 *X, GLOBAL_AS uint4 *V0, GLOBAL
 }
 
 #ifdef IS_HIP
-DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, LOCAL_AS uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
+DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, LOCAL_AS uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid, const u64 lid, const u64 lsz, const u64 bid)
 #else
-DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
+DECLSPEC void scrypt_smix_loop (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid, const u64 lid, const u64 lsz, const u64 bid)
 #endif
 {
   const u32 ySIZE = SCRYPT_N >> SCRYPT_TMTO;
   const u32 zSIZE = STATE_CNT4;
-
-  const u64 bid = get_group_id(0);
-  const u64 lsz = get_local_size(0);
-  const u64 lid = get_local_id(0);
 
   const u32 xd4 = bid / 4;
   const u32 xm4 = bid & 3;
