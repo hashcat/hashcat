@@ -110,7 +110,7 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
       // This is the typical case and the main challenge: choosing the right TMTO value.
       // Finding a consistently good algorithm is nearly impossible due to the many factors
       // that influence performance. There is no clear rule of thumb.
-      // 
+      //
       // For example, consider the default scrypt configuration with N=16k and r=8.
       //
       // In one test with an NVIDIA mobile GPU with 16 GiB of memory (minus X), the device could
@@ -153,14 +153,17 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
           if (blocks_perc > 1.16) continue;
 
           // probably very low scrypt configuration = register pressure becomes a bottleneck
-          if ((blocks_perc * (1 << tmto)) < 0.4) continue;
+          if ((blocks_perc * (1 << tmto)) < 0.4)
+          {
+            if (scrypt_r == 1) continue;
+          }
 
           break;
         }
 
         if (device_param->is_hip == true)
         {
-          // we use some local memory to speed up things, so 
+          // we use some local memory to speed up things, so
           // we need to make sure there's enough local memory available
 
           u64 state_per_accel_tmto = state_per_accel >> tmto;

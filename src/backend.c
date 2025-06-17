@@ -9644,6 +9644,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     const int device_id = device_param->device_id;
 
     /**
+     * Query used memory from the device using low-level API and update device_available_mem
+     * If there's no low-level API available we will silently ignore
+     */
+
+    const u64 used_bytes = hm_get_memoryused_with_devices_idx (hashcat_ctx, device_id);
+
+    if (used_bytes)
+    {
+      device_param->device_available_mem = MIN (device_param->device_available_mem, device_param->device_global_mem - used_bytes);
+    }
+
+    /**
      * module depending checks
      */
 
@@ -9704,7 +9716,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           }
 
           device_param->device_available_mem = MIN (device_param->device_available_mem, device_param->device_global_mem - used_bytes);
-          device_param->device_available_mem = MIN (device_param->device_available_mem, device_param->device_maxmem_alloc);
 
           break;
         }
@@ -9734,7 +9745,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (user_options->kernel_accel_chgd == true)
       {
         _kernel_accel = user_options->kernel_accel;
-      } 
+      }
       else
       {
         tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
@@ -10436,10 +10447,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // extra buffer
 
-    u64 size_extra_buffer1 = 4;
-    u64 size_extra_buffer2 = 4;
-    u64 size_extra_buffer3 = 4;
-    u64 size_extra_buffer4 = 4;
+    u64 size_extra_buffer1 = 4096;
+    u64 size_extra_buffer2 = 4096;
+    u64 size_extra_buffer3 = 4096;
+    u64 size_extra_buffer4 = 4096;
 
     if (module_ctx->module_extra_buffer_size != MODULE_DEFAULT)
     {
@@ -10488,10 +10499,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 base_chunk_size = workitems_per_chunk * extra_buffer_size_threads;
 
-      size_extra_buffer1 = base_chunk_size;
-      size_extra_buffer2 = base_chunk_size;
-      size_extra_buffer3 = base_chunk_size;
-      size_extra_buffer4 = base_chunk_size;
+      size_extra_buffer1 += base_chunk_size;
+      size_extra_buffer2 += base_chunk_size;
+      size_extra_buffer3 += base_chunk_size;
+      size_extra_buffer4 += base_chunk_size;
 
       const u64 leftover = kernel_power_max % 4;
 
@@ -15764,11 +15775,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // sometimes device_available_mem and device_maxmem_alloc reported back from the opencl runtime are a bit inaccurate.
       // let's add some extra space just to be sure.
       // now depends on the kernel-accel value (where scrypt and similar benefits), but also hard minimum 64mb and maximum 1024mb limit
+      // let's see if we still need this now that we have low-level API to report free memory
 
-      u64 EXTRA_SPACE = (1024ULL * 1024ULL) * kernel_accel_max;
+      u64 EXTRA_SPACE = 4096; //(1024ULL * 1024ULL) * kernel_accel_max;
 
-      EXTRA_SPACE = MAX (EXTRA_SPACE, ( 256ULL * 1024ULL * 1024ULL));
-      EXTRA_SPACE = MIN (EXTRA_SPACE, (1024ULL * 1024ULL * 1024ULL));
+      //EXTRA_SPACE = MAX (EXTRA_SPACE, ( 256ULL * 1024ULL * 1024ULL));
+      //EXTRA_SPACE = MIN (EXTRA_SPACE, (1024ULL * 1024ULL * 1024ULL));
 
       if ((size_pws   + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
       if ((size_tmps  + EXTRA_SPACE) > device_param->device_maxmem_alloc) memory_limit_hit = 1;
