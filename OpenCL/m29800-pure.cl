@@ -69,6 +69,8 @@ KERNEL_FQ void HC_ATTR_SEQ m29800_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+  const u64 bid = get_group_id (0);
 
   if (gid >= GID_CNT) return;
 
@@ -90,7 +92,7 @@ KERNEL_FQ void HC_ATTR_SEQ m29800_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
 
-  scrypt_smix_init (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid);
+  scrypt_smix_init (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid, lid, lsz, bid);
 
   for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
@@ -99,6 +101,8 @@ KERNEL_FQ void HC_ATTR_SEQ m29800_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+  const u64 bid = get_group_id (0);
 
   if (gid >= GID_CNT) return;
 
@@ -122,7 +126,7 @@ KERNEL_FQ void HC_ATTR_SEQ m29800_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
 
-  scrypt_smix_loop (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid);
+  scrypt_smix_loop (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid, lid, lsz, bid);
 
   for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
