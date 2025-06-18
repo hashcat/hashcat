@@ -114,4 +114,7 @@ bool is_apple_silicon (void);
 
 char *file_to_buffer (const char *filename);
 
+bool check_file_suffix (const char *file, const char *suffix);
+bool remove_file_suffix (char *file, const char *suffix);
+
 #endif // HC_SHARED_H

@@ -408,7 +408,7 @@ static bool cuda_test_instruction (hashcat_ctx_t *hashcat_ctx, const int sm_majo
   nvrtc_options[0] = "--restrict";
   nvrtc_options[1] = "--gpu-architecture";
 
-  hc_asprintf (&nvrtc_options[2], "compute_%d%d", sm_major, sm_minor);
+  hc_asprintf (&nvrtc_options[2], "compute_%d", (device_param->sm_major * 10) + device_param->sm_minor);
 
   nvrtc_options[3] = NULL;
 
@@ -5804,6 +5804,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->hip_warp_size = hip_warp_size;
 
+      // gcnArchName
+
+      hipDeviceProp_t prop;
+
+      if (hc_hipGetDeviceProperties (hashcat_ctx, &prop, hip_device) == -1)
+      {
+        device_param->skipped = true;
+
+        continue;
+      }
+
+      device_param->gcnArchName = strdup (prop.gcnArchName);
+
       // sm_minor, sm_major
 
       int sm_major = 0;
@@ -8962,61 +8975,47 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
 
-      char **nvrtc_options = (char **) hccalloc (12 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+      char **nvrtc_options = (char **) hccalloc (16 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+
+      int nvrtc_options_idx = 0;
 
       if (backend_ctx->nvrtc_driver_version >= 12000)
       {
-        nvrtc_options[0] = "--std=c++14";
-      }
-      else
-      {
-        // some placeholder
-        nvrtc_options[0] = "--restrict";
+        nvrtc_options[nvrtc_options_idx++] = "--std=c++14";
       }
 
-      nvrtc_options[1] = "--restrict";
-      nvrtc_options[2] = "--device-as-default-execution-space";
-      nvrtc_options[3] = "--gpu-architecture";
+      nvrtc_options[nvrtc_options_idx++] = "--restrict";
+      nvrtc_options[nvrtc_options_idx++] = "--device-as-default-execution-space";
+      nvrtc_options[nvrtc_options_idx++] = "--gpu-architecture";
 
-      hc_asprintf (&nvrtc_options[4], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
+      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "compute_%d", (device_param->sm_major * 10) + device_param->sm_minor);
 
       if (backend_ctx->nvrtc_driver_version >= 12010)
       {
-        nvrtc_options[5] = "--split-compile";
+        nvrtc_options[nvrtc_options_idx++] = "--split-compile";
 
-        hc_asprintf (&nvrtc_options[6], "%d", 0);
-      }
-      else
-      {
-        // some placeholder
-        nvrtc_options[5] = "--restrict";
-        nvrtc_options[6] = "--restrict";
+        hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "%d", 0);
       }
 
       if (backend_ctx->nvrtc_driver_version >= 12040)
       {
-        nvrtc_options[7] = "--minimal";
-      }
-      else
-      {
-        // some placeholder
-        nvrtc_options[7] = "--restrict";
+        nvrtc_options[nvrtc_options_idx++] = "--minimal";
       }
 
       // untested on windows, but it should work
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-      hc_asprintf (&nvrtc_options[8], "-D INCLUDE_PATH=%s", "OpenCL");
+      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
       #else
-      hc_asprintf (&nvrtc_options[8], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
+      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
       #endif
 
-      hc_asprintf (&nvrtc_options[9], "-D XM2S(x)=#x");
-      hc_asprintf (&nvrtc_options[10], "-D M2S(x)=XM2S(x)");
-      hc_asprintf (&nvrtc_options[11], "-D MAX_THREADS_PER_BLOCK=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
+      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D XM2S(x)=#x");
+      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D M2S(x)=XM2S(x)");
+      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D MAX_THREADS_PER_BLOCK=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
 
       char *nvrtc_options_string = hcstrdup (build_options_buf);
 
-      const int num_options = 12 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 12);
+      const int num_options = nvrtc_options_idx + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + nvrtc_options_idx);
 
       const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
 
@@ -9238,42 +9237,27 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (hc_hiprtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
 
-      char **hiprtc_options = (char **) hccalloc (8 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+      char **hiprtc_options = (char **) hccalloc (16 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
-      //hiprtc_options[0] = "--restrict";
-      //hiprtc_options[1] = "--device-as-default-execution-space";
-      //hiprtc_options[2] = "--gpu-architecture";
+      int hiprtc_options_idx = 0;
 
-      hc_asprintf (&hiprtc_options[0], "-D MAX_THREADS_PER_BLOCK=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
-
-      /* 4.3 linux
-      hiprtc_options[1] = "-I";
-      hiprtc_options[2] = "/opt/rocm/hip/bin/include";
-      hiprtc_options[3] = "-I";
-      hiprtc_options[4] = "/opt/rocm/include";
-      hiprtc_options[5] = "-I";
-      */
-
-      hiprtc_options[1] = "";
-      hiprtc_options[2] = "";
-      hiprtc_options[3] = "";
-      hiprtc_options[4] = "";
-      hiprtc_options[5] = "";
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D MAX_THREADS_PER_BLOCK=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "--gpu-architecture=%s", device_param->gcnArchName);
 
       // untested but it should work
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-      hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s/OpenCL/", folder_config->cwd);
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D INCLUDE_PATH=%s/OpenCL/", folder_config->cwd);
       // ugly, but required since HIPRTC is changing the current working folder to the temporary compile folder
       #else
-      hc_asprintf (&hiprtc_options[5], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
       #endif
 
-      hc_asprintf (&hiprtc_options[6], "-D XM2S(x)=#x");
-      hc_asprintf (&hiprtc_options[7], "-D M2S(x)=XM2S(x)");
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D XM2S(x)=#x");
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D M2S(x)=XM2S(x)");
 
       char *hiprtc_options_string = hcstrdup (build_options_buf);
 
-      const int num_options = 8 + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + 8);
+      const int num_options = hiprtc_options_idx + hiprtc_make_options_array_from_string (hiprtc_options_string, hiprtc_options + hiprtc_options_idx);
 
       const int rc_hiprtcCompileProgram = hc_hiprtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) hiprtc_options);
 
@@ -10674,11 +10658,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     char device_name_chksum_amp_mp[HCBUFSIZ_TINY] = { 0 };
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%u-%d-%u-%s-%s-%s-%u-%u",
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u",
       backend_ctx->comptime,
       backend_ctx->cuda_driver_version,
       backend_ctx->hip_runtimeVersion,
       backend_ctx->metal_runtimeVersion,
+      device_param->sm_major,
+      device_param->sm_minor,
+      (device_param->is_hip == true) ? device_param->gcnArchName : "",
       device_param->is_opencl,
       device_param->opencl_platform_vendor_id,
       device_param->device_name,
@@ -11237,11 +11224,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u32 extra_value = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? ATTACK_MODE_ASSOCIATION : ATTACK_MODE_NONE;
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%u-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
         backend_ctx->comptime,
         backend_ctx->cuda_driver_version,
         backend_ctx->hip_runtimeVersion,
         backend_ctx->metal_runtimeVersion,
+        device_param->sm_major,
+        device_param->sm_minor,
+        (device_param->is_hip == true) ? device_param->gcnArchName : "",
         device_param->is_opencl,
         device_param->opencl_platform_vendor_id,
         device_param->device_name,

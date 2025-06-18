@@ -1553,3 +1553,32 @@ int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output
 
   return hash_mode;
 }
+
+bool check_file_suffix (const char *file, const char *suffix)
+{
+  if (file == NULL)   return false;
+  if (suffix == NULL) return false;
+
+  const size_t len_file = strlen (file);
+  const size_t len_suffix = strlen (suffix);
+
+  if (len_suffix > len_file) return false;
+
+  return strcmp (file + len_file - len_suffix, suffix) == 0;
+}
+
+bool remove_file_suffix (char *file, const char *suffix)
+{
+  if (file == NULL)   return false;
+  if (suffix == NULL) return false;
+
+  if (check_file_suffix (file, suffix) == false) return false;
+
+  const size_t len_file = strlen (file);
+  const size_t len_suffix = strlen (suffix);
+
+  file[len_file - len_suffix] = 0;
+
+  return true;
+}
+
