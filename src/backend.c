@@ -8914,6 +8914,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, hipModule_t *hip_module, MAYBE_UNUSED void *metal_library)
 #endif
 {
+  const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const user_options_t  *user_options  = hashcat_ctx->user_options;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -8961,27 +8962,61 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
 
-      char **nvrtc_options = (char **) hccalloc (7 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
+      char **nvrtc_options = (char **) hccalloc (12 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
-      nvrtc_options[0] = "--restrict";
-      nvrtc_options[1] = "--device-as-default-execution-space";
-      nvrtc_options[2] = "--gpu-architecture";
+      if (backend_ctx->nvrtc_driver_version >= 12000)
+      {
+        nvrtc_options[0] = "--std=c++14";
+      }
+      else
+      {
+        // some placeholder
+        nvrtc_options[0] = "--restrict";
+      }
 
-      hc_asprintf (&nvrtc_options[3], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
+      nvrtc_options[1] = "--restrict";
+      nvrtc_options[2] = "--device-as-default-execution-space";
+      nvrtc_options[3] = "--gpu-architecture";
+
+      hc_asprintf (&nvrtc_options[4], "compute_%d%d", device_param->sm_major, device_param->sm_minor);
+
+      if (backend_ctx->nvrtc_driver_version >= 12010)
+      {
+        nvrtc_options[5] = "--split-compile";
+
+        hc_asprintf (&nvrtc_options[6], "%d", 0);
+      }
+      else
+      {
+        // some placeholder
+        nvrtc_options[5] = "--restrict";
+        nvrtc_options[6] = "--restrict";
+      }
+
+      if (backend_ctx->nvrtc_driver_version >= 12040)
+      {
+        nvrtc_options[7] = "--minimal";
+      }
+      else
+      {
+        // some placeholder
+        nvrtc_options[7] = "--restrict";
+      }
 
       // untested on windows, but it should work
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
-      hc_asprintf (&nvrtc_options[4], "-D INCLUDE_PATH=%s", "OpenCL");
+      hc_asprintf (&nvrtc_options[8], "-D INCLUDE_PATH=%s", "OpenCL");
       #else
-      hc_asprintf (&nvrtc_options[4], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
+      hc_asprintf (&nvrtc_options[8], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
       #endif
 
-      hc_asprintf (&nvrtc_options[5], "-D XM2S(x)=#x");
-      hc_asprintf (&nvrtc_options[6], "-D M2S(x)=XM2S(x)");
+      hc_asprintf (&nvrtc_options[9], "-D XM2S(x)=#x");
+      hc_asprintf (&nvrtc_options[10], "-D M2S(x)=XM2S(x)");
+      hc_asprintf (&nvrtc_options[11], "-D MAX_THREADS_PER_BLOCK=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
 
       char *nvrtc_options_string = hcstrdup (build_options_buf);
 
-      const int num_options = 7 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 7);
+      const int num_options = 12 + nvrtc_make_options_array_from_string (nvrtc_options_string, nvrtc_options + 12);
 
       const int rc_nvrtcCompileProgram = hc_nvrtcCompileProgram (hashcat_ctx, program, num_options, (const char * const *) nvrtc_options);
 

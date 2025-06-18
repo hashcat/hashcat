@@ -157,6 +157,9 @@ using namespace metal;
 #elif defined IS_HIP
 #define HC_ATTR_SEQ __launch_bounds__((MAX_THREADS_PER_BLOCK), 0)
 #define DECLSPEC __device__ HC_INLINE
+#elif defined IS_CUDA
+#define HC_ATTR_SEQ
+#define DECLSPEC
 #else
 #define HC_ATTR_SEQ
 #define DECLSPEC
