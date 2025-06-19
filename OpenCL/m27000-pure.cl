@@ -528,7 +528,7 @@ typedef struct netntlm_tmp
 
 } netntlm_tmp_t;
 
-KERNEL_FQ void m27000_init (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
+KERNEL_FQ void HC_ATTR_SEQ m27000_init (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
 {
   /**
    * modifier
@@ -572,12 +572,12 @@ KERNEL_FQ void m27000_init (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
 
 }
 
-KERNEL_FQ void m27000_loop (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
+KERNEL_FQ void HC_ATTR_SEQ m27000_loop (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
 {
 
 }
 
-KERNEL_FQ void m27000_comp (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
+KERNEL_FQ void HC_ATTR_SEQ m27000_comp (KERN_ATTR_TMPS_ESALT (netntlm_tmp_t, netntlm_t))
 {
    /**
    * modifier

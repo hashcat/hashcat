@@ -111,7 +111,7 @@ DECLSPEC void hmac_md5_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS
   md5_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m05300_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void HC_ATTR_SEQ m05300_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
   /**
    * modifier
@@ -278,15 +278,15 @@ KERNEL_FQ void m05300_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
   }
 }
 
-KERNEL_FQ void m05300_m08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void HC_ATTR_SEQ m05300_m08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }
 
-KERNEL_FQ void m05300_m16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void HC_ATTR_SEQ m05300_m16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }
 
-KERNEL_FQ void m05300_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void HC_ATTR_SEQ m05300_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
   /**
    * modifier
@@ -465,10 +465,10 @@ KERNEL_FQ void m05300_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
   }
 }
 
-KERNEL_FQ void m05300_s08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void HC_ATTR_SEQ m05300_s08 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }
 
-KERNEL_FQ void m05300_s16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
+KERNEL_FQ void HC_ATTR_SEQ m05300_s16 (KERN_ATTR_RULES_ESALT (ikepsk_t))
 {
 }

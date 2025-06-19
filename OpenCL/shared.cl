@@ -94,7 +94,7 @@ DECLSPEC void gpu_decompress_entry (GLOBAL_AS pw_idx_t *pws_idx, GLOBAL_AS u32 *
   *buf = pw;
 }
 
-KERNEL_FQ void gpu_decompress (KERN_ATTR_GPU_DECOMPRESS)
+KERNEL_FQ void HC_ATTR_SEQ gpu_decompress (KERN_ATTR_GPU_DECOMPRESS)
 {
   const u64 gid = get_global_id (0);
 
@@ -107,7 +107,7 @@ KERNEL_FQ void gpu_decompress (KERN_ATTR_GPU_DECOMPRESS)
   pws_buf[gid] = pw;
 }
 
-KERNEL_FQ void gpu_memset (KERN_ATTR_GPU_MEMSET)
+KERNEL_FQ void HC_ATTR_SEQ gpu_memset (KERN_ATTR_GPU_MEMSET)
 {
   const u64 gid = get_global_id (0);
 
@@ -139,7 +139,7 @@ KERNEL_FQ void gpu_memset (KERN_ATTR_GPU_MEMSET)
   buf[gid] = r;
 }
 
-KERNEL_FQ void gpu_bzero (KERN_ATTR_GPU_BZERO)
+KERNEL_FQ void HC_ATTR_SEQ gpu_bzero (KERN_ATTR_GPU_BZERO)
 {
   const u64 gid = get_global_id (0);
 
@@ -171,7 +171,7 @@ KERNEL_FQ void gpu_bzero (KERN_ATTR_GPU_BZERO)
   buf[gid] = r;
 }
 
-KERNEL_FQ void gpu_atinit (KERN_ATTR_GPU_ATINIT)
+KERNEL_FQ void HC_ATTR_SEQ gpu_atinit (KERN_ATTR_GPU_ATINIT)
 {
   const u64 gid = get_global_id (0);
 
@@ -253,7 +253,7 @@ KERNEL_FQ void gpu_atinit (KERN_ATTR_GPU_ATINIT)
   buf[gid] = pw;
 }
 
-KERNEL_FQ void gpu_utf8_to_utf16 (KERN_ATTR_GPU_UTF8_TO_UTF16)
+KERNEL_FQ void HC_ATTR_SEQ gpu_utf8_to_utf16 (KERN_ATTR_GPU_UTF8_TO_UTF16)
 {
   const u64 gid = get_global_id (0);
 

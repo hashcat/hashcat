@@ -16,7 +16,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_whirlpool.cl)
 #endif
 
-KERNEL_FQ void m06100_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m06100_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -103,7 +103,7 @@ KERNEL_FQ void m06100_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m06100_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m06100_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

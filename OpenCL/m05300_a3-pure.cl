@@ -24,7 +24,7 @@ typedef struct ikepsk
 
 } ikepsk_t;
 
-KERNEL_FQ void m05300_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
+KERNEL_FQ void HC_ATTR_SEQ m05300_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
 {
   /**
    * modifier
@@ -109,7 +109,7 @@ KERNEL_FQ void m05300_mxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
   }
 }
 
-KERNEL_FQ void m05300_sxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
+KERNEL_FQ void HC_ATTR_SEQ m05300_sxx (KERN_ATTR_VECTOR_ESALT (ikepsk_t))
 {
   /**
    * modifier

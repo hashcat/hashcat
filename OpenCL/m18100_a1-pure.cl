@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
 
-KERNEL_FQ void m18100_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m18100_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -116,7 +116,7 @@ KERNEL_FQ void m18100_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m18100_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m18100_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

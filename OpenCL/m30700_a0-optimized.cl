@@ -30,7 +30,7 @@
   h = 0;                                        \
 }
 
-KERNEL_FQ void m30700_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m30700_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -186,15 +186,15 @@ KERNEL_FQ void m30700_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m30700_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m30700_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m30700_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m30700_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m30700_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m30700_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -383,10 +383,10 @@ KERNEL_FQ void m30700_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m30700_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m30700_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m30700_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m30700_s16 (KERN_ATTR_RULES ())
 {
 }

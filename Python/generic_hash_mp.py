@@ -37,7 +37,7 @@ def kernel_loop(ctx,passwords,salt_id,is_selftest):
   return hcmp.handle_queue(ctx,passwords,salt_id,is_selftest)
 
 def init(ctx):
-  hcmp.init(ctx,calc_hash,extract_esalts)
+  hcmp.init(ctx,extract_esalts)
 
 def term(ctx):
   hcmp.term(ctx)
@@ -47,11 +47,12 @@ def term(ctx):
 # Read passwords from stdin
 
 if __name__ == '__main__':
-  ctx = { 
-    "salts_buf": bytes(568), 
-    "esalts_buf": bytes(131080), 
-    "st_salts_buf": bytes(568), 
-    "st_esalts_buf": bytes(131080) 
+  ctx = {
+    "salts_buf": bytes(568),
+    "esalts_buf": bytes(131080),
+    "st_salts_buf": bytes(568),
+    "st_esalts_buf": bytes(131080),
+    "parallelism": 4
   }
   init(ctx)
   hashcat_passwords = 256
@@ -62,5 +63,6 @@ if __name__ == '__main__':
       hashes = kernel_loop(ctx,passwords,0,False)
       passwords.clear()
   hashes = kernel_loop(ctx,passwords,0,False) ## remaining entries
-  if(len(hashes)): print(hashes[-1])
+  if hashes:
+    print(hashes[-1])
   term(ctx)

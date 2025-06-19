@@ -1,4 +1,5 @@
 import struct
+import sys
 
 # Extract a blob that is a list of salt_t entries and convert it to a list of dictionaries
 # The salt_t is a fixed data-type so we can handle it here
@@ -57,4 +58,16 @@ def get_scrypt_N(salt: dict) -> int:
   return salt["esalt"]["scrypt_N"]
 
 def get_scrypt_r(salt: dict) -> int:
-  return salt["esalt"]["scrypt_r"]  
+  return salt["esalt"]["scrypt_r"]
+
+def _worker_batch(passwords, salt_id, is_selftest, user_fn, salts, st_salts):
+    salt = st_salts[salt_id] if is_selftest else salts[salt_id]
+    hashes = []
+    for pw in passwords:
+        try:
+            hash=user_fn(pw, salt)
+            hashes.append(hash)
+        except Exception as e:
+            print(e, file=sys.stderr)
+            hashes.append("invalid-password")
+    return hashes

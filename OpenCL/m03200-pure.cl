@@ -425,7 +425,7 @@ DECLSPEC void expand_key (PRIVATE_AS u32 *E, PRIVATE_AS u32 *W, const int len)
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m03200_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -647,7 +647,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_init (KERN_ATTR_TMPS 
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m03200_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -850,7 +850,7 @@ KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_loop (KERN_ATTR_TMPS 
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE) m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m03200_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base

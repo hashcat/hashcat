@@ -787,12 +787,9 @@ CXX_WIN                 := x86_64-w64-mingw32-g++
 AR_LINUX                := ar
 AR_WIN                  := x86_64-w64-mingw32-ar
 
-## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
-##
-## Then patch the makefile with the patches from tools/win-iconv-64.diff and run make install
-##
-
+# See BUILD_WSL.md to make these
 WIN_ICONV               := /opt/win-iconv-64
+WIN_PYTHON              := /opt/win-python
 
 ##
 ## Compiler options
@@ -849,7 +846,7 @@ binaries: win
 host_win:   hashcat.exe
 
 .PHONY: win
-win:   host_win   modules_win
+win:   host_win   modules_win   bridges_win
 else
 .PHONY: binaries
 binaries: linux win

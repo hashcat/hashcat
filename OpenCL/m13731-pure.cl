@@ -184,7 +184,7 @@ DECLSPEC void hmac_whirlpool_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PR
   whirlpool_transform_vector (w0, w1, w2, w3, digest, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 }
 
-KERNEL_FQ void m13731_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ void HC_ATTR_SEQ m13731_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -400,7 +400,7 @@ KERNEL_FQ void m13731_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   }
 }
 
-KERNEL_FQ void m13731_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ void HC_ATTR_SEQ m13731_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -663,7 +663,7 @@ KERNEL_FQ void m13731_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   }
 }
 
-KERNEL_FQ void m13731_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ void HC_ATTR_SEQ m13731_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -735,7 +735,7 @@ KERNEL_FQ void m13731_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   }
 }
 
-KERNEL_FQ void m13731_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ void HC_ATTR_SEQ m13731_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

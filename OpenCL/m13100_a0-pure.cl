@@ -266,7 +266,7 @@ DECLSPEC void kerb_prepare (PRIVATE_AS const u32 *K, PRIVATE_AS const u32 *check
   K2[3] = ctx1.opad.h[3];
 }
 
-KERNEL_FQ void m13100_mxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+KERNEL_FQ void HC_ATTR_SEQ m13100_mxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -326,7 +326,7 @@ KERNEL_FQ void m13100_mxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
   }
 }
 
-KERNEL_FQ void m13100_sxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
+KERNEL_FQ void HC_ATTR_SEQ m13100_sxx (KERN_ATTR_RULES_ESALT (krb5tgs_t))
 {
   /**
    * modifier

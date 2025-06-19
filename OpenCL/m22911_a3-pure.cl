@@ -24,7 +24,7 @@ typedef struct pem
 
 } pem_t;
 
-KERNEL_FQ void m22911_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
+KERNEL_FQ void HC_ATTR_SEQ m22911_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -115,7 +115,7 @@ KERNEL_FQ void m22911_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32x w[64] = { 0 };
+  u32x w[32] = { 0 };
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
@@ -249,7 +249,7 @@ KERNEL_FQ void m22911_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
   }
 }
 
-KERNEL_FQ void m22911_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
+KERNEL_FQ void HC_ATTR_SEQ m22911_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -340,7 +340,7 @@ KERNEL_FQ void m22911_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32x w[64] = { 0 };
+  u32x w[32] = { 0 };
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {

@@ -31,7 +31,7 @@ typedef struct oldoffice34
 
 } oldoffice34_t;
 
-KERNEL_FQ void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
+KERNEL_FQ void HC_ATTR_SEQ m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 {
   /**
    * modifier
@@ -309,15 +309,15 @@ KERNEL_FQ void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
   }
 }
 
-KERNEL_FQ void m09800_m08 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
+KERNEL_FQ void HC_ATTR_SEQ m09800_m08 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 {
 }
 
-KERNEL_FQ void m09800_m16 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
+KERNEL_FQ void HC_ATTR_SEQ m09800_m16 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 {
 }
 
-KERNEL_FQ void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
+KERNEL_FQ void HC_ATTR_SEQ m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 {
   /**
    * modifier
@@ -606,10 +606,10 @@ KERNEL_FQ void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
   }
 }
 
-KERNEL_FQ void m09800_s08 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
+KERNEL_FQ void HC_ATTR_SEQ m09800_s08 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 {
 }
 
-KERNEL_FQ void m09800_s16 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
+KERNEL_FQ void HC_ATTR_SEQ m09800_s16 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 {
 }

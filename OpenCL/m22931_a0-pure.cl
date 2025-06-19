@@ -26,7 +26,7 @@ typedef struct pem
 
 } pem_t;
 
-KERNEL_FQ void m22931_mxx (KERN_ATTR_RULES_ESALT (pem_t))
+KERNEL_FQ void HC_ATTR_SEQ m22931_mxx (KERN_ATTR_RULES_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -237,7 +237,7 @@ KERNEL_FQ void m22931_mxx (KERN_ATTR_RULES_ESALT (pem_t))
   }
 }
 
-KERNEL_FQ void m22931_sxx (KERN_ATTR_RULES_ESALT (pem_t))
+KERNEL_FQ void HC_ATTR_SEQ m22931_sxx (KERN_ATTR_RULES_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

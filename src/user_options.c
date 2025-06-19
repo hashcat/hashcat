@@ -379,8 +379,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_INCREMENT_MAX:
       case IDX_HOOK_THREADS:
       case IDX_BACKEND_DEVICES_VIRTMULTI:
-      case IDX_BACKEND_DEVICES_VIRTHOST:      
-      case IDX_BACKEND_DEVICES_KEEPFREE:      
+      case IDX_BACKEND_DEVICES_VIRTHOST:
+      case IDX_BACKEND_DEVICES_KEEPFREE:
       case IDX_BENCHMARK_MAX:
       case IDX_BENCHMARK_MIN:
       #ifdef WITH_BRAIN
@@ -816,14 +816,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "Invalid --backend-devices-virthost value specified.");
 
     return -1;
-  }  
+  }
 
   if (user_options->backend_devices_keepfree > 100)
   {
     event_log_error (hashcat_ctx, "Invalid --backend-devices-keepfree value specified.");
 
     return -1;
-  }  
+  }
 
   if (user_options->outfile_format == 0)
   {
@@ -1895,6 +1895,14 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
+  if (user_options->hwmon == false)
+  {
+    // some algorithm, such as SCRYPT, depend on accurate free memory values
+    // the only way to get them is through low-level APIs such as nvml via hwmon
+
+    user_options->hwmon = true;
+  }
+
   if (user_options->stdout_flag)
   {
     user_options->hwmon               = false;
@@ -2208,7 +2216,7 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->backend_devices_virthost)
     {
-      event_log_info (hashcat_ctx, "* --backend-devices-virthost%u", user_options->backend_devices_virthost);
+      event_log_info (hashcat_ctx, "* --backend-devices-virthost=%u", user_options->backend_devices_virthost);
     }
 
     if (user_options->opencl_device_types)
@@ -3325,8 +3333,8 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint64 (user_options->skip);
   logfile_top_uint   (user_options->attack_mode);
   logfile_top_uint   (user_options->backend_devices_virtmulti);
-  logfile_top_uint   (user_options->backend_devices_virthost);  
-  logfile_top_uint   (user_options->backend_devices_keepfree);  
+  logfile_top_uint   (user_options->backend_devices_virthost);
+  logfile_top_uint   (user_options->backend_devices_keepfree);
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->benchmark_all);
   logfile_top_uint   (user_options->benchmark_max);

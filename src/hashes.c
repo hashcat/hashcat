@@ -2236,9 +2236,7 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
-  module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
   user_options_t       *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (hashes->salts_cnt == 1)
     hashconfig->opti_type |= OPTI_TYPE_SINGLE_SALT;
@@ -2317,22 +2315,6 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // time to update extra_tmp_size which is tmp_size value based on hash configuration
-
-  if (module_ctx->module_extra_tmp_size != MODULE_DEFAULT)
-  {
-    const u64 extra_tmp_size = module_ctx->module_extra_tmp_size (hashconfig, user_options, user_options_extra, hashes);
-
-    if (extra_tmp_size == (u64) -1)
-    {
-      event_log_error (hashcat_ctx, "Mixed hash settings are not supported.");
-
-      return -1;
-    }
-
-    hashconfig->tmp_size = extra_tmp_size;
-  }
-
   // at this point we no longer need hash_t* structure
 
   hash_t *hashes_buf = hashes->hashes_buf;
@@ -2364,6 +2346,96 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
     user_options->brain_session = brain_session;
   }
   #endif
+
+  return 0;
+}
+
+int hashes_init_stage5 (hashcat_ctx_t *hashcat_ctx)
+{
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t             *hashes             = hashcat_ctx->hashes;
+  module_ctx_t         *module_ctx         = hashcat_ctx->module_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // time to update extra_tmp_size which is tmp_size value based on hash configuration
+
+  if (module_ctx->module_extra_tmp_size != MODULE_DEFAULT)
+  {
+    const u64 extra_tmp_size = module_ctx->module_extra_tmp_size (hashconfig, user_options, user_options_extra, hashes);
+
+    if ((extra_tmp_size & (1ULL << 62)) || (extra_tmp_size & (1ULL << 63)))
+    {
+      const u64 salt_pos = extra_tmp_size & 0xffffffff;
+
+      char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+      const int tmp_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, salt_pos, 0);
+
+      tmp_buf[tmp_len] = 0;
+
+      compress_terminal_line_length (tmp_buf, 47, 6);
+
+      char *user_hash = strdup (tmp_buf);
+
+      if (extra_tmp_size & (1ULL << 62))
+      {
+        strncpy (tmp_buf, hashconfig->st_hash, HCBUFSIZ_LARGE - 1);
+
+        compress_terminal_line_length (tmp_buf, 47, 6);
+
+        char *st_hash = strdup (tmp_buf);
+
+        event_log_error (hashcat_ctx, "ERROR: Incompatible self-test SCRYPT configuration detected.");
+
+        event_log_warning (hashcat_ctx, "The specified target hash:");
+        event_log_warning (hashcat_ctx, "  -> %s", user_hash);
+        event_log_warning (hashcat_ctx, "does not match the SCRYPT configuration of the self-test hash:");
+        event_log_warning (hashcat_ctx, "  -> %s", st_hash);
+        event_log_warning (hashcat_ctx, "The JIT-compiled kernel for this SCRYPT configuration may be incompatible.");
+        event_log_warning (hashcat_ctx, "You must disable the self-test functionality or recompile the plugin with a matching self-test hash.");
+        event_log_warning (hashcat_ctx, "To disable the self-test, use the --self-test-disable option.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        hcfree (tmp_buf);
+        hcfree (user_hash);
+        hcfree (st_hash);
+
+        return -1;
+      }
+
+      if (extra_tmp_size & (1ULL << 63))
+      {
+        const int tmp_len = hash_encode (hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, tmp_buf, HCBUFSIZ_LARGE, 0, 0);
+
+        tmp_buf[tmp_len] = 0;
+
+        compress_terminal_line_length (tmp_buf, 47, 6);
+
+        char *user_hash2 = strdup (tmp_buf);
+
+        event_log_error (hashcat_ctx, "ERROR: Mixed SCRYPT configuration detected.");
+
+        event_log_warning (hashcat_ctx, "The specified target hash:");
+        event_log_warning (hashcat_ctx, "  -> %s", user_hash);
+        event_log_warning (hashcat_ctx, "does not match the SCRYPT configuration of another target hash:");
+        event_log_warning (hashcat_ctx, "  -> %s", user_hash2);
+        event_log_warning (hashcat_ctx, "Please run these hashes in separate cracking sessions.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        hcfree (tmp_buf);
+        hcfree (user_hash);
+        hcfree (user_hash2);
+
+        return -1;
+      }
+
+      hcfree (tmp_buf);
+      hcfree (user_hash);
+    }
+
+    hashconfig->tmp_size = extra_tmp_size;
+  }
 
   return 0;
 }

@@ -136,7 +136,7 @@ DECLSPEC void hmac_ripemd160_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PR
   ripemd160_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m14643_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ void HC_ATTR_SEQ m14643_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   /**
    * base
@@ -210,7 +210,7 @@ KERNEL_FQ void m14643_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   }
 }
 
-KERNEL_FQ void m14643_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ void HC_ATTR_SEQ m14643_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -297,7 +297,7 @@ KERNEL_FQ void m14643_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   }
 }
 
-KERNEL_FQ void m14643_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ void HC_ATTR_SEQ m14643_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 

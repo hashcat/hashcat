@@ -450,7 +450,7 @@ DECLSPEC void kerb_prepare (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, 
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 }
 
-KERNEL_FQ void m18200_m04 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void HC_ATTR_SEQ m18200_m04 (KERN_ATTR_ESALT (krb5asrep_t))
 {
   /**
    * modifier
@@ -587,15 +587,15 @@ KERNEL_FQ void m18200_m04 (KERN_ATTR_ESALT (krb5asrep_t))
   }
 }
 
-KERNEL_FQ void m18200_m08 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void HC_ATTR_SEQ m18200_m08 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }
 
-KERNEL_FQ void m18200_m16 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void HC_ATTR_SEQ m18200_m16 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }
 
-KERNEL_FQ void m18200_s04 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void HC_ATTR_SEQ m18200_s04 (KERN_ATTR_ESALT (krb5asrep_t))
 {
   /**
    * modifier
@@ -732,10 +732,10 @@ KERNEL_FQ void m18200_s04 (KERN_ATTR_ESALT (krb5asrep_t))
   }
 }
 
-KERNEL_FQ void m18200_s08 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void HC_ATTR_SEQ m18200_s08 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }
 
-KERNEL_FQ void m18200_s16 (KERN_ATTR_ESALT (krb5asrep_t))
+KERNEL_FQ void HC_ATTR_SEQ m18200_s16 (KERN_ATTR_ESALT (krb5asrep_t))
 {
 }

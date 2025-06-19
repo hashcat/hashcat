@@ -23,7 +23,7 @@ typedef struct netiq_sspr_md5_tmp
 
 } netiq_sspr_md5_tmp_t;
 
-KERNEL_FQ void m32000_init (KERN_ATTR_TMPS (netiq_sspr_md5_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m32000_init (KERN_ATTR_TMPS (netiq_sspr_md5_tmp_t))
 {
   /**
    * base
@@ -47,7 +47,7 @@ KERNEL_FQ void m32000_init (KERN_ATTR_TMPS (netiq_sspr_md5_tmp_t))
   tmps[gid].dgst[3] = ctx.h[3];
 }
 
-KERNEL_FQ void m32000_loop (KERN_ATTR_TMPS (netiq_sspr_md5_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m32000_loop (KERN_ATTR_TMPS (netiq_sspr_md5_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -108,7 +108,7 @@ KERNEL_FQ void m32000_loop (KERN_ATTR_TMPS (netiq_sspr_md5_tmp_t))
   }
 }
 
-KERNEL_FQ void m32000_comp (KERN_ATTR_TMPS (netiq_sspr_md5_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m32000_comp (KERN_ATTR_TMPS (netiq_sspr_md5_tmp_t))
 {
   const u64 gid = get_global_id (0);
 

@@ -104,6 +104,11 @@ DECLSPEC u32 hc_atomic_or (GLOBAL_AS u32 *p, volatile const u32 val)
   return atomicOr (p, val);
 }
 
+DECLSPEC size_t get_group_id  (const u32 dimindx __attribute__((unused)))
+{
+  return blockIdx.x;
+}
+
 DECLSPEC size_t get_global_id  (const u32 dimindx __attribute__((unused)))
 {
   return (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -278,6 +283,11 @@ DECLSPEC u32 hc_atomic_inc (GLOBAL_AS u32 *p)
 DECLSPEC u32 hc_atomic_or (GLOBAL_AS u32 *p, volatile const u32 val)
 {
   return atomicOr (p, val);
+}
+
+DECLSPEC size_t get_group_id  (const u32 dimindx __attribute__((unused)))
+{
+  return blockIdx.x;
 }
 
 DECLSPEC size_t get_global_id  (const u32 dimindx __attribute__((unused)))

@@ -3,7 +3,7 @@
  * License.....: MIT
  */
 
-#define NEW_SIMD_CODE
+//#define NEW_SIMD_CODE
 
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
@@ -58,7 +58,7 @@ DECLSPEC u8 hex_to_u8 (const u8 *hex)
 }
 #endif
 
-KERNEL_FQ void m16801_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void HC_ATTR_SEQ m16801_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -104,19 +104,19 @@ KERNEL_FQ void m16801_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
   tmps[gid].out[7] = hc_swap32_S (out[7]);
 }
 
-KERNEL_FQ void m16801_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void HC_ATTR_SEQ m16801_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
 }
 
-KERNEL_FQ void m16801_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void HC_ATTR_SEQ m16801_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
   // not in use here, special case...
 }
 
-KERNEL_FQ void m16801_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
+KERNEL_FQ void HC_ATTR_SEQ m16801_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_pmkid_t))
 {
   const u64 gid = get_global_id (0);
 

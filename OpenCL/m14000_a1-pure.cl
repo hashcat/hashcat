@@ -487,7 +487,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, PRIVATE_AS u32 *Kc, PRIVATE_AS 
   }
 }
 
-KERNEL_FQ void m14000_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m14000_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -635,7 +635,7 @@ KERNEL_FQ void m14000_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m14000_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m14000_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * base

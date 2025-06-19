@@ -1,4 +1,4 @@
-#
+
 # Find the right -n value for your GPU:
 # =====================================
 #
@@ -19,20 +19,3 @@
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
 #Name                                           Mode    Type    Width   Accel   Loops
 
-DEVICE_TYPE_CPU                                 *       15700   1       N       A
-DEVICE_TYPE_GPU                                 *       15700   1       1       A
-
-GeForce_GTX_980                                 *       15700   1       24      A
-GeForce_GTX_1080                                *       15700   1       28      A
-GeForce_RTX_2080_Ti                             *       15700   1       68      A
-GeForce_RTX_3060_Ti                             *       15700   1       11      A
-GeForce_RTX_3070                                *       15700   1       22      A
-GeForce_RTX_3090                                *       15700   1       82      A
-GeForce_RTX_3090_Ti                             *       15700   1       84      A
-GeForce_RTX_4090                                *       15700   1      180      A
-ALIAS_AMD_RX480                                 *       15700   1       58      A
-ALIAS_AMD_Vega64                                *       15700   1       53      A
-ALIAS_AMD_MI100                                 *       15700   1       120     A
-ALIAS_AMD_RX6900XT                              *       15700   1       12      A
-ALIAS_AMD_RX7900XTX                             *       15700   1       45      A
-ALIAS_AMD_W5700X                                *       15700   1       1       A

@@ -728,7 +728,7 @@ DECLSPEC void sha1_update_rar29 (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS u32 *w, 
   }
 }
 
-KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   /**
    * base
@@ -796,7 +796,7 @@ KERNEL_FQ void m12500_init (KERN_ATTR_TMPS (rar3_tmp_t))
   tmps[gid].iv[3] = 0;
 }
 
-KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -911,7 +911,7 @@ KERNEL_FQ void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
   }
 }
 
-KERNEL_FQ void m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m12500_comp (KERN_ATTR_TMPS (rar3_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

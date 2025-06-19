@@ -10,10 +10,10 @@
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #endif
 
-KERNEL_FQ void m02000_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m02000_mxx (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m02000_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m02000_sxx (KERN_ATTR_BASIC ())
 {
 }

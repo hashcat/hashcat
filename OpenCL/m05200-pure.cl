@@ -23,7 +23,7 @@ typedef struct pwsafe3_tmp
 
 } pwsafe3_tmp_t;
 
-KERNEL_FQ void m05200_init (KERN_ATTR_TMPS (pwsafe3_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m05200_init (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 {
   /**
    * base
@@ -53,7 +53,7 @@ KERNEL_FQ void m05200_init (KERN_ATTR_TMPS (pwsafe3_tmp_t))
   tmps[gid].digest_buf[7] = ctx.h[7];
 }
 
-KERNEL_FQ void m05200_loop (KERN_ATTR_TMPS (pwsafe3_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m05200_loop (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -120,7 +120,7 @@ KERNEL_FQ void m05200_loop (KERN_ATTR_TMPS (pwsafe3_tmp_t))
   unpackv (tmps, digest_buf, gid, 7, digest[7]);
 }
 
-KERNEL_FQ void m05200_comp (KERN_ATTR_TMPS (pwsafe3_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m05200_comp (KERN_ATTR_TMPS (pwsafe3_tmp_t))
 {
   /**
    * modifier

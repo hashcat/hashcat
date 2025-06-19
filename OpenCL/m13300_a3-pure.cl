@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
 
-KERNEL_FQ void m13300_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void HC_ATTR_SEQ m13300_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -71,7 +71,7 @@ KERNEL_FQ void m13300_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m13300_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ void HC_ATTR_SEQ m13300_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

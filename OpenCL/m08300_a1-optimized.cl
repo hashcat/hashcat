@@ -171,7 +171,7 @@ DECLSPEC u32 replace_dot_by_len (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE
     pw_len.s##n++;                                                            \
   }
 
-KERNEL_FQ void m08300_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m08300_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -515,15 +515,15 @@ KERNEL_FQ void m08300_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m08300_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m08300_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m08300_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m08300_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m08300_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m08300_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -879,10 +879,10 @@ KERNEL_FQ void m08300_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m08300_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m08300_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m08300_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m08300_s16 (KERN_ATTR_BASIC ())
 {
 }

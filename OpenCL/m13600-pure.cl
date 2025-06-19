@@ -79,7 +79,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
+KERNEL_FQ void HC_ATTR_SEQ m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 {
   /**
    * base
@@ -188,7 +188,7 @@ KERNEL_FQ void m13600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
   }
 }
 
-KERNEL_FQ void m13600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
+KERNEL_FQ void HC_ATTR_SEQ m13600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -302,7 +302,7 @@ KERNEL_FQ void m13600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
   }
 }
 
-KERNEL_FQ void m13600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
+KERNEL_FQ void HC_ATTR_SEQ m13600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, zip2_t))
 {
   /**
    * base

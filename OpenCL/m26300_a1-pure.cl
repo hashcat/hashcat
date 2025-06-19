@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_sha256.cl)
 #endif
 
-KERNEL_FQ void m26300_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m26300_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -86,7 +86,7 @@ KERNEL_FQ void m26300_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m26300_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ void HC_ATTR_SEQ m26300_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

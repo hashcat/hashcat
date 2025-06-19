@@ -36,7 +36,7 @@ CONSTANT_VK u32 bin2base64[0x40] =
 #define int_to_base64(c) make_u32x (s_bin2base64[(c).s0], s_bin2base64[(c).s1], s_bin2base64[(c).s2], s_bin2base64[(c).s3], s_bin2base64[(c).s4], s_bin2base64[(c).s5], s_bin2base64[(c).s6], s_bin2base64[(c).s7], s_bin2base64[(c).s8], s_bin2base64[(c).s9], s_bin2base64[(c).sa], s_bin2base64[(c).sb], s_bin2base64[(c).sc], s_bin2base64[(c).sd], s_bin2base64[(c).se], s_bin2base64[(c).sf])
 #endif
 
-KERNEL_FQ void m28300_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m28300_mxx (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -184,7 +184,7 @@ KERNEL_FQ void m28300_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m28300_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ void HC_ATTR_SEQ m28300_sxx (KERN_ATTR_RULES ())
 {
   /**
    * base

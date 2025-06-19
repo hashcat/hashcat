@@ -23,6 +23,11 @@
 #include <winsock2.h>
 #endif
 
+#if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MSYS__)
+#else
+#include <sys/utsname.h>
+#endif
+
 static const char *const PA_000 = "OK";
 static const char *const PA_001 = "Ignored due to comment";
 static const char *const PA_002 = "Ignored due to zero length";
@@ -549,7 +554,7 @@ bool hc_string_is_digit (const char *s)
   return true;
 }
 
-void setup_environment_variables (const folder_config_t *folder_config)
+void setup_environment_variables (const folder_config_t *folder_config, const user_options_t *user_options)
 {
   char *compute = getenv ("COMPUTE");
 
@@ -594,6 +599,10 @@ void setup_environment_variables (const folder_config_t *folder_config)
   // creates too much cpu load
   if (getenv ("AMD_DIRECT_DISPATCH") == NULL)
     putenv ((char *) "AMD_DIRECT_DISPATCH=0");
+
+  if (user_options->hash_mode == 72000) // ugly but rare hack, we might move this to modules at a later stage
+    if (getenv ("PYTHON_GIL") == NULL)
+     putenv ((char *) "PYTHON_GIL=0");
 
   /*
   if (getenv ("CL_CONFIG_USE_VECTORIZER") == NULL)
@@ -1451,6 +1460,38 @@ int generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *
   return tmp_len;
 }
 
+int get_current_arch()
+{
+  #if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MSYS__)
+
+  SYSTEM_INFO sysinfo;
+
+  GetNativeSystemInfo(&sysinfo);
+
+  switch (sysinfo.wProcessorArchitecture)
+  {
+    case PROCESSOR_ARCHITECTURE_AMD64: return 1;
+    case PROCESSOR_ARCHITECTURE_INTEL: return 2;
+    case PROCESSOR_ARCHITECTURE_ARM64: return 3;
+    case PROCESSOR_ARCHITECTURE_ARM: return 4;
+    default: return 0;
+  }
+
+  #else
+
+  struct utsname uts;
+
+  if (uname(&uts) != 0) return 0; // same as default, it doesn't matter if it fails here
+
+  if (strstr(uts.machine, "x86_64")) return 1;
+  else if (strstr(uts.machine, "i386") || strstr(uts.machine, "i686")) return 2;
+  else if (strstr(uts.machine, "aarch64") || strstr(uts.machine, "arm64")) return 3;
+  else if (strstr(uts.machine, "arm")) return 4;
+  else return 0;
+
+  #endif
+}
+
 #if defined (__APPLE__)
 
 bool is_apple_silicon (void)
@@ -1512,3 +1553,32 @@ int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output
 
   return hash_mode;
 }
+
+bool check_file_suffix (const char *file, const char *suffix)
+{
+  if (file == NULL)   return false;
+  if (suffix == NULL) return false;
+
+  const size_t len_file = strlen (file);
+  const size_t len_suffix = strlen (suffix);
+
+  if (len_suffix > len_file) return false;
+
+  return strcmp (file + len_file - len_suffix, suffix) == 0;
+}
+
+bool remove_file_suffix (char *file, const char *suffix)
+{
+  if (file == NULL)   return false;
+  if (suffix == NULL) return false;
+
+  if (check_file_suffix (file, suffix) == false) return false;
+
+  const size_t len_file = strlen (file);
+  const size_t len_suffix = strlen (suffix);
+
+  file[len_file - len_suffix] = 0;
+
+  return true;
+}
+

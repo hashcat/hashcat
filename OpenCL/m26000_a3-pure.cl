@@ -21,7 +21,7 @@ typedef struct mozilla_3des
 
 } mozilla_3des_t;
 
-KERNEL_FQ void m26000_mxx (KERN_ATTR_VECTOR_ESALT (mozilla_3des_t))
+KERNEL_FQ void HC_ATTR_SEQ m26000_mxx (KERN_ATTR_VECTOR_ESALT (mozilla_3des_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -374,7 +374,7 @@ KERNEL_FQ void m26000_mxx (KERN_ATTR_VECTOR_ESALT (mozilla_3des_t))
   }
 }
 
-KERNEL_FQ void m26000_sxx (KERN_ATTR_VECTOR_ESALT (mozilla_3des_t))
+KERNEL_FQ void HC_ATTR_SEQ m26000_sxx (KERN_ATTR_VECTOR_ESALT (mozilla_3des_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

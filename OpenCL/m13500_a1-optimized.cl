@@ -25,7 +25,7 @@ typedef struct pstoken
 
 } pstoken_t;
 
-KERNEL_FQ void m13500_m04 (KERN_ATTR_ESALT (pstoken_t))
+KERNEL_FQ void HC_ATTR_SEQ m13500_m04 (KERN_ATTR_ESALT (pstoken_t))
 {
   /**
    * modifier
@@ -494,15 +494,15 @@ KERNEL_FQ void m13500_m04 (KERN_ATTR_ESALT (pstoken_t))
   }
 }
 
-KERNEL_FQ void m13500_m08 (KERN_ATTR_ESALT (pstoken_t))
+KERNEL_FQ void HC_ATTR_SEQ m13500_m08 (KERN_ATTR_ESALT (pstoken_t))
 {
 }
 
-KERNEL_FQ void m13500_m16 (KERN_ATTR_ESALT (pstoken_t))
+KERNEL_FQ void HC_ATTR_SEQ m13500_m16 (KERN_ATTR_ESALT (pstoken_t))
 {
 }
 
-KERNEL_FQ void m13500_s04 (KERN_ATTR_ESALT (pstoken_t))
+KERNEL_FQ void HC_ATTR_SEQ m13500_s04 (KERN_ATTR_ESALT (pstoken_t))
 {
   /**
    * modifier
@@ -983,10 +983,10 @@ KERNEL_FQ void m13500_s04 (KERN_ATTR_ESALT (pstoken_t))
   }
 }
 
-KERNEL_FQ void m13500_s08 (KERN_ATTR_ESALT (pstoken_t))
+KERNEL_FQ void HC_ATTR_SEQ m13500_s08 (KERN_ATTR_ESALT (pstoken_t))
 {
 }
 
-KERNEL_FQ void m13500_s16 (KERN_ATTR_ESALT (pstoken_t))
+KERNEL_FQ void HC_ATTR_SEQ m13500_s16 (KERN_ATTR_ESALT (pstoken_t))
 {
 }

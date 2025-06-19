@@ -139,7 +139,7 @@ DECLSPEC void hmac_sha256_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m28700_m04 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
+KERNEL_FQ void HC_ATTR_SEQ m28700_m04 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 {
   /**
    * modifier
@@ -431,15 +431,15 @@ KERNEL_FQ void m28700_m04 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
   }
 }
 
-KERNEL_FQ void m28700_m08 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
+KERNEL_FQ void HC_ATTR_SEQ m28700_m08 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 {
 }
 
-KERNEL_FQ void m28700_m16 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
+KERNEL_FQ void HC_ATTR_SEQ m28700_m16 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 {
 }
 
-KERNEL_FQ void m28700_s04 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
+KERNEL_FQ void HC_ATTR_SEQ m28700_s04 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 {
   /**
    * modifier
@@ -743,10 +743,10 @@ KERNEL_FQ void m28700_s04 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
   }
 }
 
-KERNEL_FQ void m28700_s08 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
+KERNEL_FQ void HC_ATTR_SEQ m28700_s08 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 {
 }
 
-KERNEL_FQ void m28700_s16 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
+KERNEL_FQ void HC_ATTR_SEQ m28700_s16 (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 {
 }

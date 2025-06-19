@@ -20,7 +20,7 @@ typedef struct drupal7_tmp
 
 } drupal7_tmp_t;
 
-KERNEL_FQ void m07900_init (KERN_ATTR_TMPS (drupal7_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m07900_init (KERN_ATTR_TMPS (drupal7_tmp_t))
 {
   /**
    * base
@@ -50,7 +50,7 @@ KERNEL_FQ void m07900_init (KERN_ATTR_TMPS (drupal7_tmp_t))
   tmps[gid].digest_buf[7] = ctx.h[7];
 }
 
-KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
 {
   /**
    * base
@@ -204,7 +204,7 @@ KERNEL_FQ void m07900_loop (KERN_ATTR_TMPS (drupal7_tmp_t))
   tmps[gid].digest_buf[7] = digest[7];
 }
 
-KERNEL_FQ void m07900_comp (KERN_ATTR_TMPS (drupal7_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m07900_comp (KERN_ATTR_TMPS (drupal7_tmp_t))
 {
   /**
    * modifier

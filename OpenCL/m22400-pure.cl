@@ -31,7 +31,7 @@ typedef struct aescrypt_tmp
 
 } aescrypt_tmp_t;
 
-KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
+KERNEL_FQ void HC_ATTR_SEQ m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 {
   /**
    * base
@@ -110,7 +110,7 @@ KERNEL_FQ void m22400_init (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
   tmps[gid].len = final_len;
 }
 
-KERNEL_FQ void m22400_loop (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
+KERNEL_FQ void HC_ATTR_SEQ m22400_loop (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -214,7 +214,7 @@ KERNEL_FQ void m22400_loop (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
   tmps[gid].pass[7] = w[7];
 }
 
-KERNEL_FQ void m22400_comp (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
+KERNEL_FQ void HC_ATTR_SEQ m22400_comp (KERN_ATTR_TMPS_ESALT (aescrypt_tmp_t, aescrypt_t))
 {
   const u64 gid = get_global_id (0);
 

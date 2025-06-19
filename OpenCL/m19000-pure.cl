@@ -23,7 +23,7 @@ typedef struct qnx_md5_tmp
 
 } qnx_md5_tmp_t;
 
-KERNEL_FQ void m19000_init (KERN_ATTR_TMPS (qnx_md5_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m19000_init (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 {
   /**
    * base
@@ -37,18 +37,36 @@ KERNEL_FQ void m19000_init (KERN_ATTR_TMPS (qnx_md5_tmp_t))
    * init
    */
 
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32 w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
+
+  const u32 salt_len = salt_bufs[SALT_POS_HOST].salt_len;
+
+  u32 s[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < salt_len; i += 4, idx += 1)
+  {
+    s[idx] = salt_bufs[SALT_POS_HOST].salt_buf[idx];
+  }
+
   md5_ctx_t md5_ctx;
 
   md5_init (&md5_ctx);
 
-  md5_update_global (&md5_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
+  md5_update (&md5_ctx, s, salt_len);
 
-  md5_update_global (&md5_ctx, pws[gid].i, pws[gid].pw_len);
+  md5_update (&md5_ctx, w, pw_len);
 
   tmps[gid].md5_ctx = md5_ctx;
 }
 
-KERNEL_FQ void m19000_loop (KERN_ATTR_TMPS (qnx_md5_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m19000_loop (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 {
   /**
    * base
@@ -58,17 +76,26 @@ KERNEL_FQ void m19000_loop (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 
   if (gid >= GID_CNT) return;
 
+  const u32 pw_len = pws[gid].pw_len;
+
+  u32 w[64] = { 0 };
+
+  for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = pws[gid].i[idx];
+  }
+
   md5_ctx_t md5_ctx = tmps[gid].md5_ctx;
 
   for (u32 i = 0; i < LOOP_CNT; i++)
   {
-    md5_update_global (&md5_ctx, pws[gid].i, pws[gid].pw_len);
+    md5_update (&md5_ctx, w, pw_len);
   }
 
   tmps[gid].md5_ctx = md5_ctx;
 }
 
-KERNEL_FQ void m19000_comp (KERN_ATTR_TMPS (qnx_md5_tmp_t))
+KERNEL_FQ void HC_ATTR_SEQ m19000_comp (KERN_ATTR_TMPS (qnx_md5_tmp_t))
 {
   /**
    * modifier

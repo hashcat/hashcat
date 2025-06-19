@@ -580,7 +580,7 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
 
 const char *default_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const char *mask = "?b?b?b?b?b?b?b";
+  const char *mask = "?a?a?a?a?a?a?a";
 
   return mask;
 }
