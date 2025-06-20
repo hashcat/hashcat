@@ -2243,20 +2243,20 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_info (hashcat_ctx, "* --kernel-accel=%u", user_options->kernel_accel);
     }
-    else if (user_options->kernel_loops_chgd == true)
+
+    if (user_options->kernel_loops_chgd == true)
     {
       event_log_info (hashcat_ctx, "* --kernel-loops=%u", user_options->kernel_loops);
     }
-    else if (user_options->kernel_threads_chgd == true)
+
+    if (user_options->kernel_threads_chgd == true)
     {
       event_log_info (hashcat_ctx, "* --kernel-threads=%u", user_options->kernel_threads);
     }
-    else
+
+    if (user_options->workload_profile_chgd == true)
     {
-      if (user_options->workload_profile_chgd == true)
-      {
-        event_log_info (hashcat_ctx, "* --workload-profile=%u", user_options->workload_profile);
-      }
+      event_log_info (hashcat_ctx, "* --workload-profile=%u", user_options->workload_profile);
     }
 
     event_log_info (hashcat_ctx, NULL);
@@ -2322,20 +2322,20 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_info (hashcat_ctx, "# option: --kernel-accel=%u", user_options->kernel_accel);
     }
-    else if (user_options->kernel_loops_chgd == true)
+
+    if (user_options->kernel_loops_chgd == true)
     {
       event_log_info (hashcat_ctx, "# option: --kernel-loops=%u", user_options->kernel_loops);
     }
-    else if (user_options->kernel_threads_chgd == true)
+
+    if (user_options->kernel_threads_chgd == true)
     {
       event_log_info (hashcat_ctx, "# option: --kernel-threads=%u", user_options->kernel_threads);
     }
-    else
+    
+    if (user_options->workload_profile_chgd == true)
     {
-      if (user_options->workload_profile_chgd == true)
-      {
-        event_log_info (hashcat_ctx, "# option: --workload-profile=%u", user_options->workload_profile);
-      }
+      event_log_info (hashcat_ctx, "# option: --workload-profile=%u", user_options->workload_profile);
     }
   }
 }
