@@ -22,7 +22,7 @@ typedef struct
   #define SCRYPT_TMP_ELEM 1
   #endif
 
-  uint4 P[SCRYPT_TMP_ELEM];
+  u32 P[SCRYPT_TMP_ELEM];
 
 } scrypt_tmp_t;
 
@@ -96,23 +96,18 @@ KERNEL_FQ void HC_ATTR_SEQ m22700_init (KERN_ATTR_TMPS (scrypt_tmp_t))
          | ((w[j] << 8) & 0xff00ff00);
   }
 
-  sha256_hmac_ctx_t sha256_hmac_ctx;
+  u32 s[16] = { 0 };
 
-  sha256_hmac_init_swap (&sha256_hmac_ctx, w, w_len);
+  s[0] = hc_swap32_S (MULTIBIT_S0);
+  s[1] = hc_swap32_S (MULTIBIT_S1);
 
-  u32 x0[4] = { 0 };
-  u32 x1[4] = { 0 };
-  u32 x2[4] = { 0 };
-  u32 x3[4] = { 0 };
+  u32 out[SCRYPT_CNT4];
 
-  x0[0] = MULTIBIT_S0;
-  x0[1] = MULTIBIT_S1;
+  scrypt_pbkdf2_pp (w, w_len, s, 8, out, SCRYPT_SZ);
 
-  sha256_hmac_update_64 (&sha256_hmac_ctx, x0, x1, x2, x3, 8);
+  scrypt_blockmix_in (out, SCRYPT_SZ);
 
-  scrypt_pbkdf2_body (&sha256_hmac_ctx, tmps[gid].P, SCRYPT_CNT * 4);
-
-  scrypt_blockmix_in (tmps[gid].P, SCRYPT_CNT * 4);
+  for (u32 i = 0; i < SCRYPT_CNT4; i++) tmps[gid].P[i] = out[i];
 }
 
 KERNEL_FQ void HC_ATTR_SEQ m22700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
@@ -124,27 +119,15 @@ KERNEL_FQ void HC_ATTR_SEQ m22700_loop_prepare (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (gid >= GID_CNT) return;
 
-  GLOBAL_AS uint4 *d_scrypt0_buf = (GLOBAL_AS uint4 *) d_extra0_buf;
-  GLOBAL_AS uint4 *d_scrypt1_buf = (GLOBAL_AS uint4 *) d_extra1_buf;
-  GLOBAL_AS uint4 *d_scrypt2_buf = (GLOBAL_AS uint4 *) d_extra2_buf;
-  GLOBAL_AS uint4 *d_scrypt3_buf = (GLOBAL_AS uint4 *) d_extra3_buf;
+  u32 X[STATE_CNT4];
 
-  #ifdef IS_HIP
-  LOCAL_VK uint4 X_s[MAX_THREADS_PER_BLOCK][STATE_CNT4];
-  LOCAL_AS uint4 *X = X_s[lid];
-  #else
-  uint4 X[STATE_CNT4];
-  #endif
+  GLOBAL_AS u32 *P = tmps[gid].P + (SALT_REPEAT * STATE_CNT4);
 
-  const u32 P_offset = SALT_REPEAT * STATE_CNT4;
+  for (u32 z = 0; z < STATE_CNT4; z++) X[z] = P[z];
 
-  GLOBAL_AS uint4 *P = tmps[gid].P + P_offset;
+  scrypt_smix_init (X, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
 
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
-
-  scrypt_smix_init (X, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid, lid, lsz, bid);
-
-  for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
+  for (u32 z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
 KERNEL_FQ void HC_ATTR_SEQ m22700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
@@ -156,29 +139,16 @@ KERNEL_FQ void HC_ATTR_SEQ m22700_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 
   if (gid >= GID_CNT) return;
 
-  GLOBAL_AS uint4 *d_scrypt0_buf = (GLOBAL_AS uint4 *) d_extra0_buf;
-  GLOBAL_AS uint4 *d_scrypt1_buf = (GLOBAL_AS uint4 *) d_extra1_buf;
-  GLOBAL_AS uint4 *d_scrypt2_buf = (GLOBAL_AS uint4 *) d_extra2_buf;
-  GLOBAL_AS uint4 *d_scrypt3_buf = (GLOBAL_AS uint4 *) d_extra3_buf;
+  u32 X[STATE_CNT4];
+  u32 T[STATE_CNT4];
 
-  uint4 X[STATE_CNT4];
+  GLOBAL_AS u32 *P = tmps[gid].P + (SALT_REPEAT * STATE_CNT4);
 
-  #ifdef IS_HIP
-  LOCAL_VK uint4 T_s[MAX_THREADS_PER_BLOCK][STATE_CNT4];
-  LOCAL_AS uint4 *T = T_s[lid];
-  #else
-  uint4 T[STATE_CNT4];
-  #endif
+  for (u32 z = 0; z < STATE_CNT4; z++) X[z] = P[z];
 
-  const u32 P_offset = SALT_REPEAT * STATE_CNT4;
+  scrypt_smix_loop (X, T, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
 
-  GLOBAL_AS uint4 *P = tmps[gid].P + P_offset;
-
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = P[z];
-
-  scrypt_smix_loop (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid, lid, lsz, bid);
-
-  for (int z = 0; z < STATE_CNT4; z++) P[z] = X[z];
+  for (u32 z = 0; z < STATE_CNT4; z++) P[z] = X[z];
 }
 
 KERNEL_FQ void HC_ATTR_SEQ m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
@@ -261,28 +231,29 @@ KERNEL_FQ void HC_ATTR_SEQ m22700_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
          | ((w[j] << 8) & 0xff00ff00);
   }
 
-  scrypt_blockmix_out (tmps[gid].P, SCRYPT_CNT * 4);
 
-  sha256_hmac_ctx_t ctx;
+  u32 x[SCRYPT_CNT4];
 
-  sha256_hmac_init_swap (&ctx, w, w_len);
+  for (u32 i = 0; i < SCRYPT_CNT4; i++) x[i] = tmps[gid].P[i];
 
-  sha256_hmac_update_global_swap (&ctx, (GLOBAL_AS const u32 *) tmps[gid].P, SCRYPT_CNT * 4);
+  scrypt_blockmix_out (x, SCRYPT_SZ);
 
-  scrypt_pbkdf2_body (&ctx, tmps[gid].P, 16);
+  u32 out[8];
+
+  scrypt_pbkdf2_pp (w, w_len, x, SCRYPT_SZ, out, 32);
 
   // AES256-CBC decrypt with IV from salt buffer (dynamic, alternative 1):
 
   u32 key[8];
 
-  key[0] = tmps[gid].P[0].x;
-  key[1] = tmps[gid].P[0].y;
-  key[2] = tmps[gid].P[0].z;
-  key[3] = tmps[gid].P[0].w;
-  key[4] = tmps[gid].P[1].x;
-  key[5] = tmps[gid].P[1].y;
-  key[6] = tmps[gid].P[1].z;
-  key[7] = tmps[gid].P[1].w;
+  key[0] = out[0];
+  key[1] = out[1];
+  key[2] = out[2];
+  key[3] = out[3];
+  key[4] = out[4];
+  key[5] = out[5];
+  key[6] = out[6];
+  key[7] = out[7];
 
   #define KEYLEN 60
 

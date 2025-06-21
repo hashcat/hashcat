@@ -148,30 +148,20 @@ using namespace metal;
 #define HC_INLINE inline static
 #endif
 
+#if defined IS_AMD && defined IS_GPU
+#define DECLSPEC HC_INLINE
+#elif defined IS_CUDA
+#define DECLSPEC __device__
+#elif defined IS_HIP
+#define DECLSPEC __device__
+#else
+#define DECLSPEC
+#endif
+
 #if defined FIXED_LOCAL_SIZE
 #define HC_ATTR_SEQ FIXED_THREAD_COUNT((FIXED_LOCAL_SIZE))
 #else
-#if defined IS_AMD && defined IS_GPU
 #define HC_ATTR_SEQ
-#define DECLSPEC HC_INLINE
-#elif defined IS_HIP
-#define HC_ATTR_SEQ __launch_bounds__((MAX_THREADS_PER_BLOCK), 0)
-#define DECLSPEC __device__ HC_INLINE
-#elif defined IS_CUDA
-#define HC_ATTR_SEQ
-#define DECLSPEC
-#else
-#define HC_ATTR_SEQ
-#define DECLSPEC
-#endif
-#endif
-
-#if defined IS_AMD && defined IS_GPU
-#define DECLSPEC HC_INLINE
-#elif defined IS_HIP
-#define DECLSPEC __device__ HC_INLINE
-#else
-#define DECLSPEC
 #endif
 
 /**

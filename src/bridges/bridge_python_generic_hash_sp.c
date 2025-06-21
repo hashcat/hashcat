@@ -192,7 +192,7 @@ typedef struct
 
 } python_interpreter_t;
 
-static char *DEFAULT_SOURCE_FILENAME = "./Python/generic_hash_sp.py";
+static char *DEFAULT_SOURCE_FILENAME = "Python/generic_hash_sp.py";
 
 const char *extract_module_name (const char *path)
 {
@@ -219,78 +219,6 @@ const char *extract_module_name (const char *path)
   }
 
   return module_name;
-}
-
-char *load_source (const char *filename)
-{
-  FILE *fp = fopen (filename, "r");
-
-  if (fp == NULL)
-  {
-    fprintf (stderr, "%s: %s\n", filename, strerror (errno));
-
-    return NULL;
-  }
-
-  fseek (fp, 0, SEEK_END);
-
-  const size_t size = ftell (fp);
-
-  fseek (fp, 0, SEEK_SET);
-
-  char *source = hcmalloc (size + 1);
-
-  if (fread (source, 1, size, fp) != size)
-  {
-    fprintf (stderr, "%s: %s\n", filename, strerror (errno));
-
-    hcfree (source);
-
-    return NULL;
-  }
-
-  source[size] = 0;
-
-  fclose (fp);
-
-  return source;
-}
-
-#if defined (_WIN)
-#define DEVNULL "NUL"
-#else
-#define DEVNULL "/dev/null"
-#endif
-
-static int suppress_stderr (void)
-{
-  int null_fd = open (DEVNULL, O_WRONLY);
-
-  if (null_fd < 0) return -1;
-
-  int saved_fd = dup (fileno (stderr));
-
-  if (saved_fd < 0)
-  {
-    close (null_fd);
-
-    return -1;
-  }
-
-  dup2 (null_fd, fileno (stderr));
-
-  close (null_fd);
-
-  return saved_fd;
-}
-
-static void restore_stderr (int saved_fd)
-{
-  if (saved_fd < 0) return;
-
-  dup2 (saved_fd, fileno (stderr));
-
-  close (saved_fd);
 }
 
 static char *expand_pyenv_libpath (const char *prefix, const int maj, const int min)
@@ -843,7 +771,7 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   python->Py_DecRef (path);
   python->Py_DecRef (sys);
 
-  char *source = load_source (python_interpreter->source_filename);
+  char *source = file_to_buffer (python_interpreter->source_filename);
 
   if (source == NULL) return NULL;
 
@@ -1154,9 +1082,14 @@ const char *st_update_hash (MAYBE_UNUSED void *platform_context)
   python->Py_DecRef (path);
   python->Py_DecRef (sys);
 
-  char *source = load_source (python_interpreter->source_filename);
+  char *source = file_to_buffer (python_interpreter->source_filename);
 
-  if (source == NULL) return NULL;
+  if (source == NULL)
+  {
+    fprintf (stderr, "ERROR: %s: %s\n\n", python_interpreter->source_filename, strerror (errno));
+
+    return NULL;
+  }
 
   PyObject *code = python->Py_CompileStringExFlags (source, python_interpreter->source_filename, Py_file_input, NULL, -1);
 
@@ -1218,7 +1151,7 @@ const char *st_update_pass (MAYBE_UNUSED void *platform_context)
 
   // this is ugly to load that entire thing just to get that one variable
 
-  char *source = load_source (python_interpreter->source_filename);
+  char *source = file_to_buffer (python_interpreter->source_filename);
 
   if (source == NULL) return NULL;
 

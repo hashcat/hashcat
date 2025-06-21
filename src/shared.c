@@ -1582,3 +1582,40 @@ bool remove_file_suffix (char *file, const char *suffix)
   return true;
 }
 
+#if defined (_WIN)
+#define DEVNULL "NUL"
+#else
+#define DEVNULL "/dev/null"
+#endif
+
+int suppress_stderr (void)
+{
+  int null_fd = open (DEVNULL, O_WRONLY);
+
+  if (null_fd < 0) return -1;
+
+  int saved_fd = dup (fileno (stderr));
+
+  if (saved_fd < 0)
+  {
+    close (null_fd);
+
+    return -1;
+  }
+
+  dup2 (null_fd, fileno (stderr));
+
+  close (null_fd);
+
+  return saved_fd;
+}
+
+void restore_stderr (int saved_fd)
+{
+  if (saved_fd < 0) return;
+
+  dup2 (saved_fd, fileno (stderr));
+
+  close (saved_fd);
+}
+

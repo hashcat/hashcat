@@ -131,7 +131,7 @@ DECLSPEC u32x rotl32 (const u32x a, const int n)
   return __funnelshift_l(a, a, n);
   #endif
 
-  u32x t;
+  u32x t = 0;
 
   #if VECT_SIZE >= 2
   t.s0 = __funnelshift_l(a.s0, a.s0, n);
@@ -171,7 +171,7 @@ DECLSPEC u32x rotr32 (const u32x a, const int n)
   return __funnelshift_r(a, a, n);
   #endif
 
-  u32x t;
+  u32x t = 0;
 
   #if VECT_SIZE >= 2
   t.s0 = __funnelshift_r(a.s0, a.s0, n);

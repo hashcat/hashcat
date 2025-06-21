@@ -34,7 +34,7 @@ if ($cpu_benchmark == 1)
 }
 else
 {
-  system ("rocm-smi --resetprofile --resetclocks --resetfans");
+	#system ("rocm-smi --resetprofile --resetclocks --resetfans");
   system ("rocm-smi --setfan 100% --setperflevel high");
 
   system ("nvidia-settings -a GPUPowerMizerMode=1 -a GPUFanControlState=1 -a GPUTargetFanSpeed=100");

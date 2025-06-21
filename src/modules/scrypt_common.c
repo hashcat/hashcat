@@ -54,10 +54,10 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   const u32 scrypt_N = (hashes->salts_buf[0].scrypt_N == 0) ? hashes->st_salts_buf[0].scrypt_N : hashes->salts_buf[0].scrypt_N;
   const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
-  const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
+  //const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
 
   const u64 size_per_accel = (128ULL * scrypt_r * scrypt_N * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param));
-  const u64 state_per_accel = (128ULL * scrypt_r * scrypt_p * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param));
+  //const u64 state_per_accel = (128ULL * scrypt_r * scrypt_p * scrypt_exptected_threads (hashconfig, user_options, user_options_extra, device_param));
 
   int   lines_sz  = 4096;
   char *lines_buf = hcmalloc (lines_sz);
@@ -65,7 +65,7 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   const u32 device_processors = device_param->device_processors;
 
-  const u32 device_local_mem_size = device_param->device_local_mem_size;
+  //const u32 device_local_mem_size = device_param->device_local_mem_size;
 
   const u64 fixed_mem = (512 * 1024 * 1024); // some storage we need for pws[], tmps[], and others
 
@@ -159,21 +159,6 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
           }
 
           break;
-        }
-
-        if (device_param->is_hip == true)
-        {
-          // we use some local memory to speed up things, so
-          // we need to make sure there's enough local memory available
-
-          u64 state_per_accel_tmto = state_per_accel >> tmto;
-
-          while (state_per_accel_tmto > device_local_mem_size)
-          {
-            tmto++;
-
-            state_per_accel_tmto = state_per_accel >> tmto;
-          }
         }
       }
     }
@@ -301,7 +286,7 @@ char *scrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
     scrypt_r,
     scrypt_p,
     tmto,
-    tmp_size / 16);
+    tmp_size / 4);
 
   return jit_build_options;
 }

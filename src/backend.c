@@ -486,22 +486,13 @@ static bool opencl_test_instruction (hashcat_ctx_t *hashcat_ctx, cl_context cont
   OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
 
   #ifndef DEBUG
-  const int fd_stderr = fileno (stderr);
-  const int stderr_bak = dup (fd_stderr);
-  #ifdef _WIN
-  const int tmp = open ("NUL", O_WRONLY);
-  #else
-  const int tmp = open ("/dev/null", O_WRONLY);
-  #endif
-  dup2 (tmp, fd_stderr);
-  close (tmp);
+  int saved_stderr = suppress_stderr ();
   #endif
 
   const int CL_rc = ocl->clBuildProgram (program, 1, &device, NULL, NULL, NULL);
 
   #ifndef DEBUG
-  dup2 (stderr_bak, fd_stderr);
-  close (stderr_bak);
+  restore_stderr (saved_stderr);
   #endif
 
   if (CL_rc != CL_SUCCESS)
@@ -8984,8 +8975,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
         nvrtc_options[nvrtc_options_idx++] = "--std=c++14";
       }
 
-      nvrtc_options[nvrtc_options_idx++] = "--restrict";
-      nvrtc_options[nvrtc_options_idx++] = "--device-as-default-execution-space";
+      //nvrtc_options[nvrtc_options_idx++] = "--restrict";
       nvrtc_options[nvrtc_options_idx++] = "--gpu-architecture";
 
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "compute_%d", (device_param->sm_major * 10) + device_param->sm_minor);
@@ -9243,6 +9233,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D MAX_THREADS_PER_BLOCK=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "--gpu-architecture=%s", device_param->gcnArchName);
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
 
       // untested but it should work
       #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
@@ -10598,6 +10589,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D XM2S(x)=#x ");
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D M2S(x)=XM2S(x) ");
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D MAX_THREADS_PER_BLOCK=%d ", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
 
       #if defined (__APPLE__)
       if (is_apple_silicon () == true)

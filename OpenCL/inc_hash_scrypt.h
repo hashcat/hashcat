@@ -6,39 +6,40 @@
 #ifndef INC_HASH_SCRYPT_H
 #define INC_HASH_SCRYPT_H
 
-#define GET_SCRYPT_CNT(r,p) (2 * (r) * 16 * (p))
-#define GET_SMIX_CNT(r,N)   (2 * (r) * 16 * (N))
-#define GET_STATE_CNT(r)    (2 * (r) * 16)
+#define GET_SCRYPT_SZ(r,p) (128 * (r) * (p))
+#define GET_STATE_SZ(r)    (128 * (r))
 
-#define SCRYPT_CNT  GET_SCRYPT_CNT (SCRYPT_R, SCRYPT_P)
-#define SCRYPT_CNT4 (SCRYPT_CNT / 4)
-#define STATE_CNT   GET_STATE_CNT  (SCRYPT_R)
-#define STATE_CNT4  (STATE_CNT / 4)
+// _SZ is true sizes as bytes
+#define SCRYPT_SZ  GET_SCRYPT_SZ (SCRYPT_R, SCRYPT_P)
+#define STATE_SZ   GET_STATE_SZ  (SCRYPT_R)
+
+// _CNT is size as whatever /X datatype
+#define SCRYPT_CNT4  (SCRYPT_SZ / 4)
+#define STATE_CNT4   (STATE_SZ  / 4)
+
+// this would be uint4, feels more natural than 16
+#define SCRYPT_CNT44 ((SCRYPT_SZ / 4) / 4)
+#define STATE_CNT44  ((STATE_SZ  / 4) / 4)
+
+#define SALSA_SZ   64
+#define SALSA_CNT4 (SALSA_SZ / 4)
 
 #define VIDX(bid4,lsz,lid,ySIZE,zSIZE,y,z) (((bid4) * (lsz) * (ySIZE) * (zSIZE)) + ((lid) * (ySIZE) * (zSIZE)) + ((y) * (zSIZE)) + (z))
 
 #if defined IS_CUDA
-inline __device__ uint4 operator &  (const uint4  a, const u32   b) { return make_uint4 ((a.x &  b  ), (a.y &  b  ), (a.z &  b  ), (a.w &  b  ));  }
-inline __device__ uint4 operator << (const uint4  a, const u32   b) { return make_uint4 ((a.x << b  ), (a.y << b  ), (a.z << b  ), (a.w << b  ));  }
-inline __device__ uint4 operator >> (const uint4  a, const u32   b) { return make_uint4 ((a.x >> b  ), (a.y >> b  ), (a.z >> b  ), (a.w >> b  ));  }
-inline __device__ uint4 operator +  (const uint4  a, const uint4 b) { return make_uint4 ((a.x +  b.x), (a.y +  b.y), (a.z +  b.z), (a.w +  b.w));  }
-inline __device__ uint4 operator ^  (const uint4  a, const uint4 b) { return make_uint4 ((a.x ^  b.x), (a.y ^  b.y), (a.z ^  b.z), (a.w ^  b.w));  }
-inline __device__ uint4 operator |  (const uint4  a, const uint4 b) { return make_uint4 ((a.x |  b.x), (a.y |  b.y), (a.z |  b.z), (a.w |  b.w));  }
-inline __device__ void  operator ^= (      uint4 &a, const uint4 b) {                     a.x ^= b.x;   a.y ^= b.y;   a.z ^= b.z;   a.w ^= b.w;    }
-#endif
 
-#if defined IS_CUDA || defined IS_HIP
-inline __device__ uint4 rotate (const uint4 a, const int n)
+DECLSPEC uint4 operator ^ (const uint4 a, const uint4 b)
 {
   uint4 r;
 
-  r.x = hc_rotl32_S (r.x, n);
-  r.y = hc_rotl32_S (r.y, n);
-  r.z = hc_rotl32_S (r.z, n);
-  r.w = hc_rotl32_S (r.w, n);
+  r.x = a.x ^ b.x;
+  r.y = a.y ^ b.y;
+  r.z = a.z ^ b.z;
+  r.w = a.w ^ b.w;
 
   return r;
 }
+
 #endif
 
 #endif

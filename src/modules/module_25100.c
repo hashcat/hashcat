@@ -23,8 +23,7 @@ static const char *HASH_NAME      = "SNMPv3 HMAC-MD5-96";
 static const u64   KERN_TYPE      = 25100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_MP_MULTI_DISABLE;
+                                  | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
 static const char *ST_HASH        = "$SNMPv3$1$45889431$30818f0201033011020409242fc0020300ffe304010102010304383036041180001f88808106d566db57fd600000000002011002020118040a6d61747269785f4d4435040c0000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411f319300201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$1b37c3ea872731f922959e90";
@@ -112,6 +111,24 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   const u64 tmp_size = (const u64) sizeof (hmac_md5_tmp_t);
 
   return tmp_size;
+}
+
+u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  // due to the large tmps structure
+
+  const u32 kernel_accel_max = 256;
+
+  return kernel_accel_max;
+}
+
+u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  // due to the large tmps structure
+
+  const u32 kernel_threads_max = 32;
+
+  return kernel_threads_max;
 }
 
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -318,11 +335,11 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_size                = MODULE_DEFAULT;
   module_ctx->module_jit_build_options        = MODULE_DEFAULT;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_max         = module_kernel_accel_max;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
   module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
-  module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
   module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
