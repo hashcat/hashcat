@@ -54,7 +54,7 @@ typedef struct snmpv3
 
 } snmpv3_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m25200_init (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
+KERNEL_FQ KERNEL_FA void m25200_init (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 {
   /**
    * modifier
@@ -132,7 +132,7 @@ KERNEL_FQ void HC_ATTR_SEQ m25200_init (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, s
   tmps[gid].h[4] = SHA1M_E;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
+KERNEL_FQ KERNEL_FA void m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 {
   /**
    * base
@@ -231,7 +231,7 @@ KERNEL_FQ void HC_ATTR_SEQ m25200_loop (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, s
   tmps[gid].h[4] = h[4];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
+KERNEL_FQ KERNEL_FA void m25200_comp (KERN_ATTR_TMPS_ESALT (hmac_sha1_tmp_t, snmpv3_t))
 {
   /**
    * modifier

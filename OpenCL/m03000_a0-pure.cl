@@ -492,7 +492,7 @@ DECLSPEC void transform_netntlmv1_key (const u32 w0, const u32x w1, PRIVATE_AS u
          | ((k[7] & 0xff) << 24);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m03000_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m03000_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -577,7 +577,7 @@ KERNEL_FQ void HC_ATTR_SEQ m03000_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m03000_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m03000_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

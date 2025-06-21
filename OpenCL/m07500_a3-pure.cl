@@ -155,7 +155,7 @@ DECLSPEC void kerb_prepare (PRIVATE_AS const u32 *K, PRIVATE_AS const u32 *check
   digest[3] = ctx.opad.h[3];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07500_mxx (KERN_ATTR_VECTOR_ESALT (krb5pa_t))
+KERNEL_FQ KERNEL_FA void m07500_mxx (KERN_ATTR_VECTOR_ESALT (krb5pa_t))
 {
   /**
    * modifier
@@ -247,7 +247,7 @@ KERNEL_FQ void HC_ATTR_SEQ m07500_mxx (KERN_ATTR_VECTOR_ESALT (krb5pa_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07500_sxx (KERN_ATTR_VECTOR_ESALT (krb5pa_t))
+KERNEL_FQ KERNEL_FA void m07500_sxx (KERN_ATTR_VECTOR_ESALT (krb5pa_t))
 {
   /**
    * modifier

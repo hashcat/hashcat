@@ -50,7 +50,7 @@ DECLSPEC const u32 replace_dot_by_len (PRIVATE_AS pw_t *out, GLOBAL_AS const pw_
   return cur_len;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m08300_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m08300_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -167,7 +167,7 @@ KERNEL_FQ void HC_ATTR_SEQ m08300_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m08300_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m08300_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

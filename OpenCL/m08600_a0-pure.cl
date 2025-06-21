@@ -265,7 +265,7 @@ DECLSPEC void domino_big_md (PRIVATE_AS const u32 *saved_key, const u32 size, PR
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m08600_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m08600_mxx (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -329,7 +329,7 @@ KERNEL_FQ void HC_ATTR_SEQ m08600_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m08600_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m08600_sxx (KERN_ATTR_RULES ())
 {
   /**
    * base

@@ -38,7 +38,7 @@ typedef struct md5_double_salt
 
 } md5_double_salt_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m03730_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
+KERNEL_FQ KERNEL_FA void m03730_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
 {
   /**
    * modifier
@@ -156,7 +156,7 @@ KERNEL_FQ void HC_ATTR_SEQ m03730_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m03730_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
+KERNEL_FQ KERNEL_FA void m03730_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
 {
   /**
    * modifier

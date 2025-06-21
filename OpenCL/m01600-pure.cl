@@ -25,7 +25,7 @@ typedef struct md5crypt_tmp
 #define md5apr1_magic0 0x72706124u
 #define md5apr1_magic1 0x00002431u
 
-KERNEL_FQ void HC_ATTR_SEQ m01600_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m01600_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -132,7 +132,7 @@ KERNEL_FQ void HC_ATTR_SEQ m01600_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
   tmps[gid].digest_buf[3] = md5_ctx.h[3];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m01600_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m01600_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -227,7 +227,7 @@ KERNEL_FQ void HC_ATTR_SEQ m01600_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m01600_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m01600_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * modifier

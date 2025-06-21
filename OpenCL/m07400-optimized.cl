@@ -1178,7 +1178,7 @@ DECLSPEC u32 memcat24 (PRIVATE_AS u32 *block, const u32 offset, PRIVATE_AS const
   return offset + append_len;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 {
   /**
    * base
@@ -1526,7 +1526,7 @@ KERNEL_FQ void HC_ATTR_SEQ m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   tmps[gid].s_bytes[4] = s_bytes[4];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 {
   /**
    * base
@@ -1737,7 +1737,7 @@ KERNEL_FQ void HC_ATTR_SEQ m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   tmps[gid].alt_result[7] = alt_result[7];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07400_comp (KERN_ATTR_TMPS (sha256crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m07400_comp (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 {
   /**
    * base

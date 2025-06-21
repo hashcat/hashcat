@@ -92,7 +92,7 @@ DECLSPEC void xts_mul2 (PRIVATE_AS u32 *in, PRIVATE_AS u32 *out)
   out[0] ^= c * 0x87;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m27600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ KERNEL_FA void m27600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   /**
    * base
@@ -176,7 +176,7 @@ KERNEL_FQ void HC_ATTR_SEQ m27600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m27600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ KERNEL_FA void m27600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -282,7 +282,7 @@ KERNEL_FQ void HC_ATTR_SEQ m27600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ KERNEL_FA void m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -616,7 +616,7 @@ KERNEL_FQ void HC_ATTR_SEQ m27600_init2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m27600_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ KERNEL_FA void m27600_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -722,7 +722,7 @@ KERNEL_FQ void HC_ATTR_SEQ m27600_loop2 (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m27600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
+KERNEL_FQ KERNEL_FA void m27600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, vbox_t))
 {
   const u64 gid = get_global_id (0);
 

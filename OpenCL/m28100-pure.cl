@@ -88,7 +88,7 @@ DECLSPEC void hmac_sha256_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVA
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m28100_init (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
+KERNEL_FQ KERNEL_FA void m28100_init (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 {
   /**
    * base
@@ -203,7 +203,7 @@ KERNEL_FQ void HC_ATTR_SEQ m28100_init (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, wi
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m28100_loop (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
+KERNEL_FQ KERNEL_FA void m28100_loop (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -309,7 +309,7 @@ KERNEL_FQ void HC_ATTR_SEQ m28100_loop (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, wi
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m28100_comp (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
+KERNEL_FQ KERNEL_FA void m28100_comp (KERN_ATTR_TMPS_ESALT (winhello_tmp_t, winhello_t))
 {
   /**
    * base

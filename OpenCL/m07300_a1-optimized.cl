@@ -110,7 +110,7 @@ DECLSPEC void hmac_sha1_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_A
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07300_m04 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ KERNEL_FA void m07300_m04 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * modifier
@@ -306,15 +306,15 @@ KERNEL_FQ void HC_ATTR_SEQ m07300_m04 (KERN_ATTR_ESALT (rakp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07300_m08 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ KERNEL_FA void m07300_m08 (KERN_ATTR_ESALT (rakp_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07300_m16 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ KERNEL_FA void m07300_m16 (KERN_ATTR_ESALT (rakp_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07300_s04 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ KERNEL_FA void m07300_s04 (KERN_ATTR_ESALT (rakp_t))
 {
   /**
    * modifier
@@ -522,10 +522,10 @@ KERNEL_FQ void HC_ATTR_SEQ m07300_s04 (KERN_ATTR_ESALT (rakp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07300_s08 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ KERNEL_FA void m07300_s08 (KERN_ATTR_ESALT (rakp_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07300_s16 (KERN_ATTR_ESALT (rakp_t))
+KERNEL_FQ KERNEL_FA void m07300_s16 (KERN_ATTR_ESALT (rakp_t))
 {
 }

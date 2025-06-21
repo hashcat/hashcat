@@ -49,7 +49,7 @@ typedef struct pdf14_tmp
 
 } pdf14_tmp_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m25400_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
+KERNEL_FQ KERNEL_FA void m25400_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   /**
    * base
@@ -191,7 +191,7 @@ KERNEL_FQ void HC_ATTR_SEQ m25400_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t
   tmps[gid].out[7] = 0; // we only need the size of out for the plaintext check
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
+KERNEL_FQ KERNEL_FA void m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   /**
    * base
@@ -315,7 +315,7 @@ KERNEL_FQ void HC_ATTR_SEQ m25400_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t
   tmps[gid].digest[3] = digest[3];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
+KERNEL_FQ KERNEL_FA void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   const u32 digest[4] =
   {

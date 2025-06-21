@@ -41,7 +41,7 @@ typedef struct dcc_tmp
 } dcc_tmp_t;
 
 
-KERNEL_FQ void HC_ATTR_SEQ m31500_init (KERN_ATTR_TMPS (dcc_tmp_t))
+KERNEL_FQ KERNEL_FA void m31500_init (KERN_ATTR_TMPS (dcc_tmp_t))
 {
  /**
    * modifier
@@ -79,12 +79,12 @@ KERNEL_FQ void HC_ATTR_SEQ m31500_init (KERN_ATTR_TMPS (dcc_tmp_t))
   tmps[gid].digest_buf[3] = out[3];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m31500_loop (KERN_ATTR_TMPS (dcc_tmp_t))
+KERNEL_FQ KERNEL_FA void m31500_loop (KERN_ATTR_TMPS (dcc_tmp_t))
 {
 
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m31500_comp (KERN_ATTR_TMPS (dcc_tmp_t))
+KERNEL_FQ KERNEL_FA void m31500_comp (KERN_ATTR_TMPS (dcc_tmp_t))
 {
  /**
    * modifier

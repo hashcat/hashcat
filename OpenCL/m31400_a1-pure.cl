@@ -135,7 +135,7 @@ DECLSPEC void aes256_scrt_format (PRIVATE_AS u32 *aes_ks, PRIVATE_AS u32 *pw, co
   AES256_encrypt (aes_ks, hash, out, s_te0, s_te1, s_te2, s_te3, s_te4);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m31400_mxx (KERN_ATTR_ESALT (scrtv2_t))
+KERNEL_FQ KERNEL_FA void m31400_mxx (KERN_ATTR_ESALT (scrtv2_t))
 {
   /**
    * modifier
@@ -225,7 +225,7 @@ KERNEL_FQ void HC_ATTR_SEQ m31400_mxx (KERN_ATTR_ESALT (scrtv2_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m31400_sxx (KERN_ATTR_ESALT (scrtv2_t))
+KERNEL_FQ KERNEL_FA void m31400_sxx (KERN_ATTR_ESALT (scrtv2_t))
 {
   /**
    * modifier

@@ -452,7 +452,7 @@ DECLSPEC void kerb_prepare (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, 
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m13100_m04 (KERN_ATTR_ESALT (krb5tgs_t))
+KERNEL_FQ KERNEL_FA void m13100_m04 (KERN_ATTR_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -589,15 +589,15 @@ KERNEL_FQ void HC_ATTR_SEQ m13100_m04 (KERN_ATTR_ESALT (krb5tgs_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m13100_m08 (KERN_ATTR_ESALT (krb5tgs_t))
+KERNEL_FQ KERNEL_FA void m13100_m08 (KERN_ATTR_ESALT (krb5tgs_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m13100_m16 (KERN_ATTR_ESALT (krb5tgs_t))
+KERNEL_FQ KERNEL_FA void m13100_m16 (KERN_ATTR_ESALT (krb5tgs_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m13100_s04 (KERN_ATTR_ESALT (krb5tgs_t))
+KERNEL_FQ KERNEL_FA void m13100_s04 (KERN_ATTR_ESALT (krb5tgs_t))
 {
   /**
    * modifier
@@ -734,10 +734,10 @@ KERNEL_FQ void HC_ATTR_SEQ m13100_s04 (KERN_ATTR_ESALT (krb5tgs_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m13100_s08 (KERN_ATTR_ESALT (krb5tgs_t))
+KERNEL_FQ KERNEL_FA void m13100_s08 (KERN_ATTR_ESALT (krb5tgs_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m13100_s16 (KERN_ATTR_ESALT (krb5tgs_t))
+KERNEL_FQ KERNEL_FA void m13100_s16 (KERN_ATTR_ESALT (krb5tgs_t))
 {
 }

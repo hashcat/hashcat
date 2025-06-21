@@ -25,7 +25,7 @@
     len.s##n++;                                \
   }
 
-KERNEL_FQ void HC_ATTR_SEQ m08300_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m08300_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -198,7 +198,7 @@ KERNEL_FQ void HC_ATTR_SEQ m08300_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m08300_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m08300_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

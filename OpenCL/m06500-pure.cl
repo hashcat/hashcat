@@ -85,7 +85,7 @@ DECLSPEC void hmac_sha512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVA
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m06500_init (KERN_ATTR_TMPS (sha512aix_tmp_t))
+KERNEL_FQ KERNEL_FA void m06500_init (KERN_ATTR_TMPS (sha512aix_tmp_t))
 {
   /**
    * base
@@ -184,7 +184,7 @@ KERNEL_FQ void HC_ATTR_SEQ m06500_init (KERN_ATTR_TMPS (sha512aix_tmp_t))
   tmps[gid].out[7] = sha512_hmac_ctx.opad.h[7];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m06500_loop (KERN_ATTR_TMPS (sha512aix_tmp_t))
+KERNEL_FQ KERNEL_FA void m06500_loop (KERN_ATTR_TMPS (sha512aix_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -307,7 +307,7 @@ KERNEL_FQ void HC_ATTR_SEQ m06500_loop (KERN_ATTR_TMPS (sha512aix_tmp_t))
   unpack64v (tmps, out, gid, 7, out[7]);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m06500_comp (KERN_ATTR_TMPS (sha512aix_tmp_t))
+KERNEL_FQ KERNEL_FA void m06500_comp (KERN_ATTR_TMPS (sha512aix_tmp_t))
 {
   /**
    * base

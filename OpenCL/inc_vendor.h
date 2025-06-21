@@ -66,6 +66,12 @@ using namespace metal;
 #define KERNEL_FQ   __kernel
 #endif
 
+#if defined FIXED_LOCAL_SIZE
+#define KERNEL_FA FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE)
+#else
+#define KERNEL_FA
+#endif
+
 #ifndef MAYBE_UNUSED
 #define MAYBE_UNUSED
 #endif
@@ -156,12 +162,6 @@ using namespace metal;
 #define DECLSPEC __device__
 #else
 #define DECLSPEC
-#endif
-
-#if defined FIXED_LOCAL_SIZE
-#define HC_ATTR_SEQ FIXED_THREAD_COUNT((FIXED_LOCAL_SIZE))
-#else
-#define HC_ATTR_SEQ
 #endif
 
 /**

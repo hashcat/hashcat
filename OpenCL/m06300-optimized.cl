@@ -573,7 +573,7 @@ DECLSPEC void append_1st (PRIVATE_AS u32 *block0, PRIVATE_AS u32 *block1, PRIVAT
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -731,7 +731,7 @@ KERNEL_FQ void HC_ATTR_SEQ m06300_init (KERN_ATTR_TMPS (md5crypt_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * base
@@ -919,7 +919,7 @@ KERNEL_FQ void HC_ATTR_SEQ m06300_loop (KERN_ATTR_TMPS (md5crypt_tmp_t))
   tmps[gid].digest_buf[3] = digest[3];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m06300_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m06300_comp (KERN_ATTR_TMPS (md5crypt_tmp_t))
 {
   /**
    * modifier

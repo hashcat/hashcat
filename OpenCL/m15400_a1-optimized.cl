@@ -236,7 +236,7 @@ DECLSPEC void chacha20_transform (PRIVATE_AS const u32x *w0, PRIVATE_AS const u3
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15400_m04 (KERN_ATTR_ESALT (chacha20_t))
+KERNEL_FQ KERNEL_FA void m15400_m04 (KERN_ATTR_ESALT (chacha20_t))
 {
   /**
    * modifier
@@ -357,15 +357,15 @@ KERNEL_FQ void HC_ATTR_SEQ m15400_m04 (KERN_ATTR_ESALT (chacha20_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15400_m08 (KERN_ATTR_ESALT (chacha20_t))
+KERNEL_FQ KERNEL_FA void m15400_m08 (KERN_ATTR_ESALT (chacha20_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15400_m16 (KERN_ATTR_ESALT (chacha20_t))
+KERNEL_FQ KERNEL_FA void m15400_m16 (KERN_ATTR_ESALT (chacha20_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15400_s04 (KERN_ATTR_ESALT (chacha20_t))
+KERNEL_FQ KERNEL_FA void m15400_s04 (KERN_ATTR_ESALT (chacha20_t))
 {
   /**
    * modifier
@@ -498,10 +498,10 @@ KERNEL_FQ void HC_ATTR_SEQ m15400_s04 (KERN_ATTR_ESALT (chacha20_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15400_s08 (KERN_ATTR_ESALT (chacha20_t))
+KERNEL_FQ KERNEL_FA void m15400_s08 (KERN_ATTR_ESALT (chacha20_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15400_s16 (KERN_ATTR_ESALT (chacha20_t))
+KERNEL_FQ KERNEL_FA void m15400_s16 (KERN_ATTR_ESALT (chacha20_t))
 {
 }

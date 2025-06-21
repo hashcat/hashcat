@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_blake2b.cl)
 #endif
 
-KERNEL_FQ void HC_ATTR_SEQ m00600_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m00600_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -66,7 +66,7 @@ KERNEL_FQ void HC_ATTR_SEQ m00600_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m00600_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m00600_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

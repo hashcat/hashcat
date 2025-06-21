@@ -67,7 +67,7 @@ DECLSPEC void hmac_md5_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_
   md5_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m11900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t))
+KERNEL_FQ KERNEL_FA void m11900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t))
 {
   /**
    * base
@@ -135,7 +135,7 @@ KERNEL_FQ void HC_ATTR_SEQ m11900_init (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, 
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m11900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t))
+KERNEL_FQ KERNEL_FA void m11900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -213,7 +213,7 @@ KERNEL_FQ void HC_ATTR_SEQ m11900_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, 
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m11900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t))
+KERNEL_FQ KERNEL_FA void m11900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_md5_tmp_t, pbkdf2_md5_t))
 {
   /**
    * base

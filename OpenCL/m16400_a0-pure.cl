@@ -176,7 +176,7 @@ DECLSPEC void cram_md5_final (PRIVATE_AS md5_ctx_t *ctx)
   cram_md5_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->h);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m16400_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m16400_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -220,7 +220,7 @@ KERNEL_FQ void HC_ATTR_SEQ m16400_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m16400_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m16400_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

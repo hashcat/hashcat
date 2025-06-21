@@ -137,7 +137,7 @@ DECLSPEC u32 round_crc32_16 (const u32 crc32, PRIVATE_AS const u32 *buf, const u
   return c;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
+KERNEL_FQ KERNEL_FA void m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   /**
    * base
@@ -155,7 +155,7 @@ KERNEL_FQ void HC_ATTR_SEQ m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t
 }
 
 /*
-KERNEL_FQ void HC_ATTR_SEQ m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
+KERNEL_FQ KERNEL_FA void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -490,7 +490,7 @@ KERNEL_FQ void HC_ATTR_SEQ m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t
 }
 */
 
-KERNEL_FQ void HC_ATTR_SEQ m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
+KERNEL_FQ KERNEL_FA void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -679,7 +679,7 @@ KERNEL_FQ void HC_ATTR_SEQ m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t
   tmps[gid].dgst[init_pos + 1][4] = dgst[4];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
+KERNEL_FQ KERNEL_FA void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

@@ -463,7 +463,7 @@ DECLSPEC int derivelast6bytes (const u32x k0, const u32x k1, const u32x k2, PRIV
   return 0;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m20510_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m20510_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -604,7 +604,7 @@ KERNEL_FQ void HC_ATTR_SEQ m20510_sxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m20510_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m20510_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

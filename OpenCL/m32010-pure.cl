@@ -23,7 +23,7 @@ typedef struct netiq_sspr_sha1_tmp
 
 } netiq_sspr_sha1_tmp_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m32010_init (KERN_ATTR_TMPS (netiq_sspr_sha1_tmp_t))
+KERNEL_FQ KERNEL_FA void m32010_init (KERN_ATTR_TMPS (netiq_sspr_sha1_tmp_t))
 {
   /**
    * base
@@ -48,7 +48,7 @@ KERNEL_FQ void HC_ATTR_SEQ m32010_init (KERN_ATTR_TMPS (netiq_sspr_sha1_tmp_t))
   tmps[gid].dgst[4] = ctx.h[4];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m32010_loop (KERN_ATTR_TMPS (netiq_sspr_sha1_tmp_t))
+KERNEL_FQ KERNEL_FA void m32010_loop (KERN_ATTR_TMPS (netiq_sspr_sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -113,7 +113,7 @@ KERNEL_FQ void HC_ATTR_SEQ m32010_loop (KERN_ATTR_TMPS (netiq_sspr_sha1_tmp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m32010_comp (KERN_ATTR_TMPS (netiq_sspr_sha1_tmp_t))
+KERNEL_FQ KERNEL_FA void m32010_comp (KERN_ATTR_TMPS (netiq_sspr_sha1_tmp_t))
 {
   const u64 gid = get_global_id (0);
 

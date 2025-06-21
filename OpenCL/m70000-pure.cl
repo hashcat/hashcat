@@ -26,7 +26,7 @@ typedef struct
 
 } argon2_reference_tmp_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m70000_init (KERN_ATTR_TMPS (argon2_reference_tmp_t))
+KERNEL_FQ KERNEL_FA void m70000_init (KERN_ATTR_TMPS (argon2_reference_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -42,11 +42,11 @@ KERNEL_FQ void HC_ATTR_SEQ m70000_init (KERN_ATTR_TMPS (argon2_reference_tmp_t))
   tmps[gid].pw_len = pw_len;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m70000_loop (KERN_ATTR_TMPS (argon2_reference_tmp_t))
+KERNEL_FQ KERNEL_FA void m70000_loop (KERN_ATTR_TMPS (argon2_reference_tmp_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m70000_comp (KERN_ATTR_TMPS (argon2_reference_tmp_t))
+KERNEL_FQ KERNEL_FA void m70000_comp (KERN_ATTR_TMPS (argon2_reference_tmp_t))
 {
   /**
    * base

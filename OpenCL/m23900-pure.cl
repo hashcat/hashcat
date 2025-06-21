@@ -29,7 +29,7 @@ typedef struct bestcrypt
 
 } bestcrypt_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m23900_init (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
+KERNEL_FQ KERNEL_FA void m23900_init (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -103,7 +103,7 @@ KERNEL_FQ void HC_ATTR_SEQ m23900_init (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, b
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m23900_loop (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
+KERNEL_FQ KERNEL_FA void m23900_loop (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -251,7 +251,7 @@ KERNEL_FQ void HC_ATTR_SEQ m23900_loop (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, b
   tmps[gid].out[7] = digest[7];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m23900_comp (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
+KERNEL_FQ KERNEL_FA void m23900_comp (KERN_ATTR_TMPS_ESALT (bestcrypt_tmp_t, bestcrypt_t))
 {
   const u64 gid = get_global_id  (0);
   const u64 lid = get_local_id   (0);

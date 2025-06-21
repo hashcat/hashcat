@@ -17,16 +17,6 @@
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
-typedef struct exodus_tmp
-{
-  #ifndef SCRYPT_TMP_ELEM
-  #define SCRYPT_TMP_ELEM 1
-  #endif
-
-  u32 P[SCRYPT_TMP_ELEM];
-
-} exodus_tmp_t;
-
 typedef struct exodus
 {
   u32 iv[4];
@@ -35,22 +25,18 @@ typedef struct exodus
 
 } exodus_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m28200_init (KERN_ATTR_TMPS_ESALT (exodus_tmp_t, exodus_t))
+KERNEL_FQ KERNEL_FA void m28200_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, exodus_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
 
-  u32 out[SCRYPT_CNT4];
+  scrypt_pbkdf2_ggg (pws[gid].i, pws[gid].pw_len, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len, tmps[gid].in, SCRYPT_SZ);
 
-  scrypt_pbkdf2_gg (pws[gid].i, pws[gid].pw_len, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len, out, SCRYPT_SZ);
-
-  scrypt_blockmix_in (out, SCRYPT_SZ);
-
-  for (u32 i = 0; i < SCRYPT_CNT4; i++) tmps[gid].P[i] = out[i];
+  scrypt_blockmix_in (tmps[gid].in, tmps[gid].out, SCRYPT_SZ);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m28200_loop_prepare (KERN_ATTR_TMPS_ESALT (exodus_tmp_t, exodus_t))
+KERNEL_FQ KERNEL_FA void m28200_loop_prepare (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, exodus_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -61,16 +47,12 @@ KERNEL_FQ void HC_ATTR_SEQ m28200_loop_prepare (KERN_ATTR_TMPS_ESALT (exodus_tmp
 
   u32 X[STATE_CNT4];
 
-  GLOBAL_AS u32 *P = tmps[gid].P + (SALT_REPEAT * STATE_CNT4);
+  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
 
-  for (u32 z = 0; z < STATE_CNT4; z++) X[z] = P[z];
-
-  scrypt_smix_init (X, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
-
-  for (u32 z = 0; z < STATE_CNT4; z++) P[z] = X[z];
+  scrypt_smix_init (P, X, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m28200_loop (KERN_ATTR_TMPS_ESALT (exodus_tmp_t, exodus_t))
+KERNEL_FQ KERNEL_FA void m28200_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, exodus_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -82,16 +64,12 @@ KERNEL_FQ void HC_ATTR_SEQ m28200_loop (KERN_ATTR_TMPS_ESALT (exodus_tmp_t, exod
   u32 X[STATE_CNT4];
   u32 T[STATE_CNT4];
 
-  GLOBAL_AS u32 *P = tmps[gid].P + (SALT_REPEAT * STATE_CNT4);
+  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
 
-  for (u32 z = 0; z < STATE_CNT4; z++) X[z] = P[z];
-
-  scrypt_smix_loop (X, T, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
-
-  for (u32 z = 0; z < STATE_CNT4; z++) P[z] = X[z];
+  scrypt_smix_loop (P, X, T, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m28200_comp (KERN_ATTR_TMPS_ESALT (exodus_tmp_t, exodus_t))
+KERNEL_FQ KERNEL_FA void m28200_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, exodus_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -150,15 +128,11 @@ KERNEL_FQ void HC_ATTR_SEQ m28200_comp (KERN_ATTR_TMPS_ESALT (exodus_tmp_t, exod
 
   if (gid >= GID_CNT) return;
 
-  u32 x[SCRYPT_CNT4];
-
-  for (u32 i = 0; i < SCRYPT_CNT4; i++) x[i] = tmps[gid].P[i];
-
-  scrypt_blockmix_out (x, SCRYPT_SZ);
+  scrypt_blockmix_out (tmps[gid].out, tmps[gid].in, SCRYPT_SZ);
 
   u32 out[8];
 
-  scrypt_pbkdf2_gp (pws[gid].i, pws[gid].pw_len, x, SCRYPT_SZ, out, 32);
+  scrypt_pbkdf2_ggp (pws[gid].i, pws[gid].pw_len, tmps[gid].in, SCRYPT_SZ, out, 32);
 
   // GCM stuff
 

@@ -27,7 +27,7 @@ typedef struct oldoffice01
 
 } oldoffice01_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m09710_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09710_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -155,15 +155,15 @@ KERNEL_FQ void HC_ATTR_SEQ m09710_m04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m09710_m08 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09710_m08 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m09710_m16 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09710_m16 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m09710_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09710_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -303,10 +303,10 @@ KERNEL_FQ void HC_ATTR_SEQ m09710_s04 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m09710_s08 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09710_s08 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m09710_s16 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09710_s16 (KERN_ATTR_RULES_ESALT (oldoffice01_t))
 {
 }

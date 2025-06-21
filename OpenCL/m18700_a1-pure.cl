@@ -52,7 +52,7 @@ DECLSPEC u32 hashCode_g (const u32 init, GLOBAL_AS const u32 *w, const u32 pw_le
   return hash;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m18700_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m18700_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -91,7 +91,7 @@ KERNEL_FQ void HC_ATTR_SEQ m18700_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m18700_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m18700_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

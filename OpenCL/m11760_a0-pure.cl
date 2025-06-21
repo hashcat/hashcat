@@ -16,7 +16,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_streebog256.cl)
 #endif
 
-KERNEL_FQ void HC_ATTR_SEQ m11760_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m11760_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -100,7 +100,7 @@ KERNEL_FQ void HC_ATTR_SEQ m11760_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m11760_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m11760_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

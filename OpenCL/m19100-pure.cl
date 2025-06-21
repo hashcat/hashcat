@@ -23,7 +23,7 @@ typedef struct qnx_sha256_tmp
 
 } qnx_sha256_tmp_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 {
   /**
    * base
@@ -66,7 +66,7 @@ KERNEL_FQ void HC_ATTR_SEQ m19100_init (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
   tmps[gid].sha256_ctx = sha256_ctx;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 {
   /**
    * base
@@ -95,7 +95,7 @@ KERNEL_FQ void HC_ATTR_SEQ m19100_loop (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
   tmps[gid].sha256_ctx = sha256_ctx;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m19100_comp (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m19100_comp (KERN_ATTR_TMPS (qnx_sha256_tmp_t))
 {
   /**
    * modifier

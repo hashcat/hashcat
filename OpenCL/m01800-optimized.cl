@@ -171,7 +171,7 @@ DECLSPEC void orig_sha512_final (PRIVATE_AS orig_sha512_ctx_t *sha512_ctx)
   sha512_transform_transport (sha512_ctx->buf, sha512_ctx->state);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 {
   /**
    * base
@@ -300,7 +300,7 @@ KERNEL_FQ void HC_ATTR_SEQ m01800_init (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   tmps[gid].l_s_bytes[1] = sha512_ctx.state[1];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 {
   /**
    * base
@@ -477,7 +477,7 @@ KERNEL_FQ void HC_ATTR_SEQ m01800_loop (KERN_ATTR_TMPS (sha512crypt_tmp_t))
   tmps[gid].l_alt_result[7] = l_alt_result[7];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m01800_comp (KERN_ATTR_TMPS (sha512crypt_tmp_t))
 {
   /**
    * base

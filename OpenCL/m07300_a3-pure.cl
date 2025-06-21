@@ -21,7 +21,7 @@ typedef struct rakp
 
 } rakp_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m07300_mxx (KERN_ATTR_VECTOR_ESALT (rakp_t))
+KERNEL_FQ KERNEL_FA void m07300_mxx (KERN_ATTR_VECTOR_ESALT (rakp_t))
 {
   /**
    * modifier
@@ -76,7 +76,7 @@ KERNEL_FQ void HC_ATTR_SEQ m07300_mxx (KERN_ATTR_VECTOR_ESALT (rakp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07300_sxx (KERN_ATTR_VECTOR_ESALT (rakp_t))
+KERNEL_FQ KERNEL_FA void m07300_sxx (KERN_ATTR_VECTOR_ESALT (rakp_t))
 {
   /**
    * modifier

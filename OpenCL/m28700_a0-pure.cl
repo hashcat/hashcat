@@ -38,7 +38,7 @@ typedef struct aws4_sig_v4
 
 } aws4_sig_v4_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m28700_mxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
+KERNEL_FQ KERNEL_FA void m28700_mxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 {
   /**
    * modifier
@@ -264,7 +264,7 @@ KERNEL_FQ void HC_ATTR_SEQ m28700_mxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m28700_sxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
+KERNEL_FQ KERNEL_FA void m28700_sxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 {
   /**
    * modifier

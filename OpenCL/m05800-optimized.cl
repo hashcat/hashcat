@@ -315,7 +315,7 @@ DECLSPEC void append_salt (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u3
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
+KERNEL_FQ KERNEL_FA void m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * base
@@ -404,7 +404,7 @@ KERNEL_FQ void HC_ATTR_SEQ m05800_init (KERN_ATTR_TMPS (androidpin_tmp_t))
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
+KERNEL_FQ KERNEL_FA void m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * base
@@ -523,7 +523,7 @@ KERNEL_FQ void HC_ATTR_SEQ m05800_loop (KERN_ATTR_TMPS (androidpin_tmp_t))
   tmps[gid].digest_buf[4] = digest[4];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m05800_comp (KERN_ATTR_TMPS (androidpin_tmp_t))
+KERNEL_FQ KERNEL_FA void m05800_comp (KERN_ATTR_TMPS (androidpin_tmp_t))
 {
   /**
    * modifier

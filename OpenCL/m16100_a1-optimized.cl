@@ -25,7 +25,7 @@ typedef struct tacacs_plus
 
 } tacacs_plus_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m16100_m04 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ KERNEL_FA void m16100_m04 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
   /**
    * modifier
@@ -363,15 +363,15 @@ KERNEL_FQ void HC_ATTR_SEQ m16100_m04 (KERN_ATTR_ESALT (tacacs_plus_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m16100_m08 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ KERNEL_FA void m16100_m08 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m16100_m16 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ KERNEL_FA void m16100_m16 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m16100_s04 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ KERNEL_FA void m16100_s04 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
   /**
    * modifier
@@ -709,10 +709,10 @@ KERNEL_FQ void HC_ATTR_SEQ m16100_s04 (KERN_ATTR_ESALT (tacacs_plus_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m16100_s08 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ KERNEL_FA void m16100_s08 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m16100_s16 (KERN_ATTR_ESALT (tacacs_plus_t))
+KERNEL_FQ KERNEL_FA void m16100_s16 (KERN_ATTR_ESALT (tacacs_plus_t))
 {
 }

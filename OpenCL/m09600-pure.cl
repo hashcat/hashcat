@@ -31,7 +31,7 @@ typedef struct office2013
 
 } office2013_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m09600_init (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t))
+KERNEL_FQ KERNEL_FA void m09600_init (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t))
 {
   /**
    * base
@@ -61,7 +61,7 @@ KERNEL_FQ void HC_ATTR_SEQ m09600_init (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, 
   tmps[gid].out[7] = ctx.h[7];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m09600_loop (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t))
+KERNEL_FQ KERNEL_FA void m09600_loop (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -171,7 +171,7 @@ KERNEL_FQ void HC_ATTR_SEQ m09600_loop (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, 
   unpack64v (tmps, out, gid, 7, t7);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m09600_comp (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t))
+KERNEL_FQ KERNEL_FA void m09600_comp (KERN_ATTR_TMPS_ESALT (office2013_tmp_t, office2013_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

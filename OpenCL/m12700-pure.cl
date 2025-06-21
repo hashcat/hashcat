@@ -78,7 +78,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m12700_init (KERN_ATTR_TMPS (mywallet_tmp_t))
+KERNEL_FQ KERNEL_FA void m12700_init (KERN_ATTR_TMPS (mywallet_tmp_t))
 {
   /**
    * base
@@ -167,7 +167,7 @@ KERNEL_FQ void HC_ATTR_SEQ m12700_init (KERN_ATTR_TMPS (mywallet_tmp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m12700_loop (KERN_ATTR_TMPS (mywallet_tmp_t))
+KERNEL_FQ KERNEL_FA void m12700_loop (KERN_ATTR_TMPS (mywallet_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -252,7 +252,7 @@ KERNEL_FQ void HC_ATTR_SEQ m12700_loop (KERN_ATTR_TMPS (mywallet_tmp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
+KERNEL_FQ KERNEL_FA void m12700_comp (KERN_ATTR_TMPS (mywallet_tmp_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

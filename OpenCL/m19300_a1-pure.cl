@@ -24,7 +24,7 @@ typedef struct sha1_double_salt
 
 } sha1_double_salt_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m19300_mxx (KERN_ATTR_ESALT (sha1_double_salt_t))
+KERNEL_FQ KERNEL_FA void m19300_mxx (KERN_ATTR_ESALT (sha1_double_salt_t))
 {
   /**
    * modifier
@@ -79,7 +79,7 @@ KERNEL_FQ void HC_ATTR_SEQ m19300_mxx (KERN_ATTR_ESALT (sha1_double_salt_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m19300_sxx (KERN_ATTR_ESALT (sha1_double_salt_t))
+KERNEL_FQ KERNEL_FA void m19300_sxx (KERN_ATTR_ESALT (sha1_double_salt_t))
 {
   /**
    * modifier

@@ -159,7 +159,7 @@ DECLSPEC void hmac_sha512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVA
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15910_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
+KERNEL_FQ KERNEL_FA void m15910_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 {
   /**
    * base
@@ -281,7 +281,7 @@ KERNEL_FQ void HC_ATTR_SEQ m15910_init (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, 
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15910_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
+KERNEL_FQ KERNEL_FA void m15910_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -387,7 +387,7 @@ KERNEL_FQ void HC_ATTR_SEQ m15910_loop (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, 
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15910_init2 (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
+KERNEL_FQ KERNEL_FA void m15910_init2 (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 {
   /**
    * base
@@ -693,7 +693,7 @@ KERNEL_FQ void HC_ATTR_SEQ m15910_init2 (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t,
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15910_loop2 (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
+KERNEL_FQ KERNEL_FA void m15910_loop2 (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 {
   /**
    * base
@@ -823,7 +823,7 @@ KERNEL_FQ void HC_ATTR_SEQ m15910_loop2 (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t,
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m15910_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
+KERNEL_FQ KERNEL_FA void m15910_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v2_t, dpapimk_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

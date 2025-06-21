@@ -24,7 +24,7 @@ typedef struct sha256crypt_tmp
 
 } sha256crypt_tmp_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 {
   /**
    * base
@@ -261,7 +261,7 @@ KERNEL_FQ void HC_ATTR_SEQ m07400_init (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   for (int i = 0; i < 64; i++) tmps[gid].s_bytes[i] = s_final[i];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 {
   /**
    * base
@@ -345,7 +345,7 @@ KERNEL_FQ void HC_ATTR_SEQ m07400_loop (KERN_ATTR_TMPS (sha256crypt_tmp_t))
   tmps[gid].alt_result[7] = alt_result[7];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m07400_comp (KERN_ATTR_TMPS (sha256crypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m07400_comp (KERN_ATTR_TMPS (sha256crypt_tmp_t))
 {
   /**
    * base

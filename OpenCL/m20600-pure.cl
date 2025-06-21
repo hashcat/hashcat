@@ -25,7 +25,7 @@ typedef struct omt_sha256_tmp
 
 } omt_sha256_tmp_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m20600_init (KERN_ATTR_TMPS (omt_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m20600_init (KERN_ATTR_TMPS (omt_sha256_tmp_t))
 {
   /**
    * base
@@ -59,7 +59,7 @@ KERNEL_FQ void HC_ATTR_SEQ m20600_init (KERN_ATTR_TMPS (omt_sha256_tmp_t))
   tmps[gid].digest_buf[7] = sha256_ctx.h[7];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m20600_loop (KERN_ATTR_TMPS (omt_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m20600_loop (KERN_ATTR_TMPS (omt_sha256_tmp_t))
 {
   /**
    * base
@@ -135,7 +135,7 @@ KERNEL_FQ void HC_ATTR_SEQ m20600_loop (KERN_ATTR_TMPS (omt_sha256_tmp_t))
   unpackv (tmps, digest_buf, gid, 7, digest[7]);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m20600_comp (KERN_ATTR_TMPS (omt_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m20600_comp (KERN_ATTR_TMPS (omt_sha256_tmp_t))
 {
   /**
    * modifier

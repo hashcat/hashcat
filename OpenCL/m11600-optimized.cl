@@ -40,7 +40,7 @@ typedef struct
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
-KERNEL_FQ void HC_ATTR_SEQ m11600_init (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
+KERNEL_FQ KERNEL_FA void m11600_init (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
 {
   /**
    * base
@@ -62,7 +62,7 @@ KERNEL_FQ void HC_ATTR_SEQ m11600_init (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, s
   tmps[gid].len = 0;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
+KERNEL_FQ KERNEL_FA void m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -178,7 +178,7 @@ KERNEL_FQ void HC_ATTR_SEQ m11600_loop (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, s
   tmps[gid].h[7] = h[7];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m11600_hook23 (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
+KERNEL_FQ KERNEL_FA void m11600_hook23 (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -233,7 +233,7 @@ KERNEL_FQ void HC_ATTR_SEQ m11600_hook23 (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t,
   hooks[gid].ukey[7] = hc_swap32_S (h[7]);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m11600_comp (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
+KERNEL_FQ KERNEL_FA void m11600_comp (KERN_ATTR_TMPS_HOOKS (seven_zip_tmp_t, seven_zip_hook_t))
 {
   /**
    * base

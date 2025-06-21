@@ -181,7 +181,7 @@ DECLSPEC u64 crc64jones (PRIVATE_AS const u32 *w, const u32 pw_len, const u64 iv
   return a;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m28000_mxx (KERN_ATTR_VECTOR_ESALT (crc64_t))
+KERNEL_FQ KERNEL_FA void m28000_mxx (KERN_ATTR_VECTOR_ESALT (crc64_t))
 {
   /**
    * modifier
@@ -254,7 +254,7 @@ KERNEL_FQ void HC_ATTR_SEQ m28000_mxx (KERN_ATTR_VECTOR_ESALT (crc64_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m28000_sxx (KERN_ATTR_VECTOR_ESALT (crc64_t))
+KERNEL_FQ KERNEL_FA void m28000_sxx (KERN_ATTR_VECTOR_ESALT (crc64_t))
 {
   /**
    * modifier

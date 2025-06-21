@@ -145,7 +145,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m22000_init (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22000_init (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
 {
   /**
    * base
@@ -253,7 +253,7 @@ KERNEL_FQ void HC_ATTR_SEQ m22000_init (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, 
   tmps[gid].out[9] = sha1_hmac_ctx2.opad.h[4];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m22000_loop (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22000_loop (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -396,12 +396,12 @@ KERNEL_FQ void HC_ATTR_SEQ m22000_loop (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, 
   unpackv (tmps, out, gid, 9, out[4]);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m22000_comp (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22000_comp (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
 {
   // not in use here, special case...
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m22000_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22000_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -594,7 +594,7 @@ KERNEL_FQ void HC_ATTR_SEQ m22000_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, 
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m22000_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22000_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -777,7 +777,7 @@ KERNEL_FQ void HC_ATTR_SEQ m22000_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, 
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m22000_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22000_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
 {
   /**
    * aes shared
@@ -1071,7 +1071,7 @@ KERNEL_FQ void HC_ATTR_SEQ m22000_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, 
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m22000_aux4 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22000_aux4 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t))
 {
   const u64 gid = get_global_id (0);
 

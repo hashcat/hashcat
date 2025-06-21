@@ -298,7 +298,7 @@ DECLSPEC void sha512_final_qnxbug (PRIVATE_AS sha512_ctx_t *ctx, u32 sav)
   sha512_transform (ctx->w0, ctx->w1, ctx->w2, ctx->w3, ctx->w4, ctx->w5, ctx->w6, ctx->w7, ctx->h);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
+KERNEL_FQ KERNEL_FA void m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 {
   /**
    * base
@@ -342,7 +342,7 @@ KERNEL_FQ void HC_ATTR_SEQ m19200_init (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
   tmps[gid].sav = 0;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
+KERNEL_FQ KERNEL_FA void m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 {
   /**
    * base
@@ -373,7 +373,7 @@ KERNEL_FQ void HC_ATTR_SEQ m19200_loop (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
   tmps[gid].sav = sav;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
+KERNEL_FQ KERNEL_FA void m19200_comp (KERN_ATTR_TMPS (qnx_sha512_tmp_t))
 {
   /**
    * modifier

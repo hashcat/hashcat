@@ -22,7 +22,7 @@ typedef struct cryptoapi
 
 } cryptoapi_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m14542_mxx (KERN_ATTR_ESALT (cryptoapi_t))
+KERNEL_FQ KERNEL_FA void m14542_mxx (KERN_ATTR_ESALT (cryptoapi_t))
 {
   /**
    * modifier
@@ -174,7 +174,7 @@ KERNEL_FQ void HC_ATTR_SEQ m14542_mxx (KERN_ATTR_ESALT (cryptoapi_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m14542_sxx (KERN_ATTR_ESALT (cryptoapi_t))
+KERNEL_FQ KERNEL_FA void m14542_sxx (KERN_ATTR_ESALT (cryptoapi_t))
 {
   /**
    * modifier

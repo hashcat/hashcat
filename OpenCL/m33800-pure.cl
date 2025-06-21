@@ -433,7 +433,7 @@ DECLSPEC void expand_key (PRIVATE_AS u32 *E, PRIVATE_AS u32 *W, const int len)
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m33800_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m33800_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -655,7 +655,7 @@ KERNEL_FQ void HC_ATTR_SEQ m33800_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m33800_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m33800_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -858,7 +858,7 @@ KERNEL_FQ void HC_ATTR_SEQ m33800_loop (KERN_ATTR_TMPS (bcrypt_tmp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m33800_init2 (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m33800_init2 (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base
@@ -1153,7 +1153,7 @@ KERNEL_FQ void HC_ATTR_SEQ m33800_init2 (KERN_ATTR_TMPS (bcrypt_tmp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m33800_loop2 (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m33800_loop2 (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   // the second loop is the same as the first one, only different "password" in init2
 #if defined IS_CUDA || defined IS_HIP
@@ -1215,7 +1215,7 @@ KERNEL_FQ void HC_ATTR_SEQ m33800_loop2 (KERN_ATTR_TMPS (bcrypt_tmp_t))
 #endif
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m33800_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m33800_comp (KERN_ATTR_TMPS (bcrypt_tmp_t))
 {
   /**
    * base

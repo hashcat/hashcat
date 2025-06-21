@@ -480,7 +480,7 @@ DECLSPEC void _des_crypt_encrypt (PRIVATE_AS u32 *iv, u32 mask, PRIVATE_AS u32x 
   iv[1] = hc_rotl32 (l, 31);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m01500_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01500_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -643,7 +643,7 @@ KERNEL_FQ void HC_ATTR_SEQ m01500_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m01500_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01500_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

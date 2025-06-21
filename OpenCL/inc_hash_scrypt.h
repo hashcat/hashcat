@@ -23,6 +23,7 @@
 
 #define SALSA_SZ   64
 #define SALSA_CNT4 (SALSA_SZ / 4)
+#define SALSA_CNT44 ((SALSA_SZ / 4) / 4)
 
 #define VIDX(bid4,lsz,lid,ySIZE,zSIZE,y,z) (((bid4) * (lsz) * (ySIZE) * (zSIZE)) + ((lid) * (ySIZE) * (zSIZE)) + ((y) * (zSIZE)) + (z))
 
@@ -41,5 +42,16 @@ DECLSPEC uint4 operator ^ (const uint4 a, const uint4 b)
 }
 
 #endif
+
+typedef struct
+{
+  #ifndef SCRYPT_TMP_ELEM
+  #define SCRYPT_TMP_ELEM 1
+  #endif
+
+  u32 in[SCRYPT_TMP_ELEM / 2];
+  u32 out[SCRYPT_TMP_ELEM / 2];
+
+} scrypt_tmp_t;
 
 #endif

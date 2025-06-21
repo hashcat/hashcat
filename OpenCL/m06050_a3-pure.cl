@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_ripemd160.cl)
 #endif
 
-KERNEL_FQ void HC_ATTR_SEQ m06050_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m06050_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -78,7 +78,7 @@ KERNEL_FQ void HC_ATTR_SEQ m06050_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m06050_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m06050_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

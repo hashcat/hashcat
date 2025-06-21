@@ -70,7 +70,7 @@ DECLSPEC u32x hashCode_w0 (const u32x init, const u32x w0, PRIVATE_AS const u32 
   return hash;
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m18700_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m18700_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -117,7 +117,7 @@ KERNEL_FQ void HC_ATTR_SEQ m18700_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m18700_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m18700_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

@@ -40,7 +40,7 @@ DECLSPEC u32 hex_u32_to_u32 (PRIVATE_AS const u32 hex0, PRIVATE_AS const u32 hex
   return (v);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m30901_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m30901_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -187,7 +187,7 @@ KERNEL_FQ void HC_ATTR_SEQ m30901_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m30901_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m30901_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

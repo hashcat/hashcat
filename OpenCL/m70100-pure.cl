@@ -26,7 +26,7 @@ typedef struct
 
 } scrypt_tmp_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m70100_init (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m70100_init (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base
@@ -101,11 +101,11 @@ KERNEL_FQ void HC_ATTR_SEQ m70100_init (KERN_ATTR_TMPS (scrypt_tmp_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m70100_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m70100_loop (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m70100_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
+KERNEL_FQ KERNEL_FA void m70100_comp (KERN_ATTR_TMPS (scrypt_tmp_t))
 {
   /**
    * base

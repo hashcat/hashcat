@@ -26,7 +26,7 @@
 #define uint_to_hex_lower8_le(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
 #endif
 
-KERNEL_FQ void HC_ATTR_SEQ m04510_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m04510_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -1079,15 +1079,15 @@ KERNEL_FQ void HC_ATTR_SEQ m04510_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m04510_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m04510_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m04510_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m04510_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m04510_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m04510_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -2157,10 +2157,10 @@ KERNEL_FQ void HC_ATTR_SEQ m04510_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m04510_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m04510_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m04510_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m04510_s16 (KERN_ATTR_BASIC ())
 {
 }

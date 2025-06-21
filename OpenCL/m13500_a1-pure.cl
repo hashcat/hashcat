@@ -24,7 +24,7 @@ typedef struct pstoken
 
 } pstoken_t;
 
-KERNEL_FQ void HC_ATTR_SEQ m13500_mxx (KERN_ATTR_ESALT (pstoken_t))
+KERNEL_FQ KERNEL_FA void m13500_mxx (KERN_ATTR_ESALT (pstoken_t))
 {
   /**
    * modifier
@@ -95,7 +95,7 @@ KERNEL_FQ void HC_ATTR_SEQ m13500_mxx (KERN_ATTR_ESALT (pstoken_t))
   }
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m13500_sxx (KERN_ATTR_ESALT (pstoken_t))
+KERNEL_FQ KERNEL_FA void m13500_sxx (KERN_ATTR_ESALT (pstoken_t))
 {
   /**
    * modifier

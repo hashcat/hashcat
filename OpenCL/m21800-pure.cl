@@ -96,7 +96,7 @@ DECLSPEC void hmac_sha512_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVA
   sha512_transform_vector (w0, w1, w2, w3, w4, w5, w6, w7, digest);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m21800_init (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
+KERNEL_FQ KERNEL_FA void m21800_init (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 {
   /**
    * base
@@ -193,7 +193,7 @@ KERNEL_FQ void HC_ATTR_SEQ m21800_init (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, el
   tmps[gid].out[7] = tmps[gid].dgst[7];
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m21800_loop (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
+KERNEL_FQ KERNEL_FA void m21800_loop (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -316,7 +316,7 @@ KERNEL_FQ void HC_ATTR_SEQ m21800_loop (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, el
   unpack64v (tmps, out, gid, 7, out[7]);
 }
 
-KERNEL_FQ void HC_ATTR_SEQ m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
+KERNEL_FQ KERNEL_FA void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, electrum_t))
 {
   const u64 gid = get_global_id  (0);
   const u64 lid = get_local_id   (0);
