@@ -5168,6 +5168,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (9.0 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
+    hcfree (backend_ctx->devices_param);
+
     return -1;
   }
 
