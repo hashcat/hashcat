@@ -47,16 +47,16 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_try, true, 0);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_try, true, 0, true);
     }
     else
     {
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 0, kernel_power_try, true, 0);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 0, kernel_power_try, true, 0, true);
     }
   }
   else
   {
-    run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, kernel_power_try, true, 0);
+    run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, kernel_power_try, true, 0, true);
   }
 
   device_param->spin_damp = spin_damp_sav;
@@ -142,28 +142,21 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   // this thread limiting is also performed inside run_kernel() so we need to redo it here, too
 
   u32 kernel_wgs = 0;
-  u32 kernel_wgs_multiple = 0;
 
   if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       kernel_wgs = device_param->kernel_wgs1;
-
-      kernel_wgs_multiple = device_param->kernel_preferred_wgs_multiple1;
     }
     else
     {
       kernel_wgs = device_param->kernel_wgs4;
-
-      kernel_wgs_multiple = device_param->kernel_preferred_wgs_multiple4;
     }
   }
   else
   {
     kernel_wgs = device_param->kernel_wgs2;
-
-    kernel_wgs_multiple = device_param->kernel_preferred_wgs_multiple2;
   }
 
   u32 kernel_threads = kernel_threads_max;
@@ -298,21 +291,19 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       device_param->kernel_threads = device_param->kernel_wgs1;
 
-      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_max, false, 0);
+      run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, kernel_power_max, false, 0, true);
 
       if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
       {
         device_param->kernel_threads = device_param->kernel_wgs2p;
 
-        run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, 0, kernel_power_max, false, 0);
+        run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, 0, kernel_power_max, false, 0, true);
       }
 
       device_param->kernel_threads = kernel_threads_sav;
     }
 
     // Do a pre-autotune test run to find out if kernel runtime is above some TDR limit
-
-    u32 kernel_loops_max_reduced = kernel_loops_max;
 
     if (true)
     {
@@ -326,144 +317,37 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         return -1;
       }
-
-      exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min, kernel_threads);
-
-      const u32 mm = kernel_loops_max / kernel_loops_min;
-
-      if ((exec_msec * mm) > target_msec)
-      {
-        const u32 loops_valid = (const u32) (target_msec / exec_msec);
-
-        kernel_loops_max_reduced = kernel_loops_min * loops_valid;
-      }
     }
 
-    // first find out highest kernel-loops that stays below target_msec
+    // v7 autotuner is a lot more straight forward
 
-    if (kernel_loops_min < kernel_loops_max)
+    for (u32 kernel_loops_test = kernel_loops_min; kernel_loops_test <= kernel_loops_max; kernel_loops_test <<= 1)
     {
-      for (kernel_loops = kernel_loops_max; kernel_loops > kernel_loops_min; kernel_loops >>= 1)
-      {
-        if (kernel_loops > kernel_loops_max_reduced) continue;
+      double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_test, kernel_threads);
 
-        double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_min, kernel_loops, kernel_threads, 1);
+      if (exec_msec > target_msec) break;
 
-        if (exec_msec < target_msec) break;
-      }
+      kernel_loops = kernel_loops_test;
     }
 
-    #define STEPS_CNT 16
+    #define STEPS_CNT 12
 
-    // now the same for kernel-accel but with the new kernel-loops from previous loop set
+    // now we tune for kernel-accel but with the new kernel-loops from previous loop set
 
     if (kernel_accel_min < kernel_accel_max)
     {
       for (int i = 0; i < STEPS_CNT; i++)
       {
-        const u32 kernel_accel_try = 1U << i;
+        const u32 kernel_accel_try = kernel_accel * 2;
 
         if (kernel_accel_try < kernel_accel_min) continue;
         if (kernel_accel_try > kernel_accel_max) break;
 
-        double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_try, kernel_loops, kernel_threads, 1);
+        double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_try, kernel_loops, kernel_threads, 3);
 
         if (exec_msec > target_msec) break;
 
         kernel_accel = kernel_accel_try;
-      }
-    }
-
-    // now find the middle balance between kernel_accel and kernel_loops
-    // while respecting allowed ranges at the same time
-
-    if (kernel_accel < kernel_loops)
-    {
-      const u32 kernel_accel_orig = kernel_accel;
-      const u32 kernel_loops_orig = kernel_loops;
-
-      double exec_msec_prev = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 1);
-
-      for (int i = 1; i < STEPS_CNT; i++)
-      {
-        const u32 kernel_accel_try = kernel_accel_orig * (1U << i);
-        const u32 kernel_loops_try = kernel_loops_orig / (1U << i);
-
-        if (kernel_accel_try < kernel_accel_min) continue;
-        if (kernel_accel_try > kernel_accel_max) break;
-
-        if (kernel_loops_try > kernel_loops_max) continue;
-        if (kernel_loops_try < kernel_loops_min) break;
-
-        // do a real test
-
-        const double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_try, kernel_loops_try, kernel_threads, 1);
-
-        if (exec_msec_prev < exec_msec) break;
-
-        exec_msec_prev = exec_msec;
-
-        // so far, so good! save
-
-        kernel_accel = kernel_accel_try;
-        kernel_loops = kernel_loops_try;
-
-        // too much if the next test is true
-
-        if (kernel_loops_try < kernel_accel_try) break;
-      }
-    }
-
-    double exec_msec_pre_final = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 1);
-
-    const u32 exec_left = (const u32) (target_msec / exec_msec_pre_final);
-
-    const u32 accel_left = kernel_accel_max / kernel_accel;
-
-    const u32 exec_accel_min = MIN (exec_left, accel_left); // we want that to be int
-
-    if (exec_accel_min >= 1)
-    {
-      // this is safe to not overflow kernel_accel_max because of accel_left
-
-      kernel_accel *= exec_accel_min;
-    }
-
-    // v6.2.4 new section: find thread count
-    // This is not as effective as it could be because of inaccurate kernel return timers
-    // But is better than fixed values
-    // Timers in this section are critical, so we rerun measurements 3 times
-
-    if (kernel_threads_max > kernel_threads_min)
-    {
-      const u32 kernel_accel_orig   = kernel_accel;
-      const u32 kernel_threads_orig = kernel_threads;
-
-      double exec_msec_prev = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 3);
-
-      for (int i = 1; i < STEPS_CNT; i++)
-      {
-        const u32 kernel_accel_try   = kernel_accel_orig   * (1U << i);
-        const u32 kernel_threads_try = kernel_threads_orig / (1U << i);
-
-        // since we do not modify total amount of workitems, we can (and need) to do increase kernel_accel_max
-
-        const u32 kernel_accel_max_try = kernel_accel_max * (1U << i);
-
-        if (kernel_accel_try > kernel_accel_max_try) break;
-
-        if (kernel_threads_try < kernel_threads_min) break;
-
-        if (kernel_threads_try % kernel_wgs_multiple) break; // this would just be waste of time
-
-        double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_try, kernel_loops, kernel_threads_try, 3);
-
-        if (exec_msec > exec_msec_prev) continue;
-
-        exec_msec_prev = exec_msec;
-
-        kernel_accel   = kernel_accel_try;
-        kernel_threads = kernel_threads_try;
       }
     }
   }

@@ -1042,7 +1042,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->kernel_loops > 1024)
+    if (user_options->kernel_loops > KERNEL_LOOPS_MAX)
     {
       event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
 

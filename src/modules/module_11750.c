@@ -23,8 +23,7 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_USES_BITS_64;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_PT_ADD01
-                                  | OPTS_TYPE_MAXIMUM_THREADS;
+                                  | OPTS_TYPE_PT_ADD01;
 static const u32   SALT_TYPE      = SALT_TYPE_GENERIC;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "0f71c7c82700c9094ca95eee3d804cc283b538bec49428a9ef8da7b34effb3ba:08151337";
