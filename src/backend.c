@@ -8636,6 +8636,11 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
       hcfree (device_param->opencl_device_c_version);
       hcfree (device_param->opencl_device_vendor);
     }
+
+    if (device_param->is_hip == true)
+    {
+      hcfree (device_param->gcnArchName);
+    }
   }
 
   backend_ctx->backend_devices_cnt    = 0;
