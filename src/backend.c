@@ -2660,12 +2660,15 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     const size_t global_work_size[3] = { num_elements,   1, 1 };
     const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
+    double ms = 0;
+
     if (is_autotune == true)
     {
       hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms);
-    }
 
-    double ms = 0;
+      // hc_mtlEncodeComputeCommand_pre() must be called before every hc_mtlEncodeComputeCommand()
+      if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+    }
 
     const int rc_cc = hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms);
 
