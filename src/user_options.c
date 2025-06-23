@@ -324,6 +324,11 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (user_options->rp_files);
 
+  if (user_options->backend_info > 0)
+  {
+    hcfree (user_options->opencl_device_types);
+  }
+
   //do not reset this, it might be used from main.c
   //memset (user_options, 0, sizeof (user_options_t));
 }

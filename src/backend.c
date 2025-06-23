@@ -5168,6 +5168,8 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "  \"CUDA Toolkit\" (9.0 or later)");
     event_log_warning (hashcat_ctx, NULL);
 
+    hcfree (backend_ctx->devices_param);
+
     return -1;
   }
 
@@ -8635,6 +8637,11 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
       hcfree (device_param->opencl_device_version);
       hcfree (device_param->opencl_device_c_version);
       hcfree (device_param->opencl_device_vendor);
+    }
+
+    if (device_param->is_hip == true)
+    {
+      hcfree (device_param->gcnArchName);
     }
   }
 
