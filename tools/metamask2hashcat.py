@@ -59,10 +59,17 @@ def metamask_parser(file, shortdata):
         #  The use of smaller buffers should speedup the attack.
         #  Still the pbkdf 10k iter will be taking the most time by far probably.
         j['data'] = base64.b64encode(data_bin[0:64]).decode("ascii")
-
-        print('$metamask-short$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
+        if "keyMetadata" in j.keys() and "params" in j["keyMetadata"] and "iterations" in j["keyMetadata"]["params"]:
+          kdf_iter = int(j["keyMetadata"]["params"]["iterations"])
+          print('$metamask-short-iter$' + j['salt'] + '$' + str(kdf_iter) + "$" + j['iv'] + '$' + j['data'])
+        else:
+          print('$metamask-short$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
       else:
-        print('$metamask$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
+        if "keyMetadata" in j.keys() and "params" in j["keyMetadata"] and "iterations" in j["keyMetadata"]["params"]:
+          kdf_iter = int(j["keyMetadata"]["params"]["iterations"])
+          print('$metamask-iter$' + j['salt'] + '$' + str(kdf_iter) + "$" + j['iv'] + '$' + j['data'])
+        else:
+          print('$metamask$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
 
     else:
 
