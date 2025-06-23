@@ -15769,6 +15769,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       const u64 kernel_power_max = hardware_power_max * kernel_accel_max;
 
+      // size_spilling: we cannot query this directly.
+      // Example output:
+      //   ptxas         .     4096 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+      // However, this is very relevant for us. In theory, these numbers could reach gigabytes,
+      // but in practice, excessive spilling would make the kernel too slow,
+      // and the kernel developer would adapt accordingly. We'll assume a maximum spilling buffer
+      // size of 4 KiB per thread for now.
+      // This setting will reduce the available memory pool on a 4090:
+      //   4 * 1024 * 128 * 32 = 16 MiB per -n accel,
+      // which adds up to 2 GiB with -n 128.
+
+      size_t size_spilling = kernel_power_max * (4 * 1024);
+
       // size_pws
 
       size_pws = kernel_power_max * sizeof (pw_t);
@@ -15904,7 +15917,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_st_digests
         + size_st_salts
         + size_st_esalts
-        + size_kernel_params;
+        + size_kernel_params
+        + size_spilling;
 
       if ((size_total + EXTRA_SPACE) > device_param->device_available_mem) memory_limit_hit = 1;
 

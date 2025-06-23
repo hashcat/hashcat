@@ -183,11 +183,13 @@ using namespace metal;
 #ifdef IS_CUDA
 #define USE_BITSELECT
 #define USE_ROTATE
+#define USE_FUNNELSHIFT
 #endif
 
 #ifdef IS_HIP
 #define USE_BITSELECT
 #define USE_ROTATE
+#define USE_FUNNELSHIFT
 #endif
 
 #ifdef IS_ROCM
@@ -216,6 +218,11 @@ using namespace metal;
 #define s1 y
 #define s2 z
 #define s3 w
+#endif
+
+// some algorithms do not like this, eg 150, 1100, ...
+#ifdef NO_FUNNELSHIFT
+#undef USE_FUNNELSHIFT
 #endif
 
 #endif // INC_VENDOR_H

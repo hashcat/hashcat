@@ -548,7 +548,7 @@ sub get_module
 
   close (IN);
 
-  my $mask = (defined $benchmark_mask) ? $benchmark_mask : $default_mask;
+  my $mask = $default_mask;
 
   if ($pw_min != -1)
   {
@@ -570,6 +570,8 @@ sub get_module
       $mask = substr ($mask, 0, $pw_min * 2);
     }
   }
+
+  $mask = (defined $benchmark_mask) ? $benchmark_mask : $mask;
 
   my $module =
   {
