@@ -6,12 +6,12 @@ The following section is for plugin and bridge developers. It contains low-level
 
 ## Update existing plugins
 
-In case you have written a hashcat plugin, you need to update the init function and add the following two lines:
+In case you have written a Hashcat plugin, you need to update the init function and add the following two lines:
 
 +  module_ctx->module_bridge_name = MODULE_DEFAULT;
 +  module_ctx->module_bridge_type = MODULE_DEFAULT;
 
-Existing modules on hashcat repository will be automatically updated.
+Existing modules on Hashcat repository will be automatically updated.
 
 ## Plugin Integration and Bridge Registration
 
@@ -35,7 +35,7 @@ Hashcat loads the bridge dynamically and uses it for any declared invocation.
 
 Note that bridges only load for outside kernel, aka "slow hash" kernels. In "fast hash" kernels, such as MD5, they are ignored. In case you want to implement a "fast hash" + bridge hybrid, you can move the "fast hash" code into a new "slow hash" kernel.
 
-Here's a high-level view on how hashcat executes several key points during a password batch:
+Here's a high-level view on how Hashcat executes several key points during a password batch:
 
 ```
 ATTACK_EXEC_OUTSIDE_KERNEL:
@@ -50,7 +50,7 @@ ATTACK_EXEC_OUTSIDE_KERNEL:
     RUN_PREPARE
     ITER_REPEATS:
       RUN_LOOP
-      RUN_EXTENTED
+      RUN_EXTENDED
     COPY_BRIDGE_MATERIAL_TO_HOST
     BRIDGE_LAUNCH_LOOP
     COPY_BRIDGE_MATERIAL_TO_DEVICE
@@ -110,7 +110,7 @@ From the bridge_init() function you have access to the following generic paramet
 
 ## Virtual Backend Devices
 
-This feature is available also outside of bridges, eg in order to increase some workload on a compute device, but it was added in the first place to support bridges. The main problem is that it's possible that a bridge return 2 bridge units which may have different speeds (clocking), or an ideal batch size. The time it takes to compute a certain batch of passwords would be different, so there was a need for an asynchronous execution strategy. Hashcat supports mixed speed device types, but that typically mean "backend" devices. To solve the issue, we partition (virtualize) one physical backend device into multiple virtual backend devices (done internally by hashcat), and "link" each of the virtual backend device to a bridge unit. Due to this binding we can support bridge units of different speed. There's two flags a user can control in regard to virtual device backend:
+This feature is available also outside of bridges, eg in order to increase some workload on a compute device, but it was added in the first place to support bridges. The main problem is that it's possible that a bridge return 2 bridge units which may have different speeds (clocking), or an ideal batch size. The time it takes to compute a certain batch of passwords would be different, so there was a need for an asynchronous execution strategy. Hashcat supports mixed speed device types, but that typically mean "backend" devices. To solve the issue, we partition (virtualize) one physical backend device into multiple virtual backend devices (done internally by Hashcat), and "link" each of the virtual backend device to a bridge unit. Due to this binding we can support bridge units of different speed. There's two flags a user can control in regard to virtual device backend:
 
 * Use `-Y` to define how many virtual backend devices to create.
 * Use `-R` to bind these virtual devices to a physical backend host (new in v7).
@@ -130,7 +130,7 @@ src/bridges/bridge_scrypt_jane.mk
 
 The target output should be named like this: `bridges/bridge_scrypt_jane.so` and `bridges/bridge_scrypt_jane.dll`. Use any of the existing `.mk` files as template.
 
-When hashcat starts, it finds the plugin using this pathfinder:
+When Hashcat starts, it finds the plugin using this pathfinder:
 
 ```
   #if defined (_WIN) || defined (__CYGWIN__)
