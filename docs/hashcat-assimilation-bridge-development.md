@@ -6,12 +6,12 @@ The following section is for plugin and bridge developers. It contains low-level
 
 ## Update existing plugins
 
-In case you have written a Hashcat plugin, you need to update the init function and add the following two lines:
+In case you have written a hashcat plugin, you need to update the init function and add the following two lines:
 
 +  module_ctx->module_bridge_name = MODULE_DEFAULT;
 +  module_ctx->module_bridge_type = MODULE_DEFAULT;
 
-Existing modules on Hashcat repository will be automatically updated.
+Existing modules on hashcat repository will be automatically updated.
 
 ## Plugin Integration and Bridge Registration
 
@@ -23,7 +23,7 @@ static const u64   BRIDGE_TYPE = BRIDGE_TYPE_MATCH_TUNINGS
 static const char *BRIDGE_NAME = "scrypt_jane";
 ```
 
-* `BRIDGE_NAME` tells Hashcat which bridge to load (e.g., `bridge_scrypt_jane.so`).
+* `BRIDGE_NAME` tells hashcat which bridge to load (e.g., `bridge_scrypt_jane.so`).
 * `BRIDGE_TYPE` indicates which backend kernel functions the bridge will override:
 
   * `BRIDGE_TYPE_LAUNCH_LOOP`:   Entry point for all bridges that register to run after `RUN_LOOP`
@@ -31,11 +31,11 @@ static const char *BRIDGE_NAME = "scrypt_jane";
   * `BRIDGE_TYPE_REPLACE_LOOP`:  Same as BRIDGE_TYPE_LAUNCH_LOOP, but deactivates `RUN_LOOP`
   * `BRIDGE_TYPE_REPLACE_LOOP2`: Same as BRIDGE_TYPE_LAUNCH_LOOP2, but deactivates `RUN_LOOP2`
 
-Hashcat loads the bridge dynamically and uses it for any declared invocation.
+hashcat loads the bridge dynamically and uses it for any declared invocation.
 
 Note that bridges only load for outside kernel, aka "slow hash" kernels. In "fast hash" kernels, such as MD5, they are ignored. In case you want to implement a "fast hash" + bridge hybrid, you can move the "fast hash" code into a new "slow hash" kernel.
 
-Here's a high-level view on how Hashcat executes several key points during a password batch:
+Here's a high-level view on how hashcat executes several key points during a password batch:
 
 ```
 ATTACK_EXEC_OUTSIDE_KERNEL:
@@ -75,16 +75,16 @@ ATTACK_EXEC_OUTSIDE_KERNEL:
 - COPY_* refers to host-to-device or device-to-host copies and typically involve PCIe data transfer.
 - CALL_* are code functions executed on the host CPU. They are plugin-specific and defined in a module. They were the predecessor of bridges but are still usable.
 - SALT_* typically are optional steps which allow certain algorithms specific optimizations. For instance in Scrypt with P > 1, the V and XY buffer can be reused and allow temporary storage of result values into B. This saves memory requirement, improving parallelization
-- ITER_* is the main loop that chunks what typically is defined as "iterations" in a algorithm computation. For instance a PBKDF2 function is called with 10,000 iterations, which would take a while to compute. The time this takes could be longer than a GPU drivers watchdog allows (before it resets the compute engine.). Hashcat will divide the 10,000 into chunks of let's say 1,000 and call the same kernel 10 times
+- ITER_* is the main loop that chunks what typically is defined as "iterations" in a algorithm computation. For instance a PBKDF2 function is called with 10,000 iterations, which would take a while to compute. The time this takes could be longer than a GPU drivers watchdog allows (before it resets the compute engine.). hashcat will divide the 10,000 into chunks of let's say 1,000 and call the same kernel 10 times
 - BRIDGE_* existing bridge entry points. During the "lifetime" of a hash computation the tmps[] variable is used (algorithm specific, so defined in the specific plugin module and kernel). This variable is which we refer to as bridge material, but it's possible we add other types of variables to "material" in the future
 - ITER2/LOOP2: Optional entry points in case the algorithm consists of two types of long running (high iterated) sub-components. For instance one iteration of 10k loops sha256 followed by 100k loops of sha512, or bcrypt followed by scrypt
 
   * `BRIDGE_TYPE_LAUNCH_INIT`
   * `BRIDGE_TYPE_LAUNCH_COMP`
 
-Hashcat devs will add support on request.
+hashcat devs will add support on request.
 
-As mentioned in the BRIDGE_* entry points, it's the developer's responsibility to ensure compatibility. That typically means the handling of the `tmps` variable relevant in the `kernel_loop` and how it changes over algorithm computations lifetime. Hashcat will take care of copying the data from and to the compute backend buffers (bridge material).
+As mentioned in the BRIDGE_* entry points, it's the developer's responsibility to ensure compatibility. That typically means the handling of the `tmps` variable relevant in the `kernel_loop` and how it changes over algorithm computations lifetime. hashcat will take care of copying the data from and to the compute backend buffers (bridge material).
 
 But the bridge developer must ensure data transformation compatibility. For instance, if we replace the loop section in SCRYPT (8900), the long running part is the smix() activity. But SCRYPT implements the PBKDF2 handling in both init and comp kernels, preparing the values in B[] after the init kernel, and expecting modified values in B[] before running comp kernel. If you want to replace the smix() section with let's say FPGA code, the bridge needs to understand the structure of the tmps[] variable. In this case tmps[] just reflect SCRYPT B[], making this simple, but other algorithms may require more than just one large buffer array. That means the structure itself (datatypes), but also the amount of workitems, because there's almost always more than one workitem (to reduce overhead times).
 
@@ -95,7 +95,7 @@ There's some more BRIDGE PARAMETERs that you should know:
 
 ## How Bridges Work
 
-When Hashcat starts with a plugin that specifies a bridge, it loads the bridge and invokes its initialization function. The bridge must then discover its internal compute units, called *bridge units*. Handling the units must be implemented by the bridge developer, and typically involves loading some library, init it, and retrieve some resources available, for instances loading XRT, asking how many FPGA are available. If there's two FPGA, then the bridge unit count would be two. You also need to provide some detailed information on the unit itself, for instance the name of the device, or version or your software solution if it's not a hardware.
+When hashcat starts with a plugin that specifies a bridge, it loads the bridge and invokes its initialization function. The bridge must then discover its internal compute units, called *bridge units*. Handling the units must be implemented by the bridge developer, and typically involves loading some library, init it, and retrieve some resources available, for instances loading XRT, asking how many FPGA are available. If there's two FPGA, then the bridge unit count would be two. You also need to provide some detailed information on the unit itself, for instance the name of the device, or version or your software solution if it's not a hardware.
 
 Each of these bridge unit maps to one virtual backend device, which allows asynchronous and independent parallel execution, and this were virtual backend devices become relevant. Read section about virtual backend devices for a better understanding
 
@@ -110,7 +110,7 @@ From the bridge_init() function you have access to the following generic paramet
 
 ## Virtual Backend Devices
 
-This feature is available also outside of bridges, eg in order to increase some workload on a compute device, but it was added in the first place to support bridges. The main problem is that it's possible that a bridge return 2 bridge units which may have different speeds (clocking), or an ideal batch size. The time it takes to compute a certain batch of passwords would be different, so there was a need for an asynchronous execution strategy. Hashcat supports mixed speed device types, but that typically mean "backend" devices. To solve the issue, we partition (virtualize) one physical backend device into multiple virtual backend devices (done internally by Hashcat), and "link" each of the virtual backend device to a bridge unit. Due to this binding we can support bridge units of different speed. There's two flags a user can control in regard to virtual device backend:
+This feature is available also outside of bridges, eg in order to increase some workload on a compute device, but it was added in the first place to support bridges. The main problem is that it's possible that a bridge return 2 bridge units which may have different speeds (clocking), or an ideal batch size. The time it takes to compute a certain batch of passwords would be different, so there was a need for an asynchronous execution strategy. hashcat supports mixed speed device types, but that typically mean "backend" devices. To solve the issue, we partition (virtualize) one physical backend device into multiple virtual backend devices (done internally by hashcat), and "link" each of the virtual backend device to a bridge unit. Due to this binding we can support bridge units of different speed. There's two flags a user can control in regard to virtual device backend:
 
 * Use `-Y` to define how many virtual backend devices to create.
 * Use `-R` to bind these virtual devices to a physical backend host (new in v7).
@@ -130,7 +130,7 @@ src/bridges/bridge_scrypt_jane.mk
 
 The target output should be named like this: `bridges/bridge_scrypt_jane.so` and `bridges/bridge_scrypt_jane.dll`. Use any of the existing `.mk` files as template.
 
-When Hashcat starts, it finds the plugin using this pathfinder:
+When hashcat starts, it finds the plugin using this pathfinder:
 
 ```
   #if defined (_WIN) || defined (__CYGWIN__)
