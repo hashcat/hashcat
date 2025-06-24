@@ -21,6 +21,7 @@
 #endif
 
 #if defined (_WIN)
+#include <windows.h>
 #include <winsock2.h>
 #endif
 
