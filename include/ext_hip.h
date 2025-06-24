@@ -15,16 +15,16 @@
 typedef void* hipDeviceptr_t;
 
 typedef enum hipFunction_attribute {
-    HIP_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK,
-    HIP_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,
-    HIP_FUNC_ATTRIBUTE_CONST_SIZE_BYTES,
-    HIP_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES,
-    HIP_FUNC_ATTRIBUTE_NUM_REGS,
-    HIP_FUNC_ATTRIBUTE_PTX_VERSION,
-    HIP_FUNC_ATTRIBUTE_BINARY_VERSION,
-    HIP_FUNC_ATTRIBUTE_CACHE_MODE_CA,
-    HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES,
-    HIP_FUNC_ATTRIBUTE_PREFERRED_SHARED_MEMORY_CARVEOUT,
+    HIP_FUNC_ATTRIBUTE_MAX_THREADS_PER_BLOCK,            ///< The maximum number of threads per block. Depends on function and device.
+    HIP_FUNC_ATTRIBUTE_SHARED_SIZE_BYTES,                ///< The statically allocated shared memory size in bytes per block required by the function.
+    HIP_FUNC_ATTRIBUTE_CONST_SIZE_BYTES,                 ///< The user-allocated constant memory by the function in bytes.
+    HIP_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES,                 ///< The local memory usage of each thread by this function in bytes.
+    HIP_FUNC_ATTRIBUTE_NUM_REGS,                         ///< The number of registers used by each thread of this function.
+    HIP_FUNC_ATTRIBUTE_PTX_VERSION,                      ///< PTX version
+    HIP_FUNC_ATTRIBUTE_BINARY_VERSION,                   ///< Binary version
+    HIP_FUNC_ATTRIBUTE_CACHE_MODE_CA,                    ///< Cache mode
+    HIP_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES,    ///< The maximum dynamic shared memory per block for this function in bytes.
+    HIP_FUNC_ATTRIBUTE_PREFERRED_SHARED_MEMORY_CARVEOUT, ///< The shared memory carveout preference in percent of the maximum shared memory.
     HIP_FUNC_ATTRIBUTE_MAX
 } hipFunction_attribute;
 
@@ -602,6 +602,7 @@ typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMCREATE)           (hipStream_t *,
 typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMDESTROY)          (hipStream_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMSYNCHRONIZE)      (hipStream_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPGETDEVICEPROPERTIES)    (hipDeviceProp_t *, hipDevice_t);
+typedef hipError_t (HIP_API_CALL *HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR)    (int *, hipFunction_t, int, size_t);
 
 typedef struct hc_hip_lib
 {
@@ -646,6 +647,7 @@ typedef struct hc_hip_lib
   HIP_HIPSTREAMDESTROY          hipStreamDestroy;
   HIP_HIPSTREAMSYNCHRONIZE      hipStreamSynchronize;
   HIP_HIPGETDEVICEPROPERTIES    hipGetDeviceProperties;
+  HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR 	hipModuleOccupancyMaxActiveBlocksPerMultiprocessor;
 
 } hc_hip_lib_t;
 
@@ -692,5 +694,6 @@ int hc_hipStreamCreate         (void *hashcat_ctx, hipStream_t *phStream, unsign
 int hc_hipStreamDestroy        (void *hashcat_ctx, hipStream_t hStream);
 int hc_hipStreamSynchronize    (void *hashcat_ctx, hipStream_t hStream);
 int hc_hipGetDeviceProperties  (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevice_t dev);
+int hc_hipModuleOccupancyMaxActiveBlocksPerMultiprocessor (void *hashcat_ctx, int *numBlocks, hipFunction_t f, int blockSize, size_t dynSharedMemPerBlk);
 
 #endif // HC_EXT_HIP_H

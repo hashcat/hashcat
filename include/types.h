@@ -1236,6 +1236,8 @@ typedef struct hc_device_param
   int     sm_major;
   int     sm_minor;
   char   *gcnArchName;
+  int     regsPerBlock;
+  int     regsPerMultiprocessor;
   u32     kernel_exec_timeout;
 
   u32     kernel_preferred_wgs_multiple;

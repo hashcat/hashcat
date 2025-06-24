@@ -101,7 +101,9 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     }
     else
     {
-      native_threads = device_param->kernel_preferred_wgs_multiple;
+      const u32 possible = MIN (device_param->device_local_mem_size / 256, 32768 / 256);
+
+      native_threads = possible - (possible % device_param->kernel_preferred_wgs_multiple);
     }
 
     #endif

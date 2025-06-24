@@ -24,7 +24,6 @@ static const char *HASH_NAME         = "Bitcoin raw private key (P2PKH), compres
 static const u64   KERN_TYPE         = 30901;
 static const u32   OPTI_TYPE         = OPTI_TYPE_NOT_SALTED;
 static const u64   OPTS_TYPE         = OPTS_TYPE_STOCK_MODULE
-                                     | OPTS_TYPE_NATIVE_THREADS
                                      | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE         = SALT_TYPE_NONE;
 static const char *ST_PASS           = "59887ec9920239bd45b6a9f82b7c4e024f80beaf887e5ee6aac5de0a899d3068";

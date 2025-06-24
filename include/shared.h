@@ -120,4 +120,6 @@ bool remove_file_suffix (char *file, const char *suffix);
 int suppress_stderr (void);
 void restore_stderr (int saved_fd);
 
+bool get_free_memory (u64 *free_mem);
+
 #endif // HC_SHARED_H

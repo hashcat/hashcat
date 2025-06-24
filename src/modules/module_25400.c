@@ -82,6 +82,20 @@ typedef struct pdf14_tmp
 
 static const char *SIGNATURE_PDF = "$pdf$";
 
+u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_min = 70;
+
+  return kernel_loops_min;
+}
+
+u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 kernel_loops_max = 70;
+
+  return kernel_loops_max;
+}
+
 static void md5_complete_no_limit (u32 digest[4], const u32 *plain, const u32 plain_len)
 {
   // plain = u32 tmp_md5_buf[64] so this is compatible
@@ -715,8 +729,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
+  module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;

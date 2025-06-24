@@ -128,7 +128,14 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_threads_max = 256;
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL);
+
+  u32 kernel_threads_max = KERNEL_THREADS_MAX;
+
+  if (optimized_kernel == true)
+  {
+    kernel_threads_max = 256;
+  }
 
   return kernel_threads_max;
 }

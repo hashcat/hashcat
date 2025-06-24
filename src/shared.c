@@ -17,6 +17,7 @@
 
 #if defined (__APPLE__)
 #include <sys/sysctl.h>
+#include <mach/mach.h>
 #endif
 
 #if defined (_WIN)
@@ -1619,3 +1620,83 @@ void restore_stderr (int saved_fd)
   close (saved_fd);
 }
 
+bool get_free_memory (u64 *free_mem)
+{
+  #if defined(_WIN) || defined(__CYGWIN__) || defined(__MSYS__)
+
+  MEMORYSTATUSEX memStatus;
+
+  memStatus.dwLength = sizeof (memStatus);
+
+  if (GlobalMemoryStatusEx (&memStatus))
+  {
+    *free_mem = (u64) memStatus.ullAvailPhys;
+
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+
+  #elif defined(__APPLE__)
+
+  mach_port_t host_port = mach_host_self ();
+
+  mach_msg_type_number_t count = HOST_VM_INFO_COUNT;
+
+  vm_statistics_data_t vm_stat;
+
+  if (host_statistics (host_port, HOST_VM_INFO, (host_info_t) &vm_stat, &count) != KERN_SUCCESS)
+  {
+    return false;
+  }
+
+  int64_t page_size;
+
+  host_page_size (host_port, (vm_size_t*) &page_size);
+
+  *free_mem = (u64) (vm_stat.free_count + vm_stat.inactive_count) * page_size;
+
+  return true;
+
+  #elif defined(__linux__)
+
+  FILE *fp = fopen ("/proc/meminfo", "r");
+
+  if (fp == NULL) return false;
+
+  char line[256];
+
+  u64 memFree = 0;
+  u64 buffers = 0;
+  u64 cached = 0;
+
+  while (fgets (line, sizeof (line), fp))
+  {
+    if (sscanf (line, "MemFree: %lu kB", &memFree) == 1)
+    {
+      continue;
+    }
+    else if (sscanf (line, "Buffers: %lu kB", &buffers) == 1)
+    {
+      continue;
+    }
+    else if (sscanf (line, "Cached: %lu kB", &cached) == 1)
+    {
+      continue;
+    }
+  }
+
+  fclose (fp);
+
+  *free_mem = (memFree + buffers + cached) * 1024;
+
+  return true;
+
+  #else
+
+  return false;
+
+  #endif
+}
