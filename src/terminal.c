@@ -101,6 +101,11 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     event_log_info (hashcat_ctx, "%s (%s) starting in hash-info mode", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
   }
+  else if (user_options->session_chgd == true)
+  {
+    event_log_info (hashcat_ctx, "%s (%s) starting - session [%s]", PROGNAME, version_tag, user_options->session);
+    event_log_info (hashcat_ctx, NULL);
+  }
   else
   {
     event_log_info (hashcat_ctx, "%s (%s) starting", PROGNAME, version_tag);
@@ -1503,8 +1508,8 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i));
       }
     }
- 
-    event_log_info (hashcat_ctx, NULL);    
+
+    event_log_info (hashcat_ctx, NULL);
   }
 
   /**
@@ -1707,7 +1712,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
     // hide empty Metal platforms
     if (metal_devices_cnt)
-    {    
+    {
       char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
 
       size_t len = event_log_info (hashcat_ctx, "METAL API (Metal %s)", metal_runtimeVersionStr);
@@ -1749,7 +1754,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
                     device_id + 1, unit_count,
                     device_name);
         }
-        
+
       }
       else
       {
@@ -2583,7 +2588,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     if (hashcat_status->device_info_cnt == 1)
     {
       const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
-      
+
       event_log_info (hashcat_ctx,
         "Speed.#%02u........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u", 0 + 1,
         device_info0->speed_sec_dev,
@@ -2825,7 +2830,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         device_info->iteration_pos_dev + device_info->iteration_left_dev);
     }
   }
-  
+
   //if (hashconfig->opts_type & OPTS_TYPE_SLOW_CANDIDATES)
   if (user_options->slow_candidates == true)
   {
@@ -2840,7 +2845,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + 0;
 
-    if (device_info->guess_candidates_dev) 
+    if (device_info->guess_candidates_dev)
     {
       event_log_info (hashcat_ctx,
         "Candidates.#%02u...: %s", 0 + 1,

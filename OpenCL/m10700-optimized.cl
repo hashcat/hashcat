@@ -666,7 +666,7 @@ KERNEL_FQ KERNEL_FA void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t
   ctx.dgst_len  = tmps[gid].dgst_len;
   ctx.W_len     = tmps[gid].W_len;
 
-  LOCAL_VK u32 s_sc[256][PWMAXSZ4 + BLMAXSZ4 + AESSZ4];
+  LOCAL_VK u32 s_sc[FIXED_LOCAL_SIZE][PWMAXSZ4 + BLMAXSZ4 + AESSZ4];
 
   u32 ex = 0;
 

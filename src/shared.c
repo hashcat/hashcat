@@ -26,7 +26,9 @@
 
 #if defined (_POSIX)
 #include <sys/utsname.h>
+#if !defined (__APPLE__)
 #include <sys/sysinfo.h>
+#endif
 #endif
 
 static const char *const PA_000 = "OK";

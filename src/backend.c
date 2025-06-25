@@ -222,6 +222,15 @@ int opencl_query_max_local_size_bytes (hashcat_ctx_t *hashcat_ctx, hc_device_par
   return (int) max_local_size_bytes;
 }
 
+int hip_query_num_regs (hashcat_ctx_t *hashcat_ctx, hipFunction_t hip_function)
+{
+  int num_regs = 0;
+
+  if (hc_hipFuncGetAttribute (hashcat_ctx, &num_regs, HIP_FUNC_ATTRIBUTE_NUM_REGS, hip_function) == -1) return -1;
+
+  return num_regs;
+}
+
 int hip_query_threads_per_block (hashcat_ctx_t *hashcat_ctx, hipFunction_t hip_function)
 {
   int threads_per_block = 0;
@@ -251,6 +260,15 @@ int hip_query_max_local_size_bytes (hashcat_ctx_t *hashcat_ctx, hc_device_param_
   }
 
   return max_local_size_bytes;
+}
+
+int cuda_query_num_regs (hashcat_ctx_t *hashcat_ctx, CUfunction cuda_function)
+{
+  int num_regs = 0;
+
+  if (hc_cuFuncGetAttribute (hashcat_ctx, &num_regs, CU_FUNC_ATTRIBUTE_NUM_REGS, cuda_function) == -1) return -1;
+
+  return num_regs;
 }
 
 int cuda_query_threads_per_block (hashcat_ctx_t *hashcat_ctx, CUfunction cuda_function)
@@ -2783,18 +2801,17 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
 
-    // all buffers must be allocated
-    int tmp_buf_cnt = 0;
-    mtl_mem tmp_buf[25] = { 0 };
+    mtl_mem metal_buffer = NULL;
 
+    if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, sizeof (u8), NULL, &metal_buffer) == -1) return -1;
+
+    // all buffers must be allocated
     for (u32 i = 0; i <= 24; i++)
     {
       // allocate fake buffer if NULL
       if (device_param->kernel_params[i] == NULL)
       {
-        if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, sizeof (u8), NULL, &tmp_buf[tmp_buf_cnt]) == -1) return -1;
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, tmp_buf[tmp_buf_cnt], NULL, 0) == -1) return -1;
-        tmp_buf_cnt++;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, metal_buffer, NULL, 0) == -1) return -1;
       }
       else
       {
@@ -2855,6 +2872,19 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
       // hc_mtlEncodeComputeCommand_pre() must be called before every hc_mtlEncodeComputeCommand()
       if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+
+      for (u32 i = 0; i <= 24; i++)
+      {
+        // allocate fake buffer if NULL
+        if (device_param->kernel_params[i] == NULL)
+        {
+          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, metal_buffer, NULL, 0) == -1) return -1;
+        }
+        else
+        {
+          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params[i], NULL, 0) == -1) return -1;
+        }
+      }
     }
 
     const int rc_cc = hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms);
@@ -2881,12 +2911,6 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     }
 
     // release tmp_buf
-
-    for (int i = 0; i < tmp_buf_cnt; i++)
-    {
-      hc_mtlReleaseMemObject (hashcat_ctx, tmp_buf[i]);
-      tmp_buf[i] = NULL;
-    }
 
     if (rc_cc == -1) return -1;
   }
@@ -15913,6 +15937,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       CUfunction func = cuda_function_with_id (device_param, kern_run);
 
       threads_per_block = cuda_query_threads_per_block (hashcat_ctx, func);
+
+      const u32 num_regs = cuda_query_num_regs (hashcat_ctx, func);
+
+      if (num_regs)
+      {
+        u32 threads_per_block_with_regs = (floor) ((float) device_param->regsPerBlock / num_regs);
+
+        if (threads_per_block_with_regs > device_param->kernel_preferred_wgs_multiple) threads_per_block_with_regs -= threads_per_block_with_regs % device_param->kernel_preferred_wgs_multiple;
+
+        threads_per_block = MIN (threads_per_block, threads_per_block_with_regs);
+      }
     }
     else if (device_param->is_hip == true)
     {
@@ -15921,6 +15956,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       hipFunction_t func = hip_function_with_id (device_param, kern_run);
 
       threads_per_block = hip_query_threads_per_block (hashcat_ctx, func);
+
+      const u32 num_regs = hip_query_num_regs (hashcat_ctx, func);
+
+      if (num_regs)
+      {
+        u32 threads_per_block_with_regs = (floor) ((float) device_param->regsPerBlock / num_regs);
+
+        if (threads_per_block_with_regs > device_param->kernel_preferred_wgs_multiple) threads_per_block_with_regs -= threads_per_block_with_regs % device_param->kernel_preferred_wgs_multiple;
+
+        threads_per_block = MIN (threads_per_block, threads_per_block_with_regs);
+      }
     }
     else if (device_param->is_opencl == true)
     {
@@ -15929,6 +15975,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       cl_kernel kernel = opencl_kernel_with_id (device_param, kern_run);
 
       threads_per_block = opencl_query_threads_per_block (hashcat_ctx, device_param, kernel);
+
+      // num_regs check should be included in opencl's CL_KERNEL_WORK_GROUP_SIZE
     }
     else if (device_param->is_metal == true)
     {
@@ -16052,6 +16100,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    const u64 size_device_extra1234 = size_extra_buffer1 + size_extra_buffer2 + size_extra_buffer3 + size_extra_buffer4;
+
+    const u64 size_device_extra = MAX ((1024 * 1024 * 1024), size_device_extra1234);
+
     while (kernel_accel_max >= kernel_accel_min)
     {
       const u64 kernel_power_max = hardware_power_max * kernel_accel_max;
@@ -16158,8 +16210,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (size_kernel_params      > undocumented_single_allocation_apple) memory_limit_hit = 1;
       }
 
-      const u64 size_device_extra = (1024 * 1024 * 1024);
-
       const u64 size_total
         = bitmap_ctx->bitmap_size
         + bitmap_ctx->bitmap_size
@@ -16185,10 +16235,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_rules
         + size_rules_c
         + size_salts
-        + size_extra_buffer1
-        + size_extra_buffer2
-        + size_extra_buffer3
-        + size_extra_buffer4
+        + size_device_extra
         + size_shown
         + size_tm
         + size_tmps
@@ -16196,8 +16243,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_st_salts
         + size_st_esalts
         + size_kernel_params
-        + size_spilling
-        + size_device_extra;
+        + size_spilling;
 
       if ((size_total + EXTRA_SPACE) > MIN (device_param->device_available_mem, device_param->device_maxmem_alloc)) memory_limit_hit = 1;
 

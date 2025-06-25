@@ -2404,6 +2404,7 @@ typedef struct user_options
   bool         separator_chgd;
   bool         rule_buf_l_chgd;
   bool         rule_buf_r_chgd;
+  bool         session_chgd;
 
   bool         advice;
   bool         benchmark;
