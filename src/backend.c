@@ -15996,49 +15996,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // check if there's enough host memory left for upcoming allocations, otherwise reduce skip device and present user an option to deal with
 
-    u64 accel_limit = 0;
+    u64 accel_limit_host = 0;
 
-    get_free_memory (&accel_limit);
-
-    // in slow candidate mode we need to keep the buffers on the host alive
-    // a high accel value doesn't help much here anyway
-
-    if (user_options->slow_candidates == true)
+    if (get_free_memory (&accel_limit_host) == false)
     {
-      // Tested with NTLM, almost no difference in performance
+      const u64 GiB4 = 4ULL * 1024 * 1024 * 1024;
 
-      accel_limit /= 8;
+      event_log_warning (hashcat_ctx, "Couldn't query the OS for free memory, assuming 4GiB");
+
+      accel_limit_host = GiB4;
     }
-
-    // this is device_processors * kernel_threads
-
-    accel_limit /= hardware_power_max;
-
-    // single password candidate size
-
-    accel_limit /= sizeof (pw_t);
-
-    // pws[], pws_comp[] and pw_pre[] are some large blocks with password candidates
-
-    accel_limit /= 3;
-
-    // Is possible that the GPU simply has too much hardware resources and 8GB per GPU is not enough, but OTOH we can't get lower than 1
-
-    accel_limit = MAX (accel_limit, 1);
-
-    // I think vector size is not required because vector_size is dividing the pws_cnt in run_kernel()
-
-    kernel_accel_max = MIN (kernel_accel_max, accel_limit);
-
-    if (kernel_accel_min > kernel_accel_max)
+    else
     {
-      event_log_error (hashcat_ctx, "* Device #%u: Not enough host memory left for this device, skipping...", device_id + 1);
-      event_log_error (hashcat_ctx, "             Retry with lower --kernel-threads value.");
+      // even tho let's not be greedy
 
-      backend_kernel_accel_warnings++;
+      const u64 GiB8 = 8ULL * 1024 * 1024 * 1024;
 
-      device_param->skipped_warning = true;
-      continue;
+      accel_limit_host = MIN (accel_limit_host, GiB8);
     }
 
     // Opposite direction check: find out if we would request too much memory on memory blocks which are based on kernel_accel
@@ -16184,6 +16158,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (size_kernel_params      > undocumented_single_allocation_apple) memory_limit_hit = 1;
       }
 
+      const u64 size_device_extra = (1024 * 1024 * 1024);
+
       const u64 size_total
         = bitmap_ctx->bitmap_size
         + bitmap_ctx->bitmap_size
@@ -16220,9 +16196,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_st_salts
         + size_st_esalts
         + size_kernel_params
-        + size_spilling;
+        + size_spilling
+        + size_device_extra;
 
-      if ((size_total + EXTRA_SPACE) > device_param->device_available_mem) memory_limit_hit = 1;
+      if ((size_total + EXTRA_SPACE) > MIN (device_param->device_available_mem, device_param->device_maxmem_alloc)) memory_limit_hit = 1;
 
       if (memory_limit_hit == 1)
       {
@@ -16230,6 +16207,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         continue;
       }
+
+      const u64 size_host_extra = (512 * 1024 * 1024);
 
       const u64 size_total_host
         = size_pws_comp
@@ -16240,7 +16219,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_brain_link_out
         #endif
         + size_pws_pre
-        + size_pws_base;
+        + size_pws_base
+        + size_host_extra;
+
+      if ((size_total_host + EXTRA_SPACE) > accel_limit_host) memory_limit_hit = 1;
+
+      if (memory_limit_hit == 1)
+      {
+        kernel_accel_max--;
+
+        continue;
+      }
 
       size_total_host_all += size_total_host;
 
@@ -16249,7 +16238,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (kernel_accel_max < kernel_accel_min)
     {
-      event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory for this attack.", device_id + 1);
+      event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory or free host memory for mapping.", device_id + 1);
 
       backend_memory_hit_warnings++;
 

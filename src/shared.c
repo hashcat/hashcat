@@ -21,13 +21,12 @@
 #endif
 
 #if defined (_WIN)
-#include <windows.h>
 #include <winsock2.h>
 #endif
 
-#if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MSYS__)
-#else
+#if defined (_POSIX)
 #include <sys/utsname.h>
+#include <sys/sysinfo.h>
 #endif
 
 static const char *const PA_000 = "OK";
@@ -1462,13 +1461,13 @@ int generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *
   return tmp_len;
 }
 
-int get_current_arch()
+int get_current_arch ()
 {
-  #if defined(_WIN32) && !defined(__CYGWIN__) && !defined(__MSYS__)
+  #if defined (_WIN)
 
   SYSTEM_INFO sysinfo;
 
-  GetNativeSystemInfo(&sysinfo);
+  GetNativeSystemInfo (&sysinfo);
 
   switch (sysinfo.wProcessorArchitecture)
   {
@@ -1623,7 +1622,7 @@ void restore_stderr (int saved_fd)
 
 bool get_free_memory (u64 *free_mem)
 {
-  #if defined(_WIN) || defined(__CYGWIN__) || defined(__MSYS__)
+  #if defined (_WIN)
 
   MEMORYSTATUSEX memStatus;
 
@@ -1640,7 +1639,7 @@ bool get_free_memory (u64 *free_mem)
     return false;
   }
 
-  #elif defined(__APPLE__)
+  #elif defined (__APPLE__)
 
   mach_port_t host_port = mach_host_self ();
 
@@ -1661,43 +1660,51 @@ bool get_free_memory (u64 *free_mem)
 
   return true;
 
-  #elif defined(__linux__)
+  #else
 
-  FILE *fp = fopen ("/proc/meminfo", "r");
+  struct sysinfo info;
 
-  if (fp == NULL) return false;
+  if (sysinfo (&info) != 0) return false;
 
-  char line[256];
-
-  u64 memFree = 0;
-  u64 buffers = 0;
-  u64 cached = 0;
-
-  while (fgets (line, sizeof (line), fp))
-  {
-    if (sscanf (line, "MemFree: %lu kB", &memFree) == 1)
-    {
-      continue;
-    }
-    else if (sscanf (line, "Buffers: %lu kB", &buffers) == 1)
-    {
-      continue;
-    }
-    else if (sscanf (line, "Cached: %lu kB", &cached) == 1)
-    {
-      continue;
-    }
-  }
-
-  fclose (fp);
-
-  *free_mem = (memFree + buffers + cached) * 1024;
+  *free_mem = (u64) info.freeram * info.mem_unit;
 
   return true;
 
-  #else
-
-  return false;
-
   #endif
 }
+
+u32 previous_power_of_two (const u32 x)
+{
+  // https://stackoverflow.com/questions/2679815/previous-power-of-2
+  // really cool!
+
+  if (x == 0) return 0;
+
+  u32 r = x;
+
+  r |= (r >>  1);
+  r |= (r >>  2);
+  r |= (r >>  4);
+  r |= (r >>  8);
+  r |= (r >> 16);
+
+  return r - (r >> 1);
+}
+
+u32 next_power_of_two (const u32 x)
+{
+  if (x == 0) return 1;
+
+  u32 r = x - 1;
+
+  r |= (r >>  1);
+  r |= (r >>  2);
+  r |= (r >>  4);
+  r |= (r >>  8);
+  r |= (r >> 16);
+
+  r++;
+
+  return r;
+}
+

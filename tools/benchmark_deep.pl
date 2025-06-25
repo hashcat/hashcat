@@ -15,8 +15,8 @@ my $kernels_cache    = "$hashcat_path/kernels";
 my $hashcat_bin      = "$hashcat_path/hashcat";
 my $device           = 1;
 my $workload_profile = 3;
-my $runtime          = 24;
-my $sleep_sec        = 12;
+my $runtime          = 11;
+my $sleep_sec        = 13;
 my $default_mask     = "?a?a?a?a?a?a?a";
 my $result           = "result.txt";
 my $old_hashcat      = 0; # requires to have ran with new hashcat before to create the hashfiles
@@ -34,8 +34,8 @@ if ($cpu_benchmark == 1)
 }
 else
 {
-	#system ("rocm-smi --resetprofile --resetclocks --resetfans");
-  system ("rocm-smi --setfan 100% --setperflevel high");
+  #system ("rocm-smi --resetprofile --resetclocks --resetfans");
+  #system ("rocm-smi --setfan 100% --setperflevel high");
 
   system ("nvidia-settings -a GPUPowerMizerMode=1 -a GPUFanControlState=1 -a GPUTargetFanSpeed=100");
 }

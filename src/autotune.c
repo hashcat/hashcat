@@ -8,6 +8,7 @@
 #include "event.h"
 #include "backend.h"
 #include "status.h"
+#include "shared.h"
 #include "autotune.h"
 
 int find_tuning_function (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED hc_device_param_t *device_param)
@@ -93,46 +94,6 @@ static double try_run_times (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   }
 
   return exec_msec_best;
-}
-
-static bool is_power_of_2 (const u32 n)
-{
- return n != 0 && (n & (n - 1)) == 0;
-}
-
-static u32 previous_power_of_two (const u32 x)
-{
-  // https://stackoverflow.com/questions/2679815/previous-power-of-2
-  // really cool!
-
-  if (x == 0) return 0;
-
-  u32 r = x;
-
-  r |= (r >>  1);
-  r |= (r >>  2);
-  r |= (r >>  4);
-  r |= (r >>  8);
-  r |= (r >> 16);
-
-  return r - (r >> 1);
-}
-
-static u32 next_power_of_two (const u32 x)
-{
-  if (x == 0) return 1;
-
-  u32 r = x - 1;
-
-  r |= (r >>  1);
-  r |= (r >>  2);
-  r |= (r >>  4);
-  r |= (r >>  8);
-  r |= (r >> 16);
-
-  r++;
-
-  return r;
 }
 
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
@@ -434,87 +395,70 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     }
 
     if (kernel_accel > 64) kernel_accel -= kernel_accel % 32;
-  }
 
-  // some final play, if we have strange numbers from the APIs, namely 96, 384, and such
-
-  if (is_power_of_2 (kernel_threads) == false)
-  {
-    u32 fun[2];
-
-    fun[0] = previous_power_of_two (kernel_threads);
-    fun[1] = next_power_of_two (kernel_threads);
-
-    float fact[2];
-
-    fact[0] = (float) kernel_threads / fun[0];
-    fact[1] = (float) kernel_threads / fun[1];
-
-    float ms_prev = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 2);
-
-    float res[2];
-
-    for (int i = 0; i < 2; i++)
+    if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
     {
-      const float ms = try_run_times (hashcat_ctx, device_param, kernel_accel * fact[i], kernel_loops, fun[i], 2);
-
-      res[i] = ms_prev / ms;
+      if (kernel_accel > device_param->device_processors) kernel_accel -= kernel_accel % device_param->device_processors;
     }
 
-    const int sel = (res[0] > res[1]) ? 0 : 1;
+    // some final play, if we have strange numbers from the APIs, namely 96, 384, and such
 
-    if (res[sel] > 1.01)
+    if ((kernel_accel_min == kernel_accel_max) || (kernel_threads_min == kernel_threads_max))
     {
-      const u32 kernel_accel_new = kernel_accel * fact[sel];
-      const u32 kernel_threads_new = fun[sel];
+    }
+    else
+    {
+      u32 fun[2];
 
-      if ((kernel_accel_new >= kernel_accel_min) && (kernel_accel_new <= kernel_accel_max))
+      if (is_power_of_2 (kernel_threads) == false)
       {
-        // we can't check kernel_threads because that is for sure outside the range
-
-        kernel_accel = kernel_accel_new;
-        kernel_threads = kernel_threads_new;
+        fun[0] = previous_power_of_two (kernel_threads);
+        fun[1] = next_power_of_two (kernel_threads);
       }
-    }
-  }
-  else
-  {
-    // that's also nice
-
-    u32 fun[2];
-
-    fun[0] = kernel_threads >> 1;
-    fun[1] = kernel_threads << 1;
-
-    float fact[2];
-
-    fact[0] = (float) kernel_threads / fun[0];
-    fact[1] = (float) kernel_threads / fun[1];
-
-    float ms_prev = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 2);
-
-    float res[2];
-
-    for (int i = 0; i < 2; i++)
-    {
-      const float ms = try_run_times (hashcat_ctx, device_param, kernel_accel * fact[i], kernel_loops, fun[i], 2);
-
-      res[i] = ms_prev / ms;
-    }
-
-    const int sel = (res[0] > res[1]) ? 0 : 1;
-
-    if (res[sel] > 1.01)
-    {
-      const u32 kernel_accel_new = kernel_accel * fact[sel];
-      const u32 kernel_threads_new = fun[sel];
-
-      if ((kernel_accel_new >= kernel_accel_min) && (kernel_accel_new <= kernel_accel_max))
+      else
       {
-        // we can't check kernel_threads because that is for sure outside the range
+        fun[0] = kernel_threads >> 1;
+        fun[1] = kernel_threads << 1;
+      }
 
-        kernel_accel = kernel_accel_new;
-        kernel_threads = kernel_threads_new;
+      float fact[2];
+
+      fact[0] = (float) kernel_threads / fun[0];
+      fact[1] = (float) kernel_threads / fun[1];
+
+      float ms_prev = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 2);
+
+      float res[2] = { 0 };
+
+      for (int i = 0; i < 2; i++)
+      {
+        const u32 kernel_threads_test = fun[i];
+        const u32 kernel_accel_test =  kernel_accel * fact[i];
+
+        if (kernel_accel_test == 0) continue;
+        if (kernel_threads_test == 0) continue;
+
+        if (kernel_threads_test > device_param->device_maxworkgroup_size) continue;
+
+        const float ms = try_run_times (hashcat_ctx, device_param, kernel_accel_test, kernel_loops, kernel_threads_test, 2);
+
+        res[i] = ms_prev / ms;
+      }
+
+      const int sel = (res[0] > res[1]) ? 0 : 1;
+
+      if (res[sel] > 1.01)
+      {
+        const u32 kernel_accel_new = kernel_accel * fact[sel];
+        const u32 kernel_threads_new = fun[sel];
+
+        if ((kernel_accel_new >= kernel_accel_min) && (kernel_accel_new <= kernel_accel_max))
+        {
+          // we can't check kernel_threads because that is for sure outside the range
+
+          kernel_accel = kernel_accel_new;
+          kernel_threads = kernel_threads_new;
+        }
       }
     }
   }
