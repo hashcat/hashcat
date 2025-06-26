@@ -24,6 +24,7 @@ int hm_get_utilization_with_devices_idx        (hashcat_ctx_t *hashcat_ctx, cons
 int hm_get_memoryspeed_with_devices_idx        (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_corespeed_with_devices_idx          (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_throttle_with_devices_idx           (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
+u64 hm_get_memoryused_with_devices_idx         (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 
 int  hwmon_ctx_init    (hashcat_ctx_t *hashcat_ctx);
 void hwmon_ctx_destroy (hashcat_ctx_t *hashcat_ctx);

@@ -175,7 +175,7 @@ DECLSPEC void hmac_ripemd160_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PR
   ripemd160_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m13712_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ KERNEL_FA void m13712_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -305,7 +305,7 @@ KERNEL_FQ void m13712_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   }
 }
 
-KERNEL_FQ void m13712_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ KERNEL_FA void m13712_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -436,7 +436,7 @@ KERNEL_FQ void m13712_loop (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   }
 }
 
-KERNEL_FQ void m13712_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ KERNEL_FA void m13712_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -513,7 +513,7 @@ KERNEL_FQ void m13712_loop_extended (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   }
 }
 
-KERNEL_FQ void m13712_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
+KERNEL_FQ KERNEL_FA void m13712_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

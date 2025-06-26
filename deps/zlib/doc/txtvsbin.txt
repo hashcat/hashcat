@@ -38,15 +38,15 @@ The Algorithm
 
 The algorithm works by dividing the set of bytecodes [0..255] into three
 categories:
-- The white list of textual bytecodes:
+- The allow list of textual bytecodes:
   9 (TAB), 10 (LF), 13 (CR), 32 (SPACE) to 255.
 - The gray list of tolerated bytecodes:
   7 (BEL), 8 (BS), 11 (VT), 12 (FF), 26 (SUB), 27 (ESC).
-- The black list of undesired, non-textual bytecodes:
+- The block list of undesired, non-textual bytecodes:
   0 (NUL) to 6, 14 to 31.
 
-If a file contains at least one byte that belongs to the white list and
-no byte that belongs to the black list, then the file is categorized as
+If a file contains at least one byte that belongs to the allow list and
+no byte that belongs to the block list, then the file is categorized as
 plain text; otherwise, it is categorized as binary.  (The boundary case,
 when the file is empty, automatically falls into the latter category.)
 
@@ -84,9 +84,9 @@ consistent results, regardless what alphabet encoding is being used.
 results on a text encoded, say, using ISO-8859-16 versus UTF-8.)
 
 There is an extra category of plain text files that are "polluted" with
-one or more black-listed codes, either by mistake or by peculiar design
+one or more block-listed codes, either by mistake or by peculiar design
 considerations.  In such cases, a scheme that tolerates a small fraction
-of black-listed codes would provide an increased recall (i.e. more true
+of block-listed codes would provide an increased recall (i.e. more true
 positives).  This, however, incurs a reduced precision overall, since
 false positives are more likely to appear in binary files that contain
 large chunks of textual data.  Furthermore, "polluted" plain text should

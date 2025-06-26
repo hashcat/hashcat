@@ -3,7 +3,6 @@
 #
 # Usage:
 #  make -f win32/Makefile.bor
-#  make -f win32/Makefile.bor LOCAL_ZLIB=-DASMV OBJA=match.obj OBJPA=+match.obj
 
 # ------------ Borland C++ ------------
 

@@ -24,7 +24,7 @@ typedef struct pem
 
 } pem_t;
 
-KERNEL_FQ void m22921_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
+KERNEL_FQ KERNEL_FA void m22921_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -115,7 +115,7 @@ KERNEL_FQ void m22921_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32x w[64] = { 0 };
+  u32x w[32] = { 0 };
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
@@ -202,6 +202,10 @@ KERNEL_FQ void m22921_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     const int asn1_ok = asn1_detect (dec, real_len);
 
     if (asn1_ok == 0) continue;
+
+    const int asn1_tag_ok = asn1_check_int_tag (dec, real_len);
+
+    if (asn1_tag_ok == 0) continue;
 
     const u32 r0 = search[0];
     const u32 r1 = search[1];
@@ -213,7 +217,7 @@ KERNEL_FQ void m22921_mxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 }
 
 
-KERNEL_FQ void m22921_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
+KERNEL_FQ KERNEL_FA void m22921_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -304,7 +308,7 @@ KERNEL_FQ void m22921_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
 
   const u32 pw_len = pws[gid].pw_len;
 
-  u32x w[64] = { 0 };
+  u32x w[32] = { 0 };
 
   for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
   {
@@ -391,6 +395,10 @@ KERNEL_FQ void m22921_sxx (KERN_ATTR_VECTOR_ESALT (pem_t))
     const int asn1_ok = asn1_detect (dec, real_len);
 
     if (asn1_ok == 0) continue;
+
+    const int asn1_tag_ok = asn1_check_int_tag (dec, real_len);
+
+    if (asn1_tag_ok == 0) continue;
 
     const u32 r0 = search[0];
     const u32 r1 = search[1];

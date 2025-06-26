@@ -13,11 +13,11 @@ my $amd_cache        = "~/.AMD";
 my $hashcat_path     = ".";
 my $kernels_cache    = "$hashcat_path/kernels";
 my $hashcat_bin      = "$hashcat_path/hashcat";
-my $device           = 3;
+my $device           = 1;
 my $workload_profile = 3;
-my $runtime          = 24;
-my $sleep_sec        = 12;
-my $default_mask     = "?b?b?b?b?b?b?b";
+my $runtime          = 11;
+my $sleep_sec        = 13;
+my $default_mask     = "?a?a?a?a?a?a?a";
 my $result           = "result.txt";
 my $old_hashcat      = 0; # requires to have ran with new hashcat before to create the hashfiles
 my $repeats          = 0;
@@ -25,22 +25,18 @@ my $cpu_benchmark    = 0;
 
 print "\nHardware preparations... You may need to adjust some settings and probably can ignore some of the error\n\n";
 
-system ("echo performance | tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor");
+system ("echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor");
 
 if ($cpu_benchmark == 1)
 {
-  system ("echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo"); ## for CPU benchmark Intel
-  system ("echo 0 > /sys/devices/system/cpu/cpufreq/boost");         ## for CPU benchmark AMD
+  system ("sudo echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo"); ## for CPU benchmark Intel
+  system ("sudo echo 0 > /sys/devices/system/cpu/cpufreq/boost");         ## for CPU benchmark AMD
 }
 else
 {
-  system ("rocm-smi --resetprofile --resetclocks --resetfans");
-  system ("rocm-smi --setfan 100% --setperflevel high");
+  #system ("rocm-smi --resetprofile --resetclocks --resetfans");
+  #system ("rocm-smi --setfan 100% --setperflevel high");
 
-  system ("nvidia-smi -rac");
-  system ("nvidia-smi -pm ENABLED");
-  system ("nvidia-smi -acp UNRESTRICTED");
-  system ("nvidia-smi -pl 225"); ## needs per-gpu adjust
   system ("nvidia-settings -a GPUPowerMizerMode=1 -a GPUFanControlState=1 -a GPUTargetFanSpeed=100");
 }
 
@@ -552,7 +548,7 @@ sub get_module
 
   close (IN);
 
-  my $mask = (defined $benchmark_mask) ? $benchmark_mask : $default_mask;
+  my $mask = $default_mask;
 
   if ($pw_min != -1)
   {
@@ -574,6 +570,8 @@ sub get_module
       $mask = substr ($mask, 0, $pw_min * 2);
     }
   }
+
+  $mask = (defined $benchmark_mask) ? $benchmark_mask : $mask;
 
   my $module =
   {

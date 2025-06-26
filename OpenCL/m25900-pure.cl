@@ -100,7 +100,7 @@ DECLSPEC void aes128_encrypt_cbc (PRIVATE_AS const u32 *aes_ks, PRIVATE_AS u32 *
   aes_iv[3] = out[3];
 }
 
-KERNEL_FQ void m25900_init (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m25900_init (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   /**
    * base
@@ -184,7 +184,7 @@ KERNEL_FQ void m25900_init (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
   }
 }
 
-KERNEL_FQ void m25900_loop (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m25900_loop (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
 {
   const u64 gid = get_global_id(0);
 
@@ -290,7 +290,7 @@ KERNEL_FQ void m25900_loop (KERN_ATTR_TMPS (pbkdf2_sha256_tmp_t))
   }
 }
 
-KERNEL_FQ void m25900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, blocks_t))
+KERNEL_FQ KERNEL_FA void m25900_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, blocks_t))
 {
   /**
    * base

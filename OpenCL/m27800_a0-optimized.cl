@@ -55,7 +55,7 @@ DECLSPEC u32 MurmurHash3 (const u32 seed, PRIVATE_AS const u32 *data, const u32 
   return checksum ^ (checksum >> 16);
 }
 
-KERNEL_FQ void m27800_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m27800_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -112,15 +112,15 @@ KERNEL_FQ void m27800_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m27800_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m27800_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m27800_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m27800_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m27800_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m27800_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -189,10 +189,10 @@ KERNEL_FQ void m27800_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m27800_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m27800_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m27800_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m27800_s16 (KERN_ATTR_RULES ())
 {
 }

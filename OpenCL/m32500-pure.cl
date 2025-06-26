@@ -127,7 +127,7 @@ DECLSPEC void base64_encode_sha256 (u32 *out, const u32 *in)
 }
 //---------------------------------------------------------------------------------------
 
-KERNEL_FQ void m32500_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
+KERNEL_FQ KERNEL_FA void m32500_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -220,7 +220,7 @@ KERNEL_FQ void m32500_init (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 
 }
 
-KERNEL_FQ void m32500_loop (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
+KERNEL_FQ KERNEL_FA void m32500_loop (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 {
   //pbkdf2hmac here
 
@@ -328,7 +328,7 @@ KERNEL_FQ void m32500_loop (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
   }
 }
 
-KERNEL_FQ void m32500_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
+KERNEL_FQ KERNEL_FA void m32500_comp (KERN_ATTR_TMPS_ESALT (doge_tmp_t, payload_t))
 {
    /**
    * base

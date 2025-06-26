@@ -1730,7 +1730,7 @@ DECLSPEC void transpose32c (PRIVATE_AS u32 *data)
 // transpose bitslice mod  : attention race conditions, need different buffers for *in and *out
 //
 
-KERNEL_FQ void m03000_tm (KERN_ATTR_TM)
+KERNEL_FQ KERNEL_FA void m03000_tm (KERN_ATTR_TM)
 {
   const u64 gid = get_global_id (0);
 
@@ -1754,7 +1754,7 @@ KERNEL_FQ void m03000_tm (KERN_ATTR_TM)
   }
 }
 
-KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
+KERNEL_FQ KERNEL_FA void m03000_mxx (KERN_ATTR_BITSLICE ())
 {
   /**
    * base
@@ -2127,7 +2127,7 @@ KERNEL_FQ void m03000_mxx (KERN_ATTR_BITSLICE ())
   }
 }
 
-KERNEL_FQ void m03000_sxx (KERN_ATTR_BITSLICE ())
+KERNEL_FQ KERNEL_FA void m03000_sxx (KERN_ATTR_BITSLICE ())
 {
   /**
    * base

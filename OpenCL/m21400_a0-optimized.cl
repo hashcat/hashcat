@@ -30,7 +30,7 @@
   h = 0;                                        \
 }
 
-KERNEL_FQ void m21400_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m21400_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -277,15 +277,15 @@ KERNEL_FQ void m21400_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m21400_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m21400_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m21400_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m21400_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m21400_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m21400_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -565,10 +565,10 @@ KERNEL_FQ void m21400_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m21400_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m21400_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m21400_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m21400_s16 (KERN_ATTR_RULES ())
 {
 }

@@ -1,0 +1,5 @@
+# Lines starting with '#' are comments.
+# More details are here: https://help.github.com/articles/about-codeowners/
+
+# Global codeowners:
+* @jserv @howjmay

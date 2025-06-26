@@ -17,8 +17,8 @@ sub module_generate_hash
 {
   my $word       = shift;
   my $salt       = shift;
-  my $scrypt_N   = shift || 1024 ; # 262144 originally
-  my $scrypt_r   = shift || 1; # 8 originally
+  my $scrypt_N   = shift || 262144;
+  my $scrypt_r   = shift || 8;
   my $scrypt_p   = shift || 1;
   my $ciphertext = shift || random_bytes (32);
 
