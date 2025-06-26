@@ -23,6 +23,7 @@ static const char *HASH_NAME      = "SNMPv3 HMAC-MD5-96/HMAC-SHA1-96";
 static const u64   KERN_TYPE      = 25000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_NATIVE_THREADS
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
@@ -294,6 +295,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_bridge_name              = MODULE_DEFAULT;
+  module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;

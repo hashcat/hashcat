@@ -26,6 +26,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_ALWAYS_HEXIFY
                                   | OPTS_TYPE_AUTODETECT_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const char *BENCHMARK_MASK = "?b?b?b?b?b";
 static const char *ST_PASS        = "\x6a\x8a\xed\xcc\xb7";
 static const char *ST_HASH        = "$pdf$1*2*40*-1*0*16*01221086741440841668371056103222*32*27c3fecef6d46a78eb61b8b4dbc690f5f8a2912bbb9afc842c12d79481568b74*32*0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -144,7 +145,7 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 const char *module_benchmark_mask (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return "?b?b?b?b?b";
+  return BENCHMARK_MASK;
 }
 
 u32 module_forced_outfile_format (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -376,6 +377,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = module_benchmark_mask;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_bridge_name              = MODULE_DEFAULT;
+  module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;

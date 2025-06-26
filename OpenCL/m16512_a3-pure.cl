@@ -23,7 +23,7 @@ typedef struct jwt
 
 } jwt_t;
 
-KERNEL_FQ void m16512_mxx (KERN_ATTR_VECTOR_ESALT (jwt_t))
+KERNEL_FQ KERNEL_FA void m16512_mxx (KERN_ATTR_VECTOR_ESALT (jwt_t))
 {
   /**
    * modifier
@@ -78,7 +78,7 @@ KERNEL_FQ void m16512_mxx (KERN_ATTR_VECTOR_ESALT (jwt_t))
   }
 }
 
-KERNEL_FQ void m16512_sxx (KERN_ATTR_VECTOR_ESALT (jwt_t))
+KERNEL_FQ KERNEL_FA void m16512_sxx (KERN_ATTR_VECTOR_ESALT (jwt_t))
 {
   /**
    * modifier

@@ -541,7 +541,7 @@ DECLSPEC void _des_crypt_keysetup (u32 c, u32 d, PRIVATE_AS u32 *Kc, PRIVATE_AS 
   }
 }
 
-KERNEL_FQ void m14100_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m14100_mxx (KERN_ATTR_RULES ())
 {
   /**
    * base
@@ -676,7 +676,7 @@ KERNEL_FQ void m14100_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m14100_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m14100_sxx (KERN_ATTR_RULES ())
 {
   /**
    * base

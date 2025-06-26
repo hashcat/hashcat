@@ -30,7 +30,7 @@ typedef struct radmin3
 
 } radmin3_t;
 
-KERNEL_FQ void m29200_mxx (KERN_ATTR_ESALT (radmin3_t))
+KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_ESALT (radmin3_t))
 {
   /**
    * modifier
@@ -291,7 +291,7 @@ KERNEL_FQ void m29200_mxx (KERN_ATTR_ESALT (radmin3_t))
   }
 }
 
-KERNEL_FQ void m29200_sxx (KERN_ATTR_ESALT (radmin3_t))
+KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_ESALT (radmin3_t))
 {
   /**
    * modifier

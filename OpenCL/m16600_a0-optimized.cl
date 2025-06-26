@@ -25,7 +25,7 @@ typedef struct electrum_wallet
 
 } electrum_wallet_t;
 
-KERNEL_FQ void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
+KERNEL_FQ KERNEL_FA void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -429,15 +429,15 @@ KERNEL_FQ void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
   }
 }
 
-KERNEL_FQ void m16600_m08 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
+KERNEL_FQ KERNEL_FA void m16600_m08 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 {
 }
 
-KERNEL_FQ void m16600_m16 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
+KERNEL_FQ KERNEL_FA void m16600_m16 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 {
 }
 
-KERNEL_FQ void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
+KERNEL_FQ KERNEL_FA void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -841,10 +841,10 @@ KERNEL_FQ void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
   }
 }
 
-KERNEL_FQ void m16600_s08 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
+KERNEL_FQ KERNEL_FA void m16600_s08 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 {
 }
 
-KERNEL_FQ void m16600_s16 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
+KERNEL_FQ KERNEL_FA void m16600_s16 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 {
 }

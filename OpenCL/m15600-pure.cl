@@ -205,7 +205,7 @@ DECLSPEC void hmac_sha256_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVA
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m15600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
+KERNEL_FQ KERNEL_FA void m15600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
 {
   /**
    * base
@@ -289,7 +289,7 @@ KERNEL_FQ void m15600_init (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
   }
 }
 
-KERNEL_FQ void m15600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
+KERNEL_FQ KERNEL_FA void m15600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -395,7 +395,7 @@ KERNEL_FQ void m15600_loop (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_
   }
 }
 
-KERNEL_FQ void m15600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
+KERNEL_FQ KERNEL_FA void m15600_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha256_tmp_t, ethereum_pbkdf2_t))
 {
   /**
    * base

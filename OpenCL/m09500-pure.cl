@@ -31,7 +31,7 @@ typedef struct office2010_tmp
 
 } office2010_tmp_t;
 
-KERNEL_FQ void m09500_init (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
+KERNEL_FQ KERNEL_FA void m09500_init (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
 {
   /**
    * base
@@ -58,7 +58,7 @@ KERNEL_FQ void m09500_init (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
   tmps[gid].out[4] = ctx.h[4];
 }
 
-KERNEL_FQ void m09500_loop (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
+KERNEL_FQ KERNEL_FA void m09500_loop (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -125,7 +125,7 @@ KERNEL_FQ void m09500_loop (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t
   unpackv (tmps, out, gid, 4, t4);
 }
 
-KERNEL_FQ void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
+KERNEL_FQ KERNEL_FA void m09500_comp (KERN_ATTR_TMPS_ESALT (office2010_tmp_t, office2010_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

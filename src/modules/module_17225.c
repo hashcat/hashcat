@@ -91,6 +91,7 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -102,8 +103,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_ARCHIVE;
 static const char *HASH_NAME      = "PKZIP (Mixed Multi-File)";
 static const u64   KERN_TYPE      = 17225;
 static const u32   OPTI_TYPE      = 0;
-static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
-                                  | OPTS_TYPE_NATIVE_THREADS;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$pkzip2$3*1*1*0*0*24*3e2c*3ef8*0619e9d17ff3f994065b99b1fa8aef41c056edf9fa4540919c109742dcb32f797fc90ce0*1*0*8*24*431a*3f26*18e2461c0dbad89bd9cc763067a020c89b5e16195b1ac5fa7fb13bd246d000b6833a2988*2*0*23*17*1e3c1a16*2e4*2f*0*23*1e3c*3f2d*54ea4dbc711026561485bbd191bf300ae24fa0997f3779b688cdad323985f8d3bb8b0c*$/pkzip2$";
@@ -219,9 +219,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 *digest = (u32 *) digest_buf;
 
-  char input[line_len + 1];
+  char *input = (char *) hcmalloc (line_len + 1);
+  if (!input) return PARSER_HAVE_ERRNO;
+
+  memcpy (input, line_buf, line_len);
   input[line_len] = '\0';
-  memcpy (&input, line_buf, line_len);
 
   char *saveptr = NULL;
 
@@ -327,6 +329,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_len = pkzip->hash_count << 2;
 
+  hcfree (input);
+
   return (PARSER_OK);
 }
 
@@ -399,6 +403,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_bridge_name              = MODULE_DEFAULT;
+  module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;

@@ -17,6 +17,8 @@ hashcat.dll
 *.dSYM
 kernels/**
 lib/*.a
+bridges/*.dll
+bridges/*.so
 modules/*.dll
 modules/*.so
 obj/*/*/*.o
@@ -24,3 +26,9 @@ obj/*.o
 obj/*.a
 include/CL
 tools/luks_tests
+.vscode
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class

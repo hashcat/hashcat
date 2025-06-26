@@ -154,6 +154,8 @@ int hip_init (void *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipStreamCreate,           hipStreamCreate,            HIP_HIPSTREAMCREATE,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamDestroy,          hipStreamDestroy,           HIP_HIPSTREAMDESTROY,           HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamSynchronize,      hipStreamSynchronize,       HIP_HIPSTREAMSYNCHRONIZE,       HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipGetDeviceProperties,    hipGetDevicePropertiesR0600,     HIP_HIPGETDEVICEPROPERTIES,     HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipModuleOccupancyMaxActiveBlocksPerMultiprocessor,    hipModuleOccupancyMaxActiveBlocksPerMultiprocessor,     HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR,     HIP, 1);
 
   return 0;
 }
@@ -1141,6 +1143,60 @@ int hc_hipStreamSynchronize (void *hashcat_ctx, hipStream_t hStream)
     else
     {
       event_log_error (hashcat_ctx, "hipStreamSynchronize(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipGetDeviceProperties (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevice_t dev)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipGetDeviceProperties (prop, dev);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleOccupancyMaxActiveBlocksPerMultiprocessor (void *hashcat_ctx, int *numBlocks, hipFunction_t f, int blockSize, size_t dynSharedMemPerBlk)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipModuleOccupancyMaxActiveBlocksPerMultiprocessor (numBlocks, f, blockSize, dynSharedMemPerBlk);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipModuleOccupancyMaxActiveBlocksPerMultiprocessor(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleOccupancyMaxActiveBlocksPerMultiprocessor(): %d", HIP_err);
     }
 
     return -1;

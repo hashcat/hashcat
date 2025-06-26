@@ -1,0 +1,87 @@
+diff --git a/code/scrypt-jane-portable-x86.h b/code/scrypt-jane-portable-x86.h
+index 396a7bd..e7858cd 100644
+--- a/code/scrypt-jane-portable-x86.h
++++ b/code/scrypt-jane-portable-x86.h
+@@ -459,4 +459,11 @@ get_top_cpuflag_desc(size_t flag) {
+ 	#endif
+ #endif
+ 
+-#endif /* defined(CPU_X86) || defined(CPU_X86_64) */
+\ No newline at end of file
++#else
++
++static size_t
++detect_cpu(void) {
++	return 0;
++}
++
++#endif /* defined(CPU_X86) || defined(CPU_X86_64) */
+diff --git a/code/scrypt-jane-portable.h b/code/scrypt-jane-portable.h
+index e83e314..26690ed 100644
+--- a/code/scrypt-jane-portable.h
++++ b/code/scrypt-jane-portable.h
+@@ -92,7 +92,7 @@
+ 	#define STDCALL __stdcall
+ 	#undef NAKED
+ 	#define NAKED __declspec(naked)
+-	#define ALIGN(n) __declspec(align(n))
++	#define JANE_ALIGN(n) __declspec(align(n))
+ #endif
+ #if defined(__ICC)
+ 	#define COMPILER_INTEL
+@@ -136,7 +136,7 @@
+ 	#define CDECL __attribute__((cdecl))
+ 	#undef STDCALL
+ 	#define STDCALL __attribute__((stdcall))
+-	#define ALIGN(n) __attribute__((aligned(n)))
++	#define JANE_ALIGN(n) __attribute__((aligned(n)))
+ 	#include <stdint.h>
+ #endif
+ #if defined(__MINGW32__) || defined(__MINGW64__)
+diff --git a/code/scrypt-jane-romix-basic.h b/code/scrypt-jane-romix-basic.h
+index 57ba649..ddae500 100644
+--- a/code/scrypt-jane-romix-basic.h
++++ b/code/scrypt-jane-romix-basic.h
+@@ -35,9 +35,9 @@ scrypt_test_mix_instance(chunkmixfn mixfn, blockfixfn prefn, blockfixfn postfn,
+ 	/* r = 2, (2 * r) = 4 blocks in a chunk, 4 * SCRYPT_BLOCK_WORDS total */
+ 	const uint32_t r = 2, blocks = 2 * r, words = blocks * SCRYPT_BLOCK_WORDS;
+ #if (defined(X86ASM_AVX2) || defined(X86_64ASM_AVX2) || defined(X86_INTRINSIC_AVX2))
+-	scrypt_mix_word_t ALIGN(32) chunk[2][4 * SCRYPT_BLOCK_WORDS], v;
++	scrypt_mix_word_t JANE_ALIGN(32) chunk[2][4 * SCRYPT_BLOCK_WORDS], v;
+ #else
+-	scrypt_mix_word_t ALIGN(16) chunk[2][4 * SCRYPT_BLOCK_WORDS], v;
++	scrypt_mix_word_t JANE_ALIGN(16) chunk[2][4 * SCRYPT_BLOCK_WORDS], v;
+ #endif
+ 	uint8_t final[16];
+ 	size_t i;
+diff --git a/code/scrypt-jane-romix-template.h b/code/scrypt-jane-romix-template.h
+index 6bbda62..77c0114 100644
+--- a/code/scrypt-jane-romix-template.h
++++ b/code/scrypt-jane-romix-template.h
+@@ -20,9 +20,9 @@
+ static void asm_calling_convention
+ SCRYPT_CHUNKMIX_FN(scrypt_mix_word_t *Bout/*[chunkWords]*/, scrypt_mix_word_t *Bin/*[chunkWords]*/, scrypt_mix_word_t *Bxor/*[chunkWords]*/, uint32_t r) {
+ #if (defined(X86ASM_AVX2) || defined(X86_64ASM_AVX2) || defined(X86_INTRINSIC_AVX2))
+-	scrypt_mix_word_t ALIGN(32) X[SCRYPT_BLOCK_WORDS], *block;
++	scrypt_mix_word_t JANE_ALIGN(32) X[SCRYPT_BLOCK_WORDS], *block;
+ #else
+-	scrypt_mix_word_t ALIGN(16) X[SCRYPT_BLOCK_WORDS], *block;
++	scrypt_mix_word_t JANE_ALIGN(16) X[SCRYPT_BLOCK_WORDS], *block;
+ #endif
+ 	uint32_t i, j, blocksPerChunk = r * 2, half = 0;
+ 
+diff --git a/test.sh b/test.sh
+old mode 100644
+new mode 100755
+index dc3d032..13be9eb
+--- a/test.sh
++++ b/test.sh
+@@ -2,7 +2,7 @@
+ 
+ test() {
+ 	sleep 0.25 # mingw is stupid and will occasionally not have permission to overwrite scrypt_test
+-	gcc scrypt-jane-test.c -O3 -DSCRYPT_$1 -DSCRYPT_$2 $3 -o scrypt_test 2>/dev/null
++	gcc scrypt-jane-test.c -O3 -DSCRYPT_$1 -DSCRYPT_$2 $3 -o scrypt_test #2>/dev/null
+ 	local RC=$?
+ 	if [ $RC -ne 0 ]; then
+ 		echo "$1/$2: failed to compile "

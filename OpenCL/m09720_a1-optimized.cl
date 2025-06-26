@@ -367,7 +367,7 @@ DECLSPEC void gen336 (PRIVATE_AS u32x *digest_pre, PRIVATE_AS u32 *salt_buf, PRI
   md5_transform_vector (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-KERNEL_FQ void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -515,15 +515,15 @@ KERNEL_FQ void m09720_m04 (KERN_ATTR_ESALT (oldoffice01_t))
   }
 }
 
-KERNEL_FQ void m09720_m08 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09720_m08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-KERNEL_FQ void m09720_m16 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09720_m16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-KERNEL_FQ void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
 {
   /**
    * modifier
@@ -683,10 +683,10 @@ KERNEL_FQ void m09720_s04 (KERN_ATTR_ESALT (oldoffice01_t))
   }
 }
 
-KERNEL_FQ void m09720_s08 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09720_s08 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }
 
-KERNEL_FQ void m09720_s16 (KERN_ATTR_ESALT (oldoffice01_t))
+KERNEL_FQ KERNEL_FA void m09720_s16 (KERN_ATTR_ESALT (oldoffice01_t))
 {
 }

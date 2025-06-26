@@ -25,7 +25,7 @@ typedef struct electrum_wallet
 
 } electrum_wallet_t;
 
-KERNEL_FQ void m16600_mxx (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
+KERNEL_FQ KERNEL_FA void m16600_mxx (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 {
   /**
    * base
@@ -243,7 +243,7 @@ KERNEL_FQ void m16600_mxx (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
   }
 }
 
-KERNEL_FQ void m16600_sxx (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
+KERNEL_FQ KERNEL_FA void m16600_sxx (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 {
   /**
    * base

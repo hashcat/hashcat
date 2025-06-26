@@ -4,6 +4,12 @@
 #include "inc_common.h"
 #include "inc_cipher_rc4.h"
 
+#ifdef IS_HIP
+#define RC4_NOINLINE __attribute__ ((noinline))
+#else
+#define RC4_NOINLINE
+#endif
+
 #ifdef IS_CPU
 
 // Pattern linear
@@ -390,7 +396,7 @@ DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS con
   return b;
 }
 
-DECLSPEC u8 rc4_next_16_global (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, PRIVATE_AS u32 *out, const u64 lid)
+DECLSPEC RC4_NOINLINE u8 rc4_next_16_global (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, PRIVATE_AS u32 *out, const u64 lid)
 {
   u8 a = i;
   u8 b = j;

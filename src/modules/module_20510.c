@@ -80,7 +80,6 @@ static const u64   KERN_TYPE      = 20510;
 static const u32   OPTI_TYPE      = 0;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_COPY_TMPS
-                                  | OPTS_TYPE_MAXIMUM_THREADS
                                   | OPTS_TYPE_AUTODETECT_DISABLE
                                   | OPTS_TYPE_SUGGEST_KG;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;
@@ -204,6 +203,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_bridge_name              = MODULE_DEFAULT;
+  module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = module_build_plain_postprocess;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;

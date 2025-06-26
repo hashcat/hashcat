@@ -300,7 +300,7 @@ DECLSPEC void domino_big_md (PRIVATE_AS const u32x *saved_key, const u32 size, P
   mdtransform_norecalc (state, checksum, s_lotus_magic_table);
 }
 
-KERNEL_FQ void m08700_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m08700_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -539,15 +539,15 @@ KERNEL_FQ void m08700_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m08700_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m08700_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m08700_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m08700_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m08700_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m08700_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * base
@@ -798,10 +798,10 @@ KERNEL_FQ void m08700_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m08700_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m08700_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m08700_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m08700_s16 (KERN_ATTR_BASIC ())
 {
 }
