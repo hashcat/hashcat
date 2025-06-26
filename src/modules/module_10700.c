@@ -109,11 +109,11 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 {
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    if (device_param->is_metal == false)
+    if (device_param->is_metal == true)
     {
-      if (strncmp (device_param->device_name, "Apple M", 7) == 0)
+      if (strncmp (device_param->device_name, "Intel", 5) == 0)
       {
-        // AppleM1, OpenCL, MTLCompilerService, createKernel never-end with pure kernel and newComputePipelineState failed with optimized kernel
+        // Intel Iris Graphics, Metal Version 244.303: failed to create 'm10700_loop' pipeline, timeout reached (status 49)
         return true;
       }
     }
