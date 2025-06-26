@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_ripemd320.cl)
 #endif
 
-KERNEL_FQ void m33650_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m33650_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -92,7 +92,7 @@ KERNEL_FQ void m33650_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m33650_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m33650_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

@@ -22,7 +22,7 @@ DECLSPEC void ripemd320_transform_transport_vector (PRIVATE_AS const u32x *w, PR
   ripemd320_transform_vector (w + 0, w + 4, w + 8, w + 12, dgst);
 }
 
-KERNEL_FQ void m33600_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m33600_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -109,15 +109,15 @@ KERNEL_FQ void m33600_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m33600_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m33600_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m33600_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m33600_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m33600_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m33600_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -216,10 +216,10 @@ KERNEL_FQ void m33600_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m33600_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m33600_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m33600_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m33600_s16 (KERN_ATTR_RULES ())
 {
 }
