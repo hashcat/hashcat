@@ -16245,7 +16245,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_kernel_params
         + size_spilling;
 
-      if ((size_total + EXTRA_SPACE) > MIN (device_param->device_available_mem, device_param->device_maxmem_alloc)) memory_limit_hit = 1;
+      if ((size_total + EXTRA_SPACE) > device_param->device_available_mem) memory_limit_hit = 1;
 
       if (memory_limit_hit == 1)
       {

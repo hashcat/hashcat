@@ -25,7 +25,7 @@
 #define SALSA_CNT4 (SALSA_SZ / 4)
 #define SALSA_CNT44 ((SALSA_SZ / 4) / 4)
 
-#define VIDX(bid4,lsz,lid,ySIZE,zSIZE,y,z) (((bid4) * (lsz) * (ySIZE) * (zSIZE)) + ((lid) * (ySIZE) * (zSIZE)) + ((y) * (zSIZE)) + (z))
+//#define VIDX(bid4,lsz,lid,ySIZE,zSIZE,y,z) (((bid4) * (lsz) * (ySIZE) * (zSIZE)) + ((lid) * (ySIZE) * (zSIZE)) + ((y) * (zSIZE)) + (z))
 
 #if defined IS_CUDA
 
