@@ -4,6 +4,7 @@
 benchHash
 benchHash32
 benchHash_avx2
+benchHash_avx512
 benchHash_hw
 
 # test files

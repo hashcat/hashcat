@@ -107,6 +107,9 @@ int cuda_init (void *hashcat_ctx)
   HC_LOAD_FUNC_CUDA (cuda, cuStreamDestroy,          cuStreamDestroy_v2,        CUDA_CUSTREAMDESTROY,           CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuStreamSynchronize,      cuStreamSynchronize,       CUDA_CUSTREAMSYNCHRONIZE,       CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuStreamWaitEvent,        cuStreamWaitEvent,         CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuStreamWaitEvent,        cuStreamWaitEvent,         CUDA_CUSTREAMWAITEVENT,         CUDA, 1);
+  HC_LOAD_FUNC_CUDA (cuda, cuOccupancyMaxActiveBlocksPerMultiprocessor, cuOccupancyMaxActiveBlocksPerMultiprocessor, CUDA_CUOCCUPANCYMAXBLOCKSPERMULTIPROCESSOR, CUDA, 1);
+
   #if defined (WITH_CUBIN)
   HC_LOAD_FUNC_CUDA (cuda, cuLinkCreate,             cuLinkCreate_v2,           CUDA_CULINKCREATE,              CUDA, 1);
   HC_LOAD_FUNC_CUDA (cuda, cuLinkAddData,            cuLinkAddData_v2,          CUDA_CULINKADDDATA,             CUDA, 1);
@@ -1269,3 +1272,31 @@ int hc_cuLinkComplete (void *hashcat_ctx, CUlinkState state, void **cubinOut, si
 
   return 0;
 }
+
+int hc_cuOccupancyMaxActiveBlocksPerMultiprocessor (void *hashcat_ctx, int *numBlocks, CUfunction func, int blockSize, size_t dynamicSMemSize)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  CUDA_PTR *cuda = (CUDA_PTR *) backend_ctx->cuda;
+
+  const CUresult CU_err = cuda->cuOccupancyMaxActiveBlocksPerMultiprocessor (numBlocks, func, blockSize, dynamicSMemSize);
+
+  if (CU_err != CUDA_SUCCESS)
+  {
+    const char *pStr = NULL;
+
+    if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)
+    {
+      event_log_error (hashcat_ctx, "cuOccupancyMaxActiveBlocksPerMultiprocessor(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "cuOccupancyMaxActiveBlocksPerMultiprocessor(): %d", CU_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+

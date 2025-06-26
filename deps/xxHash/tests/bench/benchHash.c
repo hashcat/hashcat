@@ -1,7 +1,7 @@
 /*
 *  Hash benchmark module
 *  Part of the xxHash project
-*  Copyright (C) 2019-2020 Yann Collet
+*  Copyright (C) 2019-2021 Yann Collet
 *
 *  GPL v2 License
 *
@@ -28,6 +28,7 @@
 
 #include <stdlib.h>   // malloc
 #include <assert.h>
+#include <string.h>
 
 #include "benchHash.h"
 
@@ -104,6 +105,7 @@ bench_hash_internal(BMK_benchFn_t hashfn, void* payload,
     };
     BMK_runOutcome_t result;
 
+    memset(&result, 0, sizeof(result));
     while (!BMK_isCompleted_TimedFn(txf)) {
         result = BMK_benchTimedFn(txf, params);
         assert(BMK_isSuccessful_runOutcome(result));

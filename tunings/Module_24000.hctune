@@ -1,0 +1,21 @@
+
+# Find the right -n value for your GPU:
+# =====================================
+#
+# 1. For example, to find the value for 24000, first create a valid hash for 24000 as follows:
+#
+# $ ./hashcat --example-hashes -m 24000 | grep Example.Hash | grep -v Format | cut -b 25- > tmp.hash.24000
+#
+# 2. Now let it iterate through all -n values to a certain point. In this case, I'm using 200, but in general it's a value that is at least twice that of the multiprocessor. If you don't mind you can just leave it as it is, it just runs a little longer.
+#
+# $ export i=1; while [ $i -ne 201 ]; do echo $i; ./hashcat --quiet tmp.hash.24000 --keep-guessing --self-test-disable --markov-disable --restore-disable --outfile-autohex-disable --wordlist-autohex-disable --potfile-disable --logfile-disable --hwmon-disable --status --status-timer 1 --runtime 28 --machine-readable --optimized-kernel-enable --workload-profile 3 --hash-type 24000 --attack-mode 3 ?b?b?b?b?b?b?b --backend-devices 1 --force -n $i; i=$(($i+1)); done | tee x
+#
+# 3. Determine the highest measured H/s speed. But don't just use the highest value. Instead, use the number that seems most stable, usually at the beginning.
+#
+# $ grep "$(printf 'STATUS\t3')" x | cut -f4 -d$'\t' | sort -n | tail
+#
+# 4. To match the speed you have chosen to the correct value in the 'x' file, simply search for it in it. Then go up a little on the block where you found him. The value -n is the single value that begins before the block start. If you have multiple blocks at the same speed, choose the lowest value for -n
+
+#Device                                         Attack  Hash    Vector  Kernel  Kernel
+#Name                                           Mode    Type    Width   Accel   Loops
+

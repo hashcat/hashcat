@@ -1,0 +1,206 @@
+Although yescrypt is usable for a variety of purposes (password hashing,
+KDF, PoW) and is extremely scalable (from 1 CPU core to many, from
+kilobytes to terabytes and beyond) while achieving good security
+properties across this whole range of use cases and settings, at this
+time we're primarily targeting the mass user authentication use case.
+Hence, this is what the setup and benchmarks shown in here focus on.
+
+The test system is a server (kindly provided by Packet.net) with dual
+Xeon Gold 5120 CPUs (2.2 GHz, turbo to up to 3.2 GHz) and 384 GiB RAM
+(12x DDR4-2400 ECC Reg).  These CPUs have 14 cores and 6 memory channels
+each, for a total of 28 physical cores, 56 logical CPUs (HT is enabled),
+and 12 memory channels.  The OS is Ubuntu 17.10 with kernel
+"4.13.0-25-generic #29-Ubuntu SMP Mon Jan 8 21:14:41 UTC 2018 x86_64"
+and compiler "gcc (Ubuntu 7.2.0-8ubuntu3.2) 7.2.0".
+
+First, we need to configure the Linux system, as root.  Grant our user
+account's group the privilege to access "huge pages" (2 MiB or 1 GiB as
+opposed to x86's default 4 KiB pages):
+
+# sysctl -w vm.hugetlb_shm_group=1000
+
+(You may need to replace the "1000" with your user account's actual
+group id.)
+
+Disable swap, so that it doesn't get in the way:
+
+# swapoff -a
+
+Let processes allocate shared memory segments of up to 368 GiB each, and
+up to 369 GiB total for the system:
+
+# sysctl -w kernel.shmmax=395136991232
+# sysctl -w kernel.shmall=396210733056
+
+(The allowance for an extra gigabyte is in case any processes unrelated
+to ours make use of SysV shared memory as well.)
+
+Preallocate the 368 GiB and 2 GiB more (to be potentially used for
+threads' "RAM" lookup tables), thus 370 GiB total, into huge pages (this
+will only work when existing memory allocations aren't too fragmented
+yet, so is normally to be performed right upon system bootup):
+
+# sysctl -w vm.nr_hugepages=189440
+
+Check that the preallocation has succeeded by examining /proc/meminfo:
+
+# grep ^Huge /proc/meminfo
+HugePages_Total:   189440
+HugePages_Free:    189440
+
+(If the memory were too fragmented, this would show lower numbers, which
+would be problematic - worse than no use of huge pages at all.)
+
+This is quite extreme.  Although it sort of leaves 14 GiB free (as the
+difference between 370 GiB and the physical RAM of 384 GiB), in practice
+on our test system only less than 5 GiB remains allocatable by user
+processes after this point.  For actual use, you might consider using a
+slightly lower fraction (than 23/24 that we're targeting here) of total
+memory for yescrypt ROM, or/and not pre-allocating any huge pages for
+the RAMs (especially if they won't be used that way anyway, which
+depends on the HUGEPAGE_THRESHOLD setting in yescrypt-platform.c -
+currently at 32 MiB).
+
+Now initialization of the ROM is possible, and we can work as non-root
+from this point on:
+
+$ GOMP_CPU_AFFINITY=0-55 time ./initrom 368 1
+r=23 N=2^9 NROM=2^27
+Will use 385875968.00 KiB ROM
+         1472.00 KiB RAM
+Initializing ROM ... DONE (98764b03)
+'$y$j6K5O$LdJMENpBABJJ3hIHjB1Bi.$VtHhEYlX3mDbxmXUUYt9Xldf.2R5/G0E/tMioNUQ/F8'
+1058.64user 163.70system 0:22.04elapsed 5544%CPU (0avgtext+0avgdata 4692maxresident)k
+0inputs+0outputs (0major+193094minor)pagefaults 0swaps
+
+It took 22 seconds to initialize our 368 GiB ROM, and now we may hash
+passwords from another process (this may be the authentication service):
+
+$ GOMP_CPU_AFFINITY=0-55 ./userom 368 1
+r=23 N=2^9 NROM=2^27
+Will use 385875968.00 KiB ROM
+         1472.00 KiB RAM
+Plaintext: '$y$j6K5O$LdJMENpBABJJ3hIHjB1Bi.$VtHhEYlX3mDbxmXUUYt9Xldf.2R5/G0E/tMioNUQ/F8'
+Encrypted: '$y$j6K5O$LdJMENpBABJJ3hIHjB1Bi.$LZropFwwbIVeo/8DfHbxg6VhFLkUqdvdNy7L.T8tud.'
+Benchmarking 1 thread ...
+809 c/s real, 812 c/s virtual (2047 hashes in 2.53 seconds)
+Benchmarking 56 threads ...
+21307 c/s real, 384 c/s virtual (114632 hashes in 5.38 seconds)
+min 1.393 ms, avg 2.591 ms, max 3.628 ms
+
+$ GOMP_CPU_AFFINITY=0-55 ./userom 368 2
+r=23 N=2^10 NROM=2^27
+Will use 385875968.00 KiB ROM
+         2944.00 KiB RAM
+Plaintext: '$y$j7K5O$LdJMENpBABJJ3hIHjB1Bi.$ljg0jm5/lpMa98qlF1GeAI9YkqWXSA4KVTGxidC6Gy0'
+Encrypted: '$y$j7K5O$LdJMENpBABJJ3hIHjB1Bi.$7X1fd6TFYK5VQOH.7M2dRJMxvFTZbv5d1i7.GwQ/7YC'
+Benchmarking 1 thread ...
+419 c/s real, 420 c/s virtual (1023 hashes in 2.44 seconds)
+Benchmarking 56 threads ...
+10248 c/s real, 184 c/s virtual (57288 hashes in 5.59 seconds)
+min 2.571 ms, avg 5.413 ms, max 6.704 ms
+
+$ GOMP_CPU_AFFINITY=0-55 ./userom 368 23
+r=23 N=2^13 NROM=2^27
+Will use 385875968.00 KiB ROM
+         23552.00 KiB RAM
+Plaintext: '$y$jAK5O$LdJMENpBABJJ3hIHjB1Bi.$UL29LYGiz.rXa6c620meFuqT3IiZmBO0BlW6HenRmA4'
+Encrypted: '$y$jAK5O$LdJMENpBABJJ3hIHjB1Bi.$U15LiKcR4vHbUmCbt7SUllXp/jUyNXYOC1I.426Vk80'
+Benchmarking 1 thread ...
+50 c/s real, 50 c/s virtual (127 hashes in 2.52 seconds)
+Benchmarking 56 threads ...
+1201 c/s real, 21 c/s virtual (7112 hashes in 5.92 seconds)
+min 32.444 ms, avg 46.362 ms, max 48.067 ms
+
+While using the ROM, we're able to compute over 21k, over 10k, or around
+1200 password hashes per second with per-thread RAM sizes of 1.4375 MiB,
+2.875 MiB, or 23 MiB, respectively.
+
+We can also reasonably use yescrypt without a ROM:
+
+$ GOMP_CPU_AFFINITY=0-55 ./userom 0 2
+r=16 N=2^10 NROM=2^0
+Will use 0.00 KiB ROM
+         2048.00 KiB RAM
+Plaintext: '$y$j7D$LdJMENpBABJJ3hIHjB1Bi.$MpcIFGNF/2yn.6pugGKCS3k6Js5sbJ7j3qLBBqKLUk4'
+Encrypted: '$y$j7D$LdJMENpBABJJ3hIHjB1Bi.$7yuShztNep5CDrsQE9Ms9DkH1zqJzTy8wRiSHozJy.9'
+Benchmarking 1 thread ...
+828 c/s real, 828 c/s virtual (2047 hashes in 2.47 seconds)
+Benchmarking 56 threads ...
+21710 c/s real, 388 c/s virtual (114632 hashes in 5.28 seconds)
+min 1.679 ms, avg 2.571 ms, max 3.591 ms
+
+$ GOMP_CPU_AFFINITY=0-55 ./userom 0 4
+r=16 N=2^11 NROM=2^0
+Will use 0.00 KiB ROM
+         4096.00 KiB RAM
+Plaintext: '$y$j8D$LdJMENpBABJJ3hIHjB1Bi.$dT8UO1PVT6lpQcAuWsreFpgdw9TeYdEkqsCp5syNoL9'
+Encrypted: '$y$j8D$LdJMENpBABJJ3hIHjB1Bi.$evEI7SjEM6GKYxcIaNYmanAesDLMRezuOfT4V01aj33'
+Benchmarking 1 thread ...
+417 c/s real, 417 c/s virtual (1023 hashes in 2.45 seconds)
+Benchmarking 56 threads ...
+10434 c/s real, 186 c/s virtual (57288 hashes in 5.49 seconds)
+min 3.120 ms, avg 5.339 ms, max 6.878 ms
+
+$ GOMP_CPU_AFFINITY=0-55 ./userom 0 16
+r=16 N=2^13 NROM=2^0
+Will use 0.00 KiB ROM
+         16384.00 KiB RAM
+Plaintext: '$y$jAD$LdJMENpBABJJ3hIHjB1Bi.$Cap65IlIDN8g9Lh0aVhLLWORQhpwxvh0rhkIB6OOpqC'
+Encrypted: '$y$jAD$LdJMENpBABJJ3hIHjB1Bi.$d5Qoew0sKNt63xBRsAxNDhGV52p1jHAFN1/fglibMbA'
+Benchmarking 1 thread ...
+100 c/s real, 100 c/s virtual (255 hashes in 2.54 seconds)
+Benchmarking 56 threads ...
+2314 c/s real, 41 c/s virtual (14280 hashes in 6.17 seconds)
+min 13.440 ms, avg 24.049 ms, max 25.467 ms
+
+$ GOMP_CPU_AFFINITY=0-55 ./userom 0 32
+r=16 N=2^14 NROM=2^0
+Will use 0.00 KiB ROM
+         32768.00 KiB RAM
+Plaintext: '$y$jBD$LdJMENpBABJJ3hIHjB1Bi.$zdJjnnDFSqeRbC8ZUQFZShGpP2gvFCGjAZ01h10dWa9'
+Encrypted: '$y$jBD$LdJMENpBABJJ3hIHjB1Bi.$U45EV25V/KtqyetJ7AHsJaeeNTJwvQ3hBG7lokzkyR6'
+Benchmarking 1 thread ...
+48 c/s real, 49 c/s virtual (127 hashes in 2.61 seconds)
+Benchmarking 56 threads ...
+1136 c/s real, 20 c/s virtual (7112 hashes in 6.26 seconds)
+min 27.844 ms, avg 48.837 ms, max 50.792 ms
+
+Slightly higher speeds are possible for 4 MiB and higher with larger
+yescrypt block size (r=32 instead of r=16, thus 4 KiB blocks instead of
+2 KiB blocks benchmarked above).  Here they are for 4 MiB, 16 MiB, and
+32 MiB, respectively:
+
+10589 c/s real, 189 c/s virtual (57288 hashes in 5.41 seconds)
+min 3.465 ms, avg 5.260 ms, max 6.705 ms
+
+2462 c/s real, 44 c/s virtual (14280 hashes in 5.80 seconds)
+min 13.923 ms, avg 22.638 ms, max 24.042 ms
+
+1221 c/s real, 21 c/s virtual (7112 hashes in 5.82 seconds)
+min 28.909 ms, avg 45.658 ms, max 47.265 ms
+
+Thus, when not using a ROM we're able to compute over 21k, over 10k,
+around 2400, or around 1200 hashes per second with per-thread RAM sizes
+of 2 MiB, 4 MiB, 16 MiB, or 32 MiB, respectively.
+
+The same might not hold on another machine.
+
+By the way, here's what our SysV shared memory segment looks like:
+
+$ ipcs -m
+
+------ Shared Memory Segments --------
+key        shmid      owner      perms      bytes      nattch     status
+[...]
+0x7965730a 327683     user       640        395136991232 0
+
+The 395+ GB size corresponds to 368 GiB.
+
+To cleanup, let's remove the SysV shared memory segment holding the ROM:
+
+$ ipcrm -M 0x7965730a
+
+and free up the preallocated huge pages, as root:
+
+# sysctl -w vm.nr_hugepages=0

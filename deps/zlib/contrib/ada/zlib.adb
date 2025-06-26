@@ -204,7 +204,7 @@ package body ZLib is
       end if;
 
       --  We allow ZLib to make header only in case of default header type.
-      --  Otherwise we would either do header by ourselfs, or do not do
+      --  Otherwise we would either do header by ourselves, or do not do
       --  header at all.
 
       if Header = None or else Header = GZip then

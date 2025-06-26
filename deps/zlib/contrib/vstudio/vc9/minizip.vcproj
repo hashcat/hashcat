@@ -539,7 +539,7 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;def;odl;idl;hpj;bat;asm"
+			Filter="cpp;c;cxx;def;odl;idl;hpj;bat"
 			>
 			<File
 				RelativePath="..\..\minizip\minizip.c"
