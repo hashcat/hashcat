@@ -7,77 +7,12 @@
 #include "inc_types.h"
 #include "inc_platform.h"
 #include "inc_common.h"
+#include "inc_rp_common.h"
 #include "inc_rp_optimized.h"
 
 #ifndef MAYBE_UNUSED
 #define MAYBE_UNUSED
 #endif
-
-CONSTANT_VK u8 s_lookup_optimized[128] =
-{
-  // 0-31: control characters (0)
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // 32: whitespace (1)
-  1,
-  // 33-47: punctuation (1)
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  // 48-57: digits (0)
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // 58-64: punctuation (1)
-  1, 1, 1, 1, 1, 1, 1,
-  // 65-90: uppercase letters (0)
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // 91-96: punctuation (1)
-  1, 1, 1, 1, 1, 1,
-  // 97-122: lowercase letters (0)
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  // 123-126: punctuation (1)
-  1, 1, 1, 1,
-  // 127: DEL (0)
-  0
-};
-
-DECLSPEC bool is_l (u8 c)
-{
-  return (c >= 'a' && c <= 'z');
-}
-
-DECLSPEC bool is_u (u8 c)
-{
-  return (c >= 'A' && c <= 'Z');
-}
-
-DECLSPEC bool is_d (u8 c)
-{
-  return (c >= '0' && c <= '9');
-}
-
-DECLSPEC bool is_lh (u8 c)
-{
-  return (is_d (c) || (c >= 'a' && c <= 'f'));
-}
-
-DECLSPEC bool is_uh (u8 c)
-{
-  return (is_d (c) || (c >= 'A' && c <= 'F'));
-}
-
-DECLSPEC bool is_s (u8 c)
-{
-  return s_lookup_optimized[c] == 1;
-}
-
-DECLSPEC u32 generate_cmask_optimized (const u32 value)
-{
-  const u32 rmask =  ((value & 0x40404040u) >> 1u)
-                  & ~((value & 0x80808080u) >> 2u);
-
-  const u32 hmask = (value & 0x1f1f1f1fu) + 0x05050505u;
-  const u32 lmask = (value & 0x1f1f1f1fu) + 0x1f1f1f1fu;
-
-  return rmask & ~hmask & lmask;
-}
 
 DECLSPEC void truncate_right_optimized (PRIVATE_AS u32 *buf0, PRIVATE_AS u32 *buf1, const u32 offset)
 {
@@ -1105,14 +1040,14 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_lrest (MAYBE_UNUSED const u32 p0, MAYBE
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t | generate_cmask_optimized (t);
-  t = buf0[1]; buf0[1] = t | generate_cmask_optimized (t);
-  t = buf0[2]; buf0[2] = t | generate_cmask_optimized (t);
-  t = buf0[3]; buf0[3] = t | generate_cmask_optimized (t);
-  t = buf1[0]; buf1[0] = t | generate_cmask_optimized (t);
-  t = buf1[1]; buf1[1] = t | generate_cmask_optimized (t);
-  t = buf1[2]; buf1[2] = t | generate_cmask_optimized (t);
-  t = buf1[3]; buf1[3] = t | generate_cmask_optimized (t);
+  t = buf0[0]; buf0[0] = t | generate_cmask (t);
+  t = buf0[1]; buf0[1] = t | generate_cmask (t);
+  t = buf0[2]; buf0[2] = t | generate_cmask (t);
+  t = buf0[3]; buf0[3] = t | generate_cmask (t);
+  t = buf1[0]; buf1[0] = t | generate_cmask (t);
+  t = buf1[1]; buf1[1] = t | generate_cmask (t);
+  t = buf1[2]; buf1[2] = t | generate_cmask (t);
+  t = buf1[3]; buf1[3] = t | generate_cmask (t);
 
   return in_len;
 }
@@ -1121,14 +1056,14 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_urest (MAYBE_UNUSED const u32 p0, MAYBE
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t & ~(generate_cmask_optimized (t));
-  t = buf0[1]; buf0[1] = t & ~(generate_cmask_optimized (t));
-  t = buf0[2]; buf0[2] = t & ~(generate_cmask_optimized (t));
-  t = buf0[3]; buf0[3] = t & ~(generate_cmask_optimized (t));
-  t = buf1[0]; buf1[0] = t & ~(generate_cmask_optimized (t));
-  t = buf1[1]; buf1[1] = t & ~(generate_cmask_optimized (t));
-  t = buf1[2]; buf1[2] = t & ~(generate_cmask_optimized (t));
-  t = buf1[3]; buf1[3] = t & ~(generate_cmask_optimized (t));
+  t = buf0[0]; buf0[0] = t & ~(generate_cmask (t));
+  t = buf0[1]; buf0[1] = t & ~(generate_cmask (t));
+  t = buf0[2]; buf0[2] = t & ~(generate_cmask (t));
+  t = buf0[3]; buf0[3] = t & ~(generate_cmask (t));
+  t = buf1[0]; buf1[0] = t & ~(generate_cmask (t));
+  t = buf1[1]; buf1[1] = t & ~(generate_cmask (t));
+  t = buf1[2]; buf1[2] = t & ~(generate_cmask (t));
+  t = buf1[3]; buf1[3] = t & ~(generate_cmask (t));
 
   return in_len;
 }
@@ -1137,16 +1072,16 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_lrest_ufirst (MAYBE_UNUSED const u32 p0
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t | generate_cmask_optimized (t);
-  t = buf0[1]; buf0[1] = t | generate_cmask_optimized (t);
-  t = buf0[2]; buf0[2] = t | generate_cmask_optimized (t);
-  t = buf0[3]; buf0[3] = t | generate_cmask_optimized (t);
-  t = buf1[0]; buf1[0] = t | generate_cmask_optimized (t);
-  t = buf1[1]; buf1[1] = t | generate_cmask_optimized (t);
-  t = buf1[2]; buf1[2] = t | generate_cmask_optimized (t);
-  t = buf1[3]; buf1[3] = t | generate_cmask_optimized (t);
+  t = buf0[0]; buf0[0] = t | generate_cmask (t);
+  t = buf0[1]; buf0[1] = t | generate_cmask (t);
+  t = buf0[2]; buf0[2] = t | generate_cmask (t);
+  t = buf0[3]; buf0[3] = t | generate_cmask (t);
+  t = buf1[0]; buf1[0] = t | generate_cmask (t);
+  t = buf1[1]; buf1[1] = t | generate_cmask (t);
+  t = buf1[2]; buf1[2] = t | generate_cmask (t);
+  t = buf1[3]; buf1[3] = t | generate_cmask (t);
 
-  t = buf0[0]; buf0[0] = t & ~(0x00000020 & generate_cmask_optimized (t));
+  t = buf0[0]; buf0[0] = t & ~(0x00000020 & generate_cmask (t));
 
   return in_len;
 }
@@ -1155,16 +1090,16 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_urest_lfirst (MAYBE_UNUSED const u32 p0
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t & ~(generate_cmask_optimized (t));
-  t = buf0[1]; buf0[1] = t & ~(generate_cmask_optimized (t));
-  t = buf0[2]; buf0[2] = t & ~(generate_cmask_optimized (t));
-  t = buf0[3]; buf0[3] = t & ~(generate_cmask_optimized (t));
-  t = buf1[0]; buf1[0] = t & ~(generate_cmask_optimized (t));
-  t = buf1[1]; buf1[1] = t & ~(generate_cmask_optimized (t));
-  t = buf1[2]; buf1[2] = t & ~(generate_cmask_optimized (t));
-  t = buf1[3]; buf1[3] = t & ~(generate_cmask_optimized (t));
+  t = buf0[0]; buf0[0] = t & ~(generate_cmask (t));
+  t = buf0[1]; buf0[1] = t & ~(generate_cmask (t));
+  t = buf0[2]; buf0[2] = t & ~(generate_cmask (t));
+  t = buf0[3]; buf0[3] = t & ~(generate_cmask (t));
+  t = buf1[0]; buf1[0] = t & ~(generate_cmask (t));
+  t = buf1[1]; buf1[1] = t & ~(generate_cmask (t));
+  t = buf1[2]; buf1[2] = t & ~(generate_cmask (t));
+  t = buf1[3]; buf1[3] = t & ~(generate_cmask (t));
 
-  t = buf0[0]; buf0[0] = t | (0x00000020 & generate_cmask_optimized (t));
+  t = buf0[0]; buf0[0] = t | (0x00000020 & generate_cmask (t));
 
   return in_len;
 }
@@ -1173,14 +1108,14 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_trest (MAYBE_UNUSED const u32 p0, MAYBE
 {
   u32 t;
 
-  t = buf0[0]; buf0[0] = t ^ generate_cmask_optimized (t);
-  t = buf0[1]; buf0[1] = t ^ generate_cmask_optimized (t);
-  t = buf0[2]; buf0[2] = t ^ generate_cmask_optimized (t);
-  t = buf0[3]; buf0[3] = t ^ generate_cmask_optimized (t);
-  t = buf1[0]; buf1[0] = t ^ generate_cmask_optimized (t);
-  t = buf1[1]; buf1[1] = t ^ generate_cmask_optimized (t);
-  t = buf1[2]; buf1[2] = t ^ generate_cmask_optimized (t);
-  t = buf1[3]; buf1[3] = t ^ generate_cmask_optimized (t);
+  t = buf0[0]; buf0[0] = t ^ generate_cmask (t);
+  t = buf0[1]; buf0[1] = t ^ generate_cmask (t);
+  t = buf0[2]; buf0[2] = t ^ generate_cmask (t);
+  t = buf0[3]; buf0[3] = t ^ generate_cmask (t);
+  t = buf1[0]; buf1[0] = t ^ generate_cmask (t);
+  t = buf1[1]; buf1[1] = t ^ generate_cmask (t);
+  t = buf1[2]; buf1[2] = t ^ generate_cmask (t);
+  t = buf1[3]; buf1[3] = t ^ generate_cmask (t);
 
   return in_len;
 }
@@ -1204,7 +1139,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_toggle_at (MAYBE_UNUSED const u32 p0, M
 
   const u32 m = 0x20u << ((p0 & 3) * 8);
 
-  t[p0 / 4] = tmp ^ (m & generate_cmask_optimized (tmp));
+  t[p0 / 4] = tmp ^ (m & generate_cmask (tmp));
 
   buf0[0] = t[0];
   buf0[1] = t[1];
@@ -2864,7 +2799,7 @@ DECLSPEC u32 toggle_on_register (const u32 in, const u32 r)
 {
   u32 out = in;
 
-  const u32 cmask = generate_cmask_optimized (out);
+  const u32 cmask = generate_cmask (out);
 
   if (r & 1) out = out ^ (0x00000020 & cmask);
   if (r & 2) out = out ^ (0x00002000 & cmask);
@@ -2937,7 +2872,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_l (MAYBE_UNUSED const u
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask_optimized (t);
+    buf_in[idx] = t | generate_cmask (t);
 
     u32 out = rem;
 
@@ -2948,7 +2883,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_l (MAYBE_UNUSED const u
     if (is_l ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
     if (is_l ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
 
-    buf_in[idx] &= ~(generate_cmask_optimized (buf_in[idx]) & out);
+    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
   }
 
   if (rn == 0) return in_len;
@@ -2988,7 +2923,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_u (MAYBE_UNUSED const u
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask_optimized (t);
+    buf_in[idx] = t | generate_cmask (t);
 
     u32 out = rem;
 
@@ -2999,7 +2934,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_u (MAYBE_UNUSED const u
     if (is_u ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
     if (is_u ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
 
-    buf_in[idx] &= ~(generate_cmask_optimized (buf_in[idx]) & out);
+    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
   }
 
   if (rn == 0) return in_len;
@@ -3039,7 +2974,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_d (MAYBE_UNUSED const u
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask_optimized (t);
+    buf_in[idx] = t | generate_cmask (t);
 
     u32 out = rem;
 
@@ -3050,7 +2985,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_d (MAYBE_UNUSED const u
     if (is_d ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
     if (is_d ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
 
-    buf_in[idx] &= ~(generate_cmask_optimized (buf_in[idx]) & out);
+    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
   }
 
   if (rn == 0) return in_len;
@@ -3090,7 +3025,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_lh (MAYBE_UNUSED const 
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask_optimized (t);
+    buf_in[idx] = t | generate_cmask (t);
 
     u32 out = rem;
 
@@ -3101,7 +3036,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_lh (MAYBE_UNUSED const 
     if (is_lh ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
     if (is_lh ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
 
-    buf_in[idx] &= ~(generate_cmask_optimized (buf_in[idx]) & out);
+    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
   }
 
   if (rn == 0) return in_len;
@@ -3141,7 +3076,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_uh (MAYBE_UNUSED const 
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask_optimized (t);
+    buf_in[idx] = t | generate_cmask (t);
 
     u32 out = rem;
 
@@ -3152,7 +3087,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_uh (MAYBE_UNUSED const 
     if (is_uh ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
     if (is_uh ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
 
-    buf_in[idx] &= ~(generate_cmask_optimized (buf_in[idx]) & out);
+    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
   }
 
   if (rn == 0) return in_len;
@@ -3192,7 +3127,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_s (MAYBE_UNUSED const u
   {
     const u32 t = buf_in[idx];
 
-    buf_in[idx] = t | generate_cmask_optimized (t);
+    buf_in[idx] = t | generate_cmask (t);
 
     u32 out = rem;
 
@@ -3203,7 +3138,7 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_title_sep_class_s (MAYBE_UNUSED const u
     if (is_s ((t >> 16) & 0xff)) { rn++; out |= 0xff000000; }
     if (is_s ((t >> 24) & 0xff)) { rn++; rem |= 0x000000ff; }
 
-    buf_in[idx] &= ~(generate_cmask_optimized (buf_in[idx]) & out);
+    buf_in[idx] &= ~(generate_cmask (buf_in[idx]) & out);
   }
 
   if (rn == 0) return in_len;
