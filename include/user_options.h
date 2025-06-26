@@ -34,4 +34,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_info (hashcat_ctx_t *hashcat_ctx);
 
+void increment_parse (hashcat_ctx_t *hashcat_ctx);
+
 #endif // HC_USER_OPTIONS_H
