@@ -72,6 +72,14 @@ typedef struct blake2s_ctx
 
 } blake2s_ctx_t;
 
+typedef struct blake2s_hmac_ctx
+{
+  blake2s_ctx_t ipad;
+  blake2s_ctx_t opad;
+
+} blake2s_hmac_ctx_t;
+
+
 typedef struct blake2s_ctx_vector
 {
   u32x m[16]; // buffer
@@ -81,16 +89,45 @@ typedef struct blake2s_ctx_vector
 
 } blake2s_ctx_vector_t;
 
+typedef struct blake2s_hmac_ctx_vector
+{
+  blake2s_ctx_vector_t ipad;
+  blake2s_ctx_vector_t opad;
+
+} blake2s_hmac_ctx_vector_t;
+
+
+
+
 DECLSPEC void blake2s_transform (PRIVATE_AS u32 *h, PRIVATE_AS const u32 *m, const int len, const u32 f0);
 DECLSPEC void blake2s_init (PRIVATE_AS blake2s_ctx_t *ctx);
 DECLSPEC void blake2s_update (PRIVATE_AS blake2s_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void blake2s_update_global (PRIVATE_AS blake2s_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void blake2s_update_global_swap (PRIVATE_AS blake2s_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void blake2s_final (PRIVATE_AS blake2s_ctx_t *ctx);
+
+DECLSPEC void blake2s_hmac_init_64 (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3);
+DECLSPEC void blake2s_hmac_init (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void blake2s_hmac_init_swap (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void blake2s_hmac_init_global (PRIVATE_AS blake2s_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void blake2s_hmac_init_global_swap (PRIVATE_AS blake2s_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void blake2s_hmac_update_64 (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len);
+DECLSPEC void blake2s_hmac_update (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void blake2s_hmac_update_swap (PRIVATE_AS blake2s_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void blake2s_hmac_update_global (PRIVATE_AS blake2s_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void blake2s_hmac_update_global_swap (PRIVATE_AS blake2s_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
+DECLSPEC void blake2s_hmac_final (PRIVATE_AS blake2s_hmac_ctx_t *ctx);
 
 DECLSPEC void blake2s_transform_vector (PRIVATE_AS u32x *h, PRIVATE_AS const u32x *m, const u32x len, const u32 f0);
 DECLSPEC void blake2s_init_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx);
 DECLSPEC void blake2s_init_vector_from_scalar (PRIVATE_AS blake2s_ctx_vector_t *ctx, PRIVATE_AS blake2s_ctx_t *ctx0);
 DECLSPEC void blake2s_update_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
 DECLSPEC void blake2s_final_vector (PRIVATE_AS blake2s_ctx_vector_t *ctx);
+
+DECLSPEC void blake2s_hmac_init_vector_64 (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3);
+DECLSPEC void blake2s_hmac_init_vector (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
+DECLSPEC void blake2s_hmac_update_vector_64 (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const int len);
+DECLSPEC void blake2s_hmac_update_vector (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx, PRIVATE_AS const u32x *w, const int len);
+DECLSPEC void blake2s_hmac_final_vector (PRIVATE_AS blake2s_hmac_ctx_vector_t *ctx);
 
 #endif // INC_HASH_BLAKE2S_H

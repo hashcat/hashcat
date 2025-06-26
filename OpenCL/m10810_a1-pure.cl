@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_sha384.cl)
 #endif
 
-KERNEL_FQ void m10810_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m10810_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -67,7 +67,7 @@ KERNEL_FQ void m10810_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m10810_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m10810_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

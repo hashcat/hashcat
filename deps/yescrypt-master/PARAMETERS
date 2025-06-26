@@ -1,0 +1,196 @@
+	Optimal yescrypt configuration.
+
+yescrypt is very flexible, but configuring it optimally is complicated.
+Here are some guidelines to simplify near-optimal configuration.  We
+start by listing the parameters and their typical values, and then give
+currently recommended parameter sets by use case.
+
+
+	Parameters and their typical values.
+
+Set flags (yescrypt flavor) to YESCRYPT_DEFAULTS to use the currently
+recommended flavor.  (Other flags values exist for compatibility and for
+specialized cases where you think you know what you're doing.)
+
+Set N (block count) based on target memory usage and running time, as
+well as on the value of r (block size in 128 byte units).  N must be a
+power of two.
+
+Set r (block size) to 8 (so that N is in KiB, which is convenient) or to
+another small value (if more optimal or for fine-tuning of the total
+size and/or running time).  Reasonable values for r are from 8 to 96.
+
+Set p (parallelism) to 1 meaning no thread-level parallelism within one
+computation of yescrypt.  (Use of thread-level parallelism within
+yescrypt makes sense for ROM initialization and for key derivation at
+high memory usage, but usually not for password hashing where
+parallelism is available through concurrent authentication attempts.
+Don't use p > 1 unnecessarily.)
+
+Set t (time) to 0 to use the optimal running time for a given memory
+usage.  This will allow you to maximize the memory usage (the value of
+N*r) while staying within your running time constraints.  (Non-zero t
+makes sense in specialized cases where you can't afford higher memory
+usage but can afford more time.)
+
+Set g (upgrades) to 0 because there have been no hash upgrades yet.
+
+Set NROM (block count of ROM) to 0 unless you use a ROM (see below).
+NROM must be a power of two.
+
+
+	Password hashing for user authentication, no ROM.
+
+Small and fast (memory usage 2 MiB, performance like bcrypt cost 2^5 -
+latency 2-3 ms and throughput 10,000+ per second on a 16-core server):
+
+flags = YESCRYPT_DEFAULTS, N = 2048, r = 8, p = 1, t = 0, g = 0, NROM = 0
+
+Large and slow (memory usage 16 MiB, performance like bcrypt cost 2^8 -
+latency 10-30 ms and throughput 1000+ per second on a 16-core server):
+
+flags = YESCRYPT_DEFAULTS, N = 4096, r = 32, p = 1, t = 0, g = 0, NROM = 0
+
+Of course, even heavier and slower settings are possible, if affordable.
+Simply double the value of N as many times as needed.  Since N must be a
+power of two, you may use r (in the range of 8 to 32) or/and t (in the
+range of 0 to 2) for fine-tuning the running time, but first bring N to
+the maximum you can afford.  If this feels too complicated, just use one
+of the two parameter sets given above (preferably the second) as-is.
+
+
+	Password hashing for user authentication, with ROM.
+
+It's similar to the above, except that you need to adjust r, set NROM,
+and initialize the ROM.
+
+First decide on a ROM size, such as making it a large portion of your
+dedicated authentication servers' RAM sizes.  Since NROM (block count)
+must be a power of two, you might need to choose r (block size) based on
+how your desired ROM size corresponds to a power of two.  Also tuning
+for performance on current hardware, you'll likely end up with r in the
+range from slightly below 16 to 32.  For example, to use 15/16 of a
+server's 256 GiB RAM as ROM (thus, making it 240 GiB), you could use
+r=15 or r=30.  To use 23/24 of a server's 384 GiB RAM as ROM (thus,
+making it 368 GiB), you'd use r=23.  Then set NROM to your desired ROM
+size in KiB divided by 128*r.  Note that these examples might (or might
+not) be too extreme, leaving little memory for the rest of the system.
+You could as well opt for 7/8 with r=14 or 11/12 with r=11 or r=22.
+
+Note that higher r may make placing of ROM in e.g. NVMe flash memory
+instead of in RAM more reasonable (or less unreasonable) than it would
+have been with a lower r.  If this is a concern as it relates to
+possible attacks and you do not intend to ever do it defensively, you
+might want to keep r lower (e.g., prefer r=15 over r=30 in the example
+above, even if 30 performs slightly faster).
+
+Your adjustments to r, if you deviate from powers of two, will also
+result in weirder memory usage per hash.  Like 1.75 MiB at r=14 instead
+of 2 MiB at r=8 that you would have used without a ROM.  That's OK.
+
+For ROM initialization, which you do with yescrypt_init_shared(), use
+the same r and NROM that you'd later use for password hashing, choose p
+based on your servers' physical and/or logical CPU count (maybe
+considering eventual upgrades as you won't be able to change this later,
+but without going unnecessarily high - e.g., p=28, p=56, or p=112 make
+sense on servers that currently have 28 physical / 56 logical CPUs), and
+set the rest of the parameters to:
+
+flags = YESCRYPT_DEFAULTS, N = 0, t = 0, g = 0
+
+N is set to 0 because it isn't relevant during ROM initialization (you
+can use different values of N for hashing passwords with the same ROM).
+
+To keep the ROM in e.g. SysV shared memory and reuse it across your
+authentication service restarts, you'd need to allocate the memory and
+set the flags to "YESCRYPT_DEFAULTS | YESCRYPT_SHARED_PREALLOCATED".
+
+For actual password hashing, you'd use your chosen values for N, r,
+NROM, and set the rest of the parameters to:
+
+flags = YESCRYPT_DEFAULTS, p = 1, t = 0, g = 0
+
+Note that although you'd use a large p for ROM initialization, you
+should use p=1 for actual password hashing like you would without a ROM.
+
+Do not forget to pass the ROM into the actual password hashing (and keep
+r and NROM set accordingly).
+
+Since N must be a power of two and r is dependent on ROM size, you may
+use t (in the range of 0 to 2) for fine-tuning the running time, but
+first bring N to the maximum you can afford.
+
+If this feels too complicated, or even if it doesn't, please consider
+engaging Openwall for your yescrypt deployment.  We'd be happy to help.
+
+
+	Password-based key derivation.
+
+(Or rather passphrase-based.)
+
+Use settings similar to those for password hashing without a ROM, but
+adjusted for higher memory usage and running time, and optionally with
+thread-level parallelism.
+
+Small and fast (memory usage 128 MiB, running time under 100 ms on a
+fast desktop):
+
+flags = YESCRYPT_DEFAULTS, N = 32768, r = 32, p = 1, t = 0, g = 0, NROM = 0
+
+Large and fast (memory usage 1 GiB, running time under 200 ms on a fast
+quad-core desktop not including memory allocation overhead, under 250 ms
+with the overhead included), but requires build with OpenMP support (or
+otherwise will run as slow as yet be weaker than its p=1 alternative):
+
+flags = YESCRYPT_DEFAULTS, N = 262144, r = 32, p = 4, t = 0, g = 0, NROM = 0
+
+Large and slower (memory usage 1 GiB, running time under 300 ms on a
+fast quad-core desktop not including memory allocation overhead, under
+350 ms with the overhead included), also requires build with OpenMP
+support (or otherwise will run slower than the p=1 alternative below):
+
+flags = YESCRYPT_DEFAULTS, N = 262144, r = 32, p = 4, t = 2, g = 0, NROM = 0
+
+Large and slow (memory usage 1 GiB, running time under 600 ms on a fast
+desktop not including memory allocation overhead, under 650 ms with the
+overhead included):
+
+flags = YESCRYPT_DEFAULTS, N = 262144, r = 32, p = 1, t = 0, g = 0, NROM = 0
+
+Just like with password hashing, even heavier and slower settings are
+possible, if affordable, and you achieve them by adjusting N, r, t in
+the same way and in the same preferred ranges (please see the section on
+password hashing without a ROM, above).  Unlike with password hashing,
+it makes some sense to go above t=2 if you expect that your users might
+not be able to afford more memory but can afford more time.  However,
+increasing the memory usage provides better protection, and we don't
+recommend forcing your users to wait for more than 1 second as they
+could as well type more characters in that time.  If this feels too
+complicated, just use one of the above parameter sets as-is.
+
+
+	Amortization of memory allocation overhead.
+
+It takes a significant fraction of yescrypt's total running time to
+allocate memory from the operating system, especially considering that
+the kernel zeroizes the memory before handing it over to your program.
+
+Unless you naturally need to compute yescrypt just once per process, you
+may achieve greater efficiency by fully using advanced yescrypt APIs
+that let you preserve and reuse the memory allocation across yescrypt
+invocations.  This is done by reusing the structure pointed to by the
+"yescrypt_local_t *local" argument of yescrypt_r() or yescrypt_kdf()
+without calling yescrypt_free_local() inbetween the repeated invocations
+of yescrypt.
+
+
+	YESCRYPT_DEFAULTS macro.
+
+Please note that the value of the YESCRYPT_DEFAULTS macro might change
+later, so if you use the macro like it's recommended here then for
+results reproducible across versions you might need to store its value
+somewhere along with the hashes or the encrypted data.
+
+If you use yescrypt's standard hash string encoding, then yescrypt
+already encodes and decodes this value for you, so you don't need to
+worry about this.

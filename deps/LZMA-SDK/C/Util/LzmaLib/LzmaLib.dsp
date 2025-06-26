@@ -101,10 +101,18 @@ SOURCE=.\LzmaLib.def
 
 SOURCE=.\LzmaLibExports.c
 # End Source File
+# Begin Source File
+
+SOURCE=.\Precomp.h
+# End Source File
 # End Group
 # Begin Source File
 
 SOURCE=..\..\7zTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\7zWindows.h
 # End Source File
 # Begin Source File
 
@@ -113,6 +121,14 @@ SOURCE=..\..\Alloc.c
 # Begin Source File
 
 SOURCE=..\..\Alloc.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Compiler.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\CpuArch.h
 # End Source File
 # Begin Source File
 
@@ -165,6 +181,10 @@ SOURCE=..\..\LzmaLib.c
 # Begin Source File
 
 SOURCE=..\..\LzmaLib.h
+# End Source File
+# Begin Source File
+
+SOURCE=..\..\Precomp.h
 # End Source File
 # Begin Source File
 

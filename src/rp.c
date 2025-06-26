@@ -1014,6 +1014,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   }
 
   u32 invalid_cnt = 0;
+  u32 valid_cnt = 0;
 
   for (u32 i = 0; i < kernel_rules_cnt; i++)
   {
@@ -1032,16 +1033,25 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         if (out_pos == RULES_MAX - 1)
         {
-          event_log_warning (hashcat_ctx, "Maximum functions per rule exceeded during chaining of rules, skipping...");
-
           invalid_cnt++;
 
           break;
+        }
+        else
+        {
+          valid_cnt++;
         }
 
         out->cmds[out_pos] = in->cmds[in_pos];
       }
     }
+  }
+
+  if (invalid_cnt > 0)
+  {
+    event_log_warning (hashcat_ctx, "Maximum functions per rule exceeded during chaining of rules.");
+    event_log_warning (hashcat_ctx, "Skipped %u rule chains, %u valid chains remain.", invalid_cnt, valid_cnt);
+    event_log_warning (hashcat_ctx, NULL);
   }
 
   hcfree (repeats);

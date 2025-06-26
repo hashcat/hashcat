@@ -1,5 +1,5 @@
 /* Lzma86Enc.c -- LZMA + x86 (BCJ) Filter Encoder
-2018-07-04 : Igor Pavlov : Public domain */
+2023-03-03 : Igor Pavlov : Public domain */
 
 #include "Precomp.h"
 
@@ -46,9 +46,8 @@ int Lzma86_Encode(Byte *dest, size_t *destLen, const Byte *src, size_t srcLen,
       memcpy(filteredStream, src, srcLen);
     }
     {
-      UInt32 x86State;
-      x86_Convert_Init(x86State);
-      x86_Convert(filteredStream, srcLen, 0, &x86State, 1);
+      UInt32 x86State = Z7_BRANCH_CONV_ST_X86_STATE_INIT_VAL;
+      z7_BranchConvSt_X86_Enc(filteredStream, srcLen, 0, &x86State);
     }
   }
 

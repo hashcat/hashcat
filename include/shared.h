@@ -46,7 +46,7 @@ void naive_escape (char *s, size_t s_max, const char key_char, const char escape
 
 __attribute__ ((format (printf, 2, 3))) int hc_asprintf (char **strp, const char *fmt, ...);
 
-void setup_environment_variables (const folder_config_t *folder_config);
+void setup_environment_variables (const folder_config_t *folder_config, const user_options_t *user_options);
 void setup_umask (void);
 void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
 
@@ -106,10 +106,23 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
 
 int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len);
 
+int get_current_arch();
+
 #if defined (__APPLE__)
 bool is_apple_silicon (void);
 #endif
 
 char *file_to_buffer (const char *filename);
+
+bool check_file_suffix (const char *file, const char *suffix);
+bool remove_file_suffix (char *file, const char *suffix);
+
+int suppress_stderr (void);
+void restore_stderr (int saved_fd);
+
+bool get_free_memory (u64 *free_mem);
+
+u32 previous_power_of_two (const u32 x);
+u32 next_power_of_two (const u32 x);
 
 #endif // HC_SHARED_H

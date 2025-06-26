@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.Build.NoTargets/3.5.6">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <PackageId>madler.zlib.redist</PackageId>
+    <PackageId Condition="$([MSBuild]::IsOSPlatform('Windows'))">$(PackageId).win</PackageId>
+    <PackageId Condition="$([MSBuild]::IsOSPlatform('Linux'))">$(PackageId).linux</PackageId>
+    <PackageId Condition="$([MSBuild]::IsOSPlatform('OSX'))">$(PackageId).osx</PackageId>
+    <Copyright>(C) 1995-2024 Jean-loup Gailly and Mark Adler</Copyright>
+    <version>1.3.1.1</version>
+    <PackageDescription>NuGet Package for consuming native builds of zlib into .NET without complexity.</PackageDescription>
+    <!--
+        Warns about not having any lib or ref assemblies (.NET Assemblies) in those directories.
+        Native only packages that is to be consumed in .NET should not require these.
+    -->
+    <NoWarn>NU5128</NoWarn>
+    <PackageOutputPath>$(MSBuildProjectDirectory)</PackageOutputPath>
+    <Authors>Jean-loup Gailly and Mark Adler</Authors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="../../LICENSE" Pack="true" PackagePath="" />
+    <!-- Package up Windows builds. -->
+    <None Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="../vstudio/vc17/x86/ZlibDll$(Configuration)/zlibwapi.dll" Pack="true" PackagePath="runtimes/win-x86/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="../vstudio/vc17/x64/ZlibDll$(Configuration)/zlibwapi.dll" Pack="true" PackagePath="runtimes/win-x64/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="../vstudio/vc17/arm/ZlibDll$(Configuration)/zlibwapi.dll" Pack="true" PackagePath="runtimes/win-arm/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="../vstudio/vc17/arm64/ZlibDll$(Configuration)/zlibwapi.dll" Pack="true" PackagePath="runtimes/win-arm64/native" />
+    <!-- Include debug symbols as well as we never know if they might actually be needed in the future. -->
+    <None Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="../vstudio/vc17/x86/ZlibDll$(Configuration)/zlibwapi.pdb" Pack="true" PackagePath="runtimes/win-x86/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="../vstudio/vc17/x64/ZlibDll$(Configuration)/zlibwapi.pdb" Pack="true" PackagePath="runtimes/win-x64/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="../vstudio/vc17/arm/ZlibDll$(Configuration)/zlibwapi.pdb" Pack="true" PackagePath="runtimes/win-arm/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('Windows'))" Include="../vstudio/vc17/arm64/ZlibDll$(Configuration)/zlibwapi.pdb" Pack="true" PackagePath="runtimes/win-arm64/native" />
+    <!-- Package up Linux builds. -->
+    <None Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="./linux-x86/libz.so" Pack="true" PackagePath="runtimes/linux-x86/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="./linux-x64/libz.so" Pack="true" PackagePath="runtimes/linux-x64/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="./linux-arm/libz.so" Pack="true" PackagePath="runtimes/linux-arm/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('Linux'))" Include="./linux-arm64/libz.so" Pack="true" PackagePath="runtimes/linux-arm64/native" />
+    <!-- Package up MacOS builds. -->
+    <None Condition="$([MSBuild]::IsOSPlatform('OSX'))" Include="./osx-x64/libz.dylib" Pack="true" PackagePath="runtimes/osx-x64/native" />
+    <None Condition="$([MSBuild]::IsOSPlatform('OSX'))" Include="./osx-arm64/libz.dylib" Pack="true" PackagePath="runtimes/osx-arm64/native" />
+  </ItemGroup>
+
+</Project>

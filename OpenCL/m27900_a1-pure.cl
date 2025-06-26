@@ -121,7 +121,7 @@ DECLSPEC u32x crc32c_g (GLOBAL_AS const u32x *w, const u32 pw_len, const u32 iv)
   return ~a;
 }
 
-KERNEL_FQ void m27900_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m27900_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -163,7 +163,7 @@ KERNEL_FQ void m27900_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m27900_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m27900_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

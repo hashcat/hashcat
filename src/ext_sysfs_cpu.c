@@ -44,12 +44,9 @@ void sysfs_cpu_close (void *hashcat_ctx)
 
 char *hm_SYSFS_CPU_get_syspath_hwmon (void)
 {
-  char *found[4];
+  char *found = NULL;
 
-  found[0] = NULL;
-  found[1] = NULL;
-  found[2] = NULL;
-  found[3] = NULL;
+  int best = 4;
 
   // 16 ok?
 
@@ -61,31 +58,43 @@ char *hm_SYSFS_CPU_get_syspath_hwmon (void)
 
     HCFILE fp;
 
-    if (hc_fopen_raw (&fp, path, "rb") == false) continue;
+    if (hc_fopen_raw (&fp, path, "rb") == false)
+    {
+      hcfree (path);
+
+      continue;
+    }
 
     char buf[64] = { 0 };
 
     const size_t line_len = fgetl (&fp, buf, sizeof (buf));
 
-    if (line_len)
-    {
-      if (strcmp (buf, SENSOR_CORETEMP) == 0) hc_asprintf (&found[0], "%s/hwmon%d", SYSFS_HWMON, i);
-      if (strcmp (buf, SENSOR_K10TEMP)  == 0) hc_asprintf (&found[1], "%s/hwmon%d", SYSFS_HWMON, i);
-      if (strcmp (buf, SENSOR_K8TEMP)   == 0) hc_asprintf (&found[2], "%s/hwmon%d", SYSFS_HWMON, i);
-      if (strcmp (buf, SENSOR_ACPITZ)   == 0) hc_asprintf (&found[3], "%s/hwmon%d", SYSFS_HWMON, i);
-    }
-
     hc_fclose (&fp);
 
     hcfree (path);
+
+    if (line_len == 0) continue;
+
+    int tmp_best = -1;
+
+    if (strcmp (buf, SENSOR_CORETEMP) == 0) tmp_best = 0;
+    if (strcmp (buf, SENSOR_K10TEMP)  == 0) tmp_best = 1;
+    if (strcmp (buf, SENSOR_K8TEMP)   == 0) tmp_best = 2;
+    if (strcmp (buf, SENSOR_ACPITZ)   == 0) tmp_best = 3;
+
+    if (tmp_best >= 0 && tmp_best < best)
+    {
+      hcfree (found);
+
+      best = tmp_best;
+
+      hc_asprintf (&found, "%s/hwmon%d", SYSFS_HWMON, i);
+
+      if (best == 0) break;
+    }
   }
 
-  if (found[0]) return found[0];
-  if (found[1]) return found[1];
-  if (found[2]) return found[2];
-  if (found[3]) return found[3];
-
-  return NULL;
+  return found;
 }
 
 int hm_SYSFS_CPU_get_temperature_current (void *hashcat_ctx, int *val)

@@ -15,7 +15,7 @@
 #include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
 #endif
 
-KERNEL_FQ void m26403_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m26403_m04 (KERN_ATTR_BASIC ())
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -206,15 +206,15 @@ KERNEL_FQ void m26403_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m26403_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m26403_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m26403_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m26403_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m26403_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m26403_s04 (KERN_ATTR_BASIC ())
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -417,10 +417,10 @@ KERNEL_FQ void m26403_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m26403_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m26403_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m26403_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m26403_s16 (KERN_ATTR_BASIC ())
 {
 }

@@ -218,7 +218,7 @@ CONSTANT_VK u32a crc32tab[256] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-KERNEL_FQ void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
+KERNEL_FQ KERNEL_FA void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -459,7 +459,7 @@ KERNEL_FQ void m17210_sxx (KERN_ATTR_ESALT (pkzip_t))
   }
 }
 
-KERNEL_FQ void m17210_mxx (KERN_ATTR_ESALT (pkzip_t))
+KERNEL_FQ KERNEL_FA void m17210_mxx (KERN_ATTR_ESALT (pkzip_t))
 {
   /**
    * modifier
