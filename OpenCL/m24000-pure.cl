@@ -9,21 +9,12 @@
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha256.cl)
+#include M2S(INCLUDE_PATH/inc_hash_scrypt.cl)
 #include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
 #include M2S(INCLUDE_PATH/inc_cipher_twofish.cl)
 #include M2S(INCLUDE_PATH/inc_cipher_serpent.cl)
 #include M2S(INCLUDE_PATH/inc_cipher_camellia.cl)
 #endif
-
-typedef struct
-{
-  #ifndef SCRYPT_TMP_ELEM
-  #define SCRYPT_TMP_ELEM 1
-  #endif
-
-  uint4 P[SCRYPT_TMP_ELEM];
-
-} scrypt_tmp_t;
 
 typedef struct bestcrypt_scrypt
 {
@@ -32,284 +23,6 @@ typedef struct bestcrypt_scrypt
   u32 version;
 
 } bestcrypt_scrypt_t;
-
-#if defined IS_CUDA || defined IS_HIP
-
-inline __device__ uint4 operator &  (const uint4  a, const u32   b) { return make_uint4 ((a.x &  b  ), (a.y &  b  ), (a.z &  b  ), (a.w &  b  ));  }
-inline __device__ uint4 operator << (const uint4  a, const u32   b) { return make_uint4 ((a.x << b  ), (a.y << b  ), (a.z << b  ), (a.w << b  ));  }
-inline __device__ uint4 operator >> (const uint4  a, const u32   b) { return make_uint4 ((a.x >> b  ), (a.y >> b  ), (a.z >> b  ), (a.w >> b  ));  }
-inline __device__ uint4 operator +  (const uint4  a, const uint4 b) { return make_uint4 ((a.x +  b.x), (a.y +  b.y), (a.z +  b.z), (a.w +  b.w));  }
-inline __device__ uint4 operator ^  (const uint4  a, const uint4 b) { return make_uint4 ((a.x ^  b.x), (a.y ^  b.y), (a.z ^  b.z), (a.w ^  b.w));  }
-inline __device__ uint4 operator |  (const uint4  a, const uint4 b) { return make_uint4 ((a.x |  b.x), (a.y |  b.y), (a.z |  b.z), (a.w |  b.w));  }
-inline __device__ void  operator ^= (      uint4 &a, const uint4 b) {                     a.x ^= b.x;   a.y ^= b.y;   a.z ^= b.z;   a.w ^= b.w;    }
-
-inline __device__ uint4 rotate (const uint4 a, const int n)
-{
-  return ((a << n) | ((a >> (32 - n))));
-}
-
-#endif
-
-DECLSPEC uint4 hc_swap32_4 (uint4 v)
-{
-  return (rotate ((v & 0x00FF00FF), 24u) | rotate ((v & 0xFF00FF00),  8u));
-}
-
-#define GET_SCRYPT_CNT(r,p) (2 * (r) * 16 * (p))
-#define GET_SMIX_CNT(r,N)   (2 * (r) * 16 * (N))
-#define GET_STATE_CNT(r)    (2 * (r) * 16)
-
-#define SCRYPT_CNT  GET_SCRYPT_CNT (SCRYPT_R, SCRYPT_P)
-#define SCRYPT_CNT4 (SCRYPT_CNT / 4)
-#define STATE_CNT   GET_STATE_CNT  (SCRYPT_R)
-#define STATE_CNT4  (STATE_CNT / 4)
-
-#define ADD_ROTATE_XOR(r,i1,i2,s) (r) ^= rotate ((i1) + (i2), (s));
-
-#if defined IS_CUDA || defined IS_HIP
-
-#define SALSA20_2R()                        \
-{                                           \
-  ADD_ROTATE_XOR (X1, X0, X3,  7);          \
-  ADD_ROTATE_XOR (X2, X1, X0,  9);          \
-  ADD_ROTATE_XOR (X3, X2, X1, 13);          \
-  ADD_ROTATE_XOR (X0, X3, X2, 18);          \
-                                            \
-  X1 = make_uint4 (X1.w, X1.x, X1.y, X1.z); \
-  X2 = make_uint4 (X2.z, X2.w, X2.x, X2.y); \
-  X3 = make_uint4 (X3.y, X3.z, X3.w, X3.x); \
-                                            \
-  ADD_ROTATE_XOR (X3, X0, X1,  7);          \
-  ADD_ROTATE_XOR (X2, X3, X0,  9);          \
-  ADD_ROTATE_XOR (X1, X2, X3, 13);          \
-  ADD_ROTATE_XOR (X0, X1, X2, 18);          \
-                                            \
-  X1 = make_uint4 (X1.y, X1.z, X1.w, X1.x); \
-  X2 = make_uint4 (X2.z, X2.w, X2.x, X2.y); \
-  X3 = make_uint4 (X3.w, X3.x, X3.y, X3.z); \
-}
-#elif defined IS_METAL
-#define SALSA20_2R()                        \
-{                                           \
-  ADD_ROTATE_XOR (X1, X0, X3,  7);          \
-  ADD_ROTATE_XOR (X2, X1, X0,  9);          \
-  ADD_ROTATE_XOR (X3, X2, X1, 13);          \
-  ADD_ROTATE_XOR (X0, X3, X2, 18);          \
-                                            \
-  X1 = X1.wxyz;                             \
-  X2 = X2.zwxy;                             \
-  X3 = X3.yzwx;                             \
-                                            \
-  ADD_ROTATE_XOR (X3, X0, X1,  7);          \
-  ADD_ROTATE_XOR (X2, X3, X0,  9);          \
-  ADD_ROTATE_XOR (X1, X2, X3, 13);          \
-  ADD_ROTATE_XOR (X0, X1, X2, 18);          \
-                                            \
-  X1 = X1.yzwx;                             \
-  X2 = X2.zwxy;                             \
-  X3 = X3.wxyz;                             \
-}
-#else
-#define SALSA20_2R()                        \
-{                                           \
-  ADD_ROTATE_XOR (X1, X0, X3,  7);          \
-  ADD_ROTATE_XOR (X2, X1, X0,  9);          \
-  ADD_ROTATE_XOR (X3, X2, X1, 13);          \
-  ADD_ROTATE_XOR (X0, X3, X2, 18);          \
-                                            \
-  X1 = X1.s3012;                            \
-  X2 = X2.s2301;                            \
-  X3 = X3.s1230;                            \
-                                            \
-  ADD_ROTATE_XOR (X3, X0, X1,  7);          \
-  ADD_ROTATE_XOR (X2, X3, X0,  9);          \
-  ADD_ROTATE_XOR (X1, X2, X3, 13);          \
-  ADD_ROTATE_XOR (X0, X1, X2, 18);          \
-                                            \
-  X1 = X1.s1230;                            \
-  X2 = X2.s2301;                            \
-  X3 = X3.s3012;                            \
-}
-#endif
-
-#define SALSA20_8_XOR() \
-{                       \
-  R0 = R0 ^ Y0;         \
-  R1 = R1 ^ Y1;         \
-  R2 = R2 ^ Y2;         \
-  R3 = R3 ^ Y3;         \
-                        \
-  uint4 X0 = R0;        \
-  uint4 X1 = R1;        \
-  uint4 X2 = R2;        \
-  uint4 X3 = R3;        \
-                        \
-  SALSA20_2R ();        \
-  SALSA20_2R ();        \
-  SALSA20_2R ();        \
-  SALSA20_2R ();        \
-                        \
-  R0 = R0 + X0;         \
-  R1 = R1 + X1;         \
-  R2 = R2 + X2;         \
-  R3 = R3 + X3;         \
-}
-
-DECLSPEC void salsa_r (PRIVATE_AS uint4 *TI)
-{
-  uint4 R0 = TI[STATE_CNT4 - 4];
-  uint4 R1 = TI[STATE_CNT4 - 3];
-  uint4 R2 = TI[STATE_CNT4 - 2];
-  uint4 R3 = TI[STATE_CNT4 - 1];
-
-  uint4 TO[STATE_CNT4];
-
-  int idx_y  = 0;
-  int idx_r1 = 0;
-  int idx_r2 = SCRYPT_R * 4;
-
-  for (int i = 0; i < SCRYPT_R; i++)
-  {
-    uint4 Y0;
-    uint4 Y1;
-    uint4 Y2;
-    uint4 Y3;
-
-    Y0 = TI[idx_y++];
-    Y1 = TI[idx_y++];
-    Y2 = TI[idx_y++];
-    Y3 = TI[idx_y++];
-
-    SALSA20_8_XOR ();
-
-    TO[idx_r1++] = R0;
-    TO[idx_r1++] = R1;
-    TO[idx_r1++] = R2;
-    TO[idx_r1++] = R3;
-
-    Y0 = TI[idx_y++];
-    Y1 = TI[idx_y++];
-    Y2 = TI[idx_y++];
-    Y3 = TI[idx_y++];
-
-    SALSA20_8_XOR ();
-
-    TO[idx_r2++] = R0;
-    TO[idx_r2++] = R1;
-    TO[idx_r2++] = R2;
-    TO[idx_r2++] = R3;
-  }
-
-  #pragma unroll
-  for (int i = 0; i < STATE_CNT4; i++)
-  {
-    TI[i] = TO[i];
-  }
-}
-
-DECLSPEC void scrypt_smix (PRIVATE_AS uint4 *X, PRIVATE_AS uint4 *T, GLOBAL_AS uint4 *V0, GLOBAL_AS uint4 *V1, GLOBAL_AS uint4 *V2, GLOBAL_AS uint4 *V3, const u64 gid)
-{
-  #define Coord(xd4,y,z) (((xd4) * ySIZE * zSIZE) + ((y) * zSIZE) + (z))
-  #define CO Coord(xd4,y,z)
-
-  const u32 ySIZE = SCRYPT_N / SCRYPT_TMTO;
-  const u32 zSIZE = STATE_CNT4;
-
-  const u32 x = (u32) gid;
-
-  const u32 xd4 = x / 4;
-  const u32 xm4 = x & 3;
-
-  GLOBAL_AS uint4 *V;
-
-  switch (xm4)
-  {
-    case 0: V = V0; break;
-    case 1: V = V1; break;
-    case 2: V = V2; break;
-    case 3: V = V3; break;
-  }
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0; i < STATE_CNT4; i += 4)
-  {
-    #if defined IS_CUDA || defined IS_HIP
-    T[0] = make_uint4 (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
-    T[1] = make_uint4 (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
-    T[2] = make_uint4 (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
-    T[3] = make_uint4 (X[i + 3].x, X[i + 0].y, X[i + 1].z, X[i + 2].w);
-    #elif defined IS_METAL
-    T[0] = uint4 (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
-    T[1] = uint4 (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
-    T[2] = uint4 (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
-    T[3] = uint4 (X[i + 3].x, X[i + 0].y, X[i + 1].z, X[i + 2].w);
-    #else
-    T[0] = (uint4) (X[i + 0].x, X[i + 1].y, X[i + 2].z, X[i + 3].w);
-    T[1] = (uint4) (X[i + 1].x, X[i + 2].y, X[i + 3].z, X[i + 0].w);
-    T[2] = (uint4) (X[i + 2].x, X[i + 3].y, X[i + 0].z, X[i + 1].w);
-    T[3] = (uint4) (X[i + 3].x, X[i + 0].y, X[i + 1].z, X[i + 2].w);
-    #endif
-
-    X[i + 0] = T[0];
-    X[i + 1] = T[1];
-    X[i + 2] = T[2];
-    X[i + 3] = T[3];
-  }
-
-  for (u32 y = 0; y < ySIZE; y++)
-  {
-    for (u32 z = 0; z < zSIZE; z++) V[CO] = X[z];
-
-    for (u32 i = 0; i < SCRYPT_TMTO; i++) salsa_r (X);
-  }
-
-  for (u32 i = 0; i < SCRYPT_N; i++)
-  {
-    const u32 k = X[zSIZE - 4].x & (SCRYPT_N - 1);
-
-    const u32 y = k / SCRYPT_TMTO;
-
-    const u32 km = k - (y * SCRYPT_TMTO);
-
-    for (u32 z = 0; z < zSIZE; z++) T[z] = V[CO];
-
-    for (u32 i = 0; i < km; i++) salsa_r (T);
-
-    for (u32 z = 0; z < zSIZE; z++) X[z] ^= T[z];
-
-    salsa_r (X);
-  }
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (u32 i = 0; i < STATE_CNT4; i += 4)
-  {
-    #if defined IS_CUDA || defined IS_HIP
-    T[0] = make_uint4 (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
-    T[1] = make_uint4 (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
-    T[2] = make_uint4 (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
-    T[3] = make_uint4 (X[i + 3].x, X[i + 2].y, X[i + 1].z, X[i + 0].w);
-    #elif defined IS_METAL
-    T[0] = uint4 (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
-    T[1] = uint4 (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
-    T[2] = uint4 (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
-    T[3] = uint4 (X[i + 3].x, X[i + 2].y, X[i + 1].z, X[i + 0].w);
-    #else
-    T[0] = (uint4) (X[i + 0].x, X[i + 3].y, X[i + 2].z, X[i + 1].w);
-    T[1] = (uint4) (X[i + 1].x, X[i + 0].y, X[i + 3].z, X[i + 2].w);
-    T[2] = (uint4) (X[i + 2].x, X[i + 1].y, X[i + 0].z, X[i + 3].w);
-    T[3] = (uint4) (X[i + 3].x, X[i + 2].y, X[i + 1].z, X[i + 0].w);
-    #endif
-
-    X[i + 0] = T[0];
-    X[i + 1] = T[1];
-    X[i + 2] = T[2];
-    X[i + 3] = T[3];
-  }
-}
 
 #ifndef KECCAK_ROUNDS
 #define KECCAK_ROUNDS 24
@@ -442,118 +155,51 @@ DECLSPEC void keccak_transform_S (PRIVATE_AS u64 *st)
   }
 }
 
-KERNEL_FQ void m24000_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
-{
-  /**
-   * base
-   */
-
-  const u64 gid = get_global_id (0);
-
-  if (gid >= GID_CNT) return;
-
-  sha256_hmac_ctx_t sha256_hmac_ctx;
-
-  sha256_hmac_init_global_swap (&sha256_hmac_ctx, pws[gid].i, pws[gid].pw_len);
-
-  sha256_hmac_update_global_swap (&sha256_hmac_ctx, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
-
-  for (u32 i = 0, j = 1, k = 0; i < SCRYPT_CNT; i += 8, j += 1, k += 2)
-  {
-    sha256_hmac_ctx_t sha256_hmac_ctx2 = sha256_hmac_ctx;
-
-    u32 w0[4];
-    u32 w1[4];
-    u32 w2[4];
-    u32 w3[4];
-
-    w0[0] = j;
-    w0[1] = 0;
-    w0[2] = 0;
-    w0[3] = 0;
-    w1[0] = 0;
-    w1[1] = 0;
-    w1[2] = 0;
-    w1[3] = 0;
-    w2[0] = 0;
-    w2[1] = 0;
-    w2[2] = 0;
-    w2[3] = 0;
-    w3[0] = 0;
-    w3[1] = 0;
-    w3[2] = 0;
-    w3[3] = 0;
-
-    sha256_hmac_update_64 (&sha256_hmac_ctx2, w0, w1, w2, w3, 4);
-
-    sha256_hmac_final (&sha256_hmac_ctx2);
-
-    u32 digest[8];
-
-    digest[0] = sha256_hmac_ctx2.opad.h[0];
-    digest[1] = sha256_hmac_ctx2.opad.h[1];
-    digest[2] = sha256_hmac_ctx2.opad.h[2];
-    digest[3] = sha256_hmac_ctx2.opad.h[3];
-    digest[4] = sha256_hmac_ctx2.opad.h[4];
-    digest[5] = sha256_hmac_ctx2.opad.h[5];
-    digest[6] = sha256_hmac_ctx2.opad.h[6];
-    digest[7] = sha256_hmac_ctx2.opad.h[7];
-
-    #if defined IS_CUDA || defined IS_HIP
-    const uint4 tmp0 = make_uint4 (digest[0], digest[1], digest[2], digest[3]);
-    const uint4 tmp1 = make_uint4 (digest[4], digest[5], digest[6], digest[7]);
-    #elif defined IS_METAL
-    const uint4 tmp0 = uint4 (digest[0], digest[1], digest[2], digest[3]);
-    const uint4 tmp1 = uint4 (digest[4], digest[5], digest[6], digest[7]);
-    #else
-    const uint4 tmp0 = (uint4) (digest[0], digest[1], digest[2], digest[3]);
-    const uint4 tmp1 = (uint4) (digest[4], digest[5], digest[6], digest[7]);
-    #endif
-
-    tmps[gid].P[k + 0] = tmp0;
-    tmps[gid].P[k + 1] = tmp1;
-  }
-}
-
-KERNEL_FQ void m24000_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
+KERNEL_FQ KERNEL_FA void m24000_init (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT) return;
 
-  GLOBAL_AS uint4 *d_scrypt0_buf = (GLOBAL_AS uint4 *) d_extra0_buf;
-  GLOBAL_AS uint4 *d_scrypt1_buf = (GLOBAL_AS uint4 *) d_extra1_buf;
-  GLOBAL_AS uint4 *d_scrypt2_buf = (GLOBAL_AS uint4 *) d_extra2_buf;
-  GLOBAL_AS uint4 *d_scrypt3_buf = (GLOBAL_AS uint4 *) d_extra3_buf;
+  scrypt_pbkdf2_ggg (pws[gid].i, pws[gid].pw_len, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len, tmps[gid].in, SCRYPT_SZ);
 
-  uint4 X[STATE_CNT4];
-  uint4 T[STATE_CNT4];
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[z]);
-
-  scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid);
-
-  #ifdef _unroll
-  #pragma unroll
-  #endif
-  for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[z] = hc_swap32_4 (X[z]);
-
-  #if SCRYPT_P >= 1
-  for (int i = STATE_CNT4; i < SCRYPT_CNT4; i += STATE_CNT4)
-  {
-    for (int z = 0; z < STATE_CNT4; z++) X[z] = hc_swap32_4 (tmps[gid].P[i + z]);
-
-    scrypt_smix (X, T, d_scrypt0_buf, d_scrypt1_buf, d_scrypt2_buf, d_scrypt3_buf, gid);
-
-    for (int z = 0; z < STATE_CNT4; z++) tmps[gid].P[i + z] = hc_swap32_4 (X[z]);
-  }
-  #endif
+  scrypt_blockmix_in (tmps[gid].in, tmps[gid].out, SCRYPT_SZ);
 }
 
-KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
+KERNEL_FQ KERNEL_FA void m24000_loop_prepare (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
+{
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+  const u64 bid = get_group_id (0);
+
+  if (gid >= GID_CNT) return;
+
+  u32 X[STATE_CNT4];
+
+  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
+
+  scrypt_smix_init (P, X, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
+}
+
+KERNEL_FQ KERNEL_FA void m24000_loop (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
+{
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+  const u64 bid = get_group_id (0);
+
+  if (gid >= GID_CNT) return;
+
+  u32 X[STATE_CNT4];
+  u32 T[STATE_CNT4];
+
+  GLOBAL_AS u32 *P = tmps[gid].out + (SALT_REPEAT * STATE_CNT4);
+
+  scrypt_smix_loop (P, X, T, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, gid, lid, lsz, bid);
+}
+
+KERNEL_FQ KERNEL_FA void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt_t))
 {
   /**
    * base
@@ -613,80 +259,13 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   CONSTANT_AS u32a *s_te4 = te4;
   #endif
 
-  /**
-   * AES part
-   */
-
   if (gid >= GID_CNT) return;
 
-  /**
-   * 2nd pbkdf2, creates B
-   */
+  scrypt_blockmix_out (tmps[gid].out, tmps[gid].in, SCRYPT_SZ);
 
-  u32 w0[4];
-  u32 w1[4];
-  u32 w2[4];
-  u32 w3[4];
+  u32 out[8];
 
-  sha256_hmac_ctx_t ctx;
-
-  sha256_hmac_init_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
-
-  for (u32 l = 0; l < SCRYPT_CNT4; l += 4)
-  {
-    uint4 tmp;
-
-    tmp = tmps[gid].P[l + 0];
-
-    w0[0] = tmp.x;
-    w0[1] = tmp.y;
-    w0[2] = tmp.z;
-    w0[3] = tmp.w;
-
-    tmp = tmps[gid].P[l + 1];
-
-    w1[0] = tmp.x;
-    w1[1] = tmp.y;
-    w1[2] = tmp.z;
-    w1[3] = tmp.w;
-
-    tmp = tmps[gid].P[l + 2];
-
-    w2[0] = tmp.x;
-    w2[1] = tmp.y;
-    w2[2] = tmp.z;
-    w2[3] = tmp.w;
-
-    tmp = tmps[gid].P[l + 3];
-
-    w3[0] = tmp.x;
-    w3[1] = tmp.y;
-    w3[2] = tmp.z;
-    w3[3] = tmp.w;
-
-    sha256_hmac_update_64 (&ctx, w0, w1, w2, w3, 64);
-  }
-
-  w0[0] = 1;
-  w0[1] = 0;
-  w0[2] = 0;
-  w0[3] = 0;
-  w1[0] = 0;
-  w1[1] = 0;
-  w1[2] = 0;
-  w1[3] = 0;
-  w2[0] = 0;
-  w2[1] = 0;
-  w2[2] = 0;
-  w2[3] = 0;
-  w3[0] = 0;
-  w3[1] = 0;
-  w3[2] = 0;
-  w3[3] = 0;
-
-  sha256_hmac_update_64 (&ctx, w0, w1, w2, w3, 4);
-
-  sha256_hmac_final (&ctx);
+  scrypt_pbkdf2_ggp (pws[gid].i, pws[gid].pw_len, tmps[gid].in, SCRYPT_SZ, out, 32);
 
   u32 version = esalt_bufs[DIGESTS_OFFSET_HOST].version;
 
@@ -694,14 +273,24 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
 
   u32 res[20]; // full would be 24 x u32 (96 bytes)
 
+  u32 key[8];
+
+  key[0] = out[0];
+  key[1] = out[1];
+  key[2] = out[2];
+  key[3] = out[3];
+  key[4] = out[4];
+  key[5] = out[5];
+  key[6] = out[6];
+  key[7] = out[7];
+
   if (version == 0x38) //0x38 is char for '8' which is the crypto type passed in position 3 of hash ( $08$ )
   {
-
     #define KEYLEN 60
 
     u32 ks[KEYLEN];
 
-    AES256_set_decrypt_key (ks, ctx.opad.h, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+    aes256_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
 
     for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
     {
@@ -728,22 +317,12 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     }
   }
 
-
   if (version == 0x39) //0x39 is char for '9' which is the crypto type passed in position 3 of hash ( $09$ )
   {
     u32 sk[4];
     u32 lk[40];
 
-    ctx.opad.h[0] = hc_swap32_S (ctx.opad.h[0]);
-    ctx.opad.h[1] = hc_swap32_S (ctx.opad.h[1]);
-    ctx.opad.h[2] = hc_swap32_S (ctx.opad.h[2]);
-    ctx.opad.h[3] = hc_swap32_S (ctx.opad.h[3]);
-    ctx.opad.h[4] = hc_swap32_S (ctx.opad.h[4]);
-    ctx.opad.h[5] = hc_swap32_S (ctx.opad.h[5]);
-    ctx.opad.h[6] = hc_swap32_S (ctx.opad.h[6]);
-    ctx.opad.h[7] = hc_swap32_S (ctx.opad.h[7]);
-
-    twofish256_set_key (sk, lk, ctx.opad.h);
+    twofish256_set_key (sk, lk, key);
 
     for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
     {
@@ -753,7 +332,6 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
       data[1] = esalt_bufs[DIGESTS_OFFSET_HOST].ciphertext[i + 1];
       data[2] = esalt_bufs[DIGESTS_OFFSET_HOST].ciphertext[i + 2];
       data[3] = esalt_bufs[DIGESTS_OFFSET_HOST].ciphertext[i + 3];
-
 
       u32 out[4];
 
@@ -775,16 +353,7 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   {
     u32 ks_serpent[140];
 
-    ctx.opad.h[0] = hc_swap32_S (ctx.opad.h[0]);
-    ctx.opad.h[1] = hc_swap32_S (ctx.opad.h[1]);
-    ctx.opad.h[2] = hc_swap32_S (ctx.opad.h[2]);
-    ctx.opad.h[3] = hc_swap32_S (ctx.opad.h[3]);
-    ctx.opad.h[4] = hc_swap32_S (ctx.opad.h[4]);
-    ctx.opad.h[5] = hc_swap32_S (ctx.opad.h[5]);
-    ctx.opad.h[6] = hc_swap32_S (ctx.opad.h[6]);
-    ctx.opad.h[7] = hc_swap32_S (ctx.opad.h[7]);
-
-    serpent256_set_key (ks_serpent, ctx.opad.h);
+    serpent256_set_key (ks_serpent, key);
 
     for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
     {
@@ -816,16 +385,7 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   {
     u32 ks_camellia[68];
 
-    ctx.opad.h[0] = hc_swap32_S (ctx.opad.h[0]);
-    ctx.opad.h[1] = hc_swap32_S (ctx.opad.h[1]);
-    ctx.opad.h[2] = hc_swap32_S (ctx.opad.h[2]);
-    ctx.opad.h[3] = hc_swap32_S (ctx.opad.h[3]);
-    ctx.opad.h[4] = hc_swap32_S (ctx.opad.h[4]);
-    ctx.opad.h[5] = hc_swap32_S (ctx.opad.h[5]);
-    ctx.opad.h[6] = hc_swap32_S (ctx.opad.h[6]);
-    ctx.opad.h[7] = hc_swap32_S (ctx.opad.h[7]);
-
-    camellia256_set_key (ks_camellia, ctx.opad.h);
+    camellia256_set_key (ks_camellia, key);
 
     for (u32 i = 0; i < 20; i += 4) // 96 bytes output would contain the full 32 byte checksum
     {
@@ -863,6 +423,11 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
   digest[5] = SHA256M_F;
   digest[6] = SHA256M_G;
   digest[7] = SHA256M_H;
+
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
 
   w0[0] = res[ 0];
   w0[1] = res[ 1];
@@ -915,3 +480,4 @@ KERNEL_FQ void m24000_comp (KERN_ATTR_TMPS_ESALT (scrypt_tmp_t, bestcrypt_scrypt
     return;
   }
 }
+

@@ -37,6 +37,14 @@ endif
 
 ifeq ($(DEBUG),1)
 $(info "## Detected Operating System : $(UNAME)")
+$(info "## Detected CC : $(CC)")
+$(info "## Detected CXX : $(CXX)")
+endif
+
+BUILD_MODE := native
+
+ifneq ($(filter binaries linux host_linux modules_linux bridges_linux win host_win modules_win bridges_win,$(MAKECMDGOALS)),)
+  BUILD_MODE := cross
 endif
 
 ##
@@ -54,6 +62,7 @@ endif
 ##
 
 MODULE_INTERFACE_VERSION := 700
+BRIDGE_INTERFACE_VERSION := 700
 
 ##
 ## Native compiler paths
@@ -148,6 +157,8 @@ DEPS_UNRAR_PATH         := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 endif
 
+DEPS_SSE2NEON           := deps/sse2neon
+
 ##
 ## Filenames for library and frontend
 ##
@@ -188,15 +199,17 @@ CFLAGS                  += -Wextra
 endif
 
 ## because LZMA SDK
-ifeq ($(CC),clang)
-#No longer supported in clang 10.0.0
-#CFLAGS                  += -Wno-enum-conversion
+ifneq (,$(findstring clang, $(CC)))
 CFLAGS                  += -Wno-typedef-redefinition
+else
+ifeq ($(CC),cc)
+CFLAGS                  += -Wno-typedef-redefinition
+endif
 endif
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 CFLAGS_LZMA             += -D_7ZIP_ST
-ifneq ($(CC),clang)
+ifeq (,$(findstring clang, $(CC)))
 CFLAGS_LZMA             += -Wno-misleading-indentation
 endif
 endif
@@ -208,17 +221,21 @@ CFLAGS_ZLIB             += -Wno-implicit-function-declaration
 CFLAGS_ZLIB             += -Wno-unused-parameter
 CFLAGS_ZLIB             += -DIOAPI_NO_64
 CFLAGS_ZLIB             += -DUNZ_BUFSIZE=262144
+ifneq (,$(findstring clang, $(CC)))
+CFLAGS_ZLIB             += -Wno-deprecated-non-prototype -Wno-unknown-warning-option
+endif
 endif
 
 ## because UNRAR
 ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
+ifeq ($(UNAME),Darwin)
+CFLAGS_UNRAR            += -std=c++14
+endif
 ifneq ($(CC),clang)
 CFLAGS_UNRAR            += -Wno-class-memaccess
 CFLAGS_UNRAR            += -Wno-misleading-indentation
 CFLAGS_UNRAR            += -Wno-format-overflow
-else
-CFLAGS_UNRAR            += -std=c++11
 endif
 CFLAGS_UNRAR            += -Wno-missing-braces
 CFLAGS_UNRAR            += -Wno-unused-variable
@@ -359,6 +376,8 @@ LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -liconv
 
 ifeq ($(IS_APPLE_SILICON),1)
+CFLAGS_NATIVE           += -DSSE2NEON_SUPPRESS_WARNINGS
+CFLAGS_NATIVE           += -I$(DEPS_SSE2NEON)
 CFLAGS_NATIVE           += -arch arm64
 CFLAGS_NATIVE           += -arch x86_64
 ifeq ($(SHARED),1)
@@ -407,7 +426,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_sysfs_amdgpu ext_sysfs_cpu ext_iokit ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_sysfs_amdgpu ext_sysfs_cpu ext_iokit ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -464,15 +483,18 @@ endif
 ##
 
 .PHONY: default
-default: $(HASHCAT_FRONTEND) modules
+default: $(HASHCAT_FRONTEND) modules bridges
 
 .PHONY: clean
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
 	$(RM) -f $(HASHCAT_LIBRARY)
 	$(RM) -rf modules/*.dSYM
+	$(RM) -rf bridges/*.dSYM
 	$(RM) -f modules/*.dll
 	$(RM) -f modules/*.so
+	$(RM) -f bridges/*.dll
+	$(RM) -f bridges/*.so
 	$(RM) -f obj/*/*/*.o
 	$(RM) -f obj/*/*.o
 	$(RM) -f obj/*.o
@@ -516,9 +538,9 @@ endif
 
 .PHONY: install
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_library install_library_dev install_tunings install_kernels install_modules install_hashcat
+install: install_docs install_shared install_library install_library_dev install_tunings install_kernels install_modules install_bridges install_hashcat
 else
-install: install_docs install_shared                                     install_tunings install_kernels install_modules install_hashcat
+install: install_docs install_shared                                     install_tunings install_kernels install_modules install_bridges install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -590,6 +612,12 @@ install_modules: install_shared modules
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/modules
 	$(FIND) modules/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
 	$(FIND) modules/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/modules/{} \;
+
+.PHONY: install_bridges
+install_bridges: install_shared bridges
+	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/bridges
+	$(FIND) bridges/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/bridges/{} \;
+	$(FIND) bridges/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/bridges/{} \;
 
 .PHONY: install_library
 install_library: $(HASHCAT_LIBRARY)
@@ -715,6 +743,40 @@ MODULES_LIB   := $(patsubst src/modules/module_%.c, modules/module_%.$(MODULE_SU
 modules: $(MODULES_LIB)
 
 ##
+## native compiled bridges
+##
+
+BRIDGE_SUFFIX := so
+
+ifeq ($(UNAME),CYGWIN)
+BRIDGE_SUFFIX := dll
+endif
+
+ifeq ($(UNAME),MSYS2)
+BRIDGE_SUFFIX := dll
+endif
+
+BRIDGES_SRC   := $(wildcard src/bridges/*.c)
+
+## not used so far, see modules above
+BRIDGES_DISABLE ?=
+
+$(BRIDGES_DISABLE): ;
+
+ifeq ($(SHARED),1)
+bridges/bridge_%.$(BRIDGE_SUFFIX): src/bridges/bridge_%.c $(HASHCAT_LIBRARY)
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
+else
+bridges/bridge_%.$(BRIDGE_SUFFIX): src/bridges/bridge_%.c obj/combined.NATIVE.a
+	$(CC)    $(CCFLAGS) $(CFLAGS_NATIVE) $^ -o $@ $(LFLAGS_NATIVE) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
+endif
+
+BRIDGES_LIB   := $(patsubst src/bridges/bridge_%.c, bridges/bridge_%.$(BRIDGE_SUFFIX), $(BRIDGES_SRC))
+
+.PHONY: bridges
+bridges: $(BRIDGES_LIB)
+
+##
 ## Cross Compilation (binary release version)
 ##
 
@@ -732,12 +794,9 @@ CXX_WIN                 := x86_64-w64-mingw32-g++
 AR_LINUX                := ar
 AR_WIN                  := x86_64-w64-mingw32-ar
 
-## To compile win-iconv with mingw clone from here: https://github.com/win-iconv/win-iconv
-##
-## Then patch the makefile with the patches from tools/win-iconv-64.diff and run make install
-##
-
+# See BUILD_WSL.md to make these
 WIN_ICONV               := /opt/win-iconv-64
+WIN_PYTHON              := /opt/win-python
 
 ##
 ## Compiler options
@@ -775,6 +834,11 @@ CFLAGS_LZMA_WIN         += -Wno-misleading-indentation
 
 CFLAGS_UNRAR_WIN        += -Wno-misleading-indentation
 CFLAGS_UNRAR_WIN        += -Wno-class-memaccess
+
+ifeq ($(IS_APPLE_SILICON),1)
+CFLAGS_CROSS_LINUX      += -DSSE2NEON_SUPPRESS_WARNINGS
+CFLAGS_CROSS_LINUX      += -I$(DEPS_SSE2NEON)
+endif
 endif
 
 ##
@@ -789,7 +853,7 @@ binaries: win
 host_win:   hashcat.exe
 
 .PHONY: win
-win:   host_win   modules_win
+win:   host_win   modules_win   bridges_win
 else
 .PHONY: binaries
 binaries: linux win
@@ -799,8 +863,8 @@ host_linux: hashcat.bin
 host_win:   hashcat.exe
 
 .PHONY: linux win
-linux: host_linux modules_linux
-win:   host_win   modules_win
+linux: host_linux modules_linux bridges_linux
+win:   host_win   modules_win   bridges_win
 endif
 
 ##
@@ -819,6 +883,23 @@ modules/module_%.so:  src/modules/module_%.c obj/combined.LINUX.a
 
 modules/module_%.dll: src/modules/module_%.c obj/combined.WIN.a
 	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D MODULE_INTERFACE_VERSION_CURRENT=$(MODULE_INTERFACE_VERSION)
+
+##
+## cross compiled bridges
+##
+
+BRIDGES_LIB_LINUX   := $(patsubst src/bridges/bridge_%.c, bridges/bridge_%.so,  $(BRIDGES_SRC))
+BRIDGES_LIB_WIN     := $(patsubst src/bridges/bridge_%.c, bridges/bridge_%.dll, $(BRIDGES_SRC))
+
+.PHONY: bridges_linux bridges_win
+bridges_linux: $(BRIDGES_LIB_LINUX)
+bridges_win:   $(BRIDGES_LIB_WIN)
+
+bridges/bridge_%.so:  src/bridges/bridge_%.c obj/combined.LINUX.a
+	$(CC_LINUX)  $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
+
+bridges/bridge_%.dll: src/bridges/bridge_%.c obj/combined.WIN.a
+	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
 
 ##
 ## cross compiled hashcat
@@ -885,3 +966,6 @@ endif
 
 # Give plugin developers a chance to add some 3rd party libraries
 include	$(wildcard src/modules/module_*.mk)
+
+# Give plugin developers a chance to add some 3rd party libraries
+include $(wildcard src/bridges/bridge_*.mk)

@@ -149,6 +149,7 @@ int nvml_init (void *hashcat_ctx)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrentClocksThrottleReasons, NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetSupportedClocksThrottleReasons, NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetPciInfo, NVML_DEVICE_GET_PCIINFO, NVML, 0);
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetMemoryInfo, NVML_DEVICE_GET_MEMORYINFO, NVML, 0);
 
   return 0;
 }
@@ -392,3 +393,24 @@ int hm_NVML_nvmlDeviceGetPciInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlPc
 
   return 0;
 }
+
+int hm_NVML_nvmlDeviceGetMemoryInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlMemory_t *mem)
+{
+  hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
+
+  NVML_PTR *nvml = (NVML_PTR *) hwmon_ctx->hm_nvml;
+
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetMemoryInfo (device, mem);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    event_log_error (hashcat_ctx, "nvmlDeviceGetMemoryInfo(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+

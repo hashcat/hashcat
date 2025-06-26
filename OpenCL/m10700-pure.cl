@@ -1167,7 +1167,7 @@ DECLSPEC u32 do_round (PRIVATE_AS const u32 *w, const u32 pw_len, PRIVATE_AS pdf
   return ex;
 }
 
-KERNEL_FQ void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
+KERNEL_FQ KERNEL_FA void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   /**
    * base
@@ -1211,7 +1211,7 @@ KERNEL_FQ void m10700_init (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
   tmps[gid] = tmp;
 }
 
-KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
+KERNEL_FQ KERNEL_FA void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -1289,7 +1289,7 @@ KERNEL_FQ void m10700_loop (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
   tmps[gid] = tmp;
 }
 
-KERNEL_FQ void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
+KERNEL_FQ KERNEL_FA void m10700_comp (KERN_ATTR_TMPS_ESALT (pdf17l8_tmp_t, pdf_t))
 {
   /**
    * modifier

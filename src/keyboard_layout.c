@@ -15,7 +15,10 @@ static int sort_by_src_len (const void *p1, const void *p2)
   const keyboard_layout_mapping_t *k1 = (const keyboard_layout_mapping_t *) p1;
   const keyboard_layout_mapping_t *k2 = (const keyboard_layout_mapping_t *) p2;
 
-  return k1->src_len < k2->src_len;
+  if (k1->src_len < k2->src_len) return 1;
+  if (k1->src_len > k2->src_len) return -1;
+
+  return 0;
 }
 
 bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_mapping_t *keyboard_layout_mapping, int *keyboard_layout_mapping_cnt)

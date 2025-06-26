@@ -24,7 +24,6 @@ static const char *HASH_NAME         = "Bitcoin raw private key (P2SH(P2WPKH)), 
 static const u64   KERN_TYPE         = 30905;
 static const u32   OPTI_TYPE         = OPTI_TYPE_NOT_SALTED;
 static const u64   OPTS_TYPE         = OPTS_TYPE_STOCK_MODULE
-                                     | OPTS_TYPE_NATIVE_THREADS
                                      | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE         = SALT_TYPE_NONE;
 static const char *ST_PASS           = "83b45ff8d85f37aafc05a8accd1f1cd5e50868b57e2ef0ef6f287bb4d8d17786";
@@ -167,6 +166,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = module_benchmark_mask;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_bridge_name              = MODULE_DEFAULT;
+  module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;

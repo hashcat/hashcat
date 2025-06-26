@@ -527,7 +527,7 @@ DECLSPEC int check_inflate_code1 (u8 *next, int left)
   }
 }
 
-KERNEL_FQ void m17225_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
+KERNEL_FQ KERNEL_FA void m17225_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
 {
   /**
    * modifier
@@ -855,7 +855,7 @@ KERNEL_FQ void m17225_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
   }
 }
 
-KERNEL_FQ void m17225_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
+KERNEL_FQ KERNEL_FA void m17225_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
 {
   /**
    * modifier

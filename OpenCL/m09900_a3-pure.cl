@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
 #endif
 
-KERNEL_FQ void m09900_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m09900_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -69,7 +69,7 @@ KERNEL_FQ void m09900_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m09900_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m09900_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
