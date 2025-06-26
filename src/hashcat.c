@@ -1338,13 +1338,21 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * Init backend library loader
    */
 
+  EVENT (EVENT_BACKEND_RUNTIMES_INIT_PRE);
+
   if (backend_ctx_init (hashcat_ctx) == -1) return -1;
+
+  EVENT (EVENT_BACKEND_RUNTIMES_INIT_POST);
 
   /**
    * Init backend devices
    */
 
+  EVENT (EVENT_BACKEND_DEVICES_INIT_PRE);
+
   if (backend_ctx_devices_init (hashcat_ctx, comptime) == -1) return -1;
+
+  EVENT (EVENT_BACKEND_DEVICES_INIT_POST);
 
   /**
    * HM devices: init

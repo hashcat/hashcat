@@ -10,7 +10,7 @@
 #include "inc_hash_scrypt.h"
 
 #if SCRYPT_R > 1
-DECLSPEC void shuffle (PRIVATE_AS u32 *TI)
+DECLSPEC void scrypt_shuffle (PRIVATE_AS u32 *TI)
 {
   u32 TT[STATE_CNT4 / 2];
 
@@ -171,7 +171,7 @@ DECLSPEC void scrypt_smix_init (GLOBAL_AS u32 *P, PRIVATE_AS u32 *X, GLOBAL_AS v
       salsa_r (X);
 
       #if SCRYPT_R > 1
-      shuffle (X);
+      scrypt_shuffle (X);
       #endif
     }
   }
@@ -225,7 +225,7 @@ DECLSPEC void scrypt_smix_loop (GLOBAL_AS u32 *P, PRIVATE_AS u32 *X, PRIVATE_AS 
       salsa_r (T);
 
       #if SCRYPT_R > 1
-      shuffle (T);
+      scrypt_shuffle (T);
       #endif
     }
 
@@ -234,7 +234,7 @@ DECLSPEC void scrypt_smix_loop (GLOBAL_AS u32 *P, PRIVATE_AS u32 *X, PRIVATE_AS 
     salsa_r (X);
 
     #if SCRYPT_R > 1
-    shuffle (X);
+    scrypt_shuffle (X);
     #endif
   }
 

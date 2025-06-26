@@ -337,14 +337,18 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       if (exec_msec > target_msec) break;
 
       // we want a little room for threads to play with so not full target_msec
+      // but of course only if we are going to make use of that :)
 
-      if (exec_msec > target_msec / 8) break;
+      if ((kernel_accel_min < kernel_accel_max) || (kernel_threads_min < kernel_threads_max))
+      {
+        if (exec_msec > target_msec / 8) break;
 
-      // in general, an unparallelized kernel should not run that long.
-      // if the kernel uses barriers it will have a bad impact on performance.
-      // streebog is a good testing example
+        // in general, an unparallelized kernel should not run that long.
+        // if the kernel uses barriers it will have a bad impact on performance.
+        // streebog is a good testing example
 
-      if (exec_msec > 4) break;
+        if (exec_msec > 4) break;
+      }
 
       kernel_loops = kernel_loops_test;
     }
