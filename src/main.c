@@ -1159,6 +1159,42 @@ static void main_autotune_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_info_nn (hashcat_ctx, "Finished autotune");
 }
 
+static void main_backend_runtimes_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Initializing backend runtimes. Please be patient...");
+}
+
+static void main_backend_runtimes_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Initialized backend runtimes");
+}
+
+static void main_backend_devices_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Initializing backend devices. Please be patient...");
+}
+
+static void main_backend_devices_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Initialized backend devices");
+}
+
 static void main_bridges_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1205,6 +1241,10 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_SELFTEST_STARTING:         main_selftest_starting         (hashcat_ctx, buf, len); break;
     case EVENT_AUTODETECT_FINISHED:       main_autodetect_finished       (hashcat_ctx, buf, len); break;
     case EVENT_AUTODETECT_STARTING:       main_autodetect_starting       (hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_RUNTIMES_INIT_POST:main_backend_runtimes_init_post(hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_RUNTIMES_INIT_PRE: main_backend_runtimes_init_pre (hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_DEVICES_INIT_POST: main_backend_devices_init_post (hashcat_ctx, buf, len); break;
+    case EVENT_BACKEND_DEVICES_INIT_PRE:  main_backend_devices_init_pre  (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_INIT_POST:          main_bitmap_init_post          (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_INIT_PRE:           main_bitmap_init_pre           (hashcat_ctx, buf, len); break;
     case EVENT_BITMAP_FINAL_OVERFLOW:     main_bitmap_final_overflow     (hashcat_ctx, buf, len); break;

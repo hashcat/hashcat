@@ -45,7 +45,7 @@ typedef struct keepass
 
 } keepass_t;
 
-KERNEL_FQ void m29700_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
+KERNEL_FQ KERNEL_FA void m29700_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 {
   /**
    * base
@@ -84,7 +84,7 @@ KERNEL_FQ void m29700_init (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
   tmps[gid].tmp_digest[7] = digest[7];
 }
 
-KERNEL_FQ void m29700_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
+KERNEL_FQ KERNEL_FA void m29700_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -172,7 +172,7 @@ KERNEL_FQ void m29700_loop (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
   tmps[gid].tmp_digest[7] = data1[3];
 }
 
-KERNEL_FQ void m29700_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
+KERNEL_FQ KERNEL_FA void m29700_comp (KERN_ATTR_TMPS_ESALT (keepass_tmp_t, keepass_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

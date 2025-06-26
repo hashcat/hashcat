@@ -67,18 +67,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
     return true;
   }
 
-  if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
-  {
-    if (device_param->is_metal == true)
-    {
-      if (strncmp (device_param->device_name, "AMD Radeon", 10) == 0)
-      {
-        // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
-        return true;
-      }
-    }
-  }
-
   return false;
 }
 

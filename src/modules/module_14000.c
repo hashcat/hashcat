@@ -23,6 +23,7 @@ static const u64   KERN_TYPE      = 14000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_NATIVE_THREADS
                                   | OPTS_TYPE_TM_KERNEL
                                   | OPTS_TYPE_ST_HEX;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
@@ -49,6 +50,15 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   // Intel(R) Xeon(R) W-3223 CPU @ 3.50GHz; OpenCL C 1.2; 11.3.1; 20E241
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE || device_param->opencl_platform_vendor_id == VENDOR_ID_INTEL_SDK) && (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU))
   {
+    if (strncmp (device_param->device_name, "AMD EPYC", 8) == 0)
+    {
+      // works on: AMD EPYC 7642 48-Core Processor, OpenCL 2.1 (Build 0)
+      return false;
+    }
+
+    // fail also on Apple Intel
+
+    // skip by default for now
     return true;
   }
 

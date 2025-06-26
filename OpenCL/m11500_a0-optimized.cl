@@ -135,7 +135,7 @@ DECLSPEC u32x crc32 (PRIVATE_AS const u32x *w, const u32 pw_len, const u32 iv)
   return ~a;
 }
 
-KERNEL_FQ void m11500_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m11500_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -215,15 +215,15 @@ KERNEL_FQ void m11500_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m11500_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m11500_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m11500_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m11500_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m11500_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m11500_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -315,10 +315,10 @@ KERNEL_FQ void m11500_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m11500_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m11500_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m11500_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m11500_s16 (KERN_ATTR_RULES ())
 {
 }

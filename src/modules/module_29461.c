@@ -99,14 +99,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
         return true;
       }
     }
-    else
-    {
-      if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
-      {
-        // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
-        return true;
-      }
-    }
   }
 
   return false;

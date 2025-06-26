@@ -103,6 +103,10 @@ typedef enum event_identifier
   EVENT_AUTODETECT_STARTING       = 0x00000101,
   EVENT_AUTOTUNE_FINISHED         = 0x00000000,
   EVENT_AUTOTUNE_STARTING         = 0x00000001,
+  EVENT_BACKEND_RUNTIMES_INIT_POST = 0x00000130,
+  EVENT_BACKEND_RUNTIMES_INIT_PRE  = 0x00000131,
+  EVENT_BACKEND_DEVICES_INIT_POST = 0x00000132,
+  EVENT_BACKEND_DEVICES_INIT_PRE  = 0x00000133,
   EVENT_BITMAP_INIT_POST          = 0x00000010,
   EVENT_BITMAP_INIT_PRE           = 0x00000011,
   EVENT_BITMAP_FINAL_OVERFLOW     = 0x00000012,
@@ -670,7 +674,7 @@ typedef enum user_options_defaults
   AUTODETECT               = false,
   BACKEND_DEVICES_VIRTMULTI = 1,
   BACKEND_DEVICES_VIRTHOST = 1,
-  BACKEND_DEVICES_KEEPFREE = 20,
+  BACKEND_DEVICES_KEEPFREE = 0,
   BENCHMARK_ALL            = false,
   BENCHMARK_MAX            = 99999,
   BENCHMARK_MIN            = 0,
@@ -1235,6 +1239,9 @@ typedef struct hc_device_param
 
   int     sm_major;
   int     sm_minor;
+  char   *gcnArchName;
+  int     regsPerBlock;
+  int     regsPerMultiprocessor;
   u32     kernel_exec_timeout;
 
   u32     kernel_preferred_wgs_multiple;
@@ -2067,6 +2074,7 @@ typedef struct hm_attrs
   bool threshold_slowdown_get_supported;
   bool throttle_get_supported;
   bool utilization_get_supported;
+  bool memoryused_get_supported;
 
 } hm_attrs_t;
 
@@ -2324,6 +2332,7 @@ typedef struct tuning_db_entry
   int         vector_width;
   int         kernel_accel;
   int         kernel_loops;
+  int         source; // 1 = dbfile, 2 = module
 
 } tuning_db_entry_t;
 
@@ -2399,6 +2408,7 @@ typedef struct user_options
   bool         separator_chgd;
   bool         rule_buf_l_chgd;
   bool         rule_buf_r_chgd;
+  bool         session_chgd;
 
   bool         advice;
   bool         benchmark;
@@ -3012,7 +3022,7 @@ typedef struct module_ctx
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_dictstat_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const backend_ctx_t *, const hashes_t *, const u32, const u32);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_hash_category)           (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_hash_name)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

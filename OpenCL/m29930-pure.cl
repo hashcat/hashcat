@@ -52,7 +52,7 @@ CONSTANT_VK u32a default_salts[32] =
   0xeae3f44e, 0xaf4a8f84, 0xf1fab308, 0x8569bef8
 };
 
-KERNEL_FQ void m29930_init (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavault_t))
+KERNEL_FQ KERNEL_FA void m29930_init (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavault_t))
 {
   /**
    * base
@@ -81,7 +81,7 @@ KERNEL_FQ void m29930_init (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavau
   tmps[gid].out_buf[3] = 0;
 }
 
-KERNEL_FQ void m29930_loop (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavault_t))
+KERNEL_FQ KERNEL_FA void m29930_loop (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavault_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -154,7 +154,7 @@ KERNEL_FQ void m29930_loop (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavau
   unpackv (tmps, out_buf, gid, 3, out[3]);
 }
 
-KERNEL_FQ void m29930_comp (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavault_t))
+KERNEL_FQ KERNEL_FA void m29930_comp (KERN_ATTR_TMPS_ESALT (encdatavault_tmp_t, encdatavault_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

@@ -101,7 +101,7 @@ DECLSPEC void hmac_md5_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS
   md5_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m00050_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m00050_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -206,15 +206,15 @@ KERNEL_FQ void m00050_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m00050_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m00050_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m00050_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m00050_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m00050_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m00050_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -331,10 +331,10 @@ KERNEL_FQ void m00050_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m00050_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m00050_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m00050_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m00050_s16 (KERN_ATTR_RULES ())
 {
 }

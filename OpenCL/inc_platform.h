@@ -74,6 +74,7 @@ DECLSPEC u32 hc_atomic_or  (volatile GLOBAL_AS u32 *p, volatile const u32 val);
 #define get_global_id(param) hc_gid
 #define get_local_id(param) hc_lid
 #define get_local_size(param) hc_lsz
+#define get_group_id(param) hc_bid
 
 DECLSPEC u32x rotl32   (const u32x a, const int n);
 DECLSPEC u32x rotr32   (const u32x a, const int n);

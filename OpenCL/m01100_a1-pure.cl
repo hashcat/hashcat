@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_md4.cl)
 #endif
 
-KERNEL_FQ void m01100_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01100_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -80,7 +80,7 @@ KERNEL_FQ void m01100_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m01100_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01100_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

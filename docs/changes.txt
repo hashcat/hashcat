@@ -31,6 +31,7 @@
 - Added hash-mode: Kerberos 5, etype 18, AS-REP
 - Added hash-mode: MetaMask Mobile Wallet
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
+- Added hash-mode: Microsoft Online Account (PBKDF2-HMAC-SHA256 + AES256)
 - Added hash-mode: NetIQ SSPR (MD5)
 - Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA1)
 - Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA256)
@@ -93,6 +94,7 @@
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
 - Fixed build failed for 4410 with vector width > 1
+- Fixed clang identification in src/Makefile
 - Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal / Apple Silicon
 - Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
@@ -101,9 +103,11 @@
 - Fixed keys extraction in luks2hashcat - now extracts all active keys
 - Fixed maximum password length in module/test_module of hash-mode 2400
 - Fixed maximum password length in module/test_module of hash-mode 2410
+- Fixed memory leaks in tuning_db_init in tuningdb.c
 - Fixed minimum password length in module of hash-mode 28200
 - Fixed minimum password length in module of hash-mode 29800
 - Fixed out-of-boundary read when a fast hash defines a kernel_loops_min value higher than the amplifiers provided by the user
+- Fixed stack buffer overflow in PKZIP modules (17200, 17210, 17220, 17225, 17230)
 - Fixed vector datatypes usage for HIP
 - Fix missing check for -j and -k before writing hashcat.dictstat2 which can lead to false negatives
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
@@ -116,8 +120,10 @@
 ##
 
 - AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (23.7.2 or later) and "AMD HIP SDK" (23.Q3 or later)
+- Alias Devices: Prevents hashcat, when started with x86_64 emulation on Apple Silicon, from showing the Apple M1 OpenCL CPU as an alias for the Apple M1 Metal GPU
 - Apple Driver: Automatically enable GPU support on Apple OpenCL instead of CPU support
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
+- Backend: Updated filename chksum format to prevent invalid cache on Apple Silicon when switching arch
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
 - Dependencies: Added sse2neon v1.8.0 (commit 658eeac)
@@ -130,6 +136,7 @@
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Modules: Updated module_unstable_warning
 - Open Document Format: Added support for small documents with content length < 1024
+- OpenCL Backend: added workaround to set device_available_memory from CUDA/HIP alias device
 - Status Code: Add specific return code for self-test fail (-11)
 - Scrypt: Increase buffer sizes in module for hash mode 8900 to allow longer scrypt digests
 - Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
@@ -137,6 +144,7 @@
 - MetaMask: update extraction tool to support MetaMask Mobile wallets
 - SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
+- Metal Backend: added workaround to set the true Processor value in Metal devices on Apple Intel
 - Metal Backend: allow use of devices with Metal if runtime version is >= 200
 - Metal Backend: disable Metal devices only if at least one OpenCL device is active
 - Modules: Check UnpackSize to raise false positive with hc_decompress_rar

@@ -126,7 +126,8 @@
 #define KERN_ATTR_MAIN_PARAMS                       \
   uint hc_gid [[ thread_position_in_grid ]],        \
   uint hc_lid [[ thread_position_in_threadgroup ]], \
-  uint hc_lsz [[ threads_per_threadgroup ]]
+  uint hc_lsz [[ threads_per_threadgroup ]],        \
+  uint hc_bid [[ threadgroup_position_in_grid ]]
 #endif // IS_METAL
 
 /*

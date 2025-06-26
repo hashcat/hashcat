@@ -72,6 +72,9 @@ typedef void                (PYTHON_API_CALL *PYEXITSTATUSEXCEPTION)            
 typedef PyStatus            (PYTHON_API_CALL *PYINITIALIZEFROMCONFIG)           (const PyConfig *);
 typedef void                (PYTHON_API_CALL *PYEVAL_RESTORETHREAD)             (PyThreadState *);
 typedef const char         *(PYTHON_API_CALL *PYGETVERSION)                     (void);
+typedef PyObject           *(PYTHON_API_CALL *PY_COMPILESTRINGEXFLAGS)          (const char *, const char *, int, PyCompilerFlags *, int);
+typedef PyObject           *(PYTHON_API_CALL *PYEVAL_EVALCODE)                  (PyObject *, PyObject *, PyObject *);
+typedef PyObject           *(PYTHON_API_CALL *PYEVAL_GETBUILTINS)               (void);
 
 typedef struct hc_python_lib
 {
@@ -125,6 +128,9 @@ typedef struct hc_python_lib
   PYINITIALIZEFROMCONFIG            Py_InitializeFromConfig;
   PYEVAL_RESTORETHREAD              PyEval_RestoreThread;
   PYGETVERSION                      Py_GetVersion;
+  PY_COMPILESTRINGEXFLAGS           Py_CompileStringExFlags;
+  PYEVAL_EVALCODE                   PyEval_EvalCode;
+  PYEVAL_GETBUILTINS                PyEval_GetBuiltins;
 
 } hc_python_lib_t;
 
@@ -168,7 +174,7 @@ typedef struct
 
   PyObject *pArgs;
   PyObject *pContext;
-  PyObject *pModule;
+  PyObject *pGlobals;
   PyObject *pFunc_Init;
   PyObject *pFunc_Term;
   PyObject *pFunc_kernel_loop;
@@ -188,47 +194,37 @@ typedef struct
 
 } python_interpreter_t;
 
-#if defined (_WIN) || defined (__APPLE__)
-static char *DEFAULT_SOURCE_FILENAME = "generic_hash_sp";
+#if defined (_WIN) || defined (__CYGWIN__) || defined (__APPLE__)
+static char *DEFAULT_SOURCE_FILENAME = "Python/generic_hash_sp.py";
 #else
-static char *DEFAULT_SOURCE_FILENAME = "generic_hash_mp";
+static char *DEFAULT_SOURCE_FILENAME = "Python/generic_hash_mp.py";
 #endif
 
-#if defined (_WIN)
-#define DEVNULL "NUL"
-#else
-#define DEVNULL "/dev/null"
-#endif
-
-static int suppress_stderr (void)
+const char *extract_module_name (const char *path)
 {
-  int null_fd = open (DEVNULL, O_WRONLY);
+  char *filename = strdup (path);
 
-  if (null_fd < 0) return -1;
+  remove_file_suffix (filename, ".py");
 
-  int saved_fd = dup (fileno (stderr));
+  const char *slash     = strrchr (filename, '/');
+  const char *backslash = strrchr (filename, '\\');
 
-  if (saved_fd < 0)
+  const char *module_name = NULL;
+
+  if (slash)
   {
-    close (null_fd);
-
-    return -1;
+    module_name = slash + 1;
+  }
+  else if (backslash)
+  {
+    module_name = backslash + 1;
+  }
+  else
+  {
+    module_name = filename;
   }
 
-  dup2 (null_fd, fileno (stderr));
-
-  close (null_fd);
-
-  return saved_fd;
-}
-
-static void restore_stderr (int saved_fd)
-{
-  if (saved_fd < 0) return;
-
-  dup2 (saved_fd, fileno (stderr));
-
-  close (saved_fd);
+  return module_name;
 }
 
 static char *expand_pyenv_libpath (const char *prefix, const int maj, const int min)
@@ -618,6 +614,9 @@ static bool init_python (hc_python_lib_t *python)
   //HC_LOAD_FUNC_PYTHON (python, Py_ExitStatusException,            Py_ExitStatusException,             PYEXITSTATUSEXCEPTION,            PYTHON, 1);
   //HC_LOAD_FUNC_PYTHON (python, Py_InitializeFromConfig,           Py_InitializeFromConfig,            PYINITIALIZEFROMCONFIG,           PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyEval_RestoreThread,              PyEval_RestoreThread,               PYEVAL_RESTORETHREAD,             PYTHON, 1);
+  HC_LOAD_FUNC_PYTHON (python, Py_CompileStringExFlags,           Py_CompileStringExFlags,            PY_COMPILESTRINGEXFLAGS,          PYTHON, 1);
+  HC_LOAD_FUNC_PYTHON (python, PyEval_EvalCode,                   PyEval_EvalCode,                    PYEVAL_EVALCODE,                  PYTHON, 1);
+  HC_LOAD_FUNC_PYTHON (python, PyEval_GetBuiltins,                PyEval_GetBuiltins,                 PYEVAL_GETBUILTINS,               PYTHON, 1);
 
   return true;
 }
@@ -702,8 +701,8 @@ void *platform_init (user_options_t *user_options)
   PyObject *sys = python->PyImport_ImportModule ("sys");
   PyObject *path = python->PyObject_GetAttrString (sys, "path");
   python->PyList_Append (path, python->PyUnicode_FromString ("./Python"));
-  //python->Py_DecRef (path);
-  //python->Py_DecRef (sys);
+  python->Py_DecRef (path);
+  python->Py_DecRef (sys);
 
   if (units_init (python_interpreter) == false)
   {
@@ -714,35 +713,50 @@ void *platform_init (user_options_t *user_options)
 
   unit_t *unit_buf = &python_interpreter->units_buf[0];
 
-  #if defined (_WIN) || defined (__APPLE__)
+  #if defined (_WIN) || defined (__CYGWIN__) || defined (__APPLE__)
   fprintf (stderr, "Attention!!! Falling back to single-threaded mode.\n");
   fprintf (stderr, " Windows and MacOS ds not support multiprocessing module cleanly!\n");
   fprintf (stderr, " For multithreading on Windows and MacOS, please use -m 72000 instead.\n\n");
   #endif
 
-  python_interpreter->source_filename = (user_options->bridge_parameter1) ? user_options->bridge_parameter1 : DEFAULT_SOURCE_FILENAME;
+  python_interpreter->source_filename = (user_options->bridge_parameter1 == NULL) ? DEFAULT_SOURCE_FILENAME : user_options->bridge_parameter1;
 
-  PyObject *pName = python->PyUnicode_DecodeFSDefault (python_interpreter->source_filename);
+  char *source = file_to_buffer (python_interpreter->source_filename);
 
-  if (pName == NULL)
+  if (source == NULL)
+  {
+    fprintf (stderr, "ERROR: %s: %s\n\n", python_interpreter->source_filename, strerror (errno));
+
+    return NULL;
+  }
+
+  PyObject *code = python->Py_CompileStringExFlags (source, python_interpreter->source_filename, Py_file_input, NULL, -1);
+
+  free (source);
+
+  if (code == NULL)
   {
     python->PyErr_Print ();
 
     return false;
   }
 
-  unit_buf->pModule = python->PyImport_Import (pName);
+  unit_buf->pGlobals = python->PyDict_New ();
 
-  if (unit_buf->pModule == NULL)
+  python->PyDict_SetItemString (unit_buf->pGlobals, "__builtins__", python->PyEval_GetBuiltins ());
+
+  PyObject *result = python->PyEval_EvalCode (code, unit_buf->pGlobals, unit_buf->pGlobals);
+
+  if (result == NULL)
   {
     python->PyErr_Print ();
 
     return false;
   }
 
-  //python->Py_DecRef (pName);
+  python->Py_DecRef (result);
 
-  unit_buf->pFunc_Init = python->PyObject_GetAttrString (unit_buf->pModule, "init");
+  unit_buf->pFunc_Init = python->PyDict_GetItemString (unit_buf->pGlobals, "init");
 
   if (unit_buf->pFunc_Init == NULL)
   {
@@ -751,7 +765,7 @@ void *platform_init (user_options_t *user_options)
     return false;
   }
 
-  unit_buf->pFunc_Term = python->PyObject_GetAttrString (unit_buf->pModule, "term");
+  unit_buf->pFunc_Term = python->PyDict_GetItemString (unit_buf->pGlobals, "term");
 
   if (unit_buf->pFunc_Term == NULL)
   {
@@ -760,7 +774,7 @@ void *platform_init (user_options_t *user_options)
     return false;
   }
 
-  unit_buf->pFunc_kernel_loop = python->PyObject_GetAttrString (unit_buf->pModule, "kernel_loop");
+  unit_buf->pFunc_kernel_loop = python->PyDict_GetItemString (unit_buf->pGlobals, "kernel_loop");
 
   if (unit_buf->pFunc_kernel_loop == NULL)
   {
@@ -810,12 +824,12 @@ void platform_term (void *platform_context)
 
   unit_buf->gstate = python->PyGILState_Ensure ();
 
-  //python->Py_DecRef (unit_buf->pFunc_kernel_loop);
-  //python->Py_DecRef (unit_buf->pFunc_Term);
-  //python->Py_DecRef (unit_buf->pFunc_Init);
-  //python->Py_DecRef (unit_buf->pModule);
-  //python->Py_DecRef (unit_buf->pContext);
-  //python->Py_DecRef (unit_buf->pArgs);
+  python->Py_DecRef (unit_buf->pArgs);
+  python->Py_DecRef (unit_buf->pContext);
+  python->Py_DecRef (unit_buf->pFunc_kernel_loop);
+  python->Py_DecRef (unit_buf->pFunc_Term);
+  python->Py_DecRef (unit_buf->pFunc_Init);
+  python->Py_DecRef (unit_buf->pGlobals);
 
   //python->PyEval_RestoreThread (python_interpreter->tstate);
 
@@ -840,6 +854,9 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
   int rc = 0;
 
+  const char *module_name = extract_module_name (python_interpreter->source_filename);
+
+  rc |= python->PyDict_SetItemString (unit_buf->pContext, "module_name",    python->PyUnicode_FromString ((const char *) module_name));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "parallelism",    python->PyLong_FromLong (unit_buf->parallelism));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_cnt",      python->PyLong_FromLong (hashes->salts_cnt));
   rc |= python->PyDict_SetItemString (unit_buf->pContext, "salts_size",     python->PyLong_FromLong (sizeof (salt_t)));
@@ -872,9 +889,16 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
-  python->PyObject_CallObject (unit_buf->pFunc_Init, pArgs);
+  PyObject *pReturn = python->PyObject_CallObject (unit_buf->pFunc_Init, pArgs);
 
-  //python->Py_DecRef (pArgs);
+  if (pReturn == NULL)
+  {
+    python->PyErr_Print ();
+
+    return false;
+  }
+
+  python->Py_DecRef (pReturn);
 
   python->PyGILState_Release (unit_buf->gstate);
 
@@ -905,21 +929,6 @@ void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
   python->PyObject_CallObject (unit_buf->pFunc_Term, pArgs);
-
-  //python->Py_DecRef (pArgs);
-
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "salts_cnt"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "salts_size"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "salts_buf"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "esalts_cnt"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "esalts_size"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "esalts_buf"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_salts_cnt"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_salts_size"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_salts_buf"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_esalts_cnt"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_esalts_size"));
-  //python->Py_DecRef (python->PyDict_GetItemString (unit_buf->pContext, "st_esalts_buf"));
 
   python->PyDict_DelItemString (unit_buf->pContext, "salts_cnt");
   python->PyDict_DelItemString (unit_buf->pContext, "salts_size");
@@ -995,8 +1004,6 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
     python->PyList_SetItem (pws, i, pw);
 
-    //    python->Py_DecRef (pw);
-
     generic_io_tmp++;
   }
 
@@ -1021,8 +1028,6 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
     return false;
   }
 
-  //  python->Py_DecRef (pws);
-
   Py_ssize_t retsz = python->PyList_Size (pReturn);
 
   if (retsz != (Py_ssize_t) pws_cnt) return false;
@@ -1044,14 +1049,12 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
       generic_io_tmp->out_len = len;
     }
 
-    //python->Py_DecRef (hash);
-
     generic_io_tmp++;
   }
 
-  //python->Py_DecRef (pReturn);
+  python->Py_DecRef (pReturn);
 
-  python->PyGILState_Release(unit_buf->gstate);
+  python->PyGILState_Release (unit_buf->gstate);
 
   return true;
 }
@@ -1066,7 +1069,7 @@ const char *st_update_hash (MAYBE_UNUSED void *platform_context)
 
   unit_buf->gstate = python->PyGILState_Ensure ();
 
-  PyObject *constant = python->PyObject_GetAttrString (unit_buf->pModule, "ST_HASH");
+  PyObject *constant = python->PyDict_GetItemString (unit_buf->pGlobals, "ST_HASH");
 
   if (constant == NULL)
   {
@@ -1076,6 +1079,8 @@ const char *st_update_hash (MAYBE_UNUSED void *platform_context)
   }
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
+
+  python->Py_DecRef (constant);
 
   python->PyGILState_Release (unit_buf->gstate);
 
@@ -1092,7 +1097,7 @@ const char *st_update_pass (MAYBE_UNUSED void *platform_context)
 
   unit_buf->gstate = python->PyGILState_Ensure ();
 
-  PyObject *constant = python->PyObject_GetAttrString (unit_buf->pModule, "ST_PASS");
+  PyObject *constant = python->PyDict_GetItemString (unit_buf->pGlobals, "ST_PASS");
 
   if (constant == NULL)
   {
@@ -1102,6 +1107,8 @@ const char *st_update_pass (MAYBE_UNUSED void *platform_context)
   }
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
+
+  python->Py_DecRef (constant);
 
   python->PyGILState_Release (unit_buf->gstate);
 

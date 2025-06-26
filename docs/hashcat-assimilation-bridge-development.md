@@ -102,10 +102,10 @@ Each of these bridge unit maps to one virtual backend device, which allows async
 From the bridge_init() function you have access to the following generic parameters, set on the command line by the user:
 
 ```c
-+  "     --bridge-parameter1        | Str  | Sets the generatic parameter 1 for a Bridge          |",
-+  "     --bridge-parameter2        | Str  | Sets the generatic parameter 2 for a Bridge          |",
-+  "     --bridge-parameter3        | Str  | Sets the generatic parameter 3 for a Bridge          |",
-+  "     --bridge-parameter4        | Str  | Sets the generatic parameter 4 for a Bridge          |",
++  "     --bridge-parameter1        | Str  | Sets the generic parameter 1 for a Bridge          |",
++  "     --bridge-parameter2        | Str  | Sets the generic parameter 2 for a Bridge          |",
++  "     --bridge-parameter3        | Str  | Sets the generic parameter 3 for a Bridge          |",
++  "     --bridge-parameter4        | Str  | Sets the generic parameter 4 for a Bridge          |",
 ```
 
 ## Virtual Backend Devices

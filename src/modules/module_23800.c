@@ -207,9 +207,8 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 {
   if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU))
   {
-    if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK || device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK)
     {
-      // AMD Radeon Pro W5700X Compute Engine; 1.2 (Apr 22 2021 21:54:44); 11.3.1; 20E241
       // Intel Iris
       return true;
     }

@@ -80,7 +80,6 @@ static const u64   KERN_TYPE      = 20510;
 static const u32   OPTI_TYPE      = 0;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_COPY_TMPS
-                                  | OPTS_TYPE_MAXIMUM_THREADS
                                   | OPTS_TYPE_AUTODETECT_DISABLE
                                   | OPTS_TYPE_SUGGEST_KG;
 static const u32   SALT_TYPE      = SALT_TYPE_NONE;

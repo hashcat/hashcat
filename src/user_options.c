@@ -324,6 +324,11 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (user_options->rp_files);
 
+  if (user_options->backend_info > 0)
+  {
+    hcfree (user_options->opencl_device_types);
+  }
+
   //do not reset this, it might be used from main.c
   //memset (user_options, 0, sizeof (user_options_t));
 }
@@ -379,8 +384,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_INCREMENT_MAX:
       case IDX_HOOK_THREADS:
       case IDX_BACKEND_DEVICES_VIRTMULTI:
-      case IDX_BACKEND_DEVICES_VIRTHOST:      
-      case IDX_BACKEND_DEVICES_KEEPFREE:      
+      case IDX_BACKEND_DEVICES_VIRTHOST:
+      case IDX_BACKEND_DEVICES_KEEPFREE:
       case IDX_BENCHMARK_MAX:
       case IDX_BENCHMARK_MIN:
       #ifdef WITH_BRAIN
@@ -461,7 +466,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;                            break;
       case IDX_LOOPBACK:                  user_options->loopback                  = true;                            break;
-      case IDX_SESSION:                   user_options->session                   = optarg;                          break;
+      case IDX_SESSION:                   user_options->session                   = optarg;
+                                          user_options->session_chgd              = true;                            break;
       case IDX_HASH_MODE:                 user_options->hash_mode                 = hc_strtoul (optarg, NULL, 10);
                                           user_options->hash_mode_chgd            = true;                            break;
       case IDX_RUNTIME:                   user_options->runtime                   = hc_strtoul (optarg, NULL, 10);
@@ -816,14 +822,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "Invalid --backend-devices-virthost value specified.");
 
     return -1;
-  }  
+  }
 
   if (user_options->backend_devices_keepfree > 100)
   {
     event_log_error (hashcat_ctx, "Invalid --backend-devices-keepfree value specified.");
 
     return -1;
-  }  
+  }
 
   if (user_options->outfile_format == 0)
   {
@@ -1042,7 +1048,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->kernel_loops > 1024)
+    if (user_options->kernel_loops > KERNEL_LOOPS_MAX)
     {
       event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
 
@@ -1902,6 +1908,14 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
+  if (user_options->hwmon == false)
+  {
+    // some algorithm, such as SCRYPT, depend on accurate free memory values
+    // the only way to get them is through low-level APIs such as nvml via hwmon
+
+    user_options->hwmon = true;
+  }
+
   if (user_options->stdout_flag)
   {
     user_options->hwmon               = false;
@@ -2215,7 +2229,7 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->backend_devices_virthost)
     {
-      event_log_info (hashcat_ctx, "* --backend-devices-virthost%u", user_options->backend_devices_virthost);
+      event_log_info (hashcat_ctx, "* --backend-devices-virthost=%u", user_options->backend_devices_virthost);
     }
 
     if (user_options->opencl_device_types)
@@ -3332,8 +3346,8 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint64 (user_options->skip);
   logfile_top_uint   (user_options->attack_mode);
   logfile_top_uint   (user_options->backend_devices_virtmulti);
-  logfile_top_uint   (user_options->backend_devices_virthost);  
-  logfile_top_uint   (user_options->backend_devices_keepfree);  
+  logfile_top_uint   (user_options->backend_devices_virthost);
+  logfile_top_uint   (user_options->backend_devices_keepfree);
   logfile_top_uint   (user_options->benchmark);
   logfile_top_uint   (user_options->benchmark_all);
   logfile_top_uint   (user_options->benchmark_max);

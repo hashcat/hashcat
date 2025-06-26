@@ -89,17 +89,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
         // Intel Iris Graphics, Metal Version 244.303: failed to create 'm06223_comp' pipeline, timeout reached
         return true;
       }
-
-      if (strncmp (device_param->device_name, "AMD Radeon", 10) == 0)
-      {
-        // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
-        return true;
-      }
-    }
-    else if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
-    {
-      // AMD Radeon Pro W5700X, OpenCL: self-test failed
-      return true;
     }
   }
 

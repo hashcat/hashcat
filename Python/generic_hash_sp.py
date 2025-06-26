@@ -11,9 +11,9 @@ ST_PASS = "hashcat"
 
 def calc_hash(password: bytes, salt: dict) -> str:
   salt_buf = hcshared.get_salt_buf(salt)
-  hash = hashlib.sha256(salt_buf + password)   
-  for i in range(10000):     
-    hash = hashlib.sha256(hash.digest())   
+  hash = hashlib.sha256(salt_buf + password)
+  for i in range(10000):
+    hash = hashlib.sha256(hash.digest())
   return hash.hexdigest()
 
 # ...except when using an esalt. The esalt void* structure is both dynamic and specific to a hash mode.
@@ -37,7 +37,7 @@ def kernel_loop(ctx,passwords,salt_id,is_selftest):
   return hcsp.handle_queue(ctx,passwords,salt_id,is_selftest)
 
 def init(ctx):
-  hcsp.init(ctx,calc_hash,extract_esalts)
+  hcsp.init(ctx,extract_esalts)
 
 def term(ctx):
   hcsp.term(ctx)
@@ -47,20 +47,23 @@ def term(ctx):
 # Read passwords from stdin
 
 if __name__ == '__main__':
-  ctx = { 
-    "salts_buf": bytes(568), 
-    "esalts_buf": bytes(131080), 
-    "st_salts_buf": bytes(568), 
-    "st_esalts_buf": bytes(131080) 
+  ctx = {
+    "salts_buf": bytes(568),
+    "esalts_buf": bytes(131080),
+    "st_salts_buf": bytes(568),
+    "st_esalts_buf": bytes(131080),
+    "parallelism": 1
   }
   init(ctx)
   hashcat_passwords = 256
   passwords = []
   for line in sys.stdin:
     passwords.append(bytes(line.rstrip(), 'utf-8'))
-    if(len(passwords) == hashcat_passwords):
+    if len(passwords) == hashcat_passwords:
       hashes = kernel_loop(ctx,passwords,0,False)
       passwords.clear()
   hashes = kernel_loop(ctx,passwords,0,False) ## remaining entries
-  if(len(hashes)): print(hashes[-1])
+  if hashes:
+    print(hashes[-1])
   term(ctx)
+

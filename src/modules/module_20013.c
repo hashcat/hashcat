@@ -75,12 +75,6 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
         // Intel Iris Graphics, Metal Version 244.303: failed to create 'm20013_init' pipeline, timeout reached
         return true;
       }
-
-      if (strncmp (device_param->device_name, "AMD Radeon", 10) == 0)
-      {
-        // AMD Radeon Pro W5700X, Metal.Version.: 261.13, compiler hangs
-        return true;
-      }
     }
   }
 

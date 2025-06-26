@@ -516,20 +516,20 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     {
       if (highest_pw_len < 16)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, 1, false, 0, false) == -1) return -1;
       }
       else if (highest_pw_len < 32)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, 1, false, 0, false) == -1) return -1;
       }
       else
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 0, 1, false, 0, false) == -1) return -1;
       }
     }
     else
     {
-      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 0, 1, false, 0) == -1) return -1;
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_4, 0, 1, false, 0, false) == -1) return -1;
     }
   }
   else
@@ -563,12 +563,12 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (hashconfig->opts_type & OPTS_TYPE_INIT)
     {
-      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, 1, false, 0) == -1) return -1;
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_1, 0, 1, false, 0, false) == -1) return -1;
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_HOOK12)
     {
-      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_12, 0, 1, false, 0) == -1) return -1;
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_12, 0, 1, false, 0, false) == -1) return -1;
 
       if (device_param->is_cuda == true)
       {
@@ -636,7 +636,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (hashconfig->opts_type & OPTS_TYPE_LOOP_PREPARE)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2P, 0, 1, false, 0, false) == -1) return -1;
       }
 
       const u32 iter = salt_buf->salt_iter;
@@ -652,12 +652,12 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
         if (hashconfig->opts_type & OPTS_TYPE_LOOP)
         {
-          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, 1, false, 0) == -1) return -1;
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2, 0, 1, false, 0, false) == -1) return -1;
         }
 
         if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
         {
-          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, 0, 1, false, 0) == -1) return -1;
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, 0, 1, false, 0, false) == -1) return -1;
         }
 
         if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)
@@ -739,7 +739,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (hashconfig->opts_type & OPTS_TYPE_HOOK23)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_23, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_23, 0, 1, false, 0, false) == -1) return -1;
 
         if (device_param->is_cuda == true)
         {
@@ -796,7 +796,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (hashconfig->opts_type & OPTS_TYPE_INIT2)
     {
-      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, 0, 1, false, 0) == -1) return -1;
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_INIT2, 0, 1, false, 0, false) == -1) return -1;
     }
 
     for (u32 salt_repeat = 0; salt_repeat <= salt_repeats; salt_repeat++)
@@ -805,7 +805,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (hashconfig->opts_type & OPTS_TYPE_LOOP2_PREPARE)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2P, 0, 1, false, 0, false) == -1) return -1;
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_LOOP2)
@@ -821,7 +821,7 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           device_param->kernel_param.loop_pos = loop_pos;
           device_param->kernel_param.loop_cnt = loop_left;
 
-          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, 0, 1, false, 0) == -1) return -1;
+          if (run_kernel (hashcat_ctx, device_param, KERN_RUN_LOOP2, 0, 1, false, 0, false) == -1) return -1;
 
           if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP2)
           {
@@ -904,28 +904,28 @@ static int selftest (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX1)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX1, 0, 1, false, 0, false) == -1) return -1;
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX2)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX2, 0, 1, false, 0, false) == -1) return -1;
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX3)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX3, 0, 1, false, 0, false) == -1) return -1;
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_AUX4)
       {
-        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, 0, 1, false, 0) == -1) return -1;
+        if (run_kernel (hashcat_ctx, device_param, KERN_RUN_AUX4, 0, 1, false, 0, false) == -1) return -1;
       }
     }
 
     if (hashconfig->opts_type & OPTS_TYPE_COMP)
     {
-      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 0, 1, false, 0) == -1) return -1;
+      if (run_kernel (hashcat_ctx, device_param, KERN_RUN_3, 0, 1, false, 0, false) == -1) return -1;
     }
   }
 

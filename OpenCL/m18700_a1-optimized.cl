@@ -53,7 +53,7 @@ DECLSPEC u32 hashCode_g (const u32 init, GLOBAL_AS const u32 *w, const u32 pw_le
   return hash;
 }
 
-KERNEL_FQ void m18700_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m18700_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -97,15 +97,15 @@ KERNEL_FQ void m18700_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m18700_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m18700_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m18700_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m18700_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m18700_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m18700_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -161,10 +161,10 @@ KERNEL_FQ void m18700_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m18700_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m18700_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m18700_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m18700_s16 (KERN_ATTR_BASIC ())
 {
 }
