@@ -7,5 +7,6 @@
 #include "types.h"
 #include "emu_general.h"
 
+#include "inc_rp_common.h"
 #include "inc_rp_optimized.cl"
 
