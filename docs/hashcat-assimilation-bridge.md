@@ -70,4 +70,4 @@ Depending on interface compatibility, code from other password cracking tools (e
 
 The Assimilation Bridge introduces a highly extensible mechanism to integrate custom compute resources and logic into Hashcat.
 
-For hands-on examples and developer guidance, refer to the accompanying documentation in `docs/hashcat-assimiliation-bridge-development.md` (first draft).
+For hands-on examples and developer guidance, refer to the accompanying documentation in `docs/hashcat-assimilation-bridge-development.md` (first draft).
