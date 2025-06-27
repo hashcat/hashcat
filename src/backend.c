@@ -10532,6 +10532,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       device_param->kernel_loops_max = MIN (device_param->kernel_loops_max, 1024);  // autotune go over ...
       device_param->kernel_loops_min = MIN (device_param->kernel_loops_min, device_param->kernel_loops_max);
+
+      device_param->overtune_unfriendly = true;
     }
     #endif
 
@@ -11499,6 +11501,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             {
               device_param->kernel_threads_min = fixed_local_size;
               // device_param->kernel_threads_max = fixed_local_size;
+
+              device_param->overtune_unfriendly = true;
             }
           }
         }
@@ -16014,6 +16018,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         {
           device_param->kernel_threads_min = MIN (device_param->kernel_threads_min, 64);
           device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
+
+          device_param->overtune_unfriendly = true;
         }
       }
     }
@@ -16032,6 +16038,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       device_param->kernel_threads_min = MIN (device_param->kernel_threads_min, 64);
       device_param->kernel_threads_max = MIN (device_param->kernel_threads_max, 64);
+
+      device_param->overtune_unfriendly = true;
     }
 
     //    device_param->kernel_threads = kernel_threads;

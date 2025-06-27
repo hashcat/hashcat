@@ -98,6 +98,7 @@ static double try_run_times (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
@@ -329,7 +330,25 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     // v7 autotuner is a lot more straight forward
 
-    for (u32 kernel_loops_test = kernel_loops_min; kernel_loops_test <= kernel_loops_max; kernel_loops_test <<= 1)
+    u32 kernel_loops_min_start = kernel_loops_min;
+
+    if (hashes && hashes->st_salts_buf)
+    {
+      u32 start = kernel_loops_max;
+
+      start = MIN (start, smallest_repeat_double (hashes->st_salts_buf->salt_iter));
+      start = MIN (start, smallest_repeat_double (hashes->st_salts_buf->salt_iter + 1));
+
+      if ((hashes->st_salts_buf->salt_iter     % 125) == 0) start = MIN (start, 125);
+      if ((hashes->st_salts_buf->salt_iter + 1 % 125) == 0) start = MIN (start, 125);
+
+      if ((start >= kernel_loops_min) && (start <= kernel_loops_max))
+      {
+        kernel_loops_min_start = start;
+      }
+    }
+
+    for (u32 kernel_loops_test = kernel_loops_min_start; kernel_loops_test <= kernel_loops_max; kernel_loops_test <<= 1)
     {
       double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_test, kernel_threads_min, 2);
 
@@ -401,20 +420,21 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       if (kernel_accel > kernel_accel_max) kernel_accel = kernel_accel_max;
     }
 
-    if (kernel_accel > 64) kernel_accel -= kernel_accel % 32;
+    // overtune section. relevant if we have strange numbers from the APIs, namely 96, 384, and such
+    // this is a dangerous action, and we set conditions somewhere in the code to disable this
 
-    if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
-    {
-      if (kernel_accel > device_param->device_processors) kernel_accel -= kernel_accel % device_param->device_processors;
-    }
-
-    // some final play, if we have strange numbers from the APIs, namely 96, 384, and such
-
-    if ((kernel_accel_min == kernel_accel_max) || (kernel_threads_min == kernel_threads_max))
+    if ((kernel_accel_min == kernel_accel_max) || (kernel_threads_min == kernel_threads_max) || (device_param->overtune_unfriendly == true))
     {
     }
     else
     {
+      if (kernel_accel > 64) kernel_accel -= kernel_accel % 32;
+
+      if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
+      {
+        if (kernel_accel > device_param->device_processors) kernel_accel -= kernel_accel % device_param->device_processors;
+      }
+
       u32 fun[2];
 
       if (is_power_of_2 (kernel_threads) == false)

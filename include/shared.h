@@ -33,6 +33,7 @@ bool overflow_check_u64_add (const u64 a, const u64 b);
 bool overflow_check_u64_mul (const u64 a, const u64 b);
 
 bool is_power_of_2 (const u32 v);
+u32 smallest_repeat_double (const u32 v);
 
 u32 get_random_num (const u32 min, const u32 max);
 

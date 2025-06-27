@@ -206,6 +206,11 @@ bool is_power_of_2 (const u32 v)
   return (v && !(v & (v - 1)));
 }
 
+u32 smallest_repeat_double (const u32 v)
+{
+  return (v / (v & -v));
+}
+
 u32 mydivc32 (const u32 dividend, const u32 divisor)
 {
   u32 quotient = dividend / divisor;
