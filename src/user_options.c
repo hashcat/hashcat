@@ -1387,6 +1387,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
+    if (user_options->backend_info > 0)
+    {
+      event_log_error (hashcat_ctx, "Use of --backend-info is not allowed in benchmark mode.");
+
+      return -1;
+    }
+
     if (user_options->spin_damp_chgd == true)
     {
       event_log_error (hashcat_ctx, "Can't change --spin-damp in benchmark mode.");
