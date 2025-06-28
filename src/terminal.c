@@ -726,7 +726,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
       }
     }
 
-    printf ("\"password_type\": %s, ", t_pw_desc);
+    printf ("\"password_type\": \"%s\", ", t_pw_desc);
     printf ("\"password_len_min\": %u, ", t_pw_min);
     printf ("\"password_len_max\": %u, ", t_pw_max);
 
