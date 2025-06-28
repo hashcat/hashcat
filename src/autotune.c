@@ -336,15 +336,20 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     {
       u32 start = kernel_loops_max;
 
-      start = MIN (start, smallest_repeat_double (hashes->st_salts_buf->salt_iter));
-      start = MIN (start, smallest_repeat_double (hashes->st_salts_buf->salt_iter + 1));
+      const u32 salt_iter = hashes->st_salts_buf->salt_iter;
 
-      if ((hashes->st_salts_buf->salt_iter     % 125) == 0) start = MIN (start, 125);
-      if ((hashes->st_salts_buf->salt_iter + 1 % 125) == 0) start = MIN (start, 125);
-
-      if ((start >= kernel_loops_min) && (start <= kernel_loops_max))
+      if (salt_iter)
       {
-        kernel_loops_min_start = start;
+        start = MIN (start, smallest_repeat_double (hashes->st_salts_buf->salt_iter));
+        start = MIN (start, smallest_repeat_double (hashes->st_salts_buf->salt_iter + 1));
+
+        if ((hashes->st_salts_buf->salt_iter     % 125) == 0) start = MIN (start, 125);
+        if ((hashes->st_salts_buf->salt_iter + 1 % 125) == 0) start = MIN (start, 125);
+
+        if ((start >= kernel_loops_min) && (start <= kernel_loops_max))
+        {
+          kernel_loops_min_start = start;
+        }
       }
     }
 
@@ -621,3 +626,4 @@ HC_API_CALL void *thread_autotune (void *p)
 
   return NULL;
 }
+
