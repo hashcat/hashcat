@@ -1075,18 +1075,43 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   const user_options_t  *user_options  = hashcat_ctx->user_options;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
+  if (user_options->machine_readable == true)
+  {
+    printf ("{ ");
+  }
+
   if (user_options->backend_info > 1)
   {
-    event_log_info (hashcat_ctx, "System Info:");
-    event_log_info (hashcat_ctx, "============");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "System Info:");
+      event_log_info (hashcat_ctx, "============");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"SystemInfo\": { ");
+    }
 
     #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
     // TODO
-    event_log_info (hashcat_ctx, "OS.Name......: Windows");
-    event_log_info (hashcat_ctx, "OS.Release...: N/A");
-    event_log_info (hashcat_ctx, "HW.Platform..: N/A");
-    event_log_info (hashcat_ctx, "HW.Model.....: N/A");
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "OS.Name......: Windows");
+      event_log_info (hashcat_ctx, "OS.Release...: N/A");
+      event_log_info (hashcat_ctx, "HW.Platform..: N/A");
+      event_log_info (hashcat_ctx, "HW.Model.....: N/A");
+    }
+    else
+    {
+      printf ("\"OS\": { ");
+      printf ("\"Name\": \"%s\", ", "Windows");
+      printf ("\"Release\": \"%s\" }, ", "N/A");
+      printf ("\"Hardware\": { ");
+      printf ("\"Platform\": \"%s\", ", "N/A");
+      printf ("\"Model\": \"%s\" } ", "N/A");
+      printf ("}, ");
+    }
     #else
 
     struct utsname utsbuf;
@@ -1123,10 +1148,23 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       rc_uname = true;
     }
 
-    event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
-    event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
-    event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model_buf   : "N/A");
-    event_log_info (hashcat_ctx, "HW.Platform..: %s", (rc_uname  == true) ? utsbuf.machine : "N/A");
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
+      event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
+      event_log_info (hashcat_ctx, "HW.Platform..: %s", (rc_uname  == true) ? utsbuf.machine : "N/A");
+      event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model_buf   : "N/A");
+    }
+    else
+    {
+      printf ("\"OS\": { ");
+      printf ("\"Name\": \"%s\", ", (rc_uname  == true) ? utsbuf.sysname : "N/A");
+      printf ("\"Release\": \"%s\" }, ", (rc_uname  == true) ? utsbuf.release : "N/A");
+      printf ("\"Hardware\": { ");
+      printf ("\"Platform\": \"%s\", ", (rc_uname  == true) ? utsbuf.machine : "N/A");
+      printf ("\"Model\": \"%s\" } ", (rc_sysctl == true) ? hw_model_buf : "N/A");
+      printf ("}, ");
+    }
 
     if (rc_sysctl == true)
     {
@@ -1134,38 +1172,72 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     #endif // _WIN || __CYGWIN__ || __MSYS__
 
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, NULL);
 
-    event_log_info (hashcat_ctx, "Environment Info:");
-    event_log_info (hashcat_ctx, "=================");
-    event_log_info (hashcat_ctx, NULL);
+      event_log_info (hashcat_ctx, "Environment Info:");
+      event_log_info (hashcat_ctx, "=================");
+      event_log_info (hashcat_ctx, NULL);
 
-    event_log_info (hashcat_ctx, "Cur.Work.Dir.: %s", folder_config->cwd);
-    event_log_info (hashcat_ctx, "Install.Dir..: %s", folder_config->install_dir);
-    event_log_info (hashcat_ctx, "Profile.Dir..: %s", folder_config->profile_dir);
-    event_log_info (hashcat_ctx, "Cache.Dir....: %s", folder_config->cache_dir);
-    // uninitialized at this point, for instance if the user uses --session
-    //event_log_info (hashcat_ctx, "Session.Dir..: %s", folder_config->session_dir);
-    event_log_info (hashcat_ctx, "Shared.Dir...: %s", folder_config->shared_dir);
-    event_log_info (hashcat_ctx, "CL.Inc.Path..: %s", folder_config->cpath_real);
+      event_log_info (hashcat_ctx, "Cur.Work.Dir.: %s", folder_config->cwd);
+      event_log_info (hashcat_ctx, "Install.Dir..: %s", folder_config->install_dir);
+      event_log_info (hashcat_ctx, "Profile.Dir..: %s", folder_config->profile_dir);
+      event_log_info (hashcat_ctx, "Cache.Dir....: %s", folder_config->cache_dir);
+      // uninitialized at this point, for instance if the user uses --session
+      //event_log_info (hashcat_ctx, "Session.Dir..: %s", folder_config->session_dir);
+      event_log_info (hashcat_ctx, "Shared.Dir...: %s", folder_config->shared_dir);
+      event_log_info (hashcat_ctx, "CL.Inc.Path..: %s", folder_config->cpath_real);
 
-    event_log_info (hashcat_ctx, NULL);
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"EnvironmentInfo\": { ");
+      printf ("\"CurrentWorkingDirectory\": \"%s\", ", folder_config->cwd);
+      printf ("\"InstallDirectory\": \"%s\", ", folder_config->install_dir);
+      printf ("\"ProfileDirectory\": \"%s\", ", folder_config->profile_dir);
+      printf ("\"CacheDirectory\": \"%s\", ", folder_config->cache_dir);
+      printf ("\"SharedDirectory\": \"%s\", ", folder_config->shared_dir);
+      printf ("\"CLIncludePath\": \"%s\" ", folder_config->cpath_real);
+      printf ("}, ");
+    }
   }
 
   if (backend_ctx->cuda)
   {
-    event_log_info (hashcat_ctx, "CUDA Info:");
-    event_log_info (hashcat_ctx, "==========");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "CUDA Info:");
+      event_log_info (hashcat_ctx, "==========");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"CUDAInfo\": { ");
+    }
 
     int cuda_devices_cnt    = backend_ctx->cuda_devices_cnt;
     int cuda_driver_version = backend_ctx->cuda_driver_version;
 
-    event_log_info (hashcat_ctx, "CUDA.Version.: %u.%u", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "CUDA.Version.: %u.%u", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"Version\": \"%u.%u\", ", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
+      printf ("\"BackendDevices\": [ ");
+    }
 
     for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++)
     {
+      if (user_options->machine_readable == true)
+      {
+        printf ("{ ");
+      }
+
       const int backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
@@ -1184,29 +1256,88 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+        }
       }
       else
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+        }
       }
 
-      event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
-      event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-      event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
-      event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
-      event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
+        event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
+        event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
+        event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"Name\": \"%s\", ", device_name);
+        printf ("\"Processor(s)\": \"%u\", ", device_processors);
+        printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
+        printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
+        printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
+        printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+        printf ("\"PCI.Addr.BDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        if ((cuda_devices_idx + 1) < cuda_devices_cnt)
+        {
+          printf ("}, ");
+        }
+        else
+        {
+          printf ("} ");
+        }
+      }
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      if (backend_ctx->hip || backend_ctx->mtl || backend_ctx->ocl)
+      {
+        printf ("] }, ");
+      }
+      else
+      {
+        printf ("] } ");
+      }
     }
   }
 
   if (backend_ctx->hip)
   {
-    event_log_info (hashcat_ctx, "HIP Info:");
-    event_log_info (hashcat_ctx, "=========");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "HIP Info:");
+      event_log_info (hashcat_ctx, "=========");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"HIPInfo\": { ");
+    }
 
     int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
     int hip_runtimeVersion = backend_ctx->hip_runtimeVersion;
@@ -1217,17 +1348,41 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
       int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
 
-      event_log_info (hashcat_ctx, "HIP.Version.: %u.%u.%u", hip_version_major, hip_version_minor, hip_version_patch);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "HIP.Version.: %u.%u.%u", hip_version_major, hip_version_minor, hip_version_patch);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"Version\": \"%u.%u.%u\", ", hip_version_major, hip_version_minor, hip_version_patch);
+      }
     }
     else
     {
-      event_log_info (hashcat_ctx, "HIP.Version.: %u.%u", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "HIP.Version.: %u.%u", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"Version\": \"%u.%u\", ", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+      }
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      printf ("\"BackendDevices\": [ ");
     }
 
     for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
     {
+      if (user_options->machine_readable == true)
+      {
+        printf ("{ ");
+      }
+
       const int backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
@@ -1246,40 +1401,116 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+        }
       }
       else
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+        }
       }
 
-      event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
-      event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-      event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
-      event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
-      event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
+        event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
+        event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
+        event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"Name\": \"%s\", ", device_name);
+        printf ("\"Processor(s)\": \"%u\", ", device_processors);
+        printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
+        printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
+        printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
+        printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+        printf ("\"PCI.Addr.BDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        if ((hip_devices_idx + 1) < hip_devices_cnt)
+        {
+          printf ("}, ");
+        }
+        else
+        {
+          printf ("} ");
+        }
+      }
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      if (backend_ctx->mtl || backend_ctx->ocl)
+      {
+        printf ("] }, ");
+      }
+      else
+      {
+        printf ("] } ");
+      }
     }
   }
 
   #if defined (__APPLE__)
   if (backend_ctx->mtl)
   {
-    event_log_info (hashcat_ctx, "Metal Info:");
-    event_log_info (hashcat_ctx, "===========");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "Metal Info:");
+      event_log_info (hashcat_ctx, "===========");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"MetalInfo\": { ");
+    }
 
     int metal_devices_cnt = backend_ctx->metal_devices_cnt;
 
     char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
 
-    event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"Version\": \"%s\", ", metal_runtimeVersionStr);
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      printf ("\"BackendDevices\": [ ");
+    }
 
     for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
     {
+      if (user_options->machine_readable == true)
+      {
+        printf ("{ ");
+      }
+
       const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
@@ -1310,30 +1541,111 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+        }
       }
       else
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+        }
       }
 
-      event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
-      event_log_info (hashcat_ctx, "  Vendor.ID......: %u", opencl_device_vendor_id);
-      event_log_info (hashcat_ctx, "  Vendor.........: %s", opencl_device_vendor);
-      event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
-      event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-      event_log_info (hashcat_ctx, "  Clock..........: N/A");
-      event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+        event_log_info (hashcat_ctx, "  Vendor.ID......: %u", opencl_device_vendor_id);
+        event_log_info (hashcat_ctx, "  Vendor.........: %s", opencl_device_vendor);
+        event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
+        event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
+        event_log_info (hashcat_ctx, "  Clock..........: N/A");
+        event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+      }
+      else
+      {
+        printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+        printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
+        printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
+        printf ("\"Name\": \"%s\", ", device_name);
+        printf ("\"Processor(s)\": \"%u\", ", device_processors);
+        printf ("\"Clock\": \"%s\", ", "N/A");
+        printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
+        printf ("\"MemoryAllocPerBlock\": \"%" PRIu64 " MB\", ", device_maxmem_alloc / 1024 / 1024);
+        printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
+        printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+      }
 
       switch (device_physical_location)
       {
-        case MTL_DEVICE_LOCATION_BUILTIN:     event_log_info (hashcat_ctx, "  Phys.Location..: built-in"); break;
-        case MTL_DEVICE_LOCATION_SLOT:        event_log_info (hashcat_ctx, "  Phys.Location..: connected to slot %u", device_location_number); break;
-        case MTL_DEVICE_LOCATION_EXTERNAL:    event_log_info (hashcat_ctx, "  Phys.Location..: connected via an external interface (port %u)", device_location_number); break;
-        case MTL_DEVICE_LOCATION_UNSPECIFIED: event_log_info (hashcat_ctx, "  Phys.Location..: unspecified"); break;
-        default:                              event_log_info (hashcat_ctx, "  Phys.Location..: N/A"); break;
+        case MTL_DEVICE_LOCATION_BUILTIN:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: built-in");
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"built-in\", ");
+          }
+
+          break;
+        case MTL_DEVICE_LOCATION_SLOT:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: connected to slot %u", device_location_number);
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"connected to slot %u\", ", device_location_number);
+          }
+
+          break;
+        case MTL_DEVICE_LOCATION_EXTERNAL:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: connected via an external interface (port %u)", device_location_number);
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"connected via an external interface (port %u)\", ", device_location_number);
+          }
+
+          break;
+        case MTL_DEVICE_LOCATION_UNSPECIFIED:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: unspecified");
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"unspecified\", ");
+          }
+
+          break;
+        default:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: N/A");
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"%s\", ", "N/A");
+          }
+
+          break;
       }
 
       /*
@@ -1347,28 +1659,92 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
       */
 
-      event_log_info (hashcat_ctx, "  Registry.ID....: %u", device_registryID);
-
-      if (device_physical_location != MTL_DEVICE_LOCATION_BUILTIN)
+      if (user_options->machine_readable == false)
       {
-        event_log_info (hashcat_ctx, "  Max.TX.Rate....: %u MB/sec", device_max_transfer_rate);
+        event_log_info (hashcat_ctx, "  Registry.ID....: %u", device_registryID);
       }
       else
       {
-        event_log_info (hashcat_ctx, "  Max.TX.Rate....: N/A");
+        printf ("\"RegistryID\": \"%u\", ", device_registryID);
       }
 
-      event_log_info (hashcat_ctx, "  GPU.Properties.: headless %u, low-power %u, removable %u", device_is_headless, device_is_low_power, device_is_removable);
-      event_log_info (hashcat_ctx, NULL);
+      if (device_physical_location != MTL_DEVICE_LOCATION_BUILTIN)
+      {
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "  Max.TX.Rate....: %u MB/sec", device_max_transfer_rate);
+        }
+        else
+        {
+          printf ("\"MaxTXRate\": \"%u MB/sec\", ", device_max_transfer_rate);
+        }
+      }
+      else
+      {
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "  Max.TX.Rate....: N/A");
+        }
+        else
+        {
+          printf ("\"MaxTXRate\": \"%s\", ", "N/A");
+        }
+      }
+
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "  GPU.Properties.: headless %u, low-power %u, removable %u", device_is_headless, device_is_low_power, device_is_removable);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"GPUProperties\": { ");
+        printf ("\"headless\": \"%u\", ", device_is_headless);
+        printf ("\"low_power\": \"%u\", ", device_is_low_power);
+        printf ("\"removable\": \"%u\" ", device_is_removable);
+        printf ("} ");
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        if ((metal_devices_idx + 1) < metal_devices_cnt)
+        {
+          printf ("}, ");
+        }
+        else
+        {
+          printf ("} ");
+        }
+      }
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      if (backend_ctx->ocl)
+      {
+        printf ("] }, ");
+      }
+      else
+      {
+        printf ("] } ");
+      }
     }
   }
   #endif
 
   if (backend_ctx->ocl)
   {
-    event_log_info (hashcat_ctx, "OpenCL Info:");
-    event_log_info (hashcat_ctx, "============");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "OpenCL Info:");
+      event_log_info (hashcat_ctx, "============");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"OpenCLInfo\": { ");
+      printf ("\"Platforms\": [ ");
+    }
 
     cl_uint   opencl_platforms_cnt         = backend_ctx->opencl_platforms_cnt;
     cl_uint  *opencl_platforms_devices_cnt = backend_ctx->opencl_platforms_devices_cnt;
@@ -1378,19 +1754,44 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
     for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
     {
+      if (user_options->machine_readable == true)
+      {
+        printf ("{ ");
+      }
+
       char     *opencl_platform_vendor       = opencl_platforms_vendor[opencl_platforms_idx];
       char     *opencl_platform_name         = opencl_platforms_name[opencl_platforms_idx];
       char     *opencl_platform_version      = opencl_platforms_version[opencl_platforms_idx];
       cl_uint   opencl_platform_devices_cnt  = opencl_platforms_devices_cnt[opencl_platforms_idx];
 
-      event_log_info (hashcat_ctx, "OpenCL Platform ID #%u", opencl_platforms_idx + 1);
-      event_log_info (hashcat_ctx, "  Vendor..: %s",  opencl_platform_vendor);
-      event_log_info (hashcat_ctx, "  Name....: %s",  opencl_platform_name);
-      event_log_info (hashcat_ctx, "  Version.: %s",  opencl_platform_version);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "OpenCL Platform ID #%u", opencl_platforms_idx + 1);
+        event_log_info (hashcat_ctx, "  Vendor..: %s",  opencl_platform_vendor);
+        event_log_info (hashcat_ctx, "  Name....: %s",  opencl_platform_name);
+        event_log_info (hashcat_ctx, "  Version.: %s",  opencl_platform_version);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"PlatformID\": \"%u\", ", opencl_platforms_idx + 1);
+        printf ("\"Vendor\": \"%s\", ", opencl_platform_vendor);
+        printf ("\"Name\": \"%s\", ", opencl_platform_name);
+        printf ("\"Version\": \"%s\", ", opencl_platform_version);
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        printf ("\"BackendDevices\": [ ");
+      }
 
       for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
       {
+        if (user_options->machine_readable == true)
+        {
+          printf ("{ ");
+        }
+
         const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
 
         const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
@@ -1412,25 +1813,58 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->device_id_alias_cnt)
         {
-          event_log_info (hashcat_ctx, "  Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+          }
+          else
+          {
+            printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+            printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+          }
         }
         else
         {
-          event_log_info (hashcat_ctx, "  Backend Device ID #%02u", device_id + 1);
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Backend Device ID #%02u", device_id + 1);
+          }
+          else
+          {
+            printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          }
         }
 
-        event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
-        event_log_info (hashcat_ctx, "    Vendor.ID......: %u", opencl_device_vendor_id);
-        event_log_info (hashcat_ctx, "    Vendor.........: %s", opencl_device_vendor);
-        event_log_info (hashcat_ctx, "    Name...........: %s", device_name);
-        event_log_info (hashcat_ctx, "    Version........: %s", opencl_device_version);
-        event_log_info (hashcat_ctx, "    Processor(s)...: %u", device_processors);
-        event_log_info (hashcat_ctx, "    Clock..........: %u", device_maxclock_frequency);
-        event_log_info (hashcat_ctx, "    Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
-        event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
-        event_log_info (hashcat_ctx, "    Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
-        event_log_info (hashcat_ctx, "    OpenCL.Version.: %s", opencl_device_c_version);
-        event_log_info (hashcat_ctx, "    Driver.Version.: %s", opencl_driver_version);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+          event_log_info (hashcat_ctx, "    Vendor.ID......: %u", opencl_device_vendor_id);
+          event_log_info (hashcat_ctx, "    Vendor.........: %s", opencl_device_vendor);
+          event_log_info (hashcat_ctx, "    Name...........: %s", device_name);
+          event_log_info (hashcat_ctx, "    Version........: %s", opencl_device_version);
+          event_log_info (hashcat_ctx, "    Processor(s)...: %u", device_processors);
+          event_log_info (hashcat_ctx, "    Clock..........: %u", device_maxclock_frequency);
+          event_log_info (hashcat_ctx, "    Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
+          event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+          event_log_info (hashcat_ctx, "    Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+          event_log_info (hashcat_ctx, "    OpenCL.Version.: %s", opencl_device_c_version);
+          event_log_info (hashcat_ctx, "    Driver.Version.: %s", opencl_driver_version);
+        }
+        else
+        {
+          printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+          printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
+          printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
+          printf ("\"Name\": \"%s\", ", device_name);
+          printf ("\"Processor(s)\": \"%u\", ", device_processors);
+          printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
+          printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
+          printf ("\"MemoryAllocPerBlock\": \"%" PRIu64 " MB\", ", device_maxmem_alloc / 1024 / 1024);
+          printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
+          printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+          printf ("\"OpenCLVersion\": \"%s\", ", opencl_device_c_version);
+          printf ("\"DriverVersion\": \"%s\" ", opencl_device_version);
+        }
 
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
@@ -1440,18 +1874,68 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
           {
-            event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
+            if (user_options->machine_readable == false)
+            {
+              event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
+            }
+            else
+            {
+              printf (", \"PCI.Addr.BDF\": \"%02x:%02x.%u\" ", pcie_bus, pcie_device, pcie_function);
+            }
           }
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
           {
-            event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
+            if (user_options->machine_readable == false)
+            {
+              event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
+            }
+            else
+            {
+              printf (", \"PCI.Addr.BDF\": \"%02x:%02x.%u\" ", pcie_bus, pcie_device, pcie_function);
+            }
           }
         }
 
-        event_log_info (hashcat_ctx, NULL);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, NULL);
+        }
+        else
+        {
+          if ((opencl_platform_devices_idx + 1) < opencl_platform_devices_cnt)
+          {
+            printf ("}, ");
+          }
+          else
+          {
+            printf ("} ");
+          }
+        }
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        if ((opencl_platforms_idx + 1) < opencl_platforms_cnt)
+        {
+          printf ("] }, ");
+        }
+        else
+        {
+          printf ("] } ");
+        }
       }
     }
+
+    if (user_options->machine_readable == true)
+    {
+      printf ("] } ");
+    }
+  }
+
+  if (user_options->machine_readable == true)
+  {
+    printf ("}");
   }
 }
 
@@ -2676,10 +3160,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         digests_remain,
         digests_remain_percent);
     }
-  }
 
-  if (hashcat_status->digests_cnt > 1000)
-  {
     event_log_info (hashcat_ctx,
       "Recovered/Time...: %s",
       hashcat_status->cpt);
