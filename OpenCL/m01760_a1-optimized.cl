@@ -189,7 +189,7 @@ DECLSPEC void hmac_sha512_run (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha512_transform_transport_vector (w0_t, w1_t, w2_t, w3_t, digest);
 }
 
-KERNEL_FQ void m01760_m04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01760_m04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -381,15 +381,15 @@ KERNEL_FQ void m01760_m04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m01760_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01760_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m01760_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01760_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m01760_s04 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01760_s04 (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -593,10 +593,10 @@ KERNEL_FQ void m01760_s04 (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m01760_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01760_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m01760_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m01760_s16 (KERN_ATTR_BASIC ())
 {
 }

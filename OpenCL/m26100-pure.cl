@@ -78,7 +78,7 @@ DECLSPEC void hmac_sha256_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVA
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m26100_init (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes_t))
+KERNEL_FQ KERNEL_FA void m26100_init (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes_t))
 {
   /**
    * base
@@ -203,7 +203,7 @@ KERNEL_FQ void m26100_init (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
   }
 }
 
-KERNEL_FQ void m26100_loop (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes_t))
+KERNEL_FQ KERNEL_FA void m26100_loop (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -309,7 +309,7 @@ KERNEL_FQ void m26100_loop (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes
   }
 }
 
-KERNEL_FQ void m26100_comp (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes_t))
+KERNEL_FQ KERNEL_FA void m26100_comp (KERN_ATTR_TMPS_ESALT (mozilla_aes_tmp_t, mozilla_aes_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

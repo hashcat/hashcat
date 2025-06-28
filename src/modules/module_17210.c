@@ -91,6 +91,7 @@ Related publication: https://scitepress.org/PublicationsDetail.aspx?ID=KLPzPqStp
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -186,9 +187,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 *digest = (u32 *) digest_buf;
 
-  char input[line_len + 1];
+  char *input = (char *) hcmalloc (line_len + 1);
+  if (!input) return PARSER_HAVE_ERRNO;
+
+  memcpy (input, line_buf, line_len);
   input[line_len] = '\0';
-  memcpy (&input, line_buf, line_len);
 
   char *saveptr = NULL;
 
@@ -297,6 +300,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = 0;
   digest[3] = 0;
 
+  hcfree (input);
+
   return (PARSER_OK);
 }
 
@@ -362,6 +367,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
   module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
   module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_bridge_name              = MODULE_DEFAULT;
+  module_ctx->module_bridge_type              = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;

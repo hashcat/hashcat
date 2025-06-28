@@ -19,7 +19,7 @@
 #include M2S(INCLUDE_PATH/inc_ecc_secp256k1.cl)
 #endif
 
-KERNEL_FQ void m28501_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m28501_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -200,7 +200,7 @@ KERNEL_FQ void m28501_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m28501_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m28501_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

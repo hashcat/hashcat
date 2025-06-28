@@ -42,9 +42,6 @@
     <ClCompile Include="..\..\..\infback.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\masmx64\inffas8664.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\inffast.c">
       <Filter>Source Files</Filter>
     </ClCompile>

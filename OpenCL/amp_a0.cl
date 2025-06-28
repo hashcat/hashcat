@@ -13,7 +13,7 @@
 #include M2S(INCLUDE_PATH/inc_amp.h)
 #endif
 
-KERNEL_FQ void amp (KERN_ATTR_AMP)
+KERNEL_FQ KERNEL_FA void amp (KERN_ATTR_AMP)
 {
   const u64 gid = get_global_id (0);
 

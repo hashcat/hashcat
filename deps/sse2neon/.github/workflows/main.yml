@@ -1,0 +1,127 @@
+name: GitHub Actions
+
+on: [push, pull_request]
+
+jobs:
+  host-x86:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        arch: [x86_64]
+        cxx_compiler: [g++, clang++]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: build artifact
+        env:
+          CXX: ${{ matrix.cxx_compiler }}
+        run: |
+          sh .ci/cross-tool.sh
+          make check
+          sh .ci/cross-check.sh
+
+  host-win:
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        arch:
+          - x86_64
+          - armv7
+          - aarch64
+    env:
+      LLVM_MINGW_URL: https://github.com/mstorsjo/llvm-mingw/releases/download/20241217/llvm-mingw-20241217-msvcrt-x86_64.zip
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: unpack llvm-mingw
+        run: |
+          curl -L -O $LLVM_MINGW_URL
+          unzip -q llvm-mingw-*.zip
+          rm llvm-mingw-*.zip
+          mv llvm-mingw-* "$HOME/llvm-mingw"
+          echo "$HOME/llvm-mingw/bin" >> $GITHUB_PATH
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: build artifact
+        env:
+          CXX: ${{ matrix.arch }}-w64-mingw32-clang++
+        run: mingw32-make processor=${{ matrix.arch }}
+      - name: run tests
+        if: matrix.arch == 'x86_64'
+        run: mingw32-make check
+
+  host-arm:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        arch_with_features: [
+          {arch: armv7, feature: none, arch_cflags: none},
+          {arch: aarch64, feature: none, arch_cflags: none},
+          {arch: aarch64, feature: crypto+crc, arch_cflags: none},
+          {arch: armv7, feature: none, arch_cflags: '-mcpu=cortex-a32 -mfpu=neon-fp-armv8'}
+        ]
+        cxx_compiler: [g++, clang++-15]
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: build artifact
+        # The Github Action for non-x86 CPU
+        # https://github.com/uraimo/run-on-arch-action
+        uses: uraimo/run-on-arch-action@v2
+        with:
+          arch: ${{ matrix.arch_with_features.arch }}
+          distro: ubuntu22.04
+          # Speed up builds by storing container images in a GitHub package registry.
+          githubToken: ${{ github.token }}
+          env: |
+            CXX: ${{ matrix.cxx_compiler }}
+            ARCH_CFLAGS: ${{ matrix.arch_with_features.arch_cflags }}
+          install: |
+            apt-get update -q -y
+            apt-get install -q -y gcc "${{ matrix.cxx_compiler }}" make
+          run: |
+            make FEATURE=${{ matrix.arch_with_features.feature }} check
+
+  host-win-msvc:
+    runs-on: windows-2022
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+
+      - name: add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: build artifact
+        run: msbuild sse2neon.vcxproj -t:rebuild -property:Configuration=Release -property:Platform=ARM64
+
+      - name: upload artifact
+        uses: actions/upload-artifact@master
+        with:
+          name: msvc-arm64-artifact
+          path: ARM64
+
+  test-win-msvc:
+    runs-on: ubuntu-24.04
+    container: linaro/wine-arm64
+    needs: host-win-msvc
+    steps:
+      - name: download artifact
+        uses: actions/download-artifact@master
+        with:
+          name: msvc-arm64-artifact
+
+      - name: Run tests
+        run: wine-arm64 cmd.exe /c 'Release\sse2neon.exe'
+
+
+  coding-style:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v4
+      - name: style check
+        run: |
+            sudo apt-get install -q -y clang-format-18
+            sh .ci/check-format.sh
+        shell: bash

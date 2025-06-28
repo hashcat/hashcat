@@ -23,7 +23,7 @@ typedef struct netiq_sspr_sha256_tmp
 
 } netiq_sspr_sha256_tmp_t;
 
-KERNEL_FQ void m32030_init (KERN_ATTR_TMPS (netiq_sspr_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m32030_init (KERN_ATTR_TMPS (netiq_sspr_sha256_tmp_t))
 {
   /**
    * base
@@ -53,7 +53,7 @@ KERNEL_FQ void m32030_init (KERN_ATTR_TMPS (netiq_sspr_sha256_tmp_t))
   tmps[gid].dgst[7] = ctx.h[7];
 }
 
-KERNEL_FQ void m32030_loop (KERN_ATTR_TMPS (netiq_sspr_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m32030_loop (KERN_ATTR_TMPS (netiq_sspr_sha256_tmp_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -130,7 +130,7 @@ KERNEL_FQ void m32030_loop (KERN_ATTR_TMPS (netiq_sspr_sha256_tmp_t))
   }
 }
 
-KERNEL_FQ void m32030_comp (KERN_ATTR_TMPS (netiq_sspr_sha256_tmp_t))
+KERNEL_FQ KERNEL_FA void m32030_comp (KERN_ATTR_TMPS (netiq_sspr_sha256_tmp_t))
 {
   const u64 gid = get_global_id (0);
 

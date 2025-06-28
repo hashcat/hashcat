@@ -42,6 +42,7 @@ int get_runtime_left (const hashcat_ctx_t *hashcat_ctx)
 
 static int monitor (hashcat_ctx_t *hashcat_ctx)
 {
+  bridge_ctx_t   *bridge_ctx    = hashcat_ctx->bridge_ctx;
   hashes_t       *hashes        = hashcat_ctx->hashes;
   hwmon_ctx_t    *hwmon_ctx     = hashcat_ctx->hwmon_ctx;
   backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
@@ -87,7 +88,10 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   if (hwmon_ctx->enabled == true)
   {
-    performance_check = true; // this check simply requires hwmon to work
+    if (bridge_ctx->enabled == false)
+    {
+      performance_check = true; // this check simply requires hwmon to work
+    }
   }
 
   if ((runtime_check == false) && (remove_check == false) && (status_check == false) && (restore_check == false) && (hwmon_check == false) && (performance_check == false))

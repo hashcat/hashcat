@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
-<package name="zlib" version="1.2.11">
-    <library name="zlib" dlversion="1.2.11" dlname="z">
+<package name="zlib" version="1.3.1.1">
+    <library name="zlib" dlversion="1.3.1.1" dlname="z">
 	<property name="description"> zip compression library </property>
 	<property name="include-target-dir" value="$(@PACKAGE/install-includedir)" />
 

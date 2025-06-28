@@ -26,7 +26,7 @@ typedef struct pem
 
 } pem_t;
 
-KERNEL_FQ void m22941_mxx (KERN_ATTR_RULES_ESALT (pem_t))
+KERNEL_FQ KERNEL_FA void m22941_mxx (KERN_ATTR_RULES_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -243,6 +243,10 @@ KERNEL_FQ void m22941_mxx (KERN_ATTR_RULES_ESALT (pem_t))
     const int asn1_ok = asn1_detect (dec, real_len);
 
     if (asn1_ok == 0) continue;
+
+    const int asn1_tag_ok = asn1_check_int_tag (dec, real_len);
+
+    if (asn1_tag_ok == 0) continue;
 
     const u32 r0 = search[0];
     const u32 r1 = search[1];
@@ -253,7 +257,7 @@ KERNEL_FQ void m22941_mxx (KERN_ATTR_RULES_ESALT (pem_t))
   }
 }
 
-KERNEL_FQ void m22941_sxx (KERN_ATTR_RULES_ESALT (pem_t))
+KERNEL_FQ KERNEL_FA void m22941_sxx (KERN_ATTR_RULES_ESALT (pem_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -470,6 +474,10 @@ KERNEL_FQ void m22941_sxx (KERN_ATTR_RULES_ESALT (pem_t))
     const int asn1_ok = asn1_detect (dec, real_len);
 
     if (asn1_ok == 0) continue;
+
+    const int asn1_tag_ok = asn1_check_int_tag (dec, real_len);
+
+    if (asn1_tag_ok == 0) continue;
 
     const u32 r0 = search[0];
     const u32 r1 = search[1];

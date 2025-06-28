@@ -39,7 +39,7 @@ typedef struct md5_triple_salt
 
 } md5_triple_salt_t;
 
-KERNEL_FQ void m32300_m04 (KERN_ATTR_ESALT (md5_triple_salt_t))
+KERNEL_FQ KERNEL_FA void m32300_m04 (KERN_ATTR_ESALT (md5_triple_salt_t))
 {
   /**
    * modifier
@@ -466,15 +466,15 @@ KERNEL_FQ void m32300_m04 (KERN_ATTR_ESALT (md5_triple_salt_t))
   }
 }
 
-KERNEL_FQ void m32300_m08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m32300_m08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m32300_m16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m32300_m16 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m32300_s04 (KERN_ATTR_ESALT (md5_triple_salt_t))
+KERNEL_FQ KERNEL_FA void m32300_s04 (KERN_ATTR_ESALT (md5_triple_salt_t))
 {
   /**
    * modifier
@@ -916,10 +916,10 @@ KERNEL_FQ void m32300_s04 (KERN_ATTR_ESALT (md5_triple_salt_t))
   }
 }
 
-KERNEL_FQ void m32300_s08 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m32300_s08 (KERN_ATTR_BASIC ())
 {
 }
 
-KERNEL_FQ void m32300_s16 (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m32300_s16 (KERN_ATTR_BASIC ())
 {
 }

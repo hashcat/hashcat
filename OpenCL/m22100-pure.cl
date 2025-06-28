@@ -133,7 +133,7 @@ DECLSPEC void sha256_transform_vector_pc (PRIVATE_AS const u32x *w0, PRIVATE_AS 
   digest[7] += h;
 }
 
-KERNEL_FQ void m22100_init (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
+KERNEL_FQ KERNEL_FA void m22100_init (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 {
   /**
    * base
@@ -193,7 +193,7 @@ KERNEL_FQ void m22100_init (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   tmps[gid].last_hash[7] = 0;
 }
 
-KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
+KERNEL_FQ KERNEL_FA void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
@@ -347,7 +347,7 @@ KERNEL_FQ void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
   unpackv (tmps, last_hash, gid, 7, w1[3]);
 }
 
-KERNEL_FQ void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
+KERNEL_FQ KERNEL_FA void m22100_comp (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bitlocker_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

@@ -836,7 +836,7 @@ DECLSPEC void sha1_update_rar29 (PRIVATE_AS sha1_ctx_t *ctx, PRIVATE_AS u32 *w, 
   }
 }
 
-KERNEL_FQ void m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
+KERNEL_FQ KERNEL_FA void m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   /**
    * base
@@ -904,7 +904,7 @@ KERNEL_FQ void m23700_init (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
   tmps[gid].iv[3] = 0;
 }
 
-KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
+KERNEL_FQ KERNEL_FA void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -1020,7 +1020,7 @@ KERNEL_FQ void m23700_loop (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
   }
 }
 
-KERNEL_FQ void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
+KERNEL_FQ KERNEL_FA void m23700_comp (KERN_ATTR_TMPS_ESALT (rar3_tmp_t, rar3_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

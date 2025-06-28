@@ -41,7 +41,7 @@ DECLSPEC u32 hex_u32_to_u32 (PRIVATE_AS const u32 hex0, PRIVATE_AS const u32 hex
   return (v);
 }
 
-KERNEL_FQ void m30905_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m30905_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -200,7 +200,7 @@ KERNEL_FQ void m30905_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m30905_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m30905_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
