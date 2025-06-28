@@ -15948,6 +15948,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         u32 threads_per_block_with_regs = (floor) ((float) device_param->regsPerBlock / num_regs);
 
+        if (threads_per_block_with_regs == 0)
+        {
+          // prevent threads_per_block from resulting in 0 due to a bug on the runtime
+          threads_per_block_with_regs = threads_per_block;
+        }
+
         if (threads_per_block_with_regs > device_param->kernel_preferred_wgs_multiple) threads_per_block_with_regs -= threads_per_block_with_regs % device_param->kernel_preferred_wgs_multiple;
 
         threads_per_block = MIN (threads_per_block, threads_per_block_with_regs);
@@ -15966,6 +15972,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (num_regs)
       {
         u32 threads_per_block_with_regs = (floor) ((float) device_param->regsPerBlock / num_regs);
+
+        if (threads_per_block_with_regs == 0)
+        {
+          // https://rocm.docs.amd.com/projects/HIP/en/docs-develop/doxygen/html/bug.html
+          // HIP-Clang always returns 0 for regsPerBlock due to a known bug
+          // prevent threads_per_block from resulting in 0, otherwise hashcat crashes
+          threads_per_block_with_regs = threads_per_block;
+        }
 
         if (threads_per_block_with_regs > device_param->kernel_preferred_wgs_multiple) threads_per_block_with_regs -= threads_per_block_with_regs % device_param->kernel_preferred_wgs_multiple;
 
