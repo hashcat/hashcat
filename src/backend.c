@@ -6410,14 +6410,15 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
   backend_ctx->hip_devices_active  = hip_devices_active;
 }
 
-static void backend_ctx_devices_init_metal (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED int *virthost, MAYBE_UNUSED int *virthost_finder, MAYBE_UNUSED int *backend_devices_idx, MAYBE_UNUSED int *bridge_link_device)
+static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED int *virthost, MAYBE_UNUSED int *virthost_finder, MAYBE_UNUSED int *backend_devices_idx, MAYBE_UNUSED int *bridge_link_device)
 {
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
   int metal_devices_cnt    = 0;
   int metal_devices_active = 0;
 
   #if defined (__APPLE__)
   const bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
-        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
         user_options_t  *user_options  = hashcat_ctx->user_options;
 
   hc_device_param_t     *devices_param = backend_ctx->devices_param;
