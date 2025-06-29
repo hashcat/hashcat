@@ -1,0 +1,20 @@
+Device Status Codes:
+====================
+
+ 0 = "Initializing"
+ 1 = "Autotuning"
+ 2 = "Selftest"
+ 3 = "Running"
+ 4 = "Paused"
+ 5 = "Exhausted"
+ 6 = "Cracked"
+ 7 = "Aborted"
+ 8 = "Quit"
+ 9 = "Bypass"
+10 = "Aborted (Checkpoint)"
+11 = "Aborted (Runtime)"
+12 = "Running (Checkpoint Quit requested)"
+13 = "Error"
+14 = "Aborted (Finish)"
+15 = "Running (Quit after attack requested)"
+16 = "Autodetect"
