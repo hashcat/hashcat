@@ -128,6 +128,7 @@
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
 - Backend: Updated filename chksum format to prevent invalid cache on Apple Silicon when switching arch
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
+- Backend Info: Added --machine-readable format
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
 - Dependencies: Added sse2neon v1.8.0 (commit 658eeac)
 - Dependencies: Updated LZMA SDK to 24.09
