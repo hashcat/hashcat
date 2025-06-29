@@ -5418,12 +5418,17 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (backend_ctx, 0, sizeof (backend_ctx_t));
 }
 
-static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, bool is_virtualized, int virtmulti, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
+static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
 {
-  backend_ctx_t     *backend_ctx   = hashcat_ctx->backend_ctx;
-  user_options_t    *user_options  = hashcat_ctx->user_options;
+  const bridge_ctx_t   *bridge_ctx    = hashcat_ctx->bridge_ctx;
+        backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+        user_options_t *user_options  = hashcat_ctx->user_options;
 
-  hc_device_param_t *devices_param = backend_ctx->devices_param;
+  hc_device_param_t    *devices_param = backend_ctx->devices_param;
+
+  bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
+
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int cuda_devices_cnt    = 0;
   int cuda_devices_active = 0;
@@ -5893,15 +5898,20 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, bool is_v
   backend_ctx->cuda_devices_active  = cuda_devices_active;
 }
 
-static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, bool is_virtualized, int virtmulti, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
+static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
 {
   #if defined (__linux__)
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
   #endif
-  backend_ctx_t         *backend_ctx   = hashcat_ctx->backend_ctx;
-  user_options_t        *user_options  = hashcat_ctx->user_options;
+  const bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
+        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
 
   hc_device_param_t     *devices_param = backend_ctx->devices_param;
+
+  bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
+
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int hip_devices_cnt    = 0;
   int hip_devices_active = 0;
@@ -6400,15 +6410,21 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, bool is_vi
   backend_ctx->hip_devices_active  = hip_devices_active;
 }
 
-static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED bool is_virtualized, MAYBE_UNUSED int virtmulti, MAYBE_UNUSED int *virthost, MAYBE_UNUSED int *virthost_finder, MAYBE_UNUSED int *backend_devices_idx, MAYBE_UNUSED int *bridge_link_device)
+static void backend_ctx_devices_init_metal (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED int *virthost, MAYBE_UNUSED int *virthost_finder, MAYBE_UNUSED int *backend_devices_idx, MAYBE_UNUSED int *bridge_link_device)
 {
-  backend_ctx_t     *backend_ctx   = hashcat_ctx->backend_ctx;
-
   int metal_devices_cnt    = 0;
   int metal_devices_active = 0;
 
   #if defined (__APPLE__)
-  hc_device_param_t *devices_param = backend_ctx->devices_param;
+  const bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
+        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  hc_device_param_t     *devices_param = backend_ctx->devices_param;
+
+  bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
+
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   if (backend_ctx->mtl)
   {
@@ -6833,13 +6849,18 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
   backend_ctx->metal_devices_active  = metal_devices_active;
 }
 
-static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, bool is_virtualized, int virtmulti, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
+static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
 {
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
-  backend_ctx_t         *backend_ctx   = hashcat_ctx->backend_ctx;
-  user_options_t        *user_options  = hashcat_ctx->user_options;
+  const bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
+        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
 
   hc_device_param_t     *devices_param = backend_ctx->devices_param;
+
+  bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
+
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int opencl_devices_cnt    = 0;
   int opencl_devices_active = 0;
@@ -8242,12 +8263,11 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, bool is
 
 int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
-  const bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
-        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
-        user_options_t  *user_options  = hashcat_ctx->user_options;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (backend_ctx->enabled == false) return 0;
 
+  user_options_t    *user_options  = hashcat_ctx->user_options;
   hc_device_param_t *devices_param = backend_ctx->devices_param;
 
   backend_ctx->need_adl           = false;
@@ -8261,28 +8281,24 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   int backend_devices_idx = 0; // this will not only count active devices
 
-  bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
-
-  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
-
   int virthost = -1;
   int virthost_finder = user_options->backend_devices_virthost;
 
   // CUDA
 
-  backend_ctx_devices_init_cuda (hashcat_ctx, is_virtualized, virtmulti, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
+  backend_ctx_devices_init_cuda (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
 
   // HIP
 
-  backend_ctx_devices_init_hip (hashcat_ctx, is_virtualized, virtmulti, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
+  backend_ctx_devices_init_hip (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
 
   // Metal
 
-  backend_ctx_devices_init_metal (hashcat_ctx, is_virtualized, virtmulti, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
+  backend_ctx_devices_init_metal (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
 
   // OCL
 
-  backend_ctx_devices_init_opencl (hashcat_ctx, is_virtualized, virtmulti, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
+  backend_ctx_devices_init_opencl (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
 
   // all devices combined go into backend_* variables
 
