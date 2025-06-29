@@ -141,6 +141,7 @@
 - Modules: Updated module_unstable_warning
 - Open Document Format: Added support for small documents with content length < 1024
 - OpenCL Backend: added workaround to set device_available_memory from CUDA/HIP alias device
+- Selftest: rename selftest function to process_selftest and splitting into 3 smaller functions
 - Status Code: Add specific return code for self-test fail (-11)
 - Scrypt: Increase buffer sizes in module for hash mode 8900 to allow longer scrypt digests
 - Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
