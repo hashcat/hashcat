@@ -2008,6 +2008,7 @@ typedef struct salt
   u32 salt_len_pc;
   u32 salt_iter;
   u32 salt_iter2;
+  u32 salt_dimy;
   u32 salt_sign[2];
   u32 salt_repeats;
 
