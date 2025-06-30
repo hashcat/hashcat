@@ -268,12 +268,12 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
           if (device_param->is_cuda == true)
           {
-            if (hc_cuMemcpyDtoDAsync (hashcat_ctx, device_param->cuda_d_rules_c, device_param->cuda_d_rules, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), device_param->cuda_stream) == -1) return -1;
+            if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_rules_c, device_param->cuda_d_rules, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t)) == -1) return -1;
           }
 
           if (device_param->is_hip == true)
           {
-            if (hc_hipMemcpyDtoDAsync (hashcat_ctx, device_param->hip_d_rules_c, device_param->hip_d_rules, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t), device_param->hip_stream) == -1) return -1;
+            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_rules_c, device_param->hip_d_rules, MIN (kernel_loops_max, KERNEL_RULES) * sizeof (kernel_rule_t)) == -1) return -1;
           }
 
           #if defined (__APPLE__)
@@ -344,8 +344,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         start = MIN (start, smallest_repeat_double (hashes->st_salts_buf->salt_iter));
         start = MIN (start, smallest_repeat_double (hashes->st_salts_buf->salt_iter + 1));
 
-        if ((hashes->st_salts_buf->salt_iter     % 125) == 0) start = MIN (start, 125);
-        if ((hashes->st_salts_buf->salt_iter + 1 % 125) == 0) start = MIN (start, 125);
+        if (((hashes->st_salts_buf->salt_iter + 0) % 125) == 0) start = MIN (start, 125);
+        if (((hashes->st_salts_buf->salt_iter + 1) % 125) == 0) start = MIN (start, 125);
 
         if ((start >= kernel_loops_min) && (start <= kernel_loops_max))
         {

@@ -588,6 +588,11 @@ typedef hipError_t (HIP_API_CALL *HIP_HIPLAUNCHKERNEL)           (hipFunction_t,
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMALLOC)               (hipDeviceptr_t *, size_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMFREE)                (hipDeviceptr_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMGETINFO)             (size_t *, size_t *);
+typedef hipError_t (HIP_API_CALL *HIP_HIPMEMCPYDTOD)             (hipDeviceptr_t, hipDeviceptr_t, size_t);
+typedef hipError_t (HIP_API_CALL *HIP_HIPMEMCPYDTOH)             (void *, hipDeviceptr_t, size_t);
+typedef hipError_t (HIP_API_CALL *HIP_HIPMEMCPYHTOD)             (hipDeviceptr_t, const void *, size_t);
+typedef hipError_t (HIP_API_CALL *HIP_HIPMEMSETD32)              (hipDeviceptr_t, unsigned int, size_t);
+typedef hipError_t (HIP_API_CALL *HIP_HIPMEMSETD8)               (hipDeviceptr_t, unsigned char, size_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMCPYDTODASYNC)        (hipDeviceptr_t, hipDeviceptr_t, size_t, hipStream_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMCPYDTOHASYNC)        (void *, hipDeviceptr_t, size_t, hipStream_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMEMCPYHTODASYNC)        (hipDeviceptr_t, const void *, size_t, hipStream_t);
@@ -633,6 +638,11 @@ typedef struct hc_hip_lib
   HIP_HIPMEMALLOC               hipMemAlloc;
   HIP_HIPMEMFREE                hipMemFree;
   HIP_HIPMEMGETINFO             hipMemGetInfo;
+  HIP_HIPMEMCPYDTOD             hipMemcpyDtoD;
+  HIP_HIPMEMCPYDTOH             hipMemcpyDtoH;
+  HIP_HIPMEMCPYHTOD             hipMemcpyHtoD;
+  HIP_HIPMEMSETD32              hipMemsetD32;
+  HIP_HIPMEMSETD8               hipMemsetD8;
   HIP_HIPMEMCPYDTODASYNC        hipMemcpyDtoDAsync;
   HIP_HIPMEMCPYDTOHASYNC        hipMemcpyDtoHAsync;
   HIP_HIPMEMCPYHTODASYNC        hipMemcpyHtoDAsync;
@@ -680,6 +690,11 @@ int hc_hipLaunchKernel         (void *hashcat_ctx, hipFunction_t f, unsigned int
 int hc_hipMemAlloc             (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize);
 int hc_hipMemFree              (void *hashcat_ctx, hipDeviceptr_t dptr);
 int hc_hipMemGetInfo           (void *hashcat_ctx, size_t *free, size_t *total);
+int hc_hipMemcpyDtoD           (void *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount);
+int hc_hipMemcpyDtoH           (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount);
+int hc_hipMemcpyHtoD           (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount);
+int hc_hipMemsetD32            (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned int ui, size_t N);
+int hc_hipMemsetD8             (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned char uc, size_t N);
 int hc_hipMemcpyDtoDAsync      (void *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
 int hc_hipMemcpyDtoHAsync      (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
 int hc_hipMemcpyHtoDAsync      (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount, hipStream_t hStream);
