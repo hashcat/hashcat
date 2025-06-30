@@ -104,6 +104,9 @@ static const char *const OPTI_STR_USES_BITS_8          = "Uses-8-Bit";
 static const char *const OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
 static const char *const OPTI_STR_USES_BITS_32         = "Uses-32-Bit";
 static const char *const OPTI_STR_USES_BITS_64         = "Uses-64-Bit";
+static const char *const OPTI_STR_SLOW_HASH_DIMY_INIT  = "Slow-Hash-DimensionY-INIT";
+static const char *const OPTI_STR_SLOW_HASH_DIMY_COMP  = "Slow-Hash-DimensionY-LOOP";
+static const char *const OPTI_STR_SLOW_HASH_DIMY_LOOP  = "Slow-Hash-DimensionY-COMP";
 
 static const char *const HASH_CATEGORY_UNDEFINED_STR              = "Undefined";
 static const char *const HASH_CATEGORY_RAW_HASH_STR               = "Raw Hash";
@@ -1072,6 +1075,9 @@ const char *stroptitype (const u32 opti_type)
     case OPTI_TYPE_SLOW_HASH_SIMD_LOOP:  return OPTI_STR_SLOW_HASH_SIMD_LOOP;
     case OPTI_TYPE_SLOW_HASH_SIMD_LOOP2: return OPTI_STR_SLOW_HASH_SIMD_LOOP2;
     case OPTI_TYPE_SLOW_HASH_SIMD_COMP:  return OPTI_STR_SLOW_HASH_SIMD_COMP;
+    case OPTI_TYPE_SLOW_HASH_DIMY_INIT:  return OPTI_STR_SLOW_HASH_DIMY_INIT;
+    case OPTI_TYPE_SLOW_HASH_DIMY_LOOP:  return OPTI_STR_SLOW_HASH_DIMY_LOOP;
+    case OPTI_TYPE_SLOW_HASH_DIMY_COMP:  return OPTI_STR_SLOW_HASH_DIMY_COMP;
     case OPTI_TYPE_USES_BITS_8:          return OPTI_STR_USES_BITS_8;
     case OPTI_TYPE_USES_BITS_16:         return OPTI_STR_USES_BITS_16;
     case OPTI_TYPE_USES_BITS_32:         return OPTI_STR_USES_BITS_32;

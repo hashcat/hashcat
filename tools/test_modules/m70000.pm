@@ -17,7 +17,7 @@ sub module_generate_hash
 {
   my $word  = shift;
   my $salt  = shift;
-  my $m     = shift // 4096;
+  my $m     = shift // 65536;
   my $t     = shift // 3;
   my $p     = shift // 1;
   my $len   = shift // random_number (1, 2) * 16;

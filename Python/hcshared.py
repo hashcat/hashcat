@@ -6,13 +6,14 @@ import sys
 
 def extract_salts(salts_buf) -> list:
   salts=[]
-  for salt_buf, salt_buf_pc, salt_len, salt_len_pc, salt_iter, salt_iter2, salt_sign, salt_repeats, orig_pos, digests_cnt, digests_done, digests_offset, scrypt_N, scrypt_r, scrypt_p in struct.iter_unpack("256s 256s I I I I 8s I I I I I I I I", salts_buf):
+  for salt_buf, salt_buf_pc, salt_len, salt_len_pc, salt_iter, salt_iter2, salt_dimy, salt_sign, salt_repeats, orig_pos, digests_cnt, digests_done, digests_offset, scrypt_N, scrypt_r, scrypt_p in struct.iter_unpack("256s 256s I I I I I 8s I I I I I I I I", salts_buf):
     salt_buf = salt_buf[0:salt_len]
     salt_buf_pc = salt_buf_pc[0:salt_len_pc]
     salts.append({ "salt_buf":      salt_buf,     \
                    "salt_buf_pc":   salt_buf_pc,  \
                    "salt_iter":     salt_iter,    \
                    "salt_iter2":    salt_iter2,   \
+                   "salt_dimy":     salt_dimy,    \
                    "salt_sign":     salt_sign,    \
                    "salt_repeats":  salt_repeats, \
                    "orig_pos":      orig_pos,     \

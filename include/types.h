@@ -412,6 +412,9 @@ typedef enum opti_type
   OPTI_TYPE_REGISTER_LIMIT        = (1 << 20), // We'll limit the register count to 128
   OPTI_TYPE_SLOW_HASH_SIMD_INIT2  = (1 << 21),
   OPTI_TYPE_SLOW_HASH_SIMD_LOOP2  = (1 << 22),
+  OPTI_TYPE_SLOW_HASH_DIMY_INIT   = (1 << 23),
+  OPTI_TYPE_SLOW_HASH_DIMY_LOOP   = (1 << 24),
+  OPTI_TYPE_SLOW_HASH_DIMY_COMP   = (1 << 25),
 
 } opti_type_t;
 
@@ -476,14 +479,17 @@ typedef enum opts_type
   OPTS_TYPE_DYNAMIC_SHARED    = (1ULL << 53), // use dynamic shared memory (note: needs special kernel changes)
   OPTS_TYPE_SELF_TEST_DISABLE = (1ULL << 54), // some algos use JiT in combinations with a salt or create too much startup time
   OPTS_TYPE_MP_MULTI_DISABLE  = (1ULL << 55), // do not multiply the kernel-accel with the multiprocessor count per device to allow more fine-tuned workload settings
-  OPTS_TYPE_NATIVE_THREADS    = (1ULL << 56), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
-  OPTS_TYPE_MAXIMUM_THREADS   = (1ULL << 57), // disable else branch in pre-compilation thread count optimization setting
-  OPTS_TYPE_POST_AMP_UTF16LE  = (1ULL << 58), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
+  OPTS_TYPE_THREAD_MULTI_DISABLE              // do not multiply the kernel-power with the thread count per device for super slow algos
+                              = (1ULL << 56),
+  OPTS_TYPE_NATIVE_THREADS    = (1ULL << 57), // forces "native" thread count: CPU=1, GPU-Intel=8, GPU-AMD=64 (wavefront), GPU-NV=32 (warps)
+  OPTS_TYPE_MAXIMUM_THREADS   = (1ULL << 58), // disable else branch in pre-compilation thread count optimization setting
+  OPTS_TYPE_POST_AMP_UTF16LE  = (1ULL << 59), // run the utf8 to utf16le conversion kernel after they have been processed from amplifiers
   OPTS_TYPE_AUTODETECT_DISABLE
-                              = (1ULL << 59), // skip autodetect engine
-  OPTS_TYPE_STOCK_MODULE      = (1ULL << 60), // module included with hashcat default distribution
+                              = (1ULL << 60), // skip autodetect engine
+  OPTS_TYPE_STOCK_MODULE      = (1ULL << 61), // module included with hashcat default distribution
   OPTS_TYPE_MULTIHASH_DESPITE_ESALT
-                              = (1ULL << 61), // overrule multihash cracking check same salt but not same esalt
+                              = (1ULL << 62), // overrule multihash cracking check same salt but not same esalt
+  OPTS_TYPE_MAXIMUM_ACCEL     = (1ULL << 63)  // try to maximize kernel-accel during autotune
 
 } opts_type_t;
 

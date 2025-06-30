@@ -29,7 +29,7 @@ static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_MATCH_TUNINGS // optional - impr
                                   | BRIDGE_TYPE_REPLACE_LOOP;
 static const char *BRIDGE_NAME    = "argon2id_reference";
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$argon2id$v=19$m=4096,t=3,p=1$FoIjFnZlM2JSJWYXUgMFAw$eYKMzhbW8uyT1LLtKRdRcJj2CQeRrdr2pKv/Y71YbAQ";
+static const char *ST_HASH        = "$argon2id$v=19$m=65536,t=3,p=1$FBMjI4RJBhIykCgol1KEJA$2ky5GAdhT1kH4kIgPN/oERE3Taiy43vNN70a3HpiKQU";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }

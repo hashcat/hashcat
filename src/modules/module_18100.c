@@ -21,6 +21,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_OTP;
 static const char *HASH_NAME      = "TOTP (HMAC-SHA1)";
 static const u64   KERN_TYPE      = 18100;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_REGISTER_LIMIT
                                   | OPTI_TYPE_NOT_ITERATED;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_BE
