@@ -1481,6 +1481,8 @@ bool autodetect_hashmode_test (hashcat_ctx_t *hashcat_ctx)
   {
     char *input_buf = user_options_extra->hc_hash;
 
+    if (!input_buf) return false;
+
     size_t input_len = strlen (input_buf);
 
     char  *hash_buf = NULL;
