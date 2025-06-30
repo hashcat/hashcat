@@ -183,13 +183,11 @@ using namespace metal;
 #ifdef IS_CUDA
 #define USE_BITSELECT
 #define USE_ROTATE
-#define USE_FUNNELSHIFT
 #endif
 
 #ifdef IS_HIP
 #define USE_BITSELECT
 #define USE_ROTATE
-#define USE_FUNNELSHIFT
 #endif
 
 #ifdef IS_ROCM
@@ -220,7 +218,18 @@ using namespace metal;
 #define s3 w
 #endif
 
+// funnelshift is nv's bitalign starting from sm 70
+
+#ifdef IS_NV
+#if HAS_SHFW == 1
+#define USE_FUNNELSHIFT
+#endif
+#elif IS_HIP
+#define USE_FUNNELSHIFT
+#endif
+
 // some algorithms do not like this, eg 150, 1100, ...
+
 #ifdef NO_FUNNELSHIFT
 #undef USE_FUNNELSHIFT
 #endif

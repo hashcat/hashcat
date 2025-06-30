@@ -20,6 +20,7 @@ static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "Juniper NetScreen/SSG (ScreenOS)";
 static const u64   KERN_TYPE      = 20;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_REGISTER_LIMIT
                                   | OPTI_TYPE_PRECOMPUTE_INIT
                                   | OPTI_TYPE_EARLY_SKIP
                                   | OPTI_TYPE_NOT_ITERATED

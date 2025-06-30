@@ -1516,6 +1516,7 @@ typedef struct hc_device_param
   bool    has_lop3;
   bool    has_mov64;
   bool    has_prmt;
+  bool    has_shfw;
 
   double  spin_damp;
 
