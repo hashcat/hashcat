@@ -78,6 +78,8 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
     tmp.pw_len = (u32) tmp_len;
   }
 
+  cl_event opencl_event;
+
   pw_t pw;
   pw_t comb;
   bf_t bf;
@@ -118,7 +120,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
     if (device_param->is_opencl == true)
     {
-      if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+      if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
     }
   }
   else
@@ -163,7 +165,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
         if (device_param->is_opencl == true)
         {
-          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
         }
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
@@ -239,9 +241,9 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
         if (device_param->is_opencl == true)
         {
-          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_FALSE, 0, 1 * sizeof (pw_t), &comb, 0, NULL, NULL) == -1) return -1;
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_FALSE, 0, 1 * sizeof (pw_t), &comb, 0, NULL, &opencl_event) == -1) return -1;
 
-          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
         }
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
@@ -284,7 +286,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
           if (device_param->is_opencl == true)
           {
-            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
           }
         }
         else
@@ -345,7 +347,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
           if (device_param->is_opencl == true)
           {
-            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bfs_c, CL_FALSE, 0, 1 * sizeof (bf_t), &bf, 0, NULL, NULL) == -1) return -1;
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bfs_c, CL_FALSE, 0, 1 * sizeof (bf_t), &bf, 0, NULL, &opencl_event) == -1) return -1;
           }
 
           memset (&pw, 0, sizeof (pw));
@@ -451,7 +453,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
           if (device_param->is_opencl == true)
           {
-            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
           }
 
           *highest_pw_len = pw.pw_len;
@@ -489,9 +491,18 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
       if (device_param->is_opencl == true)
       {
-        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
       }
     }
+  }
+
+  // prevent race condition on OpenCL with non-blocking write
+
+  if (device_param->is_opencl == true)
+  {
+    if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
+
+    if (hc_clReleaseEvent (hashcat_ctx, opencl_event) == -1) return -1;
   }
 
   return 0;
