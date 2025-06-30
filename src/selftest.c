@@ -78,6 +78,8 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
     tmp.pw_len = (u32) tmp_len;
   }
 
+  cl_event opencl_event;
+
   pw_t pw;
   pw_t comb;
   bf_t bf;
@@ -101,12 +103,12 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
     if (device_param->is_cuda == true)
     {
-      if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->cuda_stream) == -1) return -1;
+      if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
     }
 
     if (device_param->is_hip == true)
     {
-      if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->hip_stream) == -1) return -1;
+      if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
     }
 
     #if defined (__APPLE__)
@@ -118,7 +120,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
     if (device_param->is_opencl == true)
     {
-      if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+      if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
     }
   }
   else
@@ -146,12 +148,12 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
         if (device_param->is_cuda == true)
         {
-          if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->cuda_stream) == -1) return -1;
+          if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
         }
 
         if (device_param->is_hip == true)
         {
-          if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->hip_stream) == -1) return -1;
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
         }
 
         #if defined (__APPLE__)
@@ -163,7 +165,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
         if (device_param->is_opencl == true)
         {
-          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
         }
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
@@ -216,16 +218,16 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
         if (device_param->is_cuda == true)
         {
-          if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_combs_c, &comb, 1 * sizeof (pw_t), device_param->cuda_stream) == -1) return -1;
+          if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_combs_c, &comb, 1 * sizeof (pw_t)) == -1) return -1;
 
-          if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->cuda_stream) == -1) return -1;
+          if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
         }
 
         if (device_param->is_hip == true)
         {
-          if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_combs_c, &comb, 1 * sizeof (pw_t), device_param->hip_stream) == -1) return -1;
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_combs_c, &comb, 1 * sizeof (pw_t)) == -1) return -1;
 
-          if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->hip_stream) == -1) return -1;
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
         }
 
         #if defined (__APPLE__)
@@ -239,9 +241,9 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
         if (device_param->is_opencl == true)
         {
-          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_FALSE, 0, 1 * sizeof (pw_t), &comb, 0, NULL, NULL) == -1) return -1;
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, 1 * sizeof (pw_t), &comb, 0, NULL, &opencl_event) == -1) return -1;
 
-          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
         }
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
@@ -267,12 +269,12 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
           if (device_param->is_cuda == true)
           {
-            if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->cuda_stream) == -1) return -1;
+            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
           }
 
           if (device_param->is_hip == true)
           {
-            if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->hip_stream) == -1) return -1;
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
           }
 
           #if defined (__APPLE__)
@@ -284,7 +286,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
           if (device_param->is_opencl == true)
           {
-            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
           }
         }
         else
@@ -328,12 +330,12 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
           if (device_param->is_cuda == true)
           {
-            if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_bfs_c, &bf, 1 * sizeof (bf_t), device_param->cuda_stream) == -1) return -1;
+            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_bfs_c, &bf, 1 * sizeof (bf_t)) == -1) return -1;
           }
 
           if (device_param->is_hip == true)
           {
-            if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_bfs_c, &bf, 1 * sizeof (bf_t), device_param->hip_stream) == -1) return -1;
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_bfs_c, &bf, 1 * sizeof (bf_t)) == -1) return -1;
           }
 
           #if defined (__APPLE__)
@@ -345,7 +347,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
           if (device_param->is_opencl == true)
           {
-            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bfs_c, CL_FALSE, 0, 1 * sizeof (bf_t), &bf, 0, NULL, NULL) == -1) return -1;
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bfs_c, CL_TRUE, 0, 1 * sizeof (bf_t), &bf, 0, NULL, &opencl_event) == -1) return -1;
           }
 
           memset (&pw, 0, sizeof (pw));
@@ -434,12 +436,12 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
           if (device_param->is_cuda == true)
           {
-            if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->cuda_stream) == -1) return -1;
+            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
           }
 
           if (device_param->is_hip == true)
           {
-            if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->hip_stream) == -1) return -1;
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
           }
 
           #if defined (__APPLE__)
@@ -451,7 +453,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
           if (device_param->is_opencl == true)
           {
-            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
           }
 
           *highest_pw_len = pw.pw_len;
@@ -472,12 +474,12 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
       if (device_param->is_cuda == true)
       {
-        if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->cuda_stream) == -1) return -1;
+        if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
       }
 
       if (device_param->is_hip == true)
       {
-        if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t), device_param->hip_stream) == -1) return -1;
+        if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_buf, &pw, 1 * sizeof (pw_t)) == -1) return -1;
       }
 
       #if defined (__APPLE__)
@@ -489,9 +491,18 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
       if (device_param->is_opencl == true)
       {
-        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_FALSE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, NULL) == -1) return -1;
+        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_TRUE, 0, 1 * sizeof (pw_t), &pw, 0, NULL, &opencl_event) == -1) return -1;
       }
     }
+  }
+
+  // prevent race condition on OpenCL with non-blocking write
+
+  if (device_param->is_opencl == true)
+  {
+    if (hc_clWaitForEvents (hashcat_ctx, 1, &opencl_event) == -1) return -1;
+
+    if (hc_clReleaseEvent (hashcat_ctx, opencl_event) == -1) return -1;
   }
 
   return 0;
@@ -576,14 +587,14 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
       if (device_param->is_cuda == true)
       {
-        if (hc_cuMemcpyDtoHAsync (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, device_param->size_hooks, device_param->cuda_stream) == -1) return -1;
+        if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, device_param->size_hooks) == -1) return -1;
 
         if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
       }
 
       if (device_param->is_hip == true)
       {
-        if (hc_hipMemcpyDtoHAsync (hashcat_ctx, device_param->hooks_buf, device_param->hip_d_hooks, device_param->size_hooks, device_param->hip_stream) == -1) return -1;
+        if (hc_hipMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->hip_d_hooks, device_param->size_hooks) == -1) return -1;
 
         if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
       }
@@ -605,12 +616,12 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
       if (device_param->is_cuda == true)
       {
-        if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, device_param->size_hooks, device_param->cuda_stream) == -1) return -1;
+        if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, device_param->size_hooks) == -1) return -1;
       }
 
       if (device_param->is_hip == true)
       {
-        if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_hooks, device_param->hooks_buf, device_param->size_hooks, device_param->hip_stream) == -1) return -1;
+        if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_hooks, device_param->hooks_buf, device_param->size_hooks) == -1) return -1;
       }
 
       #if defined (__APPLE__)
@@ -622,7 +633,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
       if (device_param->is_opencl == true)
       {
-        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_FALSE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
+        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
       }
     }
 
@@ -672,14 +683,14 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
           {
             if (device_param->is_cuda == true)
             {
-              if (hc_cuMemcpyDtoHAsync (hashcat_ctx, device_param->h_tmps, device_param->cuda_d_tmps, hashconfig->tmp_size, device_param->cuda_stream) == -1) return -1;
+              if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->h_tmps, device_param->cuda_d_tmps, hashconfig->tmp_size) == -1) return -1;
 
               if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
             }
 
             if (device_param->is_hip == true)
             {
-              if (hc_hipMemcpyDtoHAsync (hashcat_ctx, device_param->h_tmps, device_param->hip_d_tmps, hashconfig->tmp_size, device_param->hip_stream) == -1) return -1;
+              if (hc_hipMemcpyDtoH (hashcat_ctx, device_param->h_tmps, device_param->hip_d_tmps, hashconfig->tmp_size) == -1) return -1;
 
               if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
             }
@@ -713,14 +724,14 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
           {
             if (device_param->is_cuda == true)
             {
-              if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_tmps, device_param->h_tmps, hashconfig->tmp_size, device_param->cuda_stream) == -1) return -1;
+              if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_tmps, device_param->h_tmps, hashconfig->tmp_size) == -1) return -1;
 
               if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
             }
 
             if (device_param->is_hip == true)
             {
-              if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_tmps, device_param->h_tmps, hashconfig->tmp_size, device_param->hip_stream) == -1) return -1;
+              if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_tmps, device_param->h_tmps, hashconfig->tmp_size) == -1) return -1;
 
               if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
             }
@@ -747,14 +758,14 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
         if (device_param->is_cuda == true)
         {
-          if (hc_cuMemcpyDtoHAsync (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, device_param->size_hooks, device_param->cuda_stream) == -1) return -1;
+          if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->cuda_d_hooks, device_param->size_hooks) == -1) return -1;
 
           if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
         }
 
         if (device_param->is_hip == true)
         {
-          if (hc_hipMemcpyDtoHAsync (hashcat_ctx, device_param->hooks_buf, device_param->hip_d_hooks, device_param->size_hooks, device_param->hip_stream) == -1) return -1;
+          if (hc_hipMemcpyDtoH (hashcat_ctx, device_param->hooks_buf, device_param->hip_d_hooks, device_param->size_hooks) == -1) return -1;
 
           if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
         }
@@ -776,12 +787,12 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
         if (device_param->is_cuda == true)
         {
-          if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, device_param->size_hooks, device_param->cuda_stream) == -1) return -1;
+          if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_hooks, device_param->hooks_buf, device_param->size_hooks) == -1) return -1;
         }
 
         if (device_param->is_hip == true)
         {
-          if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_hooks, device_param->hooks_buf, device_param->size_hooks, device_param->hip_stream) == -1) return -1;
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_hooks, device_param->hooks_buf, device_param->size_hooks) == -1) return -1;
         }
 
         #if defined (__APPLE__)
@@ -793,7 +804,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
         if (device_param->is_opencl == true)
         {
-          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_FALSE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_hooks, CL_TRUE, 0, device_param->size_hooks, device_param->hooks_buf, 0, NULL, NULL) == -1) return -1;
         }
       }
     }
@@ -835,14 +846,14 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
             {
               if (device_param->is_cuda == true)
               {
-                if (hc_cuMemcpyDtoHAsync (hashcat_ctx, device_param->h_tmps, device_param->cuda_d_tmps, hashconfig->tmp_size, device_param->cuda_stream) == -1) return -1;
+                if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->h_tmps, device_param->cuda_d_tmps, hashconfig->tmp_size) == -1) return -1;
 
                 if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
               }
 
               if (device_param->is_hip == true)
               {
-                if (hc_hipMemcpyDtoHAsync (hashcat_ctx, device_param->h_tmps, device_param->hip_d_tmps, hashconfig->tmp_size, device_param->hip_stream) == -1) return -1;
+                if (hc_hipMemcpyDtoH (hashcat_ctx, device_param->h_tmps, device_param->hip_d_tmps, hashconfig->tmp_size) == -1) return -1;
 
                 if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
               }
@@ -876,12 +887,12 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
             {
               if (device_param->is_cuda == true)
               {
-                if (hc_cuMemcpyHtoDAsync (hashcat_ctx, device_param->cuda_d_tmps, device_param->h_tmps, hashconfig->tmp_size, device_param->cuda_stream) == -1) return -1;
+                if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_tmps, device_param->h_tmps, hashconfig->tmp_size) == -1) return -1;
               }
 
               if (device_param->is_hip == true)
               {
-                if (hc_hipMemcpyHtoDAsync (hashcat_ctx, device_param->hip_d_tmps, device_param->h_tmps, hashconfig->tmp_size, device_param->hip_stream) == -1) return -1;
+                if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_tmps, device_param->h_tmps, hashconfig->tmp_size) == -1) return -1;
               }
 
               #if defined (__APPLE__)
@@ -951,14 +962,14 @@ static int selftest_cleanup (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuMemcpyDtoHAsync (hashcat_ctx, num_cracked, device_param->cuda_d_result, sizeof (u32), device_param->cuda_stream) == -1) return -1;
+    if (hc_cuMemcpyDtoH (hashcat_ctx, num_cracked, device_param->cuda_d_result, sizeof (u32)) == -1) return -1;
 
     if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event3, device_param->cuda_stream) == -1) return -1;
   }
 
   if (device_param->is_hip == true)
   {
-    if (hc_hipMemcpyDtoHAsync (hashcat_ctx, num_cracked, device_param->hip_d_result, sizeof (u32), device_param->hip_stream) == -1) return -1;
+    if (hc_hipMemcpyDtoH (hashcat_ctx, num_cracked, device_param->hip_d_result, sizeof (u32)) == -1) return -1;
 
     if (hc_hipEventRecord (hashcat_ctx, device_param->hip_event3, device_param->hip_stream) == -1) return -1;
   }
@@ -972,7 +983,7 @@ static int selftest_cleanup (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
   if (device_param->is_opencl == true)
   {
-    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_FALSE, 0, sizeof (u32), num_cracked, 0, NULL, &opencl_event) == -1) return -1;
+    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_result, CL_TRUE, 0, sizeof (u32), num_cracked, 0, NULL, &opencl_event) == -1) return -1;
 
     if (hc_clFlush (hashcat_ctx, device_param->opencl_command_queue) == -1) return -1;
   }
