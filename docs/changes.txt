@@ -138,6 +138,7 @@
 - Building: Support building windows binaries on macOS using MinGW
 - Dependencies: Updated OpenCL-Headers to v2024.10.24 (commit 265df85)
 - Documents: Updated BUILD.md and added BUILD_macOS.md (containing instructions for building windows binaries on macOS)
+- Modules: Added module_unstable_warning for 22500, update module_unstable_warning for 10700
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
 - Modules: Updated module_unstable_warning
 - Open Document Format: Added support for small documents with content length < 1024
