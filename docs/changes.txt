@@ -63,6 +63,7 @@
 - Added hash-mode: md5(sha1($salt.$pass))
 - Added hash-mode: sha512(sha512($pass).$salt)
 - Added hash-mode: sha512(sha512_bin($pass).$salt)
+- Added hash-mode: md5($salt.md5($pass).$salt)
 
 ##
 ## Features
