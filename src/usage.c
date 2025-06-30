@@ -100,7 +100,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --bridge-parameter4        | Str  | Sets the generic parameter 4 for a Bridge            |",
   "     --cpu-affinity             | Str  | Locks to CPU devices, separated with commas          | --cpu-affinity=1,2,3",
   "     --hook-threads             | Num  | Sets number of threads for a hook (per compute unit) | --hook-threads=8",
-  "     --hash-info                |      | Show information for each hash-mode                  |",
+  " -H, --hash-info                |      | Show information for each hash-mode                  | -H or -HH",
   "     --example-hashes           |      | Alias of --hash-info                                 |",
   "     --backend-ignore-cuda      |      | Do not try to open CUDA interface on startup         |",
   "     --backend-ignore-hip       |      | Do not try to open HIP interface on startup          |",

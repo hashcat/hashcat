@@ -96,7 +96,7 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
     event_log_info (hashcat_ctx, "%s (%s) starting in autodetect mode", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
   }
-  else if (user_options->hash_info == true)
+  else if (user_options->hash_info > 0)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in hash-info mode", PROGNAME, version_tag);
     event_log_info (hashcat_ctx, NULL);
@@ -648,7 +648,7 @@ void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginn
   *ptr1 = 0;
 }
 
-void json_encode (char *text, char *escaped)
+void json_encode (const char *text, char *escaped)
 {
   /*
    * Based on https://www.freeformatter.com/json-escape.html, below these 7 different chars
@@ -681,6 +681,8 @@ void json_encode (char *text, char *escaped)
 
 void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
 {
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
   if (hashconfig_init (hashcat_ctx) == 0)
   {
     hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
@@ -691,25 +693,70 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     printf ("\"category\": \"%s\", ", strhashcategory (hashconfig->hash_category));
     printf ("\"slow_hash\": %s, ", (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? "false" : "true");
 
-    printf ("\"password_len_min\": %u, ", hashconfig->pw_min);
-    printf ("\"password_len_max\": %u, ", hashconfig->pw_max);
-
     printf ("\"is_deprecated\": %s, ", (module_ctx->module_deprecated_notice != MODULE_DEFAULT) ? "true" : "false");
 
-    if (module_ctx->module_deprecated_notice != MODULE_DEFAULT) {
-      const char *deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
-      printf ("\"deprecated_notice\": \"%s\", ", deprecated_notice);
+    if (module_ctx->module_deprecated_notice != MODULE_DEFAULT)
+    {
+      const char *t_deprecated_notice = module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
+
+      char *t_deprecated_notice_json_encoded = (char *) hcmalloc (strlen (t_deprecated_notice) * 2);
+
+      json_encode (t_deprecated_notice, t_deprecated_notice_json_encoded);
+
+      printf ("\"deprecated_notice\": \"%s\", ", t_deprecated_notice_json_encoded);
+
+      hcfree (t_deprecated_notice_json_encoded);
     }
+    else
+    {
+      printf ("\"deprecated_notice\": \"%s\", ", "N/A");
+    }
+
+    const char *t_pw_desc = (hashconfig->opts_type & OPTS_TYPE_PT_HEX) ? "HEX" : "plain";
+
+    u32 t_pw_min = hashconfig->pw_min;
+    u32 t_pw_max = hashconfig->pw_max;
+
+    if (user_options->hash_info > 1)
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
+      {
+        t_pw_min *= 2;
+        t_pw_max *= 2;
+      }
+    }
+
+    printf ("\"password_type\": \"%s\", ", t_pw_desc);
+    printf ("\"password_len_min\": %u, ", t_pw_min);
+    printf ("\"password_len_max\": %u, ", t_pw_max);
 
     printf ("\"is_salted\": %s, ", (hashconfig->is_salted == true) ? "true" : "false");
 
     if (hashconfig->is_salted == true)
     {
       u32 t = hashconfig->salt_type;
-      const char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "embedded" : (t == SALT_TYPE_GENERIC) ? "generic" : "virtual";
-      printf ("\"salt_type\": \"%s\", ", t_desc);
-      printf ("\"salt_len_min\": %u, ", hashconfig->salt_min);
-      printf ("\"salt_len_max\": %u, ", hashconfig->salt_max);
+
+      const char *t_salt_desc = (t == SALT_TYPE_EMBEDDED) ? "embedded" : (t == SALT_TYPE_GENERIC) ? "generic" : "virtual";
+
+      printf ("\"salt_type\": \"%s\", ", t_salt_desc);
+
+      if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
+      {
+        u32 t_salt_min = hashconfig->salt_min;
+        u32 t_salt_max = hashconfig->salt_max;
+
+        if (user_options->hash_info > 1)
+        {
+          if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+          {
+            t_salt_min *= 2;
+            t_salt_max *= 2;
+          }
+        }
+
+        printf ("\"salt_len_min\": %u, ", t_salt_min);
+        printf ("\"salt_len_max\": %u, ", t_salt_max);
+      }
     }
 
     if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
@@ -723,6 +770,39 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     else if (hashconfig->has_optimized_kernel)
     {
       printf ("\"kernel_type\": %s, ", "[ \"optimized\" ]");
+    }
+
+    if (user_options->hash_info > 1)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        printf ("\"kernel_type_filter\": %s, ", "[ \"optimized\" ]");
+      }
+      else
+      {
+        printf ("\"kernel_type_filter\": %s, ", "[ \"pure\" ]");
+      }
+
+      printf ("\"attack_mode_filter\": %d, ", user_options->attack_mode);
+
+      // almost always 1 and -1
+      printf ("\"hashes_count_min\": %d, ", hashconfig->hashes_count_min);
+      printf ("\"hashes_count_max\": %d, ", hashconfig->hashes_count_max);
+
+      if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
+      {
+        bool multi_hash_same_salt = true;
+
+        if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
+        {
+          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+          {
+            multi_hash_same_salt = false;
+          }
+        }
+
+        printf ("\"hashes_with_same_salt\": %s, ", (multi_hash_same_salt == true) ? "true" : "false");
+      }
     }
 
     if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
@@ -745,7 +825,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
       char *example_hash_json_encoded = (char *) hcmalloc (strlen (hashconfig->st_hash) * 2);
 
-      json_encode ((char *)hashconfig->st_hash, example_hash_json_encoded);
+      json_encode (hashconfig->st_hash, example_hash_json_encoded);
 
       printf ("\"example_hash\": \"%s\", ", example_hash_json_encoded);
 
@@ -821,6 +901,7 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     printf ("\"autodetect_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "false" : "true");
     printf ("\"self_test_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "false" : "true");
     printf ("\"potfile_enabled\": %s, ", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "false" : "true");
+    printf ("\"keep_guessing\": %s, ", (hashconfig->opts_type & OPTS_TYPE_SUGGEST_KG) ? "true" : "false");
     printf ("\"custom_plugin\": %s, ", (hashconfig->opts_type & OPTS_TYPE_STOCK_MODULE) ? "false" : "true");
 
     if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII)
@@ -835,8 +916,6 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
     {
       printf ("\"plaintext_encoding\": %s", "[ \"ASCII\", \"HEX\" ]");
     }
-
-    event_log_info (hashcat_ctx, NULL);
   }
 
   printf (" }");
@@ -846,30 +925,73 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
 
 void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_options_extra)
 {
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
   if (hashconfig_init (hashcat_ctx) == 0)
   {
     hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+    module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
 
     event_log_info (hashcat_ctx, "Hash mode #%u", hashconfig->hash_mode);
     event_log_info (hashcat_ctx, "  Name................: %s", hashconfig->hash_name);
     event_log_info (hashcat_ctx, "  Category............: %s", strhashcategory (hashconfig->hash_category));
     event_log_info (hashcat_ctx, "  Slow.Hash...........: %s", (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL) ? "No" : "Yes");
 
-    event_log_info (hashcat_ctx, "  Password.Len.Min....: %u", hashconfig->pw_min);
-    event_log_info (hashcat_ctx, "  Password.Len.Max....: %u", hashconfig->pw_max);
+    event_log_info (hashcat_ctx, "  Deprecated..........: %s", (module_ctx->module_deprecated_notice != MODULE_DEFAULT) ? "Yes" : "No");
+
+    char *t_deprecated_notice = "N/A\0";
+
+    if (module_ctx->module_deprecated_notice != MODULE_DEFAULT)
+    {
+      t_deprecated_notice = (char *) module_ctx->module_deprecated_notice (hashconfig, hashcat_ctx->user_options, user_options_extra);
+    }
+
+    event_log_info (hashcat_ctx, "  Deprecated.Notice...: %s", t_deprecated_notice);
+
+    const char *t_pw_desc = (hashconfig->opts_type & OPTS_TYPE_PT_HEX) ? "HEX\0" : "plain\0";
+
+    u32 t_pw_min = hashconfig->pw_min;
+    u32 t_pw_max = hashconfig->pw_max;
+
+    if (user_options->hash_info > 1)
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
+      {
+        t_pw_min *= 2;
+        t_pw_max *= 2;
+      }
+    }
+
+    event_log_info (hashcat_ctx, "  Password.Type.......: %s", t_pw_desc);
+    event_log_info (hashcat_ctx, "  Password.Len.Min....: %u", t_pw_min);
+    event_log_info (hashcat_ctx, "  Password.Len.Max....: %u", t_pw_max);
 
     if (hashconfig->is_salted == true)
     {
       u32 t = hashconfig->salt_type;
-      const char *t_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded\0" : (t == SALT_TYPE_GENERIC) ? "Generic\0" : "Virtual\0";
-      event_log_info (hashcat_ctx, "  Salt.Type...........: %s", t_desc);
-      event_log_info (hashcat_ctx, "  Salt.Len.Min........: %u", hashconfig->salt_min);
-      event_log_info (hashcat_ctx, "  Salt.Len.Max........: %u", hashconfig->salt_max);
-    }
 
-    // almost always 1 and -1
-    //event_log_info (hashcat_ctx, "  Hashes.Count.Min....: %d", hashconfig->hashes_count_min);
-    //event_log_info (hashcat_ctx, "  Hashes.Count.Max....: %u", hashconfig->hashes_count_max);
+      const char *t_salt_desc = (t == SALT_TYPE_EMBEDDED) ? "Embedded\0" : (t == SALT_TYPE_GENERIC) ? "Generic\0" : "Virtual\0";
+
+      event_log_info (hashcat_ctx, "  Salt.Type...........: %s", t_salt_desc);
+
+      if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
+      {
+        u32 t_salt_min = hashconfig->salt_min;
+        u32 t_salt_max = hashconfig->salt_max;
+
+        if (user_options->hash_info > 1)
+        {
+          if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+          {
+            t_salt_min *= 2;
+            t_salt_max *= 2;
+          }
+        }
+
+        event_log_info (hashcat_ctx, "  Salt.Len.Min........: %u", t_salt_min);
+        event_log_info (hashcat_ctx, "  Salt.Len.Max........: %u", t_salt_max);
+      }
+    }
 
     if ((hashconfig->has_pure_kernel) && (hashconfig->has_optimized_kernel))
     {
@@ -882,6 +1004,39 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
     else if (hashconfig->has_optimized_kernel)
     {
       event_log_info (hashcat_ctx, "  Kernel.Type(s)......: optimized");
+    }
+
+    if (user_options->hash_info > 1)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        event_log_info (hashcat_ctx, "  Kernel.Type.Filter..: optimized");
+      }
+      else
+      {
+        event_log_info (hashcat_ctx, "  Kernel.Type.Filter..: pure");
+      }
+
+      event_log_info (hashcat_ctx, "  Attack.Mode.Filter..: %u", user_options->attack_mode);
+
+      // almost always 1 and -1
+      event_log_info (hashcat_ctx, "  Hashes.Count.Min....: %d", hashconfig->hashes_count_min);
+      event_log_info (hashcat_ctx, "  Hashes.Count.Max....: %d", hashconfig->hashes_count_max);
+
+      if (hashconfig->salt_type == SALT_TYPE_GENERIC || hashconfig->salt_type == SALT_TYPE_EMBEDDED)
+      {
+        bool multi_hash_same_salt = true;
+
+        if ((hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL) == 0)
+        {
+          if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
+          {
+            multi_hash_same_salt = false;
+          }
+        }
+
+        event_log_info (hashcat_ctx, "  Hashes.w/.Same.Salt.: %s", (multi_hash_same_salt == true) ? "Allowed" : "Not allowed");
+      }
     }
 
     if ((hashconfig->st_hash != NULL) && (hashconfig->st_pass != NULL))
@@ -987,6 +1142,7 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
     event_log_info (hashcat_ctx, "  Autodetect.Enabled..: %s", (hashconfig->opts_type & OPTS_TYPE_AUTODETECT_DISABLE) ? "No" : "Yes");
     event_log_info (hashcat_ctx, "  Self.Test.Enabled...: %s", (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) ? "No" : "Yes");
     event_log_info (hashcat_ctx, "  Potfile.Enabled.....: %s", (hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) ? "No" : "Yes");
+    event_log_info (hashcat_ctx, "  Keep.Guessing.......: %s", (hashconfig->opts_type & OPTS_TYPE_SUGGEST_KG) ? "Yes" : "No");
     event_log_info (hashcat_ctx, "  Custom.Plugin.......: %s", (hashconfig->opts_type & OPTS_TYPE_STOCK_MODULE) ? "No" : "Yes");
 
     if (hashconfig->opts_type & OPTS_TYPE_PT_ALWAYS_ASCII)
@@ -3155,15 +3311,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      event_log_info (hashcat_ctx,
-        "Remaining........: %u (%.2f%%) Digests",
-        digests_remain,
-        digests_remain_percent);
+      event_log_info (hashcat_ctx, "Remaining........: %u (%.2f%%) Digests", digests_remain, digests_remain_percent);
     }
 
-    event_log_info (hashcat_ctx,
-      "Recovered/Time...: %s",
-      hashcat_status->cpt);
+    event_log_info (hashcat_ctx, "Recovered/Time...: %s", hashcat_status->cpt);
   }
 
   switch (hashcat_status->progress_mode)
@@ -3538,7 +3689,7 @@ void status_speed_json (hashcat_ctx_t *hashcat_ctx)
       printf (",");
     }
 
-    printf (" { \"device_id\": %u,", device_id + 1);
+    printf (" { \"device_id\": %d,", device_id + 1);
     printf (" \"speed\": %" PRIu64 " }", (u64) (device_info->hashes_msec_dev_benchmark * 1000));
     device_num++;
   }
@@ -3655,7 +3806,7 @@ void status_progress_json (hashcat_ctx_t *hashcat_ctx)
       printf (",");
     }
 
-    printf (" { \"device_id\": %u,", device_id + 1);
+    printf (" { \"device_id\": %d,", device_id + 1);
     printf (" \"progress\": %" PRIu64 ",", device_info->progress_dev);
     printf (" \"runtime\": %0.2f }", device_info->runtime_msec_dev);
     device_num++;
