@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32901.215
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "sse2neon", "sse2neon.vcxproj", "{341BF194-865B-4DA6-8120-93173498E774}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM = Debug|ARM
+		Debug|ARM64 = Debug|ARM64
+		Debug|ARM64EC = Debug|ARM64EC
+		Release|ARM = Release|ARM
+		Release|ARM64 = Release|ARM64
+		Release|ARM64EC = Release|ARM64EC
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{341BF194-865B-4DA6-8120-93173498E774}.Debug|ARM.ActiveCfg = Debug|ARM
+		{341BF194-865B-4DA6-8120-93173498E774}.Debug|ARM.Build.0 = Debug|ARM
+		{341BF194-865B-4DA6-8120-93173498E774}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{341BF194-865B-4DA6-8120-93173498E774}.Debug|ARM64.Build.0 = Debug|ARM64
+		{341BF194-865B-4DA6-8120-93173498E774}.Debug|ARM64EC.ActiveCfg = Debug|ARM64EC
+		{341BF194-865B-4DA6-8120-93173498E774}.Debug|ARM64EC.Build.0 = Debug|ARM64EC
+		{341BF194-865B-4DA6-8120-93173498E774}.Release|ARM.ActiveCfg = Release|ARM
+		{341BF194-865B-4DA6-8120-93173498E774}.Release|ARM.Build.0 = Release|ARM
+		{341BF194-865B-4DA6-8120-93173498E774}.Release|ARM64.ActiveCfg = Release|ARM64
+		{341BF194-865B-4DA6-8120-93173498E774}.Release|ARM64.Build.0 = Release|ARM64
+		{341BF194-865B-4DA6-8120-93173498E774}.Release|ARM64EC.ActiveCfg = Release|ARM64EC
+		{341BF194-865B-4DA6-8120-93173498E774}.Release|ARM64EC.Build.0 = Release|ARM64EC
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {D503B299-AA05-4E05-A8D9-37C8D229ACB1}
+	EndGlobalSection
+EndGlobal

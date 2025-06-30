@@ -1,0 +1,80 @@
+scrypt("", "", 16, 1, 1) = 77 d6 57 62 38 65 7b 20 3b 19 ca 42 c1 8a 04 97 f1 6b 48 44 e3 07 4a e8 df df fa 3f ed e2 14 42 fc d0 06 9d ed 09 48 f8 32 6a 75 3a 0f c8 1f 17 e8 d3 e0 fb 2e 0d 36 28 cf 35 e2 0c 38 d1 89 06
+scrypt("password", "NaCl", 1024, 8, 16) = fd ba be 1c 9d 34 72 00 78 56 e7 19 0d 01 e9 fe 7c 6a d7 cb c8 23 78 30 e7 73 76 63 4b 37 31 62 2e af 30 d9 2e 22 a3 88 6f f1 09 27 9d 98 30 da c7 27 af b9 4a 83 ee 6d 83 60 cb df a2 cc 06 40
+scrypt("pleaseletmein", "SodiumChloride", 16384, 8, 1) = 70 23 bd cb 3a fd 73 48 46 1c 06 cd 81 fd 38 eb fd a8 fb ba 90 4f 8e 3e a9 b5 43 f6 54 5d a1 f2 d5 43 29 55 61 3f 0f cf 62 d4 97 05 24 2a 9a f9 e6 1e 85 dc 0d 65 1e 40 df cf 01 7b 45 57 58 87
+scrypt("pleaseletmein", "SodiumChloride", 1048576, 8, 1) = 21 01 cb 9b 6a 51 1a ae ad db be 09 cf 70 f8 81 ec 56 8d 57 4a 2f fd 4d ab e5 ee 98 20 ad aa 47 8e 56 fd 8f 4b a5 d0 9f fa 1c 6d 92 7c 40 f4 c3 37 30 40 49 e8 a9 52 fb cb f4 5c 6f a7 7a 41 a4
+yescrypt("", "", 0, 16, 1, 1, 0, 0) = 77 d6 57 62 38 65 7b 20 3b 19 ca 42 c1 8a 04 97 f1 6b 48 44 e3 07 4a e8 df df fa 3f ed e2 14 42 fc d0 06 9d ed 09 48 f8 32 6a 75 3a 0f c8 1f 17 e8 d3 e0 fb 2e 0d 36 28 cf 35 e2 0c 38 d1 89 06
+yescrypt("", "", 0, 16, 1, 1, 0, 0) = 77 d6 57 62 38 65 7b 20
+yescrypt("", "", 0, 4, 1, 1, 0, 0) = ef ad 0c 23 31 4c b5 72 bc 3c fb 15 43 da 42 f8 a8 b0 73 00 4c 86 6b 64 ab 50 55 a4 f0 9f a5 f5 71 14 2e bf e7 e0 5a 3b 92 c4 32 f3 1d ea 95 ad 5f 9c 85 4b 64 56 46 2f 4b d0 f7 32 b7 cd c5 49
+yescrypt("", "", 1, 4, 1, 1, 0, 0) = 85 dd a4 8c 9e c9 de 2f 7f 1a e8 b4 df ed a5 1f 8b 6d 56 f3 08 1b e1 a7 c0 83 3b a2 71 9a 36 ab 02 88 5d ae 36 55 7d 34 26 86 b1 7b a7 5f 2c 21 77 92 de 09 70 ab 1d 07 a9 c7 50 93 6d 31 42 6f
+yescrypt("", "", 1, 4, 1, 1, 0, 0) = 85 dd a4 8c 9e c9 de 2f
+yescrypt("", "", 1, 4, 1, 1, 1, 0) = 4b aa 8c d8 60 8b a9 1f 3e 34 39 d9 ec 4f ae 8f 9f c0 92 d9 ca 22 b7 37 7e 31 ae 5b 9a d7 87 7c 11 68 69 11 62 dd 0e 5e f0 49 e5 70 65 0c be d4 38 4a d6 05 34 fb 0c be d1 9f f3 f0 33 c9 4b 0c
+yescrypt("", "", 1, 4, 1, 1, 2, 0) = e6 e8 bb a0 9b 64 12 ff b0 b3 cc 35 e3 7d 0b 78 2a 47 fb aa dc 57 a0 76 d7 c6 cc 2e 70 91 9a 1b 8d 47 38 c4 f8 33 55 69 07 42 d9 be d7 1c 3b 8f b0 d7 eb 08 6a b1 34 c5 e5 57 07 c2 c1 3c 75 ef
+yescrypt("", "", 1, 4, 1, 1, 3, 0) = ac d9 a4 20 1c f4 a4 76 ec f7 ba a6 11 3d 86 fb 65 cd 07 10 2b 40 04 e4 f9 d9 9c d3 42 55 a1 08 99 7d 70 ae 0a 64 bf 0a 4d 96 c1 73 ab f8 82 79 c1 a9 4a d9 bd f1 68 ed fb bd 90 f6 6e d5 c8 0d
+yescrypt("", "", 1, 4, 1, 1, 3, 0) = ac d9 a4 20 1c f4 a4 76 ec f7 ba a6 11 3d 86 fb 65 cd 07 10 2b 40 04 e4 f9 d9 9c d3 42 55 a1 08 99
+yescrypt("", "", 1, 4, 1, 1, 3, 0) = ac d9 a4 20 1c f4 a4 76 ec f7 ba a6 11 3d 86 fb 65 cd 07 10 2b 40 04 e4 f9 d9 9c d3 42 55 a1 08
+yescrypt("", "", 1, 4, 1, 1, 3, 0) = ac d9 a4 20 1c f4 a4 76 ec f7 ba a6 11 3d 86 fb 65 cd 07 10 2b 40 04 e4 f9 d9 9c d3 42 55 a1
+yescrypt("", "", 1, 4, 1, 1, 3, 0) = ac
+yescrypt("", "", 182, 4, 1, 1, 0, 0) = 0c d5 af 76 eb 24 1d f8 11 9a 9a 12 2a e3 69 20 bc c7 f4 14 b9 c0 d5 8f 45 00 80 60 da de 46 b0 c8 09 22 bd cc 16 a3 ab 5d 20 1d 4c 61 40 c6 71 be 1f 75 27 2c a9 04 73 9d 5a d1 ff 67 2b 0c 21
+yescrypt("", "", 182, 4, 1, 1, 0, 0) = 0c d5 af 76
+yescrypt("", "", 182, 4, 1, 1, 1, 0) = 23 b6 ad f0 b6 0c 9a 99 7f 58 58 3d 80 cd a4 8c 63 8c dc 2f 28 9e df 93 a7 08 07 72 5a 0d 35 c4 68 ca 36 2c 55 57 cc 04 b6 81 1e 2e 73 08 41 f5 26 d8 f4 f7 ac fb fa 9e 06 fe 1f 38 3a 71 15 5e
+yescrypt("", "", 182, 4, 1, 1, 1, 0) = 23 b6 ad f0 b6 0c 9a 99 7f 58 58 3d 80 cd a4 8c 63 8c dc 2f 28 9e df 93 a7 08 07 72 5a 0d 35 c4 68
+yescrypt("", "", 182, 4, 1, 1, 1, 0) = 23 b6 ad f0 b6 0c 9a 99 7f 58 58 3d 80 cd a4 8c 63 8c dc 2f 28 9e df 93 a7 08 07 72 5a 0d 35 c4
+yescrypt("", "", 182, 4, 1, 1, 1, 0) = 23 b6 ad f0 b6 0c 9a 99 7f 58 58 3d 80 cd a4 8c 63 8c dc 2f 28 9e df 93 a7 08 07 72 5a 0d 35
+yescrypt("", "", 182, 4, 1, 1, 1, 0) = 23
+yescrypt("p", "s", 182, 16, 8, 1, 10, 0) = e1 f9 81 73 3a 94 05 2f cd 7a cb 14 05 df 0b bd e8 e4 99 b6 a1 33 1b 77 59 09 b4 8c 2f 51 6c 40 dc c8 30 16 35 b7 23 7b
+yescrypt("p", "s", 1, 16, 8, 1, 10, 0) = 9e 7a 40 97 64 42 84 cf 3b 73 b6 04 50 ff 23 0c dc b6 b1 b1 9b 15 09 ee b4 82 f6 96 c4 f1 c7 05 c0 0f 74 02 16 18 3a 12
+yescrypt("p", "s", 182, 16, 8, 1, 0, 0) = c8 c7 ff 11 22 b0 b2 91 c3 f2 60 89 48 78 2c d6 89 cc 45 57 90 17 aa a5 ff 8b aa 74 a6 32 ec 99 c3 d6 69 30 fb 20 23 bb
+yescrypt("p", "s", 1, 16, 8, 1, 0, 0) = 9d d6 36 c2 d0 bb 92 34 52 86 ef da f8 a6 8c fc 1b 4f fd c4 b1 ad ac cc 7d 86 4b 9a 67 87 b8 5d 6a e0 f5 28 0d a8 88 9f
+yescrypt("p", "s", 182, 16, 8, 1, 0, 0) = c8 c7 ff 11 22 b0 b2 91 c3 f2 60 89 48 78 2c d6 89 cc 45 57 90 17 aa a5 ff 8b aa 74 a6 32 ec 99
+yescrypt("p", "s", 182, 16, 8, 1, 0, 0) = c8 c7 ff 11 22 b0 b2 91
+'$y$jD5.7$LdJMENpBABJJ3hIHjB1Bi.'
+Plaintext: '$y$jD5.7$LdJMENpBABJJ3hIHjB1Bi.$HboGM6qPrsK.StKYGt6KErmUYtioHreJd98oIugoNB6'
+Encrypted: '$y$jD5.7$BkbiDbyWZnzlLWOAcru671$zLAHafRUyp9n9XZWnltUbj3ULWUtMN4fteTltjWkARC'
+Plaintext: '$y$jC4$LdJMENpBABJJ3hIHjB1B$jVg4HoqqpbmQv/NCpin.QCMagJ8o4QX7lXdzvVV0xFC'
+Encrypted: '$y$jC4$qiyh2SQgE5vrF3ORvFho$HurI7MuukXHz..TpxrwKuakji/j9VKDh2WVUK4DIsq5'
+Plaintext: '$y$/B3.6$LdJMENpBABJJ3hIHjB1$h8sE4hJo.BsdlfJr0.d8bNJNPZymH7Y3kLj4aY1Rfc8'
+Encrypted: '$y$/B3.6$YiN5s/dKpjNrdKm9ND0$lBNMoUaAsw.JR0zMq9IBKIi/VPxj7lD7Sg64nB5LFw2'
+Plaintext: '$y$/A2$LdJMENpBABJJ3hIHj/$5IEld1eWdmh5lylrqHLF5dvA3ISpimEM9J1Dd05n/.3'
+Encrypted: '$y$/A2$TqjvmGXoqnsNU/8Y40$ZB43..7UnMt6ySU7XbpPyvyahahHSkJJgztkLWp6/IC'
+Plaintext: '$y$j91.5$LdJMENpBABJJ3hIH$ebKnn23URD5vyLgF9cP2EvVosrUXf7UErGRV0KmC6e6'
+Encrypted: '$y$j91.5$bICydADAaInC9UR/$rpsDDkULkr1caCVYV9PNAsiZxijoQ2/gDcbonlowRi7'
+Plaintext: '$y$j80$LdJMENpBABJJ3h2$ysXVVJwuaVlI1BWoEKt/Bz3WNDDmdOWz/8KTQaHL1cC'
+Encrypted: '$y$j80$fmxyeGYOC34lh19$mm9FRBs0iHLTHfSNznm1kJVchXN4PaS8hoNI6TTAlB7'
+Plaintext: '$y$/7/.4$LdJMENpBABJJ3/$lXHleh7bIZMGNtJVxGVrsIWkEIXfBedlfPui/PITflC'
+Encrypted: '$y$/7/.4$EuTbL3Wtm3khW0$1jvKQzIcAqYnYxfb4TEs.FeAZ7rLDl5vNQEkPPcj2KC'
+Plaintext: '$y$/6.$LdJMENpBABJJ$zQITmYSih5.CTY47x0IuE4wl.b3HzYGKKCSggakaQ22'
+Encrypted: '$y$/6.$x0G/jIr053ui$4O.aVGTPptkjx6eXrW8fdvqcPEV28w7a1PSos6CXV31'
+Plaintext: '$y$j5..3$LdJMENpBAB3$xi27PTUNd8NsChHeLOz85JFnUOyibRHkWzprowRlR5/'
+Encrypted: '$y$j5..3$/nwg3UXJWp/$5jcvDgeotKpaG9IeSJx0fJNSz33JjTYYD4Kwao3Eki5'
+Plaintext: '$y$j4/$LdJMENpBA/$tHlkpTQ8V/eEnTVau1uW36T97LIXlfPrEzdeV5SE5K7'
+Encrypted: '$y$j4/$yoneNBwae0$uPBnH0yXBCOM5v5BU9qlvUUtUr3QD5btS0upc6sdvf4'
+Plaintext: '$y$/3..2$LdJMENpB$tNczXFuNUd3HMqypStCRsEaL4e4KF7ZYLBe8Hbeg0B7'
+Encrypted: '$y$/3..2$VD20uHT3$AV5WWaN6bEKRvZlCuurj.mnHMmZmJ9ExQ9HjiReCDwC'
+Plaintext: '$y$/2/$LdJMEN3$RRorHhfsw1/P/WR6Aurg4U72e9Q7qt9vFPURdyfiqK8'
+Encrypted: '$y$/2/$BYujKJA$fsMwVvFm8r1caFQP.mem3OUuMYBCDGj9CEoDfSwFDLB'
+Plaintext: '$y$j2..1$LdJME/$iLEt6kuTwHch6XdCxtTHfsQzYwWFmpUwgl6Ax8RH4d1'
+Encrypted: '$y$j2..1$.mZga/$X6GFMkoYPxFapo.3H4LllEjltFapONQcKUOdEd9oPa/'
+Plaintext: '$y$j0/$LdJM$k7BXzSDuoGHW56SY3HxROCiA0gWRscZe2aA0q5oHPM0'
+Encrypted: '$y$j0/$SkNZ$DQ06H0br45bpE7lGgCD9gOxTMP9SsO6Mt1T9lo5PHz1'
+Plaintext: '$y$//..0$Ld3$6BJXezMFxaMiO5wsuoEmztvtCs/79085dZO56ADlV5B'
+Encrypted: '$y$//..0$lM1$60gjeUIW/3QidfN6zU9NqB09Ni1NBMfj2VaSZMjDd18'
+Plaintext: '$y$///$L/$Rrrkp6OVljrIk0kcwkCDhAiHJiSthh3cKeIGHUW7Z0C'
+Encrypted: '$y$///$q.$/.tR4GqigxciLYGoB8fmzudWQR7IzSu9s3dR8wp3VsD'
+Plaintext: '$y$j1../$LdJMENpBABJJ3hIHjB1Bi.$L8OQFc8mxJPd7CpUFgkS7KqJM2I9jGXu3BdqX2D.647'
+Encrypted: '$y$j1../$BkbiDbyWZnzlLWOAcru671$iicGI2gNZyhimPVgz2VoKrJAB9fWykBN.3Mh0AwEy29'
+Plaintext: '$y$j//$LdJMENpBABJJ3hIHjB1B$U8a2MaK.yesqWySK8Owk6PWeWmp/XuagMbpP45q1/q1'
+Encrypted: '$y$j//$qiyh2SQgE5vrF3ORvFho$5dD9ick8ugystfp8wa3xbV7ASDux0dpoOh0QJxFuXH5'
+'$7$C6..../....SodiumChloride$kBGj9fHznVYFQMEn/qDCfrDevf9YDtcDdKvEqHJLV8D'
+'$7$06..../....SodiumChloride$ENlyo6fGw4PCcDBOFepfSZjFUnVatHzCcW55.ZGz3B0'
+r=8 N=2^11 NROM=2^18
+Will use 262144.00 KiB ROM
+         2048.00 KiB RAM
+Initializing ROM ... DONE (696ebab2)
+'$y$j8567F$LdJMENpBABJJ3hIHjB1Bi.'
+'$y$j8567F$LdJMENpBABJJ3hIHjB1Bi.$4XJGTsv75AjIN60Z31kPN3.86vkCYzIq7LMz2Pb2lC.'
+Initializing ROM in preallocated memory ... DONE (696ebab2)
+'$y$j8567F$LdJMENpBABJJ3hIHjB1Bi.$4XJGTsv75AjIN60Z31kPN3.86vkCYzIq7LMz2Pb2lC.'
+'$y$j8567F$LdJMENpBABJJ3hIHjB1Bi.$K3wFVK9/t3QsjCk/oK2s8dKzzZ4m7QTP8Ms5uywhWv8'
+'$y$j8567F$LdJMENpBABJJ3ZIHjB1Bi.$/OnmIkP0UK5OxyxD0Af/V1oL0zWvTLAUWg3Nr0bsFEB'
+'$y$j8567F$LdJMENpBABJJ3ZIHjB1Bi.$DskEGULspNduIZVFK5SOK8enlXnSs/vkuXFdi0wkQ1.'
+'$y$j/.5I$LdJMENpBABJJ3hIHjB1Bi.$NqCMKxN9Y9Uw821.72ScGDMpyk7U7V51qnHSRPapzW8'

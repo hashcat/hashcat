@@ -81,7 +81,10 @@ int sort_pot_orig_line (const void *v1, const void *v2)
   const pot_orig_line_entry_t *t1 = (const pot_orig_line_entry_t *) v1;
   const pot_orig_line_entry_t *t2 = (const pot_orig_line_entry_t *) v2;
 
-  return t1->line_pos > t2->line_pos;
+  if (t1->line_pos > t2->line_pos) return 1;
+  if (t1->line_pos < t2->line_pos) return -1;
+
+  return 0;
 }
 
 // the problem with the GNU tdestroy () function is that it doesn't work with mingw etc

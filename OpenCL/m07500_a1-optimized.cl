@@ -271,7 +271,7 @@ DECLSPEC void kerb_prepare (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, 
   hmac_md5_run (w0_t, w1_t, w2_t, w3_t, ipad, opad, digest);
 }
 
-KERNEL_FQ void m07500_m04 (KERN_ATTR_ESALT (krb5pa_t))
+KERNEL_FQ KERNEL_FA void m07500_m04 (KERN_ATTR_ESALT (krb5pa_t))
 {
   /**
    * modifier
@@ -417,15 +417,15 @@ KERNEL_FQ void m07500_m04 (KERN_ATTR_ESALT (krb5pa_t))
   }
 }
 
-KERNEL_FQ void m07500_m08 (KERN_ATTR_ESALT (krb5pa_t))
+KERNEL_FQ KERNEL_FA void m07500_m08 (KERN_ATTR_ESALT (krb5pa_t))
 {
 }
 
-KERNEL_FQ void m07500_m16 (KERN_ATTR_ESALT (krb5pa_t))
+KERNEL_FQ KERNEL_FA void m07500_m16 (KERN_ATTR_ESALT (krb5pa_t))
 {
 }
 
-KERNEL_FQ void m07500_s04 (KERN_ATTR_ESALT (krb5pa_t))
+KERNEL_FQ KERNEL_FA void m07500_s04 (KERN_ATTR_ESALT (krb5pa_t))
 {
   /**
    * modifier
@@ -571,10 +571,10 @@ KERNEL_FQ void m07500_s04 (KERN_ATTR_ESALT (krb5pa_t))
   }
 }
 
-KERNEL_FQ void m07500_s08 (KERN_ATTR_ESALT (krb5pa_t))
+KERNEL_FQ KERNEL_FA void m07500_s08 (KERN_ATTR_ESALT (krb5pa_t))
 {
 }
 
-KERNEL_FQ void m07500_s16 (KERN_ATTR_ESALT (krb5pa_t))
+KERNEL_FQ KERNEL_FA void m07500_s16 (KERN_ATTR_ESALT (krb5pa_t))
 {
 }

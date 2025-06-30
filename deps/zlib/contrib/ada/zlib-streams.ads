@@ -62,7 +62,7 @@ package ZLib.Streams is
                                     := Default_Buffer_Size;
       Write_Buffer_Size : in     Ada.Streams.Stream_Element_Offset
                                     := Default_Buffer_Size);
-   --  Create the Comression/Decompression stream.
+   --  Create the Compression/Decompression stream.
    --  If mode is In_Stream then Write operation is disabled.
    --  If mode is Out_Stream then Read operation is disabled.
 

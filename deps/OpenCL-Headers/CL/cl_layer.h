@@ -53,6 +53,9 @@ extern "C" {
 #define CL_LOADER_LAYERS_EXTENSION_NAME \
     "cl_loader_layers"
 
+
+#define CL_LOADER_LAYERS_EXTENSION_VERSION CL_MAKE_VERSION(1, 0, 0)
+
 typedef cl_uint             cl_layer_info;
 typedef cl_uint             cl_layer_api_version;
 
@@ -64,19 +67,25 @@ typedef cl_uint             cl_layer_api_version;
 #define CL_LAYER_API_VERSION_100                            100
 
 
-typedef cl_int (CL_API_CALL *
-clGetLayerInfo_fn)(
+typedef cl_int CL_API_CALL
+clGetLayerInfo_t(
     cl_layer_info param_name,
     size_t param_value_size,
     void* param_value,
-    size_t* param_value_size_ret) ;
+    size_t* param_value_size_ret);
 
-typedef cl_int (CL_API_CALL *
-clInitLayer_fn)(
+typedef clGetLayerInfo_t *
+clGetLayerInfo_fn ;
+
+typedef cl_int CL_API_CALL
+clInitLayer_t(
     cl_uint num_entries,
     const cl_icd_dispatch* target_dispatch,
     cl_uint* num_entries_ret,
-    const cl_icd_dispatch** layer_dispatch_ret) ;
+    const cl_icd_dispatch** layer_dispatch_ret);
+
+typedef clInitLayer_t *
+clInitLayer_fn ;
 
 /*
 ** The function pointer typedefs prefixed with "pfn_" are provided for
@@ -85,19 +94,11 @@ clInitLayer_fn)(
 ** "_fn" instead, for consistency.
 */
 
-typedef cl_int (CL_API_CALL *
-pfn_clGetLayerInfo)(
-    cl_layer_info param_name,
-    size_t param_value_size,
-    void* param_value,
-    size_t* param_value_size_ret) ;
+typedef clGetLayerInfo_t *
+pfn_clGetLayerInfo ;
 
-typedef cl_int (CL_API_CALL *
-pfn_clInitLayer)(
-    cl_uint num_entries,
-    const cl_icd_dispatch* target_dispatch,
-    cl_uint* num_entries_ret,
-    const cl_icd_dispatch** layer_dispatch_ret) ;
+typedef clInitLayer_t *
+pfn_clInitLayer ;
 
 #if !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES)
 

@@ -56,6 +56,15 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
         event_log_advice (hashcat_ctx, "To disable the optimized kernel code in benchmark mode, use the -w option.");
         event_log_advice (hashcat_ctx, NULL);
       }
+
+      if (user_options->benchmark_min != BENCHMARK_MIN || user_options->benchmark_max != BENCHMARK_MAX)
+      {
+        if (user_options->hash_mode_chgd == true)
+        {
+          event_log_advice (hashcat_ctx, "Benchmark min/max is ignored because --hash-type is set.");
+          event_log_advice (hashcat_ctx, NULL);
+        }
+      }
     }
     else
     {
@@ -90,6 +99,11 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
   else if (user_options->hash_info == true)
   {
     event_log_info (hashcat_ctx, "%s (%s) starting in hash-info mode", PROGNAME, version_tag);
+    event_log_info (hashcat_ctx, NULL);
+  }
+  else if (user_options->session_chgd == true)
+  {
+    event_log_info (hashcat_ctx, "%s (%s) starting - session [%s]", PROGNAME, version_tag, user_options->session);
     event_log_info (hashcat_ctx, NULL);
   }
   else
@@ -1061,18 +1075,43 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   const user_options_t  *user_options  = hashcat_ctx->user_options;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
+  if (user_options->machine_readable == true)
+  {
+    printf ("{ ");
+  }
+
   if (user_options->backend_info > 1)
   {
-    event_log_info (hashcat_ctx, "System Info:");
-    event_log_info (hashcat_ctx, "============");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "System Info:");
+      event_log_info (hashcat_ctx, "============");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"SystemInfo\": { ");
+    }
 
     #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
     // TODO
-    event_log_info (hashcat_ctx, "OS.Name......: Windows");
-    event_log_info (hashcat_ctx, "OS.Release...: N/A");
-    event_log_info (hashcat_ctx, "HW.Platform..: N/A");
-    event_log_info (hashcat_ctx, "HW.Model.....: N/A");
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "OS.Name......: Windows");
+      event_log_info (hashcat_ctx, "OS.Release...: N/A");
+      event_log_info (hashcat_ctx, "HW.Platform..: N/A");
+      event_log_info (hashcat_ctx, "HW.Model.....: N/A");
+    }
+    else
+    {
+      printf ("\"OS\": { ");
+      printf ("\"Name\": \"%s\", ", "Windows");
+      printf ("\"Release\": \"%s\" }, ", "N/A");
+      printf ("\"Hardware\": { ");
+      printf ("\"Platform\": \"%s\", ", "N/A");
+      printf ("\"Model\": \"%s\" } ", "N/A");
+      printf ("}, ");
+    }
     #else
 
     struct utsname utsbuf;
@@ -1109,10 +1148,23 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       rc_uname = true;
     }
 
-    event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
-    event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
-    event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model_buf   : "N/A");
-    event_log_info (hashcat_ctx, "HW.Platform..: %s", (rc_uname  == true) ? utsbuf.machine : "N/A");
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "OS.Name......: %s", (rc_uname  == true) ? utsbuf.sysname : "N/A");
+      event_log_info (hashcat_ctx, "OS.Release...: %s", (rc_uname  == true) ? utsbuf.release : "N/A");
+      event_log_info (hashcat_ctx, "HW.Platform..: %s", (rc_uname  == true) ? utsbuf.machine : "N/A");
+      event_log_info (hashcat_ctx, "HW.Model.....: %s", (rc_sysctl == true) ? hw_model_buf   : "N/A");
+    }
+    else
+    {
+      printf ("\"OS\": { ");
+      printf ("\"Name\": \"%s\", ", (rc_uname  == true) ? utsbuf.sysname : "N/A");
+      printf ("\"Release\": \"%s\" }, ", (rc_uname  == true) ? utsbuf.release : "N/A");
+      printf ("\"Hardware\": { ");
+      printf ("\"Platform\": \"%s\", ", (rc_uname  == true) ? utsbuf.machine : "N/A");
+      printf ("\"Model\": \"%s\" } ", (rc_sysctl == true) ? hw_model_buf : "N/A");
+      printf ("}, ");
+    }
 
     if (rc_sysctl == true)
     {
@@ -1120,38 +1172,72 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
     }
     #endif // _WIN || __CYGWIN__ || __MSYS__
 
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, NULL);
 
-    event_log_info (hashcat_ctx, "Environment Info:");
-    event_log_info (hashcat_ctx, "=================");
-    event_log_info (hashcat_ctx, NULL);
+      event_log_info (hashcat_ctx, "Environment Info:");
+      event_log_info (hashcat_ctx, "=================");
+      event_log_info (hashcat_ctx, NULL);
 
-    event_log_info (hashcat_ctx, "Cur.Work.Dir.: %s", folder_config->cwd);
-    event_log_info (hashcat_ctx, "Install.Dir..: %s", folder_config->install_dir);
-    event_log_info (hashcat_ctx, "Profile.Dir..: %s", folder_config->profile_dir);
-    event_log_info (hashcat_ctx, "Cache.Dir....: %s", folder_config->cache_dir);
-    // uninitialized at this point, for instance if the user uses --session
-    //event_log_info (hashcat_ctx, "Session.Dir..: %s", folder_config->session_dir);
-    event_log_info (hashcat_ctx, "Shared.Dir...: %s", folder_config->shared_dir);
-    event_log_info (hashcat_ctx, "CL.Inc.Path..: %s", folder_config->cpath_real);
+      event_log_info (hashcat_ctx, "Cur.Work.Dir.: %s", folder_config->cwd);
+      event_log_info (hashcat_ctx, "Install.Dir..: %s", folder_config->install_dir);
+      event_log_info (hashcat_ctx, "Profile.Dir..: %s", folder_config->profile_dir);
+      event_log_info (hashcat_ctx, "Cache.Dir....: %s", folder_config->cache_dir);
+      // uninitialized at this point, for instance if the user uses --session
+      //event_log_info (hashcat_ctx, "Session.Dir..: %s", folder_config->session_dir);
+      event_log_info (hashcat_ctx, "Shared.Dir...: %s", folder_config->shared_dir);
+      event_log_info (hashcat_ctx, "CL.Inc.Path..: %s", folder_config->cpath_real);
 
-    event_log_info (hashcat_ctx, NULL);
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"EnvironmentInfo\": { ");
+      printf ("\"CurrentWorkingDirectory\": \"%s\", ", folder_config->cwd);
+      printf ("\"InstallDirectory\": \"%s\", ", folder_config->install_dir);
+      printf ("\"ProfileDirectory\": \"%s\", ", folder_config->profile_dir);
+      printf ("\"CacheDirectory\": \"%s\", ", folder_config->cache_dir);
+      printf ("\"SharedDirectory\": \"%s\", ", folder_config->shared_dir);
+      printf ("\"CLIncludePath\": \"%s\" ", folder_config->cpath_real);
+      printf ("}, ");
+    }
   }
 
   if (backend_ctx->cuda)
   {
-    event_log_info (hashcat_ctx, "CUDA Info:");
-    event_log_info (hashcat_ctx, "==========");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "CUDA Info:");
+      event_log_info (hashcat_ctx, "==========");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"CUDAInfo\": { ");
+    }
 
     int cuda_devices_cnt    = backend_ctx->cuda_devices_cnt;
     int cuda_driver_version = backend_ctx->cuda_driver_version;
 
-    event_log_info (hashcat_ctx, "CUDA.Version.: %u.%u", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "CUDA.Version.: %u.%u", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"Version\": \"%u.%u\", ", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
+      printf ("\"BackendDevices\": [ ");
+    }
 
     for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++)
     {
+      if (user_options->machine_readable == true)
+      {
+        printf ("{ ");
+      }
+
       const int backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
@@ -1170,29 +1256,88 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%u (Alias: #%u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+        }
       }
       else
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%u", device_id + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+        }
       }
 
-      event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
-      event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-      event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
-      event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
-      event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
+        event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
+        event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
+        event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"Name\": \"%s\", ", device_name);
+        printf ("\"Processor(s)\": \"%u\", ", device_processors);
+        printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
+        printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
+        printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
+        printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+        printf ("\"PCI.Addr.BDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        if ((cuda_devices_idx + 1) < cuda_devices_cnt)
+        {
+          printf ("}, ");
+        }
+        else
+        {
+          printf ("} ");
+        }
+      }
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      if (backend_ctx->hip || backend_ctx->mtl || backend_ctx->ocl)
+      {
+        printf ("] }, ");
+      }
+      else
+      {
+        printf ("] } ");
+      }
     }
   }
 
   if (backend_ctx->hip)
   {
-    event_log_info (hashcat_ctx, "HIP Info:");
-    event_log_info (hashcat_ctx, "=========");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "HIP Info:");
+      event_log_info (hashcat_ctx, "=========");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"HIPInfo\": { ");
+    }
 
     int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
     int hip_runtimeVersion = backend_ctx->hip_runtimeVersion;
@@ -1203,17 +1348,41 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
       int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
 
-      event_log_info (hashcat_ctx, "HIP.Version.: %u.%u.%u", hip_version_major, hip_version_minor, hip_version_patch);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "HIP.Version.: %u.%u.%u", hip_version_major, hip_version_minor, hip_version_patch);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"Version\": \"%u.%u.%u\", ", hip_version_major, hip_version_minor, hip_version_patch);
+      }
     }
     else
     {
-      event_log_info (hashcat_ctx, "HIP.Version.: %u.%u", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "HIP.Version.: %u.%u", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"Version\": \"%u.%u\", ", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
+      }
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      printf ("\"BackendDevices\": [ ");
     }
 
     for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
     {
+      if (user_options->machine_readable == true)
+      {
+        printf ("{ ");
+      }
+
       const int backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
@@ -1232,40 +1401,116 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%u (Alias: #%u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+        }
       }
       else
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%u", device_id + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+        }
       }
 
-      event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
-      event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-      event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
-      event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
-      event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
+        event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
+        event_log_info (hashcat_ctx, "  Clock..........: %u", device_maxclock_frequency);
+        event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB", device_global_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"Name\": \"%s\", ", device_name);
+        printf ("\"Processor(s)\": \"%u\", ", device_processors);
+        printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
+        printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
+        printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
+        printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+        printf ("\"PCI.Addr.BDFe\": \"%04x:%02x:%02x.%u\" ", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        if ((hip_devices_idx + 1) < hip_devices_cnt)
+        {
+          printf ("}, ");
+        }
+        else
+        {
+          printf ("} ");
+        }
+      }
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      if (backend_ctx->mtl || backend_ctx->ocl)
+      {
+        printf ("] }, ");
+      }
+      else
+      {
+        printf ("] } ");
+      }
     }
   }
 
   #if defined (__APPLE__)
   if (backend_ctx->mtl)
   {
-    event_log_info (hashcat_ctx, "Metal Info:");
-    event_log_info (hashcat_ctx, "===========");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "Metal Info:");
+      event_log_info (hashcat_ctx, "===========");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"MetalInfo\": { ");
+    }
 
     int metal_devices_cnt = backend_ctx->metal_devices_cnt;
 
     char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
 
-    event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"Version\": \"%s\", ", metal_runtimeVersionStr);
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      printf ("\"BackendDevices\": [ ");
+    }
 
     for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
     {
+      if (user_options->machine_readable == true)
+      {
+        printf ("{ ");
+      }
+
       const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
@@ -1296,30 +1541,111 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (device_param->device_id_alias_cnt)
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%u (Alias: #%u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+        }
       }
       else
       {
-        event_log_info (hashcat_ctx, "Backend Device ID #%u", device_id + 1);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "Backend Device ID #%02u", device_id + 1);
+        }
+        else
+        {
+          printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+        }
       }
 
-      event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
-      event_log_info (hashcat_ctx, "  Vendor.ID......: %u", opencl_device_vendor_id);
-      event_log_info (hashcat_ctx, "  Vendor.........: %s", opencl_device_vendor);
-      event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
-      event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
-      event_log_info (hashcat_ctx, "  Clock..........: N/A");
-      event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
-      event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+        event_log_info (hashcat_ctx, "  Vendor.ID......: %u", opencl_device_vendor_id);
+        event_log_info (hashcat_ctx, "  Vendor.........: %s", opencl_device_vendor);
+        event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
+        event_log_info (hashcat_ctx, "  Processor(s)...: %u", device_processors);
+        event_log_info (hashcat_ctx, "  Clock..........: N/A");
+        event_log_info (hashcat_ctx, "  Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+        event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+      }
+      else
+      {
+        printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+        printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
+        printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
+        printf ("\"Name\": \"%s\", ", device_name);
+        printf ("\"Processor(s)\": \"%u\", ", device_processors);
+        printf ("\"Clock\": \"%s\", ", "N/A");
+        printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
+        printf ("\"MemoryAllocPerBlock\": \"%" PRIu64 " MB\", ", device_maxmem_alloc / 1024 / 1024);
+        printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
+        printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+      }
 
       switch (device_physical_location)
       {
-        case MTL_DEVICE_LOCATION_BUILTIN:     event_log_info (hashcat_ctx, "  Phys.Location..: built-in"); break;
-        case MTL_DEVICE_LOCATION_SLOT:        event_log_info (hashcat_ctx, "  Phys.Location..: connected to slot %u", device_location_number); break;
-        case MTL_DEVICE_LOCATION_EXTERNAL:    event_log_info (hashcat_ctx, "  Phys.Location..: connected via an external interface (port %u)", device_location_number); break;
-        case MTL_DEVICE_LOCATION_UNSPECIFIED: event_log_info (hashcat_ctx, "  Phys.Location..: unspecified"); break;
-        default:                              event_log_info (hashcat_ctx, "  Phys.Location..: N/A"); break;
+        case MTL_DEVICE_LOCATION_BUILTIN:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: built-in");
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"built-in\", ");
+          }
+
+          break;
+        case MTL_DEVICE_LOCATION_SLOT:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: connected to slot %u", device_location_number);
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"connected to slot %u\", ", device_location_number);
+          }
+
+          break;
+        case MTL_DEVICE_LOCATION_EXTERNAL:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: connected via an external interface (port %u)", device_location_number);
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"connected via an external interface (port %u)\", ", device_location_number);
+          }
+
+          break;
+        case MTL_DEVICE_LOCATION_UNSPECIFIED:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: unspecified");
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"unspecified\", ");
+          }
+
+          break;
+        default:
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Phys.Location..: N/A");
+          }
+          else
+          {
+            printf ("\"PhysicalLocation\": \"%s\", ", "N/A");
+          }
+
+          break;
       }
 
       /*
@@ -1333,28 +1659,92 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
       */
 
-      event_log_info (hashcat_ctx, "  Registry.ID....: %u", device_registryID);
-
-      if (device_physical_location != MTL_DEVICE_LOCATION_BUILTIN)
+      if (user_options->machine_readable == false)
       {
-        event_log_info (hashcat_ctx, "  Max.TX.Rate....: %u MB/sec", device_max_transfer_rate);
+        event_log_info (hashcat_ctx, "  Registry.ID....: %u", device_registryID);
       }
       else
       {
-        event_log_info (hashcat_ctx, "  Max.TX.Rate....: N/A");
+        printf ("\"RegistryID\": \"%u\", ", device_registryID);
       }
 
-      event_log_info (hashcat_ctx, "  GPU.Properties.: headless %u, low-power %u, removable %u", device_is_headless, device_is_low_power, device_is_removable);
-      event_log_info (hashcat_ctx, NULL);
+      if (device_physical_location != MTL_DEVICE_LOCATION_BUILTIN)
+      {
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "  Max.TX.Rate....: %u MB/sec", device_max_transfer_rate);
+        }
+        else
+        {
+          printf ("\"MaxTXRate\": \"%u MB/sec\", ", device_max_transfer_rate);
+        }
+      }
+      else
+      {
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "  Max.TX.Rate....: N/A");
+        }
+        else
+        {
+          printf ("\"MaxTXRate\": \"%s\", ", "N/A");
+        }
+      }
+
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "  GPU.Properties.: headless %u, low-power %u, removable %u", device_is_headless, device_is_low_power, device_is_removable);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"GPUProperties\": { ");
+        printf ("\"headless\": \"%u\", ", device_is_headless);
+        printf ("\"low_power\": \"%u\", ", device_is_low_power);
+        printf ("\"removable\": \"%u\" ", device_is_removable);
+        printf ("} ");
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        if ((metal_devices_idx + 1) < metal_devices_cnt)
+        {
+          printf ("}, ");
+        }
+        else
+        {
+          printf ("} ");
+        }
+      }
+    }
+
+    if (user_options->machine_readable == true)
+    {
+      if (backend_ctx->ocl)
+      {
+        printf ("] }, ");
+      }
+      else
+      {
+        printf ("] } ");
+      }
     }
   }
   #endif
 
   if (backend_ctx->ocl)
   {
-    event_log_info (hashcat_ctx, "OpenCL Info:");
-    event_log_info (hashcat_ctx, "============");
-    event_log_info (hashcat_ctx, NULL);
+    if (user_options->machine_readable == false)
+    {
+      event_log_info (hashcat_ctx, "OpenCL Info:");
+      event_log_info (hashcat_ctx, "============");
+      event_log_info (hashcat_ctx, NULL);
+    }
+    else
+    {
+      printf ("\"OpenCLInfo\": { ");
+      printf ("\"Platforms\": [ ");
+    }
 
     cl_uint   opencl_platforms_cnt         = backend_ctx->opencl_platforms_cnt;
     cl_uint  *opencl_platforms_devices_cnt = backend_ctx->opencl_platforms_devices_cnt;
@@ -1364,19 +1754,44 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
     for (cl_uint opencl_platforms_idx = 0; opencl_platforms_idx < opencl_platforms_cnt; opencl_platforms_idx++)
     {
+      if (user_options->machine_readable == true)
+      {
+        printf ("{ ");
+      }
+
       char     *opencl_platform_vendor       = opencl_platforms_vendor[opencl_platforms_idx];
       char     *opencl_platform_name         = opencl_platforms_name[opencl_platforms_idx];
       char     *opencl_platform_version      = opencl_platforms_version[opencl_platforms_idx];
       cl_uint   opencl_platform_devices_cnt  = opencl_platforms_devices_cnt[opencl_platforms_idx];
 
-      event_log_info (hashcat_ctx, "OpenCL Platform ID #%u", opencl_platforms_idx + 1);
-      event_log_info (hashcat_ctx, "  Vendor..: %s",  opencl_platform_vendor);
-      event_log_info (hashcat_ctx, "  Name....: %s",  opencl_platform_name);
-      event_log_info (hashcat_ctx, "  Version.: %s",  opencl_platform_version);
-      event_log_info (hashcat_ctx, NULL);
+      if (user_options->machine_readable == false)
+      {
+        event_log_info (hashcat_ctx, "OpenCL Platform ID #%u", opencl_platforms_idx + 1);
+        event_log_info (hashcat_ctx, "  Vendor..: %s",  opencl_platform_vendor);
+        event_log_info (hashcat_ctx, "  Name....: %s",  opencl_platform_name);
+        event_log_info (hashcat_ctx, "  Version.: %s",  opencl_platform_version);
+        event_log_info (hashcat_ctx, NULL);
+      }
+      else
+      {
+        printf ("\"PlatformID\": \"%u\", ", opencl_platforms_idx + 1);
+        printf ("\"Vendor\": \"%s\", ", opencl_platform_vendor);
+        printf ("\"Name\": \"%s\", ", opencl_platform_name);
+        printf ("\"Version\": \"%s\", ", opencl_platform_version);
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        printf ("\"BackendDevices\": [ ");
+      }
 
       for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
       {
+        if (user_options->machine_readable == true)
+        {
+          printf ("{ ");
+        }
+
         const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
 
         const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
@@ -1398,25 +1813,58 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->device_id_alias_cnt)
         {
-          event_log_info (hashcat_ctx, "  Backend Device ID #%u (Alias: #%u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Backend Device ID #%02u (Alias: #%02u)", device_id + 1, device_param->device_id_alias_buf[0] + 1);
+          }
+          else
+          {
+            printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+            printf ("\"Alias\": \"%02u\", ", device_param->device_id_alias_buf[0] + 1);
+          }
         }
         else
         {
-          event_log_info (hashcat_ctx, "  Backend Device ID #%u", device_id + 1);
+          if (user_options->machine_readable == false)
+          {
+            event_log_info (hashcat_ctx, "  Backend Device ID #%02u", device_id + 1);
+          }
+          else
+          {
+            printf ("\"DeviceID\": \"%02u\", ", device_id + 1);
+          }
         }
 
-        event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
-        event_log_info (hashcat_ctx, "    Vendor.ID......: %u", opencl_device_vendor_id);
-        event_log_info (hashcat_ctx, "    Vendor.........: %s", opencl_device_vendor);
-        event_log_info (hashcat_ctx, "    Name...........: %s", device_name);
-        event_log_info (hashcat_ctx, "    Version........: %s", opencl_device_version);
-        event_log_info (hashcat_ctx, "    Processor(s)...: %u", device_processors);
-        event_log_info (hashcat_ctx, "    Clock..........: %u", device_maxclock_frequency);
-        event_log_info (hashcat_ctx, "    Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
-        event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
-        event_log_info (hashcat_ctx, "    Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
-        event_log_info (hashcat_ctx, "    OpenCL.Version.: %s", opencl_device_c_version);
-        event_log_info (hashcat_ctx, "    Driver.Version.: %s", opencl_driver_version);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+          event_log_info (hashcat_ctx, "    Vendor.ID......: %u", opencl_device_vendor_id);
+          event_log_info (hashcat_ctx, "    Vendor.........: %s", opencl_device_vendor);
+          event_log_info (hashcat_ctx, "    Name...........: %s", device_name);
+          event_log_info (hashcat_ctx, "    Version........: %s", opencl_device_version);
+          event_log_info (hashcat_ctx, "    Processor(s)...: %u", device_processors);
+          event_log_info (hashcat_ctx, "    Clock..........: %u", device_maxclock_frequency);
+          event_log_info (hashcat_ctx, "    Memory.Total...: %" PRIu64 " MB (limited to %" PRIu64 " MB allocatable in one block)", device_global_mem / 1024 / 1024, device_maxmem_alloc / 1024 / 1024);
+          event_log_info (hashcat_ctx, "    Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
+          event_log_info (hashcat_ctx, "    Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+          event_log_info (hashcat_ctx, "    OpenCL.Version.: %s", opencl_device_c_version);
+          event_log_info (hashcat_ctx, "    Driver.Version.: %s", opencl_driver_version);
+        }
+        else
+        {
+          printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+          printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
+          printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
+          printf ("\"Name\": \"%s\", ", device_name);
+          printf ("\"Processor(s)\": \"%u\", ", device_processors);
+          printf ("\"Clock\": \"%u\", ", device_maxclock_frequency);
+          printf ("\"MemoryTotal\": \"%" PRIu64 " MB\", ", device_global_mem / 1024 / 1024);
+          printf ("\"MemoryAllocPerBlock\": \"%" PRIu64 " MB\", ", device_maxmem_alloc / 1024 / 1024);
+          printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
+          printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+          printf ("\"OpenCLVersion\": \"%s\", ", opencl_device_c_version);
+          printf ("\"DriverVersion\": \"%s\" ", opencl_device_version);
+        }
 
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
         {
@@ -1426,29 +1874,127 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
           {
-            event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
+            if (user_options->machine_readable == false)
+            {
+              event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
+            }
+            else
+            {
+              printf (", \"PCI.Addr.BDF\": \"%02x:%02x.%u\" ", pcie_bus, pcie_device, pcie_function);
+            }
           }
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
           {
-            event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
+            if (user_options->machine_readable == false)
+            {
+              event_log_info (hashcat_ctx, "    PCI.Addr.BDF...: %02x:%02x.%u", pcie_bus, pcie_device, pcie_function);
+            }
+            else
+            {
+              printf (", \"PCI.Addr.BDF\": \"%02x:%02x.%u\" ", pcie_bus, pcie_device, pcie_function);
+            }
           }
         }
 
-        event_log_info (hashcat_ctx, NULL);
+        if (user_options->machine_readable == false)
+        {
+          event_log_info (hashcat_ctx, NULL);
+        }
+        else
+        {
+          if ((opencl_platform_devices_idx + 1) < opencl_platform_devices_cnt)
+          {
+            printf ("}, ");
+          }
+          else
+          {
+            printf ("} ");
+          }
+        }
+      }
+
+      if (user_options->machine_readable == true)
+      {
+        if ((opencl_platforms_idx + 1) < opencl_platforms_cnt)
+        {
+          printf ("] }, ");
+        }
+        else
+        {
+          printf ("] } ");
+        }
       }
     }
+
+    if (user_options->machine_readable == true)
+    {
+      printf ("] } ");
+    }
+  }
+
+  if (user_options->machine_readable == true)
+  {
+    printf ("}");
   }
 }
 
 void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 {
+  const bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
   const backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->quiet            == true) return;
   if (user_options->machine_readable == true) return;
   if (user_options->status_json      == true) return;
+
+  /**
+   * Bridges
+   */
+
+  if (bridge_ctx->enabled == true)
+  {
+    const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+
+    const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
+
+    char line[HCBUFSIZ_TINY] = { 0 };
+
+    memset (line, '=', len);
+
+    line[len] = 0;
+
+    event_log_info (hashcat_ctx, "%s", line);
+
+    bool all_same = true;
+
+    char *tmp = bridge_ctx->get_unit_info (bridge_ctx->platform_context, 0);
+
+    for (int i = 1; i < unit_count; i++)
+    {
+      if (strcmp (tmp, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i)))
+      {
+        all_same = false;
+
+        break;
+      }
+    }
+
+    if (all_same == true)
+    {
+      event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
+    }
+    else
+    {
+      for (int i = 0; i < unit_count; i++)
+      {
+        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i));
+      }
+    }
+
+    event_log_info (hashcat_ctx, NULL);
+  }
 
   /**
    * CUDA
@@ -1459,46 +2005,83 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
     int cuda_devices_cnt    = backend_ctx->cuda_devices_cnt;
     int cuda_driver_version = backend_ctx->cuda_driver_version;
 
-    const size_t len = event_log_info (hashcat_ctx, "CUDA API (CUDA %u.%u)", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
-
-    char line[HCBUFSIZ_TINY] = { 0 };
-
-    memset (line, '=', len);
-
-    line[len] = 0;
-
-    event_log_info (hashcat_ctx, "%s", line);
-
-    for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++)
+    // hide empty CUDA platforms
+    if (cuda_devices_cnt)
     {
-      const int backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
+      const size_t len = event_log_info (hashcat_ctx, "CUDA API (CUDA %u.%u)", cuda_driver_version / 1000, (cuda_driver_version % 100) / 10);
 
-      const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+      char line[HCBUFSIZ_TINY] = { 0 };
 
-      int   device_id            = device_param->device_id;
-      char *device_name          = device_param->device_name;
-      u32   device_processors    = device_param->device_processors;
-      u64   device_global_mem    = device_param->device_global_mem;
-      u64   device_available_mem = device_param->device_available_mem;
+      memset (line, '=', len);
 
-      if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+      line[len] = 0;
+
+      event_log_info (hashcat_ctx, "%s", line);
+
+      if (bridge_ctx->enabled == true)
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
-                  device_id + 1,
-                  device_name,
-                  device_available_mem / 1024 / 1024,
-                  device_global_mem    / 1024 / 1024,
-                  device_processors);
+        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+
+        const int backend_devices_idx = backend_ctx->backend_device_from_cuda[0];
+
+        const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+        int   device_id            = device_param->device_id;
+        char *device_name          = device_param->device_name;
+        u32   device_processors    = device_param->device_processors;
+        u64   device_global_mem    = device_param->device_global_mem;
+        u64   device_available_mem = device_param->device_available_mem;
+
+        if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+        {
+          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+                    device_id + 1, unit_count,
+                    device_name,
+                    device_available_mem / 1024 / 1024,
+                    device_global_mem    / 1024 / 1024,
+                    device_processors);
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, skipped",
+                    device_id + 1, unit_count,
+                    device_name);
+        }
       }
       else
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
-                  device_id + 1,
-                  device_name);
-      }
-    }
+        for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++)
+        {
+          const int backend_devices_idx = backend_ctx->backend_device_from_cuda[cuda_devices_idx];
 
-    event_log_info (hashcat_ctx, NULL);
+          const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+          int   device_id            = device_param->device_id;
+          char *device_name          = device_param->device_name;
+          u32   device_processors    = device_param->device_processors;
+          u64   device_global_mem    = device_param->device_global_mem;
+          u64   device_available_mem = device_param->device_available_mem;
+
+          if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+          {
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+                      device_id + 1,
+                      device_name,
+                      device_available_mem / 1024 / 1024,
+                      device_global_mem    / 1024 / 1024,
+                      device_processors);
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, skipped",
+                      device_id + 1,
+                      device_name);
+          }
+        }
+      }
+
+      event_log_info (hashcat_ctx, NULL);
+    }
   }
 
   /**
@@ -1510,59 +2093,96 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
     int hip_devices_cnt    = backend_ctx->hip_devices_cnt;
     int hip_runtimeVersion = backend_ctx->hip_runtimeVersion;
 
-    size_t len;
-
-    if (hip_runtimeVersion > 1000)
+    // hide empty HIP platforms
+    if (hip_devices_cnt)
     {
-      int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
-      int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
-      int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
+      size_t len;
 
-      len = event_log_info (hashcat_ctx, "HIP API (HIP %u.%u.%u)", hip_version_major, hip_version_minor, hip_version_patch);
-    }
-    else
-    {
-      len = event_log_info (hashcat_ctx, "HIP API (HIP %u.%u)", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
-    }
-
-    char line[HCBUFSIZ_TINY] = { 0 };
-
-    memset (line, '=', len);
-
-    line[len] = 0;
-
-    event_log_info (hashcat_ctx, "%s", line);
-
-    for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
-    {
-      const int backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
-
-      const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
-
-      int   device_id            = device_param->device_id;
-      char *device_name          = device_param->device_name;
-      u32   device_processors    = device_param->device_processors;
-      u64   device_global_mem    = device_param->device_global_mem;
-      u64   device_available_mem = device_param->device_available_mem;
-
-      if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+      if (hip_runtimeVersion > 1000)
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
-                  device_id + 1,
-                  device_name,
-                  device_available_mem / 1024 / 1024,
-                  device_global_mem    / 1024 / 1024,
-                  device_processors);
+        int hip_version_major = (hip_runtimeVersion - 0) / 10000000;
+        int hip_version_minor = (hip_runtimeVersion - (hip_version_major * 10000000)) / 100000;
+        int hip_version_patch = (hip_runtimeVersion - (hip_version_major * 10000000) - (hip_version_minor * 100000));
+
+        len = event_log_info (hashcat_ctx, "HIP API (HIP %u.%u.%u)", hip_version_major, hip_version_minor, hip_version_patch);
       }
       else
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
-                  device_id + 1,
-                  device_name);
+        len = event_log_info (hashcat_ctx, "HIP API (HIP %u.%u)", hip_runtimeVersion / 100, hip_runtimeVersion % 10);
       }
-    }
 
-    event_log_info (hashcat_ctx, NULL);
+      char line[HCBUFSIZ_TINY] = { 0 };
+
+      memset (line, '=', len);
+
+      line[len] = 0;
+
+      event_log_info (hashcat_ctx, "%s", line);
+
+      if (bridge_ctx->enabled == true)
+      {
+        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+
+        const int backend_devices_idx = backend_ctx->backend_device_from_hip[0];
+
+        const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+        int   device_id            = device_param->device_id;
+        char *device_name          = device_param->device_name;
+        u32   device_processors    = device_param->device_processors;
+        u64   device_global_mem    = device_param->device_global_mem;
+        u64   device_available_mem = device_param->device_available_mem;
+
+        if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+        {
+          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+                    device_id + 1, unit_count,
+                    device_name,
+                    device_available_mem / 1024 / 1024,
+                    device_global_mem    / 1024 / 1024,
+                    device_processors);
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, skipped",
+                    device_id + 1, unit_count,
+                    device_name);
+        }
+      }
+      else
+      {
+        for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++)
+        {
+          const int backend_devices_idx = backend_ctx->backend_device_from_hip[hip_devices_idx];
+
+          const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+          int   device_id            = device_param->device_id;
+          char *device_name          = device_param->device_name;
+          u32   device_processors    = device_param->device_processors;
+          u64   device_global_mem    = device_param->device_global_mem;
+          u64   device_available_mem = device_param->device_available_mem;
+
+          if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+          {
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+                      device_id + 1,
+                      device_name,
+                      device_available_mem / 1024 / 1024,
+                      device_global_mem    / 1024 / 1024,
+                      device_processors);
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, skipped",
+                      device_id + 1,
+                      device_name);
+          }
+        }
+      }
+
+      event_log_info (hashcat_ctx, NULL);
+    }
   }
 
   #if defined (__APPLE__)
@@ -1572,50 +2192,88 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
   if (backend_ctx->mtl)
   {
-    int metal_devices_cnt    = backend_ctx->metal_devices_cnt;
+    int metal_devices_cnt = backend_ctx->metal_devices_cnt;
 
-    char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
-
-    size_t len = event_log_info (hashcat_ctx, "METAL API (Metal %s)", metal_runtimeVersionStr);
-
-    char line[HCBUFSIZ_TINY] = { 0 };
-
-    memset (line, '=', len);
-
-    line[len] = 0;
-
-    event_log_info (hashcat_ctx, "%s", line);
-
-    for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
+    // hide empty Metal platforms
+    if (metal_devices_cnt)
     {
-      const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
+      char *metal_runtimeVersionStr = backend_ctx->metal_runtimeVersionStr;
 
-      const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+      size_t len = event_log_info (hashcat_ctx, "METAL API (Metal %s)", metal_runtimeVersionStr);
 
-      int   device_id            = device_param->device_id;
-      char *device_name          = device_param->device_name;
-      u32   device_processors    = device_param->device_processors;
-      u64   device_global_mem    = device_param->device_global_mem;
-      u64   device_available_mem = device_param->device_available_mem;
+      char line[HCBUFSIZ_TINY] = { 0 };
 
-      if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+      memset (line, '=', len);
+
+      line[len] = 0;
+
+      event_log_info (hashcat_ctx, "%s", line);
+
+      if (bridge_ctx->enabled == true)
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
-                  device_id + 1,
-                  device_name,
-                  device_available_mem / 1024 / 1024,
-                  device_global_mem    / 1024 / 1024,
-                  device_processors);
+        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+
+        const int backend_devices_idx = backend_ctx->backend_device_from_metal[0];
+
+        const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+        int   device_id            = device_param->device_id;
+        char *device_name          = device_param->device_name;
+        u32   device_processors    = device_param->device_processors;
+        u64   device_global_mem    = device_param->device_global_mem;
+        u64   device_available_mem = device_param->device_available_mem;
+
+        if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+        {
+          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+                    device_id + 1, unit_count,
+                    device_name,
+                    device_available_mem / 1024 / 1024,
+                    device_global_mem    / 1024 / 1024,
+                    device_processors);
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, skipped",
+                    device_id + 1, unit_count,
+                    device_name);
+        }
+
       }
       else
       {
-        event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
-                  device_id + 1,
-                  device_name);
-      }
-    }
+        for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++)
+        {
+          const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
 
-    event_log_info (hashcat_ctx, NULL);
+          const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+          int   device_id            = device_param->device_id;
+          char *device_name          = device_param->device_name;
+          u32   device_processors    = device_param->device_processors;
+          u64   device_global_mem    = device_param->device_global_mem;
+          u64   device_available_mem = device_param->device_available_mem;
+
+          if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+          {
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB, %uMCU",
+                      device_id + 1,
+                      device_name,
+                      device_available_mem / 1024 / 1024,
+                      device_global_mem    / 1024 / 1024,
+                      device_processors);
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, skipped",
+                      device_id + 1,
+                      device_name);
+          }
+        }
+      }
+
+      event_log_info (hashcat_ctx, NULL);
+    }
   }
   #endif
 
@@ -1649,52 +2307,110 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       event_log_info (hashcat_ctx, "%s", line);
 
-      for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
+      if (bridge_ctx->enabled == true)
       {
-        const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
+        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
 
-        const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
-
-        int   device_id            = device_param->device_id;
-        char *device_name          = device_param->device_name;
-        u32   device_processors    = device_param->device_processors;
-        u64   device_maxmem_alloc  = device_param->device_maxmem_alloc;
-        u64   device_global_mem    = device_param->device_global_mem;
-        u64   device_available_mem = device_param->device_available_mem;
-
-        if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+        for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
         {
-          if (strncmp (device_name, "Apple M", 7) == 0)
+          const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
+
+          const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+          int   device_id            = device_param->device_id;
+          char *device_name          = device_param->device_name;
+          u32   device_processors    = device_param->device_processors;
+          u64   device_maxmem_alloc  = device_param->device_maxmem_alloc;
+          u64   device_global_mem    = device_param->device_global_mem;
+          u64   device_available_mem = device_param->device_available_mem;
+
+          if ((device_param->skipped == false) && (device_param->skipped_warning == false))
           {
-            cl_device_type opencl_device_type = device_param->opencl_device_type;
+            if (strncmp (device_name, "Apple M", 7) == 0)
+            {
+              cl_device_type opencl_device_type = device_param->opencl_device_type;
 
-            const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
 
-            event_log_info (hashcat_ctx, "* Device #%u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
-                      device_id + 1,
-                      device_name,
-                      device_type_desc,
-                      device_available_mem / 1024 / 1024,
-                      device_global_mem    / 1024 / 1024,
-                      device_maxmem_alloc  / 1024 / 1024,
-                      device_processors);
+              event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                        device_id + 1, unit_count,
+                        device_name,
+                        device_type_desc,
+                        device_available_mem / 1024 / 1024,
+                        device_global_mem    / 1024 / 1024,
+                        device_maxmem_alloc  / 1024 / 1024,
+                        device_processors);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                        device_id + 1, unit_count,
+                        device_name,
+                        device_available_mem / 1024 / 1024,
+                        device_global_mem    / 1024 / 1024,
+                        device_maxmem_alloc  / 1024 / 1024,
+                        device_processors);
+            }
+
+            break;
           }
           else
           {
-            event_log_info (hashcat_ctx, "* Device #%u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
-                      device_id + 1,
-                      device_name,
-                      device_available_mem / 1024 / 1024,
-                      device_global_mem    / 1024 / 1024,
-                      device_maxmem_alloc  / 1024 / 1024,
-                      device_processors);
+            event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, skipped",
+                      device_id + 1, unit_count,
+                      device_name);
           }
         }
-        else
+      }
+      else
+      {
+        for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
         {
-          event_log_info (hashcat_ctx, "* Device #%u: %s, skipped",
-                    device_id + 1,
-                    device_name);
+          const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
+
+          const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+          int   device_id            = device_param->device_id;
+          char *device_name          = device_param->device_name;
+          u32   device_processors    = device_param->device_processors;
+          u64   device_maxmem_alloc  = device_param->device_maxmem_alloc;
+          u64   device_global_mem    = device_param->device_global_mem;
+          u64   device_available_mem = device_param->device_available_mem;
+
+          if ((device_param->skipped == false) && (device_param->skipped_warning == false))
+          {
+            if (strncmp (device_name, "Apple M", 7) == 0)
+            {
+              cl_device_type opencl_device_type = device_param->opencl_device_type;
+
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+
+              event_log_info (hashcat_ctx, "* Device #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                        device_id + 1,
+                        device_name,
+                        device_type_desc,
+                        device_available_mem / 1024 / 1024,
+                        device_global_mem    / 1024 / 1024,
+                        device_maxmem_alloc  / 1024 / 1024,
+                        device_processors);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "* Device #%02u: %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
+                        device_id + 1,
+                        device_name,
+                        device_available_mem / 1024 / 1024,
+                        device_global_mem    / 1024 / 1024,
+                        device_maxmem_alloc  / 1024 / 1024,
+                        device_processors);
+            }
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "* Device #%02u: %s, skipped",
+                      device_id + 1,
+                      device_name);
+          }
         }
       }
 
@@ -1915,7 +2631,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
       printf (",");
     }
 
-    printf (" { \"device_id\": %u,", device_id + 1);
+    printf (" { \"device_id\": %02u,", device_id + 1);
 
     char *device_name_json_encoded = (char *) hcmalloc (strlen (device_info->device_name) * 2);
 
@@ -1961,6 +2677,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
+  const bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -2350,21 +3067,40 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
-  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  if (bridge_ctx->enabled == true)
   {
-    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+    if (hashcat_status->device_info_cnt == 1)
+    {
+      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
 
-    if (device_info->skipped_dev == true) continue;
-    if (device_info->skipped_warning_dev == true) continue;
+      event_log_info (hashcat_ctx,
+        "Speed.#%02u........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u", 0 + 1,
+        device_info0->speed_sec_dev,
+        device_info0->exec_msec_dev,
+        device_info0->kernel_accel_dev,
+        device_info0->kernel_loops_dev,
+        device_info0->kernel_threads_dev,
+        device_info0->vector_width_dev);
+    }
+  }
+  else
+  {
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    {
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-    event_log_info (hashcat_ctx,
-      "Speed.#%u.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u", device_id + 1,
-      device_info->speed_sec_dev,
-      device_info->exec_msec_dev,
-      device_info->kernel_accel_dev,
-      device_info->kernel_loops_dev,
-      device_info->kernel_threads_dev,
-      device_info->vector_width_dev);
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
+
+      event_log_info (hashcat_ctx,
+        "Speed.#%02u........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u", device_id + 1,
+        device_info->speed_sec_dev,
+        device_info->exec_msec_dev,
+        device_info->kernel_accel_dev,
+        device_info->kernel_loops_dev,
+        device_info->kernel_threads_dev,
+        device_info->vector_width_dev);
+    }
   }
 
   if (hashcat_status->device_info_active > 1)
@@ -2424,10 +3160,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         digests_remain,
         digests_remain_percent);
     }
-  }
 
-  if (hashcat_status->digests_cnt > 1000)
-  {
     event_log_info (hashcat_ctx,
       "Recovered/Time...: %s",
       hashcat_status->cpt);
@@ -2482,7 +3215,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       if (device_info->brain_link_status_dev == BRAIN_LINK_STATUS_CONNECTED)
       {
         event_log_info (hashcat_ctx,
-          "Brain.Link.#%u....: RX: %sB (%sbps), TX: %sB (%sbps), idle", device_id + 1,
+          "Brain.Link.#%02u...: RX: %sB (%sbps), TX: %sB (%sbps), idle", device_id + 1,
           device_info->brain_link_recv_bytes_dev,
           device_info->brain_link_recv_bytes_sec_dev,
           device_info->brain_link_send_bytes_dev,
@@ -2491,7 +3224,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       else if (device_info->brain_link_status_dev == BRAIN_LINK_STATUS_RECEIVING)
       {
         event_log_info (hashcat_ctx,
-          "Brain.Link.#%u....: RX: %sB (%sbps), TX: %sB (%sbps), receiving", device_id + 1,
+          "Brain.Link.#%02u...: RX: %sB (%sbps), TX: %sB (%sbps), receiving", device_id + 1,
           device_info->brain_link_recv_bytes_dev,
           device_info->brain_link_recv_bytes_sec_dev,
           device_info->brain_link_send_bytes_dev,
@@ -2500,7 +3233,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       else if (device_info->brain_link_status_dev == BRAIN_LINK_STATUS_SENDING)
       {
         event_log_info (hashcat_ctx,
-          "Brain.Link.#%u....: RX: %sB (%sbps), TX: %sB (%sbps), sending", device_id + 1,
+          "Brain.Link.#%02u...: RX: %sB (%sbps), TX: %sB (%sbps), sending", device_id + 1,
           device_info->brain_link_recv_bytes_dev,
           device_info->brain_link_recv_bytes_sec_dev,
           device_info->brain_link_send_bytes_dev,
@@ -2511,7 +3244,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         if ((device_info->brain_link_time_recv_dev > 0) && (device_info->brain_link_time_send_dev > 0))
         {
           event_log_info (hashcat_ctx,
-            "Brain.Link.#%u....: RX: %sB (%sbps), TX: %sB (%sbps)", device_id + 1,
+            "Brain.Link.#%02u...: RX: %sB (%sbps), TX: %sB (%sbps)", device_id + 1,
             device_info->brain_link_recv_bytes_dev,
             device_info->brain_link_recv_bytes_sec_dev,
             device_info->brain_link_send_bytes_dev,
@@ -2520,7 +3253,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
         else
         {
           event_log_info (hashcat_ctx,
-            "Brain.Link.#%u....: N/A", device_id + 1);
+            "Brain.Link.#%02u...: N/A", device_id + 1);
         }
       }
     }
@@ -2548,20 +3281,35 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
   }
 
-  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  if (bridge_ctx->enabled == true)
   {
-    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
-
-    if (device_info->skipped_dev == true) continue;
-    if (device_info->skipped_warning_dev == true) continue;
+    const device_info_t *device_info = hashcat_status->device_info_buf + 0;
 
     event_log_info (hashcat_ctx,
-      "Restore.Sub.#%u...: Salt:%u Amplifier:%u-%u Iteration:%u-%u", device_id + 1,
+      "Restore.Sub.#%02u..: Salt:%u Amplifier:%u-%u Iteration:%u-%u", 0 + 1,
       device_info->salt_pos_dev,
       device_info->innerloop_pos_dev,
       device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
       device_info->iteration_pos_dev,
       device_info->iteration_pos_dev + device_info->iteration_left_dev);
+  }
+  else
+  {
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    {
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
+
+      event_log_info (hashcat_ctx,
+        "Restore.Sub.#%02u..: Salt:%u Amplifier:%u-%u Iteration:%u-%u", device_id + 1,
+        device_info->salt_pos_dev,
+        device_info->innerloop_pos_dev,
+        device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
+        device_info->iteration_pos_dev,
+        device_info->iteration_pos_dev + device_info->iteration_left_dev);
+    }
   }
 
   //if (hashconfig->opts_type & OPTS_TYPE_SLOW_CANDIDATES)
@@ -2574,18 +3322,32 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, "Candidate.Engine.: Device Generator");
   }
 
-  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  if (bridge_ctx->enabled == true)
   {
-    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+    const device_info_t *device_info = hashcat_status->device_info_buf + 0;
 
-    if (device_info->skipped_dev == true) continue;
-    if (device_info->skipped_warning_dev == true) continue;
+    if (device_info->guess_candidates_dev)
+    {
+      event_log_info (hashcat_ctx,
+        "Candidates.#%02u...: %s", 0 + 1,
+        device_info->guess_candidates_dev);
+    }
+  }
+  else
+  {
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    {
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-    if (device_info->guess_candidates_dev == NULL) continue;
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
 
-    event_log_info (hashcat_ctx,
-      "Candidates.#%u....: %s", device_id + 1,
-      device_info->guess_candidates_dev);
+      if (device_info->guess_candidates_dev == NULL) continue;
+
+      event_log_info (hashcat_ctx,
+        "Candidates.#%02u...: %s", device_id + 1,
+        device_info->guess_candidates_dev);
+    }
   }
 
   if (hwmon_ctx->enabled == true)
@@ -2594,26 +3356,48 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     bool first_dev = true;
     #endif
 
-    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    if (bridge_ctx->enabled == true)
     {
-      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+      const device_info_t *device_info = hashcat_status->device_info_buf + 0;
 
-      if (device_info->skipped_dev == true) continue;
-      if (device_info->skipped_warning_dev == true) continue;
-
-      if (device_info->hwmon_dev == NULL) continue;
-
-      #if defined(__APPLE__)
-      if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
+      if (device_info->hwmon_dev)
       {
-        event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
-        first_dev = false;
-      }
-      #endif
+        #if defined(__APPLE__)
+        if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
+        {
+          event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
+          first_dev = false;
+        }
+        #endif
 
-      event_log_info (hashcat_ctx,
-        "Hardware.Mon.#%u..: %s", device_id + 1,
-        device_info->hwmon_dev);
+        event_log_info (hashcat_ctx,
+          "Hardware.Mon.#%02u.: %s", 0 + 1,
+          device_info->hwmon_dev);
+      }
+    }
+    else
+    {
+      for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+      {
+        const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+        if (device_info->skipped_dev == true) continue;
+        if (device_info->skipped_warning_dev == true) continue;
+
+        if (device_info->hwmon_dev == NULL) continue;
+
+        #if defined(__APPLE__)
+        if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
+        {
+          event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
+          first_dev = false;
+        }
+        #endif
+
+        event_log_info (hashcat_ctx,
+          "Hardware.Mon.#%02u.: %s", device_id + 1,
+          device_info->hwmon_dev);
+      }
     }
   }
 
@@ -2680,7 +3464,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.#%u.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u", device_id + 1,
+      "Speed.#%02u........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u", device_id + 1,
       device_info->speed_sec_dev,
       device_info->exec_msec_dev,
       device_info->kernel_accel_dev,
@@ -2801,7 +3585,7 @@ void status_speed (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Speed.#%u.........: %9sH/s (%0.2fms)", device_id + 1,
+      "Speed.#%02u........: %9sH/s (%0.2fms)", device_id + 1,
       device_info->speed_sec_dev,
       device_info->exec_msec_dev);
   }
@@ -2919,7 +3703,7 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Progress.#%u......: %" PRIu64, device_id + 1,
+      "Progress.#%02u.....: %" PRIu64, device_id + 1,
       device_info->progress_dev);
   }
 
@@ -2931,7 +3715,7 @@ void status_progress (hashcat_ctx_t *hashcat_ctx)
     if (device_info->skipped_warning_dev == true) continue;
 
     event_log_info (hashcat_ctx,
-      "Runtime.#%u.......: %0.2fms", device_id + 1,
+      "Runtime.#%02u......: %0.2fms", device_id + 1,
       device_info->runtime_msec_dev);
   }
 

@@ -3,7 +3,7 @@ for (int digest_pos = 0; digest_pos < DIGESTS_CNT; digest_pos++)
 {
   const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
 
-  const digest_t *digest = digests_buf + final_hash_pos;
+  GLOBAL_AS const digest_t *digest = digests_buf + final_hash_pos;
 
   const int invalid_bits = count_bits_32 (digest->digest_buf[0], r0)
                          + count_bits_32 (digest->digest_buf[1], r1)

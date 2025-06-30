@@ -502,7 +502,7 @@ DECLSPEC void transform_netntlmv1_key (const u32 w0, const u32 w1, PRIVATE_AS u3
          | ((k[7] & 0xff) << 24);
 }
 
-KERNEL_FQ void m05500_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m05500_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -635,7 +635,7 @@ KERNEL_FQ void m05500_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m05500_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m05500_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

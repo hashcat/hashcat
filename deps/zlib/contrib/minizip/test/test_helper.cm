@@ -1,0 +1,32 @@
+if(CREATE_SHARED)
+    file(REMOVE ./test_file_shared.orig ./test_file_shared.zip)
+    file(WRITE ./test_file_shared.txt "Hello Hello Hello")
+endif(CREATE_SHARED)
+
+if(MOVE_SHARED)
+    file(RENAME ./test_file_shared.txt ./test_file_shared.orig)
+endif(MOVE_SHARED)
+
+if(DELETE_SHARED)
+    file(REMOVE
+        ./test_file_shared.txt
+        ./test_file_shared.orig
+        ./test_file_shared.zip)
+endif(DELETE_SHARED)
+
+if(CREATE_STATIC)
+    file(REMOVE ./test_file_static.orig ./test_file_static.zip)
+    file(WRITE ./test_file_static.txt "Hello Hello Hello")
+endif(CREATE_STATIC)
+
+if(MOVE_STATIC)
+    file(RENAME ./test_file_static.txt ./test_file_static.orig)
+endif(MOVE_STATIC)
+
+if(DELETE_STATIC)
+    file(REMOVE
+        ./test_file_static.txt
+        ./test_file_static.orig
+        ./test_file_static.zip)
+endif(DELETE_STATIC)
+

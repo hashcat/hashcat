@@ -98,13 +98,54 @@ may include the OpenCL API headers as follows:
 #include <CL/opencl.h>
 ```
 
+## Compatibility Notes
+
+OpenCL values backward compatibility and in most cases an application using an
+older version of the OpenCL API headers can seamlessly update to a newer version
+of the OpenCL API headers.  In rare cases, though, the OpenCL API headers may
+break backward compatibility:
+
+* Very rarely, there may be bugs or other issues in the OpenCL API headers that
+  cannot be fixed without breaking compatibility.
+* The OpenCL API headers for beta features or beta extensions may
+  be changed in a way that breaks compatibility.
+
+Applications or libraries that require stable OpenCL API headers are encouraged
+to use tagged or released OpenCL API headers.  We will do our best to document
+any breaking changes in the description of each release.  The OpenCL API headers
+are tagged at least as often as each OpenCL specification release.
+
+## Beta Extensions
+
+Beta extensions are extensions that are still in development and are
+hence subject to change. To further improve compatibility for applications that
+do not use beta features, support for beta extensions must be
+explicitly enabled.  Support for beta extensions is controlled by the
+`CL_ENABLE_BETA_EXTENSIONS` preprocessor define.
+
+For example, to enable support for OpenCL 3.0 APIs and all extensions, including
+beta extensions, you may include the OpenCL API headers as follows:
+
+```c
+#define CL_TARGET_OPENCL_VERSION 300
+#define CL_ENABLE_BETA_EXTENSIONS
+#include <CL/opencl.h>
+```
+
 ## Directory Structure
 
 ```
 README.md               This file
 LICENSE                 Source license for the OpenCL API headers
 CL/                     Unified OpenCL API headers tree
+scripts/                Scripts for generating OpenCL extension headers
+tests/                  OpenCL API header tests
 ```
+
+## Packaging
+
+For packaging instructions, see [RELEASE.md](https://github.com/KhronosGroup/OpenCL-SDK/blob/main/docs/RELEASE.md)
+in the OpenCL SDK repository.
 
 ## License
 

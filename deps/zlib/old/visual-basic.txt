@@ -115,7 +115,7 @@ SUCCESS Then
         ReDim Preserve bytaryCpr(lngCprSiz - 1)
         Open strCprPth For Binary Access Write As #1
             Put #1, , bytaryCpr()
-            Put #1, , lngOriSiz 'Add the the original size value to the end
+            Put #1, , lngOriSiz 'Add the original size value to the end
 (last 4 bytes)
         Close #1
     Else

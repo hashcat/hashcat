@@ -27,7 +27,7 @@ DECLSPEC int is_valid_bitcoinj_8 (const u8 v)
   return 1;
 }
 
-KERNEL_FQ void m22500_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m22500_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -329,7 +329,7 @@ KERNEL_FQ void m22500_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m22500_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m22500_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

@@ -67,6 +67,9 @@ extern "C" {
 #define CL_KHR_DX9_MEDIA_SHARING_EXTENSION_NAME \
     "cl_khr_dx9_media_sharing"
 
+
+#define CL_KHR_DX9_MEDIA_SHARING_EXTENSION_VERSION CL_MAKE_VERSION(1, 0, 0)
+
 typedef cl_uint             cl_dx9_media_adapter_type_khr;
 typedef cl_uint             cl_dx9_media_adapter_set_khr;
 
@@ -110,8 +113,8 @@ typedef struct _cl_dx9_surface_info_khr {
 #define CL_COMMAND_RELEASE_DX9_MEDIA_SURFACES_KHR           0x202C
 
 
-typedef cl_int (CL_API_CALL *
-clGetDeviceIDsFromDX9MediaAdapterKHR_fn)(
+typedef cl_int CL_API_CALL
+clGetDeviceIDsFromDX9MediaAdapterKHR_t(
     cl_platform_id platform,
     cl_uint num_media_adapters,
     cl_dx9_media_adapter_type_khr* media_adapter_type,
@@ -119,34 +122,46 @@ clGetDeviceIDsFromDX9MediaAdapterKHR_fn)(
     cl_dx9_media_adapter_set_khr media_adapter_set,
     cl_uint num_entries,
     cl_device_id* devices,
-    cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_2;
+    cl_uint* num_devices);
 
-typedef cl_mem (CL_API_CALL *
-clCreateFromDX9MediaSurfaceKHR_fn)(
+typedef clGetDeviceIDsFromDX9MediaAdapterKHR_t *
+clGetDeviceIDsFromDX9MediaAdapterKHR_fn CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_mem CL_API_CALL
+clCreateFromDX9MediaSurfaceKHR_t(
     cl_context context,
     cl_mem_flags flags,
     cl_dx9_media_adapter_type_khr adapter_type,
     void* surface_info,
     cl_uint plane,
-    cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_2;
+    cl_int* errcode_ret);
 
-typedef cl_int (CL_API_CALL *
-clEnqueueAcquireDX9MediaSurfacesKHR_fn)(
+typedef clCreateFromDX9MediaSurfaceKHR_t *
+clCreateFromDX9MediaSurfaceKHR_fn CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_int CL_API_CALL
+clEnqueueAcquireDX9MediaSurfacesKHR_t(
     cl_command_queue command_queue,
     cl_uint num_objects,
     const cl_mem* mem_objects,
     cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list,
-    cl_event* event) CL_API_SUFFIX__VERSION_1_2;
+    cl_event* event);
 
-typedef cl_int (CL_API_CALL *
-clEnqueueReleaseDX9MediaSurfacesKHR_fn)(
+typedef clEnqueueAcquireDX9MediaSurfacesKHR_t *
+clEnqueueAcquireDX9MediaSurfacesKHR_fn CL_API_SUFFIX__VERSION_1_2;
+
+typedef cl_int CL_API_CALL
+clEnqueueReleaseDX9MediaSurfacesKHR_t(
     cl_command_queue command_queue,
     cl_uint num_objects,
     const cl_mem* mem_objects,
     cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list,
-    cl_event* event) CL_API_SUFFIX__VERSION_1_2;
+    cl_event* event);
+
+typedef clEnqueueReleaseDX9MediaSurfacesKHR_t *
+clEnqueueReleaseDX9MediaSurfacesKHR_fn CL_API_SUFFIX__VERSION_1_2;
 
 #if !defined(CL_NO_ICD_DISPATCH_EXTENSION_PROTOTYPES)
 
@@ -197,6 +212,9 @@ clEnqueueReleaseDX9MediaSurfacesKHR(
 #define CL_INTEL_DX9_MEDIA_SHARING_EXTENSION_NAME \
     "cl_intel_dx9_media_sharing"
 
+
+#define CL_INTEL_DX9_MEDIA_SHARING_EXTENSION_VERSION CL_MAKE_VERSION(0, 0, 0)
+
 typedef cl_uint             cl_dx9_device_source_intel;
 typedef cl_uint             cl_dx9_device_set_intel;
 
@@ -232,42 +250,54 @@ typedef cl_uint             cl_dx9_device_set_intel;
 #define CL_COMMAND_RELEASE_DX9_OBJECTS_INTEL                0x402B
 
 
-typedef cl_int (CL_API_CALL *
-clGetDeviceIDsFromDX9INTEL_fn)(
+typedef cl_int CL_API_CALL
+clGetDeviceIDsFromDX9INTEL_t(
     cl_platform_id platform,
     cl_dx9_device_source_intel dx9_device_source,
     void* dx9_object,
     cl_dx9_device_set_intel dx9_device_set,
     cl_uint num_entries,
     cl_device_id* devices,
-    cl_uint* num_devices) CL_API_SUFFIX__VERSION_1_1;
+    cl_uint* num_devices);
 
-typedef cl_mem (CL_API_CALL *
-clCreateFromDX9MediaSurfaceINTEL_fn)(
+typedef clGetDeviceIDsFromDX9INTEL_t *
+clGetDeviceIDsFromDX9INTEL_fn CL_API_SUFFIX__VERSION_1_1;
+
+typedef cl_mem CL_API_CALL
+clCreateFromDX9MediaSurfaceINTEL_t(
     cl_context context,
     cl_mem_flags flags,
     IDirect3DSurface9* resource,
     HANDLE sharedHandle,
     UINT plane,
-    cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_1;
+    cl_int* errcode_ret);
 
-typedef cl_int (CL_API_CALL *
-clEnqueueAcquireDX9ObjectsINTEL_fn)(
+typedef clCreateFromDX9MediaSurfaceINTEL_t *
+clCreateFromDX9MediaSurfaceINTEL_fn CL_API_SUFFIX__VERSION_1_1;
+
+typedef cl_int CL_API_CALL
+clEnqueueAcquireDX9ObjectsINTEL_t(
     cl_command_queue command_queue,
     cl_uint num_objects,
     const cl_mem* mem_objects,
     cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list,
-    cl_event* event) CL_API_SUFFIX__VERSION_1_1;
+    cl_event* event);
 
-typedef cl_int (CL_API_CALL *
-clEnqueueReleaseDX9ObjectsINTEL_fn)(
+typedef clEnqueueAcquireDX9ObjectsINTEL_t *
+clEnqueueAcquireDX9ObjectsINTEL_fn CL_API_SUFFIX__VERSION_1_1;
+
+typedef cl_int CL_API_CALL
+clEnqueueReleaseDX9ObjectsINTEL_t(
     cl_command_queue command_queue,
     cl_uint num_objects,
     cl_mem* mem_objects,
     cl_uint num_events_in_wait_list,
     const cl_event* event_wait_list,
-    cl_event* event) CL_API_SUFFIX__VERSION_1_1;
+    cl_event* event);
+
+typedef clEnqueueReleaseDX9ObjectsINTEL_t *
+clEnqueueReleaseDX9ObjectsINTEL_fn CL_API_SUFFIX__VERSION_1_1;
 
 #if !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES)
 
@@ -317,17 +347,23 @@ clEnqueueReleaseDX9ObjectsINTEL(
 #define CL_INTEL_SHARING_FORMAT_QUERY_DX9_EXTENSION_NAME \
     "cl_intel_sharing_format_query_dx9"
 
+
+#define CL_INTEL_SHARING_FORMAT_QUERY_DX9_EXTENSION_VERSION CL_MAKE_VERSION(0, 0, 0)
+
 /* when cl_khr_dx9_media_sharing or cl_intel_dx9_media_sharing is supported */
 
-typedef cl_int (CL_API_CALL *
-clGetSupportedDX9MediaSurfaceFormatsINTEL_fn)(
+typedef cl_int CL_API_CALL
+clGetSupportedDX9MediaSurfaceFormatsINTEL_t(
     cl_context context,
     cl_mem_flags flags,
     cl_mem_object_type image_type,
     cl_uint plane,
     cl_uint num_entries,
     D3DFORMAT* dx9_formats,
-    cl_uint* num_surface_formats) ;
+    cl_uint* num_surface_formats);
+
+typedef clGetSupportedDX9MediaSurfaceFormatsINTEL_t *
+clGetSupportedDX9MediaSurfaceFormatsINTEL_fn ;
 
 #if !defined(CL_NO_NON_ICD_DISPATCH_EXTENSION_PROTOTYPES)
 

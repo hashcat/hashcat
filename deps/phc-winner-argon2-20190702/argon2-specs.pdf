@@ -1,0 +1,1366 @@
+Argon2: the memory-hard function for password hashing and other
+                                applications
+
+              Designers: Alex Biryukov, Daniel Dinu, and Dmitry Khovratovich
+                               University of Luxembourg, Luxembourg
+
+ alex.biryukov@uni.lu, dumitru-daniel.dinu@uni.lu, khovratovich@gmail.com
+
+                        https://www.cryptolux.org/index.php/Argon2
+                        https://github.com/P-H-C/phc-winner-argon2
+
+                           https://github.com/khovratovich/Argon2
+
+                                  Version 1.3 of Argon2: PHC release
+                                               March 24, 2017
+
+Contents
+
+1 Introduction                                                                2
+
+2 Deﬁnitions                                                                  3
+
+2.1 Motivation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+
+2.2 Model for memory-hard functions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+
+3 Speciﬁcation of Argon2                                                      4
+
+3.1 Inputs . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4
+
+3.2 Operation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+
+3.3 Indexing . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 6
+
+3.4 Compression function G . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 7
+
+4 Features                                                                    8
+
+4.1 Available features . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 8
+
+4.2 Possible future extensions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+
+5 Security analysis                                                           9
+
+5.1 Ranking tradeoﬀ attack . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+
+5.2 Memory optimization attack . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+
+5.3 Attack on iterative compression function . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+
+5.4 Security of Argon2 to generic attacks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 10
+
+5.5 Security of Argon2 to ranking tradeoﬀ attacks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 11
+
+5.6 Security of Argon2i to generic tradeoﬀ attacks on random graphs . . . . . . . . . . . . . . . . . . 12
+
+5.7 Summary of tradeoﬀ attacks . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+
+6 Design rationale                                                            12
+
+6.1 Indexing function . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+
+6.2 Implementing parallelism . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+
+6.3 Compression function design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+
+6.3.1 Overview . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+
+6.3.2 Design criteria . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 15
+
+6.4 User-controlled parameters . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+
+7 Performance                                                                 16
+
+7.1 x86 architecture . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 16
+
+8 Applications                                                                16
+
+                          1
+9 Recommended parameters       17
+
+10 Conclusion                  17
+
+A Permutation P                18
+
+B Additional functionality     19
+
+C Change log                   20
+
+C.1 v.1.3 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+
+C.2 v1.2.1 – February 1st, 2016 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+
+C.3 v1.2 – 21th June, 2015 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+
+C.4 v1.1 – 6th February, 2015 . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 20
+
+1 Introduction
+
+Passwords, despite all their drawbacks, remain the primary form of authentication on various web-services.
+Passwords are usually stored in a hashed form in a server’s database. These databases are quite often captured
+by the adversaries, who then apply dictionary attacks since passwords tend to have low entropy. Protocol
+designers use a number of tricks to mitigate these issues. Starting from the late 70’s, a password is hashed
+together with a random salt value to prevent detection of identical passwords across diﬀerent users and services.
+The hash function computations, which became faster and faster due to Moore’s law have been called multiple
+times to increase the cost of password trial for the attacker.
+
+    In the meanwhile, the password crackers migrated to new architectures, such as FPGAs, multiple-core GPUs
+and dedicated ASIC modules, where the amortized cost of a multiple-iterated hash function is much lower. It
+was quickly noted that these new environments are great when the computation is almost memoryless, but they
+experience diﬃculties when operating on a large amount of memory. The defenders responded by designing
+memory-hard functions, which require a large amount of memory to be computed, and impose computational
+penalties if less memory is used. The password hashing scheme scrypt [15] is an instance of such function.
+
+    Memory-hard schemes also have other applications. They can be used for key derivation from low-entropy
+sources. Memory-hard schemes are also welcome in cryptocurrency designs [13] if a creator wants to demotivate
+the use of GPUs and ASICs for mining and promote the use of standard desktops.
+
+Problems of existing schemes A trivial solution for password hashing is a keyed hash function such as
+HMAC. If the protocol designer prefers hashing without secret keys to avoid all the problems with key generation,
+storage, and update, then he has few alternatives: the generic mode PBKDF2, the Blowﬁsh-based bcrypt, and
+scrypt. Among those, only scrypt aims for high memory, but the existence of a trivial time-memory tradeoﬀ [8]
+allows compact implementations with the same energy cost.
+
+    Design of a memory-hard function proved to be a tough problem. Since early 80’s it has been known
+that many cryptographic problems that seemingly require large memory actually allow for a time-memory
+tradeoﬀ [11], where the adversary can trade memory for time and do his job on fast hardware with low memory.
+In application to password-hashing schemes, this means that the password crackers can still be implemented on
+a dedicated hardware even though at some additional cost.
+
+    Another problem with the existing schemes is their complexity. The same scrypt calls a stack of subproce-
+dures, whose design rationale has not been fully motivated (e.g, scrypt calls SMix, which calls ROMix, which
+calls BlockMix, which calls Salsa20/8 etc.). It is hard to analyze and, moreover, hard to achieve conﬁdence.
+Finally, it is not ﬂexible in separating time and memory costs. At the same time, the story of cryptographic
+competitions [14, 17] has demonstrated that the most secure designs come with simplicity, where every element
+is well motivated and a cryptanalyst has as few entry points as possible.
+
+    The Password Hashing Competition, which started in 2014, highlighted the following problems:
+
+    • Should the memory addressing (indexing functions) be input-independent or input-dependent, or hybrid?
+       The ﬁrst type of schemes, where the memory read location are known in advance, is immediately vulnerable
+       to time-space tradeoﬀ attacks, since an adversary can precompute the missing block by the time it is
+       needed [4]. In turn, the input-dependent schemes are vulnerable to side-channel attacks [16], as the
+       timing information allows for much faster password search.
+
+    • Is it better to ﬁll more memory but suﬀer from time-space tradeoﬀs, or make more passes over the memory
+       to be more robust? This question was quite diﬃcult to answer due to absence of generic tradeoﬀ tools,
+       which would analyze the security against tradeoﬀ attacks, and the absence of uniﬁed metric to measure
+       adversary’s costs.
+
+                            2
+    • How should the input-independent addresses be computed? Several seemingly secure options have been
+       attacked [4].
+
+    • How large a single memory block should be? Reading smaller random-placed blocks is slower (in cycles
+       per byte) due to the spacial locality principle of the CPU cache. In turn, larger blocks are diﬃcult to
+       process due to the limited number of long registers.
+
+    • If the block is large, how to choose the internal compression function? Should it be cryptographically
+       secure or more lightweight, providing only basic mixing of the inputs? Many candidates simply proposed
+       an iterative construction and argued against cryptographically strong transformations.
+
+    • How to exploit multiple cores of modern CPUs, when they are available? Parallelizing calls to the hashing
+       function without any interaction is subject to simple tradeoﬀ attacks.
+
+Our solution We oﬀer a hashing scheme called Argon2. Argon2 summarizes the state of the art in the design
+of memory-hard functions. It is a streamlined and simple design. It aims at the highest memory ﬁlling rate
+and eﬀective use of multiple computing units, while still providing defense against tradeoﬀ attacks. Argon2
+is optimized for the x86 architecture and exploits the cache and memory organization of the recent Intel and
+AMD processors. Argon2 has two variants: Argon2d and Argon2i. Argon2d is faster and uses data-depending
+memory access, which makes it suitable for cryptocurrencies and applications with no threats from side-channel
+timing attacks. Argon2i uses data-independent memory access, which is preferred for password hashing and
+password-based key derivation. Argon2i is slower as it makes more passes over the memory to protect from
+tradeoﬀ attacks.
+
+    We recommend Argon2 for the applications that aim for high performance. Both versions of Argon2 allow
+to ﬁll 1 GB of RAM in a fraction of second, and smaller amounts even faster. It scales easily to the arbitrary
+number of parallel computing units. Its design is also optimized for clarity to ease analysis and implementation.
+
+    Our scheme provides more features and better tradeoﬀ resilience than pre-PHC designs and equals in per-
+formance with the PHC ﬁnalists [5].
+
+2 Deﬁnitions
+
+2.1 Motivation
+
+We aim to maximize the cost of password cracking on ASICs. There can be diﬀerent approaches to measure
+this cost, but we turn to one of the most popular – the time-area product [3, 18]. We assume that the password
+P is hashed with salt S but without secret keys, and the hashes may leak to the adversaries together with salts:
+
+                                    Tag ← H(P, S);
+                               Cracker ← {(Tagi, Si)}.
+
+In the case of the password hashing, we suppose that the defender allocates certain amount of time (e.g., 1
+
+second) per password and a certain number of CPU cores (e.g., 4 cores). Then he hashes the password using the
+
+maximum amount M of memory. This memory size translates to certain ASIC area A. The running ASIC time
+
+T is determined by the length of the longest computational chain and by the ASIC memory latency. Therefore,
+
+we maximize the value AT . The other usecases follow a similar procedure.
+
+Suppose that an ASIC designer that wants to reduce the memory and thus the area wants to compute H
+
+using αM memory only for some α < 1. Using some tradeoﬀ speciﬁc to H, he has to spend C(α) times as much
+
+computation and his running time increases by at least the factor D(α). Therefore, the maximum possible gain
+
+E in the time-area product is
+
+                               Emax  =  max     1   .
+                                             αD(α)
+                                          α
+
+The hash function is called memory-hard if D(α) > 1/α as α → 0. Clearly, in this case the time-area product
+does not decrease. Moreover, the following aspects may further increase it:
+
+• Computing cores needed to implement the C(α) penalty may occupy signiﬁcant area.
+
+• If the tradeoﬀ requires signiﬁcant communication between the computing cores, the memory bandwidth
+   limits may impose additional restrictions on the running time.
+
+    In the following text, we will not attempt to estimate time and area with large precision. However, an
+interested reader may use the following implementations as reference:
+
+    • The 50-nm DRAM implementation [9] takes 550 mm2 per GByte;
+
+                                        3
+• The Blake2b implementation in the 65-nm process should take about 0.1 mm2 (using Blake-512 imple-
+   mentation in [10]);
+
+• The maximum memory bandwidth achieved by modern GPUs is around 400 GB/sec.
+
+2.2 Model for memory-hard functions
+
+The memory-hard functions that we explore use the following mode of operation. The memory array B[] is
+ﬁlled with the compression function G:
+
+B[0] = H(P, S);
+
+for j from 1 to t                                                            (1)
+
+B[j] = G B[φ1(j)], B[φ2(j)], · · · , B[φk(j)] ,
+
+where φi() are some indexing functions.
+    We distinguish two types of indexing functions:
+
+• Independent of the password and salt, but possibly dependent on other public parameters (thus called
+   data-independent). The addresses can be calculated by the memory-saving adversaries. We suppose that
+   the dedicated hardware can handle parallel memory access, so that the cracker can prefetch the data
+   from the memory. Moreover, if she implements a time-space tradeoﬀ, then the missing blocks can be also
+   precomputed without losing time. Let the single G core occupy the area equivalent to the β of the entire
+   memory. Then if we use αM memory, then the gain in the time-area product is
+
+                   E (α)                             =   α  +  1       .
+                                                               C (α)β
+
+• Dependent on the password (data-dependent), in our case: φ(j) = g(B[j − 1]). This choice prevents the
+   adversary from prefetching and precomputing missing data. The adversary ﬁgures out what he has to
+   recompute only at the time the element is needed. If an element is recomputed as a tree of F calls of
+   average depth D, then the total processing time is multiplied by D. The gain in the time-area product is
+
+E (α)              =                                 (α  +      1         .
+                                                            C (α)β )D(α)
+
+    The maximum bandwidth Bwmax is a hypothetical upper bound on the memory bandwidth on the adver-
+sary’s architecture. Suppose that for each call to G an adversary has to load R(α) blocks from the memory on
+average. Therefore, the adversary can keep the execution time the same as long as
+
+                                                            R(α)Bw ≤ Bwmax,
+
+where Bw is the bandwidth achieved by a full-space implementation. In the tradeoﬀ attacks that we apply the
+following holds:
+
+                                                                R(α) = C(α).
+
+3 Speciﬁcation of Argon2
+
+There are two ﬂavors of Argon2 – Argon2d and Argon2i. The former one uses data-dependent memory access to
+thwart tradeoﬀ attacks. However, this makes it vulnerable for side-channel attacks, so Argon2d is recommended
+primarily for cryptocurrencies and backend servers. Argon2i uses data-independent memory access, which is
+recommended for password hashing and password-based key derivation.
+
+3.1 Inputs
+
+Argon2 has two types of inputs: primary inputs and secondary inputs, or parameters. Primary inputs are
+message P and nonce S, which are password and salt, respectively, for the password hashing. Primary inputs
+must always be given by the user such that
+
+    • Message P may have any length from 0 to 232 − 1 bytes;
+    • Nonce S may have any length from 8 to 232 − 1 bytes (16 bytes is recommended for password hashing).
+
+Secondary inputs have the following restrictions:
+
+                                                     4
+    • Degree of parallelism p determines how many independent (but synchronizing) computational chains can
+       be run. It may take any integer value from 1 to 224 − 1.
+
+    • Tag length τ may be any integer number of bytes from 4 to 232 − 1.
+
+    • Memory size m can be any integer number of kilobytes from 8p to 232 − 1. The actual number of blocks
+       is m , which is m rounded down to the nearest multiple of 4p.
+
+    • Number of iterations t (used to tune the running time independently of the memory size) can be any
+       integer number from 1 to 232 − 1;
+
+    • Version number v is one byte 0x13;
+
+    • Secret value K (serves as key if necessary, but we do not assume any key use by default) may have any
+       length from 0 to 232 − 1 bytes.
+
+    • Associated data X may have any length from 0 to 232 − 1 bytes.
+
+    • Type y of Argon2: 0 for Argon2d, 1 for Argon2i, 2 for Argon2id.
+
+    Argon2 uses internal compression function G with two 1024-byte inputs and a 1024-byte output, and internal
+hash function H. Here H is the Blake2b hash function, and G is based on its internal permutation. The mode
+of operation of Argon2 is quite simple when no parallelism is used: function G is iterated m times. At step i a
+block with index φ(i) < i is taken from the memory (Figure 1), where φ(i) is either determined by the previous
+block in Argon2d, or is a ﬁxed value in Argon2i.
+
+                                             G  G  G
+
+               φ(i)  φ(i + 1)                   i−1 i i+1
+
+               Figure 1: Argon2 mode of operation with no parallelism.
+
+3.2 Operation
+
+Argon2 follows the extract-then-expand concept. First, it extracts entropy from message and nonce by hashing
+it. All the other parameters are also added to the input. The variable length inputs P, S, K, X are prepended
+with their lengths:
+
+                                      H0 = H(p, τ, m, t, v, y, P , P, S , S, K , K, X , X).
+
+Here H0 is 64-byte value, and the parameters p, τ, m, t, v, y, P , S , K , X are treated as little-endian 32-bit
+
+integers.
+
+Argon2 then ﬁlls the memory with m =  m   · 4p 1024-byte blocks. For tunable parallelism with p threads,
+                                      4p
+
+the memory is organized in a matrix B[i][j] of blocks with p rows (lanes) and q = m /p columns. We denote
+
+the block produced in pass t by Bt[i][j], t > 0. Blocks are computed as follows:
+
+               B1[i][0] = H (H0|| 0 || i ), 0 ≤ i < p;
+
+                                                  4 bytes 4 bytes
+
+               B1[i][1] = H (H0|| 1 || i ), 0 ≤ i < p;
+
+                                                  4 bytes 4 bytes
+
+               B1[i][j] = G(B1[i][j − 1], B1[i ][j ]), 0 ≤ i < p, 2 ≤ j < q.
+
+where block index [i ][j ] is determined diﬀerently for Argon2d/2ds and Argon2i, G is the compression function,
+and H is a variable-length hash function built upon H. Both G and H will be fully deﬁned in the further text.
+
+                                          5
+    If t > 1, we repeat the procedure, but we XOR the new blocks to the old ones instead of overwriting them.
+
+                                         Bt[i][0] = G(Bt−1[i][q − 1], B[i ][j ]) ⊕ Bt−1[i][0];
+                                         Bt[i][j] = G(Bt[i][j − 1], B[i ][j ]) ⊕ Bt−1[i][j].
+
+Here the block B[i ][j ] may be either Bt[i ][j ] for j < j or Bt−1[i ][j ] for j > j .
+    After we have done T iterations over the memory, we compute the ﬁnal block Bﬁnal as the XOR of the last
+
+column:
+                                 Bﬁnal = BT [0][q − 1] ⊕ BT [1][q − 1] ⊕ · · · ⊕ BT [p − 1][q − 1].
+
+Then we apply H to Bﬁnal to get the output tag.
+
+                                                             Tag ← H (Bﬁnal).
+
+Variable-length hash function. Let Hx be a hash function with x-byte output (in our case Hx is Blake2b,
+
+which supports 1 ≤ x ≤ 64). We deﬁne H as follows. Let Vi be a 64-byte block, and Ai be its ﬁrst 32 bytes,
+and τ < 232 be the 32-bit tag length (viewed little-endian) in bytes. Then we deﬁne
+
+            if τ ≤ 64           H (X) d=ef Hτ (τ ||X).
+                  else
+                                r = τ /32 − 2;
+                                V1 ← H64(τ ||X);
+                                V2 ← H64(V1);
+                                ···
+                                Vr ← H64(Vr−1),
+                                Vr+1 ← Hτ−32r(Vr).
+                                H (X) d=ef A1||A2|| . . . Ar||Vr+1.
+
+                                4 slices
+
+                       B[0][0]                                                                  p lanes
+            H
+  message
+   nonce
+
+parameters
+
+            B[p − 1][0]
+
+                                          H                          H                       H
+
+                                                                                        Tag
+
+            Figure 2: Single-pass Argon2 with p lanes and 4 slices.
+
+3.3 Indexing
+
+To enable parallel block computation, we further partition the memory matrix into S = 4 vertical slices. The
+intersection of a slice and a lane is a segment of length q/S. Segments of the same slice are computed in
+parallel, and may not reference blocks from each other. All other blocks can be referenced, and now we explain
+the procedure in detail.
+
+Getting two 32-bit values. In Argon2d we select the ﬁrst 32 bits of block B[i][j − 1] and denote this value
+by J1. Then we take the next 32 bits of B[i][j − 1] and denote this value by J2. In Argon2i we run G2 — the
+2-round compression function G — in the counter mode, where the ﬁrst input is all-zero block, and the second
+input is constructed as
+
+                              ( r || l || s || m || t || x || i || 0 ),
+
+                                             8 bytes 8 bytes 8 bytes 8 bytes 8 bytes 8 bytes 8 bytes 968 bytes
+
+where
+
+                                                                        6
+    • r is the pass number;
+    • l is the lane number;
+    • s is the slice number;
+    • m is the total number of memory blocks;
+    • t is the total number of passes;
+    • x is the type of the Argon function (equals 1 for Argon2i);
+    • i is the counter starting in each segment from 1.
+All the numbers are put as little-endian. We increase the counter so that each application of G2 gives 128 64-bit
+values J1||J2.
+
+Mapping J1, J2 to the reference block index The value l = J2 mod p determines the index of the lane
+from which the block will be taken. If we work with the ﬁrst slice and the ﬁrst pass (r = s = 0), then l is set
+to the current lane index.
+
+    Then we determine the set of indices R that can be referenced for given [i][j] according to the following
+rules:
+
+1. If l is the current lane, then R includes all blocks computed in this lane, that are not overwritten yet,
+   excluding B[i][j − 1].
+
+2. If l is not the current lane, then R includes all blocks in the last S − 1 = 3 segments computed and ﬁnished
+   in lane l. If B[i][j] is the ﬁrst block of a segment, then the very last block from R is excluded.
+
+We are going to take a block from R with a non-uniform distribution over [0..|R|):
+
+J1 ∈ [0..232) → |R|  1  −  (J1)2  .
+                            264
+
+To avoid ﬂoating-point computation, we use the following integer approximation:
+
+x = (J1)2/232;
+y = (|R| ∗ x)/232;
+z = |R| − 1 − y.
+
+Then we enumerate the blocks in R in the order of construction and select z-th block from it as the reference
+block.
+
+3.4 Compression function G
+
+Compression function G is built upon the Blake2b round function P (fully deﬁned in Section A). P operates
+on the 128-byte input, which can be viewed as 8 16-byte registers (see details below):
+
+                                                P(A0, A1, . . . , A7) = (B0, B1, . . . , B7).
+
+    Compression function G(X, Y ) operates on two 1024-byte blocks X and Y . It ﬁrst computes R = X ⊕ Y .
+Then R is viewed as a 8 × 8-matrix of 16-byte registers R0, R1, . . . , R63. Then P is ﬁrst applied rowwise, and
+then columnwise to get Z:
+
+                                              (Q0, Q1, . . . , Q7) ← P(R0, R1, . . . , R7);
+                                             (Q8, Q9, . . . , Q15) ← P(R8, R9, . . . , R15);
+
+                                                                 ...
+                                           (Q56, Q57, . . . , Q63) ← P(R56, R57, . . . , R63);
+
+                                        (Z0, Z8, Z16, . . . , Z56) ← P(Q0, Q8, Q16, . . . , Q56);
+                                        (Z1, Z9, Z17, . . . , Z57) ← P(Q1, Q9, Q17, . . . , Q57);
+
+                                                                 ...
+                                       (Z7, Z15, Z23, . . . , Z63) ← P(Q7, Q15, Q23, . . . , Q63).
+
+Finally, G outputs Z ⊕ R:
+
+                                    G : (X, Y ) → R = X ⊕ Y −P→ Q −P→ Z → Z ⊕ R.
+
+7
+X               Y
+
+       R
+
+          P     Blake2b
+                round
+
+          P
+
+          P
+
+       Q
+
+   PP        P
+
+       Z
+
+                                            Figure 3: Argon2 compression function G.
+
+4 Features
+
+Argon2 is a multi-purpose family of hashing schemes, which is suitable for password hashing, key derivation,
+cryptocurrencies and other applications that require provably high memory use. Argon2 is optimized for the x86
+architecture, but it does not slow much on older processors. The key feature of Argon2 is its performance and
+the ability to use multiple computational cores in a way that prohibits time-memory tradeoﬀs. Several features
+are not included into this version, but can be easily added later.
+
+4.1 Available features
+
+Now we provide an extensive list of features of Argon2.
+    Performance. Argon2 ﬁlls memory very fast, thus increasing the area multiplier in the time-area product
+
+for ASIC-equipped adversaries. Data-independent version Argon2i securely ﬁlls the memory spending about 2
+CPU cycles per byte, and Argon2d is three times as fast. This makes it suitable for applications that need
+memory-hardness but can not allow much CPU time, like cryptocurrency peer software.
+
+    Tradeoﬀ resilience. Despite high performance, Argon2 provides reasonable level of tradeoﬀ resilience. Our
+tradeoﬀ attacks previously applied to Catena and Lyra2 show the following. With default number of passes over
+memory (1 for Argon2d, 3 for Argon2i, an ASIC-equipped adversary can not decrease the time-area product if
+the memory is reduced by the factor of 4 or more. Much higher penalties apply if more passes over the memory
+are made.
+
+    Scalability. Argon2 is scalable both in time and memory dimensions. Both parameters can be changed
+independently provided that a certain amount of time is always needed to ﬁll the memory.
+
+    Parallelism. Argon2 may use up to 224 threads in parallel, although in our experiments 8 threads already
+exhaust the available bandwidth and computing power of the machine.
+
+    GPU/FPGA/ASIC-unfriendly. Argon2 is heavily optimized for the x86 architecture, so that imple-
+menting it on dedicated cracking hardware should be neither cheaper nor faster. Even specialized ASICs would
+require signiﬁcant area and would not allow reduction in the time-area product.
+
+    Additional input support. Argon2 supports additional input, which is syntactically separated from the
+message and nonce, such as secret key, environment parameters, user data, etc..
+
+       8
+4.2 Possible future extensions
+
+Argon2 can be rather easily tuned to support other compression functions, hash functions and block sizes. ROM
+can be easily integrated into Argon2 by simply including it into the area where the blocks are referenced from.
+
+5 Security analysis
+
+All the attacks detailed below apply to one-lane version of Argon2, but can be carried to the multi-lane version
+with the same eﬃciency.
+
+5.1 Ranking tradeoﬀ attack
+
+To ﬁgure out the costs of the ASIC-equipped adversary, we ﬁrst need to calculate the time-space tradeoﬀs for
+Argon2. To the best of our knowledge, the ﬁrst generic tradeoﬀs attacks were reported in [4], and they apply to
+both data-dependent and data-independent schemes. The idea of the ranking method [4] is as follows. When
+we generate a memory block B[l], we make a decision, to store it or not. If we do not store it, we calculate the
+access complexity of this block — the number of calls to F needed to compute the block, which is based on the
+access complexity of B[l − 1] and B[φ(l)]. The detailed strategy is as follows:
+
+   1. Select an integer q (for the sake of simplicity let q divide T ).
+
+   2. Store B[kq] for all k;
+
+   3. Store all ri and all access complexities;
+
+   4. Store the T /q highest access complexities. If B[i] refers to a vertex from this top, we store B[i].
+
+The memory reduction is a probabilistic function of q. We applied the algorithm to the indexing function of
+Argon2 and obtained the results in Table 1. Each recomputation is a tree of certain depth, also given in the
+table.
+
+    We conclude that for data-dependent one-pass schemes the adversary is always able to reduce the memory
+by the factor of 3 and still keep the time-area product the same.
+
+ α     1                        1  1  1        1  1
+C (α)
+D(α)   2                        3  4  5        6  7
+
+       1.5 4 20.2 344 4660 218
+
+       1.5 2.8 5.5 10.3 17 27
+
+Table 1: Time and computation penalties for the ranking tradeoﬀ attack for the Argon2 indexing function.
+
+5.2 Memory optimization attack
+
+As reported in [6], it is possible to optimize the memory use in the earlier version 1.2.1 of Argon2, concretely for
+
+Argon2i. The memory blocks produced in the version 1.2.1 at second and later passes replaced, not overwrote
+the blocks at earlier passes. Therefore, for each block B[i] there is a time gap (let us call it a no-use gap)
+between the moment the block is used for the last time (as a reference or as a fresh new block) and the moment
+it is overwritten. We formalize this issue as follows. Let us denote by φr(i) the reference block index for block
+B r [i].
+
+• For t-pass Argon2i the block Br[i], r < t is not used between step lir = max i, maxφ(jr)=i j and step i of
+   pass r + 1, where it is overwritten.
+
+• For t-pass Argon2i the block Bt[i] is not used between step lit = max i, maxφ(jr)=i j and step m of pass
+   t, where it is discarded.
+
+    Since addresses li can be precomputed, an attacker can ﬁgure out for each block Br[i] when it can be
+discarded. A separate data structure will be needed though to keep the address of newly produced blocks as
+they land up at pseudo-random locations at the memory.
+
+    This saving strategy uses the fraction
+
+          Lt =                        1 − lit
+                                           m
+                      i
+
+                                   9
+of memory for the last pass, and
+
+                                  Lr =               m + i − lir
+                                                          m
+                                               i
+
+for the previous passes. Our experiments show that in 1-pass Argon2i L1 ≈ 0.15, i.e. on average 1/7-th of
+memory is used. Since in the straightforward application on average 1/2 of memory is used, the advantage in
+the time-area product is about 3.5. For t > 1 this strategy uses 0.25 of memory on average, so the time-area
+product advantage is close to 4. If we use the peak memory amount in the time-area calculations, then the
+advantage would be 5 and 2.7, respectively.
+
+    The version 1.3 of Argon2 replaces overwriting operation with the XOR. This gives minimal overhead on the
+performance: for memory requirements of 8 MB and higher the performance diﬀerence is between 5% and 15%
+depending on the operating system and hardware. For instance, the highest speed of 3-pass Argon2d v.1.2.1 on
+1.8 GHz CPU with Ubuntu is 1.61 cycles per byte, whereas for v.1.3 it is 1.7 cpb (both measured for 2 GB of
+RAM, 4 threads).
+
+    In the version 1.3 this saving strategy applies to the one-pass Argon2i only, where it brings the same time-
+area product advantage. The multi-pass versions are safe as all the blocks have to be kept in memory till the
+overwrite.
+
+5.3 Attack on iterative compression function
+
+Let us consider the following structure of the compression function F (X, Y ), where X and Y are input blocks:
+
+    • The input blocks of size t are divided into shorter subblocks of length t (for instance, 128 bits) X0, X1,
+       X2, . . . and Y0, Y1, Y2, . . ..
+
+    • The output block Z is computed subblockwise:
+
+                                                                          Z0 = G(X0, Y0);
+                                                          Zi = G(Xi, Yi, Zi−1), i > 0.
+
+This scheme resembles the duplex authenticated encryption mode, which is secure under certain assumptions
+
+on G. However, it is totally insecure against tradeoﬀ adversaries, as shown below.
+    Suppose that an adversary computes Z = F (X, Y ) but Y is not stored. Suppose that Y is a tree function
+
+of stored elements of depth D. The adversary starts with computing Z0, which requires only Y0. In turn,
+Y0 = G(X0, Y0 ) for some X , Y . Therefore, the adversary computes the tree of the same depth D, but with
+the function G instead of F . Z1 is then a tree function of depth D + 1, Z2 of depth D + 2, etc. In total,
+the recomputation takes (D + s)LG time, where s is the number of subblocks and LG is the latency of G.
+This should be compared to the full-space implementation, which takes time sLG. Therefore, if the memory is
+reduced by the factor q, then the time-area product is changed as
+
+                                  ATnew           =  D(q) +  s AT.
+                                                         sq
+
+Therefore, if
+
+                                  D(q) ≤ s(q − 1),                  (2)
+
+the adversary wins.
+    One may think of using the Zm−1[l−1] as input to computing Z0[l]. Clearly, this changes little in adversary’s
+
+strategy, who could simply store all Zm−1, which is feasible for large m. In concrete proposals, s can be 64,
+128, 256 and even larger.
+
+    We conclude that F with an iterative structure is insecure. We note that this attack applies also to other
+PHC candidates with iterative compression function.
+
+5.4 Security of Argon2 to generic attacks
+
+Now we consider preimage and collision resistance of both versions of Argon2. Variable-length inputs are
+prepended with their lengths, which shall ensure the absence of equal input strings. Inputs are processed by a
+cryptographic hash function, so no collisions should occur at this stage.
+
+                                                     10
+Internal collision resistance. The compression function G is not claimed to be collision resistant, so it may
+happen that distinct inputs produce identical outputs. Recall that G works as follows:
+
+                                                G(X, Y ) = P (Z) ⊕ (Z), Z = X ⊕ Y.
+
+where P is a permutation based on the 2-round Blake2b permutation. Let us prove that all Z are diﬀerent
+under certain assumptions.
+
+Theorem 1. Let Π be Argon2d or Argon2i with d lanes, s slices, and t passes over memory. Assume that
+
+    • P (Z) ⊕ Z is collision-resistant, i.e. it is hard to ﬁnd a, b such that P (a) ⊕ a = P (b) ⊕ b.
+
+    • P (Z) ⊕ Z is 4-generalized-birthday-resistant, i.e. it is hard to ﬁnd distinct a, b, c, d such that P (a) ⊕ P (b) ⊕
+       P (c) ⊕ P (d) = a ⊕ b ⊕ c ⊕ d.
+
+Then all the blocks B[i] generated in those t passes are diﬀerent.
+
+Proof. By speciﬁcation, the value of Z is diﬀerent for the ﬁrst two blocks of each segment in the ﬁrst slice in
+the ﬁrst pass. Consider the other blocks.
+
+    Let us enumerate the blocks according to the moment they are computed. Within a slice, where segments
+can be computed in parallel, we enumerate lane 0 fully ﬁrst, then lane 1, etc.. Slices are then computed and
+enumerated sequentially. Suppose the proposition is wrong, and let (B[x], B[y]) be a block collision such that
+x < y and y is the smallest among all such collisions. As F (Z) ⊕ Z is collision resistant, the collision occurs in
+Z, i.e.
+
+                                                                   Zx = Zy.
+Let rx, ry be reference block indices for B[x] and B[y], respectively, and let px, py be previous block indices for
+B[x], B[y]. Then we get
+
+                                                     B[rx] ⊕ B[px] = B[ry] ⊕ B[py].
+
+As we assume 4-generalized-birthday-resistance, some arguments are equal. Consider three cases:
+
+    • rx = px. This is forbidden by the rule 3 in Section 3.3.
+
+    • rx = ry. We get B[px] = B[py]. As px, py < y, and y is the smallest yielding such a collision, we get
+       px = py. However, by construction px = py for x = y.
+
+    • rx = py. Then we get B[ry] = B[px]. As ry < y and px < x < y, we obtain ry = px. Since py = rx < x < y,
+       we get that x and y are in the same slice, we have two options:
+
+          – py is the last block of a segment. Then y is the ﬁrst block of a segment in the next slice. Since rx
+              is the last block of a segment, and x < y, x must be in the same slice as y, and x can not be the
+              ﬁrst block in a segment by the rule 4 in Section 3.3. Therefore, ry = px = x − 1. However, this is
+              impossible, as ry can not belong to the same slice as y.
+
+          – py is not the last block of a segment. Then rx = py = y − 1, which implies that rx ≥ x. The latter
+              is forbidden.
+
+Thus we get a contradiction in all cases. This ends the proof.
+
+    The compression function G is not claimed to be collision resistant nor preimage-resistant. However, as the
+attacker has no control over its input, the collisions are highly unlikely. We only take care that the starting
+blocks are not identical by producing the ﬁrst two blocks with a counter and forbidding to reference from the
+memory the last block as (pseudo)random.
+
+    Argon2d does not overwrite the memory, hence it is vulnerable to garbage-collector attacks and similar ones,
+and is not recommended to use in the setting where these threats are possible. Argon2i with 3 passes overwrites
+the memory twice, thus thwarting the memory-leak attacks. Even if the entire working memory of Argon2i is
+leaked after the hash is computed, the adversary would have to compute two passes over the memory to try the
+password.
+
+5.5 Security of Argon2 to ranking tradeoﬀ attacks
+
+Time and computational penalties for 1-pass Argon2d are given in Table 1. It suggests that the adversary can
+reduce memory by the factor of 3 at most while keeping the time-area product the same.
+
+    Argon2i is more vulnerable to tradeoﬀ attacks due to its data-independent addressing scheme. We applied
+the ranking algorithm to 3-pass Argon2i to calculate time and computational penalties. We found out that the
+memory reduction by the factor of 3 already gives the computational penalty of around 214. The 214 Blake2b
+cores would take more area than 1 GB of RAM (Section 2.1), thus prohibiting the adversary to further reduce
+the time-area product. We conclude that the time-area product cost for Argon2i can be reduced by 3 at best.
+
+                                                                       11
+5.6 Security of Argon2i to generic tradeoﬀ attacks on random graphs
+
+The recent paper by Alwen and Blocki [1] reports an improved attack on Argon2i (all versions) as an instance
+of hash functions based on random graphs.
+
+    For t-pass Argon2i, Alwen and Blocki explicitly construct a set of O(T 3/4) nodes so that removing these
+nodes from the computation graph yields the so called sandwich graph with O(T 1/4) layers and O(T 1/2) depth
+and size. The computation proceeds as follows:
+
+    • Mark certain v = O(T 3/4) blocks as to be stored.
+
+    • For every segment of length T 3/4:
+
+          – Compute the reference blocks of the segment blocks in parallel.
+
+          – Compute the segment blocks consecutively, store blocks that needs storing.
+
+Using O(T 1/2) cores, the segment computation takes time O(T 3/4) and the total time is O(T ). The cores are
+used only for O(T 1/2) time, so it is possible to amortize costs computing O(T 1/4) instances using these cores
+in the round-robin fashion. The memory complexity of each step is about to T log T .
+
+    A precise formula for the time-area complexity using this tradeoﬀ strategy is given in Corollary1 5.6 of [1]:
+
+                ATnew = 2T 7/4               5 + t + ln T   ,
+                                                         8
+
+Since the memory consumption in the standard implementation is M = T /t, the standard AT value is T 2/t and
+the time-area advantage of the Alwen-Blocki attack is
+
+E  =    AT   =             T 1/4   ln T  )  ≤  2t3/4(5  +        M 1/4  +  0.125  ln  M  )  .
+      ATnew     2t(5 + (ln t)/2 +    8                      0.625 ln t
+
+For t ≥ 3 we get that E ≤ M 1/4/36. Therefore, for M up to 220 (1 GB) the advantage is smaller than 1 (i.e. the
+attack is not beneﬁcial to the adversary at all), and for M up to 224 (16 GB) it is smaller than 2. Therefore,
+this approach is not better than the ranking attack. However, it is a subject of active research and we’ll update
+
+this documents if improvements appear.
+
+5.7 Summary of tradeoﬀ attacks
+
+The best attack on the 1- and 2-pass Argon2i (v.1.3) is the low-storage attack from [6], which reduces the
+time-area product (using the peak memory value) by the factor of 5.
+
+    The best attack for t-pass (t > 2) Argon2i is the ranking tradeoﬀ attack, which reduces the time-area product
+by the factor of 3.
+
+    The best attack on the t-pass Argon2d is the ranking tradeoﬀ attack, which reduces the time-area product
+by the factor 1.33.
+
+6 Design rationale
+
+Argon2 was designed with the following primary goal: to maximize the cost of exhaustive search on non-x86
+architectures, so that the switch even to dedicated ASICs would not give signiﬁcant advantage over doing the
+exhaustive search on defender’s machine.
+
+6.1 Indexing function
+
+The basic scheme (1) was extended to implement:
+
+    • Tunable parallelism;
+
+    • Several passes over memory.
+
+    For the data-dependent addressing we set φ(l) = g(B[l]), where g simply truncates the block and takes the
+result modulo l − 1. We considered taking the address not from the block B[l − 1] but from the block B[l − 2],
+which should have allowed to prefetch the block earlier. However, not only the gain in our implementations is
+limited, but also this beneﬁt can be exploited by the adversary. Indeed, the eﬃcient depth D(q) is now reduced
+to D(q) − 1, since the adversary has one extra timeslot. Table 1 implies that then the adversary would be able
+
+    1the authors denote the total number of blocks by n and the number of passes by k.
+
+                                         12
+to reduce the memory by the factor of 5 without increasing the time-area product (which is a 25% increase in
+the reduction factor compared to the standard approach).
+
+    For the data-independent addressing we use a simple PRNG, in particular the compression function G in the
+counter mode. Due to its long output, one call (or two consecutive calls) would produce hundreds of addresses,
+thus minimizing the overhead. This approach does not give provable tradeoﬀ bounds, but instead allows the
+analysis with the tradeoﬀ algorithms suited for data-dependent addressing.
+
+Motivation for our indexing functions Initially, we considered uniform selection of referenced blocks, but
+then we considered a more generic case:
+
+                                                     φ ← (264 − (J1)γ ) · |Rl|/264
+
+    We tried to choose the γ which would maximize the adversary’s costs if he applies the tradeoﬀ based on
+the ranking method. We also attempted to make the reference block distribution close to uniform, so that each
+memory block is referenced similar number of times.
+
+    For each 1 ≤ γ ≤ 5 with step 0.1 we applied the ranking method with sliding window and selected the
+best available tradeoﬀs. We obtained a set of time penalties {Dγ(α)} and computational penalties {Cγ(α)} for
+0.01 < α < 1. We also calculated the reference block distribution for all possible γ. We considered two possible
+metrics:
+
+1. Minimum time-area product
+
+                                          ATγ  =  min{α    ·  Dγ (α)}.
+
+                                                    α
+
+2. Maximum memory reduction which reduces the time-area product compared to the original:
+
+                                          αγ = min{α | Dγ(α) < α}.
+
+                                                       α
+
+3. The goodness-of-ﬁt value of the reference block distribution w.r.t. the uniform distribution with n bins:
+
+                                          χ2 =        (pi  −     1  )2  ,
+                                                                 n
+                                                            1
+
+                                                  i           n
+
+where pi is the average probability of the block from i-th bin to be referenced. For example, if p3 =
+0.2, n = 10 and there are 1000 blocks, then blocks from 201 to 300 are referenced 1000 · 0.2 = 200 times
+
+throughout the computation.
+
+We got the following results for n = 10:
+
+                                          γ ATγ αγ χ2
+                                          1 0.78 3.95 0.89
+                                          2 0.72 3.2 0.35
+                                          3 0.67 3.48 0.2
+                                          4 0.63 3.9 0.13
+                                          5 0.59 4.38 0.09
+
+We conclude that the time-area product achievable by the attacker slowly decreases as γ grows. However, the
+diﬀerence between γ = 1 and γ = 5 is only the factor of 1.3. We also see that the time-area product can be
+kept below the original up to q = 3.2 for γ = 2, whereas for γ = 4 and γ = 1 such q is close to 4. To avoid
+ﬂoating-point computations, we restrict to integer γ. Thus the optimal values are γ = 2 and γ = 3, where the
+
+former is slightly better in the ﬁrst two metrics.
+
+    However, if we consider the reference block uniformity, the situation favors larger γ considerably. We see
+that the χ2 value is decreased by the factor of 2.5 when going from γ = 1 to γ = 2, and by the factor of 1.8
+further to γ = 3. In concrete probabilities (see also Figure 4), the ﬁrst 20% of blocks accumulate 40% of all
+reference hits for γ = 2 and 32% for γ = 3 (23.8% vs 19.3% hit for the ﬁrst 10% of blocks).
+
+    To summarize, γ = 2 and γ = 3 both are better against one speciﬁc attacker and slightly worse against the
+other. We take γ = 2 as the value that minimizes the AT gain, as we consider this metric more important.
+
+6.2 Implementing parallelism
+
+As modern CPUs have several cores possibly available for hashing, it is tempting to use these cores to increase
+the bandwidth, the amount of ﬁlled memory, and the CPU load. The cores of the recent Intel CPU share
+the L3 cache and the entire memory, which both have large latencies (100 cycles and more). Therefore, the
+inter-processor communication should be minimal to avoid delays.
+
+                                                  13
+                             Memory fraction (1/q)              1          1     1          1         1
+                                        γ=1
+                                        γ=2                     2          3     4          5         6
+                                        γ=3
+                                                                1.6 2.9 7.3 16.4 59
+
+                                                                1.5 4 20.2 344 4700
+
+                                                                1.4 4.3 28.1 1040 217
+
+Table 2: Computational penalties for the ranking tradeoﬀ attack with a sliding window, 1 pass.
+
+                                 Memory fraction (1/q)               1        1      1      1     1
+                                            γ=1
+                                            γ=2                      2        3      4      5     6
+                                            γ=3
+                                                                   1.6 2.5 4                5.8 8.7
+
+                                                                   1.5 2.6 5.4 10.7 17
+
+                                                                   1.3 2.5 5.3 10.1 18
+
+        Table 3: Depth penalties for the ranking tradeoﬀ attack with a sliding window, 1 pass.
+
+The simplest way to use p parallel cores is to compute and XOR p independent calls to H:
+
+                             H (P, S) = H(P, S, 0) ⊕ H(P, S, 1) ⊕ · · · ⊕ H(P, S, p − 1).
+
+If a single call uses m memory units, then p calls use pm units. However, this method admits a trivial tradeoﬀ:
+an adversary just makes p sequential calls to H using only m memory in total, which keeps the time-area
+product constant.
+
+    We suggest the following solution for p cores: the entire memory is split into p lanes of l equal slices each,
+which can be viewed as elements of a (p × l)-matrix Q[i][j]. Consider the class of schemes given by Equation (1).
+We modify it as follows:
+
+• p invocations to H run in parallel on the ﬁrst column Q[∗][0] of the memory matrix. Their indexing
+   functions refer to their own slices only;
+
+• For each column j > 0, l invocations to H continue to run in parallel, but the indexing functions now may
+   refer not only to their own slice, but also to all jp slices of previous columns Q[∗][0], Q[∗][1], . . . , Q[∗][j −1].
+
+• The last blocks produced in each slice of the last column are XORed.
+
+This idea is easily implemented in software with p threads and l joining points. It is easy to see that the adversary
+
+can use less memory when computing the last column, for instance by computing the slices sequentially and
+
+storing only the slice which is currently computed.             Then       his   time   is  multiplied   by  (1  +  p−1  ),  whereas  the
+                                                                                                                      l
+                                        p−1
+memory  use  is  multiplied  by  (1  −   pl  ),  so  the  time-area  product     is  modiﬁed      as
+
+                                        ATnew = AT        1  −  p  −    1             p−1      .
+                                                                   pl            1+ l
+
+For 2 ≤ p, l ≤ 10 this value is always between 1.05 and 3. We have selected l = 4 as this value gives low
+synchronisation overhead while imposing time-area penalties on the adversary who reduces the memory even
+by the factor 3/4. We note that values l = 8 or l = 16 could be chosen.
+
+    If the compression function is collision-resistant, then one may easily prove that block collisions are highly
+unlikely. However, we employ a weaker compression function, for which the following holds:
+
+                                                     G(X, Y ) = F (X ⊕ Y ),
+
+Figure 4: Access frequency for diﬀerent memory segments (10%-buckets) and diﬀerent exponents (from γ = 1
+to γ = 5) in the indexing functions.
+
+                                                                       14
+which is invariant to swap of inputs and is not collision-free. We take special care to ensure that the mode of
+operation does not allow such collisions by introducing additional rule:
+
+    • First block of a segment can not refer to the last block of any segment in the previous slice.
+We prove that block collisions are unlikely under reasonable conditions on F in Section 5.4.
+
+6.3 Compression function design
+
+6.3.1 Overview
+
+In contrast to attacks on regular hash functions, the adversary does not control inputs to the compression
+function G in our scheme. Intuitively, this should relax the cryptographic properties required from the compres-
+sion function and allow for a faster primitive. To avoid being the bottleneck, the compression function ideally
+should be on par with the performance of memcpy() or similar function, which may run at 0.1 cycle per byte
+or even faster. This much faster than ordinary stream ciphers or hash functions, but we might not need strong
+properties of those primitives.
+
+    However, we ﬁrst have to determine the optimal block size. When we request a block from a random location
+in the memory, we most likely get a cache miss. The ﬁrst bytes would arrive at the CPU from RAM within
+at best 10 ns, which accounts for 30 cycles. In practice, the latency of a single load instruction may reach 100
+cycles and more. However, this number can be amortized if we request a large block of sequentially stored bytes.
+When the ﬁrst bytes are requested, the CPU stores the next ones in the L1 cache, automatically or using the
+prefetch instruction. The data from the L1 cache can be loaded as fast as 64 bytes per cycle on the Haswell
+architecture, though we did not manage to reach this speed in our application.
+
+    Therefore, the larger the block is, the higher the throughput is. We have made a series of experiments with
+a non-cryptographic compression function, which does little beyond simple XOR of its inputs, and achieved the
+performance of around 0.7 cycles per byte per core with block sizes of 1024 bits and larger.
+
+6.3.2 Design criteria
+
+It was demonstrated that a compression function with a large block size may be vulnerable to tradeoﬀ attacks
+if it has a simple iterative structure, like modes of operation for a blockcipher [4] (some details in Section 5.3).
+
+    Thus we formulate the following design criteria:
+
+    • The compression function must require about t bits of storage (excluding inputs) to compute any output
+       bit.
+
+• Each output byte of F must be a nonlinear function of all input bytes, so that the function has diﬀerential
+
+probability  below  certain    level,  for  example  1  .
+                                                     4
+
+These criteria ensure that the attacker is unable to compute an output bit using only a few input bits or a few
+
+stored bits. Moreover, the output bits should not be (almost) linear functions of input bits, as otherwise the
+
+function tree would collapse.
+
+We have not found any generic design strategy for such large-block compression functions. It is diﬃcult to
+
+maintain diﬀusion on large memory blocks due to the lack of CPU instructions that interleave many registers
+
+at once. A naive approach would be to apply a linear transformation with certain branch number. However,
+even if we operate on 16-byte registers, a 1024-byte block would consist of 64 elements. A 64 × 64-matrix would
+
+require 32 XORs per register to implement, which gives a penalty about 2 cycles per byte.
+
+Instead, we propose to build the compression function on the top of a transformation P that already mixes
+
+several registers. We apply P in parallel (having a P-box), then shuﬄe the output registers and apply it again.
+If P handles p registers, then the compression function may transform a block of p2 registers with 2 rounds of
+
+P-boxes. We do not have to manually shuﬄe the data, we just change the inputs to P-boxes. As an example,
+
+an implementation of the Blake2b [2] permutation processes 8 128-bit registers, so with 2 rounds of Blake2b we
+
+can design a compression function that mixes the 8192-bit block. We stress that this approach is not possible
+
+with dedicated AES instructions. Even though they are very fast, they apply only to the 128-bit block, and we
+
+still have to diﬀuse its content across other blocks.
+
+We replace the original Blake2b round function with its modiﬁcation BlaMka [12], where the modular
+
+additions in G are combined with 32-bit multiplications. Our motivation was to increase the circuit depth (and
+
+thus the running time) of a potential ASIC implementation while having roughly the same running time on CPU
+
+thanks to parallelism and pipelining. Extra multiplications in the scheme serve well, as the best addition-based
+
+circuits for multiplication have latency about 4-5 times the addition latency for 32-bit multiplication (or roughly
+
+logn for n-bit multiplication).
+    As a result, any output 64-bit word of P is implemented by a chain of additions, multiplications, XORs, and
+
+rotations. The shortest possible chain for the 1 KB-block (e.g, from v0 to v0) consists of 12 MULs, 12 XORs,
+and 12 rotations.
+
+                                                           15
+                   Argon2d (1 pass)       Argon2i (3 passes)
+
+Processor Threads  Cycles/Byte Bandwidth  Cycles/Byte Bandwidth
+
+                            (GB/s)             (GB/s)
+
+i7-4500U  1        1.3      2.5           4.7  2.6
+
+i7-4500U  2        0.9      3.8           2.8  4.5
+
+i7-4500U  4        0.6      5.4           2    5.4
+
+i7-4500U  8        0.6      5.4           1.9  5.8
+
+Table 4: Speed and memory bandwidth of Argon2(d/i) measured on 1 GB memory ﬁlled. Core i7-4500U —
+Intel Haswell 1.8 GHz, 4 cores
+
+6.4 User-controlled parameters
+
+We have made a number of design choices, which we consider optimal for a wide range of applications. Some
+parameters can be altered, some should be kept as is. We give a user full control over:
+
+    • Amount M of memory ﬁlled by algorithm. This value, evidently, depends on the application and the
+       environment. There is no ”insecure” value for this parameter, though clearly the more memory the
+       better.
+
+    • Number T of passes over the memory. The running time depends linearly on this parameter. We expect
+       that the user chooses this number according to the time constraints on the application. Again, there is
+       no ”insecure value” for T .
+
+    • Degree d of parallelism. This number determines the number of threads used by an optimized implemen-
+       tation of Argon2. We expect that the user is restricted by a number of CPU cores (or half-cores) that can
+       be devoted to the hash function, and chooses d accordingly (double the number of cores).
+
+    • Length of password/message, salt/nonce, and tag (except for some low, insecure values for salt and tag
+       lengths).
+
+    We allow to choose another compression function G, hash function H, block size b, and number of slices l.
+However, we do not provide this ﬂexibility in a reference implementation as we guess that the vast majority of
+the users would prefer as few parameters as possible.
+
+7 Performance
+
+7.1 x86 architecture
+
+To optimize the data load and store from/to memory, the memory that will be processed has to be alligned on
+16-byte boundary when loaded/stored into/from 128-bit registers and on 32-byte boundary when loaded/stored
+into/from 256-bit registers. If the memory is not aligned on the speciﬁed boundaries, then each memory
+operation may take one extra CPU cycle, which may cause consistent penalties for many memory accesses.
+
+    The results presented are obtained using the gcc 4.8.2 compiler with the following options: -m64 -mavx
+-std=c++11 -pthread -O3. The cycle count value was measured using the rdtscp Intel intrinsics C function
+which inlines the RDTSCP assembly instruction that returns the 64-bit Time Stamp Counter (TSC) value. The
+instruction waits for prevoius instruction to ﬁnish and then is executed, but meanwhile the next instructions may
+begin before the value is read. Although this shortcoming, we used this method because it is the most realiable
+handy method to measure the execution time and also it is widely used in other cryptographic operations
+benchmarking.
+
+8 Applications
+
+Argon2d is optimized for settings where the adversary does not get regular access to system memory or CPU,
+i.e. he can not run side-channel attacks based on the timing information, nor he can recover the password much
+faster using garbage collection [7]. These settings are more typical for backend servers and cryptocurrency
+minings. For practice we suggest the following settings:
+
+    • Cryptocurrency mining, that takes 0.1 seconds on a 2 Ghz CPU using 1 core — Argon2d with 2 lanes and
+       250 MB of RAM;
+
+                        16
+    • Backend server authentication, that takes 0.5 seconds on a 2 GHz CPU using 4 cores — Argon2d with 8
+       lanes and 4 GB of RAM.
+
+    Argon2i is optimized for more dangerous settings, where the adversary possibly can access the same machine,
+use its CPU or mount cold-boot attacks. We use three passes to get rid entirely of the password in the memory.
+We suggest the following settings:
+
+    • Key derivation for hard-drive encryption, that takes 3 seconds on a 2 GHz CPU using 2 cores — Argon2i
+       with 4 lanes and 6 GB of RAM;
+
+    • Frontend server authentication, that takes 0.5 seconds on a 2 GHz CPU using 2 cores — Argon2i with 4
+       lanes and 1 GB of RAM.
+
+9 Recommended parameters
+
+We recommend the following procedure to select the type and the parameters for practical use of Argon2:
+   1. Select the type y. If you do not know the diﬀerence between them or you consider side-channel attacks
+       as viable threat, choose Argon2i. Otherwise any choice is ﬁne, including optional types.
+   2. Figure out the maximum number h of threads that can be initiated by each call to Argon2.
+   3. Figure out the maximum amount m of memory that each call can aﬀord.
+   4. Figure out the maximum amount x of time (in seconds) that each call can aﬀord.
+
+   5. Select the salt length. 128 bits is suﬃcient for all applications, but can be reduced to 64 bits in the case
+       of space constraints.
+
+   6. Select the tag length. 128 bits is suﬃcient for most applications, including key derivation. If longer keys
+       are needed, select longer tags.
+
+   7. If side-channel attacks is a viable threat, enable the memory wiping option in the library call.
+   8. Run the scheme of type y, memory m and h lanes and threads, using diﬀerent number of passes t. Figure
+
+       out the maximum t such that the running time does not exceed x. If it exceeds x even for t = 1, reduce
+       m accordingly.
+   9. Hash all the passwords with the just determined values m, h, and t.
+
+10 Conclusion
+
+We presented the memory-hard function Argon2, which maximizes the ASIC implementation costs for given
+CPU computing time. We aimed to make the design clear and compact, so that any feature and operation has
+certain rationale. The clarity and brevity of the Argon2 design has been conﬁrmed by its eventual selection as
+the PHC winner.
+
+    Further development of tradeoﬀ attacks with dedication to Argon2 is the subject of future work. It also
+remains to be seen how Argon2 withstands GPU cracking with low memory requirements.
+
+References
+
+ [1] J. Alwen and J. Blocki, “Eﬃciently computing data-independent memory-hard functions,” IACR Cryptol-
+      ogy ePrint Archive, vol. 2016, p. 115, 2016.
+
+ [2] J. Aumasson, S. Neves, Z. Wilcox-O’Hearn, and C. Winnerlein, “BLAKE2: simpler, smaller, fast as MD5,”
+      in ACNS’13, ser. Lecture Notes in Computer Science, vol. 7954. Springer, 2013, pp. 119–135.
+
+ [3] D. J. Bernstein and T. Lange, “Non-uniform cracks in the concrete: The power of free precomputation,”
+      in ASIACRYPT’13, ser. Lecture Notes in Computer Science, vol. 8270. Springer, 2013, pp. 321–340.
+
+ [4] A. Biryukov and D. Khovratovich, “Tradeoﬀ cryptanalysis of memory-hard functions,” in Advances in
+      Cryptology - ASIACRYPT 2015, ser. Lecture Notes in Computer Science, T. Iwata and J. H. Cheon, Eds.,
+      vol. 9453. Springer, 2015, pp. 633–657.
+
+                                                                       17
+ [5] M. Broz, “Phc benchmarks,” 2015, https://github.com/mbroz/PHCtest/blob/master/output/phc round2.
+      pdf .
+
+ [6] H. Corrigan-Gibbs, D. Boneh, and S. E. Schechter, “Balloon hashing: Provably space-hard hash functions
+      with data-independent access patterns,” IACR Cryptology ePrint Archive, vol. 2016, p. 27, 2016.
+
+ [7] C. Forler, E. List, S. Lucks, and J. Wenzel, “Overview of the candidates for the password hashing competi-
+      tion - and their resistance against garbage-collector attacks,” Cryptology ePrint Archive, Report 2014/881,
+      2014, http://eprint.iacr.org/.
+
+ [8] C. Forler, S. Lucks, and J. Wenzel, “Memory-demanding password scrambling,” in ASIACRYPT’14, ser.
+      Lecture Notes in Computer Science, vol. 8874. Springer, 2014, pp. 289–305, tweaked version of [?].
+
+ [9] B. Giridhar, M. Cieslak, D. Duggal, R. G. Dreslinski, H. M. Chen, R. Patti, B. Hold, C. Chakrabarti, T. N.
+      Mudge, and D. Blaauw, “Exploring DRAM organizations for energy-eﬃcient and resilient exascale mem-
+      ories,” in International Conference for High Performance Computing, Networking, Storage and Analysis
+      (SC 2013). ACM, 2013, pp. 23–35.
+
+[10] F. Gu¨rkaynak, K. Gaj, B. Muheim, E. Homsirikamol, C. Keller, M. Rogawski, H. Kaeslin, and J.-P. Kaps,
+      “Lessons learned from designing a 65nm ASIC for evaluating third round SHA-3 candidates,” in Third
+      SHA-3 Candidate Conference, Mar. 2012.
+
+[11] M. E. Hellman, “A cryptanalytic time-memory trade-oﬀ,” Information Theory, IEEE Transactions on,
+      vol. 26, no. 4, pp. 401–406, 1980.
+
+[12] M. A. S. Jr., L. C. Almeida, E. R. Andrade, P. C. F. dos Santos, and P. S. L. M. Barreto, “Lyra2:
+      Password hashing scheme with improved security against time-memory trade-oﬀs,” Cryptology ePrint
+      Archive, Report 2015/136, 2015, http://eprint.iacr.org/.
+
+[13] C. Lee, “Litecoin - open source p2p digital currency,” https://bitcointalk.org/index.php?topic=47417.0,
+      2011, https://litecoin.org/.
+
+[14] NIST, SHA-3 competition, 2007, http://csrc.nist.gov/groups/ST/hash/sha-3/index.html.
+
+[15] C. Percival, “Stronger key derivation via sequential memory-hard functions,” 2009, http://www.tarsnap.
+      com/scrypt/scrypt.pdf .
+
+[16] T. Ristenpart, E. Tromer, H. Shacham, and S. Savage, “Hey, you, get oﬀ of my cloud: exploring information
+      leakage in third-party compute clouds,” in ACM CCS’09, 2009, pp. 199–212.
+
+[17] M. Robshaw and O. Billet, New stream cipher designs: the eSTREAM ﬁnalists. Springer, 2008, vol. 4986.
+
+[18] C. D. Thompson, “Area-time complexity for VLSI,” in STOC’79. ACM, 1979, pp. 81–88.
+
+A Permutation P
+
+Permutation P is based on the round function of Blake2b and works as follows. Its 8 16-byte inputs S0, S1, . . . , S7
+are viewed as a 4 × 4-matrix of 64-bit words, where Si = (v2i+1||v2i):
+
+                  v0 v1 v2 v3 
+
+                  v4 v5 v6 v7 
+
+                   v8  v9 v10 v11
+                 
+
+                 v12 v13 v14 v15
+
+Then we do
+
+                   G(v0, v4, v8, v12) G(v1, v5, v9, v13)
+                 G(v2, v6, v10, v14) G(v3, v7, v11, v15)
+                 G(v0, v5, v10, v15) G(v1, v6, v11, v12)
+
+                  G(v2, v7, v8, v13) G(v3, v4, v9, v14),
+
+                        18
+where G applies to (a, b, c, d) as follows:
+
+                                                         a ← a + b + 2 ∗ aL ∗ bL;
+                                                         d ← (d ⊕ a) ≫ 32;
+                                                          c ← c + d + 2 ∗ cL ∗ dL;
+                                                          b ← (b ⊕ c) ≫ 24;
+
+                                                                                                                                              (3)
+                                                         a ← a + b + 2 ∗ aL ∗ bL;
+                                                         d ← (d ⊕ a) ≫ 16;
+                                                          c ← c + d + 2 ∗ cL ∗ dL;
+                                                          b ← (b ⊕ c) ≫ 63;
+
+Here + are additions modulo 264 and ≫ are 64-bit rotations to the right. xL is the 64-bit integer x truncated
+to the 32 least signiﬁcant bits. The modular additions in G are combined with 64-bit multiplications (that is
+the only diﬀerence to the original Blake2 design).
+
+    Our motivation in adding multiplications is to increase the circuit depth (and thus the running time) of
+a potential ASIC implementation while having roughly the same running time on CPU thanks to parallelism
+and pipelining. Extra multiplications in the scheme serve well, as the best addition-based circuits for multi-
+plication have latency about 4-5 times the addition latency for 32-bit multiplication (or roughly logn for n-bit
+multiplication).
+
+    As a result, any output 64-bit word of P is implemented by a chain of additions, multiplications, XORs, and
+rotations. The shortest possible chain for the 1 KB-block (e.g, from v0 to v0) consists of 12 MULs, 12 XORs,
+and 12 rotations.
+
+B Additional functionality
+
+The following functionality is enabled in the extended implementation2 but is not oﬃcially included in the PHC
+release3:
+
+    • Hybrid construction Argon2id, which has type y = 2 (used in the pre-hashing and address generation).
+       In the ﬁrst two slices of the ﬁrst pass it generates reference addresses data-independently as in Argon2i,
+       whereas in later slices and next passes it generates them data-dependently as in Argon2d.
+
+    • Sbox-hardened version Argon2ds, which has type y = 4. In this version the compression function G
+       includes the 64-bit transformation T , which is a chain of S-boxes, multiplications, and additions. In terms
+       of Section 3.4, we additionally compute
+
+                                                             W = LSB64(R0 ⊕ R63);
+                                                             Z0+ = T (W );
+                                                            Z63+ = T (W ) 32.
+
+       The transformation T , on the 64-bit word W is deﬁned as follows:
+
+          – Repeat 96 times:
+                1. y ← S[W [8 : 0]];
+                2. z ← S[512 + W [40 : 32]];
+                3. W ← ((W [31 : 0] ◦ W [63 : 32]) + y) ⊕ z.
+
+          – T (W ) ← W .
+
+       All the operations are performed modulo 264. ◦ is the 64-bit multiplication, S[] is the Sbox (lookup table)
+       that maps 10-bit indices to 64-bit values. W [i : j] is the subset of bits of W from i to j inclusive.
+       The S-box is generated in the start of every pass in the following procedure. In total we specify 210 · 8
+       bytes, or 8 KBytes. We take block B[0][0] and apply F (the core of G) to it 16 times. After each two
+       iterations we use the entire 1024-byte value and initialize 128 lookup values.
+       The properties of T and its initialization procedure is subject to change.
+
+    2https://github.com/khovratovich/Argon2
+    3https://github.com/P-H-C/phc-winner-argon2
+
+                                                                       19
+C Change log
+
+C.1 v.1.3
+
+    • The blocks are XORed with, not overwritten in the second pass and later;
+    • The version number byte is now 0x13.
+
+C.2 v1.2.1 – February 1st, 2016
+
+    • The total number of blocks can reach 232 − 1;
+    • The reference block index now requires 64 bits; the lane number is computed separately.
+    • New modes Argon2id and Argon2ds are added as optional.
+The speciﬁcation of v1.2.1 released on 26th August, 2015, had incorrect description of the ﬁrst block generation.
+The version released on 2d September, 2015, had incorrect description of the counter used in generating addresses
+for Argon2i. The version released on September 8th, 2015, lacked the ”Recommended parameters” section. The
+version released on October 1st, 2015, had the maximal parallelism level of 255 lanes. The version released on
+November 3d, 2015, had a typo. The versions released on November 5th and December 26th, had incorrect
+description of the ﬁrst block generation and the variable-length hash function.
+
+C.3 v1.2 – 21th June, 2015
+
+Non-uniform indexing rule, the compression function gets multiplications.
+
+C.4 v1.1 – 6th February, 2015
+
+    • New indexing rule added to avoid collision with a proof.
+    • New rule to generate ﬁrst two blocks in each lane.
+    • Non-zero constant added to the input block used to generate addresses in Argon2i.
+
+                                                                       20
+

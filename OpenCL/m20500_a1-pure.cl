@@ -149,7 +149,7 @@ CONSTANT_VK u32a crc32tab[256] =
   0xb40bbe37, 0xc30c8ea1, 0x5a05df1b, 0x2d02ef8d
 };
 
-KERNEL_FQ void m20500_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m20500_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -225,7 +225,7 @@ KERNEL_FQ void m20500_sxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m20500_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m20500_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

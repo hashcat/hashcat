@@ -85,7 +85,7 @@ DECLSPEC u64x siphash_rot32 (const u64x a)
   (v1) ^= (v2);                 \
   (v2)  = siphash_rot32 ((v2))
 
-KERNEL_FQ void m10100_m04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m10100_m04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -204,15 +204,15 @@ KERNEL_FQ void m10100_m04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m10100_m08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m10100_m08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m10100_m16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m10100_m16 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m10100_s04 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m10100_s04 (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -343,10 +343,10 @@ KERNEL_FQ void m10100_s04 (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m10100_s08 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m10100_s08 (KERN_ATTR_RULES ())
 {
 }
 
-KERNEL_FQ void m10100_s16 (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m10100_s16 (KERN_ATTR_RULES ())
 {
 }

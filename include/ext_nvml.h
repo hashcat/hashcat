@@ -161,6 +161,18 @@ typedef enum nvmlGom_enum
  * */
 #define nvmlClocksThrottleReasonNone                      0x0000000000000000LL
 
+/**
+ * Memory allocation information for a device (v1).
+ * The total amount is equal to the sum of the amounts of free and used memory.
+ */
+typedef struct nvmlMemory_st
+{
+    unsigned long long total;        //!< Total physical device memory (in bytes)
+    unsigned long long free;         //!< Unallocated device memory (in bytes)
+    unsigned long long used;         //!< Sum of Reserved and Allocated device memory (in bytes).
+                                     //!< Note that the driver/GPU always sets aside a small amount of memory for bookkeeping
+} nvmlMemory_t;
+
 /*
  * End of declarations from nvml.h
  **/
@@ -191,6 +203,7 @@ typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREAS
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_COMPUTEMODE) (nvmlDevice_t, nvmlComputeMode_t);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_OPERATIONMODE) (nvmlDevice_t, nvmlGpuOperationMode_t);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_PCIINFO) (nvmlDevice_t, nvmlPciInfo_t *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_MEMORYINFO) (nvmlDevice_t, nvmlMemory_t *);
 
 typedef struct hm_nvml_lib
 {
@@ -212,6 +225,7 @@ typedef struct hm_nvml_lib
   NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS nvmlDeviceGetCurrentClocksThrottleReasons;
   NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS nvmlDeviceGetSupportedClocksThrottleReasons;
   NVML_DEVICE_GET_PCIINFO nvmlDeviceGetPciInfo;
+  NVML_DEVICE_GET_MEMORYINFO nvmlDeviceGetMemoryInfo;
 
 } hm_nvml_lib_t;
 
@@ -232,5 +246,6 @@ int hm_NVML_nvmlDeviceGetClockInfo (void *hashcat_ctx, nvmlDevice_t device, nvml
 int hm_NVML_nvmlDeviceGetTemperatureThreshold (void *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp);
 int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (void *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkWidth);
 int hm_NVML_nvmlDeviceGetPciInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlPciInfo_t *pci);
+int hm_NVML_nvmlDeviceGetMemoryInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlMemory_t *mem);
 
 #endif // HC_NVML_H
