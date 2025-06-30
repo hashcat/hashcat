@@ -155,6 +155,7 @@
 - Metal Backend: disable Metal devices only if at least one OpenCL device is active
 - Modules: Check UnpackSize to raise false positive with hc_decompress_rar
 - User Options: added --metal-compiler-runtime option
+- User Options: limit --bitmap-max value to 31
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
 - Help: show supported hash-modes only with -hh
 - Makefile: prevent make failure with Apple Silicon in case of partial rebuild
