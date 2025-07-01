@@ -5484,36 +5484,17 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (backend_ctx, 0, sizeof (backend_ctx_t));
 }
 
-int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
+static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
 {
-  const bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
-  const folder_config_t *folder_config = hashcat_ctx->folder_config;
-        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
-        user_options_t  *user_options  = hashcat_ctx->user_options;
+  const bridge_ctx_t   *bridge_ctx    = hashcat_ctx->bridge_ctx;
+        backend_ctx_t  *backend_ctx   = hashcat_ctx->backend_ctx;
+        user_options_t *user_options  = hashcat_ctx->user_options;
 
-  if (backend_ctx->enabled == false) return 0;
-
-  hc_device_param_t *devices_param = backend_ctx->devices_param;
-
-  bool need_adl           = false;
-  bool need_nvml          = false;
-  bool need_nvapi         = false;
-  bool need_sysfs_amdgpu  = false;
-  bool need_sysfs_cpu     = false;
-  bool need_iokit         = false;
-
-  int bridge_link_device = 0; // this will only count active device
-
-  int backend_devices_idx = 0; // this will not only count active devices
+  hc_device_param_t    *devices_param = backend_ctx->devices_param;
 
   bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
   int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
-
-  int virthost = -1;
-  int virthost_finder = user_options->backend_devices_virthost;
-
-  // CUDA
 
   int cuda_devices_cnt    = 0;
   int cuda_devices_active = 0;
@@ -5529,15 +5510,15 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (is_virtualized == true)
     {
-      if ((virthost == -1) && (virthost_finder <= cuda_devices_cnt))
+      if ((*virthost == -1) && (*virthost_finder <= cuda_devices_cnt))
       {
         cuda_devices_cnt = virtmulti;
 
-        virthost = virthost_finder - 1;
+        *virthost = *virthost_finder - 1;
       }
       else
       {
-        virthost_finder -= cuda_devices_cnt;
+        *virthost_finder -= cuda_devices_cnt;
 
         cuda_devices_cnt = 0;
       }
@@ -5547,17 +5528,17 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     // device specific
 
-    for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++, backend_devices_idx++)
+    for (int cuda_devices_idx = 0; cuda_devices_idx < cuda_devices_cnt; cuda_devices_idx++, (*backend_devices_idx)++)
     {
-      const u32 device_id = backend_devices_idx;
+      const u32 device_id = *backend_devices_idx;
 
-      const u32 cuda_devices_idx_real = (is_virtualized == true) ? virthost : cuda_devices_idx;
+      const u32 cuda_devices_idx_real = (is_virtualized == true) ? *virthost : cuda_devices_idx;
 
-      hc_device_param_t *device_param = &devices_param[backend_devices_idx];
+      hc_device_param_t *device_param = &devices_param[*backend_devices_idx];
 
       device_param->device_id = device_id;
 
-      backend_ctx->backend_device_from_cuda[cuda_devices_idx] = backend_devices_idx;
+      backend_ctx->backend_device_from_cuda[cuda_devices_idx] = *backend_devices_idx;
 
       CUdevice cuda_device;
 
@@ -5857,10 +5838,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
       {
-        need_nvml = true;
+        backend_ctx->need_nvml = true;
 
         #if defined (_WIN) || defined (__CYGWIN__)
-        need_nvapi = true;
+        backend_ctx->need_nvapi = true;
         #endif
       }
 
@@ -5973,7 +5954,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->skipped == false)
       {
-        device_param->bridge_link_device = bridge_link_device++;
+        device_param->bridge_link_device = (*bridge_link_device)++;
 
         cuda_devices_active++;
       }
@@ -5982,8 +5963,22 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   backend_ctx->cuda_devices_cnt     = cuda_devices_cnt;
   backend_ctx->cuda_devices_active  = cuda_devices_active;
+}
 
-  // HIP
+static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
+{
+  #if defined (__linux__)
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  #endif
+  const bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
+        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  hc_device_param_t     *devices_param = backend_ctx->devices_param;
+
+  bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
+
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int hip_devices_cnt    = 0;
   int hip_devices_active = 0;
@@ -5999,15 +5994,15 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (is_virtualized == true)
     {
-      if ((virthost == -1) && (virthost_finder <= hip_devices_cnt))
+      if ((*virthost == -1) && (*virthost_finder <= hip_devices_cnt))
       {
         hip_devices_cnt = virtmulti;
 
-        virthost = virthost_finder - 1;
+        *virthost = *virthost_finder - 1;
       }
       else
       {
-        virthost_finder -= hip_devices_cnt;
+        *virthost_finder -= hip_devices_cnt;
 
         hip_devices_cnt = 0;
       }
@@ -6017,17 +6012,17 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     // device specific
 
-    for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++, backend_devices_idx++)
+    for (int hip_devices_idx = 0; hip_devices_idx < hip_devices_cnt; hip_devices_idx++, (*backend_devices_idx)++)
     {
-      const u32 device_id = backend_devices_idx;
+      const u32 device_id = *backend_devices_idx;
 
-      const u32 hip_devices_idx_real = (is_virtualized == true) ? virthost : hip_devices_idx;
+      const u32 hip_devices_idx_real = (is_virtualized == true) ? *virthost : hip_devices_idx;
 
-      hc_device_param_t *device_param = &devices_param[backend_devices_idx];
+      hc_device_param_t *device_param = &devices_param[*backend_devices_idx];
 
       device_param->device_id = device_id;
 
-      backend_ctx->backend_device_from_hip[hip_devices_idx] = backend_devices_idx;
+      backend_ctx->backend_device_from_hip[hip_devices_idx] = *backend_devices_idx;
 
       hipDevice_t hip_device;
 
@@ -6353,10 +6348,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD_USE_HIP) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP))
       {
-         need_adl = true;
+         backend_ctx->need_adl = true;
 
          #if defined (__linux__)
-         need_sysfs_amdgpu = true;
+         backend_ctx->need_sysfs_amdgpu = true;
          #endif
       }
 
@@ -6483,7 +6478,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->skipped == false)
       {
-        device_param->bridge_link_device = bridge_link_device++;
+        device_param->bridge_link_device = (*bridge_link_device)++;
 
         hip_devices_active++;
       }
@@ -6492,13 +6487,25 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   backend_ctx->hip_devices_cnt     = hip_devices_cnt;
   backend_ctx->hip_devices_active  = hip_devices_active;
+}
 
-  // Metal
+static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED int *virthost, MAYBE_UNUSED int *virthost_finder, MAYBE_UNUSED int *backend_devices_idx, MAYBE_UNUSED int *bridge_link_device)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   int metal_devices_cnt    = 0;
   int metal_devices_active = 0;
 
   #if defined (__APPLE__)
+  const bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  hc_device_param_t     *devices_param = backend_ctx->devices_param;
+
+  bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
+
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
+
   if (backend_ctx->mtl)
   {
     // device count
@@ -6510,15 +6517,15 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     if (is_virtualized == true)
     {
-      if ((virthost == -1) && (virthost_finder <= metal_devices_cnt))
+      if ((*virthost == -1) && (*virthost_finder <= metal_devices_cnt))
       {
         metal_devices_cnt = virtmulti;
 
-        virthost = virthost_finder - 1;
+        *virthost = *virthost_finder - 1;
       }
       else
       {
-        virthost_finder -= metal_devices_cnt;
+        *virthost_finder -= metal_devices_cnt;
 
         metal_devices_cnt = 0;
       }
@@ -6528,17 +6535,17 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
     // device specific
 
-    for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++, backend_devices_idx++)
+    for (int metal_devices_idx = 0; metal_devices_idx < metal_devices_cnt; metal_devices_idx++, (*backend_devices_idx)++)
     {
-      const u32 device_id = backend_devices_idx;
+      const u32 device_id = *backend_devices_idx;
 
-      const u32 metal_devices_idx_real = (is_virtualized == true) ? virthost : metal_devices_idx;
+      const u32 metal_devices_idx_real = (is_virtualized == true) ? *virthost : metal_devices_idx;
 
-      hc_device_param_t *device_param = &devices_param[backend_devices_idx];
+      hc_device_param_t *device_param = &devices_param[*backend_devices_idx];
 
       device_param->device_id = device_id;
 
-      backend_ctx->backend_device_from_metal[metal_devices_idx] = backend_devices_idx;
+      backend_ctx->backend_device_from_metal[metal_devices_idx] = *backend_devices_idx;
 
       mtl_device_id metal_device = NULL;
 
@@ -6868,7 +6875,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->opencl_device_vendor_id == VENDOR_ID_APPLE))
       {
-        need_iokit = true;
+        backend_ctx->need_iokit = true;
       }
 
       // CPU burning loop damper
@@ -6911,7 +6918,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (device_param->skipped == false)
       {
-        device_param->bridge_link_device = bridge_link_device++;
+        device_param->bridge_link_device = (*bridge_link_device)++;
 
         metal_devices_active++;
       }
@@ -6921,8 +6928,20 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   backend_ctx->metal_devices_cnt     = metal_devices_cnt;
   backend_ctx->metal_devices_active  = metal_devices_active;
+}
 
-  // OCL
+static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
+{
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
+        backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
+        user_options_t  *user_options  = hashcat_ctx->user_options;
+
+  hc_device_param_t     *devices_param = backend_ctx->devices_param;
+
+  bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
+
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int opencl_devices_cnt    = 0;
   int opencl_devices_active = 0;
@@ -6948,15 +6967,15 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       if (is_virtualized == true)
       {
-        if ((virthost == -1) && (virthost_finder <= (int) opencl_platform_devices_cnt))
+        if ((*virthost == -1) && (*virthost_finder <= (int) opencl_platform_devices_cnt))
         {
           opencl_platform_devices_cnt = virtmulti;
 
-          virthost = virthost_finder - 1;
+          *virthost = *virthost_finder - 1;
         }
         else
         {
-          virthost_finder -= (int) opencl_platform_devices_cnt;
+          *virthost_finder -= (int) opencl_platform_devices_cnt;
 
           opencl_platform_devices_cnt = 0;
         }
@@ -6964,21 +6983,21 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         opencl_platforms_devices_cnt[opencl_platforms_idx] = opencl_platform_devices_cnt;
       }
 
-      for (u32 opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++, backend_devices_idx++, opencl_devices_cnt++)
+      for (u32 opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++, (*backend_devices_idx)++, opencl_devices_cnt++)
       {
-        const u32 device_id = backend_devices_idx;
+        const u32 device_id = *backend_devices_idx;
 
         hc_device_param_t *device_param = &devices_param[device_id];
 
         device_param->device_id = device_id;
 
-        backend_ctx->backend_device_from_opencl[opencl_devices_cnt] = backend_devices_idx;
+        backend_ctx->backend_device_from_opencl[opencl_devices_cnt] = *backend_devices_idx;
 
-        backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx] = backend_devices_idx;
+        backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx] = *backend_devices_idx;
 
         device_param->opencl_platform_vendor_id = opencl_platform_vendor_id;
 
-        device_param->opencl_device = opencl_platform_devices[(is_virtualized == true) ? virthost : (int) opencl_platform_devices_idx];
+        device_param->opencl_device = opencl_platform_devices[(is_virtualized == true) ? *virthost : (int) opencl_platform_devices_idx];
 
         //device_param->opencl_platform = opencl_platform;
 
@@ -7779,12 +7798,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           #if defined (__APPLE__)
           if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
           {
-            need_iokit = true;
+            backend_ctx->need_iokit = true;
           }
           #endif
 
           #if defined (__linux__)
-          need_sysfs_cpu = true;
+          backend_ctx->need_sysfs_cpu = true;
           #endif
         }
 
@@ -7792,19 +7811,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         {
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
           {
-            need_adl = true;
+            backend_ctx->need_adl = true;
 
             #if defined (__linux__)
-            need_sysfs_amdgpu = true;
+            backend_ctx->need_sysfs_amdgpu = true;
             #endif
           }
 
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_NV) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
           {
-            need_nvml = true;
+            backend_ctx->need_nvml = true;
 
             #if defined (_WIN) || defined (__CYGWIN__)
-            need_nvapi = true;
+            backend_ctx->need_nvapi = true;
             #endif
           }
 
@@ -7813,7 +7832,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           {
             if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
             {
-              need_iokit = true;
+              backend_ctx->need_iokit = true;
             }
           }
           #endif
@@ -8323,7 +8342,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
            * activate device
            */
 
-          device_param->bridge_link_device = bridge_link_device++;
+          device_param->bridge_link_device = (*bridge_link_device)++;
 
           opencl_devices_active++;
         }
@@ -8333,11 +8352,51 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   backend_ctx->opencl_devices_cnt     = opencl_devices_cnt;
   backend_ctx->opencl_devices_active  = opencl_devices_active;
+}
+
+int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (backend_ctx->enabled == false) return 0;
+
+  user_options_t    *user_options  = hashcat_ctx->user_options;
+  hc_device_param_t *devices_param = backend_ctx->devices_param;
+
+  backend_ctx->need_adl           = false;
+  backend_ctx->need_nvml          = false;
+  backend_ctx->need_nvapi         = false;
+  backend_ctx->need_sysfs_amdgpu  = false;
+  backend_ctx->need_sysfs_cpu     = false;
+  backend_ctx->need_iokit         = false;
+
+  int bridge_link_device = 0; // this will only count active device
+
+  int backend_devices_idx = 0; // this will not only count active devices
+
+  int virthost = -1;
+  int virthost_finder = user_options->backend_devices_virthost;
+
+  // CUDA
+
+  backend_ctx_devices_init_cuda (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
+
+  // HIP
+
+  backend_ctx_devices_init_hip (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
+
+  // Metal
+
+  backend_ctx_devices_init_metal (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
+
+  // OCL
+
+  backend_ctx_devices_init_opencl (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
 
   // all devices combined go into backend_* variables
 
-  backend_ctx->backend_devices_cnt    = cuda_devices_cnt    + hip_devices_cnt    + metal_devices_cnt    + opencl_devices_cnt;
-  backend_ctx->backend_devices_active = cuda_devices_active + hip_devices_active + metal_devices_active + opencl_devices_active;
+  backend_ctx->backend_devices_cnt    = backend_ctx->cuda_devices_cnt    + backend_ctx->hip_devices_cnt    + backend_ctx->metal_devices_cnt    + backend_ctx->opencl_devices_cnt;
+  backend_ctx->backend_devices_active = backend_ctx->cuda_devices_active + backend_ctx->hip_devices_active + backend_ctx->metal_devices_active + backend_ctx->opencl_devices_active;
 
   #if defined (__APPLE__)
   // disable Metal devices if at least one OpenCL device is enabled
@@ -8953,13 +9012,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   }
 
   backend_ctx->target_msec  = TARGET_MSEC_PROFILE[user_options->workload_profile - 1];
-
-  backend_ctx->need_adl           = need_adl;
-  backend_ctx->need_nvml          = need_nvml;
-  backend_ctx->need_nvapi         = need_nvapi;
-  backend_ctx->need_sysfs_amdgpu  = need_sysfs_amdgpu;
-  backend_ctx->need_sysfs_cpu     = need_sysfs_cpu;
-  backend_ctx->need_iokit         = need_iokit;
 
   backend_ctx->comptime = comptime;
 
