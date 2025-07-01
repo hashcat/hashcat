@@ -43,10 +43,13 @@ typedef struct
 
 } rp_gen_ops_t;
 
-bool class_num   (const u8 c);
-bool class_lower (const u8 c);
-bool class_upper (const u8 c);
-bool class_alpha (const u8 c);
+bool class_num       (const u8 c);
+bool class_lower     (const u8 c);
+bool class_upper     (const u8 c);
+bool class_lower_hex (const u8 c);
+bool class_upper_hex (const u8 c);
+bool class_sym       (const u8 c);
+bool class_alpha     (const u8 c);
 
 int conv_ctoi (const u8 c);
 int conv_itoc (const u8 c);
