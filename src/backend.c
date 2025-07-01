@@ -6094,6 +6094,17 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_processors = device_processors;
 
+      if ((device_param->device_processors == 1) && (device_param->device_host_unified_memory == 1))
+      {
+        // APUs return some weird numbers. These values seem more appropriate (from rocminfo)
+        //Compute Unit:            2
+        //SIMDs per CU:            2
+        //Wavefront Size:          32(0x20)
+        //Max Waves Per CU:        32(0x20)
+
+        device_param->device_processors = 2 * 32;
+      }
+
       // device_global_mem, device_maxmem_alloc, device_available_mem
 
       size_t bytes = 0;
@@ -6399,7 +6410,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       device_param->has_lop3  = false;
       device_param->has_mov64 = false;
       device_param->has_prmt  = false;
-      device_param->has_shfw  = false;
+      device_param->has_shfw  = prop.arch.hasFunnelShift;
 
       // device_available_mem
 
@@ -7218,6 +7229,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         device_param->opencl_device_c_version = opencl_device_c_version;
 
+        // device_host_unified_memory
+
+        cl_bool device_host_unified_memory = false;
+
+        if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof (device_host_unified_memory), &device_host_unified_memory, NULL) == -1)
+        {
+          device_param->skipped = true;
+
+          continue;
+        }
+
+        device_param->device_host_unified_memory = (device_host_unified_memory == CL_TRUE) ? 1 : 0;
+
         // max_compute_units
 
         cl_uint device_processors = 0;
@@ -7230,6 +7254,17 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         }
 
         device_param->device_processors = device_processors;
+
+        if ((device_param->device_processors == 1) && (device_param->device_host_unified_memory == 1))
+        {
+          // APUs return some weird numbers. These values seem more appropriate (from rocminfo)
+          //Compute Unit:            2
+          //SIMDs per CU:            2
+          //Wavefront Size:          32(0x20)
+          //Max Waves Per CU:        32(0x20)
+
+          device_param->device_processors = 2 * 32;
+        }
 
         #if defined (__APPLE__)
         if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
@@ -7257,19 +7292,6 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
         }
         #endif // __APPLE__
-
-        // device_host_unified_memory
-
-        cl_bool device_host_unified_memory = false;
-
-        if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_HOST_UNIFIED_MEMORY, sizeof (device_host_unified_memory), &device_host_unified_memory, NULL) == -1)
-        {
-          device_param->skipped = true;
-
-          continue;
-        }
-
-        device_param->device_host_unified_memory = (device_host_unified_memory == CL_TRUE) ? 1 : 0;
 
         // device_global_mem
 

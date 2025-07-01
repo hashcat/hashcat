@@ -218,13 +218,7 @@ using namespace metal;
 #define s3 w
 #endif
 
-// funnelshift is nv's bitalign starting from sm 70
-
-#ifdef IS_NV
 #if HAS_SHFW == 1
-#define USE_FUNNELSHIFT
-#endif
-#elif IS_HIP
 #define USE_FUNNELSHIFT
 #endif
 
