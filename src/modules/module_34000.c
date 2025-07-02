@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 #define ARGON2_SYNC_POINTS  4
 #define ARGON2_BLOCK_SIZE   1024
@@ -18,17 +19,16 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_8;
+static const u32   DGST_SIZE      = DGST_SIZE_8_16;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
-static const char *HASH_NAME      = "Argon2ID";
+static const char *HASH_NAME      = "Argon2";
 static const u64   KERN_TYPE      = 34000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_SLOW_HASH_DIMY_LOOP;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_NATIVE_THREADS
-                                  | OPTS_TYPE_MP_MULTI_DISABLE
-                                  | OPTS_TYPE_MAXIMUM_ACCEL;
+                                  | OPTS_TYPE_THREAD_MULTI_DISABLE
+                                  | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$argon2id$v=19$m=65536,t=3,p=1$FBMjI4RJBhIykCgol1KEJA$2ky5GAdhT1kH4kIgPN/oERE3Taiy43vNN70a3HpiKQU";
@@ -48,6 +48,12 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+typedef struct argon2_tmp
+{
+  u32 state[4]; // just something for now
+
+} argon2_tmp_t;
+
 typedef struct argon2_options
 {
   u32 type;
@@ -65,6 +71,8 @@ typedef struct argon2_options
 
 } argon2_options_t;
 
+static const char *SIGNATURE_ARGON2D  = "$argon2d$";
+static const char *SIGNATURE_ARGON2I  = "$argon2i$";
 static const char *SIGNATURE_ARGON2ID = "$argon2id$";
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -76,37 +84,16 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 u32 module_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_threads_min = 1;
+  const u32 kernel_threads_min = 32; // hard-coded in kernel
 
   return kernel_threads_min;
 }
 
 u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u32 kernel_threads_max = 1;
+  const u32 kernel_threads_max = 32; // hard-coded in kernel
 
   return kernel_threads_max;
-}
-
-u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_loops_min = 1;
-
-  return kernel_loops_min;
-}
-
-u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_loops_max = 1;
-
-  return kernel_loops_max;
-}
-
-bool module_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool warmup_disable = true;
-
-  return warmup_disable;
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -116,28 +103,104 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
+const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel_user)
+{
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
+
+  argon2_options_t *options    = (argon2_options_t *) hashes->esalts_buf;
+  argon2_options_t *options_st = (argon2_options_t *) hashes->st_esalts_buf;
+
+  const u32 memory_block_count = (options->memory_block_count) ? options->memory_block_count : options_st->memory_block_count;
+
+  const u64 size_per_accel = ARGON2_BLOCK_SIZE * memory_block_count;
+
+  int   lines_sz  = 4096;
+  char *lines_buf = hcmalloc (lines_sz);
+  int   lines_pos = 0;
+
+  const u32 device_processors = device_param->device_processors;
+
+  const u32 device_maxworkgroup_size = device_param->device_maxworkgroup_size;
+
+  const u64 fixed_mem = (256 * 1024 * 1024); // some storage we need for pws[], tmps[], and others. Is around 72MiB in reality.
+
+  const u64 spill_mem = 2048 * device_processors * device_maxworkgroup_size; // 1600 according to ptxas
+
+  const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - (fixed_mem + spill_mem);
+
+  u32 kernel_accel_new = device_processors;
+
+  if (kernel_accel_user)
+  {
+    kernel_accel_new = kernel_accel_user;
+  }
+  else
+  {
+    if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == false))
+    {
+      kernel_accel_new = available_mem / size_per_accel;
+
+      kernel_accel_new = MIN (kernel_accel_new, 1024); // 1024 = max supported
+    }
+  }
+
+  char *new_device_name = hcstrdup (device_param->device_name);
+
+  for (size_t i = 0; i < strlen (new_device_name); i++)
+  {
+    if (new_device_name[i] == ' ') new_device_name[i] = '_';
+  }
+
+  lines_pos += snprintf (lines_buf + lines_pos, lines_sz - lines_pos, "%s * %u 1 %u A\n", new_device_name, user_options->hash_mode, kernel_accel_new);
+
+  hcfree (new_device_name);
+
+  return lines_buf;
+}
+
+u64 module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  argon2_options_t *options    = (argon2_options_t *) hashes->esalts_buf;
+  argon2_options_t *options_st = (argon2_options_t *) hashes->st_esalts_buf;
+
+  const u32 memory_block_count = (options->memory_block_count) ? options->memory_block_count : options_st->memory_block_count;
+
+  const u64 size_per_accel = ARGON2_BLOCK_SIZE * memory_block_count;
+
+  const u64 size_argon2 = device_param->kernel_accel_max * size_per_accel;
+
+  return size_argon2;
+}
+
 u64 module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes)
 {
-  argon2_options_t *options = (argon2_options_t *) hashes->esalts_buf;
+  argon2_options_t *options    = (argon2_options_t *) hashes->esalts_buf;
+  argon2_options_t *options_st = (argon2_options_t *) hashes->st_esalts_buf;
 
-  const u32 memory_block_count = options[0].memory_block_count;
+  const u32 memory_block_count = (options->memory_block_count) ? options->memory_block_count : options_st->memory_block_count;
+  const u32 parallelism        = (options->parallelism)        ? options->parallelism        : options_st->parallelism;
 
-  // we need to check that all hashes have the same memory requirement
   for (u32 i = 1; i < hashes->salts_cnt; i++)
   {
-    if (options[i].memory_block_count != memory_block_count) return (1ULL << 63) + i;
+    if ((memory_block_count != options[i].memory_block_count)
+     || (parallelism        != options[i].parallelism))
+    {
+      return (1ULL << 63) + i;
+    }
   }
 
   // now that we know they all have the same settings, we also need to check the self-test hash is different to what the user hash is using
 
-  if (user_options->self_test == true)
+  if ((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0)
   {
-    argon2_options_t *st_options = (argon2_options_t *) hashes->st_esalts_buf;
-
-    if (st_options[0].memory_block_count != memory_block_count) return (1ULL << 62);
+    if ((memory_block_count != options_st->memory_block_count)
+     || (parallelism        != options_st->parallelism))
+    {
+      return (1ULL << 62);
+    }
   }
 
-  const u64 tmp_size = ARGON2_BLOCK_SIZE * memory_block_count;
+  u64 tmp_size = sizeof (argon2_tmp_t);
 
   return tmp_size;
 }
@@ -148,7 +211,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   char *jit_build_options = NULL;
 
-  hc_asprintf (&jit_build_options, "-D ARGON2_PARALLELISM=%" PRIu32 " -D ARGON2_TMP_ELEM=%" PRIu32, options[0].parallelism, options[0].memory_block_count);
+  hc_asprintf (&jit_build_options, "-D ARGON2_PARALLELISM=%u -D ARGON2_TMP_ELEM=%u", options[0].parallelism, options[0].memory_block_count);
 
   return jit_build_options;
 }
@@ -165,12 +228,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.token_cnt  = 7;
 
-  token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_ARGON2ID;
+  token.signatures_cnt    = 3;
+  token.signatures_buf[0] = SIGNATURE_ARGON2D;
+  token.signatures_buf[1] = SIGNATURE_ARGON2I;
+  token.signatures_buf[2] = SIGNATURE_ARGON2ID;
 
-  token.len[0]     = 10;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+  token.len_min[0] = 9;
+  token.len_max[0] = 10;
+  token.sep[0]     = 0;
+  token.attr[0]    = TOKEN_ATTR_VERIFY_SIGNATURE;
 
   // version
   token.len[1]     = 4;
@@ -203,8 +269,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
   // target hash
-  token.len_min[6] = ((SALT_MIN * 8) / 6) + 0;
-  token.len_max[6] = ((SALT_MAX * 8) / 6) + 3;
+  token.len_min[6] = ((  1 * 8) / 6) + 0;
+  token.len_max[6] = ((128 * 8) / 6) + 3;
   token.sep[6]     = '$';
   token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
@@ -213,13 +279,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
+  // signature sets argon2 typ
+
+  const int sig_len = token.len[0];
+  const u8 *sig_pos = token.buf[0];
+
+  if      (memcmp (SIGNATURE_ARGON2D,  sig_pos, sig_len) == 0) options->type = 0;
+  else if (memcmp (SIGNATURE_ARGON2I,  sig_pos, sig_len) == 0) options->type = 1;
+  else if (memcmp (SIGNATURE_ARGON2ID, sig_pos, sig_len) == 0) options->type = 2;
+  else
+    return (PARSER_SIGNATURE_UNMATCHED);
+
   // argon2id config
   const u8 *ver_pos = token.buf[1];
   const u8 *mem_pos = token.buf[2];
   const u8 *it_pos  = token.buf[3];
   const u8 *par_pos = token.buf[4];
 
-  options->type                = 2; // Only support for Argon2id
   options->version             = hc_strtoul ((const char *) ver_pos + 2, NULL, 10);
   options->memory_usage_in_kib = hc_strtoul ((const char *) mem_pos + 2, NULL, 10);
   options->iterations          = hc_strtoul ((const char *) it_pos  + 2, NULL, 10);
@@ -259,17 +335,31 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
   char base64_salt[512] = { 0 };
-  base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) base64_salt);
+  int len1 = base64_encode (int_to_base64, (const u8 *) salt->salt_buf, salt->salt_len, (u8 *) base64_salt);
+
+  for (int i = len1 - 1; i >=0; i--) if (base64_salt[i] == '=') base64_salt[i] = 0;
 
   // digest
   char base64_digest[512] = { 0 };
-  base64_encode (int_to_base64, (const u8 *) digest, options->digest_len, (u8 *) base64_digest);
+  int len2 = base64_encode (int_to_base64, (const u8 *) digest, options->digest_len, (u8 *) base64_digest);
+
+  for (int i = len2 - 1; i >=0; i--) if (base64_digest[i] == '=') base64_digest[i] = 0;
 
   // out
+
+  const char *signature = NULL;
+
+  switch (options->type)
+  {
+    case 0: signature = SIGNATURE_ARGON2D;  break;
+    case 1: signature = SIGNATURE_ARGON2I;  break;
+    case 2: signature = SIGNATURE_ARGON2ID; break;
+  }
+
   u8 *out_buf = (u8 *) line_buf;
 
   const int out_len = snprintf ((char *) out_buf, line_size, "%sv=%d$m=%d,t=%d,p=%d$%s$%s",
-    SIGNATURE_ARGON2ID,
+    signature,
     options->version,
     options->memory_usage_in_kib,
     options->iterations,
@@ -303,9 +393,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_size                = module_dgst_size;
   module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
-  module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
+  module_ctx->module_extra_buffer_size        = module_extra_buffer_size;
   module_ctx->module_extra_tmp_size           = module_extra_tmp_size;
-  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block     = module_extra_tuningdb_block;
   module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
@@ -335,8 +425,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
-  module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
+  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
   module_ctx->module_kernel_threads_min       = module_kernel_threads_min;
   module_ctx->module_kern_type                = module_kern_type;
@@ -359,5 +449,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
-  module_ctx->module_warmup_disable           = module_warmup_disable;
+  module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

@@ -22,6 +22,69 @@
 #define TYPE_I  1
 #define TYPE_ID 2
 
+#if defined IS_CUDA
+#define hc__shfl_sync(shfbuf,mask,var,srcLane) __shfl_sync ((mask),(var),(srcLane))
+#elif defined IS_HIP
+// attention hard coded 32 warps for hip here
+#define hc__shfl_sync(shfbuf,mask,var,srcLane) __shfl ((var),(srcLane),32)
+#elif defined IS_OPENCL
+#define hc__shfl_sync(shfbuf,mask,var,srcLane) hc__shfl ((shfbuf),(var),(srcLane))
+
+#if defined IS_AMD && defined IS_GPU
+DECLSPEC u64 hc__shfl (MAYBE_UNUSED LOCAL_AS u64 *shuffle_buf, const u64 var, const int src_lane)
+{
+  const u32 idx = src_lane << 2;
+
+  const u32 l32 = l32_from_64_S (var);
+  const u32 h32 = h32_from_64_S (var);
+
+  const u32 l32r = __builtin_amdgcn_ds_bpermute (idx, l32);
+  const u32 h32r = __builtin_amdgcn_ds_bpermute (idx, h32);
+
+  const u64 out = hl32_to_64_S (h32r, l32r);
+
+  return out;
+}
+#elif defined IS_NV && defined IS_GPU
+DECLSPEC u64 hc__shfl (MAYBE_UNUSED LOCAL_AS u64 *shuffle_buf, const u64 var, const int src_lane)
+{
+  const u32 l32 = l32_from_64_S (var);
+  const u32 h32 = h32_from_64_S (var);
+
+  u32 l32r;
+  u32 h32r;
+
+  asm("shfl.sync.idx.b32 %0, %1, %2, 0x1f, 0;"
+      : "=r"(l32r)
+      : "r"(l32), "r"(src_lane));
+
+  asm("shfl.sync.idx.b32 %0, %1, %2, 0x1f, 0;"
+      : "=r"(h32r)
+      : "r"(h32), "r"(src_lane));
+
+  const u64 out = hl32_to_64_S (h32r, l32r);
+
+  return out;
+}
+#else
+DECLSPEC u64 hc__shfl (MAYBE_UNUSED LOCAL_AS u64 *shuffle_buf, const u64 var, const int src_lane)
+{
+  const u32 lid = get_local_id (0);
+
+  shuffle_buf[lid] = var;
+
+  barrier (CLK_LOCAL_MEM_FENCE);
+
+  const u64 out = shuffle_buf[src_lane & 31];
+
+  return out;
+}
+#endif
+
+#elif defined IS_METAL
+//todo
+#endif
+
 #define ARGON2_G(a,b,c,d)                \
 {                                        \
   a = a + b + 2 * trunc_mul(a, b);       \
@@ -78,7 +141,7 @@ typedef struct argon2_pos
 } argon2_pos_t;
 
 DECLSPEC void argon2_init (GLOBAL_AS const pw_t *pw, GLOBAL_AS const salt_t *salt, const argon2_options_t *options, GLOBAL_AS argon2_block_t *out);
-DECLSPEC void argon2_fill_segment (GLOBAL_AS argon2_block_t *blocks, const argon2_options_t *options, const argon2_pos_t *pos);
+DECLSPEC void argon2_fill_segment (GLOBAL_AS argon2_block_t *blocks, const argon2_options_t *options, const argon2_pos_t *pos, LOCAL_AS u64 *shuffle_buf);
 DECLSPEC void argon2_final (GLOBAL_AS argon2_block_t *blocks, const argon2_options_t *options, u32 *out);
 
 #endif // INC_HASH_ARGON2_H

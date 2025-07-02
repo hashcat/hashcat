@@ -2662,16 +2662,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event1, device_param->cuda_stream) == -1) return -1;
 
-    if ((kern_run == KERN_RUN_2) && (hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP))
-    {
-      const u32 warp_size = device_param->kernel_preferred_wgs_multiple;
-
-      if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, num, 1, 1, warp_size, blockDimY, 1, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params, NULL) == -1) return -1;
-    }
-    else
-    {
-      if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params, NULL) == -1) return -1;
-    }
+    if (hc_cuLaunchKernel (hashcat_ctx, cuda_function, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, dynamic_shared_mem, device_param->cuda_stream, device_param->kernel_params, NULL) == -1) return -1;
 
     if (hc_cuEventRecord (hashcat_ctx, device_param->cuda_event2, device_param->cuda_stream) == -1) return -1;
 
@@ -16286,7 +16277,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // Still not 100% sure about the 64MiB here
 
-    const u64 size_device_extra = MAX ((1024 * 1024 * 1024), size_device_extra1234);
+    const u64 size_device_extra = MAX ((64ULL * 1024 * 1024), size_device_extra1234);
 
     // we will first decrease accel and when reached that limit, we will decrease threads
     // when we decrease limit this will restore accel_max

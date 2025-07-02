@@ -105,8 +105,8 @@ static const char *const OPTI_STR_USES_BITS_16         = "Uses-16-Bit";
 static const char *const OPTI_STR_USES_BITS_32         = "Uses-32-Bit";
 static const char *const OPTI_STR_USES_BITS_64         = "Uses-64-Bit";
 static const char *const OPTI_STR_SLOW_HASH_DIMY_INIT  = "Slow-Hash-DimensionY-INIT";
-static const char *const OPTI_STR_SLOW_HASH_DIMY_COMP  = "Slow-Hash-DimensionY-LOOP";
-static const char *const OPTI_STR_SLOW_HASH_DIMY_LOOP  = "Slow-Hash-DimensionY-COMP";
+static const char *const OPTI_STR_SLOW_HASH_DIMY_LOOP  = "Slow-Hash-DimensionY-LOOP";
+static const char *const OPTI_STR_SLOW_HASH_DIMY_COMP  = "Slow-Hash-DimensionY-COMP";
 
 static const char *const HASH_CATEGORY_UNDEFINED_STR              = "Undefined";
 static const char *const HASH_CATEGORY_RAW_HASH_STR               = "Raw Hash";
@@ -1252,15 +1252,52 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
     {
       const int len = token->len[token_idx];
 
-      token->buf[token_idx + 1] = token->buf[token_idx] + len;
-
-      len_left -= len;
-
-      if (token->sep[token_idx] != 0)
+      if (len)
       {
-        token->buf[token_idx + 1]++; // +1 = separator
+        token->buf[token_idx + 1] = token->buf[token_idx] + len;
 
-        len_left--; // -1 = separator
+        len_left -= len;
+
+        if (token->sep[token_idx] != 0)
+        {
+          token->buf[token_idx + 1]++; // +1 = separator
+
+          len_left--; // -1 = separator
+        }
+      }
+
+      const int len_min = token->len_min[token_idx];
+      const int len_max = token->len_max[token_idx];
+
+      if (len_max)
+      {
+        bool matched = false;
+
+        if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_SIGNATURE)
+        {
+          for (int signature_idx = 0; signature_idx < token->signatures_cnt; signature_idx++)
+          {
+            const int len_sig = strlen (token->signatures_buf[signature_idx]);
+
+            if (len_sig > len_left) continue;
+
+            if ((len_sig >= len_min) && (len_sig <= len_max))
+            {
+              if (memcmp (token->buf[token_idx], token->signatures_buf[signature_idx], len_sig) == 0)
+              {
+                token->len[token_idx] = len_sig;
+
+                token->buf[token_idx + 1] = token->buf[token_idx] + len_sig;
+
+                len_left -= len_sig;
+
+                matched = true;
+              }
+            }
+          }
+
+          if (matched == false) return (PARSER_SIGNATURE_UNMATCHED);
+        }
       }
     }
   }

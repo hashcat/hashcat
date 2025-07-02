@@ -31,7 +31,7 @@ DECLSPEC void argon2_initial_block (const u32 *in, const u32 lane, const u32 blo
 
   blake2b_final (&ctx);
 
-  u64 *out = blocks[(blocknum * parallelism) + lane].values;
+  GLOBAL_AS u64 *out = blocks[(blocknum * parallelism) + lane].values;
 
   out[0] = ctx.h[0];
   out[1] = ctx.h[1];
@@ -110,6 +110,7 @@ DECLSPEC void argon2_init (GLOBAL_AS const pw_t *pw, GLOBAL_AS const salt_t *sal
   }
 }
 
+// TODO: reconsider 'trunc_mul()'
 DECLSPEC u64 trunc_mul (u64 x, u64 y)
 {
   const u32 xlo = (u32) x;
@@ -183,36 +184,36 @@ DECLSPEC int argon2_shift (int idx, int thread)
   return (thread & 0x0e) | (((thread & 0x11) + delta + 0x0e) & 0x11);
 }
 
-DECLSPEC void argon2_hash_block (u64 R[4], int thread)
+DECLSPEC void argon2_hash_block (u64 R[4], int thread, LOCAL_AS u64 *shuffle_buf)
 {
-  for (u32 idx = 1; idx < 4; idx++) R[idx] = __shfl_sync (FULL_MASK, R[idx], thread ^ (idx << 2));
+  for (u32 idx = 1; idx < 4; idx++) R[idx] = hc__shfl_sync (shuffle_buf, FULL_MASK, R[idx], thread ^ (idx << 2));
 
   transpose_permute_block (R, thread);
 
-  for (u32 idx = 1; idx < 4; idx++) R[idx] = __shfl_sync (FULL_MASK, R[idx], thread ^ (idx << 2));
+  for (u32 idx = 1; idx < 4; idx++) R[idx] = hc__shfl_sync (shuffle_buf, FULL_MASK, R[idx], thread ^ (idx << 2));
 
   ARGON2_G(R[0], R[1], R[2], R[3]);
 
-  for (u32 idx = 1; idx < 4; idx++) R[idx] = __shfl_sync (FULL_MASK, R[idx],  (thread & 0x1c) | ((thread + idx) & 0x03));
+  for (u32 idx = 1; idx < 4; idx++) R[idx] = hc__shfl_sync (shuffle_buf, FULL_MASK, R[idx],  (thread & 0x1c) | ((thread + idx) & 0x03));
 
   ARGON2_G(R[0], R[1], R[2], R[3]);
 
-  for (u32 idx = 1; idx < 4; idx++) R[idx] = __shfl_sync (FULL_MASK, R[idx], ((thread & 0x1c) | ((thread - idx) & 0x03)) ^ (idx << 2));
+  for (u32 idx = 1; idx < 4; idx++) R[idx] = hc__shfl_sync (shuffle_buf, FULL_MASK, R[idx], ((thread & 0x1c) | ((thread - idx) & 0x03)) ^ (idx << 2));
 
   transpose_permute_block (R, thread);
 
-  for (u32 idx = 1; idx < 4; idx++) R[idx] = __shfl_sync (FULL_MASK, R[idx], thread ^ (idx << 2));
+  for (u32 idx = 1; idx < 4; idx++) R[idx] = hc__shfl_sync (shuffle_buf, FULL_MASK, R[idx], thread ^ (idx << 2));
 
   ARGON2_G(R[0], R[1], R[2], R[3]);
 
-  for (u32 idx = 1; idx < 4; idx++) R[idx] = __shfl_sync (FULL_MASK, R[idx], argon2_shift (idx, thread));
+  for (u32 idx = 1; idx < 4; idx++) R[idx] = hc__shfl_sync (shuffle_buf, FULL_MASK, R[idx], argon2_shift (idx, thread));
 
   ARGON2_G(R[0], R[1], R[2], R[3]);
 
-  for (u32 idx = 1; idx < 4; idx++) R[idx] = __shfl_sync (FULL_MASK, R[idx], argon2_shift ((4 - idx), thread));
+  for (u32 idx = 1; idx < 4; idx++) R[idx] = hc__shfl_sync (shuffle_buf, FULL_MASK, R[idx], argon2_shift ((4 - idx), thread));
 }
 
-DECLSPEC void argon2_next_addresses (const argon2_options_t *options, const argon2_pos_t *pos, u32 *addresses, u32 start_index, u32 thread)
+DECLSPEC void argon2_next_addresses (const argon2_options_t *options, const argon2_pos_t *pos, u32 *addresses, u32 start_index, u32 thread, LOCAL_AS u64 *shuffle_buf)
 {
   u64 Z[4] = { 0 };
   u64 tmp[4];
@@ -231,13 +232,13 @@ DECLSPEC void argon2_next_addresses (const argon2_options_t *options, const argo
 
   tmp[0] = Z[0];
 
-  argon2_hash_block (Z, thread);
+  argon2_hash_block (Z, thread, shuffle_buf);
 
   Z[0]  ^= tmp[0];
 
   for (u32 idx = 0; idx < 4; idx++) tmp[idx] = Z[idx];
 
-  argon2_hash_block (Z, thread);
+  argon2_hash_block (Z, thread, shuffle_buf);
 
   for (u32 idx = 0; idx < 4; idx++) Z[idx]  ^= tmp[idx];
 
@@ -260,6 +261,8 @@ DECLSPEC u32 index_u32x4 (const u32 array[4], u32 index)
     case 3:
       return array[3];
   }
+
+  return -1;
 }
 
 DECLSPEC GLOBAL_AS argon2_block_t *argon2_get_current_block (GLOBAL_AS argon2_block_t *blocks, const argon2_options_t *options, u32 lane, u32 index_in_lane, u64 R[4], u32 thread)
@@ -267,7 +270,7 @@ DECLSPEC GLOBAL_AS argon2_block_t *argon2_get_current_block (GLOBAL_AS argon2_bl
   // Apply wrap-around to previous block index if the current block is the first block in the lane
   const u32 prev_in_lane = (index_in_lane == 0) ? (options->lane_length - 1) : (index_in_lane - 1);
 
-  argon2_block_t *prev_block = &blocks[(prev_in_lane * options->parallelism) + lane];
+  GLOBAL_AS argon2_block_t *prev_block = &blocks[(prev_in_lane * options->parallelism) + lane];
 
   for (u32 idx = 0; idx < 4; idx++) R[idx] = prev_block->values[(idx * THREADS_PER_LANE) + thread];
 
@@ -275,7 +278,7 @@ DECLSPEC GLOBAL_AS argon2_block_t *argon2_get_current_block (GLOBAL_AS argon2_bl
 }
 
 DECLSPEC void argon2_fill_subsegment (GLOBAL_AS argon2_block_t *blocks, const argon2_options_t *options, const argon2_pos_t *pos, bool indep_addr, const u32 addresses[4],
-                                      u32 start_index, u32 end_index, GLOBAL_AS argon2_block_t *cur_block, u64 R[4], u32 thread)
+                                      u32 start_index, u32 end_index, GLOBAL_AS argon2_block_t *cur_block, u64 R[4], u32 thread, LOCAL_AS u64 *shuffle_buf)
 {
   for (u32 index = start_index; index < end_index; index++, cur_block += options->parallelism)
   {
@@ -284,12 +287,12 @@ DECLSPEC void argon2_fill_subsegment (GLOBAL_AS argon2_block_t *blocks, const ar
     if (indep_addr)
     {
       ref_address = index_u32x4 (addresses, (index / THREADS_PER_LANE) % ARGON2_SYNC_POINTS);
-      ref_address = __shfl_sync (FULL_MASK, ref_address, index);
+      ref_address = hc__shfl_sync (shuffle_buf, FULL_MASK, ref_address, index);
     }
     else
     {
       ref_address = argon2_ref_address (options, pos, index, R[0]);
-      ref_address = __shfl_sync (FULL_MASK, ref_address, 0);
+      ref_address = hc__shfl_sync (shuffle_buf, FULL_MASK, ref_address, 0);
     }
 
     GLOBAL_AS const argon2_block_t *ref_block = &blocks[ref_address];
@@ -306,7 +309,7 @@ DECLSPEC void argon2_fill_subsegment (GLOBAL_AS argon2_block_t *blocks, const ar
 
     for (u32 idx = 0; idx < 4; idx++) tmp[idx] ^= R[idx];
 
-    argon2_hash_block (R, thread);
+    argon2_hash_block (R, thread, shuffle_buf);
 
     for (u32 idx = 0; idx < 4; idx++) R[idx]   ^= tmp[idx];
 
@@ -314,7 +317,7 @@ DECLSPEC void argon2_fill_subsegment (GLOBAL_AS argon2_block_t *blocks, const ar
   }
 }
 
-DECLSPEC void argon2_fill_segment (GLOBAL_AS argon2_block_t *blocks, const argon2_options_t *options, const argon2_pos_t *pos)
+DECLSPEC void argon2_fill_segment (GLOBAL_AS argon2_block_t *blocks, const argon2_options_t *options, const argon2_pos_t *pos, LOCAL_AS u64 *shuffle_buf)
 {
   const u32  thread       = get_local_id(0);
 
@@ -335,8 +338,8 @@ DECLSPEC void argon2_fill_segment (GLOBAL_AS argon2_block_t *blocks, const argon
 
       u32 addresses[4];
 
-      argon2_next_addresses (options, pos, addresses, block_index, thread);
-      argon2_fill_subsegment (blocks, options, pos, true, addresses, start_index, end_index, cur_block, R, thread);
+      argon2_next_addresses (options, pos, addresses, block_index, thread, shuffle_buf);
+      argon2_fill_subsegment (blocks, options, pos, true, addresses, start_index, end_index, cur_block, R, thread, shuffle_buf);
 
       cur_block += (end_index - start_index) * options->parallelism;
     }
@@ -345,7 +348,7 @@ DECLSPEC void argon2_fill_segment (GLOBAL_AS argon2_block_t *blocks, const argon
   {
     u32 addresses[4] = { 0 };
 
-    argon2_fill_subsegment (blocks, options, pos, false, addresses, skip_blocks, options->segment_length, cur_block, R, thread);
+    argon2_fill_subsegment (blocks, options, pos, false, addresses, skip_blocks, options->segment_length, cur_block, R, thread, shuffle_buf);
   }
 }
 

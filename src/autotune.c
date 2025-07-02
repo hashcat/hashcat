@@ -107,7 +107,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   const double target_msec = backend_ctx->target_msec;
 
-  const u32 kernel_accel_min =  (hashconfig->opts_type & OPTS_TYPE_MAXIMUM_ACCEL) ? device_param->kernel_accel_max : device_param->kernel_accel_min;
+  const u32 kernel_accel_min = device_param->kernel_accel_min;
   const u32 kernel_accel_max = device_param->kernel_accel_max;
 
   const u32 kernel_loops_min = device_param->kernel_loops_min;
