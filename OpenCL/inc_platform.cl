@@ -104,9 +104,17 @@ DECLSPEC u32 hc_atomic_or (GLOBAL_AS u32 *p, volatile const u32 val)
   return atomicOr (p, val);
 }
 
-DECLSPEC size_t get_group_id  (const u32 dimindx __attribute__((unused)))
+DECLSPEC size_t get_group_id (const u32 dimindx)
 {
-  return blockIdx.x;
+  switch (dimindx)
+  {
+    case 0:
+      return blockIdx.x;
+    case 1:
+      return blockIdx.y;
+    case 2:
+      return blockIdx.z;
+  }  
 }
 
 DECLSPEC size_t get_global_id  (const u32 dimindx __attribute__((unused)))
@@ -114,15 +122,30 @@ DECLSPEC size_t get_global_id  (const u32 dimindx __attribute__((unused)))
   return (blockIdx.x * blockDim.x) + threadIdx.x;
 }
 
-DECLSPEC size_t get_local_id (const u32 dimindx __attribute__((unused)))
+DECLSPEC size_t get_local_id (const u32 dimindx)
 {
-  return threadIdx.x;
+  switch (dimindx)
+  {
+    case 0:
+      return threadIdx.x;
+    case 1:
+      return threadIdx.y;
+    case 2:
+      return threadIdx.z;
+  }
 }
 
-DECLSPEC size_t get_local_size (const u32 dimindx __attribute__((unused)))
+DECLSPEC size_t get_local_size (const u32 dimindx)
 {
-  // verify
-  return blockDim.x;
+  switch (dimindx)
+  {
+    case 0:
+      return blockDim.x;
+    case 1:
+      return blockDim.y;
+    case 2:
+      return blockDim.z;
+  }  
 }
 
 DECLSPEC u32x rotl32 (const u32x a, const int n)

@@ -1947,6 +1947,19 @@ DECLSPEC u32 hc_lop_0x96_S (const u32 a, const u32 b, const u32 c)
 #endif
 
 /**
+ * arithmetic operations
+ */
+
+DECLSPEC u32 hc_umulhi (const u32 x, const u32 y)
+{
+#if defined IS_CUDA
+  return __umulhi (x, y);
+#else
+  return h32_from_64_S ((u64) x * (u64) y);
+#endif
+}
+
+/**
  * pure scalar functions
  */
 
@@ -41963,6 +41976,76 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_S (PRIVATE_AS u32 *w0, PRIVATE_AS u
       w4[1] = hc_byte_perm_S (w0[1], w0[2], selector);
       w4[0] = hc_byte_perm_S (w0[0], w0[1], selector);
       w3[3] = hc_byte_perm_S (    0, w0[0], selector);
+      w3[2] = 0;
+      w3[1] = 0;
+      w3[0] = 0;
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 16:
+      w7[3] = hc_byte_perm_S (w3[2], w3[3], selector);
+      w7[2] = hc_byte_perm_S (w3[1], w3[2], selector);
+      w7[1] = hc_byte_perm_S (w3[0], w3[1], selector);
+      w7[0] = hc_byte_perm_S (w2[3], w3[0], selector);
+      w6[3] = hc_byte_perm_S (w2[2], w2[3], selector);
+      w6[2] = hc_byte_perm_S (w2[1], w2[2], selector);
+      w6[1] = hc_byte_perm_S (w2[0], w2[1], selector);
+      w6[0] = hc_byte_perm_S (w1[3], w2[0], selector);
+      w5[3] = hc_byte_perm_S (w1[2], w1[3], selector);
+      w5[2] = hc_byte_perm_S (w1[1], w1[2], selector);
+      w5[1] = hc_byte_perm_S (w1[0], w1[1], selector);
+      w5[0] = hc_byte_perm_S (w0[3], w1[0], selector);
+      w4[3] = hc_byte_perm_S (w0[2], w0[3], selector);
+      w4[2] = hc_byte_perm_S (w0[1], w0[2], selector);
+      w4[1] = hc_byte_perm_S (w0[0], w0[1], selector);
+      w4[0] = hc_byte_perm_S (    0, w0[0], selector);
+      w3[3] = 0;
+      w3[2] = 0;
+      w3[1] = 0;
+      w3[0] = 0;
+      w2[3] = 0;
+      w2[2] = 0;
+      w2[1] = 0;
+      w2[0] = 0;
+      w1[3] = 0;
+      w1[2] = 0;
+      w1[1] = 0;
+      w1[0] = 0;
+      w0[3] = 0;
+      w0[2] = 0;
+      w0[1] = 0;
+      w0[0] = 0;
+      break;
+
+    case 17:
+      w7[3] = hc_byte_perm_S (w3[1], w3[2], selector);
+      w7[2] = hc_byte_perm_S (w3[0], w3[1], selector);
+      w7[1] = hc_byte_perm_S (w2[3], w3[0], selector);
+      w7[0] = hc_byte_perm_S (w2[2], w2[3], selector);
+      w6[3] = hc_byte_perm_S (w2[1], w2[2], selector);
+      w6[2] = hc_byte_perm_S (w2[0], w2[1], selector);
+      w6[1] = hc_byte_perm_S (w1[3], w2[0], selector);
+      w6[0] = hc_byte_perm_S (w1[2], w1[3], selector);
+      w5[3] = hc_byte_perm_S (w1[1], w1[2], selector);
+      w5[2] = hc_byte_perm_S (w1[0], w1[1], selector);
+      w5[1] = hc_byte_perm_S (w0[3], w1[0], selector);
+      w5[0] = hc_byte_perm_S (w0[2], w0[3], selector);
+      w4[3] = hc_byte_perm_S (w0[1], w0[2], selector);
+      w4[2] = hc_byte_perm_S (w0[0], w0[1], selector);
+      w4[1] = hc_byte_perm_S (    0, w0[0], selector);
+      w4[0] = 0;
+      w3[3] = 0;
       w3[2] = 0;
       w3[1] = 0;
       w3[0] = 0;
