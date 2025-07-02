@@ -140,6 +140,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -4, --custom-charset4          | CS   | User-defined charset ?4                              |",
   "     --identify                 |      | Shows all supported algorithms for input hashes      | --identify my.hash",
   " -i, --increment                |      | Enable mask increment mode                           |",
+  " -ii,--increment-inverse        |      | Increment from right-to-left                         |",
   "     --increment-min            | Num  | Start mask incrementing at X                         | --increment-min=4",
   "     --increment-max            | Num  | Stop mask incrementing at X                          | --increment-max=8",
   " -S, --slow-candidates          |      | Enable slower (but advanced) candidate generators    |",

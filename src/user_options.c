@@ -86,6 +86,7 @@ static const struct option long_options[] =
   {"increment-max",             required_argument, NULL, IDX_INCREMENT_MAX},
   {"increment-min",             required_argument, NULL, IDX_INCREMENT_MIN},
   {"increment",                 no_argument,       NULL, IDX_INCREMENT},
+  {"increment-inverse",         no_argument,       NULL, IDX_INCREMENT_INVERSE},
   {"induction-dir",             required_argument, NULL, IDX_INDUCTION_DIR},
   {"keep-guessing",             no_argument,       NULL, IDX_KEEP_GUESSING},
   {"kernel-accel",              required_argument, NULL, IDX_KERNEL_ACCEL},
@@ -557,7 +558,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BITMAP_MIN:                user_options->bitmap_min                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BITMAP_MAX:                user_options->bitmap_max                = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_HOOK_THREADS:              user_options->hook_threads              = hc_strtoul (optarg, NULL, 10);   break;
-      case IDX_INCREMENT:                 user_options->increment                 = true;                            break;
+      case IDX_INCREMENT:                 increment_parse(hashcat_ctx);                                              break;
+      case IDX_INCREMENT_INVERSE:         user_options->increment                 = INCREMENT_INVERSED;              break;
       case IDX_INCREMENT_MIN:             user_options->increment_min             = hc_strtoul (optarg, NULL, 10);
                                           user_options->increment_min_chgd        = true;                            break;
       case IDX_INCREMENT_MAX:             user_options->increment_max             = hc_strtoul (optarg, NULL, 10);
@@ -920,28 +922,28 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->increment == true) && (user_options->progress_only == true))
+  if ((user_options->increment != INCREMENT_NONE) && (user_options->progress_only == true))
   {
     event_log_error (hashcat_ctx, "Increment is not allowed in combination with --progress-only.");
 
     return -1;
   }
 
-  if ((user_options->increment == true) && (user_options->speed_only == true))
+  if ((user_options->increment != INCREMENT_NONE) && (user_options->speed_only == true))
   {
     event_log_error (hashcat_ctx, "Increment is not allowed in combination with --speed-only.");
 
     return -1;
   }
 
-  if ((user_options->increment == true) && (user_options->attack_mode == ATTACK_MODE_STRAIGHT))
+  if ((user_options->increment != INCREMENT_NONE) && (user_options->attack_mode == ATTACK_MODE_STRAIGHT))
   {
     event_log_error (hashcat_ctx, "Increment is not allowed in attack mode 0 (straight).");
 
     return -1;
   }
 
-  if ((user_options->increment == true) && (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  if ((user_options->increment != INCREMENT_NONE) && (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     event_log_error (hashcat_ctx, "Increment is not allowed in attack mode 9 (association).");
 
@@ -955,14 +957,14 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if ((user_options->increment == false) && (user_options->increment_min_chgd == true))
+  if ((user_options->increment == INCREMENT_NONE) && (user_options->increment_min_chgd == true))
   {
     event_log_error (hashcat_ctx, "Increment-min is only supported when combined with -i/--increment.");
 
     return -1;
   }
 
-  if ((user_options->increment == false) && (user_options->increment_max_chgd == true))
+  if ((user_options->increment == INCREMENT_NONE) && (user_options->increment_max_chgd == true))
   {
     event_log_error (hashcat_ctx, "Increment-max is only supported combined with -i/--increment.");
 
@@ -1366,9 +1368,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->increment == true)
+    if (user_options->increment == INCREMENT_NORMAL)
     {
       event_log_error (hashcat_ctx, "Can't change --increment (-i) in benchmark mode.");
+
+      return -1;
+    }
+
+    if (user_options->increment == INCREMENT_INVERSED)
+    {
+      event_log_error (hashcat_ctx, "Can't change --increment-inverse in benchmark mode.");
 
       return -1;
     }
@@ -1965,7 +1974,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->attack_mode         = ATTACK_MODE_BF;
     user_options->hwmon_temp_abort    = 0;
-    user_options->increment           = false;
+    user_options->increment           = INCREMENT_NONE;
     user_options->left                = false;
     user_options->logfile             = false;
     user_options->spin_damp           = 0;
@@ -2125,7 +2134,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
         user_options->custom_charset_2 = DEF_MASK_CS_2;
         user_options->custom_charset_3 = DEF_MASK_CS_3;
 
-        user_options->increment = true;
+        user_options->increment = INCREMENT_NORMAL;
       }
     }
     else if (user_options->stdout_flag == true)
@@ -2136,7 +2145,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
         user_options->custom_charset_2 = DEF_MASK_CS_2;
         user_options->custom_charset_3 = DEF_MASK_CS_3;
 
-        user_options->increment = true;
+        user_options->increment = INCREMENT_NORMAL;
       }
     }
     else
@@ -2147,7 +2156,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
         user_options->custom_charset_2 = DEF_MASK_CS_2;
         user_options->custom_charset_3 = DEF_MASK_CS_3;
 
-        user_options->increment = true;
+        user_options->increment = INCREMENT_NORMAL;
       }
     }
   }
@@ -3300,6 +3309,21 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   */
 
   return 0;
+}
+
+void increment_parse (hashcat_ctx_t *hashcat_ctx)
+{
+  user_options_t *user_options = hashcat_ctx->user_options;
+  
+  // Set increment inverse when -ii
+  if (user_options->increment == INCREMENT_NORMAL)
+  {
+    user_options->increment = INCREMENT_INVERSED;
+  }
+  else
+  {
+    user_options->increment = INCREMENT_NORMAL;
+  }
 }
 
 void user_options_logger (hashcat_ctx_t *hashcat_ctx)

@@ -1072,12 +1072,49 @@ static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
   return 0;
 }
 
+// ?l?u?d -> ?d?u?l
+static char* reverseMask (const char *mask, const char *prepend)
+{
+  u32 maskLength = strlen (mask);
+  u32 prependLength = strlen (prepend);
+  
+  char *tmp_buf = (char *) hcmalloc (256);
+
+  u32 i = 0;
+
+  // Add prepend section to tmp_buf, avoiding reversal
+  if (prependLength != 0)
+  {
+    for (i = 0; i < prependLength ; i++)
+    {
+      tmp_buf[i] = prepend[i];
+    }
+    tmp_buf[i++] = ',';
+  }
+  
+  for (u32 j = maskLength - 1; i <= maskLength - 1 ; i++)
+  {
+    if (mask[i] == '?' && mask[i + 1] != '\0')
+    {
+        tmp_buf[j--] = mask[i + 1];
+        tmp_buf[j--] = mask[i];
+        i++;
+    }
+    else
+    {
+        tmp_buf[j--] = mask[i];
+    }
+  }
+  
+  return tmp_buf;
+}
+
 static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char *prepend)
 {
   hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->increment == true)
+  if (user_options->increment != INCREMENT_NONE)
   {
     const u32 mask_length = mp_get_length (mask, hashconfig->opts_type);
 
@@ -1108,11 +1145,32 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
         mask_truncated_next += snprintf (mask_truncated, 256, "%s,", prepend);
       }
 
-      if (mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len, mask_truncated_next) == -1)
+      if (user_options->increment == INCREMENT_INVERSED)
       {
-        hcfree (mask_truncated);
+        if (mp_get_truncated_mask (hashcat_ctx, reverseMask (mask, ""), strlen (mask), increment_len, mask_truncated_next) == -1)
+        {
+          hcfree (mask_truncated);
 
-        break;
+          break;
+        }
+
+        if (prepend)
+        {
+          mask_truncated = reverseMask (mask_truncated, prepend);
+        }
+        else
+        {
+         mask_truncated = reverseMask (mask_truncated, "");
+        }
+      }
+      else
+      {
+        if (mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len, mask_truncated_next) == -1)
+        {
+          hcfree (mask_truncated);
+
+          break;
+        }
       }
 
       const int rc = mask_append_final (hashcat_ctx, mask_truncated);
