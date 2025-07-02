@@ -1,3 +1,4 @@
+
 /**
  * Author......: Netherlands Forensic Institute
  * License.....: MIT
@@ -63,6 +64,9 @@ KERNEL_FQ KERNEL_FA void m34000_loop (KERN_ATTR_TMPS_ESALT (argon2_tmp_t, argon2
 
   if (bid >= GID_CNT) return;
 
+  const u32 argon2_thread = get_local_id (0);
+  const u32 argon2_lsz = get_local_size (0);
+
   LOCAL_VK u64 shuffle_bufs[ARGON2_PARALLELISM][32];
   LOCAL_AS u64 *shuffle_buf = shuffle_bufs[lid];
 
@@ -94,7 +98,7 @@ KERNEL_FQ KERNEL_FA void m34000_loop (KERN_ATTR_TMPS_ESALT (argon2_tmp_t, argon2
   {
     for (pos.lane = lid; pos.lane < options.parallelism; pos.lane += lsz)
     {
-      argon2_fill_segment (argon2_extra->blocks, &options, &pos, shuffle_buf);
+      argon2_fill_segment (argon2_extra->blocks, &options, &pos, shuffle_buf, argon2_thread, argon2_lsz);
     }
 
     SYNC_THREADS ();
