@@ -284,6 +284,10 @@ DECLSPEC u32  hc_bfe_S          (const u32  a, const u32  b, const u32  c);
 DECLSPEC u32x hc_lop_0x96       (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32  hc_lop_0x96_S     (const u32  a, const u32  b, const u32  c);
 
+// arithmetic operations
+
+DECLSPEC u32  hc_umulhi (const u32 x, const u32 y);
+
 // legacy common code
 
 DECLSPEC int ffz (const u32 v);
