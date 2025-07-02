@@ -2292,13 +2292,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
   {
     event_log_info (hashcat_ctx,
-      "Kernel.Feature...: Optimized Kernel (max length: %s)",
+      "Kernel.Feature...: Optimized Kernel (max length: %u)",
       hashconfig->pw_max);
   }
   else
   {
     event_log_info (hashcat_ctx,
-      "Kernel.Feature...: Pure Kernel (max length: %s)",
+      "Kernel.Feature...: Pure Kernel (max length: %u)",
       hashconfig->pw_max);
   }
 
