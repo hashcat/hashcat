@@ -96,6 +96,16 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
+      if (rc1 == -2)
+      {
+        event_log_error (hashcat_ctx, "Error reading wordlist: %s", dictfile1);
+
+        hc_fclose (&fp1);
+        hc_fclose (&fp2);
+
+        return -1;
+      }
+
       if (words1_cnt == 0)
       {
         event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
@@ -118,6 +128,13 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       if (rc2 == -1)
       {
         event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile2);
+
+        return -1;
+      }
+
+      if (rc2 == -2)
+      {
+        event_log_error (hashcat_ctx, "Error reading wordlist: %s", dictfile2);
 
         return -1;
       }
@@ -199,6 +216,16 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
+        if (rc1 == -2)
+        {
+          event_log_error (hashcat_ctx, "Error reading wordlist: %s", dictfile1);
+
+          hc_fclose (&fp1);
+          hc_fclose (&fp2);
+
+          return -1;
+        }
+
         if (words1_cnt == 0)
         {
           event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
@@ -221,6 +248,13 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         if (rc2 == -1)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile2);
+
+          return -1;
+        }
+
+        if (rc2 == -2)
+        {
+          event_log_error (hashcat_ctx, "Error reading wordlist: %s", dictfile2);
 
           return -1;
         }
@@ -330,6 +364,16 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
           return -1;
         }
 
+        if (rc1 == -2)
+        {
+          event_log_error (hashcat_ctx, "Error reading wordlist: %s", dictfile1);
+
+          hc_fclose (&fp1);
+          hc_fclose (&fp2);
+
+          return -1;
+        }
+
         if (words1_cnt == 0)
         {
           event_log_error (hashcat_ctx, "%s: empty file.", dictfile1);
@@ -352,6 +396,13 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         if (rc2 == -1)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile2);
+
+          return -1;
+        }
+
+        if (rc2 == -2)
+        {
+          event_log_error (hashcat_ctx, "Error reading wordlist: %s", dictfile2);
 
           return -1;
         }
@@ -408,6 +459,13 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         if (rc == -1)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile);
+
+          return -1;
+        }
+
+        if (rc == -2)
+        {
+          event_log_error (hashcat_ctx, "Error reading wordlist: %s", dictfile);
 
           return -1;
         }
