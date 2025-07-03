@@ -162,6 +162,7 @@
 - Help: show supported hash-modes only with -hh
 - Makefile: prevent make failure with Apple Silicon in case of partial rebuild
 - Rules: Rename best64.rule to best66.rule and remove the unknown section from it
+- Tools: Added new dogechain2hashcat.py extraction script.
 
 * changes v6.2.5 -> v6.2.6
 
