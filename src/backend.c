@@ -2860,7 +2860,10 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (kernel_threads == 0) kernel_threads = 1;
 
-    num_elements = round_up_multiple_32 (num_elements, kernel_threads);
+    if ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) == 0)
+    {
+      num_elements = round_up_multiple_32 (num_elements, kernel_threads);
+    }
 
     if (kern_run == KERN_RUN_1)
     {
@@ -2898,10 +2901,37 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       }
     }
 
-    num_elements = round_up_multiple_32 (num_elements, kernel_threads);
+    if ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) == 0)
+    {
+      num_elements = round_up_multiple_32 (num_elements, kernel_threads);
+    }
+    else
+    {
+      num_elements = num_elements * kernel_threads;
+    }
 
-    const size_t global_work_size[3] = { num_elements,   1, 1 };
-    const size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+    size_t global_work_size[3] = { num_elements,   1, 1 };
+    size_t local_work_size[3]  = { kernel_threads, 1, 1 };
+
+    cl_uint work_dim = 1;
+
+    if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
+    {
+      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      work_dim = 2;
+    }
+
+    if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
+    {
+      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      work_dim = 2;
+    }
+
+    if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
+    {
+      global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
+      work_dim = 2;
+    }
 
     double ms = 0;
 
@@ -2997,7 +3027,10 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     }
     */
 
-    num_elements = round_up_multiple_64 (num_elements, kernel_threads);
+    if ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) == 0)
+    {
+      num_elements = round_up_multiple_64 (num_elements, kernel_threads);
+    }
 
     cl_event opencl_event;
 
