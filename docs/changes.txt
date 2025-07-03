@@ -148,19 +148,23 @@
 - Status Code: Add specific return code for self-test fail (-11)
 - Scrypt: Increase buffer sizes in module for hash mode 8900 to allow longer scrypt digests
 - Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
+- Unit tests: Updated install_modules.sh with Crypt::Argon2
 - User Options: Added error message when mixing --username and --show to warn users of exponential delay
 - MetaMask: update extraction tool to support MetaMask Mobile wallets
 - SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
 - Metal Backend: added workaround to set the true Processor value in Metal devices on Apple Intel
+- Metal Backend: added support to 2D/3D Compute
 - Metal Backend: allow use of devices with Metal if runtime version is >= 200
 - Metal Backend: disable Metal devices only if at least one OpenCL device is active
+- Metal Backend: improved compute workloads calculation
 - Modules: Check UnpackSize to raise false positive with hc_decompress_rar
 - User Options: added --metal-compiler-runtime option
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
 - Hardware Monitor: Splitting hwmon_ctx_init function into smaller library-specific functions
 - Help: show supported hash-modes only with -hh
 - Makefile: prevent make failure with Apple Silicon in case of partial rebuild
+- Makefile: updated MACOSX_DEPLOYMENT_TARGET to 15.0
 - Rules: Rename best64.rule to best66.rule and remove the unknown section from it
 
 * changes v6.2.5 -> v6.2.6

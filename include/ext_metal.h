@@ -111,7 +111,7 @@ int  hc_mtlCreateLibraryWithFile    (void *hashcat_ctx, mtl_device_id metal_devi
 int  hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, mtl_pipeline metal_pipeline, mtl_command_queue metal_command_queue, mtl_command_buffer *metal_command_buffer, mtl_command_encoder *metal_command_encoder);
 int  hc_mtlSetCommandEncoderArg     (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, mtl_mem buf, void *host_data, size_t host_data_size);
 
-int  hc_mtlEncodeComputeCommand     (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const size_t global_work_size[3], const size_t local_work_size[3], double *ms);
+int  hc_mtlEncodeComputeCommand     (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms);
 
 #endif // __APPLE__
 

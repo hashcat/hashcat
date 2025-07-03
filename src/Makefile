@@ -358,7 +358,7 @@ LFLAGS_NATIVE           += -lpthread
 endif # NetBSD
 
 ifeq ($(UNAME),Darwin)
-export MACOSX_DEPLOYMENT_TARGET=10.15
+export MACOSX_DEPLOYMENT_TARGET=15.0
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 
