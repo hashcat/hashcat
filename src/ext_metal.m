@@ -1314,10 +1314,10 @@ int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_com
   return 0;
 }
 
-int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, size_t global_work_size, size_t local_work_size, double *ms)
+int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const size_t global_work_size[3], const size_t local_work_size[3], double *ms)
 {
-  MTLSize numThreadgroups = {local_work_size, 1, 1};
-  MTLSize threadsGroup = {global_work_size, 1, 1};
+  MTLSize numThreadgroups = {local_work_size[0], local_work_size[1], local_work_size[2]};
+  MTLSize threadsGroup = {global_work_size[0], global_work_size[1], global_work_size[2]};
 
   if (metal_command_encoder == nil)
   {

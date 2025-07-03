@@ -2206,7 +2206,7 @@ int run_metal_kernel_atinit (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 
   double ms = 0;
 
-  if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms) == -1) return -1;
+  if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size, local_work_size, &ms) == -1) return -1;
 
   return 0;
 }
@@ -2234,7 +2234,7 @@ int run_metal_kernel_utf8toutf16le (hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   double ms = 0;
 
-  if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms) == -1) return -1;
+  if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size, local_work_size, &ms) == -1) return -1;
 
   return 0;
 }
@@ -2265,7 +2265,7 @@ int run_metal_kernel_bzero (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devic
 
     double ms = 0;
 
-    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size, local_work_size, &ms) == -1) return -1;
   }
 
   if (num16m)
@@ -2913,31 +2913,26 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     size_t global_work_size[3] = { num_elements,   1, 1 };
     size_t local_work_size[3]  = { kernel_threads, 1, 1 };
 
-    cl_uint work_dim = 1;
-
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_INIT) && (kern_run == KERN_RUN_1))
     {
       global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
-      work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_LOOP) && (kern_run == KERN_RUN_2))
     {
       global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
-      work_dim = 2;
     }
 
     if ((hashconfig->opti_type & OPTI_TYPE_SLOW_HASH_DIMY_COMP) && (kern_run == KERN_RUN_3))
     {
       global_work_size[1] = local_work_size[1] = hashcat_ctx->hashes->salts_buf->salt_dimy;
-      work_dim = 2;
     }
 
     double ms = 0;
 
     if (is_autotune == true)
     {
-      hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms);
+      hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size, local_work_size, &ms);
 
       // hc_mtlEncodeComputeCommand_pre() must be called before every hc_mtlEncodeComputeCommand()
       if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
@@ -2956,7 +2951,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       }
     }
 
-    const int rc_cc = hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms);
+    const int rc_cc = hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size, local_work_size, &ms);
 
     if (rc_cc != -1)
     {
@@ -3349,7 +3344,7 @@ int run_kernel_mp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     double ms = 0;
 
-    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size, local_work_size, &ms) == -1) return -1;
   }
   #endif // __APPLE__
 
@@ -3440,7 +3435,7 @@ int run_kernel_tm (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
     double ms = 0;
 
-    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size, local_work_size, &ms) == -1) return -1;
   }
   #endif // __APPLE__
 
@@ -3524,7 +3519,7 @@ int run_kernel_amp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
     double ms = 0;
 
-    const int rc_cc = hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms);
+    const int rc_cc = hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size, local_work_size, &ms);
 
     // release tmp_buf
 
@@ -3604,7 +3599,7 @@ int run_kernel_decompress (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     double ms = 0;
 
-    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size[0], local_work_size[0], &ms) == -1) return -1;
+    if (hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, global_work_size, local_work_size, &ms) == -1) return -1;
   }
   #endif // __APPLE__
 
