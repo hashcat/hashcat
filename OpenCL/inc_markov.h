@@ -19,7 +19,7 @@
   CONSTANT_AS const u32  &bits14,         \
   CONSTANT_AS const u32  &bits15,         \
   CONSTANT_AS const u64  &gid_max,        \
-                    uint  hc_gid [[ thread_position_in_grid ]]
+                    uint3 hc_gid [[ thread_position_in_grid ]]
 
 #define KERN_ATTR_R_MARKOV                \
   GLOBAL_AS         bf_t *pws_buf_r,      \
@@ -31,7 +31,7 @@
   CONSTANT_AS const u32  &bits14,         \
   CONSTANT_AS const u32  &bits15,         \
   CONSTANT_AS const u64  &gid_max,        \
-                    uint  hc_gid [[ thread_position_in_grid ]]
+                    uint3 hc_gid [[ thread_position_in_grid ]]
 
 #define KERN_ATTR_C_MARKOV                \
   GLOBAL_AS         pw_t *pws_buf,        \
@@ -43,7 +43,7 @@
   CONSTANT_AS const u32  &bits14,         \
   CONSTANT_AS const u32  &bits15,         \
   CONSTANT_AS const u64  &gid_max,        \
-                    uint  hc_gid [[ thread_position_in_grid ]]
+                    uint3 hc_gid [[ thread_position_in_grid ]]
 
 #else // CUDA, HIP, OpenCL
 

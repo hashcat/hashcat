@@ -2386,13 +2386,13 @@ int hashes_init_stage5 (hashcat_ctx_t *hashcat_ctx)
 
         char *st_hash = strdup (tmp_buf);
 
-        event_log_error (hashcat_ctx, "ERROR: Incompatible self-test SCRYPT configuration detected.");
+        event_log_error (hashcat_ctx, "ERROR: Incompatible self-test configuration detected.");
 
         event_log_warning (hashcat_ctx, "The specified target hash:");
         event_log_warning (hashcat_ctx, "  -> %s", user_hash);
-        event_log_warning (hashcat_ctx, "does not match the SCRYPT configuration of the self-test hash:");
+        event_log_warning (hashcat_ctx, "does not match the configuration of the self-test hash:");
         event_log_warning (hashcat_ctx, "  -> %s", st_hash);
-        event_log_warning (hashcat_ctx, "The JIT-compiled kernel for this SCRYPT configuration may be incompatible.");
+        event_log_warning (hashcat_ctx, "The JIT-compiled kernel for this configuration may be incompatible.");
         event_log_warning (hashcat_ctx, "You must disable the self-test functionality or recompile the plugin with a matching self-test hash.");
         event_log_warning (hashcat_ctx, "To disable the self-test, use the --self-test-disable option.");
         event_log_warning (hashcat_ctx, NULL);
@@ -2414,11 +2414,11 @@ int hashes_init_stage5 (hashcat_ctx_t *hashcat_ctx)
 
         char *user_hash2 = strdup (tmp_buf);
 
-        event_log_error (hashcat_ctx, "ERROR: Mixed SCRYPT configuration detected.");
+        event_log_error (hashcat_ctx, "ERROR: Mixed configuration detected.");
 
         event_log_warning (hashcat_ctx, "The specified target hash:");
         event_log_warning (hashcat_ctx, "  -> %s", user_hash);
-        event_log_warning (hashcat_ctx, "does not match the SCRYPT configuration of another target hash:");
+        event_log_warning (hashcat_ctx, "does not match the configuration of another target hash:");
         event_log_warning (hashcat_ctx, "  -> %s", user_hash2);
         event_log_warning (hashcat_ctx, "Please run these hashes in separate cracking sessions.");
         event_log_warning (hashcat_ctx, NULL);
