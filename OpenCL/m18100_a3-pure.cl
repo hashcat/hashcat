@@ -55,7 +55,7 @@ DECLSPEC void _totp_calculate (PRIVATE_AS u32x *code, PRIVATE_AS const u32x *w, 
   *code = otp_code % 1000000;
 }
 
-KERNEL_FQ void m18100_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier
@@ -171,7 +171,7 @@ KERNEL_FQ void m18100_mxx (KERN_ATTR_VECTOR ())
   }
 }
 
-KERNEL_FQ void m18100_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * modifier

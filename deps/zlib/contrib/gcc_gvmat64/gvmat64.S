@@ -177,7 +177,7 @@ printf("#define dsNiceMatch     %u\n",(int)(((char*)&(s->nice_match))-((char*)s)
 
 ;
 ; gcc on macosx-linux:
-; see http://www.x86-64.org/documentation/abi-0.99.pdf
+; see https://refspecs.linuxbase.org/elf/x86_64-abi-0.99.pdf
 ; param 1 in rdi, param 2 in rsi
 ; rbx, rsp, rbp, r12 to r15 must be preserved
 

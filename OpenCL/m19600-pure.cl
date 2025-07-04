@@ -115,7 +115,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m19600_init (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
+KERNEL_FQ KERNEL_FA void m19600_init (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
 {
   /**
    * base
@@ -193,7 +193,7 @@ KERNEL_FQ void m19600_init (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t
   }
 }
 
-KERNEL_FQ void m19600_loop (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
+KERNEL_FQ KERNEL_FA void m19600_loop (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
 {
    /**
    * base
@@ -281,7 +281,7 @@ KERNEL_FQ void m19600_loop (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t
   }
 }
 
-KERNEL_FQ void m19600_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
+KERNEL_FQ KERNEL_FA void m19600_comp (KERN_ATTR_TMPS_ESALT (krb5tgs_17_tmp_t, krb5tgs_17_t))
 {
   /**
    * base

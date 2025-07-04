@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
 #endif
 
-KERNEL_FQ void m27200_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m27200_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -66,7 +66,7 @@ KERNEL_FQ void m27200_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m27200_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m27200_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

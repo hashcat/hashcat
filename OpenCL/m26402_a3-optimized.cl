@@ -140,7 +140,7 @@ DECLSPEC void m26402s (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a
   }
 }
 
-KERNEL_FQ void m26402_m04 (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m26402_m04 (KERN_ATTR_VECTOR ())
 {
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
@@ -231,7 +231,7 @@ KERNEL_FQ void m26402_m04 (KERN_ATTR_VECTOR ())
   m26402m (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void m26402_m08 (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m26402_m08 (KERN_ATTR_VECTOR ())
 {
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
@@ -322,11 +322,11 @@ KERNEL_FQ void m26402_m08 (KERN_ATTR_VECTOR ())
   m26402m (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void m26402_m16 (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m26402_m16 (KERN_ATTR_VECTOR ())
 {
 }
 
-KERNEL_FQ void m26402_s04 (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m26402_s04 (KERN_ATTR_VECTOR ())
 {
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
@@ -417,7 +417,7 @@ KERNEL_FQ void m26402_s04 (KERN_ATTR_VECTOR ())
   m26402s (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void m26402_s08 (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m26402_s08 (KERN_ATTR_VECTOR ())
 {
   const u64 lid = get_local_id (0);
   const u64 gid = get_global_id (0);
@@ -508,6 +508,6 @@ KERNEL_FQ void m26402_s08 (KERN_ATTR_VECTOR ())
   m26402s (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void m26402_s16 (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m26402_s16 (KERN_ATTR_VECTOR ())
 {
 }

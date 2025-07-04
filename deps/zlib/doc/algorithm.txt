@@ -77,7 +77,7 @@ table took no time (and if you had infinite memory), then there would only
 be a first level table to cover all the way to the longest code.  However,
 building the table ends up taking a lot longer for more bits since short
 codes are replicated many times in such a table.  What inflate() does is
-simply to make the number of bits in the first table a variable, and  then
+simply to make the number of bits in the first table a variable, and then
 to set that variable for the maximum speed.
 
 For inflate, which has 286 possible codes for the literal/length tree, the size

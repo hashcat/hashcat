@@ -124,9 +124,10 @@
 
 #if defined IS_METAL
 #define KERN_ATTR_MAIN_PARAMS                       \
-  uint hc_gid [[ thread_position_in_grid ]],        \
-  uint hc_lid [[ thread_position_in_threadgroup ]], \
-  uint hc_lsz [[ threads_per_threadgroup ]]
+  uint3 hc_gid [[ thread_position_in_grid ]],        \
+  uint3 hc_lid [[ thread_position_in_threadgroup ]], \
+  uint3 hc_lsz [[ threads_per_threadgroup ]],        \
+  uint3 hc_bid [[ threadgroup_position_in_grid ]]
 #endif // IS_METAL
 
 /*
@@ -283,6 +284,10 @@ DECLSPEC u32  hc_bfe_S          (const u32  a, const u32  b, const u32  c);
 DECLSPEC u32x hc_lop_0x96       (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32  hc_lop_0x96_S     (const u32  a, const u32  b, const u32  c);
 
+// arithmetic operations
+
+DECLSPEC u32  hc_umulhi (const u32 x, const u32 y);
+
 // legacy common code
 
 DECLSPEC int ffz (const u32 v);
@@ -302,6 +307,7 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 DECLSPEC int pkcs_padding_bs8 (PRIVATE_AS const u32 *data_buf, const int data_len);
 DECLSPEC int pkcs_padding_bs16 (PRIVATE_AS const u32 *data_buf, const int data_len);
 DECLSPEC int asn1_detect (PRIVATE_AS const u32 *buf, const int len);
+DECLSPEC int asn1_check_int_tag (PRIVATE_AS const u32 *buf, const int len);
 DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest);
 DECLSPEC u32 check (PRIVATE_AS const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2);
 DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result, const u32 salt_pos, const u32 digests_cnt, const u32 digest_pos, const u32 hash_pos, const u64 gid, const u32 il_pos, const u32 extra1, const u32 extra2);

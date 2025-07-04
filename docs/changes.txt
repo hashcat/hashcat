@@ -8,6 +8,7 @@
 - Added hash-mode: Adobe AEM (SSPR, SHA-256 with Salt)
 - Added hash-mode: Adobe AEM (SSPR, SHA-512 with Salt)
 - Added hash-mode: Anope IRC Services (enc_sha256)
+- Added hash-mode: BestCrypt v4 Volume Encryption
 - Added hash-mode: Bisq .wallet (scrypt)
 - Added hash-mode: Bitcoin raw private key (P2PKH)
 - Added hash-mode: Bitcoin raw private key (P2SH(P2WPKH))
@@ -26,10 +27,13 @@
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-256($pass)))
 - Added hash-mode: GPG (AES-128/AES-256 (SHA-512($pass)))
 - Added hash-mode: GPG (CAST5 (SHA-1($pass)))
+- Added hash-mode: HMAC-RIPEMD320 (key = $pass)
+- Added hash-mode: HMAC-RIPEMD320 (key = $salt)
 - Added hash-mode: Kerberos 5, etype 17, AS-REP
 - Added hash-mode: Kerberos 5, etype 18, AS-REP
 - Added hash-mode: MetaMask Mobile Wallet
 - Added hash-mode: MetaMask Wallet (short hash, plaintext check)
+- Added hash-mode: Microsoft Online Account (PBKDF2-HMAC-SHA256 + AES256)
 - Added hash-mode: NetIQ SSPR (MD5)
 - Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA1)
 - Added hash-mode: NetIQ SSPR (PBKDF2WithHmacSHA256)
@@ -38,6 +42,10 @@
 - Added hash-mode: NetIQ SSPR (SHA-1 with Salt)
 - Added hash-mode: NetIQ SSPR (SHA-256 with Salt)
 - Added hash-mode: NetIQ SSPR (SHA-512 with Salt)
+- Added hash-mode: RIPEMD-320
+- Added hash-mode: RC4 104-bit DropN
+- Added hash-mode: RC4 40-bit DropN
+- Added hash-mode: RC4 72-bit DropN
 - Added hash-mode: RSA Security Analytics / NetWitness (sha256)
 - Added hash-mode: SecureCRT MasterPassphrase v2
 - Added hash-mode: Veeam VB
@@ -61,6 +69,8 @@
 ##
 
 - Added new feature (-Y) that creates N virtual instances for each device in your system at the cost of N times the device memory consumption
+- Added options --benchmark-min and --benchmark-max to set a hash-mode range to be used during the benchmark
+- Added option --backend-devices-keepfree to configure X percentage of device memory available to keep free
 
 ##
 ## Performance
@@ -82,12 +92,15 @@
 - Fixed bug in grep out-of-memory workaround on Unit Test
 - Fixed bug in input_tokenizer when TOKEN_ATTR_FIXED_LENGTH is used and refactor modules
 - Fixed bug in --stdout that caused certain rules to malfunction
+- Fixed bug in Hardware Monitor: prevent disable if ADL fail
+- Fixed race condition in selftest_init on OpenCL with non-blocking write
 - Fixed build failed for 10700 optimized with Apple Metal
 - Fixed build failed for 13772 and 13773 with Apple Metal
 - Fixed build failed for 18400 with Apple Metal
 - Fixed build failed for 18600 with Apple Metal
 - Fixed build failed for 4410 with vector width > 1
-- Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal
+- Fixed clang identification in src/Makefile
+- Fixed build failure for almost all hash modes that make use of hc_swap64 and/or hc_swap64_S with Apple Metal / Apple Silicon
 - Fixed debug mode 5 by adding the missing colon between original-word and finding-rule
 - Fixed display problem of the "Optimizers applied" list for algorithms using OPTI_TYPE_SLOW_HASH_SIMD_INIT2 and/or OPTI_TYPE_SLOW_HASH_SIMD_LOOP2
 - Fixed incompatible pointer types (salt1 and salt2 buf) in 3730 a3 kernel
@@ -95,12 +108,15 @@
 - Fixed keys extraction in luks2hashcat - now extracts all active keys
 - Fixed maximum password length in module/test_module of hash-mode 2400
 - Fixed maximum password length in module/test_module of hash-mode 2410
+- Fixed memory leaks in tuning_db_init in tuningdb.c
 - Fixed minimum password length in module of hash-mode 28200
 - Fixed minimum password length in module of hash-mode 29800
 - Fixed out-of-boundary read when a fast hash defines a kernel_loops_min value higher than the amplifiers provided by the user
+- Fixed stack buffer overflow in PKZIP modules (17200, 17210, 17220, 17225, 17230)
 - Fixed vector datatypes usage for HIP
 - Fix missing check for -j and -k before writing hashcat.dictstat2 which can lead to false negatives
 - Handle signed/unsigned PDF permission P value for all PDF hash-modes
+- Improve ASN.1 check for RSA/DSA/EC/OpenSSH Private Keys modules (22911, 22921, 22931, 22941, 22951)
 - Prevent Hashcat from hanging by checking during startup whether the output file is a named pipe
 - Skip chained generated rules that exceed the maximum number of function calls
 
@@ -109,30 +125,46 @@
 ##
 
 - AMD Driver: Updated requirements for AMD Windows drivers to "AMD Adrenalin Edition" (23.7.2 or later) and "AMD HIP SDK" (23.Q3 or later)
+- Alias Devices: Prevents hashcat, when started with x86_64 emulation on Apple Silicon, from showing the Apple M1 OpenCL CPU as an alias for the Apple M1 Metal GPU
 - Apple Driver: Automatically enable GPU support on Apple OpenCL instead of CPU support
 - Apple Driver: Updated requirements to use Apple OpenCL API to macOS 13.0 - use
+- Backend: Updated filename chksum format to prevent invalid cache on Apple Silicon when switching arch
+- Backend: Splitting backend_ctx_devices_init into smaller runtime-specific functions
 - Backend Checks: Describe workaround in error message when detecting more than 64 backend devices
+- Backend Info: Added --machine-readable format
 - Brain: Added sanity check and corresponding error message for invalid --brain-port values
-- Dependencies: Updated LZMA SDK to 22.01
+- Dependencies: Added sse2neon v1.8.0 (commit 658eeac)
+- Dependencies: Updated LZMA SDK to 24.09
 - Dependencies: Updated unrar source to 6.2.7
+- Dependencies: Updated xxHash to 0.8.3 (commit 50f4226)
 - Building: Support building windows binaries on macOS using MinGW
-- Dependencies: Updated OpenCL-Headers to v2023.04.17
+- Dependencies: Updated OpenCL-Headers to v2024.10.24 (commit 265df85)
 - Documents: Updated BUILD.md and added BUILD_macOS.md (containing instructions for building windows binaries on macOS)
 - Modules: Added support for non-zero IVs for -m 6800 (Lastpass). Also added `tools/lastpass2hashcat.py`
+- Modules: Updated module_unstable_warning
 - Open Document Format: Added support for small documents with content length < 1024
+- OpenCL Backend: added workaround to set device_available_memory from CUDA/HIP alias device
+- Selftest: rename selftest function to process_selftest and splitting into 3 smaller functions
 - Status Code: Add specific return code for self-test fail (-11)
 - Scrypt: Increase buffer sizes in module for hash mode 8900 to allow longer scrypt digests
 - Unicode: Update UTF-8 to UTF-16 conversion to match RFC 3629
+- Unit tests: Updated install_modules.sh with Crypt::Argon2
 - User Options: Added error message when mixing --username and --show to warn users of exponential delay
 - MetaMask: update extraction tool to support MetaMask Mobile wallets
 - SecureCRT MasterPassphrase v2: update module, pure kernels and test unit. Add optimized kernels.
 - Metal Backend: added workaround to prevent 'Infinite Loop' bug when build kernels
+- Metal Backend: added workaround to set the true Processor value in Metal devices on Apple Intel
+- Metal Backend: added support to 2D/3D Compute
 - Metal Backend: allow use of devices with Metal if runtime version is >= 200
 - Metal Backend: disable Metal devices only if at least one OpenCL device is active
+- Metal Backend: improved compute workloads calculation
+- Modules: Check UnpackSize to raise false positive with hc_decompress_rar
 - User Options: added --metal-compiler-runtime option
 - Hardware Monitor: avoid sprintf in src/ext_iokit.c
+- Hardware Monitor: Splitting hwmon_ctx_init function into smaller library-specific functions
 - Help: show supported hash-modes only with -hh
 - Makefile: prevent make failure with Apple Silicon in case of partial rebuild
+- Makefile: updated MACOSX_DEPLOYMENT_TARGET to 15.0
 - Rules: Rename best64.rule to best66.rule and remove the unknown section from it
 
 * changes v6.2.5 -> v6.2.6

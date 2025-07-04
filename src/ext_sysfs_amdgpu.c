@@ -441,3 +441,55 @@ int hm_SYSFS_AMDGPU_get_gpu_busy_percent (void *hashcat_ctx, const int backend_d
 
   return 0;
 }
+
+int hm_SYSFS_AMDGPU_get_mem_info_vram_used (void *hashcat_ctx, const int backend_device_idx, u64 *val)
+{
+  char *syspath = hm_SYSFS_AMDGPU_get_syspath_device (hashcat_ctx, backend_device_idx);
+
+  if (syspath == NULL) return -1;
+
+  char *path;
+
+  hc_asprintf (&path, "%s/mem_info_vram_used", syspath);
+
+  hcfree (syspath);
+
+  HCFILE fp;
+
+  if (hc_fopen (&fp, path, "r") == false)
+  {
+    event_log_error (hashcat_ctx, "%s: %s", path, strerror (errno));
+
+    hcfree (path);
+
+    return -1;
+  }
+
+  u64 mem_info_vram_used = 0;
+
+  while (!hc_feof (&fp))
+  {
+    char buf[HCBUFSIZ_TINY];
+
+    char *ptr = hc_fgets (buf, sizeof (buf), &fp);
+
+    if (ptr == NULL) continue;
+
+    size_t len = strlen (ptr);
+
+    if (len < 1) continue;
+
+    int rc = sscanf (ptr, "%" PRIu64, &mem_info_vram_used);
+
+    if (rc == 1) break;
+  }
+
+  hc_fclose (&fp);
+
+  *val = mem_info_vram_used;
+
+  hcfree (path);
+
+  return 0;
+}
+

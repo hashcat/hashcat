@@ -47,7 +47,7 @@ DECLSPEC void generate_pw (PRIVATE_AS u32 *pw_buf, GLOBAL_AS const cs_t *root_cs
   if (bits15) pw_buf[15] = (pw_l_len + pw_r_len) * 8;
 }
 
-KERNEL_FQ void l_markov (KERN_ATTR_L_MARKOV)
+KERNEL_FQ KERNEL_FA void l_markov (KERN_ATTR_L_MARKOV)
 {
   const u64 gid = get_global_id (0);
 
@@ -128,7 +128,7 @@ KERNEL_FQ void l_markov (KERN_ATTR_L_MARKOV)
   pws_buf_l[gid] = pw;
 }
 
-KERNEL_FQ void r_markov (KERN_ATTR_R_MARKOV)
+KERNEL_FQ KERNEL_FA void r_markov (KERN_ATTR_R_MARKOV)
 {
   const u64 gid = get_global_id (0);
 
@@ -206,7 +206,7 @@ KERNEL_FQ void r_markov (KERN_ATTR_R_MARKOV)
   pws_buf_r[gid].i = pw.i[0];
 }
 
-KERNEL_FQ void C_markov (KERN_ATTR_C_MARKOV)
+KERNEL_FQ KERNEL_FA void C_markov (KERN_ATTR_C_MARKOV)
 {
   const u64 gid = get_global_id (0);
 

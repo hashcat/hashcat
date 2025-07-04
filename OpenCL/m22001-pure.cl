@@ -158,7 +158,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m22001_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22001_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -203,17 +203,17 @@ KERNEL_FQ void m22001_init (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
   tmps[gid].out[7] = hc_swap32_S (out[7]);
 }
 
-KERNEL_FQ void m22001_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22001_loop (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
 {
   // not in use here, special case...
 }
 
-KERNEL_FQ void m22001_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22001_comp (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
 {
   // not in use here, special case...
 }
 
-KERNEL_FQ void m22001_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22001_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -406,7 +406,7 @@ KERNEL_FQ void m22001_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
   }
 }
 
-KERNEL_FQ void m22001_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22001_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -589,7 +589,7 @@ KERNEL_FQ void m22001_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
   }
 }
 
-KERNEL_FQ void m22001_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22001_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
 {
   /**
    * aes shared
@@ -883,7 +883,7 @@ KERNEL_FQ void m22001_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
   }
 }
 
-KERNEL_FQ void m22001_aux4 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
+KERNEL_FQ KERNEL_FA void m22001_aux4 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_t))
 {
   const u64 gid = get_global_id (0);
 

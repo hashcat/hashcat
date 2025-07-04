@@ -22,6 +22,7 @@ static const char CL_VENDOR_INTEL_SDK[]         = "Intel(R) Corporation";
 static const char CL_VENDOR_MESA[]              = "Mesa";
 static const char CL_VENDOR_NV[]                = "NVIDIA Corporation";
 static const char CL_VENDOR_POCL[]              = "The pocl project";
+static const char CL_VENDOR_MICROSOFT[]         = "Microsoft";
 
 int  backend_ctx_init                       (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_destroy                    (hashcat_ctx_t *hashcat_ctx);
@@ -39,8 +40,6 @@ int  backend_session_update_combinator      (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp              (hashcat_ctx_t *hashcat_ctx);
 int  backend_session_update_mp_rl           (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_l, const u32 css_cnt_r);
 
-u32  backend_device_idx_real_from_virtual   (const u32 device_idx, const u32 backend_devices_virtual);
-
 void generate_source_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *shared_dir, char *source_file);
 void generate_cached_kernel_filename        (const bool slow_candidates, const u32 attack_exec, const u32 attack_kern, const u32 kern_type, const u32 opti_type, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
 void generate_source_kernel_shared_filename (char *shared_dir, char *source_file);
@@ -57,7 +56,7 @@ int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_devi
 int copy_pws_idx                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest);
 int copy_pws_comp                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u32 off, u32 cnt, u32 *dest);
 
-int choose_kernel                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos);
+int choose_kernel                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos, const bool is_autotune);
 
 int run_cuda_kernel_atinit                  (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 num);
 int run_cuda_kernel_utf8toutf16le           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, CUdeviceptr buf, const u64 num);
@@ -85,7 +84,7 @@ int run_opencl_kernel_memset                (hashcat_ctx_t *hashcat_ctx, hc_devi
 int run_opencl_kernel_memset32              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 offset, const u32 value, const u64 size);
 int run_opencl_kernel_bzero                 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size);
 
-int run_kernel                              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num, const u32 event_update, const u32 iteration);
+int run_kernel                              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num, const u32 event_update, const u32 iteration, const bool is_autotune);
 int run_kernel_mp                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num);
 int run_kernel_tm                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
 int run_kernel_amp                          (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);

@@ -25,6 +25,7 @@ int hashes_init_stage1    (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_stage2    (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_stage3    (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_stage4    (hashcat_ctx_t *hashcat_ctx);
+int hashes_init_stage5    (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_selftest  (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_benchmark (hashcat_ctx_t *hashcat_ctx);
 int hashes_init_zerohash  (hashcat_ctx_t *hashcat_ctx);

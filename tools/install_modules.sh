@@ -18,8 +18,11 @@ cpan install Authen::Passphrase::LANManager \
              Bitcoin::Crypto::Base58        \
              Compress::Zlib                 \
              Convert::EBCDIC                \
+             Crypt::Argon2                  \
              Crypt::AuthEnc::GCM            \
+             Crypt::Camellia                \
              Crypt::CBC                     \
+             Crypt::Cipher::Serpent         \
              Crypt::DES                     \
              Crypt::DES_EDE3                \
              Crypt::Digest::BLAKE2s_256     \

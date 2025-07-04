@@ -362,7 +362,7 @@ DECLSPEC void m08600s (LOCAL_AS u32 *s_lotus_magic_table, PRIVATE_AS u32 *w, con
   }
 }
 
-KERNEL_FQ void m08600_mxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m08600_mxx (KERN_ATTR_VECTOR ())
 {
   /**
    * base
@@ -419,7 +419,7 @@ KERNEL_FQ void m08600_mxx (KERN_ATTR_VECTOR ())
   m08600m (s_lotus_magic_table, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
-KERNEL_FQ void m08600_sxx (KERN_ATTR_VECTOR ())
+KERNEL_FQ KERNEL_FA void m08600_sxx (KERN_ATTR_VECTOR ())
 {
   /**
    * base

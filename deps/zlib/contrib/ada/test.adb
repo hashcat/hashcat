@@ -65,12 +65,12 @@ procedure Test is
    Time_Stamp : Ada.Calendar.Time;
 
    procedure Generate_File;
-   --  Generate file of spetsified size with some random data.
+   --  Generate file of specified size with some random data.
    --  The random data is repeatable, for the good compression.
 
    procedure Compare_Streams
      (Left, Right : in out Root_Stream_Type'Class);
-   --  The procedure compearing data in 2 streams.
+   --  The procedure comparing data in 2 streams.
    --  It is for compare data before and after compression/decompression.
 
    procedure Compare_Files (Left, Right : String);

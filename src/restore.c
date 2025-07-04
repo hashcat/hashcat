@@ -89,6 +89,14 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx)
 
   char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
+  if (buf == NULL)
+  {
+    event_log_error(hashcat_ctx, "hcmalloc: %s", strerror(errno));
+    hc_fclose(&fp);
+    hcfree(rd->argv);
+    return -1;
+  }
+
   for (u32 i = 0; i < rd->argc; i++)
   {
     if (hc_fgets (buf, HCBUFSIZ_LARGE - 1, &fp) == NULL)

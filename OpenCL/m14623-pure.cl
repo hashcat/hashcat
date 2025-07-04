@@ -142,7 +142,7 @@ DECLSPEC void hmac_sha256_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVA
   sha256_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m14623_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ KERNEL_FA void m14623_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   /**
    * base
@@ -228,7 +228,7 @@ KERNEL_FQ void m14623_init (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   }
 }
 
-KERNEL_FQ void m14623_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ KERNEL_FA void m14623_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -336,7 +336,7 @@ KERNEL_FQ void m14623_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
   }
 }
 
-KERNEL_FQ void m14623_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
+KERNEL_FQ KERNEL_FA void m14623_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 {
   const u64 gid = get_global_id (0);
 

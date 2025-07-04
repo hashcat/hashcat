@@ -8,8 +8,38 @@
 #include "memory.h"
 #include "event.h"
 #include "ext_hip.h"
+#include "shared.h"
 
 #include "dynloader.h"
+
+char *hipDllPath (char *hipSDKPath)
+{
+  /*
+    AMD HIP DLLs is stored at "C:\Program Files\ROCm\X.Y\bin\amdhip64_X.dll"
+
+    This function can return complete dll path based on major release version
+    X.Y parsed from the ENV variable HIP_PATH.
+  */
+
+  const char *marker = "\\ROCm\\";
+
+  int major = 0;
+  int minor = 0;
+
+  const char *version_start = strstr (hipSDKPath, marker);
+
+  if (version_start == NULL) return NULL;
+
+  version_start += strlen (marker); // now points at "6.2\\"
+
+  if (sscanf (version_start, "%d.%d", &major, &minor) != 2) return NULL;
+
+  char *hipdllpath = NULL;
+
+  hc_asprintf (&hipdllpath, "%sbin\\amdhip64_%d.dll", hipSDKPath, major);
+
+  return (hipdllpath);
+}
 
 int hip_init (void *hashcat_ctx)
 {
@@ -20,11 +50,43 @@ int hip_init (void *hashcat_ctx)
   memset (hip, 0, sizeof (HIP_PTR));
 
   #if   defined (_WIN)
-  hip->lib = hc_dlopen ("amdhip64.dll");
+  char *hipSDKPath = getenv ("HIP_PATH");
+
+  if (hipSDKPath == NULL) return -1;
+
+  char *hipdllpath = hipDllPath (hipSDKPath);
+
+  if (hipdllpath == NULL) return -1;
+
+  hip->lib = hc_dlopen (hipdllpath);
+
+  free (hipdllpath);
+
+  if (hip->lib == NULL)
+  {
+    hip->lib = hc_dlopen ("amdhip64.dll");
+  }
+
   #elif defined (__APPLE__)
   hip->lib = hc_dlopen ("fixme.dylib");
   #elif defined (__CYGWIN__)
-  hip->lib = hc_dlopen ("amdhip64.dll");
+  char *hipSDKPath = getenv ("HIP_PATH");
+
+  if (hipSDKPath == NULL) return -1;
+
+  char *hipdllpath = hipDllPath (hipSDKPath);
+
+  if (hipdllpath == NULL) return -1;
+
+  hip->lib = hc_dlopen (hipdllpath);
+
+  free (hipdllpath);
+
+  if (hip->lib == NULL)
+  {
+    hip->lib = hc_dlopen ("amdhip64.dll");
+  }
+
   #else
   hip->lib = hc_dlopen ("libamdhip64.so");
   #endif
@@ -71,19 +133,23 @@ int hip_init (void *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipEventRecord,            hipEventRecord,             HIP_HIPEVENTRECORD,             HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipEventSynchronize,       hipEventSynchronize,        HIP_HIPEVENTSYNCHRONIZE,        HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipFuncGetAttribute,       hipFuncGetAttribute,        HIP_HIPFUNCGETATTRIBUTE,        HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipGetErrorName,           hipGetErrorName,            HIP_HIPGETERRORNAME,            HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipGetErrorString,         hipGetErrorString,          HIP_HIPGETERRORSTRING,          HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipGetErrorName,           hipDrvGetErrorName,         HIP_HIPGETERRORNAME,            HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipGetErrorString,         hipDrvGetErrorString,       HIP_HIPGETERRORSTRING,          HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipInit,                   hipInit,                    HIP_HIPINIT,                    HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipLaunchKernel,           hipModuleLaunchKernel,      HIP_HIPLAUNCHKERNEL,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemAlloc,               hipMalloc,                  HIP_HIPMEMALLOC,                HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemFree,                hipFree,                    HIP_HIPMEMFREE,                 HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemGetInfo,             hipMemGetInfo,              HIP_HIPMEMGETINFO,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoD,             hipMemcpyDtoD,              HIP_HIPMEMCPYDTOD,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoH,             hipMemcpyDtoH,              HIP_HIPMEMCPYDTOH,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemcpyHtoD,             hipMemcpyHtoD,              HIP_HIPMEMCPYHTOD,              HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemsetD32,              hipMemsetD32,               HIP_HIPMEMSETD32,               HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipMemsetD8,               hipMemsetD8,                HIP_HIPMEMSETD8,                HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoDAsync,        hipMemcpyDtoDAsync,         HIP_HIPMEMCPYDTODASYNC,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyDtoHAsync,        hipMemcpyDtoHAsync,         HIP_HIPMEMCPYDTOHASYNC,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemcpyHtoDAsync,        hipMemcpyHtoDAsync,         HIP_HIPMEMCPYHTODASYNC,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemsetD32Async,         hipMemsetD32Async,          HIP_HIPMEMSETD32ASYNC,          HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipMemsetD8Async,          hipMemsetD8Async,           HIP_HIPMEMSETD8ASYNC,           HIP, 1);
-  HC_LOAD_FUNC_HIP (hip, hipMemcpyHtoDAsync,        hipMemcpyHtoDAsync,         HIP_HIPMEMCPYHTODASYNC,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleGetFunction,      hipModuleGetFunction,       HIP_HIPMODULEGETFUNCTION,       HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleGetGlobal,        hipModuleGetGlobal,         HIP_HIPMODULEGETGLOBAL,         HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleLoadDataEx,       hipModuleLoadDataEx,        HIP_HIPMODULELOADDATAEX,        HIP, 1);
@@ -92,6 +158,8 @@ int hip_init (void *hashcat_ctx)
   HC_LOAD_FUNC_HIP (hip, hipStreamCreate,           hipStreamCreate,            HIP_HIPSTREAMCREATE,            HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamDestroy,          hipStreamDestroy,           HIP_HIPSTREAMDESTROY,           HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipStreamSynchronize,      hipStreamSynchronize,       HIP_HIPSTREAMSYNCHRONIZE,       HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipGetDeviceProperties,    hipGetDevicePropertiesR0600,     HIP_HIPGETDEVICEPROPERTIES,     HIP, 1);
+  HC_LOAD_FUNC_HIP (hip, hipModuleOccupancyMaxActiveBlocksPerMultiprocessor,    hipModuleOccupancyMaxActiveBlocksPerMultiprocessor,     HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR,     HIP, 1);
 
   return 0;
 }
@@ -736,6 +804,143 @@ int hc_hipMemGetInfo (void *hashcat_ctx, size_t *free, size_t *total)
   return 0;
 }
 
+
+
+int hc_hipMemcpyDtoH (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemcpyDtoH (dstHost, srcDevice, ByteCount);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoH(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyDtoD (void *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemcpyDtoD (dstDevice, srcDevice, ByteCount);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyDtoD(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemcpyHtoD (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemcpyHtoD (dstDevice, srcHost, ByteCount);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemcpyHtoD(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemsetD32 (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned int ui, size_t N)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemsetD32 (dstDevice, ui, N);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemsetD32(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemsetD32(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipMemsetD8 (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned char uc, size_t N)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipMemsetD8 (dstDevice, uc, N);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipMemsetD8(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipMemsetD8(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
 int hc_hipMemcpyDtoHAsync (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
@@ -1079,6 +1284,60 @@ int hc_hipStreamSynchronize (void *hashcat_ctx, hipStream_t hStream)
     else
     {
       event_log_error (hashcat_ctx, "hipStreamSynchronize(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipGetDeviceProperties (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevice_t dev)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipGetDeviceProperties (prop, dev);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %d", HIP_err);
+    }
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_hipModuleOccupancyMaxActiveBlocksPerMultiprocessor (void *hashcat_ctx, int *numBlocks, hipFunction_t f, int blockSize, size_t dynSharedMemPerBlk)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  const hipError_t HIP_err = hip->hipModuleOccupancyMaxActiveBlocksPerMultiprocessor (numBlocks, f, blockSize, dynSharedMemPerBlk);
+
+  if (HIP_err != hipSuccess)
+  {
+    const char *pStr = NULL;
+
+    if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+    {
+      event_log_error (hashcat_ctx, "hipModuleOccupancyMaxActiveBlocksPerMultiprocessor(): %s", pStr);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "hipModuleOccupancyMaxActiveBlocksPerMultiprocessor(): %d", HIP_err);
     }
 
     return -1;

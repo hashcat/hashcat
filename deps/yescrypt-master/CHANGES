@@ -1,0 +1,200 @@
+	Changes made since 1.1.0 (2019/06/30).
+
+Use AVX512VL XOP-like bit rotates for faster Salsa20 on supporting CPUs.
+
+Implemented a little-known SHA-2 Maj() optimization proposed by Wei Dai.
+
+Minor code cleanups and documentation updates.
+
+
+	Changes made between 1.0.3 (2018/06/13) and 1.1.0 (2019/06/30).
+
+Merged yescrypt-opt.c and yescrypt-simd.c into one source file, which is
+a closer match to -simd but is called -opt (and -simd is now gone).
+With this change, performance of SIMD builds should be almost unchanged,
+while scalar builds should be faster than before on register-rich 64-bit
+architectures but may be slower than before on register-starved 32-bit
+architectures (this shortcoming may be addressed later).  This also
+happens to make SSE prefetch available even in otherwise-scalar builds
+and it paves the way for adding SIMD support on big-endian architectures
+(previously, -simd assumed little-endian).
+
+Added x32 ABI support (x86-64 with 32-bit pointers).
+
+
+	Changes made between 1.0.2 (2018/06/06) and 1.0.3 (2018/06/13).
+
+In SMix1, optimized out the indexing of V for the sequential writes.
+
+
+	Changes made between 1.0.1 (2018/04/22) and 1.0.2 (2018/06/06).
+
+Don't use MAP_POPULATE anymore because new multi-threaded benchmarks on
+RHEL6'ish and RHEL7'ish systems revealed that it sometimes has adverse
+effect far in excess of its occasional positive effect.
+
+In the SIMD code, we now reuse the same buffer for BlockMix_pwxform's
+input and output in SMix2.  This might slightly improve cache hit rate
+and thus performance.
+
+Also in the SIMD code, a compiler memory barrier has been added between
+sub-blocks to ensure that none of the writes into what was S2 during
+processing of the previous sub-block are postponed until after a read
+from S0 or S1 in the inline asm code for the current sub-block.  This
+potential problem was never observed so far due to other constraints
+that we have, but strictly speaking those constraints were insufficient
+to guarantee it couldn't occur.
+
+
+	Changes made between 1.0.0 (2018/03/09) and 1.0.1 (2018/04/22).
+
+The included documentation has been improved, most notably adding new
+text files PARAMETERS (guidelines on parameter selection, and currently
+recommended parameter sets by use case) and COMPARISON (comparison to
+scrypt and Argon2).
+
+Code cleanups have been made, including removal of AVX2 support, which
+was deliberately temporarily preserved for the 1.0.0 release, but which
+almost always hurt performance with currently recommended low-level
+yescrypt parameters on Intel & AMD CPUs tested so far.  (The low-level
+parameters are chosen with consideration for relative performance of
+defensive vs. offensive implementations on different hardware, and not
+only for seemingly best performance on CPUs.  It is possible to change
+them such that AVX2 would be worthwhile, and this might happen in the
+future, but currently this wouldn't be obviously beneficial overall.)
+
+
+	Changes made between 0.8.1 (2015/10/25) and 1.0.0 (2018/03/09).
+
+Hash string encoding has been finalized under the "$y$" prefix for both
+native yescrypt and classic scrypt hashes, using a new variable-length
+and extremely compact encoding of (ye)scrypt's many parameters.  (Also
+still recognized under the "$7$" prefix is the previously used encoding
+for classic scrypt hashes, which is fixed-length and not so compact.)
+
+Optional format-preserving salt and hash (re-)encryption has been added,
+using the Luby-Rackoff construction with SHA-256 as the PRF.
+
+Support for hash upgrades has been temporarily excluded to allow for its
+finalization at a later time and based on actual needs (e.g., will 3x
+ROM size upgrades be in demand now that Intel went from 4 to 6 memory
+channels in their server CPUs, bringing a factor of 3 into RAM sizes?)
+
+ROM initialization has been sped up through a new simplified algorithm.
+
+ROM tags (magic constant values) and digests (values that depend on the
+entire computation of the ROM contents) have been added to the last
+block of ROM.  (The placement of these tags/digests is such that nested
+ROMs are possible, to allow for ROM size upgrades later.)
+
+The last block of ROM is now checked for the tag and is always used for
+hash computation before a secret-dependent memory access is first made.
+This ensures that hashes won't be computed with a partially initialized
+ROM or with one initialized using different machine word endianness, and
+that they will be consistently miscomputed if the ROM digest is other
+than what the caller expected.  This in turn helps early detection of
+problems with ROM initialization even if the calling application fails
+to check for them.  This also helps mitigate cache-timing attacks when
+the attacker doesn't know the contents of the last block of ROM.
+
+Many implementation changes have been made, such as for performance,
+portability, security (intentional reuse and thus rewrite of memory
+where practical and optional zeroization elsewhere), and coding style.
+This includes addition of optional SSE2 inline assembly code (a macro
+with 8 instructions) to yescrypt-simd.c, which tends to slightly
+outperform compiler-generated code, including AVX(2)-enabled code, for
+yescrypt's currently recommended settings.  This is no surprise since
+yescrypt was designed to fit the 64-bit mode extended SSE2 instruction
+set perfectly (including SSE2's lack of 3-register instructions), so for
+its optimal implementation AVX would merely result in extra instruction
+prefixes and not provide any benefit (except for the uses of Salsa20
+inherited from scrypt, but those are infrequent).
+
+The auxiliary files inherited from scrypt have been sync'ed with scrypt
+1.2.1, and the implementation of PBKDF2 has been further optimized,
+especially for its use in (ye)scrypt where the "iteration count" is 1
+but the output size is relatively large.  (The speedup is measurable at
+realistically low settings for yescrypt, such as at 2 MiB of memory.)
+
+The included tests have been revised and test vectors regenerated to
+account for the ROM initialization/use updates and hash (re-)encryption.
+
+The PHC test vectors have been compacted into a single SHA-256 hash of
+the expected output of phc.c, but have otherwise remained unchanged as
+none of the incompatible changes have affected the subset of yescrypt
+exposed via the PHS() interface for the Password Hashing Competition.
+
+The specification document and extra programs that were included with
+the PHC submission and its updates are now excluded from this release.
+
+The rest of documentation files have been updated for the 1.0.0 release.
+
+
+	Changes made between 0.7.1 (2015/01/31) and 0.8.1 (2015/10/25).
+
+pwxform became stateful, through writes to its S-boxes.  This further
+discourages TMTO attacks on yescrypt as a whole, as well as on pwxform
+S-boxes separately.  It also increases the total size of the S-boxes by
+a factor of 1.5 (8 KiB to 12 KiB by default) and it puts the previously
+mostly idle L1 cache write ports on CPUs to use.
+
+Salsa20/8 in BlockMix_pwxform has been replaced with Salsa20/2.
+
+An extra HMAC-SHA256 update of the password buffer (which is eventually
+passed into the final PBKDF2 invocation) is now performed right after
+the pwxform S-boxes initialization.
+
+Nloop_rw rounding has been adjusted to be the same as Nloop_all's.
+This avoids an unnecessary invocation of SMix2 with Nloop = 2, which
+would otherwise have occurred in some cases.
+
+t is now halved per hash upgrade (rather than reset to 0 right away on
+the very first upgrade, like it was in 0.7.1).
+
+Minor corrections and improvements to the specification and the code
+have been made.
+
+
+	Changes made between 0.6.4 (2015/01/30) and 0.7.1 (2015/01/31).
+
+The YESCRYPT_PARALLEL_SMIX and YESCRYPT_PWXFORM flags have been removed,
+with the corresponding functionality enabled along with the YESCRYPT_RW
+flag.  This change has simplified the SIMD implementation a little bit
+(eliminating specialized code for some flag combinations that are no
+longer possible), and it should help simplify documentation, analysis,
+testing, and benchmarking (fewer combinations of settings to test).
+
+Adjustments to pre- and post-hashing have been made to address subtle
+issues and non-intuitive behavior, as well as in some cases to reduce
+impact of garbage collector attacks.
+
+Support for hash upgrades has been added (the g parameter).
+
+Extra tests have been written and test vectors re-generated.
+
+
+	Changes made between 0.5.2 (2014/03/31) and 0.6.4 (2015/01/30).
+
+Dropped support for ROM access frequency mask since it made little sense
+when supporting only one ROM at a time.  (It'd make sense with two ROMs,
+for simultaneous use of a ROM-in-RAM and a ROM-on-SSD.  With just one
+ROM, the mask could still be used for a ROM-on-SSD, but only in lieu of
+a ROM-in-RAM, which would arguably be unreasonable.)
+
+Simplified the API by having it accept NULL for the "shared" parameter
+to indicate no ROM in use.  (Previously, a dummy "shared" structure had
+to be created.)
+
+Completed the specification of pwxform, BlockMix_pwxform, Salsa20 SIMD
+shuffling, and potential endianness conversion.  (No change to these has
+been made - they have just been specified in the included document more
+completely.)
+
+Provided rationale for the default compile-time settings for pwxform.
+
+Revised the reference and optimized implementations' source code to more
+closely match the current specification document in terms of identifier
+names, compile-time constant expressions, source code comments, and in
+some cases the ordering of source code lines.  None of these changes
+affect the computed hash values, hence the test vectors have remained
+the same.

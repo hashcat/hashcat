@@ -75,7 +75,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m29600_init (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
+KERNEL_FQ KERNEL_FA void m29600_init (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 {
   const u64 gid = get_global_id (0);
   if (gid >= GID_CNT) return;
@@ -155,7 +155,7 @@ KERNEL_FQ void m29600_init (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
   }
 }
 
-KERNEL_FQ void m29600_loop (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
+KERNEL_FQ KERNEL_FA void m29600_loop (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -241,7 +241,7 @@ KERNEL_FQ void m29600_loop (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
   }
 }
 
-KERNEL_FQ void m29600_comp (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
+KERNEL_FQ KERNEL_FA void m29600_comp (KERN_ATTR_TMPS_ESALT (pbkdf_sha1_tmp_t,terra_t))
 {
   /**
    * base

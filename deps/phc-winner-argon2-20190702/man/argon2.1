@@ -1,0 +1,57 @@
+.TH ARGON2 "1" "April 2016" "argon2 " "User Commands"
+
+.SH NAME
+argon2 \- generate argon2 hashes
+
+.SH SYNOPSIS
+.B argon2 salt
+.RB [ OPTIONS ]
+
+.SH DESCRIPTION
+Generate Argon2 hashes from the command line.
+
+The supplied salt (the first argument to the command) must be at least
+8 octets in length, and the password is supplied on standard input.
+
+By default, this uses Argon2i variant (where memory access is
+independent of secret data) which is the preferred one for password
+hashing and password-based key derivation.
+
+.SH OPTIONS
+.TP
+.B \-h
+Display tool usage
+.TP
+.B \-d
+Use Argon2d instead of Argon2i (Argon2i is the default)
+.TP
+.B \-id
+Use Argon2id instead of Argon2i (Argon2i is the default)
+.TP
+.BI \-t " N"
+Sets the number of iterations to N (default = 3)
+.TP
+.BI \-m " N"
+Sets the memory usage of 2^N KiB (default = 12)
+.TP
+.BI \-p " N"
+Sets parallelism to N threads (default = 1)
+.TP
+.BI \-l " N"
+Sets hash output length to N bytes (default = 32)
+.TP
+.B \-e
+Output only encoded hash
+.TP
+.B \-r
+Output only the raw bytes of the hash
+.TP
+.B \-v (10|13)
+Argon2 version (defaults to the most recent version, currently 13)
+
+.SH COPYRIGHT
+This manpage was written by \fBDaniel Kahn Gillmor\fR for the Debian
+distribution (but may be used by others).  It is released, like the
+rest of this Argon2 implementation, under a dual license. You may use this work
+under the terms of a Creative Commons CC0 1.0 License/Waiver or the Apache
+Public License 2.0, at your option.

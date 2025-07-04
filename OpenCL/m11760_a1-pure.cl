@@ -14,7 +14,7 @@
 #include M2S(INCLUDE_PATH/inc_hash_streebog256.cl)
 #endif
 
-KERNEL_FQ void m11760_mxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m11760_mxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier
@@ -123,7 +123,7 @@ KERNEL_FQ void m11760_mxx (KERN_ATTR_BASIC ())
   }
 }
 
-KERNEL_FQ void m11760_sxx (KERN_ATTR_BASIC ())
+KERNEL_FQ KERNEL_FA void m11760_sxx (KERN_ATTR_BASIC ())
 {
   /**
    * modifier

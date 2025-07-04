@@ -3,20 +3,16 @@
 
 
 This document describes the design, the rationale, and the usage
-of the official DLL build of zlib, named ZLIB1.DLL.  If you have
+of the common DLL build of zlib, named ZLIB1.DLL.  If you have
 general questions about zlib, you should see the file "FAQ" found
 in the zlib distribution, or at the following location:
-  http://www.gzip.org/zlib/zlib_faq.html
+  https://www.zlib.net/zlib_faq.html
 
 
  1. What is ZLIB1.DLL, and how can I get it?
 
-  - ZLIB1.DLL is the official build of zlib as a DLL.
+  - ZLIB1.DLL is the common build of zlib as a DLL.
     (Please remark the character '1' in the name.)
-
-    Pointers to a precompiled ZLIB1.DLL can be found in the zlib
-    web site at:
-      http://www.zlib.net/
 
     Applications that link to ZLIB1.DLL can rely on the following
     specification:
@@ -378,18 +374,6 @@ in the zlib distribution, or at the following location:
     zlib functionality, as implemented in the official zlib source
     code.  But you can make your own private DLL build, under a
     different file name, as suggested in the previous answer.
-
-
-17. I made my own ZLIB1.DLL build.  Can I test it for compliance?
-
-  - We prefer that you download the official DLL from the zlib
-    web site.  If you need something peculiar from this DLL, you
-    can send your suggestion to the zlib mailing list.
-
-    However, in case you do rebuild the DLL yourself, you can run
-    it with the test programs found in the DLL distribution.
-    Running these test programs is not a guarantee of compliance,
-    but a failure can imply a detected problem.
 
 **
 

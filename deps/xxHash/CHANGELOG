@@ -1,3 +1,55 @@
+v0.8.3
+- fix  : variant `XXH3_128bits_withSecretandSeed()` could produce an invalid result in some specific set of conditions, #894 by @hltj
+- cli  : vector extension detected at runtime on x86/x64, enabled by default
+- cli  : new commands `--filelist` and `--files-from`, by @Ian-Clowes
+- cli  : XXH3 64-bits GNU format can now be generated and checked (command `-H3`)
+- portability: LoongArch SX SIMD extension, by @lrzlin
+- portability: can build on AIX, suggested by @likema
+- portability: validated for SPARC cpus
+
+v0.8.2
+- fix  : XXH3 S390x vector implementation (@hzhuang1)
+- fix  : PowerPC vector compilation with IBM XL compiler (@MaxiBoether)
+- perf : improved WASM speed by x2/x3 using SIMD128 (@easyaspi314)
+- perf : improved speed (+20%) for XXH3 on ARM NEON (@easyaspi314)
+- cli  : Fix filename contain /LF character (@t-mat)
+- cli  : Support # comment lines in --check files (@t-mat)
+- cli  : Support commands --binary and --ignore-missing (@t-mat)
+- build: fix -Og compilation (@easyaspi314, @t-mat)
+- build: fix pkgconfig generation with cmake (@ilya-fedin)
+- build: fix icc compilation
+- build: fix cmake install directories
+- build: new build options XXH_NO_XXH3, XXH_SIZE_OPT and XXH_NO_STREAM to reduce binary size (@easyaspi314)
+- build: dedicated install targets (@ffontaine)
+- build: support DISPATCH mode in cmake (@hzhuang1)
+- portability: fix x86dispatch when building with Visual + clang-cl (@t-mat)
+- portability: SVE vector implementation of XXH3 (@hzhuang1)
+- portability: compatibility with freestanding environments, using XXH_NO_STDLIB
+- portability: can build on Haiku (@Begasus)
+- portability: validated on m68k and risc-v
+- doc  : XXH3 specification (@Adrien1018)
+- doc  : improved doxygen documentation (@easyaspi314, @t-mat)
+- misc : dedicated sanity test binary (@t-mat)
+
+v0.8.1
+- perf : much improved performance for XXH3 streaming variants, notably on gcc and msvc
+- perf : improved XXH64 speed and latency on small inputs
+- perf : small XXH32 speed and latency improvement on small inputs of random size
+- perf : minor stack usage improvement for XXH32 and XXH64
+- api  : new experimental variants XXH3_*_withSecretandSeed()
+- api  : update XXH3_generateSecret(), can no generate secret of any size (>= XXH3_SECRET_SIZE_MIN)
+- cli  : xxhsum can now generate and check XXH3 checksums, using command `-H3`
+- build: can build xxhash without XXH3, with new build macro XXH_NO_XXH3
+- build: fix xxh_x86dispatch build with MSVC, by @apankrat
+- build: XXH_INLINE_ALL can always be used safely, even after XXH_NAMESPACE or a previous XXH_INLINE_ALL
+- build: improved PPC64LE vector support, by @mpe
+- install: fix pkgconfig, by @ellert
+- install: compatibility with Haiku, by @Begasus
+- doc  : code comments made compatible with doxygen, by @easyaspi314
+- misc : XXH_ACCEPT_NULL_INPUT_POINTER is no longer necessary, all functions can accept NULL input pointers, as long as size == 0
+- misc : complete refactor of CI tests on Github Actions, offering much larger coverage, by @t-mat
+- misc : xxhsum code base split into multiple specialized units, within directory cli/, by @easyaspi314
+
 v0.8.0
 - api : stabilize XXH3
 - cli : xxhsum can parse BSD-style --check lines, by @WayneD

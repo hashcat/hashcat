@@ -57,7 +57,7 @@ DECLSPEC void _totp_calculate (PRIVATE_AS u32 *code, PRIVATE_AS const u32 *w, co
   *code = otp_code % 1000000;
 }
 
-KERNEL_FQ void m18100_mxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier
@@ -103,7 +103,7 @@ KERNEL_FQ void m18100_mxx (KERN_ATTR_RULES ())
       COMPARE_M_SCALAR (otp_code0, 0, 0, 0);
     }
   }
-  else if (count == 4)
+  else if (count == 2)
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
@@ -119,7 +119,7 @@ KERNEL_FQ void m18100_mxx (KERN_ATTR_RULES ())
       COMPARE_M_SCALAR (otp_code0, otp_code1, 0, 0);
     }
   }
-  else if (count == 4)
+  else if (count == 3)
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
@@ -156,7 +156,7 @@ KERNEL_FQ void m18100_mxx (KERN_ATTR_RULES ())
   }
 }
 
-KERNEL_FQ void m18100_sxx (KERN_ATTR_RULES ())
+KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_RULES ())
 {
   /**
    * modifier

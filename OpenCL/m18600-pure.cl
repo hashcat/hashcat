@@ -452,7 +452,7 @@ DECLSPEC void hmac_sha1_run_V (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE
   sha1_transform_vector (w0, w1, w2, w3, digest);
 }
 
-KERNEL_FQ void m18600_init (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
+KERNEL_FQ KERNEL_FA void m18600_init (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 {
   /**
    * base
@@ -554,7 +554,7 @@ KERNEL_FQ void m18600_init (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
   tmps[gid].out[4] = tmps[gid].dgst[4];
 }
 
-KERNEL_FQ void m18600_loop (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
+KERNEL_FQ KERNEL_FA void m18600_loop (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -636,7 +636,7 @@ KERNEL_FQ void m18600_loop (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
   }
 }
 
-KERNEL_FQ void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE_COMP) m18600_comp (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
+KERNEL_FQ KERNEL_FA void FIXED_THREAD_COUNT(FIXED_LOCAL_SIZE_COMP) m18600_comp (KERN_ATTR_TMPS_ESALT (odf11_tmp_t, odf11_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);

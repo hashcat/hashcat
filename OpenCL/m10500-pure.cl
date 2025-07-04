@@ -45,7 +45,7 @@ typedef struct pdf14_tmp
 
 } pdf14_tmp_t;
 
-KERNEL_FQ void m10500_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
+KERNEL_FQ KERNEL_FA void m10500_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   /**
    * base
@@ -232,7 +232,7 @@ KERNEL_FQ void m10500_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   tmps[gid].out[3] = 0;
 }
 
-KERNEL_FQ void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
+KERNEL_FQ KERNEL_FA void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   /**
    * base
@@ -333,7 +333,7 @@ KERNEL_FQ void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   tmps[gid].out[3] = out[3];
 }
 
-KERNEL_FQ void m10500_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
+KERNEL_FQ KERNEL_FA void m10500_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
   /**
    * modifier
