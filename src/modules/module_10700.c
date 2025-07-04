@@ -152,38 +152,47 @@ u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED con
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
+  const u32 shared_size_scratch = (32 + 64 + 16); // LOCAL_VK u32 s_sc[FIXED_LOCAL_SIZE][PWMAXSZ4 + BLMAXSZ4 + AESSZ4];
+  const u32 shared_size_aes     = (5 * 1024);     // LOCAL_VK u32 s_te0[256];
+
   char *jit_build_options = NULL;
 
-  if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
-    u32 native_threads = 0;
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u", 1);
+  }
+  else
+  {
+    u32 overhead = 0;
 
-    if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
     {
-      native_threads = 1;
-    }
-    else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
-    {
-      #if defined (__APPLE__)
+      // note we need to use device_param->device_local_mem_size - 4 because opencl jit returns with:
+      // Entry function '...' uses too much shared data (0xc004 bytes, 0xc000 max)
+      // on my development system. no clue where the 4 bytes are spent.
+      // I did some research on this and it seems to be related with the datatype.
+      // For example, if i used u8 instead, there's only 1 byte wasted.
 
-      native_threads = 32;
-
-      #else
-
-      if (device_param->device_local_mem_size < 49152)
+      if (device_param->is_opencl == true)
       {
-        native_threads = MIN (device_param->kernel_preferred_wgs_multiple, 32); // We can't just set 32, because Intel GPU need 8
+        overhead = 1;
       }
-      else
-      {
-        // to go over 48KiB, we need to use dynamic shared mem
-        native_threads = 49152 / 128;
-      }
-
-      #endif
     }
 
-    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D _unroll", native_threads);
+    const u32 device_local_mem_size = MIN (device_param->device_local_mem_size, 48*1024);
+
+    u32 fixed_local_size = ((device_local_mem_size - overhead) - shared_size_aes) / shared_size_scratch;
+
+    if (user_options->kernel_threads_chgd == true)
+    {
+      fixed_local_size = user_options->kernel_threads;
+    }
+    else
+    {
+      if (fixed_local_size > device_param->kernel_preferred_wgs_multiple) fixed_local_size -= fixed_local_size % device_param->kernel_preferred_wgs_multiple;
+    }
+
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE=%u -D _unroll", fixed_local_size);
   }
 
   return jit_build_options;
