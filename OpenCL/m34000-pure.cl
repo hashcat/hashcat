@@ -58,6 +58,7 @@ KERNEL_FQ KERNEL_FA void m34000_init (KERN_ATTR_TMPS_ESALT (argon2_tmp_t, argon2
 
 KERNEL_FQ KERNEL_FA void m34000_loop (KERN_ATTR_TMPS_ESALT (argon2_tmp_t, argon2_options_t))
 {
+  const u64 gid = get_global_id (0);
   const u64 bid = get_group_id (0);
   const u64 lid = get_local_id (1);
   const u64 lsz = get_local_size (1);
