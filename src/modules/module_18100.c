@@ -30,7 +30,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_SUGGEST_KG;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "597056:3600";
+static const char *ST_HASH        = "597056:3600:613004:1234567890:322664:9876543210";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -58,54 +58,92 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   hc_token_t token;
 
-  memset (&token, 0, sizeof (hc_token_t));
-
-  token.token_cnt  = 2;
-
-  token.sep[0]     = hashconfig->separator;
-  token.len[0]     = 6;
-  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
-
-  token.len_min[1] = SALT_MIN;
-  token.len_max[1] = SALT_MAX;
-  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
-
-  if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+  // 1 to 4 TOTP codes
+  // 597056:3600
+  // 597056:3600:613004:1234567890
+  // 597056:3600:613004:1234567890:322664:9876543210
+  // 597056:3600:613004:1234567890:322664:9876543210:068798:111222333
+  int count;
+  for (count = 8; count > 0; count -= 2)
   {
-    token.len_min[1] *= 2;
-    token.len_max[1] *= 2;
+    memset (&token, 0, sizeof (hc_token_t));
 
-    token.attr[1] |= TOKEN_ATTR_VERIFY_DIGIT;
+    token.token_cnt = count;
+
+    for (int i = 0; i < count; i += 2)
+    {
+      token.sep[i + 0]     = hashconfig->separator;
+      token.len[i + 0]     = 6;
+      token.attr[i + 0]    = TOKEN_ATTR_FIXED_LENGTH
+                           | TOKEN_ATTR_VERIFY_DIGIT;
+
+      // 0 to 18446744073709551616
+      token.sep[i + 1]     = hashconfig->separator;
+      token.len_min[i + 1] = 1;
+      token.len_max[i + 1] = 20;
+      token.attr[i + 1]    = TOKEN_ATTR_VERIFY_LENGTH
+                           | TOKEN_ATTR_VERIFY_DIGIT;
+
+      if (hashconfig->opts_type & OPTS_TYPE_ST_HEX)
+      {
+        token.len_min[i + 1] *= 2;
+        token.len_max[i + 1] *= 2;
+        token.attr[i + 1]     = TOKEN_ATTR_VERIFY_LENGTH
+                              | TOKEN_ATTR_VERIFY_HEX;
+      }
+    }
+
+    const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+    if (rc_tokenizer == PARSER_OK) break;
+
+    // failed all tokenizers
+    if (count == 2) return (rc_tokenizer);
+  }
+  count /= 2;
+
+  for (int i = 0; i < count; i += 1)
+  {
+    // now we need to reduce our hash into a token
+    int otp_code = hc_strtoul ((const char *) token.buf[2 * i + 0], NULL, 10);
+
+    digest[i] = otp_code;
+
+    const u8 *salt_pos = token.buf[2 * i + 1];
+
+    // convert ascii timestamp to ulong timestamp
+    u64 timestamp = hc_strtoull ((const char *) salt_pos, NULL, 10);
+
+    // store the original salt value. Step division will destroy granularity for output
+    salt->salt_buf[4 * i + 3] = ((u32) (timestamp >>  0));
+    salt->salt_buf[4 * i + 2] = ((u32) (timestamp >> 32));
+
+    // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
+    timestamp /= 30;
+
+    // convert counter to 8-byte salt
+    salt->salt_buf[4 * i + 1] = byte_swap_32 ((u32) (timestamp >>  0));
+    salt->salt_buf[4 * i + 0] = byte_swap_32 ((u32) (timestamp >> 32));
   }
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  // verify unique salts
+  for (int i = 0; i < count; i += 1)
+  {
+    u32 s0 = salt->salt_buf[4 * i + 0];
+    u32 s1 = salt->salt_buf[4 * i + 1];
 
-  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
-  // now we need to reduce our hash into a token
-  int otp_code = hc_strtoul (line_buf, NULL, 10);
-
-  digest[0] = otp_code;
-
-  const u8 *salt_pos = token.buf[1];
-
-  // convert ascii timestamp to ulong timestamp
-  u64 timestamp = hc_strtoull ((const char *) salt_pos, NULL, 10);
-
-  // store the original salt value. Step division will destroy granularity for output
-  salt->salt_buf[3] = ((u32) (timestamp >>  0));
-  salt->salt_buf[2] = ((u32) (timestamp >> 32));
-
-  // divide our timestamp by our step. We will use the RFC 6238 default of 30 for now
-  timestamp /= 30;
-
-  // convert counter to 8-byte salt
-  salt->salt_buf[1] = byte_swap_32 ((u32) (timestamp >>  0));
-  salt->salt_buf[0] = byte_swap_32 ((u32) (timestamp >> 32));
+    for (int j = i + 1; j < count; j += 1)
+    {
+      if (salt->salt_buf[4 * j + 0] == s0 &&
+          salt->salt_buf[4 * j + 1] == s1)
+      {
+        return (PARSER_SALT_VALUE);
+      }
+    }
+  }
 
   // our salt will always be 8 bytes, but we are going to cheat and store it twice, so...
-  salt->salt_len = 16;
+  salt->salt_len = 16 * count;
 
   return (PARSER_OK);
 }
@@ -114,13 +152,37 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const u32 *digest = (const u32 *) digest_buf;
 
-  // salt_buf[1] holds our 32 bit value. salt_buf[0] and salt_buf[1] would be 64 bits.
+  // salt_buf[4 * i + 1] holds our 32 bit value. salt_buf[4 * i + 0] and salt_buf[4 * i + 1] would be 64 bits.
   // we also need to multiply salt by our step to see the floor of our original timestamp range.
   // again, we will use the default RFC 6238 step of 30.
 
-  const u64 tmp_salt_buf = (((u64) (salt->salt_buf[2])) << 32) | ((u64) (salt->salt_buf[3]));
+  int count = salt->salt_len / 16;
 
-  const int line_len = snprintf (line_buf, line_size, "%06d%c%" PRIu64, digest[0], hashconfig->separator, tmp_salt_buf);
+  // all but the last TOTP code
+  int i = 0, line_len = 0;
+  for (; i < count - 1; i += 1)
+  {
+    const u64 tmp_salt_buf = (((u64) (salt->salt_buf[4 * i + 2])) << 32) | ((u64) (salt->salt_buf[4 * i + 3]));
+    const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64 "%c", digest[i], hashconfig->separator, tmp_salt_buf, hashconfig->separator);
+    line_len += ret;
+
+    // error
+    if (ret < 0)
+    {
+      return ret;
+    }
+  }
+
+  // the last TOTP code
+  const u64 tmp_salt_buf = (((u64) (salt->salt_buf[4 * i + 2])) << 32) | ((u64) (salt->salt_buf[4 * i + 3]));
+  const int ret = snprintf (line_buf + line_len, line_size - line_len, "%06d%c%" PRIu64, digest[i], hashconfig->separator, tmp_salt_buf);
+  line_len += ret;
+
+  // error
+  if (ret < 0)
+  {
+    return ret;
+  }
 
   return line_len;
 }
