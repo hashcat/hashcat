@@ -210,13 +210,13 @@ Notes:
 
 If you modify one of these plugin files, there's a trade-off: you won’t be able to contribute that code directly to the upstream Hashcat repository, since those files are meant to remain clean for demonstration purposes.
 
-To address this, the assimilation bridge provides a generic parameter that users can specify via the command line. In the case of the Python bridge, only the first parameter is used. You can override the Python script to be loaded using `--bridge-parameter1`:
+To address this, the assimilation bridge provides a generic parameter that users can specify via the command line. In the case of the Python bridge, only the first parameter is used. Using `--bridge-parameter1` allows you to override the Python script to be loaded:
 
 ```
-$ ./hashcat -m 73000 --bridge-parameter1 myimplementation.py hash.txt wordlist.txt ...
+$ ./hashcat -m 73000 --bridge-parameter1 ./Python/myimplementation.py hash.txt wordlist.txt ...
 ```
 
-This tells the Python bridge plugin to load `myimplementation.py` instead of the default `generic_hash_mp.py`. This approach is especially useful if you plan to contribute `myimplementation.py` to the upstream Hashcat repository. If you choose to stay within the generic mode, your Python code won’t have a dedicated hash mode, and you'll need to instruct users to use the `--bridge-parameter1` flag to load your implementation.
+This tells the Python bridge plugin to load `myimplementation.py` located in the local `Python` subdirectory instead of the default `generic_hash_mp.py`. This approach is especially useful if you plan to contribute `myimplementation.py` to the upstream Hashcat repository. If you choose to stay within the generic mode, your Python code won’t have a dedicated hash mode, and you'll need to instruct users to use the `--bridge-parameter1` flag to load your implementation.
 
 ### Design Tradeoffs and Format Considerations
 
