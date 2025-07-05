@@ -29,6 +29,8 @@ static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
 static const char *ST_HASH        = "$metamask-short$jfGI3TXguhb8GPnKSXFrMzRk2NCEc131Gt5G3kZr5+s=$h+BoIf2CQ5BEjaIOShFE7g==$R95fzGt4UQ0uwrcrVYnIi4UcSlWn9wlmer+//526ZDwYAp50K82F1u1oacYcdjjhuEvbZnWk/uBG00UkgLLlOw==";
 
+static const u32   ROUNDS_METAMASK    = 10000;
+
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
 u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
@@ -147,9 +149,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '$';
-  token.len[1]     = 44;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
+  token.len_min[1] = 0;
+  token.len_max[1] = 60;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_OPTIONAL_ROUNDS;
 
   token.sep[2]     = '$';
   token.len[2]     = 24;
@@ -168,7 +171,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // iter
 
-  salt->salt_iter = 10000 - 1;
+  salt->salt_iter = ROUNDS_METAMASK - 1;
+
+  if (token.opt_len != -1)
+  {
+    salt->salt_iter = hc_strtoul ((const char *) token.opt_buf + 7, NULL, 10) - 1; // 7 = "rounds="
+  }
 
   // salt
 
@@ -293,13 +301,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-  int out_len = snprintf ((char *) out_buf, line_size, "%s%s$%s$%s",
-    SIGNATURE_METAMASK_WALLET,
-    salt_buf,
-    iv_buf,
-    ct_buf);
-
-  return out_len;
+  if (salt->salt_iter + 1 != ROUNDS_METAMASK)
+    return snprintf ((char *) out_buf, line_size, "%srounds=%d$%s$%s$%s",
+      SIGNATURE_METAMASK_WALLET,
+      salt->salt_iter + 1,
+      salt_buf,
+      iv_buf,
+      ct_buf);
+  else
+    return snprintf ((char *) out_buf, line_size, "%s%s$%s$%s",
+        SIGNATURE_METAMASK_WALLET,
+        salt_buf,
+        iv_buf,
+        ct_buf);
 }
 
 void module_init (module_ctx_t *module_ctx)

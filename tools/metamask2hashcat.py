@@ -51,7 +51,13 @@ def metamask_parser(file, shortdata):
         parser.print_help()
         exit(1)
 
+
     if isMobile is False:
+
+      try:
+        iter_count = j['keyMetadata']['params']['iterations']
+      except KeyError:
+        iter_count = 10_000
 
       if((len(j['data']) > 3000) or shortdata):
         data_bin = base64.b64decode(j['data'])
@@ -60,9 +66,15 @@ def metamask_parser(file, shortdata):
         #  Still the pbkdf 10k iter will be taking the most time by far probably.
         j['data'] = base64.b64encode(data_bin[0:64]).decode("ascii")
 
-        print('$metamask-short$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
+        if iter_count != 10000:
+          print('$metamask-short$rounds=' + str(iter_count) + '$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
+        else:
+          print('$metamask-short$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
       else:
-        print('$metamask$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
+        if iter_count != 10000:
+          print('$metamask$rounds=' + str(iter_count) + '$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
+        else:
+          print('$metamask$' + j['salt'] + '$' + j['iv'] + '$' + j['data'])
 
     else:
 
