@@ -153,6 +153,6 @@ typedef struct argon2_pos
 DECLSPEC void argon2_init (GLOBAL_AS const pw_t *pw, GLOBAL_AS const salt_t *salt, PRIVATE_AS const argon2_options_t *options, GLOBAL_AS argon2_block_t *out);
 DECLSPEC void argon2_fill_segment (GLOBAL_AS argon2_block_t *blocks, PRIVATE_AS const argon2_options_t *options, PRIVATE_AS const argon2_pos_t *pos, LOCAL_AS u64 *shuffle_buf, const u32 argon2_thread, const u32 argon2_lsz);
 DECLSPEC void argon2_final (GLOBAL_AS argon2_block_t *blocks, PRIVATE_AS const argon2_options_t *options, PRIVATE_AS u32 *out);
-DECLSPEC GLOBAL_AS argon2_block_t *get_argon2_block (const argon2_options_t *options, GLOBAL_AS void *buf, const int idx);
+DECLSPEC GLOBAL_AS argon2_block_t *get_argon2_block (PRIVATE_AS const argon2_options_t *options, GLOBAL_AS void *buf, const int idx);
 
 #endif // INC_HASH_ARGON2_H

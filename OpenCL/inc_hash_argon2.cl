@@ -400,7 +400,7 @@ DECLSPEC void argon2_final (GLOBAL_AS argon2_block_t *blocks, PRIVATE_AS const a
   }
 }
 
-DECLSPEC GLOBAL_AS argon2_block_t *get_argon2_block (const argon2_options_t *options, GLOBAL_AS void *buf, const int idx)
+DECLSPEC GLOBAL_AS argon2_block_t *get_argon2_block (PRIVATE_AS const argon2_options_t *options, GLOBAL_AS void *buf, const int idx)
 {
   GLOBAL_AS u32 *buf32 = (GLOBAL_AS u32 *) buf;
 
