@@ -57,7 +57,7 @@ ARCH_CFLAGS := $(ARCH_CFLAGS)+$(subst $(COMMA),+,$(FEATURE))
 endif
 endif
 
-CXXFLAGS += -Wall -Wcast-qual -Wconversion -I. $(ARCH_CFLAGS) -std=gnu++14
+CXXFLAGS += -Wall -Wcast-qual -Wold-style-cast -Wconversion -I. $(ARCH_CFLAGS) -std=gnu++14
 LDFLAGS	+= -lm
 OBJS = \
     tests/binding.o \
