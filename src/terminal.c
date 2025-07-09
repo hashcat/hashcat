@@ -17,6 +17,10 @@
 #include "timer.h"
 #include "terminal.h"
 
+#if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+#include <windows.h>
+#endif
+
 static const size_t MAXIMUM_EXAMPLE_HASH_LENGTH = 200;
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
