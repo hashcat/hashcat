@@ -738,8 +738,8 @@ KERNEL_FQ KERNEL_FA void m20800_m16 (KERN_ATTR_BASIC ())
 
   w3[0] = pws[gid].i[12];
   w3[1] = pws[gid].i[13];
-  w3[2] = pws[gid].i[14];
-  w3[3] = pws[gid].i[15];
+  w3[2] = pws[gid].i[15];
+  w3[3] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
@@ -948,8 +948,8 @@ KERNEL_FQ KERNEL_FA void m20800_s16 (KERN_ATTR_BASIC ())
 
   w3[0] = pws[gid].i[12];
   w3[1] = pws[gid].i[13];
-  w3[2] = pws[gid].i[14];
-  w3[3] = pws[gid].i[15];
+  w3[2] = pws[gid].i[15];
+  w3[3] = 0;
 
   const u32 pw_len = pws[gid].pw_len & 63;
 
