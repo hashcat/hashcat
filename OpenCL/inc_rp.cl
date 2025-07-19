@@ -298,6 +298,28 @@ DECLSPEC int mangle_toggle_at_sep (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const 
   return (len);
 }
 
+DECLSPEC int mangle_num_incr (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len)
+{
+  for (int pos = 0; pos < len; pos++)
+  {
+    const u8 byte = buf[pos];
+
+    if ((byte <= '9') && (byte >= '0'))
+    {
+      if (byte == '9')
+      {
+        buf[pos] = '0';
+      }
+      else
+      {
+        buf[pos]++;
+      }
+    }
+  }
+
+  return (len);
+}
+
 DECLSPEC int mangle_reverse (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)
 {
   for (int l = 0; l < len / 2; l++)
@@ -789,6 +811,7 @@ DECLSPEC int apply_rule (const u32 name, MAYBE_UNUSED const u8 p0, MAYBE_UNUSED 
     case RULE_OP_MANGLE_DUPEBLOCK_LAST:   out_len = mangle_dupeblock_last   (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
     case RULE_OP_MANGLE_TITLE_SEP:        out_len = mangle_title_sep        (p0, p1,        buf, out_len); break;
     case RULE_OP_MANGLE_TITLE:            out_len = mangle_title_sep        (' ', p1,       buf, out_len); break;
+    case RULE_OP_MANGLE_NUM_INCR:         out_len = mangle_num_incr         (p0, p1, (PRIVATE_AS u8 *) buf, out_len); break;
   }
 
   return out_len;
