@@ -42,7 +42,9 @@ docker run --rm -it hashcat-binaries /bin/bash
 
 If you want to run hashcat with your gpus inside docker you first need to install the appropriate container runtime.
 For nvidia go here https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
+
 (The runtime stage in the dockerfile will use an offical nvidia image, make sure your host has at least the same cuda version or a newer version installed.)
+
 For AMD go here https://rocm.docs.amd.com/projects/install-on-linux/en/latest/how-to/docker.html
 
 
