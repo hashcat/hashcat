@@ -101,7 +101,7 @@ RUN make -s binaries
 
 RUN tools/package_bin.sh
 
-FROM nvidia/cuda:12.9.1-runtime-ubuntu22.04 as runtime
+FROM nvidia/cuda:12.9.1-runtime-ubuntu24.04 as runtime
 
 ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
