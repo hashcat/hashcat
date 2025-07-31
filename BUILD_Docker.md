@@ -50,5 +50,7 @@ For AMD go here https://rocm.docs.amd.com/projects/install-on-linux/en/latest/ho
 
 
 ```bash
-docker run --rm --gpus=all -it hashcat-binaries hashcat --help
+docker build -f docker/BinaryPackage.ubuntu20 -t hashcat-binaries .
+docker run --rm --gpus=all -it hashcat-binaries bash
+root@docker:~/# ./hashcat.bin --help
 ```
