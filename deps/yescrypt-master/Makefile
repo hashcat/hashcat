@@ -21,8 +21,8 @@ LD = $(CC)
 RM = rm -f
 OMPFLAGS = -fopenmp
 OMPFLAGS_MAYBE = $(OMPFLAGS)
-#CFLAGS = -Wall -O2 -fomit-frame-pointer $(OMPFLAGS_MAYBE) -DSKIP_MEMZERO
-CFLAGS = -Wall -O2 -march=native -fomit-frame-pointer $(OMPFLAGS_MAYBE) -DSKIP_MEMZERO
+CFLAGS = -Wall -O2 -fomit-frame-pointer $(OMPFLAGS_MAYBE) -DSKIP_MEMZERO
+#CFLAGS = -Wall -O2 -march=native -fomit-frame-pointer $(OMPFLAGS_MAYBE) -DSKIP_MEMZERO
 #CFLAGS = -Wall -O2 -funroll-loops -fomit-frame-pointer $(OMPFLAGS_MAYBE) -DSKIP_MEMZERO
 #CFLAGS = -Wall -O2 -march=native -funroll-loops -fomit-frame-pointer $(OMPFLAGS_MAYBE) -DSKIP_MEMZERO
 # -lrt is for userom's use of clock_gettime()
