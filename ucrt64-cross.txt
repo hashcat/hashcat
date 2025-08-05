@@ -1,0 +1,16 @@
+[binaries]
+c = 'x86_64-w64-mingw32ucrt-gcc'
+cpp = 'x86_64-w64-mingw32ucrt-g++'
+ld = 'x86_64-w64-mingw32ucrt-ld'
+ar = 'x86_64-w64-mingw32ucrt-ar'
+dlltool = 'x86_64-w64-mingw32ucrt-dlltool'
+strip = 'x86_64-w64-mingw32ucrt-strip'
+pkgconfig = 'x86_64-w64-mingw32ucrt-pkg-config'
+windres = 'x86_64-w64-mingw32ucrt-windres'
+exe_wrapper = 'wine64'
+
+[host_machine]
+system = 'windows'
+cpu_family = 'x86_64'
+cpu = 'x86_64'
+endian = 'little'

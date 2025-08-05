@@ -1,0 +1,14 @@
+option('brain', type : 'boolean',
+  value : true,
+  description : 'Build libhashcat with support for its brain',
+)
+
+option('cubin', type : 'boolean',
+  value : true,
+  description : 'Build libhashcat with cubin support',
+)
+
+option('unrar', type : 'boolean',
+  value : true,
+  description : 'Build libhashcat with unrar support',
+)

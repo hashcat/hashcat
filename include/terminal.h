@@ -24,9 +24,9 @@
 
 #if defined (_POSIX)
 #include <sys/utsname.h>
-#if !defined (__APPLE__)
-#include <sys/sysinfo.h>
-#endif // ! __APPLE__
+//#if !defined (__APPLE__)
+//#include <sys/sysinfo.h>
+//#endif // ! __APPLE__
 #endif // _POSIX
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag);
