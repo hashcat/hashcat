@@ -24,6 +24,18 @@ fi
 # Sum of all exit codes
 ERRORS=0
 
+if [[ $EUID -ne 0 ]]; then
+    echo "need to run as root (sudo)"
+    exit 1
+fi
+
+
+if ! command -v cpanm >/dev/null 2>&1; then
+    echo "We need cpanm, it is not installed, use:"
+    echo "sudo apt install cpanminus"
+    exit 1
+fi
+
 echo "> Installing perl deps ..."
 
 if [ ${IS_APPLE} -eq 1 ]; then
