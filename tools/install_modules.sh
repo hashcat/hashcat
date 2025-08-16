@@ -21,33 +21,75 @@ if [ ${IS_APPLE} -eq 1 ]; then
   fi
 fi
 
-# Sum of all exit codes
-ERRORS=0
-
-if [[ $EUID -ne 0 ]]; then
-    echo "need to run as root (sudo)"
-    exit 1
-fi
-
-
 if ! command -v cpanm >/dev/null 2>&1; then
     echo "We need cpanm, it is not installed, use:"
     echo "sudo apt install cpanminus"
     exit 1
 fi
 
-echo "> Installing perl deps ..."
+
+# checks for pyenv
+
+pyenv_enabled=0
+
+which pyenv &>/dev/null
+if [ $? -eq 0 ]; then
+
+  if [[ $(pyenv version-name) != "system" ]]; then
+
+    # active session detected
+    pyenv_enabled=1
+
+  else
+
+    # enum last version available
+    latest=$(pyenv install --list | grep -E "^\s*3\.[0-9]+\.[0-9]$" | tail -n 1)
+
+    if [ $IS_APPLE -eq 1 ]; then
+      if [ $IS_APPLE_SILICON -eq 0 ]; then
+        # workaround but with pyenv and Apple Intel with brew binutils in path
+        remove_path="$(brew --prefix)/opt/binutils/bin"
+        PATH=$(echo "$PATH" | tr ':' '\n' | awk '$0 != "${remove_path}"' | xargs | sed 's/ /:/g')
+        export $PATH
+      fi
+    fi
+
+    # install the latest version or skip it if it is already present
+    pyenv install -s ${latest}
+
+    # enable
+    pyenv local $latest
+    if [ $? -eq 0 ]; then
+      pyenv_enabled=1
+    fi
+
+  fi
+fi
+
+if [ ${pyenv_enabled} -eq 0 ]; then
+  echo "! something is wrong with pyenv. Please install latest pyenv version and re-run this script:"
+  echo "curl https://pyenv.run | bash"
+  echo 'pyenv install $(pyenv install --list | grep -E "^\s*3\.[0-9]+\.[0-9]$" | tail -n 1)'
+  echo 'pyenv local $(pyenv install --list | grep -E "^\s*3\.[0-9]+\.[0-9]$" | tail -n 1)'
+  echo 'pip install --upgrade pip'
+  exit 1
+fi
+
+# Sum of all exit codes
+ERRORS=0
+
+echo "> Installing perl deps ... (we need root for that)"
 
 if [ ${IS_APPLE} -eq 1 ]; then
   # workaround for test failed with Net::SSLeay on Apple
-  cpanm --notest Net::SSLeay
+  sudo cpanm --notest Net::SSLeay
 else
-  cpanm Net::SSLeay
+  sudo cpanm Net::SSLeay
 fi
 
 ERRORS=$((ERRORS+$?))
 
-cpanm Authen::Passphrase::LANManager   \
+sudo cpanm Authen::Passphrase::LANManager   \
       Authen::Passphrase::MySQL323     \
       Authen::Passphrase::NTHash       \
       Authen::Passphrase::PHPass       \
@@ -112,78 +154,32 @@ cpanm Authen::Passphrase::LANManager   \
 
 ERRORS=$((ERRORS+$?))
 
-cpanm https://github.com/matrix/p5-Digest-BLAKE2.git
+sudo cpanm https://github.com/matrix/p5-Digest-BLAKE2.git
 ERRORS=$((ERRORS+$?))
 
-cpanm https://github.com/matrix/digest-gost.git
+sudo cpanm https://github.com/matrix/digest-gost.git
 ERRORS=$((ERRORS+$?))
 
-cpanm https://github.com/matrix/perl-Crypt-OpenSSL-EC.git
+sudo cpanm https://github.com/matrix/perl-Crypt-OpenSSL-EC.git
 ERRORS=$((ERRORS+$?))
 
-# checks for pyenv
 
-pyenv_enabled=0
+echo "> Installing python3 deps ..."
 
-which pyenv &>/dev/null
-if [ $? -eq 0 ]; then
+pip3 install git+https://github.com/matrix/pygost
+ERRORS=$((ERRORS+$?))
 
-  if [[ $(pyenv version-name) != "system" ]]; then
+pip3 install pycryptoplus
+ERRORS=$((ERRORS+$?))
 
-    # active session detected
-    pyenv_enabled=1
+pip3 install pycryptodome
+ERRORS=$((ERRORS+$?))
 
-  else
+pip3 install cryptography
+ERRORS=$((ERRORS+$?))
 
-    # enum last version available
-    latest=$(pyenv install --list | grep -E "^\s*3\.[0-9]+\.[0-9]$" | tail -n 1)
-
-    if [ $IS_APPLE -eq 1 ]; then
-      if [ $IS_APPLE_SILICON -eq 0 ]; then
-        # workaround but with pyenv and Apple Intel with brew binutils in path
-        remove_path="$(brew --prefix)/opt/binutils/bin"
-        PATH=$(echo "$PATH" | tr ':' '\n' | awk '$0 != "${remove_path}"' | xargs | sed 's/ /:/g')
-        export $PATH
-      fi
-    fi
-
-    # install the latest version or skip it if it is already present
-    pyenv install -s ${latest}
-
-    # enable
-    pyenv local $latest
-    if [ $? -eq 0 ]; then
-      pyenv_enabled=1
-    fi
-
-  fi
-fi
-
-if [ ${pyenv_enabled} -eq 0 ]; then
-
-  echo "! something is wrong with pyenv. Please setup latest version manually and re-run this script."
-  (( ERRORS++ ))
-
-else
-
-  echo "> Installing python3 deps ..."
-
-  pip3 install git+https://github.com/matrix/pygost
-  ERRORS=$((ERRORS+$?))
-
-  pip3 install pycryptoplus
-  ERRORS=$((ERRORS+$?))
-
-  pip3 install pycryptodome
-  ERRORS=$((ERRORS+$?))
-
-  pip3 install cryptography
-  ERRORS=$((ERRORS+$?))
-
-  pip3 install setuptools
-  ERRORS=$((ERRORS+$?))
-
-fi
+pip3 install setuptools
+ERRORS=$((ERRORS+$?))
 
 echo
 
