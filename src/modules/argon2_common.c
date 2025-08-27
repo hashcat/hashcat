@@ -64,7 +64,12 @@ const char *argon2_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - (fixed_mem + spill_mem);
 
-  const u32 kernel_accel_max = (device_param->device_host_unified_memory == true) ? (available_mem / 2) / size_per_accel : available_mem / size_per_accel;
+  u32 kernel_accel_max = (kernel_accel_user>0) ? kernel_accel_user : 1;
+
+  if (size_per_accel>0)
+  {
+     kernel_accel_max = (device_param->device_host_unified_memory == true) ? (available_mem / 2) / size_per_accel : available_mem / size_per_accel;
+  }
 
   u32 kernel_accel_new = device_processors;
 
