@@ -18,6 +18,10 @@
 #include M2S(INCLUDE_PATH/inc_cipher_aes.cl)
 #endif
 
+#ifndef ARGON2_PARALLELISM
+#define ARGON2_PARALLELISM 0
+#endif
+
 #define LUKS_STRIPES    (                                   4000)
 #define LUKS_CT_LEN     (                                    512)
 #define LUKS_AF_MAX_LEN (HC_LUKS_KEY_SIZE_512 / 8 * LUKS_STRIPES)
@@ -149,7 +153,7 @@ KERNEL_FQ KERNEL_FA void m34100_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, merged_o
   const u32 argon2_thread = get_local_id (0);
   const u32 argon2_lsz = get_local_size (0);
 
-  #ifdef ARGON2_PARALLELISM
+  #if ARGON2_PARALLELISM > 0
   LOCAL_VK u64 shuffle_bufs[ARGON2_PARALLELISM][32];
   #else
   LOCAL_VK u64 shuffle_bufs[32][32];
@@ -177,7 +181,7 @@ KERNEL_FQ KERNEL_FA void m34100_loop (KERN_ATTR_TMPS_ESALT (luks_tmp_t, merged_o
   #ifdef IS_APPLE
   // it doesn't work on Apple, so we won't set it up
   #else
-  #ifdef ARGON2_PARALLELISM
+  #if ARGON2_PARALLELISM > 0
   argon2_options.parallelism = ARGON2_PARALLELISM;
   #endif
   #endif

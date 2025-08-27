@@ -14,6 +14,10 @@
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)
 #define COMPARE_M M2S(INCLUDE_PATH/inc_comp_multi.cl)
 
+#ifndef ARGON2_PARALLELISM
+#define ARGON2_PARALLELISM 0
+#endif
+
 typedef struct argon2_tmp
 {
   u32 state[4];
@@ -64,7 +68,7 @@ KERNEL_FQ KERNEL_FA void m34000_loop (KERN_ATTR_TMPS_ESALT (argon2_tmp_t, merged
   const u32 argon2_thread = get_local_id (0);
   const u32 argon2_lsz = get_local_size (0);
 
-  #ifdef ARGON2_PARALLELISM
+  #if ARGON2_PARALLELISM > 0
   LOCAL_VK u64 shuffle_bufs[ARGON2_PARALLELISM][32];
   #else
   LOCAL_VK u64 shuffle_bufs[32][32];
@@ -92,7 +96,7 @@ KERNEL_FQ KERNEL_FA void m34000_loop (KERN_ATTR_TMPS_ESALT (argon2_tmp_t, merged
   #ifdef IS_APPLE
   // it doesn't work on Apple, so we won't set it up
   #else
-  #ifdef ARGON2_PARALLELISM
+  #if ARGON2_PARALLELISM > 0
   argon2_options.parallelism = ARGON2_PARALLELISM;
   #endif
   #endif
