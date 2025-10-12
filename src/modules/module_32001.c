@@ -39,7 +39,7 @@ static const u32 HASH_CATEGORY = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
 static const char *HASH_NAME = "BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)";
 static const u64 KERN_TYPE = 32001;
 static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE;
+static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_LOOP | OPTS_TYPE_HOOK23;
 static const u32 SALT_TYPE = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS = "testpass";
 static const char *ST_HASH = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about:33747aCmUp8PkWmWWY8epR1Cph8Tf9Aozt:m/49'/0'/0'/0/0";
@@ -56,6 +56,7 @@ static const char *ST_HASH = "abandon abandon abandon abandon abandon abandon ab
 #define BIP39_MAX_DYNAMIC_SEGMENTS      4u
 #define BIP39_MAX_DYNAMIC_VALUES        256u
 #define BIP39_MAX_DYNAMIC_RANGE_SPAN  4096u
+#define BIP39_MAX_PASSPHRASE_LEN      256u
 
 typedef struct bip39_dynamic_segment
 {
@@ -67,6 +68,29 @@ typedef struct bip39_dynamic_segment
   u32 step;
   u32 values_offset;
 } bip39_dynamic_segment_t;
+
+static bool env_flag_is_enabled (const char *value)
+{
+  if (value == 0)
+  {
+    return false;
+  }
+
+  while ((*value == ' ') || (*value == '\t'))
+  {
+    value++;
+  }
+
+  const bool has_value = (*value != '\0');
+  const bool equals_zero = ((*value == '0') && (value[1] == '\0'));
+
+  if (has_value == false)
+  {
+    return false;
+  }
+
+  return (equals_zero == false);
+}
 
 u32 module_attack_exec (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -151,6 +175,7 @@ typedef struct bip39_skeleton
   u32 path_kind[BIP39_MAX_PATH_DEPTH];
   u32 path_dynamic_count;
   u32 dynamic_value_total;
+  u64 path_combo_total;
   bip39_dynamic_segment_t dynamic_segments[BIP39_MAX_DYNAMIC_SEGMENTS];
   u32 dynamic_values[BIP39_MAX_DYNAMIC_VALUES];
   u32 target_hash[5];
@@ -170,145 +195,33 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 
 typedef struct bip39_tmp
 {
+  u64 seed[8];
   u64 master[8];
   u32 script_hash[5];
   u32 derived_ready;
+  u32 master_ready;
+  u32 debug_loop_pos;
+  u32 debug_loop_cnt;
+  u64 debug_combo_idx;
+  u64 debug_combo_total;
+
 } bip39_tmp_t;
+
+typedef struct bip39_hook
+{
+  u32 debug_loop_pos;
+  u32 debug_loop_cnt;
+  u64 debug_combo_idx;
+  u64 debug_combo_total;
+  u32 reserved;
+  u32 reserved_extra0;
+  u32 reserved_extra1;
+  u32 reserved_extra2;
+} bip39_hook_t;
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return (u64) sizeof (bip39_tmp_t);
-}
-
-static bool bip39_utf8_decode (const u8 *ptr, const u8 *end, u32 *codepoint, const u8 **next)
-{
-  if (ptr >= end)
-    return false;
-
-  const u8 b0 = ptr[0];
-
-  if (b0 < 0x80)
-  {
-    *codepoint = (u32) b0;
-    *next = ptr + 1;
-    return true;
-  }
-
-  if ((b0 & 0xe0) == 0xc0)
-  {
-    if ((ptr + 1) >= end)
-      return false;
-
-    const u8 b1 = ptr[1];
-
-    if ((b1 & 0xc0) != 0x80)
-      return false;
-
-    const u32 cp = ((u32) (b0 & 0x1f) << 6) | (u32) (b1 & 0x3f);
-
-    if (cp < 0x80)
-      return false;             // overlong
-
-    *codepoint = cp;
-    *next = ptr + 2;
-    return true;
-  }
-
-  if ((b0 & 0xf0) == 0xe0)
-  {
-    if ((ptr + 2) >= end)
-      return false;
-
-    const u8 b1 = ptr[1];
-    const u8 b2 = ptr[2];
-
-    if (((b1 & 0xc0) != 0x80) || ((b2 & 0xc0) != 0x80))
-      return false;
-
-    const u32 cp = ((u32) (b0 & 0x0f) << 12) | ((u32) (b1 & 0x3f) << 6) | (u32) (b2 & 0x3f);
-
-    if (cp < 0x800)
-      return false;             // overlong
-    if ((cp >= 0xd800) && (cp <= 0xdfff))
-      return false;             // surrogate half
-
-    *codepoint = cp;
-    *next = ptr + 3;
-    return true;
-  }
-
-  if ((b0 & 0xf8) == 0xf0)
-  {
-    if ((ptr + 3) >= end)
-      return false;
-
-    const u8 b1 = ptr[1];
-    const u8 b2 = ptr[2];
-    const u8 b3 = ptr[3];
-
-    if (((b1 & 0xc0) != 0x80) || ((b2 & 0xc0) != 0x80) || ((b3 & 0xc0) != 0x80))
-      return false;
-
-    const u32 cp = ((u32) (b0 & 0x07) << 18) | ((u32) (b1 & 0x3f) << 12) | ((u32) (b2 & 0x3f) << 6) | (u32) (b3 & 0x3f);
-
-    if ((cp < 0x10000) || (cp > 0x10ffff))
-      return false;
-
-    *codepoint = cp;
-    *next = ptr + 4;
-    return true;
-  }
-
-  return false;
-}
-
-static bool bip39_utf8_encode (const u32 codepoint, u8 *out, const u32 capacity, u32 *written)
-{
-  if (codepoint < 0x80)
-  {
-    if (capacity < 1)
-      return false;
-    out[0] = (u8) codepoint;
-    *written = 1;
-    return true;
-  }
-
-  if (codepoint < 0x800)
-  {
-    if (capacity < 2)
-      return false;
-    out[0] = (u8) (0xc0 | (codepoint >> 6));
-    out[1] = (u8) (0x80 | (codepoint & 0x3f));
-    *written = 2;
-    return true;
-  }
-
-  if (codepoint < 0x10000)
-  {
-    if ((codepoint >= 0xd800) && (codepoint <= 0xdfff))
-      return false;
-    if (capacity < 3)
-      return false;
-    out[0] = (u8) (0xe0 | (codepoint >> 12));
-    out[1] = (u8) (0x80 | ((codepoint >> 6) & 0x3f));
-    out[2] = (u8) (0x80 | (codepoint & 0x3f));
-    *written = 3;
-    return true;
-  }
-
-  if (codepoint <= 0x10ffff)
-  {
-    if (capacity < 4)
-      return false;
-    out[0] = (u8) (0xf0 | (codepoint >> 18));
-    out[1] = (u8) (0x80 | ((codepoint >> 12) & 0x3f));
-    out[2] = (u8) (0x80 | ((codepoint >> 6) & 0x3f));
-    out[3] = (u8) (0x80 | (codepoint & 0x3f));
-    *written = 4;
-    return true;
-  }
-
-  return false;
 }
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -317,25 +230,451 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   const char *env = getenv ("BIP39_PROFILE");
 
-  if (env != NULL)
+  if (env_flag_is_enabled (env))
   {
-    while ((*env == ' ') || (*env == '\t'))
-      env++;
-
-    if (!((*env == '\0') || ((*env == '0') && (env[1] == '\0'))))
+    if (jit_build_options == 0)
     {
-      if (jit_build_options == NULL)
-      {
-        hc_asprintf (&jit_build_options, "-DBIP39_PROFILE=1");
-      }
-      else
-      {
-        char *tmp = NULL;
+      hc_asprintf (&jit_build_options, "-DBIP39_PROFILE=1");
+    }
+    else
+    {
+      char *tmp = NULL;
 
-        hc_asprintf (&tmp, "%s -DBIP39_PROFILE=1", jit_build_options);
-        hcfree (jit_build_options);
-        jit_build_options = tmp;
-      }
+      hc_asprintf (&tmp, "%s -DBIP39_PROFILE=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_debug = getenv ("BIP39_DEBUG_PRINT");
+
+  if (env_flag_is_enabled (env_debug))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DEBUG_PRINT=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DEBUG_PRINT=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_trim = getenv ("BIP39_DISABLE_SCRIPT_HASH");
+
+  if (env_flag_is_enabled (env_trim))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_SCRIPT_HASH=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_SCRIPT_HASH=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_sha_small = getenv ("BIP39_DISABLE_SHA256_SMALL");
+
+  if (env_flag_is_enabled (env_sha_small))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_SHA256_SMALL=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_SHA256_SMALL=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_pubhash = getenv ("BIP39_DISABLE_PUBKEY_HASH");
+
+  if (env_flag_is_enabled (env_pubhash))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PUBKEY_HASH=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PUBKEY_HASH=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_point_mul = getenv ("BIP39_DISABLE_POINT_MUL");
+
+  if (env_flag_is_enabled (env_point_mul))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_POINT_MUL=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_POINT_MUL=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_key_hashes = getenv ("BIP39_DISABLE_KEY_HASHES");
+
+  if (env_flag_is_enabled (env_key_hashes))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_KEY_HASHES=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_KEY_HASHES=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_keyhash_after_point = getenv ("BIP39_DISABLE_KEY_HASHES_AFTER_POINT");
+
+  if (env_flag_is_enabled (env_keyhash_after_point))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_KEY_HASHES_AFTER_POINT=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_KEY_HASHES_AFTER_POINT=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_keyhash_after_pub = getenv ("BIP39_DISABLE_KEY_HASHES_AFTER_PUB");
+
+  if (env_flag_is_enabled (env_keyhash_after_pub))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_KEY_HASHES_AFTER_PUB=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_KEY_HASHES_AFTER_PUB=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_keyhash_after_pub_sha = getenv ("BIP39_DISABLE_KEY_HASHES_AFTER_PUB_SHA");
+
+  if (env_flag_is_enabled (env_keyhash_after_pub_sha))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_KEY_HASHES_AFTER_PUB_SHA=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_KEY_HASHES_AFTER_PUB_SHA=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_pbkdf2 = getenv ("BIP39_DISABLE_PBKDF2");
+
+  if (env_flag_is_enabled (env_pbkdf2))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PBKDF2=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PBKDF2=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_bip32 = getenv ("BIP39_DISABLE_BIP32_MASTER");
+
+  if (env_flag_is_enabled (env_bip32))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_BIP32_MASTER=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_BIP32_MASTER=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_path = getenv ("BIP39_DISABLE_PATH_DERIVE");
+
+  if (env_flag_is_enabled (env_path))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_DERIVE=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_DERIVE=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_init_stub = getenv ("BIP39_DISABLE_INIT_BODY");
+
+  if (env_flag_is_enabled (env_init_stub))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_INIT_BODY=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_INIT_BODY=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_loop_stub = getenv ("BIP39_DISABLE_LOOP_BODY");
+
+  if (env_flag_is_enabled (env_loop_stub))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_LOOP_BODY=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_LOOP_BODY=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_minimal = getenv ("BIP39_MINIMAL_KERNEL");
+
+  if (env_flag_is_enabled (env_minimal))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_MINIMAL_KERNEL=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_MINIMAL_KERNEL=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_after_pass = getenv ("BIP39_DISABLE_INIT_AFTER_PASSPHRASE");
+
+  if (env_flag_is_enabled (env_after_pass))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_INIT_AFTER_PASSPHRASE=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_INIT_AFTER_PASSPHRASE=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_after_pbkdf = getenv ("BIP39_DISABLE_INIT_AFTER_PBKDF2");
+
+  if (env_flag_is_enabled (env_after_pbkdf))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_INIT_AFTER_PBKDF2=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_INIT_AFTER_PBKDF2=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_after_bip32 = getenv ("BIP39_DISABLE_INIT_AFTER_BIP32");
+
+  if (env_flag_is_enabled (env_after_bip32))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_INIT_AFTER_BIP32=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_INIT_AFTER_BIP32=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_path_child = getenv ("BIP39_DISABLE_PATH_CHILDREN");
+
+  if (env_flag_is_enabled (env_path_child))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_CHILDREN=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_CHILDREN=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_path_match = getenv ("BIP39_DISABLE_PATH_MATCH");
+
+  if (env_flag_is_enabled (env_path_match))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_MATCH=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_MATCH=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_path_iter = getenv ("BIP39_DISABLE_PATH_ITER");
+
+  if (env_flag_is_enabled (env_path_iter))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_ITER=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_ITER=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_path_block = getenv ("BIP39_DISABLE_PATH_BLOCK");
+
+  if (env_flag_is_enabled (env_path_block))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_BLOCK=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_BLOCK=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_path_dynamic = getenv ("BIP39_DISABLE_DYNAMIC_SECTION");
+
+  if (env_flag_is_enabled (env_path_dynamic))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_DYNAMIC_SECTION=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_DYNAMIC_SECTION=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
+    }
+  }
+
+  const char *env_path_static = getenv ("BIP39_DISABLE_PATH_STATIC");
+
+  if (env_flag_is_enabled (env_path_static))
+  {
+    if (jit_build_options == 0)
+    {
+      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_STATIC=1");
+    }
+    else
+    {
+      char *tmp = NULL;
+
+      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_STATIC=1", jit_build_options);
+      hcfree (jit_build_options);
+      jit_build_options = tmp;
     }
   }
 
@@ -555,7 +894,7 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
     {
       const char *closing = strchr (cursor, '}');
 
-      if (closing == NULL)
+      if (closing == 0)
         return false;
 
       const char *body_start = cursor + 1;
@@ -600,7 +939,7 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
       {
         const char *dash = strchr (body_start, '-');
 
-        if ((dash == NULL) || (dash >= body_end))
+        if ((dash == 0) || (dash >= body_end))
           return false;
 
         u32 start_value = 0;
@@ -946,6 +1285,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   memset (bip39->path_kind, 0, sizeof (bip39->path_kind));
   bip39->path_dynamic_count = 0;
   bip39->dynamic_value_total = 0;
+  bip39->path_combo_total = 0ULL;
   memset (bip39->dynamic_segments, 0, sizeof (bip39->dynamic_segments));
   memset (bip39->dynamic_values, 0, sizeof (bip39->dynamic_values));
   memset (bip39->target_hash, 0, sizeof (bip39->target_hash));
@@ -1031,7 +1371,44 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   }
 #endif
 
-  salt->salt_iter = 0;
+  u64 combo_total = 1;
+
+  if (bip39->path_dynamic_count > 0)
+  {
+    for (u32 i = 0; i < bip39->path_dynamic_count; i++)
+    {
+      const u32 segment_count = bip39->dynamic_segments[i].count;
+
+      if (segment_count == 0)
+      {
+        combo_total = 0;
+        break;
+      }
+
+      if (combo_total > (0xffffffffffffffffULL / segment_count))
+      {
+        combo_total = 0xffffffffffffffffULL;
+        break;
+      }
+
+      combo_total *= (u64) segment_count;
+    }
+  }
+
+  if (combo_total == 0)
+  {
+    combo_total = 1;
+  }
+
+  bip39->path_combo_total = combo_total;
+
+  if (bip39->path_combo_total == 0)
+  {
+    bip39->path_combo_total = 1;
+  }
+
+  salt->salt_iter = (bip39->path_combo_total >= 0xffffffffULL) ? 0xffffffffu : (u32) bip39->path_combo_total;
+  salt->salt_iter2 = 0;
   salt->salt_len = 0;
 
   digest[0] = 0;
@@ -1125,7 +1502,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   return PARSER_OK;
 }
 
-int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const void *digest_buf, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, const int line_size)
+int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, const int line_size)
 {
   const bip39_skeleton_t *bip39 = (const bip39_skeleton_t *) esalt_buf;
 
@@ -1135,6 +1512,183 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const void 
                                  (const char *) bip39->path);
 
   return line_len;
+}
+
+int module_hash_encode_status (const hashconfig_t *hashconfig, const void *digest_buf, const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, const int line_size)
+{
+  int line_len = module_hash_encode (hashconfig, digest_buf, salt, esalt_buf, NULL, NULL, line_buf, line_size);
+
+  if ((line_len < 0) || (line_len >= line_size))
+  {
+    return line_len;
+  }
+
+  const bip39_skeleton_t *bip39 = (const bip39_skeleton_t *) esalt_buf;
+
+  if (bip39 == 0)
+  {
+    return line_len;
+  }
+
+  const u64 combos = bip39->path_combo_total;
+
+  if (combos == 0)
+  {
+    return line_len;
+  }
+
+  const int remain = line_size - line_len;
+
+  const int extra = snprintf (line_buf + line_len, remain, " [combos=%llu]", (unsigned long long) combos);
+
+  if (extra >= remain)
+  {
+    // Truncated; ensure caller does not overrun
+    return line_size - 1;
+  }
+
+  return line_len + extra;
+}
+
+static u64 module_iterations_count (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf)
+{
+  const bip39_skeleton_t *bip39 = (const bip39_skeleton_t *) esalt_buf;
+
+  if (bip39 == 0)
+  {
+    return (u64) salt->salt_iter;
+  }
+
+  return bip39->path_combo_total;
+}
+
+u64 module_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u64 hook_size = (const u64) sizeof (bip39_hook_t);
+
+  return hook_size;
+}
+
+u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return BIP39_MAX_PASSPHRASE_LEN;
+}
+
+const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, MAYBE_UNUSED const u32 kernel_accel_user)
+{
+  hc_device_param_t *device_param = &backend_ctx->devices_param[device_id];
+
+  char *sanitized = hcstrdup (device_param->device_name ? device_param->device_name : "DEVICE");
+
+  for (size_t i = 0; sanitized[i] != '\0'; i++)
+  {
+    const unsigned char c = (const unsigned char) sanitized[i];
+
+    if (isalnum (c) == 0)
+    {
+      sanitized[i] = '_';
+    }
+  }
+
+  const size_t buf_sz = 512;
+  char *lines_buf = (char *) hcmalloc (buf_sz);
+
+  size_t offset = 0;
+
+  offset += snprintf (lines_buf + offset, buf_sz - offset, "# module_32001 tuningdb\n");
+
+  const u32 hash_mode = hashconfig->hash_mode;
+
+  if (device_param->is_cuda)
+  {
+    device_param->kernel_threads_max = MAX (device_param->kernel_threads_max, 1024);
+    device_param->kernel_accel_max = MAX (device_param->kernel_accel_max, 1024);
+
+    offset += snprintf (lines_buf + offset, buf_sz - offset, "%s * %u N A A\n", sanitized, hash_mode);
+    offset += snprintf (lines_buf + offset, buf_sz - offset, "CUDA * %u N A A\n", hash_mode);
+  }
+  else if ((device_param->is_opencl) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
+  {
+    offset += snprintf (lines_buf + offset, buf_sz - offset, "# NVIDIA OpenCL uses autotune defaults (%s)\n", sanitized);
+  }
+  else if ((device_param->is_opencl) && ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_BEIGNET)))
+  {
+    bool clamp_intel = true;
+
+    const char *env_intel_unclamp = getenv ("BIP39_ALLOW_INTEL_AUTOTUNE");
+
+    if (env_flag_is_enabled (env_intel_unclamp))
+    {
+      clamp_intel = false;
+    }
+
+    if (clamp_intel)
+    {
+      // Intel HD 630 driver (2025-10-12 harness sweep) survives autotune only when threads stay <= 32,
+      // accel <= 2, loops = 4. Clamp all Geometry knobs to the conservative configuration we run in CI.
+      device_param->kernel_threads_min = MAX (device_param->kernel_threads_min, 32);
+      device_param->kernel_threads_max = 32;
+      device_param->kernel_accel_min = MAX (device_param->kernel_accel_min, 2);
+      device_param->kernel_accel_max = 2;
+      device_param->kernel_loops_min = MAX (device_param->kernel_loops_min, 4);
+      device_param->kernel_loops_max = 4;
+
+      offset += snprintf (lines_buf + offset, buf_sz - offset, "%s * %u 32 2 4\n", sanitized, hash_mode);
+      offset += snprintf (lines_buf + offset, buf_sz - offset, "Intel * %u 32 2 4\n", hash_mode);
+    }
+    else
+    {
+      offset += snprintf (lines_buf + offset, buf_sz - offset, "# Intel OpenCL autotune unclamped for %s\n", sanitized);
+    }
+  }
+  else
+  {
+    offset += snprintf (lines_buf + offset, buf_sz - offset, "# no dynamic tuning for %s\n", sanitized);
+  }
+
+  hcfree (sanitized);
+
+  return lines_buf;
+}
+
+u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return KERNEL_THREADS_MAX;
+}
+
+u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return KERNEL_ACCEL_MAX;
+}
+
+u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return 1;
+}
+
+void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *hook_extra_param, MAYBE_UNUSED const void *hook_salts_buf, MAYBE_UNUSED const u32 salt_pos, const u64 pw_pos)
+{
+  // Check for either BIP39_DEBUG_PRINT or BIP39_DEBUG_HOOK
+  const char *env = getenv ("BIP39_DEBUG_HOOK");
+
+  if (env == 0)
+  {
+    env = getenv ("BIP39_DEBUG_PRINT");
+  }
+
+  if (env == 0)
+    return;
+
+  while ((*env == ' ') || (*env == '\t'))
+    env++;
+
+  if ((*env == '\0') || ((*env == '0') && (env[1] == '\0')))
+    return;
+
+  bip39_hook_t *hook_items = (bip39_hook_t *) device_param->hooks_buf;
+  bip39_hook_t *hook = &hook_items[pw_pos];
+
+  fprintf (stderr, "[m32001] hook23: loop_pos=%u loop_cnt=%u combo_idx=%llu combo_total=%llu\n", hook->debug_loop_pos, hook->debug_loop_cnt, (unsigned long long) hook->debug_combo_idx, (unsigned long long) hook->debug_combo_total);
 }
 
 void module_init (module_ctx_t *module_ctx)
@@ -1162,7 +1716,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_esalt_size = module_esalt_size;
   module_ctx->module_extra_buffer_size = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size = MODULE_DEFAULT;
-  module_ctx->module_extra_tuningdb_block = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block = module_extra_tuningdb_block;
   module_ctx->module_forced_outfile_format = MODULE_DEFAULT;
   module_ctx->module_hash_binary_count = MODULE_DEFAULT;
   module_ctx->module_hash_binary_parse = MODULE_DEFAULT;
@@ -1171,7 +1725,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hash_decode_potfile = MODULE_DEFAULT;
   module_ctx->module_hash_decode_zero_hash = MODULE_DEFAULT;
   module_ctx->module_hash_decode = module_hash_decode;
-  module_ctx->module_hash_encode_status = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_status = module_hash_encode_status;
   module_ctx->module_hash_encode_potfile = MODULE_DEFAULT;
   module_ctx->module_hash_encode = module_hash_encode;
   module_ctx->module_hash_init_selftest = MODULE_DEFAULT;
@@ -1185,16 +1739,16 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_extra_param_init = MODULE_DEFAULT;
   module_ctx->module_hook_extra_param_term = MODULE_DEFAULT;
   module_ctx->module_hook12 = MODULE_DEFAULT;
-  module_ctx->module_hook23 = MODULE_DEFAULT;
+  module_ctx->module_hook23 = module_hook23;
   module_ctx->module_hook_salt_size = MODULE_DEFAULT;
-  module_ctx->module_hook_size = MODULE_DEFAULT;
+  module_ctx->module_hook_size = module_hook_size;
   module_ctx->module_jit_build_options = module_jit_build_options;
   module_ctx->module_jit_cache_disable = MODULE_DEFAULT;
-  module_ctx->module_kernel_accel_max = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_max = module_kernel_accel_max;  // Returns KERNEL_ACCEL_MAX - no caps
   module_ctx->module_kernel_accel_min = MODULE_DEFAULT;
   module_ctx->module_kernel_loops_max = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_min = MODULE_DEFAULT;
-  module_ctx->module_kernel_threads_max = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_min = module_kernel_loops_min;
+  module_ctx->module_kernel_threads_max = module_kernel_threads_max;  // Returns KERNEL_THREADS_MAX - no caps
   module_ctx->module_kernel_threads_min = MODULE_DEFAULT;
   module_ctx->module_kern_type = module_kern_type;
   module_ctx->module_kern_type_dynamic = MODULE_DEFAULT;
@@ -1217,4 +1771,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_tmp_size = module_tmp_size;
   module_ctx->module_unstable_warning = MODULE_DEFAULT;
   module_ctx->module_warmup_disable = MODULE_DEFAULT;
+  module_ctx->module_iterations_count = module_iterations_count;
+  module_ctx->module_pw_max = module_pw_max;
 }
