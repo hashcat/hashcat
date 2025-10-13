@@ -1550,18 +1550,6 @@ int module_hash_encode_status (const hashconfig_t *hashconfig, const void *diges
   return line_len + extra;
 }
 
-static u64 module_iterations_count (MAYBE_UNUSED const hashconfig_t *hashconfig, const salt_t *salt, const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf)
-{
-  const bip39_skeleton_t *bip39 = (const bip39_skeleton_t *) esalt_buf;
-
-  if (bip39 == 0)
-  {
-    return (u64) salt->salt_iter;
-  }
-
-  return bip39->path_combo_total;
-}
-
 u64 module_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   const u64 hook_size = (const u64) sizeof (bip39_hook_t);
@@ -1760,7 +1748,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_disable = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes = MODULE_DEFAULT;
   module_ctx->module_pwdump_column = MODULE_DEFAULT;
-  module_ctx->module_pw_max = MODULE_DEFAULT;
   module_ctx->module_pw_min = MODULE_DEFAULT;
   module_ctx->module_salt_max = MODULE_DEFAULT;
   module_ctx->module_salt_min = MODULE_DEFAULT;
@@ -1771,6 +1758,5 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_tmp_size = module_tmp_size;
   module_ctx->module_unstable_warning = MODULE_DEFAULT;
   module_ctx->module_warmup_disable = MODULE_DEFAULT;
-  module_ctx->module_iterations_count = module_iterations_count;
   module_ctx->module_pw_max = module_pw_max;
 }
