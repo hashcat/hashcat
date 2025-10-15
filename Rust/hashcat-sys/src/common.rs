@@ -5,7 +5,7 @@ use std::{
 };
 
 /// convert an array of data of a given type T to a Vec<T>
-pub unsafe fn vec_from_raw_parts<T: Clone>(data: *const T, length: c_int) -> Result<Vec<T>> {
+pub fn vec_from_raw<T: Clone>(data: *const T, length: c_int) -> Result<Vec<T>> {
     if data.is_null() {
         Err(anyhow!("null pointer encountered in conversion to Vec<T>"))
     } else {
@@ -16,7 +16,7 @@ pub unsafe fn vec_from_raw_parts<T: Clone>(data: *const T, length: c_int) -> Res
 }
 
 /// convert a C char* to a Rust String
-pub unsafe fn string_from_ptr(ptr: *const c_char) -> Result<String> {
+pub fn string_from_ptr(ptr: *const c_char) -> Result<String> {
     if ptr.is_null() {
         Err(anyhow!("null pointer encountered in conversion to String"))
     } else {
