@@ -7,7 +7,7 @@ env:
   # Change to specific Rust release to pin
   rust_stable: stable
   rust_nightly: nightly-2025-01-25
-  rust_edition: '2021'
+  rust_edition: '2024'
   rust_clippy: '1.88'
   rust_min: '1.88'
 

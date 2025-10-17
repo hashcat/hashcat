@@ -2,7 +2,7 @@
  * Author......: See docs/credits.txt
  * License.....: MIT
  */
-use crate::interop::ThreadContext;
+use hashcat_sys::ThreadContext;
 use sha2::{Digest, Sha256};
 
 // Trailing zeroes are necessary.

@@ -11,13 +11,9 @@ use std::{
     sync::{Once, OnceLock},
 };
 
-use hashcat_sys::{
-    bridge_context_t,
-    common::{string_from_ptr, vec_from_raw},
-    generic_io_t, generic_io_tmp_t, salt_t,
-};
+use hashcat_sys::{ThreadContext, bridge_context_t, common::string_from_ptr, generic_io_tmp_t};
 
-use crate::{eval::EvalContext, parse, Expr};
+use crate::{Expr, eval::EvalContext, parse};
 
 thread_local! {
     static AST: OnceCell<Expr> = OnceCell::new();
@@ -26,75 +22,6 @@ thread_local! {
 static LOG_ERROR_ONCE: Once = Once::new();
 
 static INFO: OnceLock<&'static str> = OnceLock::new();
-
-#[repr(C)]
-pub(crate) struct ThreadContext {
-    pub module_name: String,
-
-    pub salts: Vec<salt_t>,
-    pub esalts: Vec<generic_io_t>,
-
-    pub bridge_parameter1: String,
-    pub bridge_parameter2: String,
-    pub bridge_parameter3: String,
-    pub bridge_parameter4: String,
-}
-
-impl ThreadContext {
-    fn get_raw_esalt(&self, salt_id: usize) -> &generic_io_t {
-        &self.esalts[salt_id]
-    }
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn new_context(
-    module_name: *const c_char,
-
-    salts_cnt: c_int,
-    salts_size: c_int,
-    salts_buf: *const c_char,
-
-    esalts_cnt: c_int,
-    esalts_size: c_int,
-    esalts_buf: *const c_char,
-
-    _st_salts_cnt: c_int,
-    _st_salts_size: c_int,
-    _st_salts_buf: *const c_char,
-
-    _st_esalts_cnt: c_int,
-    _st_esalts_size: c_int,
-    _st_esalts_buf: *const c_char,
-
-    bridge_parameter1: *const c_char,
-    bridge_parameter2: *const c_char,
-    bridge_parameter3: *const c_char,
-    bridge_parameter4: *const c_char,
-) -> *mut c_void {
-    assert!(!module_name.is_null());
-    assert!(!salts_buf.is_null());
-    assert!(!esalts_buf.is_null());
-    assert_eq!(salts_size as usize, mem::size_of::<salt_t>());
-    assert_eq!(esalts_size as usize, mem::size_of::<generic_io_t>());
-    let module_name = string_from_ptr(module_name).unwrap_or_default();
-    let salts = vec_from_raw(salts_buf as *const salt_t, salts_cnt).unwrap_or_default();
-    let esalts = vec_from_raw(esalts_buf as *const generic_io_t, esalts_cnt).unwrap_or_default();
-
-    let bridge_parameter1 = string_from_ptr(bridge_parameter1).unwrap_or_default();
-    let bridge_parameter2 = string_from_ptr(bridge_parameter2).unwrap_or_default();
-    let bridge_parameter3 = string_from_ptr(bridge_parameter3).unwrap_or_default();
-    let bridge_parameter4 = string_from_ptr(bridge_parameter4).unwrap_or_default();
-
-    Box::into_raw(Box::new(ThreadContext {
-        module_name,
-        salts,
-        esalts,
-        bridge_parameter1,
-        bridge_parameter2,
-        bridge_parameter3,
-        bridge_parameter4,
-    })) as *mut c_void
-}
 
 #[unsafe(no_mangle)]
 pub extern "C" fn drop_context(ctx: *mut c_void) {
@@ -174,7 +101,7 @@ pub extern "C" fn kernel_loop(
 }
 
 fn process_batch(ctx: &ThreadContext, io: &mut [generic_io_tmp_t], salt_id: usize) {
-    let esalt = ctx.get_raw_esalt(salt_id);
+    let esalt = ctx.get_raw_esalt(salt_id, false);
     let salt = unsafe {
         slice::from_raw_parts(
             esalt.salt_buf.as_ptr() as *const u8,
