@@ -84,6 +84,7 @@ static const struct option long_options[] =
   {"hwmon-temp-abort",          required_argument, NULL, IDX_HWMON_TEMP_ABORT},
   {"hash-copy",                 no_argument,       NULL, IDX_HASH_COPY},
   {"hash-info",                 no_argument,       NULL, IDX_HASH_INFO},
+  {"list-hash-modes",           no_argument,       NULL, IDX_LIST_HASH_MODES},
   {"hash-type",                 required_argument, NULL, IDX_HASH_MODE},
   {"hccapx-message-pair",       required_argument, NULL, IDX_HCCAPX_MESSAGE_PAIR},
   {"help",                      no_argument,       NULL, IDX_HELP},
@@ -247,6 +248,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->hwmon                     = HWMON;
   user_options->hwmon_temp_abort          = HWMON_TEMP_ABORT;
   user_options->hash_info                 = HASH_INFO;
+  user_options->list_hash_modes           = false;
   user_options->hash_mode                 = HASH_MODE;
   user_options->hccapx_message_pair       = HCCAPX_MESSAGE_PAIR;
   user_options->hex_charset               = HEX_CHARSET;
@@ -374,7 +376,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_SKIP:
       case IDX_LIMIT:
       case IDX_STATUS_TIMER:
-      case IDX_HASH_MODE:
       case IDX_RUNTIME:
       case IDX_METAL_COMPILER_RUNTIME:
       case IDX_ATTACK_MODE:
@@ -462,6 +463,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_INDUCTION_DIR:             user_options->induction_dir             = optarg;                          break;
       case IDX_OUTFILE_CHECK_DIR:         user_options->outfile_check_dir         = optarg;                          break;
       case IDX_HASH_INFO:                 user_options->hash_info++;                                                 break;
+      case IDX_LIST_HASH_MODES:           user_options->list_hash_modes            = true;                            break;
       case IDX_FORCE:                     user_options->force                     = true;                            break;
       case IDX_SELF_TEST_DISABLE:         user_options->self_test                 = false;                           break;
       case IDX_SKIP:                      user_options->skip                      = hc_strtoull (optarg, NULL, 10);
@@ -490,8 +492,30 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_LOOPBACK:                  user_options->loopback                  = true;                            break;
       case IDX_SESSION:                   user_options->session                   = optarg;
                                           user_options->session_chgd              = true;                            break;
-      case IDX_HASH_MODE:                 user_options->hash_mode                 = hc_strtoul (optarg, NULL, 10);
-                                          user_options->hash_mode_chgd            = true;                            break;
+      case IDX_HASH_MODE:
+        {
+          const u32 hash_mode = hash_mode_from_string (hashcat_ctx, optarg);
+
+          if (hash_mode == (u32) -1)
+          {
+            if (hc_string_is_digit (optarg) == false)
+            {
+              event_log_error (hashcat_ctx, "Invalid hash mode '%s' specified. Use --list-hash-modes to see available hash modes.", optarg);
+
+              return -1;
+            }
+            else
+            {
+              event_log_error (hashcat_ctx, "Invalid hash mode '%s' specified.", optarg);
+
+              return -1;
+            }
+          }
+
+          user_options->hash_mode      = hash_mode;
+          user_options->hash_mode_chgd = true;
+        }
+        break;
       case IDX_RUNTIME:                   user_options->runtime                   = hc_strtoul (optarg, NULL, 10);
                                           user_options->runtime_chgd              = true;                            break;
       case IDX_METAL_COMPILER_RUNTIME:    user_options->metal_compiler_runtime    = hc_strtoul (optarg, NULL, 10);
@@ -1811,6 +1835,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
   else if (user_options->hash_info > 0)
+  {
+    if (user_options->hc_argc == 0)
+    {
+      show_error = false;
+    }
+  }
+  else if (user_options->list_hash_modes == true)
   {
     if (user_options->hc_argc == 0)
     {

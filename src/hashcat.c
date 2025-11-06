@@ -1202,22 +1202,15 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
   user_options_session_auto (hashcat_ctx);
 
   /**
-   * event init (needed for logging so should be first)
-   */
-
-  if (event_ctx_init (hashcat_ctx) == -1) return -1;
-
-  /**
+   * event init (already initialized in main() before user_options_getopt)
    * status init
    */
 
   if (status_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
-   * folder
+   * folder (already initialized in main() before user_options_getopt)
    */
-
-  if (folder_config_init (hashcat_ctx, install_folder, shared_folder) == -1) return -1;
 
   /**
    * pidfile
@@ -1992,7 +1985,6 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
   debugfile_destroy           (hashcat_ctx);
   dictstat_destroy            (hashcat_ctx);
-  folder_config_destroy       (hashcat_ctx);
   hwmon_ctx_destroy           (hashcat_ctx);
   induct_ctx_destroy          (hashcat_ctx);
   logfile_destroy             (hashcat_ctx);
@@ -2008,7 +2000,6 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   user_options_destroy        (hashcat_ctx);
   user_options_extra_destroy  (hashcat_ctx);
   status_ctx_destroy          (hashcat_ctx);
-  event_ctx_destroy           (hashcat_ctx);
 
   return 0;
 }

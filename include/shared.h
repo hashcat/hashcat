@@ -139,4 +139,9 @@ size_t hc_memchr_avx512       (const u8 *ptr, int ch, size_t max_len);
 
 hc_memchr_t hc_memchr_get     (void);
 
+int build_hash_mode_map       (hashcat_ctx_t *hashcat_ctx);
+void destroy_hash_mode_map    (hashcat_ctx_t *hashcat_ctx);
+u32  hash_mode_from_string    (hashcat_ctx_t *hashcat_ctx, const char *str);
+void list_hash_modes          (hashcat_ctx_t *hashcat_ctx);
+
 #endif // HC_SHARED_H
