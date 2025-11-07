@@ -486,24 +486,6 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     }
   }
 
-  const char *env_minimal = getenv ("BIP39_MINIMAL_KERNEL");
-
-  if (env_flag_is_enabled (env_minimal))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_MINIMAL_KERNEL=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_MINIMAL_KERNEL=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
   const char *env_after_pass = getenv ("BIP39_DISABLE_INIT_AFTER_PASSPHRASE");
 
   if (env_flag_is_enabled (env_after_pass))

@@ -117,10 +117,6 @@
 #define BIP39_DISABLE_PATH_WALK 0
 #endif
 
-#ifndef BIP39_MINIMAL_KERNEL
-#define BIP39_MINIMAL_KERNEL 0
-#endif
-
 #ifndef M2S_HELPER
 #define M2S_HELPER(x) #x
 #define M2S(x) M2S_HELPER(x)
@@ -137,126 +133,6 @@
 #include M2S(INCLUDE_PATH/inc_hash_ripemd160.cl)
 #include M2S(INCLUDE_PATH/inc_ecc_secp256k1.cl)
 #endif
-
-#if BIP39_MINIMAL_KERNEL
-
-#define BIP39_MAX_PATH_DEPTH 16u
-
-typedef struct bip39_dynamic_segment
-{
-  u32 position;
-  u32 kind;
-  u32 count;
-  u32 start;
-  u32 end;
-  u32 step;
-  u32 values_offset;
-} bip39_dynamic_segment_t;
-
-typedef struct bip39_skeleton
-{
-  u32 mnemonic_len;
-  u32 address_len;
-  u32 path_len;
-  u32 path_depth;
-  u32 target_type;
-  u32 reserved;
-
-  u32 path_indices[BIP39_MAX_PATH_DEPTH];
-  u32 path_kind[BIP39_MAX_PATH_DEPTH];
-  u32 path_dynamic_count;
-  u32 dynamic_value_total;
-  u64 path_combo_total;
-  bip39_dynamic_segment_t dynamic_segments[4];
-  u32 dynamic_values[256];
-  u32 target_hash[5];
-
-  u8 mnemonic[1024];
-  u8 address[64];
-  u8 path[64];
-  u32 mnemonic_raw_len;
-  u8 mnemonic_raw[1024];
-
-} bip39_skeleton_t;
-
-typedef struct bip39_tmp
-{
-  u64 seed[8];
-  u64 master[8];
-  u32 script_hash[5];
-  u32 derived_ready;
-  u32 master_ready;
-} bip39_tmp_t;
-
-KERNEL_FQ void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
-{
-  const u64 gid = get_global_id (0);
-
-  if (gid >= GID_CNT)
-    return;
-
-  for (u32 i = 0; i < 8; i++)
-    tmps[gid].master[i] = 0;
-
-  for (u32 i = 0; i < 5; i++)
-    tmps[gid].script_hash[i] = 0;
-
-  tmps[gid].master_ready = 0;
-  tmps[gid].derived_ready = 0;
-}
-
-KERNEL_FQ void m36000_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
-{
-  const u64 gid = get_global_id (0);
-
-  if (gid >= GID_CNT)
-    return;
-}
-
-KERNEL_FQ void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
-{
-  const u64 gid = get_global_id (0);
-
-  if (gid >= GID_CNT)
-    return;
-}
-
-KERNEL_FQ void m36000_mxx (KERN_ATTR_ESALT (bip39_skeleton_t))
-{
-}
-
-KERNEL_FQ void m36000_sxx (KERN_ATTR_ESALT (bip39_skeleton_t))
-{
-}
-
-KERNEL_FQ void bip39_test_u1 (GLOBAL_AS const u8 *mnemonic, const u32 mnemonic_len, GLOBAL_AS const u8 *passphrase, const u32 passphrase_len, GLOBAL_AS u64 *out_digest)
-{
-  if (mnemonic_len > 0)
-    out_digest[0] = 0;
-}
-
-KERNEL_FQ void bip39_test_master (GLOBAL_AS const u8 *mnemonic, const u32 mnemonic_len, GLOBAL_AS const u8 *passphrase, const u32 passphrase_len, GLOBAL_AS u64 *out_seed, GLOBAL_AS u64 *out_master)
-{
-  if (mnemonic_len > 0)
-  {
-    out_seed[0] = 0;
-    out_master[0] = 0;
-  }
-}
-
-KERNEL_FQ void bip39_test_script_hash (GLOBAL_AS const u8 *mnemonic, const u32 mnemonic_len, GLOBAL_AS const u8 *passphrase, const u32 passphrase_len, GLOBAL_AS const u32 *path_indices, const u32 path_depth, GLOBAL_AS u32 *out_key_le, GLOBAL_AS u32 *out_hash, GLOBAL_AS u32 *out_status, GLOBAL_AS u32 *out_parent, GLOBAL_AS u32 *out_il)
-{
-  if (path_depth > 0)
-    out_status[0] = 0;
-}
-
-KERNEL_FQ void bip39_test_hmac (GLOBAL_AS const u32 *key_words, const u32 key_len, GLOBAL_AS const u32 *data_words, const u32 data_len, GLOBAL_AS u64 *out_digest)
-{
-  if (key_len > 0)
-    out_digest[0] = 0;
-}
-
-#else
 
 DECLSPEC u8 bip39_pw_get_byte (GLOBAL_AS const pw_t *pws_local, const u64 gid_local, const u32 idx)
 {
@@ -2979,7 +2855,6 @@ for (u32 i = 0; i < 8; i++)
 }
 #endif
 
-#endif // BIP39_MINIMAL_KERNEL
 #ifndef BIP39_DISABLE_PATH_ITER
 #define BIP39_DISABLE_PATH_ITER 0
 #endif
