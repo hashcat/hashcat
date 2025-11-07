@@ -39,7 +39,7 @@ static const u32 HASH_CATEGORY = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
 static const char *HASH_NAME = "BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)";
 static const u64 KERN_TYPE = 32001;
 static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_LOOP | OPTS_TYPE_HOOK23;
+static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_LOOP;
 static const u32 SALT_TYPE = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS = "testpass";
 static const char *ST_HASH = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about:33747aCmUp8PkWmWWY8epR1Cph8Tf9Aozt:m/49'/0'/0'/0/0";
@@ -206,18 +206,6 @@ typedef struct bip39_tmp
   u64 debug_combo_total;
 
 } bip39_tmp_t;
-
-typedef struct bip39_hook
-{
-  u32 debug_loop_pos;
-  u32 debug_loop_cnt;
-  u64 debug_combo_idx;
-  u64 debug_combo_total;
-  u32 reserved;
-  u32 reserved_extra0;
-  u32 reserved_extra1;
-  u32 reserved_extra2;
-} bip39_hook_t;
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -1550,13 +1538,6 @@ int module_hash_encode_status (const hashconfig_t *hashconfig, const void *diges
   return line_len + extra;
 }
 
-u64 module_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u64 hook_size = (const u64) sizeof (bip39_hook_t);
-
-  return hook_size;
-}
-
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return BIP39_MAX_PASSPHRASE_LEN;
@@ -1654,31 +1635,6 @@ u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   return 1;
 }
 
-void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *hook_extra_param, MAYBE_UNUSED const void *hook_salts_buf, MAYBE_UNUSED const u32 salt_pos, const u64 pw_pos)
-{
-  // Check for either BIP39_DEBUG_PRINT or BIP39_DEBUG_HOOK
-  const char *env = getenv ("BIP39_DEBUG_HOOK");
-
-  if (env == 0)
-  {
-    env = getenv ("BIP39_DEBUG_PRINT");
-  }
-
-  if (env == 0)
-    return;
-
-  while ((*env == ' ') || (*env == '\t'))
-    env++;
-
-  if ((*env == '\0') || ((*env == '0') && (env[1] == '\0')))
-    return;
-
-  bip39_hook_t *hook_items = (bip39_hook_t *) device_param->hooks_buf;
-  bip39_hook_t *hook = &hook_items[pw_pos];
-
-  fprintf (stderr, "[m32001] hook23: loop_pos=%u loop_cnt=%u combo_idx=%llu combo_total=%llu\n", hook->debug_loop_pos, hook->debug_loop_cnt, (unsigned long long) hook->debug_combo_idx, (unsigned long long) hook->debug_combo_total);
-}
-
 void module_init (module_ctx_t *module_ctx)
 {
   module_ctx->module_context_size = MODULE_CONTEXT_SIZE_CURRENT;
@@ -1727,9 +1683,9 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook_extra_param_init = MODULE_DEFAULT;
   module_ctx->module_hook_extra_param_term = MODULE_DEFAULT;
   module_ctx->module_hook12 = MODULE_DEFAULT;
-  module_ctx->module_hook23 = module_hook23;
+  module_ctx->module_hook23 = MODULE_DEFAULT;
   module_ctx->module_hook_salt_size = MODULE_DEFAULT;
-  module_ctx->module_hook_size = module_hook_size;
+  module_ctx->module_hook_size = MODULE_DEFAULT;
   module_ctx->module_jit_build_options = module_jit_build_options;
   module_ctx->module_jit_cache_disable = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max = module_kernel_accel_max;  // Returns KERNEL_ACCEL_MAX - no caps

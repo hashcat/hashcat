@@ -186,23 +186,7 @@ typedef struct bip39_tmp
   u32 script_hash[5];
   u32 derived_ready;
   u32 master_ready;
-  u32 debug_loop_pos;
-  u32 debug_loop_cnt;
-  u64 debug_combo_idx;
-  u64 debug_combo_total;
 } bip39_tmp_t;
-
-typedef struct bip39_hook
-{
-  u32 debug_loop_pos;
-  u32 debug_loop_cnt;
-  u64 debug_combo_idx;
-  u64 debug_combo_total;
-  u32 reserved;
-  u32 reserved_extra0;
-  u32 reserved_extra1;
-  u32 reserved_extra2;
-} bip39_hook_t;
 
 KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
@@ -219,42 +203,14 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 
   tmps[gid].master_ready = 0;
   tmps[gid].derived_ready = 0;
-  tmps[gid].debug_combo_idx = 0;
-  tmps[gid].debug_combo_total = 0;
 }
 
-KERNEL_FQ void m32001_loop (KERN_ATTR_TMPS_HOOKS_ESALT (bip39_tmp_t, bip39_hook_t, bip39_skeleton_t))
+KERNEL_FQ void m32001_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT)
     return;
-
-  hooks[gid].debug_loop_pos  = LOOP_POS;
-  hooks[gid].debug_loop_cnt  = LOOP_CNT;
-  hooks[gid].debug_combo_idx = 0;
-  hooks[gid].debug_combo_total = 0;
-  hooks[gid].reserved        = 0u;
-  hooks[gid].reserved_extra0 = 0u;
-  hooks[gid].reserved_extra1 = 0u;
-  hooks[gid].reserved_extra2 = 0u;
-}
-
-KERNEL_FQ KERNEL_FA void m32001_hook23 (KERN_ATTR_TMPS_HOOKS (bip39_tmp_t, bip39_hook_t))
-{
-  const u64 gid = get_global_id (0);
-
-  if (gid >= GID_CNT)
-    return;
-
-  hooks[gid].debug_loop_pos  = tmps[gid].debug_loop_pos;
-  hooks[gid].debug_loop_cnt  = tmps[gid].debug_loop_cnt;
-  hooks[gid].debug_combo_idx = tmps[gid].debug_combo_idx;
-  hooks[gid].debug_combo_total = tmps[gid].debug_combo_total;
-  hooks[gid].reserved        = 0u;
-  hooks[gid].reserved_extra0 = 0u;
-  hooks[gid].reserved_extra1 = 0u;
-  hooks[gid].reserved_extra2 = 0u;
 }
 
 KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
@@ -707,23 +663,7 @@ typedef struct bip39_tmp
   u32 script_hash[5];
   u32 derived_ready;
   u32 master_ready;
-  u32 debug_loop_pos;
-  u32 debug_loop_cnt;
-  u64 debug_combo_idx;
-  u64 debug_combo_total;
 } bip39_tmp_t;
-
-typedef struct bip39_hook
-{
-  u32 debug_loop_pos;
-  u32 debug_loop_cnt;
-  u32 debug_combo_idx;
-  u32 reserved;
-  u32 debug_combo_total;
-  u32 reserved_extra0;
-  u32 reserved_extra1;
-  u32 reserved_extra2;
-} bip39_hook_t;
 
 #define BIP39_SALT_PREFIX_LEN        8u
 #define BIP39_MAX_PASSPHRASE_LEN   256u
@@ -2046,8 +1986,6 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     tmps[gid].script_hash[i] = 0;
 
   tmps[gid].derived_ready = 0;
-  tmps[gid].debug_combo_total = esalt_bufs[DIGESTS_OFFSET_HOST].path_combo_total;
-  tmps[gid].debug_combo_idx = 0;
 }
 #elif BIP39_DISABLE_INIT_AFTER_PASSPHRASE
 KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
@@ -2063,8 +2001,6 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     tmps[gid].script_hash[i] = 0;
 
   tmps[gid].derived_ready = 0;
-  tmps[gid].debug_combo_total = esalt_bufs[DIGESTS_OFFSET_HOST].path_combo_total;
-  tmps[gid].debug_combo_idx = 0;
 
   return;
 }
@@ -2082,8 +2018,6 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     tmps[gid].script_hash[i] = 0;
 
   tmps[gid].derived_ready = 0;
-  tmps[gid].debug_combo_total = esalt_bufs[DIGESTS_OFFSET_HOST].path_combo_total;
-  tmps[gid].debug_combo_idx = 0;
 
   const u32 pw_len = 0;
   const u32 pass_len_raw = 0;
@@ -2118,8 +2052,6 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     tmps[gid].script_hash[i] = 0;
 
   tmps[gid].derived_ready = 0;
-  tmps[gid].debug_combo_total = esalt_bufs[DIGESTS_OFFSET_HOST].path_combo_total;
-  tmps[gid].debug_combo_idx = 0;
 
   const u32 pw_len = 0;
   const u32 pass_len_raw = 0;
@@ -2175,8 +2107,6 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     tmps[gid].script_hash[i] = 0;
 
   tmps[gid].derived_ready = 0;
-  tmps[gid].debug_combo_total = esalt_bufs[DIGESTS_OFFSET_HOST].path_combo_total;
-  tmps[gid].debug_combo_idx = 0;
 
   const u32 pw_len = pws[gid].pw_len;
   if (pw_len > BIP39_MAX_PASSPHRASE_LEN)
@@ -2556,13 +2486,11 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
           multiplier *= (u64) dynamic_segments[idx].count;
         }
 
-        tmps[gid].debug_combo_idx = combo_idx;
 
 #if BIP39_DEBUG_PRINT
         if (gid == 0)
         {
           printf("[m32001] init: combo_idx=%llu combo_total=%llu dynamic_cnt=%u\n",
-                 (ulong) combo_idx, (ulong) tmps[gid].debug_combo_total, dynamic_cnt);
         }
 #endif
 
@@ -2747,75 +2675,14 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 
 #endif
 
-KERNEL_FQ void m32001_loop (KERN_ATTR_TMPS_HOOKS_ESALT (bip39_tmp_t, bip39_hook_t, bip39_skeleton_t))
+KERNEL_FQ void m32001_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
   if (gid >= GID_CNT)
     return;
-
-#if BIP39_DISABLE_LOOP_BODY
-  hooks[gid].debug_loop_pos  = LOOP_POS;
-  hooks[gid].debug_loop_cnt  = LOOP_CNT;
-  hooks[gid].debug_combo_idx = tmps[gid].debug_combo_idx;
-  hooks[gid].debug_combo_total = tmps[gid].debug_combo_total;
-  hooks[gid].reserved        = 0u;
-  hooks[gid].reserved_extra0 = 0u;
-  hooks[gid].reserved_extra1 = 0u;
-  hooks[gid].reserved_extra2 = 0u;
-
-#if BIP39_DEBUG_PRINT
-  if (gid == 0)
-  {
-    printf("[m32001] loop: <disabled> loop_pos=%u loop_cnt=%u\n", LOOP_POS, LOOP_CNT);
-  }
-#endif
-
-  return;
-#else
-  const u64 combo_idx = tmps[gid].debug_combo_idx;
-
-  tmps[gid].debug_loop_pos = LOOP_POS;
-  tmps[gid].debug_loop_cnt = LOOP_CNT;
-  tmps[gid].debug_combo_idx = combo_idx;
-
-  hooks[gid].debug_loop_pos  = tmps[gid].debug_loop_pos;
-  hooks[gid].debug_loop_cnt  = tmps[gid].debug_loop_cnt;
-  hooks[gid].debug_combo_idx = combo_idx;
-  hooks[gid].debug_combo_total = tmps[gid].debug_combo_total;
-  hooks[gid].reserved        = 0u;
-  hooks[gid].reserved_extra0 = 0u;
-  hooks[gid].reserved_extra1 = 0u;
-  hooks[gid].reserved_extra2 = 0u;
-
-#if BIP39_DEBUG_PRINT
-  if (gid == 0)
-  {
-    printf("[m32001] loop: loop_pos=%u loop_cnt=%u combo_idx=%llu combo_total=%llu\n",
-           LOOP_POS, LOOP_CNT, (ulong) combo_idx, (ulong) tmps[gid].debug_combo_total);
-  }
-#endif
 
   // Monolithic path: no-op for skeleton implementation (work done in init)
-
-#endif // BIP39_DISABLE_LOOP_BODY
-}
-
-KERNEL_FQ KERNEL_FA void m32001_hook23 (KERN_ATTR_TMPS_HOOKS (bip39_tmp_t, bip39_hook_t))
-{
-  const u64 gid = get_global_id (0);
-
-  if (gid >= GID_CNT)
-    return;
-
-  hooks[gid].debug_loop_pos  = tmps[gid].debug_loop_pos;
-  hooks[gid].debug_loop_cnt  = tmps[gid].debug_loop_cnt;
-  hooks[gid].debug_combo_idx = tmps[gid].debug_combo_idx;
-  hooks[gid].debug_combo_total = tmps[gid].debug_combo_total;
-  hooks[gid].reserved        = 0u;
-  hooks[gid].reserved_extra0 = 0u;
-  hooks[gid].reserved_extra1 = 0u;
-  hooks[gid].reserved_extra2 = 0u;
 }
 
 KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
@@ -2835,7 +2702,6 @@ KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
   if (gid == 0)
   {
     printf("[m32001] comp: gid=%llu combo_idx=%llu derived_ready=%u\n",
-           gid, (ulong) tmps[gid].debug_combo_idx, tmps[gid].derived_ready);
   }
 #endif
 
