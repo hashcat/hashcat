@@ -1,3 +1,0 @@
-password
-testpass
-mypassphrase
