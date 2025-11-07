@@ -7,7 +7,7 @@
 // BIP39 Module Debug Control
 // ============================================================================
 // Set to 1 to enable verbose debug output for:
-// - Hash parsing ([m32001] messages)
+// - Hash parsing ([m36000] messages)
 // - Password loading ([pw_add] messages in wordlist.c)
 // - Path indices and target hashes
 // 
@@ -37,7 +37,7 @@ static const u32 DGST_POS3 = 3;
 static const u32 DGST_SIZE = DGST_SIZE_4_5;
 static const u32 HASH_CATEGORY = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
 static const char *HASH_NAME = "BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)";
-static const u64 KERN_TYPE = 32001;
+static const u64 KERN_TYPE = 36000;
 static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
 static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_LOOP;
 static const u32 SALT_TYPE = SALT_TYPE_EMBEDDED;
@@ -1352,10 +1352,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   }
 
 #if BIP39_MODULE_DEBUG
-  fprintf (stderr, "[m32001] parsed path depth: %u\n", bip39->path_depth);
+  fprintf (stderr, "[m36000] parsed path depth: %u\n", bip39->path_depth);
   for (u32 i = 0; i < bip39->path_depth; i++)
   {
-    fprintf (stderr, "[m32001] path index[%u]: %08x\n", i, bip39->path_indices[i]);
+    fprintf (stderr, "[m36000] path index[%u]: %08x\n", i, bip39->path_indices[i]);
   }
 #endif
 
@@ -1471,19 +1471,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
 #if BIP39_MODULE_DEBUG
   if (bip39->target_type == BIP39_TARGET_IL_HEX)
   {
-    fprintf (stderr, "[m32001] target digest il: %08x %08x %08x %08x\n", digest[0], digest[1], digest[2], digest[3]);
+    fprintf (stderr, "[m36000] target digest il: %08x %08x %08x %08x\n", digest[0], digest[1], digest[2], digest[3]);
   }
   else if (bip39->target_type == BIP39_TARGET_P2SH)
   {
-    fprintf (stderr, "[m32001] target script hash: %08x %08x %08x %08x %08x\n", bip39->target_hash[0], bip39->target_hash[1], bip39->target_hash[2], bip39->target_hash[3], bip39->target_hash[4]);
+    fprintf (stderr, "[m36000] target script hash: %08x %08x %08x %08x %08x\n", bip39->target_hash[0], bip39->target_hash[1], bip39->target_hash[2], bip39->target_hash[3], bip39->target_hash[4]);
   }
   else if (bip39->target_type == BIP39_TARGET_P2PKH)
   {
-    fprintf (stderr, "[m32001] target hash160: %08x %08x %08x %08x %08x\n", bip39->target_hash[0], bip39->target_hash[1], bip39->target_hash[2], bip39->target_hash[3], bip39->target_hash[4]);
+    fprintf (stderr, "[m36000] target hash160: %08x %08x %08x %08x %08x\n", bip39->target_hash[0], bip39->target_hash[1], bip39->target_hash[2], bip39->target_hash[3], bip39->target_hash[4]);
   }
   else if (bip39->target_type == BIP39_TARGET_P2WPKH)
   {
-    fprintf (stderr, "[m32001] target witness prog: %08x %08x %08x %08x %08x\n", bip39->target_hash[0], bip39->target_hash[1], bip39->target_hash[2], bip39->target_hash[3], bip39->target_hash[4]);
+    fprintf (stderr, "[m36000] target witness prog: %08x %08x %08x %08x %08x\n", bip39->target_hash[0], bip39->target_hash[1], bip39->target_hash[2], bip39->target_hash[3], bip39->target_hash[4]);
   }
 #endif
 
@@ -1564,7 +1564,7 @@ const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_U
 
   size_t offset = 0;
 
-  offset += snprintf (lines_buf + offset, buf_sz - offset, "# module_32001 tuningdb\n");
+  offset += snprintf (lines_buf + offset, buf_sz - offset, "# module_36000 tuningdb\n");
 
   const u32 hash_mode = hashconfig->hash_mode;
 

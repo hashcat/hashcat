@@ -188,7 +188,7 @@ typedef struct bip39_tmp
   u32 master_ready;
 } bip39_tmp_t;
 
-KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -205,7 +205,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
   tmps[gid].derived_ready = 0;
 }
 
-KERNEL_FQ void m32001_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -213,7 +213,7 @@ KERNEL_FQ void m32001_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     return;
 }
 
-KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -221,11 +221,11 @@ KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     return;
 }
 
-KERNEL_FQ void m32001_mxx (KERN_ATTR_ESALT (bip39_skeleton_t))
+KERNEL_FQ void m36000_mxx (KERN_ATTR_ESALT (bip39_skeleton_t))
 {
 }
 
-KERNEL_FQ void m32001_sxx (KERN_ATTR_ESALT (bip39_skeleton_t))
+KERNEL_FQ void m36000_sxx (KERN_ATTR_ESALT (bip39_skeleton_t))
 {
 }
 
@@ -1553,12 +1553,12 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   PRIVATE_AS u32 key_words_dbg[32];
 
   bip39_bytes_to_words_for_hmac (chain_bytes, 32, key_words_dbg, 32);
-  printf ("[m32001] chain words: %08x %08x %08x %08x %08x %08x %08x %08x\n", key_words_dbg[0], key_words_dbg[1], key_words_dbg[2], key_words_dbg[3], key_words_dbg[4], key_words_dbg[5], key_words_dbg[6], key_words_dbg[7]);
+  printf ("[m36000] chain words: %08x %08x %08x %08x %08x %08x %08x %08x\n", key_words_dbg[0], key_words_dbg[1], key_words_dbg[2], key_words_dbg[3], key_words_dbg[4], key_words_dbg[5], key_words_dbg[6], key_words_dbg[7]);
 
   PRIVATE_AS u32 data_words_dbg[32];
 
   bip39_bytes_to_words_for_hmac (data_bytes, data_len, data_words_dbg, 32);
-  printf ("[m32001] data words for index %08x (len %u): %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", index, data_len, data_words_dbg[0], data_words_dbg[1], data_words_dbg[2], data_words_dbg[3], data_words_dbg[4], data_words_dbg[5], data_words_dbg[6], data_words_dbg[7], data_words_dbg[8]);
+  printf ("[m36000] data words for index %08x (len %u): %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", index, data_len, data_words_dbg[0], data_words_dbg[1], data_words_dbg[2], data_words_dbg[3], data_words_dbg[4], data_words_dbg[5], data_words_dbg[6], data_words_dbg[7], data_words_dbg[8]);
 #endif
 
   bip39_hmac_sha512 (chain_bytes, 32u, data_bytes, data_len, hmac_bytes);
@@ -1570,7 +1570,7 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   bip39_bytes_to_words_for_hmac (chain_bytes, 32, key_words, 32);
 
 #if BIP39_DEBUG_PRINT
-  printf ("[m32001] chain words: %08x %08x %08x %08x %08x %08x %08x %08x\n", key_words[0], key_words[1], key_words[2], key_words[3], key_words[4], key_words[5], key_words[6], key_words[7]);
+  printf ("[m36000] chain words: %08x %08x %08x %08x %08x %08x %08x %08x\n", key_words[0], key_words[1], key_words[2], key_words[3], key_words[4], key_words[5], key_words[6], key_words[7]);
 #endif
 
   sha512_hmac_ctx_t ctx;
@@ -1582,7 +1582,7 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   bip39_bytes_to_words_for_hmac (data_bytes, data_len, data_words, 32);
 
 #if BIP39_DEBUG_PRINT
-  printf ("[m32001] data words for index %08x (len %u): %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", index, data_len, data_words[0], data_words[1], data_words[2], data_words[3], data_words[4], data_words[5], data_words[6], data_words[7], data_words[8]);
+  printf ("[m36000] data words for index %08x (len %u): %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", index, data_len, data_words[0], data_words[1], data_words[2], data_words[3], data_words[4], data_words[5], data_words[6], data_words[7], data_words[8]);
 #endif
 
   sha512_hmac_update_swap (&ctx, data_words, data_len);
@@ -1596,7 +1596,7 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   PRIVATE_AS const u8 *ir_bytes = hmac_bytes + 32;
 
 #if BIP39_DEBUG_PRINT
-  printf ("[m32001] IL bytes: ");
+  printf ("[m36000] IL bytes: ");
   for (u32 i = 0; i < 32; i++)
     printf ("%02x", il_bytes[i]);
   printf ("\n");
@@ -1605,7 +1605,7 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   if (bip39_il_ge_curve_n (il_bytes))
   {
 #if BIP39_DEBUG_PRINT
-    printf ("[m32001] IL >= n for index %08x\n", index);
+    printf ("[m36000] IL >= n for index %08x\n", index);
 #endif
 
     return 0;
@@ -1616,8 +1616,8 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   bip39_bytes_be32_to_words_le (il_bytes, il_le);
 
 #if BIP39_DEBUG_PRINT
-  printf ("[m32001] parent key words: %08x %08x %08x %08x %08x %08x %08x %08x\n", key_le[0], key_le[1], key_le[2], key_le[3], key_le[4], key_le[5], key_le[6], key_le[7]);
-  printf ("[m32001] IL words for index %08x: %08x %08x %08x %08x %08x %08x %08x %08x\n", index, il_le[0], il_le[1], il_le[2], il_le[3], il_le[4], il_le[5], il_le[6], il_le[7]);
+  printf ("[m36000] parent key words: %08x %08x %08x %08x %08x %08x %08x %08x\n", key_le[0], key_le[1], key_le[2], key_le[3], key_le[4], key_le[5], key_le[6], key_le[7]);
+  printf ("[m36000] IL words for index %08x: %08x %08x %08x %08x %08x %08x %08x %08x\n", index, il_le[0], il_le[1], il_le[2], il_le[3], il_le[4], il_le[5], il_le[6], il_le[7]);
 #endif
 
   if (il_debug != 0)
@@ -1633,7 +1633,7 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   if (bip39_scalar_is_zero (child_le))
   {
 #if BIP39_DEBUG_PRINT
-    printf ("[m32001] child key zero for index %08x\n", index);
+    printf ("[m36000] child key zero for index %08x\n", index);
 #endif
 
     return 0;
@@ -1645,14 +1645,14 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   bip39_words_le_to_bytes_be32 (key_le, key_bytes);
 
 #if BIP39_DEBUG_PRINT
-  printf ("[m32001] child key words: %08x %08x %08x %08x %08x %08x %08x %08x\n", child_le[0], child_le[1], child_le[2], child_le[3], child_le[4], child_le[5], child_le[6], child_le[7]);
+  printf ("[m36000] child key words: %08x %08x %08x %08x %08x %08x %08x %08x\n", child_le[0], child_le[1], child_le[2], child_le[3], child_le[4], child_le[5], child_le[6], child_le[7]);
 #endif
 
   for (u32 i = 0; i < 32; i++)
     chain_bytes[i] = ir_bytes[i];
 
 #if BIP39_DEBUG_PRINT
-  printf ("[m32001] derived child key for index %08x\n", index);
+  printf ("[m36000] derived child key for index %08x\n", index);
 #endif
 
   return 1;
@@ -1676,7 +1676,7 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] testpass key hash compute: <disabled>\n");
+    printf ("[m36000] testpass key hash compute: <disabled>\n");
   }
 #endif
 
@@ -1711,7 +1711,7 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] key-hash stage truncated after point multiply\n");
+    printf ("[m36000] key-hash stage truncated after point multiply\n");
   }
 #endif
 
@@ -1726,21 +1726,21 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] testpass point x:");
+    printf ("[m36000] testpass point x:");
     for (u32 i = 0; i < 8; i++)
     {
       printf (" %08x", x[i]);
     }
     printf ("\n");
 
-    printf ("[m32001] testpass point y:");
+    printf ("[m36000] testpass point y:");
     for (u32 i = 0; i < 8; i++)
     {
       printf (" %08x", y[i]);
     }
     printf ("\n");
 
-    printf ("[m32001] testpass pubkey:");
+    printf ("[m36000] testpass pubkey:");
     for (u32 i = 0; i < 33; i++)
       printf (" %02x", pub_bytes[i]);
     printf ("\n");
@@ -1763,7 +1763,7 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] key-hash stage truncated after pubkey bytes\n");
+    printf ("[m36000] key-hash stage truncated after pubkey bytes\n");
   }
 #endif
 
@@ -1793,7 +1793,7 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] testpass sha256(pubkey):");
+    printf ("[m36000] testpass sha256(pubkey):");
     for (u32 i = 0; i < 8; i++)
     {
       printf (" %08x", pub_sha[i]);
@@ -1810,7 +1810,7 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] testpass sha256(pubkey): <disabled>\n");
+    printf ("[m36000] testpass sha256(pubkey): <disabled>\n");
   }
 #endif
 #endif
@@ -1831,7 +1831,7 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] key-hash stage truncated after pubkey sha\n");
+    printf ("[m36000] key-hash stage truncated after pubkey sha\n");
   }
 #endif
 
@@ -1882,7 +1882,7 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] testpass script bytes:");
+    printf ("[m36000] testpass script bytes:");
     for (u32 i = 0; i < 22; i++)
       printf (" %02x", script_bytes[i]);
     printf ("\n");
@@ -1930,7 +1930,7 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] testpass final script hash:");
+    printf ("[m36000] testpass final script hash:");
     if (out_script_hash != 0)
     {
       for (u32 i = 0; i < 5; i++)
@@ -1960,8 +1960,8 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 #if BIP39_DEBUG_PRINT
   if (debug_dump)
   {
-    printf ("[m32001] testpass script bytes: <disabled>\n");
-    printf ("[m32001] testpass final script hash: <disabled>\n");
+    printf ("[m36000] testpass script bytes: <disabled>\n");
+    printf ("[m36000] testpass final script hash: <disabled>\n");
   }
 #endif
 #endif
@@ -1973,7 +1973,7 @@ DECLSPEC void bip39_compute_key_hashes (PRIVATE_AS const u32 *priv_le, PRIVATE_A
 
 #if BIP39_TEST_ONLY == 0
 #if BIP39_DISABLE_INIT_BODY
-KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -1988,7 +1988,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
   tmps[gid].derived_ready = 0;
 }
 #elif BIP39_DISABLE_INIT_AFTER_PASSPHRASE
-KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -2005,7 +2005,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
   return;
 }
 #elif BIP39_DISABLE_INIT_AFTER_PBKDF2
-KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -2039,7 +2039,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
   return;
 }
 #elif BIP39_DISABLE_INIT_AFTER_BIP32
-KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -2081,7 +2081,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
   return;
 }
 #else
-KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -2114,7 +2114,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 #if BIP39_DEBUG_PRINT
     if (gid == 0)
     {
-      printf("[m32001] passphrase too long (%u > %u); skipping candidate\n", pw_len, BIP39_MAX_PASSPHRASE_LEN);
+      printf("[m36000] passphrase too long (%u > %u); skipping candidate\n", pw_len, BIP39_MAX_PASSPHRASE_LEN);
     }
 #endif
     return;
@@ -2140,7 +2140,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 #if BIP39_DEBUG_PRINT
   if (gid == 5)
   {
-    printf ("\n[m32001] gid 5 passphrase len %u hex:", pass_len_raw);
+    printf ("\n[m36000] gid 5 passphrase len %u hex:", pass_len_raw);
     for (u32 i = 0; i < pass_len_raw; i++)
       printf (" %02x", bip39_pw_get_byte (pws, gid, i));
     printf (" ascii=\"");
@@ -2175,14 +2175,14 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 
     bip39_pbkdf2_u1_from_global ((GLOBAL_AS const u8 *) esalt_bufs[DIGESTS_OFFSET_HOST].mnemonic, esalt_bufs[DIGESTS_OFFSET_HOST].mnemonic_len, (GLOBAL_AS const u8 *) pws[gid].i, pass_len_raw, seed_check);
 
-    printf ("[m32001] testpass seed_check:");
+    printf ("[m36000] testpass seed_check:");
     for (u32 i = 0; i < 8; i++)
     {
       printf (" %08x%08x", h32_from_64_S (seed_check[i]), l32_from_64_S (seed_check[i]));
     }
     printf ("\n");
 #else
-    printf ("[m32001] testpass seed_check: <pbkdf2 disabled>\n");
+    printf ("[m36000] testpass seed_check: <pbkdf2 disabled>\n");
 #endif
   }
 #endif
@@ -2205,8 +2205,8 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 #if BIP39_DEBUG_PRINT
   if (is_testpass)
   {
-    printf ("[m32001] *** located testpass on gid %u (len %u) ***\n", (u32) gid, pass_len_raw);
-    printf ("[m32001] testpass hex:");
+    printf ("[m36000] *** located testpass on gid %u (len %u) ***\n", (u32) gid, pass_len_raw);
+    printf ("[m36000] testpass hex:");
     for (u32 i = 0; i < pass_len_raw; i++)
       printf (" %02x", passphrase_buf[i]);
     printf (" ascii=\"");
@@ -2218,7 +2218,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     }
     printf ("\"\n");
 
-    printf ("[m32001] testpass seed:");
+    printf ("[m36000] testpass seed:");
 #if BIP39_DISABLE_PBKDF2 == 0
     for (u32 i = 0; i < 8; i++)
     {
@@ -2229,7 +2229,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     printf (" <pbkdf2 disabled>\n");
 #endif
 
-    printf ("[m32001] testpass master:");
+    printf ("[m36000] testpass master:");
 #if BIP39_DISABLE_BIP32_MASTER == 0
     for (u32 i = 0; i < 8; i++)
     {
@@ -2242,8 +2242,8 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 
     const u32 mlen = esalt_bufs[DIGESTS_OFFSET_HOST].mnemonic_len;
 
-    printf ("[m32001] testpass mnemonic len %u bytes:\n", mlen);
-    printf ("[m32001] testpass mnemonic bytes:");
+    printf ("[m36000] testpass mnemonic len %u bytes:\n", mlen);
+    printf ("[m36000] testpass mnemonic bytes:");
     for (u32 i = 0; i < mlen; i++)
     {
       printf (" %02x", esalt_bufs[DIGESTS_OFFSET_HOST].mnemonic[i]);
@@ -2268,7 +2268,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 #if BIP39_DEBUG_PRINT
   if (gid == 0)
   {
-    printf ("[m32001] DEVICE TARGET HASH: %08x %08x %08x %08x %08x (type %u)\n", esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4], target_type);
+    printf ("[m36000] DEVICE TARGET HASH: %08x %08x %08x %08x %08x (type %u)\n", esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4], target_type);
   }
 #endif
 
@@ -2490,7 +2490,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 #if BIP39_DEBUG_PRINT
         if (gid == 0)
         {
-          printf("[m32001] init: combo_idx=%llu combo_total=%llu dynamic_cnt=%u\n",
+          printf("[m36000] init: combo_idx=%llu combo_total=%llu dynamic_cnt=%u\n",
         }
 #endif
 
@@ -2555,11 +2555,11 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
             {
               if (target_type == BIP39_TARGET_P2SH)
               {
-                printf ("[m32001 dbg] gid %u script hash: %08x %08x %08x %08x %08x target: %08x %08x %08x %08x %08x\n", (u32) gid, script_local[0], script_local[1], script_local[2], script_local[3], script_local[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4]);
+                printf ("[m36000 dbg] gid %u script hash: %08x %08x %08x %08x %08x target: %08x %08x %08x %08x %08x\n", (u32) gid, script_local[0], script_local[1], script_local[2], script_local[3], script_local[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4]);
               }
               else
               {
-                printf ("[m32001 dbg] gid %u hash160 : %08x %08x %08x %08x %08x target: %08x %08x %08x %08x %08x\n", (u32) gid, hash160_local[0], hash160_local[1], hash160_local[2], hash160_local[3], hash160_local[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4]);
+                printf ("[m36000 dbg] gid %u hash160 : %08x %08x %08x %08x %08x target: %08x %08x %08x %08x %08x\n", (u32) gid, hash160_local[0], hash160_local[1], hash160_local[2], hash160_local[3], hash160_local[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4]);
               }
             }
 #endif
@@ -2617,7 +2617,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
       const u32 derive_ticks = profile_clk2 - profile_clk1;
       const u32 script_ticks = profile_clk3 - profile_clk2;
 
-      printf ("[m32001] profile gid=%u pbkdf2_ticks=%u derive_ticks=%u script_ticks=%u\n", (u32) gid, pbkdf_ticks, derive_ticks, script_ticks);
+      printf ("[m36000] profile gid=%u pbkdf2_ticks=%u derive_ticks=%u script_ticks=%u\n", (u32) gid, pbkdf_ticks, derive_ticks, script_ticks);
     }
   }
 #endif
@@ -2630,39 +2630,39 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     const u32 il2 = h32_from_64_S (master[1]);
     const u32 il3 = l32_from_64_S (master[1]);
 
-    printf ("[m32001] master il: %08x %08x %08x %08x\n", il0, il1, il2, il3);
+    printf ("[m36000] master il: %08x %08x %08x %08x\n", il0, il1, il2, il3);
 
     if (target_type == BIP39_TARGET_P2SH)
     {
       if (tmps[gid].derived_ready)
       {
-        printf ("[m32001] derived script hash: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
+        printf ("[m36000] derived script hash: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
       }
       else
       {
-        printf ("[m32001] derived script hash: <invalid>\n");
+        printf ("[m36000] derived script hash: <invalid>\n");
       }
     }
     else if (target_type == BIP39_TARGET_P2PKH)
     {
       if (tmps[gid].derived_ready)
       {
-        printf ("[m32001] derived hash160: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
+        printf ("[m36000] derived hash160: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
       }
       else
       {
-        printf ("[m32001] derived hash160: <invalid>\n");
+        printf ("[m36000] derived hash160: <invalid>\n");
       }
     }
     else if (target_type == BIP39_TARGET_P2WPKH)
     {
       if (tmps[gid].derived_ready)
       {
-        printf ("[m32001] derived witness prog: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
+        printf ("[m36000] derived witness prog: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
       }
       else
       {
-        printf ("[m32001] derived witness prog: <invalid>\n");
+        printf ("[m36000] derived witness prog: <invalid>\n");
       }
     }
   }
@@ -2675,7 +2675,7 @@ KERNEL_FQ void m32001_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 
 #endif
 
-KERNEL_FQ void m32001_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -2685,7 +2685,7 @@ KERNEL_FQ void m32001_loop (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
   // Monolithic path: no-op for skeleton implementation (work done in init)
 }
 
-KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
+KERNEL_FQ void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -2701,7 +2701,7 @@ KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 #if BIP39_DEBUG_PRINT
   if (gid == 0)
   {
-    printf("[m32001] comp: gid=%llu combo_idx=%llu derived_ready=%u\n",
+    printf("[m36000] comp: gid=%llu combo_idx=%llu derived_ready=%u\n",
   }
 #endif
 
@@ -2741,7 +2741,7 @@ KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     {
       CONSTANT_AS const char *label = (target_type == BIP39_TARGET_P2SH) ? "script" : (target_type == BIP39_TARGET_P2PKH) ? "hash160" : "witness";
 
-      printf ("[m32001 dbg] comp gid %u %s: %08x %08x %08x %08x %08x target: %08x %08x %08x %08x %08x match=%u\n", (u32) gid, label, tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4], match);
+      printf ("[m36000 dbg] comp gid %u %s: %08x %08x %08x %08x %08x target: %08x %08x %08x %08x %08x match=%u\n", (u32) gid, label, tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4], match);
     }
 #endif
 
@@ -2750,15 +2750,15 @@ KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     {
       if (target_type == BIP39_TARGET_P2SH)
       {
-        printf ("[m32001] gid 5 script hash: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
+        printf ("[m36000] gid 5 script hash: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
       }
       else if (target_type == BIP39_TARGET_P2PKH)
       {
-        printf ("[m32001] gid 5 hash160: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
+        printf ("[m36000] gid 5 hash160: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
       }
       else
       {
-        printf ("[m32001] gid 5 witness prog: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
+        printf ("[m36000] gid 5 witness prog: %08x %08x %08x %08x %08x\n", tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
       }
     }
 #endif
@@ -2768,7 +2768,7 @@ KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 #if BIP39_DEBUG_PRINT
       CONSTANT_AS const char *label = (target_type == BIP39_TARGET_P2SH) ? "script hash" : (target_type == BIP39_TARGET_P2PKH ? "hash160" : "witness prog");
 
-      printf ("[m32001] mismatch %s: %08x %08x %08x %08x %08x vs target %08x %08x %08x %08x %08x\n", label, tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4]);
+      printf ("[m36000] mismatch %s: %08x %08x %08x %08x %08x vs target %08x %08x %08x %08x %08x\n", label, tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4]);
 #endif
       return;
     }
@@ -2784,7 +2784,7 @@ KERNEL_FQ void m32001_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
   }
 }
 
-KERNEL_FQ void m32001_mxx (KERN_ATTR_ESALT (bip39_skeleton_t))
+KERNEL_FQ void m36000_mxx (KERN_ATTR_ESALT (bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
@@ -2799,7 +2799,7 @@ KERNEL_FQ void m32001_mxx (KERN_ATTR_ESALT (bip39_skeleton_t))
 #include COMPARE_M
 }
 
-KERNEL_FQ void m32001_sxx (KERN_ATTR_ESALT (bip39_skeleton_t))
+KERNEL_FQ void m36000_sxx (KERN_ATTR_ESALT (bip39_skeleton_t))
 {
   const u64 gid = get_global_id (0);
 
