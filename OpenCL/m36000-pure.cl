@@ -152,11 +152,6 @@ typedef struct bip39_sha512_ctx
   u8 buffer[128];
 } bip39_sha512_ctx_t;
 
-DECLSPEC u64 bip39_rotr64 (const u64 x, const u32 n)
-{
-  return (x >> n) | (x << (64u - n));
-}
-
 CONSTANT_VK u64 bip39_sha512_k[80] = {
   0x428a2f98d728ae22ULL, 0x7137449123ef65cdULL, 0xb5c0fbcfec4d3b2fULL, 0xe9b5dba58189dbbcULL,
   0x3956c25bf348b538ULL, 0x59f111f1b605d019ULL, 0x923f82a4af194f9bULL, 0xab1c5ed5da6d8118ULL,
@@ -213,18 +208,18 @@ DECLSPEC void bip39_sha512_process_block (PRIVATE_AS u64 *h, PRIVATE_AS const u8
       const int j9 = (j + 9) & 15;
       const int j14 = (j + 14) & 15;
 
-      const u64 s0 = bip39_rotr64 (wbuf[j1], 1) ^ bip39_rotr64 (wbuf[j1], 8) ^ (wbuf[j1] >> 7);
-      const u64 s1 = bip39_rotr64 (wbuf[j14], 19) ^ bip39_rotr64 (wbuf[j14], 61) ^ (wbuf[j14] >> 6);
+      const u64 s0 = hc_rotr64_S (wbuf[j1], 1) ^ hc_rotr64_S (wbuf[j1], 8) ^ (wbuf[j1] >> 7);
+      const u64 s1 = hc_rotr64_S (wbuf[j14], 19) ^ hc_rotr64_S (wbuf[j14], 61) ^ (wbuf[j14] >> 6);
 
       wbuf[j] += s0 + wbuf[j9] + s1;
     }
 
     const u64 w_t = wbuf[i & 15];
 
-    const u64 S1 = bip39_rotr64 (e, 14) ^ bip39_rotr64 (e, 18) ^ bip39_rotr64 (e, 41);
+    const u64 S1 = hc_rotr64_S (e, 14) ^ hc_rotr64_S (e, 18) ^ hc_rotr64_S (e, 41);
     const u64 ch = (e & f) ^ ((~e) & g);
     const u64 temp1 = hval + S1 + ch + bip39_sha512_k[i] + w_t;
-    const u64 S0 = bip39_rotr64 (a, 28) ^ bip39_rotr64 (a, 34) ^ bip39_rotr64 (a, 39);
+    const u64 S0 = hc_rotr64_S (a, 28) ^ hc_rotr64_S (a, 34) ^ hc_rotr64_S (a, 39);
     const u64 maj = (a & b) ^ (a & c) ^ (b & c);
     const u64 temp2 = S0 + maj;
 
