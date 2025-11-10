@@ -252,9 +252,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // data buf:
 
-  char data_buf[32768 + 1];
-
-  memset (data_buf, 0, sizeof (data_buf));
+  char *data_buf = (char *) hcmalloc (32768 + 1);
 
   for (u32 i = 0, j = 0; i < esalt->data_len; i += 1, j += 2)
   {
@@ -279,6 +277,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     ephemeral,
     data_buf,
     mac);
+
+  hcfree (data_buf);
 
   return bytes_written;
 }

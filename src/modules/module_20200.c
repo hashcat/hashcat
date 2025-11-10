@@ -106,7 +106,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // iterations in decimal representation
   token.sep[2]     = '$';
   token.len_min[2] = 1;
-  token.len_max[2] = 6;
+  token.len_max[2] = 8;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 

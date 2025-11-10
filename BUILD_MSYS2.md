@@ -1,47 +1,108 @@
-# Compiling hashcat with msys2.
+# Compiling hashcat with MSYS2
 
-Tested on a Windows 10 20H2 x64 machine.
+Tested on Windows 11 23H2 x64
 
-### Installation ###
+## Prerequisites
 
-Go to https://www.msys2.org/ and follow the instructions on the main page (steps 1 to 7).
+1. **Install MSYS2** from the [official website](https://www.msys2.org/) and follow steps 1–7.
+2. **Open the MSYS2 MINGW64 terminal**
+   Do *not* use the plain MSYS or UCRT terminals.
+3. **Update the base system:**
 
-Install additional dependencies required to compile hashcat by running the following commands
+    ```sh
+    pacman -Syu
+    ```
 
+    If prompted to close the terminal after core updates, do so, then reopen **MINGW64** and run:
+
+    ```sh
+    pacman -Syu
+    ```
+
+4. **Install build dependencies:**
+
+     ```sh
+     export _GW="mingw-w64-x86_64"
+     pacman -S --needed git make gcc libiconv-devel python3 $_GW-clang $_GW-rustup $_GW-toolchain $_GW-llvm $_GW-lld
+     ```
+
+5. **Ensure MinGW toolchain is first on PATH for this session:**
+
+   ```sh
+   export PATH="/mingw64/bin:$PATH"
+   ```
+
+6. **Set up Rust:**
+
+   ```sh
+   rustup default stable && rustup target add x86_64-pc-windows-gnu
+   ```
+
+## Build
+
+1. **Fetch the latest hashcat source code from GitHub:**
+
+   ```sh
+   git clone https://github.com/hashcat/hashcat.git ~/hashcat
+   cd $_
+   ```
+
+2. **Compile:**
+
+   ```sh
+   make -j"$(nproc)" WIN_PYTHON=""
+   ```
+
+   > Upstream uses `make WIN_PYTHON=""`; the `-j$(nproc)` just speeds things up.
+   >
+   > To rebuild cleanly later, use:
+   >
+   > ```sh
+   > make clean && make -j"$(nproc)" WIN_PYTHON=""
+   > ```
+
+---
+
+## Running
+
+### Running inside MSYS2
+
+```sh
+./hashcat.exe
 ```
-$ pacman -S git
-$ pacman -S make
-$ pacman -S gcc
-$ pacman -S libiconv-devel
-$ pacman -S python3
+
+### Running outside the MSYS2 shell (portable setup)
+
+Copy the dependent DLLs next to `hashcat.exe`. Two common ones are:
+
+* `msys-iconv-2.dll`
+* `msys-2.0.dll`
+
+(these can be found in `msys64/usr/bin`)
+
+To verify which dependencies are missing:
+
+#### Option A: `ldd`
+
+```sh
+ldd ./hashcat.exe
 ```
 
-### Building ###
+#### Option B: `ntldd`
 
-Once all that is done, type the following command to copy the latest master revision of hashcat repository into msys64\home\username\hashcat
-
-```
-$ git clone https://github.com/hashcat/hashcat.git
-```
-
-Switch to the newly created folder by running
-
-```
-$ cd hashcat
+```sh
+pacman -S --needed mingw-w64-x86_64-ntldd
+ntldd -R ./hashcat.exe
 ```
 
-Now type "make" to start compiling hashcat
+`ntldd -R` recursively shows transitive DLLs; copy anything not in `C:\Windows\System32` to the same folder as `hashcat.exe`.
 
-```
-$ make
-```
+## Post-build sanity check
 
-The process may take a while, please be patient. Once it's finished, run hashcat by typing "./hashcat.exe"
+To confirm GPU/OpenCL devices are detected:
 
-```
-$ ./hashcat.exe
+```sh
+./hashcat.exe -I
 ```
 
-### Notes ###
-
-While hashcat will run fine from msys shell, running it from a windows shell will require msys-iconv-2.dll and msys-2.0.dll to be in the same folder with hashcat.exe (the files can be found in msys64\usr\bin).
+If your GPUs appear here, your build is good to go.

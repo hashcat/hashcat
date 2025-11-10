@@ -184,7 +184,7 @@ static int mp_css_utf16be_expand (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
-static int mp_css_to_uniq_tbl (hashcat_ctx_t *hashcat_ctx, u32 css_cnt, cs_t *css, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
+static int mp_css_to_uniq_tbl (hashcat_ctx_t *hashcat_ctx, u32 css_cnt, cs_t *css, u32 **uniq_tbls)
 {
   /* generates a lookup table where key is the char itself for fastest possible lookup performance */
 
@@ -709,7 +709,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u64 *markov_stats_ptr = markov_stats_buf;
 
-  u64 *markov_stats_buf_by_key[SP_PW_MAX][CHARSIZ];
+  u64 *(*markov_stats_buf_by_key)[CHARSIZ] = (u64 *(*)[CHARSIZ]) hcmalloc (SP_PW_MAX * sizeof (*markov_stats_buf_by_key));
 
   for (int i = 0; i < SP_PW_MAX; i++)
   {
@@ -740,6 +740,10 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
 
+    hcfree (root_stats_buf);
+    hcfree (markov_stats_buf);
+    hcfree (markov_stats_buf_by_key);
+
     return -1;
   }
 
@@ -748,6 +752,10 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   if (hc_fopen_raw (&fp, hcstat, "rb") == false)
   {
     event_log_error (hashcat_ctx, "%s: %s", hcstat, strerror (errno));
+
+    hcfree (root_stats_buf);
+    hcfree (markov_stats_buf);
+    hcfree (markov_stats_buf_by_key);
 
     return -1;
   }
@@ -763,6 +771,10 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     hc_fclose (&fp);
 
     hcfree (inbuf);
+
+    hcfree (root_stats_buf);
+    hcfree (markov_stats_buf);
+    hcfree (markov_stats_buf_by_key);
 
     return -1;
   }
@@ -784,6 +796,10 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
     hcfree (inbuf);
     hcfree (outbuf);
 
+    hcfree (root_stats_buf);
+    hcfree (markov_stats_buf);
+    hcfree (markov_stats_buf_by_key);
+
     return -1;
   }
 
@@ -793,6 +809,10 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
     hcfree (inbuf);
     hcfree (outbuf);
+
+    hcfree (root_stats_buf);
+    hcfree (markov_stats_buf);
+    hcfree (markov_stats_buf_by_key);
 
     return -1;
   }
@@ -836,12 +856,20 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
   {
     event_log_error (hashcat_ctx, "%s: Invalid header", hcstat);
 
+    hcfree (root_stats_buf);
+    hcfree (markov_stats_buf);
+    hcfree (markov_stats_buf_by_key);
+
     return -1;
   }
 
   if (z != 0)
   {
     event_log_error (hashcat_ctx, "%s: Invalid header", hcstat);
+
+    hcfree (root_stats_buf);
+    hcfree (markov_stats_buf);
+    hcfree (markov_stats_buf_by_key);
 
     return -1;
   }
@@ -915,7 +943,7 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   hcstat_table_t *markov_table_ptr = markov_table_buf;
 
-  hcstat_table_t *markov_table_buf_by_key[SP_PW_MAX][CHARSIZ];
+  hcstat_table_t *(*markov_table_buf_by_key)[CHARSIZ] = (hcstat_table_t *(*)[CHARSIZ]) hcmalloc (SP_PW_MAX * sizeof (*markov_table_buf_by_key));
 
   for (int i = 0; i < SP_PW_MAX; i++)
   {
@@ -949,6 +977,8 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (root_stats_buf);
   hcfree (markov_stats_buf);
+  hcfree (markov_stats_buf_by_key);
+
 
   /**
    * Finally sort them
@@ -966,6 +996,8 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
       qsort (markov_table_buf_by_key[i][j], CHARSIZ, sizeof (hcstat_table_t), sp_comp_val);
     }
   }
+
+  hcfree (markov_table_buf_by_key);
 
   return 0;
 }
@@ -988,7 +1020,7 @@ static int sp_get_sum (u32 start, u32 stop, cs_t *root_css_buf, u64 *result)
   return 0;
 }
 
-static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 uniq_tbls[SP_PW_MAX][CHARSIZ])
+static void sp_tbl_to_css (hcstat_table_t *root_table_buf, hcstat_table_t *markov_table_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 threshold, u32 **uniq_tbls)
 {
   memset (root_css_buf,   0, SP_PW_MAX *           sizeof (cs_t));
   memset (markov_css_buf, 0, SP_PW_MAX * CHARSIZ * sizeof (cs_t));
@@ -1084,7 +1116,11 @@ static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
 
   if (mask_ctx->masks_avail == mask_ctx->masks_cnt)
   {
-    mask_ctx->masks = (char **) hcrealloc (mask_ctx->masks, mask_ctx->masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *));
+    char **tmp = (char **) hcrealloc (mask_ctx->masks, mask_ctx->masks_avail * sizeof (char *), INCR_MASKS * sizeof (char *));
+
+    if (tmp == NULL) return -1;
+
+    mask_ctx->masks = tmp;
 
     mask_ctx->masks_avail += INCR_MASKS;
   }
@@ -1317,11 +1353,17 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
         if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
 
-        u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+        u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
+
+        for (int i = 0; i < SP_PW_MAX; i++) uniq_tbls[i] = (u32 *) hcmalloc(CHARSIZ * sizeof(u32));
 
         mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
         sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+        for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
+
+        hcfree (uniq_tbls);
 
         if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
         {
@@ -1340,11 +1382,17 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
         if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
 
-        u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+        u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
+
+        for (int i = 0; i < SP_PW_MAX; i++) uniq_tbls[i] = (u32 *) hcmalloc(CHARSIZ * sizeof(u32));
 
         mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
         sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+        for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
+
+        hcfree (uniq_tbls);
 
         if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt) == -1)
         {
@@ -1441,11 +1489,17 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      u32 uniq_tbls[SP_PW_MAX][CHARSIZ] = { { 0 } };
+      u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
+
+      for (int i = 0; i < SP_PW_MAX; i++) uniq_tbls[i] = (u32 *) hcmalloc(CHARSIZ * sizeof(u32));
 
       mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
 
       sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+      for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
+
+      hcfree (uniq_tbls);
 
       if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &status_ctx->words_cnt) == -1)
       {

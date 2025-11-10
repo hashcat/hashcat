@@ -7,9 +7,12 @@ SHARED                  ?= 0
 DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v7.1.2
+MACOS_UNIVERSAL_BINARY  ?= 0
+ENABLE_LTO              ?= 1
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
 ENABLE_UNRAR            ?= 1
+USE_MOLD                ?= 0
 USE_SYSTEM_LZMA         ?= 0
 USE_SYSTEM_ZLIB         ?= 0
 USE_SYSTEM_OPENCL       ?= 0
@@ -36,16 +39,38 @@ ifeq (,$(filter $(UNAME),Linux OpenBSD FreeBSD NetBSD DragonFly Darwin CYGWIN MS
 $(error "! Your Operating System ($(UNAME)) is not supported by this Makefile")
 endif
 
-ifeq ($(DEBUG),1)
-$(info "## Detected Operating System : $(UNAME)")
-$(info "## Detected CC : $(CC)")
-$(info "## Detected CXX : $(CXX)")
+# force disable LTO if DEBUG > 0
+ifeq ($(shell [ $(DEBUG) -gt 0 ] && echo true),true)
+override ENABLE_LTO := 0
+endif
+
+# force disable LTO if MACOS_UNIVERSAL_BINARY == 1
+ifeq ($(UNAME),Darwin)
+ifeq ($(MACOS_UNIVERSAL_BINARY),1)
+override ENABLE_LTO := 0
+endif
 endif
 
 BUILD_MODE := native
 
 ifneq ($(filter binaries linux host_linux modules_linux bridges_linux feeds_linux win host_win modules_win bridges_win feeds_win,$(MAKECMDGOALS)),)
-  BUILD_MODE := cross
+BUILD_MODE := cross
+endif
+
+# force disable LTO if we are in native build and CC == clang and OS is MSYS2 or NetBSD or DragonFly
+ifeq ($(BUILD_MODE),native)
+ifeq ($(CC),clang)
+ifneq (,$(filter MSYS2 NetBSD DragonFly,$(UNAME)))
+override ENABLE_LTO := 0
+endif
+endif
+endif
+
+ifeq ($(DEBUG),1)
+$(info "## Detected Operating System : $(UNAME)")
+$(info "## Detected Build Mode : $(BUILD_MODE)")
+$(info "## Detected CC : $(CC)")
+$(info "## Detected CXX : $(CXX)")
 endif
 
 ##
@@ -79,11 +104,14 @@ RM                      := rm
 SED                     := sed
 SED_IN_PLACE            := -i
 
+IS_APPLE_SILICON        := 0
+
 ifeq ($(UNAME),Darwin)
 CC                      := clang
 CXX                     := clang++
+# if available using llvm-ar else ar
+AR                      := $(shell which llvm-ar >/dev/null 2>&1 && echo llvm-ar || echo ar)
 # the sed -i option of macOS requires a parameter for the backup file (we just use "")
-AR                      := /usr/bin/ar
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
 DARWIN_VERSION          := $(shell uname -r | cut -d. -f1)
@@ -92,17 +120,18 @@ endif
 
 IS_AARCH64              := $(shell [ "$$(arch 2>/dev/null)" = "aarch64" ] && echo 1 || echo 0)
 IS_ARM                  := $(or $(filter 1,$(IS_APPLE_SILICON)),$(filter 1,$(IS_AARCH64)))
+IS_PPC                  := $(shell uname -m | grep -q -E '^(ppc|powerpc)' && echo 1 || echo 0)
 
-ifneq (,$(filter $(UNAME),FreeBSD NetBSD DragonFly))
+ifneq (,$(filter $(UNAME),OpenBSD FreeBSD NetBSD DragonFly))
 CC                      := cc
 CXX                     := c++
 SED                     := gsed
 endif
 
-ifneq (,$(filter $(UNAME),OpenBSD))
-CC                      := egcc
-CXX                     := eg++
-SED                     := gsed
+ifeq ($(UNAME),NetBSD)
+CC                      := gcc
+CXX                     := g++
+AR                      := gcc-ar
 endif
 
 ##
@@ -201,12 +230,60 @@ COMPTIME                := $(shell date +%s)
 ## General compiler and linker options
 ##
 
+CC_NATIVE_CLANG         := 0
+
+ifneq (,$(findstring clang, $(CC)))
+CC_NATIVE_CLANG         := 1
+endif
+
+# force disable LTO if MSYS2 and CC is clang
+ifeq ($(UNAME),MSYS2)
+ifeq ($(CC_NATIVE_CLANG),1)
+override ENABLE_LTO     := 0
+endif
+endif
+
+CFLAGS                  := $(CFLAGS)
 LFLAGS                  := $(LDFLAGS)
 
+ifeq ($(DEBUG),1)
+CFLAGS                  += -fstack-usage
+endif
+
+ifeq ($(ENABLE_LTO),1)
+CFLAGS                  += -flto=auto
+ifeq ($(CC_NATIVE_CLANG),1)
+CFLAGS                  += -Wno-unknown-warning-option
+endif
+LFLAGS                  += -flto=auto
+ifeq ($(filter FreeBSD OpenBSD,$(UNAME)),)
+LFLAGS                  += -Wno-lto-type-mismatch
+endif
+endif
+
+ifeq ($(BUILD_MODE),native)
 ifneq ($(UNAME),Darwin)
+ifeq ($(USE_MOLD),1)
+LFLAGS                  += -fuse-ld=mold
+endif
+endif
+endif
+
 ifeq ($(MAINTAINER_MODE),0)
 ifeq ($(BUILD_MODE),native)
+ifneq ($(UNAME),Darwin)
+ifeq ($(IS_PPC),1)
+CFLAGS                  += -mcpu=native
+CFLAGS                  += -mtune=native
+else
 CFLAGS                  += -march=native
+CFLAGS                  += -mtune=native
+endif
+else
+ifeq ($(MACOS_UNIVERSAL_BINARY),0)
+CFLAGS                  += -march=native
+CFLAGS                  += -mtune=native
+endif
 endif
 endif
 endif
@@ -218,17 +295,13 @@ CFLAGS                  += -Wextra
 endif
 
 ## because LZMA SDK
-ifneq (,$(findstring clang, $(CC)))
+ifeq ($(or $(filter 1,$(CC_NATIVE_CLANG)),$(filter cc,$(CC))),1)
 CFLAGS                  += -Wno-typedef-redefinition
-else
-ifeq ($(CC),cc)
-CFLAGS                  += -Wno-typedef-redefinition
-endif
 endif
 
 ifeq ($(USE_SYSTEM_LZMA),0)
 CFLAGS_LZMA             += -D_7ZIP_ST
-ifeq (,$(findstring clang, $(CC)))
+ifeq ($(CC_NATIVE_CLANG),0)
 CFLAGS_LZMA             += -Wno-misleading-indentation
 endif
 endif
@@ -240,7 +313,7 @@ CFLAGS_ZLIB             += -Wno-implicit-function-declaration
 CFLAGS_ZLIB             += -Wno-unused-parameter
 CFLAGS_ZLIB             += -DIOAPI_NO_64
 CFLAGS_ZLIB             += -DUNZ_BUFSIZE=262144
-ifneq (,$(findstring clang, $(CC)))
+ifeq ($(CC_NATIVE_CLANG),1)
 CFLAGS_ZLIB             += -Wno-deprecated-non-prototype -Wno-unknown-warning-option
 endif
 endif
@@ -251,15 +324,19 @@ ifeq ($(USE_SYSTEM_UNRAR),0)
 ifeq ($(UNAME),Darwin)
 CFLAGS_UNRAR            += -std=c++14
 endif
-ifneq ($(CC),clang)
-ifneq ($(UNAME),FreeBSD)
+ifeq ($(CC_NATIVE_CLANG),0)
+ifeq ($(filter FreeBSD OpenBSD,$(UNAME)),)
 CFLAGS_UNRAR            += -Wno-class-memaccess
 endif
 CFLAGS_UNRAR            += -Wno-misleading-indentation
+ifneq ($(UNAME),OpenBSD)
 CFLAGS_UNRAR            += -Wno-format-overflow
+endif
 else
 ifeq ($(IS_APPLE_SILICON),0)
+ifneq ($(filter $(UNAME),FreeBSD OpenBSD NetBSD DragonFly),$(UNAME))
 CFLAGS_UNRAR            += -Wno-nontrivial-memcall
+endif
 endif
 endif
 CFLAGS_UNRAR            += -Wno-missing-braces
@@ -284,9 +361,14 @@ endif
 endif
 
 ifeq ($(DEBUG),0)
-CFLAGS                  += -O2
+CFLAGS                  += -O2 -fomit-frame-pointer
 ifneq ($(UNAME),Darwin)
+ifeq ($(and $(filter MSYS2,$(UNAME)),$(filter 1,$(CC_NATIVE_CLANG))),)
+CFLAGS                  += -fno-plt
+endif
+ifeq ($(and $(filter DragonFly,$(UNAME)),$(filter 1,$(CC_NATIVE_CLANG))),)
 LFLAGS                  += -s
+endif
 endif
 else
 ifeq ($(DEBUG),1)
@@ -354,7 +436,17 @@ CFLAGS                  += -I$(DEPS_UNRAR_PATH)
 ifeq ($(UNAME),OpenBSD)
 LFLAGS                  += -lc++
 else
+ifeq ($(UNAME),Darwin)
 LFLAGS                  += -lstdc++
+else
+ifeq ($(UNAME),MSYS2)
+LFLAGS                  += -lstdc++
+else
+ifeq ($(UNAME),Linux)
+LFLAGS                  += -lstdc++
+endif
+endif
+endif
 endif
 endif
 
@@ -403,6 +495,7 @@ CFLAGS_NATIVE           += -I /usr/pkg/include
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -L /usr/pkg/lib
 LFLAGS_NATIVE           += -lpthread
+LFLAGS_NATIVE           += -lm
 LFLAGS_NATIVE           += -liconv
 endif # NetBSD
 
@@ -425,12 +518,14 @@ LFLAGS_NATIVE           += -lIOReport
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -liconv
 
+ifeq ($(MACOS_UNIVERSAL_BINARY),1)
 ifeq ($(IS_APPLE_SILICON),1)
 CFLAGS_NATIVE           += -arch arm64
 CFLAGS_NATIVE           += -arch x86_64
 ifeq ($(SHARED),1)
 LFLAGS_NATIVE           += -arch arm64
 LFLAGS_NATIVE           += -arch x86_64
+endif
 endif
 endif
 
@@ -552,23 +647,31 @@ clean:
 	$(RM) -rf modules/*.dSYM
 	$(RM) -rf bridges/*.dSYM
 	$(RM) -rf feeds/*.dSYM
-	$(RM) -f modules/*.dll
-	$(RM) -f bridges/*.dll
-	$(RM) -f bridges/subs/*.dll
-	$(RM) -f feeds/*.dll
-	$(RM) -f modules/*.so
-	$(RM) -f bridges/*.so
-	$(RM) -f bridges/subs/*.so
-	$(RM) -f feeds/*.so
-	$(RM) -f obj/*/*/*.o
-	$(RM) -f obj/*/*.o
-	$(RM) -f obj/*.o
-	$(RM) -f obj/*.a
 	$(RM) -rf *.dSYM
+	$(RM) -f bridges/subs/*.dll
+	$(RM) -f bridges/subs/*.so
+	$(RM) -f bridges/subs/*.su
+	$(RM) -f bridges/*.dll
+	$(RM) -f bridges/*.so
+	$(RM) -f bridges/*.su
+	$(RM) -f feeds/*.dll
+	$(RM) -f feeds/*.so
+	$(RM) -f feeds/*.su
+	$(RM) -f modules/*.dll
+	$(RM) -f modules/*.so
+	$(RM) -f modules/*.su
+	$(RM) -f obj/*/*/*.o
+	$(RM) -f obj/*/*/*.su
+	$(RM) -f obj/*/*.o
+	$(RM) -f obj/*/*.su
+	$(RM) -f obj/*.o
+	$(RM) -f obj/*.su
+	$(RM) -f obj/*.a
 	$(RM) -f *.dylib
 	$(RM) -f *.bin *.exe
 	$(RM) -f *.pid
 	$(RM) -f *.log
+	$(RM) -f *.su
 	$(RM) -f core
 	$(RM) -rf *.induct
 	$(RM) -rf *.outfiles
@@ -768,10 +871,10 @@ endif
 
 ifeq ($(UNAME),Darwin)
 $(HASHCAT_LIBRARY): $(NATIVE_OBJS)
-	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -install_name $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY) -current_version $(VERSION_PURE) -compatibility_version $(VERSION_PURE)
+	$(CXX)                    $^ -o $@                    $(LFLAGS_NATIVE) -shared -install_name $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY) -current_version $(VERSION_PURE) -compatibility_version $(VERSION_PURE)
 else
 $(HASHCAT_LIBRARY): $(NATIVE_OBJS)
-	$(CC)                     $^ -o $@                    $(LFLAGS_NATIVE) -shared -Wl,-soname,$(HASHCAT_LIBRARY)
+	$(CXX)                    $^ -o $@                    $(LFLAGS_NATIVE) -shared -Wl,-soname,$(HASHCAT_LIBRARY)
 endif
 
 ifeq ($(SHARED),1)
@@ -915,26 +1018,94 @@ WIN_PYTHON              := /opt/win-python
 ## Compiler options
 ##
 
+CC_LINUX_CLANG          := 0
+CC_WIN_CLANG            := 0
+
+ifneq (,$(findstring clang, $(CC_LINUX)))
+CC_LINUX_CLANG          := 1
+endif
+
+ifneq (,$(findstring clang, $(CC_WIN)))
+CC_WIN_CLANG            := 1
+endif
+
 CFLAGS_CROSS_LINUX      := $(CFLAGS)
 CFLAGS_CROSS_LINUX      += -fPIC
 CFLAGS_CROSS_LINUX      += -DWITH_HWMON
+
+ifeq ($(CC_LINUX_CLANG),1)
+CFLAGS_CROSS_LINUX      += -Wno-typedef-redefinition
+CFLAGS_CROSS_LINUX      += -Wno-unknown-warning-option
+endif
+
 CFLAGS_CROSS_WIN        := $(CFLAGS)
 CFLAGS_CROSS_WIN        += -fPIC
 CFLAGS_CROSS_WIN        += -I$(WIN_ICONV)/include/
 CFLAGS_CROSS_WIN        += -DWITH_HWMON
 
+ifeq ($(CC_WIN_CLANG),1)
+CFLAGS_CROSS_WIN        := $(filter-out -fno-plt,$(CFLAGS_CROSS_WIN))
+CFLAGS_CROSS_WIN        += --target=x86_64-w64-mingw32
+CFLAGS_CROSS_WIN        += -D_CLANG_DISABLE_CRT_DEPRECATION_WARNINGS
+CFLAGS_CROSS_WIN        += -D__INTRINSIC_DEFINED___cpuidex=1
+CFLAGS_CROSS_WIN        += -D__INTRINSIC_DEFINED__xgetbv=1
+CFLAGS_CROSS_WIN        += -Wno-typedef-redefinition
+CFLAGS_CROSS_WIN        += -Wno-ignored-attributes
+CFLAGS_CROSS_WIN        += -Wno-unknown-warning-option
+endif
+
 LFLAGS_CROSS_LINUX      := $(LFLAGS)
 LFLAGS_CROSS_LINUX      += -lpthread
 LFLAGS_CROSS_LINUX      += -ldl
 LFLAGS_CROSS_LINUX      += -lm
+LFLAGS_CROSS_LINUX      += -static-libgcc
+
+ifeq ($(CC_LINUX_CLANG),1)
+LFLAGS_CROSS_LINUX      += -stdlib=libc++
+else
+LFLAGS_CROSS_LINUX      += -static-libstdc++
+endif
+
+ifeq ($(USE_MOLD),1)
+LFLAGS_CROSS_LINUX      += -fuse-ld=mold
+else
+ifeq ($(ENABLE_LTO),1)
+ifeq ($(CC_LINUX_CLANG),1)
+LFLAGS_CROSS_LINUX      += -fuse-ld=lld
+else
+LFLAGS_CROSS_LINUX      += -fuse-ld=gold
+endif
+endif
+endif
+
 LFLAGS_CROSS_WIN        := $(LFLAGS)
+ifneq ($(UNAME),Darwin)
+LFLAGS_CROSS_WIN        += -lstdc++
+endif
+
+ifeq ($(CC_WIN_CLANG),0)
 LFLAGS_CROSS_WIN        += -Wl,--dynamicbase
 LFLAGS_CROSS_WIN        += -Wl,--nxcompat
+endif
 LFLAGS_CROSS_WIN        += -lpsapi
 LFLAGS_CROSS_WIN        += -lws2_32
 LFLAGS_CROSS_WIN        += -lpowrprof
-LFLAGS_CROSS_WIN        += -static -static-libgcc -static-libstdc++
+
+ifeq ($(CC_WIN_CLANG),0)
+LFLAGS_CROSS_WIN        += -static
+endif
+LFLAGS_CROSS_WIN        += -static-libgcc
+ifeq ($(CC_WIN_CLANG),0)
+LFLAGS_CROSS_WIN        += -static-libstdc++
+endif
 LFLAGS_CROSS_WIN        += -lole32 -loleaut32 -lwbemuuid
+
+ifeq ($(ENABLE_LTO),1)
+ifeq ($(CC_WIN_CLANG),1)
+LFLAGS_CROSS_WIN        += -fuse-ld=lld
+LFLAGS_CROSS_WIN        += -Wl,--stack,0x200000
+endif
+endif
 
 CFLAGS_LZMA_WIN         := $(CFLAGS_LZMA)
 CFLAGS_UNRAR_WIN        := $(CFLAGS_UNRAR)

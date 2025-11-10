@@ -102,6 +102,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   keepass4_t *keepass4 = &merged_options->keepass4;
 
   bool is_keyfile_present = false;
+
+  if (line_len < 128) return (PARSER_SALT_LENGTH);
+
   if ((line_buf[line_len - (64 + 1 + 2 + 1 + 2)] == '*')
    && (line_buf[line_len - (64 + 1 + 2 + 1 + 1)] == '1')
    && (line_buf[line_len - (64 + 1 + 2 + 1 + 0)] == '*')) is_keyfile_present = true;

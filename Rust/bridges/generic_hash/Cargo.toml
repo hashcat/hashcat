@@ -12,4 +12,7 @@ sha2 = "0.10.9"
 hashcat-sys = { path = "../../hashcat-sys" }
 
 [profile.release]
+opt-level = 3
+codegen-units = 1
 strip = "symbols"
+panic = "abort"

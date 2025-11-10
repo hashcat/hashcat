@@ -11,7 +11,13 @@ ifeq ($(IS_APPLE_SILICON),0)
 SCRYPT_YESCRYPT_CFLAGS += -mavx2
 endif
 else
+ifeq ($(IS_PPC),1)
+SCRYPT_YESCRYPT_CFLAGS += -mcpu=native
+SCRYPT_YESCRYPT_CFLAGS += -mtune=native
+else
 SCRYPT_YESCRYPT_CFLAGS += -march=native
+SCRYPT_YESCRYPT_CFLAGS += -mtune=native
+endif
 endif
 endif
 endif

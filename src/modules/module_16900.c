@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -241,7 +242,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const ansible_vault_t *ansible_vault = (const ansible_vault_t *) esalt_buf;
 
-  u8 ct_data[16384 + 1] = { 0 };
+  u8 *ct_data = (u8 *) hcmalloc (16384 + 1);
 
   const u32 *ct_data_ptr = ansible_vault->ct_data_buf;
 
@@ -271,6 +272,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     digest[5],
     digest[6],
     digest[7]);
+
+  hcfree (ct_data);
 
   return line_len;
 }

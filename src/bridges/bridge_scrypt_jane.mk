@@ -11,7 +11,21 @@ ifeq ($(IS_APPLE_SILICON),0)
 SCRYPT_JANE_CFLAGS += -mavx2
 endif
 else
+ifeq ($(IS_PPC),1)
+SCRYPT_JANE_CFLAGS += -mcpu=native
+SCRYPT_JANE_CFLAGS += -mtune=native
+else
 SCRYPT_JANE_CFLAGS += -march=native
+SCRYPT_JANE_CFLAGS += -mtune=native
+endif
+endif
+endif
+endif
+
+ifeq ($(ENABLE_LTO),1)
+ifeq ($(BUILD_MODE),cross)
+ifeq ($(CC_WIN_CLANG),1)
+bridges/bridge_scrypt_jane.dll: SCRYPT_JANE_CFLAGS += -fno-lto
 endif
 endif
 endif

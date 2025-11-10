@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
@@ -229,7 +230,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const jks_sha1_t *jks_sha1 = (const jks_sha1_t *) esalt_buf;
 
-  char enc_key[16384 + 1] = { 0 };
+  char *enc_key = (char *) hcmalloc (16384 + 1);
 
   const u8 *ptr = (const u8 *) jks_sha1->enc_key_buf;
 
@@ -274,6 +275,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     der[19],
     alias
   );
+
+  hcfree (enc_key);
 
   return line_len;
 }

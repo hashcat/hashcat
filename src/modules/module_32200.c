@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -319,7 +320,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const krb5asrep_18_t *krb5asrep = (const krb5asrep_18_t *) esalt_buf;
 
-  char data[5120 * 4 * 2] = { 0 };
+  char *data = (char *) hcmalloc (5120 * 4 * 2);
 
   for (u32 i = 0, j = 0; i < krb5asrep->edata2_len; i += 1, j += 2)
   {
@@ -351,6 +352,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       krb5asrep->checksum[1],
       krb5asrep->checksum[2]);
   }
+
+  hcfree (data);
 
   return line_len;
 }

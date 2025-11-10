@@ -53,6 +53,11 @@ bridges/bridge_python_generic_hash_sp.so:  src/bridges/bridge_python_generic_has
 bridges/bridge_python_generic_hash_sp.dll: src/bridges/bridge_python_generic_hash_sp.c src/cpu_features.c obj/combined.WIN.a
 	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(PYTHON_CFLAGS_WIN)
 else
+
+ifeq ($(BRIDGE_SUFFIX),dll)
+PYTHON_CFLAGS := $(PYTHON_CFLAGS_WIN)
+endif
+
 ifeq ($(SHARED),1)
 bridges/bridge_python_generic_hash_sp.$(BRIDGE_SUFFIX): src/bridges/bridge_python_generic_hash_sp.c src/cpu_features.c $(HASHCAT_LIBRARY)
 	$(CC)       $(CCFLAGS) $(CFLAGS_NATIVE)       $^ -o $@ $(LFLAGS_NATIVE)      -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(PYTHON_CFLAGS)

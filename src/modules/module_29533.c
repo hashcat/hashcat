@@ -351,19 +351,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  char salt_buf[LUKS_SALT_HEX_LEN + 1] = { 0 };
+  char *salt_buf = (char *) hcmalloc (LUKS_SALT_HEX_LEN + 1);
 
   hex_encode ((const u8 *) salt->salt_buf, LUKS_SALT_LEN, (u8 *) salt_buf);
 
   // af
 
-  char af_buf[LUKS_AF_MAX_HEX_LEN + 1] = { 0 };
+  char *af_buf = (char *) hcmalloc (LUKS_AF_MAX_HEX_LEN + 1);
 
   hex_encode ((const u8 *) luks->af_buf, luks->af_len, (u8 *) af_buf);
 
   // ct
 
-  char ct_buf[LUKS_CT_HEX_LEN + 1] = { 0 };
+  char *ct_buf = (char *) hcmalloc (LUKS_CT_HEX_LEN + 1);
 
   hex_encode ((const u8 *) luks->ct_buf, LUKS_CT_LEN, (u8 *) ct_buf);
 
@@ -377,6 +377,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     salt_buf,
     af_buf,
     ct_buf);
+
+  hcfree (salt_buf);
+  hcfree (af_buf);
+  hcfree (ct_buf);
 
   return line_len;
 }

@@ -11,7 +11,13 @@ ifeq ($(IS_APPLE_SILICON),0)
 ARGON2_REFERENCE_CFLAGS += -mavx2
 endif
 else
+ifeq ($(IS_PPC),1)
+ARGON2_REFERENCE_CFLAGS += -mcpu=native
+ARGON2_REFERENCE_CFLAGS += -mtune=native
+else
 ARGON2_REFERENCE_CFLAGS += -march=native
+ARGON2_REFERENCE_CFLAGS += -mtune=native
+endif
 endif
 endif
 endif

@@ -15,6 +15,7 @@ mkdir -p $OUT
 
 mkdir -p $OUT/tools
 mkdir -p $OUT/Python
+mkdir -p $OUT/Rust/hashcat-sys
 mkdir -p $OUT/Rust/bridges/generic_hash
 mkdir -p $OUT/Rust/bridges/dynamic_hash
 
@@ -36,12 +37,13 @@ cp    $IN/example.dict                  $OUT/
 cp    $IN/example[0123456789]*.hash     $OUT/
 cp    $IN/example[0123456789]*.cmd      $OUT/
 cp -r $IN/Python/*.py                   $OUT/Python/
+cp -r $IN/Rust/hashcat-sys/src                  $OUT/Rust/hashcat-sys/
+cp    $IN/Rust/hashcat-sys/Cargo.*              $OUT/Rust/hashcat-sys/
+cp    $IN/Rust/hashcat-sys/build.rs             $OUT/Rust/hashcat-sys/
 cp -r $IN/Rust/bridges/generic_hash/src         $OUT/Rust/bridges/generic_hash/
 cp    $IN/Rust/bridges/generic_hash/Cargo.*     $OUT/Rust/bridges/generic_hash/
-cp    $IN/Rust/bridges/generic_hash/build.rs    $OUT/Rust/bridges/generic_hash/
 cp -r $IN/Rust/bridges/dynamic_hash/src         $OUT/Rust/bridges/dynamic_hash/
 cp    $IN/Rust/bridges/dynamic_hash/Cargo.*     $OUT/Rust/bridges/dynamic_hash/
-cp    $IN/Rust/bridges/dynamic_hash/build.rs    $OUT/Rust/bridges/dynamic_hash/
 cp -r $IN/OpenCL                        $OUT/
 cp    $IN/tools/*hashcat.pl             $OUT/tools/
 cp    $IN/tools/*hashcat.py             $OUT/tools/

@@ -4,6 +4,7 @@
 #define RULE_OP_MANGLE_LREST_UFIRST      'c'  // lower case all chars, upper case 1st
 #define RULE_OP_MANGLE_UREST_LFIRST      'C'  // upper case all chars, lower case 1st
 #define RULE_OP_MANGLE_TREST             't'  // switch the case of each char
+#define RULE_OP_MANGLE_SHIFT_CASE        'S'  // shift the case of each char, JtR-like
 #define RULE_OP_MANGLE_TOGGLE_AT         'T'  // switch the case of each char on pos N
 #define RULE_OP_MANGLE_TOGGLE_AT_SEP     '3'  // switch the case of the first letter after occurrence N of char X
 #define RULE_OP_MANGLE_REVERSE           'r'  // reverse word
@@ -34,6 +35,7 @@
 #define RULE_OP_MANGLE_CHR_SHIFTR        'R'  // bitwise shift right char at pos N. ex: hello` -> hello0
 #define RULE_OP_MANGLE_CHR_INCR          '+'  // bytewise increase at pos N. ex: hello0 -> hello1
 #define RULE_OP_MANGLE_CHR_DECR          '-'  // bytewise decreate at pos N. ex: hello1 -> hello0
+#define RULE_OP_MANGLE_CHR_ADD           'B'  // add byte value of X at pos N, bytewise. ex: hello0 -> hello`
 #define RULE_OP_MANGLE_REPLACE_NP1       '.'  // replaces char @ n with value at @ n plus 1
 #define RULE_OP_MANGLE_REPLACE_NM1       ','  // replaces char @ n with value at @ n minus 1
 #define RULE_OP_MANGLE_DUPEBLOCK_FIRST   'y'  // duplicates first N chars

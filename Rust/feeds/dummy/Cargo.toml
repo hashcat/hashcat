@@ -9,4 +9,7 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [profile.release]
+opt-level = 3
+codegen-units = 1
 strip = "symbols"
+panic = "abort"

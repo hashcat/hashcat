@@ -323,7 +323,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   for (int i = 0; i < 1024; i++) ct_buf[i] = byte_swap_32 (onepassword8->ct_buf[i]);
 
-  u8 ct_buf8[(1024 * 2 * 4) + 1];
+  u8 *ct_buf8 = (u8 *) hcmalloc ((1024 * 2 * 4) + 1);
 
   const int ct_len = hex_encode ((const u8 *) ct_buf, onepassword8->ct_len, ct_buf8);
 
@@ -357,6 +357,8 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     onepassword8->tag_buf[1],
     onepassword8->tag_buf[2],
     onepassword8->tag_buf[3]);
+
+  hcfree (ct_buf8);
 
   return out_len;
 }

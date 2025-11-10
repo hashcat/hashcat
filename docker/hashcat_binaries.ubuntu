@@ -1,0 +1,210 @@
+ARG UBUNTU_VERSION=16.04 \
+    HOST_ARCH=x86_64
+
+FROM gm4tr1x/hashcat-toolchain:${HOST_ARCH}-${UBUNTU_VERSION} AS builder-toolchain
+
+LABEL org.opencontainers.image.authors="Gabriele 'matrix' Gristina <matrix@hashcat.net>" \
+      org.opencontainers.image.title="Hashcat cross-build using hashcat-toolchain" \
+      org.opencontainers.image.version="2.0" \
+      org.opencontainers.image.description="Docker image based on Ubuntu for cross-compiling Hashcat (Windows and Linux) and optionally scanning for potential vulnerabilities using clang-tidy and scan-build." \
+      org.opencontainers.image.source="https://github.com/hashcat/hashcat/blob/master/docker/hashcat_binaries.ubuntu" \
+      org.opencontainers.image.licenses="MIT"
+
+ARG UBUNTU_VERSION \
+    HOST_ARCH
+
+ENV UBUNTU_VERSION=${UBUNTU_VERSION} \
+    HOST_ARCH=${HOST_ARCH}
+
+FROM ubuntu:${UBUNTU_VERSION} AS hashcat-builder
+
+ARG UBUNTU_VERSION \
+    HOST_ARCH \
+    MAX_CORE=12 \
+    WD=/opt/toolchain
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PATH=/opt/toolchain/native/bin:/opt/toolchain/cross/bin:/opt/toolchain/clang/bin:/opt/linux-python/bin:$PATH \
+    LD_LIBRARY_PATH=/opt/toolchain/native/lib64:/opt/toolchain/native/lib \
+    TERM=xterm-256color \
+    UBUNTU_VERSION=${UBUNTU_VERSION} \
+    HOST_ARCH=${HOST_ARCH} \
+    MAX_CORE=${MAX_CORE} \
+    WD=${WD}
+
+COPY --from=builder-toolchain /opt /opt
+COPY --from=builder-toolchain /root/toolchain-info.log /root/toolchain-info.log
+
+RUN apt-get update && apt-get -y --no-install-recommends install apt-utils && apt-get -y --no-install-recommends install \
+    build-essential \
+    ca-certificates curl \
+    dos2unix \
+    git \
+    libc6-dev \
+    make \
+    time \
+    wget \
+    zstd \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN echo "$WD/native/lib" > /etc/ld.so.conf.d/toolchain.conf && \
+    echo "$WD/native/lib64" >> /etc/ld.so.conf.d/toolchain.conf && \
+    echo "/opt/openssl/lib" >> /etc/ld.so.conf.d/toolchain.conf && \
+    ldconfig && \
+    update-alternatives --install /usr/bin/ar ar $WD/native/bin/ar 100 && \
+    update-alternatives --install /usr/bin/ranlib ranlib $WD/native/bin/ranlib 100 && \
+    update-alternatives --install /usr/bin/${HOST_ARCH}-linux-gnu-ld ${HOST_ARCH}-linux-gnu-ld $WD/native/bin/ld 100 && \
+    update-alternatives --set ar $WD/native/bin/ar && \
+    update-alternatives --set ranlib $WD/native/bin/ranlib && \
+    update-alternatives --set ${HOST_ARCH}-linux-gnu-ld $WD/native/bin/ld && \
+    update-alternatives --install /usr/bin/gcc gcc $WD/native/bin/gcc 100 && \
+    update-alternatives --install /usr/bin/g++ g++ $WD/native/bin/g++ 100 && \
+    update-alternatives --install /usr/bin/cc cc $WD/native/bin/gcc 100 && \
+    update-alternatives --install /usr/bin/c++ c++ $WD/native/bin/g++ 100 && \
+    update-alternatives --set gcc $WD/native/bin/gcc && \
+    update-alternatives --set g++ $WD/native/bin/g++ && \
+    update-alternatives --set cc $WD/native/bin/gcc && \
+    update-alternatives --set c++ $WD/native/bin/g++ && \
+    mkdir -p $WD/src /opt/win-python /root/out
+
+# 7zip
+
+ARG SEVEN_ZIP_VERSION=25.01
+ENV SEVEN_ZIP_VERSION=${SEVEN_ZIP_VERSION}
+
+RUN cd $WD/src && git clone --depth 1 --branch ${SEVEN_ZIP_VERSION} https://github.com/ip7z/7zip.git && \
+    cd 7zip/CPP/7zip/Bundles/Alone2 && make -f makefile.gcc -j && cp _o/7zz ${WD}/native/bin/7z && cd $WD/src && rm -rf 7zip
+
+# win-iconv
+
+ARG WIN_ICONV_VERSION=0.0.10
+ENV WIN_ICONV_VERSION=${WIN_ICONV_VERSION}
+
+RUN cd $WD/src && git clone --depth 1 --branch v${WIN_ICONV_VERSION} https://github.com/win-iconv/win-iconv.git && cd win-iconv && \
+    cmake \
+    -D WIN_ICONV_BUILD_EXECUTABLE=OFF \
+    -D CMAKE_INSTALL_PREFIX=/opt/win-iconv-64 \
+    -D CMAKE_C_COMPILER=$(which x86_64-w64-mingw32-gcc) \
+    -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) \
+    -D CMAKE_SYSTEM_NAME=Windows \
+    -D CMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+    -D CMAKE_C_STANDARD_LIBRARIES="-static-libgcc" \
+    -D CMAKE_CXX_STANDARD_LIBRARIES="-static-libgcc -static-libstdc++" \
+    . && make install && cd $WD/src && rm -rf win-iconv
+
+# Python (windows)
+
+ARG WIN_PYTHON_VERSION=3.12.12-1
+ENV WIN_PYTHON_VERSION=${WIN_PYTHON_VERSION}
+
+RUN cd /opt/win-python && \
+    wget --no-verbose -t 3 -c --https-only https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-${WIN_PYTHON_VERSION}-any.pkg.tar.zst && \
+    unzstd mingw-w64-x86_64-python-${WIN_PYTHON_VERSION}-any.pkg.tar.zst && tar -xf mingw-w64-x86_64-python-${WIN_PYTHON_VERSION}-any.pkg.tar && \
+    rm -rf mingw-w64-x86_64-python-${WIN_PYTHON_VERSION}-any.pkg.*
+
+# rust
+
+ARG RUST_VERSION=1.90.0
+ENV RUST_VERSION=${RUST_VERSION}
+
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}; /root/.cargo/bin/rustup target add x86_64-pc-windows-gnu
+
+ENV PATH=/root/.cargo/bin:$PATH
+
+# hashcat
+
+ARG CACHE_BUST=1 \
+    ENABLE_LTO=1 \
+    MAINTAINER_MODE=1 \
+    USE_MOLD=1 \
+    USE_CLANG=1 \
+    USE_GCC=0
+
+ENV CACHE_BUST=${CACHE_BUST} \
+    ENABLE_LTO=${ENABLE_LTO} \
+    MAINTAINER_MODE=${MAINTAINER_MODE} \
+    USE_MOLD=${USE_MOLD} \
+    USE_CLANG=${USE_CLANG} \
+    USE_GCC=${USE_GCC}
+
+RUN cd /root && git clone https://github.com/hashcat/hashcat.git
+
+COPY docker/patches/hashcat_binaries/ /root/patches/
+
+RUN bash -c 'shopt -s nullglob; cd /root/hashcat; for p in /root/patches/*.patch /root/patches/*.diff; do patch -p1 < "$p"; done'
+
+RUN if [ "${USE_CLANG}" = "1" ]; then \
+      cp -af /root/hashcat /root/hashcat-clang && cd /root/hashcat-clang && \
+      make USE_MOLD=${USE_MOLD} \
+           ENABLE_LTO=${ENABLE_LTO} \
+           MAINTAINER_MODE=${MAINTAINER_MODE} \
+           AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar \
+           CC=clang CC_LINUX=clang CC_WIN=clang \
+           CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ \
+           binaries -s -j 2>&1 | stdbuf -oL -eL tee -a /root/binaries.clang.log && \
+      tools/package_bin.sh && \
+      cd /root/xy && \
+      if [ "${USE_GCC}" = "1" ]; then \
+        for f in hashcat-*; do \
+          if [ -d "$f" ]; then \
+            mv "$f" /root/out/"${f}-clang"; \
+          elif [ "${f##*.}" = "7z" ]; then \
+            mv "$f" /root/out/"${f%.7z}-clang.7z"; \
+          fi; \
+        done; \
+      fi; \
+    fi
+
+RUN if [ "${USE_GCC}" = "1" ]; then \
+      cp -af /root/hashcat /root/hashcat-gcc && cd /root/hashcat-gcc && \
+      make USE_MOLD=${USE_MOLD} \
+           ENABLE_LTO=${ENABLE_LTO} \
+           MAINTAINER_MODE=${MAINTAINER_MODE} \
+           binaries -s -j 2>&1 | stdbuf -oL -eL  tee -a /root/binaries.gcc.log && \
+      tools/package_bin.sh && \
+      cd /root/xy && \
+      if [ "${USE_CLANG}" = "1" ]; then \
+        for f in hashcat-*; do \
+          if [ -d "$f" ]; then \
+            mv "$f" /root/out/"${f}-gcc"; \
+          elif [ "${f##*.}" = "7z" ]; then \
+            mv "$f" /root/out/"${f%.7z}-gcc.7z"; \
+          fi; \
+        done; \
+      fi; \
+    fi
+
+RUN if [ "${USE_CLANG}" = "1" ] && [ "${USE_GCC}" = "1" ]; then mv /root/out/* /root/xy/; fi; cd /root && rm -rf /root/out /root/hashcat-* $WD/src /tmp/* /var/tmp/*
+
+ARG WITH_CODE_ANALYSIS=0
+ENV WITH_CODE_ANALYSIS=${WITH_CODE_ANALYSIS}
+
+RUN echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
+    echo "WIN_ICONV_VERSION: ${WIN_ICONV_VERSION}" >> /root/toolchain-info.log && \
+    echo "SEVEN_ZIP_VERSION: ${SEVEN_ZIP_VERSION}" >> /root/toolchain-info.log && \
+    echo "RUST_VERSION: ${RUST_VERSION}" >> /root/toolchain-info.log && \
+    echo "ENABLE_LTO: ${ENABLE_LTO}" >> /root/toolchain-info.log && \
+    echo "MAINTAINER_MODE: ${MAINTAINER_MODE}" >> /root/toolchain-info.log && \
+    echo "USE_MOLD: ${USE_MOLD}" >> /root/toolchain-info.log && \
+    echo "USE_CLANG: ${USE_CLANG}" >> /root/toolchain-info.log && \
+    echo "USE_GCC: ${USE_GCC}" >> /root/toolchain-info.log && \
+    echo "WITH_CODE_ANALYSIS: ${WITH_CODE_ANALYSIS}" >> /root/toolchain-info.log && \
+    echo -n "GLIBC_VERSION: " >> tee -a /root/toolchain-info.log && \
+    strings /root/xy/hashcat-*/hashcat.bin | grep -o 'GLIBC_[0-9]\+\.[0-9]\+' | sort -V | tail -1 >> /root/toolchain-info.log && \
+    ldd /root/xy/hashcat-*/hashcat.bin | tee -a /root/linux_libs_dump.log && \
+    x86_64-w64-mingw32-objdump -p /root/xy/hashcat-*/hashcat.exe | grep 'DLL Name' | tee -a /root/win_libs_dump.log
+
+# TODO: move to code-analysis.sh
+
+RUN if [ "$WITH_CODE_ANALYSIS" -eq "1" ]; then \
+      mkdir -p /root/code-analysis/clang-tidy /root/code-analysis/scan-build && \
+      python3 -m pip install --upgrade pip --root-user-action=ignore && python3 -m pip install PyYAML --root-user-action=ignore && \
+      echo "Checks: 'clang-analyzer-*,cppcoreguidelines-*,-cppcoreguidelines-avoid-magic-numbers,modernize-*,performance-*,-modernize-use-trailing-return-type,-clang-diagnostic-unused-command-line-argument'" > /root/hashcat/.clang-tidy && \
+      echo "HeaderFilterRegex: 'src/.*'" >> /root/hashcat/.clang-tidy && \
+      cd /root/hashcat && make clean -s && \
+      intercept-build make USE_MOLD=${USE_MOLD} ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j && \
+      run-clang-tidy -p=. -export-fixes=/root/code-analysis/clang-tidy/fixes.yaml -quiet > /root/code-analysis/clang-tidy/output.log 2>&1 && make clean -s && \
+      scan-build -o /root/code-analysis/scan-build make USE_MOLD=${USE_MOLD} ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j > /root/code-analysis/scan-build/output.log 2>&1 && make clean -s; \
+    fi
+
+CMD ["/bin/bash"]

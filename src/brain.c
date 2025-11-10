@@ -3374,7 +3374,10 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     const int client_fd = accept (server_fd, (struct sockaddr *) &ca, (socklen_t *) &calen);
 
-    brain_logging (stdout, 0, "Connection from %s:%d\n", inet_ntoa (ca.sin_addr), ntohs (ca.sin_port));
+    char client_addr_str[INET_ADDRSTRLEN];
+    inet_ntop(AF_INET, &ca.sin_addr, client_addr_str, INET_ADDRSTRLEN);
+
+    brain_logging (stdout, 0, "Connection from %s:%d\n", client_addr_str, ntohs (ca.sin_port));
 
     const int client_idx = brain_server_get_client_idx (brain_server_dbs);
 
