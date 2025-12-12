@@ -6,6 +6,16 @@
 # Date: Thu 28 Aug 2023 05:12:40 PM CEST
 # License: MIT
 
+# Update: b8vr
+# Version: 2.2
+# Date: Fri 12 Dec 2025 13:10
+# The vault extraction routine has been updated. This was needed because sometimes wallet_data could contain data like:
+# {"cipher":"<the cipher>","iv":"<the iv>","keyMetadata":{"algorithm":"PBKDF2","params":{"iterations":5000}
+# where the salt part is left out, hence no hash is extracted.
+# With the update, wallet_data now contains entire vault data needed to create the hash:
+# {"cipher":"<the cipher>","iv":"<the iv>","keyMetadata":{"algorithm":"PBKDF2","params":{"iterations":5000}},"lib":"original","salt":"<the salt>"}
+# This issue seems to have come due to new versions of metamask.
+
 # Extract metamask vault from browser and save to file, then you can use this tool
 # reference: https://metamask.zendesk.com/hc/en-us/articles/360018766351-How-to-use-the-Vault-Decryptor-with-the-MetaMask-Vault-Data
 # From version 2.0 works also for Metamask Mobile
@@ -20,6 +30,7 @@ def metamask_parser(file, shortdata):
     f = open(file)
 
     j = json.load(f)
+    f.close()
 
     isMobile = False
 
@@ -29,21 +40,24 @@ def metamask_parser(file, shortdata):
         parser.print_help()
         exit(1)
     else:
-      f.close()
+      
       wallet_data = open(file, "rb").read().decode("utf-8","ignore").replace("\\","")
-
+      
       # taken from https://github.com/3rdIteration/btcrecover/blob/master/btcrecover/btcrpass.py#L3096-L3103
-      walletStartText = "vault"
+      walletStartText = '"vault"'
       wallet_data_start = wallet_data.lower().find(walletStartText)
-      wallet_data_trimmed = wallet_data[wallet_data_start:]
-      wallet_data_start = wallet_data_trimmed.find("cipher")
-      wallet_data_trimmed = wallet_data_trimmed[wallet_data_start - 2:]
-      wallet_data_end = wallet_data_trimmed.find("}")
-      wallet_data = wallet_data_trimmed[:wallet_data_end + 1]
-      wallet_json = json.loads(wallet_data)
-
-      j = json.loads(wallet_data)
-
+      wallet_data_vault_start = wallet_data.lower().find('{', wallet_data_start)
+      
+      bracket_count = 0
+      for i in range(wallet_data_vault_start, len(wallet_data)):
+        if wallet_data[i] == '{':
+          bracket_count += 1
+        elif wallet_data[i] == '}':
+          bracket_count -= 1
+          if bracket_count == 0:
+            j = json.loads(wallet_data[wallet_data_vault_start:i+1])
+            break
+            
       if 'lib' in j and 'original' in j['lib']:
         isMobile = True
       else:
