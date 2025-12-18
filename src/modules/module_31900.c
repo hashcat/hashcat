@@ -122,8 +122,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   hc_token_t token;
 
   memset (&token, 0, sizeof (hc_token_t));
+  
+  u32 rounds = 5000; // default
 
-  token.token_cnt  = 4;
+  token.token_cnt  = 5;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_METAMASK_WALLET;
@@ -133,34 +135,181 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '$';
-  token.len[1]     = 24;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
-
+  token.len_min[1] = 8;   // minimum: "rounds=1"
+  token.len_max[1] = 32;
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+  
   token.sep[2]     = '$';
-  token.len[2]     = 32;
+  token.len[2]     = 44;
   token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+                   | TOKEN_ATTR_VERIFY_BASE64A;
 
   token.sep[3]     = '$';
-  token.len[3]     = 44;
+  token.len[3]     = 32;
   token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
+
+  token.sep[4]     = '$';
+  token.len[4]     = 44;
+  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  
+  if (rc_tokenizer == PARSER_OK)
+  {
+    // token[1] must be "rounds=<number>"
+    const u8 *p = token.buf[1];
+    const int len = token.len[1];
 
+    if (len <= 7 || memcmp (p, "rounds=", 7) != 0)
+    {
+      rc_tokenizer = PARSER_TOKEN_LENGTH;
+    }
+    else
+    {
+      rounds = hc_strtoul ((const char *) (p + 7), NULL, 10);
+    }
+  } 
+  else // (rc_tokenizer != PARSER_OK)
+  {
+    memset (&token, 0, sizeof (token));
+    
+    token.token_cnt = 4;
+    
+    token.signatures_cnt    = 1;
+    token.signatures_buf[0] = SIGNATURE_METAMASK_WALLET;
+
+    token.len[0]     = strlen (SIGNATURE_METAMASK_WALLET);
+    token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+    token.sep[1]     = '$';
+    token.len[1]     = 44;
+    token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_BASE64A;
+
+    token.sep[2]     = '$';
+    token.len[2]     = 32;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[3]     = '$';
+    token.len[3]     = 44;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_BASE64A;
+
+    rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);    
+  }
+  
+  if (rc_tokenizer != PARSER_OK)
+  {
+    memset (&token, 0, sizeof (token));
+    
+    token.token_cnt  = 5;
+    
+    token.signatures_cnt    = 1;
+    token.signatures_buf[0] = SIGNATURE_METAMASK_WALLET;
+
+    token.len[0]     = strlen (SIGNATURE_METAMASK_WALLET);
+    token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_SIGNATURE;
+ 
+    token.sep[1]     = '$';
+    token.len_min[1] = 8;   // minimum: "rounds=1"
+    token.len_max[1] = 32;
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
+  
+    token.sep[2]     = '$';
+    token.len[2]     = 24;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_BASE64A;
+
+    token.sep[3]     = '$';
+    token.len[3]     = 32;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[4]     = '$';
+    token.len[4]     = 44;
+    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_BASE64A;
+
+    rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+    
+    if (rc_tokenizer == PARSER_OK)
+    {
+      // token[1] must be "rounds=<number>"
+      const u8 *p = token.buf[1];
+      const int len = token.len[1];
+
+      if (len <= 7 || memcmp (p, "rounds=", 7) != 0)
+      {
+        rc_tokenizer = PARSER_TOKEN_LENGTH;
+      }
+      else
+      {
+        rounds = hc_strtoul ((const char *) (p + 7), NULL, 10);
+      }
+    } 
+    else // (rc_tokenizer != PARSER_OK)
+    {
+      memset (&token, 0, sizeof (token));
+      
+      token.token_cnt = 4;
+      
+      token.signatures_cnt    = 1;
+      token.signatures_buf[0] = SIGNATURE_METAMASK_WALLET;
+
+      token.len[0]     = strlen (SIGNATURE_METAMASK_WALLET);
+      token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                       | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+      token.sep[1]     = '$';
+      token.len[1]     = 24;
+      token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
+                       | TOKEN_ATTR_VERIFY_BASE64A;
+
+      token.sep[2]     = '$';
+      token.len[2]     = 32;
+      token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                       | TOKEN_ATTR_VERIFY_HEX;
+
+      token.sep[3]     = '$';
+      token.len[3]     = 44;
+      token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                       | TOKEN_ATTR_VERIFY_BASE64A;
+
+      rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);    
+    }
+  }
+  
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
+  
+  const int salt_idx = (token.token_cnt == 5) ? 2 : 1;
+  const int iv_idx   = (token.token_cnt == 5) ? 3 : 2;
+  const int ct_idx   = (token.token_cnt == 5) ? 4 : 3;
+  
+  if (token.len[salt_idx] != 24 && token.len[salt_idx] != 44)
+  {
+    return PARSER_SALT_LENGTH;
+  }
+  
   size_t tmp_len = 0;
 
   // iter
+  
+  if (rounds < 1000 || rounds > 1000000)
+  {
+    return PARSER_SALT_ITERATION;
+  }
 
-  salt->salt_iter = 5000 - 1;
+  salt->salt_iter = rounds - 1;
 
   // salt
 
-  const u8 *salt_pos = token.buf[1];
-  const int salt_len = token.len[1];
+  const u8 *salt_pos = token.buf[salt_idx];
+  const int salt_len = token.len[salt_idx];
 
   memcpy ((u8 *) metamask->salt_buf, salt_pos, salt_len);
 
@@ -170,8 +319,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // iv
 
-  const u8 *iv_pos = token.buf[2];
-  const int iv_len = token.len[2] / 2;
+  const u8 *iv_pos = token.buf[iv_idx];
+  const int iv_len = token.len[iv_idx] / 2;
 
   metamask->iv_buf[0] = hex_to_u32 (iv_pos +  0);
   metamask->iv_buf[1] = hex_to_u32 (iv_pos +  8);
@@ -187,8 +336,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // ciphertext
 
-  const u8 *ct_pos = token.buf[3];
-  const int ct_len = token.len[3];
+  const u8 *ct_pos = token.buf[ct_idx];
+  const int ct_len = token.len[ct_idx];
 
   u8 tmp_buf[44+1];
 
@@ -261,8 +410,10 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-  int out_len = snprintf ((char *) out_buf, line_size, "%s%s$%s$%s",
+  int out_len = snprintf ((char *) out_buf, line_size, 
+    "%srounds=%u$%s$%s$%s",
     SIGNATURE_METAMASK_WALLET,
+    salt->salt_iter + 1,
     salt_buf,
     iv_buf,
     ct_buf);
