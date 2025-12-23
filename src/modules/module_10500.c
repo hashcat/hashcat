@@ -190,12 +190,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[6]     = '*';
-  token.len[6]     = 2;
-  token.attr[6]    = TOKEN_ATTR_FIXED_LENGTH
+  token.len_min[6] = 1;
+  token.len_max[6] = 2;
+  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
   token.sep[7]     = '*';
-  token.len_min[7] = 32;
+  token.len_min[7] = 0;
   token.len_max[7] = 64;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -257,7 +258,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int u_len  = strtol ((const char *) u_len_pos,  NULL, 10);
   const int o_len  = strtol ((const char *) o_len_pos,  NULL, 10);
 
-  if ((id_len != 16) && (id_len != 32)) return (PARSER_SALT_VALUE);
+  if ((id_len != 0) && (id_len != 16) && (id_len != 32)) return (PARSER_SALT_VALUE);
 
   if (u_len != 32) return (PARSER_SALT_VALUE);
   if (o_len != 32) return (PARSER_SALT_VALUE);
@@ -281,10 +282,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pdf->enc_md = enc_md;
 
-  pdf->id_buf[0] = hex_to_u32 (id_buf_pos +  0);
-  pdf->id_buf[1] = hex_to_u32 (id_buf_pos +  8);
-  pdf->id_buf[2] = hex_to_u32 (id_buf_pos + 16);
-  pdf->id_buf[3] = hex_to_u32 (id_buf_pos + 24);
+  if (id_len == 0)
+  {
+    // do nothing
+  }
+
+  if (id_len >= 16)
+  {
+    pdf->id_buf[0] = hex_to_u32 (id_buf_pos +  0);
+    pdf->id_buf[1] = hex_to_u32 (id_buf_pos +  8);
+    pdf->id_buf[2] = hex_to_u32 (id_buf_pos + 16);
+    pdf->id_buf[3] = hex_to_u32 (id_buf_pos + 24);
+  }
 
   if (id_len == 32)
   {
@@ -348,16 +357,25 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // we use ID for salt, maybe needs to change, we will see...
 
-  salt->salt_buf[0] = pdf->id_buf[0];
-  salt->salt_buf[1] = pdf->id_buf[1];
-  salt->salt_buf[2] = pdf->id_buf[2];
-  salt->salt_buf[3] = pdf->id_buf[3];
-  salt->salt_buf[4] = pdf->u_buf[0];
-  salt->salt_buf[5] = pdf->u_buf[1];
-  salt->salt_buf[6] = pdf->o_buf[0];
-  salt->salt_buf[7] = pdf->o_buf[1];
-  salt->salt_len    = pdf->id_len + 16;
-
+  if (pdf->id_len == 0)
+  {
+    salt->salt_buf[0] = pdf->u_buf[0];
+    salt->salt_buf[1] = pdf->u_buf[1];
+    salt->salt_buf[2] = pdf->o_buf[0];
+    salt->salt_buf[3] = pdf->o_buf[1];
+    salt->salt_len    = 16;
+  }
+  else {
+    salt->salt_buf[0] = pdf->id_buf[0];
+    salt->salt_buf[1] = pdf->id_buf[1];
+    salt->salt_buf[2] = pdf->id_buf[2];
+    salt->salt_buf[3] = pdf->id_buf[3];
+    salt->salt_buf[4] = pdf->u_buf[0];
+    salt->salt_buf[5] = pdf->u_buf[1];
+    salt->salt_buf[6] = pdf->o_buf[0];
+    salt->salt_buf[7] = pdf->o_buf[1];
+    salt->salt_len    = pdf->id_len + 16;
+  }
   salt->salt_iter   = (50 + 20);
 
   digest[0] = pdf->u_buf[0];
@@ -395,6 +413,39 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       byte_swap_32 (pdf->id_buf[5]),
       byte_swap_32 (pdf->id_buf[6]),
       byte_swap_32 (pdf->id_buf[7]),
+      pdf->u_len,
+      byte_swap_32 (pdf->u_buf[0]),
+      byte_swap_32 (pdf->u_buf[1]),
+      byte_swap_32 (pdf->u_buf[2]),
+      byte_swap_32 (pdf->u_buf[3]),
+      byte_swap_32 (pdf->u_buf[4]),
+      byte_swap_32 (pdf->u_buf[5]),
+      byte_swap_32 (pdf->u_buf[6]),
+      byte_swap_32 (pdf->u_buf[7]),
+      pdf->o_len,
+      byte_swap_32 (pdf->o_buf[0]),
+      byte_swap_32 (pdf->o_buf[1]),
+      byte_swap_32 (pdf->o_buf[2]),
+      byte_swap_32 (pdf->o_buf[3]),
+      byte_swap_32 (pdf->o_buf[4]),
+      byte_swap_32 (pdf->o_buf[5]),
+      byte_swap_32 (pdf->o_buf[6]),
+      byte_swap_32 (pdf->o_buf[7])
+    );
+  }
+  else if (pdf->id_len == 0)
+  {
+    const char *line_format = "$pdf$%d*%d*%d*%u*%d*%d**%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x";
+
+    if (pdf->P_minus == 1) line_format = "$pdf$%d*%d*%d*%d*%d*%d**%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x";
+
+    line_len = snprintf (line_buf, line_size, line_format,
+      pdf->V,
+      pdf->R,
+      128,
+      pdf->P,
+      pdf->enc_md,
+      pdf->id_len,
       pdf->u_len,
       byte_swap_32 (pdf->u_buf[0]),
       byte_swap_32 (pdf->u_buf[1]),
