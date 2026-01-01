@@ -52,7 +52,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.token_cnt  = 1;
 
   token.len_min[0] = 20;
-  token.len_max[0] = 8192;
+  token.len_max[0] = 20000000;
   token.attr[0]    = TOKEN_ATTR_VERIFY_LENGTH;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
@@ -67,7 +67,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (token_len <= 0) return (PARSER_HASH_LENGTH);
 
-  u8 tmp_buf[8192] = { 0 };
+  const size_t decoded_len_est = ((size_t) token_len * 3) / 4;
+
+  if (decoded_len_est > (SALT_MAX + 32)) return (PARSER_SALT_LENGTH);
+
+  u8 tmp_buf[SALT_MAX + 64] = { 0 };
 
   const size_t decoded_len = base64_decode (base64url_to_int, token_pos, token_len, tmp_buf);
 

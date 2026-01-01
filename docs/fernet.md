@@ -21,5 +21,6 @@ Quick test:
 Notes:
 - The module verifies the HMAC (SHA256) portion of the Fernet token.
 - Fernet tokens must be contiguous base64url strings.
+- Tokens with payloads larger than 256 bytes are rejected (hashcat SALT_MAX limit).
 - On macOS, you may need an OpenCL CPU backend (e.g., POCL) to run on CPU.
 - If you see "Metal is not supported", try `--backend-ignore-metal` and ensure an OpenCL backend is installed.
