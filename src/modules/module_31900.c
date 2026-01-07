@@ -63,6 +63,7 @@ typedef struct pbkdf2_sha512_aes_cbc
 
 } pbkdf2_sha512_aes_cbc_t;
 
+static const u32   ROUNDS_METAMASK_WALLET    = 5000;
 static const char *SIGNATURE_METAMASK_WALLET = "$metamaskMobile$";
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -117,25 +118,24 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   pbkdf2_sha512_aes_cbc_t *metamask = (pbkdf2_sha512_aes_cbc_t *) esalt_buf;
 
-  #define CT_MAX_LEN_BASE64 ((3136 * 8) / 6) + 3
-
   hc_token_t token;
 
   memset (&token, 0, sizeof (hc_token_t));
-
+  
   token.token_cnt  = 4;
 
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_METAMASK_WALLET;
 
-  token.len[0]     = strlen (SIGNATURE_METAMASK_WALLET);
+  token.len[0]     = 16;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
   token.sep[1]     = '$';
-  token.len[1]     = 24;
-  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
+  token.len_min[1] = 0;
+  token.len_max[1] = 60;   //includes 44 bytes salt
+  token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_OPTIONAL_ROUNDS;
 
   token.sep[2]     = '$';
   token.len[2]     = 32;
@@ -147,15 +147,50 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_BASE64A;
 
-  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  
+  if (rc_tokenizer != PARSER_OK)
+  {
+    memset (&token, 0, sizeof (token));
+    
+    token.token_cnt  = 4;
+    
+    token.signatures_cnt    = 1;
+    token.signatures_buf[0] = SIGNATURE_METAMASK_WALLET;
 
+    token.len[0]     = 16;
+    token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_SIGNATURE;
+ 
+    token.sep[1]     = '$';
+    token.len_min[1] = 0;
+    token.len_max[1] = 40;   //includes 24 bytes salt
+    token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_OPTIONAL_ROUNDS;
+
+    token.sep[2]     = '$';
+    token.len[2]     = 32;
+    token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    token.sep[3]     = '$';
+    token.len[3]     = 44;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_BASE64A;
+
+    rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+  }
+  
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
-
+  
+  salt->salt_iter = ROUNDS_METAMASK_WALLET - 1;
+  
+  if (token.opt_len != -1)
+  {
+    salt->salt_iter = hc_strtoul ((const char *) token.opt_buf + 7, NULL, 10) - 1; // 7 = "rounds="
+  }
+  
   size_t tmp_len = 0;
-
-  // iter
-
-  salt->salt_iter = 5000 - 1;
 
   // salt
 
@@ -261,13 +296,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *out_buf = (u8 *) line_buf;
 
-  int out_len = snprintf ((char *) out_buf, line_size, "%s%s$%s$%s",
-    SIGNATURE_METAMASK_WALLET,
-    salt_buf,
-    iv_buf,
-    ct_buf);
-
-  return out_len;
+  if (salt->salt_iter + 1 != ROUNDS_METAMASK_WALLET)
+    return snprintf ((char *) out_buf, line_size, "%srounds=%d$%s$%s$%s",
+      SIGNATURE_METAMASK_WALLET,
+      salt->salt_iter + 1,
+      salt_buf,
+      iv_buf,
+      ct_buf);
+  else
+    return snprintf ((char *) out_buf, line_size, "%s%s$%s$%s",
+        SIGNATURE_METAMASK_WALLET,
+        salt_buf,
+        iv_buf,
+        ct_buf);
 }
 
 void module_init (module_ctx_t *module_ctx)
