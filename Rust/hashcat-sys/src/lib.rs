@@ -41,7 +41,7 @@ impl ThreadContext {
 mod test {
     use super::*;
 
-    /// test that bindings.rs exists by asserting some very basic things
+    /// test that auto-generated file bindings.rs exists by asserting some very basic things
     #[test]
     fn test_bindings_exists() {
         let ctx = bindings::generic_io_t {
