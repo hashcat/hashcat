@@ -36,6 +36,7 @@ DECLSPEC int mangle_delete_last (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8
 DECLSPEC int mangle_extract (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_omit (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_insert (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
+DECLSPEC int mangle_insert_every (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_overstrike (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_truncate_at (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);
 DECLSPEC int mangle_replace (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u8 *buf, const int len);

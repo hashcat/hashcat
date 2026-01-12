@@ -331,7 +331,8 @@ def extract_version2(file):
         raise ValueError("file contains less data than needed (invalid payload len)")
 
     for key in json_header['keyslots']:
-        print(key)
+        if json_header['keyslots'][key]['type'] == 'reencrypt':
+            continue
         keyslot_offset = int(json_header['keyslots'][key]['area']['offset'])
         encryption = json_header['keyslots'][key]['area']['encryption']
         stripes = int(json_header['keyslots'][key]['af']['stripes'])

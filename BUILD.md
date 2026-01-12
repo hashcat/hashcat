@@ -114,6 +114,11 @@ Hashcat will use the following locations depending on your environment:
 | None of the above                          | `$HOME/.local/share/hashcat/sessions/` | `$HOME/.cache/hashcat/`               | `$HOME/.local/share/hashcat/`          |
 
 ---
+## 🔥 Building Hashcat for Android
+
+See: [BUILD_Android.md](BUILD_Android.md)
+
+---
 
 ## 🐳 Building Hashcat with Docker
 

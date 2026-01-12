@@ -9,6 +9,7 @@ use strict;
 use warnings;
 
 use Bitcoin::Crypto         qw (btc_prv btc_extprv);
+use Bitcoin::Crypto::Util   qw (to_format);
 use Bitcoin::Crypto::Base58 qw (decode_base58check);
 
 sub module_constraints { [[64, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
@@ -27,7 +28,7 @@ sub module_generate_hash
 
   my @is_valid_hex = eval
   {
-    $priv = btc_prv->from_hex ($word);
+    $priv = btc_prv->from_serialized ([hex => $word]);
   };
 
   return if (! @is_valid_hex);
@@ -77,7 +78,8 @@ sub module_get_random_password
 
   my $priv = $derived_key->get_basic_key ();
 
-  return $priv->to_hex (); # the result is padded (32 raw bytes)
+  return to_format [hex => $priv->to_serialized ()]; # the result is padded (32 raw bytes)
 }
 
 1;
+

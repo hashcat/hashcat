@@ -74,6 +74,7 @@ static const char grp_op_chr_chr[] =
 static const char grp_op_pos_chr[] =
 {
   RULE_OP_MANGLE_INSERT,
+  RULE_OP_MANGLE_INSERT_EVERY,
   RULE_OP_MANGLE_OVERSTRIKE,
   RULE_OP_MANGLE_TOGGLE_AT_SEP,
   RULE_OP_MANGLE_CHR_ADD
@@ -373,6 +374,12 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_INSERT:
+        SET_NAME    (rule, rule_buf[rule_pos]);
+        SET_P0_CONV (rule, rule_buf[rule_pos]);
+        SET_P1      (rule, rule_buf[rule_pos]);
+        break;
+
+      case RULE_OP_MANGLE_INSERT_EVERY:
         SET_NAME    (rule, rule_buf[rule_pos]);
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         SET_P1      (rule, rule_buf[rule_pos]);
@@ -691,6 +698,12 @@ int kernel_rule_to_cpu_rule (char *rule_buf, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_INSERT:
+        rule_buf[rule_pos] = rule_cmd;
+        GET_P0_CONV (rule);
+        GET_P1      (rule);
+        break;
+
+      case RULE_OP_MANGLE_INSERT_EVERY:
         rule_buf[rule_pos] = rule_cmd;
         GET_P0_CONV (rule);
         GET_P1      (rule);

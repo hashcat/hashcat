@@ -21,6 +21,7 @@
 #define RULE_OP_MANGLE_EXTRACT           'x'  // extract X chars of word at pos N
 #define RULE_OP_MANGLE_OMIT              'O'  // omit X chars of word at pos N
 #define RULE_OP_MANGLE_INSERT            'i'  // insert char X at pos N
+#define RULE_OP_MANGLE_INSERT_EVERY      'v'  // insert char X every N chars
 #define RULE_OP_MANGLE_OVERSTRIKE        'o'  // overwrite with char X at pos N
 #define RULE_OP_MANGLE_TRUNCATE_AT       '\'' // cut the word at pos N
 #define RULE_OP_MANGLE_REPLACE           's'  // replace all chars X with char Y

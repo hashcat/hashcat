@@ -383,6 +383,7 @@ typedef enum rule_functions
   RULE_OP_MANGLE_TITLE             = 'E',
   RULE_OP_MANGLE_TO_HEX_LOWER      = 'h',
   RULE_OP_MANGLE_TO_HEX_UPPER      = 'H',
+  RULE_OP_MANGLE_INSERT_EVERY      = 'v',
 
 
   /* using character classes */

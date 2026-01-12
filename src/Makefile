@@ -27,6 +27,12 @@ MAINTAINER_MODE         ?= 0
 
 UNAME                   := $(shell uname -s)
 
+# Detect Android
+ANDROID_DETECT := $(findstring Android,$(shell uname -a))
+ifneq (,$(ANDROID_DETECT))
+  UNAME                   := Android
+endif
+
 # we need to strip the windows version number to be able to build hashcat on cygwin hosts
 UNAME                   := $(patsubst CYGWIN_NT-%,CYGWIN,$(UNAME))
 
@@ -35,7 +41,7 @@ UNAME                   := $(patsubst MSYS_NT-%,MSYS2,$(UNAME))
 UNAME                   := $(patsubst MINGW32_NT-%,MSYS2,$(UNAME))
 UNAME                   := $(patsubst MINGW64_NT-%,MSYS2,$(UNAME))
 
-ifeq (,$(filter $(UNAME),Linux OpenBSD FreeBSD NetBSD DragonFly Darwin CYGWIN MSYS2))
+ifeq (,$(filter $(UNAME),Android Linux OpenBSD FreeBSD NetBSD DragonFly Darwin CYGWIN MSYS2))
 $(error "! Your Operating System ($(UNAME)) is not supported by this Makefile")
 endif
 
@@ -454,7 +460,18 @@ endif
 ## Native compilation target
 ##
 
-ifeq ($(UNAME),Linux)
+ifeq ($(UNAME),Android)
+CFLAGS_NATIVE           := $(CFLAGS)
+CFLAGS_NATIVE           += -D__ANDROID__
+LFLAGS_NATIVE           := $(LFLAGS)
+LFLAGS_NATIVE           += -lpthread
+LFLAGS_NATIVE           += -ldl
+LFLAGS_NATIVE           += -lrt
+LFLAGS_NATIVE           += -lm
+LFLAGS_NATIVE           += -liconv
+LFLAGS_NATIVE           += -L$(PREFIX)/lib
+$(info Android environment detected.)
+else ifeq ($(UNAME),Linux)
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)

@@ -32,6 +32,7 @@ Docker: Add hashcat-toolchain
 - GOST Libraries: GOST R 34.11-94 restructure
 - SAP CODVN H: Raised the maximum salt length for hash-mode 35000 (isSHA512) from 16 to 192
 - Added 2 new rule ops, 'convert to lower hex' and 'convert to upper hex'
+- Added 1 new rule op, 'insert every'
 - Added a new rule op, 'shift case'
 - Added a new rule op, 'add byte value'
 

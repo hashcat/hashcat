@@ -1589,6 +1589,46 @@ DECLSPEC HC_INLINE_RP u32 rule_op_mangle_omit (MAYBE_UNUSED const u32 p0, MAYBE_
   return out_len;
 }
 
+DECLSPEC HC_INLINE_RP u32 rule_op_mangle_insert_every (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
+{
+  if (p0 > in_len) return in_len;
+
+  if (p0 == 0) return in_len;
+
+  const u32 out_len = in_len + (in_len / p0);
+
+  if (out_len >= 32) return in_len;
+
+  u32 buf_in[8];
+
+  buf_in[0] = buf0[0];
+  buf_in[1] = buf0[1];
+  buf_in[2] = buf0[2];
+  buf_in[3] = buf0[3];
+  buf_in[4] = buf1[0];
+  buf_in[5] = buf1[1];
+  buf_in[6] = buf1[2];
+  buf_in[7] = buf1[3];
+
+  PRIVATE_AS u8 *in = (PRIVATE_AS u8 *) buf_in;
+
+  for (u32 src = in_len, dest = out_len; src > 0; src--, dest--) {
+    if ((src % p0) == 0) { in[dest-1] = p1; dest--; }
+    in[dest-1] = in[src-1];
+  }
+
+  buf0[0] = buf_in[0];
+  buf0[1] = buf_in[1];
+  buf0[2] = buf_in[2];
+  buf0[3] = buf_in[3];
+  buf1[0] = buf_in[4];
+  buf1[1] = buf_in[5];
+  buf1[2] = buf_in[6];
+  buf1[3] = buf_in[7];
+
+  return out_len;
+}
+
 DECLSPEC HC_INLINE_RP u32 rule_op_mangle_insert (MAYBE_UNUSED const u32 p0, MAYBE_UNUSED const u32 p1, MAYBE_UNUSED PRIVATE_AS u32 *buf0, MAYBE_UNUSED PRIVATE_AS u32 *buf1, const u32 in_len)
 {
   if (p0 > in_len) return in_len;
@@ -3231,6 +3271,7 @@ DECLSPEC u32 apply_rule_optimized (const u32 name, const u32 p0, const u32 p1, P
     case RULE_OP_MANGLE_EXTRACT:          out_len = rule_op_mangle_extract          (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_OMIT:             out_len = rule_op_mangle_omit             (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_INSERT:           out_len = rule_op_mangle_insert           (p0, p1, buf0, buf1, out_len); break;
+    case RULE_OP_MANGLE_INSERT_EVERY:     out_len = rule_op_mangle_insert_every     (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_OVERSTRIKE:       out_len = rule_op_mangle_overstrike       (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_TRUNCATE_AT:      out_len = rule_op_mangle_truncate_at      (p0, p1, buf0, buf1, out_len); break;
     case RULE_OP_MANGLE_REPLACE:          out_len = rule_op_mangle_replace          (p0, p1, buf0, buf1, out_len); break;
