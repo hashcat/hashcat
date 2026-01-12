@@ -7,11 +7,10 @@
 #[rustfmt::skip]
 pub mod bindings;
 
-/// common functions that are useful in Rust bridge implementations
-pub mod common;
+/// common functions used by the generic_hash bridge that are useful in Rust bridge implementations
+pub mod generic;
 
 pub use bindings::{bridge_context_t, generic_io_t, generic_io_tmp_t, salt_t};
-pub use common::*;
 
 #[repr(C)]
 pub struct ThreadContext {

@@ -10,7 +10,7 @@ use std::{
     sync::OnceLock,
 };
 
-use hashcat_sys::{ThreadContext, bridge_context_t, common::string_from_ptr, generic_io_tmp_t};
+use hashcat_sys::{ThreadContext, bridge_context_t, generic::string_from_ptr, generic_io_tmp_t};
 
 use crate::generic_hash;
 
