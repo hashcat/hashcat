@@ -11,9 +11,8 @@ use std::{
     sync::{Once, OnceLock},
 };
 
-use hashcat_sys::generic::{ThreadContext, bridge_context_t, string_from_ptr, generic_io_tmp_t};
-
-use crate::{Expr, eval::EvalContext, parse};
+use crate::{eval::EvalContext, parse, Expr};
+use hashcat_sys::generic::{bridge_context_t, generic_io_tmp_t, string_from_ptr, ThreadContext};
 
 thread_local! {
     static AST: OnceCell<Expr> = OnceCell::new();
