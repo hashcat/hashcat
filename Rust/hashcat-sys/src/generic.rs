@@ -80,8 +80,6 @@ pub extern "C" fn new_context(
     assert!(!module_name.is_null());
     assert!(!salts_buf.is_null());
     assert!(!esalts_buf.is_null());
-    assert!(!st_salts_buf.is_null());
-    assert!(!st_esalts_buf.is_null());
     assert_eq!(salts_size as usize, mem::size_of::<salt_t>());
     assert_eq!(st_salts_size as usize, mem::size_of::<salt_t>());
     assert_eq!(esalts_size as usize, mem::size_of::<generic_io_t>());
