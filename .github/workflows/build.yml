@@ -18,6 +18,7 @@ on:
   push:
     branches:
       - master
+      - fix_netbsd_build
     tags:
       - v*
     paths:
@@ -157,7 +158,10 @@ jobs:
           envs: SHARED
           prepare: |
             export PATH="/usr/sbin:$PATH"
-            pkg_add git gcc14 gmake gsed python313 llvm libiconv clang
+            pkg_add pkgin
+            pkgin -y update
+            pkgin -y full-upgrade
+            pkgin -y install git gcc14 gmake gsed python313 llvm libiconv clang
           run: |
             export PATH="/usr/pkg/gcc14/bin:$PATH"
             export TERM=xterm
