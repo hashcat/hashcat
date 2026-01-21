@@ -1,0 +1,290 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ *
+ * bcrypt $2*$, Blowfish (Unix) - LiteX FPGA Accelerated
+ *
+ * This module uses a hardware bridge to LiteX-Bcrypt FPGAs for
+ * hardware-accelerated bcrypt cracking.
+ *
+ * Hash format is identical to mode 3200 ($2a$, $2b$, $2x$, $2y$)
+ */
+
+#include "common.h"
+#include "types.h"
+#include "modules.h"
+#include "bitops.h"
+#include "convert.h"
+#include "shared.h"
+
+static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
+static const u32   DGST_POS0      = 0;
+static const u32   DGST_POS1      = 1;
+static const u32   DGST_POS2      = 2;
+static const u32   DGST_POS3      = 3;
+static const u32   DGST_SIZE      = DGST_SIZE_4_6;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
+static const char *HASH_NAME      = "bcrypt $2*$, Blowfish (Unix) [LiteX FPGA]";
+static const u64   KERN_TYPE      = 70300;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
+                                  | OPTS_TYPE_PT_GENERATE_LE
+                                  | OPTS_TYPE_NATIVE_THREADS
+                                  | OPTS_TYPE_MP_MULTI_DISABLE;
+static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
+static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_MATCH_TUNINGS
+                                  | BRIDGE_TYPE_REPLACE_LOOP;
+static const char *BRIDGE_NAME    = "litex_bcrypt";
+static const char *ST_PASS        = "testpass";
+static const char *ST_HASH        = "$2b$04$1VldY2zfWJR8BMfnYHEik..MCB9ARWzoHfe3fFFKfP6xes3sODPqe";
+
+u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
+u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
+u32         module_dgst_pos1      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS1;       }
+u32         module_dgst_pos2      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS2;       }
+u32         module_dgst_pos3      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS3;       }
+u32         module_dgst_size      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_SIZE;       }
+u32         module_hash_category  (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_CATEGORY;   }
+const char *module_hash_name      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return HASH_NAME;       }
+u64         module_kern_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return KERN_TYPE;       }
+u32         module_opti_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTI_TYPE;       }
+u64         module_opts_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return OPTS_TYPE;       }
+u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return SALT_TYPE;       }
+const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
+const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
+const char *module_bridge_name    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return BRIDGE_NAME;     }
+u64         module_bridge_type    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return BRIDGE_TYPE;     }
+
+/**
+ * FPGA tmp structure - used to pass passwords to bridge and receive results
+ */
+
+typedef struct bcrypt_fpga_tmp
+{
+  u32 pw_buf[18];   // Password buffer (up to 72 bytes for bcrypt)
+  u32 pw_len;
+  u32 digest[6];    // Output from FPGA (24 bytes, 6 words)
+  u32 cracked;      // Flag set by bridge when FPGA reports match
+
+} bcrypt_fpga_tmp_t;
+
+static const char *SIGNATURE_BCRYPT1 = "$2a$";
+static const char *SIGNATURE_BCRYPT2 = "$2b$";
+static const char *SIGNATURE_BCRYPT3 = "$2x$";
+static const char *SIGNATURE_BCRYPT4 = "$2y$";
+
+u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  const u32 pw_max = 72; // Bcrypt max password length
+
+  return pw_max;
+}
+
+u32 module_kernel_threads_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return 1;
+}
+
+u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return 1;
+}
+
+u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return (const u64) sizeof (bcrypt_fpga_tmp_t);
+}
+
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
+{
+  u32 *digest = (u32 *) digest_buf;
+
+  hc_token_t token;
+
+  memset (&token, 0, sizeof (hc_token_t));
+
+  token.token_cnt  = 4;
+
+  token.signatures_cnt    = 4;
+  token.signatures_buf[0] = SIGNATURE_BCRYPT1;
+  token.signatures_buf[1] = SIGNATURE_BCRYPT2;
+  token.signatures_buf[2] = SIGNATURE_BCRYPT3;
+  token.signatures_buf[3] = SIGNATURE_BCRYPT4;
+
+  token.len[0]     = 4;
+  token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_SIGNATURE;
+
+  token.sep[1]     = '$';
+  token.len[1]     = 2;
+  token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_DIGIT;
+
+  token.len[2]     = 22;
+  token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64B;
+
+  token.len[3]     = 31;
+  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                   | TOKEN_ATTR_VERIFY_BASE64B;
+
+  const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
+
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+
+  const u8 *iter_pos = token.buf[1];
+  const u8 *salt_pos = token.buf[2];
+  const u8 *hash_pos = token.buf[3];
+
+  const int salt_len = token.len[2];
+  const int hash_len = token.len[3];
+
+  salt->salt_len  = 16;
+  salt->salt_iter = 1u << hc_strtoul ((const char *) iter_pos, NULL, 10);
+
+  memcpy ((char *) salt->salt_sign, line_buf, 6);
+
+  u8 *salt_buf_ptr = (u8 *) salt->salt_buf;
+
+  u8 tmp_buf[100];
+
+  memset (tmp_buf, 0, sizeof (tmp_buf));
+
+  base64_decode (bf64_to_int, salt_pos, salt_len, tmp_buf);
+
+  memcpy (salt_buf_ptr, tmp_buf, 16);
+
+  salt->salt_buf[0] = byte_swap_32 (salt->salt_buf[0]);
+  salt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
+  salt->salt_buf[2] = byte_swap_32 (salt->salt_buf[2]);
+  salt->salt_buf[3] = byte_swap_32 (salt->salt_buf[3]);
+
+  memset (tmp_buf, 0, sizeof (tmp_buf));
+
+  base64_decode (bf64_to_int, hash_pos, hash_len, tmp_buf);
+
+  memcpy (digest, tmp_buf, 24);
+
+  digest[0] = byte_swap_32 (digest[0]);
+  digest[1] = byte_swap_32 (digest[1]);
+  digest[2] = byte_swap_32 (digest[2]);
+  digest[3] = byte_swap_32 (digest[3]);
+  digest[4] = byte_swap_32 (digest[4]);
+  digest[5] = byte_swap_32 (digest[5]);
+
+  digest[5] &= ~0xffu; // its just 23 not 24 bytes!
+
+  return (PARSER_OK);
+}
+
+int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
+{
+  const u32 *digest = (const u32 *) digest_buf;
+
+  u32 tmp_digest[6];
+
+  tmp_digest[0] = byte_swap_32 (digest[0]);
+  tmp_digest[1] = byte_swap_32 (digest[1]);
+  tmp_digest[2] = byte_swap_32 (digest[2]);
+  tmp_digest[3] = byte_swap_32 (digest[3]);
+  tmp_digest[4] = byte_swap_32 (digest[4]);
+  tmp_digest[5] = byte_swap_32 (digest[5]);
+
+  u32 tmp_salt[4];
+
+  tmp_salt[0] = byte_swap_32 (salt->salt_buf[0]);
+  tmp_salt[1] = byte_swap_32 (salt->salt_buf[1]);
+  tmp_salt[2] = byte_swap_32 (salt->salt_buf[2]);
+  tmp_salt[3] = byte_swap_32 (salt->salt_buf[3]);
+
+  char tmp_buf[64];
+
+  base64_encode (int_to_bf64, (const u8 *) tmp_salt,   16, (u8 *) tmp_buf +  0);
+  base64_encode (int_to_bf64, (const u8 *) tmp_digest, 23, (u8 *) tmp_buf + 22);
+
+  tmp_buf[22 + 31] = 0; // base64_encode wants to pad
+
+  return snprintf (line_buf, line_size, "%s$%s", (const char *) salt->salt_sign, tmp_buf);
+}
+
+void module_init (module_ctx_t *module_ctx)
+{
+  module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
+  module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
+
+  module_ctx->module_attack_exec              = module_attack_exec;
+  module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
+  module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
+  module_ctx->module_benchmark_mask           = MODULE_DEFAULT;
+  module_ctx->module_benchmark_charset        = MODULE_DEFAULT;
+  module_ctx->module_benchmark_salt           = MODULE_DEFAULT;
+  module_ctx->module_bridge_name              = module_bridge_name;
+  module_ctx->module_bridge_type              = module_bridge_type;
+  module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
+  module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
+  module_ctx->module_dgst_pos0                = module_dgst_pos0;
+  module_ctx->module_dgst_pos1                = module_dgst_pos1;
+  module_ctx->module_dgst_pos2                = module_dgst_pos2;
+  module_ctx->module_dgst_pos3                = module_dgst_pos3;
+  module_ctx->module_dgst_size                = module_dgst_size;
+  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
+  module_ctx->module_esalt_size               = MODULE_DEFAULT;
+  module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
+  module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
+  module_ctx->module_extra_tuningdb_block     = MODULE_DEFAULT;
+  module_ctx->module_forced_outfile_format    = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_count        = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_parse        = MODULE_DEFAULT;
+  module_ctx->module_hash_binary_save         = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_postprocess  = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_potfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_decode_zero_hash    = MODULE_DEFAULT;
+  module_ctx->module_hash_decode              = module_hash_decode;
+  module_ctx->module_hash_encode_status       = MODULE_DEFAULT;
+  module_ctx->module_hash_encode_potfile      = MODULE_DEFAULT;
+  module_ctx->module_hash_encode              = module_hash_encode;
+  module_ctx->module_hash_init_selftest       = MODULE_DEFAULT;
+  module_ctx->module_hash_mode                = MODULE_DEFAULT;
+  module_ctx->module_hash_category            = module_hash_category;
+  module_ctx->module_hash_name                = module_hash_name;
+  module_ctx->module_hashes_count_min         = MODULE_DEFAULT;
+  module_ctx->module_hashes_count_max         = MODULE_DEFAULT;
+  module_ctx->module_hlfmt_disable            = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_size    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_init    = MODULE_DEFAULT;
+  module_ctx->module_hook_extra_param_term    = MODULE_DEFAULT;
+  module_ctx->module_hook12                   = MODULE_DEFAULT;
+  module_ctx->module_hook23                   = MODULE_DEFAULT;
+  module_ctx->module_hook_salt_size           = MODULE_DEFAULT;
+  module_ctx->module_hook_size                = MODULE_DEFAULT;
+  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
+  module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
+  module_ctx->module_kernel_threads_max       = module_kernel_threads_max;
+  module_ctx->module_kernel_threads_min       = module_kernel_threads_min;
+  module_ctx->module_kern_type                = module_kern_type;
+  module_ctx->module_kern_type_dynamic        = MODULE_DEFAULT;
+  module_ctx->module_opti_type                = module_opti_type;
+  module_ctx->module_opts_type                = module_opts_type;
+  module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
+  module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
+  module_ctx->module_potfile_disable          = MODULE_DEFAULT;
+  module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
+  module_ctx->module_pwdump_column            = MODULE_DEFAULT;
+  module_ctx->module_pw_max                   = module_pw_max;
+  module_ctx->module_pw_min                   = MODULE_DEFAULT;
+  module_ctx->module_salt_max                 = MODULE_DEFAULT;
+  module_ctx->module_salt_min                 = MODULE_DEFAULT;
+  module_ctx->module_salt_type                = module_salt_type;
+  module_ctx->module_separator                = MODULE_DEFAULT;
+  module_ctx->module_st_hash                  = module_st_hash;
+  module_ctx->module_st_pass                  = module_st_pass;
+  module_ctx->module_tmp_size                 = module_tmp_size;
+  module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_warmup_disable           = MODULE_DEFAULT;
+}
