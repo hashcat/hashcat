@@ -38,6 +38,100 @@ static const u32 full01 = 0x01010101;
 static const u32 full06 = 0x06060606;
 static const u32 full80 = 0x80808080;
 
+#define GPG_SALTED_PW_BLOCK_LEN_MAX (80 * sizeof (u32)) // must match m17010-pure.cl
+
+static u32 gpg_salted_pw_block_len (const u32 pw_len, const u32 salt_len)
+{
+  const u32 salted_pw_len = salt_len + pw_len;
+
+  if (salted_pw_len == 0) return 0;
+
+  const u32 copies = GPG_SALTED_PW_BLOCK_LEN_MAX / salted_pw_len;
+
+  if (copies == 0) return 0;
+
+  return copies * salted_pw_len;
+}
+
+static void bucket_pws_idx_by_salted_pw_block_len (hc_device_param_t *device_param, const u64 pws_cnt, const u32 salt_len)
+{
+  if (pws_cnt < 2) return;
+
+  pw_idx_t *pws_idx = device_param->pws_idx;
+  pw_idx_t *pws_idx_tmp = device_param->pws_idx_tmp;
+
+  if (pws_idx_tmp == NULL) return;
+
+  u32 key_by_len[PW_MAX + 1];
+
+  for (u32 len = 0; len <= PW_MAX; len++)
+  {
+    key_by_len[len] = gpg_salted_pw_block_len (len, salt_len);
+  }
+
+  const u32 first_len = pws_idx[0].len;
+
+  if (first_len > PW_MAX) return;
+
+  const u32 first_key = key_by_len[first_len];
+
+  if (first_key == 0) return;
+
+  u32 min_key = first_key;
+  u32 max_key = first_key;
+
+  for (u64 i = 0; i < pws_cnt; i++)
+  {
+    const u32 len = pws_idx[i].len;
+
+    if (len > PW_MAX) return;
+
+    const u32 key = key_by_len[len];
+
+    if (key == 0) return;
+
+    if (key < min_key) min_key = key;
+    if (key > max_key) max_key = key;
+  }
+
+  if (min_key == max_key) return;
+
+  u32 counts[GPG_SALTED_PW_BLOCK_LEN_MAX + 1];
+
+  for (u32 i = 0; i <= GPG_SALTED_PW_BLOCK_LEN_MAX; i++) counts[i] = 0;
+
+  for (u64 i = 0; i < pws_cnt; i++)
+  {
+    const u32 len = pws_idx[i].len;
+
+    if (len > PW_MAX) return;
+
+    const u32 key = key_by_len[len];
+
+    counts[key]++;
+  }
+
+  u32 offsets[GPG_SALTED_PW_BLOCK_LEN_MAX + 1];
+
+  offsets[0] = 0;
+
+  for (u32 i = 1; i <= GPG_SALTED_PW_BLOCK_LEN_MAX; i++) offsets[i] = offsets[i - 1] + counts[i - 1];
+
+  for (u64 i = 0; i < pws_cnt; i++)
+  {
+    const u32 len = pws_idx[i].len;
+
+    if (len > PW_MAX) return;
+
+    const u32 key = key_by_len[len];
+    const u32 dst = offsets[key]++;
+
+    pws_idx_tmp[dst] = pws_idx[i];
+  }
+
+  memcpy (pws_idx, pws_idx_tmp, pws_cnt * sizeof (pw_idx_t));
+}
+
 static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
 
 HC_ALIGN(16)
@@ -3690,6 +3784,22 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
     hc_timer_set (&device_param->timer_speed);
   }
   #endif
+
+  if ((hashconfig->kern_type == 17010) &&
+      (user_options->length_bucket == true) &&
+      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT))
+  {
+    hashes_t *hashes = hashcat_ctx->hashes;
+
+    const u32 salt_pos = device_param->kernel_param.salt_pos_host;
+
+    if ((hashes != NULL) && (salt_pos < hashes->salts_cnt))
+    {
+      const u32 salt_len = hashes->salts_buf[salt_pos].salt_len;
+
+      bucket_pws_idx_by_salted_pw_block_len (device_param, pws_cnt, salt_len);
+    }
+  }
 
   if (user_options->slow_candidates == true)
   {
@@ -16650,6 +16760,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->pws_idx = pws_idx;
 
+    pw_idx_t *pws_idx_tmp = (pw_idx_t *) hcmalloc (size_pws_idx);
+
+    device_param->pws_idx_tmp = pws_idx_tmp;
+
     pw_t *combs_buf = (pw_t *) hccalloc (KERNEL_COMBS, sizeof (pw_t));
 
     device_param->combs_buf = combs_buf;
@@ -16969,6 +17083,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree_bridge_aligned (device_param->h_tmps);
     hcfree (device_param->pws_comp);
     hcfree (device_param->pws_idx);
+    hcfree (device_param->pws_idx_tmp);
     hcfree (device_param->pws_pre_buf);
     hcfree (device_param->pws_base_buf);
     hcfree (device_param->combs_buf);
@@ -17305,6 +17420,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     device_param->h_tmps              = NULL;
     device_param->pws_comp            = NULL;
     device_param->pws_idx             = NULL;
+    device_param->pws_idx_tmp         = NULL;
     device_param->pws_pre_buf         = NULL;
     device_param->pws_base_buf        = NULL;
     device_param->combs_buf           = NULL;

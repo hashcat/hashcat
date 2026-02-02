@@ -798,6 +798,7 @@ typedef enum user_options_defaults
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
   SPEED_ONLY               = false,
+  LENGTH_BUCKET            = true,
   SPIN_DAMP                = 0,
   STATUS                   = false,
   STATUS_JSON              = false,
@@ -939,6 +940,7 @@ typedef enum user_options_map
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
   IDX_SPEED_ONLY                = 0xff48,
+  IDX_LENGTH_BUCKET             = 0xff5a,
   IDX_SPIN_DAMP                 = 0xff49,
   IDX_STATUS                    = 0xff4a,
   IDX_STATUS_JSON               = 0xff4b,
@@ -1482,6 +1484,7 @@ typedef struct hc_device_param
   void     *hooks_buf;
 
   pw_idx_t *pws_idx;
+  pw_idx_t *pws_idx_tmp;
   u32      *pws_comp;
   u64       pws_cnt;
 
@@ -2518,6 +2521,7 @@ typedef struct user_options
   bool         show;
   bool         slow_candidates;
   bool         speed_only;
+  bool         length_bucket;
   bool         status;
   bool         status_json;
   bool         stdout_flag;

@@ -90,6 +90,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --benchmark-min            |      | Set benchmark min hash-mode (requires -b)            | --benchmark-min=100",
   "     --benchmark-max            |      | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000",
   "     --speed-only               |      | Return expected speed of the attack, then quit       |",
+  "     --length-bucket            |      | Bucket candidates by length (mode 17010 only)        |",
   "     --progress-only            |      | Return ideal progress step size and time to process  |",
   " -c, --segment-size             | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
   "     --bitmap-min               | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
