@@ -38,10 +38,13 @@ static const u32 full01 = 0x01010101;
 static const u32 full06 = 0x06060606;
 static const u32 full80 = 0x80808080;
 
-#define GPG_SALTED_PW_BLOCK_LEN_MAX (80 * sizeof (u32)) // must match m17010-pure.cl
+// Max salted password block length (bytes). Must match m17010-pure.cl kernel logic.
+#define GPG_SALTED_PW_BLOCK_LEN_MAX (80 * sizeof (u32))
 
 static u32 gpg_salted_pw_block_len (const u32 pw_len, const u32 salt_len)
 {
+  // Mirrors the kernel's salted password block sizing:
+  // block_len = floor(MAX / (salt_len + pw_len)) * (salt_len + pw_len)
   const u32 salted_pw_len = salt_len + pw_len;
 
   if (salted_pw_len == 0) return 0;
@@ -62,6 +65,7 @@ static void bucket_pws_idx_by_salted_pw_block_len (hc_device_param_t *device_par
 
   if (pws_idx_tmp == NULL) return;
 
+  // Precompute key by pw length to avoid repeated division in the hot loop.
   u32 key_by_len[PW_MAX + 1];
 
   for (u32 len = 0; len <= PW_MAX; len++)
@@ -80,6 +84,7 @@ static void bucket_pws_idx_by_salted_pw_block_len (hc_device_param_t *device_par
   u32 min_key = first_key;
   u32 max_key = first_key;
 
+  // Count-sort candidates by key to reduce per-workgroup divergence.
   for (u64 i = 0; i < pws_cnt; i++)
   {
     const u32 len = pws_idx[i].len;
