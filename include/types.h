@@ -798,7 +798,7 @@ typedef enum user_options_defaults
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
   SPEED_ONLY               = false,
-  LENGTH_BUCKET            = true,
+  LENGTH_BUCKET            = false,
   SPIN_DAMP                = 0,
   STATUS                   = false,
   STATUS_JSON              = false,
