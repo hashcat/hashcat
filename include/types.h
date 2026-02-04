@@ -1484,7 +1484,6 @@ typedef struct hc_device_param
   void     *hooks_buf;
 
   pw_idx_t *pws_idx;
-  pw_idx_t *pws_idx_tmp;
   u32      *pws_comp;
   u64       pws_cnt;
 

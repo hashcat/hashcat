@@ -38,111 +38,26 @@ static const u32 full01 = 0x01010101;
 static const u32 full06 = 0x06060606;
 static const u32 full80 = 0x80808080;
 
-// Max salted password block lengths (bytes). Must match the GPG kernels.
-#define GPG_SALTED_PW_BLOCK_LEN_MAX_80  (80 * sizeof (u32))  // m17010
-#define GPG_SALTED_PW_BLOCK_LEN_MAX_96  (96 * sizeof (u32))  // m17020/m17030
-#define GPG_SALTED_PW_BLOCK_LEN_MAX     GPG_SALTED_PW_BLOCK_LEN_MAX_96
-
-static u32 gpg_salted_pw_block_len (const u32 pw_len, const u32 salt_len, const u32 block_len_max)
+static int pw_idx_len_cmp (const void *a, const void *b)
 {
-  // Mirrors the kernel's salted password block sizing:
-  // block_len = floor(MAX / (salt_len + pw_len)) * (salt_len + pw_len)
-  const u32 salted_pw_len = salt_len + pw_len;
+  const pw_idx_t *pa = (const pw_idx_t *) a;
+  const pw_idx_t *pb = (const pw_idx_t *) b;
 
-  if (salted_pw_len == 0) return 0;
-
-  const u32 copies = block_len_max / salted_pw_len;
-
-  if (copies == 0) return 0;
-
-  return copies * salted_pw_len;
+  if (pa->len < pb->len) return -1;
+  if (pa->len > pb->len) return 1;
+  return 0;
 }
 
-static void bucket_pws_idx_by_salted_pw_block_len (hc_device_param_t *device_param, const u64 pws_cnt, const u32 salt_len, const u32 block_len_max)
+static void sort_pws_idx_by_len (hc_device_param_t *device_param, const u64 pws_cnt)
 {
-  // Reorders pws_idx by the kernel's effective salted password block length (cost proxy) to reduce divergence.
-  // Implemented as a stable count-sort using the derived key from salt_len+pw_len and the kernel's block_len_max.
+  // Simple length sort: no kernel-specific constants or cost model.
   if (pws_cnt < 2) return;
 
   pw_idx_t *pws_idx = device_param->pws_idx;
-  pw_idx_t *pws_idx_tmp = device_param->pws_idx_tmp;
 
-  if (pws_idx_tmp == NULL) return;
+  if (pws_idx == NULL) return;
 
-  if (block_len_max == 0) return;
-  if (block_len_max > GPG_SALTED_PW_BLOCK_LEN_MAX) return;
-
-  // Precompute key by pw length to avoid repeated division in the hot loop.
-  u32 key_by_len[PW_MAX + 1];
-
-  for (u32 len = 0; len <= PW_MAX; len++)
-  {
-    key_by_len[len] = gpg_salted_pw_block_len (len, salt_len, block_len_max);
-  }
-
-  const u32 first_len = pws_idx[0].len;
-
-  if (first_len > PW_MAX) return;
-
-  const u32 first_key = key_by_len[first_len];
-
-  if (first_key == 0) return;
-
-  u32 min_key = first_key;
-  u32 max_key = first_key;
-
-  // Count-sort candidates by key to reduce per-workgroup divergence.
-  for (u64 i = 0; i < pws_cnt; i++)
-  {
-    const u32 len = pws_idx[i].len;
-
-    if (len > PW_MAX) return;
-
-    const u32 key = key_by_len[len];
-
-    if (key == 0) return;
-    if (key > GPG_SALTED_PW_BLOCK_LEN_MAX) return;
-
-    if (key < min_key) min_key = key;
-    if (key > max_key) max_key = key;
-  }
-
-  if (min_key == max_key) return;
-
-  u32 counts[GPG_SALTED_PW_BLOCK_LEN_MAX + 1];
-
-  for (u32 i = 0; i <= GPG_SALTED_PW_BLOCK_LEN_MAX; i++) counts[i] = 0;
-
-  for (u64 i = 0; i < pws_cnt; i++)
-  {
-    const u32 len = pws_idx[i].len;
-
-    if (len > PW_MAX) return;
-
-    const u32 key = key_by_len[len];
-
-    counts[key]++;
-  }
-
-  u32 offsets[GPG_SALTED_PW_BLOCK_LEN_MAX + 1];
-
-  offsets[0] = 0;
-
-  for (u32 i = 1; i <= GPG_SALTED_PW_BLOCK_LEN_MAX; i++) offsets[i] = offsets[i - 1] + counts[i - 1];
-
-  for (u64 i = 0; i < pws_cnt; i++)
-  {
-    const u32 len = pws_idx[i].len;
-
-    if (len > PW_MAX) return;
-
-    const u32 key = key_by_len[len];
-    const u32 dst = offsets[key]++;
-
-    pws_idx_tmp[dst] = pws_idx[i];
-  }
-
-  memcpy (pws_idx, pws_idx_tmp, pws_cnt * sizeof (pw_idx_t));
+  qsort (pws_idx, pws_cnt, sizeof (pw_idx_t), pw_idx_len_cmp);
 }
 
 static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
@@ -3801,33 +3716,14 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   if ((user_options->length_bucket == true) &&
       (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT))
   {
-    u32 block_len_max = 0;
-
     switch (hashconfig->kern_type)
     {
       case 17010:
-      // case 17040: // doesn't speedup
-      case 17050:
-        block_len_max = GPG_SALTED_PW_BLOCK_LEN_MAX_80;
-        break;
       case 17020:
       case 17030:
-        block_len_max = GPG_SALTED_PW_BLOCK_LEN_MAX_96;
+      case 17050:
+        sort_pws_idx_by_len (device_param, pws_cnt);
         break;
-    }
-
-    if (block_len_max)
-    {
-      hashes_t *hashes = hashcat_ctx->hashes;
-
-      const u32 salt_pos = device_param->kernel_param.salt_pos_host;
-
-      if ((hashes != NULL) && (salt_pos < hashes->salts_cnt))
-      {
-        const u32 salt_len = hashes->salts_buf[salt_pos].salt_len;
-
-        bucket_pws_idx_by_salted_pw_block_len (device_param, pws_cnt, salt_len, block_len_max);
-      }
     }
   }
 
@@ -16790,10 +16686,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     device_param->pws_idx = pws_idx;
 
-    pw_idx_t *pws_idx_tmp = (pw_idx_t *) hcmalloc (size_pws_idx);
-
-    device_param->pws_idx_tmp = pws_idx_tmp;
-
     pw_t *combs_buf = (pw_t *) hccalloc (KERNEL_COMBS, sizeof (pw_t));
 
     device_param->combs_buf = combs_buf;
@@ -17113,7 +17005,6 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     hcfree_bridge_aligned (device_param->h_tmps);
     hcfree (device_param->pws_comp);
     hcfree (device_param->pws_idx);
-    hcfree (device_param->pws_idx_tmp);
     hcfree (device_param->pws_pre_buf);
     hcfree (device_param->pws_base_buf);
     hcfree (device_param->combs_buf);
@@ -17450,7 +17341,6 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     device_param->h_tmps              = NULL;
     device_param->pws_comp            = NULL;
     device_param->pws_idx             = NULL;
-    device_param->pws_idx_tmp         = NULL;
     device_param->pws_pre_buf         = NULL;
     device_param->pws_base_buf        = NULL;
     device_param->combs_buf           = NULL;
