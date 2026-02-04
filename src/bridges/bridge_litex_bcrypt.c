@@ -87,7 +87,7 @@ struct litepcie_ioctl_reg {
  */
 
 #define MAX_FPGA_DEVICES    64
-#define BASE_WORKITEM_COUNT 32
+#define BASE_WORKITEM_COUNT 16   // Must not exceed hashcat's kernel_power
 #define MAX_WORKITEM_COUNT  256
 #define MAX_PASSWORD_LEN    72
 #define FPGA_TIMEOUT        10000000
@@ -106,8 +106,8 @@ typedef struct bcrypt_fpga_tmp
 {
   u32 pw_buf[18];
   u32 pw_len;
-  u32 digest[6];
-  u32 cracked;
+  u32 cracked;      // Must be right after pw_len to match OpenCL struct!
+  // Note: NO digest field here - that was wrong and caused offset mismatch
 
 } bcrypt_fpga_tmp_t;
 
@@ -785,7 +785,7 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
   add_checksums_around_payload (pkt_cmp, &pkt_cmp_len, cmp_hdr, 10, cmp_pl, cmp_pl_len);
 
-  hcfree (target_hashes);
+  // target_hashes freed at cleanup label
 
   // Build WORD_GEN packet (empty for -a0 mode)
   uint8_t wg_pl[16];
@@ -909,6 +909,9 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
           uint32_t drain_len = 0;
 
           wait_recorder (unit, &drain_len);
+          
+          // Found a match - stop processing this batch
+          goto cleanup;
         }
       }
     }
@@ -924,6 +927,8 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
     drain_output_fifo (unit);
   }
 
+cleanup:
+  hcfree(target_hashes);
   return true;
 }
 
