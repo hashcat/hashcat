@@ -63,7 +63,7 @@ typedef struct bcrypt_fpga_tmp
 {
   u32 pw_buf[18];   // Password buffer (up to 72 bytes for bcrypt)
   u32 pw_len;
-  u32 digest[6];    // Output from FPGA (24 bytes, 6 words)
+  
   u32 cracked;      // Flag set by bridge when FPGA reports match
 
 } bcrypt_fpga_tmp_t;
