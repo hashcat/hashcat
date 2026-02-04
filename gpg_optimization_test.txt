@@ -1,0 +1,11 @@
+git rev-parse HEAD
+for m in 17010 17020 17030 17040 17050; do
+./hashcat --potfile-disable --example-hashes -m $m --machine-readable --quiet | jq -r '.[].example_hash' > $m.hash
+a=$(./hashcat --potfile-disable -a0 -m$m $m.hash ./rockyou.txt -r rules/best66.rule -w4 -O -S --status --status-timer=3 --runtime=15 --quiet --status-json 2>/dev/null | jq '.devices[0].speed' | tail -n1)
+echo "$m a0\t=\t$a H/s"
+b=$(./hashcat --potfile-disable --length-bucket -a0 -m$m $m.hash ./rockyou.txt -r rules/best66.rule -w4 -O -S --status --status-timer=3 --runtime=15 --quiet --status-json 2>/dev/null | jq '.devices[0].speed' | tail -n1)
+echo "$m a0 sort\t=\t$b H/s"
+python3 -c 'import sys; m,a,b=map(int,sys.argv[1:4]); print(f"{m} speedup\t=\t{int(round((b/a-1)*100,0))}%\n")' "$m" "$a" "$b"
+done
+
+bash ./tools/test.sh -m 17040-17050 -t all -a all

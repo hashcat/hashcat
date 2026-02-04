@@ -39,7 +39,7 @@ static const u32 full06 = 0x06060606;
 static const u32 full80 = 0x80808080;
 
 // Max salted password block lengths (bytes). Must match the GPG kernels.
-#define GPG_SALTED_PW_BLOCK_LEN_MAX_80  (80 * sizeof (u32))  // m17010/m17040
+#define GPG_SALTED_PW_BLOCK_LEN_MAX_80  (80 * sizeof (u32))  // m17010
 #define GPG_SALTED_PW_BLOCK_LEN_MAX_96  (96 * sizeof (u32))  // m17020/m17030
 #define GPG_SALTED_PW_BLOCK_LEN_MAX     GPG_SALTED_PW_BLOCK_LEN_MAX_96
 
@@ -60,6 +60,8 @@ static u32 gpg_salted_pw_block_len (const u32 pw_len, const u32 salt_len, const 
 
 static void bucket_pws_idx_by_salted_pw_block_len (hc_device_param_t *device_param, const u64 pws_cnt, const u32 salt_len, const u32 block_len_max)
 {
+  // Reorders pws_idx by the kernel's effective salted password block length (cost proxy) to reduce divergence.
+  // Implemented as a stable count-sort using the derived key from salt_len+pw_len and the kernel's block_len_max.
   if (pws_cnt < 2) return;
 
   pw_idx_t *pws_idx = device_param->pws_idx;
@@ -3804,7 +3806,7 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
     switch (hashconfig->kern_type)
     {
       case 17010:
-      case 17040:
+      // case 17040: // doesn't speedup
       case 17050:
         block_len_max = GPG_SALTED_PW_BLOCK_LEN_MAX_80;
         break;
