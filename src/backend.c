@@ -3715,24 +3715,24 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
   if ((user_options->length_bucket == true) && (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT))
   {
-    // switch (hashconfig->kern_type)
-    // {
-    //     // case 501:
-    //     // case 17020:
-    //     // case 17030:
-    //     // case 17050:
-    //     // case 19100:
-    //     // case 19200:
-    //     // case 23900:
-    //     // case 25000:
-    //     // case 25100:
-    //     // case 25200:
-    //     // case 26401:
-    //     // case 26900:
-    //     // case 27300:
+    switch (hashconfig->kern_type)
+    {
+        case 501:
+        case 17020:
+        case 17030:
+        case 17050:
+        case 19100:
+        case 19200:
+        case 23900:
+        case 25000:
+        case 25100:
+        case 25200:
+        case 26401:
+        case 26900:
+        case 27300:
         sort_pws_idx_by_len (device_param, pws_cnt);
-    //     break;
-    // }
+        break;
+    }
   }
 
   if (user_options->slow_candidates == true)
