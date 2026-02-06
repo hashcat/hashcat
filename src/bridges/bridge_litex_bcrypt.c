@@ -91,7 +91,7 @@ struct litepcie_ioctl_reg {
 
 #define MAX_FPGA_DEVICES    64
 #define BASE_WORKITEM_COUNT 128
-#define MAX_WORKITEM_COUNT  512
+#define MAX_WORKITEM_COUNT  65536
 #define MAX_PASSWORD_LEN    72
 #define FPGA_TIMEOUT        10000000
 #define DRAIN_SHORT_TIMEOUT 5000
@@ -561,7 +561,7 @@ static bool detect_fpga_config (unit_t *unit)
  * Calculate sub-batch size based on password lengths
  */
 
-static u32 calculate_sub_batch_size (const bcrypt_fpga_tmp_t *bcrypt_tmp, u64 pws_cnt)
+static u32 calculate_sub_batch_size (const bcrypt_fpga_tmp_t *bcrypt_tmp, u64 pws_cnt, size_t max_wl_payload)
 {
   u32 sub_batch = 0;
   size_t payload_size = 0;
@@ -570,7 +570,7 @@ static u32 calculate_sub_batch_size (const bcrypt_fpga_tmp_t *bcrypt_tmp, u64 pw
   {
     size_t pw_packet_size = bcrypt_tmp[i].pw_len + 1;  // +1 for null terminator
 
-    if (payload_size + pw_packet_size > MAX_PAYLOAD_SIZE) break;
+    if (payload_size + pw_packet_size > max_wl_payload) break;
 
     payload_size += pw_packet_size;
     sub_batch++;
@@ -699,13 +699,10 @@ void salt_destroy (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hashconfig_
 /**
  * Main launch loop - process passwords against FPGA
  *
- * Protocol (from cleanup2_test.c):
- * 1. Start recorder (kick toggle: write 0, then write 1)
- * 2. Send CMP_CONFIG packet
- * 3. Send WORD_GEN packet (empty for -a0 mode)
- * 4. Send WORD_LIST packet
- * 5. Wait for recorder done
- * 6. Read response
+ * Optimized protocol:
+ * - Sub-batch 1: CMP_CONFIG + WORD_GEN + WORD_LIST concatenated in single SRAM kick
+ * - Sub-batch 2+: WORD_GEN + WORD_LIST only (CMP_CONFIG persists, no RESET needed)
+ * - Burst IOCTL writes entire buffer to SRAM in one syscall
  */
 
 bool launch_loop (void *platform_context, hc_device_param_t *device_param,
@@ -718,7 +715,7 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
   unit_t *unit = &bridge->units_buf[unit_idx];
 
-  // Pre-build RESET packet (reused for initial reset and between sub-batches)
+  // Pre-build RESET packet (used for initial reset only)
   uint8_t reset_pl[1] = {0xCC};
   uint8_t reset_hdr[10];
 
@@ -790,7 +787,7 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
     target_hashes[i] = digest[0];
   }
 
-  // Build CMP_CONFIG packet
+  // Build CMP_CONFIG payload once (reused only in first sub-batch)
   uint8_t cmp_pl[512];
   size_t cmp_pl_len = 0;
 
@@ -801,7 +798,17 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
   hcfree (target_hashes);
 
-  // Build WORD_GEN packet (empty for -a0 mode)
+  // Build CMP_CONFIG packet (header + checksums)
+  uint8_t cmp_hdr[10];
+
+  build_header (cmp_hdr, PKT_TYPE_CMP_CONFIG, unit->next_pkt_id++, cmp_pl_len);
+
+  uint8_t pkt_cmp[1024];
+  size_t pkt_cmp_len = 0;
+
+  add_checksums_around_payload (pkt_cmp, &pkt_cmp_len, cmp_hdr, 10, cmp_pl, cmp_pl_len);
+
+  // Build WORD_GEN payload once (empty for -a0 mode)
   // NOTE: word_gen_b FSM resets to CONF_NUM_RANGES after each WORD_LIST completes
   // (conf_full=0 on word_list_end), so WORD_GEN must be resent before EVERY WORD_LIST.
   uint8_t wg_pl[16];
@@ -809,19 +816,36 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
   build_empty_word_gen_payload (wg_pl, &wg_pl_len);
 
-  // Process passwords in sub-batches (1KB buffer limit)
+  // WORD_GEN packet overhead: header(10) + hdr_csum(4) + payload + payload_csum(4) = 24 bytes
+  size_t wg_pkt_overhead = 10 + 4 + wg_pl_len + 4;
+
+  // WORD_LIST packet overhead (excluding payload): header(10) + hdr_csum(4) + payload_csum(4) = 18 bytes
+  size_t wl_pkt_overhead = 10 + 4 + 4;
+
+  // Calculate available WORD_LIST payload space for first sub-batch vs subsequent
+  // SRAM is 1024 bytes total
+  size_t first_batch_wl_payload = STREAMER_MEM_SIZE - pkt_cmp_len - wg_pkt_overhead - wl_pkt_overhead;
+  size_t later_batch_wl_payload = STREAMER_MEM_SIZE - wg_pkt_overhead - wl_pkt_overhead;
+
+  // Concatenation buffer (1KB SRAM)
+  uint8_t concat_buf[STREAMER_MEM_SIZE];
+
+  // Process passwords in sub-batches
   u64 processed = 0;
+  bool first_sub_batch = true;
 
   while (processed < pws_cnt)
   {
-    u32 sub_batch = calculate_sub_batch_size (&bcrypt_tmp[processed], pws_cnt - processed);
+    size_t max_wl_payload = first_sub_batch ? first_batch_wl_payload : later_batch_wl_payload;
+
+    u32 sub_batch = calculate_sub_batch_size (&bcrypt_tmp[processed], pws_cnt - processed, max_wl_payload);
 
     if (sub_batch > MAX_SUB_BATCH_SIZE)
     {
       sub_batch = MAX_SUB_BATCH_SIZE;
     }
 
-    // Build WORD_LIST packet for this sub-batch
+    // Build WORD_LIST payload for this sub-batch
     const u8 *words[MAX_SUB_BATCH_SIZE];
     u32 word_lens[MAX_SUB_BATCH_SIZE];
 
@@ -836,6 +860,7 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
     build_word_list_payload (wl_pl, &wl_pl_len, words, word_lens, sub_batch);
 
+    // Build WORD_LIST packet
     uint8_t wl_hdr[10];
 
     build_header (wl_hdr, PKT_TYPE_WORD_LIST, unit->next_pkt_id++, wl_pl_len);
@@ -845,7 +870,7 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
     add_checksums_around_payload (pkt_wl, &pkt_wl_len, wl_hdr, 10, wl_pl, wl_pl_len);
 
-    // Build fresh WORD_GEN packet for this sub-batch (new pkt_id each time)
+    // Build WORD_GEN packet (fresh pkt_id each time)
     uint8_t wg_hdr[10];
 
     build_header (wg_hdr, PKT_TYPE_WORD_GEN, unit->next_pkt_id++, wg_pl_len);
@@ -855,42 +880,29 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
     add_checksums_around_payload (pkt_wg, &pkt_wg_len, wg_hdr, 10, wg_pl, wg_pl_len);
 
-    // Between sub-batches: RESET FPGA to clean state (no drain needed -
-    // we already read the previous response so FIFO should be empty)
-    if (processed > 0)
+    // Concatenate packets into single SRAM buffer
+    size_t concat_len = 0;
+
+    if (first_sub_batch)
     {
-      litepcie_writel (unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
-      kick_streamer (unit, pkt_reset, pkt_reset_len);
-      litepcie_writel (unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
+      // First sub-batch: CMP_CONFIG + WORD_GEN + WORD_LIST
+      memcpy (concat_buf + concat_len, pkt_cmp, pkt_cmp_len);
+      concat_len += pkt_cmp_len;
     }
 
-    // Build CMP_CONFIG packet for this sub-batch
-    uint8_t cmp_hdr2[10];
+    // WORD_GEN (always needed — conf_full resets after each WORD_LIST)
+    memcpy (concat_buf + concat_len, pkt_wg, pkt_wg_len);
+    concat_len += pkt_wg_len;
 
-    build_header (cmp_hdr2, PKT_TYPE_CMP_CONFIG, unit->next_pkt_id++, cmp_pl_len);
-
-    uint8_t pkt_cmp2[1024];
-    size_t pkt_cmp2_len = 0;
-
-    add_checksums_around_payload (pkt_cmp2, &pkt_cmp2_len, cmp_hdr2, 10, cmp_pl, cmp_pl_len);
+    // WORD_LIST
+    memcpy (concat_buf + concat_len, pkt_wl, pkt_wl_len);
+    concat_len += pkt_wl_len;
 
     // Protocol: start recorder BEFORE sending packets
     start_recorder (unit);
 
-    // Send CMP_CONFIG + WORD_GEN + WORD_LIST for every sub-batch
-    if (!kick_streamer (unit, pkt_cmp2, pkt_cmp2_len))
-    {
-      drain_output_fifo (unit);
-      return false;
-    }
-
-    if (!kick_streamer (unit, pkt_wg, pkt_wg_len))
-    {
-      drain_output_fifo (unit);
-      return false;
-    }
-
-    if (!kick_streamer (unit, pkt_wl, pkt_wl_len))
+    // Single kick for all concatenated packets
+    if (!kick_streamer (unit, concat_buf, concat_len))
     {
       drain_output_fifo (unit);
       return false;
@@ -955,6 +967,7 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
     }
 
     processed += sub_batch;
+    first_sub_batch = false;
   }
 
   // Check for FPGA errors
