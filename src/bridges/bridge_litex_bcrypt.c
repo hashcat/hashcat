@@ -27,7 +27,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
-#include <errno.h>
 
 /**
  * LitePCIe IOCTL definitions (from litepcie.h)
@@ -91,8 +90,8 @@ struct litepcie_ioctl_reg {
  */
 
 #define MAX_FPGA_DEVICES    64
-#define BASE_WORKITEM_COUNT 16   // Must not exceed hashcat's kernel_power
-#define MAX_WORKITEM_COUNT  256
+#define BASE_WORKITEM_COUNT 128
+#define MAX_WORKITEM_COUNT  512
 #define MAX_PASSWORD_LEN    72
 #define FPGA_TIMEOUT        10000000
 #define DRAIN_SHORT_TIMEOUT 5000
@@ -110,8 +109,7 @@ typedef struct bcrypt_fpga_tmp
 {
   u32 pw_buf[18];
   u32 pw_len;
-  u32 cracked;      // Must be right after pw_len to match OpenCL struct!
-  // Note: NO digest field here - that was wrong and caused offset mismatch
+  u32 cracked;
 
 } bcrypt_fpga_tmp_t;
 
@@ -125,14 +123,12 @@ typedef struct
   char      device_path[64];
 
   char      unit_info_buf[1024];
-  int       unit_info_len;
   u64       workitem_count;
 
   int       num_proxies;
   int       cores_per_proxy;
   int       total_cores;
 
-  uint8_t  *streamer_buf;
   uint8_t  *recorder_buf;
   uint16_t  next_pkt_id;
 
@@ -241,11 +237,6 @@ static void le32_encode (uint32_t x, uint8_t *out)
   out[1] = (x >> 8) & 0xFF;
   out[2] = (x >> 16) & 0xFF;
   out[3] = (x >> 24) & 0xFF;
-}
-
-static uint16_t le16_decode (const uint8_t *data)
-{
-  return data[0] | (data[1] << 8);
 }
 
 /**
@@ -482,7 +473,7 @@ static uint32_t drain_output_fifo (unit_t *unit)
 
       if (cnt >= DRAIN_SHORT_TIMEOUT)
       {
-            return total_drained;
+        return total_drained;
       }
     }
 
@@ -547,8 +538,8 @@ static bool detect_fpga_config (unit_t *unit)
         unit->workitem_count = MAX_WORKITEM_COUNT;
       }
 
-      unit->unit_info_len = snprintf (unit->unit_info_buf, sizeof (unit->unit_info_buf),
-                                      "LiteX bcrypt FPGA: %s", ident);
+      snprintf (unit->unit_info_buf, sizeof (unit->unit_info_buf),
+                "LiteX bcrypt FPGA: %s", ident);
 
       return true;
     }
@@ -560,8 +551,8 @@ static bool detect_fpga_config (unit_t *unit)
   unit->total_cores = 1;
   unit->workitem_count = BASE_WORKITEM_COUNT;
 
-  unit->unit_info_len = snprintf (unit->unit_info_buf, sizeof (unit->unit_info_buf),
-                                  "LiteX bcrypt FPGA: %s", ident);
+  snprintf (unit->unit_info_buf, sizeof (unit->unit_info_buf),
+            "LiteX bcrypt FPGA: %s", ident);
 
   return true;
 }
@@ -612,13 +603,11 @@ static bool units_init (bridge_litex_bcrypt_t *bridge)
     unit->fd = fd;
     strncpy (unit->device_path, path, sizeof (unit->device_path) - 1);
 
-    unit->streamer_buf = (uint8_t *) hcmalloc (STREAMER_MEM_SIZE);
     unit->recorder_buf = (uint8_t *) hcmalloc (RECORDER_MEM_SIZE);
     unit->next_pkt_id = 0;
 
     if (!detect_fpga_config (unit))
     {
-      hcfree (unit->streamer_buf);
       hcfree (unit->recorder_buf);
       close (fd);
       continue;
@@ -665,7 +654,6 @@ void platform_term (void *platform_context)
         close (unit->fd);
       }
 
-      hcfree (unit->streamer_buf);
       hcfree (unit->recorder_buf);
     }
 
@@ -730,25 +718,28 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
   unit_t *unit = &bridge->units_buf[unit_idx];
 
+  // Pre-build RESET packet (reused for initial reset and between sub-batches)
+  uint8_t reset_pl[1] = {0xCC};
+  uint8_t reset_hdr[10];
+
+  build_header (reset_hdr, PKT_TYPE_RESET, 0x0000, 1);
+
+  uint8_t pkt_reset[32];
+  size_t pkt_reset_len = 0;
+
+  add_checksums_around_payload (pkt_reset, &pkt_reset_len, reset_hdr, 10, reset_pl, 1);
+
   // Force-reset FPGA via clear_error CSR (unsticks inpkt_header if in PKT_STATE_ERROR)
-  litepcie_writel(unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
+  litepcie_writel (unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
 
   // Send reset and drain any stale data (like cleanup2_test does)
-  {
-    uint8_t reset_pl[1] = {0xCC};
-    uint8_t reset_hdr[10];
-    // Use packet ID 0x0000 for reset (like cleanup2_test)
-    build_header(reset_hdr, PKT_TYPE_RESET, 0x0000, 1);
-    uint8_t pkt_reset[32];
-    size_t pkt_reset_len = 0;
-    add_checksums_around_payload(pkt_reset, &pkt_reset_len, reset_hdr, 10, reset_pl, 1);
-    kick_streamer(unit, pkt_reset, pkt_reset_len);
-  }
+  kick_streamer (unit, pkt_reset, pkt_reset_len);
+
   // Drain AFTER reset, BEFORE starting work
-  drain_output_fifo(unit);
+  drain_output_fifo (unit);
 
   // Clear error latch after reset (in case error_r was latched from a previous run)
-  litepcie_writel(unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
+  litepcie_writel (unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
 
   // Reset packet ID counter after reset
   unit->next_pkt_id = 1;
@@ -808,35 +799,18 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
                                    salt16, subtype,
                                    digests_cnt, target_hashes);
 
-  uint8_t cmp_hdr[10];
-
-  build_header (cmp_hdr, PKT_TYPE_CMP_CONFIG, unit->next_pkt_id++, cmp_pl_len);
-
-  uint8_t pkt_cmp[1024];
-  size_t pkt_cmp_len = 0;
-
-  add_checksums_around_payload (pkt_cmp, &pkt_cmp_len, cmp_hdr, 10, cmp_pl, cmp_pl_len);
-
-  // target_hashes freed at cleanup label
+  hcfree (target_hashes);
 
   // Build WORD_GEN packet (empty for -a0 mode)
+  // NOTE: word_gen_b FSM resets to CONF_NUM_RANGES after each WORD_LIST completes
+  // (conf_full=0 on word_list_end), so WORD_GEN must be resent before EVERY WORD_LIST.
   uint8_t wg_pl[16];
   size_t wg_pl_len = 0;
 
   build_empty_word_gen_payload (wg_pl, &wg_pl_len);
 
-  uint8_t wg_hdr[10];
-
-  build_header (wg_hdr, PKT_TYPE_WORD_GEN, unit->next_pkt_id++, wg_pl_len);
-
-  uint8_t pkt_wg[64];
-  size_t pkt_wg_len = 0;
-
-  add_checksums_around_payload (pkt_wg, &pkt_wg_len, wg_hdr, 10, wg_pl, wg_pl_len);
-
   // Process passwords in sub-batches (1KB buffer limit)
   u64 processed = 0;
-  bool first_batch = true;
 
   while (processed < pws_cnt)
   {
@@ -871,28 +845,51 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
     add_checksums_around_payload (pkt_wl, &pkt_wl_len, wl_hdr, 10, wl_pl, wl_pl_len);
 
+    // Build fresh WORD_GEN packet for this sub-batch (new pkt_id each time)
+    uint8_t wg_hdr[10];
+
+    build_header (wg_hdr, PKT_TYPE_WORD_GEN, unit->next_pkt_id++, wg_pl_len);
+
+    uint8_t pkt_wg[64];
+    size_t pkt_wg_len = 0;
+
+    add_checksums_around_payload (pkt_wg, &pkt_wg_len, wg_hdr, 10, wg_pl, wg_pl_len);
+
+    // Between sub-batches: RESET FPGA to clean state (no drain needed -
+    // we already read the previous response so FIFO should be empty)
+    if (processed > 0)
+    {
+      litepcie_writel (unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
+      kick_streamer (unit, pkt_reset, pkt_reset_len);
+      litepcie_writel (unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
+    }
+
+    // Build CMP_CONFIG packet for this sub-batch
+    uint8_t cmp_hdr2[10];
+
+    build_header (cmp_hdr2, PKT_TYPE_CMP_CONFIG, unit->next_pkt_id++, cmp_pl_len);
+
+    uint8_t pkt_cmp2[1024];
+    size_t pkt_cmp2_len = 0;
+
+    add_checksums_around_payload (pkt_cmp2, &pkt_cmp2_len, cmp_hdr2, 10, cmp_pl, cmp_pl_len);
+
     // Protocol: start recorder BEFORE sending packets
     start_recorder (unit);
 
-    // First batch: send CMP_CONFIG, WORD_GEN, then WORD_LIST
-    if (first_batch)
+    // Send CMP_CONFIG + WORD_GEN + WORD_LIST for every sub-batch
+    if (!kick_streamer (unit, pkt_cmp2, pkt_cmp2_len))
     {
-      if (!kick_streamer (unit, pkt_cmp, pkt_cmp_len))
-      {
-        drain_output_fifo (unit);
-        return false;
-      }
-
-      if (!kick_streamer (unit, pkt_wg, pkt_wg_len))
-      {
-        drain_output_fifo (unit);
-        return false;
-      }
-
-      first_batch = false;
+      drain_output_fifo (unit);
+      return false;
     }
 
-    // Send WORD_LIST
+    if (!kick_streamer (unit, pkt_wg, pkt_wg_len))
+    {
+      drain_output_fifo (unit);
+      return false;
+    }
+
     if (!kick_streamer (unit, pkt_wl, pkt_wl_len))
     {
       drain_output_fifo (unit);
@@ -950,7 +947,7 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
               read_bytes (unit->fd, RECORDER_MEM_BASE, drain_buf, read_len);
             }
           }
-          
+
           // Found a match - stop processing this batch
           goto cleanup;
         }
@@ -969,7 +966,6 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
   }
 
 cleanup:
-  hcfree(target_hashes);
   return true;
 }
 
