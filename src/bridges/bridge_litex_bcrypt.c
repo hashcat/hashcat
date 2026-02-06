@@ -48,8 +48,12 @@ struct litepcie_ioctl_reg {
 
 #define CSR_IDENTIFIER_MEM_BASE     0x00001000
 
-#define CSR_BCRYPT_CTRL_ADDR        0x00000000
-#define CSR_BCRYPT_ERROR_ADDR       0x00000010
+#define CSR_BCRYPT_CTRL_ADDR            0x00000000
+#define CSR_BCRYPT_APP_STATUS_ADDR      0x00000004
+#define CSR_BCRYPT_PKT_COMM_STATUS_ADDR 0x00000008
+#define CSR_BCRYPT_IDLE_ADDR            0x0000000C
+#define CSR_BCRYPT_ERROR_ADDR           0x00000010
+#define CSR_BCRYPT_CLEAR_ERROR_ADDR     0x00000014
 
 #define CSR_STREAMER_LENGTH_ADDR    0x00004800
 #define CSR_STREAMER_KICK_ADDR      0x00004804
@@ -478,10 +482,7 @@ static uint32_t drain_output_fifo (unit_t *unit)
 
       if (cnt >= DRAIN_SHORT_TIMEOUT)
       {
-        if (total_drained > 0) {
-          fprintf(stderr, "[BRIDGE] drain: timeout after %d packets, %u bytes\n", packets_drained, total_drained);
-        }
-        return total_drained;
+            return total_drained;
       }
     }
 
@@ -489,19 +490,12 @@ static uint32_t drain_output_fifo (unit_t *unit)
 
     if (captured == 0)
     {
-      if (total_drained > 0) {
-        fprintf(stderr, "[BRIDGE] drain: done, %d packets, %u bytes\n", packets_drained, total_drained);
-      }
       return total_drained;
     }
 
     // MUST read the data to fully clear the FIFO
     size_t read_len = captured < sizeof(discard_buf) ? captured : sizeof(discard_buf);
     read_bytes (unit->fd, RECORDER_MEM_BASE, discard_buf, read_len);
-    
-    // Print what we're draining
-    uint8_t pkt_type = (read_len > 1) ? discard_buf[1] : 0;
-    fprintf(stderr, "[BRIDGE] drain: packet %d, %u bytes, type=0x%02x\n", packets_drained, captured, pkt_type);
 
     packets_drained++;
     total_drained += captured;
@@ -730,13 +724,14 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
                   MAYBE_UNUSED hashconfig_t *hashconfig, hashes_t *hashes,
                   const u32 salt_pos, const u64 pws_cnt)
 {
-  fprintf(stderr, "[BRIDGE] launch_loop called: pws_cnt=%llu\n", (unsigned long long)pws_cnt);
-  
   bridge_litex_bcrypt_t *bridge = platform_context;
 
   const int unit_idx = device_param->bridge_link_device;
 
   unit_t *unit = &bridge->units_buf[unit_idx];
+
+  // Force-reset FPGA via clear_error CSR (unsticks inpkt_header if in PKT_STATE_ERROR)
+  litepcie_writel(unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
 
   // Send reset and drain any stale data (like cleanup2_test does)
   {
@@ -751,6 +746,10 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
   }
   // Drain AFTER reset, BEFORE starting work
   drain_output_fifo(unit);
+
+  // Clear error latch after reset (in case error_r was latched from a previous run)
+  litepcie_writel(unit->fd, CSR_BCRYPT_CLEAR_ERROR_ADDR, 1);
+
   // Reset packet ID counter after reset
   unit->next_pkt_id = 1;
 
@@ -856,8 +855,6 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
     {
       words[i] = (const u8 *) bcrypt_tmp[processed + i].pw_buf;
       word_lens[i] = bcrypt_tmp[processed + i].pw_len;
-      fprintf(stderr, "[BRIDGE] Password[%u]: len=%u, bytes='%.*s'\n", 
-              i, word_lens[i], (int)word_lens[i], (const char*)words[i]);
     }
 
     uint8_t wl_pl[MAX_PAYLOAD_SIZE + 64];
@@ -880,18 +877,14 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
     // First batch: send CMP_CONFIG, WORD_GEN, then WORD_LIST
     if (first_batch)
     {
-      fprintf(stderr, "[BRIDGE] Sending CMP_CONFIG (%zu bytes)\n", pkt_cmp_len);
       if (!kick_streamer (unit, pkt_cmp, pkt_cmp_len))
       {
-        fprintf(stderr, "[BRIDGE] CMP_CONFIG kick FAILED\n");
         drain_output_fifo (unit);
         return false;
       }
 
-      fprintf(stderr, "[BRIDGE] Sending WORD_GEN (%zu bytes)\n", pkt_wg_len);
       if (!kick_streamer (unit, pkt_wg, pkt_wg_len))
       {
-        fprintf(stderr, "[BRIDGE] WORD_GEN kick FAILED\n");
         drain_output_fifo (unit);
         return false;
       }
@@ -900,41 +893,25 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
     }
 
     // Send WORD_LIST
-    fprintf(stderr, "[BRIDGE] Sending WORD_LIST (%zu bytes), sub_batch=%u: ", pkt_wl_len, sub_batch);
-    for (size_t i = 0; i < (pkt_wl_len < 32 ? pkt_wl_len : 32); i++) {
-      fprintf(stderr, "%02x ", pkt_wl[i]);
-    }
-    fprintf(stderr, "\n");
     if (!kick_streamer (unit, pkt_wl, pkt_wl_len))
     {
-      fprintf(stderr, "[BRIDGE] kick_streamer for WORD_LIST FAILED\n");
       drain_output_fifo (unit);
       return false;
     }
-    fprintf(stderr, "[BRIDGE] WORD_LIST sent successfully, waiting for recorder...\n");
 
     // Wait for recorder
     uint32_t recorder_len = 0;
 
     if (!wait_recorder (unit, &recorder_len))
     {
-      fprintf(stderr, "[BRIDGE] wait_recorder FAILED - draining and returning false\n");
       drain_output_fifo (unit);
       return false;
     }
-    fprintf(stderr, "[BRIDGE] wait_recorder OK, recorder_len=%u\n", recorder_len);
 
     // Process response
     if (recorder_len > 0 && recorder_len <= RECORDER_MEM_SIZE)
     {
       read_bytes (unit->fd, RECORDER_MEM_BASE, unit->recorder_buf, recorder_len);
-      
-      // Debug: print first bytes of response
-      fprintf(stderr, "[BRIDGE] Response bytes: ");
-      for (uint32_t i = 0; i < (recorder_len < 16 ? recorder_len : 16); i++) {
-        fprintf(stderr, "%02x ", unit->recorder_buf[i]);
-      }
-      fprintf(stderr, "\n");
 
       if (recorder_len >= 2)
       {
@@ -963,12 +940,15 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
 
           uint32_t drain_len = 0;
 
-          if (wait_recorder (unit, &drain_len) && drain_len > 0)
+          if (wait_recorder (unit, &drain_len))
           {
-            // MUST read the data to clear the FIFO
-            uint8_t drain_buf[64];
-            size_t read_len = drain_len < sizeof(drain_buf) ? drain_len : sizeof(drain_buf);
-            read_bytes (unit->fd, RECORDER_MEM_BASE, drain_buf, read_len);
+            if (drain_len > 0)
+            {
+              // MUST read the data to clear the FIFO
+              uint8_t drain_buf[64];
+              size_t read_len = drain_len < sizeof(drain_buf) ? drain_len : sizeof(drain_buf);
+              read_bytes (unit->fd, RECORDER_MEM_BASE, drain_buf, read_len);
+            }
           }
           
           // Found a match - stop processing this batch
@@ -989,7 +969,6 @@ bool launch_loop (void *platform_context, hc_device_param_t *device_param,
   }
 
 cleanup:
-  fprintf(stderr, "[BRIDGE] launch_loop returning true (cleanup path)\n");
   hcfree(target_hashes);
   return true;
 }
