@@ -4,7 +4,7 @@
 ##
 
 SHARED                  ?= 0
-DEBUG                   := 1
+DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v7.1.2
 MACOS_UNIVERSAL_BINARY  ?= 0
