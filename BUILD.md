@@ -103,6 +103,12 @@ $ make clean && make
 $ make install
 ```
 
+### 🔹 Step 6 (Optional): Install Hashcat (MacOS Admin Account only)
+
+```bash
+$ sudo make install
+```
+
 Hashcat will use the following locations depending on your environment:
 
 | Condition                                   | Session Files                          | Kernel Cache                          | Potfiles                              |
