@@ -962,35 +962,35 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   return display;
 }
 
-int status_get_digests_done (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done;
 }
 
-int status_get_digests_done_pot (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done_pot (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done_pot;
 }
 
-int status_get_digests_done_zero (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done_zero (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done_zero;
 }
 
-int status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done_new;
 }
 
-int status_get_digests_cnt (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
@@ -1015,14 +1015,14 @@ double status_get_digests_percent_new (const hashcat_ctx_t *hashcat_ctx)
   return ((double) hashes->digests_done_new / (double) hashes->digests_cnt) * 100;
 }
 
-int status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->salts_done;
 }
 
-int status_get_salts_cnt (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_salts_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 

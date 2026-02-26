@@ -37,9 +37,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -97,9 +97,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -117,9 +117,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -197,9 +197,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -217,9 +217,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -237,9 +237,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -257,9 +257,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -380,9 +380,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -400,9 +400,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -420,9 +420,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -440,9 +440,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -459,9 +459,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp4, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp4, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -479,9 +479,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp5, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp5, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -499,9 +499,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp6, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp6, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -519,9 +519,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp7, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
+    const u32 digest_pos = find_hash (digest_tp7, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);          \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -730,9 +730,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp00, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp00, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -750,9 +750,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp01, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp01, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -770,9 +770,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp02, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp02, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -790,9 +790,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp03, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp03, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -810,9 +810,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp04, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp04, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -830,9 +830,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp05, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp05, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -850,9 +850,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp06, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp06, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -870,9 +870,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp07, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp07, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -890,9 +890,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp08, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp08, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -910,9 +910,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp09, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp09, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -930,9 +930,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp10, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp10, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -950,9 +950,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp11, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp11, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -970,9 +970,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp12, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp12, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -990,9 +990,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp13, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp13, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -1010,9 +1010,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp14, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp14, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
@@ -1030,9 +1030,9 @@
              BITMAP_SHIFT1,                                                                                 \
              BITMAP_SHIFT2))                                                                                \
   {                                                                                                         \
-    int digest_pos = find_hash (digest_tp15, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
+    const u32 digest_pos = find_hash (digest_tp15, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);         \
                                                                                                             \
-    if (digest_pos != -1)                                                                                   \
+    if (digest_pos != (u32) -1)                                                                             \
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \

@@ -68,7 +68,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
     u32  digests_cnt = hashes->digests_cnt;
     u32 *digests_buf = (u32 *) hashes->digests_buf;
 
-    XXH64_update (state, digests_buf, digests_cnt * hashconfig->dgst_size);
+    XXH64_update (state, digests_buf, (u64) digests_cnt * hashconfig->dgst_size);
 
     // salt
 

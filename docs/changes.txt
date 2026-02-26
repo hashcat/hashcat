@@ -14,6 +14,8 @@ Docker: Add hashcat-toolchain
 - Fixed bugs on multiple DES based modules when used with CPU devices
 - Fixed MSYS2 build
 - Disable setShouldMaximizeConcurrentCompilation on ext_metal.m, due to segfault on macos Tahoe
+- Fixed signed integer issues (int to u32) in find_hash(), hashcat_status_t, and sort_by_salt()
+- Fixed u32 multiplication overflow in pointer arithmetic for large hash/salt counts
 
 * changes v7.1.1 -> v7.1.2
 
