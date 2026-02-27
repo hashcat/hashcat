@@ -42,7 +42,10 @@ KERNEL_FQ KERNEL_FA void m15000_mxx (KERN_ATTR_BASIC ())
 
   sha512_init (&ctx0);
 
-  sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -50,9 +53,22 @@ KERNEL_FQ KERNEL_FA void m15000_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha512_ctx_t ctx = ctx0;
+    sha512_ctx_t ctx;
 
-    sha512_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      sha512_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      sha512_init (&ctx);
+
+      sha512_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha512_update (&ctx, s, salt_len);
 
@@ -107,7 +123,10 @@ KERNEL_FQ KERNEL_FA void m15000_sxx (KERN_ATTR_BASIC ())
 
   sha512_init (&ctx0);
 
-  sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha512_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -115,9 +134,22 @@ KERNEL_FQ KERNEL_FA void m15000_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha512_ctx_t ctx = ctx0;
+    sha512_ctx_t ctx;
 
-    sha512_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      sha512_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      sha512_init (&ctx);
+
+      sha512_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha512_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha512_update (&ctx, s, salt_len);
 

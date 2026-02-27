@@ -37,9 +37,12 @@ KERNEL_FQ KERNEL_FA void m11200_mxx (KERN_ATTR_BASIC ())
 
   sha1_ctx_t ctx2l;
 
-  sha1_init (&ctx2l);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_init (&ctx2l);
 
-  sha1_update_global_swap (&ctx2l, pws[gid].i, pws[gid].pw_len);
+    sha1_update_global_swap (&ctx2l, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -47,9 +50,22 @@ KERNEL_FQ KERNEL_FA void m11200_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx2 = ctx2l;
+    sha1_ctx_t ctx2;
 
-    sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx2 = ctx2l;
+
+      sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      sha1_init (&ctx2);
+
+      sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_swap (&ctx2, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha1_final (&ctx2);
 
@@ -163,9 +179,12 @@ KERNEL_FQ KERNEL_FA void m11200_sxx (KERN_ATTR_BASIC ())
 
   sha1_ctx_t ctx2l;
 
-  sha1_init (&ctx2l);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_init (&ctx2l);
 
-  sha1_update_global_swap (&ctx2l, pws[gid].i, pws[gid].pw_len);
+    sha1_update_global_swap (&ctx2l, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -173,9 +192,22 @@ KERNEL_FQ KERNEL_FA void m11200_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx2 = ctx2l;
+    sha1_ctx_t ctx2;
 
-    sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx2 = ctx2l;
+
+      sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      sha1_init (&ctx2);
+
+      sha1_update_global_swap (&ctx2, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_swap (&ctx2, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha1_final (&ctx2);
 

@@ -44,9 +44,12 @@ KERNEL_FQ KERNEL_FA void m05600_mxx (KERN_ATTR_ESALT (netntlm_t))
 
   md4_ctx_t ctx10;
 
-  md4_init (&ctx10);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md4_init (&ctx10);
 
-  md4_update_global_utf16le (&ctx10, pws[gid].i, pws[gid].pw_len);
+    md4_update_global_utf16le (&ctx10, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -54,9 +57,22 @@ KERNEL_FQ KERNEL_FA void m05600_mxx (KERN_ATTR_ESALT (netntlm_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md4_ctx_t ctx1 = ctx10;
+    md4_ctx_t ctx1;
 
-    md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx1 = ctx10;
+
+      md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md4_init (&ctx1);
+
+      md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md4_update_global_utf16le (&ctx1, pws[gid].i, pws[gid].pw_len);
+    }
 
     md4_final (&ctx1);
 
@@ -153,9 +169,12 @@ KERNEL_FQ KERNEL_FA void m05600_sxx (KERN_ATTR_ESALT (netntlm_t))
 
   md4_ctx_t ctx10;
 
-  md4_init (&ctx10);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md4_init (&ctx10);
 
-  md4_update_global_utf16le (&ctx10, pws[gid].i, pws[gid].pw_len);
+    md4_update_global_utf16le (&ctx10, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -163,9 +182,22 @@ KERNEL_FQ KERNEL_FA void m05600_sxx (KERN_ATTR_ESALT (netntlm_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md4_ctx_t ctx1 = ctx10;
+    md4_ctx_t ctx1;
 
-    md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx1 = ctx10;
+
+      md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md4_init (&ctx1);
+
+      md4_update_global_utf16le (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md4_update_global_utf16le (&ctx1, pws[gid].i, pws[gid].pw_len);
+    }
 
     md4_final (&ctx1);
 

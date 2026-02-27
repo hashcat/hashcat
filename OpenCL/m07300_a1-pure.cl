@@ -63,14 +63,39 @@ KERNEL_FQ KERNEL_FA void m07300_mxx (KERN_ATTR_ESALT (rakp_t))
       c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      c[i] |= w[i];
+      switch_buffer_by_offset_1x64_be_S (c, pw_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w[i];
+      }
+    }
+    else
+    {
+      u32 t[64];
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int idx = 0; idx < 64; idx++)
+      {
+        t[idx] = w[idx];
+      }
+
+      switch_buffer_by_offset_1x64_be_S (t, comb_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= t[i];
+      }
     }
 
     sha1_hmac_ctx_t ctx;
@@ -144,14 +169,39 @@ KERNEL_FQ KERNEL_FA void m07300_sxx (KERN_ATTR_ESALT (rakp_t))
       c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      c[i] |= w[i];
+      switch_buffer_by_offset_1x64_be_S (c, pw_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w[i];
+      }
+    }
+    else
+    {
+      u32 t[64];
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int idx = 0; idx < 64; idx++)
+      {
+        t[idx] = w[idx];
+      }
+
+      switch_buffer_by_offset_1x64_be_S (t, comb_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= t[i];
+      }
     }
 
     sha1_hmac_ctx_t ctx;

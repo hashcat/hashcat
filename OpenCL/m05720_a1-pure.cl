@@ -37,7 +37,10 @@ KERNEL_FQ KERNEL_FA void m05720_mxx (KERN_ATTR_BASIC ())
 
   sha256_update_global (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
-  sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -48,6 +51,11 @@ KERNEL_FQ KERNEL_FA void m05720_mxx (KERN_ATTR_BASIC ())
     sha256_ctx_t ctx = ctx0;
 
     sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha256_final (&ctx);
 
@@ -144,7 +152,10 @@ KERNEL_FQ KERNEL_FA void m05720_sxx (KERN_ATTR_BASIC ())
 
   sha256_update_global (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
-  sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -155,6 +166,11 @@ KERNEL_FQ KERNEL_FA void m05720_sxx (KERN_ATTR_BASIC ())
     sha256_ctx_t ctx = ctx0;
 
     sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha256_final (&ctx);
 

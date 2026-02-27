@@ -115,14 +115,39 @@ KERNEL_FQ KERNEL_FA void m28700_mxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
       c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      c[i] |= w[i];
+      switch_buffer_by_offset_1x64_be_S (c, pw_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w[i];
+      }
+    }
+    else
+    {
+      u32 w_tmp[64];
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int idx = 0; idx < 64; idx++)
+      {
+        w_tmp[idx] = w[idx];
+      }
+
+      switch_buffer_by_offset_1x64_be_S (w_tmp, comb_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w_tmp[i];
+      }
     }
 
     u32 w_t[64];
@@ -376,14 +401,39 @@ KERNEL_FQ KERNEL_FA void m28700_sxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
       c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
     }
 
-    switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      c[i] |= w[i];
+      switch_buffer_by_offset_1x64_be_S (c, pw_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w[i];
+      }
+    }
+    else
+    {
+      u32 w_tmp[64];
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int idx = 0; idx < 64; idx++)
+      {
+        w_tmp[idx] = w[idx];
+      }
+
+      switch_buffer_by_offset_1x64_be_S (w_tmp, comb_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w_tmp[i];
+      }
     }
 
     u32 w_t[64];

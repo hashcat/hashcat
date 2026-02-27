@@ -44,7 +44,10 @@ KERNEL_FQ KERNEL_FA void m03800_mxx (KERN_ATTR_BASIC ())
 
   md5_update (&ctx0, s, salt_len);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -55,6 +58,11 @@ KERNEL_FQ KERNEL_FA void m03800_mxx (KERN_ATTR_BASIC ())
     md5_ctx_t ctx = ctx0;
 
     md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     md5_update (&ctx, s, salt_len);
 
@@ -111,7 +119,10 @@ KERNEL_FQ KERNEL_FA void m03800_sxx (KERN_ATTR_BASIC ())
 
   md5_update (&ctx0, s, salt_len);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -122,6 +133,11 @@ KERNEL_FQ KERNEL_FA void m03800_sxx (KERN_ATTR_BASIC ())
     md5_ctx_t ctx = ctx0;
 
     md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     md5_update (&ctx, s, salt_len);
 

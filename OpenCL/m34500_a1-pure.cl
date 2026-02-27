@@ -67,9 +67,12 @@ KERNEL_FQ KERNEL_FA void m34500_mxx (KERN_ATTR_BASIC ())
 
   sha1_ctx_t ctx1;
 
-  sha1_init (&ctx1);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_init (&ctx1);
 
-  sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
+    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -77,9 +80,22 @@ KERNEL_FQ KERNEL_FA void m34500_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx0 = ctx1;
+    sha1_ctx_t ctx0;
 
-    sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx0 = ctx1;
+
+      sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      sha1_init (&ctx0);
+
+      sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha1_final (&ctx0);
 
@@ -175,9 +191,12 @@ KERNEL_FQ KERNEL_FA void m34500_sxx (KERN_ATTR_BASIC ())
 
   sha1_ctx_t ctx1;
 
-  sha1_init (&ctx1);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_init (&ctx1);
 
-  sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
+    sha1_update_global_swap (&ctx1, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -185,9 +204,22 @@ KERNEL_FQ KERNEL_FA void m34500_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx0 = ctx1;
+    sha1_ctx_t ctx0;
 
-    sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx0 = ctx1;
+
+      sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      sha1_init (&ctx0);
+
+      sha1_update_global_swap (&ctx0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha1_final (&ctx0);
 

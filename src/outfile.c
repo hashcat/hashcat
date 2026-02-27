@@ -258,7 +258,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      if (combinator_ctx->hybrid2_wordlist_base == true)
       {
         pw_t pw;
 

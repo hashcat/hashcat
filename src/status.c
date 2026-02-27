@@ -490,7 +490,6 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
 
 char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
@@ -531,16 +530,18 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+    const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
-      return strdup (mask_ctx->mask);
+    if (combinator_ctx->hybrid2_wordlist_base == true)
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+      return strdup (straight_ctx->dict);
     }
 
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return strdup (straight_ctx->dict);
+    return strdup (mask_ctx->mask);
   }
 
   if (user_options->attack_mode == ATTACK_MODE_GENERIC)
@@ -553,7 +554,6 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
@@ -584,16 +584,18 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+    const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
-      return mask_ctx->masks_pos + 1;
+    if (combinator_ctx->hybrid2_wordlist_base == true)
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+      return straight_ctx->dicts_pos + 1;
     }
 
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return straight_ctx->dicts_pos + 1;
+    return mask_ctx->masks_pos + 1;
   }
 
   if (user_options->attack_mode == ATTACK_MODE_GENERIC)
@@ -606,7 +608,6 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
@@ -637,16 +638,18 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+    const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
-      return mask_ctx->masks_cnt;
+    if (combinator_ctx->hybrid2_wordlist_base == true)
+    {
+      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+      return straight_ctx->dicts_cnt;
     }
 
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
-    return straight_ctx->dicts_cnt;
+    return mask_ctx->masks_cnt;
   }
 
   if (user_options->attack_mode == ATTACK_MODE_GENERIC)
@@ -669,7 +672,6 @@ double status_get_guess_base_percent (const hashcat_ctx_t *hashcat_ctx)
 
 char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
@@ -702,16 +704,18 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
-      return strdup (straight_ctx->dict);
+    if (combinator_ctx->hybrid2_wordlist_base == true)
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+      return strdup (mask_ctx->mask);
     }
 
-    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return strdup (mask_ctx->mask);
+    return strdup (straight_ctx->dict);
   }
 
   return NULL;
@@ -719,7 +723,6 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
@@ -746,16 +749,18 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
-      return straight_ctx->dicts_pos + 1;
+    if (combinator_ctx->hybrid2_wordlist_base == true)
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+      return mask_ctx->masks_pos + 1;
     }
 
-    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return mask_ctx->masks_pos + 1;
+    return straight_ctx->dicts_pos + 1;
   }
 
   return 0;
@@ -763,7 +768,6 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
@@ -790,16 +794,18 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+    const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
 
-      return straight_ctx->dicts_cnt;
+    if (combinator_ctx->hybrid2_wordlist_base == true)
+    {
+      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+      return mask_ctx->masks_cnt;
     }
 
-    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
-    return mask_ctx->masks_cnt;
+    return straight_ctx->dicts_cnt;
   }
 
   return 0;

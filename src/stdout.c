@@ -141,7 +141,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       }
     }
   }
-  else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0))
+  else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (combinator_ctx->hybrid2_wordlist_base == false))
   {
     for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
@@ -307,7 +307,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
           pw_idx++;
         }
       }
-      else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL))
+      else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (combinator_ctx->hybrid2_wordlist_base == true))
       {
         while (pw_idx <= pw_idx_last)
         {

@@ -193,7 +193,10 @@ KERNEL_FQ KERNEL_FA void m16400_mxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx0);
 
-  cram_md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    cram_md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -201,9 +204,22 @@ KERNEL_FQ KERNEL_FA void m16400_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx = ctx0;
+    md5_ctx_t ctx;
 
-    cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_init (&ctx);
+
+      cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      cram_md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     cram_md5_final (&ctx);
 
@@ -247,7 +263,10 @@ KERNEL_FQ KERNEL_FA void m16400_sxx (KERN_ATTR_BASIC ())
 
   md5_init (&ctx0);
 
-  cram_md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    cram_md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -255,9 +274,22 @@ KERNEL_FQ KERNEL_FA void m16400_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx = ctx0;
+    md5_ctx_t ctx;
 
-    cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_init (&ctx);
+
+      cram_md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      cram_md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     cram_md5_final (&ctx);
 

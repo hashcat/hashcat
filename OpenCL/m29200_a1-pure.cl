@@ -63,7 +63,10 @@ KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_ESALT (radmin3_t))
 
   sha1_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].user, esalt_bufs[DIGESTS_OFFSET_HOST].user_len);
 
-  sha1_update_utf16le_swap (&ctx0, w, pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_update_utf16le_swap (&ctx0, w, pw_len);
+  }
 
 
   // ctx1 with main salt
@@ -139,9 +142,22 @@ KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_ESALT (radmin3_t))
   {
     // add password to the user name (and colon and first part of the password, included):
 
-    sha1_ctx_t c0 = ctx0;
+    sha1_ctx_t c0;
 
-    sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      c0 = ctx0;
+
+      sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      c0 = ctx0;
+
+      sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_utf16le_swap (&c0, w, pw_len);
+    }
 
     sha1_final (&c0);
 
@@ -336,7 +352,10 @@ KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_ESALT (radmin3_t))
 
   sha1_update_global (&ctx0, esalt_bufs[DIGESTS_OFFSET_HOST].user, esalt_bufs[DIGESTS_OFFSET_HOST].user_len);
 
-  sha1_update_utf16le_swap (&ctx0, w, pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_update_utf16le_swap (&ctx0, w, pw_len);
+  }
 
 
   // ctx1 with main salt
@@ -412,9 +431,22 @@ KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_ESALT (radmin3_t))
   {
     // add password to the user name (and colon and first part of the password, included):
 
-    sha1_ctx_t c0 = ctx0;
+    sha1_ctx_t c0;
 
-    sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      c0 = ctx0;
+
+      sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      c0 = ctx0;
+
+      sha1_update_global_utf16le_swap (&c0, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_utf16le_swap (&c0, w, pw_len);
+    }
 
     sha1_final (&c0);
 

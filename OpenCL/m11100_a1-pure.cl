@@ -83,9 +83,12 @@ KERNEL_FQ KERNEL_FA void m11100_mxx (KERN_ATTR_BASIC ())
 
   md5_ctx_t ctx0t;
 
-  md5_init (&ctx0t);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_init (&ctx0t);
 
-  md5_update_global (&ctx0t, pws[gid].i, pws[gid].pw_len);
+    md5_update_global (&ctx0t, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -93,9 +96,22 @@ KERNEL_FQ KERNEL_FA void m11100_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx1 = ctx0t;
+    md5_ctx_t ctx1;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx1 = ctx0t;
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_init (&ctx1);
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx1, pws[gid].i, pws[gid].pw_len);
+    }
 
     u32 s0[4];
     u32 s1[4];
@@ -239,9 +255,12 @@ KERNEL_FQ KERNEL_FA void m11100_sxx (KERN_ATTR_BASIC ())
 
   md5_ctx_t ctx0t;
 
-  md5_init (&ctx0t);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_init (&ctx0t);
 
-  md5_update_global (&ctx0t, pws[gid].i, pws[gid].pw_len);
+    md5_update_global (&ctx0t, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -249,9 +268,22 @@ KERNEL_FQ KERNEL_FA void m11100_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx1 = ctx0t;
+    md5_ctx_t ctx1;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx1 = ctx0t;
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_init (&ctx1);
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx1, pws[gid].i, pws[gid].pw_len);
+    }
 
     u32 s0[4];
     u32 s1[4];

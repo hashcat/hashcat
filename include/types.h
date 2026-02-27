@@ -2728,6 +2728,8 @@ typedef struct combinator_ctx
   u32 combs_mode;
   u64 combs_cnt;
 
+  bool hybrid2_wordlist_base;
+
 } combinator_ctx_t;
 
 typedef struct mask_ctx

@@ -35,7 +35,10 @@ KERNEL_FQ KERNEL_FA void m11000_mxx (KERN_ATTR_BASIC ())
 
   md5_update_global (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -46,6 +49,11 @@ KERNEL_FQ KERNEL_FA void m11000_mxx (KERN_ATTR_BASIC ())
     md5_ctx_t ctx = ctx0;
 
     md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     md5_final (&ctx);
 
@@ -91,7 +99,10 @@ KERNEL_FQ KERNEL_FA void m11000_sxx (KERN_ATTR_BASIC ())
 
   md5_update_global (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -102,6 +113,11 @@ KERNEL_FQ KERNEL_FA void m11000_sxx (KERN_ATTR_BASIC ())
     md5_ctx_t ctx = ctx0;
 
     md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     md5_final (&ctx);
 

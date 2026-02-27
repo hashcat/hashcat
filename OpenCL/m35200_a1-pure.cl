@@ -29,13 +29,29 @@ KERNEL_FQ KERNEL_FA void m35200_mxx (KERN_ATTR_BASIC ())
 
   sha1_update_global_utf16be_swap (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf_pc, salt_bufs[SALT_POS_HOST].salt_len_pc);
 
-  sha1_update_global_utf16be_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_update_global_utf16be_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx = ctx0;
+    sha1_ctx_t ctx;
 
-    sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_utf16be_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha1_final (&ctx);
 
@@ -69,13 +85,29 @@ KERNEL_FQ KERNEL_FA void m35200_sxx (KERN_ATTR_BASIC ())
 
   sha1_update_global_utf16be_swap (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf_pc, salt_bufs[SALT_POS_HOST].salt_len_pc);
 
-  sha1_update_global_utf16be_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_update_global_utf16be_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx = ctx0;
+    sha1_ctx_t ctx;
 
-    sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      sha1_update_global_utf16be_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_utf16be_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha1_final (&ctx);
 

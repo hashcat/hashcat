@@ -298,13 +298,56 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
       else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
       {
-        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+        mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+        char *dictfile = user_options_extra->hc_workv[1];
+
+        // at this point we know the file actually exist
+
+        if (hc_path_is_file (dictfile) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: Not a regular file.", dictfile);
+
+          return -1;
+        }
+
+        HCFILE fp;
+
+        if (hc_fopen (&fp, dictfile, "rb") == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
+
+          return -1;
+        }
+
+        mask_ctx->bfs_cnt = 1;
+
+        u64 words_cnt = 0;
+
+        const int rc = count_words (hashcat_ctx, &fp, dictfile, &words_cnt);
+
+        hc_fclose (&fp);
+
+        if (rc == -1)
+        {
+          event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dictfile);
+
+          return -1;
+        }
+
+        if (rc == -2)
+        {
+          event_log_error (hashcat_ctx, "Error reading wordlist: %s", dictfile);
+
+          return -1;
+        }
+
+        combinator_ctx->combs_cnt  = words_cnt;
+        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
       }
     }
     else
     {
-      // this is always need to be COMBINATOR_MODE_BASE_LEFT
-
       if (user_options->attack_mode == ATTACK_MODE_COMBI)
       {
         // display
@@ -417,8 +460,28 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
         combinator_ctx->dict1 = dictfile1;
         combinator_ctx->dict2 = dictfile2;
 
-        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-        combinator_ctx->combs_cnt  = words2_cnt;
+        if (words1_cnt >= words2_cnt)
+        {
+          combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
+          combinator_ctx->combs_cnt  = words2_cnt;
+        }
+        else
+        {
+          combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+          combinator_ctx->combs_cnt  = words1_cnt;
+
+          // we also have to switch wordlist related rules!
+
+          const char *tmpc = user_options->rule_buf_l;
+
+          user_options->rule_buf_l = user_options->rule_buf_r;
+          user_options->rule_buf_r = tmpc;
+
+          u32 tmpi = user_options_extra->rule_len_l;
+
+          user_options_extra->rule_len_l = user_options_extra->rule_len_r;
+          user_options_extra->rule_len_r = tmpi;
+        }
       }
       else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
       {

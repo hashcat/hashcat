@@ -89,9 +89,12 @@ KERNEL_FQ KERNEL_FA void m21900_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
 
   md5_ctx_t ctx0;
 
-  md5_init (&ctx0);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_init (&ctx0);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -99,9 +102,22 @@ KERNEL_FQ KERNEL_FA void m21900_mxx (KERN_ATTR_ESALT (md5_double_salt_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx1 = ctx0;
+    md5_ctx_t ctx1;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx1 = ctx0;
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_init (&ctx1);
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx1, pws[gid].i, pws[gid].pw_len);
+    }
 
     md5_update (&ctx1, salt1_buf, salt1_len);
 
@@ -241,9 +257,12 @@ KERNEL_FQ KERNEL_FA void m21900_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
 
   md5_ctx_t ctx0;
 
-  md5_init (&ctx0);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_init (&ctx0);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -251,9 +270,22 @@ KERNEL_FQ KERNEL_FA void m21900_sxx (KERN_ATTR_ESALT (md5_double_salt_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx1 = ctx0;
+    md5_ctx_t ctx1;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx1 = ctx0;
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_init (&ctx1);
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx1, pws[gid].i, pws[gid].pw_len);
+    }
 
     md5_update (&ctx1, salt1_buf, salt1_len);
 

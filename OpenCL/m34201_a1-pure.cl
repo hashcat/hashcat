@@ -83,12 +83,15 @@ KERNEL_FQ KERNEL_FA void m34201_mxx (KERN_ATTR_BASIC ())
   PRIVATE_AS u8 combined_buf[256] = {0};
   PRIVATE_AS const u32 *comb_ptr = (PRIVATE_AS const u32 *) combined_buf;
 
-  // copy left buffer
-  GLOBAL_AS const u8 *left = (GLOBAL_AS const u8 *) pws[gid].i;
-  // probably bad for performance
-  for (u32 i = 0; i < pws[gid].pw_len; i++)
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
   {
-    combined_buf[i] = left[i];
+    // copy left buffer
+    GLOBAL_AS const u8 *left = (GLOBAL_AS const u8 *) pws[gid].i;
+    // probably bad for performance
+    for (u32 i = 0; i < pws[gid].pw_len; i++)
+    {
+      combined_buf[i] = left[i];
+    }
   }
 
   /**
@@ -97,11 +100,30 @@ KERNEL_FQ KERNEL_FA void m34201_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    // copy right buffer
-    GLOBAL_AS const u8 *right = (GLOBAL_AS const u8 *) combs_buf[il_pos].i;
-    for (u32 i = 0; i < combs_buf[il_pos].pw_len; i++)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      combined_buf[i + pws[gid].pw_len] = right[i];
+      // copy right buffer (combs after pws)
+      GLOBAL_AS const u8 *right = (GLOBAL_AS const u8 *) combs_buf[il_pos].i;
+      for (u32 i = 0; i < combs_buf[il_pos].pw_len; i++)
+      {
+        combined_buf[i + pws[gid].pw_len] = right[i];
+      }
+    }
+    else
+    {
+      // copy combs first
+      GLOBAL_AS const u8 *right = (GLOBAL_AS const u8 *) combs_buf[il_pos].i;
+      for (u32 i = 0; i < combs_buf[il_pos].pw_len; i++)
+      {
+        combined_buf[i] = right[i];
+      }
+
+      // copy pws after combs
+      GLOBAL_AS const u8 *left = (GLOBAL_AS const u8 *) pws[gid].i;
+      for (u32 i = 0; i < pws[gid].pw_len; i++)
+      {
+        combined_buf[i + combs_buf[il_pos].pw_len] = left[i];
+      }
     }
 
     u64x hash = MurmurHash64A (comb_ptr, pws[gid].pw_len + combs_buf[il_pos].pw_len);
@@ -132,12 +154,15 @@ KERNEL_FQ KERNEL_FA void m34201_sxx (KERN_ATTR_BASIC ())
   PRIVATE_AS u8 combined_buf[256] = {0};
   PRIVATE_AS const u32 *comb_ptr = (PRIVATE_AS const u32 *) combined_buf;
 
-  // copy left buffer
-  GLOBAL_AS const u8 *left = (GLOBAL_AS const u8 *) pws[gid].i;
-  // probably bad for performance
-  for (u32 i = 0; i < pws[gid].pw_len; i++)
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
   {
-    combined_buf[i] = left[i];
+    // copy left buffer
+    GLOBAL_AS const u8 *left = (GLOBAL_AS const u8 *) pws[gid].i;
+    // probably bad for performance
+    for (u32 i = 0; i < pws[gid].pw_len; i++)
+    {
+      combined_buf[i] = left[i];
+    }
   }
 
   /**
@@ -158,11 +183,30 @@ KERNEL_FQ KERNEL_FA void m34201_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    // copy right buffer
-    GLOBAL_AS const u8 *right = (GLOBAL_AS const u8 *) combs_buf[il_pos].i;
-    for (u32 i = 0; i < combs_buf[il_pos].pw_len; i++)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      combined_buf[i + pws[gid].pw_len] = right[i];
+      // copy right buffer (combs after pws)
+      GLOBAL_AS const u8 *right = (GLOBAL_AS const u8 *) combs_buf[il_pos].i;
+      for (u32 i = 0; i < combs_buf[il_pos].pw_len; i++)
+      {
+        combined_buf[i + pws[gid].pw_len] = right[i];
+      }
+    }
+    else
+    {
+      // copy combs first
+      GLOBAL_AS const u8 *right = (GLOBAL_AS const u8 *) combs_buf[il_pos].i;
+      for (u32 i = 0; i < combs_buf[il_pos].pw_len; i++)
+      {
+        combined_buf[i] = right[i];
+      }
+
+      // copy pws after combs
+      GLOBAL_AS const u8 *left = (GLOBAL_AS const u8 *) pws[gid].i;
+      for (u32 i = 0; i < pws[gid].pw_len; i++)
+      {
+        combined_buf[i + combs_buf[il_pos].pw_len] = left[i];
+      }
     }
 
     u64 hash = MurmurHash64A (comb_ptr, pws[gid].pw_len + combs_buf[il_pos].pw_len);
