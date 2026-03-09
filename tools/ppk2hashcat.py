@@ -3,6 +3,7 @@
 ppk2hashcat - Extract hash from PuTTY Private Key (PPK) files for hashcat
 
 Supports PPK version 2 and 3 files with AES-256-CBC encryption.
+Author: Deutsche Telekom Security GmbH
 
 Usage:
     python3 ppk2hashcat.py <ppk_file> [ppk_file2 ...]

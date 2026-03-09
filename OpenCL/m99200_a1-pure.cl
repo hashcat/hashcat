@@ -1,5 +1,5 @@
 /**
- * Author......: See docs/credits.txt
+ * Author......: Deutsche Telekom Security GmbH
  * License.....: MIT
  *
  * PuTTY Private Key (PPK) version 2, AES-256-CBC encryption
