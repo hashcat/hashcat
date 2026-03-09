@@ -31,7 +31,8 @@ RUN apt-get update && \
     unzip \
     zstd \
     curl \
-    tar
+    tar \
+    clang
 
 WORKDIR /root
 
