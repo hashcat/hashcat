@@ -18,7 +18,6 @@ on:
   push:
     branches:
       - master
-      - release
     tags:
       - v*
     paths:
