@@ -94,7 +94,7 @@ DECLSPEC void memzero_be_S (PRIVATE_AS u32 *block, const u32 start_offset, const
 }
 
 
-DECLSPEC void cast128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data, SHM_TYPE u32 (*s_S)[256])
+DECLSPEC void cast128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, u32 data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data, SHM_TYPE u32 (*s_S)[256])
 {
   u8 essiv[8];
   for (int j=0; j<8; j++) { essiv[j] = 0; }
@@ -305,13 +305,13 @@ KERNEL_FQ KERNEL_FA void m17040_loop (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
     // Build the exact byte sequence: salt || password
     // Use raw bytes from salt_buf and pws[].i (no swaps, no padding, no repeats)
     u8 one[320] = { 0 }; // plenty
-    // copy 8-byte salt
-    PRIVATE_AS const u8 *salt8 = (PRIVATE_AS const u8 *) salt_bufs[SALT_POS_HOST].salt_buf;
-    for (u32 i = 0; i < salt_bufs[SALT_POS_HOST].salt_len; i++) one[i] = salt8[i];
+    // copy 8-byte salt: extract bytes via shifts to avoid device→private pointer cast (Metal)
+    for (u32 i = 0; i < salt_bufs[SALT_POS_HOST].salt_len; i++)
+      one[i] = (salt_bufs[SALT_POS_HOST].salt_buf[i / 4] >> ((i % 4) * 8)) & 0xff;
 
-    // copy password bytes
-    PRIVATE_AS const u8 *pw8 = (PRIVATE_AS const u8 *) pws[gid].i;
-    for (u32 i = 0; i < pw_len; i++) one[salt_bufs[SALT_POS_HOST].salt_len + i] = pw8[i];
+    // copy password bytes: same approach
+    for (u32 i = 0; i < pw_len; i++)
+      one[salt_bufs[SALT_POS_HOST].salt_len + i] = (pws[gid].i[i / 4] >> ((i % 4) * 8)) & 0xff;
 
     // Feed exactly those bytes. Buffer is in native order → use _swap
     sha1_update_swap (&ctx, (PRIVATE_AS const u32 *) one, salted_pw_len);

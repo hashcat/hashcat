@@ -77,13 +77,15 @@ typedef struct timespec   hc_timer_t;
 #endif
 
 #if defined (_WIN)
-typedef HANDLE           hc_thread_t;
-typedef CRITICAL_SECTION hc_thread_mutex_t;
-typedef HANDLE           hc_thread_semaphore_t;
+typedef HANDLE             hc_thread_t;
+typedef CRITICAL_SECTION   hc_thread_mutex_t;
+typedef CONDITION_VARIABLE hc_thread_cond_t;
+typedef HANDLE             hc_thread_semaphore_t;
 #else
-typedef pthread_t        hc_thread_t;
-typedef pthread_mutex_t  hc_thread_mutex_t;
-typedef sem_t            hc_thread_semaphore_t;
+typedef pthread_t          hc_thread_t;
+typedef pthread_mutex_t    hc_thread_mutex_t;
+typedef pthread_cond_t     hc_thread_cond_t;
+typedef sem_t              hc_thread_semaphore_t;
 #endif
 
 // enums
@@ -156,6 +158,10 @@ typedef enum event_identifier
   EVENT_OUTERLOOP_FINISHED        = 0x000000b0,
   EVENT_OUTERLOOP_MAINSCREEN      = 0x000000b1,
   EVENT_OUTERLOOP_STARTING        = 0x000000b2,
+  EVENT_PCFG_CTX_INIT_POST        = 0x00000140,
+  EVENT_PCFG_CTX_INIT_PRE         = 0x00000141,
+  EVENT_PCFG_GEN_INIT_POST        = 0x00000142,
+  EVENT_PCFG_GEN_INIT_PRE         = 0x00000143,
   EVENT_POTFILE_ALL_CRACKED       = 0x000000c0,
   EVENT_POTFILE_HASH_LEFT         = 0x000000c1,
   EVENT_POTFILE_HASH_SHOW         = 0x000000c2,
@@ -275,6 +281,7 @@ typedef enum attack_mode
   ATTACK_MODE_HYBRID2     = 7,
   ATTACK_MODE_GENERIC     = 8,
   ATTACK_MODE_ASSOCIATION = 9,
+  ATTACK_MODE_PCFG        = 10,
   ATTACK_MODE_NONE        = 100
 
 } attack_mode_t;
@@ -284,6 +291,7 @@ typedef enum attack_kern
   ATTACK_KERN_STRAIGHT  = 0,
   ATTACK_KERN_COMBI     = 1,
   ATTACK_KERN_BF        = 3,
+  ATTACK_KERN_PCFG      = 10, // unused, for now ;)
   ATTACK_KERN_NONE      = 100
 
 } attack_kern_t;
@@ -845,13 +853,13 @@ typedef enum user_options_map
   IDX_BRAIN_SESSION             = 0xff0f,
   IDX_BRAIN_SESSION_WHITELIST   = 0xff10,
   #endif
-  IDX_BYPASS_THRESHOLD          = 0xff84,
-  IDX_BYPASS_DELAY              = 0xff85,
+  IDX_BYPASS_THRESHOLD          = 0xff5a,
+  IDX_BYPASS_DELAY              = 0xff5b,
   IDX_COLOR_CRACKED             = 0xff59,
-  IDX_BRIDGE_PARAMETER1         = 0xff80,
-  IDX_BRIDGE_PARAMETER2         = 0xff81,
-  IDX_BRIDGE_PARAMETER3         = 0xff82,
-  IDX_BRIDGE_PARAMETER4         = 0xff83,
+  IDX_BRIDGE_PARAMETER1         = 0xff5c,
+  IDX_BRIDGE_PARAMETER2         = 0xff5d,
+  IDX_BRIDGE_PARAMETER3         = 0xff5e,
+  IDX_BRIDGE_PARAMETER4         = 0xff5f,
   IDX_CPU_AFFINITY              = 0xff11,
   IDX_CUSTOM_CHARSET_1          = '1',
   IDX_CUSTOM_CHARSET_2          = '2',
@@ -955,6 +963,43 @@ typedef enum user_options_map
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff54,
   IDX_WORKLOAD_PROFILE          = 'w',
+  IDX_PCFG_MODEL                = 0xff63,
+  IDX_PCFG_TRAIN                = 0xff64,
+  IDX_PCFG_MODEL_SAVE           = 0xff65,
+  IDX_PCFG_MODEL_UPDATE         = 0xff66,
+  IDX_PCFG_MERGE                = 0xff67,
+  IDX_PCFG_BURST_FIRST          = 0xff68,
+  IDX_PCFG_BURST_SIZE           = 0xff69,
+  IDX_PCFG_TOKEN_TYPES          = 0xff6a,
+  IDX_PCFG_PW_COMPLEX           = 0xff6b,
+  IDX_PCFG_PW_LEN_MAX           = 0xff6c,
+  IDX_PCFG_PW_LEN_MIN           = 0xff6d,
+  IDX_PCFG_STRUCT_PROB_MAX      = 0xff6e,
+  IDX_PCFG_STRUCT_PROB_MIN      = 0xff6f,
+  IDX_PCFG_TOKEN_LEN_MAX        = 0xff70,
+  IDX_PCFG_TOKEN_LEN_MIN        = 0xff71,
+  IDX_PCFG_TOKEN_COUNT_MAX      = 0xff72,
+  IDX_PCFG_TOKEN_COUNT_MIN      = 0xff73,
+  IDX_PCFG_TERMINAL_COUNT_MIN   = 0xff74,
+  IDX_PCFG_SHUFFLE              = 0xff75,
+  IDX_PCFG_AHF_TYPE             = 0xff76,
+  IDX_PCFG_AHF_TERMINALS_MIN    = 0xff77,
+  IDX_PCFG_TRAIN_AF_DISABLE     = 0xff78,
+  IDX_PCFG_TRAIN_AF_THRESHOLD   = 0xff79,
+  IDX_PCFG_TRAIN_DF_DISABLE     = 0xff7a,
+  IDX_PCFG_MODE                 = 0xff7b,
+  IDX_PCFG_PERF_THRESHOLD       = 0xff7c,
+  IDX_PCFG_MODEL_INFO           = 0xff7d,
+  IDX_PCFG_TRAIN_FORMAT         = 0xff7e,
+  IDX_PCFG_OMEN_TYPE            = 0xff7f,
+  IDX_PCFG_OMEN_COST_MIN        = 0xff80,
+  IDX_PCFG_OMEN_COST_MAX        = 0xff81,
+  IDX_PCFG_OMEN_KEYSPACE_MAX    = 0xff82,
+  IDX_PCFG_OMEN_MAX_ALLOC_PERC  = 0xff83,
+  IDX_PCFG_OMEN_STATS_ENABLED   = 0xff84,
+  IDX_PCFG_KEYSPACE_MAX         = 0xff85,
+  IDX_PCFG_LOOPBACK             = 0xff86,
+  IDX_PCFG_MODEL_DIFF           = 0xff87
 
 } user_options_map_t;
 
@@ -1117,6 +1162,9 @@ typedef struct hashes
   void        *st_hook_salts_buf;
 
   int          parser_token_length_cnt;
+
+  bool         radix_deduped;
+  bool         radix_digests_reordered;
 
 } hashes_t;
 
@@ -1333,6 +1381,9 @@ typedef struct hc_device_param
   u32     kernel_wgs_aux3;
   u32     kernel_wgs_aux4;
 
+  u32     kernel_wgs_pcfg_gpu_prob;
+  u32     kernel_wgs_pcfg_gpu_omen;
+
   u32     kernel_preferred_wgs_multiple1;
   u32     kernel_preferred_wgs_multiple12;
   u32     kernel_preferred_wgs_multiple2p;
@@ -1358,6 +1409,9 @@ typedef struct hc_device_param
   u32     kernel_preferred_wgs_multiple_aux2;
   u32     kernel_preferred_wgs_multiple_aux3;
   u32     kernel_preferred_wgs_multiple_aux4;
+
+  u32     kernel_preferred_wgs_multiple_pcfg_gpu_prob;
+  u32     kernel_preferred_wgs_multiple_pcfg_gpu_omen;
 
   u64     kernel_local_mem_size1;
   u64     kernel_local_mem_size12;
@@ -1385,6 +1439,9 @@ typedef struct hc_device_param
   u64     kernel_local_mem_size_aux3;
   u64     kernel_local_mem_size_aux4;
 
+  u64     kernel_local_mem_size_pcfg_gpu_prob;
+  u64     kernel_local_mem_size_pcfg_gpu_omen;
+
   u64     kernel_dynamic_local_mem_size1;
   u64     kernel_dynamic_local_mem_size12;
   u64     kernel_dynamic_local_mem_size2p;
@@ -1410,6 +1467,9 @@ typedef struct hc_device_param
   u64     kernel_dynamic_local_mem_size_aux2;
   u64     kernel_dynamic_local_mem_size_aux3;
   u64     kernel_dynamic_local_mem_size_aux4;
+
+  u64     kernel_dynamic_local_mem_size_pcfg_gpu_prob;
+  u64     kernel_dynamic_local_mem_size_pcfg_gpu_omen;
 
   u32     kernel_accel;
   u32     kernel_accel_prev;
@@ -1456,6 +1516,8 @@ typedef struct hc_device_param
   u64  size_st_esalts;
   u64  size_tm;
   u64  size_kernel_params;
+
+  u32  pcfg_kernel_dynamic_arg_start;
 
   u64  extra_buffer_size;
 
@@ -1604,6 +1666,14 @@ typedef struct hc_device_param
   u32     kernel_params_decompress_buf32[PARAMCNT];
   u64     kernel_params_decompress_buf64[PARAMCNT];
 
+  void   *kernel_params_pcfg_gpu_prob[PARAMCNT];
+  u32     kernel_params_pcfg_gpu_prob_buf32[PARAMCNT];
+  u64     kernel_params_pcfg_gpu_prob_buf64[PARAMCNT];
+
+  void   *kernel_params_pcfg_gpu_omen[PARAMCNT];
+  u32     kernel_params_pcfg_gpu_omen_buf32[PARAMCNT];
+  u64     kernel_params_pcfg_gpu_omen_buf64[PARAMCNT];
+
   kernel_param_t kernel_param;
 
   // API: cuda
@@ -1624,6 +1694,9 @@ typedef struct hc_device_param
   CUmodule          cuda_module_shared;
   CUmodule          cuda_module_mp;
   CUmodule          cuda_module_amp;
+
+  CUmodule          cuda_module_pcfg_gpu_prob;
+  CUmodule          cuda_module_pcfg_gpu_omen;
 
   CUfunction        cuda_function1;
   CUfunction        cuda_function12;
@@ -1650,6 +1723,9 @@ typedef struct hc_device_param
   CUfunction        cuda_function_aux2;
   CUfunction        cuda_function_aux3;
   CUfunction        cuda_function_aux4;
+
+  CUfunction        cuda_function_pcfg_gpu_prob;
+  CUfunction        cuda_function_pcfg_gpu_omen;
 
   CUdeviceptr       cuda_d_pws_buf;
   CUdeviceptr       cuda_d_pws_amp_buf;
@@ -1689,6 +1765,24 @@ typedef struct hc_device_param
   CUdeviceptr       cuda_d_st_esalts_buf;
   CUdeviceptr       cuda_d_kernel_param;
 
+  CUdeviceptr       cuda_d_pcfg_data_buffer;
+  CUdeviceptr       cuda_d_pcfg_term_blocks;
+  CUdeviceptr       cuda_d_pcfg_structure;
+  CUdeviceptr       cuda_d_pcfg_cumulative;
+  CUdeviceptr       cuda_d_pcfg_omen_structures;
+  CUdeviceptr       cuda_d_pcfg_omen_slot_maps;
+  CUdeviceptr       cuda_d_pcfg_omen_batch_entries;
+  CUdeviceptr       cuda_d_pcfg_omen_partitions;
+  CUdeviceptr       cuda_d_pcfg_data_buffer_part_p1;
+  CUdeviceptr       cuda_d_pcfg_data_buffer_part_p2;
+  CUdeviceptr       cuda_d_pcfg_data_buffer_part_p3;
+  CUdeviceptr       cuda_d_pcfg_data_buffer_part_p4;
+  CUdeviceptr       cuda_d_pcfg_data_buffer_part_p5;
+  CUdeviceptr       cuda_d_pcfg_data_buffer_part_p6;
+  CUdeviceptr       cuda_d_pcfg_data_buffer_part_p7;
+  CUdeviceptr       cuda_d_pcfg_data_buffer_part_p8;
+  CUdeviceptr       cuda_d_pcfg_part_offsets;
+
   // API: hip
 
   bool              is_hip;
@@ -1707,6 +1801,9 @@ typedef struct hc_device_param
   hipModule_t       hip_module_shared;
   hipModule_t       hip_module_mp;
   hipModule_t       hip_module_amp;
+
+  hipModule_t       hip_module_pcfg_gpu_prob;
+  hipModule_t       hip_module_pcfg_gpu_omen;
 
   hipFunction_t     hip_function1;
   hipFunction_t     hip_function12;
@@ -1733,6 +1830,9 @@ typedef struct hc_device_param
   hipFunction_t     hip_function_aux2;
   hipFunction_t     hip_function_aux3;
   hipFunction_t     hip_function_aux4;
+
+  hipFunction_t     hip_function_pcfg_gpu_prob;
+  hipFunction_t     hip_function_pcfg_gpu_omen;
 
   hipDeviceptr_t    hip_d_pws_buf;
   hipDeviceptr_t    hip_d_pws_amp_buf;
@@ -1772,6 +1872,24 @@ typedef struct hc_device_param
   hipDeviceptr_t    hip_d_st_esalts_buf;
   hipDeviceptr_t    hip_d_kernel_param;
 
+  hipDeviceptr_t    hip_d_pcfg_data_buffer;
+  hipDeviceptr_t    hip_d_pcfg_term_blocks;
+  hipDeviceptr_t    hip_d_pcfg_structure;
+  hipDeviceptr_t    hip_d_pcfg_cumulative;
+  hipDeviceptr_t    hip_d_pcfg_omen_structures;
+  hipDeviceptr_t    hip_d_pcfg_omen_slot_maps;
+  hipDeviceptr_t    hip_d_pcfg_omen_batch_entries;
+  hipDeviceptr_t    hip_d_pcfg_omen_partitions;
+  hipDeviceptr_t    hip_d_pcfg_data_buffer_part_p1;
+  hipDeviceptr_t    hip_d_pcfg_data_buffer_part_p2;
+  hipDeviceptr_t    hip_d_pcfg_data_buffer_part_p3;
+  hipDeviceptr_t    hip_d_pcfg_data_buffer_part_p4;
+  hipDeviceptr_t    hip_d_pcfg_data_buffer_part_p5;
+  hipDeviceptr_t    hip_d_pcfg_data_buffer_part_p6;
+  hipDeviceptr_t    hip_d_pcfg_data_buffer_part_p7;
+  hipDeviceptr_t    hip_d_pcfg_data_buffer_part_p8;
+  hipDeviceptr_t    hip_d_pcfg_part_offsets;
+
   // API: opencl and metal
 
   bool              is_apple_silicon;
@@ -1780,10 +1898,11 @@ typedef struct hc_device_param
 
   bool              is_metal;
 
+  int               metal_version;
+
   #if defined (__APPLE__)
 
-  //int               mtl_major;
-  //int               mtl_minor;
+  bool              use_metal4;
 
   int               device_physical_location;
   int               device_location_number;
@@ -1797,11 +1916,44 @@ typedef struct hc_device_param
 
   mtl_device_id     metal_device;
   mtl_command_queue metal_command_queue;
+  mtl_command_allocator metal_command_allocator;
+  mtl_argument_table metal_argument_table;
+  mtl_command_buffer metal_command_buffer;
+
+  id                metal4_residency_set;
+  dispatch_semaphore_t metal4_sema;
+
+  id                metal4_scratch_buf;
+  size_t            metal4_scratch_offset;
+
+  SEL               mtl4_sel_gpuAddress;
+  SEL               mtl4_sel_setAddress_atIndex;
+  SEL               mtl4_sel_addAllocation;
+  SEL               mtl4_sel_removeAllocation;
+  SEL               mtl4_sel_commit;
+  SEL               mtl4_sel_setArgumentTable;
+  SEL               mtl4_sel_dispatchThreadgroups;
+  SEL               mtl4_sel_endEncoding;
+  SEL               mtl4_sel_requestResidency;
+  SEL               mtl4_sel_computeCommandEncoder;
+  SEL               mtl4_sel_beginCommandBuffer;
+  SEL               mtl4_sel_endCommandBuffer;
+  SEL               mtl4_sel_copyFromBuffer;
+  SEL               mtl4_sel_setComputePipelineState;
+  SEL               mtl4_sel_reset;
+  SEL               mtl4_sel_commitCountOptions;
+  SEL               mtl4_sel_gpuStartTime;
+  SEL               mtl4_sel_gpuEndTime;
+  SEL               mtl4_set_addFeedbackHandler;
+  SEL               mtl4_sel_useResidencySet;
 
   mtl_library       metal_library;
   mtl_library       metal_library_shared;
   mtl_library       metal_library_mp;
   mtl_library       metal_library_amp;
+
+  mtl_library       metal_library_pcfg_gpu_prob;
+  mtl_library       metal_library_pcfg_gpu_omen;
 
   mtl_function      metal_function1;
   mtl_function      metal_function12;
@@ -1829,6 +1981,9 @@ typedef struct hc_device_param
   mtl_function      metal_function_aux3;
   mtl_function      metal_function_aux4;
 
+  mtl_function      metal_function_pcfg_gpu_prob;
+  mtl_function      metal_function_pcfg_gpu_omen;
+
   mtl_pipeline      metal_pipeline1;
   mtl_pipeline      metal_pipeline12;
   mtl_pipeline      metal_pipeline2p;
@@ -1854,6 +2009,9 @@ typedef struct hc_device_param
   mtl_pipeline      metal_pipeline_aux2;
   mtl_pipeline      metal_pipeline_aux3;
   mtl_pipeline      metal_pipeline_aux4;
+
+  mtl_pipeline      metal_pipeline_pcfg_gpu_prob;
+  mtl_pipeline      metal_pipeline_pcfg_gpu_omen;
 
   mtl_mem_t         metal_d_pws_buf;
   mtl_mem_t         metal_d_pws_amp_buf;
@@ -1892,6 +2050,25 @@ typedef struct hc_device_param
   mtl_mem_t         metal_d_st_salts_buf;
   mtl_mem_t         metal_d_st_esalts_buf;
   mtl_mem_t         metal_d_kernel_param;
+  mtl_mem_t         metal_d_fake_buf;
+
+  mtl_mem_t         metal_d_pcfg_data_buffer;
+  mtl_mem_t         metal_d_pcfg_term_blocks;
+  mtl_mem_t         metal_d_pcfg_structure;
+  mtl_mem_t         metal_d_pcfg_cumulative;
+  mtl_mem_t         metal_d_pcfg_omen_structures;
+  mtl_mem_t         metal_d_pcfg_omen_slot_maps;
+  mtl_mem_t         metal_d_pcfg_omen_batch_entries;
+  mtl_mem_t         metal_d_pcfg_omen_partitions;
+  mtl_mem_t         metal_d_pcfg_data_buffer_part_p1;
+  mtl_mem_t         metal_d_pcfg_data_buffer_part_p2;
+  mtl_mem_t         metal_d_pcfg_data_buffer_part_p3;
+  mtl_mem_t         metal_d_pcfg_data_buffer_part_p4;
+  mtl_mem_t         metal_d_pcfg_data_buffer_part_p5;
+  mtl_mem_t         metal_d_pcfg_data_buffer_part_p6;
+  mtl_mem_t         metal_d_pcfg_data_buffer_part_p7;
+  mtl_mem_t         metal_d_pcfg_data_buffer_part_p8;
+  mtl_mem_t         metal_d_pcfg_part_offsets;
 
   #endif // __APPLE__
 
@@ -1918,6 +2095,9 @@ typedef struct hc_device_param
   cl_program        opencl_program_mp;
   cl_program        opencl_program_amp;
 
+  cl_program        opencl_program_pcfg_gpu_prob;
+  cl_program        opencl_program_pcfg_gpu_omen;
+
   cl_kernel         opencl_kernel1;
   cl_kernel         opencl_kernel12;
   cl_kernel         opencl_kernel2p;
@@ -1943,6 +2123,9 @@ typedef struct hc_device_param
   cl_kernel         opencl_kernel_aux2;
   cl_kernel         opencl_kernel_aux3;
   cl_kernel         opencl_kernel_aux4;
+
+  cl_kernel         opencl_kernel_pcfg_gpu_prob;
+  cl_kernel         opencl_kernel_pcfg_gpu_omen;
 
   cl_mem            opencl_d_pws_buf;
   cl_mem            opencl_d_pws_amp_buf;
@@ -1981,6 +2164,24 @@ typedef struct hc_device_param
   cl_mem            opencl_d_st_salts_buf;
   cl_mem            opencl_d_st_esalts_buf;
   cl_mem            opencl_d_kernel_param;
+
+  cl_mem            opencl_d_pcfg_data_buffer;
+  cl_mem            opencl_d_pcfg_term_blocks;
+  cl_mem            opencl_d_pcfg_structure;
+  cl_mem            opencl_d_pcfg_cumulative;
+  cl_mem            opencl_d_pcfg_omen_structures;
+  cl_mem            opencl_d_pcfg_omen_slot_maps;
+  cl_mem            opencl_d_pcfg_omen_batch_entries;
+  cl_mem            opencl_d_pcfg_omen_partitions;
+  cl_mem            opencl_d_pcfg_data_buffer_part_p1;
+  cl_mem            opencl_d_pcfg_data_buffer_part_p2;
+  cl_mem            opencl_d_pcfg_data_buffer_part_p3;
+  cl_mem            opencl_d_pcfg_data_buffer_part_p4;
+  cl_mem            opencl_d_pcfg_data_buffer_part_p5;
+  cl_mem            opencl_d_pcfg_data_buffer_part_p6;
+  cl_mem            opencl_d_pcfg_data_buffer_part_p7;
+  cl_mem            opencl_d_pcfg_data_buffer_part_p8;
+  cl_mem            opencl_d_pcfg_part_offsets;
 
 } hc_device_param_t;
 
@@ -2621,6 +2822,54 @@ typedef struct user_options
   u64          skip;
   bool         hash_copy;
 
+  /* PCFG options */
+  char       **pcfg_models;
+  char        *pcfg_model_file;
+  char        *pcfg_train_file;
+  char        *pcfg_model_save_file;
+  char        *pcfg_token_types;
+  char        *pcfg_pf_threshold;
+  u32          pcfg_ahf_terminals_min;
+  u32          pcfg_models_cnt;
+  u32          pcfg_burst_size;
+  bool         pcfg_burst_first;
+  float        pcfg_struct_prob_max;
+  float        pcfg_struct_prob_min;
+  u32          pcfg_terminal_count_min;
+  u32          pcfg_pw_len_max;
+  bool         pcfg_pw_len_max_chgd;
+  u32          pcfg_pw_len_min;
+  bool         pcfg_pw_len_min_chgd;
+  u32          pcfg_token_len_max;
+  bool         pcfg_token_len_max_chgd;
+  u32          pcfg_token_len_min;
+  bool         pcfg_token_len_min_chgd;
+  u32          pcfg_token_count_max;
+  bool         pcfg_token_count_max_chgd;
+  u32          pcfg_token_count_min;
+  bool         pcfg_token_count_min_chgd;
+  bool         pcfg_pw_complex;
+  bool         pcfg_train_df_disable;
+  bool         pcfg_train_af_disable;
+  u16          pcfg_train_af_threshold;
+  bool         pcfg_shuffle;
+  u8           pcfg_ahf_type;
+  bool         pcfg_model_info;
+  bool         pcfg_model_update;
+  u8           pcfg_mode;
+  bool         pcfg_mode_chgd;
+  u8           pcfg_omen_type;
+  bool         pcfg_omen_type_chgd;
+  u32          pcfg_omen_cost_min;
+  u32          pcfg_omen_cost_max;
+  u8           pcfg_train_format;
+  u64          pcfg_omen_keyspace_max;
+  u32          pcfg_omen_max_alloc_perc;
+  bool         pcfg_omen_stats;
+  u64          pcfg_keyspace_max;
+  bool         pcfg_loopback;
+  char        *pcfg_model_diff_file;
+
 } user_options_t;
 
 typedef struct user_options_extra
@@ -2839,6 +3088,7 @@ typedef struct device_info
   double  exec_msec_dev;
   char   *speed_sec_dev;
   char   *guess_candidates_dev;
+  char   *pcfg_model_info_dev;
   #if defined(__APPLE__)
   char   *hwmon_fan_dev;
   #endif
@@ -2902,15 +3152,15 @@ typedef struct hashcat_status
   double      msec_paused;
   double      msec_running;
   double      msec_real;
-  int         digests_cnt;
-  int         digests_done;
-  int         digests_done_pot;
-  int         digests_done_zero;
-  int         digests_done_new;
+  u32         digests_cnt;
+  u32         digests_done;
+  u32         digests_done_pot;
+  u32         digests_done_zero;
+  u32         digests_done_new;
   double      digests_percent;
   double      digests_percent_new;
-  int         salts_cnt;
-  int         salts_done;
+  u32         salts_cnt;
+  u32         salts_done;
   double      salts_percent;
   int         progress_mode;
   double      progress_finished_percent;
@@ -3266,6 +3516,8 @@ typedef struct hashcat_ctx
   user_options_extra_t  *user_options_extra;
   user_options_t        *user_options;
   wl_data_t             *wl_data;
+
+  void                  *pcfg_ctx; // PCFG context
 
   void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
 

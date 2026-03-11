@@ -13,10 +13,11 @@
 #include "shared.h"
 #include "usage.h"
 #include "backend.h"
-#include "user_options.h"
 #include "outfile.h"
 #include "rp.h"
 #include "rp_cpu.h"
+#include "pcfg_common.h"
+#include "user_options.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -174,6 +175,44 @@ static const struct option long_options[] =
   {"brain-session-whitelist",   required_argument, NULL, IDX_BRAIN_SESSION_WHITELIST},
   #endif
   {"color-cracked",             no_argument,       NULL, IDX_COLOR_CRACKED},
+  /* pcfg */
+  {"pcfg-models-merge",         required_argument, NULL, IDX_PCFG_MERGE},
+  {"pcfg-model",                required_argument, NULL, IDX_PCFG_MODEL},
+  {"pcfg-train",                required_argument, NULL, IDX_PCFG_TRAIN},
+  {"pcfg-train-format",         required_argument, NULL, IDX_PCFG_TRAIN_FORMAT},
+  {"pcfg-model-save",           required_argument, NULL, IDX_PCFG_MODEL_SAVE},
+  {"pcfg-model-update",         no_argument,       NULL, IDX_PCFG_MODEL_UPDATE},
+  {"pcfg-burst-first",          no_argument,       NULL, IDX_PCFG_BURST_FIRST},
+  {"pcfg-burst-size",           required_argument, NULL, IDX_PCFG_BURST_SIZE},
+  {"pcfg-token-types",          required_argument, NULL, IDX_PCFG_TOKEN_TYPES},
+  {"pcfg-pw-complex",           no_argument,       NULL, IDX_PCFG_PW_COMPLEX},
+  {"pcfg-pw-len-max",           required_argument, NULL, IDX_PCFG_PW_LEN_MAX},
+  {"pcfg-pw-len-min",           required_argument, NULL, IDX_PCFG_PW_LEN_MIN},
+  {"pcfg-token-len-max",        required_argument, NULL, IDX_PCFG_TOKEN_LEN_MAX},
+  {"pcfg-token-len-min",        required_argument, NULL, IDX_PCFG_TOKEN_LEN_MIN},
+  {"pcfg-token-count-max",      required_argument, NULL, IDX_PCFG_TOKEN_COUNT_MAX},
+  {"pcfg-token-count-min",      required_argument, NULL, IDX_PCFG_TOKEN_COUNT_MIN},
+  {"pcfg-struct-prob-max",      required_argument, NULL, IDX_PCFG_STRUCT_PROB_MAX},
+  {"pcfg-struct-prob-min",      required_argument, NULL, IDX_PCFG_STRUCT_PROB_MIN},
+  {"pcfg-terminal-count-min",   required_argument, NULL, IDX_PCFG_TERMINAL_COUNT_MIN},
+  {"pcfg-keyspace-max",         required_argument, NULL, IDX_PCFG_KEYSPACE_MAX},
+  {"pcfg-train-df-disable",     no_argument,       NULL, IDX_PCFG_TRAIN_DF_DISABLE},
+  {"pcfg-train-af-disable",     no_argument,       NULL, IDX_PCFG_TRAIN_AF_DISABLE},
+  {"pcfg-train-af-threshold",   required_argument, NULL, IDX_PCFG_TRAIN_AF_THRESHOLD},
+  {"pcfg-shuffle",              no_argument,       NULL, IDX_PCFG_SHUFFLE},
+  {"pcfg-mode",                 required_argument, NULL, IDX_PCFG_MODE},
+  {"pcfg-ahf-type",             required_argument, NULL, IDX_PCFG_AHF_TYPE},
+  {"pcfg-ahf-terminals-min",    required_argument, NULL, IDX_PCFG_AHF_TERMINALS_MIN},
+  {"pcfg-model-info",           no_argument,       NULL, IDX_PCFG_MODEL_INFO},
+  {"pcfg-omen-type",            required_argument, NULL, IDX_PCFG_OMEN_TYPE},
+  {"pcfg-omen-cost-min",        required_argument, NULL, IDX_PCFG_OMEN_COST_MIN},
+  {"pcfg-omen-cost-max",        required_argument, NULL, IDX_PCFG_OMEN_COST_MAX},
+  {"pcfg-omen-keyspace-max",    required_argument, NULL, IDX_PCFG_OMEN_KEYSPACE_MAX},
+  {"pcfg-omen-max-alloc-perc",  required_argument, NULL, IDX_PCFG_OMEN_MAX_ALLOC_PERC},
+  {"pcfg-omen-stats",           no_argument,       NULL, IDX_PCFG_OMEN_STATS_ENABLED},
+  {"pcfg-perf-threshold",       required_argument, NULL, IDX_PCFG_PERF_THRESHOLD},
+  {"pcfg-loopback",             no_argument,       NULL, IDX_PCFG_LOOPBACK},
+  {"pcfg-model-diff",           required_argument, NULL, IDX_PCFG_MODEL_DIFF},
   {NULL,                        0,                 NULL, 0 }
 };
 
@@ -334,6 +373,45 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->hc_argc                   = 0;
   user_options->hc_argv                   = NULL;
 
+  /* PCFG defaults */
+  user_options->pcfg_models_cnt           = 0;
+  user_options->pcfg_models               = (char **) hccalloc (256, sizeof (char *));
+  user_options->pcfg_model_file           = NULL;
+  user_options->pcfg_train_file           = NULL;
+  user_options->pcfg_train_format         = PCFG_TRAIN_FORMAT_WORDLIST;
+  user_options->pcfg_model_save_file      = NULL;
+  user_options->pcfg_token_types          = NULL;
+  user_options->pcfg_burst_size           = PCFG_BURST_SIZE;
+  user_options->pcfg_burst_first          = false;
+  user_options->pcfg_ahf_terminals_min    = PCFG_AHF_TERMINALS_MIN;
+  user_options->pcfg_pw_len_max           = PCFG_PW_LEN_MAX;
+  user_options->pcfg_pw_len_min           = PCFG_PW_LEN_MIN;
+  user_options->pcfg_token_len_max        = PCFG_TOKEN_LEN_MAX;
+  user_options->pcfg_token_len_min        = PCFG_TOKEN_LEN_MIN;
+  user_options->pcfg_token_count_max      = PCFG_TOKEN_COUNT_MAX;
+  user_options->pcfg_token_count_min      = PCFG_TOKEN_COUNT_MIN;
+  user_options->pcfg_struct_prob_max      = PCFG_STRUCT_PROB_MAX;
+  user_options->pcfg_struct_prob_min      = PCFG_STRUCT_PROB_MIN;
+  user_options->pcfg_terminal_count_min   = PCFG_TERMINAL_COUNT_MIN;
+  user_options->pcfg_pw_complex           = false;
+  user_options->pcfg_keyspace_max         = PCFG_KEYSPACE_MAX;
+  user_options->pcfg_train_df_disable     = false;
+  user_options->pcfg_train_af_disable     = false;
+  user_options->pcfg_train_af_threshold   = PCFG_TRAIN_AF_THRESHOLD;
+  user_options->pcfg_shuffle              = false;
+  user_options->pcfg_ahf_type             = PCFG_AHF_TYPE_MARKOV;
+  user_options->pcfg_mode                 = PCFG_MODE_CPU_RANDOM;
+  user_options->pcfg_model_info           = false;
+  user_options->pcfg_omen_type            = PCFG_OMEN_TYPE_INTERLEAVED;
+  user_options->pcfg_omen_cost_min        = PCFG_OMEN_COST_MIN;
+  user_options->pcfg_omen_cost_max        = PCFG_OMEN_COST_MAX;
+  user_options->pcfg_omen_keyspace_max    = PCFG_OMEN_KEYSPACE_MAX;
+  user_options->pcfg_omen_max_alloc_perc  = PCFG_OMEN_MAX_ALLOC_PERC;
+  user_options->pcfg_omen_stats           = false;
+  user_options->pcfg_pf_threshold         = NULL;
+  user_options->pcfg_loopback             = false;
+  user_options->pcfg_model_diff_file      = NULL;
+
   return 0;
 }
 
@@ -342,6 +420,7 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   hcfree (user_options->rp_files);
+  hcfree (user_options->pcfg_models);
 
   if (user_options->backend_info > 0)
   {
@@ -615,6 +694,53 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       #endif
       case IDX_COLOR_CRACKED:             user_options->color_cracked             = true;                            break;
       case IDX_HASH_COPY:                 user_options->hash_copy                 = true;                            break;
+
+      case IDX_PCFG_MERGE:                user_options->pcfg_models[user_options->pcfg_models_cnt++] = optarg;       break;
+      case IDX_PCFG_MODEL:                user_options->pcfg_model_file           = optarg;                          break;
+      case IDX_PCFG_TRAIN:                user_options->pcfg_train_file           = optarg;                          break;
+      case IDX_PCFG_TRAIN_FORMAT:         user_options->pcfg_train_format         = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_PCFG_MODEL_SAVE:           user_options->pcfg_model_save_file      = optarg;                          break;
+      case IDX_PCFG_MODEL_UPDATE:         user_options->pcfg_model_update         = true;                            break;
+      case IDX_PCFG_BURST_FIRST:          user_options->pcfg_burst_first          = true;                            break;
+      case IDX_PCFG_BURST_SIZE:           user_options->pcfg_burst_size           = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_PCFG_TOKEN_TYPES:          user_options->pcfg_token_types          = optarg;                          break;
+      case IDX_PCFG_PW_COMPLEX:           user_options->pcfg_pw_complex           = true;                            break;
+      case IDX_PCFG_PW_LEN_MAX:           user_options->pcfg_pw_len_max           = hc_strtoul (optarg, NULL, 10);
+                                          user_options->pcfg_pw_len_max_chgd      = true;                            break;
+      case IDX_PCFG_PW_LEN_MIN:           user_options->pcfg_pw_len_min           = hc_strtoul (optarg, NULL, 10);
+                                          user_options->pcfg_pw_len_min_chgd      = true;                            break;
+      case IDX_PCFG_TOKEN_LEN_MAX:        user_options->pcfg_token_len_max        = hc_strtoul (optarg, NULL, 10);
+                                          user_options->pcfg_token_len_max_chgd   = true;                            break;
+      case IDX_PCFG_TOKEN_LEN_MIN:        user_options->pcfg_token_len_min        = hc_strtoul (optarg, NULL, 10);
+                                          user_options->pcfg_token_len_min_chgd   = true;                            break;
+      case IDX_PCFG_TOKEN_COUNT_MAX:      user_options->pcfg_token_count_max      = hc_strtoul (optarg, NULL, 10);
+                                          user_options->pcfg_token_count_max_chgd = true;                            break;
+      case IDX_PCFG_TOKEN_COUNT_MIN:      user_options->pcfg_token_count_min      = hc_strtoul (optarg, NULL, 10);
+                                          user_options->pcfg_token_count_min_chgd = true;                            break;
+      case IDX_PCFG_STRUCT_PROB_MAX:      user_options->pcfg_struct_prob_max      = (float) strtod (optarg, NULL);   break;
+      case IDX_PCFG_STRUCT_PROB_MIN:      user_options->pcfg_struct_prob_min      = (float) strtod (optarg, NULL);   break;
+      case IDX_PCFG_TERMINAL_COUNT_MIN:   user_options->pcfg_terminal_count_min   = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_PCFG_KEYSPACE_MAX:         user_options->pcfg_keyspace_max         = hc_strtoull (optarg, NULL, 10);  break;
+      case IDX_PCFG_SHUFFLE:              user_options->pcfg_shuffle              = true;                            break;
+      case IDX_PCFG_AHF_TYPE:             user_options->pcfg_ahf_type             = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_PCFG_AHF_TERMINALS_MIN:    user_options->pcfg_ahf_terminals_min    = hc_strtoull (optarg, NULL, 10);  break;
+      case IDX_PCFG_TRAIN_DF_DISABLE:     user_options->pcfg_train_df_disable     = true;                            break;
+      case IDX_PCFG_TRAIN_AF_DISABLE:     user_options->pcfg_train_af_disable     = true;                            break;
+      case IDX_PCFG_TRAIN_AF_THRESHOLD:   user_options->pcfg_train_af_threshold   = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_PCFG_MODE:                 user_options->pcfg_mode                 = hc_strtoul (optarg, NULL, 10);
+                                          user_options->pcfg_mode_chgd            = true;                            break;
+      case IDX_PCFG_MODEL_INFO:           user_options->pcfg_model_info           = true;                            break;
+      case IDX_PCFG_OMEN_TYPE:            user_options->pcfg_omen_type            = hc_strtoul (optarg, NULL, 10);
+                                          user_options->pcfg_omen_type_chgd       = true;                            break;
+      case IDX_PCFG_OMEN_COST_MIN:        user_options->pcfg_omen_cost_min        = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_PCFG_OMEN_COST_MAX:        user_options->pcfg_omen_cost_max        = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_PCFG_OMEN_KEYSPACE_MAX:    user_options->pcfg_omen_keyspace_max    = hc_strtoull (optarg, NULL, 10);  break;
+      case IDX_PCFG_OMEN_MAX_ALLOC_PERC:  user_options->pcfg_omen_max_alloc_perc  = hc_strtoul (optarg, NULL, 10);   break;
+      case IDX_PCFG_OMEN_STATS_ENABLED:   user_options->pcfg_omen_stats           = true;                            break;
+      case IDX_PCFG_PERF_THRESHOLD:       user_options->pcfg_pf_threshold         = optarg;                          break;
+      case IDX_PCFG_LOOPBACK:             user_options->pcfg_loopback             = true;                            break;
+      case IDX_PCFG_MODEL_DIFF:           user_options->pcfg_model_diff_file      = optarg;                          break;
+
     }
   }
 
@@ -642,6 +768,17 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "hc_argv is NULL.");
 
     return -1;
+  }
+
+  // replicate "stdout" logic but preserve user's "quiet" preference
+  if (user_options->pcfg_model_info == true)
+  {
+    user_options->stdout_flag = true;
+  }
+
+  if (user_options->pcfg_model_diff_file != NULL)
+  {
+    user_options->stdout_flag = true;
   }
 
   if (user_options->usage > 2)
@@ -773,6 +910,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
      && (user_options->attack_mode != ATTACK_MODE_GENERIC)
      && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)
+     && (user_options->attack_mode != ATTACK_MODE_PCFG)
      && (user_options->attack_mode != ATTACK_MODE_NONE))
     {
       event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified.");
@@ -989,6 +1127,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if ((user_options->increment != INCREMENT_NONE) && (user_options->attack_mode == ATTACK_MODE_PCFG))
+  {
+    event_log_error (hashcat_ctx, "Increment is not allowed in attack mode 10 (pcfg).");
+
+    return -1;
+  }
+
   if ((user_options->remove == true) && (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     event_log_error (hashcat_ctx, "Remove is not allowed in attack mode 9 (association).");
@@ -1027,7 +1172,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
   {
-    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+     && (user_options->attack_mode != ATTACK_MODE_GENERIC)
+     && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)
+     && (user_options->attack_mode != ATTACK_MODE_PCFG))
     {
       event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate requires attack mode 0, 8 or 9.");
 
@@ -1293,9 +1441,12 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->debug_mode > 0)
   {
-    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+     && (user_options->attack_mode != ATTACK_MODE_GENERIC)
+     && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)
+     && (user_options->attack_mode != ATTACK_MODE_PCFG))
     {
-      event_log_error (hashcat_ctx, "Parameter --debug-mode option is only allowed in attack mode 0 (straight), 8 (generic) or 9 (association).");
+      event_log_error (hashcat_ctx, "Parameter --debug-mode option is only allowed in attack mode 0 (straight), 8 (generic), 9 (association) or 10 (pcfg).");
 
       return -1;
     }
@@ -1785,6 +1936,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options_sanity_pcfg (hashcat_ctx) == -1) return -1;
+
   // argc / argv checks
 
   bool show_error = true;
@@ -1882,6 +2035,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
         show_error = false;
       }
     }
+    else if (user_options->attack_mode == ATTACK_MODE_PCFG)
+    {
+      if (user_options->hc_argc == 0)
+      {
+        show_error = false;
+      }
+    }
   }
   else if (user_options->stdout_flag == true)
   {
@@ -1889,6 +2049,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       // all argc possible because of stdin mode
 
+      show_error = false;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_PCFG)
+    {
       show_error = false;
     }
     else if (user_options->attack_mode == ATTACK_MODE_COMBI)
@@ -2006,6 +2170,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
         show_error = false;
       }
     }
+    else if (user_options->attack_mode == ATTACK_MODE_PCFG)
+    {
+      if (user_options->hc_argc >= 1)
+      {
+        show_error = false;
+      }
+    }
   }
 
   if (show_error == true)
@@ -2062,6 +2233,16 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
     if (user_options->stdout_flag == true)
     {
       user_options->session = "stdout";
+    }
+
+    if (user_options->pcfg_model_info == true)
+    {
+      user_options->session = "pcfg_model_info";
+    }
+
+    if (user_options->pcfg_model_diff_file != NULL)
+    {
+      user_options->session = "pcfg_model_diff";
     }
 
     if (user_options->backend_info > 0)
@@ -2219,6 +2400,8 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->keyspace = true;
   }
 
+  const bool pcfg_model_info_quiet_sav = user_options->quiet;
+
   if (user_options->stdout_flag == true)
   {
     user_options->force                 = true;
@@ -2256,6 +2439,16 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     {
       user_options->kernel_loops = KERNEL_RULES;
     }
+  }
+
+  if (user_options->pcfg_model_info == true)
+  {
+    user_options->quiet = pcfg_model_info_quiet_sav;
+  }
+
+  if (user_options->pcfg_model_diff_file != NULL)
+  {
+    user_options->quiet = pcfg_model_info_quiet_sav;
   }
 
   if (user_options->backend_info > 0)
@@ -2379,6 +2572,11 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->attack_mode == ATTACK_MODE_PCFG)
+  {
+    user_options_extra->wordlist_mode = WL_MODE_FILE;
+  }
 
   // automatic status
 
@@ -2585,6 +2783,8 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
     case ATTACK_MODE_HYBRID2:       user_options_extra->attack_kern = ATTACK_KERN_COMBI;    break;
     case ATTACK_MODE_GENERIC:       user_options_extra->attack_kern = ATTACK_KERN_STRAIGHT; break;
     case ATTACK_MODE_ASSOCIATION:   user_options_extra->attack_kern = ATTACK_KERN_STRAIGHT; break;
+    case ATTACK_MODE_PCFG:          user_options_extra->attack_kern = ATTACK_KERN_STRAIGHT; break;
+    //case ATTACK_MODE_PCFG:        user_options_extra->attack_kern = ATTACK_KERN_PCFG;     break;
   }
 
   // rules
@@ -2650,6 +2850,10 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   {
     user_options_extra->wordlist_mode = WL_MODE_MASK;
   }
+  //else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+  //{
+  //  user_options_extra->wordlist_mode = WL_MODE_NONE;
+  //}
 }
 
 void user_options_extra_destroy (hashcat_ctx_t *hashcat_ctx)
@@ -2693,6 +2897,13 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
       return mask_ctx->bfs_cnt;
     }
   }
+  //else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+  //{
+  //  if (straight_ctx->kernel_rules_cnt)
+  //  {
+  //    return straight_ctx->kernel_rules_cnt;
+  //  }
+  //}
 
   return 1;
 }

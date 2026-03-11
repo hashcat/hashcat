@@ -15,9 +15,12 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "slow_candidates.h"
-#include "dispatch.h"
 #include "generic.h"
 #include "convert.h"
+#include "pcfg_common.h"
+#include "pcfg_cpu_random.h"
+#include "pcfg_dispatch.h"
+#include "dispatch.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -194,8 +197,9 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
     u64 words_extra_total = 0;
 
-    memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-    memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+    //memset (device_param->pws_comp, 0, device_param->size_pws_comp);
+    //memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+    device_param->pws_idx[0].off = 0;
 
     #define DISABLE_READ_TIMEOUT_AFTER 1000
 
@@ -413,6 +417,7 @@ HC_API_CALL void *thread_calc_stdin (void *p)
   return 0;
 }
 
+
 static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
@@ -428,6 +433,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   const u32 attack_mode = user_options->attack_mode;
   const u32 attack_kern = user_options_extra->attack_kern;
+
+  // handling PCFG attack
+  if (attack_mode == ATTACK_MODE_PCFG)
+  {
+    return calc_pcfg (hashcat_ctx, device_param);
+  }
 
   if (user_options->slow_candidates == true)
   {
@@ -1387,8 +1398,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         u64 words_extra = -1U;      // rejects per loop
         u64 words_extra_total = 0;  // rejects at the point of execution
 
-        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+        //memset (device_param->pws_comp, 0, device_param->size_pws_comp);
+        //memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+        device_param->pws_idx[0].off = 0;
 
         while (words_extra)
         {
@@ -1633,8 +1645,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         u64 words_extra = -1U;
         u64 words_extra_total = 0;
 
-        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+        //memset (device_param->pws_comp, 0, device_param->size_pws_comp);
+        //memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+        device_param->pws_idx[0].off = 0;
 
         while (words_extra)
         {

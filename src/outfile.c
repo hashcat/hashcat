@@ -16,6 +16,7 @@
 #include "shared.h"
 #include "locking.h"
 #include "thread.h"
+#include "pcfg.h"
 #include "outfile.h"
 
 u32 outfile_format_parse (const char *format_string)
@@ -144,7 +145,10 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
   }
   else
   {
-    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+     || (user_options->attack_mode == ATTACK_MODE_GENERIC)
+     || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+     || (user_options->attack_mode == ATTACK_MODE_PCFG && (user_options->pcfg_mode != PCFG_MODE_GPU_PROB && user_options->pcfg_mode != PCFG_MODE_GPU_OMEN_BY_STRUCT && user_options->pcfg_mode != PCFG_MODE_GPU_OMEN_BY_COST)))
     {
       pw_t pw;
 
@@ -309,6 +313,59 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
         plain_len += comb_len;
       }
     }
+    else if (user_options->attack_mode == ATTACK_MODE_PCFG)
+    {
+      if (user_options->pcfg_mode == PCFG_MODE_GPU_PROB
+       || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT
+       || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST)
+      {
+        pw_t pw;
+
+        const int rc = gidd_to_pw_t_pcfg (hashcat_ctx, device_param, gidvid, &pw);
+
+        if (rc == -1) return -1;
+
+        if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+        {
+          if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
+          {
+            for (int i = 0; i < 14; i++)
+            {
+              plain_buf[i] = pw.i[i];
+            }
+
+            plain_len = (int) pw.pw_len;
+          }
+          else
+          {
+            for (int i = 0; i < 8; i++)
+            {
+              plain_buf[i] = pw.i[i];
+            }
+
+            const u64 off = device_param->innerloop_pos + il_pos;
+
+            plain_len = apply_rules_optimized (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], (int) pw.pw_len);
+          }
+        }
+        else
+        {
+          for (int i = 0; i < 64; i++)
+          {
+            plain_buf[i] = pw.i[i];
+          }
+
+          plain_len = (int) pw.pw_len;
+
+          if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
+          {
+            const u64 off = device_param->innerloop_pos + il_pos;
+
+            plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, plain_len);
+          }
+        }
+      }
+    }
 
     if (user_options->attack_mode == ATTACK_MODE_BF)
     {
@@ -407,7 +464,7 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       crackpos *= combinator_ctx->combs_cnt;
       crackpos += device_param->innerloop_pos + il_pos;
     }
-    else if (user_options_extra->attack_kern == ATTACK_MODE_BF)
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
     {
       crackpos += gidvid;
       crackpos *= mask_ctx->bfs_cnt;
@@ -429,7 +486,10 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
-  if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)) return 0;
+  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT
+   && user_options->attack_mode != ATTACK_MODE_GENERIC
+   && user_options->attack_mode != ATTACK_MODE_ASSOCIATION
+   && user_options->attack_mode != ATTACK_MODE_PCFG) return 0;
 
   const u32 debug_mode = debugfile_ctx->mode;
 

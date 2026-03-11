@@ -2165,6 +2165,10 @@ DECLSPEC u32 hc_umulhi (const u32 x, const u32 y)
 {
   #if defined IS_CUDA || defined IS_HIP
   return __umulhi (x, y);
+  #elif defined IS_OPENCL
+  return mul_hi (x, y);
+  #elif defined IS_METAL
+  return mulhi (x, y);
   #else
   return h32_from_64_S ((u64) x * (u64) y);
   #endif
@@ -2209,7 +2213,7 @@ DECLSPEC int hash_comp (PRIVATE_AS const u32 *d1, GLOBAL_AS const u32 *d2)
   return (0);
 }
 
-DECLSPEC int find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf)
+DECLSPEC u32 find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf)
 {
   for (u32 l = 0, r = digests_cnt; r; r >>= 1)
   {

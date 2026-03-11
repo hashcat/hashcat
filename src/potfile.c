@@ -14,6 +14,8 @@
 #include "outfile.h"
 #include "locking.h"
 #include "shared.h"
+#include "pcfg.h"
+#include "pcfg_loopback.h"
 #include "potfile.h"
 
 static const char MASKED_PLAIN[] = "[notfound]";
@@ -340,6 +342,8 @@ void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_
   {
     loopback_write_append (hashcat_ctx, (u8 *) pw_buf, (unsigned int) pw_len);
   }
+
+  pcfg_loopback_write_pw (hashcat_ctx, (u8 *) pw_buf, (unsigned int) pw_len);
 }
 
 void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *line_pw_buf, int line_pw_len, pot_tree_entry_t *tree)

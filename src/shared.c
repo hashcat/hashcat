@@ -24,6 +24,10 @@
 #endif
 #endif
 
+#if defined (__NetBSD__)
+#include <sys/swap.h>
+#endif
+
 #if defined (_WIN)
 #include <winsock2.h>
 #endif
@@ -1682,6 +1686,136 @@ void restore_stderr (int saved_fd)
   close (saved_fd);
 }
 
+bool get_free_swap_memory (u64 *free_mem)
+{
+  #if defined (_WIN)
+
+  MEMORYSTATUSEX status;
+
+  status.dwLength = sizeof (status);
+
+  if (GlobalMemoryStatusEx (&status))
+  {
+    *free_mem = (u64) status.ullAvailPageFile;
+    return true;
+  }
+
+  return false;
+
+  #elif defined (__APPLE__)
+
+  struct xsw_usage vmusage;
+  size_t size = sizeof (vmusage);
+
+  if (sysctlbyname ("vm.swapusage", &vmusage, &size, NULL, 0) == 0)
+  {
+    *free_mem = (u64) vmusage.xsu_avail;
+    return true;
+  }
+
+  return false;
+
+  #elif defined (__OpenBSD__)
+
+  int mib[] = { CTL_VM, VM_UVMEXP };
+
+  struct uvmexp uvm;
+  size_t size = sizeof (uvm);
+
+  if (sysctl (mib, 2, &uvm, &size, NULL, 0) == 0)
+  {
+    *free_mem = (u64)(uvm.swpages - uvm.swpginuse) * uvm.pagesize;
+    return true;
+  }
+
+  return false;
+
+  #elif defined (__FreeBSD__) || defined (__DragonFly__)
+
+  int64_t swap_total = 0, swap_reserved = 0;
+  size_t sz = sizeof (swap_total);
+
+  if (sysctlbyname ("vm.swap_total", &swap_total, &sz, NULL, 0) == 0)
+  {
+    sz = sizeof (swap_reserved);
+    if (sysctlbyname ("vm.swap_reserved", &swap_reserved, &sz, NULL, 0) == 0)
+    {
+      *free_mem = (u64)(swap_total - swap_reserved);
+      return true;
+    }
+  }
+
+  return false;
+
+  #elif defined (__NetBSD__)
+
+  struct swapent *sep;
+  int nswap = swapctl (SWAP_NSWAP, 0, 0);
+
+  if (nswap > 0)
+  {
+    sep = calloc (nswap, sizeof (*sep));
+    if (sep && swapctl (SWAP_STATS, sep, nswap) == nswap)
+    {
+      u64 total = 0, used = 0;
+      for (int i = 0; i < nswap; i++)
+      {
+        total += sep[i].se_nblks;
+        used += sep[i].se_inuse;
+      }
+      free(sep);
+      *free_mem = (total - used) * DEV_BSIZE;
+      return true;
+    }
+    free(sep);
+  }
+
+  return false;
+
+  #else
+
+  // Get SwapFree from /proc/meminfo
+
+  FILE *fp = fopen ("/proc/meminfo", "r");
+
+  if (fp == NULL)
+  {
+    // fallback sysinfo
+    struct sysinfo info;
+
+    if (sysinfo (&info) == 0)
+    {
+      *free_mem = (u64) info.freeswap * info.mem_unit;
+      return true;
+    }
+
+    return false;
+  }
+
+  char line[256] = { 0 };
+  bool found = false;
+
+  while (fgets (line, sizeof (line), fp))
+  {
+    if (strncmp (line, "SwapFree:", 9) == 0)
+    {
+      u64 swap_kb = 0;
+
+      if (sscanf (line, "SwapFree: %lu", &swap_kb) == 1)
+      {
+        *free_mem = swap_kb * 1024;
+        found = true;
+        break;
+      }
+    }
+  }
+
+  fclose (fp);
+
+  return found;
+  #endif
+}
+
 bool get_free_memory (u64 *free_mem)
 {
   #if defined (_WIN)
@@ -1718,7 +1852,24 @@ bool get_free_memory (u64 *free_mem)
 
   host_page_size (host_port, (vm_size_t*) &page_size);
 
-  *free_mem = (u64) (vm_stat.free_count + vm_stat.inactive_count) * page_size;
+  // total - wired - active: conservative but accounts for macOS memory compression
+  // inactive/free alone drastically underestimates available memory
+
+  u64 total_mem = 0;
+  size_t len = sizeof (total_mem);
+
+  if (sysctlbyname ("hw.memsize", &total_mem, &len, NULL, 0) != 0)
+  {
+    // fallback to old method
+    *free_mem = (u64) (vm_stat.free_count + vm_stat.inactive_count) * page_size;
+
+    return true;
+  }
+
+  u64 wired_bytes  = (u64) vm_stat.wire_count * page_size;
+  u64 active_bytes = (u64) vm_stat.active_count * page_size;
+
+  *free_mem = (total_mem > wired_bytes + active_bytes) ? total_mem - wired_bytes - active_bytes : (u64) (vm_stat.free_count + vm_stat.inactive_count) * page_size;
 
   return true;
 
@@ -1845,6 +1996,24 @@ u32 next_power_of_two (const u32 x)
   r |= (r >>  4);
   r |= (r >>  8);
   r |= (r >> 16);
+
+  r++;
+
+  return r;
+}
+
+u64 next_power_of_two_64 (const u64 x)
+{
+  if (x <= 1) return 1;
+
+  u64 r = x - 1;
+
+  r |= (r >>  1);
+  r |= (r >>  2);
+  r |= (r >>  4);
+  r |= (r >>  8);
+  r |= (r >> 16);
+  r |= (r >> 32);
 
   r++;
 

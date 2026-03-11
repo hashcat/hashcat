@@ -21,6 +21,8 @@
 #define hc_thread_wait(n,a)         for (int i = 0; i < n; i++) WaitForSingleObject ((a)[i], INFINITE)
 #define hc_thread_exit(t)           ExitThread (t)
 #define hc_thread_detach(t)         CloseHandle (t)
+#define hc_thread_self()            GetCurrentThreadId ()
+#define hc_thread_join(t)           WaitForSingleObject (t, INFINITE)
 
 #define hc_thread_mutex_init(m)     InitializeCriticalSection (&m)
 #define hc_thread_mutex_lock(m)     EnterCriticalSection      (&m)
@@ -34,6 +36,12 @@
 #define hc_thread_mutex_delete(m)   CloseHandle         (m)
 */
 
+#define hc_thread_cond_init(c)      InitializeConditionVariable (&c)
+#define hc_thread_cond_signal(c)    WakeConditionVariable       (&c)
+#define hc_thread_cond_broadcast(c) WakeAllConditionVariable    (&c)
+#define hc_thread_cond_wait(c,m)    SleepConditionVariableCS    (&c, &m, INFINITE)
+#define hc_thread_cond_delete(c)    (void)(c)
+
 #define hc_thread_sem_init(s)       s = CreateSemaphore (NULL, 0, INT_MAX, NULL)
 #define hc_thread_sem_post(s)       ReleaseSemaphore    (s, 1, NULL)
 #define hc_thread_sem_wait(s)       WaitForSingleObject (s, INFINITE)
@@ -45,11 +53,19 @@
 #define hc_thread_wait(n,a)         for (int i = 0; i < n; i++) pthread_join ((a)[i], NULL)
 #define hc_thread_exit(t)           pthread_exit (&t)
 #define hc_thread_detach(t)         pthread_detach (t)
+#define hc_thread_self()            pthread_self ()
+#define hc_thread_join(t)           pthread_join (t, NULL)
 
 #define hc_thread_mutex_init(m)     pthread_mutex_init     (&m, NULL)
 #define hc_thread_mutex_lock(m)     pthread_mutex_lock     (&m)
 #define hc_thread_mutex_unlock(m)   pthread_mutex_unlock   (&m)
 #define hc_thread_mutex_delete(m)   pthread_mutex_destroy  (&m)
+
+#define hc_thread_cond_init(c)      pthread_cond_init      (&c, NULL)
+#define hc_thread_cond_signal(c)    pthread_cond_signal    (&c)
+#define hc_thread_cond_broadcast(c) pthread_cond_broadcast (&c)
+#define hc_thread_cond_wait(c,m)    pthread_cond_wait      (&c, &m)
+#define hc_thread_cond_delete(c)    pthread_cond_destroy   (&c)
 
 #define hc_thread_sem_init(s)       sem_init  (&s, 0, 0)
 #define hc_thread_sem_post(s)       sem_post  (&s)

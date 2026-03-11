@@ -424,9 +424,9 @@ KERNEL_FQ KERNEL_FA void m25400_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
   if (correct)
   {
-    int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
+    const u32 digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
-    if (digest_pos != -1)
+    if (digest_pos != (u32) -1)
     {
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
 

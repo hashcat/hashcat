@@ -27,6 +27,8 @@ static const char CL_VENDOR_MICROSOFT[]         = "Microsoft";
 int  backend_ctx_init                       (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_destroy                    (hashcat_ctx_t *hashcat_ctx);
 
+int  backend_ctx_device_get_memory_free     (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
+
 int  backend_ctx_devices_init               (hashcat_ctx_t *hashcat_ctx, const int comptime);
 void backend_ctx_devices_destroy            (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_devices_sync_tuning        (hashcat_ctx_t *hashcat_ctx);
@@ -50,7 +52,21 @@ void generate_cached_kernel_mp_filename     (const u32 opti_type, const u64 opts
 void generate_source_kernel_amp_filename    (const u32 attack_kern, char *shared_dir, char *source_file);
 void generate_cached_kernel_amp_filename    (const u32 attack_kern, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
 
-bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources);
+bool read_kernel_binary                     (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources);
+
+int get_cuda_kernel_wgs                     (hashcat_ctx_t *hashcat_ctx, CUfunction function, u32 *result);
+int get_cuda_kernel_local_mem_size          (hashcat_ctx_t *hashcat_ctx, CUfunction function, u64 *result);
+int get_hip_kernel_wgs                      (hashcat_ctx_t *hashcat_ctx, hipFunction_t function, u32 *result);
+int get_hip_kernel_local_mem_size           (hashcat_ctx_t *hashcat_ctx, hipFunction_t function, u64 *result);
+#if defined (__APPLE__)
+int get_metal_kernel_wgs                    (hashcat_ctx_t *hashcat_ctx, mtl_pipeline pipeline, u32 *result);
+int get_metal_kernel_preferred_wgs_multiple (hashcat_ctx_t *hashcat_ctx, mtl_pipeline pipeline, u32 *result);
+int get_metal_kernel_local_mem_size         (hashcat_ctx_t *hashcat_ctx, mtl_pipeline pipeline, u64 *result);
+#endif
+int get_opencl_kernel_wgs                   (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u32 *result);
+int get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u32 *result);
+int get_opencl_kernel_local_mem_size        (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u64 *result);
+int get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u64 *result);
 
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
@@ -100,5 +116,7 @@ HC_API_CALL DWORD hook23_thread (void *p);
 HC_API_CALL void *hook12_thread (void *p);
 HC_API_CALL void *hook23_thread (void *p);
 #endif
+
+#include "pcfg_backend.h"
 
 #endif // HC_BACKEND_H

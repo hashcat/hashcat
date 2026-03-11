@@ -17,6 +17,7 @@ USE_SYSTEM_LZMA         ?= 0
 USE_SYSTEM_ZLIB         ?= 0
 USE_SYSTEM_OPENCL       ?= 0
 USE_SYSTEM_XXHASH       ?= 0
+USE_OMP                 ?= 1
 ## do not change, requires some hacks
 USE_SYSTEM_UNRAR        ?= 0
 MAINTAINER_MODE         ?= 0
@@ -30,7 +31,7 @@ UNAME                   := $(shell uname -s)
 # Detect Android
 ANDROID_DETECT := $(findstring Android,$(shell uname -a))
 ifneq (,$(ANDROID_DETECT))
-  UNAME                   := Android
+UNAME                   := Android
 endif
 
 # we need to strip the windows version number to be able to build hashcat on cygwin hosts
@@ -53,6 +54,17 @@ endif
 # force disable LTO if MACOS_UNIVERSAL_BINARY == 1
 ifeq ($(UNAME),Darwin)
 ifeq ($(MACOS_UNIVERSAL_BINARY),1)
+override ENABLE_LTO := 0
+endif
+endif
+
+# detect RPI
+IS_RPI                  := 0
+ifeq ($(UNAME),Linux)
+IS_RPI                  := $(shell grep -q Raspberry /proc/cpuinfo && echo 1 || echo 0)
+
+# force disable LTO if IS_RPI == 1
+ifeq ($(IS_RPI),1)
 override ENABLE_LTO := 0
 endif
 endif
@@ -120,6 +132,7 @@ AR                      := $(shell which llvm-ar >/dev/null 2>&1 && echo llvm-ar
 # the sed -i option of macOS requires a parameter for the backup file (we just use "")
 SED                     := /usr/bin/sed
 SED_IN_PLACE            := -i ""
+MACOS_VERSION           := $(shell sw_vers --productVersion | cut -d. -f1)
 DARWIN_VERSION          := $(shell uname -r | cut -d. -f1)
 IS_APPLE_SILICON        := $(shell [ "$$(sysctl -in hw.optional.arm64 2>/dev/null)" = "1" ] && echo 1 || echo 0)
 endif
@@ -259,7 +272,9 @@ endif
 ifeq ($(ENABLE_LTO),1)
 CFLAGS                  += -flto=auto
 ifeq ($(CC_NATIVE_CLANG),1)
+ifeq ($(BUILD_MODE),native)
 CFLAGS                  += -Wno-unknown-warning-option
+endif
 endif
 LFLAGS                  += -flto=auto
 ifeq ($(filter FreeBSD OpenBSD,$(UNAME)),)
@@ -367,7 +382,7 @@ endif
 endif
 
 ifeq ($(DEBUG),0)
-CFLAGS                  += -O2 -fomit-frame-pointer
+CFLAGS                  += -O3 -fomit-frame-pointer
 ifneq ($(UNAME),Darwin)
 ifeq ($(and $(filter MSYS2,$(UNAME)),$(filter 1,$(CC_NATIVE_CLANG))),)
 CFLAGS                  += -fno-plt
@@ -391,13 +406,19 @@ else
 CFLAGS                  += -DDEBUG -O0 -ggdb
 endif
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
+#endif
+
+else ifeq ($(DEBUG),3)
+# linux with perf
+ifneq ($(UNAME),Darwin)
+CFLAGS                  += -DDEBUG -O2 -g -fno-omit-frame-pointer -fno-optimize-sibling-calls
+LFLAGS                  :=
+endif
 endif
 endif
 endif
 
 ifeq ($(UNAME),Linux)
-IS_RPI                  := $(shell grep -q Raspberry /proc/cpuinfo && echo 1 || echo 0)
-
 ifeq ($(IS_RPI),1)
 CFLAGS                  += -mcpu=cortex-a72
 endif
@@ -479,6 +500,10 @@ LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -ldl
 LFLAGS_NATIVE           += -lrt
 LFLAGS_NATIVE           += -lm
+ifeq ($(USE_OMP),1)
+CFLAGS_NATIVE           += -fopenmp
+LFLAGS_NATIVE           += -fopenmp
+endif
 endif # Linux
 
 ifneq (,$(filter $(UNAME),FreeBSD DragonFly))
@@ -489,6 +514,12 @@ LFLAGS_NATIVE           += -L /usr/local/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
 LFLAGS_NATIVE           += -liconv
+ifeq ($(UNAME),FreeBSD)
+ifeq ($(USE_OMP),1)
+CFLAGS_NATIVE           += -fopenmp
+LFLAGS_NATIVE           += -fopenmp
+endif
+endif
 endif
 endif # FreeBSD
 
@@ -514,10 +545,18 @@ LFLAGS_NATIVE           += -L /usr/pkg/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
 LFLAGS_NATIVE           += -liconv
+ifeq ($(USE_OMP),1)
+CFLAGS_NATIVE           += -fopenmp
+LFLAGS_NATIVE           += -fopenmp
+endif
 endif # NetBSD
 
 ifeq ($(UNAME),Darwin)
+ifeq ($(shell test $(MACOS_VERSION) -lt 26; echo $$?), 0)
 export MACOSX_DEPLOYMENT_TARGET=15.0
+else
+export MACOSX_DEPLOYMENT_TARGET=26.0
+endif
 CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 
@@ -546,6 +585,10 @@ endif
 endif
 endif
 
+ifeq ($(USE_OMP),1)
+CFLAGS_NATIVE           += -fopenmp
+LFLAGS_NATIVE           += -fopenmp
+endif
 endif # Darwin
 
 ifeq ($(IS_ARM),1)
@@ -591,7 +634,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight generic terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pcfg_common pcfg pcfg_cpu_omen pcfg_cpu_prob pcfg_cpu_random pcfg_gpu_prob pcfg_gpu_omen pcfg_loopback pcfg_perf pcfg_trainer pcfg_trainer_utils pcfg_backend pcfg_dispatch pcfg_model pcfg_omen_analysis pcfg_omen_stats pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight generic terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -916,6 +959,7 @@ ifeq ($(UNAME),MSYS2)
 MODULE_SUFFIX := dll
 endif
 
+#MODULES_SRC   := $(wildcard src/modules/*00000.c) $(wildcard src/modules/*00400.c) $(wildcard src/modules/*00500.c) $(wildcard src/modules/*01000.c) $(wildcard src/modules/*02000.c) $(wildcard src/modules/*01800.c) $(wildcard src/modules/*03200.c) $(wildcard src/modules/*22000.c)
 MODULES_SRC   := $(wildcard src/modules/*.c)
 
 MODULES_DISABLE ?=
@@ -1025,7 +1069,7 @@ CC_WIN                  := x86_64-w64-mingw32-gcc
 CXX_WIN                 := x86_64-w64-mingw32-g++
 
 AR_LINUX                := ar
-AR_WIN                  := x86_64-w64-mingw32-ar
+AR_WIN                  := x86_64-w64-mingw32-gcc-ar
 
 # See BUILD_WSL.md to make these
 WIN_ICONV               := /opt/win-iconv-64
@@ -1139,6 +1183,18 @@ endif
 ifeq ($(IS_ARM),1)
 CFLAGS_CROSS_LINUX      += -DSSE2NEON_SUPPRESS_WARNINGS
 CFLAGS_CROSS_LINUX      += -I$(DEPS_SSE2NEON)
+endif
+
+ifeq ($(USE_OMP),1)
+## can't cross-build on MacOS with OMP for win :(
+ifneq ($(UNAME),Darwin)
+ifeq ($(CC_WIN_CLANG),1)
+CFLAGS_CROSS_WIN          += -fopenmp=libgomp
+else
+CFLAGS_CROSS_WIN          += -fopenmp
+endif
+LFLAGS_CROSS_WIN          += -fopenmp
+endif
 endif
 
 ##

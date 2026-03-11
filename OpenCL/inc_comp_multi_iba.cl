@@ -1,5 +1,5 @@
 
-for (int digest_pos = 0; digest_pos < DIGESTS_CNT; digest_pos++)
+for (u32 digest_pos = 0; digest_pos < DIGESTS_CNT; digest_pos++)
 {
   const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
 

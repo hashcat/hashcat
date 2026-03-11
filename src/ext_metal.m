@@ -17,22 +17,6 @@
 #include <Foundation/Foundation.h>
 #include <Metal/Metal.h>
 
-typedef NS_ENUM(NSUInteger, hc_mtlLanguageVersion)
-{
-//MTL_LANGUAGEVERSION_1_0 = (1 << 16),
-  MTL_LANGUAGEVERSION_1_1 = (1 << 16) + 1,
-  MTL_LANGUAGEVERSION_1_2 = (1 << 16) + 2,
-  MTL_LANGUAGEVERSION_2_0 = (2 << 16),
-  MTL_LANGUAGEVERSION_2_1 = (2 << 16) + 1,
-  MTL_LANGUAGEVERSION_2_2 = (2 << 16) + 2,
-  MTL_LANGUAGEVERSION_2_3 = (2 << 16) + 3,
-  MTL_LANGUAGEVERSION_2_4 = (2 << 16) + 4,
-  MTL_LANGUAGEVERSION_3_0 = (3 << 16),
-  MTL_LANGUAGEVERSION_3_1 = (3 << 16) + 1,
-  MTL_LANGUAGEVERSION_3_2 = (3 << 16) + 2
-
-} metalLanguageVersion_t;
-
 static bool iokit_getGPUCore (void *hashcat_ctx, int *gpu_core)
 {
   bool rc = false;
@@ -42,17 +26,14 @@ static bool iokit_getGPUCore (void *hashcat_ctx, int *gpu_core)
   if (!matching)
   {
     event_log_error (hashcat_ctx, "IOServiceMatching() failed");
-
     return rc;
   }
-
 
   io_service_t service = IOServiceGetMatchingService (hc_IOMasterPortDefault, matching);
 
   if (!service)
   {
     event_log_error (hashcat_ctx, "IOServiceGetMatchingService(): %08x", service);
-
     return rc;
   }
 
@@ -73,7 +54,7 @@ static bool iokit_getGPUCore (void *hashcat_ctx, int *gpu_core)
     rc = true;
   }
 
-  if (num) CFRelease(num);
+  if (num) CFRelease (num);
 
   IOObjectRelease (service);
 
@@ -120,25 +101,26 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
   if (build_options_buf == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): build_options_buf is NULL", __func__);
-
     return -1;
   }
 
   if (build_options_dict == nil)
   {
     event_log_error (hashcat_ctx, "%s(): build_options_dict is NULL", __func__);
-
     return -1;
   }
 
   // NSString from build_options_buf
+
+  //#if defined (DEBUG)
+  //event_log_info (hashcat_ctx, "%s(): build_options_buf: '%s'", __func__, build_options_buf);
+  //#endif
 
   NSString *options = [NSString stringWithCString: build_options_buf encoding: NSUTF8StringEncoding];
 
   if (options == nil)
   {
     event_log_error (hashcat_ctx, "%s(): stringWithCString failed", __func__);
-
     return -1;
   }
 
@@ -149,7 +131,6 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
   if (options == nil)
   {
     event_log_error (hashcat_ctx, "%s(): stringByReplacingOccurrencesOfString(-D) failed", __func__);
-
     return -1;
   }
 
@@ -160,11 +141,12 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
   if (options == nil)
   {
     event_log_error (hashcat_ctx, "%s(): stringByReplacingOccurrencesOfString(-I OpenCL) failed", __func__);
-
     return -1;
   }
 
-  //NSLog(@"options: '%@'", options);
+  //#if defined (DEBUG)
+  //NSLog (@"options: '%@'", options);
+  //#endif
 
   // creating NSDictionary from options
 
@@ -181,6 +163,7 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
     {
       if ([key isEqualToString:@"KERNEL_STATIC"] ||
           [key isEqualToString:@"IS_APPLE_SILICON"] ||
+          [key isEqualToString:@"USE_METAL4"] ||
           [key isEqualToString:@"DYNAMIC_LOCAL"] ||
           [key isEqualToString:@"_unroll"] ||
           [key isEqualToString:@"NO_UNROLL"] ||
@@ -190,7 +173,7 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
       }
       else
       {
-        #ifdef DEBUG
+        #if defined (DEBUG)
         const char *tmp = [key UTF8String];
 
         if (tmp != NULL && strlen (tmp) > 0)
@@ -224,7 +207,314 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
     [build_options_dict setObject: path_value forKey: path_key];
   }
 
-  //NSLog(@"Dict:\n%@", build_options_dict);
+  //#if defined (DEBUG)
+  //NSLog (@"Dict:\n%@", build_options_dict);
+  //#endif
+
+  return 0;
+}
+
+static int metal4_add_to_residency (hc_device_param_t *device_param, id buffer)
+{
+  if (device_param->use_metal4 == false) return -1;
+  if (buffer == nil) return -1;
+
+  typedef void (*add_alloc_fn)(id, SEL, id);
+  add_alloc_fn doAdd = (add_alloc_fn)objc_msgSend;
+  doAdd (device_param->metal4_residency_set, device_param->mtl4_sel_addAllocation, buffer);
+
+  // commit ResidencySet
+  typedef void (*void_fn)(id, SEL);
+  void_fn doVoid = (void_fn)objc_msgSend;
+  doVoid (device_param->metal4_residency_set, device_param->mtl4_sel_commit);
+
+  // request ResidencySet
+  doVoid (device_param->metal4_residency_set, device_param->mtl4_sel_requestResidency);
+
+  return 0;
+}
+
+static id metal4_begin_command_buffer (void *hashcat_ctx, hc_device_param_t *device_param)
+{
+  if (device_param->metal_command_buffer == nil)
+  {
+    event_log_error(hashcat_ctx, "%s(): global command buffer is nil", __func__);
+    return nil;
+  }
+
+  if (device_param->metal_command_allocator == nil)
+  {
+    event_log_error(hashcat_ctx, "%s(): metal4 command allocator is nil", __func__);
+    return nil;
+  }
+
+  typedef void (*begin_fn)(id, SEL, id);
+  begin_fn doBegin = (begin_fn)objc_msgSend;
+
+  doBegin (device_param->metal_command_buffer, device_param->mtl4_sel_beginCommandBuffer, device_param->metal_command_allocator);
+
+  // useResidencySet also on the command buffer
+  typedef void (*use_res_fn)(id, SEL, id);
+  use_res_fn doUseRes = (use_res_fn)objc_msgSend;
+
+  doUseRes (device_param->metal_command_buffer, device_param->mtl4_sel_useResidencySet, device_param->metal4_residency_set);
+
+  return device_param->metal_command_buffer;
+}
+
+static id metal4_new_argument_table (void *hashcat_ctx, hc_device_param_t *device_param, NSUInteger max_buffers)
+{
+  NSError *error = nil;
+
+  Class descClass = NSClassFromString (@"MTL4ArgumentTableDescriptor");
+
+  if (descClass == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): MTL4ArgumentTableDescriptor not available", __func__);
+    return nil;
+  }
+
+  id desc = [descClass new];
+
+  HC_MTL_SELECTOR(desc, "MTL4ArgumentTableDescriptor", @"setMaxBufferBindCount:", setMaxBufferBindCountSel, hashcat_ctx, nil);
+
+  typedef void (*set_uint_fn)(id, SEL, NSUInteger);
+  set_uint_fn doSet = (set_uint_fn)objc_msgSend;
+  doSet (desc, setMaxBufferBindCountSel, max_buffers);
+
+  HC_MTL_SELECTOR(device_param->metal_device, "MTLDevice", @"newArgumentTableWithDescriptor:error:", newArgumentTableWithDescriptorSel, hashcat_ctx, nil);
+
+  typedef id (*new_table_fn)(id, SEL, id, NSError **);
+  new_table_fn doNewTable = (new_table_fn)objc_msgSend;
+  id table = doNewTable (device_param->metal_device, newArgumentTableWithDescriptorSel, desc, &error);
+
+  if (table == nil)
+  {
+    if (error != nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create argument table: %s", __func__, [[error localizedDescription] UTF8String]);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create argument table", __func__);
+    }
+  }
+
+  return table;
+}
+
+static int metal4_commit_and_wait (void *hashcat_ctx, hc_device_param_t *device_param, id command_buffer, double *ms)
+{
+  typedef void (*void_fn)(id, SEL);
+  void_fn doVoid = (void_fn)objc_msgSend;
+
+  // end command buffer
+  doVoid (command_buffer, device_param->mtl4_sel_endCommandBuffer);
+
+  // check command queue
+  if (device_param->metal_command_queue == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): metal4 command queue is invalid", __func__);
+    return -1;
+  }
+
+  dispatch_semaphore_t sema = device_param->metal4_sema;
+
+  Class optionsClass = NSClassFromString (@"MTL4CommitOptions");
+
+  if (optionsClass == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): MTL4CommitOptions not available", __func__);
+    return -1;
+  }
+
+  id commitOptions = [optionsClass new];
+
+  __block double ms_local = 0;
+
+  typedef void (*add_handler_fn)(id, SEL, void (^)(id));
+  add_handler_fn doAddHandler = (add_handler_fn)objc_msgSend;
+
+  doAddHandler (commitOptions, device_param->mtl4_set_addFeedbackHandler, ^(id feedback) {
+    if (ms != NULL)
+    {
+      typedef CFTimeInterval (*get_time_fn)(id, SEL);
+      get_time_fn getTime = (get_time_fn)objc_msgSend;
+
+      CFTimeInterval gpuStart = getTime (feedback, device_param->mtl4_sel_gpuStartTime);
+      CFTimeInterval gpuEnd   = getTime (feedback, device_param->mtl4_sel_gpuEndTime);
+
+      ms_local = (gpuEnd - gpuStart) * 1000.0;
+    }
+
+    dispatch_semaphore_signal (sema);
+  });
+
+  typedef void (*commit_fn)(id, SEL, id *, NSUInteger, id);
+  commit_fn doCommit = (commit_fn)objc_msgSend;
+
+  id cmdBufArray[] = { command_buffer };
+  doCommit (device_param->metal_command_queue, device_param->mtl4_sel_commitCountOptions, cmdBufArray, 1, commitOptions);
+
+  // wait for the feedback handler (fires after GPU completion)
+  dispatch_semaphore_wait (sema, DISPATCH_TIME_FOREVER);
+
+  if (ms != NULL) *ms = ms_local;
+
+  // reset command allocator
+  doVoid (device_param->metal_command_allocator, device_param->mtl4_sel_reset);
+
+  // reset scratch buffer offset
+  device_param->metal4_scratch_offset = 0;
+
+  return 0;
+}
+
+static int metal4_init (void *hashcat_ctx, hc_device_param_t *device_param)
+{
+  NSError *error = nil;
+
+  id metal_device = device_param->metal_device;
+
+  // create command queue
+  HC_MTL_SELECTOR(metal_device, "MTLDevice", @"newMTL4CommandQueue", newMTL4CommandQueueSel, hashcat_ctx, -1);
+
+  device_param->metal_command_queue = [metal_device performSelector:newMTL4CommandQueueSel];
+
+  if (device_param->metal_command_queue == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): failed to create metal4 command queue", __func__);
+    return -1;
+  }
+
+  // create command allocator
+  Class descClass = NSClassFromString (@"MTL4CommandAllocatorDescriptor");
+
+  if (descClass == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): MTL4CommandAllocatorDescriptor not available", __func__);
+    return -1;
+  }
+
+  id allocDesc = [descClass new];
+
+  HC_MTL_SELECTOR(metal_device, "MTLDevice", @"newCommandAllocatorWithDescriptor:error:", newCommandAllocatorWithDescriptorSel, hashcat_ctx, -1);
+
+  typedef id (*new_alloc_fn)(id, SEL, id, NSError **);
+  new_alloc_fn doNewAlloc = (new_alloc_fn)objc_msgSend;
+  device_param->metal_command_allocator = doNewAlloc (metal_device, newCommandAllocatorWithDescriptorSel, allocDesc, &error);
+
+  if (device_param->metal_command_allocator == nil)
+  {
+    if (error != nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create metal4 command allocator: %s", __func__, [[error localizedDescription] UTF8String]);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create metal4 command allocator", __func__);
+    }
+
+    return -1;
+  }
+
+  // create scratch buffer
+  device_param->metal4_scratch_buf = [metal_device newBufferWithLength:METAL4_SCRATCH_SIZE options:MTLResourceStorageModeShared];
+
+  if (device_param->metal4_scratch_buf == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): failed to create metal4 scratch buffer", __func__);
+    return -1;
+  }
+
+  device_param->metal4_scratch_offset = 0;
+
+  // create ResidencySet
+  Class resDescClass = NSClassFromString (@"MTLResidencySetDescriptor");
+  id resDesc = [resDescClass new];
+
+  HC_MTL_SELECTOR(resDesc, "MTLResidencySetDescriptor", @"setInitialCapacity:", setInitialCapacitySel, hashcat_ctx, -1);
+
+  typedef void (*set_uint_fn)(id, SEL, NSUInteger);
+  set_uint_fn doSetUint = (set_uint_fn)objc_msgSend;
+
+  doSetUint (resDesc, setInitialCapacitySel, 128);
+
+  HC_MTL_SELECTOR(metal_device, "MTLDevice", @"newResidencySetWithDescriptor:error:", newResidencySetWithDescriptorSel, hashcat_ctx, -1);
+
+  typedef id (*new_res_fn)(id, SEL, id, NSError **);
+  new_res_fn doNewRes = (new_res_fn)objc_msgSend;
+  device_param->metal4_residency_set = doNewRes (metal_device, newResidencySetWithDescriptorSel, resDesc, &error);
+
+  if (device_param->metal4_residency_set == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): failed to create metal4 residency set: %s", __func__, error ? [[error localizedDescription] UTF8String] : "");
+    return -1;
+  }
+
+  HC_MTL_SELECTOR(device_param->metal4_residency_set, "MTLResidencySet", @"addAllocation:", addAllocationSel, hashcat_ctx, -1);
+
+  // add scratch buffer
+  typedef void (*add_alloc_fn)(id, SEL, id);
+  add_alloc_fn doAdd = (add_alloc_fn)objc_msgSend;
+
+  doAdd (device_param->metal4_residency_set, addAllocationSel, device_param->metal4_scratch_buf);
+
+  // attach ResidencySet to command queue
+  HC_MTL_SELECTOR(device_param->metal_command_queue, "MTL4CommandQueue", @"addResidencySet:", addResidencySetSel, hashcat_ctx, -1);
+
+  typedef void (*add_res_fn)(id, SEL, id);
+  add_res_fn doAddRes = (add_res_fn)objc_msgSend;
+
+  doAddRes (device_param->metal_command_queue, addResidencySetSel, device_param->metal4_residency_set);
+
+  // create global arg table
+  device_param->metal_argument_table = metal4_new_argument_table (hashcat_ctx, device_param, 128);
+
+  if (device_param->metal_argument_table == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): failed to create metal4 argument table", __func__);
+    return -1;
+  }
+
+  // create global command buffer
+  HC_MTL_SELECTOR(metal_device, "MTLDevice", @"newCommandBuffer", newCommandBufferSel, hashcat_ctx, -1);
+
+  typedef id (*new_cmdbuf_fn)(id, SEL);
+  new_cmdbuf_fn doNewCmdBuf = (new_cmdbuf_fn)objc_msgSend;
+
+  device_param->metal_command_buffer = doNewCmdBuf (metal_device, newCommandBufferSel);;
+
+  if (device_param->metal_command_buffer == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): failed to create metal4 command buffer", __func__);
+    return -1;
+  }
+
+  // create global selectors
+  HC_MTL_SELECTOR_SET(device_param->metal4_scratch_buf,   "MTLBuffer",          @"gpuAddress", device_param->mtl4_sel_gpuAddress, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal_argument_table, "MTL4ArgumentTable",  @"setAddress:atIndex:", device_param->mtl4_sel_setAddress_atIndex, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal4_residency_set, "MTLResidencySet",    @"addAllocation:", device_param->mtl4_sel_addAllocation, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal4_residency_set, "MTLResidencySet",    @"removeAllocation:", device_param->mtl4_sel_removeAllocation, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal4_residency_set, "MTLResidencySet",    @"commit", device_param->mtl4_sel_commit, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal4_residency_set, "MTLResidencySet",    @"requestResidency", device_param->mtl4_sel_requestResidency, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal_command_buffer, "MTL4CommandBuffer",  @"computeCommandEncoder", device_param->mtl4_sel_computeCommandEncoder, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal_command_buffer, "MTL4CommandBuffer",  @"beginCommandBufferWithAllocator:", device_param->mtl4_sel_beginCommandBuffer, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal_command_buffer, "MTL4CommandBuffer",  @"endCommandBuffer", device_param->mtl4_sel_endCommandBuffer, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal_command_queue,  "MTL4CommandQueue",   @"commit:count:options:", device_param->mtl4_sel_commitCountOptions, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal_command_buffer, "MTL4CommandBuffer",  @"useResidencySet:", device_param->mtl4_sel_useResidencySet, hashcat_ctx, -1);
+  HC_MTL_SELECTOR_SET(device_param->metal_command_allocator, "MTL4CommandAllocator", @"reset", device_param->mtl4_sel_reset, hashcat_ctx, -1);
+
+  device_param->mtl4_sel_setArgumentTable               = NSSelectorFromString (@"setArgumentTable:");
+  device_param->mtl4_sel_dispatchThreadgroups           = NSSelectorFromString (@"dispatchThreadgroups:threadsPerThreadgroup:");
+  device_param->mtl4_sel_endEncoding                    = NSSelectorFromString (@"endEncoding");
+  device_param->mtl4_sel_copyFromBuffer                 = NSSelectorFromString (@"copyFromBuffer:sourceOffset:toBuffer:destinationOffset:size:");
+  device_param->mtl4_sel_setComputePipelineState        = NSSelectorFromString (@"setComputePipelineState:");
+  device_param->mtl4_sel_gpuStartTime                   = NSSelectorFromString (@"GPUStartTime");
+  device_param->mtl4_sel_gpuEndTime                     = NSSelectorFromString (@"GPUEndTime");
+  device_param->mtl4_set_addFeedbackHandler             = NSSelectorFromString (@"addFeedbackHandler:");
+
+  device_param->metal4_sema = dispatch_semaphore_create (0);
 
   return 0;
 }
@@ -242,7 +532,6 @@ int mtl_init (void *hashcat_ctx)
   if (MTLCreateSystemDefaultDevice () == nil)
   {
     event_log_error (hashcat_ctx, "Metal is not supported on this computer");
-
     return -1;
   }
 
@@ -326,7 +615,6 @@ int hc_mtlDeviceGet (void *hashcat_ctx, mtl_device_id *metal_device, int ordinal
   if (mtl->devices == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid devices pointer", __func__);
-
     return -1;
   }
 
@@ -335,18 +623,8 @@ int hc_mtlDeviceGet (void *hashcat_ctx, mtl_device_id *metal_device, int ordinal
   if (device == NULL)
   {
     event_log_error (hashcat_ctx, "metalDeviceGet(): invalid index");
-
     return -1;
   }
-
-  /*
-  // parallelize pipeline state object (PSO) compilation internally
-
-  if ([device respondsToSelector:@selector(setShouldMaximizeConcurrentCompilation:)])
-  {
-    ((void (*)(id, SEL, BOOL))objc_msgSend)(device, @selector(setShouldMaximizeConcurrentCompilation:), YES);
-  }
-  */
 
   *metal_device = device;
 
@@ -364,14 +642,12 @@ int hc_mtlDeviceGetName (void *hashcat_ctx, char *name, size_t len, mtl_device_i
   if (metal_device == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid device", __func__);
-
     return -1;
   }
 
   if (len <= 0)
   {
     event_log_error (hashcat_ctx, "%s(): buffer length", __func__);
-
     return -1;
   }
 
@@ -380,7 +656,6 @@ int hc_mtlDeviceGetName (void *hashcat_ctx, char *name, size_t len, mtl_device_i
   if (device_name_ptr == nil)
   {
     event_log_error (hashcat_ctx, "%s(): failed to get device name", __func__);
-
     return -1;
   }
 
@@ -389,7 +664,6 @@ int hc_mtlDeviceGetName (void *hashcat_ctx, char *name, size_t len, mtl_device_i
   if (device_name_str == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): failed to get UTF8String from device name", __func__);
-
     return -1;
   }
 
@@ -398,13 +672,12 @@ int hc_mtlDeviceGetName (void *hashcat_ctx, char *name, size_t len, mtl_device_i
   if (device_name_len <= 0)
   {
     event_log_error (hashcat_ctx, "%s(): invalid device name length", __func__);
-
     return -1;
   }
 
   size_t copy_len = (device_name_len < len - 1) ? device_name_len : len - 1;
 
-  memcpy(name, device_name_str, copy_len);
+  memcpy (name, device_name_str, copy_len);
 
   name[copy_len] = '\0';
 
@@ -422,7 +695,6 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
   if (metal_device == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid device", __func__);
-
     return -1;
   }
 
@@ -440,9 +712,9 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
     case MTL_DEVICE_ATTRIBUTE_UNIFIED_MEMORY:
       *pi = 0;
 
-      SEL hasUnifiedMemorySelector = NSSelectorFromString (@"hasUnifiedMemory");
+      SEL hasUnifiedMemorySel = NSSelectorFromString (@"hasUnifiedMemory");
 
-      hc_mtlInvocationHelper (metal_device, hasUnifiedMemorySelector, &valBool);
+      hc_mtlInvocationHelper (metal_device, hasUnifiedMemorySel, &valBool);
 
       *pi = (valBool == true) ? 1 : 0;
 
@@ -470,9 +742,9 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
 
       valULong = 0;
 
-      SEL maxThreadgroupMemoryLengthSelector = NSSelectorFromString (@"maxThreadgroupMemoryLength");
+      SEL maxThreadgroupMemoryLengthSel = NSSelectorFromString (@"maxThreadgroupMemoryLength");
 
-      hc_mtlInvocationHelper (metal_device, maxThreadgroupMemoryLengthSelector, &valULong);
+      hc_mtlInvocationHelper (metal_device, maxThreadgroupMemoryLengthSel, &valULong);
 
       *pi = valULong;
 
@@ -483,9 +755,9 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
 
       val64 = 0;
 
-      SEL maxTransferRateSelector = NSSelectorFromString (@"maxTransferRate");
+      SEL maxTransferRateSel = NSSelectorFromString (@"maxTransferRate");
 
-      hc_mtlInvocationHelper (metal_device, maxTransferRateSelector, &val64);
+      hc_mtlInvocationHelper (metal_device, maxTransferRateSel, &val64);
 
       *pi = (val64 == 0) ? 0 : val64 / 125; // kb/s
 
@@ -515,9 +787,9 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
 
       valULong = 0;
 
-      SEL locationSelector = NSSelectorFromString (@"location");
+      SEL locationSel = NSSelectorFromString (@"location");
 
-      hc_mtlInvocationHelper (metal_device, locationSelector, &valULong);
+      hc_mtlInvocationHelper (metal_device, locationSel, &valULong);
 
       *pi = valULong;
 
@@ -528,11 +800,37 @@ int hc_mtlDeviceGetAttribute (void *hashcat_ctx, int *pi, metalDeviceAttribute_t
 
       valULong = 0;
 
-      SEL locationNumberSelector = NSSelectorFromString (@"locationNumber");
+      SEL locationNumberSel = NSSelectorFromString (@"locationNumber");
 
-      hc_mtlInvocationHelper (metal_device, locationNumberSelector, &valULong);
+      hc_mtlInvocationHelper (metal_device, locationNumberSel, &valULong);
 
       *pi = valULong;
+
+      break;
+
+    case MTL_DEVICE_ATTRIBUTE_METAL_VERSION:
+      *pi = 1;
+
+      SEL supportsFamilySel = NSSelectorFromString (@"supportsFamily:");
+      SEL supportsFeatureSetSel = NSSelectorFromString (@"supportsFeatureSet:");
+
+      if ([metal_device respondsToSelector:supportsFamilySel])
+      {
+        typedef BOOL (*fn) (id, SEL, long);
+        fn check = (fn) objc_msgSend;
+
+        if (check (metal_device, supportsFamilySel, GPU_FAMILY_METAL4)) *pi = 4;
+        else if (check (metal_device, supportsFamilySel, GPU_FAMILY_METAL3)) *pi = 3;
+      }
+      else if ([metal_device respondsToSelector:supportsFeatureSetSel])
+      {
+        typedef BOOL (*fn) (id, SEL, long);
+        fn check = (fn) objc_msgSend;
+
+        if (check (metal_device, supportsFeatureSetSel, FEATURE_SET_MAC_FAMILY2_V1)) *pi = 2;
+        else if (check (metal_device, supportsFeatureSetSel, FEATURE_SET_MAC_FAMILY1_V3)) *pi = 2;
+        else if (check (metal_device, supportsFeatureSetSel, FEATURE_SET_MAC_FAMILY1_V1)) *pi = 1;
+      }
 
       break;
 
@@ -563,29 +861,23 @@ int hc_mtlMemGetInfo (void *hashcat_ctx, size_t *mem_free, size_t *mem_total)
   if (host_page_size (port, &page_size) != KERN_SUCCESS)
   {
     event_log_error (hashcat_ctx, "metalMemGetInfo(): cannot get page_size");
-
     mach_port_deallocate (mach_task_self(), port);
-
     return -1;
   }
 
   if (host_statistics64 (port, HOST_VM_INFO64, (host_info64_t) &vm_stats, &count) != KERN_SUCCESS)
   {
     event_log_error (hashcat_ctx, "metalMemGetInfo(): cannot get vm_stats");
-
     mach_port_deallocate (mach_task_self(), port);
-
     return -1;
   }
 
   mach_port_deallocate (mach_task_self(), port);
 
   uint64_t mem_free_tmp = (uint64_t) (vm_stats.free_count - vm_stats.speculative_count) * page_size;
-
   uint64_t mem_used_tmp = (uint64_t) (vm_stats.active_count + vm_stats.inactive_count + vm_stats.wire_count) * page_size;
 
   *mem_free  = (size_t) (mem_free_tmp);
-
   *mem_total = (size_t) (mem_free_tmp + mem_used_tmp);
 
   return 0;
@@ -602,20 +894,18 @@ int hc_mtlDeviceMaxMemAlloc (void *hashcat_ctx, size_t *bytes, mtl_device_id met
   if (metal_device == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid device", __func__);
-
     return -1;
   }
 
   uint64_t memsize = 0;
 
-  SEL maxBufferLengthSelector = NSSelectorFromString (@"maxBufferLength");
+  SEL maxBufferLengthSel = NSSelectorFromString (@"maxBufferLength");
 
-  if (hc_mtlInvocationHelper (metal_device, maxBufferLengthSelector, &memsize) == -1) return -1;
+  if (hc_mtlInvocationHelper (metal_device, maxBufferLengthSel, &memsize) == -1) return -1;
 
   if (memsize == 0)
   {
     event_log_error (hashcat_ctx, "%s(): invalid maxBufferLength", __func__);
-
     return -1;
   }
 
@@ -635,7 +925,6 @@ int hc_mtlDeviceTotalMem (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_
   if (metal_device == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid device", __func__);
-
     return -1;
   }
 
@@ -652,7 +941,6 @@ int hc_mtlDeviceTotalMem (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_
     if (sysctlbyname ("hw.memsize", &memsize, &len, NULL, 0) != 0)
     {
       event_log_error (hashcat_ctx, "%s(): sysctlbyname(hw.memsize) failed", __func__);
-
       return -1;
     }
   }
@@ -660,7 +948,6 @@ int hc_mtlDeviceTotalMem (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_
   if (memsize == 0)
   {
     event_log_error (hashcat_ctx, "%s(): invalid memory size", __func__);
-
     return -1;
   }
 
@@ -669,7 +956,7 @@ int hc_mtlDeviceTotalMem (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_
   return 0;
 }
 
-int hc_mtlCreateCommandQueue (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue *command_queue)
+int hc_mtlDeviceUsedMem (void *hashcat_ctx, size_t *bytes, mtl_device_id metal_device)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
@@ -680,16 +967,89 @@ int hc_mtlCreateCommandQueue (void *hashcat_ctx, mtl_device_id metal_device, mtl
   if (metal_device == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid device", __func__);
-
     return -1;
   }
 
-  mtl_command_queue queue = [metal_device newCommandQueue];
+  uint64_t memused = 0;
+
+  if ([metal_device respondsToSelector:@selector(currentAllocatedSize)])
+  {
+    memused = [metal_device currentAllocatedSize];
+  }
+
+  if (memused == 0)
+  {
+    //event_log_error (hashcat_ctx, "%s(): invalid memory size", __func__);
+    return -1;
+  }
+
+  *bytes = (size_t) memused;
+
+  return 0;
+}
+
+int hc_mtlCreateCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue *command_queue)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
+  MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
+
+  if (mtl == NULL) return -1;
+
+  if (metal_device == nil)
+  {
+    event_log_error (hashcat_ctx, "%s(): invalid device", __func__);
+    return -1;
+  }
+
+  mtl_command_queue queue = nil;
+
+  //debug: force Metal 3
+  //device_param->metal_version = 3;
+
+  if (device_param->metal_version == 4)
+  {
+    SEL newMTL4CommandQueueSel = NSSelectorFromString (@"newMTL4CommandQueue");
+
+    if ([metal_device respondsToSelector:newMTL4CommandQueueSel])
+    {
+      queue = [metal_device performSelector:newMTL4CommandQueueSel];
+    }
+  }
+
+  if (queue != nil)
+  {
+    device_param->use_metal4 = true;
+
+    metal4_init (hashcat_ctx, device_param);
+  }
+  else
+  {
+    device_param->use_metal4 = false;
+
+    // parallelize pipeline state object (PSO) compilation internally
+
+    SEL setShouldMaximizeConcurrentCompilationSel = NSSelectorFromString (@"setShouldMaximizeConcurrentCompilation:");
+
+    if ([metal_device respondsToSelector:setShouldMaximizeConcurrentCompilationSel])
+    {
+      //[metal_device setShouldMaximizeConcurrentCompilation:YES];
+
+      ((void (*)(id, SEL, BOOL))objc_msgSend)(metal_device, setShouldMaximizeConcurrentCompilationSel, YES);
+
+      #if defined (DEBUG)
+      event_log_info (hashcat_ctx, "%s(): Maximize Concurrent Compilation enabled.", __func__);
+      #endif
+    }
+
+    queue = [metal_device newCommandQueue];
+  }
 
   if (queue == nil)
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create newCommandQueue", __func__);
-
+    event_log_error (hashcat_ctx, "%s(): failed to create Metal CommandQueue", __func__);
     return -1;
   }
 
@@ -699,8 +1059,10 @@ int hc_mtlCreateCommandQueue (void *hashcat_ctx, mtl_device_id metal_device, mtl
 
 }
 
-int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_library metal_library, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline)
+int hc_mtlCreateKernel (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_library metal_library, const char *func_name, mtl_function *metal_function, mtl_pipeline *metal_pipeline)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   backend_ctx_t  *backend_ctx  = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
   user_options_t *user_options = ((hashcat_ctx_t *) hashcat_ctx)->user_options;
 
@@ -711,106 +1073,205 @@ int hc_mtlCreateKernel (void *hashcat_ctx, mtl_device_id metal_device, mtl_libra
   if (metal_device == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid device", __func__);
-
     return -1;
   }
 
   if (metal_library == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid library", __func__);
-
     return -1;
   }
 
   if (func_name == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): invalid function name", __func__);
-
     return -1;
   }
-
-  __block NSError *error = nil;
 
   NSString *f_name = [NSString stringWithCString: func_name encoding: NSUTF8StringEncoding];
 
   if (f_name == nil)
   {
     event_log_error (hashcat_ctx, "%s(): failed to convert function name to NSString", __func__);
-
     return -1;
   }
-
-  mtl_function mtl_func = [metal_library newFunctionWithName: f_name];
-
-  if (mtl_func == nil)
-  {
-    event_log_error (hashcat_ctx, "%s(): failed to create '%s' function", __func__, func_name);
-
-    return -1;
-  }
-
-  // workaround for MTLCompilerService 'Infinite Loop' bug
-
-  /*
-  mtl_pipeline mtl_pipe = [metal_device newComputePipelineStateWithFunction: mtl_func error: &error];
-
-  if (error != nil)
-  {
-    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
-
-    return -1;
-  }
-  */
-
-  error = nil;
-
-  __block mtl_pipeline mtl_pipe;
-
-  dispatch_group_t group = dispatch_group_create ();
-  dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
-
-  // if no user-defined runtime, set to METAL_COMPILER_RUNTIME
 
   long timeout = (user_options->metal_compiler_runtime > 0) ? user_options->metal_compiler_runtime : METAL_COMPILER_RUNTIME;
 
-  dispatch_time_t when = dispatch_time (DISPATCH_TIME_NOW,NSEC_PER_SEC * timeout);
-
-  __block int rc_async_err = 0;
-
-  dispatch_group_async (group, queue, ^(void)
+  if (device_param->use_metal4)
   {
-    mtl_pipe = [metal_device newComputePipelineStateWithFunction: mtl_func error: &error];
+    // create MTL4LibraryFunctionDescriptor
+    Class funcDescClass = NSClassFromString (@"MTL4LibraryFunctionDescriptor");
 
-    if (error != nil)
+    if (funcDescClass == nil)
     {
-      event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
-
-      rc_async_err = -1;
+      event_log_error (hashcat_ctx, "%s(): MTL4LibraryFunctionDescriptor not available", __func__);
+      return -1;
     }
-  });
 
-  long rc_queue = dispatch_group_wait (group, when);
+    id funcDesc = [funcDescClass new];
 
-  dispatch_release (group);
+    HC_MTL_SELECTOR(funcDesc, "MTL4LibraryFunctionDescriptor", @"setName:", setNameSel, hashcat_ctx, -1);
+    HC_MTL_SELECTOR(funcDesc, "MTL4LibraryFunctionDescriptor", @"setLibrary:", setLibrarySel, hashcat_ctx, -1);
 
-  if (rc_async_err != 0) return -1;
+    typedef void (*set_obj_fn)(id, SEL, id);
+    set_obj_fn doSet = (set_obj_fn)objc_msgSend;
 
-  if (rc_queue != 0)
-  {
-    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, timeout reached (status %ld)", __func__, func_name, rc_queue);
+    doSet (funcDesc, setNameSel, f_name);
+    doSet (funcDesc, setLibrarySel, metal_library);
 
-    return -1;
+    // create MTL4ComputePipelineDescriptor
+    Class pipeDescClass = NSClassFromString (@"MTL4ComputePipelineDescriptor");
+
+    if (pipeDescClass == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): MTL4ComputePipelineDescriptor not available", __func__);
+      return -1;
+    }
+
+    id pipeDesc = [pipeDescClass new];
+
+    HC_MTL_SELECTOR(pipeDesc, "MTL4ComputePipelineDescriptor", @"setComputeFunctionDescriptor:", setComputeFunctionDescriptorSel, hashcat_ctx, -1);
+
+    doSet (pipeDesc, setComputeFunctionDescriptorSel, funcDesc);
+
+    HC_MTL_SELECTOR(pipeDesc, "MTL4ComputePipelineDescriptor", @"setThreadGroupSizeIsMultipleOfThreadExecutionWidth:", setThreadExecWidthSel, hashcat_ctx, -1);
+
+    [pipeDesc setThreadGroupSizeIsMultipleOfThreadExecutionWidth:YES];
+
+    typedef void (*set_bool_fn)(id, SEL, BOOL);
+    set_bool_fn doSetBool = (set_bool_fn)objc_msgSend;
+
+    doSetBool (pipeDesc, setThreadExecWidthSel, YES);
+
+    // create MTL4CompilerDescriptor
+    Class compilerDescClass = NSClassFromString (@"MTL4CompilerDescriptor");
+
+    if (compilerDescClass == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): MTL4CompilerDescriptor not available", __func__);
+      return -1;
+    }
+
+    id compilerDesc = [compilerDescClass new];
+
+    NSError *compilerError = nil;
+
+    HC_MTL_SELECTOR(metal_device, "MTLDevice", @"newCompilerWithDescriptor:error:", newCompilerWithDescriptorSel, hashcat_ctx, -1);
+
+    typedef id (*new_compiler_fn)(id, SEL, id, NSError **);
+    new_compiler_fn doNewCompiler = (new_compiler_fn)objc_msgSend;
+
+    id compiler = doNewCompiler (metal_device, newCompilerWithDescriptorSel, compilerDesc, &compilerError);
+
+    if (compiler == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create metal4 compiler: %s", __func__, compilerError ? [[compilerError localizedDescription] UTF8String] : "unknown");
+      return -1;
+    }
+
+    // build pipeline with timeout
+    HC_MTL_SELECTOR(compiler, "MTL4Compiler", @"newComputePipelineStateWithDescriptor:compilerTaskOptions:error:", newComputePipelineStateWithDescriptorCompilerTaskOptionsSel, hashcat_ctx, -1);
+
+    __block NSError *error = nil;
+    __block id mtl_pipe = nil;
+    __block int rc_async_err = 0;
+
+    dispatch_group_t group = dispatch_group_create ();
+    //dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+    dispatch_time_t when = dispatch_time (DISPATCH_TIME_NOW, NSEC_PER_SEC * timeout);
+
+    dispatch_group_async (group, queue, ^(void)
+    {
+      typedef id (*new_pso_fn)(id, SEL, id, id, NSError **);
+      new_pso_fn doNewPSO = (new_pso_fn)objc_msgSend;
+
+      mtl_pipe = doNewPSO (compiler, newComputePipelineStateWithDescriptorCompilerTaskOptionsSel, pipeDesc, nil, &error);
+
+      if (error != nil)
+      {
+        event_log_error (hashcat_ctx, "%s(): failed to create '%s' metal4 pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
+        rc_async_err = -1;
+      }
+    });
+
+    long rc_queue = dispatch_group_wait (group, when);
+
+    dispatch_release (group);
+
+    if (rc_async_err != 0) return -1;
+
+    if (rc_queue != 0)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create '%s' metal4 pipeline, timeout reached (status %ld)", __func__, func_name, rc_queue);
+      return -1;
+    }
+
+    if (mtl_pipe == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create '%s' metal4 pipeline", __func__, func_name);
+      return -1;
+    }
+
+    mtl_function mtl_func = [metal_library newFunctionWithName: f_name];
+
+    *metal_function = mtl_func;
+    *metal_pipeline = mtl_pipe;
   }
-
-  if (mtl_pipe == nil)
+  else
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline", __func__, func_name);
+    __block NSError *error = nil;
 
-    return -1;
+    mtl_function mtl_func = [metal_library newFunctionWithName: f_name];
+
+    if (mtl_func == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create '%s' function", __func__, func_name);
+      return -1;
+    }
+
+    __block mtl_pipeline mtl_pipe;
+
+    dispatch_group_t group = dispatch_group_create ();
+    //dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_DEFAULT, 0);
+    dispatch_queue_t queue = dispatch_get_global_queue (DISPATCH_QUEUE_PRIORITY_HIGH, 0);
+    dispatch_time_t when = dispatch_time (DISPATCH_TIME_NOW, NSEC_PER_SEC * timeout);
+
+    __block int rc_async_err = 0;
+
+    dispatch_group_async (group, queue, ^(void)
+    {
+      mtl_pipe = [metal_device newComputePipelineStateWithFunction: mtl_func error: &error];
+
+      if (error != nil)
+      {
+        event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, %s", __func__, func_name, [[error localizedDescription] UTF8String]);
+        rc_async_err = -1;
+      }
+    });
+
+    long rc_queue = dispatch_group_wait (group, when);
+
+    dispatch_release (group);
+
+    if (rc_async_err != 0) return -1;
+
+    if (rc_queue != 0)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline, timeout reached (status %ld)", __func__, func_name, rc_queue);
+      return -1;
+    }
+
+    if (mtl_pipe == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create '%s' pipeline", __func__, func_name);
+      return -1;
+    }
+
+    *metal_function = mtl_func;
+    *metal_pipeline = mtl_pipe;
   }
-
-  *metal_function = mtl_func;
-  *metal_pipeline = mtl_pipe;
 
   return 0;
 }
@@ -826,7 +1287,6 @@ int hc_mtlGetMaxTotalThreadsPerThreadgroup (void *hashcat_ctx, mtl_pipeline meta
   if (metal_pipeline == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid pipeline", __func__);
-
     return -1;
   }
 
@@ -846,7 +1306,6 @@ int hc_mtlGetThreadExecutionWidth (void *hashcat_ctx, mtl_pipeline metal_pipelin
   if (metal_pipeline == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid pipeline", __func__);
-
     return -1;
   }
 
@@ -866,7 +1325,6 @@ int hc_mtlGetStaticThreadgroupMemoryLength (void *hashcat_ctx, mtl_pipeline meta
   if (metal_pipeline == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid pipeline", __func__);
-
     return -1;
   }
 
@@ -875,8 +1333,10 @@ int hc_mtlGetStaticThreadgroupMemoryLength (void *hashcat_ctx, mtl_pipeline meta
   return 0;
 }
 
-int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalBufferStorageModeId_t metal_storage_mode)
+int hc_mtlCreateBuffer (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, size_t size, void *ptr, mtl_mem_t *mem, metalBufferStorageModeId_t metal_storage_mode)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
   MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
@@ -886,11 +1346,8 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
   if (metal_device == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid device", __func__);
-
     return -1;
   }
-
-//  MTLResourceOptions bufferOptions = MTLResourceStorageModeShared;
 
   MTLResourceOptions bufferOptions;
 
@@ -943,7 +1400,6 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
     if (bufferOptions != MTLResourceStorageModeShared)
     {
       event_log_error (hashcat_ctx, "%s(): bufferOptions must be Shared when using unified memory", __func__);
-
       return -1;
     }
 
@@ -959,7 +1415,6 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
   if (mem->buf_ptr == nil)
   {
     event_log_error (hashcat_ctx, "%s(): %s failed (size: %zu)", __func__, (ptr == NULL) ? "newBufferWithLength" : "newBufferWithBytesNoCopy", size);
-
     return -1;
   }
 
@@ -984,6 +1439,12 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
       return -1;
   }
 
+  if (device_param->use_metal4)
+  {
+    // add to Residency Set
+    metal4_add_to_residency (device_param, mem->buf_ptr);
+  }
+
   return 0;
 }
 
@@ -994,7 +1455,6 @@ int hc_mtlReleaseMemObject (void *hashcat_ctx, mtl_mem_t *mem)
   MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
 
   if (mtl == NULL) return -1;
-
   if (mem == NULL || mem->buf_ptr == nil) return -1;
 
   [mem->buf_ptr setPurgeableState: MTLPurgeableStateEmpty];
@@ -1015,7 +1475,6 @@ int hc_mtlReleaseFunction (void *hashcat_ctx, mtl_function *metal_function)
   MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
 
   if (mtl == NULL) return -1;
-
   if (metal_function == NULL || *metal_function == nil) return -1;
 
   #if !__has_feature(objc_arc)
@@ -1034,7 +1493,6 @@ int hc_mtlReleaseLibrary (void *hashcat_ctx, mtl_library *metal_library)
   MTL_PTR *mtl = (MTL_PTR *) backend_ctx->mtl;
 
   if (mtl == NULL) return -1;
-
   if (metal_library == NULL || *metal_library == nil) return -1;
 
   #if !__has_feature(objc_arc)
@@ -1051,7 +1509,6 @@ int hc_mtlReleaseCommandQueue (void *hashcat_ctx, mtl_command_queue *command_que
   if (command_queue == NULL || *command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal command queue", __func__);
-
     return -1;
   }
 
@@ -1069,7 +1526,6 @@ int hc_mtlReleaseDevice (void *hashcat_ctx, mtl_device_id *metal_device)
   if (metal_device == NULL || *metal_device == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal device", __func__);
-
     return -1;
   }
 
@@ -1084,155 +1540,180 @@ int hc_mtlReleaseDevice (void *hashcat_ctx, mtl_device_id *metal_device)
 
 // device to device
 
-int hc_mtlMemcpyDtoD (void *hashcat_ctx, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
+int hc_mtlMemcpyDtoD (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal command queue is invalid", __func__);
-
     return -1;
   }
 
   if (mem_src.buf_ptr == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal src buffer is invalid", __func__);
-
     return -1;
   }
 
   if (mem_src_off < 0)
   {
     event_log_error (hashcat_ctx, "%s(): src buffer offset is invalid", __func__);
-
     return -1;
   }
 
   if (mem_dst.buf_ptr == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal dst buffer is invalid", __func__);
-
     return -1;
   }
 
   if (mem_dst_off < 0)
   {
     event_log_error (hashcat_ctx, "%s(): dst buffer offset is invalid", __func__);
-
     return -1;
   }
 
   if (size <= 0)
   {
     event_log_error (hashcat_ctx, "%s(): buffer size is invalid", __func__);
-
     return -1;
   }
 
   if (mem_src_off + size > [mem_src.buf_ptr length])
   {
     event_log_error (hashcat_ctx, "%s(): src buffer offset + size out of bounds", __func__);
-
     return -1;
   }
 
   if (mem_dst_off + size > [mem_dst.buf_ptr length])
   {
     event_log_error (hashcat_ctx, "%s(): dst buffer offset + size out of bounds", __func__);
-
     return -1;
   }
 
   if (mem_src.buf_mode != mem_dst.buf_mode)
   {
     event_log_error (hashcat_ctx, "%s(): src and dst buffers using different storage modes", __func__);
-
     return -1;
   }
 
-  id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
-
-  if (command_buffer == nil)
+  if (device_param->use_metal4)
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create a new command buffer", __func__);
-    return -1;
+    id command_buffer = metal4_begin_command_buffer (hashcat_ctx, device_param);
+
+    if (command_buffer == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 command buffer is nil", __func__);
+      return -1;
+    }
+
+    id compute_command_encoder = [command_buffer performSelector:device_param->mtl4_sel_computeCommandEncoder];
+
+    if (compute_command_encoder == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 compute command encoder is nil", __func__);
+      return -1;
+    }
+
+    typedef void (*copy_fn)(id, SEL, id, NSUInteger, id, NSUInteger, NSUInteger);
+    copy_fn doCopy = (copy_fn)objc_msgSend;
+
+    doCopy (compute_command_encoder, device_param->mtl4_sel_copyFromBuffer, mem_src.buf_ptr, (NSUInteger) mem_src_off, mem_dst.buf_ptr, (NSUInteger) mem_dst_off, (NSUInteger) size);
+
+    typedef void (*void_fn)(id, SEL);
+    void_fn doVoid = (void_fn)objc_msgSend;
+
+    doVoid (compute_command_encoder, device_param->mtl4_sel_endEncoding);
+
+    if (metal4_commit_and_wait (hashcat_ctx, device_param, command_buffer, NULL) == -1)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 commit (no wait) failed", __func__);
+      return -1;
+    }
   }
-
-  id<MTLBlitCommandEncoder> blit_encoder = [command_buffer blitCommandEncoder];
-
-  if (blit_encoder == nil)
+  else
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create a blit command encoder", __func__);
+    id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
 
-    return -1;
+    if (command_buffer == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create a new command buffer", __func__);
+      return -1;
+    }
+
+    id<MTLBlitCommandEncoder> blit_encoder = [command_buffer blitCommandEncoder];
+
+    if (blit_encoder == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create a blit command encoder", __func__);
+      return -1;
+    }
+
+    // copy
+
+    [blit_encoder copyFromBuffer: mem_src.buf_ptr sourceOffset: mem_src_off toBuffer: mem_dst.buf_ptr destinationOffset: mem_dst_off size: size];
+
+    if (mem_dst.buf_mode == MTL_STORAGE_MODE_MANAGED)
+    {
+      // synchronize needed with MANAGED only
+
+      [blit_encoder synchronizeResource: mem_dst.buf_ptr];
+    }
+
+    // finish encoding and start the data transfer
+
+    [blit_encoder endEncoding];
+
+    [command_buffer commit];
+
+    // wait for complete
+
+    [command_buffer waitUntilCompleted];
   }
-
-  // copy
-
-  [blit_encoder copyFromBuffer: mem_src.buf_ptr sourceOffset: mem_src_off toBuffer: mem_dst.buf_ptr destinationOffset: mem_dst_off size: size];
-
-  if (mem_dst.buf_mode == MTL_STORAGE_MODE_MANAGED)
-  {
-    // synchronize needed with MANAGED only
-
-    [blit_encoder synchronizeResource: mem_dst.buf_ptr];
-  }
-
-  // finish encoding and start the data transfer
-
-  [blit_encoder endEncoding];
-
-  [command_buffer commit];
-
-  // Wait for complete
-
-  [command_buffer waitUntilCompleted];
 
   return 0;
 }
 
 // host to device
 
-int hc_mtlMemcpyHtoD (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, const void *host_buf_src, size_t size)
+int hc_mtlMemcpyHtoD (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, mtl_mem_t mem_dst, size_t mem_dst_off, const void *host_buf_src, size_t size)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal command queue is invalid", __func__);
-
     return -1;
   }
 
   if (host_buf_src == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): host src buffer is invalid", __func__);
-
     return -1;
   }
 
   if (mem_dst.buf_ptr == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal dst buffer is invalid", __func__);
-
     return -1;
   }
 
   if (size <= 0)
   {
     event_log_error (hashcat_ctx, "%s(): buffer size is invalid", __func__);
-
     return -1;
   }
 
   if (mem_dst_off < 0)
   {
     event_log_error (hashcat_ctx, "%s(): metal dst offset is invalid", __func__);
-
     return -1;
   }
 
   if (mem_dst_off + size > [mem_dst.buf_ptr length])
   {
     event_log_error (hashcat_ctx, "%s(): metal dst offset + size out of bounds", __func__);
-
     return -1;
   }
 
@@ -1243,7 +1724,6 @@ int hc_mtlMemcpyHtoD (void *hashcat_ctx, mtl_device_id metal_device, mtl_command
     if (staging_buf == nil)
     {
       event_log_error (hashcat_ctx, "%s(): failed to create staging buffer", __func__);
-
       return -1;
     }
 
@@ -1253,57 +1733,142 @@ int hc_mtlMemcpyHtoD (void *hashcat_ctx, mtl_device_id metal_device, mtl_command
     {
       event_log_error (hashcat_ctx, "%s(): failed to get staging buffer ptr", __func__);
 
+      #if !__has_feature(objc_arc)
+      [staging_buf release];
+      #endif
+
       return -1;
     }
 
     memcpy (staging_buf_ptr, host_buf_src, size);
 
-    id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
-
-    if (command_buffer == nil)
+    if (device_param->use_metal4)
     {
-      event_log_error (hashcat_ctx, "%s(): failed to create a new command buffer", __func__);
+      // add staging_buf to Residency Set
+      typedef void (*add_alloc_fn)(id, SEL, id);
+      add_alloc_fn doAdd = (add_alloc_fn)objc_msgSend;
 
-      return -1;
+      doAdd (device_param->metal4_residency_set, device_param->mtl4_sel_addAllocation, staging_buf);
+
+      // commit Residency Set
+      typedef void (*void_fn)(id, SEL);
+      void_fn doVoid = (void_fn)objc_msgSend;
+
+      doVoid (device_param->metal4_residency_set, device_param->mtl4_sel_commit);
+
+      id command_buffer = metal4_begin_command_buffer (hashcat_ctx, device_param);
+
+      if (command_buffer == nil)
+      {
+        event_log_error (hashcat_ctx, "%s(): metal4 command buffer is nil", __func__);
+
+        #if !__has_feature(objc_arc)
+        [staging_buf release];
+        #endif
+
+        return -1;
+      }
+
+      id compute_command_encoder = [command_buffer performSelector:device_param->mtl4_sel_computeCommandEncoder];
+
+      if (compute_command_encoder == nil)
+      {
+        event_log_error (hashcat_ctx, "%s(): metal4 compute command encoder is nil", __func__);
+
+        #if !__has_feature(objc_arc)
+        [staging_buf release];
+        #endif
+
+        return -1;
+      }
+
+      typedef void (*copy_fn)(id, SEL, id, NSUInteger, id, NSUInteger, NSUInteger);
+      copy_fn doCopy = (copy_fn)objc_msgSend;
+
+      doCopy (compute_command_encoder, device_param->mtl4_sel_copyFromBuffer, staging_buf, 0, mem_dst.buf_ptr, (NSUInteger) mem_dst_off, (NSUInteger) size);
+
+      doVoid (compute_command_encoder, device_param->mtl4_sel_endEncoding);
+
+      if (metal4_commit_and_wait (hashcat_ctx, device_param, command_buffer, NULL) == -1)
+      {
+        event_log_error (hashcat_ctx, "%s(): metal4 commit (no wait) failed", __func__);
+
+        #if !__has_feature(objc_arc)
+        [staging_buf release];
+        #endif
+
+        return -1;
+      }
+
+      // remove staging_buf from Residency Set
+      typedef void (*remove_alloc_fn)(id, SEL, id);
+      remove_alloc_fn doRemove = (remove_alloc_fn)objc_msgSend;
+
+      doRemove (device_param->metal4_residency_set, device_param->mtl4_sel_removeAllocation, staging_buf);
+
+      doVoid (device_param->metal4_residency_set, device_param->mtl4_sel_commit);
+
+      #if !__has_feature(objc_arc)
+      [staging_buf release];
+      #endif
     }
-
-    id<MTLBlitCommandEncoder> blit_encoder = [command_buffer blitCommandEncoder];
-
-    if (blit_encoder == nil)
+    else
     {
-      event_log_error (hashcat_ctx, "%s(): failed to create a blit command encoder", __func__);
+      id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
 
-      return -1;
+      if (command_buffer == nil)
+      {
+        event_log_error (hashcat_ctx, "%s(): failed to create a new command buffer", __func__);
+
+        #if !__has_feature(objc_arc)
+        [staging_buf release];
+        #endif
+
+        return -1;
+      }
+
+      id<MTLBlitCommandEncoder> blit_encoder = [command_buffer blitCommandEncoder];
+
+      if (blit_encoder == nil)
+      {
+        event_log_error (hashcat_ctx, "%s(): failed to create a blit command encoder", __func__);
+
+        #if !__has_feature(objc_arc)
+        [staging_buf release];
+        #endif
+
+        return -1;
+      }
+
+      [blit_encoder copyFromBuffer: staging_buf sourceOffset: 0 toBuffer: mem_dst.buf_ptr destinationOffset: mem_dst_off size: size];
+
+      [blit_encoder endEncoding];
+
+      [command_buffer commit];
+
+      [command_buffer waitUntilCompleted];
+
+      #if !__has_feature(objc_arc)
+      [staging_buf release];
+      #endif
     }
-
-    [blit_encoder copyFromBuffer: staging_buf sourceOffset: 0 toBuffer: mem_dst.buf_ptr destinationOffset: mem_dst_off size: size];
-
-    [blit_encoder endEncoding];
-
-    [command_buffer commit];
-
-    [command_buffer waitUntilCompleted];
-
-    #if !__has_feature(objc_arc)
-    [staging_buf release];
-    #endif
 
     return 0;
   }
+
+  // SHARED/MANAGED
 
   void *mem_dst_ptr = [mem_dst.buf_ptr contents];
 
   if (mem_dst_ptr == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): failed to get metal dst ptr", __func__);
-
     return -1;
   }
 
   if (memcpy (mem_dst_ptr + mem_dst_off, host_buf_src, size) != mem_dst_ptr + mem_dst_off)
   {
     event_log_error (hashcat_ctx, "%s(): memcpy failed", __func__);
-
     return -1;
   }
 
@@ -1317,40 +1882,37 @@ int hc_mtlMemcpyHtoD (void *hashcat_ctx, mtl_device_id metal_device, mtl_command
 
 // device to host
 
-int hc_mtlMemcpyDtoH (void *hashcat_ctx, mtl_device_id metal_device, mtl_command_queue command_queue, void *host_buf_dst, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
+int hc_mtlMemcpyDtoH (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, mtl_command_queue command_queue, void *host_buf_dst, mtl_mem_t mem_src, size_t mem_src_off, size_t size)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal command queue is invalid", __func__);
-
     return -1;
   }
 
   if (mem_src.buf_ptr == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal src buffer is invalid", __func__);
-
     return -1;
   }
 
   if (host_buf_dst == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): host dst buffer is invalid", __func__);
-
     return -1;
   }
 
   if (size <= 0)
   {
     event_log_error (hashcat_ctx, "%s(): buffer size is invalid", __func__);
-
     return -1;
   }
 
   if (mem_src_off + size > [mem_src.buf_ptr length])
   {
     event_log_error (hashcat_ctx, "%s(): metal src offset + size out of bounds", __func__);
-
     return -1;
   }
 
@@ -1363,14 +1925,12 @@ int hc_mtlMemcpyDtoH (void *hashcat_ctx, mtl_device_id metal_device, mtl_command
     if (mem_src_ptr == NULL)
     {
       event_log_error (hashcat_ctx, "%s(): failed to get metal src ptr", __func__);
-
       return -1;
     }
 
     if (memcpy (host_buf_dst, mem_src_ptr + mem_src_off, size) != host_buf_dst)
     {
       event_log_error (hashcat_ctx, "%s(): memcpy failed", __func__);
-
       return -1;
     }
 
@@ -1386,57 +1946,171 @@ int hc_mtlMemcpyDtoH (void *hashcat_ctx, mtl_device_id metal_device, mtl_command
     if (staging_buf == nil)
     {
       event_log_error (hashcat_ctx, "%s(): failed to create staging buffer", __func__);
-
       return -1;
     }
   }
 
-  id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
-
-  if (command_buffer == nil)
+  if (device_param->use_metal4)
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create a new command buffer", __func__);
-
-    #if !__has_feature(objc_arc)
     if (staging_buf != nil)
     {
-      [staging_buf release];
+      // add staging_buf to Residency Set
+      typedef void (*add_alloc_fn)(id, SEL, id);
+      add_alloc_fn doAdd = (add_alloc_fn)objc_msgSend;
+
+      doAdd (device_param->metal4_residency_set, device_param->mtl4_sel_addAllocation, staging_buf);
+
+      // commit Residency Set
+      typedef void (*void_fn)(id, SEL);
+      void_fn doVoid = (void_fn)objc_msgSend;
+
+      doVoid (device_param->metal4_residency_set, device_param->mtl4_sel_commit);
     }
-    #endif
 
-    return -1;
-  }
+    id command_buffer = metal4_begin_command_buffer (hashcat_ctx, device_param);
 
-  id<MTLBlitCommandEncoder> blit_encoder = [command_buffer blitCommandEncoder];
+    if (command_buffer == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 command buffer is nil", __func__);
 
-  if (blit_encoder == nil)
-  {
-    event_log_error (hashcat_ctx, "%s(): failed to create a blit command encoder", __func__);
+      #if !__has_feature(objc_arc)
+      if (staging_buf != nil) [staging_buf release];
+      #endif
 
-    #if !__has_feature(objc_arc)
+      return -1;
+    }
+
+    id compute_command_encoder = [command_buffer performSelector:device_param->mtl4_sel_computeCommandEncoder];
+
+    if (compute_command_encoder == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 compute command encoder is nil", __func__);
+
+      #if !__has_feature(objc_arc)
+      if (staging_buf != nil) [staging_buf release];
+      #endif
+
+      return -1;
+    }
+
+    typedef void (*void_fn)(id, SEL);
+    void_fn doVoid = (void_fn)objc_msgSend;
+
+    if (mem_src.buf_mode == MTL_STORAGE_MODE_MANAGED)
+    {
+      // unified memory, encoder empty, flush with commit
+
+      doVoid (compute_command_encoder, device_param->mtl4_sel_endEncoding);
+
+      if (metal4_commit_and_wait (hashcat_ctx, device_param, command_buffer, NULL) == -1)
+      {
+        #if !__has_feature(objc_arc)
+        if (staging_buf != nil) [staging_buf release];
+        #endif
+
+        return -1;
+      }
+
+      void *mem_src_ptr = [mem_src.buf_ptr contents];
+
+      if (mem_src_ptr == NULL)
+      {
+        event_log_error (hashcat_ctx, "%s(): failed to get metal src ptr", __func__);
+
+        #if !__has_feature(objc_arc)
+        if (staging_buf != nil) [staging_buf release];
+        #endif
+
+        return -1;
+      }
+
+      if (memcpy (host_buf_dst, mem_src_ptr + mem_src_off, size) != host_buf_dst)
+      {
+        event_log_error (hashcat_ctx, "%s(): memcpy failed", __func__);
+
+        #if !__has_feature(objc_arc)
+        if (staging_buf != nil) [staging_buf release];
+        #endif
+
+        return -1;
+      }
+
+      return 0;
+    }
+
+    // PRIVATE — copy via encoder + staging
+
+    typedef void (*copy_fn)(id, SEL, id, NSUInteger, id, NSUInteger, NSUInteger);
+    copy_fn doCopy = (copy_fn)objc_msgSend;
+
+    doCopy (compute_command_encoder, device_param->mtl4_sel_copyFromBuffer, mem_src.buf_ptr, (NSUInteger) mem_src_off, staging_buf, 0, (NSUInteger) size);
+
+    doVoid (compute_command_encoder, device_param->mtl4_sel_endEncoding);
+
+    if (metal4_commit_and_wait (hashcat_ctx, device_param, command_buffer, NULL) == -1)
+    {
+      #if !__has_feature(objc_arc)
+      if (staging_buf != nil) [staging_buf release];
+      #endif
+
+      return -1;
+    }
+
     if (staging_buf != nil)
     {
-      [staging_buf release];
+      // remove staging_buf from Residency Set
+      typedef void (*remove_alloc_fn)(id, SEL, id);
+      remove_alloc_fn doRemove = (remove_alloc_fn)objc_msgSend;
+
+      doRemove (device_param->metal4_residency_set, device_param->mtl4_sel_removeAllocation, staging_buf);
+
+      // commit Residency Set
+      doVoid (device_param->metal4_residency_set, device_param->mtl4_sel_commit);
     }
-    #endif
-
-    return -1;
-  }
-
-  if (mem_src.buf_mode == MTL_STORAGE_MODE_MANAGED)
-  {
-    [blit_encoder synchronizeResource: mem_src.buf_ptr];
   }
   else
   {
-    [blit_encoder copyFromBuffer: mem_src.buf_ptr sourceOffset: mem_src_off toBuffer: staging_buf destinationOffset: 0 size: size];
+    id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
+
+    if (command_buffer == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create a new command buffer", __func__);
+
+      #if !__has_feature(objc_arc)
+      if (staging_buf != nil) [staging_buf release];
+      #endif
+
+      return -1;
+    }
+
+    id<MTLBlitCommandEncoder> blit_encoder = [command_buffer blitCommandEncoder];
+
+    if (blit_encoder == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create a blit command encoder", __func__);
+
+      #if !__has_feature(objc_arc)
+      if (staging_buf != nil) [staging_buf release];
+      #endif
+
+      return -1;
+    }
+
+    if (mem_src.buf_mode == MTL_STORAGE_MODE_MANAGED)
+    {
+      [blit_encoder synchronizeResource: mem_src.buf_ptr];
+    }
+    else
+    {
+      [blit_encoder copyFromBuffer: mem_src.buf_ptr sourceOffset: mem_src_off toBuffer: staging_buf destinationOffset: 0 size: size];
+    }
+
+    [blit_encoder endEncoding];
+
+    [command_buffer commit];
+
+    [command_buffer waitUntilCompleted];
   }
-
-  [blit_encoder endEncoding];
-
-  [command_buffer commit];
-
-  [command_buffer waitUntilCompleted];
 
   if (mem_src.buf_mode == MTL_STORAGE_MODE_MANAGED)
   {
@@ -1448,12 +2122,20 @@ int hc_mtlMemcpyDtoH (void *hashcat_ctx, mtl_device_id metal_device, mtl_command
     {
       event_log_error (hashcat_ctx, "%s(): failed to get metal src ptr", __func__);
 
+      #if !__has_feature(objc_arc)
+      if (staging_buf != nil) [staging_buf release];
+      #endif
+
       return -1;
     }
 
     if (memcpy (host_buf_dst, mem_src_ptr + mem_src_off, size) != host_buf_dst)
     {
       event_log_error (hashcat_ctx, "%s(): memcpy failed", __func__);
+
+      #if !__has_feature(objc_arc)
+      if (staging_buf != nil) [staging_buf release];
+      #endif
 
       return -1;
     }
@@ -1501,7 +2183,6 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
   if (plist_url == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): CFURLCreateWithFileSystemPath() failed\n", __func__);
-
     return -1;
   }
 
@@ -1510,19 +2191,15 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
   if (plist_stream == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): CFReadStreamCreateWithFile() failed\n", __func__);
-
     CFRelease (plist_url);
-
     return -1;
   }
 
   if (CFReadStreamOpen (plist_stream) == false)
   {
     event_log_error (hashcat_ctx, "%s(): CFReadStreamOpen() failed\n", __func__);
-
     CFRelease (plist_stream);
     CFRelease (plist_url);
-
     return -1;
   }
 
@@ -1531,11 +2208,9 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
   if (plist_prop == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): CFPropertyListCreateWithStream() failed\n", __func__);
-
     CFReadStreamClose (plist_stream);
     CFRelease (plist_stream);
     CFRelease (plist_url);
-
     return -1;
   }
 
@@ -1566,15 +2241,12 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
     if (CFStringGetCString (runtime_version_cfstr, runtimeVersion_str, maxSize, kCFStringEncodingUTF8) == false)
     {
       event_log_error (hashcat_ctx, "%s(): CFStringGetCString() failed\n", __func__);
-
       hcfree (runtimeVersion_str);
-
       CFRelease (runtime_version_cfstr);
       CFRelease (plist_prop);
       CFReadStreamClose (plist_stream);
       CFRelease (plist_stream);
       CFRelease (plist_url);
-
       return -1;
     }
 
@@ -1595,55 +2267,91 @@ int hc_mtlRuntimeGetVersionString (void *hashcat_ctx, char *runtimeVersion_str, 
   return -1;
 }
 
-int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, mtl_pipeline metal_pipeline, mtl_command_queue metal_command_queue, mtl_command_buffer *metal_command_buffer, mtl_command_encoder *metal_command_encoder)
+int hc_mtlEncodeComputeCommand_pre (void *hashcat_ctx, void *device_param_ptr, mtl_pipeline metal_pipeline, mtl_command_queue metal_command_queue, mtl_command_buffer *metal_command_buffer, mtl_command_encoder *metal_command_encoder)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (metal_pipeline == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal_pipeline", __func__);
-
     return -1;
   }
 
   if (metal_command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal_command_queue", __func__);
-
     return -1;
   }
 
-  id<MTLCommandBuffer> metal_commandBuffer = [metal_command_queue commandBuffer];
-
-  if (metal_commandBuffer == nil)
+  if (device_param->use_metal4)
   {
-    event_log_error (hashcat_ctx, "%s(): invalid metal_commandBuffer", __func__);
+    // reset scratch offset
+    device_param->metal4_scratch_offset = 0;
 
-    return -1;
+    id command_buffer = metal4_begin_command_buffer (hashcat_ctx, device_param);
+
+    if (command_buffer == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 command buffer is nil", __func__);
+      return -1;
+    }
+
+    id compute_command_encoder = [command_buffer performSelector:device_param->mtl4_sel_computeCommandEncoder];
+
+    if (compute_command_encoder == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 compute command encoder is nil", __func__);
+      return -1;
+    }
+
+    typedef void (*set_pso_fn)(id, SEL, id);
+    set_pso_fn doSetPSO = (set_pso_fn)objc_msgSend;
+
+    doSetPSO (compute_command_encoder, device_param->mtl4_sel_setComputePipelineState, metal_pipeline);
+
+    if (device_param->metal_argument_table == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 argument table is nil", __func__);
+      return -1;
+    }
+
+    *metal_command_buffer  = command_buffer;
+    *metal_command_encoder = compute_command_encoder;
   }
-
-  id<MTLComputeCommandEncoder> metal_commandEncoder = [metal_commandBuffer computeCommandEncoder];
-
-  if (metal_commandEncoder == nil)
+  else
   {
-    event_log_error (hashcat_ctx, "%s(): invalid metal_commandBuffer", __func__);
+    id<MTLCommandBuffer> metal_commandBuffer = [metal_command_queue commandBuffer];
 
-    return -1;
+    if (metal_commandBuffer == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): invalid metal_commandBuffer", __func__);
+      return -1;
+    }
+
+    id<MTLComputeCommandEncoder> metal_commandEncoder = [metal_commandBuffer computeCommandEncoder];
+
+    if (metal_commandEncoder == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): invalid metal_commandBuffer", __func__);
+      return -1;
+    }
+
+    [metal_commandEncoder setComputePipelineState: metal_pipeline];
+
+    *metal_command_buffer  = metal_commandBuffer;
+    *metal_command_encoder = metal_commandEncoder;
   }
-
-  [metal_commandEncoder setComputePipelineState: metal_pipeline];
-
-  *metal_command_buffer  = metal_commandBuffer;
-
-  *metal_command_encoder = metal_commandEncoder;
 
   return 0;
 }
 
-int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id mem, void *host_data, size_t host_data_size)
+int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, size_t off, size_t idx, id mem, void *host_data, size_t host_data_size)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (metal_command_encoder == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal_command_encoder", __func__);
-
     return -1;
   }
 
@@ -1652,7 +2360,6 @@ int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_com
   if (mem == nil && host_data == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid mem/host_data", __func__);
-
     return -1;
   }
 
@@ -1661,7 +2368,6 @@ int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_com
     if (host_data_size <= 0)
     {
       event_log_error (hashcat_ctx, "%s(): invalid host_data size", __func__);
-
       return -1;
     }
   }
@@ -1670,7 +2376,6 @@ int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_com
     if (off < 0 || off > SIZE_MAX)
     {
       event_log_error (hashcat_ctx, "%s(): invalid buf off", __func__);
-
       return -1;
     }
   }
@@ -1678,36 +2383,96 @@ int hc_mtlSetCommandEncoderArg (void *hashcat_ctx, mtl_command_encoder metal_com
   if (idx < 0)
   {
     event_log_error (hashcat_ctx, "%s(): invalid mem/host_data idx", __func__);
-
     return -1;
   }
 
-  // host_data can be objective-c object (so use nil) or C pointer (so use NULL)
-  if (host_data == nil)
+  if (device_param->use_metal4)
   {
-    [metal_command_encoder setBuffer: mem offset: off atIndex: idx];
+    if (device_param->metal_argument_table == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): invalid metal_argument_table", __func__);
+      return -1;
+    }
+
+    typedef void (*set_addr_fn)(id, SEL, unsigned long long, NSUInteger);
+    set_addr_fn doSetAddr = (set_addr_fn)objc_msgSend;
+
+    if (host_data == nil)
+    {
+      typedef unsigned long long (*gpu_addr_fn)(id, SEL);
+      gpu_addr_fn getAddr = (gpu_addr_fn)objc_msgSend;
+
+      unsigned long long gpu_addr = getAddr (mem, device_param->mtl4_sel_gpuAddress);
+
+      gpu_addr += off;
+
+      doSetAddr (device_param->metal_argument_table, device_param->mtl4_sel_setAddress_atIndex, gpu_addr, (NSUInteger) idx);
+
+      // add to Residency Set
+      typedef void (*add_alloc_fn)(id, SEL, id);
+      add_alloc_fn doAdd = (add_alloc_fn)objc_msgSend;
+
+      doAdd (device_param->metal4_residency_set, device_param->mtl4_sel_addAllocation, mem);
+    }
+    else
+    {
+      size_t alignment = 256;
+      size_t current_off = device_param->metal4_scratch_offset;
+      size_t aligned_off = (current_off + alignment - 1) & ~(alignment - 1);
+
+      if (aligned_off + host_data_size > METAL4_SCRATCH_SIZE)
+      {
+        event_log_error (hashcat_ctx, "%s(): scratch buffer overflow! Increase METAL4_SCRATCH_SIZE", __func__);
+        return -1;
+      }
+
+      void *dst = (char *)[device_param->metal4_scratch_buf contents] + aligned_off;
+
+      memcpy (dst, host_data, host_data_size);
+
+      typedef unsigned long long (*gpu_addr_fn)(id, SEL);
+      gpu_addr_fn getAddr = (gpu_addr_fn)objc_msgSend;
+      unsigned long long base_gpu_addr = getAddr (device_param->metal4_scratch_buf, device_param->mtl4_sel_gpuAddress);
+
+      unsigned long long final_gpu_addr = base_gpu_addr + aligned_off;
+
+      typedef void (*set_addr_fn)(id, SEL, unsigned long long, NSUInteger);
+      set_addr_fn doSetAddr = (set_addr_fn)objc_msgSend;
+
+      doSetAddr (device_param->metal_argument_table, device_param->mtl4_sel_setAddress_atIndex, final_gpu_addr, (NSUInteger) idx);
+
+      device_param->metal4_scratch_offset = aligned_off + host_data_size;
+    }
   }
   else
   {
-    [metal_command_encoder setBytes: host_data length: host_data_size atIndex: idx];
+    // host_data can be objective-c object (so use nil) or C pointer (so use NULL)
+    if (host_data == nil)
+    {
+      [metal_command_encoder setBuffer: mem offset: off atIndex: idx];
+    }
+    else
+    {
+      [metal_command_encoder setBytes: host_data length: host_data_size atIndex: idx];
+    }
   }
 
   return 0;
 }
 
-int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms)
+int hc_mtlEncodeComputeCommand (void *hashcat_ctx, void *device_param_ptr, mtl_command_encoder metal_command_encoder, mtl_command_buffer metal_command_buffer, const unsigned int work_dim, const size_t global_work_size[3], const size_t local_work_size[3], double *ms)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (metal_command_encoder == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal_command_encoder", __func__);
-
     return -1;
   }
 
   if (metal_command_buffer == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal_command_buffer", __func__);
-
     return -1;
   }
 
@@ -1725,25 +2490,70 @@ int hc_mtlEncodeComputeCommand (void *hashcat_ctx, mtl_command_encoder metal_com
     work_dim > 2 ? (global_work_size[2] + threadsPerThreadgroup.depth - 1) / threadsPerThreadgroup.depth : 1
   };
 
-  [metal_command_encoder dispatchThreadgroups: threadgroupsPerGrid threadsPerThreadgroup: threadsPerThreadgroup];
+  if (device_param->use_metal4)
+  {
+    // ResidencySet commit
+    typedef void (*void_fn)(id, SEL);
+    void_fn doVoid = (void_fn)objc_msgSend;
 
-  [metal_command_encoder endEncoding];
+    // commit Residency Set
+    doVoid (device_param->metal4_residency_set, device_param->mtl4_sel_commit);
 
-  // using completition handler to get GPU timing
+    /*
+    // add barrier
+    HC_MTL_SELECTOR(metal_command_encoder, "MTL4CommandEncoder", @"barrierAfterQueueStages:beforeStages:visibilityOptions:", barrierAfterQueueStagesSel, hashcat_ctx, -1);
 
-  __block CFTimeInterval elapsed = 0;
+    typedef void (*barrier_fn)(id, SEL, NSUInteger, NSUInteger, NSUInteger);
+    barrier_fn doBarrier = (barrier_fn)objc_msgSend;
 
-  [metal_command_buffer addCompletedHandler:^(id<MTLCommandBuffer> cb) {
-    CFTimeInterval gpuStart = cb.GPUStartTime;
-    CFTimeInterval gpuEnd = cb.GPUEndTime;
-    elapsed = gpuEnd - gpuStart;
+    doBarrier (metal_command_encoder, barrierAfterQueueStagesSel,
+               4,  // afterQueueStages: MTLStageDispatch
+               4,  // beforeStages: MTLStageDispatch
+               1); // visibilityOptions: MTLVisibilityOptionDevice (flush cache)
+    */
 
-    *ms = elapsed * 1000.0;
-  }];
+    // set Argument Table
+    typedef void (*set_table_fn)(id, SEL, id);
+    set_table_fn doSetTable = (set_table_fn)objc_msgSend;
 
-  [metal_command_buffer commit];
+    doSetTable (metal_command_encoder, device_param->mtl4_sel_setArgumentTable, device_param->metal_argument_table);
 
-  [metal_command_buffer waitUntilCompleted];
+    // dispatch
+    typedef void (*dispatch_fn)(id, SEL, MTLSize, MTLSize);
+    dispatch_fn doDispatch = (dispatch_fn)objc_msgSend;
+
+    doDispatch (metal_command_encoder, device_param->mtl4_sel_dispatchThreadgroups, threadgroupsPerGrid, threadsPerThreadgroup);
+
+    // end encoding
+    doVoid (metal_command_encoder, device_param->mtl4_sel_endEncoding);
+
+    if (metal4_commit_and_wait (hashcat_ctx, device_param, metal_command_buffer, ms) == -1)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 commit (and wait) failed", __func__);
+      return -1;
+    }
+  }
+  else
+  {
+    [metal_command_encoder dispatchThreadgroups: threadgroupsPerGrid threadsPerThreadgroup: threadsPerThreadgroup];
+
+    [metal_command_encoder endEncoding];
+
+    // using completition handler to get GPU timing
+
+    __block CFTimeInterval elapsed = 0;
+
+    [metal_command_buffer addCompletedHandler:^(id<MTLCommandBuffer> cb) {
+      CFTimeInterval gpuStart = cb.GPUStartTime;
+      CFTimeInterval gpuEnd = cb.GPUEndTime;
+      elapsed = gpuEnd - gpuStart;
+      *ms = elapsed * 1000.0;
+    }];
+
+    [metal_command_buffer commit];
+
+    [metal_command_buffer waitUntilCompleted];
+  }
 
   return 0;
 }
@@ -1755,14 +2565,12 @@ int hc_mtlCreateLibraryWithFile (void *hashcat_ctx, mtl_device_id metal_device, 
   if (metal_device == nil)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metal device", __func__);
-
     return -1;
   }
 
   if (cached_file == NULL)
   {
     event_log_error (hashcat_ctx, "%s(): invalid metallib", __func__);
-
     return -1;
   }
 
@@ -1779,7 +2587,6 @@ int hc_mtlCreateLibraryWithFile (void *hashcat_ctx, mtl_device_id metal_device, 
       if (error != nil)
       {
         event_log_error (hashcat_ctx, "%s(): failed to create metal library from metallib, %s", __func__, [[error localizedDescription] UTF8String]);
-
         return -1;
       }
 
@@ -1792,8 +2599,10 @@ int hc_mtlCreateLibraryWithFile (void *hashcat_ctx, mtl_device_id metal_device, 
   return -1;
 }
 
-int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library)
+int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, void *device_param_ptr, mtl_device_id metal_device, const char *kernel_sources, const char *build_options_buf, const char *cpath, mtl_library *metal_library)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   NSError *error = nil;
 
   NSString *k_string = [NSString stringWithCString: kernel_sources encoding: NSUTF8StringEncoding];
@@ -1806,16 +2615,16 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device
 
     if (build_options_buf != NULL)
     {
-      //printf ("using build_opts from arg:\n%s\n", build_options_buf);
+      //#if defined (DEBUG)
+      //event_log_info (hashcat_ctx, "%s(): using build_opts from arg:\n%s\n", __func__, build_options_buf);
+      //#endif
 
-      build_options_dict = [NSMutableDictionary dictionary]; //[[NSMutableDictionary alloc] init];
+      build_options_dict = [NSMutableDictionary dictionary];
 
       if (hc_mtlBuildOptionsToDict (hashcat_ctx, build_options_buf, cpath, build_options_dict) == -1)
       {
         event_log_error (hashcat_ctx, "%s(): failed to build options dictionary", __func__);
-
         [build_options_dict release];
-
         return -1;
       }
 
@@ -1829,51 +2638,57 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device
       */
     }
 
-    // todo: detect current os version and choose the right
-    // compileOptions.languageVersion = MTL_LANGUAGEVERSION_2_3;
-/*
-    if (@available(macOS 15.0, *))
+    id<MTLLibrary> metal_library_tmp = nil;
+
+    if (device_param->use_metal4)
     {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_3_2;
+      // create Metal 4 compiler
+      Class compilerDescClass = NSClassFromString(@"MTL4CompilerDescriptor");
+      if (compilerDescClass == nil) return -1;
+
+      id compilerDesc = [compilerDescClass new];
+
+      HC_MTL_SELECTOR(metal_device, "MTLDevice", @"newCompilerWithDescriptor:error:", newCompilerWithDescriptorSel, hashcat_ctx, -1);
+
+      typedef id (*new_compiler_fn)(id, SEL, id, NSError **);
+      new_compiler_fn doNewCompiler = (new_compiler_fn)objc_msgSend;
+      id compiler = doNewCompiler(metal_device, newCompilerWithDescriptorSel, compilerDesc, &error);
+
+      if (compiler == nil)
+      {
+        event_log_error(hashcat_ctx, "%s(): failed to create metal4 compiler: %s", __func__, error ? [[error localizedDescription] UTF8String] : "unknown");
+        return -1;
+      }
+
+      // create MTL4LibraryDescriptor
+      Class libDescClass = NSClassFromString(@"MTL4LibraryDescriptor");
+      if (libDescClass == nil) return -1;
+
+      id libDesc = [libDescClass new];
+
+      HC_MTL_SELECTOR(libDesc, "MTL4LibraryDescriptor", @"setSource:", setSourceSel, hashcat_ctx, -1);
+
+      HC_MTL_SELECTOR(libDesc, "MTL4LibraryDescriptor", @"setOptions:", setOptionsSel, hashcat_ctx, -1);
+
+      typedef void (*set_obj_fn)(id, SEL, id);
+      set_obj_fn doSet = (set_obj_fn)objc_msgSend;
+
+      // set source and options
+      doSet (libDesc, setSourceSel, k_string);
+      doSet (libDesc, setOptionsSel, compileOptions);
+
+      // build library
+      HC_MTL_SELECTOR(compiler, "MTL4Compiler", @"newLibraryWithDescriptor:error:", newLibraryWithDescriptorSel, hashcat_ctx, -1);
+
+      typedef id (*new_lib_fn)(id, SEL, id, NSError **);
+      new_lib_fn doNewLib = (new_lib_fn)objc_msgSend;
+
+      metal_library_tmp = doNewLib (compiler, newLibraryWithDescriptorSel, libDesc, &error);
     }
-    else if (@available(macOS 14.0, *))
+    else
     {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_3_1;
+      metal_library_tmp = [metal_device newLibraryWithSource: k_string options: compileOptions error: &error];
     }
-    else if (@available(macOS 13.0, *))
-    {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_3_0;
-    }
-    else if (@available(macOS 12.0, *))
-    {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_2_4;
-    }
-    else if (@available(macOS 11.0, *))
-    {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_2_3;
-    }
-    else if (@available(macOS 10.15, *))
-    {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_2_2;
-    }
-    else if (@available(macOS 10.14, *))
-    {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_2_1;
-    }
-    else if (@available(macOS 10.13, *))
-    {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_2_0;
-    }
-    else if (@available(macOS 10.12, *))
-    {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_1_2;
-    }
-    else if (@available(macOS 10.11, *))
-    {
-      compileOptions.languageVersion = MTL_LANGUAGEVERSION_1_1;
-    }
-*/
-    id<MTLLibrary> metal_library_tmp = [metal_device newLibraryWithSource: k_string options: compileOptions error: &error];
 
     #if !__has_feature(objc_arc)
     [compileOptions release];
@@ -1893,7 +2708,6 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device
     if (error != nil)
     {
       event_log_error (hashcat_ctx, "%s(): failed to create metal library, %s", __func__, [[error localizedDescription] UTF8String]);
-
       return -1;
     }
 
@@ -1905,27 +2719,46 @@ int hc_mtlCreateLibraryWithSource (void *hashcat_ctx, mtl_device_id metal_device
   return -1;
 }
 
-int hc_mtlFinish (void *hashcat_ctx, mtl_command_queue command_queue)
+int hc_mtlFinish (void *hashcat_ctx, void *device_param_ptr, mtl_command_queue command_queue)
 {
+  hc_device_param_t *device_param = (hc_device_param_t *) device_param_ptr;
+
   if (command_queue == nil)
   {
     event_log_error (hashcat_ctx, "%s(): metal command queue is invalid", __func__);
-
     return -1;
   }
 
-  id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
-
-  if (command_buffer == nil)
+  if (device_param->use_metal4)
   {
-    event_log_error (hashcat_ctx, "%s(): failed to create a new command buffer", __func__);
+    id command_buffer = metal4_begin_command_buffer (hashcat_ctx, device_param);
 
-    return -1;
+    if (command_buffer == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 command buffer is nil", __func__);
+      return -1;
+    }
+
+    if (metal4_commit_and_wait (hashcat_ctx, device_param, command_buffer, NULL) == -1)
+    {
+      event_log_error (hashcat_ctx, "%s(): metal4 commit (no wait) failed", __func__);
+      return -1;
+    }
   }
+  else
+  {
+    id<MTLCommandBuffer> command_buffer = [command_queue commandBuffer];
 
-  [command_buffer commit];
+    if (command_buffer == nil)
+    {
+      event_log_error (hashcat_ctx, "%s(): failed to create a new command buffer", __func__);
+      return -1;
+    }
 
-  [command_buffer waitUntilCompleted];
+    [command_buffer commit];
+
+    [command_buffer waitUntilCompleted];
+  }
 
   return 0;
 }

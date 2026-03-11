@@ -157,6 +157,7 @@ int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->attack_mode  == ATTACK_MODE_HYBRID1)      return 0;
   if (user_options->attack_mode  == ATTACK_MODE_HYBRID2)      return 0;
   if (user_options->attack_mode  == ATTACK_MODE_ASSOCIATION)  return 0;
+  if (user_options->attack_mode  == ATTACK_MODE_PCFG)         return 0;
 
   generic_ctx->enabled = true;
 

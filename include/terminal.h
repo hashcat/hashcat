@@ -51,6 +51,7 @@ void SetConsoleWindowSize (const int x);
 
 int tty_break (void);
 int tty_getchar (void);
+int tty_getchar_nb (void);
 int tty_fix (void);
 
 bool is_stdout_terminal (void);

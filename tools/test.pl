@@ -390,7 +390,7 @@ sub single
   my $len = shift;
 
   # fallback to incrementing length
-  undef $len unless is_count ($len);
+  undef $len unless is_count($len);
 
   my $word_min = ($IS_OPTIMIZED == 1) ? $constraints->[2]->[0] : $constraints->[0]->[0];
   my $word_max = ($IS_OPTIMIZED == 1) ? $constraints->[2]->[1] : $constraints->[0]->[1];
@@ -797,7 +797,7 @@ sub random_count
 {
   my $max = shift;
 
-  return unless is_count $max;
+  return unless is_count($max);
 
   return int ((rand ($max - 1)) + 1);
 }

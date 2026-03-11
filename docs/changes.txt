@@ -4,16 +4,55 @@
 ## Improvements
 ##
 
-Docker: Add hashcat-toolchain
+- Added new attack-mode: Probabilistic Context-Free Grammar Attack (aka "PCFG") with Probability, OMEN, and AHF (Adaptive Hybrid-Fuzzing) generation strategies
+- Added --session/--restore, --skip/--limit, and --keyspace support for PCFG attack mode (-a 10)
+- Docker: Add hashcat-toolchain
+- Enable SSE2 intrinsics path for scrypt-jane bridge on ARM via sse2neon
+- Improved performance by skip unnecessary memset of pws_comp/pws_idx in dispatch loops
+- Replaced qsort with in-place MSD radix sort for non-salted hash deduplication
+- Replaced scalar line counting with SIMD-accelerated implementation (AVX2/SSE2/NEON)
+- Updated benchmark_deep.pl: now support --attack-mode (only 0, 3 and 10) and other options
+- Updated github workflow: add OpenMP support, fix NetBSD job
+- Updated install_modules.sh: add missing py sm3utils, fix py cryptocplus, fix perl DES, handle RPI
+- Updated makefile: add OpenMP support, switch from -O2 to -O3
+- Updated test_edge.sh: fix 33700 handling, skip luks, add more stats
+- Updated BUILD.md: add missing Rustup stage and required packages for Linux/MacOS
 
 ##
 ## Bugs
 ##
 
 - Added workaround for CUDA memory leak in benchmark mode caused by register spilling
+- Fixed bug on 35500 kernel with Metal
+- Fixed bugs on 13731, 13732 and 13733 with AMD: add missing module_jit_build_options to force native_threads to 32 with GPU devices
 - Fixed bugs on multiple DES based modules when used with CPU devices
+- Fixed memory leak in loopback context (missing filename deallocation)
+- Fixed module_constraints for 14400, 15000, 34400, 34500, 35300 and 35400
+- Fixed module_generate_hash for 26900 by strip trailing zero bytes from engineID
+- Fixed setShouldMaximizeConcurrentCompilation on Metal backend for parallel PSO compilation
+- Fixed test.pl indirect method call syntax for is_count
+- Fixed test.sh attack mode 3 and 6 for hash type 3000, 8500, 8501, 7701, 11500, 14000, 14100, 14400, 16000 and 27900
+- Fixed test.sh attack mode 7 for hash type 33501 and 33502
+- Fixed test.sh cryptoloop_test bug for hash type 14553
+- Fixed unsupported get_segwit_address call for modules 28504 and 30904
+- Fixed u32 multiplication overflow in pointer arithmetic for large hash/salt counts
+- Fixed signed integer issues (int to u32) in find_hash(), hashcat_status_t, and sort_by_salt()
+- Fixed AUX2/AUX3/AUX4 kernel dispatch returning AUX1 pipeline on both Metal and OpenCL backends
+- Fixed Python reference counting bugs in bridge (crash with Python 3.14+)
 - Fixed MSYS2 build
-- Disable setShouldMaximizeConcurrentCompilation on ext_metal.m, due to segfault on macos Tahoe
+- Fixed --runtime usage togheter with --stdout
+
+##
+## Backends
+##
+
+- Added Metal 4 support
+
+##
+## Features
+##
+
+- PCFG Loopback: After dictionary attack, auto-train PCFG model from cracked passwords and run iterative PCFG attacks until no new cracks are found
 
 * changes v7.1.1 -> v7.1.2
 

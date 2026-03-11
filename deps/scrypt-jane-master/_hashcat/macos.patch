@@ -1,14 +1,44 @@
 diff --git a/code/scrypt-jane-portable-x86.h b/code/scrypt-jane-portable-x86.h
-index 396a7bd..e7858cd 100644
 --- a/code/scrypt-jane-portable-x86.h
 +++ b/code/scrypt-jane-portable-x86.h
-@@ -459,4 +459,11 @@ get_top_cpuflag_desc(size_t flag) {
+@@ -85,7 +85,9 @@
+ 		typedef __m128d xmmd;
+ 	#endif
+ 	#if defined(X86_INTRINSIC_SSE2)
+-		#include <emmintrin.h>
++		#if !defined(__aarch64__) && !defined(__arm__)
++		#include <emmintrin.h>
++		#endif
+ 		typedef __m128i xmmi;
+ 	#endif
+ 	#if defined(X86_INTRINSIC_SSSE3)
+@@ -143,3 +145,3 @@
+ #if defined(X86_INTRINSIC_SSSE3)
+-	static const packedelem8 ALIGN(16) ssse3_rotl16_32bit      = {{2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13}};
+-	static const packedelem8 ALIGN(16) ssse3_rotl8_32bit       = {{3,0,1,2,7,4,5,6,11,8,9,10,15,12,13,14}};
++	static const packedelem8 JANE_ALIGN(16) ssse3_rotl16_32bit      = {{2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13}};
++	static const packedelem8 JANE_ALIGN(16) ssse3_rotl8_32bit       = {{3,0,1,2,7,4,5,6,11,8,9,10,15,12,13,14}};
+ #endif
+@@ -459,4 +461,21 @@ get_top_cpuflag_desc(size_t flag) {
  	#endif
  #endif
- 
+
 -#endif /* defined(CPU_X86) || defined(CPU_X86_64) */
 \ No newline at end of file
 +#else
++
++typedef enum cpu_flags_x86_t {
++	cpu_mmx = 1 << 0,
++	cpu_sse = 1 << 1,
++	cpu_sse2 = 1 << 2,
++	cpu_sse3 = 1 << 3,
++	cpu_ssse3 = 1 << 4,
++	cpu_sse4_1 = 1 << 5,
++	cpu_sse4_2 = 1 << 6,
++	cpu_avx = 1 << 7,
++	cpu_xop = 1 << 8,
++	cpu_avx2 = 1 << 9
++} cpu_flags_x86;
 +
 +static size_t
 +detect_cpu(void) {
@@ -17,7 +47,6 @@ index 396a7bd..e7858cd 100644
 +
 +#endif /* defined(CPU_X86) || defined(CPU_X86_64) */
 diff --git a/code/scrypt-jane-portable.h b/code/scrypt-jane-portable.h
-index e83e314..26690ed 100644
 --- a/code/scrypt-jane-portable.h
 +++ b/code/scrypt-jane-portable.h
 @@ -92,7 +92,7 @@
@@ -39,7 +68,6 @@ index e83e314..26690ed 100644
  #endif
  #if defined(__MINGW32__) || defined(__MINGW64__)
 diff --git a/code/scrypt-jane-romix-basic.h b/code/scrypt-jane-romix-basic.h
-index 57ba649..ddae500 100644
 --- a/code/scrypt-jane-romix-basic.h
 +++ b/code/scrypt-jane-romix-basic.h
 @@ -35,9 +35,9 @@ scrypt_test_mix_instance(chunkmixfn mixfn, blockfixfn prefn, blockfixfn postfn,
@@ -55,7 +83,6 @@ index 57ba649..ddae500 100644
  	uint8_t final[16];
  	size_t i;
 diff --git a/code/scrypt-jane-romix-template.h b/code/scrypt-jane-romix-template.h
-index 6bbda62..77c0114 100644
 --- a/code/scrypt-jane-romix-template.h
 +++ b/code/scrypt-jane-romix-template.h
 @@ -20,9 +20,9 @@
@@ -69,15 +96,14 @@ index 6bbda62..77c0114 100644
 +	scrypt_mix_word_t JANE_ALIGN(16) X[SCRYPT_BLOCK_WORDS], *block;
  #endif
  	uint32_t i, j, blocksPerChunk = r * 2, half = 0;
- 
+
 diff --git a/test.sh b/test.sh
 old mode 100644
 new mode 100755
-index dc3d032..13be9eb
 --- a/test.sh
 +++ b/test.sh
 @@ -2,7 +2,7 @@
- 
+
  test() {
  	sleep 0.25 # mingw is stupid and will occasionally not have permission to overwrite scrypt_test
 -	gcc scrypt-jane-test.c -O3 -DSCRYPT_$1 -DSCRYPT_$2 $3 -o scrypt_test 2>/dev/null

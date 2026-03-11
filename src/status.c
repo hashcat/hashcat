@@ -16,6 +16,7 @@
 #include "mpsp.h"
 #include "terminal.h"
 #include "shared.h"
+#include "pcfg.h"
 #include "status.h"
 
 static const char *const  ST_0000 = "Initializing";
@@ -411,7 +412,9 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
   if (user_options->custom_charset_7) has_mask_cs = true;
   if (user_options->custom_charset_8) has_mask_cs = true;
 
-  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+   || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+   || (user_options->attack_mode == ATTACK_MODE_PCFG))
   {
     if (has_wordlist == true)
     {
@@ -494,6 +497,31 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
+  if (user_options->attack_mode == ATTACK_MODE_PCFG)
+  {
+    pcfg_ctx_t *pcfg_ctx = hashcat_ctx->pcfg_ctx;
+
+    if (pcfg_ctx->pcfg_model_file)
+    {
+      char buf[PATH_MAX];
+
+      snprintf (buf, sizeof (buf), "PCFG Generator (Model: %s)", pcfg_ctx->pcfg_model_file);
+
+      return strdup (buf);
+    }
+
+    if (pcfg_ctx->pcfg_train_file)
+    {
+      char buf[PATH_MAX];
+
+      snprintf (buf, sizeof (buf), "PCFG Generator (Train: %s)", pcfg_ctx->pcfg_train_file);
+
+      return strdup (buf);
+    }
+
+    return strdup ("PCFG Generator");
+  }
+
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
@@ -512,6 +540,7 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
     {
       return strdup (combinator_ctx->dict1);
     }
+
     return strdup (combinator_ctx->dict2);
   }
 
@@ -556,7 +585,9 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+   || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+   || (user_options->attack_mode == ATTACK_MODE_PCFG))
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -609,7 +640,9 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+   || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+   || (user_options->attack_mode == ATTACK_MODE_PCFG))
   {
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
@@ -672,7 +705,10 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+   || (user_options->attack_mode == ATTACK_MODE_GENERIC)
+   || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+   || (user_options->attack_mode == ATTACK_MODE_PCFG))
   {
     return status_get_rules_file (hashcat_ctx);
   }
@@ -722,7 +758,10 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+   || (user_options->attack_mode == ATTACK_MODE_GENERIC)
+   || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+   || (user_options->attack_mode == ATTACK_MODE_PCFG))
   {
     return 1;
   }
@@ -766,7 +805,10 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+   || (user_options->attack_mode == ATTACK_MODE_GENERIC)
+   || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+   || (user_options->attack_mode == ATTACK_MODE_PCFG))
   {
     return 1;
   }
@@ -828,7 +870,14 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
   const char *custom_charset_7 = user_options->custom_charset_7;
   const char *custom_charset_8 = user_options->custom_charset_8;
 
-  if ((custom_charset_1 != NULL) || (custom_charset_2 != NULL) || (custom_charset_3 != NULL) || (custom_charset_4 != NULL) || (custom_charset_5 != NULL) || (custom_charset_6 != NULL) || (custom_charset_7 != NULL) || (custom_charset_8 != NULL))
+  if ((custom_charset_1 != NULL)
+   || (custom_charset_2 != NULL)
+   || (custom_charset_3 != NULL)
+   || (custom_charset_4 != NULL)
+   || (custom_charset_5 != NULL)
+   || (custom_charset_6 != NULL)
+   || (custom_charset_7 != NULL)
+   || (custom_charset_8 != NULL))
   {
     char *tmp_buf;
 
@@ -841,7 +890,9 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
     if (custom_charset_7 == NULL) custom_charset_7 = "N/A";
     if (custom_charset_8 == NULL) custom_charset_8 = "N/A";
 
-    hc_asprintf (&tmp_buf, "-1 %s, -2 %s, -3 %s, -4 %s, -5 %s, -6 %s, -7 %s, -8 %s", custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4, custom_charset_5, custom_charset_6, custom_charset_7, custom_charset_8);
+    hc_asprintf (&tmp_buf, "-1 %s, -2 %s, -3 %s, -4 %s, -5 %s, -6 %s, -7 %s, -8 %s",
+                 custom_charset_1, custom_charset_2, custom_charset_3, custom_charset_4,
+                 custom_charset_5, custom_charset_6, custom_charset_7, custom_charset_8);
 
     return tmp_buf;
   }
@@ -861,11 +912,247 @@ int status_get_guess_mask_length (const hashcat_ctx_t *hashcat_ctx)
   return mp_get_length (mask_ctx->mask, hashconfig->opts_type);
 }
 
+char *status_get_pcfg_model_info_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const pcfg_ctx_t     *pcfg_ctx     = hashcat_ctx->pcfg_ctx;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (pcfg_ctx == NULL) return NULL;
+
+  if (pcfg_ctx->enabled == 0) return NULL;
+
+  if (status_ctx->accessible == false) return NULL;
+
+  hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  char *display = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  if ((device_param->skipped == true) || (device_param->skipped_warning == true))
+  {
+    snprintf (display, HCBUFSIZ_TINY, "[Skipped]");
+
+    return display;
+  }
+
+  int gen_idx = backend_devices_idx;
+
+  if (gen_idx != -1 && pcfg_ctx->generators[gen_idx])
+  {
+    pcfg_gen_t *gen = pcfg_ctx->generators[gen_idx];
+
+    if (gen == NULL) return NULL;
+
+    u32 s_idx = gen->burst_cand.struct_idx;
+
+    if (gen->model && s_idx < gen->ahf_struct_cnt)
+    {
+      pcfg_structure_t *s = NULL;
+
+      if (gen->ahf_structures == NULL)
+      {
+        s = &gen->model->structures[s_idx];
+      }
+      else
+      {
+        s = &gen->ahf_structures[s_idx];
+      }
+
+      char pattern_buf[PCFG_PATTERN_MAX];
+
+      u32 pw_len = pcfg_get_pattern_str (s, pattern_buf, sizeof (pattern_buf));
+
+      if (user_options->pcfg_mode != PCFG_MODE_CPU_RANDOM_AHF && pcfg_ctx->struct_shuffle == false)
+      {
+        if (user_options->pcfg_mode == PCFG_MODE_GPU_PROB)
+        {
+          pcfg_gpu_prob_status_info_t info;
+
+          if (pcfg_gpu_prob_get_status_info (pcfg_ctx->gpu_prob_ctx, gen, &info) == 0)
+          {
+            float prob = gen->model->structures[info.current_struct].prob;
+
+            snprintf (display, HCBUFSIZ_TINY, "%s (Prob:%.4f%%, Struct:%u/%u, Progress:%" PRIu64 "/%" PRIu64 ", Len:%u)",
+                      info.pattern, prob * 100.0f, info.current_struct + 1, info.struct_cnt, info.struct_generated,
+                      info.struct_keyspace_device, info.struct_total_len);
+          }
+          else
+          {
+            snprintf (display, HCBUFSIZ_TINY, "N/A");
+          }
+        }
+        else if (user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST)
+        {
+          pcfg_gpu_omen_status_info_t info;
+
+          if (pcfg_gpu_omen_get_status_info (hashcat_ctx, gen, &info) == 0)
+          {
+            u32 chunk_idx = info.current_cost; // Mappato da omen_target_cost
+            u64 loop_idx = info.current_loop;
+            u32 struct_idx = info.struct_idx_in_cost;
+
+            u32 lvl_start = 0, lvl_end = 0;
+
+            if (pcfg_ctx->omen_chunks && chunk_idx < pcfg_ctx->omen_num_chunks)
+            {
+              lvl_start = pcfg_ctx->omen_chunks[chunk_idx].cost_start;
+              lvl_end = pcfg_ctx->omen_chunks[chunk_idx].cost_end;
+            }
+
+            int pos = 0;
+
+            if (info.omen_type == PCFG_OMEN_TYPE_CLASSIC)
+            {
+               // Classic: Chunk oriented
+               pos = snprintf (display, HCBUFSIZ_TINY, "%s (Chunk:%u/%u [Cost %u-%u], Cost:%u/%u, Struct:%u",
+                               info.pattern, chunk_idx + 1, pcfg_ctx->omen_num_chunks, lvl_start, lvl_end, info.omen_cost, gen->omen_max_target_cost, struct_idx);
+            }
+            else
+            {
+               // Interleaved: Loop oriented
+               u64 max_loops = pcfg_ctx->omen_max_loops;
+
+               pos = snprintf (display, HCBUFSIZ_TINY, "%s (Loop:%" PRIu64 "/%" PRIu64 ", Chunk:%u/%u [Cost %u-%u], Cost:%u/%u, Struct:%u",
+                               info.pattern, loop_idx + 1, max_loops, chunk_idx + 1, pcfg_ctx->omen_num_chunks, lvl_start, lvl_end, info.omen_cost, gen->omen_max_target_cost, struct_idx);
+            }
+
+            snprintf (display + pos, HCBUFSIZ_TINY - pos, ", Len:%u)", info.struct_total_len);
+          }
+          else
+          {
+            snprintf (display, HCBUFSIZ_TINY, "N/A");
+          }
+        }
+        else if (user_options->pcfg_mode == PCFG_MODE_CPU_PROB)
+        {
+          pcfg_gpu_prob_ctx_t *gpu_prob_ctx = pcfg_ctx->gpu_prob_ctx;
+
+          if (gpu_prob_ctx != NULL && gpu_prob_ctx->linear_data != NULL)
+          {
+            pcfg_gpu_prob_data_t *lin = gpu_prob_ctx->linear_data;
+            u32 s_idx = gen->curr_struct_idx;
+
+            if (s_idx >= lin->struct_cnt) s_idx = (lin->struct_cnt > 0) ? lin->struct_cnt - 1 : 0;
+
+            if (lin->struct_cnt > 0)
+            {
+              const pcfg_gpu_prob_structure_t *ls = &lin->structures[s_idx];
+              char lin_pattern[PCFG_PATTERN_MAX];
+
+              build_pattern_string (ls, lin_pattern, sizeof (lin_pattern));
+
+              u64 global_idx = pcfg_ctx->pcfg_skip + pcfg_ctx->words_generated;
+              u64 struct_progress = (global_idx > ls->cumulative) ? global_idx - ls->cumulative : 0;
+
+              if (struct_progress > ls->keyspace) struct_progress = ls->keyspace;
+
+              float prob = gen->model->structures[s_idx].prob;
+
+              snprintf (display, HCBUFSIZ_TINY, "%s (Prob:%.4f%%, Struct:%u/%u, Progress:%" PRIu64 "/%" PRIu64 ", Len:%u)",
+                        lin_pattern, prob * 100.0f, s_idx + 1, lin->struct_cnt, struct_progress, ls->keyspace, ls->total_len);
+            }
+            else
+            {
+              snprintf (display, HCBUFSIZ_TINY, "N/A");
+            }
+          }
+          else
+          {
+            snprintf (display, HCBUFSIZ_TINY, "N/A");
+          }
+        }
+        else if (user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_COST || user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_STRUCT)
+        {
+          if (gen->omen_linear_has_work_unit && gen->curr_struct_idx != UINT32_MAX)
+          {
+            u32 chunk_idx = gen->omen_linear_current_work_id % pcfg_ctx->omen_num_chunks;
+            u64 loop_idx = gen->omen_global_loop_idx;
+            u32 lvl_start = 0, lvl_end = 0;
+
+            if (pcfg_ctx->omen_chunks && chunk_idx < pcfg_ctx->omen_num_chunks)
+            {
+              lvl_start = pcfg_ctx->omen_chunks[chunk_idx].cost_start;
+              lvl_end = pcfg_ctx->omen_chunks[chunk_idx].cost_end;
+            }
+
+            int pos = 0;
+
+            if (user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_STRUCT)
+            {
+              // BY_STRUCT: show Struct:idx like GPU, and struct range when struct-based split
+              if (user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC && pcfg_ctx->omen_num_chunks > 1)
+              {
+                u32 s_start = pcfg_ctx->omen_chunks[chunk_idx].struct_start;
+                u32 s_end   = pcfg_ctx->omen_chunks[chunk_idx].struct_end;
+
+                pos = snprintf (display, HCBUFSIZ_TINY, "%s (Chunk:%u/%u [Struct %u-%u], Cost:%u/%u, Struct:%u",
+                                pattern_buf, chunk_idx + 1, pcfg_ctx->omen_num_chunks, s_start, s_end - 1,
+                                gen->omen_target_cost, gen->omen_max_target_cost, gen->curr_struct_idx);
+              }
+              else if (user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC)
+              {
+                pos = snprintf (display, HCBUFSIZ_TINY, "%s (Chunk:%u/%u [Cost %u-%u], Cost:%u/%u, Struct:%u",
+                                pattern_buf, chunk_idx + 1, pcfg_ctx->omen_num_chunks, lvl_start, lvl_end,
+                                gen->omen_target_cost, gen->omen_max_target_cost, gen->curr_struct_idx);
+              }
+              else
+              {
+                pos = snprintf (display, HCBUFSIZ_TINY, "%s (Loop:%" PRIu64 "/%" PRIu64 ", Chunk:%u/%u [Cost %u-%u], Cost:%u/%u, Struct:%u",
+                                pattern_buf, loop_idx + 1, pcfg_ctx->omen_max_loops,
+                                chunk_idx + 1, pcfg_ctx->omen_num_chunks, lvl_start, lvl_end,
+                                gen->omen_target_cost, gen->omen_max_target_cost, gen->curr_struct_idx);
+              }
+
+              snprintf (display + pos, HCBUFSIZ_TINY - pos, ", Len:%u)", pw_len);
+            }
+            else
+            {
+              // BY_COST: show Struct:idx like GPU
+              if (user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC)
+              {
+                pos = snprintf (display, HCBUFSIZ_TINY, "%s (Chunk:%u/%u [Cost %u-%u], Cost:%u/%u, Struct:%u",
+                                pattern_buf, chunk_idx + 1, pcfg_ctx->omen_num_chunks, lvl_start, lvl_end,
+                                gen->omen_target_cost, gen->omen_max_target_cost, gen->curr_struct_idx);
+              }
+              else
+              {
+                pos = snprintf (display, HCBUFSIZ_TINY, "%s (Loop:%" PRIu64 "/%" PRIu64 ", Chunk:%u/%u [Cost %u-%u], Cost:%u/%u, Struct:%u",
+                                pattern_buf, loop_idx + 1, pcfg_ctx->omen_max_loops,
+                                chunk_idx + 1, pcfg_ctx->omen_num_chunks, lvl_start, lvl_end,
+                                gen->omen_target_cost, gen->omen_max_target_cost, gen->curr_struct_idx);
+              }
+
+              snprintf (display + pos, HCBUFSIZ_TINY - pos, ", Len:%u)", pw_len);
+            }
+          }
+          else
+          {
+            snprintf (display, HCBUFSIZ_TINY, "N/A");
+          }
+        }
+        else
+        {
+          snprintf (display, HCBUFSIZ_TINY, "%s (Prob:%.4f%%, Count:%lu, Len:%u)",
+                    pattern_buf, s->prob * 100.0f, (unsigned long) s->count, pw_len);
+        }
+      }
+      else
+      {
+        snprintf (display, HCBUFSIZ_TINY, "%s (Len:%u)", pattern_buf, pw_len);
+      }
+    }
+  }
+
+  return display;
+}
+
 char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
   const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (status_ctx->accessible == false) return NULL;
@@ -881,7 +1168,7 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
     return display;
   }
 
-  if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF || user_options->attack_mode == ATTACK_MODE_PCFG)
   {
     snprintf (display, HCBUFSIZ_TINY, "[Generating]");
   }
@@ -918,10 +1205,10 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   const bool need_hex1 = need_hexify (plain_ptr1, plain_len1, 0, always_ascii);
   const bool need_hex2 = need_hexify (plain_ptr2, plain_len2, 0, always_ascii);
 
-  if((need_hex1 == true) || (need_hex2 == true))
+  if ((need_hex1 == true) || (need_hex2 == true))
   {
     // Right candidate needs to be $HEX-ed
-    if(need_hex1 == false)
+    if (need_hex1 == false)
     {
       exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
 
@@ -931,17 +1218,18 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
       snprintf (display, HCBUFSIZ_TINY, "%s -> $HEX[%s]", plain_ptr1, plain_ptr2);
     }
     // Left candidate needs to be $HEX-ed
-    else if(need_hex2 == false)
+    else if (need_hex2 == false)
     {
-    exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
+      exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
 
-    plain_ptr1[plain_len1 * 2] = 0;
-    plain_ptr2[plain_len2] = 0;
+      plain_ptr1[plain_len1 * 2] = 0;
+      plain_ptr2[plain_len2] = 0;
 
-    snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> %s", plain_ptr1, plain_ptr2);
+      snprintf (display, HCBUFSIZ_TINY, "$HEX[%s] -> %s", plain_ptr1, plain_ptr2);
     }
     // Both candidates need to be $HEX-ed
-    else {
+    else
+    {
       exec_hexify (plain_ptr1, plain_len1, plain_ptr1);
       exec_hexify (plain_ptr2, plain_len2, plain_ptr2);
 
@@ -959,38 +1247,39 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
 
     snprintf (display, HCBUFSIZ_TINY, "%s -> %s", plain_ptr1, plain_ptr2);
   }
+
   return display;
 }
 
-int status_get_digests_done (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done;
 }
 
-int status_get_digests_done_pot (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done_pot (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done_pot;
 }
 
-int status_get_digests_done_zero (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done_zero (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done_zero;
 }
 
-int status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_done_new (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->digests_done_new;
 }
 
-int status_get_digests_cnt (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_digests_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
@@ -1015,14 +1304,14 @@ double status_get_digests_percent_new (const hashcat_ctx_t *hashcat_ctx)
   return ((double) hashes->digests_done_new / (double) hashes->digests_cnt) * 100;
 }
 
-int status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
   return hashes->salts_done;
 }
 
-int status_get_salts_cnt (const hashcat_ctx_t *hashcat_ctx)
+u32 status_get_salts_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;
 
@@ -1382,7 +1671,10 @@ u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
 
   u64 words_cnt = status_ctx->words_cnt;
 
-  if (words_cnt == -1ULL) words_cnt = 0;
+  if (user_options->attack_mode != ATTACK_MODE_PCFG)
+  {
+    if (words_cnt == -1ULL) words_cnt = 0;
+  }
 
   if (user_options->limit)
   {
@@ -1433,15 +1725,30 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
 
   u64 progress_end = status_ctx->words_cnt;
 
-  if (progress_end == -1ULL) progress_end = 0;
-
-  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  if (user_options->attack_mode == ATTACK_MODE_PCFG)
   {
-    // nothing to do
+    // PCFG: handle overflow without resetting to zero
+    if (progress_end > UINT64_MAX / hashes->salts_cnt)
+    {
+      progress_end = UINT64_MAX;
+    }
+    else
+    {
+      progress_end *= hashes->salts_cnt;
+    }
   }
   else
   {
-    progress_end *= hashes->salts_cnt;
+    if (progress_end == -1ULL) progress_end = 0;
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      // nothing to do
+    }
+    else
+    {
+      progress_end *= hashes->salts_cnt;
+    }
   }
 
   if (user_options->limit)
@@ -2410,6 +2717,13 @@ void status_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   hc_thread_mutex_delete (status_ctx->mux_display);
   hc_thread_mutex_delete (status_ctx->mux_hwmon);
 
+  // huge memory leaks
+  // force accessible to cleanup
+  status_ctx->accessible = true;
+
+  // destroy hashcat_status_final before hcfree
+  status_status_destroy  (hashcat_ctx, status_ctx->hashcat_status_final);
+
   hcfree (status_ctx->hashcat_status_final);
 
   memset (status_ctx, 0, sizeof (status_ctx_t));
@@ -2463,6 +2777,7 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
 
     hcfree (device_info->speed_sec_dev);
     hcfree (device_info->guess_candidates_dev);
+    hcfree (device_info->pcfg_model_info_dev);
     hcfree (device_info->hwmon_dev);
     #ifdef WITH_BRAIN
     hcfree (device_info->brain_link_recv_bytes_dev);
@@ -2473,6 +2788,7 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
 
     device_info->speed_sec_dev                  = NULL;
     device_info->guess_candidates_dev           = NULL;
+    device_info->pcfg_model_info_dev            = NULL;
     device_info->hwmon_dev                      = NULL;
     #ifdef WITH_BRAIN
     device_info->brain_link_recv_bytes_dev      = NULL;

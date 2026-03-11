@@ -9,7 +9,10 @@ use strict;
 use warnings;
 
 use Bitcoin::Crypto         qw (btc_prv btc_extprv);
-use Bitcoin::Crypto::Base58 qw (decode_base58check);
+use Bitcoin::Crypto::Base58  qw (decode_base58check);
+use Bitcoin::Crypto::Bech32  qw (encode_segwit);
+use Digest::SHA              qw (sha256);
+use Crypt::Digest::RIPEMD160 qw (ripemd160);
 
 sub module_constraints { [[51, 51], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
@@ -49,7 +52,9 @@ sub module_generate_hash
   return if ($priv->compressed != 0);
 
   my $pub  = $priv->get_public_key    ();
-  my $hash = $pub->get_segwit_address ();
+  my $raw  = $pub->raw_key ("public");          # 65-byte uncompressed EC point (04||x||y)
+  my $h160 = ripemd160 (sha256 ($raw));
+  my $hash = encode_segwit ("bc", pack ("C", 0) . $h160);
 
   return $hash;
 }
