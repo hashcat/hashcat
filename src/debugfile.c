@@ -69,16 +69,16 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
 
   const u32 debug_mode = debugfile_ctx->mode;
 
+  if (hc_lockfile (&debugfile_ctx->fp) == -1)
+  {
+    event_log_warning (hashcat_ctx, "%s: Failed to lock file.", debugfile_ctx->filename);
+  }
+
   if ((debug_mode == 2) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))
   {
     debugfile_format_plain (hashcat_ctx, orig_plain_ptr, orig_plain_len);
 
     if ((debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5)) hc_fputc (':', &debugfile_ctx->fp);
-  }
-
-  if (hc_lockfile (&debugfile_ctx->fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "%s: Failed to lock file.", debugfile_ctx->filename);
   }
 
   hc_fwrite (rule_buf, rule_len, 1, &debugfile_ctx->fp);
@@ -118,7 +118,7 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
 
   if (hc_unlockfile (&debugfile_ctx->fp))
   {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", debugfile_ctx->filename);
+    event_log_warning (hashcat_ctx, "%s: Failed to unlock file.", debugfile_ctx->filename);
   }
 }
 
