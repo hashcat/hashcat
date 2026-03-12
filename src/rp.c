@@ -1186,7 +1186,7 @@ int kernel_rules_generate (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, 
   {
     if (rp_gen_func_selection == NULL)
     {
-      rp_gen_ops.grp_op_pos_p0_selection[rp_gen_ops.grp_op_pos_p0_cnt] = grp_op_nop[i];
+      rp_gen_ops.grp_op_pos_p0_selection[rp_gen_ops.grp_op_pos_p0_cnt] = grp_op_pos_p0[i];
 
       rp_gen_ops.grp_op_pos_p0_cnt++;
     }
