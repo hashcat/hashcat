@@ -7,6 +7,7 @@
 - Added new attack-mode: Probabilistic Context-Free Grammar Attack (aka "PCFG") with Probability, OMEN, and AHF (Adaptive Hybrid-Fuzzing) generation strategies
 - Added --session/--restore, --skip/--limit, and --keyspace support for PCFG attack mode (-a 10)
 - Docker: Add hashcat-toolchain
+- Docker: update hashcat_binaries to version 2.1
 - Enable SSE2 intrinsics path for scrypt-jane bridge on ARM via sse2neon
 - Improved performance by skip unnecessary memset of pws_comp/pws_idx in dispatch loops
 - Replaced qsort with in-place MSD radix sort for non-salted hash deduplication
