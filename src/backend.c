@@ -4336,8 +4336,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                 {
                   if (line_len >= RP_PASSWORD_SIZE) continue;
 
-                  memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
                   const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, (u32) line_len, rule_buf_out);
 
                   if (rule_len_out < 0)
@@ -4526,8 +4524,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                 if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
                 {
                   if (line_len >= RP_PASSWORD_SIZE) continue;
-
-                  memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
                   const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, (u32) line_len, rule_buf_out);
 

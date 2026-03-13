@@ -1184,15 +1184,11 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
   if (rule_len < 1) return (RULE_RC_REJECT_ERROR);
 
   int out_len = in_len;
-  int mem_len = in_len;
-
-  memset (mem, 0, sizeof (mem));
+  int mem_len = 0;
 
   memcpy (out, in, out_len);
 
-  char *rule_new = (char *) hcmalloc (rule_len);
-
-  #define HCFREE_AND_RETURN(x) { hcfree (rule_new); return (x); }
+  char rule_new[RP_PASSWORD_SIZE];
 
   int rule_len_new = 0;
 
@@ -1483,26 +1479,26 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         break;
 
       case RULE_OP_MANGLE_EXTRACT_MEMORY:
-        if (mem_len < 1) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (mem_len < 1) return (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, ulen);
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos2);
-        if ((out_len = mangle_insert_multi (out, out_len, upos2, mem, mem_len, upos, ulen)) < 1) HCFREE_AND_RETURN (out_len);
+        if ((out_len = mangle_insert_multi (out, out_len, upos2, mem, mem_len, upos, ulen)) < 1) return (out_len);
         break;
 
       case RULE_OP_MANGLE_APPEND_MEMORY:
-        if (mem_len < 1) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
-        if ((out_len + mem_len) >= RP_PASSWORD_SIZE) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (mem_len < 1) return (RULE_RC_REJECT_ERROR);
+        if ((out_len + mem_len) >= RP_PASSWORD_SIZE) return (RULE_RC_REJECT_ERROR);
         memcpy (out + out_len, mem, mem_len);
         out_len += mem_len;
         break;
 
       case RULE_OP_MANGLE_PREPEND_MEMORY:
-        if (mem_len < 1) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
-        if ((mem_len + out_len) >= RP_PASSWORD_SIZE) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (mem_len < 1) return (RULE_RC_REJECT_ERROR);
+        if ((mem_len + out_len) >= RP_PASSWORD_SIZE) return (RULE_RC_REJECT_ERROR);
         memcpy (mem + mem_len, out, out_len);
         out_len += mem_len;
         memcpy (out, mem, out_len);
@@ -1516,59 +1512,59 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
       case RULE_OP_REJECT_LESS:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if (out_len > upos) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (out_len > upos) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_GREATER:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if (out_len < upos) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (out_len < upos) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if (out_len != upos) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (out_len != upos) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
-        if (reject_contain (out, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (reject_contain (out, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_NOT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
-        if (!reject_contain (out, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (!reject_contain (out, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL_FIRST:
         NEXT_RULEPOS (rule_pos);
-        if (out[0] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (out[0] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL_LAST:
         NEXT_RULEPOS (rule_pos);
-        if (out[out_len - 1] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (out[out_len - 1] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL_AT:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if ((upos + 1) > out_len) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
-        if (out[upos] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (out[upos] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_CONTAINS:
         NEXT_RULEPOS (rule_pos);
         NEXT_RPTOI (rule_new, rule_pos, upos);
-        if ((upos + 1) > out_len) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
         NEXT_RULEPOS (rule_pos);
-        if (reject_contains (out, out_len, rule_new[rule_pos], upos, &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if (reject_contains (out, out_len, rule_new[rule_pos], upos, &pos_mem)) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_MEMORY:
-        if ((out_len == mem_len) && (memcmp (out, mem, out_len) == 0)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+        if ((out_len == mem_len) && (memcmp (out, mem, out_len) == 0)) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_CLASS_BASED:
@@ -1577,7 +1573,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
         {
           case RULE_OP_MANGLE_REPLACE: // ~s?CY
             NEXT_RULEPOS (rule_pos);
-            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
             switch (rule_new[rule_pos])
@@ -1598,14 +1594,14 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
                 break;
 
               default :
-                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+                return (RULE_RC_SYNTAX_ERROR);
             }
 
             break;
 
           case RULE_OP_MANGLE_PURGECHAR: // ~@?C
             NEXT_RULEPOS (rule_pos);
-            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
             switch (rule_new[rule_pos])
@@ -1624,14 +1620,14 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
                 break;
 
               default :
-                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+                return (RULE_RC_SYNTAX_ERROR);
             }
 
             break;
 
           case RULE_OP_MANGLE_TITLE_SEP: // ~e?C
             NEXT_RULEPOS (rule_pos);
-            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
             switch (rule_new[rule_pos])
@@ -1650,20 +1646,20 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
                 break;
 
               default :
-                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+                return (RULE_RC_SYNTAX_ERROR);
             }
 
             break;
 
           case RULE_OP_REJECT_CONTAIN: // ~!?C
             NEXT_RULEPOS (rule_pos);
-            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
             switch (rule_new[rule_pos])
             {
               case '?':
-                if (reject_contain (out, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (reject_contain (out, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'l':
@@ -1672,24 +1668,24 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
               case 'h':
               case 'H':
               case 's':
-                if (reject_contain_class (out, out_len, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (reject_contain_class (out, out_len, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
                 break;
 
               default :
-                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+                return (RULE_RC_SYNTAX_ERROR);
             }
 
             break;
 
           case RULE_OP_REJECT_NOT_CONTAIN: // ~/?C
             NEXT_RULEPOS (rule_pos);
-            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
             switch (rule_new[rule_pos])
             {
               case '?':
-                if (!reject_contain (out, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!reject_contain (out, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'l':
@@ -1698,92 +1694,92 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
               case 'h':
               case 'H':
               case 's':
-                if (!reject_contain_class (out, out_len, rule_new[rule_pos], &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!reject_contain_class (out, out_len, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
                 break;
 
               default :
-                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+                return (RULE_RC_SYNTAX_ERROR);
             }
 
             break;
 
           case RULE_OP_REJECT_EQUAL_FIRST: // ~(?C
             NEXT_RULEPOS (rule_pos);
-            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
             switch (rule_new[rule_pos])
             {
               case '?':
-                if (out[0] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (out[0] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'l':
-                if (!class_lower (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_lower (out[0])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'u':
-                if (!class_upper (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_upper (out[0])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'd':
-                if (!class_num (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_num (out[0])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'h':
-                if (!class_lower_hex (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_lower_hex (out[0])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'H':
-                if (!class_upper_hex (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_upper_hex (out[0])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 's':
-                if (!class_sym (out[0])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_sym (out[0])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               default :
-                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+                return (RULE_RC_SYNTAX_ERROR);
             }
 
             break;
           case RULE_OP_REJECT_EQUAL_LAST: // ~)?C
             NEXT_RULEPOS (rule_pos);
-            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
             switch (rule_new[rule_pos])
             {
               case '?':
-                if (out[out_len - 1] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (out[out_len - 1] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'l':
-                if (!class_lower (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_lower (out[out_len - 1])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'u':
-                if (!class_upper (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_upper (out[out_len - 1])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'd':
-                if (!class_num (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_num (out[out_len - 1])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'h':
-                if (!class_lower_hex (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_lower_hex (out[out_len - 1])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'H':
-                if (!class_upper_hex (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_upper_hex (out[out_len - 1])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 's':
-                if (!class_sym (out[out_len - 1])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_sym (out[out_len - 1])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               default :
-                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+                return (RULE_RC_SYNTAX_ERROR);
             }
 
             break;
@@ -1791,60 +1787,60 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
           case RULE_OP_REJECT_EQUAL_AT: // ~=N?C
             NEXT_RULEPOS (rule_pos);
             NEXT_RPTOI (rule_new, rule_pos, upos);
-            if ((upos + 1) > out_len) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+            if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
 
             NEXT_RULEPOS (rule_pos);
-            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
             switch (rule_new[rule_pos])
             {
               case '?':
-                if (out[upos] != rule_new[rule_pos]) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (out[upos] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'l':
-                if (!class_lower (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_lower (out[upos])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'u':
-                if (!class_upper (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_upper (out[upos])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'd':
-                if (!class_num (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_num (out[upos])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'h':
-                if (!class_lower_hex (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_lower_hex (out[upos])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'H':
-                if (!class_upper_hex (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_upper_hex (out[upos])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 's':
-                if (!class_sym (out[upos])) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (!class_sym (out[upos])) return (RULE_RC_REJECT_ERROR);
                 break;
 
               default :
-                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+                return (RULE_RC_SYNTAX_ERROR);
             }
 
             break;
           case RULE_OP_REJECT_CONTAINS: // ~%N?C
             NEXT_RULEPOS (rule_pos);
             NEXT_RPTOI (rule_new, rule_pos, upos);
-            if ((upos + 1) > out_len) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+            if ((upos + 1) > out_len) return (RULE_RC_REJECT_ERROR);
 
             NEXT_RULEPOS (rule_pos);
-            if (rule_new[rule_pos] != '?') HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
             switch (rule_new[rule_pos])
             {
               case '?':
-                if (reject_contains (out, out_len, rule_new[rule_pos], upos, &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (reject_contains (out, out_len, rule_new[rule_pos], upos, &pos_mem)) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'l':
@@ -1853,31 +1849,29 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
               case 'h':
               case 'H':
               case 's':
-                if (reject_contains_class (out, out_len, rule_new[rule_pos], upos, &pos_mem)) HCFREE_AND_RETURN (RULE_RC_REJECT_ERROR);
+                if (reject_contains_class (out, out_len, rule_new[rule_pos], upos, &pos_mem)) return (RULE_RC_REJECT_ERROR);
                 break;
 
               default :
-                HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+                return (RULE_RC_SYNTAX_ERROR);
             }
 
             break;
 
           default:
-            HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+            return (RULE_RC_SYNTAX_ERROR);
         }
 
         break;
 
       default:
-        HCFREE_AND_RETURN (RULE_RC_SYNTAX_ERROR);
+        return (RULE_RC_SYNTAX_ERROR);
     }
   }
 
   memset (out + out_len, 0, RP_PASSWORD_SIZE - out_len);
 
-  HCFREE_AND_RETURN (out_len);
-
-  #undef HCFREE_AND_RETURN
+  return (out_len);
 }
 
 int run_rule_engine (const int rule_len, const char *rule_buf)

@@ -265,8 +265,6 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
       {
         if (line_len >= RP_PASSWORD_SIZE) continue;
 
-        memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
         const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, line_buf, (int) line_len, rule_buf_out);
 
         if (rule_len_out < 0) continue;
@@ -1478,7 +1476,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
               if (rule_engine == true)
               {
-                char rule_buf_out[RP_PASSWORD_SIZE] = { 0 };
+                char rule_buf_out[RP_PASSWORD_SIZE];
 
                 const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, (char *) pw_buf, (int) pw_len, rule_buf_out);
 
@@ -1685,8 +1683,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             if (run_rule_engine (rule_jk_len, rule_jk_buf))
             {
               if (line_len >= RP_PASSWORD_SIZE) continue;
-
-              memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
               const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, line_buf, (int) line_len, rule_buf_out);
 

@@ -1011,21 +1011,22 @@ int hc_mtlCreateCommandQueue (void *hashcat_ctx, void *device_param_ptr, mtl_dev
 
   if (device_param->metal_version == 4)
   {
-    SEL newMTL4CommandQueueSel = NSSelectorFromString (@"newMTL4CommandQueue");
-
-    if ([metal_device respondsToSelector:newMTL4CommandQueueSel])
+    if ([metal_device respondsToSelector:NSSelectorFromString (@"newMTL4CommandQueue")])
     {
-      queue = [metal_device performSelector:newMTL4CommandQueueSel];
+      device_param->use_metal4 = true;
+
+      if (metal4_init (hashcat_ctx, device_param) == -1)
+      {
+        device_param->use_metal4 = false;
+      }
+      else
+      {
+        queue = device_param->metal_command_queue;
+      }
     }
   }
 
-  if (queue != nil)
-  {
-    device_param->use_metal4 = true;
-
-    metal4_init (hashcat_ctx, device_param);
-  }
-  else
+  if (queue == nil && device_param->use_metal4 == false)
   {
     device_param->use_metal4 = false;
 
