@@ -26,7 +26,6 @@ on:
       - 'include/**.h'
       - 'src/**.c'
       - 'src/**.mk'
-      - 'tools/**'
       - '**/Makefile'
       - '.github/workflows/build.yml'
   pull_request:
@@ -38,7 +37,6 @@ on:
       - 'include/**.h'
       - 'src/**.c'
       - 'src/**.mk'
-      - 'tools/**'
       - '**/Makefile'
       - '.github/workflows/build.yml'
 

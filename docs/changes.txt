@@ -9,6 +9,7 @@
 - Docker: Add hashcat-toolchain
 - Docker: update hashcat_binaries to version 2.1
 - Enable SSE2 intrinsics path for scrypt-jane bridge on ARM via sse2neon
+- Exclude tools directory from github action build triggers
 - Improved performance by skip unnecessary memset of pws_comp/pws_idx in dispatch loops
 - Replaced qsort with in-place MSD radix sort for non-salted hash deduplication
 - Replaced scalar line counting with SIMD-accelerated implementation (AVX2/SSE2/NEON)
