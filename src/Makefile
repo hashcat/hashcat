@@ -695,7 +695,9 @@ clean:
 	$(RM) -rf kernels
 	$(RM) -rf Rust/bridges/*/target
 	$(RM) -rf Rust/feeds/*/target
+	$(RM) -rf Rust/hashcat-sys/target
 	$(RM) -rf Rust/hashcat-sys/src/bindings.rs
+	$(RM) -f  Rust/hashcat-sys/.build-stamp
 
 .PHONY: distclean
 distclean: clean
@@ -1280,6 +1282,9 @@ hashcat.dll: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
 	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)      -o $@ $^ $(LFLAGS_CROSS_WIN)   -DCOMPTIME=$(COMPTIME) -DVERSION_TAG=\"$(VERSION_TAG)\" -shared
 
 endif
+
+# Pre-build hashcat-sys before any Rust plugin targets
+include src/rust_common.mk
 
 # Give developers a chance to add some 3rd party dependancies
 include	$(wildcard src/modules/*.mk)

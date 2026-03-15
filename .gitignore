@@ -39,6 +39,8 @@ tools/luks2_tests
 test_edge*
 Rust/feeds/*/target
 Rust/bridges/*/target
+Rust/hashcat-sys/target
+Rust/hashcat-sys/.build-stamp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
