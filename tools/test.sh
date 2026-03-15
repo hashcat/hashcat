@@ -21,6 +21,9 @@ VC_MODES="13711 13712 13713 13721 13722 13723 13731 13732 13733 13741 13742 1374
 # List of modes which return a different output hash format than the input hash format
 NOCHECK_ENCODING="16800 22000"
 
+# List of modes where output match check is skipped (due to hash collisions)
+NOCHECK_OUTMATCH="14000 14100 22000 31500 31600"
+
 # List of LUKS modes which have test containers
 LUKS1_LEGACY_MODE="14600"
 LUKS1_MODES="29511 29512 29513 29521 29522 29523 29531 29532 29533 29541 29542 29543"
@@ -586,6 +589,11 @@ function status()
 
       10)
         if is_in_array "${hash_type}" ${KEEP_GUESSING_ALGOS}; then
+          return
+        fi
+
+        if is_in_array "${hash_type}" ${OUTMATCH_SKIP_ALGOS}; then
+          echo "output match skipped (hash collision expected), cmdline : ${CMD}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
           return
         fi
 
@@ -3855,6 +3863,8 @@ OPTIONS:
 
   -g    Generate crypto-containers on-the-fly (requires sudo)
 
+  -M    Minimal mode: test only 24 hash types covering all distinct code paths
+
   -h    Show this help
 
 EOF
@@ -3873,8 +3883,9 @@ HT=0
 PACKAGE=0
 OPTIMIZED=1
 GENERATE_CONTAINERS=0
+MINIMAL=0
 
-while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
+while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gM" opt; do
 
   case ${opt} in
     "V")
@@ -4014,6 +4025,12 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
       GENERATE_CONTAINERS=1
       ;;
 
+    "M")
+      MINIMAL=1
+      HT=65535
+      VECTOR=1
+      ;;
+
     \?)
       usage
       ;;
@@ -4038,6 +4055,11 @@ if [ $(uname) == "Darwin" ]; then
       IS_APPLE_SILICON=1
     fi
   fi
+fi
+
+if [ "${MINIMAL}" -eq 1 ]; then
+  MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 6211 11600 12500 13711 14200 14511 14600 14900 15400 15700 20510 22000 29511 33000 33500 34100"
+  HASH_TYPES="${MINIMAL_MODES}"
 fi
 
 export IS_OPTIMIZED=${OPTIMIZED}
@@ -4190,6 +4212,9 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   IFS=';' read -ra TIMEOUT_ALGOS <<< "${SLOW_ALGOS}"
 
   IFS=';' read -ra KEEP_GUESSING_ALGOS <<< "${KEEP_GUESSING}"
+
+  # for these particular algos we skip the output match check (due to hash collisions)
+  IFS=';' read -ra OUTMATCH_SKIP_ALGOS <<< "${NOCHECK_OUTMATCH}"
 
   # for these particular algos we need to save the output to a temporary file
   IFS=';' read -ra FILE_BASED_ALGOS <<< "${HASHFILE_ONLY}"
