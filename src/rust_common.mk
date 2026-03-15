@@ -57,6 +57,7 @@ HASHCAT_SYS_STAMP := $(HASHCAT_SYS_DIR)/.build-stamp
 
 ifeq ($(CARGO_PRESENT),true)
 $(HASHCAT_SYS_STAMP): $(HASHCAT_SYS_DIR)/build.rs $(HASHCAT_SYS_DIR)/src/hashcat_types.h
+	$(RM) -f $(HASHCAT_SYS_DIR)/src/bindings.rs
 	RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $(HASHCAT_SYS_DIR)/Cargo.toml
 	@touch $@
 else
