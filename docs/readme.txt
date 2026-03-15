@@ -480,6 +480,7 @@ NVIDIA GPUs require "NVIDIA CUDA Toolkit"
 - GPG (CAST5 (SHA-1($pass)))
 - RSA/DSA/EC/OpenSSH Private Keys ($0$)
 - RSA/DSA/EC/OpenSSH Private Keys ($6$)
+- OpenSSH Private Keys (bcrypt/AES-256-CTR, OpenSSH-Key-V1)
 - RSA/DSA/EC/OpenSSH Private Keys ($1, $3$)
 - RSA/DSA/EC/OpenSSH Private Keys ($4$)
 - RSA/DSA/EC/OpenSSH Private Keys ($5$)
