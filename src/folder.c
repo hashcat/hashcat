@@ -38,9 +38,24 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   #elif defined (_WIN)
 
-  memset (exec_path, 0, exec_path_sz);
+  wchar_t *wexec_path = (wchar_t *) hcmalloc (exec_path_sz * sizeof (wchar_t));
 
-  const int len = 0;
+  const DWORD wlen = GetModuleFileNameW (NULL, wexec_path, (DWORD) exec_path_sz);
+
+  if (wlen == 0)
+  {
+    hcfree (wexec_path);
+
+    return -1;
+  }
+
+  const int conv_len = WideCharToMultiByte (CP_UTF8, 0, wexec_path, -1, exec_path, (int) exec_path_sz, NULL, NULL);
+
+  hcfree (wexec_path);
+
+  if (conv_len == 0) return -1;
+
+  const size_t len = (size_t) conv_len - 1;
 
   #elif defined (__APPLE__)
 
@@ -498,7 +513,53 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   char *cpath_real = NULL;
 
-  hc_asprintf (&cpath_real, "%s\\OpenCL\\", shared_dir);
+  {
+    char *cpath_tmp = NULL;
+
+    hc_asprintf (&cpath_tmp, "%s\\OpenCL\\", shared_dir);
+
+    // Try to obtain the 8.3 short path so that NVRTC/OpenCL compilers receive an
+    // ASCII-only include path even when the user's home directory contains
+    // non-ASCII characters (e.g. Chinese/Japanese user names).
+    wchar_t *wpath_long  = (wchar_t *) hcmalloc (HCBUFSIZ_TINY * sizeof (wchar_t));
+    wchar_t *wpath_short = (wchar_t *) hcmalloc (HCBUFSIZ_TINY * sizeof (wchar_t));
+
+    if (MultiByteToWideChar (CP_UTF8, 0, cpath_tmp, -1, wpath_long, HCBUFSIZ_TINY) > 0)
+    {
+      const DWORD short_len = GetShortPathNameW (wpath_long, wpath_short, (DWORD) HCBUFSIZ_TINY);
+
+      if (short_len > 0 && short_len < (DWORD) HCBUFSIZ_TINY)
+      {
+        char *cpath_short = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+        if (WideCharToMultiByte (CP_UTF8, 0, wpath_short, -1, cpath_short, HCBUFSIZ_TINY, NULL, NULL) > 0)
+        {
+          cpath_real = cpath_short;
+        }
+        else
+        {
+          hcfree (cpath_short);
+
+          cpath_real = cpath_tmp;
+          cpath_tmp  = NULL;
+        }
+      }
+      else
+      {
+        cpath_real = cpath_tmp;
+        cpath_tmp  = NULL;
+      }
+    }
+    else
+    {
+      cpath_real = cpath_tmp;
+      cpath_tmp  = NULL;
+    }
+
+    hcfree (wpath_long);
+    hcfree (wpath_short);
+    hcfree (cpath_tmp);
+  }
 
   #else
 
