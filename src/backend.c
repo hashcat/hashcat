@@ -11799,7 +11799,8 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       }
 
       // untested on windows, but it should work
-      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+      #if defined (__CYGWIN__) || defined (__MSYS__)
+      // when built with cygwin or msys, cpath_real is a POSIX-style path that GPU runtimes cannot use
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
       #else
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
@@ -12046,10 +12047,12 @@ static bool load_kernel_program (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
       }
 
       // untested but it should work
-      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+      #if defined (__CYGWIN__) || defined (__MSYS__)
+      // when built with cygwin or msys, cpath_real is a POSIX-style path that GPU runtimes cannot use
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D INCLUDE_PATH=%s/OpenCL/", folder_config->cwd);
       // ugly, but required since HIPRTC is changing the current working folder to the temporary compile folder
       #else
+      // cpath_real is an absolute path (short/8.3 on Windows) so it is immune to cwd changes by HIPRTC
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
       #endif
 
@@ -14317,16 +14320,25 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+      #if defined (__CYGWIN__) || defined (__MSYS__)
       // workaround for AMD
       if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD && device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
       {
         build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-I . ");
       }
 
-      // when built with cygwin or msys, cpath_real doesn't work
+      // when built with cygwin or msys, cpath_real is a POSIX-style path that GPU runtimes cannot use
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D INCLUDE_PATH=%s ", "OpenCL");
       #else
+      #if defined (_WIN)
+      // workaround for AMD on Windows: keep -I . so AMD's runtime can fall back to cwd-relative includes
+      if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD && device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+      {
+        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-I . ");
+      }
+      #endif
+
+      // cpath_real is an absolute (and 8.3/short on Windows) path, safe for all compilers
       const char *build_options_include_fmt = (strchr (folder_config->cpath_real, ' ') != NULL) ? "-D INCLUDE_PATH=\"%s\" " : "-D INCLUDE_PATH=%s ";
 
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, build_options_include_fmt, folder_config->cpath_real);
