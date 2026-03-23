@@ -40,24 +40,21 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   #elif defined (_WIN)
 
-  wchar_t *wexec_path = (wchar_t *) hcmalloc (exec_path_sz * sizeof (wchar_t));
+  // The application manifest declares activeCodePage as UTF-8, so the process code page is UTF-8
+  // before the CRT starts and the narrow call writes UTF-8 straight into exec_path. There is no wide
+  // buffer to convert and no error path to free one on.
+  //
+  // GetModuleFileName answers nSize for a path that does not fit and leaves a truncated name behind,
+  // so a full buffer is a failure here. Letting it through would build install_dir, and every folder
+  // taken from it, out of half a path.
 
-  const DWORD wlen = GetModuleFileNameW (NULL, wexec_path, (DWORD) exec_path_sz);
+  const DWORD win_len = GetModuleFileNameA (NULL, exec_path, (DWORD) (exec_path_sz - 1));
 
-  if (wlen == 0)
-  {
-    hcfree (wexec_path);
+  if (win_len == 0) return -1;
 
-    return -1;
-  }
+  if (win_len >= (DWORD) (exec_path_sz - 1)) return -1;
 
-  const int conv_len = WideCharToMultiByte (CP_UTF8, 0, wexec_path, -1, exec_path, (int) exec_path_sz, NULL, NULL);
-
-  hcfree (wexec_path);
-
-  if (conv_len == 0) return -1;
-
-  const size_t len = (size_t) conv_len - 1;
+  const size_t len = (size_t) win_len;
 
   #elif defined (__APPLE__)
 
@@ -530,53 +527,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
 
   char *cpath_real = NULL;
 
-  {
-    char *cpath_tmp = NULL;
-
-    hc_asprintf (&cpath_tmp, "%s\\OpenCL\\", shared_dir);
-
-    // Try to obtain the 8.3 short path so that NVRTC/OpenCL compilers receive an
-    // ASCII-only include path even when the user's home directory contains
-    // non-ASCII characters (e.g. Chinese/Japanese user names).
-    wchar_t *wpath_long  = (wchar_t *) hcmalloc (HCBUFSIZ_TINY * sizeof (wchar_t));
-    wchar_t *wpath_short = (wchar_t *) hcmalloc (HCBUFSIZ_TINY * sizeof (wchar_t));
-
-    if (MultiByteToWideChar (CP_UTF8, 0, cpath_tmp, -1, wpath_long, HCBUFSIZ_TINY) > 0)
-    {
-      const DWORD short_len = GetShortPathNameW (wpath_long, wpath_short, (DWORD) HCBUFSIZ_TINY);
-
-      if (short_len > 0 && short_len < (DWORD) HCBUFSIZ_TINY)
-      {
-        char *cpath_short = (char *) hcmalloc (HCBUFSIZ_TINY);
-
-        if (WideCharToMultiByte (CP_UTF8, 0, wpath_short, -1, cpath_short, HCBUFSIZ_TINY, NULL, NULL) > 0)
-        {
-          cpath_real = cpath_short;
-        }
-        else
-        {
-          hcfree (cpath_short);
-
-          cpath_real = cpath_tmp;
-          cpath_tmp  = NULL;
-        }
-      }
-      else
-      {
-        cpath_real = cpath_tmp;
-        cpath_tmp  = NULL;
-      }
-    }
-    else
-    {
-      cpath_real = cpath_tmp;
-      cpath_tmp  = NULL;
-    }
-
-    hcfree (wpath_long);
-    hcfree (wpath_short);
-    hcfree (cpath_tmp);
-  }
+  hc_asprintf (&cpath_real, "%s\\OpenCL\\", shared_dir);
 
   #else
 
