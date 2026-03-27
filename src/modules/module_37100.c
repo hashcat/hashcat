@@ -227,6 +227,106 @@ u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED c
   return 0;
 }
 
+bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const hash_t *db, MAYBE_UNUSED const hash_t *entry_hash, MAYBE_UNUSED const void *entry_tmps)
+{
+  const wpa_t *wpa_entry = (const wpa_t *) entry_hash->esalt;
+  const wpa_t *wpa_db    = (const wpa_t *) db->esalt;
+
+  if (wpa_db->essid_len != wpa_entry->essid_len) return false;
+
+  if (strcmp ((const char *) wpa_db->essid_buf, (const char *) wpa_entry->essid_buf)) return false;
+
+  const wpa_pbkdf2_tmp_t *wpa_pbkdf2_tmp = (const wpa_pbkdf2_tmp_t *) entry_tmps;
+
+  wpa_pbkdf2_tmp_t tmps;
+
+  tmps.out[0] = byte_swap_32 (wpa_pbkdf2_tmp->out[0]);
+  tmps.out[1] = byte_swap_32 (wpa_pbkdf2_tmp->out[1]);
+  tmps.out[2] = byte_swap_32 (wpa_pbkdf2_tmp->out[2]);
+  tmps.out[3] = byte_swap_32 (wpa_pbkdf2_tmp->out[3]);
+  tmps.out[4] = byte_swap_32 (wpa_pbkdf2_tmp->out[4]);
+  tmps.out[5] = byte_swap_32 (wpa_pbkdf2_tmp->out[5]);
+  tmps.out[6] = byte_swap_32 (wpa_pbkdf2_tmp->out[6]);
+  tmps.out[7] = byte_swap_32 (wpa_pbkdf2_tmp->out[7]);
+
+  plain_t plains_buf;
+
+  u32 hashes_shown = 0;
+
+  u32 d_return_buf = 0;
+
+  void (*m37100_aux) (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wpa_t));
+
+  if (wpa_db->type == 3)
+  {
+    m37100_aux = m37100_aux1;
+  }
+  else if (wpa_db->type == 4)
+  {
+    if (wpa_db->keyver == 3)
+    {
+      m37100_aux = m37100_aux2;
+    }
+    else
+    {
+      return false;
+    }
+  }
+  else
+  {
+    return false;
+  }
+
+  kernel_param_t kernel_param;
+
+  kernel_param.bitmap_mask         = 0;
+  kernel_param.bitmap_shift1       = 0;
+  kernel_param.bitmap_shift2       = 0;
+  kernel_param.salt_pos_host       = 0;
+  kernel_param.loop_pos            = 0;
+  kernel_param.loop_cnt            = 0;
+  kernel_param.il_cnt              = 0;
+  kernel_param.digests_cnt         = 1;
+  kernel_param.digests_offset_host = 0;
+  kernel_param.combs_mode          = 0;
+  kernel_param.salt_repeat         = 0;
+  kernel_param.pws_pos             = 0;
+  kernel_param.gid_max             = 1;
+
+  m37100_aux
+  (
+    NULL,               // pws
+    NULL,               // rules_buf
+    NULL,               // combs_buf
+    NULL,               // bfs_buf
+    &tmps,              // tmps
+    NULL,               // hooks
+    NULL,               // bitmaps_buf_s1_a
+    NULL,               // bitmaps_buf_s1_b
+    NULL,               // bitmaps_buf_s1_c
+    NULL,               // bitmaps_buf_s1_d
+    NULL,               // bitmaps_buf_s2_a
+    NULL,               // bitmaps_buf_s2_b
+    NULL,               // bitmaps_buf_s2_c
+    NULL,               // bitmaps_buf_s2_d
+    &plains_buf,        // plains_buf
+    db->digest,         // digests_buf
+    &hashes_shown,      // hashes_shown
+    db->salt,           // salt_bufs
+    db->esalt,          // esalt_bufs
+    &d_return_buf,      // d_return_buf
+    NULL,               // d_extra0_buf
+    NULL,               // d_extra1_buf
+    NULL,               // d_extra2_buf
+    NULL,               // d_extra3_buf
+    &kernel_param       // kernel_param
+  );
+
+  const bool r = (d_return_buf == 0) ? false : true;
+
+  return r;
+}
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -972,7 +1072,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_opts_type                = module_opts_type;
   module_ctx->module_outfile_check_disable    = MODULE_DEFAULT;
   module_ctx->module_outfile_check_nocomp     = MODULE_DEFAULT;
-  module_ctx->module_potfile_custom_check     = MODULE_DEFAULT;
+  module_ctx->module_potfile_custom_check     = module_potfile_custom_check;
   module_ctx->module_potfile_disable          = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes  = MODULE_DEFAULT;
   module_ctx->module_pwdump_column            = MODULE_DEFAULT;
