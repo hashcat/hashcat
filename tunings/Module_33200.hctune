@@ -1,0 +1,16 @@
+# Mikrotik RouterOS EC-SRP5 (Curve25519)
+# Hash mode 33200
+#
+# Algorithm: SHA256 + EC scalar multiply on Curve25519 (Weierstrass form)
+# Heavy ECC computation in comp kernel - benefits from large accel, low threads
+
+# Format: Device-Name  Hash-Mode  Accel  Loops  Threads  Vector
+
+# CPU (generic)
+DEVICE_TYPE_CPU     *   33200   1024    1    1    N
+
+# NVIDIA GPUs
+DEVICE_TYPE_GPU     *   33200    128    1   64    1
+
+# AMD GPUs
+DEVICE_TYPE_GPU     *   33200    128    1   64    1
