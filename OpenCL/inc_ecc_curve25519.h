@@ -1,4 +1,7 @@
 /**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ *
  * Curve25519 (Weierstrass form) elliptic curve arithmetic for hashcat.
  * Ported from inc_ecc_secp256k1.h for Mikrotik RouterOS EC-SRP5 password hashes.
  *

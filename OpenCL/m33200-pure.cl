@@ -1,4 +1,7 @@
 /**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ *
  * Mikrotik RouterOS EC-SRP5 (Curve25519)
  *
  * Algorithm:

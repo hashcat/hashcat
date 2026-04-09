@@ -1,8 +1,11 @@
 /**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ *
  * Mikrotik RouterOS EC-SRP5 password hash (Curve25519)
  * Hash format: $mikrotik$username$hex_salt_16B$hex_verifier_28B
  *
- * Approach: username stored in salt_buf[4..67], username_len in salt_buf[68].
+ * Approach: username stored in salt_buf_pc, username_len in salt_len_pc.
  * salt_buf[0..3] = 16-byte salt. This avoids esalt entirely.
  */
 
