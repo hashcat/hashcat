@@ -459,3 +459,24 @@ Intel(R)_Arc(TM)_Pro_B50_Graphics               ALIAS_INTEL
 Intel(R)_Arc(TM)_Pro_B60_Graphics               ALIAS_INTEL
 
 Intel(R)_Data_Center_GPU_Max_1100               ALIAS_INTEL
+
+##
+## Apple Silicon
+##
+
+Apple_M1                                        ALIAS_Apple_M
+Apple_M1_Pro                                    ALIAS_Apple_M
+Apple_M1_Max                                    ALIAS_Apple_M
+Apple_M1_Ultra                                  ALIAS_Apple_M
+Apple_M2                                        ALIAS_Apple_M
+Apple_M2_Pro                                    ALIAS_Apple_M
+Apple_M2_Max                                    ALIAS_Apple_M
+Apple_M2_Ultra                                  ALIAS_Apple_M
+Apple_M3                                        ALIAS_Apple_M
+Apple_M3_Pro                                    ALIAS_Apple_M
+Apple_M3_Max                                    ALIAS_Apple_M
+Apple_M3_Ultra                                  ALIAS_Apple_M
+Apple_M4                                        ALIAS_Apple_M
+Apple_M4_Pro                                    ALIAS_Apple_M
+Apple_M4_Max                                    ALIAS_Apple_M
+Apple_M4_Ultra                                  ALIAS_Apple_M
