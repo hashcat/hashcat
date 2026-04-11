@@ -2690,6 +2690,375 @@ KERNEL_FQ KERNEL_FA void m01500_sxx (KERN_ATTR_BITSLICE ())
 
 KERNEL_FQ KERNEL_FA void m01500_mxx (KERN_ATTR_BITSLICE ())
 {
+  /**
+   * base
+   */
+
+  const u64 gid = get_global_id (0);
+  const u64 lid = get_local_id (0);
+
+  if (gid >= GID_CNT) return;
+
+  /**
+   * salt
+   */
+
+  const u32 salt = salt_bufs[SALT_POS_HOST].salt_buf[0];
+
+  /**
+   * base
+   */
+
+  const u32 w0 = pws[gid].i[0];
+  const u32 w1 = pws[gid].i[1];
+
+  const u32 w0s = (w0 << 1) & 0xfefefefe;
+  const u32 w1s = (w1 << 1) & 0xfefefefe;
+
+  #define K00 (((w0s >> ( 0 + 7)) & 1) ? -1 : 0)
+  #define K01 (((w0s >> ( 0 + 6)) & 1) ? -1 : 0)
+  #define K02 (((w0s >> ( 0 + 5)) & 1) ? -1 : 0)
+  #define K03 (((w0s >> ( 0 + 4)) & 1) ? -1 : 0)
+  #define K04 (((w0s >> ( 0 + 3)) & 1) ? -1 : 0)
+  #define K05 (((w0s >> ( 0 + 2)) & 1) ? -1 : 0)
+  #define K06 (((w0s >> ( 0 + 1)) & 1) ? -1 : 0)
+  #define K07 (((w0s >> ( 8 + 7)) & 1) ? -1 : 0)
+  #define K08 (((w0s >> ( 8 + 6)) & 1) ? -1 : 0)
+  #define K09 (((w0s >> ( 8 + 5)) & 1) ? -1 : 0)
+  #define K10 (((w0s >> ( 8 + 4)) & 1) ? -1 : 0)
+  #define K11 (((w0s >> ( 8 + 3)) & 1) ? -1 : 0)
+  #define K12 (((w0s >> ( 8 + 2)) & 1) ? -1 : 0)
+  #define K13 (((w0s >> ( 8 + 1)) & 1) ? -1 : 0)
+  #define K14 (((w0s >> (16 + 7)) & 1) ? -1 : 0)
+  #define K15 (((w0s >> (16 + 6)) & 1) ? -1 : 0)
+  #define K16 (((w0s >> (16 + 5)) & 1) ? -1 : 0)
+  #define K17 (((w0s >> (16 + 4)) & 1) ? -1 : 0)
+  #define K18 (((w0s >> (16 + 3)) & 1) ? -1 : 0)
+  #define K19 (((w0s >> (16 + 2)) & 1) ? -1 : 0)
+  #define K20 (((w0s >> (16 + 1)) & 1) ? -1 : 0)
+  #define K21 (((w0s >> (24 + 7)) & 1) ? -1 : 0)
+  #define K22 (((w0s >> (24 + 6)) & 1) ? -1 : 0)
+  #define K23 (((w0s >> (24 + 5)) & 1) ? -1 : 0)
+  #define K24 (((w0s >> (24 + 4)) & 1) ? -1 : 0)
+  #define K25 (((w0s >> (24 + 3)) & 1) ? -1 : 0)
+  #define K26 (((w0s >> (24 + 2)) & 1) ? -1 : 0)
+  #define K27 (((w0s >> (24 + 1)) & 1) ? -1 : 0)
+  #define K28 (((w1s >> ( 0 + 7)) & 1) ? -1 : 0)
+  #define K29 (((w1s >> ( 0 + 6)) & 1) ? -1 : 0)
+  #define K30 (((w1s >> ( 0 + 5)) & 1) ? -1 : 0)
+  #define K31 (((w1s >> ( 0 + 4)) & 1) ? -1 : 0)
+  #define K32 (((w1s >> ( 0 + 3)) & 1) ? -1 : 0)
+  #define K33 (((w1s >> ( 0 + 2)) & 1) ? -1 : 0)
+  #define K34 (((w1s >> ( 0 + 1)) & 1) ? -1 : 0)
+  #define K35 (((w1s >> ( 8 + 7)) & 1) ? -1 : 0)
+  #define K36 (((w1s >> ( 8 + 6)) & 1) ? -1 : 0)
+  #define K37 (((w1s >> ( 8 + 5)) & 1) ? -1 : 0)
+  #define K38 (((w1s >> ( 8 + 4)) & 1) ? -1 : 0)
+  #define K39 (((w1s >> ( 8 + 3)) & 1) ? -1 : 0)
+  #define K40 (((w1s >> ( 8 + 2)) & 1) ? -1 : 0)
+  #define K41 (((w1s >> ( 8 + 1)) & 1) ? -1 : 0)
+  #define K42 (((w1s >> (16 + 7)) & 1) ? -1 : 0)
+  #define K43 (((w1s >> (16 + 6)) & 1) ? -1 : 0)
+  #define K44 (((w1s >> (16 + 5)) & 1) ? -1 : 0)
+  #define K45 (((w1s >> (16 + 4)) & 1) ? -1 : 0)
+  #define K46 (((w1s >> (16 + 3)) & 1) ? -1 : 0)
+  #define K47 (((w1s >> (16 + 2)) & 1) ? -1 : 0)
+  #define K48 (((w1s >> (16 + 1)) & 1) ? -1 : 0)
+  #define K49 (((w1s >> (24 + 7)) & 1) ? -1 : 0)
+  #define K50 (((w1s >> (24 + 6)) & 1) ? -1 : 0)
+  #define K51 (((w1s >> (24 + 5)) & 1) ? -1 : 0)
+  #define K52 (((w1s >> (24 + 4)) & 1) ? -1 : 0)
+  #define K53 (((w1s >> (24 + 3)) & 1) ? -1 : 0)
+  #define K54 (((w1s >> (24 + 2)) & 1) ? -1 : 0)
+  #define K55 (((w1s >> (24 + 1)) & 1) ? -1 : 0)
+
+  /**
+   * inner loop
+   */
+
+  for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += 32)
+  {
+    u32 k00 = K00;
+    u32 k01 = K01;
+    u32 k02 = K02;
+    u32 k03 = K03;
+    u32 k04 = K04;
+    u32 k05 = K05;
+    u32 k06 = K06;
+    u32 k07 = K07;
+    u32 k08 = K08;
+    u32 k09 = K09;
+    u32 k10 = K10;
+    u32 k11 = K11;
+    u32 k12 = K12;
+    u32 k13 = K13;
+    u32 k14 = K14;
+    u32 k15 = K15;
+    u32 k16 = K16;
+    u32 k17 = K17;
+    u32 k18 = K18;
+    u32 k19 = K19;
+    u32 k20 = K20;
+    u32 k21 = K21;
+    u32 k22 = K22;
+    u32 k23 = K23;
+    u32 k24 = K24;
+    u32 k25 = K25;
+    u32 k26 = K26;
+    u32 k27 = K27;
+
+    const u32 pc_pos = il_pos / 32;
+
+    k00 |= words_buf_s[pc_pos].b[ 0];
+    k01 |= words_buf_s[pc_pos].b[ 1];
+    k02 |= words_buf_s[pc_pos].b[ 2];
+    k03 |= words_buf_s[pc_pos].b[ 3];
+    k04 |= words_buf_s[pc_pos].b[ 4];
+    k05 |= words_buf_s[pc_pos].b[ 5];
+    k06 |= words_buf_s[pc_pos].b[ 6];
+    k07 |= words_buf_s[pc_pos].b[ 7];
+    k08 |= words_buf_s[pc_pos].b[ 8];
+    k09 |= words_buf_s[pc_pos].b[ 9];
+    k10 |= words_buf_s[pc_pos].b[10];
+    k11 |= words_buf_s[pc_pos].b[11];
+    k12 |= words_buf_s[pc_pos].b[12];
+    k13 |= words_buf_s[pc_pos].b[13];
+    k14 |= words_buf_s[pc_pos].b[14];
+    k15 |= words_buf_s[pc_pos].b[15];
+    k16 |= words_buf_s[pc_pos].b[16];
+    k17 |= words_buf_s[pc_pos].b[17];
+    k18 |= words_buf_s[pc_pos].b[18];
+    k19 |= words_buf_s[pc_pos].b[19];
+    k20 |= words_buf_s[pc_pos].b[20];
+    k21 |= words_buf_s[pc_pos].b[21];
+    k22 |= words_buf_s[pc_pos].b[22];
+    k23 |= words_buf_s[pc_pos].b[23];
+    k24 |= words_buf_s[pc_pos].b[24];
+    k25 |= words_buf_s[pc_pos].b[25];
+    k26 |= words_buf_s[pc_pos].b[26];
+    k27 |= words_buf_s[pc_pos].b[27];
+
+    u32 D00 = 0;
+    u32 D01 = 0;
+    u32 D02 = 0;
+    u32 D03 = 0;
+    u32 D04 = 0;
+    u32 D05 = 0;
+    u32 D06 = 0;
+    u32 D07 = 0;
+    u32 D08 = 0;
+    u32 D09 = 0;
+    u32 D10 = 0;
+    u32 D11 = 0;
+    u32 D12 = 0;
+    u32 D13 = 0;
+    u32 D14 = 0;
+    u32 D15 = 0;
+    u32 D16 = 0;
+    u32 D17 = 0;
+    u32 D18 = 0;
+    u32 D19 = 0;
+    u32 D20 = 0;
+    u32 D21 = 0;
+    u32 D22 = 0;
+    u32 D23 = 0;
+    u32 D24 = 0;
+    u32 D25 = 0;
+    u32 D26 = 0;
+    u32 D27 = 0;
+    u32 D28 = 0;
+    u32 D29 = 0;
+    u32 D30 = 0;
+    u32 D31 = 0;
+    u32 D32 = 0;
+    u32 D33 = 0;
+    u32 D34 = 0;
+    u32 D35 = 0;
+    u32 D36 = 0;
+    u32 D37 = 0;
+    u32 D38 = 0;
+    u32 D39 = 0;
+    u32 D40 = 0;
+    u32 D41 = 0;
+    u32 D42 = 0;
+    u32 D43 = 0;
+    u32 D44 = 0;
+    u32 D45 = 0;
+    u32 D46 = 0;
+    u32 D47 = 0;
+    u32 D48 = 0;
+    u32 D49 = 0;
+    u32 D50 = 0;
+    u32 D51 = 0;
+    u32 D52 = 0;
+    u32 D53 = 0;
+    u32 D54 = 0;
+    u32 D55 = 0;
+    u32 D56 = 0;
+    u32 D57 = 0;
+    u32 D58 = 0;
+    u32 D59 = 0;
+    u32 D60 = 0;
+    u32 D61 = 0;
+    u32 D62 = 0;
+    u32 D63 = 0;
+
+    DESCrypt
+    (
+      salt,
+      k00, k01, k02, k03, k04, k05, k06,
+      k07, k08, k09, k10, k11, k12, k13,
+      k14, k15, k16, k17, k18, k19, k20,
+      k21, k22, k23, k24, k25, k26, k27,
+      K28, K29, K30, K31, K32, K33, K34,
+      K35, K36, K37, K38, K39, K40, K41,
+      K42, K43, K44, K45, K46, K47, K48,
+      K49, K50, K51, K52, K53, K54, K55,
+      &D00, &D01, &D02, &D03, &D04, &D05, &D06, &D07,
+      &D08, &D09, &D10, &D11, &D12, &D13, &D14, &D15,
+      &D16, &D17, &D18, &D19, &D20, &D21, &D22, &D23,
+      &D24, &D25, &D26, &D27, &D28, &D29, &D30, &D31,
+      &D32, &D33, &D34, &D35, &D36, &D37, &D38, &D39,
+      &D40, &D41, &D42, &D43, &D44, &D45, &D46, &D47,
+      &D48, &D49, &D50, &D51, &D52, &D53, &D54, &D55,
+      &D56, &D57, &D58, &D59, &D60, &D61, &D62, &D63
+    );
+
+    u32 out[64];
+
+    out[ 0] = D00;
+    out[ 1] = D01;
+    out[ 2] = D02;
+    out[ 3] = D03;
+    out[ 4] = D04;
+    out[ 5] = D05;
+    out[ 6] = D06;
+    out[ 7] = D07;
+    out[ 8] = D08;
+    out[ 9] = D09;
+    out[10] = D10;
+    out[11] = D11;
+    out[12] = D12;
+    out[13] = D13;
+    out[14] = D14;
+    out[15] = D15;
+    out[16] = D16;
+    out[17] = D17;
+    out[18] = D18;
+    out[19] = D19;
+    out[20] = D20;
+    out[21] = D21;
+    out[22] = D22;
+    out[23] = D23;
+    out[24] = D24;
+    out[25] = D25;
+    out[26] = D26;
+    out[27] = D27;
+    out[28] = D28;
+    out[29] = D29;
+    out[30] = D30;
+    out[31] = D31;
+    out[32] = D32;
+    out[33] = D33;
+    out[34] = D34;
+    out[35] = D35;
+    out[36] = D36;
+    out[37] = D37;
+    out[38] = D38;
+    out[39] = D39;
+    out[40] = D40;
+    out[41] = D41;
+    out[42] = D42;
+    out[43] = D43;
+    out[44] = D44;
+    out[45] = D45;
+    out[46] = D46;
+    out[47] = D47;
+    out[48] = D48;
+    out[49] = D49;
+    out[50] = D50;
+    out[51] = D51;
+    out[52] = D52;
+    out[53] = D53;
+    out[54] = D54;
+    out[55] = D55;
+    out[56] = D56;
+    out[57] = D57;
+    out[58] = D58;
+    out[59] = D59;
+    out[60] = D60;
+    out[61] = D61;
+    out[62] = D62;
+    out[63] = D63;
+
+    if (DIGESTS_CNT < 16)
+    {
+      for (u32 d = 0; d < DIGESTS_CNT; d++)
+      {
+        const u32 final_hash_pos = DIGESTS_OFFSET_HOST + d;
+
+        if (hashes_shown[final_hash_pos]) continue;
+
+        u32 search[2];
+
+        search[0] = digests_buf[final_hash_pos].digest_buf[DGST_R0];
+        search[1] = digests_buf[final_hash_pos].digest_buf[DGST_R1];
+
+        u32 tmpResult = 0;
+
+        #pragma unroll
+        for (int i = 0; i < 32; i++)
+        {
+          const u32 b0 = -((search[0] >> i) & 1);
+          const u32 b1 = -((search[1] >> i) & 1);
+
+          tmpResult |= out[ 0 + i] ^ b0;
+          tmpResult |= out[32 + i] ^ b1;
+        }
+
+        if (tmpResult == 0xffffffff) continue;
+
+        const u32 slice = ffz (tmpResult);
+
+        const u32 r0 = search[0];
+        const u32 r1 = search[1];
+        #ifdef KERNEL_STATIC
+        const u32 r2 = 0;
+        const u32 r3 = 0;
+        #endif
+
+        #include COMPARE_M
+      }
+    }
+    else
+    {
+      u32 out0[32];
+      u32 out1[32];
+
+      #pragma unroll
+      for (int i = 0; i < 32; i++)
+      {
+        out0[i] = out[ 0 + 31 - i];
+        out1[i] = out[32 + 31 - i];
+      }
+
+      transpose32c (out0);
+      transpose32c (out1);
+
+      #pragma unroll
+      for (int slice = 0; slice < 32; slice++)
+      {
+        const u32 r0 = out0[31 - slice];
+        const u32 r1 = out1[31 - slice];
+        #ifdef KERNEL_STATIC
+        const u32 r2 = 0;
+        const u32 r3 = 0;
+        #endif
+
+        #include COMPARE_M
+      }
+    }
+  }
 }
 
 #endif
