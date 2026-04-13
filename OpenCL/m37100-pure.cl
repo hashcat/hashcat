@@ -76,7 +76,7 @@ typedef struct wpa
 
   u32  keyver;
 
-  u32  eapol[64 + 16];
+  u32  eapol[128 + 16];
   u32  eapol_len;
 
   u32  pke[32];
@@ -827,15 +827,8 @@ KERNEL_FQ KERNEL_FA void m37100_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
   z[2] = 0;
   z[3] = 0;
 
-  u32 m0;
-  u32 m1;
-  u32 to;
-
   // fixing nonce due to driver bugs
-  m0 = pke[23] & ~0x000000ff;
-  m1 = pke[24] & ~0xffffff00; 
-  to = pke[23] << 24
-     | pke[24] >>  8;
+  u32 to = pke[17];
 
   u32 bo_loops = wpa->detected_le + wpa->detected_be;
 
@@ -884,8 +877,7 @@ KERNEL_FQ KERNEL_FA void m37100_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
         }
       }
 
-      pke[23] = m0 | (t >> 24);
-      pke[24] = m1 | (t <<  8);
+      pke[17] = t;
 
       sha256_hmac_init_64 (&ctx1, out0, out1, z, z);
 

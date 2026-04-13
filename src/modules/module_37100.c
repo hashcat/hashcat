@@ -384,7 +384,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[7]     = '*';
   token.len_min[7] = 0;
-  token.len_max[7] = 512;
+  token.len_max[7] = 1024;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -617,7 +617,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     wpa->eapol_len = hex_decode (eapol_pos, token.len[7], eapol_ptr);
 
-    memset (eapol_ptr + wpa->eapol_len, 0, (256 + 64) - wpa->eapol_len); // set zero bytes at the end of eapol
+    memset (eapol_ptr + wpa->eapol_len, 0, (512 + 64) - wpa->eapol_len); // set zero bytes at the end of eapol
 
     auth_packet_t *auth_packet = (auth_packet_t *) wpa->eapol;
 
