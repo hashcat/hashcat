@@ -96,4 +96,7 @@ Costin Enache <costin@detack.de>
 * IBM AS400 DES and SSHA1 modules
 * Cisco-ISE Hashed Password (SHA256) module
 
+Vlad Drumea (vlad.drumea@vladdba.com)
+* MSSQL (2025) module
+
 !!! All the package maintainers of hashcat !!!
