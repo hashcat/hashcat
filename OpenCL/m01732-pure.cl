@@ -22,8 +22,8 @@ typedef struct pbkdf2_sha512_tmp
   u64  ipad[8];
   u64  opad[8];
 
-  u64  dgst[16];
-  u64  out[16];
+  u64  dgst[8];
+  u64  out[8];
 
 } pbkdf2_sha512_tmp_t;
 
