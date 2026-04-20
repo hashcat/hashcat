@@ -323,6 +323,36 @@ KERNEL_FQ KERNEL_FA void m22961_mxx (KERN_ATTR_ESALT (sshng_openssh_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
+
+  #endif
 
   if (gid >= GID_CNT) return;
 
@@ -343,12 +373,6 @@ KERNEL_FQ KERNEL_FA void m22961_mxx (KERN_ATTR_ESALT (sshng_openssh_t))
   LOCAL_AS u32 *S1 = S1_all[lid];
   LOCAL_AS u32 *S2 = S2_all[lid];
   LOCAL_AS u32 *S3 = S3_all[lid];
-
-  CONSTANT_AS u32a *s_te0 = te0;
-  CONSTANT_AS u32a *s_te1 = te1;
-  CONSTANT_AS u32a *s_te2 = te2;
-  CONSTANT_AS u32a *s_te3 = te3;
-  CONSTANT_AS u32a *s_te4 = te4;
 
   const u32 rounds = esalt_bufs[DIGESTS_OFFSET_HOST].rounds;
 
@@ -486,6 +510,36 @@ KERNEL_FQ KERNEL_FA void m22961_sxx (KERN_ATTR_ESALT (sshng_openssh_t))
 {
   const u64 gid = get_global_id (0);
   const u64 lid = get_local_id (0);
+  const u64 lsz = get_local_size (0);
+
+  #ifdef REAL_SHM
+
+  LOCAL_VK u32 s_te0[256];
+  LOCAL_VK u32 s_te1[256];
+  LOCAL_VK u32 s_te2[256];
+  LOCAL_VK u32 s_te3[256];
+  LOCAL_VK u32 s_te4[256];
+
+  for (u32 i = lid; i < 256; i += lsz)
+  {
+    s_te0[i] = te0[i];
+    s_te1[i] = te1[i];
+    s_te2[i] = te2[i];
+    s_te3[i] = te3[i];
+    s_te4[i] = te4[i];
+  }
+
+  SYNC_THREADS ();
+
+  #else
+
+  CONSTANT_AS u32a *s_te0 = te0;
+  CONSTANT_AS u32a *s_te1 = te1;
+  CONSTANT_AS u32a *s_te2 = te2;
+  CONSTANT_AS u32a *s_te3 = te3;
+  CONSTANT_AS u32a *s_te4 = te4;
+
+  #endif
 
   if (gid >= GID_CNT) return;
 
@@ -506,12 +560,6 @@ KERNEL_FQ KERNEL_FA void m22961_sxx (KERN_ATTR_ESALT (sshng_openssh_t))
   LOCAL_AS u32 *S1 = S1_all[lid];
   LOCAL_AS u32 *S2 = S2_all[lid];
   LOCAL_AS u32 *S3 = S3_all[lid];
-
-  CONSTANT_AS u32a *s_te0 = te0;
-  CONSTANT_AS u32a *s_te1 = te1;
-  CONSTANT_AS u32a *s_te2 = te2;
-  CONSTANT_AS u32a *s_te3 = te3;
-  CONSTANT_AS u32a *s_te4 = te4;
 
   const u32 rounds = esalt_bufs[DIGESTS_OFFSET_HOST].rounds;
 
