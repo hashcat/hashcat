@@ -565,9 +565,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     for (int i = 0; i < 32; i++)
     {
       wpa->pke_r0[i] = byte_swap_32 (wpa->pke_r0[i]);
-    }
-    for (int i = 0; i < 16; i++)
-    {
       wpa->pmkid_data[i] = byte_swap_32 (wpa->pmkid_data[i]); 
     }
 

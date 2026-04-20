@@ -67,7 +67,7 @@ typedef struct wpa
   // PMKID specific
 
   u32  pmkid[4];
-  u32  pmkid_data[16];
+  u32  pmkid_data[32];
 
   // EAPOL specific
 
@@ -556,22 +556,22 @@ KERNEL_FQ KERNEL_FA void m37100_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
   pke[13] = wpa->pmkid_data[13];
   pke[14] = wpa->pmkid_data[14];
   pke[15] = wpa->pmkid_data[15];
-  pke[16] = 0;
-  pke[17] = 0;
-  pke[18] = 0;
-  pke[19] = 0;
-  pke[20] = 0;
-  pke[21] = 0;
-  pke[22] = 0;
-  pke[23] = 0;
-  pke[24] = 0;
-  pke[25] = 0;
-  pke[26] = 0;
-  pke[27] = 0;
-  pke[28] = 0;
-  pke[29] = 0;
-  pke[30] = 0;
-  pke[31] = 0;
+  pke[16] = wpa->pmkid_data[16];
+  pke[17] = wpa->pmkid_data[17];
+  pke[18] = wpa->pmkid_data[18];
+  pke[19] = wpa->pmkid_data[19];
+  pke[20] = wpa->pmkid_data[20];
+  pke[21] = wpa->pmkid_data[21];
+  pke[22] = wpa->pmkid_data[22];
+  pke[23] = wpa->pmkid_data[23];
+  pke[24] = wpa->pmkid_data[24];
+  pke[25] = wpa->pmkid_data[25];
+  pke[26] = wpa->pmkid_data[26];
+  pke[27] = wpa->pmkid_data[27];
+  pke[28] = wpa->pmkid_data[28];
+  pke[29] = wpa->pmkid_data[29];
+  pke[30] = wpa->pmkid_data[30];
+  pke[31] = wpa->pmkid_data[31];
 
   sha256_init (&ctx2);
 
@@ -592,10 +592,10 @@ KERNEL_FQ KERNEL_FA void m37100_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
 
   #else
 
-  if ((r0 == wpa->pmkid[0])
-   && (r1 == wpa->pmkid[1])
-   && (r2 == wpa->pmkid[2])
-   && (r3 == wpa->pmkid[3]))
+  if ((hc_swap32_S (r0) == wpa->pmkid[0])
+   && (hc_swap32_S (r1) == wpa->pmkid[1])
+   && (hc_swap32_S (r2) == wpa->pmkid[2])
+   && (hc_swap32_S (r3) == wpa->pmkid[3]))
   {
     if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
     {
