@@ -210,8 +210,8 @@ KERNEL_FQ KERNEL_FA void m13791_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   blake2s_hmac_ctx_t blake2s_hmac_ctx2 = blake2s_hmac_ctx;
 
-  blake2s_transform(&blake2s_hmac_ctx.ipad.h, &blake2s_hmac_ctx.ipad.m, 64, BLAKE2S_UPDATE);
-  blake2s_transform(&blake2s_hmac_ctx.opad.h, &blake2s_hmac_ctx.opad.m, 64, BLAKE2S_UPDATE);
+  blake2s_transform(blake2s_hmac_ctx.ipad.h, blake2s_hmac_ctx.ipad.m, 64, BLAKE2S_UPDATE);
+  blake2s_transform(blake2s_hmac_ctx.opad.h, blake2s_hmac_ctx.opad.m, 64, BLAKE2S_UPDATE);
 
   tmps[gid].ipad[0] = blake2s_hmac_ctx.ipad.h[0];
   tmps[gid].ipad[1] = blake2s_hmac_ctx.ipad.h[1];
