@@ -686,23 +686,6 @@ KERNEL_FQ KERNEL_FA void m13793_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   if (gid >= GID_CNT) return;
 
-  tmps[gid].out[0]  = tmps[gid].out[0];
-  tmps[gid].out[1]  = tmps[gid].out[1];
-  tmps[gid].out[2]  = tmps[gid].out[2];
-  tmps[gid].out[3]  = tmps[gid].out[3];
-  tmps[gid].out[4]  = tmps[gid].out[4];
-  tmps[gid].out[5]  = tmps[gid].out[5];
-  tmps[gid].out[6]  = tmps[gid].out[6];
-  tmps[gid].out[7]  = tmps[gid].out[7];
-  tmps[gid].out[8]  = tmps[gid].out[8];
-  tmps[gid].out[9]  = tmps[gid].out[9];
-  tmps[gid].out[10] = tmps[gid].out[10];
-  tmps[gid].out[11] = tmps[gid].out[11];
-  tmps[gid].out[12] = tmps[gid].out[12];
-  tmps[gid].out[13] = tmps[gid].out[13];
-  tmps[gid].out[14] = tmps[gid].out[14];
-  tmps[gid].out[15] = tmps[gid].out[15];
-
   if (tmps[gid].pim)
   {
     if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
