@@ -1043,10 +1043,14 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         event_log_error (hashcat_ctx, "Unsupported number of rules used in rule chaining.");
 
+        for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+        {
+          hcfree (all_kernel_rules_buf[j]);
+        }
+
         hcfree (all_kernel_rules_cnt);
         hcfree (all_kernel_rules_buf);
 
-        hcfree (rule_buf);
         hcfree (repeats);
 
         return -1;
