@@ -1,6 +1,12 @@
 * changes v7.1.2 -> v7.1.x
 
 ##
+## New Algorithms
+##
+
+- Added hash-mode: Meshtastic LoRa frame (AES-128-CTR PSK)
+
+##
 ## Improvements
 ##
 

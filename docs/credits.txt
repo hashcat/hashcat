@@ -96,4 +96,7 @@ Costin Enache <costin@detack.de>
 * IBM AS400 DES and SSHA1 modules
 * Cisco-ISE Hashed Password (SHA256) module
 
+Aaron (@alphafox02)
+* Meshtastic LoRa frame (AES-128-CTR PSK) kernel module
+
 !!! All the package maintainers of hashcat !!!
