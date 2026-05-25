@@ -141,6 +141,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       const int account_info_len = account_info_stop - account_info_start;
 
+      if (account_info_len > (int) sizeof (krb5tgs->account_info)) return (PARSER_SALT_LENGTH);
+
       token.token_cnt++;
 
       // etype

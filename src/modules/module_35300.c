@@ -165,6 +165,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
       const char *acct_stop_incl = star2 + 2;                 // include "*$"
       const int   acct_len       = (int) (acct_stop_incl - acct_start);
 
+      if (acct_len > (int) sizeof (krb5tgs->account_info)) return (PARSER_SALT_LENGTH);
+
       token.token_cnt++;
 
       // etype
