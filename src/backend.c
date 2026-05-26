@@ -14176,7 +14176,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     u64 size_plains  = (u64) hashes->digests_cnt * sizeof (plain_t);
     u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
-    u64 size_esalts  = (u64) hashes->digests_cnt * hashconfig->esalt_size;
+    u64 size_esalts  = (u64) hashes->digests_cnt * (u64) hashconfig->esalt_size;
     u64 size_shown   = (u64) hashes->digests_cnt * sizeof (u32);
     u64 size_digests = (u64) hashes->digests_cnt * (u64) hashconfig->dgst_size;
 
