@@ -159,8 +159,6 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_fopen (&fp, out_info[j].file_name, "rb") == false) continue;
 
-      //hc_thread_mutex_lock (status_ctx->mux_display);
-
       struct stat outfile_stat;
 
       if (hc_fstat (&fp, &outfile_stat))
@@ -268,20 +266,27 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
           if (cracked == true)
           {
-            hashes->digests_shown[idx] = 1;
+            hc_thread_mutex_lock (status_ctx->mux_display);
 
-            hashes->digests_done++;
-
-            salt_buf->digests_done++;
-
-            if (salt_buf->digests_done == salt_buf->digests_cnt)
+            if (hashes->digests_shown[idx] == 0)
             {
-              hashes->salts_shown[salt_pos] = 1;
+              hashes->digests_shown[idx] = 1;
 
-              hashes->salts_done++;
+              hashes->digests_done++;
 
-              if (hashes->salts_done == salts_cnt) mycracked (hashcat_ctx);
+              salt_buf->digests_done++;
+
+              if (salt_buf->digests_done == salt_buf->digests_cnt)
+              {
+                hashes->salts_shown[salt_pos] = 1;
+
+                hashes->salts_done++;
+
+                if (hashes->salts_done == salts_cnt) mycracked (hashcat_ctx);
+              }
             }
+
+            hc_thread_mutex_unlock (status_ctx->mux_display);
 
             break;
           }
@@ -293,8 +298,6 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
       hcfree (line_buf);
 
       out_info[j].seek = hc_ftell (&fp);
-
-      //hc_thread_mutex_unlock (status_ctx->mux_display);
 
       hc_fclose (&fp);
 
