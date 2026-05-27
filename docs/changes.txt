@@ -10,6 +10,8 @@ Docker: Add hashcat-toolchain
 ## Bugs
 ##
 
+- Fixed orphaned LM split hash causing corrupted hash output in --show/--left with malformed input hashes
+- Fixed O(n^2) LM split_neighbor fixup loop causing significant hangs with large hashlists
 - Added workaround for CUDA memory leak in benchmark mode caused by register spilling
 - Fixed bugs on multiple DES based modules when used with CPU devices
 - Fixed MSYS2 build
