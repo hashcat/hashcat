@@ -570,6 +570,8 @@ static int mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask_b
     }
   }
 
+  new_mask_buf[mask_pos] = 0;
+
   return 0;
 }
 
@@ -1138,7 +1140,7 @@ static char* reverseMask (const char *mask, const char *prepend)
   u32 maskLength = strlen (mask);
   u32 prependLength = strlen (prepend);
 
-  char *tmp_buf = (char *) hcmalloc (256);
+  char *tmp_buf = (char *) hcmalloc (maskLength + prependLength + 2);
 
   u32 i = 0;
 
@@ -1192,9 +1194,13 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
       increment_max = MIN (increment_max, pw_max);
     }
 
+    const size_t mask_len = strlen (mask);
+    const size_t prepend_len = prepend ? strlen (prepend) : 0;
+    const size_t trunc_sz = mask_len + prepend_len + 2;
+
     for (u32 increment_len = increment_min; increment_len <= increment_max; increment_len++)
     {
-      char *mask_truncated = (char *) hcmalloc (256);
+      char *mask_truncated = (char *) hcmalloc (trunc_sz);
 
       char *mask_truncated_next = mask_truncated;
 
@@ -1202,30 +1208,41 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
       {
         // this happens with maskfiles only
 
-        mask_truncated_next += snprintf (mask_truncated, 256, "%s,", prepend);
+        mask_truncated_next += snprintf (mask_truncated, trunc_sz, "%s,", prepend);
       }
 
       if (user_options->increment == INCREMENT_INVERSED)
       {
-        if (mp_get_truncated_mask (hashcat_ctx, reverseMask (mask, ""), strlen (mask), increment_len, mask_truncated_next) == -1)
+        char *reversed = reverseMask (mask, "");
+
+        if (mp_get_truncated_mask (hashcat_ctx, reversed, mask_len, increment_len, mask_truncated_next) == -1)
         {
+          hcfree (reversed);
           hcfree (mask_truncated);
 
           break;
         }
 
+        hcfree (reversed);
+
+        char *mask_reversed;
+
         if (prepend)
         {
-          mask_truncated = reverseMask (mask_truncated, prepend);
+          mask_reversed = reverseMask (mask_truncated, prepend);
         }
         else
         {
-         mask_truncated = reverseMask (mask_truncated, "");
+          mask_reversed = reverseMask (mask_truncated, "");
         }
+
+        hcfree (mask_truncated);
+
+        mask_truncated = mask_reversed;
       }
       else
       {
-        if (mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len, mask_truncated_next) == -1)
+        if (mp_get_truncated_mask (hashcat_ctx, mask, mask_len, increment_len, mask_truncated_next) == -1)
         {
           hcfree (mask_truncated);
 
@@ -1901,6 +1918,13 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
     {
       escaped = false;
 
+      if (mf->mf_len >= (int) sizeof (mf->mf_buf) - 1)
+      {
+        event_log_error (hashcat_ctx, "Mask field too long in: %s", mask_buf);
+
+        return -1;
+      }
+
       mf->mf_buf[mf->mf_len] = mask_buf[i];
 
       mf->mf_len++;
@@ -1926,6 +1950,13 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
+        if (mf->mf_len >= (int) sizeof (mf->mf_buf) - 1)
+        {
+          event_log_error (hashcat_ctx, "Mask field too long in: %s", mask_buf);
+
+          return -1;
+        }
+
         mf->mf_buf[mf->mf_len] = mask_buf[i];
 
         mf->mf_len++;
