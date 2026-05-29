@@ -13,6 +13,8 @@ Docker: Add hashcat-toolchain
 - Added workaround for CUDA memory leak in benchmark mode caused by register spilling
 - Fixed bugs on multiple DES based modules when used with CPU devices
 - Fixed MSYS2 build
+- Fixed encode buffer overflow in module 16900 causing crashes when --show
+- Fixed encode off by one in Kerberos etype 17/18 modules
 - Disable setShouldMaximizeConcurrentCompilation on ext_metal.m, due to segfault on macos Tahoe
 
 * changes v7.1.1 -> v7.1.2
