@@ -16,6 +16,7 @@
 #include "bitops.h"
 #include "timer.h"
 #include "emu_inc_hash_sha1.h"
+#include "wordlist_index.h"
 
 size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len)
 {
@@ -599,10 +600,36 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
   u64 cnt  = 0;
   u64 cnt2 = 0;
 
+  // ---- wordlist index builder setup ----------------------------------------
+  // Only build index during the first (cache-miss) scan of a plain file when
+  // --wordlist-index-cache is given without a path (build mode) and the run
+  // uses a skip/limit window large enough to make chunked distribution likely.
+  const bool plain_fp = (fp->pfp != NULL) && (fp->gfp == NULL) && (fp->ufp == NULL) && (fp->xfp == NULL);
+
+  hcidx_builder_t idx_builder;
+  memset (&idx_builder, 0, sizeof (idx_builder));
+
+  const bool do_build = plain_fp
+    && hcidx_should_build ((u64) d.stat.st_size, user_options->skip, user_options->limit, user_options->wordlist_index_cache)
+    && (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT);
+
+  if (do_build)
+  {
+    hcidx_builder_begin (&idx_builder, dictfile, (u64) d.stat.st_size, HCIDX_DEFAULT_INTERVAL, user_options->wordlist_index_cache_sha256);
+  }
+
+  u64 base_word_cnt = 0;         // counts valid base words (len <= PW_MAX)
+  u64 segment_base_off = 0;      // byte offset of the start of the current segment
+  // --------------------------------------------------------------------------
+
   while (!hc_feof (fp))
   {
+    segment_base_off = comp;     // comp is updated to segment end; capture before
+
     if (load_segment (hashcat_ctx, fp) == -1)
     {
+      if (do_build) hcidx_builder_abort (&idx_builder);
+
       return -2;
     }
 
@@ -614,6 +641,8 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
     {
       u64 len;
       u64 off;
+
+      const u64 word_byte_off = segment_base_off + i;  // absolute byte offset of this line
 
       char *ptr = wl_data->buf + i;
 
@@ -660,11 +689,24 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
 
       if (len > PW_MAX) continue;
 
+      // ---- index builder offer ---------------------------------------------
+      if (do_build && idx_builder.active)
+      {
+        hcidx_builder_offer (&idx_builder, base_word_cnt, word_byte_off);
+      }
+
+      base_word_cnt++;
+      // ----------------------------------------------------------------------
+
       d.cnt++;
 
       if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
       {
-        if (overflow_check_u64_add (cnt, straight_ctx->kernel_rules_cnt) == true) return -1;
+        if (overflow_check_u64_add (cnt, straight_ctx->kernel_rules_cnt) == true)
+        {
+          if (do_build) hcidx_builder_abort (&idx_builder);
+          return -1;
+        }
 
         cnt += straight_ctx->kernel_rules_cnt;
       }
@@ -672,13 +714,21 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
       {
         if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
         {
-          if (overflow_check_u64_add (cnt, mask_ctx->bfs_cnt) == true) return -1;
+          if (overflow_check_u64_add (cnt, mask_ctx->bfs_cnt) == true)
+          {
+            if (do_build) hcidx_builder_abort (&idx_builder);
+            return -1;
+          }
 
           cnt += mask_ctx->bfs_cnt;
         }
         else
         {
-          if (overflow_check_u64_add (cnt, combinator_ctx->combs_cnt) == true) return -1;
+          if (overflow_check_u64_add (cnt, combinator_ctx->combs_cnt) == true)
+          {
+            if (do_build) hcidx_builder_abort (&idx_builder);
+            return -1;
+          }
 
           cnt += combinator_ctx->combs_cnt;
         }
@@ -705,6 +755,13 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
       EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
     }
   }
+
+  // ---- index builder finalize ----------------------------------------------
+  if (do_build && idx_builder.active)
+  {
+    hcidx_builder_finalize (&idx_builder, base_word_cnt, true, false);
+  }
+  // --------------------------------------------------------------------------
 
   cache_generate_t cache_generate;
 

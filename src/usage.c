@@ -61,6 +61,8 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --outfile-autohex-disable  |      | Disable the use of $HEX[] in output plains           |",
   "     --outfile-check-timer      | Num  | Sets seconds between outfile checks to X             | --outfile-check-timer=30",
   "     --wordlist-autohex-disable |      | Disable the conversion of $HEX[] from the wordlist   |",
+  "     --wordlist-index-cache         | File | Use/build .hcidx seek-index cache for wordlist    | --wordlist-index-cache=wl.hcidx",
+  "     --wordlist-index-cache-sha256  |      | Include SHA-256 of wordlist in the .hcidx (slow)  |",
   " -p, --separator                | Char | Separator char for hashlists and outfile             | -p :",
   "     --stdout                   |      | Do not crack a hash, instead print candidates only   |",
   "     --show                     |      | Compare hashlist with potfile; show cracked hashes   |",

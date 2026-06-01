@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "memory.h"
 #include "rp.h"
 #include "rp_cpu.h"
 #include "emu_inc_rp.h"
@@ -14,6 +15,21 @@
 #include "filehandling.h"
 #include "slow_candidates.h"
 #include "shared.h"
+#include "wordlist_index.h"
+
+void slow_candidates_free_index (void *extra_info)
+{
+  if (extra_info == NULL) return;
+
+  extra_info_straight_t *extra_info_straight = (extra_info_straight_t *) extra_info;
+
+  if (extra_info_straight->idx != NULL)
+  {
+    hcidx_free ((hcidx_t *) extra_info_straight->idx);
+    hcfree (extra_info_straight->idx);
+    extra_info_straight->idx = NULL;
+  }
+}
 
 void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u64 cur, const u64 end)
 {
@@ -28,7 +44,74 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
   {
     extra_info_straight_t *extra_info_straight = (extra_info_straight_t *) extra_info;
 
-    for (u64 i = cur; i < end; i++)
+    u64 eff_cur = cur;
+
+    // --- wordlist seek index acceleration ---------------------------------
+    // Only when walking forward from a known position whose file offset we can
+    // trust: cur must sit on a base-word boundary, and the wordlist must be a
+    // plain (uncompressed) file so byte offsets are meaningful. The common hot
+    // case is a fresh chunk where cur == 0 and end is a large --skip.
+    {
+      HCFILE *fp = &extra_info_straight->fp;
+
+      const bool plain = (fp->pfp != NULL) && (fp->gfp == NULL) && (fp->ufp == NULL) && (fp->xfp == NULL);
+
+      const u64 krc = straight_ctx->kernel_rules_cnt;
+
+      if (plain && krc > 0 && (cur % krc) == 0)
+      {
+        const u64 cur_word = cur / krc;
+        const u64 end_word = end / krc;
+
+        // Lazy one-shot load of the index for this fp.
+        if (extra_info_straight->idx_tried == false)
+        {
+          extra_info_straight->idx_tried = true;
+
+          hcidx_t *idx = (hcidx_t *) hcmalloc (sizeof (hcidx_t));
+
+          if (hcidx_load (idx, straight_ctx->dict, user_options->wordlist_index_cache) == 0 && idx->loaded)
+          {
+            extra_info_straight->idx = idx;
+          }
+          else
+          {
+            hcidx_free (idx);
+            hcfree (idx);
+            extra_info_straight->idx = NULL;
+          }
+
+          extra_info_straight->idx_pos = 0; // fp is at start of file here
+        }
+
+        hcidx_t *idx = (hcidx_t *) extra_info_straight->idx;
+
+        if (idx != NULL)
+        {
+          u64 ckpt_off  = 0;
+          u64 ckpt_word = 0;
+
+          // Only jump forward, and only if it skips past where fp already is.
+          if (hcidx_lookup (idx, end_word, &ckpt_off, &ckpt_word) == true && ckpt_word > cur_word)
+          {
+            if (hc_fseek (fp, (off_t) ckpt_off, SEEK_SET) == 0)
+            {
+              // Invalidate the segment buffer so the next get_next_word reloads
+              // from the new file offset.
+              wl_data_t *wl_data = hashcat_ctx->wl_data;
+              wl_data->pos = 0;
+              wl_data->cnt = 0;
+
+              // We are now positioned at the start of base word ckpt_word.
+              eff_cur = ckpt_word * krc;
+              extra_info_straight->idx_pos = ckpt_word;
+            }
+          }
+        }
+      }
+    }
+
+    for (u64 i = eff_cur; i < end; i++)
     {
       if ((i % straight_ctx->kernel_rules_cnt) == 0)
       {

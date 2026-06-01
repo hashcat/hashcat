@@ -21,6 +21,11 @@ typedef struct extra_info_straight
   u8  out_buf[256];
   u32 out_len;
 
+  // wordlist seek index (.hcidx) state; idx_tried guards one-shot lazy load
+  void *idx;        // hcidx_t *, allocated lazily; NULL until first seek
+  bool  idx_tried;
+  u64   idx_pos;    // current base-word position of fp (for index accel)
+
 } extra_info_straight_t;
 
 typedef struct extra_info_combi
@@ -53,6 +58,10 @@ typedef struct extra_info_mask
 } extra_info_mask_t;
 
 void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u64 cur, const u64 end);
+
+// Frees the lazily-loaded wordlist seek index attached to a straight-mode
+// extra_info, if any. Safe to call when none was loaded.
+void slow_candidates_free_index (void *extra_info);
 void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info);
 
 #endif // HC_SLOW_CANDIDATES_H

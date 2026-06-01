@@ -15,6 +15,7 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "slow_candidates.h"
+#include "wordlist_index.h"
 #include "dispatch.h"
 #include "generic.h"
 #include "convert.h"
@@ -492,6 +493,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (wl_data_init (hashcat_ctx_tmp) == -1)
       {
+        slow_candidates_free_index (&extra_info_straight);
         hc_fclose (&extra_info_straight.fp);
 
         hcfree (hashcat_ctx_tmp->wl_data);
@@ -696,6 +698,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         {
           if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1)
           {
+            slow_candidates_free_index (&extra_info_straight);
             hc_fclose (&extra_info_straight.fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
@@ -706,6 +709,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
           if (run_cracker (hashcat_ctx, device_param, -1, pws_cnt) == -1)
           {
+            slow_candidates_free_index (&extra_info_straight);
             hc_fclose (&extra_info_straight.fp);
 
             hcfree (hashcat_ctx_tmp->wl_data);
@@ -748,6 +752,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
         if (words_fin == 0) break;
       }
+
+      slow_candidates_free_index (&extra_info_straight);
 
       hc_fclose (&extra_info_straight.fp);
 
@@ -1626,6 +1632,11 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       u64 words_cur = 0;
 
+      // Lazy one-shot .hcidx state for the fast-candidates seek below.
+      hcidx_t fast_idx;
+      memset (&fast_idx, 0, sizeof (fast_idx));
+      bool fast_idx_tried = false;
+
       while (status_ctx->run_thread_level1 == true)
       {
         u64 words_off = 0;
@@ -1651,6 +1662,42 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           u32   line_len;
 
           char rule_buf_out[RP_PASSWORD_SIZE];
+
+          // Index-accelerated seek (.hcidx). Plain files only; gzip/xz byte
+          // offsets are not meaningful, so we never seek those. Forward-only.
+          {
+            const bool plain = (fp.pfp != NULL) && (fp.gfp == NULL) && (fp.ufp == NULL) && (fp.xfp == NULL);
+
+            if (plain && words_off > words_cur)
+            {
+              if (fast_idx_tried == false)
+              {
+                fast_idx_tried = true;
+                if (hcidx_load (&fast_idx, dictfile, user_options->wordlist_index_cache) != 0 || fast_idx.loaded == false)
+                {
+                  hcidx_free (&fast_idx);
+                }
+              }
+
+              if (fast_idx.loaded == true)
+              {
+                u64 ckpt_off  = 0;
+                u64 ckpt_word = 0;
+
+                if (hcidx_lookup (&fast_idx, words_off, &ckpt_off, &ckpt_word) == true && ckpt_word > words_cur)
+                {
+                  if (hc_fseek (&fp, (off_t) ckpt_off, SEEK_SET) == 0)
+                  {
+                    // Invalidate the segment buffer so the next get_next_word
+                    // reloads starting at the new file offset.
+                    hashcat_ctx_tmp->wl_data->pos = 0;
+                    hashcat_ctx_tmp->wl_data->cnt = 0;
+                    words_cur = ckpt_word;
+                  }
+                }
+              }
+            }
+          }
 
           for ( ; words_cur < words_off; words_cur++) get_next_word (hashcat_ctx_tmp, &fp, &line_buf, &line_len);
 
@@ -1784,6 +1831,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
             hc_fclose (&fp);
 
+            hcidx_free (&fast_idx);
+
             hcfree (hashcat_ctx_tmp->wl_data);
             hcfree (hashcat_ctx_tmp);
 
@@ -1795,6 +1844,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
             if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 
             hc_fclose (&fp);
+
+            hcidx_free (&fast_idx);
 
             hcfree (hashcat_ctx_tmp->wl_data);
             hcfree (hashcat_ctx_tmp);
@@ -1850,6 +1901,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
 
       hc_fclose (&fp);
+
+      hcidx_free (&fast_idx);
 
       wl_data_destroy (hashcat_ctx_tmp);
 

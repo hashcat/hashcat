@@ -161,6 +161,8 @@ static const struct option long_options[] =
   {"veracrypt-pim-stop",        required_argument, NULL, IDX_VERACRYPT_PIM_STOP},
   {"version",                   no_argument,       NULL, IDX_VERSION},
   {"wordlist-autohex-disable",  no_argument,       NULL, IDX_WORDLIST_AUTOHEX_DISABLE},
+  {"wordlist-index-cache",      optional_argument, NULL, IDX_WORDLIST_INDEX_CACHE},
+  {"wordlist-index-cache-sha256", no_argument,     NULL, IDX_WORDLIST_INDEX_CACHE_SHA256},
   {"workload-profile",          required_argument, NULL, IDX_WORKLOAD_PROFILE},
   #ifdef WITH_BRAIN
   {"brain-client",              no_argument,       NULL, IDX_BRAIN_CLIENT},
@@ -327,6 +329,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->veracrypt_pim_stop        = VERACRYPT_PIM_STOP;
   user_options->version                   = VERSION;
   user_options->wordlist_autohex          = WORDLIST_AUTOHEX;
+  user_options->wordlist_index_cache        = NULL;
+  user_options->wordlist_index_cache_sha256 = false;
   user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) hccalloc (256, sizeof (char *));
@@ -522,6 +526,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex          = false;                           break;
+      case IDX_WORDLIST_INDEX_CACHE:      user_options->wordlist_index_cache         = optarg;                       break;
+      case IDX_WORDLIST_INDEX_CACHE_SHA256: user_options->wordlist_index_cache_sha256 = true;                         break;
       case IDX_HEX_CHARSET:               user_options->hex_charset               = true;                            break;
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
       case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;                            break;

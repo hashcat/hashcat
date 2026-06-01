@@ -954,6 +954,8 @@ typedef enum user_options_map
   IDX_VERSION_LOWER             = 'v',
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff54,
+  IDX_WORDLIST_INDEX_CACHE        = 0xff70,
+  IDX_WORDLIST_INDEX_CACHE_SHA256 = 0xff71,
   IDX_WORKLOAD_PROFILE          = 'w',
 
 } user_options_map_t;
@@ -2619,6 +2621,8 @@ typedef struct user_options
   u32          workload_profile;
   u64          limit;
   u64          skip;
+  char        *wordlist_index_cache;
+  bool         wordlist_index_cache_sha256;
   bool         hash_copy;
 
 } user_options_t;
