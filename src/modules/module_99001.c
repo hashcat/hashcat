@@ -17,7 +17,7 @@ static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
 static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_NETWORK_PROTOCOL;
-static const char *HASH_NAME      = "Meshtastic LoRa frame (AES-128-CTR PSK)";
+static const char *HASH_NAME      = "Meshtastic LoRa frame (AES-128/256-CTR PSK)";
 static const u64   KERN_TYPE      = 99001;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
                                   | OPTI_TYPE_NOT_ITERATED
@@ -25,8 +25,8 @@ static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "$meshtastic$1*00*efbeadde*efbeadde*68617368636174*56c09c1c6132ed37ce376f95a350b133";
+static const char *ST_PASS        = "0123456789abcdef0123456789abcdef";
+static const char *ST_HASH        = "$meshtastic$1*0a*efbeadde*efbeadde*4c6f6e6746617374*e9886af9b78d2bdd9c52f492cc999e04";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -63,7 +63,8 @@ static const char *SIGNATURE_MESHTASTIC = "$meshtastic$";
 
 u32 module_pw_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  // Meshtastic PSK is 16 bytes for AES-128, 32 for AES-256. Anything longer is truncated by the kernel.
+  // Meshtastic PSK length selects the cipher: <=16 byte candidate -> AES-128 (zero-padded to 16),
+  // 17..32 byte candidate -> AES-256 (zero-padded to 32). Anything longer is truncated to 32 by the kernel.
   return 32;
 }
 

@@ -62,7 +62,8 @@ DECLSPEC int meshtastic_chash_match (const u32 psk_xor, const u32 name_xor, cons
 
 DECLSPEC int meshtastic_verify
 (
-  PRIVATE_AS const u32 *key_le,
+  PRIVATE_AS const u32 *key_le,   // up to 8 u32, zero-padded
+  const u32 key_words,            // 4 = AES-128, 8 = AES-256
   const u32 chash,
   const u32 name_xor,
   const u32 name_len,
@@ -77,25 +78,17 @@ DECLSPEC int meshtastic_verify
   SHM_TYPE u32 *s_te4
 )
 {
-  // 1-byte channel-hash prefilter: xor of all 16 PSK bytes XOR xor of name bytes == chash.
-  // Eliminates ~99.6% of candidates before any AES work in the known-name case;
-  // the unknown-name path widens the accept set to ~13/256 (one per common name).
+  // 1-byte channel-hash prefilter over the FULL key (xorHash covers all 16 or 32 PSK bytes).
+  u32 xw = key_le[0] ^ key_le[1] ^ key_le[2] ^ key_le[3];
 
-  const u32 xw = key_le[0] ^ key_le[1] ^ key_le[2] ^ key_le[3];
+  if (key_words == 8) xw ^= key_le[4] ^ key_le[5] ^ key_le[6] ^ key_le[7];
+
   const u32 xh = (xw >> 16) ^ xw;
   const u32 xq = (xh >>  8) ^ xh;
 
   if (meshtastic_chash_match (xq, name_xor, chash, name_len) == 0) return 0;
 
-  // The AES helpers swap32 their inputs internally; pass key/nonce in
-  // hashcat-native LE-byte u32 form. Output comes back LE-byte too, so the
-  // ct buffer on the host stays LE and XORs directly.
-
-  #define MESHTASTIC_KEYLEN 44
-
-  u32 ks[MESHTASTIC_KEYLEN];
-
-  aes128_set_encrypt_key (ks, key_le, s_te0, s_te1, s_te2, s_te3);
+  // The AES helpers swap32 their inputs internally; pass key/nonce in hashcat-native LE-byte u32 form.
 
   u32 nonce[4];
 
@@ -106,7 +99,20 @@ DECLSPEC int meshtastic_verify
 
   u32 ks_block[4];
 
-  aes128_encrypt (ks, nonce, ks_block, s_te0, s_te1, s_te2, s_te3, s_te4);
+  if (key_words == 8)
+  {
+    u32 ks[60]; // AES-256: 4 * (14 + 1)
+
+    aes256_set_encrypt_key (ks, key_le, s_te0, s_te1, s_te2, s_te3);
+    aes256_encrypt (ks, nonce, ks_block, s_te0, s_te1, s_te2, s_te3, s_te4);
+  }
+  else
+  {
+    u32 ks[44]; // AES-128: 4 * (10 + 1)
+
+    aes128_set_encrypt_key (ks, key_le, s_te0, s_te1, s_te2, s_te3);
+    aes128_encrypt (ks, nonce, ks_block, s_te0, s_te1, s_te2, s_te3, s_te4);
+  }
 
   // Decrypt the full first 16 bytes of plaintext for structural checks.
   const u32 pt0 = ks_block[0] ^ ct[0];
@@ -230,20 +236,39 @@ KERNEL_FQ KERNEL_FA void m99001_mxx (KERN_ATTR_RULES_ESALT (meshtastic_t))
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    // first 16 bytes of candidate, zero-padded, used as the AES-128 key.
+    // First 16 or 32 bytes of candidate become the AES key, zero-padded.
+    // Length <=16 selects AES-128, 17..32 selects AES-256.
 
-    u32 key_le[4];
+    u32 key_le[8] = { 0 };
 
     key_le[0] = tmp.i[0];
     key_le[1] = tmp.i[1];
     key_le[2] = tmp.i[2];
     key_le[3] = tmp.i[3];
 
-    const u32 plen = (tmp.pw_len < 16) ? tmp.pw_len : 16;
+    u32 key_words;
 
-    truncate_block_4x4_le_S (key_le, plen);
+    if (tmp.pw_len > 16) // 17..32 bytes -> AES-256
+    {
+      key_le[4] = tmp.i[4];
+      key_le[5] = tmp.i[5];
+      key_le[6] = tmp.i[6];
+      key_le[7] = tmp.i[7];
 
-    if (meshtastic_verify (key_le, chash, name_xor, name_len, packet_id, from_node,
+      const u32 plen = (tmp.pw_len < 32) ? tmp.pw_len : 32;
+
+      truncate_block_4x4_le_S (&key_le[4], plen - 16); // low 16 are full; trim high block
+
+      key_words = 8;
+    }
+    else
+    {
+      truncate_block_4x4_le_S (key_le, tmp.pw_len);
+
+      key_words = 4;
+    }
+
+    if (meshtastic_verify (key_le, key_words, chash, name_xor, name_len, packet_id, from_node,
                            esalt_bufs[DIGESTS_OFFSET_HOST].ct_len,
                            esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf,
                            s_te0, s_te1, s_te2, s_te3, s_te4) == 1)
@@ -323,18 +348,36 @@ KERNEL_FQ KERNEL_FA void m99001_sxx (KERN_ATTR_RULES_ESALT (meshtastic_t))
 
     tmp.pw_len = apply_rules (rules_buf[il_pos].cmds, tmp.i, tmp.pw_len);
 
-    u32 key_le[4];
+    u32 key_le[8] = { 0 };
 
     key_le[0] = tmp.i[0];
     key_le[1] = tmp.i[1];
     key_le[2] = tmp.i[2];
     key_le[3] = tmp.i[3];
 
-    const u32 plen = (tmp.pw_len < 16) ? tmp.pw_len : 16;
+    u32 key_words;
 
-    truncate_block_4x4_le_S (key_le, plen);
+    if (tmp.pw_len > 16) // 17..32 bytes -> AES-256
+    {
+      key_le[4] = tmp.i[4];
+      key_le[5] = tmp.i[5];
+      key_le[6] = tmp.i[6];
+      key_le[7] = tmp.i[7];
 
-    if (meshtastic_verify (key_le, chash, name_xor, name_len, packet_id, from_node,
+      const u32 plen = (tmp.pw_len < 32) ? tmp.pw_len : 32;
+
+      truncate_block_4x4_le_S (&key_le[4], plen - 16); // low 16 are full; trim high block
+
+      key_words = 8;
+    }
+    else
+    {
+      truncate_block_4x4_le_S (key_le, tmp.pw_len);
+
+      key_words = 4;
+    }
+
+    if (meshtastic_verify (key_le, key_words, chash, name_xor, name_len, packet_id, from_node,
                            esalt_bufs[DIGESTS_OFFSET_HOST].ct_len,
                            esalt_bufs[DIGESTS_OFFSET_HOST].ct_buf,
                            s_te0, s_te1, s_te2, s_te3, s_te4) == 1)

@@ -10,8 +10,9 @@ use warnings;
 
 use Crypt::Rijndael;
 
-# password: raw PSK candidate, padded/truncated to 16 bytes for AES-128
-# "salt": unused -- the per-frame data lives in our esalt and is built from the optional args below
+# password: raw PSK candidate. 1..16 bytes -> zero-padded to 16 (AES-128 key);
+#           17..32 bytes -> zero-padded to 32 (AES-256 key). Anything past 32 is truncated.
+# "salt":  unused -- per-frame data lives in our esalt and is built from the optional args below.
 sub module_constraints { [[1, 32], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub _xor_byte
@@ -28,26 +29,26 @@ sub _xor_byte
   return $x;
 }
 
-sub _pad16
+sub _pad_psk
 {
+  # Length <= 16 -> AES-128 key (zero-padded to 16). 17..32 -> AES-256 key (zero-padded to 32).
   my $word = shift;
+  my $len  = length ($word);
 
-  if (length ($word) >= 16)
-  {
-    return substr ($word, 0, 16);
-  }
-
-  return $word . ("\x00" x (16 - length ($word)));
+  if ($len > 32) { return substr ($word, 0, 32); }
+  if ($len > 16) { return $word . ("\x00" x (32 - $len)); }
+  return $word . ("\x00" x (16 - $len));
 }
 
 sub _aes_ctr_first_block
 {
-  my ($key16, $packet_id, $from_node, $plaintext) = @_;
+  my ($key, $packet_id, $from_node, $plaintext) = @_;
 
   # CTR nonce: packet_id_LE || 0x00000000 || from_node_LE || 0x00000000
   my $nonce = pack ("V", $packet_id) . "\x00\x00\x00\x00" . pack ("V", $from_node) . "\x00\x00\x00\x00";
 
-  my $aes = Crypt::Rijndael->new ($key16, Crypt::Rijndael::MODE_ECB ());
+  # Crypt::Rijndael picks AES-128 or AES-256 from the key length (16 or 32 bytes).
+  my $aes = Crypt::Rijndael->new ($key, Crypt::Rijndael::MODE_ECB ());
 
   my $ks = $aes->encrypt ($nonce);
 
@@ -71,7 +72,7 @@ sub module_generate_hash
   $portnum   = 1                               if (! defined ($portnum));
   $payload   = "hashcat"                       if (! defined ($payload));
 
-  my $key16 = _pad16 ($word);
+  my $key = _pad_psk ($word);
 
   # Meshtastic Data envelope (protobuf):
   #   tag 0x08 (field 1 / varint) + portnum
@@ -88,9 +89,9 @@ sub module_generate_hash
     $plaintext = substr ($plaintext, 0, 16);
   }
 
-  my $ct = _aes_ctr_first_block ($key16, $packet_id, $from_node, $plaintext);
+  my $ct = _aes_ctr_first_block ($key, $packet_id, $from_node, $plaintext);
 
-  my $chash = _xor_byte ($name) ^ _xor_byte ($key16);
+  my $chash = _xor_byte ($name) ^ _xor_byte ($key);
 
   # packet_id and from_node are written as the 4 on-wire LE bytes in hex
   # (so "deadbeef" represents the byte sequence de ad be ef).
@@ -141,11 +142,11 @@ sub module_verify_hash
 
   # decrypt the first 16 ciphertext bytes; if it's a real Meshtastic frame
   # we recover the portnum and payload-length-prefixed payload.
-  my $key16 = _pad16 ($word_packed);
+  my $key = _pad_psk ($word_packed);
 
   my $ct = pack ("H*", substr ($ct_hex, 0, 32));
 
-  my $pt = _aes_ctr_first_block ($key16, $packet_id, $from_node, $ct);
+  my $pt = _aes_ctr_first_block ($key, $packet_id, $from_node, $ct);
 
   my @pb = unpack ("CCCC", substr ($pt, 0, 4));
 
