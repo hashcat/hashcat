@@ -43,19 +43,30 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
-#define MESHTASTIC_NAME_MAX 64
-#define MESHTASTIC_CT_MAX   256
+#define MESHTASTIC_NAME_MAX  64
+#define MESHTASTIC_CT_MAX    256
+#define MESHTASTIC_FRAMES_MAX 16   /* matches sniffer-side --hashcat-export-merge cap */
+
+/* Per-frame portion of the hash. v1 lines populate a single entry; v2 lines
+ * populate nframes entries (2..16) sharing the same chash and channel name. */
+typedef struct meshtastic_frame
+{
+  u32 packet_id;
+  u32 from_node;
+  u32 ct_len;
+  u32 ct_buf[MESHTASTIC_CT_MAX / 4];
+
+} meshtastic_frame_t;
 
 typedef struct meshtastic
 {
   u32 chash;
   u32 name_xor;
-  u32 packet_id;
-  u32 from_node;
   u32 name_len;
-  u32 ct_len;
+  u32 nframes;        /* 1 for v1, 2..16 for v2 */
   u32 name_buf[MESHTASTIC_NAME_MAX / 4];
-  u32 ct_buf[MESHTASTIC_CT_MAX / 4];
+
+  meshtastic_frame_t frames[MESHTASTIC_FRAMES_MAX];
 
 } meshtastic_t;
 
@@ -83,89 +94,174 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   memset (meshtastic, 0, sizeof (meshtastic_t));
 
+  // Detect format version by peeking at the digit after the signature.
+  // We need "$meshtastic$" (12 chars) plus one digit, so line_len >= 13.
+  if (line_len < 14) return (PARSER_SALT_LENGTH);
+
+  const char version_char = line_buf[12];
+
+  if (version_char != '1' && version_char != '2') return (PARSER_SALT_VALUE);
+
+  u32 nframes = 1;
+
+  // For v2 we have to know N (the frame count) before configuring the
+  // tokenizer, since the token count grows with N. Walk the line to read
+  // it: skip "$meshtastic$2*", skip chash + '*', skip name + '*', then
+  // read the decimal N up to the next '*'.
+  if (version_char == '2')
+  {
+    int p = 13;                                  // index of '*' after the '2'
+    if (p >= line_len || line_buf[p] != '*') return (PARSER_SALT_VALUE);
+    p++;
+
+    // chash field: exactly 2 hex chars then '*'
+    if (p + 3 > line_len) return (PARSER_SALT_LENGTH);
+    if (line_buf[p + 2] != '*') return (PARSER_SALT_VALUE);
+    p += 3;
+
+    // name field: variable, terminated by '*'
+    while (p < line_len && line_buf[p] != '*') p++;
+    if (p >= line_len) return (PARSER_SALT_VALUE);
+    p++;
+
+    // N field: 1..2 decimal digits, terminated by '*'
+    int n_start = p;
+    while (p < line_len && line_buf[p] != '*')
+    {
+      if (line_buf[p] < '0' || line_buf[p] > '9') return (PARSER_SALT_VALUE);
+      p++;
+    }
+    if (p >= line_len) return (PARSER_SALT_VALUE);
+
+    int n_len = p - n_start;
+    if (n_len < 1 || n_len > 2) return (PARSER_SALT_VALUE);
+
+    nframes = (u32) hc_strtoul ((const char *) (line_buf + n_start), NULL, 10);
+    if (nframes < 2 || nframes > MESHTASTIC_FRAMES_MAX) return (PARSER_SALT_VALUE);
+  }
+
   hc_token_t token;
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 7;
-
   token.signatures_cnt    = 1;
   token.signatures_buf[0] = SIGNATURE_MESHTASTIC;
 
+  // token 0: signature
   token.len[0]     = 12;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  // version
-
+  // token 1: version digit
   token.sep[1]     = '*';
   token.len[1]     = 1;
   token.attr[1]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  // chash byte (frame[13])
-
+  // token 2: chash byte (frame[13])
   token.sep[2]     = '*';
   token.len[2]     = 2;
   token.attr[2]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
-  // packet id (4 LE bytes)
+  u32 name_token_idx;
+  u32 frames_first_token_idx;
 
-  token.sep[3]     = '*';
-  token.len[3]     = 8;
-  token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+  if (version_char == '1')
+  {
+    // v1 layout: signature | 1 | chash | pkt | from | name | ct
+    token.token_cnt = 7;
 
-  // from node (4 LE bytes)
+    // token 3: packet_id (4 LE bytes)
+    token.sep[3]     = '*';
+    token.len[3]     = 8;
+    token.attr[3]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[4]     = '*';
-  token.len[4]     = 8;
-  token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+    // token 4: from_node (4 LE bytes)
+    token.sep[4]     = '*';
+    token.len[4]     = 8;
+    token.attr[4]    = TOKEN_ATTR_FIXED_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
-  // channel name (variable hex, may be empty)
+    // token 5: channel name (variable hex, may be empty)
+    token.sep[5]     = '*';
+    token.len_min[5] = 0;
+    token.len_max[5] = MESHTASTIC_NAME_MAX * 2;
+    token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
-  token.sep[5]     = '*';
-  token.len_min[5] = 0;
-  token.len_max[5] = MESHTASTIC_NAME_MAX * 2;
-  token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+    // token 6: ciphertext (>= 4 bytes so the kernel can check the protobuf header)
+    token.sep[6]     = '*';
+    token.len_min[6] = 8;
+    token.len_max[6] = MESHTASTIC_CT_MAX * 2;
+    token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
 
-  // ciphertext: at minimum the 4-byte protobuf header so the kernel can verify the shape
+    name_token_idx         = 5;
+    frames_first_token_idx = 3;  // pkt at +0, from at +1, ct at +3 (after name)
+  }
+  else
+  {
+    // v2 layout: signature | 2 | chash | name | N | (pkt | from | ct){N}
+    token.token_cnt = 5 + 3 * nframes;
 
-  token.sep[6]     = '*';
-  token.len_min[6] = 8;
-  token.len_max[6] = MESHTASTIC_CT_MAX * 2;
-  token.attr[6]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_HEX;
+    // token 3: channel name (variable hex)
+    token.sep[3]     = '*';
+    token.len_min[3] = 0;
+    token.len_max[3] = MESHTASTIC_NAME_MAX * 2;
+    token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_HEX;
+
+    // token 4: N (1..2 decimal digits)
+    token.sep[4]     = '*';
+    token.len_min[4] = 1;
+    token.len_max[4] = 2;
+    token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
+                     | TOKEN_ATTR_VERIFY_DIGIT;
+
+    // tokens 5..(5 + 3*N - 1): N consecutive (pkt, from, ct) triples
+    for (u32 f = 0; f < nframes; f++)
+    {
+      const u32 base = 5 + 3 * f;
+
+      token.sep[base + 0]     = '*';
+      token.len[base + 0]     = 8;
+      token.attr[base + 0]    = TOKEN_ATTR_FIXED_LENGTH
+                              | TOKEN_ATTR_VERIFY_HEX;
+
+      token.sep[base + 1]     = '*';
+      token.len[base + 1]     = 8;
+      token.attr[base + 1]    = TOKEN_ATTR_FIXED_LENGTH
+                              | TOKEN_ATTR_VERIFY_HEX;
+
+      token.sep[base + 2]     = '*';
+      token.len_min[base + 2] = 8;
+      token.len_max[base + 2] = MESHTASTIC_CT_MAX * 2;
+      token.attr[base + 2]    = TOKEN_ATTR_VERIFY_LENGTH
+                              | TOKEN_ATTR_VERIFY_HEX;
+    }
+
+    name_token_idx         = 3;
+    frames_first_token_idx = 5;  // each frame triple lives at (5 + 3*f, 6 + 3*f, 7 + 3*f)
+  }
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  // version
-
+  // version sanity (tokenizer enforces digit, we enforce value)
   const u32 version = hc_strtoul ((const char *) token.buf[1], NULL, 10);
-
-  if (version != 1) return (PARSER_SALT_VALUE);
+  if (version_char == '1' && version != 1) return (PARSER_SALT_VALUE);
+  if (version_char == '2' && version != 2) return (PARSER_SALT_VALUE);
 
   // chash
-
-  const u8 chash = hex_to_u8 (token.buf[2]);
-
-  meshtastic->chash = (u32) chash;
-
-  // packet_id and from_node are 4-byte LE on the wire; hex_to_u32 reads
-  // them into a host integer that already matches the LE byte order.
-
-  meshtastic->packet_id = hex_to_u32 (token.buf[3]);
-  meshtastic->from_node = hex_to_u32 (token.buf[4]);
+  meshtastic->chash   = (u32) hex_to_u8 (token.buf[2]);
+  meshtastic->nframes = nframes;
 
   // channel name -- copied raw (LE-packed in u32) for the encoder, plus
   // a precomputed xor-byte for the kernel-side prefilter.
-
-  const int name_hex_len = token.len[5];
+  const int name_hex_len = token.len[name_token_idx];
 
   if ((name_hex_len & 1) != 0) return (PARSER_SALT_VALUE);
 
@@ -174,12 +270,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (name_len > MESHTASTIC_NAME_MAX) return (PARSER_SALT_LENGTH);
 
   u8 *name_ptr = (u8 *) meshtastic->name_buf;
-
   u8 name_xor = 0;
 
   for (u32 i = 0; i < name_len; i++)
   {
-    const u8 b = hex_to_u8 (token.buf[5] + (i * 2));
+    const u8 b = hex_to_u8 (token.buf[name_token_idx] + (i * 2));
 
     name_ptr[i] = b;
     name_xor   ^= b;
@@ -188,45 +283,85 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   meshtastic->name_len = name_len;
   meshtastic->name_xor = (u32) name_xor;
 
-  // ciphertext -- byte-swap to BE so the kernel can XOR directly with AES output.
-
-  const int ct_hex_len = token.len[6];
-
-  if ((ct_hex_len & 1) != 0) return (PARSER_SALT_VALUE);
-
-  const u32 ct_len = (u32) (ct_hex_len / 2);
-
-  if (ct_len > MESHTASTIC_CT_MAX) return (PARSER_SALT_LENGTH);
-
-  // LE-packed: byte i of ct lands in byte (i % 4) of ct_buf[i / 4].
-  // Matches hashcat's hex_to_u32 convention and the AES helper's u32
-  // I/O byte order, so the kernel can XOR ct_buf[0] with the AES output
-  // directly.
-  for (u32 i = 0; i < ct_len; i++)
+  // Per-frame triples. In v1 there's a single triple at tokens [3, 4, 6]
+  // (with name sandwiched at 5); in v2 the triples start at token 5 and
+  // are contiguous (pkt, from, ct repeated).
+  for (u32 f = 0; f < nframes; f++)
   {
-    const u8 b = hex_to_u8 (token.buf[6] + (i * 2));
+    u32 pkt_idx, from_idx, ct_idx;
 
-    meshtastic->ct_buf[i / 4] |= ((u32) b) << ((i & 3) * 8);
+    if (version_char == '1')
+    {
+      pkt_idx  = 3;
+      from_idx = 4;
+      ct_idx   = 6;
+    }
+    else
+    {
+      pkt_idx  = frames_first_token_idx + 3 * f + 0;
+      from_idx = frames_first_token_idx + 3 * f + 1;
+      ct_idx   = frames_first_token_idx + 3 * f + 2;
+    }
+
+    meshtastic_frame_t *fr = &meshtastic->frames[f];
+
+    fr->packet_id = hex_to_u32 (token.buf[pkt_idx]);
+    fr->from_node = hex_to_u32 (token.buf[from_idx]);
+
+    const int ct_hex_len = token.len[ct_idx];
+
+    if ((ct_hex_len & 1) != 0) return (PARSER_SALT_VALUE);
+
+    const u32 ct_len = (u32) (ct_hex_len / 2);
+
+    if (ct_len > MESHTASTIC_CT_MAX) return (PARSER_SALT_LENGTH);
+
+    // LE-packed: byte i of ct lands in byte (i % 4) of ct_buf[i / 4].
+    // Matches hashcat's hex_to_u32 convention and the AES helper's u32
+    // I/O byte order, so the kernel can XOR ct_buf[0] with the AES output
+    // directly.
+    for (u32 i = 0; i < ct_len; i++)
+    {
+      const u8 b = hex_to_u8 (token.buf[ct_idx] + (i * 2));
+
+      fr->ct_buf[i / 4] |= ((u32) b) << ((i & 3) * 8);
+    }
+
+    fr->ct_len = ct_len;
   }
 
-  meshtastic->ct_len = ct_len;
+  // Aggregate identity across every frame so two v2 lines that share their
+  // first frame but differ in later frames do not collide on the same salt
+  // (which would make hashcat dedupe them). Plain XOR is enough: real captures
+  // never reuse identical (packet_id, from_node, ct_buf[0], ct_len) tuples
+  // across frames of a single channel.
+  u32 agg_packet_id = 0;
+  u32 agg_from_node = 0;
+  u32 agg_ct_first  = 0;
+  u32 agg_ct_len    = 0;
 
-  // make the salt unique per frame so multiple frames in the same hash
-  // file each get their own _comp pass.
+  for (u32 f = 0; f < nframes; f++)
+  {
+    agg_packet_id ^= meshtastic->frames[f].packet_id;
+    agg_from_node ^= meshtastic->frames[f].from_node;
+    agg_ct_first  ^= meshtastic->frames[f].ct_buf[0];
+    agg_ct_len    ^= meshtastic->frames[f].ct_len;
+  }
 
-  salt->salt_buf[0] = meshtastic->packet_id;
-  salt->salt_buf[1] = meshtastic->from_node;
-  salt->salt_buf[2] = meshtastic->chash;
-  salt->salt_len    = 12;
+  salt->salt_buf[0] = agg_packet_id;
+  salt->salt_buf[1] = agg_from_node;
+  salt->salt_buf[2] = (meshtastic->chash << 16) | (meshtastic->nframes & 0xffff);
+  salt->salt_buf[3] = agg_ct_first;
+  salt->salt_len    = 16;
 
-  // there is no traditional digest here; the verifier matches by
-  // decrypting and checking a protobuf shape. fill a stable sentinel so
-  // the dispatch keeps each frame distinct.
-
-  digest[0] = meshtastic->packet_id;
-  digest[1] = meshtastic->from_node;
-  digest[2] = meshtastic->ct_buf[0];
-  digest[3] = (meshtastic->chash << 24) | (meshtastic->name_xor << 16) | (meshtastic->ct_len & 0xffff);
+  // Digest sentinel (verifier is structural, not a real hash).
+  digest[0] = agg_packet_id;
+  digest[1] = agg_from_node;
+  digest[2] = agg_ct_first;
+  digest[3] = (meshtastic->chash << 24)
+            | (meshtastic->name_xor << 16)
+            | ((meshtastic->nframes & 0xff) << 8)
+            |  (agg_ct_len & 0xff);
 
   return (PARSER_OK);
 }
@@ -235,31 +370,69 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const meshtastic_t *meshtastic = (const meshtastic_t *) esalt_buf;
 
-  // packet_id and from_node round-trip through hex_to_u32 which reads
-  // the file hex as little-endian on-wire bytes; print them swapped so
-  // we re-emit those same on-wire bytes.
-  int line_len = snprintf (line_buf, line_size, "%s1*%02x*%08x*%08x*",
-    SIGNATURE_MESHTASTIC,
-    meshtastic->chash & 0xff,
-    byte_swap_32 (meshtastic->packet_id),
-    byte_swap_32 (meshtastic->from_node));
-
   const u8 *name_ptr = (const u8 *) meshtastic->name_buf;
 
-  for (u32 i = 0; i < meshtastic->name_len; i++)
+  int line_len = 0;
+
+  if (meshtastic->nframes <= 1)
   {
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", name_ptr[i]);
+    // v1: signature * chash * pkt * from * name * ct
+    // packet_id and from_node round-trip through hex_to_u32 which reads
+    // the file hex as little-endian on-wire bytes; print them swapped so
+    // we re-emit those same on-wire bytes.
+    line_len = snprintf (line_buf, line_size, "%s1*%02x*%08x*%08x*",
+      SIGNATURE_MESHTASTIC,
+      meshtastic->chash & 0xff,
+      byte_swap_32 (meshtastic->frames[0].packet_id),
+      byte_swap_32 (meshtastic->frames[0].from_node));
+
+    for (u32 i = 0; i < meshtastic->name_len; i++)
+    {
+      line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", name_ptr[i]);
+    }
+
+    line_len += snprintf (line_buf + line_len, line_size - line_len, "*");
+
+    for (u32 i = 0; i < meshtastic->frames[0].ct_len; i++)
+    {
+      const u32 w  = meshtastic->frames[0].ct_buf[i / 4];
+      const u32 sh = (i % 4) * 8; // ct_buf is LE-packed
+      const u8  b  = (u8) (w >> sh);
+
+      line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", b);
+    }
   }
-
-  line_len += snprintf (line_buf + line_len, line_size - line_len, "*");
-
-  for (u32 i = 0; i < meshtastic->ct_len; i++)
+  else
   {
-    const u32 w  = meshtastic->ct_buf[i / 4];
-    const u32 sh = (i % 4) * 8; // ct_buf is LE-packed
-    const u8  b  = (u8) (w >> sh);
+    // v2: signature * chash * name * N * (pkt * from * ct){N}
+    line_len = snprintf (line_buf, line_size, "%s2*%02x*",
+      SIGNATURE_MESHTASTIC,
+      meshtastic->chash & 0xff);
 
-    line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", b);
+    for (u32 i = 0; i < meshtastic->name_len; i++)
+    {
+      line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", name_ptr[i]);
+    }
+
+    line_len += snprintf (line_buf + line_len, line_size - line_len, "*%u", meshtastic->nframes);
+
+    for (u32 f = 0; f < meshtastic->nframes; f++)
+    {
+      const meshtastic_frame_t *fr = &meshtastic->frames[f];
+
+      line_len += snprintf (line_buf + line_len, line_size - line_len, "*%08x*%08x*",
+        byte_swap_32 (fr->packet_id),
+        byte_swap_32 (fr->from_node));
+
+      for (u32 i = 0; i < fr->ct_len; i++)
+      {
+        const u32 w  = fr->ct_buf[i / 4];
+        const u32 sh = (i % 4) * 8;
+        const u8  b  = (u8) (w >> sh);
+
+        line_len += snprintf (line_buf + line_len, line_size - line_len, "%02x", b);
+      }
+    }
   }
 
   return line_len;
