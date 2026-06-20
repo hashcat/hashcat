@@ -8770,6 +8770,36 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           continue;
         }
 
+        // Most likely just 3 dimensions, but let's support more since the API permits that
+        cl_uint max_dimensions = 0;
+
+        if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof (max_dimensions), &max_dimensions, NULL) == -1)
+        {
+          device_skip (device_param, "clGetDeviceInfo() failed");
+
+          continue;
+        }
+
+        if (max_dimensions > 16)
+        {
+          event_log_warning (hashcat_ctx, "* Device #%u: %u dimensions is a lot, cannot read work item dimensions.", device_param->device_id + 1, max_dimensions);
+        }
+        else
+        {
+          size_t work_item_sizes[16] = { 0 };
+
+          if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof (work_item_sizes[0]) * max_dimensions, work_item_sizes, NULL) == -1)
+          {
+            device_skip (device_param, "clGetDeviceInfo() failed");
+
+            continue;
+          }
+
+          // Those maximums are the same on most devices but not all, e.g. on Adreno GPUs it's 2048 total, but up to 1024x1024x64.
+          // Clamp the max workgroup size to the 1st dimension max size so we don't exceed that limit.
+          device_maxworkgroup_size = MIN (device_maxworkgroup_size, work_item_sizes[0]);
+        }
+
         device_param->device_maxworkgroup_size = device_maxworkgroup_size;
 
         // max_clock_frequency
@@ -11360,7 +11390,8 @@ static int get_opencl_kernel_wgs (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
     kernel_threads = cwgs_total;
   }
 
-  *result = kernel_threads;
+  // The clamp is required because our device_maxworkgroup_size respects the 1-dimension limit, and cwgs does not
+  *result = MIN (kernel_threads, device_param->device_maxworkgroup_size);
 
   return 0;
 }
