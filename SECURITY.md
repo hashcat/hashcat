@@ -53,8 +53,7 @@ request for them.
 
 The preferred way is a GitHub private security advisory, opened from the
 repository's Security tab under Advisories ("Report a vulnerability"). That
-keeps things private until a fix is ready. If you'd rather use email, send it
-to disclosure@vulncheck.com.
+keeps things private until a fix is ready.
 
 It helps if you include a description and impact, the affected version
 (`hashcat --version`), steps to reproduce or a proof of concept, and any fix
