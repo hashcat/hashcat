@@ -16,14 +16,18 @@ static const u32 DGST_POS1 = 3;
 static const u32 DGST_POS2 = 2;
 static const u32 DGST_POS3 = 1;
 static const u32 DGST_SIZE = DGST_SIZE_4_4;
-static const u32 HASH_CATEGORY = HASH_CATEGORY_RAW_HASH;
-static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_PRECOMPUTE_INIT | OPTI_TYPE_MEET_IN_MIDDLE | OPTI_TYPE_EARLY_SKIP | OPTI_TYPE_NOT_ITERATED | OPTI_TYPE_NOT_SALTED | OPTI_TYPE_RAW_HASH;
+static const u32 HASH_CATEGORY = HASH_CATEGORY_OS;
+static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE
+                           | OPTI_TYPE_EARLY_SKIP
+                           | OPTI_TYPE_NOT_ITERATED
+                           | OPTI_TYPE_NOT_SALTED
+                           | OPTI_TYPE_RAW_HASH;
 static const u32 SALT_TYPE = SALT_TYPE_NONE;
 static const char *ST_PASS = "hashcat";
 static const char *HASH_NAME = "NTLM(NTLM($pass))";
 static const u64 KERN_TYPE = 89100;
 static const u64 OPTS_TYPE = OPTS_TYPE_PT_GENERATE_LE;
-static const char *ST_HASH = "0b892dde26cafb0441b6f2c8948f4417";  // md4(NTLM("hashcat"))
+static const char *ST_HASH = "7f30a0c84b2a806d93c39cea3b760716";  // NTLM(NTLM("hashcat"))
 
 
 u32 module_attack_exec (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

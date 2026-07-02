@@ -17,11 +17,10 @@ sub module_generate_hash
 {
   my $word = shift;
 
-  my $ntlm = md4 (encode ("UTF-16LE", $word));
+  my $inner = md4 (encode ("UTF-16LE", $word));
+  my $hash  = unpack ("H*", md4 (encode ("UTF-16LE", $inner)));
 
-  my $digest = md4_hex ($ntlm);
-
-  return $digest;
+  return $hash;
 }
 
 sub module_verify_hash
