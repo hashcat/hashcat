@@ -2095,6 +2095,99 @@ DECLSPEC void whirlpool_transform_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS 
   digest[15] = l32_from_64 (D7);
 }
 
+// Specialized transform for the FIRST Whirlpool block, i.e. when the incoming
+// chaining value ("digest"/key) is the all-zero IV. In that case the entire
+// AES-like round-key schedule (8 of the 16 F1 mixings per round) is a compile-
+// time constant, identical for every input, so we bake the 10 round keys in as
+// immediates and drop the whole key-schedule half of the cipher, leaving only
+// the 8 state mixings per round. This is valid for the first transform after
+// whirlpool_init_vector() in ANY mode (raw 6100, HMAC 16100 ipad/opad, 26100).
+// The incoming digest is assumed zero and ignored.
+// Round keys were generated from MT0..MT7 and verified against the Whirlpool
+// empty-string test vector.
+DECLSPEC void whirlpool_transform_zerokey_vector (PRIVATE_AS const u32x *w0, PRIVATE_AS const u32x *w1, PRIVATE_AS const u32x *w2, PRIVATE_AS const u32x *w3, PRIVATE_AS u32x *digest, SHM_TYPE const u64 *s_MT0, SHM_TYPE const u64 *s_MT1, SHM_TYPE const u64 *s_MT2, SHM_TYPE const u64 *s_MT3, SHM_TYPE const u64 *s_MT4, SHM_TYPE const u64 *s_MT5, SHM_TYPE const u64 *s_MT6, SHM_TYPE const u64 *s_MT7)
+{
+  const u64x W0 = hl32_to_64 (w0[0], w0[1]);
+  const u64x W1 = hl32_to_64 (w0[2], w0[3]);
+  const u64x W2 = hl32_to_64 (w1[0], w1[1]);
+  const u64x W3 = hl32_to_64 (w1[2], w1[3]);
+  const u64x W4 = hl32_to_64 (w2[0], w2[1]);
+  const u64x W5 = hl32_to_64 (w2[2], w2[3]);
+  const u64x W6 = hl32_to_64 (w3[0], w3[1]);
+  const u64x W7 = hl32_to_64 (w3[2], w3[3]);
+
+  // digest / key is the all-zero IV, so S = 0 ^ W = W
+
+  u64x S0 = W0;
+  u64x S1 = W1;
+  u64x S2 = W2;
+  u64x S3 = W3;
+  u64x S4 = W4;
+  u64x S5 = W5;
+  u64x S6 = W6;
+  u64x S7 = W7;
+
+  #define WPZ_ROUND(k0,k1,k2,k3,k4,k5,k6,k7) \
+  {                                          \
+    u64x L0, L1, L2, L3, L4, L5, L6, L7;     \
+    F1x (L0, S0, S7, S6, S5, S4, S3, S2, S1); \
+    F1x (L1, S1, S0, S7, S6, S5, S4, S3, S2); \
+    F1x (L2, S2, S1, S0, S7, S6, S5, S4, S3); \
+    F1x (L3, S3, S2, S1, S0, S7, S6, S5, S4); \
+    F1x (L4, S4, S3, S2, S1, S0, S7, S6, S5); \
+    F1x (L5, S5, S4, S3, S2, S1, S0, S7, S6); \
+    F1x (L6, S6, S5, S4, S3, S2, S1, S0, S7); \
+    F1x (L7, S7, S6, S5, S4, S3, S2, S1, S0); \
+    S0 = L0 ^ (k0);                          \
+    S1 = L1 ^ (k1);                          \
+    S2 = L2 ^ (k2);                          \
+    S3 = L3 ^ (k3);                          \
+    S4 = L4 ^ (k4);                          \
+    S5 = L5 ^ (k5);                          \
+    S6 = L6 ^ (k6);                          \
+    S7 = L7 ^ (k7);                          \
+  }
+
+  WPZ_ROUND (0x300beec0af902967UL, 0x2828282828282828UL, 0x2828282828282828UL, 0x2828282828282828UL, 0x2828282828282828UL, 0x2828282828282828UL, 0x2828282828282828UL, 0x2828282828282828UL);
+  WPZ_ROUND (0x3bab89f8ead1ae24UL, 0x4445456645e9cbafUL, 0x70fea4a4c5a4b289UL, 0xc5faa9e1e1cce1a0UL, 0x48acc05cfcfcb8fcUL, 0x8ff70e26908f8f69UL, 0x96791407d7857979UL, 0xf8a8f868b8c878f8UL);
+  WPZ_ROUND (0xd319bfdb30467058UL, 0x295b23d1afcf37dbUL, 0x012c8ac28b95ac98UL, 0x81639eb1c0b206a7UL, 0x445e607ab0b209dbUL, 0x735b2ccfbc8cbc71UL, 0xdc670924efedddd3UL, 0x7b8d3bf0d73b7d19UL);
+  WPZ_ROUND (0x38beaac1de116586UL, 0x687cf3d04a87337fUL, 0xf337fadb98adf057UL, 0xc5e24258ee358dbcUL, 0x1109f0e8996e247eUL, 0x01c5d6ed10b03401UL, 0xfbc952f17b28ecd3UL, 0x3256dc0cc7f12740UL);
+  WPZ_ROUND (0xaf25a520949bcf14UL, 0xc13626a9e3c4534dUL, 0xe60f7d867740f9e1UL, 0x915de6bbe26a0629UL, 0x965a54cc4cfe5e8dUL, 0xbee931cb62323aa6UL, 0xb17b591896846a47UL, 0xd4f0c9362759af31UL);
+  WPZ_ROUND (0xe2f9b5c025370bb0UL, 0x392bcba2168494a5UL, 0x608af8cefa348c14UL, 0x7aa53764418c9219UL, 0xb3f346a1fa833f89UL, 0x97493f487802cf7cUL, 0xdcade8ba1e008f23UL, 0x92774f49edb0323dUL);
+  WPZ_ROUND (0x75416382774dff2fUL, 0xfffa38d055034600UL, 0xbf7d02493e98f361UL, 0xf4a860c29ae5ce0bUL, 0xc8df5a44ee5d9d27UL, 0x23f45a55047500a4UL, 0xb016101202f9e28cUL, 0xac30cd296833331dUL);
+  WPZ_ROUND (0x036bf1826884ad89UL, 0x9940c662d8467163UL, 0x4c433e174b19c210UL, 0xe29ccfd34cff86c5UL, 0x21ff11a042df2653UL, 0x1b8e00cb6ce44b13UL, 0xa6123bf7a347b7ceUL, 0xd918900e3b2833caUL);
+  WPZ_ROUND (0xd01c677a0a9a2cf9UL, 0x2a942f534a63b6b2UL, 0x88422246feaca8b4UL, 0x474a5cc73d583559UL, 0x74a6925da55c6fa1UL, 0x7717e68cc4735c39UL, 0x082a3b0b53ec1ac6UL, 0x2af658eb814de762UL);
+  WPZ_ROUND (0x489548b601eebc3aUL, 0xa50d6bc66bed8e81UL, 0xe0ce3dcf88265a75UL, 0xc28c4adbc0f69ce9UL, 0x54b79cd57f718513UL, 0x43414b8a977d0b7bUL, 0x631935bbdbf6157aUL, 0x6a7a4ef637018227UL);
+
+  #undef WPZ_ROUND
+
+  const u64x D0 = S0 ^ W0;
+  const u64x D1 = S1 ^ W1;
+  const u64x D2 = S2 ^ W2;
+  const u64x D3 = S3 ^ W3;
+  const u64x D4 = S4 ^ W4;
+  const u64x D5 = S5 ^ W5;
+  const u64x D6 = S6 ^ W6;
+  const u64x D7 = S7 ^ W7;
+
+  digest[ 0] = h32_from_64 (D0);
+  digest[ 1] = l32_from_64 (D0);
+  digest[ 2] = h32_from_64 (D1);
+  digest[ 3] = l32_from_64 (D1);
+  digest[ 4] = h32_from_64 (D2);
+  digest[ 5] = l32_from_64 (D2);
+  digest[ 6] = h32_from_64 (D3);
+  digest[ 7] = l32_from_64 (D3);
+  digest[ 8] = h32_from_64 (D4);
+  digest[ 9] = l32_from_64 (D4);
+  digest[10] = h32_from_64 (D5);
+  digest[11] = l32_from_64 (D5);
+  digest[12] = h32_from_64 (D6);
+  digest[13] = l32_from_64 (D6);
+  digest[14] = h32_from_64 (D7);
+  digest[15] = l32_from_64 (D7);
+}
+
 DECLSPEC void whirlpool_init_vector (PRIVATE_AS whirlpool_ctx_vector_t *ctx, SHM_TYPE u64 *s_MT0, SHM_TYPE u64 *s_MT1, SHM_TYPE u64 *s_MT2, SHM_TYPE u64 *s_MT3, SHM_TYPE u64 *s_MT4, SHM_TYPE u64 *s_MT5, SHM_TYPE u64 *s_MT6, SHM_TYPE u64 *s_MT7)
 {
   ctx->h[ 0] = 0;
