@@ -78,7 +78,12 @@ DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, MAYBE_UNUSED 
 // Finally we can select the actual target byte from (1 out of 4) from this chunk:
 //   (k & 3)
 
-#define KEY8(t,k) (((k) & 3) + (((k) / 4) * 128) + (((t) & 31) * 4) + (((t) / 32) * 8192))
+// Equivalent to (((k) & 3) + (((k) / 4) * 128) + (((t) & 31) * 4) + (((t) / 32) * 8192)),
+// but the four sub-fields occupy disjoint bit ranges (bits 0-1, 7-12, 2-6, 13+), so they can be
+// OR-composed instead of added. This lets the compiler fold the per-thread-invariant base term
+// into a single LOP3 at the combine step, shortening the (latency-critical) dynamic-index address
+// dependency chain by one instruction vs the carry-assuming '+' form.
+#define KEY8(t,k) ((((t) & 31) << 2) | (((t) >> 5) << 13) | ((k) & 3) | (((k) << 5) & 0x1f80))
 
 DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u64 lid)
 {
