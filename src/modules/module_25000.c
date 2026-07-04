@@ -174,7 +174,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // engineid
-  token.len_min[3] = 26;
+  token.len_min[3] = 10;
   token.len_max[3] = SNMPV3_ENGINEID_MAX;
   token.sep[3]     = '$';
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
