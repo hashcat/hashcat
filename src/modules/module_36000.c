@@ -3,20 +3,6 @@
  * License.....: MIT
  */
 
-// ============================================================================
-// BIP39 Module Debug Control
-// ============================================================================
-// Set to 1 to enable verbose debug output for:
-// - Hash parsing ([m36000] messages)
-// - Password loading ([pw_add] messages in wordlist.c)
-// - Path indices and target hashes
-// 
-// Set to 0 for production (clean output)
-// ============================================================================
-#ifndef BIP39_MODULE_DEBUG
-#define BIP39_MODULE_DEBUG 0
-#endif
-
 #include "common.h"
 #include "types.h"
 #include "modules.h"
@@ -69,29 +55,6 @@ typedef struct bip39_dynamic_segment
   u32 step;
   u32 values_offset;
 } bip39_dynamic_segment_t;
-
-static bool env_flag_is_enabled (const char *value)
-{
-  if (value == 0)
-  {
-    return false;
-  }
-
-  while ((*value == ' ') || (*value == '\t'))
-  {
-    value++;
-  }
-
-  const bool has_value = (*value != '\0');
-  const bool equals_zero = ((*value == '0') && (value[1] == '\0'));
-
-  if (has_value == false)
-  {
-    return false;
-  }
-
-  return (equals_zero == false);
-}
 
 u32 module_attack_exec (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -201,10 +164,6 @@ typedef struct bip39_tmp
   u32 script_hash[5];
   u32 derived_ready;
   u32 master_ready;
-  u32 debug_loop_pos;
-  u32 debug_loop_cnt;
-  u64 debug_combo_idx;
-  u64 debug_combo_total;
 
 } bip39_tmp_t;
 
@@ -239,441 +198,7 @@ static void bip39_set_salt_key (const bip39_skeleton_t *bip39, salt_t *salt)
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
-  char *jit_build_options = NULL;
-
-  const char *env = getenv ("BIP39_PROFILE");
-
-  if (env_flag_is_enabled (env))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_PROFILE=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_PROFILE=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_debug = getenv ("BIP39_DEBUG_PRINT");
-
-  if (env_flag_is_enabled (env_debug))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DEBUG_PRINT=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DEBUG_PRINT=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_trim = getenv ("BIP39_DISABLE_SCRIPT_HASH");
-
-  if (env_flag_is_enabled (env_trim))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_SCRIPT_HASH=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_SCRIPT_HASH=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_sha_small = getenv ("BIP39_DISABLE_SHA256_SMALL");
-
-  if (env_flag_is_enabled (env_sha_small))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_SHA256_SMALL=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_SHA256_SMALL=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_pubhash = getenv ("BIP39_DISABLE_PUBKEY_HASH");
-
-  if (env_flag_is_enabled (env_pubhash))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PUBKEY_HASH=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PUBKEY_HASH=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_point_mul = getenv ("BIP39_DISABLE_POINT_MUL");
-
-  if (env_flag_is_enabled (env_point_mul))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_POINT_MUL=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_POINT_MUL=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_key_hashes = getenv ("BIP39_DISABLE_KEY_HASHES");
-
-  if (env_flag_is_enabled (env_key_hashes))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_KEY_HASHES=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_KEY_HASHES=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_keyhash_after_point = getenv ("BIP39_DISABLE_KEY_HASHES_AFTER_POINT");
-
-  if (env_flag_is_enabled (env_keyhash_after_point))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_KEY_HASHES_AFTER_POINT=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_KEY_HASHES_AFTER_POINT=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_keyhash_after_pub = getenv ("BIP39_DISABLE_KEY_HASHES_AFTER_PUB");
-
-  if (env_flag_is_enabled (env_keyhash_after_pub))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_KEY_HASHES_AFTER_PUB=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_KEY_HASHES_AFTER_PUB=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_keyhash_after_pub_sha = getenv ("BIP39_DISABLE_KEY_HASHES_AFTER_PUB_SHA");
-
-  if (env_flag_is_enabled (env_keyhash_after_pub_sha))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_KEY_HASHES_AFTER_PUB_SHA=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_KEY_HASHES_AFTER_PUB_SHA=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_pbkdf2 = getenv ("BIP39_DISABLE_PBKDF2");
-
-  if (env_flag_is_enabled (env_pbkdf2))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PBKDF2=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PBKDF2=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_bip32 = getenv ("BIP39_DISABLE_BIP32_MASTER");
-
-  if (env_flag_is_enabled (env_bip32))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_BIP32_MASTER=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_BIP32_MASTER=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_path = getenv ("BIP39_DISABLE_PATH_DERIVE");
-
-  if (env_flag_is_enabled (env_path))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_DERIVE=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_DERIVE=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_init_stub = getenv ("BIP39_DISABLE_INIT_BODY");
-
-  if (env_flag_is_enabled (env_init_stub))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_INIT_BODY=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_INIT_BODY=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_loop_stub = getenv ("BIP39_DISABLE_LOOP_BODY");
-
-  if (env_flag_is_enabled (env_loop_stub))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_LOOP_BODY=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_LOOP_BODY=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_after_pass = getenv ("BIP39_DISABLE_INIT_AFTER_PASSPHRASE");
-
-  if (env_flag_is_enabled (env_after_pass))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_INIT_AFTER_PASSPHRASE=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_INIT_AFTER_PASSPHRASE=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_after_pbkdf = getenv ("BIP39_DISABLE_INIT_AFTER_PBKDF2");
-
-  if (env_flag_is_enabled (env_after_pbkdf))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_INIT_AFTER_PBKDF2=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_INIT_AFTER_PBKDF2=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_after_bip32 = getenv ("BIP39_DISABLE_INIT_AFTER_BIP32");
-
-  if (env_flag_is_enabled (env_after_bip32))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_INIT_AFTER_BIP32=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_INIT_AFTER_BIP32=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_path_child = getenv ("BIP39_DISABLE_PATH_CHILDREN");
-
-  if (env_flag_is_enabled (env_path_child))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_CHILDREN=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_CHILDREN=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_path_match = getenv ("BIP39_DISABLE_PATH_MATCH");
-
-  if (env_flag_is_enabled (env_path_match))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_MATCH=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_MATCH=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_path_iter = getenv ("BIP39_DISABLE_PATH_ITER");
-
-  if (env_flag_is_enabled (env_path_iter))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_ITER=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_ITER=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_path_block = getenv ("BIP39_DISABLE_PATH_BLOCK");
-
-  if (env_flag_is_enabled (env_path_block))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_BLOCK=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_BLOCK=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_path_dynamic = getenv ("BIP39_DISABLE_DYNAMIC_SECTION");
-
-  if (env_flag_is_enabled (env_path_dynamic))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_DYNAMIC_SECTION=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_DYNAMIC_SECTION=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  const char *env_path_static = getenv ("BIP39_DISABLE_PATH_STATIC");
-
-  if (env_flag_is_enabled (env_path_static))
-  {
-    if (jit_build_options == 0)
-    {
-      hc_asprintf (&jit_build_options, "-DBIP39_DISABLE_PATH_STATIC=1");
-    }
-    else
-    {
-      char *tmp = NULL;
-
-      hc_asprintf (&tmp, "%s -DBIP39_DISABLE_PATH_STATIC=1", jit_build_options);
-      hcfree (jit_build_options);
-      jit_build_options = tmp;
-    }
-  }
-
-  return jit_build_options;
+  return NULL;
 }
 
 static bool parse_uint_substring (const char *start, const char *end, u32 *value)
@@ -899,9 +424,13 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
         return false;
 
       const char *post = closing + 1;
+      bool hardened = false;
 
       if ((*post == '\'') || (*post == 'h') || (*post == 'H'))
-        return false;
+      {
+        hardened = true;
+        post++;
+      }
 
       if (dynamic_count >= BIP39_MAX_DYNAMIC_SEGMENTS)
         return false;
@@ -953,6 +482,12 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
         if (span > BIP39_MAX_DYNAMIC_RANGE_SPAN)
           return false;
 
+        if (hardened)
+        {
+          start_value |= 0x80000000u;
+          end_value |= 0x80000000u;
+        }
+
         seg->kind = BIP39_DYNAMIC_KIND_RANGE;
         seg->start = start_value;
         seg->end = end_value;
@@ -985,6 +520,11 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
           if ((values_offset + local_count) >= BIP39_MAX_DYNAMIC_VALUES)
             return false;
 
+          if (hardened)
+          {
+            value |= 0x80000000u;
+          }
+
           bip39->dynamic_values[values_offset + local_count] = value;
 
           local_count++;
@@ -1010,7 +550,7 @@ static bool parse_derivation_path (const char *path_str, bip39_skeleton_t *bip39
       dynamic_count++;
       depth++;
 
-      cursor = closing + 1;
+      cursor = post;
     }
     else
     {
@@ -1294,11 +834,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
   token.sep[1] = ':';
 
   token.len_min[0] = 1;
-  token.len_max[0] = 1024;
+  token.len_max[0] = sizeof (bip39->mnemonic) - 1;
   token.len_min[1] = 1;
-  token.len_max[1] = 64;
+  token.len_max[1] = sizeof (bip39->address) - 1;
   token.len_min[2] = 1;
-  token.len_max[2] = 64;
+  token.len_max[2] = sizeof (bip39->path) - 1;
+
+  token.attr[0] = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[1] = TOKEN_ATTR_VERIFY_LENGTH;
+  token.attr[2] = TOKEN_ATTR_VERIFY_LENGTH;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
@@ -1353,18 +897,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
     return PARSER_HASH_VALUE;
   }
 
-  for (u32 i = 0; i < bip39->path_depth; i++)
-  {
-    bip39->path_kind[i] = BIP39_PATH_KIND_FIXED;
-  }
-
-#if BIP39_MODULE_DEBUG
-  fprintf (stderr, "[m36000] parsed path depth: %u\n", bip39->path_depth);
-  for (u32 i = 0; i < bip39->path_depth; i++)
-  {
-    fprintf (stderr, "[m36000] path index[%u]: %08x\n", i, bip39->path_indices[i]);
-  }
-#endif
 
   u64 combo_total = 1;
 
@@ -1402,7 +934,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
     bip39->path_combo_total = 1;
   }
 
-  salt->salt_iter = (bip39->path_combo_total >= 0xffffffffULL) ? 0xffffffffu : (u32) bip39->path_combo_total;
+  salt->salt_iter = 1;
   salt->salt_iter2 = 0;
 
   digest[0] = 0;
@@ -1476,24 +1008,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
 
   bip39_set_salt_key (bip39, salt);
 
-#if BIP39_MODULE_DEBUG
-  if (bip39->target_type == BIP39_TARGET_IL_HEX)
-  {
-    fprintf (stderr, "[m36000] target digest il: %08x %08x %08x %08x\n", digest[0], digest[1], digest[2], digest[3]);
-  }
-  else if (bip39->target_type == BIP39_TARGET_P2SH)
-  {
-    fprintf (stderr, "[m36000] target script hash: %08x %08x %08x %08x %08x\n", bip39->target_hash[0], bip39->target_hash[1], bip39->target_hash[2], bip39->target_hash[3], bip39->target_hash[4]);
-  }
-  else if (bip39->target_type == BIP39_TARGET_P2PKH)
-  {
-    fprintf (stderr, "[m36000] target hash160: %08x %08x %08x %08x %08x\n", bip39->target_hash[0], bip39->target_hash[1], bip39->target_hash[2], bip39->target_hash[3], bip39->target_hash[4]);
-  }
-  else if (bip39->target_type == BIP39_TARGET_P2WPKH)
-  {
-    fprintf (stderr, "[m36000] target witness prog: %08x %08x %08x %08x %08x\n", bip39->target_hash[0], bip39->target_hash[1], bip39->target_hash[2], bip39->target_hash[3], bip39->target_hash[4]);
-  }
-#endif
 
   return PARSER_OK;
 }
@@ -1590,33 +1104,16 @@ const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_U
   }
   else if ((device_param->is_opencl) && ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_BEIGNET)))
   {
-    bool clamp_intel = true;
+    // Intel HD 630 driver testing required conservative geometry.
+    device_param->kernel_threads_min = MAX (device_param->kernel_threads_min, 32);
+    device_param->kernel_threads_max = 32;
+    device_param->kernel_accel_min = MAX (device_param->kernel_accel_min, 2);
+    device_param->kernel_accel_max = 2;
+    device_param->kernel_loops_min = MAX (device_param->kernel_loops_min, 4);
+    device_param->kernel_loops_max = 4;
 
-    const char *env_intel_unclamp = getenv ("BIP39_ALLOW_INTEL_AUTOTUNE");
-
-    if (env_flag_is_enabled (env_intel_unclamp))
-    {
-      clamp_intel = false;
-    }
-
-    if (clamp_intel)
-    {
-      // Intel HD 630 driver (2025-10-12 harness sweep) survives autotune only when threads stay <= 32,
-      // accel <= 2, loops = 4. Clamp all Geometry knobs to the conservative configuration we run in CI.
-      device_param->kernel_threads_min = MAX (device_param->kernel_threads_min, 32);
-      device_param->kernel_threads_max = 32;
-      device_param->kernel_accel_min = MAX (device_param->kernel_accel_min, 2);
-      device_param->kernel_accel_max = 2;
-      device_param->kernel_loops_min = MAX (device_param->kernel_loops_min, 4);
-      device_param->kernel_loops_max = 4;
-
-      offset += snprintf (lines_buf + offset, buf_sz - offset, "%s * %u 32 2 4\n", sanitized, hash_mode);
-      snprintf (lines_buf + offset, buf_sz - offset, "Intel * %u 32 2 4\n", hash_mode);
-    }
-    else
-    {
-      snprintf (lines_buf + offset, buf_sz - offset, "# Intel OpenCL autotune unclamped for %s\n", sanitized);
-    }
+    offset += snprintf (lines_buf + offset, buf_sz - offset, "%s * %u 32 2 4\n", sanitized, hash_mode);
+    snprintf (lines_buf + offset, buf_sz - offset, "Intel * %u 32 2 4\n", hash_mode);
   }
   else
   {

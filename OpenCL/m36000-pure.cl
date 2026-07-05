@@ -2358,13 +2358,6 @@ KERNEL_FQ void m36000_init (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
         }
 
 
-#if BIP39_DEBUG_PRINT
-        if (gid == 0)
-        {
-          printf("[m36000] init: combo_idx=%llu combo_total=%llu dynamic_cnt=%u\n",
-        }
-#endif
-
         for (u32 i = 0; i < 32; i++)
         {
           key_bytes[i] = base_key_bytes[i];
@@ -2569,13 +2562,6 @@ KERNEL_FQ void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
   const bool debug_gid = false;
 #endif
 
-#if BIP39_DEBUG_PRINT
-  if (gid == 0)
-  {
-    printf("[m36000] comp: gid=%llu combo_idx=%llu derived_ready=%u\n",
-  }
-#endif
-
 #define il_pos 0
 
 #define BIP39_COMPARE_M5(r0, r1, r2, r3, r4)                                                                 \
@@ -2692,16 +2678,7 @@ KERNEL_FQ void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     const u32 r3 = tmps[gid].script_hash[3];
     const u32 r4 = tmps[gid].script_hash[4];
 
-    if (DIGESTS_CNT == 1)
-    {
-#ifdef KERNEL_STATIC
-#include COMPARE_M
-#endif
-    }
-    else
-    {
-      BIP39_COMPARE_M5 (r0, r1, r2, r3, r4);
-    }
+    BIP39_COMPARE_M5 (r0, r1, r2, r3, r4);
   }
 
 #undef BIP39_COMPARE_M5
