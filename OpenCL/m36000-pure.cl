@@ -2578,6 +2578,61 @@ KERNEL_FQ void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
 
 #define il_pos 0
 
+#define BIP39_COMPARE_M5(r0, r1, r2, r3, r4)                                                                 \
+{                                                                                                             \
+  u32 digest_tp[5];                                                                                           \
+                                                                                                              \
+  digest_tp[0] = (r0);                                                                                        \
+  digest_tp[1] = (r1);                                                                                        \
+  digest_tp[2] = (r2);                                                                                        \
+  digest_tp[3] = (r3);                                                                                        \
+  digest_tp[4] = (r4);                                                                                        \
+                                                                                                              \
+  if (check (digest_tp,                                                                                       \
+             bitmaps_buf_s1_a,                                                                                \
+             bitmaps_buf_s1_b,                                                                                \
+             bitmaps_buf_s1_c,                                                                                \
+             bitmaps_buf_s1_d,                                                                                \
+             bitmaps_buf_s2_a,                                                                                \
+             bitmaps_buf_s2_b,                                                                                \
+             bitmaps_buf_s2_c,                                                                                \
+             bitmaps_buf_s2_d,                                                                                \
+             BITMAP_MASK,                                                                                     \
+             BITMAP_SHIFT1,                                                                                   \
+             BITMAP_SHIFT2))                                                                                  \
+  {                                                                                                           \
+    int digest_pos = find_hash (digest_tp, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                  \
+                                                                                                              \
+    if (digest_pos != -1)                                                                                     \
+    {                                                                                                         \
+      while ((digest_pos > 0) && (hash_comp (digest_tp, digests_buf[DIGESTS_OFFSET_HOST + digest_pos - 1].digest_buf) == 0)) \
+      {                                                                                                       \
+        digest_pos--;                                                                                         \
+      }                                                                                                       \
+                                                                                                              \
+      for (u32 scan_pos = (u32) digest_pos; scan_pos < DIGESTS_CNT; scan_pos++)                              \
+      {                                                                                                       \
+        const u32 final_hash_pos = DIGESTS_OFFSET_HOST + scan_pos;                                            \
+                                                                                                              \
+        if (hash_comp (digest_tp, digests_buf[final_hash_pos].digest_buf) != 0)                               \
+        {                                                                                                     \
+          break;                                                                                              \
+        }                                                                                                     \
+                                                                                                              \
+        if (digests_buf[final_hash_pos].digest_buf[4] != digest_tp[4])                                        \
+        {                                                                                                     \
+          continue;                                                                                           \
+        }                                                                                                     \
+                                                                                                              \
+        if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)                                               \
+        {                                                                                                     \
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, scan_pos, final_hash_pos, gid, il_pos, 0, 0); \
+        }                                                                                                     \
+      }                                                                                                       \
+    }                                                                                                         \
+  }                                                                                                           \
+}
+
   const u32 target_type = esalt_bufs[DIGESTS_OFFSET_HOST].target_type;
 
   if (target_type == BIP39_TARGET_IL_HEX)
@@ -2586,33 +2641,30 @@ KERNEL_FQ void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     const u32 r1 = l32_from_64_S (tmps[gid].master[0]);
     const u32 r2 = h32_from_64_S (tmps[gid].master[1]);
     const u32 r3 = l32_from_64_S (tmps[gid].master[1]);
+    const u32 r4 = 0;
 
+    if (DIGESTS_CNT == 1)
+    {
 #ifdef KERNEL_STATIC
 #include COMPARE_M
 #endif
+    }
+    else
+    {
+      BIP39_COMPARE_M5 (r0, r1, r2, r3, r4);
+    }
   }
   else if ((target_type == BIP39_TARGET_P2SH) || (target_type == BIP39_TARGET_P2PKH) || (target_type == BIP39_TARGET_P2WPKH))
   {
     if (tmps[gid].derived_ready == 0)
       return;
 
-    u32 match = 1;
-
-    for (u32 i = 0; i < 5; i++)
-    {
-      if (tmps[gid].script_hash[i] != esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[i])
-      {
-        match = 0;
-        break;
-      }
-    }
-
 #if BIP39_DEBUG_GID != 0xffffffffu
     if (debug_gid)
     {
       CONSTANT_AS const char *label = (target_type == BIP39_TARGET_P2SH) ? "script" : (target_type == BIP39_TARGET_P2PKH) ? "hash160" : "witness";
 
-      printf ("[m36000 dbg] comp gid %u %s: %08x %08x %08x %08x %08x target: %08x %08x %08x %08x %08x match=%u\n", (u32) gid, label, tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4], match);
+      printf ("[m36000 dbg] comp gid %u %s: %08x %08x %08x %08x %08x\n", (u32) gid, label, tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4]);
     }
 #endif
 
@@ -2634,25 +2686,25 @@ KERNEL_FQ void m36000_comp (KERN_ATTR_TMPS_ESALT (bip39_tmp_t, bip39_skeleton_t)
     }
 #endif
 
-    if (match == 0)
-    {
-#if BIP39_DEBUG_PRINT
-      CONSTANT_AS const char *label = (target_type == BIP39_TARGET_P2SH) ? "script hash" : (target_type == BIP39_TARGET_P2PKH ? "hash160" : "witness prog");
-
-      printf ("[m36000] mismatch %s: %08x %08x %08x %08x %08x vs target %08x %08x %08x %08x %08x\n", label, tmps[gid].script_hash[0], tmps[gid].script_hash[1], tmps[gid].script_hash[2], tmps[gid].script_hash[3], tmps[gid].script_hash[4], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[0], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[1], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[2], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[3], esalt_bufs[DIGESTS_OFFSET_HOST].target_hash[4]);
-#endif
-      return;
-    }
-
     const u32 r0 = tmps[gid].script_hash[0];
     const u32 r1 = tmps[gid].script_hash[1];
     const u32 r2 = tmps[gid].script_hash[2];
     const u32 r3 = tmps[gid].script_hash[3];
+    const u32 r4 = tmps[gid].script_hash[4];
 
+    if (DIGESTS_CNT == 1)
+    {
 #ifdef KERNEL_STATIC
 #include COMPARE_M
 #endif
+    }
+    else
+    {
+      BIP39_COMPARE_M5 (r0, r1, r2, r3, r4);
+    }
   }
+
+#undef BIP39_COMPARE_M5
 }
 
 KERNEL_FQ void m36000_mxx (KERN_ATTR_ESALT (bip39_skeleton_t))

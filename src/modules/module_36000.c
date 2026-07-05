@@ -25,6 +25,7 @@
 #include "shared.h"
 #include "memory.h"
 #include "emu_inc_hash_base58.h"
+#include "emu_inc_hash_md5.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +40,7 @@ static const u32 HASH_CATEGORY = HASH_CATEGORY_CRYPTOCURRENCY_WALLET;
 static const char *HASH_NAME = "BIP39 Passphrase Recovery (ASCII, P2SH/P2PKH/P2WPKH)";
 static const u64 KERN_TYPE = 36000;
 static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
-static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_LOOP;
+static const u64 OPTS_TYPE = OPTS_TYPE_STOCK_MODULE | OPTS_TYPE_LOOP | OPTS_TYPE_DEEP_COMP_KERNEL;
 static const u32 SALT_TYPE = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS = "testpass";
 static const char *ST_HASH = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about:33747aCmUp8PkWmWWY8epR1Cph8Tf9Aozt:m/49'/0'/0'/0/0";
@@ -210,6 +211,30 @@ typedef struct bip39_tmp
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return (u64) sizeof (bip39_tmp_t);
+}
+
+u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
+{
+  return KERN_RUN_3;
+}
+
+static void bip39_set_salt_key (const bip39_skeleton_t *bip39, salt_t *salt)
+{
+  md5_ctx_t md5_ctx;
+
+  md5_init (&md5_ctx);
+  md5_update (&md5_ctx, &bip39->target_type, sizeof (bip39->target_type));
+  md5_update (&md5_ctx, &bip39->mnemonic_raw_len, sizeof (bip39->mnemonic_raw_len));
+  md5_update (&md5_ctx, (const u32 *) bip39->mnemonic_raw, bip39->mnemonic_raw_len);
+  md5_update (&md5_ctx, &bip39->path_len, sizeof (bip39->path_len));
+  md5_update (&md5_ctx, (const u32 *) bip39->path, bip39->path_len);
+  md5_final (&md5_ctx);
+
+  salt->salt_buf[0] = md5_ctx.h[0];
+  salt->salt_buf[1] = md5_ctx.h[1];
+  salt->salt_buf[2] = md5_ctx.h[2];
+  salt->salt_buf[3] = md5_ctx.h[3];
+  salt->salt_len = 16;
 }
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -1379,7 +1404,6 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
 
   salt->salt_iter = (bip39->path_combo_total >= 0xffffffffULL) ? 0xffffffffu : (u32) bip39->path_combo_total;
   salt->salt_iter2 = 0;
-  salt->salt_len = 0;
 
   digest[0] = 0;
   digest[1] = 0;
@@ -1449,6 +1473,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, void *diges
         return rc;
     }
   }
+
+  bip39_set_salt_key (bip39, salt);
 
 #if BIP39_MODULE_DEBUG
   if (bip39->target_type == BIP39_TARGET_IL_HEX)
@@ -1556,11 +1582,11 @@ const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_U
     device_param->kernel_accel_max = MAX (device_param->kernel_accel_max, 1024);
 
     offset += snprintf (lines_buf + offset, buf_sz - offset, "%s * %u N A A\n", sanitized, hash_mode);
-    offset += snprintf (lines_buf + offset, buf_sz - offset, "CUDA * %u N A A\n", hash_mode);
+    snprintf (lines_buf + offset, buf_sz - offset, "CUDA * %u N A A\n", hash_mode);
   }
   else if ((device_param->is_opencl) && (device_param->opencl_device_vendor_id == VENDOR_ID_NV))
   {
-    offset += snprintf (lines_buf + offset, buf_sz - offset, "# NVIDIA OpenCL uses autotune defaults (%s)\n", sanitized);
+    snprintf (lines_buf + offset, buf_sz - offset, "# NVIDIA OpenCL uses autotune defaults (%s)\n", sanitized);
   }
   else if ((device_param->is_opencl) && ((device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_SDK) || (device_param->opencl_device_vendor_id == VENDOR_ID_INTEL_BEIGNET)))
   {
@@ -1585,16 +1611,16 @@ const char *module_extra_tuningdb_block (const hashconfig_t *hashconfig, MAYBE_U
       device_param->kernel_loops_max = 4;
 
       offset += snprintf (lines_buf + offset, buf_sz - offset, "%s * %u 32 2 4\n", sanitized, hash_mode);
-      offset += snprintf (lines_buf + offset, buf_sz - offset, "Intel * %u 32 2 4\n", hash_mode);
+      snprintf (lines_buf + offset, buf_sz - offset, "Intel * %u 32 2 4\n", hash_mode);
     }
     else
     {
-      offset += snprintf (lines_buf + offset, buf_sz - offset, "# Intel OpenCL autotune unclamped for %s\n", sanitized);
+      snprintf (lines_buf + offset, buf_sz - offset, "# Intel OpenCL autotune unclamped for %s\n", sanitized);
     }
   }
   else
   {
-    offset += snprintf (lines_buf + offset, buf_sz - offset, "# no dynamic tuning for %s\n", sanitized);
+    snprintf (lines_buf + offset, buf_sz - offset, "# no dynamic tuning for %s\n", sanitized);
   }
 
   hcfree (sanitized);
@@ -1631,7 +1657,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_bridge_name = MODULE_DEFAULT;
   module_ctx->module_bridge_type = MODULE_DEFAULT;
   module_ctx->module_build_plain_postprocess = MODULE_DEFAULT;
-  module_ctx->module_deep_comp_kernel = MODULE_DEFAULT;
+  module_ctx->module_deep_comp_kernel = module_deep_comp_kernel;
   module_ctx->module_deprecated_notice = MODULE_DEFAULT;
   module_ctx->module_dgst_pos0 = module_dgst_pos0;
   module_ctx->module_dgst_pos1 = module_dgst_pos1;
