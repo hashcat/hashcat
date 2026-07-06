@@ -1369,6 +1369,24 @@ DECLSPEC u32 bip39_scalar_is_zero (PRIVATE_AS const u32 *v)
   return (acc == 0);
 }
 
+DECLSPEC void bip39_bip32_public_child_data (PRIVATE_AS u8 *data_bytes, PRIVATE_AS u32 *key_le, PRIVATE_AS secp256k1_t *preG)
+{
+  u32 x[8];
+  u32 y[8];
+
+  for (u32 i = 0; i < 8; i++)
+  {
+    x[i] = 0;
+    y[i] = 0;
+  }
+
+  point_mul_xy (x, y, key_le, preG);
+
+  data_bytes[0] = (y[0] & 1u) ? 0x03 : 0x02;
+
+  bip39_words_le_to_bytes_be32 (x, data_bytes + 1);
+}
+
 DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE_AS u8 *key_bytes, PRIVATE_AS u8 *chain_bytes, PRIVATE_AS secp256k1_t *preG, PRIVATE_AS u32 *il_debug)
 {
   PRIVATE_AS u8 data_bytes[37];
@@ -1382,20 +1400,7 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
   }
   else
   {
-    u32 x[8];
-    u32 y[8];
-
-    for (u32 i = 0; i < 8; i++)
-    {
-      x[i] = 0;
-      y[i] = 0;
-    }
-
-    point_mul_xy (x, y, key_le, preG);
-
-    data_bytes[0] = (y[0] & 1u) ? 0x03 : 0x02;
-
-    bip39_words_le_to_bytes_be32 (x, data_bytes + 1);
+    bip39_bip32_public_child_data (data_bytes, key_le, preG);
   }
 
   data_bytes[33] = (u8) (index >> 24);
