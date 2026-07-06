@@ -275,7 +275,13 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   }
   else
   {
-    if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
+    if ((fp->pfp = fdopen (fp->fd, mode)) == NULL)
+    {
+      // fdopen failed, close the file descriptor to avoid resource leak
+      close (fp->fd);
+      fp->fd = -1;
+      return false;
+    }
 
     if (fp->bom_size)
     {
@@ -353,7 +359,13 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 
   if (fp->fd == -1) return false;
 
-  if ((fp->pfp = fdopen (fp->fd, mode)) == NULL) return false;
+  if ((fp->pfp = fdopen (fp->fd, mode)) == NULL)
+  {
+    // fdopen failed, close the file descriptor to avoid resource leak
+    close (fp->fd);
+    fp->fd = -1;
+    return false;
+  }
 
   fp->path = path;
   fp->mode = mode;

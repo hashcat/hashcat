@@ -587,7 +587,9 @@ void setup_environment_variables (const folder_config_t *folder_config, const us
 
     putenv (display);
 
-    hcfree (display);
+    // we can't free display at this point! POSIX specifies that putenv()
+    // places the string in the environment, and the string becomes part
+    // of the environment. Freeing it would cause use-after-free.
   }
   else
   {

@@ -243,6 +243,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     data_len = token.len[4];
 
     memcpy (krb5tgs->account_info, token.buf[2], token.len[2]);
+    // Ensure null termination for string operations
+    ((u8 *) krb5tgs->account_info)[token.len[2]] = '\0';
   }
   else if (krb5tgs->format == 2)
   {
@@ -261,6 +263,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     data_len = token.len[3];
 
     memcpy (krb5tgs->account_info, token.buf[1], token.len[1]);
+    // Ensure null termination for string operations
+    ((u8 *) krb5tgs->account_info)[token.len[1]] = '\0';
   }
 
   if (checksum_pos == NULL || data_pos == NULL) return (PARSER_SALT_VALUE);

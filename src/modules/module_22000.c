@@ -850,6 +850,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   wpa->essid_len = hex_decode (essid_buf, essid_len, (u8 *) wpa->essid_buf);
 
+  // Ensure null termination for string operations
+  ((u8 *) wpa->essid_buf)[wpa->essid_len] = '\0';
+
   // salt
 
   memcpy (salt->salt_buf, wpa->essid_buf, wpa->essid_len);

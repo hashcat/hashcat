@@ -124,7 +124,11 @@ void *hcmalloc_bridge_aligned (const size_t sz, const int align)
 {
   uintptr_t align_mask = (uintptr_t) (align - 1);
 
-  void *raw = malloc (sz + align + sizeof (void *));
+  // Check for integer overflow before allocation
+  size_t total_size = sz + align + sizeof (void *);
+  if (total_size < sz) return NULL; // Overflow detected
+
+  void *raw = malloc (total_size);
 
   if (raw == NULL) return NULL;
 
