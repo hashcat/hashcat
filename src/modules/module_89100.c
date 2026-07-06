@@ -23,6 +23,7 @@ static const u32 OPTI_TYPE = OPTI_TYPE_ZERO_BYTE
                            | OPTI_TYPE_NOT_SALTED
                            | OPTI_TYPE_RAW_HASH;
 static const u32 SALT_TYPE = SALT_TYPE_NONE;
+static const u32 PWDUMP_COLUMN = PWDUMP_COLUMN_NTLM_HASH;
 static const char *ST_PASS = "hashcat";
 static const char *HASH_NAME = "NTLM(NTLM_bin($pass))";
 static const u64 KERN_TYPE = 89100;
@@ -83,6 +84,11 @@ u32 module_opti_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED 
 u64 module_opts_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return OPTS_TYPE;
+}
+
+u32 module_pwdump_column (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  return PWDUMP_COLUMN;
 }
 
 u32 module_salt_type (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -238,7 +244,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_potfile_custom_check = MODULE_DEFAULT;
   module_ctx->module_potfile_disable = MODULE_DEFAULT;
   module_ctx->module_potfile_keep_all_hashes = MODULE_DEFAULT;
-  module_ctx->module_pwdump_column = MODULE_DEFAULT;
+  module_ctx->module_pwdump_column = module_pwdump_column;
   module_ctx->module_pw_max = MODULE_DEFAULT;
   module_ctx->module_pw_min = MODULE_DEFAULT;
   module_ctx->module_salt_max = MODULE_DEFAULT;
