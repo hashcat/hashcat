@@ -1373,16 +1373,12 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
 {
   PRIVATE_AS u8 data_bytes[37];
 
-  u32 data_len = 0;
-
   if (index & 0x80000000)
   {
     data_bytes[0] = 0;
 
     for (u32 i = 0; i < 32; i++)
       data_bytes[1 + i] = key_bytes[i];
-
-    data_len = 33;
   }
   else
   {
@@ -1397,24 +1393,15 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
 
     point_mul_xy (x, y, key_le, preG);
 
-    PRIVATE_AS u8 pub_bytes[33];
+    data_bytes[0] = (y[0] & 1u) ? 0x03 : 0x02;
 
-    pub_bytes[0] = (y[0] & 1u) ? 0x03 : 0x02;
-
-    bip39_words_le_to_bytes_be32 (x, pub_bytes + 1);
-
-    for (u32 i = 0; i < 33; i++)
-      data_bytes[i] = pub_bytes[i];
-
-    data_len = 33;
+    bip39_words_le_to_bytes_be32 (x, data_bytes + 1);
   }
 
-  data_bytes[data_len + 0] = (u8) (index >> 24);
-  data_bytes[data_len + 1] = (u8) (index >> 16);
-  data_bytes[data_len + 2] = (u8) (index >> 8);
-  data_bytes[data_len + 3] = (u8) (index >> 0);
-
-  data_len += 4;
+  data_bytes[33] = (u8) (index >> 24);
+  data_bytes[34] = (u8) (index >> 16);
+  data_bytes[35] = (u8) (index >> 8);
+  data_bytes[36] = (u8) (index >> 0);
 
   PRIVATE_AS u8 hmac_bytes[64];
 
@@ -1428,11 +1415,11 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
 
   PRIVATE_AS u32 data_words_dbg[32];
 
-  bip39_bytes_to_words_for_hmac (data_bytes, data_len, data_words_dbg, 32);
-  printf ("[m36000] data words for index %08x (len %u): %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", index, data_len, data_words_dbg[0], data_words_dbg[1], data_words_dbg[2], data_words_dbg[3], data_words_dbg[4], data_words_dbg[5], data_words_dbg[6], data_words_dbg[7], data_words_dbg[8]);
+  bip39_bytes_to_words_for_hmac (data_bytes, 37u, data_words_dbg, 32);
+  printf ("[m36000] data words for index %08x (len %u): %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", index, 37u, data_words_dbg[0], data_words_dbg[1], data_words_dbg[2], data_words_dbg[3], data_words_dbg[4], data_words_dbg[5], data_words_dbg[6], data_words_dbg[7], data_words_dbg[8]);
 #endif
 
-  bip39_hmac_sha512 (chain_bytes, 32u, data_bytes, data_len, hmac_bytes);
+  bip39_hmac_sha512 (chain_bytes, 32u, data_bytes, 37u, hmac_bytes);
 
 #else
 
@@ -1450,13 +1437,13 @@ DECLSPEC u32 bip39_bip32_child (const u32 index, PRIVATE_AS u32 *key_le, PRIVATE
 
   PRIVATE_AS u32 data_words[32];
 
-  bip39_bytes_to_words_for_hmac (data_bytes, data_len, data_words, 32);
+  bip39_bytes_to_words_for_hmac (data_bytes, 37u, data_words, 32);
 
 #if BIP39_DEBUG_PRINT
-  printf ("[m36000] data words for index %08x (len %u): %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", index, data_len, data_words[0], data_words[1], data_words[2], data_words[3], data_words[4], data_words[5], data_words[6], data_words[7], data_words[8]);
+  printf ("[m36000] data words for index %08x (len %u): %08x %08x %08x %08x %08x %08x %08x %08x %08x\n", index, 37u, data_words[0], data_words[1], data_words[2], data_words[3], data_words[4], data_words[5], data_words[6], data_words[7], data_words[8]);
 #endif
 
-  sha512_hmac_update_swap (&ctx, data_words, data_len);
+  sha512_hmac_update_swap (&ctx, data_words, 37u);
   sha512_hmac_final (&ctx);
 
   bip39_hmac_to_bytes (&ctx, hmac_bytes);
