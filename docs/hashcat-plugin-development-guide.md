@@ -1,4 +1,4 @@
-# Hashcat Plugin Development Guide #
+# hashcat Plugin Development Guide #
 
 The purpose of this document is to introduce you to the development of plugins for hashcat 6.0.0 and newer. We will update this document regularly and add more detailed content. The content in its current state includes enough details to write easy, medium and hard plugins.
 
@@ -257,7 +257,7 @@ module_ctx->module_hash_name = module_hash_name;
 
 As you can see here, there is a so-called module_ctx object. Here you register all functions that you have implemented in your module and which should be used by hashcat. A list of all functions and their prototypes can be found under `include/modules.h`.
 
-Hashcat will automatically call the module_init() function when it loads your module. In this function, you simply register all the functions that you have programmed by assigning it to module_ctx.
+hashcat will automatically call the module_init() function when it loads your module. In this function, you simply register all the functions that you have programmed by assigning it to module_ctx.
 
 Example:
 
@@ -313,7 +313,7 @@ For slow hashes, you will normally set the "order" to 0, 1, 2 and 3, because suc
 
 As you can see in the previous section, only 128 bits of the target hash are tested, but the hash must be saved entirely so that it can later be converted from its binary form back to its original form. Only you can know the size of the hash you are storing, but hashcat needs this information so that it can allocate necessary memory buffers.
 
-Important: Hashcat will provide this buffer of the size you specified in a void buffer which you will use as *digest_buf in the decoder/encoder.
+Important: hashcat will provide this buffer of the size you specified in a void buffer which you will use as *digest_buf in the decoder/encoder.
 
 Some macros already exist because they have already been used in many modules before. A list of the well known digest sizes already defined can be found in `include/types.h`.
 
@@ -435,7 +435,7 @@ Note: the general rule is that the kernel code should not do any unnecessary rep
 
 ### module_hash_decode_postprocess() ###
 
-This module can be used when you have certain configuration items of a hash that you want to override with a command line parameter. A good example is the --hccapx-message-pair, where the user can add additional filter criteria so that Hashcat doesn't load a specific set of hashes from the hash list.
+This module can be used when you have certain configuration items of a hash that you want to override with a command line parameter. A good example is the --hccapx-message-pair, where the user can add additional filter criteria so that hashcat doesn't load a specific set of hashes from the hash list.
 
 ### module_opts_type() ###
 
@@ -473,7 +473,7 @@ This configuration item is a bitmask field and is very similar to the module_opt
 * OPTS_TYPE_HASH_SPLIT: This needs to be used if the hash actually contains multiple hashes in the same hash line. A good example is the LM hash which is typically stored as a 128 bit hash, but actually is built on two 64 bit hashes.
 * OPTS_TYPE_LOOP_PREPARE: TBD
 * OPTS_TYPE_LOOP_EXTENDED: This flag can be used if you want to execute a *_loop_extended kernel directly each time a _loop kernel is finished. This actually means directly after each _loop kernel invocation when no final values are ready. The _loop kernel typically only iterates for a maximum of 1024 iterations and then returns. This provides low kernel runtimes, which reduces GPU screen lags and avoids driver watchdog events. However, some algorithms can be exploited by working on exactly these intermediate values.
-* OPTS_TYPE_HOOK12: Execute a hook kernel (CPU code) between _init and _loop kernel. A hook kernel is a normal kernel which can be used to select/copy very specific intermediate data and copy it to a so-called hook transfer buffer. This transfer buffer exists on both GPU and CPU. After the kernel is completed, the GPU buffer is copied to the corresponding CPU buffer so it can be processed. Then, the real hook function from your module is called from which you can read the intermediate data, process it as you need and then store it back. After your CPU function is finished, the buffer is copied back to the GPU automatically. The typical use case for this is if you need to deal with algorithms which include libraries which have no GPU implementation. Hashcat will automatically spawn a number of threads for you, so this is a multi threaded process. All buffers which are not constant buffers are thread-safe.
+* OPTS_TYPE_HOOK12: Execute a hook kernel (CPU code) between _init and _loop kernel. A hook kernel is a normal kernel which can be used to select/copy very specific intermediate data and copy it to a so-called hook transfer buffer. This transfer buffer exists on both GPU and CPU. After the kernel is completed, the GPU buffer is copied to the corresponding CPU buffer so it can be processed. Then, the real hook function from your module is called from which you can read the intermediate data, process it as you need and then store it back. After your CPU function is finished, the buffer is copied back to the GPU automatically. The typical use case for this is if you need to deal with algorithms which include libraries which have no GPU implementation. hashcat will automatically spawn a number of threads for you, so this is a multi threaded process. All buffers which are not constant buffers are thread-safe.
 * OPTS_TYPE_HOOK23: Same as OPTS_TYPE_HOOK12 but the hook is between the _loop and the _comp kernel. Do not confuse this with OPTS_TYPE_LOOP_EXTENDED. A hook is always when the final values are ready to be processed. We believe most algorithms that need hook code will use this hook instead of OPTS_TYPE_HOOK12.
 * OPTS_TYPE_INIT2: Some algorithms (usually updated from previous crypto schemes) execute two different types of compute intensive derivation functions. A good example is iTunes 10+. In iTunes 9 there is an algorithm with 10,000 iterations of SHA256. However, Apple updated this algorithm to be backward compatible. They use the output of the iTunes 9 KDF as the password to a new KDF which is 10,000,000 iterations of SHA256. The problem is that even for a KDF with 10,000 iteration we need to split this. In this instance we split this into 10 calls to a _loop kernel with 1,000 iteration otherwise users get massive screen lags or some watchdogs restart the drivers. In such a case, you can use OPTS_TYPE_INIT2 and OPTS_TYPE_LOOP2 kernels where you can execute the updated KDF with 10,000,000 iterations and also split it into 1,000 iteration chunks.
 * OPTS_TYPE_LOOP2_PREPARE: TBD
@@ -605,7 +605,7 @@ In most cases, however, the code for the hash is exactly the same. In these case
 
 ### Kernel parameters ###
 
-Hashcat will call all kernels with exactly the same parameters. In most cases only a few of the parameters are used, but on the other hand they do not have a negative impact on the performance. Having a fixed prototype for all kernels makes it easier to work with all the different buffers and generally makes it easier to read kernels from other people.
+hashcat will call all kernels with exactly the same parameters. In most cases only a few of the parameters are used, but on the other hand they do not have a negative impact on the performance. Having a fixed prototype for all kernels makes it easier to work with all the different buffers and generally makes it easier to read kernels from other people.
 
 There is no need for you to change anything. This section is only for information. While it is not relevant for you to know all the different parameters, at least some of them are important to know. Never write to any of them directly unless you know about the implications. Use the macros provided if you want to write something. Most of the buffer you do not even need to read from. The ones that are interesting for reading I will mark in the description.
 
@@ -663,7 +663,7 @@ The large number of kernel parameters can be confusing when writing a kernel. Bu
 
 The fast hash type is needed if we are cracking a hash that is so fast to compute that the PCI express bottleneck is taking more time than to compute the hash. These raw hashes are designed to compute very fast intentionally. They typically consist of only binary or arithmetic operations either with none or limited memory access. That means they often can be implemented on register level. On the other hand, if we need to access any memory structures just to provide the password candidates, it will hurt the performance significantly. Therefore the general concept of a fast hash kernel is to load a base password candidate directly onto a register and run a for() loop within the kernel which modifies the base password candidate.
 
-The modification is depending on the attack-mode. Hashcat supports 5 different attack-modes with the -a command line flag (0, 1, 3, 6 and 7) but attack-mode 6 and attack-mode 7 share the same kernel code with attack-mode 1. This means we have to implement three kernels. These kernels are implemented in three kernel source files (0, 1, 3). Based on the attack-mode selected by the user on startup, hashcat will load the corresponding kernel.
+The modification is depending on the attack-mode. hashcat supports 5 different attack-modes with the -a command line flag (0, 1, 3, 6 and 7) but attack-mode 6 and attack-mode 7 share the same kernel code with attack-mode 1. This means we have to implement three kernels. These kernels are implemented in three kernel source files (0, 1, 3). Based on the attack-mode selected by the user on startup, hashcat will load the corresponding kernel.
 
 The file name convention for fast hashes is: `OpenCL/mXXXXX_a[0|1|3]-[pure|optimized].cl`
 
@@ -718,7 +718,7 @@ Typically it goes like this:
 
 For slow hashes it is recommended to use vector data types if your algorithm allows to do so. If you use vector data types, use it in the _loop kernel only. Make sure to inform hashcat about using the appropriate opts_type option (see modules section).
 
-## Hashcat Crypto Library ##
+## hashcat Crypto Library ##
 
 The hashcat crypto library interface is very close to the OpenSSL interface with the typical Init(), Update() and Final() calls. But there are some important differences:
 
@@ -781,7 +781,7 @@ Important: In case you write a slow hash, you need to set the salt_iter element.
 
 ## Data Structures: salt_t vs esalt ##
 
-Hashcat has a generic data structure to handle "easy" salts (salt_t) and an open data structure one, that you can define yourself in case the generic data structure does not fit your needs (esalt). An "easy" salt is a single buffer salt of less than 256 byte (can be binary). The open data structure is called "esalt".
+hashcat has a generic data structure to handle "easy" salts (salt_t) and an open data structure one, that you can define yourself in case the generic data structure does not fit your needs (esalt). An "easy" salt is a single buffer salt of less than 256 byte (can be binary). The open data structure is called "esalt".
 
 It is important to understand the difference between the generic salt_t struct and the esalt struct (which you create on your own). In fact it is essential to distinguish them. Based on the data we assign to the salt_t struct, hashcat sorts and groups all digests belonging to this particular salt_t first by the salt buffer content in salt->salt_buf[]. We can see it as a top level grouping. With the data we assign to the esalt, hashcat sorts and groups all hashes, but on a level below. Like in a SQL Statement when we do something like:
 

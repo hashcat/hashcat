@@ -1,8 +1,8 @@
-# Assimilation Bridge in Hashcat v7
+# Assimilation Bridge in hashcat v7
 
 ## Overview
 
-Hashcat has historically optimized password cracking GPU and CPU compute backends. However, other types of hardware compute systems or pure software solutions were not supported. The Assimilation Bridge is a feature introduced in Hashcat v7 that extends the compute pipeline beyond traditional backends. It enables the integration of additional compute resources and software solutions such as FPGAs, remote TPMs, CPU reference implementations, or embedded runtimes into new or existing hash mode plugins.
+hashcat has historically optimized password cracking GPU and CPU compute backends. However, other types of hardware compute systems or pure software solutions were not supported. The Assimilation Bridge is a feature introduced in hashcat v7 that extends the compute pipeline beyond traditional backends. It enables the integration of additional compute resources and software solutions such as FPGAs, remote TPMs, CPU reference implementations, or embedded runtimes into new or existing hash mode plugins.
 
 All existing hash-mode plugins continue to function as before. Bridges are optional and only active when explicitly declared within a plugin's configuration. This ensures full backward compatibility with existing setups.
 
@@ -10,7 +10,7 @@ All existing hash-mode plugins continue to function as before. Bridges are optio
 
 ### Embedded Language Runtimes
 
-Hashcat v7 introduces support for an embedded Python interpreter as its premier demonstration example:
+hashcat v7 introduces support for an embedded Python interpreter as its premier demonstration example:
 
 - Hash modes `-m 72000` and `-m 73000` use embedded Python; start with `-m 73000`.
 - These demonstrate a "generic hash" model, enabling full hash mode creation in Python.
@@ -29,7 +29,7 @@ This is just a preview. See `docs/hashcat-python-plugin-quickstart.md` for detai
 
 ### Hybrid Architecture
 
-Note that in the Python example, only CPU resources are used and Hashcat does not transform Python into GPU code. However, the Bridge supports hybrid setups, where part of the workload runs on a traditional backend and another part on the Bridge. This model allows performance-critical components to be handled by the most suitable type of compute unit.
+Note that in the Python example, only CPU resources are used and hashcat does not transform Python into GPU code. However, the Bridge supports hybrid setups, where part of the workload runs on a traditional backend and another part on the Bridge. This model allows performance-critical components to be handled by the most suitable type of compute unit.
 
 For example, in hash mode `-m 70100`, a demonstration of SCRYPT, the PBKDF2 stage runs on a GPU using OpenCL/CUDA/HIP/Metal, while the memory-intensive `smix()` runs on the CPU through a bridge using the scrypt-jane implementation. This could just as easily be offloaded to an FPGA instead, which would benefit from reduced code complexity and increased parallelization boosting performance significantly.
 
@@ -61,13 +61,13 @@ Depending on interface compatibility, code from other password cracking tools (e
 ## Limitations and Status
 
 - Bridges are optional and configured on a per-plugin basis.
-- Hashcat v7 includes working bridges for CPU and Python.
+- hashcat v7 includes working bridges for CPU and Python.
 - FPGA support has been verified internally but is excluded from this release due to licensing issues.
 
-> **Call to FPGA Developers**: Contribute an open FPGA implementation and bitstream and the Hashcat Developer Team will support in integrating it into a bridge. Please contact us on Discord.
+> **Call to FPGA Developers**: Contribute an open FPGA implementation and bitstream and the hashcat Developer Team will support in integrating it into a bridge. Please contact us on Discord.
 
 ## Conclusion
 
-The Assimilation Bridge introduces a highly extensible mechanism to integrate custom compute resources and logic into Hashcat.
+The Assimilation Bridge introduces a highly extensible mechanism to integrate custom compute resources and logic into hashcat.
 
 For hands-on examples and developer guidance, refer to the accompanying documentation in `docs/hashcat-assimilation-bridge-development.md` (first draft).

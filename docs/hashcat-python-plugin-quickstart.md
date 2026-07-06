@@ -1,10 +1,10 @@
-# Hashcat Python Plugin Quickstart
+# hashcat Python Plugin Quickstart
 
 ## Introduction
 
-Hashcat v7 introduces a `Python plugin bridge` that allows you to write and integrate custom hash-matching algorithms directly in Python. This plugin system fits into the regular cracking workflow by replacing or extending internal kernel routines.
+hashcat v7 introduces a `Python plugin bridge` that allows you to write and integrate custom hash-matching algorithms directly in Python. This plugin system fits into the regular cracking workflow by replacing or extending internal kernel routines.
 
-When enabled, Hashcat uses the plugin’s `calc_hash()` function to compute hash candidates for verification, making it easy to experiment with new or obscure algorithms without modifying core C code or writing OpenCL/CUDA kernels.
+When enabled, hashcat uses the plugin's `calc_hash()` function to compute hash candidates for verification, making it easy to experiment with new or obscure algorithms without modifying core C code or writing OpenCL/CUDA kernels.
 
 This guide demonstrates how to quickly customize such an algorithm using pure Python. Whether you're prototyping a new hash mode, supporting a proprietary format, or simply prefer high-level development, Python plugins make the process fast and straightforward.
 
@@ -16,7 +16,7 @@ You can use any Python modules you like.
 
 A benchmark is a good way to verify that your setup is working correctly.
 
-Hashcat mode `73000` is preconfigured to load a generic Python plugin from the source file `Python/generic_hash_mp.py`:
+hashcat mode `73000` is preconfigured to load a generic Python plugin from the source file `Python/generic_hash_mp.py`:
 
 ```
 hashcat -m 73000 -b
@@ -40,7 +40,7 @@ Example output:
 $y$j9T$uxVFACnNnGBakt9MLrpFf0$SmbSZAge5oa1BfHPBxYGq3mITgHeO/iG2Mdfgo93UN0
 ```
 
-### Prepare the Hash Line for Hashcat
+### Prepare the Hash Line for hashcat
 
 ```
 $y$j9T$uxVFACnNnGBakt9MLrpFf0$SmbSZAge5oa1BfHPBxYGq3mITgHeO/iG2Mdfgo93UN0*$y$j9T$uxVFACnNnGBakt9MLrpFf0$
@@ -48,7 +48,7 @@ $y$j9T$uxVFACnNnGBakt9MLrpFf0$SmbSZAge5oa1BfHPBxYGq3mITgHeO/iG2Mdfgo93UN0*$y$j9T
 
 (Use the full hash before the `*` and the salt portion after the `*`.)
 
-Hashcat modes `73000` and `72000` are generic modes that do not parse the hash, which can lead to redundancy.
+hashcat modes `73000` and `72000` are generic modes that do not parse the hash, which can lead to redundancy.
 
 Refer to `hashcat-python-plugin-development-guide.md` to learn how to develop plugins for the generic hash mode.
 

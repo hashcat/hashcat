@@ -1,10 +1,10 @@
-# Hashcat Python Plugin Development Guide
+# hashcat Python Plugin Development Guide
 
-This document is a comprehensive guide for writing custom hash modes in Python via Hashcat's Assimilation Bridge plugin.
+This document is a comprehensive guide for writing custom hash modes in Python via hashcat's Assimilation Bridge plugin.
 
 ## 1. Introduction
 
-The Assimilation Bridge enables developers to implement complete hash mode logic in languages other than C, most notably Python. Traditionally, customizing Hashcat required writing a module in C and a kernel in OpenCL/CUDA. With the bridge, you can now implement a complete hash mode in Python.
+The Assimilation Bridge enables developers to implement complete hash mode logic in languages other than C, most notably Python. Traditionally, customizing hashcat required writing a module in C and a kernel in OpenCL/CUDA. With the bridge, you can now implement a complete hash mode in Python.
 
 The bridge supports two hash modes to run python code:
 
@@ -19,15 +19,15 @@ Ideally, start by walking through `hashcat-python-plugin-quickstart.md`, or read
 
 ## 3. Python Bridge basics
 
-Hashcat implements the CPython interface, loading the embedded interpreter via dynamic loading mechanisms (`dlopen()`, `LoadLibrary()`, etc). This enables runtime flexibility, allowing Hashcat to use whatever Python version is installed on the system. Users of the precompiled Hashcat binaries don’t need Python headers and just a working Python interpreter. Compatibility is checked at runtime, not compile time. If hashcat detect an invalid python version it will stop and print informative instructions on what to do next.
+Hashcat implements the CPython interface, loading the embedded interpreter via dynamic loading mechanisms (`dlopen()`, `LoadLibrary()`, etc). This enables runtime flexibility, allowing hashcat to use whatever Python version is installed on the system. Users of the precompiled hashcat binaries don't need Python headers and just a working Python interpreter. Compatibility is checked at runtime, not compile time. If hashcat detect an invalid python version it will stop and print informative instructions on what to do next.
 
-In general, when using any assimilation bridge "application" (such as the Python bridge), the hash mode determines which bridge plugin is loaded (this is a 1:1 relationship). From there, the bridge decides how to proceed. In the case of the Python bridge, it loads the Python library, sets up the interpreter, and finally selects which Python script to execute. Understanding this flow is essential, especially if you plan to contribute to upstream Hashcat on GitHub or want to register a dedicated hash mode number.
+In general, when using any assimilation bridge "application" (such as the Python bridge), the hash mode determines which bridge plugin is loaded (this is a 1:1 relationship). From there, the bridge decides how to proceed. In the case of the Python bridge, it loads the Python library, sets up the interpreter, and finally selects which Python script to execute. Understanding this flow is essential, especially if you plan to contribute to upstream hashcat on GitHub or want to register a dedicated hash mode number.
 
 You can decide to use the generic hash mode and only contribute the .py file itself with your implementation, or you copy the bridge code and hardcode the path to you .py implementation in there. The advantage in the generic mode is that it's super simple, but it will run a little slower and you have less control about workload tuning. Also having a dedicated mode allows you to implement a unit test, because you have a dedicated hash mode that you can refer to.
 
-Hashcat includes a top-level `Python/` directory with standard helpers and bridge modules:
+hashcat includes a top-level `Python/` directory with standard helpers and bridge modules:
 
-The following three files are relevant regardless of whether you plan to create a generic or a dedicated hash mode. These modules do the heavy lifting to interact with Hashcat internals from Python. Basically you should not need to change them, and instead you import them from your implementation:
+The following three files are relevant regardless of whether you plan to create a generic or a dedicated hash mode. These modules do the heavy lifting to interact with hashcat internals from Python. Basically you should not need to change them, and instead you import them from your implementation:
 
 ```text
 - hcsp.py: Helper for single-threaded mode. Manages queue handling, function invocation, and context propagation.
@@ -142,7 +142,7 @@ Remember, the extract_esalts() was given as function pointer to hcsp.init(). Tha
 
 ### Salts Appear as Binary Blobs using 32 bit datatypes
 
-Hashcat is optimized for performance, especially on GPUs. To improve performance, it mostly works on 32 bit datatypes instead of 8 bit datatypes. In python the helper scripts convert these binary blobs into byte[] objects that are easier to work with. As you can see from the above example: `16384 * 4 = 65536`
+hashcat is optimized for performance, especially on GPUs. To improve performance, it mostly works on 32 bit datatypes instead of 8 bit datatypes. In python the helper scripts convert these binary blobs into byte[] objects that are easier to work with. As you can see from the above example: `16384 * 4 = 65536`
 
 ### Fixed salt datatypes
 
@@ -180,7 +180,7 @@ The `salt` variable is one of the parameters from the calc_hash():
 def calc_hash(password: bytes, salt: dict) -> str:
 ```
 
-Note that if you fully exhaust the Hashcat keyspace, your function has been called X times Y.. X is the number of candidates, and Y is all the salts (except if a salt has been cracked). What's important to realize that within your function, you implement hashing logic only for precisely that situation where you have one password and one salt.
+Note that if you fully exhaust the hashcat keyspace, your function has been called X times Y.. X is the number of candidates, and Y is all the salts (except if a salt has been cracked). What's important to realize that within your function, you implement hashing logic only for precisely that situation where you have one password and one salt.
 
 
 ### Merging Salts and Esalts into a Single Object
@@ -208,7 +208,7 @@ Notes:
 - Even though `-m 72000` uses single-threaded Python, the bridge plugin above it manages multiple Python interpreters (one per thread) making it effectively multi-threaded.
 - On Windows/macOS, if `-m 73000` is selected, it silently falls back to `generic_hash_sp.py` due to limitations with multiprocessing. This behavior is important to understand and you might otherwise wonder why your code changes have no effect.
 
-If you modify one of these plugin files, there's a trade-off: you won’t be able to contribute that code directly to the upstream Hashcat repository, since those files are meant to remain clean for demonstration purposes.
+If you modify one of these plugin files, there's a trade-off: you won't be able to contribute that code directly to the upstream hashcat repository, since those files are meant to remain clean for demonstration purposes.
 
 To address this, the assimilation bridge provides a generic parameter that users can specify via the command line. In the case of the Python bridge, only the first parameter is used. Using `--bridge-parameter1` allows you to override the Python script to be loaded:
 
@@ -216,7 +216,7 @@ To address this, the assimilation bridge provides a generic parameter that users
 $ ./hashcat -m 73000 --bridge-parameter1 ./Python/myimplementation.py hash.txt wordlist.txt ...
 ```
 
-This tells the Python bridge plugin to load `myimplementation.py` located in the local `Python` subdirectory instead of the default `generic_hash_mp.py`. This approach is especially useful if you plan to contribute `myimplementation.py` to the upstream Hashcat repository. If you choose to stay within the generic mode, your Python code won’t have a dedicated hash mode, and you'll need to instruct users to use the `--bridge-parameter1` flag to load your implementation.
+This tells the Python bridge plugin to load `myimplementation.py` located in the local `Python` subdirectory instead of the default `generic_hash_mp.py`. This approach is especially useful if you plan to contribute `myimplementation.py` to the upstream hashcat repository. If you choose to stay within the generic mode, your Python code won't have a dedicated hash mode, and you'll need to instruct users to use the `--bridge-parameter1` flag to load your implementation.
 
 ### Design Tradeoffs and Format Considerations
 
@@ -233,14 +233,14 @@ However, it is crucial to highlight:
 - You are **not obligated to follow this generic approach**. In fact, it's generally preferable to implement proper hash line decoding and encoding logic.
 - For instance, a proper Yescrypt implementation (unlike the quickstart document) would ideally decode hash lines into clear, separate components (digest, salt, parameters) and encode them accordingly upon successful cracking.
 
-The reason the generic hash mode provided by Hashcat employs a simplified approach is to:
+The reason the generic hash mode provided by hashcat employs a simplified approach is to:
 
 - Demonstrate a flexible, format-agnostic solution suitable for initial prototyping or unfamiliar hash formats.
 - Avoid complexity and make it easy for plugin developers to get started quickly without deep understanding of specific hash format parsing logic.
 
 In summary, while the generic mode is quick and easy, robust real-world plugins **should implement proper hash decoding and encoding logic** to ensure accuracy, efficiency, and maintainability.
 
-## 7. Debugging Without Hashcat
+## 7. Debugging Without hashcat
 
 You can run your plugin as a standalone script:
 ```

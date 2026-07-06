@@ -71,7 +71,7 @@ bool thread_seek     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *th
 
 ### hashcat_ctx_t
 
-Hashcat will provide the full `hashcat_ctx_t` context. In most cases you do not need it. It is complex and not suitable for wrapper languages. For that reason it is only optionally available to global functions.
+hashcat will provide the full `hashcat_ctx_t` context. In most cases you do not need it. It is complex and not suitable for wrapper languages. For that reason it is only optionally available to global functions.
 
 If you do use it, you can call the `EVENT_DATA()` functions to write messages that follow the hashcat API format. This allows external applications that use the hashcat API to receive callbacks. This is optional.
 
@@ -101,7 +101,7 @@ typedef struct generic_global_ctx
 Notes:
 
 - This structure may change over time as we learn more about what developers need.
-- To handle compatibility, your feed library will be built with a version string. Hashcat will use this to check if your feed matches the current structures.
+- To handle compatibility, your feed library will be built with a version string. hashcat will use this to check if your feed matches the current structures.
 - Attributes `workc` and `workv` contain the command line arguments that belong to attack mode -a 8. For example, if your feed reads a wordlist, the filename can be passed on the hashcat command line and you can retrieve it from these variables. The feed plugin name is always workv[0], so for the wordlist example you would find this in workv[1].
 - The error field should be set to true only if a real error occurs. An end of file condition is not an error. When you set this field, you may also provide an error message in error_msg.
 - If you print messages to the console, check the quiet flag first. This flag is set when the user runs hashcat with `--quiet`.
@@ -126,9 +126,9 @@ typedef struct generic_thread_ctx
 
 Some explanations:
 
-Hashcat can use multiple compute devices. Each device has its own candidate generator thread. This improves performance and keeps the design simple. Hashcat will handle synchronization by calling your `thread_seek()` function.
+hashcat can use multiple compute devices. Each device has its own candidate generator thread. This improves performance and keeps the design simple. hashcat will handle synchronization by calling your `thread_seek()` function.
 
-For example, if your feed reads from a wordlist, the normal way is to open the file once per thread. Each thread maintains its own file handle. Hashcat calls `thread_seek()` with the offset where each thread should start.
+For example, if your feed reads from a wordlist, the normal way is to open the file once per thread. Each thread maintains its own file handle. hashcat calls `thread_seek()` with the offset where each thread should start.
 
 It is also possible to open the file only once in the global function and then distribute data to threads using pipes. This is more complex but can be done if needed.
 
@@ -172,7 +172,7 @@ This function is mandatory.
 
 ## Global vs Thread Context
 
-Hashcat supports compute devices of very different performance levels. For example, a session may include one CPU and five GPUs, each with different speeds. To feed each device efficiently, hashcat creates a separate thread per device.
+hashcat supports compute devices of very different performance levels. For example, a session may include one CPU and five GPUs, each with different speeds. To feed each device efficiently, hashcat creates a separate thread per device.
 
 This is why there are two context structures:
 

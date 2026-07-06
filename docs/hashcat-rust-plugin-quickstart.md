@@ -1,13 +1,13 @@
-# Hashcat Rust Plugin Quickstart
+# hashcat Rust Plugin Quickstart
 
 ## Introduction
 
-Hashcat v7.1.2 introduces a new assimilation bridge plugin, the Rust
+hashcat v7.1.2 introduces a new assimilation bridge plugin, the Rust
 bridge, that allows you to write custom hash-matching algorithms in
 Rust. This plugin system fits into the regular cracking workflow,
 replacing or extending internal kernel routines.
 
-When enabled, Hashcat uses the plugin’s `calc_hash()` function to
+When enabled, hashcat uses the plugin's `calc_hash()` function to
 compute hash candidates. This makes it easy to experiment with new or
 obscure algorithms without modifying core C code or writing
 OpenCL/CUDA kernels.
@@ -17,14 +17,14 @@ Rust. You simply:
 
 1. Write your logic in `calc_hash()`.
 2. Build your plugin with `cargo build --release`.
-3. Load it into Hashcat and start cracking.
+3. Load it into hashcat and start cracking.
 
 You can use any Rust crates you like.
 
 ## Quick Start
 
 A benchmark is a simple way to verify that your setup works correctly.
-Hashcat mode `74000` is preconfigured to load a generic Rust plugin
+hashcat mode `74000` is preconfigured to load a generic Rust plugin
 from a dynamic library:
 
     hashcat -m 74000 -b
@@ -42,7 +42,7 @@ Example output:
 
     $y$j9T$uxVFACnNnGBakt9MLrpFf0$SmbSZAge5oa1BfHPBxYGq3mITgHeO/iG2Mdfgo93UN0
 
-### Prepare the Hash Line for Hashcat
+### Prepare the Hash Line for hashcat
 
 Take the full hash and append a `*` followed by the salt (settings)
 portion to it. The appended settings must start and end with a `$`.

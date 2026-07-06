@@ -1,6 +1,6 @@
-# Hashcat Rust Plugin Requirements
+# hashcat Rust Plugin Requirements
 
-This document explains how to build and use the Hashcat Rust plugin on
+This document explains how to build and use the hashcat Rust plugin on
 Linux, Windows, and macOS.
 
 ## Linux
@@ -10,9 +10,9 @@ Linux, Windows, and macOS.
    Rust **1.88 or newer** is recommended. Older versions may not work
    reliably.
 
-2. **Build Hashcat**
+2. **Build hashcat**
 
-   If you are building Hashcat from source, run:
+   If you are building hashcat from source, run:
 
    ```
    make linux
@@ -45,7 +45,7 @@ Linux, Windows, and macOS.
 
    This produces `libgeneric_hash.so` in `Rust/bridges/generic_hash/target/release`.
 
-5. **Run Hashcat**
+5. **Run hashcat**
 
    ```
    hashcat -a 0 -m 74000 hashfile wordlist
@@ -67,7 +67,7 @@ Linux, Windows, and macOS.
    installed via `rustup`, you already have them.  Prefer **Rust 1.88
    or newer**.
 
-2. **Build Hashcat**
+2. **Build hashcat**
 
    You only have to do this if you're building from sources.
 
@@ -112,7 +112,7 @@ Linux, Windows, and macOS.
    This produces `generic_hash.dll` in
    `Rust/bridges/generic_hash/target/x86_64-pc-windows-gnu/release`.
 
-5. **Run Hashcat**
+5. **Run hashcat**
 
    ```
    hashcat -a 0 -m 74000 hashfile wordlist
@@ -126,7 +126,7 @@ Linux, Windows, and macOS.
 
 ## macOS
 
-Hashcat does not ship prebuilt macOS binaries, so you must build both
+hashcat does not ship prebuilt macOS binaries, so you must build both
 the bridge and the plugin yourself.
 
 1. Follow the same steps as in the **Linux** section.
@@ -137,7 +137,7 @@ the bridge and the plugin yourself.
      mv Rust/bridges/generic_hash/target/release/libgeneric_hash.dylib \
         Rust/bridges/generic_hash/target/release/libgeneric_hash.so
      ```
-   - Or run Hashcat with:
+   - Or run hashcat with:
      ```
      --bridge-parameter1 /path/to/libgeneric_hash.dylib
      ```

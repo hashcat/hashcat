@@ -6,9 +6,9 @@ From a technical perspective, the hashcat brain consists of two in-memory databa
 
 Put simply, the hashcat brain persistently remembers the attacks you've executed against a particular hashlist in the past ... but on a low level.
 
-Hashcat will check each password candidate against the "brain" to find out if that candidate was already checked in the past and then accept it or reject it. The brain will check each candidate for existence in both the long-term and short-term memory areas. The nice thing is that it does not matter which attack-mode originally was used - it can be straight attack, mask attack or any of the advanced future generators.
+hashcat will check each password candidate against the "brain" to find out if that candidate was already checked in the past and then accept it or reject it. The brain will check each candidate for existence in both the long-term and short-term memory areas. The nice thing is that it does not matter which attack-mode originally was used - it can be straight attack, mask attack or any of the advanced future generators.
 
-The brain computes a hash (a very fast one called xxHash) of every password candidate and store it in the short-term memory first. Hashcat then starts cracking the usual way. Once it's done cracking, it sends a "commit" signal to the hashcat brain, which then moves the candidates from the short-term memory into the long-term memory.
+The brain computes a hash (a very fast one called xxHash) of every password candidate and store it in the short-term memory first. hashcat then starts cracking the usual way. Once it's done cracking, it sends a "commit" signal to the hashcat brain, which then moves the candidates from the short-term memory into the long-term memory.
 
 The hashcat brain feature uses a client/server architecture. That means that the hashcat brain itself is actually a network server. I know, I know - you don't want any network sockets in your hashcat process? No problem, then disable the feature in the __makefile__ by setting `ENABLE_BRAIN=0` and it will be gone forever.
 
@@ -52,7 +52,7 @@ $ ./hashcat -z example0.hash example.dict -r rules/best66.rule
 Rejected.........: 2379391/9888032 (24.06%)
 ```
 
-> __Notes:__ Hashcat brain rejects dynamically created duplicate candidates
+> __Notes:__ hashcat brain rejects dynamically created duplicate candidates
 >
 > Average dynamically created duplicate candidates is around 25%
 >

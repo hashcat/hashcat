@@ -1,4 +1,4 @@
-# Hashcat Python Plugin Requirements
+# hashcat Python Plugin Requirements
 
 ## Windows/macOS and Linux
 
@@ -14,7 +14,7 @@ The `multiprocessing` module is not fully supported in this embedded environment
 
 ### On Linux
 
-The `multiprocessing` module functions correctly, allowing full CPU utilization through parallel worker processes. However, since threading is managed by Python, it relies on `fork()` and inter-process communication (IPC). This adds complexity and code bloat to Hashcat, effectively duplicating modules and bridge plugins, making the codebase harder to understand for those exploring how it all works. We could switch to a free-threaded Python runtime, but it's still unstable at the time of writing even on Linux (see the `cffi` problem below). For now, we’ve chosen to use the `multiprocessing` module as a more practical solution.
+The `multiprocessing` module functions correctly, allowing full CPU utilization through parallel worker processes. However, since threading is managed by Python, it relies on `fork()` and inter-process communication (IPC). This adds complexity and code bloat to hashcat, effectively duplicating modules and bridge plugins, making the codebase harder to understand for those exploring how it all works. We could switch to a free-threaded Python runtime, but it's still unstable at the time of writing even on Linux (see the `cffi` problem below). For now, we've chosen to use the `multiprocessing` module as a more practical solution.
 
 **On Linux**: Use `pyenv`. It's the easiest way to install and manage Python versions, see below section
 

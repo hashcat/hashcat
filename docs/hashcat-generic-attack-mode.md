@@ -45,7 +45,7 @@ Keep in mind that hashcat always parses the full command line first. All options
 
 We debated how useful such an interface is, given that hashcat already provides a generic `STDIN` interface for connecting custom generators. However, there are several reasons why STDIN is good but not optimal.
 
-With STDIN, there is only one input channel feeding multiple output channels. Output channels in this context mean compute devices. Hashcat spawns a unique thread for each compute device so it can handle devices of different speeds. This requires synchronization. The same is true for attack modes 0, 1, 3, 6, and 7, but the difference is that in those modes there is no single input channel.
+With STDIN, there is only one input channel feeding multiple output channels. Output channels in this context mean compute devices. hashcat spawns a unique thread for each compute device so it can handle devices of different speeds. This requires synchronization. The same is true for attack modes 0, 1, 3, 6, and 7, but the difference is that in those modes there is no single input channel.
 
 For example, when attack-mode 0 is run on four GPUs, hashcat spawns four threads. Each thread opens its own file handle to the wordlist and reads independently. The synchronizer only tells each thread where to start and stop, so parallelization works smoothly.
 
@@ -83,7 +83,7 @@ These modifiers are always enabled with STDIN, but in a feed they can be disable
 
 A generator feeding candidates through STDIN may or may not support session restore.
 
-With attack-mode 8, restore is guaranteed. Hashcat can seek directly to the needed candidate within the generator. Depending on the generator architecture, seeking may be slow, but no third program is required to emulate restore.
+With attack-mode 8, restore is guaranteed. hashcat can seek directly to the needed candidate within the generator. Depending on the generator architecture, seeking may be slow, but no third program is required to emulate restore.
 
 ## 4. Interface Design
 

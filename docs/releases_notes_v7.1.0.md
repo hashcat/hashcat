@@ -1,5 +1,5 @@
 
-# Hashcat 7.1.0 - Release Notes
+# hashcat 7.1.0 - Release Notes
 
 This is a minor release, but an important one. It comes just two weeks after the major v7.0.0 update, as part of our effort to keep release cycles shorter than in the past.
 
@@ -59,7 +59,7 @@ In preparation for the Jabbercracky Password Cracking Contest at DEF CON 33, we 
 
 ### 2.1. Attack-Modes: Use 64-bit counters for amplifier keyspace
 
-Hashcat now uses 64-bit counters for the amplifier keyspace (previously limited to 32-bit), allowing greater flexibility in attack design. All attack-modes are supported, but the primary impact is on the combinator and both hybrid attack-modes. This change could be especially relevant if you have ever seen the following message in previous hashcat runs:
+hashcat now uses 64-bit counters for the amplifier keyspace (previously limited to 32-bit), allowing greater flexibility in attack design. All attack-modes are supported, but the primary impact is on the combinator and both hybrid attack-modes. This change could be especially relevant if you have ever seen the following message in previous hashcat runs:
 
   `Integer overflow detected in ...`
 
@@ -134,7 +134,7 @@ This issue often arises when users copy hashcat examples from tutorials written 
 
 This leads to an invalid rule being applied to every word in the wordlist, which causes internal syntax errors.
 
-Previously these errors were not shown, resulting in an empty wordlist without explanation. Hashcat now reports these rule parsing errors clearly, making it easier to debug solo-rule related issues.
+Previously these errors were not shown, resulting in an empty wordlist without explanation. hashcat now reports these rule parsing errors clearly, making it easier to debug solo-rule related issues.
 
 ### 2.7. Device Memory: Do not disable hardware-monitor interface by default in speed-only and progress-only mode
 
