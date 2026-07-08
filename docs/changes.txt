@@ -482,6 +482,7 @@ For a tree full of modules, this does it:
 - Potfile: A password found in the potfile is stored once per hash and handed to every copy of that hash after the file is read, instead of a new buffer being allocated for every copy on every matching line. A list of 200000 copies of one hash, against a potfile naming it 200000 times, took 67 seconds and then ran out of memory, and now takes about 0.1 seconds. --show is allowed with --username and --dynamic-x again
 - Backend: hashcat no longer forces AMD_DIRECT_DISPATCH=0 on the HIP runtime. It was set to keep host CPU load down, but on ROCm 7 it changes neither the CPU load of a waiting host thread nor cracking speed, measured across several hash modes on a 7900 XTX, so the runtime default is used again
 - Backend: 2 environment variables hashcat used to set are gone, OCL_CODE_CACHE_ENABLE, which AMD removed from its OpenCL runtime and no shipping runtime reads, and a commented out CL_CONFIG_USE_VECTORIZER whose Intel CPU runtime workaround has not applied for years. CUDA_CACHE_DISABLE and POCL_KERNEL_CACHE stay, since a debug build still needs them
+- Hardware Monitor: Added power limit (Cap) and PCIe link generation (Gen) status fields for NVML (NVIDIA) devices
 
 ##
 ## Bugs
