@@ -8475,61 +8475,16 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         device_param->opencl_platform_id = opencl_platforms_idx;
 
         // check OpenCL version
+        //
+        // note: the actual flag derivation happens further below, once the
+        // per-device CL_DEVICE_VERSION has been queried. the platform version
+        // is not a reliable source since a single OpenCL platform can expose
+        // devices that individually support a lower OpenCL version than the
+        // platform as a whole (for example remote/heterogeneous platforms)
 
         device_param->use_opencl12 = false;
         device_param->use_opencl20 = false;
         device_param->use_opencl30 = false;
-
-        int opencl_version_maj = 0;
-        int opencl_version_min = 0;
-
-        if (sscanf (opencl_platform_version, "OpenCL %d.%d", &opencl_version_maj, &opencl_version_min) == 2)
-        {
-          // These have to be exclusive.
-          //
-          // A platform reporting OpenCL 1.2 used to set BOTH the 1.1 and the 1.2 flag, and the build
-          // option chain further down tests the 1.1 flag first, so every OpenCL 1.2 platform was
-          // compiled as OpenCL C 1.1. That language version has no file scope `static`, which
-          // inc_rp_common.cl uses for its lookup tables, so a rules or wordlist attack could not build
-          // its amplifier kernel at all while a mask attack, which pulls in no rule code, was fine.
-          //
-          // It stayed hidden because the mainstream runtimes all report 2.x or 3.x and take a different
-          // branch. It needs a platform that reports exactly 1.2 to appear.
-
-          // OpenCL C 1.2 is the floor. Anything older cannot build the kernels at all, and
-          // has not been able to for a long time: inc_rp_common.cl declares its lookup
-          // tables as `CONSTANT_VK static` at file scope, and OpenCL C 1.1 has no file scope
-          // static, so every rule or wordlist attack failed to build its amplifier kernel
-          // there. Compiling such a device as CL1.1 only turns that into a confusing kernel
-          // build error much later, so say so here instead.
-          //
-          // No runtime in use reports 1.0 or 1.1. The two that did, Beignet and Mesa, are
-          // already skipped further down.
-
-          if (opencl_version_maj == HC_MIN_OPENCL_MAJOR)
-          {
-            if (opencl_version_min >= HC_MIN_OPENCL_MINOR)
-            {
-              device_param->use_opencl12 = true;
-            }
-            else
-            {
-              event_log_error (hashcat_ctx, "* Device #%u: OpenCL %d.%d is too old, hashcat needs OpenCL 1.2 or later.", device_id + 1, opencl_version_maj, opencl_version_min);
-
-              device_skip (device_param, "OpenCL older than 1.2");
-            }
-          }
-
-          if (opencl_version_maj == 2)
-          {
-            device_param->use_opencl20 = true;
-          }
-
-          if (opencl_version_maj == 3)
-          {
-            device_param->use_opencl30 = true;
-          }
-        }
 
         size_t param_value_size = 0;
 
@@ -8721,6 +8676,61 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         }
 
         device_param->opencl_device_version = opencl_device_version;
+
+        // derive the -cl-std= build option from the device's own OpenCL
+        // version instead of the platform's, since a platform can expose
+        // devices with a lower individually supported OpenCL version
+
+        int opencl_version_maj = 0;
+        int opencl_version_min = 0;
+
+        if (sscanf (opencl_device_version, "OpenCL %d.%d", &opencl_version_maj, &opencl_version_min) == 2)
+        {
+          // These have to be exclusive.
+          //
+          // A platform reporting OpenCL 1.2 used to set BOTH the 1.1 and the 1.2 flag, and the build
+          // option chain further down tests the 1.1 flag first, so every OpenCL 1.2 platform was
+          // compiled as OpenCL C 1.1. That language version has no file scope `static`, which
+          // inc_rp_common.cl uses for its lookup tables, so a rules or wordlist attack could not build
+          // its amplifier kernel at all while a mask attack, which pulls in no rule code, was fine.
+          //
+          // It stayed hidden because the mainstream runtimes all report 2.x or 3.x and take a different
+          // branch. It needs a platform that reports exactly 1.2 to appear.
+
+          // OpenCL C 1.2 is the floor. Anything older cannot build the kernels at all, and
+          // has not been able to for a long time: inc_rp_common.cl declares its lookup
+          // tables as `CONSTANT_VK static` at file scope, and OpenCL C 1.1 has no file scope
+          // static, so every rule or wordlist attack failed to build its amplifier kernel
+          // there. Compiling such a device as CL1.1 only turns that into a confusing kernel
+          // build error much later, so say so here instead.
+          //
+          // No runtime in use reports 1.0 or 1.1. The two that did, Beignet and Mesa, are
+          // already skipped further down.
+
+          if (opencl_version_maj == HC_MIN_OPENCL_MAJOR)
+          {
+            if (opencl_version_min >= HC_MIN_OPENCL_MINOR)
+            {
+              device_param->use_opencl12 = true;
+            }
+            else
+            {
+              event_log_error (hashcat_ctx, "* Device #%u: OpenCL %d.%d is too old, hashcat needs OpenCL 1.2 or later.", device_id + 1, opencl_version_maj, opencl_version_min);
+
+              device_skip (device_param, "OpenCL older than 1.2");
+            }
+          }
+
+          if (opencl_version_maj == 2)
+          {
+            device_param->use_opencl20 = true;
+          }
+
+          if (opencl_version_maj == 3)
+          {
+            device_param->use_opencl30 = true;
+          }
+        }
 
         // opencl_device_c_version
 
