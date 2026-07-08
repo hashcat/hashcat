@@ -2134,6 +2134,8 @@ typedef struct hm_attrs
   bool utilization_get_supported;
   bool memoryused_get_supported;
   bool power_get_supported;
+  bool power_limit_get_supported;
+  bool pcie_gen_get_supported;
 
 } hm_attrs_t;
 

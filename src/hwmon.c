@@ -1251,14 +1251,30 @@ int hm_get_throttle_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 int64_t hm_get_power_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
 
   if (hwmon_ctx->hm_device[backend_device_idx].power_get_supported == false) return -1;
 
-  #if defined (__APPLE__)
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  if (backend_ctx->devices_param[backend_device_idx].is_cuda == true)
+  {
+    if (hwmon_ctx->hm_nvml)
+    {
+      unsigned int milliwatts;
 
+      if (hm_NVML_nvmlDeviceGetPowerUsage (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &milliwatts) == -1)
+      {
+        hwmon_ctx->hm_device[backend_device_idx].power_get_supported = false;
+
+        return -1;
+      }
+
+      return (int64_t) milliwatts;
+    }
+  }
+
+  #if defined (__APPLE__)
   if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_metal == true))
   {
     if (hwmon_ctx->hm_iokit)
@@ -1277,7 +1293,138 @@ int64_t hm_get_power_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
   }
   #endif
 
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
+  {
+    if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
+    {
+      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_NV)
+      {
+        if (hwmon_ctx->hm_nvml)
+        {
+          unsigned int milliwatts;
+
+          if (hm_NVML_nvmlDeviceGetPowerUsage (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &milliwatts) == -1)
+          {
+            hwmon_ctx->hm_device[backend_device_idx].power_get_supported = false;
+
+            return -1;
+          }
+
+          return (int64_t) milliwatts;
+        }
+      }
+    }
+  }
+
   hwmon_ctx->hm_device[backend_device_idx].power_get_supported = false;
+
+  return -1;
+}
+
+int64_t hm_get_power_limit_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (hwmon_ctx->enabled == false) return -1;
+
+  if (hwmon_ctx->hm_device[backend_device_idx].power_limit_get_supported == false) return -1;
+
+  if (backend_ctx->devices_param[backend_device_idx].is_cuda == true)
+  {
+    if (hwmon_ctx->hm_nvml)
+    {
+      unsigned int milliwatts;
+
+      if (hm_NVML_nvmlDeviceGetPowerManagementLimit (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &milliwatts) == -1)
+      {
+        hwmon_ctx->hm_device[backend_device_idx].power_limit_get_supported = false;
+
+        return -1;
+      }
+
+      return (int64_t) milliwatts;
+    }
+  }
+
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
+  {
+    if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
+    {
+      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_NV)
+      {
+        if (hwmon_ctx->hm_nvml)
+        {
+          unsigned int milliwatts;
+
+          if (hm_NVML_nvmlDeviceGetPowerManagementLimit (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &milliwatts) == -1)
+          {
+            hwmon_ctx->hm_device[backend_device_idx].power_limit_get_supported = false;
+
+            return -1;
+          }
+
+          return (int64_t) milliwatts;
+        }
+      }
+    }
+  }
+
+  hwmon_ctx->hm_device[backend_device_idx].power_limit_get_supported = false;
+
+  return -1;
+}
+
+int hm_get_pcie_gen_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (hwmon_ctx->enabled == false) return -1;
+
+  if (hwmon_ctx->hm_device[backend_device_idx].pcie_gen_get_supported == false) return -1;
+
+  if (backend_ctx->devices_param[backend_device_idx].is_cuda == true)
+  {
+    if (hwmon_ctx->hm_nvml)
+    {
+      unsigned int currLinkGen;
+
+      if (hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &currLinkGen) == -1)
+      {
+        hwmon_ctx->hm_device[backend_device_idx].pcie_gen_get_supported = false;
+
+        return -1;
+      }
+
+      return currLinkGen;
+    }
+  }
+
+  if ((backend_ctx->devices_param[backend_device_idx].is_opencl == true) || (backend_ctx->devices_param[backend_device_idx].is_hip == true))
+  {
+    if (backend_ctx->devices_param[backend_device_idx].opencl_device_type & CL_DEVICE_TYPE_GPU)
+    {
+      if (backend_ctx->devices_param[backend_device_idx].opencl_device_vendor_id == VENDOR_ID_NV)
+      {
+        if (hwmon_ctx->hm_nvml)
+        {
+          unsigned int currLinkGen;
+
+          if (hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (hashcat_ctx, hwmon_ctx->hm_device[backend_device_idx].nvml, &currLinkGen) == -1)
+          {
+            hwmon_ctx->hm_device[backend_device_idx].pcie_gen_get_supported = false;
+
+            return -1;
+          }
+
+          return currLinkGen;
+        }
+      }
+    }
+  }
+
+  hwmon_ctx->hm_device[backend_device_idx].pcie_gen_get_supported = false;
 
   return -1;
 }
@@ -1380,7 +1527,9 @@ static void hwmon_ctx_init_nvml (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adap
               hm_adapters_nvml[device_id].threshold_slowdown_get_supported  = true;
               hm_adapters_nvml[device_id].utilization_get_supported         = true;
               hm_adapters_nvml[device_id].memoryused_get_supported          = true;
-              hm_adapters_nvml[device_id].power_get_supported               = false;
+              hm_adapters_nvml[device_id].power_get_supported               = true;
+              hm_adapters_nvml[device_id].power_limit_get_supported         = true;
+              hm_adapters_nvml[device_id].pcie_gen_get_supported            = true;
             }
           }
         }
@@ -1414,7 +1563,9 @@ static void hwmon_ctx_init_nvml (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adap
               hm_adapters_nvml[device_id].threshold_slowdown_get_supported  = true;
               hm_adapters_nvml[device_id].utilization_get_supported         = true;
               hm_adapters_nvml[device_id].memoryused_get_supported          = true;
-              hm_adapters_nvml[device_id].power_get_supported               = false;
+              hm_adapters_nvml[device_id].power_get_supported               = true;
+              hm_adapters_nvml[device_id].power_limit_get_supported         = true;
+              hm_adapters_nvml[device_id].pcie_gen_get_supported            = true;
             }
           }
         }
@@ -1961,6 +2112,8 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
         hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_nvml[device_id].utilization_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].memoryused_get_supported          |= hm_adapters_nvml[device_id].memoryused_get_supported;
         hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_nvml[device_id].power_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].power_limit_get_supported         |= hm_adapters_nvml[device_id].power_limit_get_supported;
+        hwmon_ctx->hm_device[backend_devices_idx].pcie_gen_get_supported            |= hm_adapters_nvml[device_id].pcie_gen_get_supported;
       }
 
       if (hwmon_ctx->hm_nvapi)
@@ -2140,6 +2293,8 @@ int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
             hwmon_ctx->hm_device[backend_devices_idx].utilization_get_supported         |= hm_adapters_nvml[device_id].utilization_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].memoryused_get_supported          |= hm_adapters_nvml[device_id].memoryused_get_supported;
             hwmon_ctx->hm_device[backend_devices_idx].power_get_supported               |= hm_adapters_nvml[device_id].power_get_supported;
+            hwmon_ctx->hm_device[backend_devices_idx].power_limit_get_supported         |= hm_adapters_nvml[device_id].power_limit_get_supported;
+            hwmon_ctx->hm_device[backend_devices_idx].pcie_gen_get_supported            |= hm_adapters_nvml[device_id].pcie_gen_get_supported;
           }
 
           if (hwmon_ctx->hm_nvapi)

@@ -2865,6 +2865,50 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  printf ("POWER_LIMIT\t");
+
+  if (bridge_ctx->enabled == true)
+  {
+    // that 0\t is for backward compatibility
+    printf ("0\t");
+  }
+  else
+  {
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    {
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
+
+      const int64_t power_limit = hm_get_power_limit_with_devices_idx (hashcat_ctx, device_id);
+
+      printf("%" PRId64 "\t", power_limit);
+    }
+  }
+
+  printf ("PCIE_GEN\t");
+
+  if (bridge_ctx->enabled == true)
+  {
+    // that 0\t is for backward compatibility
+    printf ("0\t");
+  }
+  else
+  {
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    {
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
+
+      const int pcie_gen = hm_get_pcie_gen_with_devices_idx (hashcat_ctx, device_id);
+
+      printf("%d\t", pcie_gen);
+    }
+  }
+
   fwrite (EOL, strlen (EOL), 1, stdout);
 
   fflush (stdout);
@@ -3026,6 +3070,8 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
       const int memoryspeed = hm_get_memoryspeed_with_devices_idx (hashcat_ctx, device_id);
       const int buslanes    = hm_get_buslanes_with_devices_idx (hashcat_ctx, device_id);
       const int64_t power   = hm_get_power_with_devices_idx (hashcat_ctx, device_id);
+      const int64_t power_limit = hm_get_power_limit_with_devices_idx (hashcat_ctx, device_id);
+      const int     pcie_gen    = hm_get_pcie_gen_with_devices_idx (hashcat_ctx, device_id);
 
       printf (" \"temp\": %d,", temp);
       printf (" \"util\": %d,", util);
@@ -3033,7 +3079,9 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
       printf (" \"corespeed\": %d,", corespeed);
       printf (" \"memoryspeed\": %d,", memoryspeed);
       printf (" \"buslanes\": %d,", buslanes);
-      printf (" \"power\": %" PRId64 " }", power);
+      printf (" \"power\": %" PRId64 ",", power);
+      printf (" \"power_limit\": %" PRId64 ",", power_limit);
+      printf (" \"pcie_gen\": %d }", pcie_gen);
     }
   }
 

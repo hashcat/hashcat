@@ -146,6 +146,8 @@ int nvml_init (void *hashcat_ctx)
   HC_LOAD_FUNC(nvml, nvmlDeviceGetTemperatureThreshold, NVML_DEVICE_GET_THRESHOLD, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrPcieLinkGeneration, NVML_DEVICE_GET_CURRPCIELINKGENERATION, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrPcieLinkWidth, NVML_DEVICE_GET_CURRPCIELINKWIDTH, NVML, 0);
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetPowerUsage, NVML_DEVICE_GET_POWER_USAGE, NVML, 0);
+  HC_LOAD_FUNC(nvml, nvmlDeviceGetPowerManagementLimit, NVML_DEVICE_GET_POWER_MANAGEMENT_LIMIT, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetCurrentClocksThrottleReasons, NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetSupportedClocksThrottleReasons, NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS, NVML, 0);
   HC_LOAD_FUNC(nvml, nvmlDeviceGetPciInfo, NVML_DEVICE_GET_PCIINFO, NVML, 0);
@@ -367,6 +369,66 @@ int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (void *hashcat_ctx, nvmlDevice_t devi
     const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
 
     event_log_error (hashcat_ctx, "nvmlDeviceGetCurrPcieLinkWidth(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (void *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkGen)
+{
+  hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
+
+  NVML_PTR *nvml = (NVML_PTR *) hwmon_ctx->hm_nvml;
+
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetCurrPcieLinkGeneration (device, currLinkGen);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    event_log_error (hashcat_ctx, "nvmlDeviceGetCurrPcieLinkGeneration(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hm_NVML_nvmlDeviceGetPowerUsage (void *hashcat_ctx, nvmlDevice_t device, unsigned int *milliwatts)
+{
+  hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
+
+  NVML_PTR *nvml = (NVML_PTR *) hwmon_ctx->hm_nvml;
+
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetPowerUsage (device, milliwatts);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    event_log_error (hashcat_ctx, "nvmlDeviceGetPowerUsage(): %s", string);
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hm_NVML_nvmlDeviceGetPowerManagementLimit (void *hashcat_ctx, nvmlDevice_t device, unsigned int *milliwatts)
+{
+  hwmon_ctx_t *hwmon_ctx = ((hashcat_ctx_t *) hashcat_ctx)->hwmon_ctx;
+
+  NVML_PTR *nvml = (NVML_PTR *) hwmon_ctx->hm_nvml;
+
+  const nvmlReturn_t nvml_rc = nvml->nvmlDeviceGetPowerManagementLimit (device, milliwatts);
+
+  if (nvml_rc != NVML_SUCCESS)
+  {
+    const char *string = hm_NVML_nvmlErrorString (nvml, nvml_rc);
+
+    event_log_error (hashcat_ctx, "nvmlDeviceGetPowerManagementLimit(): %s", string);
 
     return -1;
   }

@@ -5,6 +5,7 @@
 ##
 
 Docker: Add hashcat-toolchain
+Hardware Monitor: Added power limit (Cap) and PCIe link generation (Gen) status fields for NVML (NVIDIA) devices
 
 ##
 ## Bugs
