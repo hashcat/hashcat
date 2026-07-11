@@ -145,6 +145,34 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return work;
 }
 
+static bool stdin_readline (char *buf, const size_t buf_sz, size_t *line_len)
+{
+  size_t len = 0;
+
+  int c = 0;
+
+  while (len < buf_sz)
+  {
+    c = fgetc (stdin);
+
+    if (c == EOF) break;
+
+    buf[len] = (char) c;
+
+    len++;
+
+    if (c == '\n') break;
+  }
+
+  if ((c == EOF) && (len == 0)) return false;
+
+  buf[len] = 0;
+
+  *line_len = superchop_with_length (buf, len);
+
+  return true;
+}
+
 static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
@@ -223,11 +251,11 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
         selects_returned++;
       }
 
-      char *line_buf = fgets (buf, HCBUFSIZ_LARGE - 1, stdin);
+      size_t line_len = 0;
 
-      if (line_buf == NULL) break;
+      if (stdin_readline (buf, HCBUFSIZ_LARGE - 1, &line_len) == false) break;
 
-      size_t line_len = in_superchop (line_buf);
+      char *line_buf = buf;
 
       line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
 
