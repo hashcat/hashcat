@@ -19,9 +19,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)                                                 \
+    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit)                                                 \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
 }
@@ -43,9 +43,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)                                               \
+      if (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit)                                               \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -68,9 +68,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -78,9 +78,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
 }
@@ -103,9 +103,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -123,9 +123,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -146,9 +146,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -156,9 +156,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -166,9 +166,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 2, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 2, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -176,9 +176,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 3, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 3, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
 }
@@ -203,9 +203,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -223,9 +223,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -243,9 +243,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 2, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 2, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -263,9 +263,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 3, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 3, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -286,9 +286,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -296,9 +296,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -306,9 +306,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 2, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 2, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -316,18 +316,18 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 3, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 3, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
   if (((h0).s4 == search[0]) && ((h1).s4 == search[1]) && ((h2).s4 == search[2]) && ((h3).s4 == search[3])) \
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 4, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 4, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -335,9 +335,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 5, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 5, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -345,9 +345,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 6, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 6, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -355,9 +355,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 7, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 7, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
 }
@@ -386,9 +386,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -406,9 +406,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -426,9 +426,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 2, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 2, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -446,9 +446,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 3, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 3, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -465,9 +465,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 4, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 4, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -485,9 +485,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 5, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 5, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -505,9 +505,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 6, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 6, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -525,9 +525,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 7, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 7, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -548,9 +548,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 0, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -558,9 +558,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 1, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -568,9 +568,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 2, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 2, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -578,18 +578,18 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 3, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 3, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
   if (((h0).s4 == search[0]) && ((h1).s4 == search[1]) && ((h2).s4 == search[2]) && ((h3).s4 == search[3])) \
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 4, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 4, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -597,9 +597,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 5, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 5, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -607,9 +607,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 6, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 6, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -617,9 +617,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 7, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 7, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -627,9 +627,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 8) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 8) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 8, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 8, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -637,9 +637,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 9) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))      \
+    if (vector_accessible (il_pos, IL_CNT, 9) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))      \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 9, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 9, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -647,9 +647,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 10) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
+    if (vector_accessible (il_pos, IL_CNT, 10) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))     \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 10, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 10, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -657,9 +657,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 11) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
+    if (vector_accessible (il_pos, IL_CNT, 11) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))     \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 11, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 11, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -667,9 +667,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 12) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
+    if (vector_accessible (il_pos, IL_CNT, 12) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))     \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 12, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 12, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -677,9 +677,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 13) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
+    if (vector_accessible (il_pos, IL_CNT, 13) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))     \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 13, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 13, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -687,9 +687,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 14) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
+    if (vector_accessible (il_pos, IL_CNT, 14) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))     \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 14, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 14, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
                                                                                                             \
@@ -697,9 +697,9 @@
   {                                                                                                         \
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + 0;                                                     \
                                                                                                             \
-    if (vector_accessible (il_pos, IL_CNT, 15) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))     \
+    if (vector_accessible (il_pos, IL_CNT, 15) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))     \
     {                                                                                                       \
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, final_hash_pos, gid, il_pos + 15, 0, 0); \
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, final_hash_pos, gid, il_pos + 15, 0, 0); \
     }                                                                                                       \
   }                                                                                                         \
 }
@@ -736,9 +736,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 0) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 0, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -756,9 +756,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 1) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 1, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -776,9 +776,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 2) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 2, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 2, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -796,9 +796,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 3) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 3, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 3, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -816,9 +816,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 4) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 4, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 4, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -836,9 +836,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 5) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 5, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 5, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -856,9 +856,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 6) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 6, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 6, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -876,9 +876,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 7) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 7, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 7, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -896,9 +896,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 8) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 8) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 8, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 8, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -916,9 +916,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 9) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))    \
+      if (vector_accessible (il_pos, IL_CNT, 9) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))    \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 9, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 9, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -936,9 +936,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 10) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
+      if (vector_accessible (il_pos, IL_CNT, 10) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))   \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 10, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 10, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -956,9 +956,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 11) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
+      if (vector_accessible (il_pos, IL_CNT, 11) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))   \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 11, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 11, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -976,9 +976,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 12) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
+      if (vector_accessible (il_pos, IL_CNT, 12) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))   \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 12, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 12, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -996,9 +996,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 13) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
+      if (vector_accessible (il_pos, IL_CNT, 13) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))   \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 13, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 13, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -1016,9 +1016,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 14) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
+      if (vector_accessible (il_pos, IL_CNT, 14) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))   \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 14, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 14, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \
@@ -1036,9 +1036,9 @@
     {                                                                                                       \
       const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;                                          \
                                                                                                             \
-      if (vector_accessible (il_pos, IL_CNT, 15) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0))   \
+      if (vector_accessible (il_pos, IL_CNT, 15) && (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit))   \
       {                                                                                                     \
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos + 15, 0, 0); \
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos + 15, 0, 0); \
       }                                                                                                     \
     }                                                                                                       \
   }                                                                                                         \

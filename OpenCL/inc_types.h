@@ -2000,6 +2000,8 @@ typedef struct kernel_param
   u32 salt_repeat;          // 34
   u64 pws_pos;              // 35
   u64 gid_max;              // 36
+  u32 keep_guessing_limit;  // 37
+  u32 plains_cnt;           // 38
 
 } kernel_param_t;
 

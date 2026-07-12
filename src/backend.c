@@ -14174,7 +14174,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_rules    = size_rules;
     device_param->size_rules_c  = size_rules_c;
 
-    u64 size_plains  = (u64) hashes->digests_cnt * sizeof (plain_t);
+    u64 size_plains  = (user_options->keep_guessing)
+      ? (u64) MAX (hashes->digests_cnt, 4096u) * sizeof (plain_t)
+      : (u64) hashes->digests_cnt * sizeof (plain_t);
     u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
     u64 size_esalts  = (u64) hashes->digests_cnt * hashconfig->esalt_size;
     u64 size_shown   = (u64) hashes->digests_cnt * sizeof (u32);
@@ -15275,6 +15277,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_param.salt_repeat         = 0;
     device_param->kernel_param.pws_pos             = 0;
     device_param->kernel_param.gid_max             = 0;
+
+    if (user_options->keep_guessing)
+    {
+      device_param->kernel_param.keep_guessing_limit = 256;
+      device_param->kernel_param.plains_cnt          = MAX (hashes->digests_cnt, 4096u);
+    }
+    else
+    {
+      device_param->kernel_param.keep_guessing_limit = 1;
+      device_param->kernel_param.plains_cnt          = hashes->digests_cnt;
+    }
 
     if (device_param->is_cuda == true)
     {
