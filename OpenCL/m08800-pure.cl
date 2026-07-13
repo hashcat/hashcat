@@ -415,9 +415,9 @@ KERNEL_FQ KERNEL_FA void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, an
     // MSDOS5.0
     if ((r0 == 0x4f44534d) && (r1 == 0x302e3553))
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
       }
     }
   }
@@ -474,9 +474,9 @@ KERNEL_FQ KERNEL_FA void m08800_comp (KERN_ATTR_TMPS_ESALT (androidfde_tmp_t, an
 
     if ((r[5] < 2) && (r[6] < 16) && ((r[14] & 0xffff) == 0xEF53))
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
       }
     }
   }

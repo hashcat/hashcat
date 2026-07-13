@@ -668,9 +668,9 @@ KERNEL_FQ KERNEL_FA void m22500_m04 (KERN_ATTR_BASIC ())
       if (out[3] != 0x41202145) continue; // "A !E"
     }
 
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
     }
   }
 }
@@ -1323,9 +1323,9 @@ KERNEL_FQ KERNEL_FA void m22500_s04 (KERN_ATTR_BASIC ())
       if (out[3] != 0x41202145) continue; // "A !E"
     }
 
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
     }
   }
 }

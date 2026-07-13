@@ -384,9 +384,9 @@ KERNEL_FQ KERNEL_FA void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
       if (is_valid_hex_32 (out[2]) == 0) continue;
       if (is_valid_hex_32 (out[3]) == 0) continue;
 
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -408,9 +408,9 @@ KERNEL_FQ KERNEL_FA void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
       if (is_valid_base58_32 (out[2]) == 0) continue;
       if (is_valid_base58_32 (out[3]) == 0) continue;
 
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -420,17 +420,17 @@ KERNEL_FQ KERNEL_FA void m16600_m04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 
       if ((out[1] == 0x0c0c0c0c) && (out[2] == 0x0c0c0c0c) && (out[3] == 0x0c0c0c0c))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
 
       if ((out[1] == 0x0d0d0d0d) && (out[2] == 0x0d0d0d0d) && (out[3] == 0x0d0d0d0d))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -804,9 +804,9 @@ KERNEL_FQ KERNEL_FA void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
       if (is_valid_hex_32 (out[2]) == 0) continue;
       if (is_valid_hex_32 (out[3]) == 0) continue;
 
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -828,9 +828,9 @@ KERNEL_FQ KERNEL_FA void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
       if (is_valid_base58_32 (out[2]) == 0) continue;
       if (is_valid_base58_32 (out[3]) == 0) continue;
 
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
 
@@ -840,17 +840,17 @@ KERNEL_FQ KERNEL_FA void m16600_s04 (KERN_ATTR_RULES_ESALT (electrum_wallet_t))
 
       if ((out[1] == 0x0c0c0c0c) && (out[2] == 0x0c0c0c0c) && (out[3] == 0x0c0c0c0c))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
 
       if ((out[1] == 0x0d0d0d0d) && (out[2] == 0x0d0d0d0d) && (out[3] == 0x0d0d0d0d))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }

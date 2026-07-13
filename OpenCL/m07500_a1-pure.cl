@@ -214,9 +214,9 @@ KERNEL_FQ KERNEL_FA void m07500_mxx (KERN_ATTR_ESALT (krb5pa_t))
 
     if (decrypt_and_check (S, digest, timestamp_ct, lid) == 1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
   }
@@ -281,9 +281,9 @@ KERNEL_FQ KERNEL_FA void m07500_sxx (KERN_ATTR_ESALT (krb5pa_t))
 
     if (decrypt_and_check (S, digest, timestamp_ct, lid) == 1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
   }

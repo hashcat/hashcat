@@ -623,26 +623,26 @@ KERNEL_FQ KERNEL_FA void m13752_comp (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   if (tmps[gid].pim)
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
   else
   {
     if (check_header_0512 (esalt_bufs, kernel_param, tmps[gid].out, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
       }
     }
 
     if (check_header_1024 (esalt_bufs, kernel_param, tmps[gid].out, s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4) != -1)
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
       }
     }
   }

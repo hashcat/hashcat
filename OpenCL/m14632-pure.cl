@@ -412,9 +412,9 @@ KERNEL_FQ KERNEL_FA void m14632_comp (KERN_ATTR_TMPS_ESALT (luks_tmp_t, luks_t))
 
   if (entropy < MAX_ENTROPY)
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
     }
   }
 }

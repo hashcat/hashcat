@@ -393,9 +393,9 @@ KERNEL_FQ KERNEL_FA void m16800_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pbkdf2_tmp_t, wp
    && (hc_swap32_S (r2) == wpa_pmkid->pmkid[2])
    && (hc_swap32_S (r3) == wpa_pmkid->pmkid[3]))
   {
-    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 

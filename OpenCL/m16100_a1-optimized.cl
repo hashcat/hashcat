@@ -317,9 +317,9 @@ KERNEL_FQ KERNEL_FA void m16100_m04 (KERN_ATTR_ESALT (tacacs_plus_t))
       &&  ((authen_service >= 0x00) && (authen_service <= 0x09))
       &&  ((8 + user_len + port_len + rem_addr_len + data_len) == ct_len))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -335,9 +335,9 @@ KERNEL_FQ KERNEL_FA void m16100_m04 (KERN_ATTR_ESALT (tacacs_plus_t))
        &&  (data_len == 0)
        &&  (flags == 0))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -354,9 +354,9 @@ KERNEL_FQ KERNEL_FA void m16100_m04 (KERN_ATTR_ESALT (tacacs_plus_t))
        &&  (flags == 0x01 || flags == 0x00)
        &&  (6 + msg_len + data_len == ct_len))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -663,9 +663,9 @@ KERNEL_FQ KERNEL_FA void m16100_s04 (KERN_ATTR_ESALT (tacacs_plus_t))
       &&  ((authen_service >= 0x00) && (authen_service <= 0x09))
       &&  ((8 + user_len + port_len + rem_addr_len + data_len) == ct_len))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -681,9 +681,9 @@ KERNEL_FQ KERNEL_FA void m16100_s04 (KERN_ATTR_ESALT (tacacs_plus_t))
        &&  (data_len == 0)
        &&  (flags == 0))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -700,9 +700,9 @@ KERNEL_FQ KERNEL_FA void m16100_s04 (KERN_ATTR_ESALT (tacacs_plus_t))
        &&  (flags == 0x01 || flags == 0x00)
        &&  (6 + msg_len + data_len == ct_len))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }

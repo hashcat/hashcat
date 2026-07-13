@@ -339,9 +339,9 @@ KERNEL_FQ KERNEL_FA void m02501_aux1 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_e
        && (ctx2.opad.h[2] == wpa_eapol->keymic[2])
        && (ctx2.opad.h[3] == wpa_eapol->keymic[3]))
       {
-        if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
+        if (hc_atomic_inc (&hashes_shown[digest_cur]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -522,9 +522,9 @@ KERNEL_FQ KERNEL_FA void m02501_aux2 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_e
        && (ctx2.opad.h[2] == wpa_eapol->keymic[2])
        && (ctx2.opad.h[3] == wpa_eapol->keymic[3]))
       {
-        if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
+        if (hc_atomic_inc (&hashes_shown[digest_cur]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -811,9 +811,9 @@ KERNEL_FQ KERNEL_FA void m02501_aux3 (KERN_ATTR_TMPS_ESALT (wpa_pmk_tmp_t, wpa_e
        && (keymic[2] == wpa_eapol->keymic[2])
        && (keymic[3] == wpa_eapol->keymic[3]))
       {
-        if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
+        if (hc_atomic_inc (&hashes_shown[digest_cur]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }

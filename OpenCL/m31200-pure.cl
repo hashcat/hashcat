@@ -332,8 +332,8 @@ KERNEL_FQ KERNEL_FA void m31200_comp (KERN_ATTR_TMPS_ESALT (pbkdf2_sha1_tmp_t, v
   if (pt[2] != 0x0c0c0c0c) return;
   if (pt[3] != 0x0c0c0c0c) return;
 
-  if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+  if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
   {
-    mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
+    mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, 0, 0, 0);
   }
 }

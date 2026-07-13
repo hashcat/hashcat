@@ -14175,13 +14175,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_rules_c  = size_rules_c;
 
     // when --keep-guessing is enabled, grow the plains buffer to hold multiple
-    // candidate plains per digest.  Capped at 256K entries total to bound GPU
-    // memory with large hash lists.  The per-digest ceiling is removed: each
-    // digest can claim up to the full global cap independently, and the global
-    // buffer capacity (verified by mark_hash at each insertion) is the sole
-    // limiting factor.
+    // candidate plains per digest.  The buffer is sized at the global cap
+    // (256K entries) regardless of digest count — a single digest can use the
+    // full buffer, and the global capacity check in mark_hash is the sole
+    // limiting factor.  Capped at 256K to bound GPU memory with large hash lists.
     u64 plains_cnt_64 = (user_options->keep_guessing)
-      ? (u64) hashes->digests_cnt * 256u
+      ? (u64) 256u * 1024u
       : (u64) hashes->digests_cnt;
     if (user_options->keep_guessing && plains_cnt_64 > 256u * 1024u)
       plains_cnt_64 = 256u * 1024u;
@@ -15292,17 +15291,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_param.pws_pos             = 0;
     device_param->kernel_param.gid_max             = 0;
 
-    // Keep-guessing: size plains buffer with the same capped count used for
-    // size_plains above.  keep_guessing_limit is set to the global cap
-    // (256K) independently of plains_cnt so individual digests never hit an
-    // artificial per-digest ceiling — a single digest with many collisions
-    // (like the original issue #4169) can use the full buffer.  The global
-    // plains buffer capacity (verified by mark_hash at insertion) is the
-    // only bound.  hashes_shown and d_return_buf are zeroed before each
-    // kernel invocation, so this limit resets per batch.
+    // Keep-guessing: use the global cap (256K) for plains_cnt directly,
+    // not digests_cnt * 256.  A single digest can use the full buffer;
+    // the global capacity check in mark_hash is the sole bound.
+    // keep_guessing_limit is set independently to match so individual
+    // digests are never capped at a per-digest ceiling — hashes_shown
+    // and d_return_buf are zeroed before each kernel invocation, so
+    // this limit resets per batch.
     if (user_options->keep_guessing)
     {
-      u64 kg_plains_cnt_64 = (u64) hashes->digests_cnt * 256u;
+      u64 kg_plains_cnt_64 = (u64) 256u * 1024u;
       if (kg_plains_cnt_64 > 256u * 1024u)
         kg_plains_cnt_64 = 256u * 1024u;
       // never smaller than the one-entry-per-digest baseline

@@ -655,9 +655,9 @@ KERNEL_FQ KERNEL_FA void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, elec
 
       if ((entropy >= MIN_ENTROPY) && (entropy <= MAX_ENTROPY))
       {
-        if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
+        if (hc_atomic_inc (&hashes_shown[digest_cur]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
         }
       }
     }
@@ -674,9 +674,9 @@ KERNEL_FQ KERNEL_FA void m21800_comp (KERN_ATTR_TMPS_ESALT (electrum_tmp_t, elec
       ((tmp[0] == 0x7b) && (tmp[1] == 0x0d) && (tmp[2] == 0x0a) && (tmp[3] == 0x20) &&
        (tmp[4] == 0x20) && (tmp[5] == 0x20) && (tmp[6] == 0x20) && (tmp[7] == 0x22)))
   {
-    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }
