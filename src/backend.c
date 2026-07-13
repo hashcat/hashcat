@@ -14184,6 +14184,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       : (u64) hashes->digests_cnt;
     if (user_options->keep_guessing && plains_cnt_64 > 256u * 1024u)
       plains_cnt_64 = 256u * 1024u;
+    // never smaller than the one-entry-per-digest baseline: with large
+    // hash lists the cap above must not shrink the buffer below what
+    // a non-keep-guessing run would have allocated
+    if (plains_cnt_64 < (u64) hashes->digests_cnt)
+      plains_cnt_64 = (u64) hashes->digests_cnt;
     u64 size_plains  = plains_cnt_64 * sizeof (plain_t);
     u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
     u64 size_esalts  = (u64) hashes->digests_cnt * hashconfig->esalt_size;
@@ -15297,6 +15302,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       u64 kg_plains_cnt_64 = (u64) hashes->digests_cnt * 256u;
       if (kg_plains_cnt_64 > 256u * 1024u)
         kg_plains_cnt_64 = 256u * 1024u;
+      // never smaller than the one-entry-per-digest baseline
+      if (kg_plains_cnt_64 < (u64) hashes->digests_cnt)
+        kg_plains_cnt_64 = (u64) hashes->digests_cnt;
       const u32 plains_cnt = (kg_plains_cnt_64 > UINT32_MAX) ? UINT32_MAX : (u32) kg_plains_cnt_64;
       device_param->kernel_param.keep_guessing_limit = plains_cnt;
       device_param->kernel_param.plains_cnt          = plains_cnt;
