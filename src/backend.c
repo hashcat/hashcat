@@ -14174,11 +14174,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_rules    = size_rules;
     device_param->size_rules_c  = size_rules_c;
 
-    // when --keep-guessing is enabled, the plains buffer must hold up to
-    // keep_guessing_limit (256) entries per digest to capture all collisions
-    u64 size_plains  = (user_options->keep_guessing)
-      ? (u64) hashes->digests_cnt * 256u * sizeof (plain_t)
-      : (u64) hashes->digests_cnt * sizeof (plain_t);
+    // when --keep-guessing is enabled, grow the plains buffer to hold multiple
+    // candidate plains per digest.  Capped at 256K entries total to bound GPU
+    // memory with large hash lists; the per-digest ceiling is removed entirely
+    // (keep_guessing_limit is set to plains_cnt so the only bound is the
+    // global buffer capacity, verified by mark_hash at each insertion).
+    u64 plains_cnt_64 = (user_options->keep_guessing)
+      ? (u64) hashes->digests_cnt * 256u
+      : (u64) hashes->digests_cnt;
+    if (user_options->keep_guessing && plains_cnt_64 > 256u * 1024u)
+      plains_cnt_64 = 256u * 1024u;
+    u64 size_plains  = plains_cnt_64 * sizeof (plain_t);
     u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
     u64 size_esalts  = (u64) hashes->digests_cnt * hashconfig->esalt_size;
     u64 size_shown   = (u64) hashes->digests_cnt * sizeof (u32);
@@ -15280,16 +15286,20 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_param.pws_pos             = 0;
     device_param->kernel_param.gid_max             = 0;
 
+    // Keep-guessing: size plains buffer with the same capped count used for
+    // size_plains above.  Set keep_guessing_limit = plains_cnt so every digest
+    // can use the full buffer — no per-digest ceiling.  The global plains
+    // buffer capacity (verified by mark_hash at insertion) is the only bound.
+    // hashes_shown and d_return_buf are zeroed before each kernel invocation,
+    // so this limit resets per batch.
     if (user_options->keep_guessing)
     {
-      // The keep_guessing_limit of 256 is a deliberate cap to bound per-digest
-      // collision output and prevent unbounded GPU memory growth.  Plains buffer
-      // is sized to digests_cnt * 256 so every digest can store its full quota.
-      // Compute in 64-bit to avoid wrap-around at digests_cnt >= 16,777,216,
-      // then clamp to UINT32_MAX since the kernel plains_cnt field is u32.
-      device_param->kernel_param.keep_guessing_limit = 256;
-      const u64 plains_cnt_64 = (u64) hashes->digests_cnt * 256u;
-      device_param->kernel_param.plains_cnt = (plains_cnt_64 > UINT32_MAX) ? UINT32_MAX : (u32) plains_cnt_64;
+      u64 kg_plains_cnt_64 = (u64) hashes->digests_cnt * 256u;
+      if (kg_plains_cnt_64 > 256u * 1024u)
+        kg_plains_cnt_64 = 256u * 1024u;
+      const u32 plains_cnt = (kg_plains_cnt_64 > UINT32_MAX) ? UINT32_MAX : (u32) kg_plains_cnt_64;
+      device_param->kernel_param.keep_guessing_limit = plains_cnt;
+      device_param->kernel_param.plains_cnt          = plains_cnt;
     }
     else
     {
