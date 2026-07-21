@@ -24,7 +24,9 @@ static const u64   KERN_TYPE      = 67000;
 static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_MP_MULTI_DISABLE;
+                                  | OPTS_TYPE_MP_MULTI_DISABLE
+                                  | OPTS_TYPE_THREAD_MULTI_DISABLE
+                                  | OPTS_TYPE_MULTIHASH_DESPITE_ESALT;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "$y$j9T$oJqQoBLMgF5$77xERSZazujSxPgj6nYmzH5r0O2HelZJUyfW.ta7vxD";
@@ -44,6 +46,7 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+#define COOP_THREADS 32
 
 typedef struct yescrypt
 {
@@ -252,7 +255,7 @@ u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
 
 u32 module_kernel_threads_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return 1;
+  return COOP_THREADS;
 }
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -357,11 +360,9 @@ const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashco
   {
     kernel_accel_new = (u32) (available_mem / size_per_instance);
 
+    kernel_accel_new = (kernel_accel_new * 94) / 100;
+
     if (kernel_accel_new > 1024) kernel_accel_new = 1024;
-
-    const u32 lds_limit = device_processors * 4;
-
-    if (kernel_accel_new > lds_limit * 2) kernel_accel_new = lds_limit * 2;
 
     if (kernel_accel_new > device_processors)
     {
@@ -415,7 +416,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   char *jit_build_options = NULL;
 
   hc_asprintf (&jit_build_options,
-    "-D FIXED_LOCAL_SIZE=1"
+    "-D FIXED_LOCAL_SIZE=%u"
     " -D YESCRYPT_N=%u"
     " -D YESCRYPT_R=%u"
     " -D YESCRYPT_P=%u"
@@ -425,6 +426,7 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     " -D YESCRYPT_NLOOP_RW=%" PRIu64
     " -D YESCRYPT_STATE_CNT4=%" PRIu64
     " -D YESCRYPT_TMP_ELEM=%" PRIu64,
+    COOP_THREADS,
     scrypt_N,
     scrypt_r,
     scrypt_p,

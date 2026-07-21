@@ -205,7 +205,7 @@ DECLSPEC void yescrypt_blockmix_salsa8 (PRIVATE_AS u32 *X, const u32 r)
   }
 }
 
-DECLSPEC void yescrypt_pwxform (PRIVATE_AS u32 *B, LOCAL_AS u32 *sbox, PRIVATE_AS u32 *s_state_ptr, PRIVATE_AS u32 *w_ptr)
+DECLSPEC void yescrypt_pwxform (PRIVATE_AS u32 *B, GLOBAL_AS u32 *sbox, PRIVATE_AS u32 *s_state_ptr, PRIVATE_AS u32 *w_ptr)
 {
   u32 ss = *s_state_ptr;
   u32 w  = *w_ptr;
@@ -258,7 +258,7 @@ DECLSPEC void yescrypt_pwxform (PRIVATE_AS u32 *B, LOCAL_AS u32 *sbox, PRIVATE_A
   *w_ptr = w;
 }
 
-DECLSPEC void yescrypt_blockmix_pwxform (PRIVATE_AS u32 *X, LOCAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 r)
+DECLSPEC void yescrypt_blockmix_pwxform (PRIVATE_AS u32 *X, GLOBAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 r)
 {
   const u32 r1 = 128 * r / PWXbytes;
 
@@ -294,7 +294,7 @@ DECLSPEC void yescrypt_blockmix_pwxform (PRIVATE_AS u32 *X, LOCAL_AS u32 *sbox, 
   }
 }
 
-DECLSPEC void yescrypt_sbox_init (PRIVATE_AS u32 *B, LOCAL_AS u32 *sbox, const u32 r_unused)
+DECLSPEC void yescrypt_sbox_init (PRIVATE_AS u32 *B, GLOBAL_AS u32 *sbox, const u32 r_unused)
 {
   const u32 sbox_N = Sbytes / 128;
 
@@ -313,7 +313,7 @@ DECLSPEC void yescrypt_sbox_init (PRIVATE_AS u32 *B, LOCAL_AS u32 *sbox, const u
   yescrypt_simd_unshuffle (X, B, 1);
 }
 
-DECLSPEC void yescrypt_smix1_step (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, LOCAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 r, const u32 N, const u32 i, const u32 flags)
+DECLSPEC void yescrypt_smix1_step (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, GLOBAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 r, const u32 N, const u32 i, const u32 flags)
 {
   const u32 s = 32 * r;
 
@@ -334,7 +334,7 @@ DECLSPEC void yescrypt_smix1_step (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, LOCAL_AS
   yescrypt_blockmix_pwxform (X, sbox, s_state, w_ptr, r);
 }
 
-DECLSPEC void yescrypt_smix2_step (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, LOCAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 r, const u32 N, const u32 flags)
+DECLSPEC void yescrypt_smix2_step (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, GLOBAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 r, const u32 N, const u32 flags)
 {
   const u32 s = 32 * r;
 

@@ -13,7 +13,7 @@ sub module_constraints { [[0, 256], [1, 64], [-1, -1], [-1, -1], [-1, -1]] }
 sub module_generate_hash
 {
   my $word = shift;
-  my $salt = shift;
+  my $salt = shift // random_string (16);
   my $params = shift // "j9T";
 
   my $salt_b64 = _yescrypt_encode64 ($salt);

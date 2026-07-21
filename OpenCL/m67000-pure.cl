@@ -143,7 +143,7 @@ DECLSPEC void yescrypt_private_hmac (PRIVATE_AS const u32 *hmac_key, const u32 h
   passwd[7] = hc_swap32_S (hmac_ctx.opad.h[7]);
 }
 
-DECLSPEC void yescrypt_kdf_setup (GLOBAL_AS const u32 *salt_buf_g, const u32 salt_len, PRIVATE_AS u32 *passwd, PRIVATE_AS u32 *B, LOCAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr)
+DECLSPEC void yescrypt_kdf_setup (GLOBAL_AS const u32 *salt_buf_g, const u32 salt_len, PRIVATE_AS u32 *passwd, PRIVATE_AS u32 *B, GLOBAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr)
 {
   yescrypt_pbkdf2_sha256_global_salt (passwd, 32, salt_buf_g, salt_len, B, YESCRYPT_STATE_SZ);
 
@@ -193,7 +193,7 @@ DECLSPEC void yescrypt_kdf_setup (GLOBAL_AS const u32 *salt_buf_g, const u32 sal
   }
 }
 
-DECLSPEC void yescrypt_prehash_smix (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, LOCAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 r, const u32 prehash_N, const u32 flags)
+DECLSPEC void yescrypt_prehash_smix (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, GLOBAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 r, const u32 prehash_N, const u32 flags)
 {
   for (u32 i = 0; i < prehash_N; i++)
   {
@@ -216,7 +216,7 @@ KERNEL_FQ KERNEL_FA void m67000_init (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
 
   if (gid >= GID_CNT) return;
 
-  LOCAL_AS u32 sbox[Swords];
+  GLOBAL_AS u32 *sbox = tmps[gid].S;
 
   u32 hmac_key[16];
 
@@ -314,8 +314,6 @@ KERNEL_FQ KERNEL_FA void m67000_init (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
 
   for (u32 i = 0; i < YESCRYPT_STATE_CNT4; i++) tmps[gid].P[i] = B[i];
 
-  for (u32 i = 0; i < Swords; i++) tmps[gid].S[i] = sbox[i];
-
   for (u32 i = 0; i < 8; i++) tmps[gid].passwd[i] = passwd[i];
 
   tmps[gid].phase   = 0;
@@ -324,31 +322,175 @@ KERNEL_FQ KERNEL_FA void m67000_init (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
   tmps[gid].w       = w;
 }
 
+// Cooperative loop: one workgroup per hash, thread lid owns pwxform lane lid.
+
+#define COOP_PWX_LANES 4
+
+DECLSPEC u64 coop_integerify (LOCAL_AS const u32 *X)
+{
+  const u32 off = (2 * YESCRYPT_R - 1) * 16;
+
+  return ((u64) X[off + 13] << 32) | X[off + 0];
+}
+
+DECLSPEC void coop_blockmix_pwxform (LOCAL_AS u32 *X, GLOBAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 lid)
+{
+  const u32 r1 = 128 * YESCRYPT_R / PWXbytes;
+
+  const u32 do_lane = (lid < COOP_PWX_LANES);
+  const u32 t       = lid;
+
+  u32 px0 = 0, px1 = 0, px2 = 0, px3 = 0;
+
+  if (do_lane)
+  {
+    const u32 last = (r1 - 1) * 16 + 4 * t;
+    px0 = X[last + 0]; px1 = X[last + 1]; px2 = X[last + 2]; px3 = X[last + 3];
+  }
+
+  u32 ss = *s_state;
+  u32 ww = *w_ptr;
+
+  for (u32 i = 0; i < r1; i++)
+  {
+    if (do_lane)
+    {
+      const u32 base = i * 16 + 4 * t;
+
+      px0 ^= X[base + 0]; px1 ^= X[base + 1]; px2 ^= X[base + 2]; px3 ^= X[base + 3];
+
+      const u32 S0_off = ((ss == 0) ? 2 : (ss == 1) ? 0 : 1) * SBOX_THIRD_WORDS;
+      const u32 S1_off = ((ss == 0) ? 1 : (ss == 1) ? 2 : 0) * SBOX_THIRD_WORDS;
+      const u32 S2_off = ((ss == 0) ? 0 : (ss == 1) ? 1 : 2) * SBOX_THIRD_WORDS;
+
+      for (u32 r = 0; r < PWXrounds; r++)
+      {
+        const u32 xl = px0;
+        const u32 xh = px1;
+
+        const u32 p0_base = S0_off + ((xl & Smask) >> 2);
+        const u32 p1_base = S1_off + ((xh & Smask) >> 2);
+
+        for (u32 k = 0; k < PWXsimple; k++)
+        {
+          const u32 xlk = (k == 0) ? px0 : px2;
+          const u32 xhk = (k == 0) ? px1 : px3;
+
+          const u32 s0_lo = sbox[p0_base + k * 2 + 0];
+          const u32 s0_hi = sbox[p0_base + k * 2 + 1];
+          const u32 s1_lo = sbox[p1_base + k * 2 + 0];
+          const u32 s1_hi = sbox[p1_base + k * 2 + 1];
+
+          u64 x = (u64) xhk * (u64) xlk;
+          x += ((u64) s0_hi << 32) | s0_lo;
+          x ^= ((u64) s1_hi << 32) | s1_lo;
+
+          const u32 lo = (u32) x;
+          const u32 hi = (u32) (x >> 32);
+
+          if (k == 0) { px0 = lo; px1 = hi; } else { px2 = lo; px3 = hi; }
+
+          if (r != 0 && r != (PWXrounds - 1))
+          {
+            const u32 ai    = r - 1;
+            const u32 wslot = ww + ai * 8 + t * 2 + k;
+
+            sbox[S2_off + wslot * 2 + 0] = lo;
+            sbox[S2_off + wslot * 2 + 1] = hi;
+          }
+        }
+      }
+
+      X[base + 0] = px0; X[base + 1] = px1; X[base + 2] = px2; X[base + 3] = px3;
+    }
+
+    ss = (ss + 1) % 3;
+    ww = (ww + 32) & (((1 << Swidth) * PWXsimple) - 1);
+
+    SYNC_THREADS ();
+  }
+
+  if (lid == 0)
+  {
+    yescrypt_salsa20_2 (&X[(r1 - 1) * 16]);
+  }
+
+  SYNC_THREADS ();
+
+  *s_state = ss;
+  *w_ptr   = ww;
+}
+
+DECLSPEC void coop_smix1_step (LOCAL_AS u32 *X, GLOBAL_AS u32 *V, GLOBAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 i, const u32 lid, const u32 lsz, const u32 flags)
+{
+  const u32 s = 32 * YESCRYPT_R;
+
+  GLOBAL_AS u32 *Vi = &V[i * s];
+
+  for (u32 j = lid; j < s; j += lsz) Vi[j] = X[j];
+
+  if ((flags & 0x002) && i > 1)
+  {
+    const u64 idx = yescrypt_wrap (coop_integerify (X), i);
+
+    GLOBAL_AS u32 *Vj = &V[(u32) idx * s];
+
+    for (u32 j = lid; j < s; j += lsz) X[j] ^= Vj[j];
+
+    SYNC_THREADS ();
+  }
+
+  coop_blockmix_pwxform (X, sbox, s_state, w_ptr, lid);
+}
+
+DECLSPEC void coop_smix2_step (LOCAL_AS u32 *X, GLOBAL_AS u32 *V, GLOBAL_AS u32 *sbox, PRIVATE_AS u32 *s_state, PRIVATE_AS u32 *w_ptr, const u32 lid, const u32 lsz, const u32 flags)
+{
+  const u32 s = 32 * YESCRYPT_R;
+
+  const u32 j = (u32) (coop_integerify (X) & (u64) (YESCRYPT_N - 1));
+
+  GLOBAL_AS u32 *Vj = &V[j * s];
+
+  for (u32 k = lid; k < s; k += lsz) X[k] ^= Vj[k];
+
+  SYNC_THREADS ();
+
+  if (flags & 0x002)
+  {
+    for (u32 k = lid; k < s; k += lsz) Vj[k] = X[k];
+
+    SYNC_THREADS ();
+  }
+
+  coop_blockmix_pwxform (X, sbox, s_state, w_ptr, lid);
+}
+
 KERNEL_FQ KERNEL_FA void m67000_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))
 {
-  const u64 gid = get_global_id (0);
+  const u64 bid = get_group_id (0);
 
-  if (gid >= GID_CNT) return;
+  if (bid >= GID_CNT) return;
 
-  LOCAL_AS u32 sbox[Swords];
+  const u32 lid = get_local_id (0);
+  const u32 lsz = get_local_size (0);
 
-  u32 X[YESCRYPT_STATE_CNT4];
+  GLOBAL_AS u32 *sbox = tmps[bid].S;
 
-  for (u32 i = 0; i < YESCRYPT_STATE_CNT4; i++) X[i] = tmps[gid].P[i];
+  LOCAL_VK u32 X[YESCRYPT_STATE_CNT4];
 
-  for (u32 i = 0; i < Swords; i++) sbox[i] = tmps[gid].S[i];
+  for (u32 i = lid; i < YESCRYPT_STATE_CNT4; i += lsz) X[i] = tmps[bid].P[i];
 
-  u32 phase   = tmps[gid].phase;
-  u32 iter    = tmps[gid].iter;
-  u32 s_state = tmps[gid].s_state;
-  u32 w       = tmps[gid].w;
+  u32 phase   = tmps[bid].phase;
+  u32 iter    = tmps[bid].iter;
+  u32 s_state = tmps[bid].s_state;
+  u32 w       = tmps[bid].w;
 
-  const u32 gid_d4 = gid / 4;
-  const u32 gid_m4 = gid & 3;
+  const u32 bid_d4 = bid / 4;
+  const u32 bid_m4 = bid & 3;
 
   GLOBAL_AS u32 *V;
 
-  switch (gid_m4)
+  switch (bid_m4)
   {
     case 0: V = (GLOBAL_AS u32 *) d_extra0_buf; break;
     case 1: V = (GLOBAL_AS u32 *) d_extra1_buf; break;
@@ -356,7 +498,9 @@ KERNEL_FQ KERNEL_FA void m67000_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
     case 3: V = (GLOBAL_AS u32 *) d_extra3_buf; break;
   }
 
-  V += gid_d4 * YESCRYPT_STATE_CNT4 * YESCRYPT_N;
+  V += bid_d4 * YESCRYPT_STATE_CNT4 * YESCRYPT_N;
+
+  SYNC_THREADS ();
 
   for (u32 loop = 0; loop < LOOP_CNT; loop++)
   {
@@ -364,7 +508,7 @@ KERNEL_FQ KERNEL_FA void m67000_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
     {
       if (iter < YESCRYPT_N)
       {
-        yescrypt_smix1_step (X, V, sbox, &s_state, &w, YESCRYPT_R, YESCRYPT_N, iter, YESCRYPT_FLAGS);
+        coop_smix1_step (X, V, sbox, &s_state, &w, iter, lid, lsz, YESCRYPT_FLAGS);
         iter++;
 
         if (iter >= YESCRYPT_N)
@@ -378,7 +522,7 @@ KERNEL_FQ KERNEL_FA void m67000_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
     {
       if (iter < YESCRYPT_NLOOP_RW)
       {
-        yescrypt_smix2_step (X, V, sbox, &s_state, &w, YESCRYPT_R, YESCRYPT_N, YESCRYPT_FLAGS);
+        coop_smix2_step (X, V, sbox, &s_state, &w, lid, lsz, YESCRYPT_FLAGS);
         iter++;
       }
       else
@@ -388,14 +532,17 @@ KERNEL_FQ KERNEL_FA void m67000_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
     }
   }
 
-  for (u32 i = 0; i < YESCRYPT_STATE_CNT4; i++) tmps[gid].P[i] = X[i];
+  SYNC_THREADS ();
 
-  for (u32 i = 0; i < Swords; i++) tmps[gid].S[i] = sbox[i];
+  for (u32 i = lid; i < YESCRYPT_STATE_CNT4; i += lsz) tmps[bid].P[i] = X[i];
 
-  tmps[gid].phase   = phase;
-  tmps[gid].iter    = iter;
-  tmps[gid].s_state = s_state;
-  tmps[gid].w       = w;
+  if (lid == 0)
+  {
+    tmps[bid].phase   = phase;
+    tmps[bid].iter    = iter;
+    tmps[bid].s_state = s_state;
+    tmps[bid].w       = w;
+  }
 }
 
 KERNEL_FQ KERNEL_FA void m67000_comp (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))
