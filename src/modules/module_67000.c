@@ -47,6 +47,8 @@ const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
 #define COOP_THREADS 32
+#define COOP_LDS_THRESHOLD 15
+#define COOP_ACCEL_MAX 1024
 
 typedef struct yescrypt
 {
@@ -362,7 +364,7 @@ const char *module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashco
 
     kernel_accel_new = (kernel_accel_new * 94) / 100;
 
-    if (kernel_accel_new > 1024) kernel_accel_new = 1024;
+    if (kernel_accel_new > COOP_ACCEL_MAX) kernel_accel_new = COOP_ACCEL_MAX;
 
     if (kernel_accel_new > device_processors)
     {
@@ -413,6 +415,30 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   u64 tmp_size = module_extra_tmp_size (hashconfig, user_options, user_options_extra, hashes);
 
+  const char *placement = " -D COOP_X_GLOBAL";
+
+  if (device_param != NULL)
+  {
+    const u64 v_per_hash = 128ULL * scrypt_r * scrypt_N;
+    const u64 fixed_mem  = 128 * 1024 * 1024;
+    const u64 maxmem4    = device_param->device_maxmem_alloc * 4;
+    const u64 avail_all  = MIN (device_param->device_available_mem, maxmem4);
+    const u64 avail      = (avail_all > fixed_mem) ? (avail_all - fixed_mem) : avail_all;
+    const u32 procs      = (device_param->device_processors > 0) ? device_param->device_processors : 1;
+
+    u64 hashes_total = (v_per_hash > 0) ? ((avail / v_per_hash) * 94) / 100 : 0;
+    if (hashes_total > COOP_ACCEL_MAX) hashes_total = COOP_ACCEL_MAX;
+    const u64 hashes_per_sm = hashes_total / procs;
+
+    const u64 lds_per_block = (128ULL * scrypt_r) + 12288;
+
+    if (lds_per_block <= device_param->device_local_mem_size && hashes_per_sm <= COOP_LDS_THRESHOLD)
+    {
+      placement = " -D COOP_SBOX_LDS";
+    }
+  }
+
+
   char *jit_build_options = NULL;
 
   hc_asprintf (&jit_build_options,
@@ -425,7 +451,8 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     " -D YESCRYPT_NLOOP_ALL=%" PRIu64
     " -D YESCRYPT_NLOOP_RW=%" PRIu64
     " -D YESCRYPT_STATE_CNT4=%" PRIu64
-    " -D YESCRYPT_TMP_ELEM=%" PRIu64,
+    " -D YESCRYPT_TMP_ELEM=%" PRIu64
+    "%s",
     COOP_THREADS,
     scrypt_N,
     scrypt_r,
@@ -435,7 +462,8 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
     Nloop_all,
     Nloop_rw_even,
     state_cnt4,
-    tmp_size / 4);
+    tmp_size / 4,
+    placement);
 
   return jit_build_options;
 }
