@@ -83,9 +83,10 @@ void bridge_unload (bridge_ctx_t *bridge_ctx)
 
 bool bridges_init (hashcat_ctx_t *hashcat_ctx)
 {
-  bridge_ctx_t    *bridge_ctx   = hashcat_ctx->bridge_ctx;
-  user_options_t  *user_options = hashcat_ctx->user_options;
-  hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
+  bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
 
   if (user_options->backend_info  > 0)    return true;
   if (user_options->hash_info     > 0)    return true;
@@ -188,7 +189,7 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
 
   #undef CHECK_MANDATORY
 
-  bridge_ctx->platform_context = bridge_ctx->platform_init (user_options);
+  bridge_ctx->platform_context = bridge_ctx->platform_init (user_options, folder_config);
 
   if (bridge_ctx->platform_context == NULL)
   {

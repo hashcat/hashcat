@@ -138,7 +138,7 @@ static void units_term (bridge_argon2id_t *bridge_argon2id)
   }
 }
 
-void *platform_init (MAYBE_UNUSED user_options_t *user_options)
+void *platform_init (MAYBE_UNUSED user_options_t *user_options, MAYBE_UNUSED folder_config_t *folder_config)
 {
   // Verify CPU features
 

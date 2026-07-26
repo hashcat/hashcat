@@ -201,7 +201,7 @@ static char *DEFAULT_DYNLIB_FILENAME = "./Rust/bridges/generic_hash/target/relea
 static char *DEFAULT_DYNLIB_FILENAME_FALLBACK = "./bridges/subs/generic_hash.so";
 #endif
 
-void *platform_init (user_options_t *user_options)
+void *platform_init (user_options_t *user_options, MAYBE_UNUSED folder_config_t *folder_config)
 {
   // Verify CPU features
 

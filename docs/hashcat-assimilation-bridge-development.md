@@ -161,7 +161,7 @@ bridge_ctx->st_update_pass      = BRIDGE_DEFAULT;
 They are defined like this:
 
 ```c
-  void     *(*platform_init)      (user_options_t *);
+  void     *(*platform_init)      (user_options_t *, folder_config_t *);
   void      (*platform_term)      (void *);
   int       (*get_unit_count)     (void *);
   char     *(*get_unit_info)      (void *, const int);
@@ -192,7 +192,7 @@ CHECK_MANDATORY (bridge_ctx->get_workitem_count);
 
 ### Function Roles
 
-- platform_init: Called at startup. Responsible for initialization. This might include loading libraries, connecting to remote endpoints, or setting up hardware APIs. Returns a context pointer.
+- platform_init: Called at startup. Responsible for initialization. This might include loading libraries, connecting to remote endpoints, or setting up hardware APIs. Returns a context pointer. The `folder_config_t` gives access to hashcat's resolved paths (`cache_dir`, `profile_dir`, `shared_dir`, ...), which already account for whether hashcat is running installed or from an unpacked directory. Use these instead of building paths yourself, otherwise a portable install will write to the wrong place.
 - platform_term: Final cleanup logic. Frees any context data allocated during initialization.
 - get_unit_count: Returns the number of available units. For example, return `2` if two FPGAs are detected.
 - get_unit_info: Returns a human-readable description of a unit, like "Python v3.13.3".

@@ -13,7 +13,7 @@
 #include <limits.h>
 #include <inttypes.h>
 
-static const int BRIDGE_INTERFACE_VERSION_MINIMUM = 700;
+static const int BRIDGE_INTERFACE_VERSION_MINIMUM = 720;
 
 static const size_t BRIDGE_CONTEXT_SIZE_CURRENT = sizeof (bridge_ctx_t);
 

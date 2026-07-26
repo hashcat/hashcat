@@ -3108,7 +3108,7 @@ typedef struct bridge_ctx
 
   // functions
 
-  void     *(*platform_init)      (user_options_t *);
+  void     *(*platform_init)      (user_options_t *, folder_config_t *);
   void      (*platform_term)      (void *);
 
   int       (*get_unit_count)     (void *);
