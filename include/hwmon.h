@@ -11,6 +11,8 @@
 #ifndef HC_HWMON_H
 #define HC_HWMON_H
 
+bool hm_is_hwmon_group_leader (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
+
 int hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_temperature_with_devices_idx        (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
