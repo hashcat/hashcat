@@ -163,6 +163,13 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (bridge_ctx->launch_loop2);
   CHECK_DEFINED (bridge_ctx->st_update_hash);
   CHECK_DEFINED (bridge_ctx->st_update_pass);
+  CHECK_DEFINED (bridge_ctx->get_unit_temperature);
+  CHECK_DEFINED (bridge_ctx->get_unit_fanspeed);
+  CHECK_DEFINED (bridge_ctx->get_unit_utilization);
+  CHECK_DEFINED (bridge_ctx->get_unit_corespeed);
+  CHECK_DEFINED (bridge_ctx->get_unit_memoryspeed);
+  CHECK_DEFINED (bridge_ctx->get_unit_buslanes);
+  CHECK_DEFINED (bridge_ctx->get_unit_power);
 
   #undef CHECK_DEFINED
 

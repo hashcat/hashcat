@@ -3127,6 +3127,22 @@ typedef struct bridge_ctx
   const char *(*st_update_pass)  (void *);
   const char *(*st_update_hash)  (void *);
 
+  // Sensor readings for one unit, for bridges whose units are real hardware.
+  //
+  // hwmon otherwise describes the device that generates the candidates, which under a bridge is only
+  // the feeder. These report the device that actually does the work instead.
+  //
+  // A bridge that has no sensors leaves them all at BRIDGE_DEFAULT. Return -1 for a reading this
+  // particular unit cannot give, or 0 for the unsigned ones, which is what the rest of hwmon uses.
+
+  int (*get_unit_temperature) (void *, const int);
+  int (*get_unit_fanspeed)    (void *, const int);
+  int (*get_unit_utilization) (void *, const int);
+  int (*get_unit_corespeed)   (void *, const int);
+  int (*get_unit_memoryspeed) (void *, const int);
+  int (*get_unit_buslanes)    (void *, const int);
+  u64 (*get_unit_power)       (void *, const int);
+
 } bridge_ctx_t;
 
 #define MODULE_DEFAULT (void *) -1

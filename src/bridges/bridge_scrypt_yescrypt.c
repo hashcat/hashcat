@@ -274,4 +274,12 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->launch_loop2        = BRIDGE_DEFAULT;
   bridge_ctx->st_update_hash      = BRIDGE_DEFAULT;
   bridge_ctx->st_update_pass      = BRIDGE_DEFAULT;
+
+  bridge_ctx->get_unit_temperature  = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_fanspeed     = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_utilization  = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_corespeed    = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_memoryspeed  = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_buslanes     = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_power        = BRIDGE_DEFAULT;
 }
