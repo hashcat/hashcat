@@ -25,6 +25,24 @@
 
 #define MIN(a,b) (((a) < (b)) ? (a) : (b))
 
+#if defined IS_NV
+
+#define RAR3_COUNTER_0(i,w) hc_byte_perm_S ((i), (w), 0x0124)
+#define RAR3_COUNTER_1(i,w) hc_byte_perm_S ((i), (w), 0x7012)
+#define RAR3_COUNTER_2(i,w) hc_byte_perm_S ((i), (w), 0x7601)
+#define RAR3_COUNTER_3(i,w) hc_byte_perm_S ((i), (w), 0x7650)
+#define RAR3_COUNTER_4(i,w) hc_byte_perm_S ((i), (w), 0x1254)
+
+#else
+
+#define RAR3_COUNTER_0(i,w) ((w) | iter_s)
+#define RAR3_COUNTER_1(i,w) ((w) | (iter_s >>  8))
+#define RAR3_COUNTER_2(i,w) ((w) | (iter_s >> 16))
+#define RAR3_COUNTER_3(i,w) ((w) | (iter_s >> 24))
+#define RAR3_COUNTER_4(i,w) ((w) | (iter_s <<  8))
+
+#endif
+
 typedef struct rar3_tmp
 {
   u32 dgst[17][5];
@@ -76,15 +94,20 @@ KERNEL_FQ KERNEL_FA void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 
   const u32 salt_len = 8;
 
-  // this is large enough to hold all possible w[] arrays for 64 iterations
+  const u32 p2 = pw_len + salt_len;
 
-  #define LARGEBLOCK_ELEMS ((40 + 8 + 3) * 16)
+  const u32 p3 = p2 + 3;
+
+  // Four records end on a word boundary.  Keep just that repeating pattern
+  // plus a wrapped prefix, so every 16-word SHA-1 load remains contiguous.
+
+  #define LARGEBLOCK_ELEMS ((40 + 8 + 3) + 15)
 
   u32 largeblock[LARGEBLOCK_ELEMS];
 
-  for (u32 i = 0; i < LARGEBLOCK_ELEMS; i++) largeblock[i] = 0;
+  // four p3-byte records always end on a u32 boundary
 
-  for (u32 i = 0, p = 0; i < 64; i++)
+  for (u32 i = 0, p = 0; i < 4; i++)
   {
     for (u32 j = 0; j < pw_len; j++, p += 1)
     {
@@ -96,14 +119,31 @@ KERNEL_FQ KERNEL_FA void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
       PUTCHAR_BE (largeblock, p, GETCHAR (salt_buf, j));
     }
 
+    PUTCHAR_BE (largeblock, p + 0, 0);
+    PUTCHAR_BE (largeblock, p + 1, 0);
     PUTCHAR_BE (largeblock, p + 2, (LOOP_POS >> 16) & 0xff);
 
     p += 3;
   }
 
-  const u32 p2 = pw_len + salt_len;
+  // Duplicate enough cyclic words for a contiguous load starting anywhere in
+  // the pattern.  p3 can be smaller than 15 for short passwords.
 
-  const u32 p3 = pw_len + salt_len + 3;
+  u32 prefix_pos = 0;
+
+  for (u32 i = 0; i < 15; i++)
+  {
+    largeblock[p3 + i] = largeblock[prefix_pos];
+
+    prefix_pos++;
+
+    if (prefix_pos == p3) prefix_pos = 0;
+  }
+
+  // p3 is in [11, 51].  Using 16 - p3 for the short-record case is
+  // equivalent to 16 % p3 and keeps j16 canonical with one subtraction.
+
+  const u32 j_step = (p3 <= 16) ? 16 - p3 : 16;
 
   const u32 init_pos = LOOP_POS / (ROUNDS / 16);
 
@@ -117,17 +157,82 @@ KERNEL_FQ KERNEL_FA void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 
   u32 iter = LOOP_POS;
 
+  if (p3 == 16)
+  {
+    #if !defined IS_NV
+    u32 iter_s;
+    #endif
+
+    for (u32 block = 0; block < 4096; block++)
+    {
+      const u32 iter0 = LOOP_POS + (block * 4);
+
+      u32 w[16];
+
+      w[ 0] = largeblock[ 0];
+      w[ 1] = largeblock[ 1];
+      w[ 2] = largeblock[ 2];
+      w[ 3] = largeblock[ 3];
+      w[ 4] = largeblock[ 4];
+      w[ 5] = largeblock[ 5];
+      w[ 6] = largeblock[ 6];
+      w[ 7] = largeblock[ 7];
+      w[ 8] = largeblock[ 8];
+      w[ 9] = largeblock[ 9];
+      w[10] = largeblock[10];
+      w[11] = largeblock[11];
+      w[12] = largeblock[12];
+      w[13] = largeblock[13];
+      w[14] = largeblock[14];
+      w[15] = largeblock[15];
+
+      #if !defined IS_NV
+      iter_s = hc_swap32_S (iter0 + 0);
+      #endif
+
+      w[ 3] = RAR3_COUNTER_1 (iter0 + 0, w[ 3]);
+
+      #if !defined IS_NV
+      iter_s = hc_swap32_S (iter0 + 1);
+      #endif
+
+      w[ 7] = RAR3_COUNTER_1 (iter0 + 1, w[ 7]);
+
+      #if !defined IS_NV
+      iter_s = hc_swap32_S (iter0 + 2);
+      #endif
+
+      w[11] = RAR3_COUNTER_1 (iter0 + 2, w[11]);
+
+      #if !defined IS_NV
+      iter_s = hc_swap32_S (iter0 + 3);
+      #endif
+
+      w[15] = RAR3_COUNTER_1 (iter0 + 3, w[15]);
+
+      sha1_transform (w + 0, w + 4, w + 8, w + 12, dgst);
+    }
+
+    tmps[gid].dgst[init_pos + 1][0] = dgst[0];
+    tmps[gid].dgst[init_pos + 1][1] = dgst[1];
+    tmps[gid].dgst[init_pos + 1][2] = dgst[2];
+    tmps[gid].dgst[init_pos + 1][3] = dgst[3];
+    tmps[gid].dgst[init_pos + 1][4] = dgst[4];
+
+    return;
+  }
+
   for (u32 i = 0; i < 256; i++)
   {
     u32 tmp = 0;
 
     u32 k = p2;
 
+    u32 j16 = 0;
+
     for (u32 j = 0; j < p3; j++)
     {
-      const u32 j16 = j * 16;
-
-      u32 w[16 + 1];
+      u32 w[16];
 
       w[ 0] = largeblock[j16 +  0] | tmp;
       w[ 1] = largeblock[j16 +  1];
@@ -145,75 +250,162 @@ KERNEL_FQ KERNEL_FA void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
       w[13] = largeblock[j16 + 13];
       w[14] = largeblock[j16 + 14];
       w[15] = largeblock[j16 + 15];
-      w[16] = 0;
+
+      tmp = 0;
 
       while (k < 64)
       {
+        #if !defined IS_NV
+
         const u32 iter_s = hc_swap32_S (iter);
 
-        u32 mask0 = 0;
-        u32 mask1 = 0;
+        #endif
 
-        u32 tmp0 = 0;
-        u32 tmp1 = 0;
-
-        const int kd = k / 4;
-        const int km = k & 3;
-
-             if (km == 0) { tmp0 = iter_s >>  0; tmp1 = 0;            mask0 = 0x0000ffff; mask1 = 0xffffffff; }
-        else if (km == 1) { tmp0 = iter_s >>  8; tmp1 = 0;            mask0 = 0xff0000ff; mask1 = 0xffffffff; }
-        else if (km == 2) { tmp0 = iter_s >> 16; tmp1 = 0;            mask0 = 0xffff0000; mask1 = 0xffffffff; }
-        else if (km == 3) { tmp0 = iter_s >> 24; tmp1 = iter_s <<  8; mask0 = 0xffffff00; mask1 = 0x00ffffff; }
-
-        switch (kd)
+        switch (k)
         {
-          case  0: w[ 0] = (w[ 0] & mask0) | tmp0;
-                   w[ 1] = (w[ 1] & mask1) | tmp1;
+          case  0: w[ 0] = RAR3_COUNTER_0 (iter, w[ 0]);
                    break;
-          case  1: w[ 1] = (w[ 1] & mask0) | tmp0;
-                   w[ 2] = (w[ 2] & mask1) | tmp1;
+          case  1: w[ 0] = RAR3_COUNTER_1 (iter, w[ 0]);
                    break;
-          case  2: w[ 2] = (w[ 2] & mask0) | tmp0;
-                   w[ 3] = (w[ 3] & mask1) | tmp1;
+          case  2: w[ 0] = RAR3_COUNTER_2 (iter, w[ 0]);
                    break;
-          case  3: w[ 3] = (w[ 3] & mask0) | tmp0;
-                   w[ 4] = (w[ 4] & mask1) | tmp1;
+          case  3: w[ 0] = RAR3_COUNTER_3 (iter, w[ 0]);
+                   w[ 1] = RAR3_COUNTER_4 (iter, w[ 1]);
                    break;
-          case  4: w[ 4] = (w[ 4] & mask0) | tmp0;
-                   w[ 5] = (w[ 5] & mask1) | tmp1;
+          case  4: w[ 1] = RAR3_COUNTER_0 (iter, w[ 1]);
                    break;
-          case  5: w[ 5] = (w[ 5] & mask0) | tmp0;
-                   w[ 6] = (w[ 6] & mask1) | tmp1;
+          case  5: w[ 1] = RAR3_COUNTER_1 (iter, w[ 1]);
                    break;
-          case  6: w[ 6] = (w[ 6] & mask0) | tmp0;
-                   w[ 7] = (w[ 7] & mask1) | tmp1;
+          case  6: w[ 1] = RAR3_COUNTER_2 (iter, w[ 1]);
                    break;
-          case  7: w[ 7] = (w[ 7] & mask0) | tmp0;
-                   w[ 8] = (w[ 8] & mask1) | tmp1;
+          case  7: w[ 1] = RAR3_COUNTER_3 (iter, w[ 1]);
+                   w[ 2] = RAR3_COUNTER_4 (iter, w[ 2]);
                    break;
-          case  8: w[ 8] = (w[ 8] & mask0) | tmp0;
-                   w[ 9] = (w[ 9] & mask1) | tmp1;
+          case  8: w[ 2] = RAR3_COUNTER_0 (iter, w[ 2]);
                    break;
-          case  9: w[ 9] = (w[ 9] & mask0) | tmp0;
-                   w[10] = (w[10] & mask1) | tmp1;
+          case  9: w[ 2] = RAR3_COUNTER_1 (iter, w[ 2]);
                    break;
-          case 10: w[10] = (w[10] & mask0) | tmp0;
-                   w[11] = (w[11] & mask1) | tmp1;
+          case 10: w[ 2] = RAR3_COUNTER_2 (iter, w[ 2]);
                    break;
-          case 11: w[11] = (w[11] & mask0) | tmp0;
-                   w[12] = (w[12] & mask1) | tmp1;
+          case 11: w[ 2] = RAR3_COUNTER_3 (iter, w[ 2]);
+                   w[ 3] = RAR3_COUNTER_4 (iter, w[ 3]);
                    break;
-          case 12: w[12] = (w[12] & mask0) | tmp0;
-                   w[13] = (w[13] & mask1) | tmp1;
+          case 12: w[ 3] = RAR3_COUNTER_0 (iter, w[ 3]);
                    break;
-          case 13: w[13] = (w[13] & mask0) | tmp0;
-                   w[14] = (w[14] & mask1) | tmp1;
+          case 13: w[ 3] = RAR3_COUNTER_1 (iter, w[ 3]);
                    break;
-          case 14: w[14] = (w[14] & mask0) | tmp0;
-                   w[15] = (w[15] & mask1) | tmp1;
+          case 14: w[ 3] = RAR3_COUNTER_2 (iter, w[ 3]);
                    break;
-          case 15: w[15] = (w[15] & mask0) | tmp0;
-                   w[16] =                   tmp1;
+          case 15: w[ 3] = RAR3_COUNTER_3 (iter, w[ 3]);
+                   w[ 4] = RAR3_COUNTER_4 (iter, w[ 4]);
+                   break;
+          case 16: w[ 4] = RAR3_COUNTER_0 (iter, w[ 4]);
+                   break;
+          case 17: w[ 4] = RAR3_COUNTER_1 (iter, w[ 4]);
+                   break;
+          case 18: w[ 4] = RAR3_COUNTER_2 (iter, w[ 4]);
+                   break;
+          case 19: w[ 4] = RAR3_COUNTER_3 (iter, w[ 4]);
+                   w[ 5] = RAR3_COUNTER_4 (iter, w[ 5]);
+                   break;
+          case 20: w[ 5] = RAR3_COUNTER_0 (iter, w[ 5]);
+                   break;
+          case 21: w[ 5] = RAR3_COUNTER_1 (iter, w[ 5]);
+                   break;
+          case 22: w[ 5] = RAR3_COUNTER_2 (iter, w[ 5]);
+                   break;
+          case 23: w[ 5] = RAR3_COUNTER_3 (iter, w[ 5]);
+                   w[ 6] = RAR3_COUNTER_4 (iter, w[ 6]);
+                   break;
+          case 24: w[ 6] = RAR3_COUNTER_0 (iter, w[ 6]);
+                   break;
+          case 25: w[ 6] = RAR3_COUNTER_1 (iter, w[ 6]);
+                   break;
+          case 26: w[ 6] = RAR3_COUNTER_2 (iter, w[ 6]);
+                   break;
+          case 27: w[ 6] = RAR3_COUNTER_3 (iter, w[ 6]);
+                   w[ 7] = RAR3_COUNTER_4 (iter, w[ 7]);
+                   break;
+          case 28: w[ 7] = RAR3_COUNTER_0 (iter, w[ 7]);
+                   break;
+          case 29: w[ 7] = RAR3_COUNTER_1 (iter, w[ 7]);
+                   break;
+          case 30: w[ 7] = RAR3_COUNTER_2 (iter, w[ 7]);
+                   break;
+          case 31: w[ 7] = RAR3_COUNTER_3 (iter, w[ 7]);
+                   w[ 8] = RAR3_COUNTER_4 (iter, w[ 8]);
+                   break;
+          case 32: w[ 8] = RAR3_COUNTER_0 (iter, w[ 8]);
+                   break;
+          case 33: w[ 8] = RAR3_COUNTER_1 (iter, w[ 8]);
+                   break;
+          case 34: w[ 8] = RAR3_COUNTER_2 (iter, w[ 8]);
+                   break;
+          case 35: w[ 8] = RAR3_COUNTER_3 (iter, w[ 8]);
+                   w[ 9] = RAR3_COUNTER_4 (iter, w[ 9]);
+                   break;
+          case 36: w[ 9] = RAR3_COUNTER_0 (iter, w[ 9]);
+                   break;
+          case 37: w[ 9] = RAR3_COUNTER_1 (iter, w[ 9]);
+                   break;
+          case 38: w[ 9] = RAR3_COUNTER_2 (iter, w[ 9]);
+                   break;
+          case 39: w[ 9] = RAR3_COUNTER_3 (iter, w[ 9]);
+                   w[10] = RAR3_COUNTER_4 (iter, w[10]);
+                   break;
+          case 40: w[10] = RAR3_COUNTER_0 (iter, w[10]);
+                   break;
+          case 41: w[10] = RAR3_COUNTER_1 (iter, w[10]);
+                   break;
+          case 42: w[10] = RAR3_COUNTER_2 (iter, w[10]);
+                   break;
+          case 43: w[10] = RAR3_COUNTER_3 (iter, w[10]);
+                   w[11] = RAR3_COUNTER_4 (iter, w[11]);
+                   break;
+          case 44: w[11] = RAR3_COUNTER_0 (iter, w[11]);
+                   break;
+          case 45: w[11] = RAR3_COUNTER_1 (iter, w[11]);
+                   break;
+          case 46: w[11] = RAR3_COUNTER_2 (iter, w[11]);
+                   break;
+          case 47: w[11] = RAR3_COUNTER_3 (iter, w[11]);
+                   w[12] = RAR3_COUNTER_4 (iter, w[12]);
+                   break;
+          case 48: w[12] = RAR3_COUNTER_0 (iter, w[12]);
+                   break;
+          case 49: w[12] = RAR3_COUNTER_1 (iter, w[12]);
+                   break;
+          case 50: w[12] = RAR3_COUNTER_2 (iter, w[12]);
+                   break;
+          case 51: w[12] = RAR3_COUNTER_3 (iter, w[12]);
+                   w[13] = RAR3_COUNTER_4 (iter, w[13]);
+                   break;
+          case 52: w[13] = RAR3_COUNTER_0 (iter, w[13]);
+                   break;
+          case 53: w[13] = RAR3_COUNTER_1 (iter, w[13]);
+                   break;
+          case 54: w[13] = RAR3_COUNTER_2 (iter, w[13]);
+                   break;
+          case 55: w[13] = RAR3_COUNTER_3 (iter, w[13]);
+                   w[14] = RAR3_COUNTER_4 (iter, w[14]);
+                   break;
+          case 56: w[14] = RAR3_COUNTER_0 (iter, w[14]);
+                   break;
+          case 57: w[14] = RAR3_COUNTER_1 (iter, w[14]);
+                   break;
+          case 58: w[14] = RAR3_COUNTER_2 (iter, w[14]);
+                   break;
+          case 59: w[14] = RAR3_COUNTER_3 (iter, w[14]);
+                   w[15] = RAR3_COUNTER_4 (iter, w[15]);
+                   break;
+          case 60: w[15] = RAR3_COUNTER_0 (iter, w[15]);
+                   break;
+          case 61: w[15] = RAR3_COUNTER_1 (iter, w[15]);
+                   break;
+          case 62: w[15] = RAR3_COUNTER_2 (iter, w[15]);
+                   break;
+          case 63: w[15] = RAR3_COUNTER_3 (iter, w[15]);
+                   tmp   = RAR3_COUNTER_4 (iter, tmp);
                    break;
         }
 
@@ -226,7 +418,9 @@ KERNEL_FQ KERNEL_FA void m12500_loop (KERN_ATTR_TMPS (rar3_tmp_t))
 
       k &= 63;
 
-      tmp = w[16];
+      j16 += j_step;
+
+      if (j16 >= p3) j16 -= p3;
     }
   }
 
