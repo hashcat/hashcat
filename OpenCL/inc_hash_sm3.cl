@@ -9,6 +9,25 @@
 #include "inc_common.h"
 #include "inc_hash_sm3.h"
 
+// PRMT-offload permutation functions (vector path):
+// P0/P1 each need two rotates of the same value. The second rotate is derived from the
+// first by an extra 8-bit rotate, which we emit as a byte permute (prmt.b32) instead of a
+// second funnel shift (shf). rotl(x,17)=rotl(rotl(x,9),8), rotl(x,23)=rotl(rotl(x,15),8).
+// Byte rotate is bit-exact, so results are identical; the intent is to move one rotate off
+// the saturated SHF pipe onto the PRMT unit. Selector 0x2103 = rotate-left-by-8 (cf. the
+// byteswap selector 0x0123). Temp binds the funnel shift so it is emitted exactly once.
+DECLSPEC u32x sm3_p0_prmt (const u32x x)
+{
+  const u32x r = hc_rotl32 (x, 9);                   // rotl(x, 9)  via shf
+  return x ^ r ^ hc_byte_perm (r, r, 0x2103);        // rotl(x,17) = rotl(r,8) via prmt
+}
+
+DECLSPEC u32x sm3_p1_prmt (const u32x x)
+{
+  const u32x r = hc_rotl32 (x, 15);                  // rotl(x,15) via shf
+  return x ^ r ^ hc_byte_perm (r, r, 0x2103);        // rotl(x,23) = rotl(r,8) via prmt
+}
+
 // important notes on this:
 // input buf unused bytes needs to be set to zero
 // input buf needs to be in algorithm native byte order (md5 = LE, sm3 = BE, etc)
