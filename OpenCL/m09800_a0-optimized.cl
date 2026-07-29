@@ -15,7 +15,15 @@
 #include M2S(INCLUDE_PATH/inc_rp_optimized.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_sha1.cl)
+#define RC4_INIT_128_UNROLL8
+#define RC4_ENABLE_NEXT_4
+#define RC4_NEXT_16_PREFETCH
+#define RC4_NEXT_16_UNROLL2
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_NEXT_16_UNROLL2
+#undef RC4_NEXT_16_PREFETCH
+#undef RC4_ENABLE_NEXT_4
+#undef RC4_INIT_128_UNROLL8
 #endif
 
 #define MIN_NULL_BYTES 10

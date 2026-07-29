@@ -13,7 +13,13 @@
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#define RC4_LID_TYPE u64
+#define RC4_USE_BITWISE_ADDRESSING
+#define RC4_NEXT_16_PREFETCH
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_NEXT_16_PREFETCH
+#undef RC4_USE_BITWISE_ADDRESSING
+#undef RC4_LID_TYPE
 #endif
 
 typedef struct oldoffice01

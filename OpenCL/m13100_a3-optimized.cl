@@ -14,7 +14,13 @@
 #include M2S(INCLUDE_PATH/inc_simd.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md4.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#define RC4_USE_BITWISE_ADDRESSING
+#define RC4_INIT_128_PREFETCH
+#define RC4_ENABLE_KRB5_HELPERS
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_ENABLE_KRB5_HELPERS
+#undef RC4_INIT_128_PREFETCH
+#undef RC4_USE_BITWISE_ADDRESSING
 #endif
 
 // A 32-thread block owns an 8 KiB RC4 S-box. Twelve blocks fill the practical

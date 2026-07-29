@@ -9,7 +9,11 @@
 #include M2S(INCLUDE_PATH/inc_platform.cl)
 #include M2S(INCLUDE_PATH/inc_common.cl)
 #include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#define RC4_INIT_128_PREFETCH
+#define RC4_INIT_128_PREFETCH_UNROLL8
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
+#undef RC4_INIT_128_PREFETCH_UNROLL8
+#undef RC4_INIT_128_PREFETCH
 #endif
 
 #define COMPARE_S M2S(INCLUDE_PATH/inc_comp_single.cl)

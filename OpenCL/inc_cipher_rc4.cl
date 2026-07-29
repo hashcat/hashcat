@@ -2,6 +2,12 @@
 #include "inc_types.h"
 #include "inc_platform.h"
 #include "inc_common.h"
+
+#ifndef RC4_LID_TYPE
+#define RC4_LID_TYPE u32
+#define RC4_LID_TYPE_DEFAULT
+#endif
+
 #include "inc_cipher_rc4.h"
 
 #ifdef IS_HIP
@@ -14,21 +20,21 @@
 
 // Pattern linear
 
-DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, MAYBE_UNUSED const u32 lid)
+DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, MAYBE_UNUSED const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
   return S8[k];
 }
 
-DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, MAYBE_UNUSED const u32 lid)
+DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, MAYBE_UNUSED const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
   S8[k] = v;
 }
 
-DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, MAYBE_UNUSED const u32 lid)
+DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, MAYBE_UNUSED const RC4_LID_TYPE lid)
 {
   S[k] = v;
 }
@@ -78,25 +84,33 @@ DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, MAYBE_UNUSED 
 // Finally we can select the actual target byte from (1 out of 4) from this chunk:
 //   (k & 3)
 
+#ifdef RC4_USE_BITWISE_ADDRESSING
 #define KEY8(t,k) (((k) & 3) | (((k) / 4) * 128) | (((t) & 31) * 4) | (((t) / 32) * 8192))
+#else
+#define KEY8(t,k) (((k) & 3) + (((k) / 4) * 128) + (((t) & 31) * 4) + (((t) / 32) * 8192))
+#endif
 
-DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u32 lid)
+DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
   return S8[KEY8 (lid, k)];
 }
 
-DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, const u32 lid)
+DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, const RC4_LID_TYPE lid)
 {
   LOCAL_AS u8 *S8 = (LOCAL_AS u8 *) S;
 
   S8[KEY8 (lid, k)] = v;
 }
 
+#ifdef RC4_USE_BITWISE_ADDRESSING
 #define KEY32(t,k) (((k) * 32) | ((t) & 31) | (((t) / 32) * 2048))
+#else
+#define KEY32(t,k) (((k) * 32) + ((t) & 31) + (((t) / 32) * 2048))
+#endif
 
-DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, const u32 lid)
+DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, const RC4_LID_TYPE lid)
 {
   S[KEY32 (lid, k)] = v;
 }
@@ -106,7 +120,7 @@ DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, const u32 lid
 
 #endif
 
-DECLSPEC void rc4_init_40 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u32 lid)
+DECLSPEC void rc4_init_40 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC4_LID_TYPE lid)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -142,7 +156,7 @@ DECLSPEC void rc4_init_40 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u32
   j += GET_KEY8 (S, 255, lid) + d0; rc4_swap (S, 255, j, lid);
 }
 
-DECLSPEC void rc4_init_72 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u32 lid)
+DECLSPEC void rc4_init_72 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC4_LID_TYPE lid)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -189,7 +203,7 @@ DECLSPEC void rc4_init_72 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u32
   j += GET_KEY8 (S, 255, lid) + d3; rc4_swap (S, 255, j, lid);
 }
 
-DECLSPEC void rc4_init_104 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u32 lid)
+DECLSPEC void rc4_init_104 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC4_LID_TYPE lid)
 {
   u32 v = 0x03020100;
   u32 a = 0x04040404;
@@ -249,6 +263,64 @@ DECLSPEC void rc4_init_104 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u3
   j += GET_KEY8(S, 255, lid) + d8;  rc4_swap(S, 255, j, lid);
 }
 
+#ifndef RC4_INIT_128_PREFETCH
+
+DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC4_LID_TYPE lid)
+{
+  u32 v = 0x03020100;
+  u32 a = 0x04040404;
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (u8 i = 0; i < 64; i++)
+  {
+    SET_KEY32 (S, i, v, lid); v += a;
+  }
+
+  u8 j = 0;
+
+  #ifdef RC4_INIT_128_UNROLL8
+  #pragma unroll 8
+  #endif
+  for (u32 i = 0; i < 16; i++)
+  {
+    u8 idx = i * 16;
+
+    u32 v;
+
+    v = key[0];
+
+    j += GET_KEY8 (S, idx, lid) + v8a_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8b_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8c_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8d_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+
+    v = key[1];
+
+    j += GET_KEY8 (S, idx, lid) + v8a_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8b_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8c_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8d_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+
+    v = key[2];
+
+    j += GET_KEY8 (S, idx, lid) + v8a_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8b_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8c_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8d_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+
+    v = key[3];
+
+    j += GET_KEY8 (S, idx, lid) + v8a_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8b_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8c_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+    j += GET_KEY8 (S, idx, lid) + v8d_from_v32_S (v); rc4_swap (S, idx, j, lid); idx++;
+  }
+}
+
+#else
+
 #define RC4_KSA_PREFETCH_STEP(d)            \
 {                                           \
   const u8 s_next = GET_KEY8 (S, idx + 1, lid); \
@@ -260,7 +332,7 @@ DECLSPEC void rc4_init_104 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u3
   s_i = (j == idx) ? s_i : s_next;          \
 }
 
-DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u32 lid)
+DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const RC4_LID_TYPE lid)
 {
   u32 v = 0x07060504;
   u32 a = 0x04040404;
@@ -360,7 +432,9 @@ DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u3
   RC4_KSA_PREFETCH_STEP (v8c_from_v32_S (v));
   RC4_KSA_PREFETCH_STEP (v8d_from_v32_S (v));
 
+  #ifdef RC4_INIT_128_PREFETCH_UNROLL8
   #pragma unroll 8
+  #endif
   for (u32 i = 1; i < 16; i++)
   {
     idx = i * 16;
@@ -397,7 +471,9 @@ DECLSPEC void rc4_init_128 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *key, const u3
 
 #undef RC4_KSA_PREFETCH_STEP
 
-DECLSPEC void rc4_swap (LOCAL_AS u32 *S, const u8 i, const u8 j, const u32 lid)
+#endif
+
+DECLSPEC void rc4_swap (LOCAL_AS u32 *S, const u8 i, const u8 j, const RC4_LID_TYPE lid)
 {
   u8 tmp;
 
@@ -406,7 +482,7 @@ DECLSPEC void rc4_swap (LOCAL_AS u32 *S, const u8 i, const u8 j, const u32 lid)
   SET_KEY8 (S, j, tmp, lid);
 }
 
-DECLSPEC void rc4_dropN (LOCAL_AS u32 *S, PRIVATE_AS u8 *i, PRIVATE_AS u8 *j, const u32 n, const u32 lid)
+DECLSPEC void rc4_dropN (LOCAL_AS u32 *S, PRIVATE_AS u8 *i, PRIVATE_AS u8 *j, const u32 n, const RC4_LID_TYPE lid)
 {
   u8 a = *i;
   u8 b = *j;
@@ -427,7 +503,9 @@ DECLSPEC void rc4_dropN (LOCAL_AS u32 *S, PRIVATE_AS u8 *i, PRIVATE_AS u8 *j, co
   *j = b;
 }
 
-DECLSPEC u8 rc4_next_4 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const u32 lid)
+#ifdef RC4_ENABLE_NEXT_4
+
+DECLSPEC u8 rc4_next_4 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
 {
   u8 a = i;
   u8 b = j;
@@ -487,14 +565,24 @@ DECLSPEC u8 rc4_next_4 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS cons
   return b;
 }
 
-DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const u32 lid)
+#endif
+
+#ifdef RC4_NEXT_16_PREFETCH
+
+DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
 {
   u8 a = i;
   u8 b = j;
 
   u8 s_prefetch = GET_KEY8 (S, a + 1, lid);
 
+  #ifdef RC4_NEXT_16_UNROLL2
   #pragma unroll 2
+  #else
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  #endif
   for (int k = 0; k < 4; k++)
   {
     u32 xor4 = 0;
@@ -577,7 +665,79 @@ DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS con
   return b;
 }
 
-DECLSPEC RC4_NOINLINE int rc4_next_12_global_krb5_staged (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, const u32 lid)
+#else
+
+DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
+{
+  u8 a = i;
+  u8 b = j;
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int k = 0; k < 4; k++)
+  {
+    u32 xor4 = 0;
+
+    u32 tmp;
+
+    u8 idx;
+
+    a += 1;
+    b += GET_KEY8 (S, a, lid);
+
+    rc4_swap (S, a, b, lid);
+
+    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    xor4 |= tmp <<  0;
+
+    a += 1;
+    b += GET_KEY8 (S, a, lid);
+
+    rc4_swap (S, a, b, lid);
+
+    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    xor4 |= tmp <<  8;
+
+    a += 1;
+    b += GET_KEY8 (S, a, lid);
+
+    rc4_swap (S, a, b, lid);
+
+    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    xor4 |= tmp << 16;
+
+    a += 1;
+    b += GET_KEY8 (S, a, lid);
+
+    rc4_swap (S, a, b, lid);
+
+    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    xor4 |= tmp << 24;
+
+    out[k] = in[k] ^ xor4;
+  }
+
+  return b;
+}
+
+#endif
+
+#ifdef RC4_ENABLE_KRB5_HELPERS
+
+DECLSPEC RC4_NOINLINE int rc4_next_12_global_krb5_staged (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, const RC4_LID_TYPE lid)
 {
   u8 a = i;
   u8 b = j;
@@ -675,7 +835,7 @@ DECLSPEC RC4_NOINLINE int rc4_next_12_global_krb5_staged (LOCAL_AS u32 *S, const
   return b;
 }
 
-DECLSPEC RC4_NOINLINE u8 rc4_next_12_global (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, PRIVATE_AS u32 *out, const u32 lid)
+DECLSPEC RC4_NOINLINE u8 rc4_next_12_global (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
 {
   u8 a = i;
   u8 b = j;
@@ -741,7 +901,9 @@ DECLSPEC RC4_NOINLINE u8 rc4_next_12_global (LOCAL_AS u32 *S, const u8 i, const 
   return b;
 }
 
-DECLSPEC RC4_NOINLINE u8 rc4_next_16_global (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, PRIVATE_AS u32 *out, const u32 lid)
+#endif
+
+DECLSPEC RC4_NOINLINE u8 rc4_next_16_global (LOCAL_AS u32 *S, const u8 i, const u8 j, GLOBAL_AS const u32 *in, PRIVATE_AS u32 *out, const RC4_LID_TYPE lid)
 {
   u8 a = i;
   u8 b = j;
@@ -806,3 +968,8 @@ DECLSPEC RC4_NOINLINE u8 rc4_next_16_global (LOCAL_AS u32 *S, const u8 i, const 
 
   return b;
 }
+
+#ifdef RC4_LID_TYPE_DEFAULT
+#undef RC4_LID_TYPE_DEFAULT
+#undef RC4_LID_TYPE
+#endif
