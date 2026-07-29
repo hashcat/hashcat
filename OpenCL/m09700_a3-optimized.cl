@@ -13,6 +13,16 @@
 #include M2S(INCLUDE_PATH/inc_cipher_rc4.cl)
 #endif
 
+// autoresearch: ncu shows m09700_s is latency-bound (SM & mem both ~64%, not saturated)
+// with only 16.6% occupancy, register-limited to 8 blocks/SM (~255 regs/thread; block =
+// FIXED_LOCAL_SIZE = 32 threads = 1 warp). Raise minBlocksPerMultiprocessor so ptxas trims
+// registers to fit 9 blocks/SM (~227 regs), lifting occupancy 16.6% -> 18.75% while allowing
+// slightly more register headroom than the 10-block setting.
+#if defined IS_CUDA || defined IS_HIP
+#undef  KERNEL_FA
+#define KERNEL_FA __launch_bounds__ (FIXED_LOCAL_SIZE, 9)
+#endif
+
 typedef struct oldoffice01
 {
   u32 version;
@@ -21,6 +31,240 @@ typedef struct oldoffice01
   u32 rc4key[2];
 
 } oldoffice01_t;
+
+// The first MD5 word is complete after step 61.  Keep the working state so the
+// final three steps can be deferred until a candidate survives the two-byte
+// RC4 reject.
+DECLSPEC void m09700_md5_transform_early (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *state)
+{
+  u32 a = state[0];
+  u32 b = state[1];
+  u32 c = state[2];
+  u32 d = state[3];
+
+  u32 w0_t = w0[0];
+  u32 w1_t = w0[1];
+  u32 w2_t = w0[2];
+  u32 w3_t = w0[3];
+  u32 w4_t = w1[0];
+  u32 w5_t = w1[1];
+  u32 w6_t = w1[2];
+  u32 w7_t = w1[3];
+  u32 w8_t = w2[0];
+  u32 w9_t = w2[1];
+  u32 wa_t = w2[2];
+  u32 wb_t = w2[3];
+  u32 wc_t = w3[0];
+  u32 wd_t = w3[1];
+  u32 we_t = w3[2];
+  u32 wf_t = w3[3];
+
+  MD5_STEP_S (MD5_Fo, a, b, c, d, w0_t, MD5C00, MD5S00);
+  MD5_STEP_S (MD5_Fo, d, a, b, c, w1_t, MD5C01, MD5S01);
+  MD5_STEP_S (MD5_Fo, c, d, a, b, w2_t, MD5C02, MD5S02);
+  MD5_STEP_S (MD5_Fo, b, c, d, a, w3_t, MD5C03, MD5S03);
+  MD5_STEP_S (MD5_Fo, a, b, c, d, w4_t, MD5C04, MD5S00);
+  MD5_STEP_S (MD5_Fo, d, a, b, c, w5_t, MD5C05, MD5S01);
+  MD5_STEP_S (MD5_Fo, c, d, a, b, w6_t, MD5C06, MD5S02);
+  MD5_STEP_S (MD5_Fo, b, c, d, a, w7_t, MD5C07, MD5S03);
+  MD5_STEP_S (MD5_Fo, a, b, c, d, w8_t, MD5C08, MD5S00);
+  MD5_STEP_S (MD5_Fo, d, a, b, c, w9_t, MD5C09, MD5S01);
+  MD5_STEP_S (MD5_Fo, c, d, a, b, wa_t, MD5C0a, MD5S02);
+  MD5_STEP_S (MD5_Fo, b, c, d, a, wb_t, MD5C0b, MD5S03);
+  MD5_STEP_S (MD5_Fo, a, b, c, d, wc_t, MD5C0c, MD5S00);
+  MD5_STEP_S (MD5_Fo, d, a, b, c, wd_t, MD5C0d, MD5S01);
+  MD5_STEP_S (MD5_Fo, c, d, a, b, we_t, MD5C0e, MD5S02);
+  MD5_STEP_S (MD5_Fo, b, c, d, a, wf_t, MD5C0f, MD5S03);
+
+  MD5_STEP_S (MD5_Go, a, b, c, d, w1_t, MD5C10, MD5S10);
+  MD5_STEP_S (MD5_Go, d, a, b, c, w6_t, MD5C11, MD5S11);
+  MD5_STEP_S (MD5_Go, c, d, a, b, wb_t, MD5C12, MD5S12);
+  MD5_STEP_S (MD5_Go, b, c, d, a, w0_t, MD5C13, MD5S13);
+  MD5_STEP_S (MD5_Go, a, b, c, d, w5_t, MD5C14, MD5S10);
+  MD5_STEP_S (MD5_Go, d, a, b, c, wa_t, MD5C15, MD5S11);
+  MD5_STEP_S (MD5_Go, c, d, a, b, wf_t, MD5C16, MD5S12);
+  MD5_STEP_S (MD5_Go, b, c, d, a, w4_t, MD5C17, MD5S13);
+  MD5_STEP_S (MD5_Go, a, b, c, d, w9_t, MD5C18, MD5S10);
+  MD5_STEP_S (MD5_Go, d, a, b, c, we_t, MD5C19, MD5S11);
+  MD5_STEP_S (MD5_Go, c, d, a, b, w3_t, MD5C1a, MD5S12);
+  MD5_STEP_S (MD5_Go, b, c, d, a, w8_t, MD5C1b, MD5S13);
+  MD5_STEP_S (MD5_Go, a, b, c, d, wd_t, MD5C1c, MD5S10);
+  MD5_STEP_S (MD5_Go, d, a, b, c, w2_t, MD5C1d, MD5S11);
+  MD5_STEP_S (MD5_Go, c, d, a, b, w7_t, MD5C1e, MD5S12);
+  MD5_STEP_S (MD5_Go, b, c, d, a, wc_t, MD5C1f, MD5S13);
+
+  u32 t;
+
+  MD5_STEP_S (MD5_H1, a, b, c, d, w5_t, MD5C20, MD5S20);
+  MD5_STEP_S (MD5_H2, d, a, b, c, w8_t, MD5C21, MD5S21);
+  MD5_STEP_S (MD5_H1, c, d, a, b, wb_t, MD5C22, MD5S22);
+  MD5_STEP_S (MD5_H2, b, c, d, a, we_t, MD5C23, MD5S23);
+  MD5_STEP_S (MD5_H1, a, b, c, d, w1_t, MD5C24, MD5S20);
+  MD5_STEP_S (MD5_H2, d, a, b, c, w4_t, MD5C25, MD5S21);
+  MD5_STEP_S (MD5_H1, c, d, a, b, w7_t, MD5C26, MD5S22);
+  MD5_STEP_S (MD5_H2, b, c, d, a, wa_t, MD5C27, MD5S23);
+  MD5_STEP_S (MD5_H1, a, b, c, d, wd_t, MD5C28, MD5S20);
+  MD5_STEP_S (MD5_H2, d, a, b, c, w0_t, MD5C29, MD5S21);
+  MD5_STEP_S (MD5_H1, c, d, a, b, w3_t, MD5C2a, MD5S22);
+  MD5_STEP_S (MD5_H2, b, c, d, a, w6_t, MD5C2b, MD5S23);
+  MD5_STEP_S (MD5_H1, a, b, c, d, w9_t, MD5C2c, MD5S20);
+  MD5_STEP_S (MD5_H2, d, a, b, c, wc_t, MD5C2d, MD5S21);
+  MD5_STEP_S (MD5_H1, c, d, a, b, wf_t, MD5C2e, MD5S22);
+  MD5_STEP_S (MD5_H2, b, c, d, a, w2_t, MD5C2f, MD5S23);
+
+  MD5_STEP_S (MD5_I , a, b, c, d, w0_t, MD5C30, MD5S30);
+  MD5_STEP_S (MD5_I , d, a, b, c, w7_t, MD5C31, MD5S31);
+  MD5_STEP_S (MD5_I , c, d, a, b, we_t, MD5C32, MD5S32);
+  MD5_STEP_S (MD5_I , b, c, d, a, w5_t, MD5C33, MD5S33);
+  MD5_STEP_S (MD5_I , a, b, c, d, wc_t, MD5C34, MD5S30);
+  MD5_STEP_S (MD5_I , d, a, b, c, w3_t, MD5C35, MD5S31);
+  MD5_STEP_S (MD5_I , c, d, a, b, wa_t, MD5C36, MD5S32);
+  MD5_STEP_S (MD5_I , b, c, d, a, w1_t, MD5C37, MD5S33);
+  MD5_STEP_S (MD5_I , a, b, c, d, w8_t, MD5C38, MD5S30);
+  MD5_STEP_S (MD5_I , d, a, b, c, wf_t, MD5C39, MD5S31);
+  MD5_STEP_S (MD5_I , c, d, a, b, w6_t, MD5C3a, MD5S32);
+  MD5_STEP_S (MD5_I , b, c, d, a, wd_t, MD5C3b, MD5S33);
+  MD5_STEP_S (MD5_I , a, b, c, d, w4_t, MD5C3c, MD5S30);
+
+  state[0] = a;
+  state[1] = b;
+  state[2] = c;
+  state[3] = d;
+}
+
+DECLSPEC u32 m09700_rc4_next_16_early (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS u32 *state, const u32 verifier2, PRIVATE_AS u32 *out, const u32 search0, const u64 lid)
+{
+  u8 a = i;
+  u8 b = j;
+
+  u32 xor4 = 0;
+
+  u32 tmp;
+
+  u8 idx;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 = tmp;
+
+  const u32 in0 = state[0] + MD5M_A;
+
+  if (((in0 ^ xor4) & 0xff) != (search0 & 0xff)) return 0;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 8;
+
+  if (((in0 ^ xor4) & 0xffff) != (search0 & 0xffff)) return 0;
+
+  u32 md5_a = state[0];
+  u32 md5_b = state[1];
+  u32 md5_c = state[2];
+  u32 md5_d = state[3];
+
+  MD5_STEP_S (MD5_I, md5_d, md5_a, md5_b, md5_c, 0,         MD5C3d, MD5S31);
+  MD5_STEP_S (MD5_I, md5_c, md5_d, md5_a, md5_b, verifier2, MD5C3e, MD5S32);
+  MD5_STEP_S (MD5_I, md5_b, md5_c, md5_d, md5_a, 0,         MD5C3f, MD5S33);
+
+  state[0] = md5_a + MD5M_A;
+  state[1] = md5_b + MD5M_B;
+  state[2] = md5_c + MD5M_C;
+  state[3] = md5_d + MD5M_D;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 16;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 24;
+
+  out[0] = state[0] ^ xor4;
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int k = 1; k < 4; k++)
+  {
+    xor4 = 0;
+
+    a += 1;
+    b += GET_KEY8 (S, a, lid);
+
+    rc4_swap (S, a, b, lid);
+
+    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    xor4 |= tmp << 0;
+
+    a += 1;
+    b += GET_KEY8 (S, a, lid);
+
+    rc4_swap (S, a, b, lid);
+
+    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    xor4 |= tmp << 8;
+
+    a += 1;
+    b += GET_KEY8 (S, a, lid);
+
+    rc4_swap (S, a, b, lid);
+
+    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    xor4 |= tmp << 16;
+
+    a += 1;
+    b += GET_KEY8 (S, a, lid);
+
+    rc4_swap (S, a, b, lid);
+
+    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    xor4 |= tmp << 24;
+
+    out[k] = state[k] ^ xor4;
+  }
+
+  return 1;
+}
 
 DECLSPEC void m09700m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 pw_len, KERN_ATTR_FUNC_ESALT (oldoffice01_t))
 {
@@ -820,9 +1064,9 @@ DECLSPEC void m09700s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
     digest[2] = MD5M_C;
     digest[3] = MD5M_D;
 
-    md5_transform (w0_t, w1_t, w2_t, w3_t, digest);
+    m09700_md5_transform_early (w0_t, w1_t, w2_t, w3_t, digest);
 
-    rc4_next_16 (S, 16, j, digest, out, lid);
+    if (m09700_rc4_next_16_early (S, 16, j, digest, out[2], out, search[0], lid) == 0) continue;
 
     COMPARE_S_SIMD (out[0], out[1], out[2], out[3]);
   }
