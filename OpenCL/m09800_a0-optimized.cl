@@ -37,7 +37,7 @@ KERNEL_FQ KERNEL_FA void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
 
   /**
    * base
@@ -171,14 +171,17 @@ KERNEL_FQ KERNEL_FA void m09800_m04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
     digest[0] = hc_swap32_S (digest[0]);
     digest[1] = hc_swap32_S (digest[1]);
-    digest[2] = hc_swap32_S (digest[2]);
-    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
       digest[1] &= 0xff;
       digest[2]  = 0;
       digest[3]  = 0;
+    }
+    else
+    {
+      digest[2] = hc_swap32_S (digest[2]);
+      digest[3] = hc_swap32_S (digest[3]);
     }
 
     rc4_init_128 (S, digest, lid);
@@ -323,7 +326,7 @@ KERNEL_FQ KERNEL_FA void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
    * modifier
    */
 
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
 
   /**
    * base
@@ -469,14 +472,17 @@ KERNEL_FQ KERNEL_FA void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
 
     digest[0] = hc_swap32_S (digest[0]);
     digest[1] = hc_swap32_S (digest[1]);
-    digest[2] = hc_swap32_S (digest[2]);
-    digest[3] = hc_swap32_S (digest[3]);
 
     if (version == 3)
     {
       digest[1] &= 0xff;
       digest[2]  = 0;
       digest[3]  = 0;
+    }
+    else
+    {
+      digest[2] = hc_swap32_S (digest[2]);
+      digest[3] = hc_swap32_S (digest[3]);
     }
 
     rc4_init_128 (S, digest, lid);
@@ -515,14 +521,17 @@ KERNEL_FQ KERNEL_FA void m09800_s04 (KERN_ATTR_RULES_ESALT (oldoffice34_t))
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    rc4_next_16 (S, 16, j, digest, out, lid);
+    j = rc4_next_4 (S, 16, j, digest, out, lid);
 
     // initial compare
 
     if (out[0] != search[0]) continue;
-    if (out[1] != search[1]) continue;
-    if (out[2] != search[2]) continue;
-    if (out[3] != search[3]) continue;
+
+    rc4_next_16 (S, 20, j, digest + 1, out, lid);
+
+    if (out[0] != search[1]) continue;
+    if (out[1] != search[2]) continue;
+    if (out[2] != search[3]) continue;
 
     if (esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockLen != 0)
     {
