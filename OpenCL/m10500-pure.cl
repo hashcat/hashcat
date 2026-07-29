@@ -41,9 +41,99 @@ typedef struct pdf
 typedef struct pdf14_tmp
 {
   u32 digest[4];
-  u32 out[4];
+  u32 out[2];
 
 } pdf14_tmp_t;
+
+DECLSPEC void rc4_next_8_m10500 (LOCAL_AS u32 *S, PRIVATE_AS const u32 *in, PRIVATE_AS u32 *out, const u32 lid)
+{
+  u8 a = 0;
+  u8 b = 0;
+
+  u8 s_prefetch = GET_KEY8 (S, 1, lid);
+
+  #ifdef _unroll
+  #pragma unroll
+  #endif
+  for (int k = 0; k < 2; k++)
+  {
+    u32 xor4 = 0;
+
+    u32 tmp;
+
+    u8 idx;
+    u8 next;
+    u8 sa;
+    u8 sb;
+    u8 s_next;
+
+    a += 1;
+    next = a + 1;
+    s_next = GET_KEY8 (S, next, lid);
+    sa = s_prefetch;
+    b += sa;
+    sb = GET_KEY8 (S, b, lid);
+    SET_KEY8 (S, a, sb, lid);
+    SET_KEY8 (S, b, sa, lid);
+    idx = sa + sb;
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    s_prefetch = (b == next) ? sa : s_next;
+
+    xor4 |= tmp <<  0;
+
+    a += 1;
+    next = a + 1;
+    s_next = GET_KEY8 (S, next, lid);
+    sa = s_prefetch;
+    b += sa;
+    sb = GET_KEY8 (S, b, lid);
+    SET_KEY8 (S, a, sb, lid);
+    SET_KEY8 (S, b, sa, lid);
+    idx = sa + sb;
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    s_prefetch = (b == next) ? sa : s_next;
+
+    xor4 |= tmp <<  8;
+
+    a += 1;
+    next = a + 1;
+    s_next = GET_KEY8 (S, next, lid);
+    sa = s_prefetch;
+    b += sa;
+    sb = GET_KEY8 (S, b, lid);
+    SET_KEY8 (S, a, sb, lid);
+    SET_KEY8 (S, b, sa, lid);
+    idx = sa + sb;
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    s_prefetch = (b == next) ? sa : s_next;
+
+    xor4 |= tmp << 16;
+
+    a += 1;
+    next = a + 1;
+    s_next = GET_KEY8 (S, next, lid);
+    sa = s_prefetch;
+    b += sa;
+    sb = GET_KEY8 (S, b, lid);
+    SET_KEY8 (S, a, sb, lid);
+    SET_KEY8 (S, b, sa, lid);
+    idx = sa + sb;
+
+    tmp = GET_KEY8 (S, idx, lid);
+
+    s_prefetch = (b == next) ? sa : s_next;
+
+    xor4 |= tmp << 24;
+
+    out[k] = in[k] ^ xor4;
+  }
+}
 
 KERNEL_FQ KERNEL_FA void m10500_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 {
@@ -228,8 +318,6 @@ KERNEL_FQ KERNEL_FA void m10500_init (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
   tmps[gid].out[0] = rc4data[0];
   tmps[gid].out[1] = rc4data[1];
-  tmps[gid].out[2] = 0;
-  tmps[gid].out[3] = 0;
 }
 
 KERNEL_FQ KERNEL_FA void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
@@ -239,7 +327,7 @@ KERNEL_FQ KERNEL_FA void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
    */
 
   const u64 gid = get_global_id (0);
-  const u64 lid = get_local_id (0);
+  const u32 lid = get_local_id (0);
 
   if (gid >= GID_CNT) return;
 
@@ -260,12 +348,10 @@ KERNEL_FQ KERNEL_FA void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
   digest[2] = tmps[gid].digest[2];
   digest[3] = tmps[gid].digest[3];
 
-  u32 out[4];
+  u32 out[2];
 
   out[0] = tmps[gid].out[0];
   out[1] = tmps[gid].out[1];
-  out[2] = tmps[gid].out[2];
-  out[3] = tmps[gid].out[3];
 
   for (u32 i = 0, j = LOOP_POS; i < LOOP_CNT; i++, j++)
   {
@@ -318,7 +404,7 @@ KERNEL_FQ KERNEL_FA void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
       rc4_init_128 (S, tmp, lid);
 
-      rc4_next_16 (S, 0, 0, out, out, lid);
+      rc4_next_8_m10500 (S, out, out, lid);
     }
   }
 
@@ -329,8 +415,6 @@ KERNEL_FQ KERNEL_FA void m10500_loop (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
 
   tmps[gid].out[0] = out[0];
   tmps[gid].out[1] = out[1];
-  tmps[gid].out[2] = out[2];
-  tmps[gid].out[3] = out[3];
 }
 
 KERNEL_FQ KERNEL_FA void m10500_comp (KERN_ATTR_TMPS_ESALT (pdf14_tmp_t, pdf_t))
