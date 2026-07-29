@@ -78,7 +78,7 @@ DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, MAYBE_UNUSED 
 // Finally we can select the actual target byte from (1 out of 4) from this chunk:
 //   (k & 3)
 
-#define KEY8(t,k) (((k) & 3) + (((k) / 4) * 128) + (((t) & 31) * 4) + (((t) / 32) * 8192))
+#define KEY8(t,k) (((k) & 3) | (((k) / 4) * 128) | (((t) & 31) * 4) | (((t) / 32) * 8192))
 
 DECLSPEC u8 GET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u64 lid)
 {
@@ -94,7 +94,7 @@ DECLSPEC void SET_KEY8 (LOCAL_AS u32 *S, const u8 k, const u8 v, const u64 lid)
   S8[KEY8 (lid, k)] = v;
 }
 
-#define KEY32(t,k) (((k) * 32) + ((t) & 31) + (((t) / 32) * 2048))
+#define KEY32(t,k) (((k) * 32) | ((t) & 31) | (((t) / 32) * 2048))
 
 DECLSPEC void SET_KEY32 (LOCAL_AS u32 *S, const u8 k, const u32 v, const u64 lid)
 {
@@ -335,6 +335,8 @@ DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS con
   u8 a = i;
   u8 b = j;
 
+  u8 s_prefetch = GET_KEY8 (S, a + 1, lid);
+
   #ifdef _unroll
   #pragma unroll
   #endif
@@ -345,48 +347,67 @@ DECLSPEC u8 rc4_next_16 (LOCAL_AS u32 *S, const u8 i, const u8 j, PRIVATE_AS con
     u32 tmp;
 
     u8 idx;
+    u8 next;
+    u8 sa;
+    u8 sb;
+    u8 s_next;
+
+    // fused swap: after swapping S[a]<->S[b], S[a]+S[b] == sa+sb (values already loaded),
+    // so the two post-swap shared-mem reads for idx are replaced by a register add.
 
     a += 1;
-    b += GET_KEY8 (S, a, lid);
-
-    rc4_swap (S, a, b, lid);
-
-    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
-
+    next = a + 1;
+    s_next = GET_KEY8 (S, next, lid);
+    sa = s_prefetch;
+    b += sa;
+    sb = GET_KEY8 (S, b, lid);
+    SET_KEY8 (S, a, sb, lid);
+    SET_KEY8 (S, b, sa, lid);
+    idx = sa + sb;
     tmp = GET_KEY8 (S, idx, lid);
+    s_prefetch = (b == next) ? sa : s_next;
 
     xor4 |= tmp <<  0;
 
     a += 1;
-    b += GET_KEY8 (S, a, lid);
-
-    rc4_swap (S, a, b, lid);
-
-    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
-
+    next = a + 1;
+    s_next = GET_KEY8 (S, next, lid);
+    sa = s_prefetch;
+    b += sa;
+    sb = GET_KEY8 (S, b, lid);
+    SET_KEY8 (S, a, sb, lid);
+    SET_KEY8 (S, b, sa, lid);
+    idx = sa + sb;
     tmp = GET_KEY8 (S, idx, lid);
+    s_prefetch = (b == next) ? sa : s_next;
 
     xor4 |= tmp <<  8;
 
     a += 1;
-    b += GET_KEY8 (S, a, lid);
-
-    rc4_swap (S, a, b, lid);
-
-    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
-
+    next = a + 1;
+    s_next = GET_KEY8 (S, next, lid);
+    sa = s_prefetch;
+    b += sa;
+    sb = GET_KEY8 (S, b, lid);
+    SET_KEY8 (S, a, sb, lid);
+    SET_KEY8 (S, b, sa, lid);
+    idx = sa + sb;
     tmp = GET_KEY8 (S, idx, lid);
+    s_prefetch = (b == next) ? sa : s_next;
 
     xor4 |= tmp << 16;
 
     a += 1;
-    b += GET_KEY8 (S, a, lid);
-
-    rc4_swap (S, a, b, lid);
-
-    idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
-
+    next = a + 1;
+    s_next = GET_KEY8 (S, next, lid);
+    sa = s_prefetch;
+    b += sa;
+    sb = GET_KEY8 (S, b, lid);
+    SET_KEY8 (S, a, sb, lid);
+    SET_KEY8 (S, b, sa, lid);
+    idx = sa + sb;
     tmp = GET_KEY8 (S, idx, lid);
+    s_prefetch = (b == next) ? sa : s_next;
 
     xor4 |= tmp << 24;
 
