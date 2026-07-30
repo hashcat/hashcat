@@ -3494,14 +3494,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     {
       const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
 
+      // A bridge does the work, so the backend device's thread and vector geometry says nothing about
+      // it. Report what the bridge is actually handed instead: the candidates in a launch, and the
+      // iteration chunk that launch covers.
       event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u",
+        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
         device_info0->speed_sec_dev,
         device_info0->exec_msec_dev,
-        device_info0->kernel_accel_dev,
-        device_info0->kernel_loops_dev,
-        device_info0->kernel_threads_dev,
-        device_info0->vector_width_dev);
+        device_info0->kernel_power_dev,
+        device_info0->kernel_loops_dev);
     }
   }
   else
@@ -3924,14 +3925,15 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     {
       const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
 
+      // A bridge does the work, so the backend device's thread and vector geometry says nothing about
+      // it. Report what the bridge is actually handed instead: the candidates in a launch, and the
+      // iteration chunk that launch covers.
       event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u",
+        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
         device_info0->speed_sec_dev,
         device_info0->exec_msec_dev,
-        device_info0->kernel_accel_dev,
-        device_info0->kernel_loops_dev,
-        device_info0->kernel_threads_dev,
-        device_info0->vector_width_dev);
+        device_info0->kernel_power_dev,
+        device_info0->kernel_loops_dev);
     }
   }
   else

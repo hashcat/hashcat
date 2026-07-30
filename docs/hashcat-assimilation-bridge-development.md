@@ -18,8 +18,7 @@ Existing modules on hashcat repository will be automatically updated.
 Plugins can opt in to bridge support by adding:
 
 ```c
-static const u64   BRIDGE_TYPE = BRIDGE_TYPE_MATCH_TUNINGS
-                               | BRIDGE_TYPE_LAUNCH_LOOP;
+static const u64   BRIDGE_TYPE = BRIDGE_TYPE_LAUNCH_LOOP;
 static const char *BRIDGE_NAME = "scrypt_jane";
 ```
 
@@ -90,8 +89,12 @@ But the bridge developer must ensure data transformation compatibility. For inst
 
 There's some more BRIDGE PARAMETERs that you should know:
 
-+  BRIDGE_TYPE_MATCH_TUNINGS       = Disables autotune and adjusts -n, -u and -T for the backend device according to match the bridge's dimensions
 +  BRIDGE_TYPE_UPDATE_SELFTEST     = updates the selftest configured in the module. Can be useful for generic hash modes such as the python plugin
++  BRIDGE_TYPE_LOOP_CHUNKED        = launch_loop() honours kernel_param.loop_pos and .loop_cnt, so hashcat may split the salt's iteration space into chunks and call the bridge once per chunk. Without it the bridge is handed the whole range in a single call, which is what a one-shot implementation needs. Set this only if your compute can stop and resume mid-iteration, which means keeping any per candidate state alive between calls
+
+There is no flag to match tunings any more. hashcat derives the workitem count from what
+`get_workitem_count()` reports, for every bridge, and sizes the launch and the device buffers from
+that. The count is treated as a maximum the bridge will never be asked to exceed.
 
 ## How Bridges Work
 

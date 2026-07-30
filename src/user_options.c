@@ -1104,12 +1104,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->kernel_loops > KERNEL_LOOPS_MAX)
-    {
-      event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
-
-      return -1;
-    }
+    // no upper bound is checked here. KERNEL_LOOPS_MAX is only the default ceiling, and a module
+    // is free to raise its own through module_kernel_loops_max. Several do, up to 131072. This
+    // runs before hashconfig_init, so the real ceiling is not known yet. backend_session_begin
+    // holds the value against the module's range and warns if it has to drop it.
   }
 
   if (user_options->kernel_threads_chgd == true)

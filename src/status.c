@@ -2333,6 +2333,18 @@ int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int b
   return device_param->kernel_threads;
 }
 
+u64 status_get_kernel_power_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  if (device_param->skipped == true) return 0;
+  if (device_param->skipped_warning == true) return 0;
+
+  return device_param->kernel_power;
+}
+
 int status_get_vector_width_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;

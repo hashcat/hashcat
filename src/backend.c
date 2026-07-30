@@ -1514,7 +1514,16 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         {
           const u32 iter = hashes->salts_buf[salt_pos].salt_iter;
 
-          const u32 loop_step = device_param->kernel_loops;
+          u32 loop_step = device_param->kernel_loops;
+
+          // a bridge that does not declare BRIDGE_TYPE_LOOP_CHUNKED ignores the chunk bounds and
+          // computes the whole range on every call, so handing it a subdivided range would repeat
+          // the same work. give it the iteration space in one piece instead.
+
+          if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)
+          {
+            if ((hashconfig->bridge_type & BRIDGE_TYPE_LOOP_CHUNKED) == 0) loop_step = iter;
+          }
 
           for (u32 loop_pos = 0, slow_iteration = 0; loop_pos < iter; loop_pos += loop_step, slow_iteration++)
           {
@@ -1533,6 +1542,17 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             if (hashconfig->opts_type & OPTS_TYPE_LOOP_EXTENDED)
             {
               if (run_kernel (hashcat_ctx, device_param, KERN_RUN_2E, pws_pos, pws_cnt, true, slow_iteration, is_autotune) == -1) return -1;
+            }
+
+            if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)
+            {
+              // only let the bridge write the exec_msec ring when it replaced the loop kernel.
+              // otherwise that kernel still runs above and already owns the ring, and mixing
+              // two different timed units into one average would make it meaningless.
+
+              const u32 event_update = (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP) ? true : false;
+
+              if (run_bridge_loop (hashcat_ctx, device_param, salt_pos, pws_cnt, loop_pos, loop_left, event_update) == -1) return -1;
             }
 
             //bug?
@@ -1564,95 +1584,6 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               {
                 device_param->outerloop_multi *= 1 / iter_part;
 
-                device_param->speed_pos = 1;
-
-                device_param->speed_only_finish = true;
-
-                return 0;
-              }
-            }
-          }
-
-          if (hashconfig->bridge_type & BRIDGE_TYPE_LAUNCH_LOOP)
-          {
-            if (device_param->is_cuda == true)
-            {
-              if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->h_tmps, device_param->cuda_d_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
-
-              if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
-            }
-
-            if (device_param->is_hip == true)
-            {
-              if (hc_hipMemcpyDtoH (hashcat_ctx, device_param->h_tmps, device_param->hip_d_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
-
-              if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
-            }
-
-            #if defined (__APPLE__)
-            if (device_param->is_metal == true)
-            {
-              if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->h_tmps, device_param->metal_d_tmps, 0, pws_cnt * hashconfig->tmp_size) == -1) return -1;
-            }
-            #endif
-
-            if (device_param->is_opencl == true)
-            {
-              /* blocking */
-              if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
-            }
-
-            if (bridge_ctx->launch_loop (bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
-
-            if (device_param->is_cuda == true)
-            {
-              if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_tmps, device_param->h_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
-
-              if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
-            }
-
-            if (device_param->is_hip == true)
-            {
-              if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_tmps, device_param->h_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
-
-              if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
-            }
-
-            #if defined (__APPLE__)
-            if (device_param->is_metal == true)
-            {
-              if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_tmps, 0, device_param->h_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
-            }
-            #endif
-
-            if (device_param->is_opencl == true)
-            {
-              /* blocking */
-              if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
-            }
-
-            //bug?
-            //while (status_ctx->run_thread_level2 == false) break;
-            if (status_ctx->run_thread_level2 == false) break;
-
-            /**
-             * speed
-             */
-
-            const u64 perf_sum_all = (u64) (pws_cnt);
-
-            double speed_msec = hc_timer_get (device_param->timer_speed);
-
-            const u32 speed_pos = device_param->speed_pos;
-
-            device_param->speed_cnt[speed_pos] = perf_sum_all;
-
-            device_param->speed_msec[speed_pos] = speed_msec;
-
-            if (user_options->speed_only == true)
-            {
-              if (speed_msec > 4000)
-              {
                 device_param->speed_pos = 1;
 
                 device_param->speed_only_finish = true;
@@ -3247,6 +3178,98 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     }
 
     if (hc_clReleaseEvent (hashcat_ctx, opencl_event) == -1) return -1;
+  }
+
+  return 0;
+}
+
+int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos, const u64 pws_cnt, MAYBE_UNUSED const u32 loop_pos, MAYBE_UNUSED const u32 loop_cnt, const u32 event_update)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+
+  // a bridge launch never enters the backend device's compute queue, so there are no
+  // device events to time it with. take the host clock around the whole unit instead.
+  // the transfers are included on purpose. they scale with pws_cnt and are part of
+  // what one bridge loop actually costs.
+
+  hc_timer_t timer_bridge;
+
+  hc_timer_set (&timer_bridge);
+
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuMemcpyDtoH (hashcat_ctx, device_param->h_tmps, device_param->cuda_d_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
+
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipMemcpyDtoH (hashcat_ctx, device_param->h_tmps, device_param->hip_d_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+  }
+
+  #if defined (__APPLE__)
+  if (device_param->is_metal == true)
+  {
+    if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->h_tmps, device_param->metal_d_tmps, 0, pws_cnt * hashconfig->tmp_size) == -1) return -1;
+  }
+  #endif
+
+  if (device_param->is_opencl == true)
+  {
+    /* blocking */
+    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
+  }
+
+  if (bridge_ctx->launch_loop (bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_tmps, device_param->h_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
+
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_tmps, device_param->h_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
+
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+  }
+
+  #if defined (__APPLE__)
+  if (device_param->is_metal == true)
+  {
+    if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_tmps, 0, device_param->h_tmps, pws_cnt * hashconfig->tmp_size) == -1) return -1;
+  }
+  #endif
+
+  if (device_param->is_opencl == true)
+  {
+    /* blocking */
+    if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
+  }
+
+  const double exec_msec = hc_timer_get (timer_bridge);
+
+  if (event_update)
+  {
+    u32 exec_pos = device_param->exec_pos;
+
+    device_param->exec_msec[exec_pos] = exec_msec;
+
+    exec_pos++;
+
+    if (exec_pos == EXEC_CACHE)
+    {
+      exec_pos = 0;
+    }
+
+    device_param->exec_pos = exec_pos;
   }
 
   return 0;
@@ -9184,24 +9207,20 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       if (device_param->skipped == true) continue;
       if (device_param->skipped_warning == true) continue;
 
-      int workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
-
-           if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_001) workitem_count = 1;
-      else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_002) workitem_count = 2;
-      else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_004) workitem_count = 4;
-      else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_008) workitem_count = 8;
-      else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_016) workitem_count = 16;
-      else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_032) workitem_count = 32;
-      else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_064) workitem_count = 64;
-      else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_128) workitem_count = 128;
-      else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_256) workitem_count = 256;
+      const int workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
 
       if ((int) device_param->kernel_power < workitem_count)
       {
         if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u/Bridge #%u: kernel_power:%" PRIu64 " < workitem_count:%d", device_param->device_id + 1, device_param->bridge_link_device + 1, device_param->kernel_power, workitem_count);
       }
 
-      device_param->kernel_power = workitem_count;
+      // the advertised count is a maximum the bridge cannot be asked to exceed, not a figure it
+      // demands, so cap rather than assign. Assigning is what used to launch over buffers sized
+      // for a different accel, which is how a -n below the bridge's count turned into an out of
+      // bounds access. With the accel derived above, kernel_power already lands on the advertised
+      // count and this only bites when something else moved it.
+
+      if (device_param->kernel_power > (u64) workitem_count) device_param->kernel_power = workitem_count;
     }
   }
 }
@@ -13847,36 +13866,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      if (hashconfig->bridge_type & BRIDGE_TYPE_MATCH_TUNINGS)
-      {
-        u32 workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
-
-             if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_001) workitem_count = 1;
-        else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_002) workitem_count = 2;
-        else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_004) workitem_count = 4;
-        else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_008) workitem_count = 8;
-        else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_016) workitem_count = 16;
-        else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_032) workitem_count = 32;
-        else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_064) workitem_count = 64;
-        else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_128) workitem_count = 128;
-        else if (hashconfig->bridge_type & BRIDGE_TYPE_FORCE_WORKITEMS_256) workitem_count = 256;
-
-        u32 native_threads = 0;
-
-        if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
-        {
-          native_threads = 1;
-        }
-        else if (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU)
-        {
-          native_threads = device_param->kernel_preferred_wgs_multiple;
-        }
-
-        const u32 _kernel_accel = ((workitem_count + native_threads - 1) / native_threads) * native_threads;
-
-        device_param->kernel_accel_min = _kernel_accel;
-        device_param->kernel_accel_max = _kernel_accel;
-      }
     }
 
     if (user_options->kernel_loops_chgd == true)
@@ -13887,6 +13876,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         device_param->kernel_loops_min = _kernel_loops;
         device_param->kernel_loops_max = _kernel_loops;
+      }
+      else
+      {
+        // dropping it without a word makes -u look like it worked, which is worse than refusing it
+
+        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: -u %u ignored, this hash-mode allows %u-%u", device_param->device_id + 1, _kernel_loops, device_param->kernel_loops_min, device_param->kernel_loops_max);
       }
     }
     else
@@ -14050,6 +14045,29 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->overtune_unfriendly = true;
     }
     #endif
+
+    // A bridge advertises the most candidates it can be handed in one launch. Derive the accel
+    // from it instead of assigning it straight in: kernel_power is hardware_power * kernel_accel,
+    // so the division is what makes the launch come out at the advertised count rather than
+    // hardware_power times too many. Getting that wrong also oversizes every device buffer, since
+    // they are all sized from kernel_accel_max.
+    //
+    // This has to run after the thread count is settled, because hardware_power depends on it.
+    // Rounding up keeps the buffers at least as large as the launch, and the floor of 1 covers the
+    // case where the device's granularity is coarser than what the bridge takes.
+
+    if (hashconfig->bridge_type)
+    {
+      const u32 workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
+
+      const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+                               * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads_max);
+
+      const u32 _kernel_accel = MAX (CEILDIV (workitem_count, hardware_power), 1);
+
+      device_param->kernel_accel_min = _kernel_accel;
+      device_param->kernel_accel_max = _kernel_accel;
+    }
 
     // re-using context/command-queue, there is no need to re-initialize them
 

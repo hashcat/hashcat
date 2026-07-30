@@ -515,8 +515,13 @@ typedef enum opts_type
 typedef enum bridge_type
 {
   BRIDGE_TYPE_NONE                   = 0,            // no bridge support
-  BRIDGE_TYPE_MATCH_TUNINGS          = (1ULL <<  1), // Disables autotune and adjusts -n, -u and -T for the backend device according to match bridge dimensions
   BRIDGE_TYPE_UPDATE_SELFTEST        = (1ULL <<  2), // updates the selftest configured in the module. Can be useful for generic hash modes such as the python one
+
+  // launch_loop() honours kernel_param.loop_pos and .loop_cnt, so hashcat may split the salt's
+  // iteration space into chunks and call it once per chunk. Without this the bridge is handed the
+  // whole range in a single call, which is what a one-shot implementation needs.
+
+  BRIDGE_TYPE_LOOP_CHUNKED           = (1ULL <<  3),
 
   BRIDGE_TYPE_LAUNCH_INIT            = (1ULL << 10), // attention! not yet implemented
   BRIDGE_TYPE_LAUNCH_LOOP            = (1ULL << 11),
@@ -531,16 +536,6 @@ typedef enum bridge_type
   BRIDGE_TYPE_REPLACE_LOOP           = (1ULL << 21),
   BRIDGE_TYPE_REPLACE_LOOP2          = (1ULL << 22),
   BRIDGE_TYPE_REPLACE_COMP           = (1ULL << 23), // attention! not yet implemented
-
-  BRIDGE_TYPE_FORCE_WORKITEMS_001    = (1ULL << 30), // This override the workitem counts reported from the bridge device
-  BRIDGE_TYPE_FORCE_WORKITEMS_002    = (1ULL << 31), // Can be useful if this is not a physical hardware
-  BRIDGE_TYPE_FORCE_WORKITEMS_004    = (1ULL << 32),
-  BRIDGE_TYPE_FORCE_WORKITEMS_008    = (1ULL << 33),
-  BRIDGE_TYPE_FORCE_WORKITEMS_016    = (1ULL << 34),
-  BRIDGE_TYPE_FORCE_WORKITEMS_032    = (1ULL << 35),
-  BRIDGE_TYPE_FORCE_WORKITEMS_064    = (1ULL << 36),
-  BRIDGE_TYPE_FORCE_WORKITEMS_128    = (1ULL << 37),
-  BRIDGE_TYPE_FORCE_WORKITEMS_256    = (1ULL << 38),
 
 } bridge_type_t;
 
@@ -2851,6 +2846,7 @@ typedef struct device_info
   int     kernel_loops_dev;
   int     kernel_threads_dev;
   int     vector_width_dev;
+  u64     kernel_power_dev;
   int     salt_pos_dev;
   u64     innerloop_pos_dev;
   u64     innerloop_left_dev;

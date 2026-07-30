@@ -113,6 +113,7 @@ int         status_get_memoryspeed_dev                (const hashcat_ctx_t *hash
 u64         status_get_progress_dev                   (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 double      status_get_runtime_msec_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_kernel_accel_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
+u64         status_get_kernel_power_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_kernel_loops_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_kernel_threads_dev             (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_vector_width_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);

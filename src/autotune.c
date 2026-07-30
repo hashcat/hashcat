@@ -60,6 +60,23 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     }
   }
 
+  // the count a bridge advertises is a maximum it cannot be asked to exceed, so a probe has to
+  // respect it the same way the production launch does. the accel is derived by rounding that
+  // count up to a whole hardware_power step, so kernel_power_try lands above it whenever the two
+  // are not multiples of each other. that is the case this trims.
+
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
+  {
+    bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+    const u32 workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
+
+    if (kernel_power_try > workitem_count)
+    {
+      kernel_power_try = workitem_count;
+    }
+  }
+
   const u32 kernel_threads_sav = device_param->kernel_threads;
 
   device_param->kernel_threads = kernel_threads;
@@ -68,9 +85,19 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   device_param->spin_damp = 0;
 
-  const u32 kern_run = find_tuning_function (hashcat_ctx, device_param);
+  // when a bridge replaced the loop kernel, that kernel is empty and timing it measures
+  // nothing. time the bridge instead, which is the unit that actually does the work.
 
-  run_kernel (hashcat_ctx, device_param, kern_run, 0, kernel_power_try, true, 0, true);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
+  {
+    run_bridge_loop (hashcat_ctx, device_param, 0, kernel_power_try, 0, kernel_loops, true);
+  }
+  else
+  {
+    const u32 kern_run = find_tuning_function (hashcat_ctx, device_param);
+
+    run_kernel (hashcat_ctx, device_param, kern_run, 0, kernel_power_try, true, 0, true);
+  }
 
   device_param->spin_damp = spin_damp_sav;
 
@@ -319,9 +346,16 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (true)
     {
-      double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min, kernel_threads);
+      const double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min, kernel_threads);
 
-      if (exec_msec > 2000)
+      // the TDR limit only applies when the timed unit is a compute kernel, because it is
+      // the driver watchdog that reloads the driver when one runs too long. a bridge that
+      // replaced the loop kernel never enters that queue, so the watchdog cannot fire and
+      // a runtime above the limit is legitimate.
+
+      const bool tdr_applies = (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP) ? false : true;
+
+      if ((exec_msec > 2000) && (tdr_applies == true))
       {
         event_log_error (hashcat_ctx, "Kernel minimum runtime larger than default TDR");
 
