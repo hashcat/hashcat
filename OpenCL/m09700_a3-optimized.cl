@@ -291,27 +291,27 @@ DECLSPEC void m09700m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 
   u32 salt_buf_t1[5];
 
-  salt_buf_t1[0] =                        salt_buf_t0[0] <<  8;
-  salt_buf_t1[1] = salt_buf_t0[0] >> 24 | salt_buf_t0[1] <<  8;
-  salt_buf_t1[2] = salt_buf_t0[1] >> 24 | salt_buf_t0[2] <<  8;
-  salt_buf_t1[3] = salt_buf_t0[2] >> 24 | salt_buf_t0[3] <<  8;
-  salt_buf_t1[4] = salt_buf_t0[3] >> 24;
+  salt_buf_t1[0] = hc_bytealign_S (            0, salt_buf_t0[0], 1);
+  salt_buf_t1[1] = hc_bytealign_S (salt_buf_t0[0], salt_buf_t0[1], 1);
+  salt_buf_t1[2] = hc_bytealign_S (salt_buf_t0[1], salt_buf_t0[2], 1);
+  salt_buf_t1[3] = hc_bytealign_S (salt_buf_t0[2], salt_buf_t0[3], 1);
+  salt_buf_t1[4] = hc_bytealign_S (salt_buf_t0[3],             0, 1);
 
   u32 salt_buf_t2[5];
 
-  salt_buf_t2[0] =                        salt_buf_t0[0] << 16;
-  salt_buf_t2[1] = salt_buf_t0[0] >> 16 | salt_buf_t0[1] << 16;
-  salt_buf_t2[2] = salt_buf_t0[1] >> 16 | salt_buf_t0[2] << 16;
-  salt_buf_t2[3] = salt_buf_t0[2] >> 16 | salt_buf_t0[3] << 16;
-  salt_buf_t2[4] = salt_buf_t0[3] >> 16;
+  salt_buf_t2[0] = hc_bytealign_S (            0, salt_buf_t0[0], 2);
+  salt_buf_t2[1] = hc_bytealign_S (salt_buf_t0[0], salt_buf_t0[1], 2);
+  salt_buf_t2[2] = hc_bytealign_S (salt_buf_t0[1], salt_buf_t0[2], 2);
+  salt_buf_t2[3] = hc_bytealign_S (salt_buf_t0[2], salt_buf_t0[3], 2);
+  salt_buf_t2[4] = hc_bytealign_S (salt_buf_t0[3],             0, 2);
 
   u32 salt_buf_t3[5];
 
-  salt_buf_t3[0] =                        salt_buf_t0[0] << 24;
-  salt_buf_t3[1] = salt_buf_t0[0] >>  8 | salt_buf_t0[1] << 24;
-  salt_buf_t3[2] = salt_buf_t0[1] >>  8 | salt_buf_t0[2] << 24;
-  salt_buf_t3[3] = salt_buf_t0[2] >>  8 | salt_buf_t0[3] << 24;
-  salt_buf_t3[4] = salt_buf_t0[3] >>  8;
+  salt_buf_t3[0] = hc_bytealign_S (            0, salt_buf_t0[0], 3);
+  salt_buf_t3[1] = hc_bytealign_S (salt_buf_t0[0], salt_buf_t0[1], 3);
+  salt_buf_t3[2] = hc_bytealign_S (salt_buf_t0[1], salt_buf_t0[2], 3);
+  salt_buf_t3[3] = hc_bytealign_S (salt_buf_t0[2], salt_buf_t0[3], 3);
+  salt_buf_t3[4] = hc_bytealign_S (salt_buf_t0[3],             0, 3);
 
   /**
    * esalt
@@ -390,14 +390,14 @@ DECLSPEC void m09700m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
     digest_t0[2] &= 0x00000000;
     digest_t0[3] &= 0x00000000;
 
-    digest_t1[0] =                      digest_t0[0] <<  8;
-    digest_t1[1] = digest_t0[0] >> 24 | digest_t0[1] <<  8;
+    digest_t1[0] = hc_bytealign_S (           0, digest_t0[0], 1);
+    digest_t1[1] = hc_bytealign_S (digest_t0[0], digest_t0[1], 1);
 
-    digest_t2[0] =                      digest_t0[0] << 16;
-    digest_t2[1] = digest_t0[0] >> 16 | digest_t0[1] << 16;
+    digest_t2[0] = hc_bytealign_S (           0, digest_t0[0], 2);
+    digest_t2[1] = hc_bytealign_S (digest_t0[0], digest_t0[1], 2);
 
-    digest_t3[0] =                      digest_t0[0] << 24;
-    digest_t3[1] = digest_t0[0] >>  8 | digest_t0[1] << 24;
+    digest_t3[0] = hc_bytealign_S (           0, digest_t0[0], 3);
+    digest_t3[1] = hc_bytealign_S (digest_t0[0], digest_t0[1], 3);
 
     // generate the 16 * 21 buffer
 
@@ -688,27 +688,27 @@ DECLSPEC void m09700s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 
   u32 salt_buf_t1[5];
 
-  salt_buf_t1[0] =                        salt_buf_t0[0] <<  8;
-  salt_buf_t1[1] = salt_buf_t0[0] >> 24 | salt_buf_t0[1] <<  8;
-  salt_buf_t1[2] = salt_buf_t0[1] >> 24 | salt_buf_t0[2] <<  8;
-  salt_buf_t1[3] = salt_buf_t0[2] >> 24 | salt_buf_t0[3] <<  8;
-  salt_buf_t1[4] = salt_buf_t0[3] >> 24;
+  salt_buf_t1[0] = hc_bytealign_S (            0, salt_buf_t0[0], 1);
+  salt_buf_t1[1] = hc_bytealign_S (salt_buf_t0[0], salt_buf_t0[1], 1);
+  salt_buf_t1[2] = hc_bytealign_S (salt_buf_t0[1], salt_buf_t0[2], 1);
+  salt_buf_t1[3] = hc_bytealign_S (salt_buf_t0[2], salt_buf_t0[3], 1);
+  salt_buf_t1[4] = hc_bytealign_S (salt_buf_t0[3],             0, 1);
 
   u32 salt_buf_t2[5];
 
-  salt_buf_t2[0] =                        salt_buf_t0[0] << 16;
-  salt_buf_t2[1] = salt_buf_t0[0] >> 16 | salt_buf_t0[1] << 16;
-  salt_buf_t2[2] = salt_buf_t0[1] >> 16 | salt_buf_t0[2] << 16;
-  salt_buf_t2[3] = salt_buf_t0[2] >> 16 | salt_buf_t0[3] << 16;
-  salt_buf_t2[4] = salt_buf_t0[3] >> 16;
+  salt_buf_t2[0] = hc_bytealign_S (            0, salt_buf_t0[0], 2);
+  salt_buf_t2[1] = hc_bytealign_S (salt_buf_t0[0], salt_buf_t0[1], 2);
+  salt_buf_t2[2] = hc_bytealign_S (salt_buf_t0[1], salt_buf_t0[2], 2);
+  salt_buf_t2[3] = hc_bytealign_S (salt_buf_t0[2], salt_buf_t0[3], 2);
+  salt_buf_t2[4] = hc_bytealign_S (salt_buf_t0[3],             0, 2);
 
   u32 salt_buf_t3[5];
 
-  salt_buf_t3[0] =                        salt_buf_t0[0] << 24;
-  salt_buf_t3[1] = salt_buf_t0[0] >>  8 | salt_buf_t0[1] << 24;
-  salt_buf_t3[2] = salt_buf_t0[1] >>  8 | salt_buf_t0[2] << 24;
-  salt_buf_t3[3] = salt_buf_t0[2] >>  8 | salt_buf_t0[3] << 24;
-  salt_buf_t3[4] = salt_buf_t0[3] >>  8;
+  salt_buf_t3[0] = hc_bytealign_S (            0, salt_buf_t0[0], 3);
+  salt_buf_t3[1] = hc_bytealign_S (salt_buf_t0[0], salt_buf_t0[1], 3);
+  salt_buf_t3[2] = hc_bytealign_S (salt_buf_t0[1], salt_buf_t0[2], 3);
+  salt_buf_t3[3] = hc_bytealign_S (salt_buf_t0[2], salt_buf_t0[3], 3);
+  salt_buf_t3[4] = hc_bytealign_S (salt_buf_t0[3],             0, 3);
 
   /**
    * esalt
@@ -799,14 +799,14 @@ DECLSPEC void m09700s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
     digest_t0[2] &= 0x00000000;
     digest_t0[3] &= 0x00000000;
 
-    digest_t1[0] =                      digest_t0[0] <<  8;
-    digest_t1[1] = digest_t0[0] >> 24 | digest_t0[1] <<  8;
+    digest_t1[0] = hc_bytealign_S (           0, digest_t0[0], 1);
+    digest_t1[1] = hc_bytealign_S (digest_t0[0], digest_t0[1], 1);
 
-    digest_t2[0] =                      digest_t0[0] << 16;
-    digest_t2[1] = digest_t0[0] >> 16 | digest_t0[1] << 16;
+    digest_t2[0] = hc_bytealign_S (           0, digest_t0[0], 2);
+    digest_t2[1] = hc_bytealign_S (digest_t0[0], digest_t0[1], 2);
 
-    digest_t3[0] =                      digest_t0[0] << 24;
-    digest_t3[1] = digest_t0[0] >>  8 | digest_t0[1] << 24;
+    digest_t3[0] = hc_bytealign_S (           0, digest_t0[0], 3);
+    digest_t3[1] = hc_bytealign_S (digest_t0[0], digest_t0[1], 3);
 
     // generate the 16 * 21 buffer
 
