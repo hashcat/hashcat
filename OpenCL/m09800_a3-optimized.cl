@@ -23,6 +23,68 @@
 
 #define MIN_NULL_BYTES 10
 
+DECLSPEC int m09800_rc4_next_4_staged (LOCAL_AS u32 *S, const u8 i, const u8 j, const u32 in, const u32 search, const u32 lid)
+{
+  u8 a = i;
+  u8 b = j;
+
+  u32 xor4 = 0;
+
+  u32 tmp;
+
+  u8 idx;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 0;
+
+  if (((in ^ xor4) & 0xff) != (search & 0xff)) return -1;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 8;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 16;
+
+  a += 1;
+  b += GET_KEY8 (S, a, lid);
+
+  rc4_swap (S, a, b, lid);
+
+  idx = GET_KEY8 (S, a, lid) + GET_KEY8 (S, b, lid);
+
+  tmp = GET_KEY8 (S, idx, lid);
+
+  xor4 |= tmp << 24;
+
+  if ((in ^ xor4) != search) return -1;
+
+  return b;
+}
+
 typedef struct oldoffice34
 {
   u32 version;
@@ -454,11 +516,11 @@ DECLSPEC void m09800s (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
     digest[2] = hc_swap32_S (digest[2]);
     digest[3] = hc_swap32_S (digest[3]);
 
-    j = rc4_next_4 (S, 16, j, digest, out, lid);
+    const int j4 = m09800_rc4_next_4_staged (S, 16, j, digest[0], search[0], lid);
 
-    // initial compare
+    if (j4 == -1) continue;
 
-    if (out[0] != search[0]) continue;
+    j = (u8) j4;
 
     rc4_next_16 (S, 20, j, digest + 1, out, lid);
 
