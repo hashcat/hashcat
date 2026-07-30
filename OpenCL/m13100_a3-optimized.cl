@@ -27,7 +27,7 @@
 // shared-memory residency limit while giving ptxas a mild latency-hiding target.
 #if defined IS_CUDA || defined IS_HIP
 #undef  KERNEL_FA
-#define KERNEL_FA __launch_bounds__ (32, 12)
+#define KERNEL_FA __launch_bounds__ (FIXED_LOCAL_SIZE, 12)
 #endif
 
 typedef struct krb5tgs
