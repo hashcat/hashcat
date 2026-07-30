@@ -34,25 +34,31 @@
 //
 // The 48-digit tail is invariant across the a3 inner loop.  Decode it once per
 // gid, then reconstruct each candidate with eight limb multiplies instead of
-// replaying all 48 digits (480 limb multiplies) for every surviving prefix.
+// replaying all 48 digits for every surviving prefix.  Four Base58 digits fit
+// in one u32, so consume them as a radix-58^4 chunk: this shortens the tail
+// decode from 48 ten-limb multiply chains to 12 without changing its value.
 DECLSPEC bool m28501_decode_b58_tail (PRIVATE_AS u32 *tail, PRIVATE_AS const u32 *data)
 {
   for (u32 i = 0; i < 10; i++) tail[i] = 0;
 
-  for (u32 i = 4; i < 52; i++)
+  for (u32 i = 1; i < 13; i++)
   {
-    const u32 div   = (i / 4);
-    const u32 shift = (i % 4) * 8;
+    const u32 v = data[i];
 
-    int c = B58_DIGITS_MAP[(data[div] >> shift) & 0xff];
+    const int c0 = B58_DIGITS_MAP[(v >>  0) & 0xff];
+    const int c1 = B58_DIGITS_MAP[(v >>  8) & 0xff];
+    const int c2 = B58_DIGITS_MAP[(v >> 16) & 0xff];
+    const int c3 = B58_DIGITS_MAP[(v >> 24) & 0xff];
 
-    if (c < 0) return false;
+    if ((c0 | c1 | c2 | c3) < 0) return false;
+
+    int c = (((c0 * 58) + c1) * 58 + c2) * 58 + c3;
 
     #pragma unroll
     for (u32 j = 0; j < 10; j++)
     {
       const u32 pos = 9 - j;
-      const u64 t = ((u64) tail[pos]) * 58 + c;
+      const u64 t = ((u64) tail[pos]) * 11316496 + c;
 
       c = t >> 32;
       tail[pos] = t;
