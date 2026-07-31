@@ -21,6 +21,9 @@ static const size_t BRIDGE_CONTEXT_SIZE_CURRENT = sizeof (bridge_ctx_t);
  * output functions
  */
 
+bool  bridge_active            (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device);
+u32   bridge_workitem_multiple (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device);
+
 bool  bridges_init    (hashcat_ctx_t *hashcat_ctx);
 void  bridges_destroy (hashcat_ctx_t *hashcat_ctx);
 

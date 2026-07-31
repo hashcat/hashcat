@@ -23,6 +23,7 @@
 #include "event.h"
 #include "dynloader.h"
 #include "backend.h"
+#include "bridges.h"
 #include "terminal.h"
 #include "hwmon.h"
 #include "autotune.h"
@@ -9185,7 +9186,8 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
       device_param_dst->kernel_threads = device_param_src->kernel_threads;
 
-      const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param_dst->device_processors)
+      const u32 hardware_power = bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) ? 1
+                               : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param_dst->device_processors)
                                * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param_dst->kernel_threads);
 
       device_param_dst->hardware_power = hardware_power;
@@ -9221,6 +9223,13 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       // count and this only bites when something else moved it.
 
       if (device_param->kernel_power > (u64) workitem_count) device_param->kernel_power = workitem_count;
+
+      // Round down to a whole multiple. A partial one holds the whole device for the duration of a full
+      // one, so the remainder buys nothing and costs the candidates it displaced.
+
+      const u32 multiple = bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device);
+
+      if (multiple > 1) device_param->kernel_power = MAX ((device_param->kernel_power / multiple) * multiple, (u64) multiple);
     }
   }
 }
@@ -13818,6 +13827,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       const u32 _kernel_accel = user_options->kernel_accel;
 
+      // Second half of the -n ceiling check. user_options_sanity could only apply the looser bridge
+      // limit, because the mode is not known that early, so the tighter one lands here where it is.
+      // A bridge keeps the higher limit, since there kernel_accel is a candidate count rather than a
+      // per-multiprocessor multiplier, and the bridge block further down clamps it into what the
+      // device has actually allocated for.
+      //
+      // This is the only place a user option is rejected this late, which is worth knowing when
+      // reading the startup order: the message is identical to the parse-time one, but by the time
+      // it prints, devices have already been enumerated.
+
+      if ((hashconfig->bridge_type == 0) && (_kernel_accel > KERNEL_ACCEL_MAX))
+      {
+        event_log_error (hashcat_ctx, "Invalid --kernel-accel value specified - must be <= %d for this hash-mode.", KERNEL_ACCEL_MAX);
+
+        return -1;
+      }
+
       if ((_kernel_accel >= device_param->kernel_accel_min) && (_kernel_accel <= device_param->kernel_accel_max))
       {
         device_param->kernel_accel_min = _kernel_accel;
@@ -14060,13 +14086,50 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       const u32 workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
 
-      const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+      const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                               : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads_max);
 
       const u32 _kernel_accel = MAX (CEILDIV (workitem_count, hardware_power), 1);
 
-      device_param->kernel_accel_min = _kernel_accel;
-      device_param->kernel_accel_max = _kernel_accel;
+      // The advertised count is the MOST this bridge can take in one launch, not the size it wants.
+      // Which size it wants is a real decision with a measurable optimum, and autotune is what finds
+      // optima, so it gets a range to search rather than the single pinned point it used to be handed.
+      //
+      // That is what retires the hand-picked per-bridge accel constants: they only had to be right
+      // when nothing was going to reconsider them. Now they only have to be a safe ceiling.
+      //
+      // The floor is one whole multiple, because a launch smaller than the device's own width cannot be
+      // the answer, and kernel_power is rounded down to a whole multiple wherever it is set, so every
+      // size autotune compares is a size the device can actually use.
+
+      const u32 multiple = bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device);
+
+      device_param->kernel_accel_min = MAX (multiple, 1);
+      device_param->kernel_accel_max = MAX (_kernel_accel, device_param->kernel_accel_min);
+
+      // An explicit -n has to be re-applied here. The override further up is clamped against the
+      // MODULE's accel bounds, and this block then overwrites the result, so on a bridge -n was
+      // being accepted and then silently discarded.
+      //
+      // It is clamped into the bridge's own range rather than rejected when it falls outside.
+      // get_workitem_count is not advice: it is the size the bridge has already allocated its
+      // per-candidate buffers for, so a larger launch writes past the end of them. Bridges that
+      // size those buffers against free host memory report a smaller count on a loaded machine,
+      // which is exactly when an unclamped -n would corrupt memory rather than just run slowly.
+      //
+      // Snapping down to a whole multiple keeps the launch a size the device can use, matching what
+      // kernel_power does everywhere else.
+
+      if (user_options->kernel_accel_chgd == true)
+      {
+        const u32 accel_req = MIN (MAX (user_options->kernel_accel, device_param->kernel_accel_min), device_param->kernel_accel_max);
+
+        const u32 accel_use = MAX ((accel_req / multiple) * multiple, device_param->kernel_accel_min);
+
+        device_param->kernel_accel_min = accel_use;
+        device_param->kernel_accel_max = accel_use;
+      }
     }
 
     // re-using context/command-queue, there is no need to re-initialize them

@@ -7,9 +7,27 @@
 #include "types.h"
 #include "event.h"
 #include "backend.h"
+#include "bridges.h"
 #include "status.h"
 #include "shared.h"
 #include "autotune.h"
+
+// How much longer a bridge is allowed to run per launch than a compute kernel is, per workload profile.
+//
+// TARGET_MSEC_PROFILE in backend.c is picked for a kernel on a GPU, where a short launch is what keeps a
+// display drawing. A bridge that replaced the loop kernel never enters that queue, which is the same
+// reason the TDR limit is waived for it further down in this file.
+//
+// It also pays far more for a short launch than a GPU does. A bridge unit that is wide internally runs
+// a launch's candidates through its whole compute array and then drains it, so the waste is one
+// array-fill per launch rather than a fixed overhead, and it grows as the launch gets shorter. On such
+// a unit the 96 ms that -w 3 asks for has been measured costing five to eleven percent of throughput,
+// against about 1.2 percent for a GPU running -m 1000.
+//
+// Scaling the whole ladder rather than moving one rung keeps -w meaning what it means: 1 and 2 stay the
+// responsive settings, 3 stays the default that should sit near peak, 4 stays maximum throughput.
+
+#define BRIDGE_TARGET_MSEC_SCALE 4
 
 int find_tuning_function (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED hc_device_param_t *device_param)
 {
@@ -43,7 +61,8 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   device_param->kernel_param.loop_cnt = kernel_loops; // not a bug, both need to be set
   device_param->kernel_param.il_cnt   = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
-  const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                           : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                            * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads);
 
   u32 kernel_power_try = hardware_power * kernel_accel;
@@ -132,7 +151,12 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  const double target_msec = backend_ctx->target_msec;
+  // see BRIDGE_TARGET_MSEC_SCALE above
+  const double target_msec = (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
+                           ? backend_ctx->target_msec * BRIDGE_TARGET_MSEC_SCALE
+                           : backend_ctx->target_msec;
+
+  const bool is_bridge = bridge_active (hashcat_ctx, device_param->bridge_link_device);
 
   const u32 kernel_accel_min = device_param->kernel_accel_min;
   const u32 kernel_accel_max = device_param->kernel_accel_max;
@@ -161,7 +185,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     device_param->kernel_accel   = kernel_accel_min;
     device_param->kernel_loops   = kernel_loops_min;
     device_param->kernel_threads = kernel_threads_min;
-    device_param->hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+    device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                                 : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_min);
     device_param->kernel_power   = device_param->hardware_power * kernel_accel_min;
   }
@@ -241,7 +266,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // from here it's clear we are allowed to autotune
     // so let's init some fake words
 
-    const u32 hardware_power_max = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+    const u32 hardware_power_max = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                                 : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_max);
 
     u32 kernel_power_max = hardware_power_max * kernel_accel_max;
@@ -497,8 +523,13 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         // in general, an unparallelized kernel should not run that long.
         // if the kernel uses barriers it will have a bad impact on performance.
         // streebog is a good testing example
+        //
+        // a bridge is not a kernel. it does not queue behind one and it has no barriers, so the 4 ms
+        // figure describes nothing about it. a bridge launch is tens to hundreds of milliseconds by
+        // design, which is the same reason the TDR limit is waived for it above. left in place this
+        // test ends the loops search at its first rung, whatever the workload profile asks for.
 
-        if (exec_msec > 4) break;
+        if ((exec_msec > 4) && (is_bridge == false)) break;
       }
 
       kernel_loops = kernel_loops_test;
@@ -716,7 +747,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_loops   = kernel_loops;
   device_param->kernel_threads = kernel_threads;
 
-  const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                           : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                            * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads);
 
   device_param->hardware_power = hardware_power;

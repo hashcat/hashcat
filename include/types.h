@@ -2086,14 +2086,23 @@ typedef struct backend_ctx
 
 } backend_ctx_t;
 
+// KERNEL_ACCEL_MAX bounds a per-multiprocessor multiplier, which is what kernel_accel means for a
+// compute kernel: the launch is hardware_power * kernel_accel, so 1024 is already an enormous grid.
+//
+// Under an assimilation bridge hardware_power is 1 and kernel_accel IS the candidate count in a
+// launch, so the same number is a much smaller thing. A bridge whose unit is itself wide computes in
+// waves of its own width and wants many whole waves per launch, which can put its useful range in the
+// thousands, and 1024 would then express only the bottom few percent of it.
+
 typedef enum kernel_workload
 {
-  KERNEL_ACCEL_MIN   = 1,
-  KERNEL_ACCEL_MAX   = 1024,
-  KERNEL_LOOPS_MIN   = 1,
-  KERNEL_LOOPS_MAX   = 1024,
-  KERNEL_THREADS_MIN = 1,
-  KERNEL_THREADS_MAX = 1024,
+  KERNEL_ACCEL_MIN        = 1,
+  KERNEL_ACCEL_MAX        = 1024,
+  KERNEL_ACCEL_MAX_BRIDGE = 16384,
+  KERNEL_LOOPS_MIN        = 1,
+  KERNEL_LOOPS_MAX        = 1024,
+  KERNEL_THREADS_MIN      = 1,
+  KERNEL_THREADS_MAX      = 1024,
 
 } kernel_workload_t;
 
@@ -3107,9 +3116,10 @@ typedef struct bridge_ctx
   void     *(*platform_init)      (user_options_t *, folder_config_t *);
   void      (*platform_term)      (void *);
 
-  int       (*get_unit_count)     (void *);
-  char     *(*get_unit_info)      (void *, const int);
-  int       (*get_workitem_count) (void *, const int);
+  int       (*get_unit_count)        (void *);
+  char     *(*get_unit_info)         (void *, const int);
+  int       (*get_workitem_count)    (void *, const int);
+  int       (*get_workitem_multiple) (void *, const int);
 
   bool      (*salt_prepare)       (void *, hashconfig_t *, hashes_t *);
   void      (*salt_destroy)       (void *, hashconfig_t *, hashes_t *);

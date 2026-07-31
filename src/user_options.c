@@ -1076,9 +1076,18 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->kernel_accel > 1024)
+    // This runs long before hashconfig_init, so whether the selected mode is an assimilation bridge
+    // is not knowable yet. Only the looser of the two ceilings can be applied here. The tighter
+    // KERNEL_ACCEL_MAX is enforced in backend.c for a non-bridge mode, where the mode IS known.
+    //
+    // A non-bridge mode still refuses exactly the values it refused before, with the same message and
+    // the same exit. What did change is WHEN: the refusal now comes during backend startup rather
+    // than during argument parsing, so devices are enumerated first. That is the price of the mode
+    // not being known here, and it is only paid on a command line that was going to be rejected.
+
+    if (user_options->kernel_accel > KERNEL_ACCEL_MAX_BRIDGE)
     {
-      event_log_error (hashcat_ctx, "Invalid --kernel-accel value specified - must be <= 1024.");
+      event_log_error (hashcat_ctx, "Invalid --kernel-accel value specified - must be <= %d.", KERNEL_ACCEL_MAX_BRIDGE);
 
       return -1;
     }
