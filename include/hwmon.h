@@ -12,6 +12,12 @@
 #define HC_HWMON_H
 
 bool hm_is_hwmon_group_leader (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
+bool hm_bridge_owns_device    (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
+
+bool hm_get_bridge_temperature_str   (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, char *buf, const size_t len);
+u32  hm_get_bridge_temperature_abort (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
+
+u32  hm_bridge_temperature_abort_report (hashcat_ctx_t *hashcat_ctx);
 
 int hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);

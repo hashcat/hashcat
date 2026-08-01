@@ -19,6 +19,7 @@
 #include "status.h"
 #include "shared.h"
 #include "event.h"
+#include "hwmon.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -620,13 +621,24 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_info (hashcat_ctx, "Watchdog: Hardware monitoring interface not found on your system.");
   }
 
-  if (hwmon_ctx->enabled == true && user_options->hwmon_temp_abort > 0)
+  if ((hwmon_ctx->enabled == true) && (user_options->hwmon_temp_abort > 0))
   {
     event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->hwmon_temp_abort);
+
+    // A bridge unit may carry its own limit, which is what the watchdog will really use for it. The
+    // banner above would otherwise name a threshold that never applies to the hardware doing the work.
+
+    hm_bridge_temperature_abort_report (hashcat_ctx);
   }
   else
   {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
+    // Reaching here does not mean nothing is watched. A bridge unit carrying its own limit is still
+    // watched, and no vendor library is involved in that, so report the run as unprotected only when
+    // no unit named a limit either.
+
+    const u32 bridge_limits = hm_bridge_temperature_abort_report (hashcat_ctx);
+
+    if (bridge_limits == 0) event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
   }
 
   event_log_info (hashcat_ctx, NULL);

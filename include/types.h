@@ -3142,6 +3142,20 @@ typedef struct bridge_ctx
   // particular unit cannot give, or 0 for the unsigned ones, which is what the rest of hwmon uses.
 
   int (*get_unit_temperature) (void *, const int);
+
+  // Optional. A bridge unit whose hardware carries SEVERAL temperature sensors can render its own
+  // field, so all of the readings show on one line instead of a single summary number. Return false
+  // to let the plain get_unit_temperature reading be formatted as usual.
+
+  bool (*get_unit_temperature_str) (void *, const int, char *, const size_t);
+
+  // Optional. What temperature this unit must not exceed, when the bridge knows better than the
+  // watchdog's default does. The default is chosen for GPUs, and a unit that is not one has no reason
+  // to share it: its sensor may not sit where a GPU's does, so the same number does not mean the same
+  // thing. Return 0 to keep the default.
+
+  u32 (*get_unit_temperature_abort) (void *, const int);
+
   int (*get_unit_fanspeed)    (void *, const int);
   int (*get_unit_utilization) (void *, const int);
   int (*get_unit_corespeed)   (void *, const int);

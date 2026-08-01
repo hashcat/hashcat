@@ -150,6 +150,8 @@ static bool hm_bridge_has_sensors (const bridge_ctx_t *bridge_ctx)
   const void *funcs[] =
   {
     (const void *) bridge_ctx->get_unit_temperature,
+    (const void *) bridge_ctx->get_unit_temperature_str,
+    (const void *) bridge_ctx->get_unit_temperature_abort,
     (const void *) bridge_ctx->get_unit_fanspeed,
     (const void *) bridge_ctx->get_unit_utilization,
     (const void *) bridge_ctx->get_unit_corespeed,
@@ -193,6 +195,23 @@ static int hm_get_bridge_unit (hashcat_ctx_t *hashcat_ctx, const int backend_dev
   if (func == MODULE_DEFAULT) return HM_BRIDGE_NO_READING;
 
   return unit;
+}
+
+// Does this device's sensor reporting belong to a bridge unit rather than to the backend device?
+//
+// Callers that treat the backend device as the thing being measured need to know, because under a
+// bridge it is not. What kind of device the backend one is says nothing about the hardware the
+// readings describe.
+
+bool hm_bridge_owns_device (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  const int unit = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) bridge_ctx->get_unit_temperature);
+
+  const bool result = (unit != HM_BRIDGE_PASS);
+
+  return result;
 }
 
 // Is this device the one that should carry the hwmon line for its hardware?
@@ -355,6 +374,84 @@ int hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, cons
   hwmon_ctx->hm_device[backend_device_idx].threshold_shutdown_get_supported = false;
 
   return -1;
+}
+
+// A bridge unit's own rendering of its temperature field, when it has more to say than one number.
+
+bool hm_get_bridge_temperature_str (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, char *buf, const size_t len)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->get_unit_temperature_str == NULL)           return false;
+  if (bridge_ctx->get_unit_temperature_str == MODULE_DEFAULT) return false;
+
+  const int unit = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) bridge_ctx->get_unit_temperature_str);
+
+  if (unit == HM_BRIDGE_NO_READING) return false;
+  if (unit == HM_BRIDGE_PASS)       return false;
+
+  const bool result = bridge_ctx->get_unit_temperature_str (bridge_ctx->platform_context, unit, buf, len);
+
+  return result;
+}
+
+// What this device must not get hotter than. A bridge unit may know better than the watchdog's
+// default, which is a GPU number applied to whatever hardware is present. Zero means it has nothing
+// to say and the user's setting stands.
+
+u32 hm_get_bridge_temperature_abort (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->get_unit_temperature_abort == NULL)           return 0;
+  if (bridge_ctx->get_unit_temperature_abort == MODULE_DEFAULT) return 0;
+
+  const int unit = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) bridge_ctx->get_unit_temperature_abort);
+
+  if (unit == HM_BRIDGE_NO_READING) return 0;
+  if (unit == HM_BRIDGE_PASS)       return 0;
+
+  const u32 result = bridge_ctx->get_unit_temperature_abort (bridge_ctx->platform_context, unit);
+
+  return result;
+}
+
+// Name the limits the watchdog will really enforce, for the units that carry one of their own. The
+// user's setting is not the number that applies to those, so it is worth saying which is.
+//
+// Returns how many devices named a limit, so the caller can tell whether the watchdog is really off.
+
+u32 hm_bridge_temperature_abort_report (hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (backend_ctx->enabled == false) return 0;
+
+  u32 reported = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    // Devices that share one piece of hardware share its limit too, so only the device that carries
+    // the hwmon line for that hardware names it. Otherwise a bridge with many units on one device
+    // would print the same line once per unit.
+
+    if (hm_is_hwmon_group_leader (hashcat_ctx, backend_devices_idx) == false) continue;
+
+    const u32 temp_abort = hm_get_bridge_temperature_abort (hashcat_ctx, backend_devices_idx);
+
+    if (temp_abort == 0) continue;
+
+    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger for device #%d set to %uc", backend_devices_idx + 1, temp_abort);
+
+    reported++;
+  }
+
+  return reported;
 }
 
 int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)

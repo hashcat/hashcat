@@ -86,6 +86,21 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
   {
     hwmon_check = true;
   }
+  else
+  {
+    // hwmon_ctx->enabled says a GPU vendor library loaded. A bridge reports its units' sensors
+    // without one, and a machine whose real compute is a bridge device may well have none, so the
+    // watchdog would never run on exactly the hardware that needs watching.
+
+    for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+    {
+      if (hm_bridge_owns_device (hashcat_ctx, backend_devices_idx) == false) continue;
+
+      hwmon_check = true;
+
+      break;
+    }
+  }
 
   if (hwmon_ctx->enabled == true)
   {
@@ -115,7 +130,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
     if (status_ctx->devices_status == STATUS_INIT) continue;
 
-    if (hwmon_ctx->enabled == true)
+    if (hwmon_check == true)
     {
       hc_thread_mutex_lock (status_ctx->mux_hwmon);
 
@@ -125,11 +140,25 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
         if (device_param->skipped == true) continue;
 
-        if ((backend_ctx->devices_param[backend_devices_idx].opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+        // The GPU test guards the vendor sensor path, where a CPU's reading is not something to end
+        // a run over. A bridge unit is a different case: it is the hardware doing the work, and its
+        // reading comes from the bridge, so it is watched whatever the backend feeder device is.
+
+        const bool bridge_owns = hm_bridge_owns_device (hashcat_ctx, backend_devices_idx);
+        const bool is_gpu      = ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) != 0);
+
+        if ((bridge_owns == false) && (is_gpu == false)) continue;
 
         const int temperature = hm_get_temperature_with_devices_idx (hashcat_ctx, backend_devices_idx);
 
-        if (temperature > (int) user_options->hwmon_temp_abort)
+        // A bridge unit may carry its own limit. The default is a GPU number, and a unit that is not
+        // a GPU has no reason to inherit it.
+
+        const u32 temp_abort_unit = hm_get_bridge_temperature_abort (hashcat_ctx, backend_devices_idx);
+
+        const u32 temp_abort = (temp_abort_unit > 0) ? temp_abort_unit : user_options->hwmon_temp_abort;
+
+        if (temperature > (int) temp_abort)
         {
           EVENT_DATA (EVENT_MONITOR_TEMP_ABORT, &backend_devices_idx, sizeof (int));
 
@@ -137,7 +166,7 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
         }
         #if defined (__APPLE__)
         // experimental feature, check the "Sensor Graphic Hot" sensor through IOKIT/SMC to catch a GPU overtemp alarm
-        else if (temperature > (int) (user_options->hwmon_temp_abort - 10))
+        else if (temperature > (int) (temp_abort - 10))
         {
           if (hm_IOKIT_SMCGetSensorGraphicHot (hashcat_ctx) == 1)
           {

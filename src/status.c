@@ -2176,7 +2176,19 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
 
   int output_len = 0;
 
-  if (num_temperature >= 0)
+  // A bridge unit carrying several temperature sensors renders its own field, so all of the readings
+  // show on one line. The plain reading is still what the abort watchdog uses, because the unit is
+  // only as cool as its hottest sensor.
+
+  char temp_str[64];
+
+  temp_str[0] = 0;
+
+  if (hm_get_bridge_temperature_str ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx, temp_str, sizeof (temp_str)) == true)
+  {
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "%s ", temp_str);
+  }
+  else if (num_temperature >= 0)
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3dc ", num_temperature);
   }

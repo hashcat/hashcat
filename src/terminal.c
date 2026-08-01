@@ -12,6 +12,7 @@
 #include "status.h"
 #include "shared.h"
 #include "hwmon.h"
+#include "bridges.h"
 #include "interface.h"
 #include "hashcat.h"
 #include "timer.h"
@@ -3050,6 +3051,54 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_status);
 }
 
+// The per device speed lines for a run that is driven by a bridge.
+//
+// A bridge does the work, so the backend device's thread and vector geometry says nothing about it.
+// Report what the bridge is actually handed instead: the candidates in a launch, and the iteration
+// chunk that launch covers.
+//
+// Units are listed one per line when the bridge computes in waves, because that is an accelerator and
+// each unit is a separate piece of hardware whose own rate is worth seeing, the same way a multi-GPU
+// run lists its devices. A bridge that expresses its parallelism as many NARROW units instead, one
+// CPU thread each, reports a multiple of 1, and listing every one of those would be a wall of lines
+// that says nothing, so they stay folded into the total below.
+
+static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashcat_status_t *hashcat_status)
+{
+  const bool wide_units = (bridge_workitem_multiple (hashcat_ctx, 0) > 1);
+
+  if ((hashcat_status->device_info_cnt > 1) && (wide_units == false)) return;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
+
+    // with a single unit there is no total line underneath, so it carries the #* itself
+
+    if (hashcat_status->device_info_cnt == 1)
+    {
+      event_log_info (hashcat_ctx,
+        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
+        device_info->speed_sec_dev,
+        device_info->exec_msec_dev,
+        device_info->kernel_power_dev,
+        device_info->kernel_loops_dev);
+
+      continue;
+    }
+
+    event_log_info (hashcat_ctx,
+      "Speed.#%02u........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u", device_id + 1,
+      device_info->speed_sec_dev,
+      device_info->exec_msec_dev,
+      device_info->kernel_power_dev,
+      device_info->kernel_loops_dev);
+  }
+}
+
 void status_display (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
@@ -3490,20 +3539,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    if (hashcat_status->device_info_cnt == 1)
-    {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
-
-      // A bridge does the work, so the backend device's thread and vector geometry says nothing about
-      // it. Report what the bridge is actually handed instead: the candidates in a launch, and the
-      // iteration chunk that launch covers.
-      event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
-        device_info0->speed_sec_dev,
-        device_info0->exec_msec_dev,
-        device_info0->kernel_power_dev,
-        device_info0->kernel_loops_dev);
-    }
+    status_display_bridge_speed (hashcat_ctx, hashcat_status);
   }
   else
   {
@@ -3921,20 +3957,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    if (hashcat_status->device_info_cnt == 1)
-    {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
-
-      // A bridge does the work, so the backend device's thread and vector geometry says nothing about
-      // it. Report what the bridge is actually handed instead: the candidates in a launch, and the
-      // iteration chunk that launch covers.
-      event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
-        device_info0->speed_sec_dev,
-        device_info0->exec_msec_dev,
-        device_info0->kernel_power_dev,
-        device_info0->kernel_loops_dev);
-    }
+    status_display_bridge_speed (hashcat_ctx, hashcat_status);
   }
   else
   {
