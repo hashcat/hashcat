@@ -10,6 +10,8 @@
 #include "memory.h"
 #include "ext_lzma.h"
 #include "cpu_features.h"
+#include "interface.h"
+#include "event.h"
 #include <errno.h>
 
 #if defined (__CYGWIN__)
@@ -1995,4 +1997,466 @@ static void hc_memchr_init (void)
 hc_memchr_t hc_memchr_get (void)
 {
   return hc_memchr_cached;
+}
+
+typedef struct hash_mode_map_entry
+{
+  char *hash_name;
+  u32   hash_mode;
+  struct hash_mode_map_entry *next;
+} hash_mode_map_entry_t;
+
+static hash_mode_map_entry_t **hash_mode_map = NULL;
+static u32 hash_mode_map_size = 0;
+
+static u32 hash_string (const char *str)
+{
+  u32 hash = 5381;
+  int c;
+
+  while ((c = *str++))
+  {
+    hash = ((hash << 5) + hash) + c;
+  }
+
+  return hash;
+}
+
+static char *generate_friendly_alias (const char *hash_name)
+{
+  if (hash_name == NULL) return NULL;
+
+  const size_t len = strlen (hash_name);
+  char *buffer = (char *) hcmalloc (len * 2 + 1);
+
+  if (buffer == NULL) return NULL;
+
+  size_t pos = 0;
+  bool prev_hyphen = false;
+
+  for (size_t i = 0; i < len; i++)
+  {
+    const char c = hash_name[i];
+
+    if (c == '$')
+    {
+      if (strncmp (hash_name + i, "$pass", 5) == 0)
+      {
+        if (pos > 0 && buffer[pos - 1] != '-')
+        {
+          buffer[pos++] = '-';
+        }
+        buffer[pos++] = 'p';
+        buffer[pos++] = 'a';
+        buffer[pos++] = 's';
+        buffer[pos++] = 's';
+        i += 4;
+        prev_hyphen = false;
+        continue;
+      }
+      else if (strncmp (hash_name + i, "$salt", 5) == 0)
+      {
+        if (pos > 0 && buffer[pos - 1] != '-')
+        {
+          buffer[pos++] = '-';
+        }
+        buffer[pos++] = 's';
+        buffer[pos++] = 'a';
+        buffer[pos++] = 'l';
+        buffer[pos++] = 't';
+        i += 4;
+        prev_hyphen = false;
+        continue;
+      }
+      else if (strncmp (hash_name + i, "$salt1", 6) == 0)
+      {
+        if (pos > 0 && buffer[pos - 1] != '-')
+        {
+          buffer[pos++] = '-';
+        }
+        buffer[pos++] = 's';
+        buffer[pos++] = 'a';
+        buffer[pos++] = 'l';
+        buffer[pos++] = 't';
+        buffer[pos++] = '1';
+        i += 5;
+        prev_hyphen = false;
+        continue;
+      }
+      else if (strncmp (hash_name + i, "$salt2", 6) == 0)
+      {
+        if (pos > 0 && buffer[pos - 1] != '-')
+        {
+          buffer[pos++] = '-';
+        }
+        buffer[pos++] = 's';
+        buffer[pos++] = 'a';
+        buffer[pos++] = 'l';
+        buffer[pos++] = 't';
+        buffer[pos++] = '2';
+        i += 5;
+        prev_hyphen = false;
+        continue;
+      }
+    }
+    else if (c == '(')
+    {
+      if (pos > 0 && buffer[pos - 1] != '-')
+      {
+        buffer[pos++] = '-';
+        prev_hyphen = true;
+      }
+    }
+    else if (c == ')')
+    {
+    }
+    else if (c == '.')
+    {
+      if (pos > 0 && buffer[pos - 1] != '-')
+      {
+        buffer[pos++] = '-';
+        prev_hyphen = true;
+      }
+    }
+    else if (c == ' ' || c == '\t' || c == '/' || c == '+')
+    {
+      if (pos > 0 && buffer[pos - 1] != '-')
+      {
+        buffer[pos++] = '-';
+        prev_hyphen = true;
+      }
+    }
+    else if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))
+    {
+      buffer[pos++] = c;
+      prev_hyphen = false;
+    }
+    else if (c >= 'A' && c <= 'Z')
+    {
+      buffer[pos++] = c + 32;
+      prev_hyphen = false;
+    }
+    else if (c == '-')
+    {
+      if (!prev_hyphen && pos > 0)
+      {
+        buffer[pos++] = '-';
+        prev_hyphen = true;
+      }
+    }
+  }
+
+  buffer[pos] = '\0';
+
+  while (pos > 0 && buffer[pos - 1] == '-')
+  {
+    buffer[--pos] = '\0';
+  }
+
+  if (pos == 0)
+  {
+    hcfree (buffer);
+    return NULL;
+  }
+
+  char *result = hcstrdup (buffer);
+  hcfree (buffer);
+
+  return result;
+}
+
+int build_hash_mode_map (hashcat_ctx_t *hashcat_ctx)
+{
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+  module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
+  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  const u32 map_size = 1024;
+
+  hash_mode_map = (hash_mode_map_entry_t **) hccalloc (map_size, sizeof (hash_mode_map_entry_t *));
+
+  if (hash_mode_map == NULL) return -1;
+
+  hash_mode_map_size = map_size;
+
+  const u32 old_hash_mode = user_options->hash_mode;
+  const bool old_quiet = user_options->quiet;
+
+  user_options->quiet = true;
+
+  char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  if (modulefile == NULL)
+  {
+    hcfree (hash_mode_map);
+    hash_mode_map = NULL;
+    hash_mode_map_size = 0;
+    return -1;
+  }
+
+  for (u32 i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
+  {
+    module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+
+    if (hc_path_exist (modulefile) == false) continue;
+
+    user_options->hash_mode = i;
+
+    const int hashconfig_init_rc = hashconfig_init (hashcat_ctx);
+
+    if (hashconfig_init_rc == 0)
+    {
+      if (module_ctx->module_hash_name != NULL)
+      {
+        const char *hash_name = module_ctx->module_hash_name (hashconfig, user_options, user_options_extra);
+
+        if (hash_name != NULL)
+        {
+          const u32 hash = hash_string (hash_name) % map_size;
+
+          hash_mode_map_entry_t *entry = (hash_mode_map_entry_t *) hcmalloc (sizeof (hash_mode_map_entry_t));
+
+          if (entry != NULL)
+          {
+            entry->hash_name = hcstrdup (hash_name);
+            entry->hash_mode = i;
+            entry->next = hash_mode_map[hash];
+            hash_mode_map[hash] = entry;
+          }
+
+          char *friendly_alias = generate_friendly_alias (hash_name);
+
+          if (friendly_alias != NULL && strcmp (friendly_alias, hash_name) != 0)
+          {
+            const u32 alias_hash = hash_string (friendly_alias) % map_size;
+
+            bool alias_exists = false;
+            hash_mode_map_entry_t *alias_entry = hash_mode_map[alias_hash];
+
+            while (alias_entry != NULL)
+            {
+              if (strcmp (alias_entry->hash_name, friendly_alias) == 0)
+              {
+                if (alias_entry->hash_mode > i)
+                {
+                  alias_entry->hash_mode = i;
+                }
+                alias_exists = true;
+                break;
+              }
+              alias_entry = alias_entry->next;
+            }
+
+            if (alias_exists == false)
+            {
+              hash_mode_map_entry_t *alias_entry_new = (hash_mode_map_entry_t *) hcmalloc (sizeof (hash_mode_map_entry_t));
+
+              if (alias_entry_new != NULL)
+              {
+                alias_entry_new->hash_name = friendly_alias;
+                alias_entry_new->hash_mode = i;
+                alias_entry_new->next = hash_mode_map[alias_hash];
+                hash_mode_map[alias_hash] = alias_entry_new;
+              }
+              else
+              {
+                hcfree (friendly_alias);
+              }
+            }
+            else
+            {
+              hcfree (friendly_alias);
+            }
+          }
+          else if (friendly_alias != NULL)
+          {
+            hcfree (friendly_alias);
+          }
+        }
+      }
+
+      hashconfig_destroy (hashcat_ctx);
+    }
+  }
+
+  hcfree (modulefile);
+
+  user_options->hash_mode = old_hash_mode;
+  user_options->quiet = old_quiet;
+
+  return 0;
+}
+
+void destroy_hash_mode_map (hashcat_ctx_t *hashcat_ctx)
+{
+  if (hash_mode_map == NULL) return;
+
+  for (u32 i = 0; i < hash_mode_map_size; i++)
+  {
+    hash_mode_map_entry_t *entry = hash_mode_map[i];
+
+    while (entry != NULL)
+    {
+      hash_mode_map_entry_t *next = entry->next;
+
+      hcfree (entry->hash_name);
+      hcfree (entry);
+
+      entry = next;
+    }
+  }
+
+  hcfree (hash_mode_map);
+  hash_mode_map = NULL;
+  hash_mode_map_size = 0;
+}
+
+u32 hash_mode_from_string (hashcat_ctx_t *hashcat_ctx, const char *str)
+{
+  if (str == NULL) return -1;
+
+  if (hc_string_is_digit (str) == true)
+  {
+    return hc_strtoul (str, NULL, 10);
+  }
+
+  if (hash_mode_map == NULL)
+  {
+    if (hashcat_ctx->folder_config != NULL)
+    {
+      if (build_hash_mode_map (hashcat_ctx) == -1)
+      {
+        return -1;
+      }
+    }
+    else
+    {
+      return -1;
+    }
+  }
+
+  char *normalized_str = (char *) hcmalloc (strlen (str) + 1);
+
+  if (normalized_str == NULL) return -1;
+
+  for (size_t i = 0; str[i] != '\0'; i++)
+  {
+    if (str[i] >= 'A' && str[i] <= 'Z')
+    {
+      normalized_str[i] = str[i] + 32;
+    }
+    else
+    {
+      normalized_str[i] = str[i];
+    }
+  }
+
+  normalized_str[strlen (str)] = '\0';
+
+  const u32 hash = hash_string (normalized_str) % hash_mode_map_size;
+
+  hash_mode_map_entry_t *entry = hash_mode_map[hash];
+
+  while (entry != NULL)
+  {
+    if (strcmp (entry->hash_name, normalized_str) == 0)
+    {
+      hcfree (normalized_str);
+      return entry->hash_mode;
+    }
+
+    entry = entry->next;
+  }
+
+  hcfree (normalized_str);
+
+  return -1;
+}
+
+void list_hash_modes (hashcat_ctx_t *hashcat_ctx)
+{
+  folder_config_t      *folder_config      = hashcat_ctx->folder_config;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->machine_readable == false)
+  {
+    event_log_info (hashcat_ctx, "Hash Modes:");
+    event_log_info (hashcat_ctx, "===========");
+    event_log_info (hashcat_ctx, NULL);
+    event_log_info (hashcat_ctx, "  # | Hash-Name | Alias");
+    event_log_info (hashcat_ctx, " ===+==========+==========");
+    event_log_info (hashcat_ctx, NULL);
+  }
+
+  char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+  if (modulefile == NULL) return;
+
+  if (user_options->machine_readable == true) printf ("{ ");
+
+  bool first = true;
+
+  for (u32 i = 0; i < MODULE_HASH_MODES_MAXIMUM; i++)
+  {
+    module_filename (folder_config, i, modulefile, HCBUFSIZ_TINY);
+
+    if (hc_path_exist (modulefile) == false) continue;
+
+    user_options->hash_mode = i;
+
+    const int hashconfig_init_rc = hashconfig_init (hashcat_ctx);
+
+    if (hashconfig_init_rc == 0)
+    {
+      if (hashcat_ctx->module_ctx->module_hash_name != NULL)
+      {
+        const char *hash_name = hashcat_ctx->module_ctx->module_hash_name (hashcat_ctx->hashconfig, user_options, user_options_extra);
+
+        if (hash_name != NULL)
+        {
+          char *friendly_alias = generate_friendly_alias (hash_name);
+          const char *display_alias = (friendly_alias != NULL && strcmp (friendly_alias, hash_name) != 0) ? friendly_alias : "";
+
+          if (user_options->machine_readable == true)
+          {
+            if (first == false) printf (", ");
+            if (display_alias[0] != '\0')
+            {
+              printf ("{\"hash_mode\":%u,\"hash_name\":\"%s\",\"alias\":\"%s\"}", i, hash_name, display_alias);
+            }
+            else
+            {
+              printf ("{\"hash_mode\":%u,\"hash_name\":\"%s\"}", i, hash_name);
+            }
+            first = false;
+          }
+          else
+          {
+            if (display_alias[0] != '\0')
+            {
+              event_log_info (hashcat_ctx, "  %u | %s | %s", i, hash_name, display_alias);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "  %u | %s", i, hash_name);
+            }
+          }
+
+          if (friendly_alias != NULL)
+          {
+            hcfree (friendly_alias);
+          }
+        }
+      }
+
+      hashconfig_destroy (hashcat_ctx);
+    }
+  }
+
+  if (user_options->machine_readable == true) printf (" }");
+
+  hcfree (modulefile);
 }

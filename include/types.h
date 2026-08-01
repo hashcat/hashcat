@@ -864,6 +864,7 @@ typedef enum user_options_map
   IDX_ENCODING_TO               = 0xff16,
   IDX_HASH_COPY                 = 0xff62,
   IDX_HASH_INFO                 = 'H', // 0xff17
+  IDX_LIST_HASH_MODES           = 0xff63,
   IDX_FORCE                     = 0xff18,
   IDX_HWMON_DISABLE             = 0xff19,
   IDX_HWMON_TEMP_ABORT          = 0xff1a,
@@ -2590,6 +2591,7 @@ typedef struct user_options
   u32          debug_mode;
   u32          hwmon_temp_abort;
   u32          hash_info;
+  bool         list_hash_modes;
   int          hash_mode;
   u32          hccapx_message_pair;
   u32          hook_threads;

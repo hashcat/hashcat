@@ -19,6 +19,7 @@
 #include "status.h"
 #include "shared.h"
 #include "event.h"
+#include "folder.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -194,6 +195,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
 
   if (user_options->backend_info  > 0)    return;
   if (user_options->hash_info     > 0)    return;
+  if (user_options->list_hash_modes == true) return;
 
   if (user_options->keyspace     == true) return;
   if (user_options->stdout_flag  == true) return;
@@ -281,6 +283,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   if (user_options->backend_info  > 0)    return;
   if (user_options->hash_info     > 0)    return;
+  if (user_options->list_hash_modes == true) return;
 
   if (user_options->keyspace     == true) return;
   if (user_options->stdout_flag  == true) return;
@@ -1377,10 +1380,35 @@ int main (int argc, char **argv)
     return -1;
   }
 
+  if (event_ctx_init (hashcat_ctx) == -1)
+  {
+    user_options_destroy (hashcat_ctx);
+
+    hashcat_destroy (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return -1;
+  }
+
+  if (folder_config_init (hashcat_ctx, install_folder, shared_folder) == -1)
+  {
+    user_options_destroy (hashcat_ctx);
+
+    hashcat_destroy (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return -1;
+  }
+
   // parse commandline parameters and check them
 
   if (user_options_getopt (hashcat_ctx, argc, argv) == -1)
   {
+    folder_config_destroy (hashcat_ctx);
+    event_ctx_destroy (hashcat_ctx);
+
     user_options_destroy (hashcat_ctx);
 
     hashcat_destroy (hashcat_ctx);
@@ -1392,6 +1420,9 @@ int main (int argc, char **argv)
 
   if (user_options_sanity (hashcat_ctx) == -1)
   {
+    folder_config_destroy (hashcat_ctx);
+    event_ctx_destroy (hashcat_ctx);
+
     user_options_destroy (hashcat_ctx);
 
     hashcat_destroy (hashcat_ctx);
@@ -1410,6 +1441,9 @@ int main (int argc, char **argv)
   {
     const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist, user_options->brain_server_timer);
 
+    folder_config_destroy (hashcat_ctx);
+    event_ctx_destroy (hashcat_ctx);
+
     hcfree (hashcat_ctx);
 
     return rc;
@@ -1419,6 +1453,9 @@ int main (int argc, char **argv)
   if (user_options->version == true)
   {
     printf ("%s\n", VERSION_TAG);
+
+    folder_config_destroy (hashcat_ctx);
+    event_ctx_destroy (hashcat_ctx);
 
     user_options_destroy (hashcat_ctx);
 
@@ -1437,9 +1474,28 @@ int main (int argc, char **argv)
 
   if (hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME) == 0)
   {
+    if (build_hash_mode_map (hashcat_ctx) == -1)
+    {
+      hashcat_session_destroy (hashcat_ctx);
+
+      user_options_destroy (hashcat_ctx);
+
+      hashcat_destroy (hashcat_ctx);
+
+      hcfree (hashcat_ctx);
+
+      return -1;
+    }
+
     if (user_options->usage > 0)
     {
       usage_big_print (hashcat_ctx);
+
+      rc_final = 0;
+    }
+    else if (user_options->list_hash_modes == true)
+    {
+      list_hash_modes (hashcat_ctx);
 
       rc_final = 0;
     }
@@ -1472,6 +1528,11 @@ int main (int argc, char **argv)
   // finish the hashcat session, this shuts down backend devices, hwmon, etc
 
   hashcat_session_destroy (hashcat_ctx);
+
+  destroy_hash_mode_map (hashcat_ctx);
+
+  folder_config_destroy (hashcat_ctx);
+  event_ctx_destroy (hashcat_ctx);
 
   // finished with hashcat, clean up
 
