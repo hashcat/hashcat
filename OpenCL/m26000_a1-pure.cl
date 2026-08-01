@@ -125,14 +125,39 @@ KERNEL_FQ KERNEL_FA void m26000_mxx (KERN_ATTR_ESALT (mozilla_3des_t))
       c[idx] = combs_buf[il_pos].i[idx];
     }
 
-    switch_buffer_by_offset_1x64_le_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      c[i] |= w[i];
+      switch_buffer_by_offset_1x64_le_S (c, pw_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w[i];
+      }
+    }
+    else
+    {
+      u32 w_tmp[64];
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        w_tmp[i] = w[i];
+      }
+
+      switch_buffer_by_offset_1x64_le_S (w_tmp, comb_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w_tmp[i];
+      }
     }
 
     // my $hp = sha1 ($global_salt_bin . $word);
@@ -504,14 +529,39 @@ KERNEL_FQ KERNEL_FA void m26000_sxx (KERN_ATTR_ESALT (mozilla_3des_t))
       c[idx] = combs_buf[il_pos].i[idx];
     }
 
-    switch_buffer_by_offset_1x64_le_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (int i = 0; i < 64; i++)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      c[i] |= w[i];
+      switch_buffer_by_offset_1x64_le_S (c, pw_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w[i];
+      }
+    }
+    else
+    {
+      u32 w_tmp[64];
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        w_tmp[i] = w[i];
+      }
+
+      switch_buffer_by_offset_1x64_le_S (w_tmp, comb_len);
+
+      #ifdef _unroll
+      #pragma unroll
+      #endif
+      for (int i = 0; i < 64; i++)
+      {
+        c[i] |= w_tmp[i];
+      }
     }
 
     // my $hp = sha1 ($global_salt_bin . $word);

@@ -415,18 +415,37 @@ KERNEL_FQ KERNEL_FA void m20510_sxx (KERN_ATTR_BASIC ())
     u32x key1 = prep1;
     u32x key2 = prep2;
 
-    for (int pos = combs_buf[il_pos].pw_len - 1; pos >= 0; pos--)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      const u32 t = hc_bfe_S (combs_buf[il_pos].i[pos / 4], (pos & 3) * 8, 8);
+      for (int pos = combs_buf[il_pos].pw_len - 1; pos >= 0; pos--)
+      {
+        const u32 t = hc_bfe_S (combs_buf[il_pos].i[pos / 4], (pos & 3) * 8, 8);
 
-      inv_update_key012 (key0, key1, key2, t, l_icrc32tab);
+        inv_update_key012 (key0, key1, key2, t, l_icrc32tab);
+      }
+
+      for (int pos = pws_pw_len - 1; pos >= 0; pos--)
+      {
+        const u32 t = hc_bfe_S (w[pos / 4], (pos & 3) * 8, 8);
+
+        inv_update_key012 (key0, key1, key2, t, l_icrc32tab);
+      }
     }
-
-    for (int pos = pws_pw_len - 1; pos >= 0; pos--)
+    else
     {
-      const u32 t = hc_bfe_S (w[pos / 4], (pos & 3) * 8, 8);
+      for (int pos = pws_pw_len - 1; pos >= 0; pos--)
+      {
+        const u32 t = hc_bfe_S (w[pos / 4], (pos & 3) * 8, 8);
 
-      inv_update_key012 (key0, key1, key2, t, l_icrc32tab);
+        inv_update_key012 (key0, key1, key2, t, l_icrc32tab);
+      }
+
+      for (int pos = combs_buf[il_pos].pw_len - 1; pos >= 0; pos--)
+      {
+        const u32 t = hc_bfe_S (combs_buf[il_pos].i[pos / 4], (pos & 3) * 8, 8);
+
+        inv_update_key012 (key0, key1, key2, t, l_icrc32tab);
+      }
     }
 
     u32 password[2];

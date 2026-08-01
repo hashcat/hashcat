@@ -41,7 +41,12 @@ KERNEL_FQ KERNEL_FA void m11500_mxx (KERN_ATTR_BASIC ())
    * base
    */
 
-  u32x a_ref = crc32_global (pws[gid].i, pws[gid].pw_len, iv);
+  u32x a_ref;
+
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    a_ref = crc32_global (pws[gid].i, pws[gid].pw_len, iv);
+  }
 
   /**
    * loop
@@ -49,7 +54,18 @@ KERNEL_FQ KERNEL_FA void m11500_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    u32x a = crc32_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref);
+    u32x a;
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      a = crc32_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref);
+    }
+    else
+    {
+      a = crc32_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, iv);
+
+      a = crc32_global (pws[gid].i, pws[gid].pw_len, a);
+    }
 
     u32x z = 0;
 
@@ -95,7 +111,12 @@ KERNEL_FQ KERNEL_FA void m11500_sxx (KERN_ATTR_BASIC ())
    * base
    */
 
-  const u32x a_ref = crc32_global (pws[gid].i, pws[gid].pw_len, iv);
+  u32x a_ref;
+
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    a_ref = crc32_global (pws[gid].i, pws[gid].pw_len, iv);
+  }
 
   /**
    * loop
@@ -103,7 +124,18 @@ KERNEL_FQ KERNEL_FA void m11500_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    u32x a = crc32_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref);
+    u32x a;
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      a = crc32_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref);
+    }
+    else
+    {
+      a = crc32_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, iv);
+
+      a = crc32_global (pws[gid].i, pws[gid].pw_len, a);
+    }
 
     u32x z = 0;
 

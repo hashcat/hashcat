@@ -483,7 +483,6 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
 int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u64 *result)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -574,7 +573,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
         {
           if (overflow_check_u64_mul (keyspace, mask_ctx->bfs_cnt) == true) return -1;
 
@@ -684,7 +683,7 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
       }
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
       {
-        if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
         {
           if (overflow_check_u64_add (cnt, mask_ctx->bfs_cnt) == true) return -1;
 

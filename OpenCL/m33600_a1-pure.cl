@@ -32,9 +32,12 @@ KERNEL_FQ KERNEL_FA void m33600_mxx (KERN_ATTR_BASIC ())
 
   ripemd320_ctx_t ctx0;
 
-  ripemd320_init (&ctx0);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    ripemd320_init (&ctx0);
 
-  ripemd320_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+    ripemd320_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -42,9 +45,22 @@ KERNEL_FQ KERNEL_FA void m33600_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    ripemd320_ctx_t ctx = ctx0;
+    ripemd320_ctx_t ctx;
 
-    ripemd320_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      ripemd320_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ripemd320_init (&ctx);
+
+      ripemd320_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      ripemd320_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     ripemd320_final (&ctx);
 
@@ -86,9 +102,12 @@ KERNEL_FQ KERNEL_FA void m33600_sxx (KERN_ATTR_BASIC ())
 
   ripemd320_ctx_t ctx0;
 
-  ripemd320_init (&ctx0);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    ripemd320_init (&ctx0);
 
-  ripemd320_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+    ripemd320_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -96,9 +115,22 @@ KERNEL_FQ KERNEL_FA void m33600_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    ripemd320_ctx_t ctx = ctx0;
+    ripemd320_ctx_t ctx;
 
-    ripemd320_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      ripemd320_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ripemd320_init (&ctx);
+
+      ripemd320_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      ripemd320_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     ripemd320_final (&ctx);
 

@@ -30,9 +30,12 @@ KERNEL_FQ KERNEL_FA void m34800_mxx (KERN_ATTR_BASIC ())
 
   blake2b_ctx_t ctx0;
 
-  blake2b_256_init (&ctx0);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    blake2b_256_init (&ctx0);
 
-  blake2b_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+    blake2b_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -40,9 +43,22 @@ KERNEL_FQ KERNEL_FA void m34800_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    blake2b_ctx_t ctx = ctx0;
+    blake2b_ctx_t ctx;
 
-    blake2b_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      blake2b_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      blake2b_256_init (&ctx);
+
+      blake2b_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      blake2b_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     blake2b_final (&ctx);
 
@@ -83,9 +99,12 @@ KERNEL_FQ KERNEL_FA void m34800_sxx (KERN_ATTR_BASIC ())
 
   blake2b_ctx_t ctx0;
 
-  blake2b_256_init (&ctx0);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    blake2b_256_init (&ctx0);
 
-  blake2b_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+    blake2b_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -93,9 +112,22 @@ KERNEL_FQ KERNEL_FA void m34800_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    blake2b_ctx_t ctx = ctx0;
+    blake2b_ctx_t ctx;
 
-    blake2b_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      blake2b_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      blake2b_256_init (&ctx);
+
+      blake2b_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      blake2b_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     blake2b_final (&ctx);
 

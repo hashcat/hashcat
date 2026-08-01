@@ -60,9 +60,11 @@
 
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 {
+  combinator_ctx_t     *combinator_ctx      = hashcat_ctx->combinator_ctx;
   hashes_t             *hashes              = hashcat_ctx->hashes;
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
+  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
   restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
@@ -125,6 +127,29 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    */
 
   if (straight_ctx_update_loop (hashcat_ctx) == -1) return 0;
+
+  // dynamic base/mod selection for hybrid2
+
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    const u64 mask_ks  = mask_ctx->bfs_cnt;
+    const u64 dict_cnt = combinator_ctx->combs_cnt;
+    const u64 hw_power = backend_ctx->hardware_power_all;
+
+    if (mask_ks < hw_power)
+    {
+      combinator_ctx->hybrid2_wordlist_base = true;
+      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+      combinator_ctx->combs_cnt  = mask_ks;
+    }
+    else
+    {
+      combinator_ctx->hybrid2_wordlist_base = false;
+      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
+    }
+
+    if (backend_session_update_combinator (hashcat_ctx) == -1) return -1;
+  }
 
   // words base
 

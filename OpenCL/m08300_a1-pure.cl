@@ -101,20 +101,40 @@ KERNEL_FQ KERNEL_FA void m08300_mxx (KERN_ATTR_BASIC ())
 
     if (pw_len > 0)
     {
-      pw_t combs;
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        pw_t combs;
 
-      const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], 0);
+        const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], 0);
 
-      pw_t pw;
+        pw_t pw;
 
-      const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_combs);
+        const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_combs);
 
-      ctx1.w0[0] = (first_len_pw & 0xff) << 24;
+        ctx1.w0[0] = (first_len_pw & 0xff) << 24;
 
-      ctx1.len = 1;
+        ctx1.len = 1;
 
-      sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
-      sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+        sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
+        sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+      }
+      else
+      {
+        pw_t pw;
+
+        const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], 0);
+
+        pw_t combs;
+
+        const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], first_len_pw);
+
+        ctx1.w0[0] = (first_len_combs & 0xff) << 24;
+
+        ctx1.len = 1;
+
+        sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+        sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
+      }
     }
 
     sha1_update (&ctx1, s_pc, salt_len_pc + 1);
@@ -230,20 +250,40 @@ KERNEL_FQ KERNEL_FA void m08300_sxx (KERN_ATTR_BASIC ())
 
     if (pw_len > 0)
     {
-      pw_t combs;
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        pw_t combs;
 
-      const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], 0);
+        const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], 0);
 
-      pw_t pw;
+        pw_t pw;
 
-      const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_combs);
+        const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_combs);
 
-      ctx1.w0[0] = (first_len_pw & 0xff) << 24;
+        ctx1.w0[0] = (first_len_pw & 0xff) << 24;
 
-      ctx1.len = 1;
+        ctx1.len = 1;
 
-      sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
-      sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+        sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
+        sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+      }
+      else
+      {
+        pw_t pw;
+
+        const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], 0);
+
+        pw_t combs;
+
+        const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], first_len_pw);
+
+        ctx1.w0[0] = (first_len_combs & 0xff) << 24;
+
+        ctx1.len = 1;
+
+        sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+        sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
+      }
     }
 
     sha1_update (&ctx1, s_pc, salt_len_pc + 1);

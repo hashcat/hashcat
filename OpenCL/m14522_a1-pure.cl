@@ -42,7 +42,10 @@ KERNEL_FQ KERNEL_FA void m14522_mxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   sha256_init (&ctx0);
 
-  sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -50,9 +53,22 @@ KERNEL_FQ KERNEL_FA void m14522_mxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha256_ctx_t ctx = ctx0;
+    sha256_ctx_t ctx;
 
-    sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      sha256_init (&ctx);
+
+      sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha256_final (&ctx);
 
@@ -173,7 +189,10 @@ KERNEL_FQ KERNEL_FA void m14522_sxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   sha256_init (&ctx0);
 
-  sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha256_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -181,9 +200,22 @@ KERNEL_FQ KERNEL_FA void m14522_sxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha256_ctx_t ctx = ctx0;
+    sha256_ctx_t ctx;
 
-    sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      sha256_init (&ctx);
+
+      sha256_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha256_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha256_final (&ctx);
 

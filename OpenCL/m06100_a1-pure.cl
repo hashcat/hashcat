@@ -74,9 +74,12 @@ KERNEL_FQ KERNEL_FA void m06100_mxx (KERN_ATTR_BASIC ())
 
   whirlpool_ctx_t ctx0;
 
-  whirlpool_init (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    whirlpool_init (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
-  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+    whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -84,9 +87,22 @@ KERNEL_FQ KERNEL_FA void m06100_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    whirlpool_ctx_t ctx = ctx0;
+    whirlpool_ctx_t ctx;
 
-    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      whirlpool_init (&ctx, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+
+      whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      whirlpool_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     whirlpool_final (&ctx);
 
@@ -171,9 +187,12 @@ KERNEL_FQ KERNEL_FA void m06100_sxx (KERN_ATTR_BASIC ())
 
   whirlpool_ctx_t ctx0;
 
-  whirlpool_init (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    whirlpool_init (&ctx0, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
 
-  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+    whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -181,9 +200,22 @@ KERNEL_FQ KERNEL_FA void m06100_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    whirlpool_ctx_t ctx = ctx0;
+    whirlpool_ctx_t ctx;
 
-    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      whirlpool_init (&ctx, s_MT0, s_MT1, s_MT2, s_MT3, s_MT4, s_MT5, s_MT6, s_MT7);
+
+      whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      whirlpool_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     whirlpool_final (&ctx);
 

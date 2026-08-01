@@ -46,22 +46,25 @@ KERNEL_FQ KERNEL_FA void m14512_mxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   u32 w_len = 0;
 
-  if (serpent_key_len > 128)
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
   {
-    w_len = pws[gid].pw_len;
+    if (serpent_key_len > 128)
+    {
+      w_len = pws[gid].pw_len;
 
-    for (u32 i = 0; i < 64; i++) w[i] = pws[gid].i[i];
+      for (u32 i = 0; i < 64; i++) w[i] = pws[gid].i[i];
 
-    ctx0_padding = ctx0;
+      ctx0_padding = ctx0;
 
-    ctx0_padding.w0[0] = 0x41000000;
+      ctx0_padding.w0[0] = 0x41000000;
 
-    ctx0_padding.len = 1;
+      ctx0_padding.len = 1;
 
-    sha1_update_swap (&ctx0_padding, w, w_len);
+      sha1_update_swap (&ctx0_padding, w, w_len);
+    }
+
+    sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
   }
-
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -69,16 +72,36 @@ KERNEL_FQ KERNEL_FA void m14512_mxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx = ctx0;
+    sha1_ctx_t ctx;
 
-    if (serpent_key_len > 128)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      w_len = combs_buf[il_pos].pw_len;
+      ctx = ctx0;
 
-      for (u32 i = 0; i < 64; i++) w[i] = combs_buf[il_pos].i[i];
+      if (serpent_key_len > 128)
+      {
+        w_len = combs_buf[il_pos].pw_len;
+
+        for (u32 i = 0; i < 64; i++) w[i] = combs_buf[il_pos].i[i];
+      }
+
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
     }
+    else
+    {
+      sha1_init (&ctx);
 
-    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+
+      if (serpent_key_len > 128)
+      {
+        w_len = pws[gid].pw_len;
+
+        for (u32 i = 0; i < 64; i++) w[i] = pws[gid].i[i];
+      }
+    }
 
     sha1_final (&ctx);
 
@@ -93,9 +116,26 @@ KERNEL_FQ KERNEL_FA void m14512_mxx (KERN_ATTR_ESALT (cryptoapi_t))
     {
       k4 = ctx.h[4];
 
-      sha1_ctx_t ctx0_tmp = ctx0_padding;
+      sha1_ctx_t ctx0_tmp;
 
-      sha1_update_swap (&ctx0_tmp, w, w_len);
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        ctx0_tmp = ctx0_padding;
+
+        sha1_update_swap (&ctx0_tmp, w, w_len);
+      }
+      else
+      {
+        sha1_init (&ctx0_tmp);
+
+        ctx0_tmp.w0[0] = 0x41000000;
+
+        ctx0_tmp.len = 1;
+
+        sha1_update_global_swap (&ctx0_tmp, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+        sha1_update_swap (&ctx0_tmp, w, w_len);
+      }
 
       sha1_final (&ctx0_tmp);
 
@@ -210,22 +250,25 @@ KERNEL_FQ KERNEL_FA void m14512_sxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   u32 w_len = 0;
 
-  if (serpent_key_len > 128)
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
   {
-    w_len = pws[gid].pw_len;
+    if (serpent_key_len > 128)
+    {
+      w_len = pws[gid].pw_len;
 
-    for (u32 i = 0; i < 64; i++) w[i] = pws[gid].i[i];
+      for (u32 i = 0; i < 64; i++) w[i] = pws[gid].i[i];
 
-    ctx0_padding = ctx0;
+      ctx0_padding = ctx0;
 
-    ctx0_padding.w0[0] = 0x41000000;
+      ctx0_padding.w0[0] = 0x41000000;
 
-    ctx0_padding.len = 1;
+      ctx0_padding.len = 1;
 
-    sha1_update_swap (&ctx0_padding, w, w_len);
+      sha1_update_swap (&ctx0_padding, w, w_len);
+    }
+
+    sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
   }
-
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   /**
    * loop
@@ -233,16 +276,36 @@ KERNEL_FQ KERNEL_FA void m14512_sxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx = ctx0;
+    sha1_ctx_t ctx;
 
-    if (serpent_key_len > 128)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      w_len = combs_buf[il_pos].pw_len;
+      ctx = ctx0;
 
-      for (u32 i = 0; i < 64; i++) w[i] = combs_buf[il_pos].i[i];
+      if (serpent_key_len > 128)
+      {
+        w_len = combs_buf[il_pos].pw_len;
+
+        for (u32 i = 0; i < 64; i++) w[i] = combs_buf[il_pos].i[i];
+      }
+
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
     }
+    else
+    {
+      sha1_init (&ctx);
 
-    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+
+      if (serpent_key_len > 128)
+      {
+        w_len = pws[gid].pw_len;
+
+        for (u32 i = 0; i < 64; i++) w[i] = pws[gid].i[i];
+      }
+    }
 
     sha1_final (&ctx);
 
@@ -257,9 +320,26 @@ KERNEL_FQ KERNEL_FA void m14512_sxx (KERN_ATTR_ESALT (cryptoapi_t))
     {
       k4 = ctx.h[4];
 
-      sha1_ctx_t ctx0_tmp = ctx0_padding;
+      sha1_ctx_t ctx0_tmp;
 
-      sha1_update_swap (&ctx0_tmp, w, w_len);
+      if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+      {
+        ctx0_tmp = ctx0_padding;
+
+        sha1_update_swap (&ctx0_tmp, w, w_len);
+      }
+      else
+      {
+        sha1_init (&ctx0_tmp);
+
+        ctx0_tmp.w0[0] = 0x41000000;
+
+        ctx0_tmp.len = 1;
+
+        sha1_update_global_swap (&ctx0_tmp, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+        sha1_update_swap (&ctx0_tmp, w, w_len);
+      }
 
       sha1_final (&ctx0_tmp);
 

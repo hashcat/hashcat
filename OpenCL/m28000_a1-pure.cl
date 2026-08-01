@@ -64,7 +64,12 @@ KERNEL_FQ KERNEL_FA void m28000_mxx (KERN_ATTR_ESALT (crc64_t))
    * base
    */
 
-  u64 a_ref = crc64j_global (pws[gid].i, pws[gid].pw_len, iv, s_crc64jonestab);
+  u64 a_ref = 0;
+
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    a_ref = crc64j_global (pws[gid].i, pws[gid].pw_len, iv, s_crc64jonestab);
+  }
 
   /**
    * loop
@@ -72,7 +77,18 @@ KERNEL_FQ KERNEL_FA void m28000_mxx (KERN_ATTR_ESALT (crc64_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    u64 a = crc64j_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref, s_crc64jonestab);
+    u64 a;
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      a = crc64j_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref, s_crc64jonestab);
+    }
+    else
+    {
+      u64 a_tmp = crc64j_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, iv, s_crc64jonestab);
+
+      a = crc64j_global (pws[gid].i, pws[gid].pw_len, a_tmp, s_crc64jonestab);
+    }
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);
@@ -138,7 +154,12 @@ KERNEL_FQ KERNEL_FA void m28000_sxx (KERN_ATTR_ESALT (crc64_t))
    * base
    */
 
-  u64 a_ref = crc64j_global (pws[gid].i, pws[gid].pw_len, iv, s_crc64jonestab);
+  u64 a_ref = 0;
+
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    a_ref = crc64j_global (pws[gid].i, pws[gid].pw_len, iv, s_crc64jonestab);
+  }
 
   /**
    * loop
@@ -146,7 +167,18 @@ KERNEL_FQ KERNEL_FA void m28000_sxx (KERN_ATTR_ESALT (crc64_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    u64 a = crc64j_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref, s_crc64jonestab);
+    u64 a;
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      a = crc64j_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, a_ref, s_crc64jonestab);
+    }
+    else
+    {
+      u64 a_tmp = crc64j_global (combs_buf[il_pos].i, combs_buf[il_pos].pw_len, iv, s_crc64jonestab);
+
+      a = crc64j_global (pws[gid].i, pws[gid].pw_len, a_tmp, s_crc64jonestab);
+    }
 
     const u32 r0 = l32_from_64 (a);
     const u32 r1 = h32_from_64 (a);

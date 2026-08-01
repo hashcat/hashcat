@@ -3843,7 +3843,102 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+      {
+        if (combinator_ctx->hybrid2_wordlist_base == true)
+        {
+
+          if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+          {
+            if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+            {
+              if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
+              {
+                rebuild_pws_compressed_append (device_param, pws_cnt, 0x01);
+              }
+              else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+              {
+                rebuild_pws_compressed_append (device_param, pws_cnt, 0x06);
+              }
+              else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
+              {
+                rebuild_pws_compressed_append (device_param, pws_cnt, 0x80);
+              }
+            }
+          }
+
+          if (device_param->is_cuda == true)
+          {
+            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+            }
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+            }
+          }
+
+          #if defined (__APPLE__)
+          if (device_param->is_metal == true)
+          {
+            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_idx, 0, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_comp_buf, 0, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+            }
+          }
+          #endif
+
+          if (device_param->is_opencl == true)
+          {
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, 0, pws_cnt * sizeof (pw_idx_t), device_param->pws_idx, 0, NULL, NULL) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL) == -1) return -1;
+            }
+          }
+
+          if (run_kernel_decompress (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
+        }
+        else
+        {
+          // mask as base: generate mask candidates on GPU
+
+          const u64 off = device_param->words_off;
+
+          device_param->kernel_params_mp_buf64[3] = off;
+
+          if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, pws_cnt) == -1) return -1;
+        }
+      }
+      else if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
       {
         if (user_options->attack_mode == ATTACK_MODE_COMBI)
         {
@@ -3861,21 +3956,6 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
             {
               rebuild_pws_compressed_append (device_param, pws_cnt, 0x80);
             }
-          }
-        }
-        else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-        {
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
-          {
-            rebuild_pws_compressed_append (device_param, pws_cnt, 0x01);
-          }
-          else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
-          {
-            rebuild_pws_compressed_append (device_param, pws_cnt, 0x06);
-          }
-          else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
-          {
-            rebuild_pws_compressed_append (device_param, pws_cnt, 0x80);
           }
         }
 
@@ -4065,14 +4145,6 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 
           if (run_kernel_decompress (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
         }
-        else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-        {
-          const u64 off = device_param->words_off;
-
-          device_param->kernel_params_mp_buf64[3] = off;
-
-          if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, pws_cnt) == -1) return -1;
-        }
       }
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
@@ -4203,7 +4275,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     }
     else
     {
-      if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2)))
+      if ((user_options->attack_mode == ATTACK_MODE_COMBI) || ((combinator_ctx->hybrid2_wordlist_base == false) && (user_options->attack_mode == ATTACK_MODE_HYBRID2)))
       {
         hc_rewind (combs_fp);
       }
@@ -4317,7 +4389,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
         {
           if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
           {
-            if (user_options->attack_mode == ATTACK_MODE_COMBI)
+            if ((user_options->attack_mode == ATTACK_MODE_COMBI) || ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (combinator_ctx->hybrid2_wordlist_base == false)))
             {
               char *line_buf = device_param->scratch_buf;
 
@@ -4475,7 +4547,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
                 if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
               }
             }
-            else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+            else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (combinator_ctx->hybrid2_wordlist_base == true))
             {
               u64 off = innerloop_pos;
 
@@ -4508,7 +4580,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           }
           else
           {
-            if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+            if ((user_options->attack_mode == ATTACK_MODE_COMBI) || ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (combinator_ctx->hybrid2_wordlist_base == false)))
             {
               char *line_buf = device_param->scratch_buf;
 
@@ -4639,6 +4711,36 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
               }
             }
             else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+            {
+              u64 off = innerloop_pos;
+
+              device_param->kernel_params_mp_buf64[3] = off;
+
+              if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
+
+              if (device_param->is_cuda == true)
+              {
+                if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+              }
+
+              if (device_param->is_hip == true)
+              {
+                if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+              }
+
+              #if defined (__APPLE__)
+              if (device_param->is_metal == true)
+              {
+                if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->metal_d_combs, 0, innerloop_left * sizeof (pw_t)) == -1) return -1;
+              }
+              #endif
+
+              if (device_param->is_opencl == true)
+              {
+                if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
+              }
+            }
+            else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (combinator_ctx->hybrid2_wordlist_base == true))
             {
               u64 off = innerloop_pos;
 
@@ -17495,6 +17597,76 @@ int backend_session_update_combinator (hashcat_ctx_t *hashcat_ctx)
           const int rc_clSetKernelArg = hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_amp, 5, sizeof (cl_uint), device_param->kernel_params_amp[5]);
 
           if (rc_clSetKernelArg == -1) return -1;
+        }
+      }
+
+      // kernel_params_mp[0] for HYBRID2 dynamic base selection
+
+      if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+      {
+        if (combinator_ctx->hybrid2_wordlist_base == true)
+        {
+          // Mask is the modifier: MP kernel generates into d_combs
+
+          if (device_param->is_cuda == true)
+          {
+            device_param->kernel_params_mp[0] = &device_param->cuda_d_combs;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            device_param->kernel_params_mp[0] = &device_param->hip_d_combs;
+          }
+
+          #if defined (__APPLE__)
+          if (device_param->is_metal == true)
+          {
+            device_param->kernel_params_mp[0] = device_param->metal_d_combs.buf_ptr;
+          }
+          #endif
+
+          if (device_param->is_opencl == true)
+          {
+            device_param->kernel_params_mp[0] = &device_param->opencl_d_combs;
+
+            if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, 0, sizeof (cl_mem), device_param->kernel_params_mp[0]) == -1) return -1;
+          }
+        }
+        else
+        {
+          // Mask is the base: MP kernel generates into d_pws_buf (or d_pws_amp_buf)
+
+          if (device_param->is_cuda == true)
+          {
+            device_param->kernel_params_mp[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+                                              ? &device_param->cuda_d_pws_buf
+                                              : &device_param->cuda_d_pws_amp_buf;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            device_param->kernel_params_mp[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+                                              ? &device_param->hip_d_pws_buf
+                                              : &device_param->hip_d_pws_amp_buf;
+          }
+
+          #if defined (__APPLE__)
+          if (device_param->is_metal == true)
+          {
+            device_param->kernel_params_mp[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+                                              ? device_param->metal_d_pws_buf.buf_ptr
+                                              : device_param->metal_d_pws_amp_buf.buf_ptr;
+          }
+          #endif
+
+          if (device_param->is_opencl == true)
+          {
+            device_param->kernel_params_mp[0] = (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
+                                              ? &device_param->opencl_d_pws_buf
+                                              : &device_param->opencl_d_pws_amp_buf;
+
+            if (hc_clSetKernelArg (hashcat_ctx, device_param->opencl_kernel_mp, 0, sizeof (cl_mem), device_param->kernel_params_mp[0]) == -1) return -1;
+          }
         }
       }
     }

@@ -43,7 +43,10 @@ KERNEL_FQ KERNEL_FA void m27200_mxx (KERN_ATTR_BASIC ())
   sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
   sha1_update (&ctx0, dash, 2);
 
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -51,9 +54,23 @@ KERNEL_FQ KERNEL_FA void m27200_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx = ctx0;
+    sha1_ctx_t ctx;
 
-    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
+
     sha1_update (&ctx, dash, 2);
     sha1_final (&ctx);
 
@@ -107,7 +124,10 @@ KERNEL_FQ KERNEL_FA void m27200_sxx (KERN_ATTR_BASIC ())
   sha1_update_global_swap (&ctx0, salt_bufs[SALT_POS_HOST].salt_buf, salt_bufs[SALT_POS_HOST].salt_len);
   sha1_update (&ctx0, dash, 2);
 
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -115,9 +135,23 @@ KERNEL_FQ KERNEL_FA void m27200_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    sha1_ctx_t ctx = ctx0;
+    sha1_ctx_t ctx;
 
-    sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
+
     sha1_update (&ctx, dash, 2);
     sha1_final (&ctx);
 

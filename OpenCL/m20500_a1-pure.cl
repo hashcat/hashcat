@@ -127,12 +127,15 @@ KERNEL_FQ KERNEL_FA void m20500_sxx (KERN_ATTR_BASIC ())
   u32x key1init = KEY1INIT;
   u32x key2init = KEY2INIT;
 
-  for (u32 i = 0, j = 0; i < pws[gid].pw_len; i += 4, j += 1)
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
   {
-    if (pws[gid].pw_len >= (i + 1)) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (pws[gid].i[j]), l_crc32tab);
-    if (pws[gid].pw_len >= (i + 2)) update_key012 (key0init, key1init, key2init, unpack_v8b_from_v32_S (pws[gid].i[j]), l_crc32tab);
-    if (pws[gid].pw_len >= (i + 3)) update_key012 (key0init, key1init, key2init, unpack_v8c_from_v32_S (pws[gid].i[j]), l_crc32tab);
-    if (pws[gid].pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
+    for (u32 i = 0, j = 0; i < pws[gid].pw_len; i += 4, j += 1)
+    {
+      if (pws[gid].pw_len >= (i + 1)) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (pws[gid].i[j]), l_crc32tab);
+      if (pws[gid].pw_len >= (i + 2)) update_key012 (key0init, key1init, key2init, unpack_v8b_from_v32_S (pws[gid].i[j]), l_crc32tab);
+      if (pws[gid].pw_len >= (i + 3)) update_key012 (key0init, key1init, key2init, unpack_v8c_from_v32_S (pws[gid].i[j]), l_crc32tab);
+      if (pws[gid].pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
+    }
   }
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
@@ -141,12 +144,33 @@ KERNEL_FQ KERNEL_FA void m20500_sxx (KERN_ATTR_BASIC ())
     u32x key1 = key1init;
     u32x key2 = key2init;
 
-    for (u32 i = 0, j = 0; i < combs_buf[il_pos].pw_len; i += 4, j += 1)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      if (combs_buf[il_pos].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+      for (u32 i = 0, j = 0; i < combs_buf[il_pos].pw_len; i += 4, j += 1)
+      {
+        if (combs_buf[il_pos].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+      }
+    }
+    else
+    {
+      for (u32 i = 0, j = 0; i < combs_buf[il_pos].pw_len; i += 4, j += 1)
+      {
+        if (combs_buf[il_pos].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+      }
+
+      for (u32 i = 0, j = 0; i < pws[gid].pw_len; i += 4, j += 1)
+      {
+        if (pws[gid].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (pws[gid].i[j]), l_crc32tab);
+        if (pws[gid].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (pws[gid].i[j]), l_crc32tab);
+        if (pws[gid].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (pws[gid].i[j]), l_crc32tab);
+        if (pws[gid].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
+      }
     }
 
     const u32x r0 = key0;
@@ -203,12 +227,15 @@ KERNEL_FQ KERNEL_FA void m20500_mxx (KERN_ATTR_BASIC ())
   u32x key1init = KEY1INIT;
   u32x key2init = KEY2INIT;
 
-  for (u32 i = 0, j = 0; i < pws[gid].pw_len; i += 4, j += 1)
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
   {
-    if (pws[gid].pw_len >= (i + 1)) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (pws[gid].i[j]), l_crc32tab);
-    if (pws[gid].pw_len >= (i + 2)) update_key012 (key0init, key1init, key2init, unpack_v8b_from_v32_S (pws[gid].i[j]), l_crc32tab);
-    if (pws[gid].pw_len >= (i + 3)) update_key012 (key0init, key1init, key2init, unpack_v8c_from_v32_S (pws[gid].i[j]), l_crc32tab);
-    if (pws[gid].pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
+    for (u32 i = 0, j = 0; i < pws[gid].pw_len; i += 4, j += 1)
+    {
+      if (pws[gid].pw_len >= (i + 1)) update_key012 (key0init, key1init, key2init, unpack_v8a_from_v32_S (pws[gid].i[j]), l_crc32tab);
+      if (pws[gid].pw_len >= (i + 2)) update_key012 (key0init, key1init, key2init, unpack_v8b_from_v32_S (pws[gid].i[j]), l_crc32tab);
+      if (pws[gid].pw_len >= (i + 3)) update_key012 (key0init, key1init, key2init, unpack_v8c_from_v32_S (pws[gid].i[j]), l_crc32tab);
+      if (pws[gid].pw_len >= (i + 4)) update_key012 (key0init, key1init, key2init, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
+    }
   }
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
@@ -217,12 +244,33 @@ KERNEL_FQ KERNEL_FA void m20500_mxx (KERN_ATTR_BASIC ())
     u32x key1 = key1init;
     u32x key2 = key2init;
 
-    for (u32 i = 0, j = 0; i < combs_buf[il_pos].pw_len; i += 4, j += 1)
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
     {
-      if (combs_buf[il_pos].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
-      if (combs_buf[il_pos].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+      for (u32 i = 0, j = 0; i < combs_buf[il_pos].pw_len; i += 4, j += 1)
+      {
+        if (combs_buf[il_pos].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+      }
+    }
+    else
+    {
+      for (u32 i = 0, j = 0; i < combs_buf[il_pos].pw_len; i += 4, j += 1)
+      {
+        if (combs_buf[il_pos].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+        if (combs_buf[il_pos].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (combs_buf[il_pos].i[j]), l_crc32tab);
+      }
+
+      for (u32 i = 0, j = 0; i < pws[gid].pw_len; i += 4, j += 1)
+      {
+        if (pws[gid].pw_len >= (i + 1)) update_key012 (key0, key1, key2, unpack_v8a_from_v32_S (pws[gid].i[j]), l_crc32tab);
+        if (pws[gid].pw_len >= (i + 2)) update_key012 (key0, key1, key2, unpack_v8b_from_v32_S (pws[gid].i[j]), l_crc32tab);
+        if (pws[gid].pw_len >= (i + 3)) update_key012 (key0, key1, key2, unpack_v8c_from_v32_S (pws[gid].i[j]), l_crc32tab);
+        if (pws[gid].pw_len >= (i + 4)) update_key012 (key0, key1, key2, unpack_v8d_from_v32_S (pws[gid].i[j]), l_crc32tab);
+      }
     }
 
     const u32x r0 = key0;

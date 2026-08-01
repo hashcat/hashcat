@@ -70,9 +70,12 @@ KERNEL_FQ KERNEL_FA void m22800_mxx (KERN_ATTR_BASIC ())
 
   md5_ctx_t ctx0;
 
-  md5_init (&ctx0);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_init (&ctx0);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -80,9 +83,22 @@ KERNEL_FQ KERNEL_FA void m22800_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx1 = ctx0;
+    md5_ctx_t ctx1;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx1 = ctx0;
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_init (&ctx1);
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx1, pws[gid].i, pws[gid].pw_len);
+    }
 
     md5_final (&ctx1);
 
@@ -99,8 +115,16 @@ KERNEL_FQ KERNEL_FA void m22800_mxx (KERN_ATTR_BASIC ())
     md5_update (&ctx, s, salt_len);
 
     // Update with the password combination using global functions
-    md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     // Update with the hexadecimal MD5 result
     u32 w0[4];
@@ -202,9 +226,12 @@ KERNEL_FQ KERNEL_FA void m22800_sxx (KERN_ATTR_BASIC ())
 
   md5_ctx_t ctx0;
 
-  md5_init (&ctx0);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_init (&ctx0);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -212,9 +239,22 @@ KERNEL_FQ KERNEL_FA void m22800_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx1 = ctx0;
+    md5_ctx_t ctx1;
 
-    md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx1 = ctx0;
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_init (&ctx1);
+
+      md5_update_global (&ctx1, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx1, pws[gid].i, pws[gid].pw_len);
+    }
 
     md5_final (&ctx1);
 
@@ -231,8 +271,16 @@ KERNEL_FQ KERNEL_FA void m22800_sxx (KERN_ATTR_BASIC ())
     md5_update (&ctx, s, salt_len);
 
     // Update with the password combination
-    md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     // Update with the hexadecimal MD5 result
     u32 w0[4];

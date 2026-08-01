@@ -67,7 +67,10 @@ KERNEL_FQ KERNEL_FA void m16100_mxx (KERN_ATTR_ESALT (tacacs_plus_t))
 
   md5_update_64 (&ctx0, session0, session1, session2, session3, 4);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   u32 ct_buf[2];
 
@@ -84,9 +87,22 @@ KERNEL_FQ KERNEL_FA void m16100_mxx (KERN_ATTR_ESALT (tacacs_plus_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx = ctx0;
+    md5_ctx_t ctx;
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     u32 sequence0[4];
     u32 sequence1[4];
@@ -225,7 +241,10 @@ KERNEL_FQ KERNEL_FA void m16100_sxx (KERN_ATTR_ESALT (tacacs_plus_t))
 
   md5_update_64 (&ctx0, session0, session1, session2, session3, 4);
 
-  md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    md5_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   u32 ct_buf[2];
 
@@ -242,9 +261,22 @@ KERNEL_FQ KERNEL_FA void m16100_sxx (KERN_ATTR_ESALT (tacacs_plus_t))
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    md5_ctx_t ctx = ctx0;
+    md5_ctx_t ctx;
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     u32 sequence0[4];
     u32 sequence1[4];

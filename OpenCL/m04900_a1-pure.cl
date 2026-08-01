@@ -44,7 +44,10 @@ KERNEL_FQ KERNEL_FA void m04900_mxx (KERN_ATTR_BASIC ())
 
   sha1_update (&ctx0, s, salt_len);
 
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -55,6 +58,11 @@ KERNEL_FQ KERNEL_FA void m04900_mxx (KERN_ATTR_BASIC ())
     sha1_ctx_t ctx = ctx0;
 
     sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha1_update (&ctx, s, salt_len);
 
@@ -111,7 +119,10 @@ KERNEL_FQ KERNEL_FA void m04900_sxx (KERN_ATTR_BASIC ())
 
   sha1_update (&ctx0, s, salt_len);
 
-  sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    sha1_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -122,6 +133,11 @@ KERNEL_FQ KERNEL_FA void m04900_sxx (KERN_ATTR_BASIC ())
     sha1_ctx_t ctx = ctx0;
 
     sha1_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_RIGHT)
+    {
+      sha1_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     sha1_update (&ctx, s, salt_len);
 

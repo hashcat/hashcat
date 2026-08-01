@@ -119,9 +119,18 @@ KERNEL_FQ KERNEL_FA void m22921_mxx (KERN_ATTR_ESALT (pem_t))
 
     md5_init (&ctx);
 
-    md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     u32 t[16];
 
@@ -292,9 +301,18 @@ KERNEL_FQ KERNEL_FA void m22921_sxx (KERN_ATTR_ESALT (pem_t))
 
     md5_init (&ctx);
 
-    md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     u32 t[16];
 

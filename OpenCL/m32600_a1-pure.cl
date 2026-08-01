@@ -87,7 +87,10 @@ KERNEL_FQ KERNEL_FA void m32600_mxx (KERN_ATTR_BASIC ())
 
   whirlpool_update (&ctx0, s, salt_len);
 
-  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -95,9 +98,22 @@ KERNEL_FQ KERNEL_FA void m32600_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    whirlpool_ctx_t ctx = ctx0;
+    whirlpool_ctx_t ctx;
 
-    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      whirlpool_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     whirlpool_update (&ctx, s, salt_len);
 
@@ -197,7 +213,10 @@ KERNEL_FQ KERNEL_FA void m32600_sxx (KERN_ATTR_BASIC ())
 
   whirlpool_update (&ctx0, s, salt_len);
 
-  whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+  {
+    whirlpool_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  }
 
   /**
    * loop
@@ -205,9 +224,22 @@ KERNEL_FQ KERNEL_FA void m32600_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    whirlpool_ctx_t ctx = ctx0;
+    whirlpool_ctx_t ctx;
 
-    whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_MODE == COMBINATOR_MODE_BASE_LEFT)
+    {
+      ctx = ctx0;
+
+      whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
+    else
+    {
+      ctx = ctx0;
+
+      whirlpool_update_global_swap (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+
+      whirlpool_update_global_swap (&ctx, pws[gid].i, pws[gid].pw_len);
+    }
 
     whirlpool_update (&ctx, s, salt_len);
 
