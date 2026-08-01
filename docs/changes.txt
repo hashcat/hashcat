@@ -1,6 +1,12 @@
 * changes v7.1.2 -> v7.1.x
 
 ##
+## New Algorithms
+##
+
+- Added hash-mode: Mikrotik RouterOS EC-SRP5 (Curve25519)
+
+##
 ## Improvements
 ##
 
