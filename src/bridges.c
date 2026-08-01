@@ -81,11 +81,60 @@ void bridge_unload (bridge_ctx_t *bridge_ctx)
   }
 }
 
+// Does this session run its workload through an assimilation bridge?
+//
+// Callers use it to decide that hardware_power is 1, so it is worth saying why that follows.
+// kernel_power is hardware_power * kernel_accel, and hardware_power describes the GPU that GENERATES
+// candidates. For an ordinary kernel that is right, because the generator is also the consumer.
+//
+// Under a bridge the consumer is the bridge unit and the generator is barely working, so multiplying
+// -n by the generator's geometry makes -n mean something different on every host and stops it being
+// the knob that sizes a bridge launch. The status view already presents -n and -u as bridge settings;
+// this makes them so.
+//
+// Only the ACCOUNTING changes: kernel_threads still sets the generator's real launch geometry. This
+// deliberately does NOT use OPTS_TYPE_THREAD_MULTI_DISABLE, which would also stop num_elements being
+// divided by kernel_threads (backend.c) and so launch every candidate kernel_threads times over.
+
+bool bridge_active (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const int bridge_link_device)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  bridge_ctx_t       *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (hashconfig->bridge_type == 0) return false;
+  if (bridge_ctx->enabled == false) return false;
+
+  return true;
+}
+
+// The multiple a bridge computes in, or 1 when there is no bridge.
+//
+// get_workitem_multiple is mandatory, so the BRIDGE_DEFAULT test is a guard rather than a normal path.
+// It is written as a comparison and not as a truthiness test on purpose: BRIDGE_DEFAULT is
+// (void *) -1, so a truthiness test passes and then calls address -1.
+
+u32 bridge_workitem_multiple (hashcat_ctx_t *hashcat_ctx, const int bridge_link_device)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+  bridge_ctx_t       *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (hashconfig->bridge_type == 0) return 1;
+  if (bridge_ctx->enabled == false) return 1;
+  if (bridge_ctx->get_workitem_multiple == BRIDGE_DEFAULT) return 1;
+
+  const int multiple = bridge_ctx->get_workitem_multiple (bridge_ctx->platform_context, bridge_link_device);
+
+  if (multiple < 1) return 1;
+
+  return (u32) multiple;
+}
+
 bool bridges_init (hashcat_ctx_t *hashcat_ctx)
 {
-  bridge_ctx_t    *bridge_ctx   = hashcat_ctx->bridge_ctx;
-  user_options_t  *user_options = hashcat_ctx->user_options;
-  hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
+  bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
+  folder_config_t *folder_config = hashcat_ctx->folder_config;
+  user_options_t  *user_options  = hashcat_ctx->user_options;
+  hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
 
   if (user_options->backend_info  > 0)    return true;
   if (user_options->hash_info     > 0)    return true;
@@ -154,6 +203,7 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (bridge_ctx->get_unit_count);
   CHECK_DEFINED (bridge_ctx->get_unit_info);
   CHECK_DEFINED (bridge_ctx->get_workitem_count);
+  CHECK_DEFINED (bridge_ctx->get_workitem_multiple);
   CHECK_DEFINED (bridge_ctx->thread_init);
   CHECK_DEFINED (bridge_ctx->thread_term);
   CHECK_DEFINED (bridge_ctx->salt_prepare);
@@ -162,6 +212,13 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (bridge_ctx->launch_loop2);
   CHECK_DEFINED (bridge_ctx->st_update_hash);
   CHECK_DEFINED (bridge_ctx->st_update_pass);
+  CHECK_DEFINED (bridge_ctx->get_unit_temperature);
+  CHECK_DEFINED (bridge_ctx->get_unit_fanspeed);
+  CHECK_DEFINED (bridge_ctx->get_unit_utilization);
+  CHECK_DEFINED (bridge_ctx->get_unit_corespeed);
+  CHECK_DEFINED (bridge_ctx->get_unit_memoryspeed);
+  CHECK_DEFINED (bridge_ctx->get_unit_buslanes);
+  CHECK_DEFINED (bridge_ctx->get_unit_power);
 
   #undef CHECK_DEFINED
 
@@ -180,6 +237,7 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_MANDATORY (bridge_ctx->get_unit_count);
   CHECK_MANDATORY (bridge_ctx->get_unit_info);
   CHECK_MANDATORY (bridge_ctx->get_workitem_count);
+  CHECK_MANDATORY (bridge_ctx->get_workitem_multiple);
 
   if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)  CHECK_MANDATORY (bridge_ctx->launch_loop);
   if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP2) CHECK_MANDATORY (bridge_ctx->launch_loop2);
@@ -188,32 +246,13 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
 
   #undef CHECK_MANDATORY
 
-  bridge_ctx->platform_context = bridge_ctx->platform_init (user_options);
+  bridge_ctx->platform_context = bridge_ctx->platform_init (user_options, folder_config);
 
   if (bridge_ctx->platform_context == NULL)
   {
     event_log_error (hashcat_ctx, "Platform initialization failed");
 
     return false;
-  }
-
-  // auto adjust workitem counts
-
-  if (hashconfig->bridge_type & BRIDGE_TYPE_MATCH_TUNINGS)
-  {
-    if ((hashconfig->opts_type & OPTS_TYPE_NATIVE_THREADS) == 0)
-    {
-      event_log_error (hashcat_ctx, "BRIDGE_TYPE_MATCH_TUNINGS requires OPTS_TYPE_NATIVE_THREADS");
-
-      return false;
-    }
-
-    if ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) == 0)
-    {
-      event_log_error (hashcat_ctx, "BRIDGE_TYPE_MATCH_TUNINGS requires OPTS_TYPE_MP_MULTI_DISABLE");
-
-      return false;
-    }
   }
 
   // clean up

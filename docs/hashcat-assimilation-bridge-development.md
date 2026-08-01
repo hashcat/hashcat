@@ -18,8 +18,7 @@ Existing modules on hashcat repository will be automatically updated.
 Plugins can opt in to bridge support by adding:
 
 ```c
-static const u64   BRIDGE_TYPE = BRIDGE_TYPE_MATCH_TUNINGS
-                               | BRIDGE_TYPE_LAUNCH_LOOP;
+static const u64   BRIDGE_TYPE = BRIDGE_TYPE_LAUNCH_LOOP;
 static const char *BRIDGE_NAME = "scrypt_jane";
 ```
 
@@ -90,8 +89,30 @@ But the bridge developer must ensure data transformation compatibility. For inst
 
 There's some more BRIDGE PARAMETERs that you should know:
 
-+  BRIDGE_TYPE_MATCH_TUNINGS       = Disables autotune and adjusts -n, -u and -T for the backend device according to match the bridge's dimensions
 +  BRIDGE_TYPE_UPDATE_SELFTEST     = updates the selftest configured in the module. Can be useful for generic hash modes such as the python plugin
++  BRIDGE_TYPE_LOOP_CHUNKED        = launch_loop() honours kernel_param.loop_pos and .loop_cnt, so hashcat may split the salt's iteration space into chunks and call the bridge once per chunk. Without it the bridge is handed the whole range in a single call, which is what a one-shot implementation needs. Set this only if your compute can stop and resume mid-iteration, which means keeping any per candidate state alive between calls
+
+There is no flag to match tunings any more. hashcat derives the workitem count from what
+`get_workitem_count()` reports, for every bridge, and sizes the launch and the device buffers from
+that. The count is treated as a maximum the bridge will never be asked to exceed.
+
+It is only the maximum, though, not the size hashcat will use. Autotune searches the range between one
+workitem multiple and that maximum, and picks the launch size that measures fastest, so a bridge no
+longer has to guess a good size and report it. `-n` sets the size directly and is clamped into the same
+range.
+
+That is what `get_workitem_multiple()` is for, and it is mandatory. It reports the granularity your unit
+computes in. Return `1` if a batch of N candidates simply costs N, which is the case when one unit is
+one thread working through its batch sequentially. Return the internal width if your unit processes
+candidates in parallel waves, as an accelerator holding many cores behind a single unit does. hashcat
+rounds every launch size down to a whole multiple of it, which matters more than it looks: a unit that
+computes in waves of W is occupied for `ceil(N / W)` waves whatever N is, so a batch that is not a whole
+number of waves pays for capacity it never used, and a larger batch can be strictly slower than a
+smaller one in both throughput and latency.
+
+Note the multiple describes your unit's internal width, not a DMA or buffer convenience. Reporting a
+transfer granularity instead will look like it works, because the launch sizes stay legal, and it will
+quietly cost throughput whenever the real width does not divide it.
 
 ## How Bridges Work
 
@@ -143,29 +164,31 @@ When hashcat starts, it finds the plugin using this pathfinder:
 ### Required Function Exports
 
 ```c
-bridge_ctx->platform_init       = platform_init;
-bridge_ctx->platform_term       = platform_term;
-bridge_ctx->get_unit_count      = get_unit_count;
-bridge_ctx->get_unit_info       = get_unit_info;
-bridge_ctx->get_workitem_count  = get_workitem_count;
-bridge_ctx->thread_init         = BRIDGE_DEFAULT;
-bridge_ctx->thread_term         = BRIDGE_DEFAULT;
-bridge_ctx->salt_prepare        = salt_prepare;
-bridge_ctx->salt_destroy        = salt_destroy;
-bridge_ctx->launch_loop         = launch_loop;
-bridge_ctx->launch_loop2        = BRIDGE_DEFAULT;
-bridge_ctx->st_update_hash      = BRIDGE_DEFAULT;
-bridge_ctx->st_update_pass      = BRIDGE_DEFAULT;
+bridge_ctx->platform_init         = platform_init;
+bridge_ctx->platform_term         = platform_term;
+bridge_ctx->get_unit_count        = get_unit_count;
+bridge_ctx->get_unit_info         = get_unit_info;
+bridge_ctx->get_workitem_count    = get_workitem_count;
+bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+bridge_ctx->thread_init           = BRIDGE_DEFAULT;
+bridge_ctx->thread_term           = BRIDGE_DEFAULT;
+bridge_ctx->salt_prepare          = salt_prepare;
+bridge_ctx->salt_destroy          = salt_destroy;
+bridge_ctx->launch_loop           = launch_loop;
+bridge_ctx->launch_loop2          = BRIDGE_DEFAULT;
+bridge_ctx->st_update_hash        = BRIDGE_DEFAULT;
+bridge_ctx->st_update_pass        = BRIDGE_DEFAULT;
 ```
 
 They are defined like this:
 
 ```c
-  void     *(*platform_init)      (user_options_t *);
+  void     *(*platform_init)      (user_options_t *, folder_config_t *);
   void      (*platform_term)      (void *);
-  int       (*get_unit_count)     (void *);
-  char     *(*get_unit_info)      (void *, const int);
-  int       (*get_workitem_count) (void *, const int);
+  int       (*get_unit_count)        (void *);
+  char     *(*get_unit_info)         (void *, const int);
+  int       (*get_workitem_count)    (void *, const int);
+  int       (*get_workitem_multiple) (void *, const int);
   bool      (*salt_prepare)       (void *, hashconfig_t *, hashes_t *);
   void      (*salt_destroy)       (void *, hashconfig_t *, hashes_t *);
   bool      (*thread_init)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
@@ -188,15 +211,22 @@ CHECK_MANDATORY (bridge_ctx->platform_term);
 CHECK_MANDATORY (bridge_ctx->get_unit_count);
 CHECK_MANDATORY (bridge_ctx->get_unit_info);
 CHECK_MANDATORY (bridge_ctx->get_workitem_count);
+CHECK_MANDATORY (bridge_ctx->get_workitem_multiple);
 ```
+
+`get_workitem_multiple` is new and mandatory, so a bridge written against an earlier version will not
+load until it is added. It is also a struct field, so an older bridge is refused by the
+`bridge_context_size` check before anything else is looked at, with "bridge context size is invalid.
+Old template?". Rebuild the bridge against the current headers.
 
 ### Function Roles
 
-- platform_init: Called at startup. Responsible for initialization. This might include loading libraries, connecting to remote endpoints, or setting up hardware APIs. Returns a context pointer.
+- platform_init: Called at startup. Responsible for initialization. This might include loading libraries, connecting to remote endpoints, or setting up hardware APIs. Returns a context pointer. The `folder_config_t` gives access to hashcat's resolved paths (`cache_dir`, `profile_dir`, `shared_dir`, ...), which already account for whether hashcat is running installed or from an unpacked directory. Use these instead of building paths yourself, otherwise a portable install will write to the wrong place.
 - platform_term: Final cleanup logic. Frees any context data allocated during initialization.
 - get_unit_count: Returns the number of available units. For example, return `2` if two FPGAs are detected.
 - get_unit_info: Returns a human-readable description of a unit, like "Python v3.13.3".
-- get_workitem_count: Returns the number of password candidates to process per invocation.
+- get_workitem_count: Returns the largest number of password candidates the unit can be handed in one invocation. This is an upper limit, not a request: autotune searches below it and picks the size that measures fastest.
+- get_workitem_multiple: Returns the granularity the unit computes in. Return `1` when a batch of N candidates costs N, which is the case for one thread working through its batch sequentially. Return the internal width when the unit processes candidates in parallel waves, so hashcat never hands it a partial wave.
 - thread_init: Optional. Use for per-thread setup, such as creating a new Python interpreter.
 - thread_term: Optional. Use for per-thread cleanup.
 - salt_prepare: Called once per salt. Useful for preprocessing or storing large salt/esalt buffers.

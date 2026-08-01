@@ -102,6 +102,7 @@ int run_opencl_kernel_memset32              (hashcat_ctx_t *hashcat_ctx, hc_devi
 int run_opencl_kernel_bzero                 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size);
 
 int run_kernel                              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num, const u32 event_update, const u32 iteration, const bool is_autotune);
+int run_bridge_loop                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos, const u64 pws_cnt, const u32 loop_pos, const u32 loop_cnt, const u32 event_update);
 int run_kernel_mp                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num);
 int run_kernel_tm                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
 int run_kernel_amp                          (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);

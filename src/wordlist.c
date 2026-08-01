@@ -429,6 +429,20 @@ void pw_add_zerocopy (hc_device_param_t *device_param, u8 *out_buf, const int pw
   }
 }
 
+// Hand the staging buffers back empty.
+//
+// Only the first index entry has to be cleared. Every entry sets up the offset of the NEXT one, and
+// pw_add writes every byte of every candidate it adds, including the padding to a four byte boundary,
+// so the rest is either written before it is read or never uploaded at all. Clearing all of it was
+// kernel_power_max * 256 bytes of memset for every batch.
+
+void pws_reset (hc_device_param_t *device_param)
+{
+  device_param->pws_idx[0].off = 0;
+  device_param->pws_idx[0].cnt = 0;
+  device_param->pws_idx[0].len = 0;
+}
+
 void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
 {
   if (device_param->pws_cnt < device_param->kernel_power)

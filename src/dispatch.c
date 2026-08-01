@@ -197,9 +197,7 @@ static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
     u64 words_extra_total = 0;
 
-    //memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-    //memset (device_param->pws_idx,  0, device_param->size_pws_idx);
-    device_param->pws_idx[0].off = 0;
+    pws_reset (device_param);
 
     #define DISABLE_READ_TIMEOUT_AFTER 1000
 
@@ -516,8 +514,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       {
         u64 words_fin = 0;
 
-        memset (device_param->pws_comp,     0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,      0, device_param->size_pws_idx);
+        pws_reset (device_param);
         memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
 
         u64 pre_rejects = -1;
@@ -828,8 +825,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       {
         u64 words_fin = 0;
 
-        memset (device_param->pws_comp,     0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,      0, device_param->size_pws_idx);
+        pws_reset (device_param);
         memset (device_param->pws_base_buf, 0, device_param->size_pws_base);
 
         u64 pre_rejects = -1;
@@ -1094,8 +1090,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       {
         u64 words_fin = 0;
 
-        memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-        memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+        pws_reset (device_param);
 
         u64 pre_rejects = -1;
 
@@ -1396,9 +1391,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         u64 words_extra = -1U;      // rejects per loop
         u64 words_extra_total = 0;  // rejects at the point of execution
 
-        //memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-        //memset (device_param->pws_idx,  0, device_param->size_pws_idx);
-        device_param->pws_idx[0].off = 0;
+        pws_reset (device_param);
 
         while (words_extra)
         {
@@ -1643,9 +1636,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         u64 words_extra = -1U;
         u64 words_extra_total = 0;
 
-        //memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-        //memset (device_param->pws_idx,  0, device_param->size_pws_idx);
-        device_param->pws_idx[0].off = 0;
+        pws_reset (device_param);
 
         while (words_extra)
         {

@@ -7,9 +7,33 @@
 #include "types.h"
 #include "event.h"
 #include "backend.h"
+#include "bridges.h"
 #include "status.h"
 #include "shared.h"
 #include "autotune.h"
+
+// How much longer a bridge is allowed to run per launch than a compute kernel is, per workload profile.
+//
+// TARGET_MSEC_PROFILE in backend.c is picked for a kernel on a GPU, where a short launch is what keeps a
+// display drawing. A bridge that replaced the loop kernel never enters that queue, which is the same
+// reason the TDR limit is waived for it further down in this file.
+//
+// It also pays far more for a short launch than a GPU does. A bridge unit that is wide internally runs
+// a launch's candidates through its whole compute array and then drains it, so the waste is one
+// array-fill per launch rather than a fixed overhead, and it grows as the launch gets shorter. On such
+// a unit the 96 ms that -w 3 asks for has been measured costing five to eleven percent of throughput,
+// against about 1.2 percent for a GPU running -m 1000.
+//
+// Scaling the whole ladder rather than moving one rung keeps -w meaning what it means: 1 and 2 stay the
+// responsive settings, 3 stays the default that should sit near peak, 4 stays maximum throughput.
+
+#define BRIDGE_TARGET_MSEC_SCALE 4
+
+// How many of a wide unit's own waves a launch should hold, and how far past the time budget the
+// floor may push to get them. See the measured curve where these are used.
+
+#define BRIDGE_WAVES_MIN        32
+#define BRIDGE_WAVES_MSEC_SCALE 16
 
 int find_tuning_function (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED hc_device_param_t *device_param)
 {
@@ -43,7 +67,8 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   device_param->kernel_param.loop_cnt = kernel_loops; // not a bug, both need to be set
   device_param->kernel_param.il_cnt   = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
-  const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                           : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                            * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads);
 
   u32 kernel_power_try = hardware_power * kernel_accel;
@@ -60,6 +85,23 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
     }
   }
 
+  // the count a bridge advertises is a maximum it cannot be asked to exceed, so a probe has to
+  // respect it the same way the production launch does. the accel is derived by rounding that
+  // count up to a whole hardware_power step, so kernel_power_try lands above it whenever the two
+  // are not multiples of each other. that is the case this trims.
+
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
+  {
+    bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+    const u32 workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
+
+    if (kernel_power_try > workitem_count)
+    {
+      kernel_power_try = workitem_count;
+    }
+  }
+
   const u32 kernel_threads_sav = device_param->kernel_threads;
 
   device_param->kernel_threads = kernel_threads;
@@ -68,9 +110,19 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
 
   device_param->spin_damp = 0;
 
-  const u32 kern_run = find_tuning_function (hashcat_ctx, device_param);
+  // when a bridge replaced the loop kernel, that kernel is empty and timing it measures
+  // nothing. time the bridge instead, which is the unit that actually does the work.
 
-  run_kernel (hashcat_ctx, device_param, kern_run, 0, kernel_power_try, true, 0, true);
+  if (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
+  {
+    run_bridge_loop (hashcat_ctx, device_param, 0, kernel_power_try, 0, kernel_loops, true);
+  }
+  else
+  {
+    const u32 kern_run = find_tuning_function (hashcat_ctx, device_param);
+
+    run_kernel (hashcat_ctx, device_param, kern_run, 0, kernel_power_try, true, 0, true);
+  }
 
   device_param->spin_damp = spin_damp_sav;
 
@@ -97,6 +149,73 @@ static double try_run_times (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   return exec_msec_best;
 }
 
+// A wide bridge unit does not need its launch size searched for. Throughput is monotonic in waves per
+// launch, and the cost of a launch has a known shape: one fill and drain of the whole array, plus the
+// waves themselves. Two measurements pin that line down and the size follows from it.
+//
+// Searching is expensive here in a way it is not for a kernel, because every trial IS a real launch.
+// On a slow salt that is seconds per trial, and the search ran a dozen of them before the first real
+// candidate was ever tried.
+//
+// Sizing in TIME is also the wrong axis. The efficiency of a launch is about W/(W+1) for W waves, and
+// holding a launch at a fixed number of milliseconds means W falls as the hash gets more iterations,
+// so the launch collapses exactly where the hash is slowest. Measured against a 32 wave launch, and
+// the same curve came out at two different iteration counts because it depends on waves and not on the
+// hash:
+//
+//   2 waves 58 %   4 waves 76 %   8 waves 89 %   16 waves 96 %   32 waves 100 %
+//
+// So the target is a number of WAVES, and the time budget only caps how far the floor may stretch to
+// reach it. Without that cap a high iteration count would produce a launch of tens of seconds, and the
+// status line, an abort and --runtime all wait for one launch.
+
+static u32 autotune_wide_accel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_loops, const u32 kernel_threads, const u32 workitem_multiple, const u32 kernel_accel_min, const u32 kernel_accel_max, const double target_msec)
+{
+  const u32 accel_1 = MAX (kernel_accel_min, workitem_multiple);
+  const u32 accel_2 = MIN (accel_1 * 2, kernel_accel_max);
+
+  const double msec_1 = try_run_times (hashcat_ctx, device_param, accel_1, kernel_loops, kernel_threads, 1);
+
+  const double waves_1 = (double) accel_1 / (double) workitem_multiple;
+
+  double per_wave = msec_1 / waves_1;
+
+  if (accel_2 > accel_1)
+  {
+    const double msec_2 = try_run_times (hashcat_ctx, device_param, accel_2, kernel_loops, kernel_threads, 1);
+
+    const double waves_2 = (double) accel_2 / (double) workitem_multiple;
+
+    const double slope = (msec_2 - msec_1) / (waves_2 - waves_1);
+
+    if (slope > 0) per_wave = slope;
+  }
+
+  // whatever the line does not explain is the fill and drain, and it is paid once per launch
+
+  const double fixed_msec = msec_1 - (per_wave * waves_1);
+
+  const double waves_budget  = (target_msec - fixed_msec) / per_wave;
+  const double waves_stretch = ((target_msec * BRIDGE_WAVES_MSEC_SCALE) - fixed_msec) / per_wave;
+
+  double waves = MAX (waves_budget, MIN ((double) BRIDGE_WAVES_MIN, waves_stretch));
+
+  if (waves < 1) waves = 1;
+
+  u64 accel = (u64) (waves * (double) workitem_multiple);
+
+  accel = MAX (accel, kernel_accel_min);
+  accel = MIN (accel, kernel_accel_max);
+
+  // a launch the device cannot use is not an answer, so snap to a whole wave
+
+  accel = MAX ((accel / workitem_multiple) * workitem_multiple, kernel_accel_min);
+
+  const u32 result = (u32) accel;
+
+  return result;
+}
+
 static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   const hashes_t       *hashes       = hashcat_ctx->hashes;
@@ -105,7 +224,21 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  const double target_msec = backend_ctx->target_msec;
+  // see BRIDGE_TARGET_MSEC_SCALE above
+  const double target_msec = (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP)
+                           ? backend_ctx->target_msec * BRIDGE_TARGET_MSEC_SCALE
+                           : backend_ctx->target_msec;
+
+  const bool is_bridge = bridge_active (hashcat_ctx, device_param->bridge_link_device);
+
+  // Does one bridge unit have width inside it? An accelerator computes in waves and has to fill and
+  // drain its array for every call, so chunking costs it real work. A unit that is one CPU thread
+  // reports a multiple of 1 and pays almost nothing to be called more often, so the two want opposite
+  // things from kernel_loops and are told apart here rather than lumped together as "a bridge".
+
+  const u32 workitem_multiple = (is_bridge == true) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device) : 1;
+
+  const bool wide_unit = (is_bridge == true) && (workitem_multiple > 1);
 
   const u32 kernel_accel_min = device_param->kernel_accel_min;
   const u32 kernel_accel_max = device_param->kernel_accel_max;
@@ -134,7 +267,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     device_param->kernel_accel   = kernel_accel_min;
     device_param->kernel_loops   = kernel_loops_min;
     device_param->kernel_threads = kernel_threads_min;
-    device_param->hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+    device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                                 : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_min);
     device_param->kernel_power   = device_param->hardware_power * kernel_accel_min;
   }
@@ -214,7 +348,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // from here it's clear we are allowed to autotune
     // so let's init some fake words
 
-    const u32 hardware_power_max = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+    const u32 hardware_power_max = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                                 : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_max);
 
     u32 kernel_power_max = hardware_power_max * kernel_accel_max;
@@ -319,9 +454,16 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (true)
     {
-      double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min, kernel_threads);
+      const double exec_msec = try_run (hashcat_ctx, device_param, kernel_accel_min, kernel_loops_min, kernel_threads);
 
-      if (exec_msec > 2000)
+      // the TDR limit only applies when the timed unit is a compute kernel, because it is
+      // the driver watchdog that reloads the driver when one runs too long. a bridge that
+      // replaced the loop kernel never enters that queue, so the watchdog cannot fire and
+      // a runtime above the limit is legitimate.
+
+      const bool tdr_applies = (hashconfig->bridge_type & BRIDGE_TYPE_REPLACE_LOOP) ? false : true;
+
+      if ((exec_msec > 2000) && (tdr_applies == true))
       {
         event_log_error (hashcat_ctx, "Kernel minimum runtime larger than default TDR");
 
@@ -373,30 +515,63 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
     }
 
+    // A bridge is tuned by the SIZE OF THE LAUNCH, not by how finely the iteration space is cut.
+    //
+    // Chunking is not free for a bridge the way it is for a loop kernel. A unit that is wide
+    // internally has to fill and drain its whole array for every call, so each extra chunk pays that
+    // again, and a bridge that cannot resume a candidate part way through has to emulate chunking by
+    // splitting the CANDIDATES instead. Once a chunk falls below the unit's own width the array is
+    // running half empty, which is where the cost goes.
+    //
+    // The iteration space is therefore taken in one call and the launch is sized with kernel_accel,
+    // which the accel search below already drives towards target_msec and which is floored at one
+    // workitem multiple. Where that floor is reached the launch simply runs longer than the profile
+    // asks for, because a unit cannot compute less than one wave.
+    //
+    // This was found on an accelerator bridge whose salt had a few hundred iterations. The loops
+    // search settled on 2 of them, so the work was cut into 128 chunks and each one handed the unit
+    // less than half of one wave. Taking the space in a single call instead measured three to five
+    // times faster across the higher iteration counts, and restored the property that doubling the
+    // iteration count should roughly halve the rate.
+
     if (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL)
     {
-      if (hashes && hashes->salts_buf)
+      if ((hashes != NULL) && (hashes->salts_buf != NULL))
       {
-        u32 start = kernel_loops_max;
-
         const u32 salt_iter = hashes->salts_buf->salt_iter; // we use the first salt as reference
 
-        if (salt_iter)
+        if (wide_unit == true)
         {
-          start = MIN (start, smallest_repeat_double (hashes->salts_buf->salt_iter));
-          start = MIN (start, smallest_repeat_double (hashes->salts_buf->salt_iter + 1));
-
-          if (((hashes->salts_buf->salt_iter + 0) % 125) == 0) start = MIN (start, 125);
-          if (((hashes->salts_buf->salt_iter + 1) % 125) == 0) start = MIN (start, 125);
-
-          if ((start >= kernel_loops_min) && (start <= kernel_loops_max))
+          if (salt_iter)
           {
+            u32 start = MIN (kernel_loops_max, salt_iter);
+
+            start = MAX (start, kernel_loops_min);
+
             kernel_loops = start;
           }
         }
         else
         {
-          // how can there be a slow hash with no iterations?
+          u32 start = kernel_loops_max;
+
+          if (salt_iter)
+          {
+            start = MIN (start, smallest_repeat_double (salt_iter));
+            start = MIN (start, smallest_repeat_double (salt_iter + 1));
+
+            if (((salt_iter + 0) % 125) == 0) start = MIN (start, 125);
+            if (((salt_iter + 1) % 125) == 0) start = MIN (start, 125);
+
+            if ((start >= kernel_loops_min) && (start <= kernel_loops_max))
+            {
+              kernel_loops = start;
+            }
+          }
+          else
+          {
+            // how can there be a slow hash with no iterations?
+          }
         }
       }
     }
@@ -412,7 +587,10 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       }
     }
 
-    if (1)
+    // A wide unit is sized below from a model rather than by searching, so none of the trial launches
+    // between here and the accel search buy it anything, and on a bridge every trial is a real launch.
+
+    if (wide_unit == false)
     {
       // some algorithm start ways to high with these theoretical preset (for instance, 8700)
       // so much that they can't be tuned anymore
@@ -437,39 +615,60 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
           continue;
         }
 
+        // a wide unit's loops were set to the whole iteration space on purpose, see above. Halving it
+        // here would put the chunking back, so accel is the only thing left for it to give.
+
+        if (wide_unit == true) break;
+
         if (kernel_loops > kernel_loops_min)
         {
           kernel_loops = MAX (kernel_loops / 2, kernel_loops_min);
 
           continue;
         }
+
+        break;
       }
     }
 
-    for (u32 kernel_loops_test = kernel_loops; kernel_loops_test <= kernel_loops_max; kernel_loops_test <<= 1)
+    // the search below hunts for the largest loop count that still fits the time budget. A wide unit
+    // has already been given the whole iteration space, and going past it means asking for iterations
+    // the salt does not have, so there is nothing left to search for.
+
+    if (wide_unit == false)
     {
-      double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops_test, kernel_threads, 2);
-
-      //printf ("loop %f %u %u %u\n", exec_msec, kernel_accel, kernel_loops_test, kernel_threads);
-      if (exec_msec > target_msec) break;
-
-      // we want a little room for threads to play with so not full target_msec
-      // but of course only if we are going to make use of that :)
-
-      if ((kernel_accel < kernel_accel_max) || (kernel_threads < kernel_threads_max))
+      for (u32 kernel_loops_test = kernel_loops; kernel_loops_test <= kernel_loops_max; kernel_loops_test <<= 1)
       {
-        if (exec_msec > target_msec / 8) break;
+        double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops_test, kernel_threads, 2);
 
-        // in general, an unparallelized kernel should not run that long.
-        // if the kernel uses barriers it will have a bad impact on performance.
-        // streebog is a good testing example
+        //printf ("loop %f %u %u %u\n", exec_msec, kernel_accel, kernel_loops_test, kernel_threads);
+        if (exec_msec > target_msec) break;
 
-        if (exec_msec > 4) break;
+        // we want a little room for threads to play with so not full target_msec
+        // but of course only if we are going to make use of that :)
+
+        if ((kernel_accel < kernel_accel_max) || (kernel_threads < kernel_threads_max))
+        {
+          if (exec_msec > target_msec / 8) break;
+
+          // in general, an unparallelized kernel should not run that long.
+          // if the kernel uses barriers it will have a bad impact on performance.
+          // streebog is a good testing example
+          //
+          // a bridge is not a kernel. it does not queue behind one and it has no barriers, so the 4 ms
+          // figure describes nothing about it. a bridge launch is tens to hundreds of milliseconds by
+          // design, which is the same reason the TDR limit is waived for it above. left in place this
+          // test ends the loops search at its first rung, whatever the workload profile asks for.
+
+          if ((exec_msec > 4) && (is_bridge == false)) break;
+        }
+
+        kernel_loops = kernel_loops_test;
       }
-
-      kernel_loops = kernel_loops_test;
     }
 
+    if (wide_unit == false)
+    {
     double exec_msec_init = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads, 2);
 
     float threads_eff_best = exec_msec_init / kernel_threads;
@@ -511,12 +710,17 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     {
       kernel_threads = threads_cnt_best;
     }
+    }
 
     #define STEPS_CNT 12
 
     // now we tune for kernel-accel but with the new kernel-loops from previous loop set
 
-    if (kernel_accel_min < kernel_accel_max)
+    if (wide_unit == true)
+    {
+      kernel_accel = autotune_wide_accel (hashcat_ctx, device_param, kernel_loops, kernel_threads, workitem_multiple, kernel_accel_min, kernel_accel_max, target_msec);
+    }
+    else if (kernel_accel_min < kernel_accel_max)
     {
       for (int i = 0; i < STEPS_CNT; i++)
       {
@@ -546,7 +750,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // overtune section. relevant if we have strange numbers from the APIs, namely 96, 384, and such
     // this is a dangerous action, and we set conditions somewhere in the code to disable this
 
-    if ((kernel_accel_min == kernel_accel_max) || (kernel_threads_min == kernel_threads_max) || (device_param->overtune_unfriendly == true))
+    if ((wide_unit == true) || (kernel_accel_min == kernel_accel_max) || (kernel_threads_min == kernel_threads_max) || (device_param->overtune_unfriendly == true))
     {
     }
     else
@@ -682,7 +886,8 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_loops   = kernel_loops;
   device_param->kernel_threads = kernel_threads;
 
-  const u32 hardware_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                           : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                            * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads);
 
   device_param->hardware_power = hardware_power;

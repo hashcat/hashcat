@@ -695,7 +695,7 @@ static void units_term (python_interpreter_t *python_interpreter)
   }
 }
 
-void *platform_init (user_options_t *user_options)
+void *platform_init (user_options_t *user_options, MAYBE_UNUSED folder_config_t *folder_config)
 {
   // Verify CPU features
 
@@ -986,6 +986,17 @@ int get_workitem_count (void *platform_context, const int unit_idx)
   return unit_buf->workitem_count;
 }
 
+// The multiple this bridge computes in.
+//
+// One unit here is one CPU thread working through its batch sequentially, so there is no width to fill
+// and no partial wave to waste: a batch of N costs N hashes whatever N is. Parallelism is expressed as
+// UNITS, not as width inside a unit, which is the structural difference from an accelerator that holds
+// many cores behind a single unit.
+int get_workitem_multiple (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED const int unit_idx)
+{
+  return 1;
+}
+
 char *get_unit_info (void *platform_context, const int unit_idx)
 {
   python_interpreter_t *python_interpreter = platform_context;
@@ -1239,17 +1250,26 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->bridge_context_size       = BRIDGE_CONTEXT_SIZE_CURRENT;
   bridge_ctx->bridge_interface_version  = BRIDGE_INTERFACE_VERSION_CURRENT;
 
-  bridge_ctx->platform_init       = platform_init;
-  bridge_ctx->platform_term       = platform_term;
-  bridge_ctx->get_unit_count      = get_unit_count;
-  bridge_ctx->get_unit_info       = get_unit_info;
-  bridge_ctx->get_workitem_count  = get_workitem_count;
-  bridge_ctx->thread_init         = thread_init;
-  bridge_ctx->thread_term         = thread_term;
-  bridge_ctx->salt_prepare        = BRIDGE_DEFAULT;
-  bridge_ctx->salt_destroy        = BRIDGE_DEFAULT;
-  bridge_ctx->launch_loop         = launch_loop;
-  bridge_ctx->launch_loop2        = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_hash      = st_update_hash;
-  bridge_ctx->st_update_pass      = st_update_pass;
+  bridge_ctx->platform_init         = platform_init;
+  bridge_ctx->platform_term         = platform_term;
+  bridge_ctx->get_unit_count        = get_unit_count;
+  bridge_ctx->get_unit_info         = get_unit_info;
+  bridge_ctx->get_workitem_count    = get_workitem_count;
+  bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+  bridge_ctx->thread_init           = thread_init;
+  bridge_ctx->thread_term           = thread_term;
+  bridge_ctx->salt_prepare          = BRIDGE_DEFAULT;
+  bridge_ctx->salt_destroy          = BRIDGE_DEFAULT;
+  bridge_ctx->launch_loop           = launch_loop;
+  bridge_ctx->launch_loop2          = BRIDGE_DEFAULT;
+  bridge_ctx->st_update_hash        = st_update_hash;
+  bridge_ctx->st_update_pass        = st_update_pass;
+
+  bridge_ctx->get_unit_temperature  = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_fanspeed     = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_utilization  = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_corespeed    = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_memoryspeed  = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_buslanes     = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_power        = BRIDGE_DEFAULT;
 }

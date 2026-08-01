@@ -3809,14 +3809,15 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     {
       const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
 
+      // A bridge does the work, so the backend device's thread and vector geometry says nothing about
+      // it. Report what the bridge is actually handed instead: the candidates in a launch, and the
+      // iteration chunk that launch covers.
       event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u",
+        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
         device_info0->speed_sec_dev,
         device_info0->exec_msec_dev,
-        device_info0->kernel_accel_dev,
-        device_info0->kernel_loops_dev,
-        device_info0->kernel_threads_dev,
-        device_info0->vector_width_dev);
+        device_info0->kernel_power_dev,
+        device_info0->kernel_loops_dev);
     }
   }
   else
@@ -4385,48 +4386,30 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     bool first_dev = true;
     #endif
 
-    if (bridge_ctx->enabled == true)
+    // Devices that share hardware with an earlier device have no hwmon_dev, so one line is printed
+    // per piece of hardware rather than per device. That is why there is no special case for a
+    // bridge here: a bridge is only one of the ways several devices end up on one card.
+
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-      if (device_info0->hwmon_dev)
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
+
+      if (device_info->hwmon_dev == NULL) continue;
+
+      #if defined (__APPLE__)
+      if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
       {
-        #if defined (__APPLE__)
-        if (first_dev && strlen (device_info0->hwmon_fan_dev) > 0)
-        {
-          event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info0->hwmon_fan_dev);
-          first_dev = false;
-        }
-        #endif
-
-        event_log_info (hashcat_ctx,
-          "Hardware.Mon.#%02u.: %s", 0 + 1,
-          device_info0->hwmon_dev);
+        event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
+        first_dev = false;
       }
-    }
-    else
-    {
-      for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
-      {
-        const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+      #endif
 
-        if (device_info->skipped_dev == true) continue;
-        if (device_info->skipped_warning_dev == true) continue;
-
-        if (device_info->hwmon_dev == NULL) continue;
-
-        #if defined (__APPLE__)
-        if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
-        {
-          event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
-          first_dev = false;
-        }
-        #endif
-
-        event_log_info (hashcat_ctx,
-          "Hardware.Mon.#%02u.: %s", device_id + 1,
-          device_info->hwmon_dev);
-      }
+      event_log_info (hashcat_ctx,
+        "Hardware.Mon.#%02u.: %s", device_id + 1,
+        device_info->hwmon_dev);
     }
   }
 
@@ -4500,14 +4483,15 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
     {
       const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
 
+      // A bridge does the work, so the backend device's thread and vector geometry says nothing about
+      // it. Report what the bridge is actually handed instead: the candidates in a launch, and the
+      // iteration chunk that launch covers.
       event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u",
+        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
         device_info0->speed_sec_dev,
         device_info0->exec_msec_dev,
-        device_info0->kernel_accel_dev,
-        device_info0->kernel_loops_dev,
-        device_info0->kernel_threads_dev,
-        device_info0->vector_width_dev);
+        device_info0->kernel_power_dev,
+        device_info0->kernel_loops_dev);
     }
   }
   else

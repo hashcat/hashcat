@@ -69,6 +69,156 @@ static int hm_get_adapter_index_nvml (hashcat_ctx_t *hashcat_ctx, HM_ADAPTER_NVM
   return (deviceCount);
 }
 
+// Do two backend devices sit on the same piece of physical hardware?
+//
+// They often do. --backend-devices-virtmulti clones one device into several, and a bridge clones the
+// candidate feeder once per bridge unit. Every clone reports the same sensors, because there is only
+// one thermometer.
+//
+// This can report a duplicate that is not one, and that only costs a repeated line. It can never
+// claim two different devices are the same, which would hide one.
+
+static bool hm_same_hardware (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param_a, const hc_device_param_t *device_param_b)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  // With a bridge the device that does the work is the bridge unit, not the feeder, so the unit is
+  // what identifies the hardware. The startup listing already tells units apart by comparing the
+  // strings from get_unit_info, so use the same rule here and the two displays cannot disagree.
+
+  if (bridge_ctx->enabled == true)
+  {
+    if (bridge_ctx->get_unit_info == NULL) return true;
+
+    const char *info_a = bridge_ctx->get_unit_info (bridge_ctx->platform_context, device_param_a->bridge_link_device);
+    const char *info_b = bridge_ctx->get_unit_info (bridge_ctx->platform_context, device_param_b->bridge_link_device);
+
+    if (info_a == NULL) return true;
+    if (info_b == NULL) return true;
+
+    const bool same = (strcmp (info_a, info_b) == 0);
+
+    return same;
+  }
+
+  // One piece of hardware can also be reached through two different runtimes, for instance a GPU
+  // offered by both HIP and OpenCL, or a CPU offered by both the Intel OpenCL and the PoCL drivers.
+  // Those arrive as separate devices with separate native handles, so comparing handles alone would
+  // count the same processor twice.
+  //
+  // In practice one of the two is skipped as an alias before it ever gets here, so this rarely
+  // decides anything today. It is kept because hashcat already knows the relationship, and asking
+  // it is free and stays correct if which alias survives ever changes.
+
+  for (int i = 0; i < device_param_a->device_id_alias_cnt; i++)
+  {
+    if (device_param_a->device_id_alias_buf[i] == device_param_b->device_id) return true;
+  }
+
+  // Without a bridge, compare the native device handle. A virtual clone is built from the same real
+  // device index as its host, so it resolves to the very same handle, while two genuinely different
+  // devices can never share one.
+
+  if ((device_param_a->is_cuda   == true) && (device_param_b->is_cuda   == true)) return device_param_a->cuda_device   == device_param_b->cuda_device;
+  if ((device_param_a->is_hip    == true) && (device_param_b->is_hip    == true)) return device_param_a->hip_device    == device_param_b->hip_device;
+  if ((device_param_a->is_opencl == true) && (device_param_b->is_opencl == true)) return device_param_a->opencl_device == device_param_b->opencl_device;
+  #if defined (__APPLE__)
+  if ((device_param_a->is_metal  == true) && (device_param_b->is_metal  == true)) return device_param_a->metal_device  == device_param_b->metal_device;
+  #endif
+
+  return false;
+}
+
+// Ask the bridge for one of its unit's sensors.
+//
+// Under a bridge the backend device only feeds candidates. The work happens on the bridge unit, so
+// that is the thing worth reporting, and a bridge that knows its hardware answers here.
+//
+// This runs before the hwmon_ctx->enabled test in every caller, on purpose. That flag says whether a
+// GPU vendor library loaded, and a machine whose real compute is a bridge device may well have none.
+// Waiting for it would hide the readings on exactly the machines that need them. --hwmon-disable is
+// still honoured, because it is checked here instead.
+
+// Fall through to the vendor backends, the bridge has nothing to say about this device at all.
+#define HM_BRIDGE_PASS       (-3)
+
+// The bridge owns this device but cannot give this particular reading. Report nothing.
+#define HM_BRIDGE_NO_READING (-2)
+
+static bool hm_bridge_has_sensors (const bridge_ctx_t *bridge_ctx)
+{
+  const void *funcs[] =
+  {
+    (const void *) bridge_ctx->get_unit_temperature,
+    (const void *) bridge_ctx->get_unit_fanspeed,
+    (const void *) bridge_ctx->get_unit_utilization,
+    (const void *) bridge_ctx->get_unit_corespeed,
+    (const void *) bridge_ctx->get_unit_memoryspeed,
+    (const void *) bridge_ctx->get_unit_buslanes,
+    (const void *) bridge_ctx->get_unit_power,
+  };
+
+  for (size_t i = 0; i < (sizeof (funcs) / sizeof (funcs[0])); i++)
+  {
+    if (funcs[i] == NULL)           continue;
+    if (funcs[i] == MODULE_DEFAULT) continue;
+
+    return true;
+  }
+
+  return false;
+}
+
+static int hm_get_bridge_unit (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, const void *func)
+{
+  bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
+  backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->hwmon == false) return HM_BRIDGE_PASS;
+
+  if (bridge_ctx->enabled == false) return HM_BRIDGE_PASS;
+
+  // A bridge that reports even one sensor owns the whole line for its units. The backend device is
+  // only the candidate feeder, so mixing in its fan speed and memory clock would describe two
+  // different pieces of hardware on one line and read as though it described one.
+
+  if (hm_bridge_has_sensors (bridge_ctx) == false) return HM_BRIDGE_PASS;
+
+  const int unit = backend_ctx->devices_param[backend_device_idx].bridge_link_device;
+
+  if (unit < 0) return HM_BRIDGE_PASS;
+
+  if (func == NULL)           return HM_BRIDGE_NO_READING;
+  if (func == MODULE_DEFAULT) return HM_BRIDGE_NO_READING;
+
+  return unit;
+}
+
+// Is this device the one that should carry the hwmon line for its hardware?
+//
+// The lowest numbered device of each group answers yes. Everything else is a clone of it and would
+// print the same sensor readings again.
+
+bool hm_is_hwmon_group_leader (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_device_idx];
+
+  for (int i = 0; i < backend_device_idx; i++)
+  {
+    const hc_device_param_t *device_param_prev = &backend_ctx->devices_param[i];
+
+    if (device_param_prev->skipped         == true) continue;
+    if (device_param_prev->skipped_warning == true) continue;
+
+    if (hm_same_hardware (hashcat_ctx, device_param_prev, device_param) == true) return false;
+  }
+
+  return true;
+}
+
 int hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
@@ -209,6 +359,17 @@ int hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, cons
 
 int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
+  const int bridge_unit_temperature = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) hashcat_ctx->bridge_ctx->get_unit_temperature);
+
+  if (bridge_unit_temperature == HM_BRIDGE_NO_READING) return -1;
+
+  if (bridge_unit_temperature != HM_BRIDGE_PASS)
+  {
+    const int val = hashcat_ctx->bridge_ctx->get_unit_temperature (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_temperature);
+
+    return val;
+  }
+
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -525,6 +686,17 @@ int hm_get_fanspeed_apple (hashcat_ctx_t *hashcat_ctx, char *fan_speed_buf)
 
 int hm_get_fanspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
+  const int bridge_unit_fanspeed = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) hashcat_ctx->bridge_ctx->get_unit_fanspeed);
+
+  if (bridge_unit_fanspeed == HM_BRIDGE_NO_READING) return -1;
+
+  if (bridge_unit_fanspeed != HM_BRIDGE_PASS)
+  {
+    const int val = hashcat_ctx->bridge_ctx->get_unit_fanspeed (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_fanspeed);
+
+    return val;
+  }
+
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -668,6 +840,17 @@ int hm_get_fanspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
 int hm_get_buslanes_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
+  const int bridge_unit_buslanes = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) hashcat_ctx->bridge_ctx->get_unit_buslanes);
+
+  if (bridge_unit_buslanes == HM_BRIDGE_NO_READING) return -1;
+
+  if (bridge_unit_buslanes != HM_BRIDGE_PASS)
+  {
+    const int val = hashcat_ctx->bridge_ctx->get_unit_buslanes (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_buslanes);
+
+    return val;
+  }
+
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -774,6 +957,17 @@ int hm_get_buslanes_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
 int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
+  const int bridge_unit_utilization = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) hashcat_ctx->bridge_ctx->get_unit_utilization);
+
+  if (bridge_unit_utilization == HM_BRIDGE_NO_READING) return -1;
+
+  if (bridge_unit_utilization != HM_BRIDGE_PASS)
+  {
+    const int val = hashcat_ctx->bridge_ctx->get_unit_utilization (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_utilization);
+
+    return val;
+  }
+
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -922,6 +1116,17 @@ int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
 int hm_get_memoryspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
+  const int bridge_unit_memoryspeed = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) hashcat_ctx->bridge_ctx->get_unit_memoryspeed);
+
+  if (bridge_unit_memoryspeed == HM_BRIDGE_NO_READING) return -1;
+
+  if (bridge_unit_memoryspeed != HM_BRIDGE_PASS)
+  {
+    const int val = hashcat_ctx->bridge_ctx->get_unit_memoryspeed (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_memoryspeed);
+
+    return val;
+  }
+
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -1028,6 +1233,17 @@ int hm_get_memoryspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
 int hm_get_corespeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
+  const int bridge_unit_corespeed = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) hashcat_ctx->bridge_ctx->get_unit_corespeed);
+
+  if (bridge_unit_corespeed == HM_BRIDGE_NO_READING) return -1;
+
+  if (bridge_unit_corespeed != HM_BRIDGE_PASS)
+  {
+    const int val = hashcat_ctx->bridge_ctx->get_unit_corespeed (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_corespeed);
+
+    return val;
+  }
+
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -1250,6 +1466,18 @@ int hm_get_throttle_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
 int64_t hm_get_power_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
+  const int bridge_unit_power = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) hashcat_ctx->bridge_ctx->get_unit_power);
+
+  if (bridge_unit_power == HM_BRIDGE_NO_READING) return -1;
+
+  if (bridge_unit_power != HM_BRIDGE_PASS)
+  {
+    // an unsigned reading cannot use -1, so a bridge reports no reading as 0
+    const u64 val = hashcat_ctx->bridge_ctx->get_unit_power (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_power);
+
+    if (val) return (int64_t) val;
+  }
+
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
 
   if (hwmon_ctx->enabled == false) return -1;
@@ -1733,16 +1961,21 @@ static void hwmon_ctx_init_sysfs_cpu (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm
 
 int hwmon_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
   hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
   backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
   hwmon_ctx->enabled = false;
 
-  int backend_devices_cnt = backend_ctx->backend_devices_cnt;
+  // Every device is probed and filled, including the clones that share hardware with an earlier one.
+  // The probes match on PCI address and write to a slot keyed by device, so running them again for a
+  // clone writes the same handle to that clone's slot. Repeating them costs a little work once, at
+  // startup, and it means every device can be asked for its readings later.
+  //
+  // Collapsing the display is a separate job, and it belongs to the display. hm_is_hwmon_group_leader
+  // decides which device carries the line for its hardware.
 
-  if (bridge_ctx->enabled == true) backend_devices_cnt = 1;
+  int backend_devices_cnt = backend_ctx->backend_devices_cnt;
 
   //#if !defined (WITH_HWMON)
   //return 0;

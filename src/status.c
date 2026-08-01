@@ -2455,12 +2455,19 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
 
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
+  if (device_param->skipped == true) return NULL;
+  if (device_param->skipped_warning == true) return NULL;
+
+  // Several backend devices can share one piece of hardware, and then they share its sensors too.
+  // Only the first device of each group reports, so a machine with one card does not print the same
+  // temperature once per virtual device. Returning NULL here is what the callers already treat as
+  // "this device has nothing to show".
+
+  if (hm_is_hwmon_group_leader ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx) == false) return NULL;
+
   char *output_buf = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (output_buf, HCBUFSIZ_TINY, "N/A");
-
-  if (device_param->skipped == true) return output_buf;
-  if (device_param->skipped_warning == true) return output_buf;
 
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
@@ -2631,6 +2638,18 @@ int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int b
   if (device_param->kernel_threads_prev) return device_param->kernel_threads_prev;
 
   return device_param->kernel_threads;
+}
+
+u64 status_get_kernel_power_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  if (device_param->skipped == true) return 0;
+  if (device_param->skipped_warning == true) return 0;
+
+  return device_param->kernel_power;
 }
 
 int status_get_vector_width_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
