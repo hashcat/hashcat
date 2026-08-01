@@ -13,6 +13,7 @@ size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_
 
 void pw_pre_add       (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len, const u8 *base_buf, const int base_len, const int rule_idx);
 void pw_base_add      (hc_device_param_t *device_param, pw_pre_t *pw_pre);
+void pws_reset        (hc_device_param_t *device_param);
 void pw_add_zerocopy  (hc_device_param_t *device_param, u8 *out_buf, const int pw_len);
 void pw_add           (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len);
 

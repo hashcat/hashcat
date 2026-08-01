@@ -9182,6 +9182,14 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 
       if (is_same_device_type (device_param_src, device_param_dst) == false) continue;
 
+      // A bridge is wired up as one virtual backend device per unit, so this test sees a single
+      // device however many units are behind it, and the first unit's tuning would be copied onto all
+      // the rest. Units of a bridge are not interchangeable: they can differ in width and in speed,
+      // and every one of them has already been tuned on its own by the time this runs.
+
+      if (bridge_active (hashcat_ctx, device_param_src->bridge_link_device) == true) continue;
+      if (bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) == true) continue;
+
       device_param_dst->kernel_accel   = device_param_src->kernel_accel;
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
       device_param_dst->kernel_threads = device_param_src->kernel_threads;

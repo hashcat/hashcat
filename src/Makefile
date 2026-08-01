@@ -275,20 +275,33 @@ endif
 endif
 endif
 
+# -march=native asks the compiler what the host processor is, and the answer is not always one the
+# compiler will then accept. Under a hypervisor the CPUID presented to the guest can map to a
+# processor name that has no 64 bit support, which the driver rejects as an unknown target CPU, and
+# the build stops on a flag that was only meant to be an optimisation. Ask before using it.
+
 ifeq ($(MAINTAINER_MODE),0)
 ifeq ($(BUILD_MODE),native)
+HAVE_MARCH_NATIVE       := $(shell echo | $(CC) -march=native -E - >/dev/null 2>&1 && echo 1 || echo 0)
+HAVE_MCPU_NATIVE        := $(shell echo | $(CC) -mcpu=native -E - >/dev/null 2>&1 && echo 1 || echo 0)
 ifneq ($(UNAME),Darwin)
 ifeq ($(IS_PPC),1)
+ifeq ($(HAVE_MCPU_NATIVE),1)
 CFLAGS                  += -mcpu=native
-CFLAGS                  += -mtune=native
-else
-CFLAGS                  += -march=native
 CFLAGS                  += -mtune=native
 endif
 else
-ifeq ($(MACOS_UNIVERSAL_BINARY),0)
+ifeq ($(HAVE_MARCH_NATIVE),1)
 CFLAGS                  += -march=native
 CFLAGS                  += -mtune=native
+endif
+endif
+else
+ifeq ($(MACOS_UNIVERSAL_BINARY),0)
+ifeq ($(HAVE_MARCH_NATIVE),1)
+CFLAGS                  += -march=native
+CFLAGS                  += -mtune=native
+endif
 endif
 endif
 endif
