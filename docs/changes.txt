@@ -467,6 +467,7 @@ Unit tests: Updated install_modules.sh to use an external module for Digest::MD6
 - Reduced JIT compile time by lowering the required C++ standard (C++ is not used)
 - Reduced JIT compile time by enabling multithreaded JIT compilation
 - DEScrypt Kernel (1500): Improved performance from 950MH/s to 2200MH/s (RX6900XT) on HIP backend by workaround invalid compile time optimizer
+- Added a redundant signature check to modules 01711, 02100, 07500, 13100, 13400, 18200, 19600, 19700, 19800, 19900, 20200, 20300, 20400, 28800, 28900, and 29700 to improve potfile reading performance
 
 ## Tuning Database
 
