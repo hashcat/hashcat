@@ -122,7 +122,7 @@ u32 bridge_workitem_multiple (hashcat_ctx_t *hashcat_ctx, const int bridge_link_
   if (bridge_ctx->enabled == false) return 1;
   if (bridge_ctx->get_workitem_multiple == BRIDGE_DEFAULT) return 1;
 
-  const int multiple = bridge_ctx->get_workitem_multiple (bridge_ctx->platform_context, bridge_link_device);
+  const int multiple = bridge_ctx->get_workitem_multiple (hashcat_ctx, bridge_ctx->platform_context, bridge_link_device);
 
   if (multiple < 1) return 1;
 
@@ -132,7 +132,6 @@ u32 bridge_workitem_multiple (hashcat_ctx_t *hashcat_ctx, const int bridge_link_
 bool bridges_init (hashcat_ctx_t *hashcat_ctx)
 {
   bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
   user_options_t  *user_options  = hashcat_ctx->user_options;
   hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
 
@@ -246,7 +245,7 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
 
   #undef CHECK_MANDATORY
 
-  bridge_ctx->platform_context = bridge_ctx->platform_init (user_options, folder_config);
+  bridge_ctx->platform_context = bridge_ctx->platform_init (hashcat_ctx);
 
   if (bridge_ctx->platform_context == NULL)
   {
@@ -268,7 +267,7 @@ void bridges_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == false) return;
 
-  bridge_ctx->platform_term (bridge_ctx->platform_context);
+  bridge_ctx->platform_term (hashcat_ctx, bridge_ctx->platform_context);
 
   bridge_unload (bridge_ctx);
 }
@@ -291,7 +290,7 @@ bool bridges_salt_prepare (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->salt_prepare == MODULE_DEFAULT) return true;
 
-  if (bridge_ctx->salt_prepare (bridge_ctx->platform_context, hashconfig, hashes) == false)
+  if (bridge_ctx->salt_prepare (hashcat_ctx, bridge_ctx->platform_context, hashconfig, hashes) == false)
   {
     event_log_error (hashcat_ctx, "Couldn't prepare salt specific data in bridge");
 
@@ -311,5 +310,5 @@ void bridges_salt_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->salt_destroy == MODULE_DEFAULT) return;
 
-  bridge_ctx->salt_destroy (bridge_ctx->platform_context, hashconfig, hashes);
+  bridge_ctx->salt_destroy (hashcat_ctx, bridge_ctx->platform_context, hashconfig, hashes);
 }

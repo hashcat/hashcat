@@ -2258,7 +2258,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+    const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
     const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
 
@@ -2272,11 +2272,11 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
     bool all_same = true;
 
-    char *tmp = bridge_ctx->get_unit_info (bridge_ctx->platform_context, 0);
+    char *tmp = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, 0);
 
     for (int i = 1; i < unit_count; i++)
     {
-      if (strcmp (tmp, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i)))
+      if (strcmp (tmp, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i)))
       {
         all_same = false;
 
@@ -2292,7 +2292,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
     {
       for (int i = 0; i < unit_count; i++)
       {
-        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i));
+        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
       }
     }
 
@@ -2323,7 +2323,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_cuda[0];
 
@@ -2424,7 +2424,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_hip[0];
 
@@ -2514,7 +2514,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_metal[0];
 
@@ -2612,7 +2612,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
         {

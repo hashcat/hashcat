@@ -183,23 +183,48 @@ bridge_ctx->st_update_pass        = BRIDGE_DEFAULT;
 They are defined like this:
 
 ```c
-  void     *(*platform_init)      (user_options_t *, folder_config_t *);
-  void      (*platform_term)      (void *);
-  int       (*get_unit_count)        (void *);
-  char     *(*get_unit_info)         (void *, const int);
-  int       (*get_workitem_count)    (void *, const int);
-  int       (*get_workitem_multiple) (void *, const int);
-  bool      (*salt_prepare)       (void *, hashconfig_t *, hashes_t *);
-  void      (*salt_destroy)       (void *, hashconfig_t *, hashes_t *);
-  bool      (*thread_init)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
-  void      (*thread_term)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
-  bool      (*launch_loop)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
-  bool      (*launch_loop2)       (void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
-  const char *(*st_update_pass)  (void *);
-  const char *(*st_update_hash)  (void *);
+  void     *(*platform_init)      (hashcat_ctx_t *);
+  void      (*platform_term)      (hashcat_ctx_t *, void *);
+  int       (*get_unit_count)        (hashcat_ctx_t *, void *);
+  char     *(*get_unit_info)         (hashcat_ctx_t *, void *, const int);
+  int       (*get_workitem_count)    (hashcat_ctx_t *, void *, const int);
+  int       (*get_workitem_multiple) (hashcat_ctx_t *, void *, const int);
+  bool      (*salt_prepare)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
+  void      (*salt_destroy)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
+  bool      (*thread_init)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+  void      (*thread_term)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+  bool      (*launch_loop)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+  bool      (*launch_loop2)       (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+  const char *(*st_update_pass)  (hashcat_ctx_t *, void *);
+  const char *(*st_update_hash)  (hashcat_ctx_t *, void *);
 ```
 
 **Note**: Use `BRIDGE_DEFAULT` when no function implementation is required.
+
+### Every entry takes `hashcat_ctx_t *` first
+
+Interface version 720 carries this change. A bridge written against an older interface has the wrong
+signature on every single entry, and `platform_init`'s parameters are gone entirely: `user_options_t`
+and `folder_config_t` are both reachable through the context now.
+
+The reason is logging. A bridge that has the context can call `event_log_info`, `event_log_warning`
+and `event_log_error` exactly as hashcat's own code does, so its messages go through hashcat's event
+system, honour `--quiet`, and appear in the right order with everything else. Writing to `stderr`
+from a bridge does none of that, and on Windows a DLL's `stderr` is not even the host's.
+
+No wrapper or callback is needed. Every `event_log_*` symbol is already linked into every bridge.
+
+Two things to know before reaching through the context:
+
+- **`event_log_error` prints a BLANK LINE after its message.** It is a paragraph printer, not a line
+  printer, because hashcat's own errors are single sentences. Use ONE `event_log_error` for the
+  headline and `event_log_info` for each body line, and do not add your own blank line after the
+  headline. A headline must also fit on one line or the blank splits the sentence in half.
+- **Never read `hashcat_ctx->hashes`.** The self test hands `launch_loop` and friends a `hashes_t`
+  that is a LOCAL COPY, with the digest, salt, esalt and hook salt buffers swapped for the self
+  test's own. That is why these functions still take `hashconfig` and `hashes` explicitly even though
+  both are reachable from the context. Reading the context instead silently computes against the
+  user's real hashes during the self test.
 
 ### Mandatory Functions
 
@@ -221,7 +246,7 @@ Old template?". Rebuild the bridge against the current headers.
 
 ### Function Roles
 
-- platform_init: Called at startup. Responsible for initialization. This might include loading libraries, connecting to remote endpoints, or setting up hardware APIs. Returns a context pointer. The `folder_config_t` gives access to hashcat's resolved paths (`cache_dir`, `profile_dir`, `shared_dir`, ...), which already account for whether hashcat is running installed or from an unpacked directory. Use these instead of building paths yourself, otherwise a portable install will write to the wrong place.
+- platform_init: Called at startup. Responsible for initialization. This might include loading libraries, connecting to remote endpoints, or setting up hardware APIs. Returns a context pointer. `hashcat_ctx->folder_config` gives access to hashcat's resolved paths (`cache_dir`, `profile_dir`, `shared_dir`, ...), which already account for whether hashcat is running installed or from an unpacked directory. Use these instead of building paths yourself, otherwise a portable install will write to the wrong place, and a file you ship beside the binary will not be found once the same build is installed.
 - platform_term: Final cleanup logic. Frees any context data allocated during initialization.
 - get_unit_count: Returns the number of available units. For example, return `2` if two FPGAs are detected.
 - get_unit_info: Returns a human-readable description of a unit, like "Python v3.13.3".

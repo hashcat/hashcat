@@ -3094,6 +3094,12 @@ typedef struct event_ctx
 
 typedef void (*BRIDGE_INIT) (void *);
 
+// Declared ahead of bridge_ctx because platform_init takes one, and the definition comes further
+// down this file. A bridge is handed the whole context rather than a few pieces of it, which is what
+// lets it call hashcat's own logging functions with no wrapper of any kind.
+
+typedef struct hashcat_ctx hashcat_ctx_t;
+
 typedef struct bridge_ctx
 {
   // local variables
@@ -3113,25 +3119,37 @@ typedef struct bridge_ctx
 
   // functions
 
-  void     *(*platform_init)      (user_options_t *, folder_config_t *);
-  void      (*platform_term)      (void *);
+  void     *(*platform_init)      (hashcat_ctx_t *);
+  void      (*platform_term)      (hashcat_ctx_t *, void *);
 
-  int       (*get_unit_count)        (void *);
-  char     *(*get_unit_info)         (void *, const int);
-  int       (*get_workitem_count)    (void *, const int);
-  int       (*get_workitem_multiple) (void *, const int);
+  int       (*get_unit_count)        (hashcat_ctx_t *, void *);
+  char     *(*get_unit_info)         (hashcat_ctx_t *, void *, const int);
+  int       (*get_workitem_count)    (hashcat_ctx_t *, void *, const int);
+  int       (*get_workitem_multiple) (hashcat_ctx_t *, void *, const int);
 
-  bool      (*salt_prepare)       (void *, hashconfig_t *, hashes_t *);
-  void      (*salt_destroy)       (void *, hashconfig_t *, hashes_t *);
+  // ★ hashes IS PASSED EXPLICITLY AND YOU MUST USE IT. Do not read hashcat_ctx->hashes here.
+  //
+  // The self test hands these functions a hashes_t that is a LOCAL COPY of the real one with its
+  // digest, salt, esalt and hook salt buffers swapped for the self test's own. It is not the struct
+  // hanging off hashcat_ctx, and it never will be. A bridge that reaches through the context instead
+  // of taking the argument computes against the user's real hashes during the self test, which
+  // either passes for the wrong reason or fails for one that makes no sense.
+  //
+  // This is the one place where having the whole context is a hazard rather than a convenience, and
+  // it is why these signatures still carry what looks like redundant information. hashconfig is kept
+  // beside it for the same reason: they arrive as a pair and separating them invites the mistake.
 
-  bool      (*thread_init)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
-  void      (*thread_term)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+  bool      (*salt_prepare)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
+  void      (*salt_destroy)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
 
-  bool      (*launch_loop)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
-  bool      (*launch_loop2)       (void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+  bool      (*thread_init)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+  void      (*thread_term)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
 
-  const char *(*st_update_pass)  (void *);
-  const char *(*st_update_hash)  (void *);
+  bool      (*launch_loop)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+  bool      (*launch_loop2)       (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+
+  const char *(*st_update_pass)  (hashcat_ctx_t *, void *);
+  const char *(*st_update_hash)  (hashcat_ctx_t *, void *);
 
   // Sensor readings for one unit, for bridges whose units are real hardware.
   //
@@ -3141,27 +3159,27 @@ typedef struct bridge_ctx
   // A bridge that has no sensors leaves them all at BRIDGE_DEFAULT. Return -1 for a reading this
   // particular unit cannot give, or 0 for the unsigned ones, which is what the rest of hwmon uses.
 
-  int (*get_unit_temperature) (void *, const int);
+  int (*get_unit_temperature) (hashcat_ctx_t *, void *, const int);
 
   // Optional. A bridge unit whose hardware carries SEVERAL temperature sensors can render its own
   // field, so all of the readings show on one line instead of a single summary number. Return false
   // to let the plain get_unit_temperature reading be formatted as usual.
 
-  bool (*get_unit_temperature_str) (void *, const int, char *, const size_t);
+  bool (*get_unit_temperature_str) (hashcat_ctx_t *, void *, const int, char *, const size_t);
 
   // Optional. What temperature this unit must not exceed, when the bridge knows better than the
   // watchdog's default does. The default is chosen for GPUs, and a unit that is not one has no reason
   // to share it: its sensor may not sit where a GPU's does, so the same number does not mean the same
   // thing. Return 0 to keep the default.
 
-  u32 (*get_unit_temperature_abort) (void *, const int);
+  u32 (*get_unit_temperature_abort) (hashcat_ctx_t *, void *, const int);
 
-  int (*get_unit_fanspeed)    (void *, const int);
-  int (*get_unit_utilization) (void *, const int);
-  int (*get_unit_corespeed)   (void *, const int);
-  int (*get_unit_memoryspeed) (void *, const int);
-  int (*get_unit_buslanes)    (void *, const int);
-  u64 (*get_unit_power)       (void *, const int);
+  int (*get_unit_fanspeed)    (hashcat_ctx_t *, void *, const int);
+  int (*get_unit_utilization) (hashcat_ctx_t *, void *, const int);
+  int (*get_unit_corespeed)   (hashcat_ctx_t *, void *, const int);
+  int (*get_unit_memoryspeed) (hashcat_ctx_t *, void *, const int);
+  int (*get_unit_buslanes)    (hashcat_ctx_t *, void *, const int);
+  u64 (*get_unit_power)       (hashcat_ctx_t *, void *, const int);
 
 } bridge_ctx_t;
 
@@ -3269,7 +3287,7 @@ typedef struct module_ctx
 
 } module_ctx_t;
 
-typedef struct hashcat_ctx
+struct hashcat_ctx
 {
   brain_ctx_t           *brain_ctx;
   bitmap_ctx_t          *bitmap_ctx;
@@ -3305,7 +3323,7 @@ typedef struct hashcat_ctx
 
   void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
 
-} hashcat_ctx_t;
+};
 
 typedef struct thread_param
 {

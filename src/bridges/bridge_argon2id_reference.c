@@ -138,7 +138,7 @@ static void units_term (bridge_argon2id_t *bridge_argon2id)
   }
 }
 
-void *platform_init (MAYBE_UNUSED user_options_t *user_options, MAYBE_UNUSED folder_config_t *folder_config)
+void *platform_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
   // Verify CPU features
 
@@ -158,7 +158,7 @@ void *platform_init (MAYBE_UNUSED user_options_t *user_options, MAYBE_UNUSED fol
   return bridge_argon2id;
 }
 
-void platform_term (void *platform_context)
+void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   bridge_argon2id_t *bridge_argon2id = platform_context;
 
@@ -170,7 +170,7 @@ void platform_term (void *platform_context)
   }
 }
 
-int get_unit_count (void *platform_context)
+int get_unit_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   bridge_argon2id_t *bridge_argon2id = platform_context;
 
@@ -179,7 +179,7 @@ int get_unit_count (void *platform_context)
 
 // we support units of mixed speed, that's why the workitem count is unit specific
 
-int get_workitem_count (void *platform_context, const int unit_idx)
+int get_workitem_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   bridge_argon2id_t *bridge_argon2id = platform_context;
 
@@ -194,12 +194,12 @@ int get_workitem_count (void *platform_context, const int unit_idx)
 // and no partial wave to waste: a batch of N costs N hashes whatever N is. Parallelism is expressed as
 // UNITS, not as width inside a unit, which is the structural difference from an accelerator that holds
 // many cores behind a single unit.
-int get_workitem_multiple (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED const int unit_idx)
+int get_workitem_multiple (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED const int unit_idx)
 {
   return 1;
 }
 
-char *get_unit_info (void *platform_context, const int unit_idx)
+char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   bridge_argon2id_t *bridge_argon2id = platform_context;
 
@@ -208,7 +208,7 @@ char *get_unit_info (void *platform_context, const int unit_idx)
   return unit_buf->unit_info_buf;
 }
 
-bool salt_prepare (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   // we can use self-test hash as base
 
@@ -237,7 +237,7 @@ bool salt_prepare (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig
   return true;
 }
 
-void salt_destroy (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+void salt_destroy (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   bridge_argon2id_t *bridge_argon2id = platform_context;
 
@@ -249,7 +249,7 @@ void salt_destroy (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig
   }
 }
 
-bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   bridge_argon2id_t *bridge_argon2id = platform_context;
 

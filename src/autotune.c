@@ -94,7 +94,7 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   {
     bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
 
-    const u32 workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
+    const u32 workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
 
     if (kernel_power_try > workitem_count)
     {

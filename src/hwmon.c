@@ -90,8 +90,8 @@ static bool hm_same_hardware (hashcat_ctx_t *hashcat_ctx, const hc_device_param_
   {
     if (bridge_ctx->get_unit_info == NULL) return true;
 
-    const char *info_a = bridge_ctx->get_unit_info (bridge_ctx->platform_context, device_param_a->bridge_link_device);
-    const char *info_b = bridge_ctx->get_unit_info (bridge_ctx->platform_context, device_param_b->bridge_link_device);
+    const char *info_a = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, device_param_a->bridge_link_device);
+    const char *info_b = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, device_param_b->bridge_link_device);
 
     if (info_a == NULL) return true;
     if (info_b == NULL) return true;
@@ -390,7 +390,7 @@ bool hm_get_bridge_temperature_str (hashcat_ctx_t *hashcat_ctx, const int backen
   if (unit == HM_BRIDGE_NO_READING) return false;
   if (unit == HM_BRIDGE_PASS)       return false;
 
-  const bool result = bridge_ctx->get_unit_temperature_str (bridge_ctx->platform_context, unit, buf, len);
+  const bool result = bridge_ctx->get_unit_temperature_str (hashcat_ctx, bridge_ctx->platform_context, unit, buf, len);
 
   return result;
 }
@@ -411,7 +411,7 @@ u32 hm_get_bridge_temperature_abort (hashcat_ctx_t *hashcat_ctx, const int backe
   if (unit == HM_BRIDGE_NO_READING) return 0;
   if (unit == HM_BRIDGE_PASS)       return 0;
 
-  const u32 result = bridge_ctx->get_unit_temperature_abort (bridge_ctx->platform_context, unit);
+  const u32 result = bridge_ctx->get_unit_temperature_abort (hashcat_ctx, bridge_ctx->platform_context, unit);
 
   return result;
 }
@@ -462,7 +462,7 @@ int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
   if (bridge_unit_temperature != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_temperature (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_temperature);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_temperature (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_temperature);
 
     return val;
   }
@@ -789,7 +789,7 @@ int hm_get_fanspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
   if (bridge_unit_fanspeed != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_fanspeed (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_fanspeed);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_fanspeed (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_fanspeed);
 
     return val;
   }
@@ -943,7 +943,7 @@ int hm_get_buslanes_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
   if (bridge_unit_buslanes != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_buslanes (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_buslanes);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_buslanes (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_buslanes);
 
     return val;
   }
@@ -1060,7 +1060,7 @@ int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
   if (bridge_unit_utilization != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_utilization (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_utilization);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_utilization (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_utilization);
 
     return val;
   }
@@ -1219,7 +1219,7 @@ int hm_get_memoryspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
   if (bridge_unit_memoryspeed != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_memoryspeed (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_memoryspeed);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_memoryspeed (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_memoryspeed);
 
     return val;
   }
@@ -1336,7 +1336,7 @@ int hm_get_corespeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
 
   if (bridge_unit_corespeed != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_corespeed (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_corespeed);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_corespeed (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_corespeed);
 
     return val;
   }
@@ -1570,7 +1570,7 @@ int64_t hm_get_power_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
   if (bridge_unit_power != HM_BRIDGE_PASS)
   {
     // an unsigned reading cannot use -1, so a bridge reports no reading as 0
-    const u64 val = hashcat_ctx->bridge_ctx->get_unit_power (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_power);
+    const u64 val = hashcat_ctx->bridge_ctx->get_unit_power (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_power);
 
     if (val) return (int64_t) val;
   }

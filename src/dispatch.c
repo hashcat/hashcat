@@ -375,7 +375,7 @@ HC_API_CALL void *thread_calc_stdin (void *p)
   {
     if (bridge_ctx->thread_init != BRIDGE_DEFAULT)
     {
-      if (bridge_ctx->thread_init (bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+      if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
     }
   }
 
@@ -405,7 +405,7 @@ HC_API_CALL void *thread_calc_stdin (void *p)
   {
     if (bridge_ctx->thread_term != BRIDGE_DEFAULT)
     {
-      bridge_ctx->thread_term (bridge_ctx->platform_context, device_param, hashconfig, hashes);
+      bridge_ctx->thread_term (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes);
     }
   }
 
@@ -1888,7 +1888,7 @@ HC_API_CALL void *thread_calc (void *p)
   {
     if (bridge_ctx->thread_init != BRIDGE_DEFAULT)
     {
-      if (bridge_ctx->thread_init (bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+      if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
     }
   }
 
@@ -1918,7 +1918,7 @@ HC_API_CALL void *thread_calc (void *p)
   {
     if (bridge_ctx->thread_term != BRIDGE_DEFAULT)
     {
-      bridge_ctx->thread_term (bridge_ctx->platform_context, device_param, hashconfig, hashes);
+      bridge_ctx->thread_term (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes);
     }
   }
 

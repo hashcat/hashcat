@@ -1774,7 +1774,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
             }
 
-            if (bridge_ctx->launch_loop2 (bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+            if (bridge_ctx->launch_loop2 (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
 
             if (device_param->is_cuda == true)
             {
@@ -3226,7 +3226,7 @@ int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
   }
 
-  if (bridge_ctx->launch_loop (bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+  if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
 
   if (device_param->is_cuda == true)
   {
@@ -5607,7 +5607,7 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
 
   bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
-  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int cuda_devices_cnt    = 0;
   int cuda_devices_active = 0;
@@ -6087,7 +6087,7 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
 
   bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
-  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int hip_devices_cnt    = 0;
   int hip_devices_active = 0;
@@ -6624,7 +6624,7 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
 
   bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
-  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   if (backend_ctx->mtl)
   {
@@ -7024,7 +7024,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
   bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
-  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int opencl_devices_cnt    = 0;
   int opencl_devices_active = 0;
@@ -9217,7 +9217,7 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       if (device_param->skipped == true) continue;
       if (device_param->skipped_warning == true) continue;
 
-      const int workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
+      const int workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
 
       if ((int) device_param->kernel_power < workitem_count)
       {
@@ -14092,7 +14092,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->bridge_type)
     {
-      const u32 workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
+      const u32 workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
 
       const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
                                : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
