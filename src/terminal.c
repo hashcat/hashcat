@@ -1294,6 +1294,57 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+// The bridge's unit inventory, printed the same way whether it heads a run or answers -I. Units that
+// describe themselves identically are folded into one line, because a box of identical cards would
+// otherwise spend a screen saying the same thing.
+
+static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->enabled == false) return;
+
+  const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
+
+  const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
+
+  char line[HCBUFSIZ_TINY] = { 0 };
+
+  memset (line, '=', len);
+
+  line[len] = 0;
+
+  event_log_info (hashcat_ctx, "%s", line);
+
+  bool all_same = true;
+
+  char *tmp = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, 0);
+
+  for (int i = 1; i < unit_count; i++)
+  {
+    if (strcmp (tmp, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i)))
+    {
+      all_same = false;
+
+      break;
+    }
+  }
+
+  if (all_same == true)
+  {
+    event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
+  }
+  else
+  {
+    for (int i = 0; i < unit_count; i++)
+    {
+      event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
+    }
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+}
+
 void backend_info (hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
@@ -1303,6 +1354,29 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     printf ("{ ");
+  }
+
+  // Bridge units, when the hash mode named one. A bridge is selected by the mode, so -I on its own
+  // has nothing to load and the backend devices below are the whole answer. For a mode that does use
+  // a bridge they are not: the units compute and the devices only feed them, so a list without them
+  // describes the machine rather than the work.
+  //
+  // Left out of --machine-readable, which emits JSON here and would be broken by plain lines.
+
+  if (user_options->machine_readable == false)
+  {
+    bridge_units_info (hashcat_ctx);
+
+    // Say why the section is absent rather than leaving someone with an FPGA to conclude their card
+    // was not found. Only when no mode was named: with one that simply has no bridge there are no
+    // units to talk about and the silence is the right answer.
+
+    if ((hashcat_ctx->bridge_ctx->enabled == false) && (user_options->hash_mode_chgd == false))
+    {
+      event_log_info (hashcat_ctx, "Bridge units are selected by the hash mode, so none are listed here.");
+      event_log_info (hashcat_ctx, "Add -m <hash mode> to list the units that mode would use.");
+      event_log_info (hashcat_ctx, NULL);
+    }
   }
 
   if (user_options->backend_info > 1)
@@ -2252,52 +2326,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true) return;
   if (user_options->status_json      == true) return;
 
-  /**
-   * Bridges
-   */
-
-  if (bridge_ctx->enabled == true)
-  {
-    const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
-
-    const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
-
-    char line[HCBUFSIZ_TINY] = { 0 };
-
-    memset (line, '=', len);
-
-    line[len] = 0;
-
-    event_log_info (hashcat_ctx, "%s", line);
-
-    bool all_same = true;
-
-    char *tmp = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, 0);
-
-    for (int i = 1; i < unit_count; i++)
-    {
-      if (strcmp (tmp, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i)))
-      {
-        all_same = false;
-
-        break;
-      }
-    }
-
-    if (all_same == true)
-    {
-      event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
-    }
-    else
-    {
-      for (int i = 0; i < unit_count; i++)
-      {
-        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
-      }
-    }
-
-    event_log_info (hashcat_ctx, NULL);
-  }
+  bridge_units_info (hashcat_ctx);
 
   /**
    * CUDA
@@ -3067,7 +3096,11 @@ static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashc
 {
   const bool wide_units = (bridge_workitem_multiple (hashcat_ctx, 0) > 1);
 
-  if ((hashcat_status->device_info_cnt > 1) && (wide_units == false)) return;
+  // count the ACTIVE units, not every unit the platform has. -d can leave a single unit running out
+  // of many, and testing the total there would fold the one line away while the total line below is
+  // also suppressed, so the run would report no speed at all
+
+  if ((hashcat_status->device_info_active > 1) && (wide_units == false)) return;
 
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
@@ -3078,7 +3111,7 @@ static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashc
 
     // with a single unit there is no total line underneath, so it carries the #* itself
 
-    if (hashcat_status->device_info_cnt == 1)
+    if (hashcat_status->device_info_active == 1)
     {
       event_log_info (hashcat_ctx,
         "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",

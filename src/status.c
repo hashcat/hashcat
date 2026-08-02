@@ -2192,6 +2192,17 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3dc ", num_temperature);
   }
+  else if (hm_bridge_owns_device ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx) == true)
+  {
+    // A bridge unit with no reading at all, which is a property of the hardware rather than a failure
+    // to read it: a 1.15y clone is built without the die sensors and says so, and a design without a
+    // system monitor has nothing to report either.
+    //
+    // Say so. Dropping the field leaves a line that reads as though the temperature were forgotten,
+    // next to sibling units that show one, and the obvious reading of that is that something broke.
+
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp: N/A ");
+  }
 
   if (num_fanspeed >= 0)
   {
@@ -2216,6 +2227,26 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
   if (num_buslanes >= 0)
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus:%u ", num_buslanes);
+  }
+  else
+  {
+    // Lanes are a PCIe idea and a unit reached some other way has none, so the bridge reports no
+    // number here and it is right not to. Dropping the field is what misleads: beside sibling units
+    // that DO show a lane count, a line ending after the clock reads as a unit attached to nothing.
+    //
+    // So let it say what the link actually is. "USB 480Mb/s" answers the same question a lane count
+    // answers, how fat the pipe is, and answers it better than a placeholder would.
+
+    char bus_str[64];
+
+    if (hm_get_bridge_buslanes_str ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx, bus_str, sizeof (bus_str)) == true)
+    {
+      output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "%s ", bus_str);
+    }
+    else if (hm_bridge_owns_device ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx) == true)
+    {
+      output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus: N/A ");
+    }
   }
 
   if (num_power >= 0)

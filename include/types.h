@@ -142,6 +142,7 @@ typedef enum event_identifier
   EVENT_MONITOR_RUNTIME_LIMIT     = 0x00000090,
   EVENT_MONITOR_STATUS_REFRESH    = 0x00000091,
   EVENT_MONITOR_TEMP_ABORT        = 0x00000092,
+  EVENT_MONITOR_TEMP_ABORT_FEEDER = 0x00000099,
   EVENT_MONITOR_THROTTLE1         = 0x00000093,
   EVENT_MONITOR_THROTTLE2         = 0x00000094,
   EVENT_MONITOR_THROTTLE3         = 0x00000095,
@@ -3127,6 +3128,19 @@ typedef struct bridge_ctx
   int       (*get_workitem_count)    (hashcat_ctx_t *, void *, const int);
   int       (*get_workitem_multiple) (hashcat_ctx_t *, void *, const int);
 
+  // Which units are interchangeable, for anything that wants to treat one unit's answer as valid for
+  // another. Two units share a class when the same tuning is right for both.
+  //
+  // OPTIONAL. Leave it unset and units are compared by get_unit_info instead, which is correct
+  // whenever a bridge's units are genuinely identical, and that is the usual case for a bridge whose
+  // units are CPU threads. A bridge whose unit info names the individual device, by carrying its
+  // device node for instance, has to answer this or no two of its units will ever look alike.
+  //
+  // It describes the CLASS, never the instance: same board, same design, same width, same clock. It
+  // must not carry a serial number, a device path or an index.
+
+  char     *(*get_unit_class)        (hashcat_ctx_t *, void *, const int);
+
   // ★ hashes IS PASSED EXPLICITLY AND YOU MUST USE IT. Do not read hashcat_ctx->hashes here.
   //
   // The self test hands these functions a hashes_t that is a LOCAL COPY of the real one with its
@@ -3166,6 +3180,11 @@ typedef struct bridge_ctx
   // to let the plain get_unit_temperature reading be formatted as usual.
 
   bool (*get_unit_temperature_str) (hashcat_ctx_t *, void *, const int, char *, const size_t);
+
+  // How the unit is attached, as text, when a lane count cannot say it. Optional, and only needed by a
+  // bridge whose units are not all reached the same way.
+
+  bool (*get_unit_buslanes_str) (hashcat_ctx_t *, void *, const int, char *, const size_t);
 
   // Optional. What temperature this unit must not exceed, when the bridge knows better than the
   // watchdog's default does. The default is chosen for GPUs, and a unit that is not one has no reason

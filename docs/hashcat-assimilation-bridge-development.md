@@ -138,6 +138,16 @@ This feature is available also outside of bridges, eg in order to increase some 
 
 Note that if a bridge is used, the user's `-Y` parameter is overridden with the bridge unit count. If no bridge is used for a hash mode, then -Y can be manually specified. `-R` works in both cases. The default is device `1`, unless overridden.
 
+Because each virtual backend device IS one bridge unit, **`-d` selects bridge units**. `-d 2` runs
+unit 2 and nothing else, `-d 1,3` runs units 1 and 3, and a number naming no unit is refused the same
+way an unknown compute device is. This is independent of `-R`, which still chooses the physical
+device that generates the candidates.
+
+The numbering is shared, so `-d N`, `Speed.#NN`, `Hardware.Mon.#NN` and the watchdog's `bridge unit
+#N` all refer to the same unit. A unit keeps its own index whatever else is filtered out, so `-d 3`
+always drives unit 3 rather than whichever unit happened to survive the filter first. Bridge
+developers get this for free; there is nothing to implement for it.
+
 ## Writing a Bridge
 
 ### File Layout
@@ -170,6 +180,7 @@ bridge_ctx->get_unit_count        = get_unit_count;
 bridge_ctx->get_unit_info         = get_unit_info;
 bridge_ctx->get_workitem_count    = get_workitem_count;
 bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+bridge_ctx->get_unit_class        = BRIDGE_DEFAULT;
 bridge_ctx->thread_init           = BRIDGE_DEFAULT;
 bridge_ctx->thread_term           = BRIDGE_DEFAULT;
 bridge_ctx->salt_prepare          = salt_prepare;
@@ -189,6 +200,7 @@ They are defined like this:
   char     *(*get_unit_info)         (hashcat_ctx_t *, void *, const int);
   int       (*get_workitem_count)    (hashcat_ctx_t *, void *, const int);
   int       (*get_workitem_multiple) (hashcat_ctx_t *, void *, const int);
+  char     *(*get_unit_class)        (hashcat_ctx_t *, void *, const int);
   bool      (*salt_prepare)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
   void      (*salt_destroy)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
   bool      (*thread_init)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
@@ -252,6 +264,7 @@ Old template?". Rebuild the bridge against the current headers.
 - get_unit_info: Returns a human-readable description of a unit, like "Python v3.13.3".
 - get_workitem_count: Returns the largest number of password candidates the unit can be handed in one invocation. This is an upper limit, not a request: autotune searches below it and picks the size that measures fastest.
 - get_workitem_multiple: Returns the granularity the unit computes in. Return `1` when a batch of N candidates costs N, which is the case for one thread working through its batch sequentially. Return the internal width when the unit processes candidates in parallel waves, so hashcat never hands it a partial wave.
+- get_unit_class: Optional. Returns a string naming what KIND of thing a unit is, so hashcat can tell which units are interchangeable. See the section below.
 - thread_init: Optional. Use for per-thread setup, such as creating a new Python interpreter.
 - thread_term: Optional. Use for per-thread cleanup.
 - salt_prepare: Called once per salt. Useful for preprocessing or storing large salt/esalt buffers.
@@ -260,3 +273,85 @@ Old template?". Rebuild the bridge against the current headers.
 - launch_loop2: Secondary compute function. Replaces `_loop2` if needed.
 - st_update_hash: Optionally override the module's default self-test hash.
 - st_update_pass: Optionally override the module's default self-test password.
+
+### Unit class: which of your units are interchangeable
+
+`get_unit_class` is optional. It returns a string that is EQUAL for two units whenever the same
+tuning is right for both.
+
+hashcat aligns `-n`, `-u` and `-T` across devices of the same type, so a machine full of identical
+cards does not show neighbouring devices running different batch sizes for no visible reason. That
+test asks the BACKEND what a device is, and for a bridge it cannot work: every unit is one virtual
+backend device cloned from the same physical one, so the answer is identical for all of them however
+different the units really are. It cannot tell two units apart, and it cannot tell two units together
+either. Only the bridge knows.
+
+```c
+char *get_unit_class (hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx);
+```
+
+Return the KIND, never the instance:
+
+```
+"Acme A100 accelerator, 64 lanes @ 400 MHz"                 // good
+"Acme A100 accelerator, 64 lanes @ 400 MHz (/dev/acme2)"    // WRONG, no two units ever match
+```
+
+**No device path, no serial number, no index.** That is the whole difference between this and
+`get_unit_info`, which names the individual device on purpose so a user can tell two cards apart.
+
+Leave it as `BRIDGE_DEFAULT` and hashcat compares `get_unit_info` instead. That is correct when your
+units really are identical, which is the normal case for a bridge whose units are CPU threads and
+whose info strings are all the same string. You need `get_unit_class` only when your info string
+names the individual unit.
+
+Two units that cannot be described do not compare equal. A bridge that returns NULL gets no alignment
+rather than being assumed uniform, because copying one unit's tuning onto a unit nobody could
+identify is worse than leaving it alone.
+
+### Reporting sensors
+
+All optional. Implement the ones your hardware can answer and leave the rest as `BRIDGE_DEFAULT`.
+
+```c
+  int  (*get_unit_temperature)       (hashcat_ctx_t *, void *, const int);
+  bool (*get_unit_temperature_str)   (hashcat_ctx_t *, void *, const int, char *, const size_t);
+  bool (*get_unit_buslanes_str)      (hashcat_ctx_t *, void *, const int, char *, const size_t);
+  u32  (*get_unit_temperature_abort) (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_fanspeed)          (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_utilization)       (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_corespeed)         (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_memoryspeed)       (hashcat_ctx_t *, void *, const int);
+  int  (*get_unit_buslanes)          (hashcat_ctx_t *, void *, const int);
+  u64  (*get_unit_power)             (hashcat_ctx_t *, void *, const int);
+```
+
+Implementing ANY of these makes the bridge own the `Hardware.Mon` line for its units. That is
+deliberate: without it the line describes the backend device, which under a bridge is only the
+candidate feeder and is usually close to idle while the unit does the work, so its temperature and
+clocks describe the wrong piece of hardware.
+
+- Return a negative value for "no reading". The status line then shows `Temp: N/A` rather than
+  dropping the field, because a line that silently omits what its neighbours show reads as breakage.
+- `get_unit_temperature_str` is for a unit that is one piece of hardware carrying SEVERAL sensors, a
+  board of four dies for instance. Write the whole field, `Temp: 34/36/34/37c`, so all of them appear
+  on one line. `get_unit_temperature` should still return the HOTTEST, because that is what the abort
+  watchdog must act on and an average would hide exactly the case that matters.
+- `get_unit_temperature_abort` is the limit the part survives, which for anything that is not a GPU
+  is rarely the 90 C default. hashcat applies the STRICTER of this and the user's
+  `--hwmon-temp-abort`, so a cautious user setting is honoured and a reckless one still cannot run a
+  part past what it survives. Zero means the unit has no opinion.
+- A unit that reports no temperature is NOT watched, and hashcat says so rather than printing a
+  threshold it can never enforce.
+- `get_unit_buslanes_str` is for a unit whose link cannot be described by a lane count. Lanes are a
+  PCIe idea, so a unit reached over USB has none and would otherwise leave the field empty, which
+  beside a unit that DOES show lanes reads as a unit attached to nothing. Write what the link really
+  is. Write the WHOLE field including its own label, `USB: 480Mb/s`, the same way a multi sensor
+  temperature does: the label is part of the answer, and a fixed `Bus:` in front of it would say bus
+  twice. Return false and hashcat falls back to `get_unit_buslanes`, then to `Bus: N/A`.
+
+### The watchdog and status lines name units, not devices
+
+Because one virtual backend device IS one bridge unit, `-d N`, `Speed.#NN`, `Hardware.Mon.#NN` and
+the watchdog line all mean the same N. The watchdog says `bridge unit #N` where a compute device
+would say `device #N`, so the two kinds cannot be confused on lines that sit next to each other.

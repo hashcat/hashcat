@@ -14,13 +14,15 @@
 bool hm_is_hwmon_group_leader (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 bool hm_bridge_owns_device    (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 
+bool hm_get_bridge_buslanes_str    (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, char *buf, const size_t len);
 bool hm_get_bridge_temperature_str   (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, char *buf, const size_t len);
 u32  hm_get_bridge_temperature_abort (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 
-u32  hm_bridge_temperature_abort_report (hashcat_ctx_t *hashcat_ctx);
+void hm_temperature_abort_banner            (hashcat_ctx_t *hashcat_ctx);
 
 int hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
+int hm_get_device_temperature                  (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_temperature_with_devices_idx        (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_fanpolicy_with_devices_idx          (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_fanspeed_with_devices_idx           (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);

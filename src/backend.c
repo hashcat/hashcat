@@ -540,11 +540,7 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
 static bool setup_backend_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *backend_devices, int *backend_devices_filter)
 {
-  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
-
   for (int i = 0; i < DEVICES_MAX; i++) backend_devices_filter[i] = 0;
-
-  if (bridge_ctx->enabled == true) return true;
 
   if (backend_devices == NULL) return true;
 
@@ -5651,6 +5647,12 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
 
       device_param->device_id = device_id;
 
+      // a virtual device IS a bridge unit, so the unit index comes from the loop rather than from
+      // a count of the survivors. Counting survivors would hand the first one unit 0, and -d would
+      // then run a different unit than the one the user asked for
+
+      if (is_virtualized == true) device_param->bridge_link_device = cuda_devices_idx;
+
       backend_ctx->backend_device_from_cuda[cuda_devices_idx] = *backend_devices_idx;
 
       CUdevice cuda_device;
@@ -6063,7 +6065,7 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
 
       if (device_param->skipped == false)
       {
-        device_param->bridge_link_device = (*bridge_link_device)++;
+        if (is_virtualized == false) device_param->bridge_link_device = (*bridge_link_device)++;
 
         cuda_devices_active++;
       }
@@ -6130,6 +6132,10 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
       hc_device_param_t *device_param = &devices_param[*backend_devices_idx];
 
       device_param->device_id = device_id;
+
+      // see the note on the unit index in the cuda path
+
+      if (is_virtualized == true) device_param->bridge_link_device = hip_devices_idx;
 
       backend_ctx->backend_device_from_hip[hip_devices_idx] = *backend_devices_idx;
 
@@ -6598,7 +6604,7 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
 
       if (device_param->skipped == false)
       {
-        device_param->bridge_link_device = (*bridge_link_device)++;
+        if (is_virtualized == false) device_param->bridge_link_device = (*bridge_link_device)++;
 
         hip_devices_active++;
       }
@@ -6664,6 +6670,10 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
       hc_device_param_t *device_param = &devices_param[*backend_devices_idx];
 
       device_param->device_id = device_id;
+
+      // see the note on the unit index in the cuda path
+
+      if (is_virtualized == true) device_param->bridge_link_device = metal_devices_idx;
 
       backend_ctx->backend_device_from_metal[metal_devices_idx] = *backend_devices_idx;
 
@@ -6998,7 +7008,7 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
 
       if (device_param->skipped == false)
       {
-        device_param->bridge_link_device = (*bridge_link_device)++;
+        if (is_virtualized == false) device_param->bridge_link_device = (*bridge_link_device)++;
 
         metal_devices_active++;
       }
@@ -7073,6 +7083,10 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         hc_device_param_t *device_param = &devices_param[device_id];
 
         device_param->device_id = device_id;
+
+        // see the note on the unit index in the cuda path
+
+        if (is_virtualized == true) device_param->bridge_link_device = (int) opencl_platform_devices_idx;
 
         backend_ctx->backend_device_from_opencl[opencl_devices_cnt] = *backend_devices_idx;
 
@@ -8397,7 +8411,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
            * activate device
            */
 
-          device_param->bridge_link_device = (*bridge_link_device)++;
+          if (is_virtualized == false) device_param->bridge_link_device = (*bridge_link_device)++;
 
           opencl_devices_active++;
         }
@@ -9162,7 +9176,6 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
   backend_ctx_t   *backend_ctx  = hashcat_ctx->backend_ctx;
   bridge_ctx_t    *bridge_ctx   = hashcat_ctx->bridge_ctx;
   hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
-  user_options_t  *user_options = hashcat_ctx->user_options;
 
   if (backend_ctx->enabled == false) return;
 
@@ -9182,13 +9195,22 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 
       if (is_same_device_type (device_param_src, device_param_dst) == false) continue;
 
-      // A bridge is wired up as one virtual backend device per unit, so this test sees a single
-      // device however many units are behind it, and the first unit's tuning would be copied onto all
-      // the rest. Units of a bridge are not interchangeable: they can differ in width and in speed,
-      // and every one of them has already been tuned on its own by the time this runs.
+      // A bridge is wired up as one virtual backend device per unit, so the test above sees a single
+      // device however many units are behind it. It cannot tell two units apart and it cannot tell
+      // two units together either, so it must not be the thing that decides here.
+      //
+      // Bridge units are not interchangeable in general: they can differ in width and in speed, and
+      // each has already been tuned on its own by the time this runs. But a box full of IDENTICAL
+      // cards is the ordinary case, and leaving those unaligned is visible, neighbouring units
+      // running different batch sizes for no reason a user can see.
+      //
+      // So ask the BRIDGE whether the two units are the same kind of thing. It knows, and it knows
+      // exactly rather than by inference from a driver API.
 
-      if (bridge_active (hashcat_ctx, device_param_src->bridge_link_device) == true) continue;
-      if (bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) == true) continue;
+      if (bridge_active (hashcat_ctx, device_param_src->bridge_link_device) == true)
+      {
+        if (bridge_same_unit_class (hashcat_ctx, device_param_src->bridge_link_device, device_param_dst->bridge_link_device) == false) continue;
+      }
 
       device_param_dst->kernel_accel   = device_param_src->kernel_accel;
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
@@ -9219,10 +9241,12 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 
       const int workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
 
-      if ((int) device_param->kernel_power < workitem_count)
-      {
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u/Bridge #%u: kernel_power:%" PRIu64 " < workitem_count:%d", device_param->device_id + 1, device_param->bridge_link_device + 1, device_param->kernel_power, workitem_count);
-      }
+      // A launch smaller than the advertised count used to be worth warning about, back when that
+      // count WAS the launch size and anything below it meant something had gone wrong. Autotune now
+      // searches the range below it deliberately, and on a slow hash the answer it settles on is a
+      // small fraction of the maximum: on a slow salt the answer can be a single wave against an
+      // advertised count in the thousands. Warning there flags correct behaviour, and the chosen
+      // size is already on the status line as Batch, so the diagnostic is not lost.
 
       // the advertised count is a maximum the bridge cannot be asked to exceed, not a figure it
       // demands, so cap rather than assign. Assigning is what used to launch over buffers sized
