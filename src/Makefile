@@ -284,6 +284,19 @@ ifeq ($(MAINTAINER_MODE),0)
 ifeq ($(BUILD_MODE),native)
 HAVE_MARCH_NATIVE       := $(shell echo | $(CC) -march=native -E - >/dev/null 2>&1 && echo 1 || echo 0)
 HAVE_MCPU_NATIVE        := $(shell echo | $(CC) -mcpu=native -E - >/dev/null 2>&1 && echo 1 || echo 0)
+
+# The same answer, in a form a bridge .mk can append without repeating the question. Asking once and
+# then having three other files decide for themselves is how DragonFlyBSD kept failing after the probe
+# above was added: the main binary respected it and every bridge that wanted -march=native did not.
+# Empty when the compiler will not take the flag, so appending it is always safe.
+
+ifeq ($(HAVE_MARCH_NATIVE),1)
+MARCH_NATIVE            := -march=native -mtune=native
+endif
+
+ifeq ($(HAVE_MCPU_NATIVE),1)
+MCPU_NATIVE             := -mcpu=native -mtune=native
+endif
 ifneq ($(UNAME),Darwin)
 ifeq ($(IS_PPC),1)
 ifeq ($(HAVE_MCPU_NATIVE),1)

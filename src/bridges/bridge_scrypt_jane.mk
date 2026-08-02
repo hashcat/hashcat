@@ -12,11 +12,9 @@ SCRYPT_JANE_CFLAGS += -mavx2
 endif
 else
 ifeq ($(IS_PPC),1)
-SCRYPT_JANE_CFLAGS += -mcpu=native
-SCRYPT_JANE_CFLAGS += -mtune=native
+SCRYPT_JANE_CFLAGS += $(MCPU_NATIVE)
 else
-SCRYPT_JANE_CFLAGS += -march=native
-SCRYPT_JANE_CFLAGS += -mtune=native
+SCRYPT_JANE_CFLAGS += $(MARCH_NATIVE)
 endif
 endif
 endif

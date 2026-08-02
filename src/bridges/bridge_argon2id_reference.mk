@@ -12,11 +12,9 @@ ARGON2_REFERENCE_CFLAGS += -mavx2
 endif
 else
 ifeq ($(IS_PPC),1)
-ARGON2_REFERENCE_CFLAGS += -mcpu=native
-ARGON2_REFERENCE_CFLAGS += -mtune=native
+ARGON2_REFERENCE_CFLAGS += $(MCPU_NATIVE)
 else
-ARGON2_REFERENCE_CFLAGS += -march=native
-ARGON2_REFERENCE_CFLAGS += -mtune=native
+ARGON2_REFERENCE_CFLAGS += $(MARCH_NATIVE)
 endif
 endif
 endif
