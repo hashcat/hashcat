@@ -7220,37 +7220,17 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         device_param->opencl_platform_id = opencl_platforms_idx;
 
         // check OpenCL version
+        //
+        // note: the actual flag derivation happens further below, once the
+        // per-device CL_DEVICE_VERSION has been queried. the platform version
+        // is not a reliable source since a single OpenCL platform can expose
+        // devices that individually support a lower OpenCL version than the
+        // platform as a whole (for example remote/heterogeneous platforms)
 
         device_param->use_opencl11 = false;
         device_param->use_opencl12 = false;
         device_param->use_opencl20 = false;
         device_param->use_opencl30 = false;
-
-        int opencl_version_maj = 0;
-        int opencl_version_min = 0;
-
-        if (sscanf (opencl_platform_version, "OpenCL %d.%d", &opencl_version_maj, &opencl_version_min) == 2)
-        {
-          if (opencl_version_maj == 1)
-          {
-            device_param->use_opencl11 = true;
-          }
-
-          if ((opencl_version_maj == 1) && (opencl_version_min == 2))
-          {
-            device_param->use_opencl12 = true;
-          }
-
-          if (opencl_version_maj == 2)
-          {
-            device_param->use_opencl20 = true;
-          }
-
-          if (opencl_version_maj == 3)
-          {
-            device_param->use_opencl30 = true;
-          }
-        }
 
         size_t param_value_size = 0;
 
@@ -7442,6 +7422,36 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         }
 
         device_param->opencl_device_version = opencl_device_version;
+
+        // derive the -cl-std= build option from the device's own OpenCL
+        // version instead of the platform's, since a platform can expose
+        // devices with a lower individually supported OpenCL version
+
+        int opencl_version_maj = 0;
+        int opencl_version_min = 0;
+
+        if (sscanf (opencl_device_version, "OpenCL %d.%d", &opencl_version_maj, &opencl_version_min) == 2)
+        {
+          if (opencl_version_maj == 1)
+          {
+            device_param->use_opencl11 = true;
+          }
+
+          if ((opencl_version_maj == 1) && (opencl_version_min == 2))
+          {
+            device_param->use_opencl12 = true;
+          }
+
+          if (opencl_version_maj == 2)
+          {
+            device_param->use_opencl20 = true;
+          }
+
+          if (opencl_version_maj == 3)
+          {
+            device_param->use_opencl30 = true;
+          }
+        }
 
         // opencl_device_c_version
 
