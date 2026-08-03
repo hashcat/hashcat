@@ -833,6 +833,7 @@ typedef enum user_options_map
   #ifdef WITH_BRAIN
   IDX_BRAIN_CLIENT              = 'z',
   IDX_BRAIN_CLIENT_FEATURES     = 0xff09,
+  IDX_BRAIN_FEED                = 0xff17,
   IDX_BRAIN_HOST                = 0xff0a,
   IDX_BRAIN_PASSWORD            = 0xff0b,
   IDX_BRAIN_PORT                = 0xff0c,
@@ -1487,6 +1488,7 @@ typedef struct hc_device_param
   u64  size_brain_link_out;
 
   int           brain_link_client_fd;
+  bool          brain_link_reported;    // a failed link is retried per batch, so report an outage once
   link_speed_t  brain_link_recv_speed;
   link_speed_t  brain_link_send_speed;
   bool          brain_link_recv_active;
@@ -2515,6 +2517,7 @@ typedef struct user_options
   bool         benchmark_all;
   #ifdef WITH_BRAIN
   bool         brain_client;
+  bool         brain_feed;
   bool         brain_server;
   #endif
   bool         color_cracked;
@@ -2959,6 +2962,10 @@ typedef struct hashcat_status
   u64         progress_ignore;
   u64         progress_rejected;
   double      progress_rejected_percent;
+  #ifdef WITH_BRAIN
+  u64         brain_rejects_attacks;
+  u64         brain_rejects_hashes;
+  #endif
   u64         progress_restored;
   u64         progress_skip;
   u64         restore_point;
@@ -3036,6 +3043,16 @@ typedef struct status_ctx
   u64 *words_progress_done;     // progress number of words done     per salt
   u64 *words_progress_rejected; // progress number of words rejected per salt
   u64 *words_progress_restored; // progress number of words restored per salt
+
+  #ifdef WITH_BRAIN
+  // words_progress_rejected mixes every reason a candidate was dropped, so it cannot answer "how much
+  // did the brain save". These two count only the brain, split by mechanism, because the mechanisms
+  // are independent: ATTACKS skips a keyspace position another client already reserved, HASHES drops
+  // a candidate the brain has seen before whatever position it came from.
+
+  u64 brain_rejects_attacks;
+  u64 brain_rejects_hashes;
+  #endif
 
   int bypass_digests_done_new;  // --bypass-threshold cracked counter
 

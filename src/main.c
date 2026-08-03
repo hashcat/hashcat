@@ -1418,6 +1418,15 @@ int main (int argc, char **argv)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   #ifdef WITH_BRAIN
+  if (user_options->brain_feed == true)
+  {
+    const int rc = brain_feed (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return rc;
+  }
+
   if (user_options->brain_server == true)
   {
     const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist, user_options->brain_server_timer);

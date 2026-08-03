@@ -164,6 +164,7 @@ static const struct option long_options[] =
   {"workload-profile",          required_argument, NULL, IDX_WORKLOAD_PROFILE},
   #ifdef WITH_BRAIN
   {"brain-client",              no_argument,       NULL, IDX_BRAIN_CLIENT},
+  {"brain-feed",                no_argument,       NULL, IDX_BRAIN_FEED},
   {"brain-client-features",     required_argument, NULL, IDX_BRAIN_CLIENT_FEATURES},
   {"brain-server",              no_argument,       NULL, IDX_BRAIN_SERVER},
   {"brain-server-timer",        required_argument, NULL, IDX_BRAIN_SERVER_TIMER},
@@ -214,6 +215,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->bitmap_min                = BITMAP_MIN;
   #ifdef WITH_BRAIN
   user_options->brain_client              = BRAIN_CLIENT;
+  user_options->brain_feed                = false;
   user_options->brain_client_features     = BRAIN_CLIENT_FEATURES;
   user_options->brain_host                = NULL;
   user_options->brain_port                = BRAIN_PORT;
@@ -600,6 +602,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_SLOW_CANDIDATES:           user_options->slow_candidates           = true;                            break;
       #ifdef WITH_BRAIN
       case IDX_BRAIN_CLIENT:              user_options->brain_client              = true;                            break;
+      case IDX_BRAIN_FEED:                user_options->brain_feed                = true;                            break;
       case IDX_BRAIN_CLIENT_FEATURES:     user_options->brain_client_features     = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BRAIN_SERVER:              user_options->brain_server              = true;                            break;
       case IDX_BRAIN_SERVER_TIMER:        user_options->brain_server_timer        = hc_strtoul (optarg, NULL, 10);
@@ -652,6 +655,45 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   }
 
   #ifdef WITH_BRAIN
+  // The feeder is a mode of its own: it reads stdin and exits, so it takes neither the client's nor
+  // the server's other arguments. The session cannot be computed here because there is no hash list,
+  // so it has to be given, and hashcat prints it on the status line of any brain run.
+
+  if (user_options->brain_feed == true)
+  {
+    if (user_options->brain_client == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --brain-feed with --brain-client is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->brain_server == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --brain-feed with --brain-server is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->brain_password == NULL)
+    {
+      event_log_error (hashcat_ctx, "Using --brain-feed requires --brain-password.");
+
+      return -1;
+    }
+
+    if (user_options->brain_session == 0)
+    {
+      event_log_error (hashcat_ctx, "Using --brain-feed requires --brain-session.");
+      event_log_warning (hashcat_ctx, "The session says which brain database the candidates belong in. It is normally");
+      event_log_warning (hashcat_ctx, "computed from the hash list, which a feeder does not have. Any brain run prints");
+      event_log_warning (hashcat_ctx, "it on the status line as Brain Session/Attack.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+  }
+
   if ((user_options->brain_client == true) && (user_options->brain_server == true))
   {
     event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time.");
@@ -1805,6 +1847,12 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     show_error = false;
   }
   #ifdef WITH_BRAIN
+  else if (user_options->brain_feed == true)
+  {
+    // reads stdin and exits, so it takes no hash file and no attack arguments
+
+    show_error = false;
+  }
   else if (user_options->brain_server == true)
   {
     show_error = false;
@@ -2104,7 +2152,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->slow_candidates = true;
   }
-  #endif
+    #endif
 
   if (user_options->hwmon == false)
   {

@@ -1324,6 +1324,22 @@ u64 status_get_progress_rejected (const hashcat_ctx_t *hashcat_ctx)
   return progress_rejected;
 }
 
+#ifdef WITH_BRAIN
+u64 status_get_brain_rejects_attacks (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  return status_ctx->brain_rejects_attacks;
+}
+
+u64 status_get_brain_rejects_hashes (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  return status_ctx->brain_rejects_hashes;
+}
+#endif
+
 double status_get_progress_rejected_percent (const hashcat_ctx_t *hashcat_ctx)
 {
   const u64 progress_cur      = status_get_progress_cur      (hashcat_ctx);
@@ -2433,6 +2449,11 @@ void status_progress_reset (hashcat_ctx_t *hashcat_ctx)
   memset (status_ctx->words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
+
+  #ifdef WITH_BRAIN
+  status_ctx->brain_rejects_attacks = 0;
+  status_ctx->brain_rejects_hashes  = 0;
+  #endif
 }
 
 int status_ctx_init (hashcat_ctx_t *hashcat_ctx)

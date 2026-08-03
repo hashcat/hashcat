@@ -2847,6 +2847,10 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   printf ("REJECTED\t%" PRIu64 "\t", hashcat_status->progress_rejected);
 
+  #ifdef WITH_BRAIN
+  printf ("BRAIN_REJECTED\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->brain_rejects_attacks, hashcat_status->brain_rejects_hashes);
+  #endif
+
   printf ("UTIL\t");
 
   if (bridge_ctx->enabled == true)
@@ -3005,6 +3009,10 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"recovered_hashes\": [%u, %u],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": [%u, %u],", hashcat_status->salts_done, hashcat_status->salts_cnt);
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
+  #ifdef WITH_BRAIN
+  printf (" \"brain_rejected_position\": %" PRIu64 ",", hashcat_status->brain_rejects_attacks);
+  printf (" \"brain_rejected_candidate\": %" PRIu64 ",", hashcat_status->brain_rejects_hashes);
+  #endif
   printf (" \"devices\": [");
 
   if (bridge_ctx->enabled == true)
@@ -3690,6 +3698,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Brain.Link.All...: RX: %sB, TX: %sB",
       hashcat_status->brain_rx_all,
       hashcat_status->brain_tx_all);
+
+    // Rejected counts length and rule rejects as well, so it cannot be read as a brain saving. This
+    // line is the brain's own share of it, split the way the two client features work: position is
+    // feature 2 skipping a keyspace range, candidate is feature 1 dropping a word already seen.
+
+    event_log_info (hashcat_ctx,
+      "Brain.Rejects....: %" PRIu64 " (position %" PRIu64 ", candidate %" PRIu64 ")",
+      hashcat_status->brain_rejects_attacks + hashcat_status->brain_rejects_hashes,
+      hashcat_status->brain_rejects_attacks,
+      hashcat_status->brain_rejects_hashes);
 
     if (bridge_ctx->enabled == true)
     {

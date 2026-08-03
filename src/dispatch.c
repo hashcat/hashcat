@@ -507,6 +507,11 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
     pre_rejects = 0;
 
+    #ifdef WITH_BRAIN
+    u64 brain_rejects_attacks = 0;
+    u64 brain_rejects_hashes  = 0;
+    #endif
+
     memset (device_param->pws_pre_buf, 0, device_param->size_pws_pre);
 
     device_param->pws_pre_cnt = 0;
@@ -517,6 +522,12 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
       if (work == 0) break;
 
+      // cleared here rather than after the brain block, so a reserve that skips part of the range can
+      // set it and have this loop fetch that much again. Otherwise every skipped word is a word the
+      // batch never gets back and the device runs a short batch.
+
+      words_extra = 0;
+
       u64 words_off = device_param->words_off;
 
       #ifdef WITH_BRAIN
@@ -526,7 +537,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
         {
           const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
 
-          if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &sc->brain_highest) == false)
+          if (brain_client_connect (hashcat_ctx, device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session, user_options->brain_attack, passwords_max, &sc->brain_highest) == false)
           {
             brain_client_disconnect (device_param);
           }
@@ -545,6 +556,8 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
           words_extra_total += overlap;
           words_off         += overlap;
           work              -= overlap;
+
+          brain_rejects_attacks += overlap;
         }
       }
       #endif
@@ -552,8 +565,6 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
       const u64 words_fin = words_off + work;
 
       batch->words_fin = words_fin;
-
-      words_extra = 0;
 
       if (sc->seek == true) slow_candidates_seek (sc->reader_ctx, sc->extra_info, sc->words_cur, words_off);
 
@@ -603,8 +614,6 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
       sc->words_cur = words_fin;
 
-      words_extra_total += words_extra;
-
       if (status_ctx->run_thread_level1 == false) break;
     }
 
@@ -626,6 +635,8 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
         if (device_param->brain_link_in_buf[pws_pre_idx] == 1)
         {
           pre_rejects++;
+
+          brain_rejects_hashes++;
         }
         else
         {
@@ -675,6 +686,11 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
       {
         status_ctx->words_progress_rejected[salt_pos] += words_extra_total;
       }
+
+      #ifdef WITH_BRAIN
+      status_ctx->brain_rejects_attacks += brain_rejects_attacks;
+      status_ctx->brain_rejects_hashes  += brain_rejects_hashes;
+      #endif
 
       hc_thread_mutex_unlock (status_ctx->mux_counter);
     }
@@ -990,9 +1006,16 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     {
       const i64 passwords_max = device_param->hardware_power * device_param->kernel_accel;
 
-      if (brain_client_connect (device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, brain_attack, passwords_max, &highest) == false)
+      // this is the first connect of the run. A brain that is not there now means the whole attack
+      // runs with no dedup at all, which is what the user asked for by passing -z, so it is an error
+      // rather than a degradation. A link that drops later is different: the work already deduped
+      // stays deduped, so that one only warns and keeps going.
+
+      if (brain_client_connect (hashcat_ctx, device_param, status_ctx, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, brain_attack, passwords_max, &highest) == false)
       {
         brain_client_disconnect (device_param);
+
+        return -1;
       }
 
       if (user_options->brain_client_features & BRAIN_CLIENT_FEATURE_ATTACKS)
@@ -1007,6 +1030,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
           {
             status_ctx->words_progress_rejected[salt_pos] = status_ctx->words_off;
           }
+
+          // the brain reported a contiguous prefix of the keyspace as already done, so the run starts
+          // past it. Those words are rejected by the same mechanism as an overlap and belong in the
+          // same counter, or the attacks total is short by the whole prefix on any resumed session.
+
+          status_ctx->brain_rejects_attacks = status_ctx->words_off;
         }
 
         hc_thread_mutex_unlock (status_ctx->mux_dispatcher);

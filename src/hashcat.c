@@ -2073,6 +2073,10 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->progress_ignore             = status_get_progress_ignore            (hashcat_ctx);
   hashcat_status->progress_rejected           = status_get_progress_rejected          (hashcat_ctx);
   hashcat_status->progress_rejected_percent   = status_get_progress_rejected_percent  (hashcat_ctx);
+  #ifdef WITH_BRAIN
+  hashcat_status->brain_rejects_attacks       = status_get_brain_rejects_attacks      (hashcat_ctx);
+  hashcat_status->brain_rejects_hashes        = status_get_brain_rejects_hashes       (hashcat_ctx);
+  #endif
   hashcat_status->progress_restored           = status_get_progress_restored          (hashcat_ctx);
   hashcat_status->progress_skip               = status_get_progress_skip              (hashcat_ctx);
   hashcat_status->restore_point               = status_get_restore_point              (hashcat_ctx);

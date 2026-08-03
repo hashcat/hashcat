@@ -139,7 +139,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -z, --brain-client             |      | Enable brain client, activates -S                    |
      --brain-client-features    | Num  | Define brain client features, see below              | --brain-client-features=3
      --brain-host               | Str  | Brain server host (IP or domain)                     | --brain-host=127.0.0.1
-     --brain-port               | Port | Brain server port                                    | --brain-port=13743
+     --brain-port               | Port | Brain server port (default 6863)                     | --brain-port=6863
      --brain-password           | Str  | Brain server authentication password                 | --brain-password=bZfhCvGUSjRq
      --brain-session            | Hex  | Overrides automatically calculated brain session     | --brain-session=0x2ae611db
      --brain-session-whitelist  | Hex  | Allow given sessions only, separated with commas     | --brain-session-whitelist=0x2ae611db
