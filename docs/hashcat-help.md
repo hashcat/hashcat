@@ -137,6 +137,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --brain-server             |      | Enable brain server                                  |
      --brain-server-timer       | Num  | Update the brain server dump each X seconds (min:60) | --brain-server-timer=300
  -z, --brain-client             |      | Enable brain client, activates -S                    |
+     --brain-feed               |      | Hash stdin into a running brain, needs --brain-session|
      --brain-client-features    | Num  | Define brain client features, see below              | --brain-client-features=3
      --brain-host               | Str  | Brain server host (IP or domain)                     | --brain-host=127.0.0.1
      --brain-port               | Port | Brain server port (default 6863)                     | --brain-port=6863
