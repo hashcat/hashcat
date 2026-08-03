@@ -95,7 +95,7 @@ RUN cd $WD/src && git clone --depth 1 --branch v${WIN_ICONV_VERSION} https://git
 
 # Python (windows)
 
-ARG WIN_PYTHON_VERSION=3.14.3-1
+ARG WIN_PYTHON_VERSION=3.14.6-2
 ENV WIN_PYTHON_VERSION=${WIN_PYTHON_VERSION}
 
 RUN cd /opt/win-python && \
@@ -105,7 +105,7 @@ RUN cd /opt/win-python && \
 
 # rust
 
-ARG RUST_VERSION=1.94.0
+ARG RUST_VERSION=1.97.1
 ENV RUST_VERSION=${RUST_VERSION}
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}; /root/.cargo/bin/rustup target add x86_64-pc-windows-gnu
@@ -113,6 +113,11 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERS
 ENV PATH=/root/.cargo/bin:$PATH
 
 # hashcat
+
+# ENABLE_LTO is off by default in src/Makefile, because a plain distro cross toolchain cannot
+# always link the result. It is turned back on here, on the make command line, so the released
+# binaries get it. A command line assignment beats the ?= in the Makefile, so this stays
+# correct whatever the default becomes
 
 ARG CACHE_BUST=1 \
     ENABLE_LTO=1 \

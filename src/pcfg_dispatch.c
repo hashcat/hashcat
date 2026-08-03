@@ -240,17 +240,15 @@ static int calc_pcfg_cpu_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
   bool use_rules = run_rule_engine (rule_jk_len, rule_jk_buf);
 
+  pw_batch_t *batch = &device_param->pws_slot[0];
+
   while (status_ctx->run_thread_level1 == true)
   {
     u64 words_extra_total = 0;
 
-    //memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-    //memset (device_param->pws_idx,  0, device_param->size_pws_idx);
-    device_param->pws_idx[0].off = 0;
+    pw_batch_reset (batch);
 
-    device_param->pws_cnt = 0;
-
-    while (device_param->pws_cnt < device_param->kernel_power)
+    while (batch->pws_cnt < device_param->kernel_power)
     {
       u32 pw_len = 0;
 
@@ -314,7 +312,7 @@ static int calc_pcfg_cpu_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
         continue;
       }
 
-      pw_add (device_param, (u8 *) pw_buf, pw_len);
+      pw_add (batch, device_param->kernel_power, (const u8 *) pw_buf, (const int) pw_len);
 
       if (status_ctx->run_thread_level1 == false) break;
     }
@@ -333,9 +331,13 @@ static int calc_pcfg_cpu_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *dev
 
     if (!status_ctx->run_thread_level1) break;
 
-    u64 pws_cnt = device_param->pws_cnt;
+    u64 pws_cnt = batch->pws_cnt;
 
     if (pws_cnt == 0) break;
+
+    device_param->pws_idx  = batch->pws_idx;
+    device_param->pws_comp = batch->pws_comp;
+    device_param->pws_cnt  = batch->pws_cnt;
 
     if (run_copy (hashcat_ctx, device_param, pws_cnt) == -1) goto cleanup_error;
 

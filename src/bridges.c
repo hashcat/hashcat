@@ -107,6 +107,47 @@ bool bridge_active (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const int bridge_li
   return true;
 }
 
+// Are these two units the same kind of thing, so that a tuning result found on one is valid on the
+// other?
+//
+// A bridge appears to the backend as one virtual device cloned per unit, so every test that asks the
+// BACKEND what a device is answers identically for all of them and can only ever say "all the same".
+// The bridge is the only thing that knows, which is also why this is cheap: it reports what its units
+// are rather than having it inferred from a driver API.
+//
+// get_unit_class is optional. Without it, compare what the units call themselves, which is right when
+// a bridge's units really are identical. A bridge whose info string names the individual device, by
+// carrying its device node for instance, needs the class or no two units ever match.
+
+bool bridge_same_unit_class (hashcat_ctx_t *hashcat_ctx, const int unit_a, const int unit_b)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->enabled == false) return false;
+
+  if (unit_a == unit_b) return true;
+
+  if ((unit_a < 0) || (unit_b < 0)) return false;
+
+  char *(*describe) (hashcat_ctx_t *, void *, const int) = bridge_ctx->get_unit_class;
+
+  if ((describe == NULL) || (describe == BRIDGE_DEFAULT)) describe = bridge_ctx->get_unit_info;
+
+  if ((describe == NULL) || (describe == BRIDGE_DEFAULT)) return false;
+
+  const char *class_a = describe (hashcat_ctx, bridge_ctx->platform_context, unit_a);
+  const char *class_b = describe (hashcat_ctx, bridge_ctx->platform_context, unit_b);
+
+  // Nothing to compare is not the same as comparing equal. Saying yes here would copy one unit's
+  // tuning onto a unit nobody could describe.
+
+  if ((class_a == NULL) || (class_b == NULL)) return false;
+
+  const bool same = (strcmp (class_a, class_b) == 0);
+
+  return same;
+}
+
 // The multiple a bridge computes in, or 1 when there is no bridge.
 //
 // get_workitem_multiple is mandatory, so the BRIDGE_DEFAULT test is a guard rather than a normal path.
@@ -122,7 +163,7 @@ u32 bridge_workitem_multiple (hashcat_ctx_t *hashcat_ctx, const int bridge_link_
   if (bridge_ctx->enabled == false) return 1;
   if (bridge_ctx->get_workitem_multiple == BRIDGE_DEFAULT) return 1;
 
-  const int multiple = bridge_ctx->get_workitem_multiple (bridge_ctx->platform_context, bridge_link_device);
+  const int multiple = bridge_ctx->get_workitem_multiple (hashcat_ctx, bridge_ctx->platform_context, bridge_link_device);
 
   if (multiple < 1) return 1;
 
@@ -132,11 +173,18 @@ u32 bridge_workitem_multiple (hashcat_ctx_t *hashcat_ctx, const int bridge_link_
 bool bridges_init (hashcat_ctx_t *hashcat_ctx)
 {
   bridge_ctx_t    *bridge_ctx    = hashcat_ctx->bridge_ctx;
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
   user_options_t  *user_options  = hashcat_ctx->user_options;
   hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
 
-  if (user_options->backend_info  > 0)    return true;
+  // -I normally has no hash mode, and a bridge is chosen by the mode, so there is nothing to load and
+  // the device list is the whole answer. When a mode IS named the bridge it selects is loaded, because
+  // for that mode the units are what compute and a device list without them is not an answer at all.
+  //
+  // Gated on the mode being named rather than on -I alone, because loading a bridge is not free: an
+  // FPGA bridge programs the boards it finds as part of coming up. Naming the mode is the user asking
+  // for exactly that, which is the same thing a real run would do.
+
+  if ((user_options->backend_info > 0) && (user_options->hash_mode_chgd == false)) return true;
   if (user_options->hash_info     > 0)    return true;
   if (user_options->usage         > 0)    return true;
   if (user_options->left         == true) return true;
@@ -246,7 +294,7 @@ bool bridges_init (hashcat_ctx_t *hashcat_ctx)
 
   #undef CHECK_MANDATORY
 
-  bridge_ctx->platform_context = bridge_ctx->platform_init (user_options, folder_config);
+  bridge_ctx->platform_context = bridge_ctx->platform_init (hashcat_ctx);
 
   if (bridge_ctx->platform_context == NULL)
   {
@@ -268,7 +316,7 @@ void bridges_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == false) return;
 
-  bridge_ctx->platform_term (bridge_ctx->platform_context);
+  bridge_ctx->platform_term (hashcat_ctx, bridge_ctx->platform_context);
 
   bridge_unload (bridge_ctx);
 }
@@ -291,7 +339,7 @@ bool bridges_salt_prepare (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->salt_prepare == MODULE_DEFAULT) return true;
 
-  if (bridge_ctx->salt_prepare (bridge_ctx->platform_context, hashconfig, hashes) == false)
+  if (bridge_ctx->salt_prepare (hashcat_ctx, bridge_ctx->platform_context, hashconfig, hashes) == false)
   {
     event_log_error (hashcat_ctx, "Couldn't prepare salt specific data in bridge");
 
@@ -311,5 +359,5 @@ void bridges_salt_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->salt_destroy == MODULE_DEFAULT) return;
 
-  bridge_ctx->salt_destroy (bridge_ctx->platform_context, hashconfig, hashes);
+  bridge_ctx->salt_destroy (hashcat_ctx, bridge_ctx->platform_context, hashconfig, hashes);
 }

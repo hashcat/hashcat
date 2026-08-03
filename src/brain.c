@@ -12,6 +12,8 @@
 #include "convert.h"
 #include "shared.h"
 #include "hashes.h"
+#include "event.h"
+#include "memory.h"
 #include "brain.h"
 
 static bool keep_running = true;
@@ -753,6 +755,34 @@ u32 brain_auth_challenge (void)
   return val;
 }
 
+// Renders whatever brain_connect returned into the caller's buffer. Windows does not report socket
+// failures as errno values, so it needs its own lookup.
+
+static const char *brain_connect_reason (const int rc, char *buf, const size_t buf_sz)
+{
+  #if defined (_WIN)
+
+  memset (buf, 0, buf_sz);
+
+  FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, rc, MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT), buf, buf_sz, NULL);
+
+  if (buf[0] == 0) snprintf (buf, buf_sz, "error %d", rc);
+
+  return buf;
+
+  #else
+
+  snprintf (buf, buf_sz, "%s", strerror (rc));
+
+  return buf;
+
+  #endif
+}
+
+// Returns 0 when the connection is up, otherwise the errno-style reason it is not. This is only ever
+// called by the client, and the client reports through hashcat's own event log, so nothing here logs
+// on its own. The timeout has no errno of its own, so it borrows ETIMEDOUT.
+
 int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, const int timeout)
 {
   #if defined (_WIN)
@@ -764,73 +794,34 @@ int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, c
 
   if (connect (sockfd, addr, addrlen) == SOCKET_ERROR)
   {
-    int err = WSAGetLastError ();
+    const int err = WSAGetLastError ();
 
-    char msg[256];
-
-    memset (msg, 0, sizeof (msg));
-
-    FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,   // flags
-                   NULL,                // lpsource
-                   err,                 // message id
-                   MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),    // languageid
-                   msg,                 // output buffer
-                   sizeof (msg),        // size of msgbuf, bytes
-                   NULL);               // va_list of arguments
-
-    brain_logging (stderr, 0, "connect: %s\n", msg);
-
-    return -1;
+    return (err == 0) ? ECONNREFUSED : err;
   }
 
   #else
 
   const int old_mode = fcntl (sockfd, F_GETFL, 0);
 
-  if (fcntl (sockfd, F_SETFL, old_mode | O_NONBLOCK) == -1)
-  {
-    brain_logging (stderr, 0, "fcntl: %s\n", strerror (errno));
-
-    return -1;
-  }
+  if (fcntl (sockfd, F_SETFL, old_mode | O_NONBLOCK) == -1) return errno;
 
   connect (sockfd, addr, addrlen);
 
   const int rc_select = select_write_timeout (sockfd, timeout);
 
-  if (rc_select == -1) return -1;
+  if (rc_select == -1) return errno;
 
-  if (rc_select == 0)
-  {
-    brain_logging (stderr, 0, "connect: timeout\n");
-
-    return -1;
-  }
+  if (rc_select == 0) return ETIMEDOUT;
 
   int so_error = 0;
 
   socklen_t len = sizeof (so_error);
 
-  if (getsockopt (sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len) == -1)
-  {
-    brain_logging (stderr, 0, "getsockopt: %s\n", strerror (errno));
+  if (getsockopt (sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len) == -1) return errno;
 
-    return -1;
-  }
+  if (fcntl (sockfd, F_SETFL, old_mode) == -1) return errno;
 
-  if (fcntl (sockfd, F_SETFL, old_mode) == -1)
-  {
-    brain_logging (stderr, 0, "fcntl: %s\n", strerror (errno));
-
-    return -1;
-  }
-
-  if (so_error != 0)
-  {
-    brain_logging (stderr, 0, "connect: %s\n", strerror (so_error));
-
-    return -1;
-  }
+  if (so_error != 0) return so_error;
 
   #endif
 
@@ -1001,7 +992,32 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
   return true;
 }
 
-bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest)
+// A failed brain link is retried on every batch, so reporting every attempt buries the terminal in
+// hundreds of identical lines. This reports the first failure of an outage and then stays quiet
+// until the link comes back up. It goes through hashcat's event log, not brain_logging: that one
+// writes the brain SERVER's timestamped format straight to stderr, which is wrong for a client and
+// never reaches the session log.
+
+static void brain_client_report (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *format, ...)
+{
+  if (device_param->brain_link_reported == true) return;
+
+  device_param->brain_link_reported = true;
+
+  char buf[HCBUFSIZ_TINY];
+
+  va_list ap;
+
+  va_start (ap, format);
+
+  vsnprintf (buf, sizeof (buf), format, ap);
+
+  va_end (ap);
+
+  event_log_error (hashcat_ctx, "%s", buf);
+}
+
+bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest)
 {
   device_param->brain_link_client_fd   = 0;
   device_param->brain_link_recv_bytes  = 0;
@@ -1016,7 +1032,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_link_client_fd == -1)
   {
-    brain_logging (stderr, 0, "socket: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: socket: %s", (host == NULL) ? "127.0.0.1" : host, port, strerror (errno));
 
     return false;
   }
@@ -1026,7 +1042,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (setsockopt (brain_link_client_fd, SOL_TCP, TCP_NODELAY, &one, sizeof (one)) == -1)
   {
-    brain_logging (stderr, 0, "setsockopt: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: setsockopt: %s", (host == NULL) ? "127.0.0.1" : host, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1053,6 +1069,8 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   bool connected = false;
 
+  int rc_connect = ECONNREFUSED;
+
   struct addrinfo *address_info;
 
   const int rc_getaddrinfo = getaddrinfo (host_real, port_str, &hints, &address_info);
@@ -1063,7 +1081,9 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
     for (address_info_ptr = address_info; address_info_ptr != NULL; address_info_ptr = address_info_ptr->ai_next)
     {
-      if (brain_connect (brain_link_client_fd, address_info_ptr->ai_addr, address_info_ptr->ai_addrlen, BRAIN_CLIENT_CONNECT_TIMEOUT) == 0)
+      rc_connect = brain_connect (brain_link_client_fd, address_info_ptr->ai_addr, address_info_ptr->ai_addrlen, BRAIN_CLIENT_CONNECT_TIMEOUT);
+
+      if (rc_connect == 0)
       {
         connected = true;
 
@@ -1075,7 +1095,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
   }
   else
   {
-    brain_logging (stderr, 0, "%s: %s\n", host_real, gai_strerror (rc_getaddrinfo));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: %s", host_real, port, gai_strerror (rc_getaddrinfo));
 
     close (brain_link_client_fd);
 
@@ -1084,6 +1104,10 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (connected == false)
   {
+    char reason[256];
+
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d is not reachable: %s", host_real, port, brain_connect_reason (rc_connect, reason, sizeof (reason)));
+
     close (brain_link_client_fd);
 
     return false;
@@ -1095,7 +1119,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &brain_link_version, sizeof (brain_link_version), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1106,7 +1130,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, &brain_link_version_ok, sizeof (brain_link_version_ok), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: receive: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1115,7 +1139,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_link_version_ok == 0)
   {
-    brain_logging (stderr, 0, "Invalid brain server version\n");
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d rejected our link version %u", host_real, port, BRAIN_LINK_VERSION_CUR);
 
     close (brain_link_client_fd);
 
@@ -1126,7 +1150,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, &challenge, sizeof (challenge), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: receive: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1137,7 +1161,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &response, sizeof (response), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1148,7 +1172,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, &password_ok, sizeof (password_ok), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: receive: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1157,7 +1181,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (password_ok == 0)
   {
-    brain_logging (stderr, 0, "Invalid brain server password\n");
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d rejected the password", host_real, port);
 
     close (brain_link_client_fd);
 
@@ -1166,7 +1190,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &brain_session, sizeof (brain_session), SEND_FLAGS, device_param, status_ctx) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1175,7 +1199,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &brain_attack, sizeof (brain_attack), SEND_FLAGS, device_param, status_ctx) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1184,7 +1208,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &passwords_max, sizeof (passwords_max), SEND_FLAGS, device_param, status_ctx) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1193,12 +1217,16 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, highest, sizeof (u64), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: receive: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
     return false;
   }
+
+  // the link is up, so a later outage is a new one and deserves its own message
+
+  device_param->brain_link_reported = false;
 
   return true;
 }
@@ -3058,6 +3086,173 @@ HC_API_CALL void *brain_server_handle_client (void *p)
   brain_server_dbs->client_slots[client_idx] = 0;
 
   close (client_fd);
+
+  return 0;
+}
+
+// Read candidates from stdin, hash them, and hand them to a RUNNING brain server.
+//
+// It goes through the client protocol rather than writing the database file directly, and that is
+// the whole point: a server a team is already cracking against can be extended while it runs, with
+// nothing stopped and no file to keep in step. A lookup is what inserts. The server records every
+// hash it has not seen before, and the commit that follows moves them out of the client's short term
+// memory into the session's long term database.
+//
+// stdin only, because hashcat already knows how to turn any attack into a candidate stream:
+//
+//   hashcat --stdout -a 0 rockyou.txt -r best64.rule | hashcat --brain-feed --brain-session 0x2ae611db --brain-password x
+//
+// Feeding through --stdout also means the hashes stored are of the FINAL candidate, after rules and
+// after a mask has been expanded, which is exactly what a cracking client looks up. Hashing a raw
+// wordlist instead would store words a rule-driven run never asks about.
+//
+// The session has to be given, because it is what says which database these candidates belong in and
+// it is normally computed from the hash list, which a feeder does not have. hashcat prints it on the
+// status line of any brain run as Brain Session/Attack.
+
+int brain_feed (hashcat_ctx_t *hashcat_ctx)
+{
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  hc_device_param_t device_param;
+
+  memset (&device_param, 0, sizeof (device_param));
+
+  device_param.brain_link_client_fd = -1;
+
+  device_param.size_brain_link_in  = BRAIN_FEED_CHUNK * sizeof (u8);
+  device_param.size_brain_link_out = BRAIN_FEED_CHUNK * BRAIN_HASH_SIZE;
+
+  device_param.brain_link_in_buf  = (u8 *)  hcmalloc (device_param.size_brain_link_in);
+  device_param.brain_link_out_buf = (u32 *) hcmalloc (device_param.size_brain_link_out);
+
+  const u32 brain_session = user_options->brain_session;
+
+  u64 highest = 0;
+
+  // passwords_max is what the server checks a lookup against, and it counts what has accumulated
+  // since the last commit. A whole chunk is committed at a time, so one chunk is the true maximum.
+
+  if (brain_client_connect (hashcat_ctx, &device_param, NULL, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, 0, BRAIN_FEED_CHUNK, &highest) == false)
+  {
+    brain_client_disconnect (&device_param);
+
+    hcfree (device_param.brain_link_in_buf);
+    hcfree (device_param.brain_link_out_buf);
+
+    return -1;
+  }
+
+  event_log_info (hashcat_ctx, "Feeding brain session 0x%08x, reading candidates from stdin.", brain_session);
+  event_log_info (hashcat_ctx, NULL);
+
+  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+  u64 read_cnt  = 0;
+  u64 fed_cnt   = 0;
+  u64 known_cnt = 0;
+  u64 long_cnt  = 0;
+
+  bool ok = true;
+
+  while (true)
+  {
+    char *rc_fgets = fgets (line_buf, HCBUFSIZ_LARGE - 1, stdin);
+
+    const bool eof = (rc_fgets == NULL) ? true : false;
+
+    if (eof == false)
+    {
+      const size_t line_len = in_superchop (line_buf);
+
+      read_cnt++;
+
+      // Mirror what the wordlist reader accepts, so that feeding a list and then cracking that same
+      // list feed the brain and query it with the identical set of candidates. src/wordlist.c drops a
+      // word longer than PW_MAX and keeps everything shorter, an empty line included, so this does the
+      // same. Storing an over-length word would only add an entry no cracking client can ever ask
+      // about, and skipping the empty one would leave a candidate that a client does ask about
+      // un-deduplicated.
+
+      if (line_len > PW_MAX)
+      {
+        long_cnt++;
+      }
+      else
+      {
+        u32 *out_buf = device_param.brain_link_out_buf;
+
+        brain_client_generate_hash ((u64 *) &out_buf[device_param.pws_pre_cnt * 2], line_buf, line_len);
+
+        device_param.pws_pre_cnt++;
+      }
+    }
+
+    const bool full = (device_param.pws_pre_cnt >= BRAIN_FEED_CHUNK) ? true : false;
+
+    if ((full == true) || ((eof == true) && (device_param.pws_pre_cnt > 0)))
+    {
+      const u64 cnt = device_param.pws_pre_cnt;
+
+      // The two calls key off DIFFERENT counters: lookup reads pws_pre_cnt, commit reads pws_cnt and
+      // returns true without sending anything when it is zero. Setting only the first is a commit
+      // that silently does nothing, which looks exactly like a successful feed that stores nothing.
+
+      device_param.pws_cnt = cnt;
+
+      if (brain_client_lookup (&device_param, NULL) == false)
+      {
+        event_log_error (hashcat_ctx, "Brain server stopped answering after %" PRIu64 " candidates. Nothing since the last commit was stored.", fed_cnt);
+
+        ok = false;
+
+        break;
+      }
+
+      // The lookup answered with a byte per candidate saying whether the server had already seen it.
+      // Counting them is what tells a user their feed is landing where they think it is.
+
+      for (u64 i = 0; i < cnt; i++)
+      {
+        if (device_param.brain_link_in_buf[i] == 1) known_cnt++;
+      }
+
+      if (brain_client_commit (&device_param, NULL) == false)
+      {
+        event_log_error (hashcat_ctx, "Brain server refused the commit after %" PRIu64 " candidates.", fed_cnt);
+
+        ok = false;
+
+        break;
+      }
+
+      device_param.pws_pre_cnt = 0;
+
+      fed_cnt += cnt;
+    }
+
+    if (eof == true) break;
+  }
+
+  brain_client_disconnect (&device_param);
+
+  hcfree (line_buf);
+  hcfree (device_param.brain_link_in_buf);
+  hcfree (device_param.brain_link_out_buf);
+
+  if (ok == false) return -1;
+
+  // Every line read has to be accounted for. Two numbers that differ with nothing saying why reads as
+  // a lost candidate, so the skipped count is named whenever it is not zero.
+
+  event_log_info (hashcat_ctx, "Fed %" PRIu64 " candidates from %" PRIu64 " lines into brain session 0x%08x, %" PRIu64 " were already known.", fed_cnt, read_cnt, brain_session, known_cnt);
+
+  if (long_cnt > 0)
+  {
+    event_log_info (hashcat_ctx, "Skipped %" PRIu64 " line(s) longer than %d bytes, which hashcat would not have used as candidates either.", long_cnt, PW_MAX);
+  }
+
+  event_log_info (hashcat_ctx, NULL);
 
   return 0;
 }

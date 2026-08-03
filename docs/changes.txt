@@ -6,8 +6,6 @@
 
 - Added new attack-mode: Probabilistic Context-Free Grammar Attack (aka "PCFG") with Probability, OMEN, and AHF (Adaptive Hybrid-Fuzzing) generation strategies
 - Added --session/--restore, --skip/--limit, and --keyspace support for PCFG attack mode (-a 10)
-- Docker: Add hashcat-toolchain
-- Docker: update hashcat_binaries to version 2.1
 - Enable SSE2 intrinsics path for scrypt-jane bridge on ARM via sse2neon
 - Exclude tools directory from github action build triggers
 - Improved performance by skip unnecessary memset of pws_comp/pws_idx in dispatch loops
@@ -20,6 +18,13 @@
 - Updated test_edge.sh: fix 33700 handling, skip luks, add more stats
 - Updated BUILD.md: add missing Rustup stage and required packages for Linux/MacOS
 
+- Docker: Add hashcat-toolchain
+- Docker: update hashcat_binaries to version 2.1
+- Docker: Added Ubuntu 26.04 runtime images for CUDA and AMD
+- Docker: Updated the bundled Python to 3.14.6 and Rust to 1.97.1
+- Docker: Removed the Ubuntu 18.04 build, its mingw-w64 is too old to link current Rust
+- Build: LTO is now off by default and enabled only for the released binaries
+
 ##
 ## Bugs
 ##
@@ -27,6 +32,10 @@
 - Added workaround for CUDA memory leak in benchmark mode caused by register spilling
 - Fixed bug on 35500 kernel with Metal
 - Fixed bugs on 13731, 13732 and 13733 with AMD: add missing module_jit_build_options to force native_threads to 32 with GPU devices
+- Fixed the Rust bridges failing to build in the Ubuntu 20.04 and Arch containers, libclang was missing
+- Fixed the Windows Rust plugin failing to link in the Arch container, lld was missing
+- Fixed the Windows Python plugins silently going missing when the bundled Python is not 3.12
+- Fixed bridge_scrypt_jane failing to link with LTO on an older mingw-w64
 - Fixed bugs on multiple DES based modules when used with CPU devices
 - Fixed memory leak in loopback context (missing filename deallocation)
 - Fixed module_constraints for 14400, 15000, 34400, 34500, 35300 and 35400

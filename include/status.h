@@ -65,6 +65,10 @@ double      status_get_progress_finished_percent      (const hashcat_ctx_t *hash
 u64         status_get_progress_done                  (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_progress_rejected              (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_progress_rejected_percent      (const hashcat_ctx_t *hashcat_ctx);
+#ifdef WITH_BRAIN
+u64         status_get_brain_rejects_attacks          (const hashcat_ctx_t *hashcat_ctx);
+u64         status_get_brain_rejects_hashes           (const hashcat_ctx_t *hashcat_ctx);
+#endif
 u64         status_get_progress_restored              (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_progress_cur                   (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_progress_end                   (const hashcat_ctx_t *hashcat_ctx);

@@ -541,11 +541,7 @@ static int ocl_check_dri (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 
 static bool setup_backend_devices_filter (hashcat_ctx_t *hashcat_ctx, const char *backend_devices, int *backend_devices_filter)
 {
-  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
-
   for (int i = 0; i < DEVICES_MAX; i++) backend_devices_filter[i] = 0;
-
-  if (bridge_ctx->enabled == true) return true;
 
   if (backend_devices == NULL) return true;
 
@@ -1194,6 +1190,74 @@ int copy_pws_comp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
+// A launch is a chain of host steps around one device step and the steps are spread over several
+// files, so the split can only be seen by accumulating them in one place. The numbers are read as
+// proportions of a whole launch, which is why they are summed rather than sampled.
+//
+// Diagnostic only: the buckets are shared by every device thread without a lock, so a run with more
+// than one unit adds their times together instead of separating them.
+
+static double g_pipe_msec[PIPE_SLOTS];
+static u64    g_pipe_launches;
+static u64    g_pipe_cands;
+
+static bool pipe_enabled (void)
+{
+  static int on = -1;
+
+  if (on == -1) on = (getenv ("HASHCAT_PIPE") != NULL) ? 1 : 0;
+
+  const bool result = (on == 1) ? true : false;
+
+  return result;
+}
+
+void pipe_mark (hc_timer_t *timer)
+{
+  if (pipe_enabled () == false) return;
+
+  hc_timer_set (timer);
+}
+
+void pipe_acc (const pipe_slot_t slot, hc_timer_t *timer)
+{
+  if (pipe_enabled () == false) return;
+
+  g_pipe_msec[slot] += hc_timer_get (*timer);
+
+  hc_timer_set (timer);
+}
+
+void pipe_launch_done (const u64 cands)
+{
+  if (pipe_enabled () == false) return;
+
+  g_pipe_launches++;
+  g_pipe_cands += cands;
+
+  if ((g_pipe_launches % 50) != 0) return;
+
+  static const char *names[PIPE_SLOTS] = { "feed", "copy", "init", "xfer", "launch", "comp" };
+
+  // feed is deliberately left out of the total. It runs on the producer thread, so it costs the
+  // launch nothing, and counting it would make every other share look smaller than it is.
+
+  double total = 0;
+
+  for (int i = PIPE_COPY; i < PIPE_SLOTS; i++) total += g_pipe_msec[i];
+
+  if (total <= 0.0) return;
+
+  fprintf (stderr, "[host] %" PRIu64 " launches, %.0f ms total", g_pipe_launches, total);
+
+  for (int i = 0; i < PIPE_SLOTS; i++)
+  {
+    fprintf (stderr, ", %s %.0f (%.1f%%, %.2f ms)", names[i], g_pipe_msec[i], 100.0 * g_pipe_msec[i] / total, g_pipe_msec[i] / (double) g_pipe_launches);
+  }
+
+  fprintf (stderr, ", effective %.0f H/s\n", (double) g_pipe_cands / (total / 1000.0));
+}
+
 int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos, const bool is_autotune)
 {
   bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
@@ -1272,6 +1336,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
     }
 
+    hc_timer_t timer_fast;
+
+    pipe_mark (&timer_fast);
+
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       // this is not perfectly right, only in case algorithm has to add 0x80 (most of the cases for fast optimized kernels)
@@ -1293,6 +1361,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     {
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_4, pws_pos, pws_cnt, true, fast_iteration, is_autotune) == -1) return -1;
     }
+
+    pipe_acc (PIPE_LAUNCH, &timer_fast);
+
+    pipe_launch_done (pws_cnt);
   }
   else
   {
@@ -1352,6 +1424,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         RUN_COMP
         CLEAN_HOOK_DATA
     */
+
+    hc_timer_t timer_stage;
+
+    pipe_mark (&timer_stage);
 
     if (true)
     {
@@ -1501,6 +1577,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         }
       }
     }
+
+    pipe_acc (PIPE_INIT, &timer_stage);
 
     if (true)
     {
@@ -1778,7 +1856,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
             }
 
-            if (bridge_ctx->launch_loop2 (bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+            if (bridge_ctx->launch_loop2 (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
 
             if (device_param->is_cuda == true)
             {
@@ -1810,6 +1888,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         }
       }
     }
+
+    pipe_mark (&timer_stage);
 
     if (true)
     {
@@ -1902,6 +1982,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
     }
 
+    pipe_acc (PIPE_COMP, &timer_stage);
+
+    pipe_launch_done (pws_cnt);
+
     /*
      * maybe we should add this zero of temporary buffers
      * however it drops the performance from 7055338 to 7010621
@@ -1993,6 +2077,22 @@ static void rebuild_pws_compressed_append (hc_device_param_t *device_param, cons
     pw_idx_t *pw_idx_dst_next = pw_idx_dst + 1;
 
     pw_idx_dst_next->off = pw_idx_dst->off + pw_idx_dst->cnt;
+  }
+
+  // The buffers belong to the pipeline slot this batch came out of, not to the device, so the slot
+  // has to learn about the replacement too. Leaving it pointing at freed memory would only show up
+  // one batch later, when the producer refills that slot.
+
+  for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+  {
+    pw_batch_t *slot = &device_param->pws_slot[slot_pos];
+
+    if (slot->pws_comp != device_param->pws_comp) continue;
+
+    slot->pws_comp = tmp_pws_comp;
+    slot->pws_idx  = tmp_pws_idx;
+
+    break;
   }
 
   hcfree (device_param->pws_comp);
@@ -3225,7 +3325,13 @@ int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
   }
 
-  if (bridge_ctx->launch_loop (bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+  hc_timer_t timer_stage = timer_bridge;
+
+  pipe_acc (PIPE_XFER, &timer_stage);
+
+  if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+
+  pipe_acc (PIPE_LAUNCH, &timer_stage);
 
   if (device_param->is_cuda == true)
   {
@@ -3253,6 +3359,8 @@ int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     /* blocking */
     if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
   }
+
+  pipe_acc (PIPE_XFER, &timer_stage);
 
   const double exec_msec = hc_timer_get (timer_bridge);
 
@@ -5795,7 +5903,7 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
 
   bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
-  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int cuda_devices_cnt    = 0;
   int cuda_devices_active = 0;
@@ -5838,6 +5946,12 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
       hc_device_param_t *device_param = &devices_param[*backend_devices_idx];
 
       device_param->device_id = device_id;
+
+      // a virtual device IS a bridge unit, so the unit index comes from the loop rather than from
+      // a count of the survivors. Counting survivors would hand the first one unit 0, and -d would
+      // then run a different unit than the one the user asked for
+
+      if (is_virtualized == true) device_param->bridge_link_device = cuda_devices_idx;
 
       backend_ctx->backend_device_from_cuda[cuda_devices_idx] = *backend_devices_idx;
 
@@ -6252,7 +6366,7 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
 
       if (device_param->skipped == false)
       {
-        device_param->bridge_link_device = (*bridge_link_device)++;
+        if (is_virtualized == false) device_param->bridge_link_device = (*bridge_link_device)++;
 
         cuda_devices_active++;
       }
@@ -6276,7 +6390,7 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
 
   bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
-  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int hip_devices_cnt    = 0;
   int hip_devices_active = 0;
@@ -6319,6 +6433,10 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
       hc_device_param_t *device_param = &devices_param[*backend_devices_idx];
 
       device_param->device_id = device_id;
+
+      // see the note on the unit index in the cuda path
+
+      if (is_virtualized == true) device_param->bridge_link_device = hip_devices_idx;
 
       backend_ctx->backend_device_from_hip[hip_devices_idx] = *backend_devices_idx;
 
@@ -6788,7 +6906,7 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
 
       if (device_param->skipped == false)
       {
-        device_param->bridge_link_device = (*bridge_link_device)++;
+        if (is_virtualized == false) device_param->bridge_link_device = (*bridge_link_device)++;
 
         hip_devices_active++;
       }
@@ -6814,7 +6932,7 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
 
   bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
-  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   if (backend_ctx->mtl)
   {
@@ -6854,6 +6972,10 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
       hc_device_param_t *device_param = &devices_param[*backend_devices_idx];
 
       device_param->device_id = device_id;
+
+      // see the note on the unit index in the cuda path
+
+      if (is_virtualized == true) device_param->bridge_link_device = metal_devices_idx;
 
       backend_ctx->backend_device_from_metal[metal_devices_idx] = *backend_devices_idx;
 
@@ -7221,7 +7343,7 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
 
       if (device_param->skipped == false)
       {
-        device_param->bridge_link_device = (*bridge_link_device)++;
+        if (is_virtualized == false) device_param->bridge_link_device = (*bridge_link_device)++;
 
         metal_devices_active++;
       }
@@ -7247,7 +7369,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
   bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
-  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
+  int virtmulti = (bridge_ctx->enabled == true) ? bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context) : (int) user_options->backend_devices_virtmulti;
 
   int opencl_devices_cnt    = 0;
   int opencl_devices_active = 0;
@@ -7296,6 +7418,10 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         hc_device_param_t *device_param = &devices_param[device_id];
 
         device_param->device_id = device_id;
+
+        // see the note on the unit index in the cuda path
+
+        if (is_virtualized == true) device_param->bridge_link_device = (int) opencl_platform_devices_idx;
 
         backend_ctx->backend_device_from_opencl[opencl_devices_cnt] = *backend_devices_idx;
 
@@ -8278,7 +8404,8 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
                 {
                   if (backend_ctx->rc_hip_init == -1)
                   {
-                    event_log_warning (hashcat_ctx, "Failed to initialize the AMD main driver HIP runtime library. Please install the AMD HIP SDK.");
+                    event_log_warning (hashcat_ctx, "Failed to initialize the AMD main driver HIP runtime library.");
+                    event_log_warning (hashcat_ctx, "Could not open libamdhip64.so, nor any libamdhip64.so.N beside it. Install the AMD HIP SDK, or on a distribution that splits its packages, the runtime package providing the soname.");
                     event_log_warning (hashcat_ctx, NULL);
                   }
                   else
@@ -8289,7 +8416,8 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
                   if (backend_ctx->rc_hiprtc_init == -1)
                   {
-                    event_log_warning (hashcat_ctx, "Failed to initialize AMD HIP RTC library. Please install the AMD HIP SDK.");
+                    event_log_warning (hashcat_ctx, "Failed to initialize AMD HIP RTC library.");
+                    event_log_warning (hashcat_ctx, "Could not open libhiprtc.so, nor any libhiprtc.so.N beside it. Install the AMD HIP SDK, or on a distribution that splits its packages, the runtime package providing the soname.");
                     event_log_warning (hashcat_ctx, NULL);
                   }
                   else
@@ -8622,7 +8750,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
            * activate device
            */
 
-          device_param->bridge_link_device = (*bridge_link_device)++;
+          if (is_virtualized == false) device_param->bridge_link_device = (*bridge_link_device)++;
 
           opencl_devices_active++;
         }
@@ -9363,7 +9491,6 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
   backend_ctx_t   *backend_ctx  = hashcat_ctx->backend_ctx;
   bridge_ctx_t    *bridge_ctx   = hashcat_ctx->bridge_ctx;
   hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
-  user_options_t  *user_options = hashcat_ctx->user_options;
 
   if (backend_ctx->enabled == false) return;
 
@@ -9383,13 +9510,22 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 
       if (is_same_device_type (device_param_src, device_param_dst) == false) continue;
 
-      // A bridge is wired up as one virtual backend device per unit, so this test sees a single
-      // device however many units are behind it, and the first unit's tuning would be copied onto all
-      // the rest. Units of a bridge are not interchangeable: they can differ in width and in speed,
-      // and every one of them has already been tuned on its own by the time this runs.
+      // A bridge is wired up as one virtual backend device per unit, so the test above sees a single
+      // device however many units are behind it. It cannot tell two units apart and it cannot tell
+      // two units together either, so it must not be the thing that decides here.
+      //
+      // Bridge units are not interchangeable in general: they can differ in width and in speed, and
+      // each has already been tuned on its own by the time this runs. But a box full of IDENTICAL
+      // cards is the ordinary case, and leaving those unaligned is visible, neighbouring units
+      // running different batch sizes for no reason a user can see.
+      //
+      // So ask the BRIDGE whether the two units are the same kind of thing. It knows, and it knows
+      // exactly rather than by inference from a driver API.
 
-      if (bridge_active (hashcat_ctx, device_param_src->bridge_link_device) == true) continue;
-      if (bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) == true) continue;
+      if (bridge_active (hashcat_ctx, device_param_src->bridge_link_device) == true)
+      {
+        if (bridge_same_unit_class (hashcat_ctx, device_param_src->bridge_link_device, device_param_dst->bridge_link_device) == false) continue;
+      }
 
       device_param_dst->kernel_accel   = device_param_src->kernel_accel;
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
@@ -9418,12 +9554,14 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       if (device_param->skipped == true) continue;
       if (device_param->skipped_warning == true) continue;
 
-      const int workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
+      const int workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
 
-      if ((int) device_param->kernel_power < workitem_count)
-      {
-        if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u/Bridge #%u: kernel_power:%" PRIu64 " < workitem_count:%d", device_param->device_id + 1, device_param->bridge_link_device + 1, device_param->kernel_power, workitem_count);
-      }
+      // A launch smaller than the advertised count used to be worth warning about, back when that
+      // count WAS the launch size and anything below it meant something had gone wrong. Autotune now
+      // searches the range below it deliberately, and on a slow hash the answer it settles on is a
+      // small fraction of the maximum: on a slow salt the answer can be a single wave against an
+      // advertised count in the thousands. Warning there flags correct behaviour, and the chosen
+      // size is already on the status line as Batch, so the diagnostic is not lost.
 
       // the advertised count is a maximum the bridge cannot be asked to exceed, not a figure it
       // demands, so cap rather than assign. Assigning is what used to launch over buffers sized
@@ -14310,7 +14448,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->bridge_type)
     {
-      const u32 workitem_count = bridge_ctx->get_workitem_count (bridge_ctx->platform_context, device_param->bridge_link_device);
+      const u32 workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
 
       const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
                                : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
@@ -17014,16 +17152,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 size_host_extra = (512 * 1024 * 1024) / backend_ctx->backend_devices_active;
 
+      // the staging buffers are allocated once per pipeline slot, because the next batch is built
+      // while the current one runs
+
       const u64 size_total_host
-        = size_pws_comp
-        + size_pws_idx
+        = (size_pws_comp * PW_PIPE_SLOTS)
+        + (size_pws_idx  * PW_PIPE_SLOTS)
         + size_hooks
         #ifdef WITH_BRAIN
         + size_brain_link_in
         + size_brain_link_out
         #endif
         + size_pws_pre
-        + size_pws_base
+        + (size_pws_base * PW_PIPE_SLOTS)
         + size_host_extra;
 
       if (size_total_host > accel_limit_host) memory_limit_hit = 1;
@@ -17192,13 +17333,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->h_tmps = h_tmps;
     }
 
-    u32 *pws_comp = (u32 *) hcmalloc (size_pws_comp);
+    // One set of staging buffers per pipeline slot. The slots are what the buffers belong to, and
+    // device_param->pws_comp / pws_idx are only a view of whichever slot is being launched.
 
-    device_param->pws_comp = pws_comp;
+    for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+    {
+      pw_batch_t *slot = &device_param->pws_slot[slot_pos];
 
-    pw_idx_t *pws_idx = (pw_idx_t *) hcmalloc (size_pws_idx);
+      slot->pws_comp = (u32 *)      hcmalloc (size_pws_comp);
+      slot->pws_idx  = (pw_idx_t *) hcmalloc (size_pws_idx);
+      slot->pws_base = (pw_pre_t *) hcmalloc (size_pws_base);
+    }
 
-    device_param->pws_idx = pws_idx;
+    device_param->pws_comp     = device_param->pws_slot[0].pws_comp;
+    device_param->pws_idx      = device_param->pws_slot[0].pws_idx;
+    device_param->pws_base_buf = device_param->pws_slot[0].pws_base;
 
     pw_t *combs_buf = (pw_t *) hccalloc (KERNEL_COMBS, sizeof (pw_t));
 
@@ -17225,10 +17374,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     pw_pre_t *pws_pre_buf = (pw_pre_t *) hcmalloc (size_pws_pre);
 
     device_param->pws_pre_buf = pws_pre_buf;
-
-    pw_pre_t *pws_base_buf = (pw_pre_t *) hcmalloc (size_pws_base);
-
-    device_param->pws_base_buf = pws_base_buf;
 
     /**
      * kernel args
@@ -17517,10 +17662,17 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     if (device_param->skipped == true) continue;
 
     hcfree_bridge_aligned (device_param->h_tmps);
-    hcfree (device_param->pws_comp);
-    hcfree (device_param->pws_idx);
+
+    for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+    {
+      pw_batch_t *slot = &device_param->pws_slot[slot_pos];
+
+      hcfree (slot->pws_comp);
+      hcfree (slot->pws_idx);
+      hcfree (slot->pws_base);
+    }
+
     hcfree (device_param->pws_pre_buf);
-    hcfree (device_param->pws_base_buf);
     hcfree (device_param->combs_buf);
     hcfree (device_param->hooks_buf);
     hcfree (device_param->scratch_buf);
@@ -17914,6 +18066,15 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
       //device_param->opencl_command_queue = NULL;
       //device_param->opencl_context       = NULL;
+    }
+
+    for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+    {
+      pw_batch_t *slot = &device_param->pws_slot[slot_pos];
+
+      slot->pws_comp = NULL;
+      slot->pws_idx  = NULL;
+      slot->pws_base = NULL;
     }
 
     device_param->h_tmps              = NULL;

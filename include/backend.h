@@ -68,6 +68,27 @@ int get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx_t *hashcat_ctx, hc_dev
 int get_opencl_kernel_local_mem_size        (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u64 *result);
 int get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_kernel kernel, u64 *result);
 
+// Where a launch's wall clock goes, split by the stage that spent it. A launch is a chain of host
+// steps around one device step, and the steps live in different files, so the buckets are global and
+// printed together. HASHCAT_PIPE=1 turns it on, and nothing is measured or timed otherwise.
+
+typedef enum pipe_slot
+{
+  PIPE_FEED   = 0,  // building the candidate batch on the host, off the critical path
+  PIPE_COPY   = 1,  // uploading it and running the decompress kernel
+  PIPE_INIT   = 2,  // amplifier, utf16 conversion and the init kernel
+  PIPE_XFER   = 3,  // tmps out to the host and back
+  PIPE_LAUNCH = 4,  // the loop itself, kernel or bridge
+  PIPE_COMP   = 5,  // the comp kernel
+
+  PIPE_SLOTS  = 6,
+
+} pipe_slot_t;
+
+void pipe_mark                              (hc_timer_t *timer);
+void pipe_acc                               (const pipe_slot_t slot, hc_timer_t *timer);
+void pipe_launch_done                       (const u64 cands);
+
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
 int copy_pws_idx                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u64 gidd, const u64 cnt, pw_idx_t *dest);

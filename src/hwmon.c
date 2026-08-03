@@ -90,8 +90,8 @@ static bool hm_same_hardware (hashcat_ctx_t *hashcat_ctx, const hc_device_param_
   {
     if (bridge_ctx->get_unit_info == NULL) return true;
 
-    const char *info_a = bridge_ctx->get_unit_info (bridge_ctx->platform_context, device_param_a->bridge_link_device);
-    const char *info_b = bridge_ctx->get_unit_info (bridge_ctx->platform_context, device_param_b->bridge_link_device);
+    const char *info_a = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, device_param_a->bridge_link_device);
+    const char *info_b = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, device_param_b->bridge_link_device);
 
     if (info_a == NULL) return true;
     if (info_b == NULL) return true;
@@ -150,6 +150,8 @@ static bool hm_bridge_has_sensors (const bridge_ctx_t *bridge_ctx)
   const void *funcs[] =
   {
     (const void *) bridge_ctx->get_unit_temperature,
+    (const void *) bridge_ctx->get_unit_temperature_str,
+    (const void *) bridge_ctx->get_unit_temperature_abort,
     (const void *) bridge_ctx->get_unit_fanspeed,
     (const void *) bridge_ctx->get_unit_utilization,
     (const void *) bridge_ctx->get_unit_corespeed,
@@ -193,6 +195,23 @@ static int hm_get_bridge_unit (hashcat_ctx_t *hashcat_ctx, const int backend_dev
   if (func == MODULE_DEFAULT) return HM_BRIDGE_NO_READING;
 
   return unit;
+}
+
+// Does this device's sensor reporting belong to a bridge unit rather than to the backend device?
+//
+// Callers that treat the backend device as the thing being measured need to know, because under a
+// bridge it is not. What kind of device the backend one is says nothing about the hardware the
+// readings describe.
+
+bool hm_bridge_owns_device (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  const int unit = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) bridge_ctx->get_unit_temperature);
+
+  const bool result = (unit != HM_BRIDGE_PASS);
+
+  return result;
 }
 
 // Is this device the one that should carry the hwmon line for its hardware?
@@ -357,6 +376,288 @@ int hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, cons
   return -1;
 }
 
+// A bridge unit's own rendering of its temperature field, when it has more to say than one number.
+
+bool hm_get_bridge_buslanes_str (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, char *buf, const size_t len)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->get_unit_buslanes_str == NULL)           return false;
+  if (bridge_ctx->get_unit_buslanes_str == MODULE_DEFAULT) return false;
+
+  const int unit = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) bridge_ctx->get_unit_buslanes_str);
+
+  if (unit == HM_BRIDGE_NO_READING) return false;
+  if (unit == HM_BRIDGE_PASS)       return false;
+
+  const bool result = bridge_ctx->get_unit_buslanes_str (hashcat_ctx, bridge_ctx->platform_context, unit, buf, len);
+
+  return result;
+}
+
+bool hm_get_bridge_temperature_str (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, char *buf, const size_t len)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->get_unit_temperature_str == NULL)           return false;
+  if (bridge_ctx->get_unit_temperature_str == MODULE_DEFAULT) return false;
+
+  const int unit = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) bridge_ctx->get_unit_temperature_str);
+
+  if (unit == HM_BRIDGE_NO_READING) return false;
+  if (unit == HM_BRIDGE_PASS)       return false;
+
+  const bool result = bridge_ctx->get_unit_temperature_str (hashcat_ctx, bridge_ctx->platform_context, unit, buf, len);
+
+  return result;
+}
+
+// What this device must not get hotter than, according to the BRIDGE. Zero means the unit has nothing
+// to say and the user's setting stands on its own.
+//
+// This is not the final answer. A unit limit and the user's setting are combined by taking the
+// stricter of the two, and that is done by the callers, so a unit cannot be used to loosen a limit
+// the user asked for. See monitor.c.
+
+u32 hm_get_bridge_temperature_abort (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->get_unit_temperature_abort == NULL)           return 0;
+  if (bridge_ctx->get_unit_temperature_abort == MODULE_DEFAULT) return 0;
+
+  const int unit = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) bridge_ctx->get_unit_temperature_abort);
+
+  if (unit == HM_BRIDGE_NO_READING) return 0;
+  if (unit == HM_BRIDGE_PASS)       return 0;
+
+  const u32 result = bridge_ctx->get_unit_temperature_abort (hashcat_ctx, bridge_ctx->platform_context, unit);
+
+  return result;
+}
+
+// Name the limits the watchdog will really enforce, for the units that carry one of their own. The
+// user's setting is not the number that applies to those, so it is worth saying which is.
+//
+// Returns how many devices named a limit, so the caller can tell whether the watchdog is really off.
+
+// Formats a set of unit numbers as compactly as it can, "#1-#4" rather than "#1, #2, #3, #4", and
+// keeps runs that are not adjacent apart, "#1-#3, #7".
+
+static void hm_unit_list_str (const int *idx_buf, const int idx_cnt, char *out, const size_t out_sz)
+{
+  size_t off = 0;
+
+  out[0] = 0;
+
+  int i = 0;
+
+  while (i < idx_cnt)
+  {
+    int j = i;
+
+    while (((j + 1) < idx_cnt) && (idx_buf[j + 1] == (idx_buf[j] + 1))) j++;
+
+    if (off >= out_sz) return;
+
+    const char *sep = (off == 0) ? "" : ", ";
+
+    if (j > i) off += snprintf (out + off, out_sz - off, "%s#%d-#%d", sep, idx_buf[i] + 1, idx_buf[j] + 1);
+    else       off += snprintf (out + off, out_sz - off, "%s#%d",     sep, idx_buf[i] + 1);
+
+    i = j + 1;
+  }
+}
+
+// The whole temperature part of the watchdog banner, headline and detail together.
+//
+// One function because the two have to agree. The detail lines are indented under the headline, so
+// printing them without one leaves them hanging, and announcing a threshold when nothing can actually
+// be watched is worse than saying nothing.
+//
+// The detail is one line per distinct OUTCOME, not one per unit. Six units carrying two limits used to
+// print seven near-identical lines and a machine with twenty-four would have printed twenty-five. What
+// a reader needs is which units differ from the headline, and which are not watched at all.
+
+void hm_temperature_abort_banner (hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const u32 user_abort = user_options->hwmon_temp_abort;
+
+  // The user asked for no abort at all, so nothing is watched and no unit limit changes that. Listing
+  // the limits units carry would name thresholds that will never be applied.
+
+  if (user_abort == 0)
+  {
+    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
+
+    return;
+  }
+
+  // Collected before anything is printed, because a line describes a GROUP and no group is known
+  // until every unit has been looked at, and because the headline depends on what was found.
+
+  int idx_buf[DEVICES_MAX];
+  int lim_buf[DEVICES_MAX];   // -1 marks a unit with no sensor, which cannot be watched at all
+
+  int cnt = 0;
+  int watched_cnt = 0;
+  int compute_cnt = 0;
+
+  if (backend_ctx->enabled == true)
+  {
+    for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+    {
+      const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+      if (device_param->skipped == true) continue;
+      if (device_param->skipped_warning == true) continue;
+
+      // What the watchdog itself watches: a bridge unit, or a GPU. Counted so the banner can name the
+      // two kinds apart, and only when there really are two. Under a bridge every backend device IS a
+      // unit, so a machine can easily have no compute device being watched at all, and naming a kind
+      // that is not there would invent a category rather than clarify one.
+
+      if (hm_bridge_owns_device (hashcat_ctx, backend_devices_idx) == false)
+      {
+        if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) != 0) compute_cnt++;
+
+        continue;
+      }
+
+      // Devices that share one piece of hardware share its limit too, so only the device that carries
+      // the hwmon line for that hardware names it. Otherwise a bridge with many units on one device
+      // would report the same hardware once per unit.
+
+      if (hm_is_hwmon_group_leader (hashcat_ctx, backend_devices_idx) == false) continue;
+
+      const u32 temp_abort_unit = hm_get_bridge_temperature_abort (hashcat_ctx, backend_devices_idx);
+
+      if (temp_abort_unit == 0) continue;
+
+      if (cnt == DEVICES_MAX) break;
+
+      idx_buf[cnt] = backend_devices_idx;
+
+      // A limit is only a limit if something can measure against it. The watchdog compares a reading
+      // of -1 against the threshold and -1 is never greater, so naming a number for a unit with no
+      // sensor would tell the user they are protected when they are not.
+
+      if (hm_get_temperature_with_devices_idx (hashcat_ctx, backend_devices_idx) < 0)
+      {
+        lim_buf[cnt] = -1;
+      }
+      else
+      {
+        // The same rule the watchdog itself applies, so this names the number that will really be
+        // enforced. Printing the unit's own limit was a lie whenever the user asked for a stricter one.
+
+        lim_buf[cnt] = (int) MIN (temp_abort_unit, user_abort);
+
+        watched_cnt++;
+      }
+
+      cnt++;
+    }
+  }
+
+  // A vendor library means the compute devices are watched. Without one, the only things being watched
+  // are the bridge units that reported a sensor, and if there are none then nothing is.
+
+  // The candidate generator is a piece of hardware nobody else is watching. Under a bridge it appears
+  // only as the virtual devices linked to units, so every reading taken through them describes the
+  // UNIT, and the GPU itself, which is running flat out producing candidates, goes unwatched. Ask it
+  // directly. One line, not one per virtual device, because they are all the same physical device.
+
+  int feeder_idx = -1;
+
+  if ((cnt > 0) && (backend_ctx->enabled == true))
+  {
+    for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+    {
+      const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+      if (device_param->skipped == true) continue;
+      if (device_param->skipped_warning == true) continue;
+
+      const int temp = hm_get_device_temperature (hashcat_ctx, backend_devices_idx);
+
+      if (temp < 0) continue;
+
+      feeder_idx = backend_devices_idx;
+
+      break;
+    }
+  }
+
+  const bool watched = ((compute_cnt > 0) || (watched_cnt > 0) || (feeder_idx >= 0));
+
+  // The headline only carries a number when it is the WHOLE answer. With units listed underneath it
+  // is not: the limit actually enforced is per unit, and a number in the headline would assert a
+  // threshold that applies to nothing. There is no "compute devices" line to sit beside the bridge
+  // ones either, because the two can never both appear: a unit only carries its own limit if its
+  // bridge reports sensors, and a bridge that reports sensors owns the reading for EVERY backend
+  // device, since under a bridge every backend device is one of its units. So a run has bridge units
+  // to list, or compute devices watched at the one setting, never both.
+
+  // The two single-answer forms stay on the `Watchdog:` prefix, because they ARE one line and they
+  // sit beside the other `Watchdog:` lines. The plural heads a list and is punctuated as one.
+
+  if (watched == false)     event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
+  else if (cnt == 0)        event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_abort);
+  else                      event_log_info (hashcat_ctx, "Temperature abort Watchdogs:");
+
+  // Named rather than numbered on purpose. Its device number is one of the virtual ones, so "#1" here
+  // would collide with "Bridge unit #1" on the next line while meaning something else entirely.
+
+  if (feeder_idx >= 0) event_log_info (hashcat_ctx, "* Candidate generator aborts at %uc", user_abort);
+
+  bool emitted[DEVICES_MAX];
+
+  memset (emitted, 0, sizeof (emitted));
+
+  for (int i = 0; i < cnt; i++)
+  {
+    if (emitted[i] == true) continue;
+
+    int group_buf[DEVICES_MAX];
+    int group_cnt = 0;
+
+    for (int j = i; j < cnt; j++)
+    {
+      if (emitted[j] == true) continue;
+      if (lim_buf[j] != lim_buf[i]) continue;
+
+      emitted[j] = true;
+
+      group_buf[group_cnt] = idx_buf[j];
+
+      group_cnt++;
+    }
+
+    char units[256];
+
+    hm_unit_list_str (group_buf, group_cnt, units, sizeof (units));
+
+    const bool many = (group_cnt > 1);
+
+    // One list item per outcome, marked the same way the device inventories above are.
+
+    if (lim_buf[i] < 0)
+    {
+      if (many == true) event_log_info (hashcat_ctx, "* Bridge units %s have no temperature sensor and are not watched", units);
+      else              event_log_info (hashcat_ctx, "* Bridge unit %s has no temperature sensor and is not watched",    units);
+    }
+    else
+    {
+      if (many == true) event_log_info (hashcat_ctx, "* Bridge units %s abort at %dc", units, lim_buf[i]);
+      else              event_log_info (hashcat_ctx, "* Bridge unit %s aborts at %dc", units, lim_buf[i]);
+    }
+  }
+}
+
 int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
 {
   const int bridge_unit_temperature = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) hashcat_ctx->bridge_ctx->get_unit_temperature);
@@ -365,11 +666,24 @@ int hm_get_temperature_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
   if (bridge_unit_temperature != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_temperature (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_temperature);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_temperature (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_temperature);
 
     return val;
   }
 
+  const int result = hm_get_device_temperature (hashcat_ctx, backend_device_idx);
+
+  return result;
+}
+
+// The BACKEND device's own temperature, asking the vendor library and never the bridge.
+//
+// Split out because under a bridge the two are different pieces of hardware and both matter. The
+// reading below describes the card doing the hashing; this one describes the device generating the
+// candidates, which is a GPU running flat out that nothing else would be watching.
+
+int hm_get_device_temperature (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
@@ -692,7 +1006,7 @@ int hm_get_fanspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
   if (bridge_unit_fanspeed != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_fanspeed (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_fanspeed);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_fanspeed (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_fanspeed);
 
     return val;
   }
@@ -846,7 +1160,7 @@ int hm_get_buslanes_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int back
 
   if (bridge_unit_buslanes != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_buslanes (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_buslanes);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_buslanes (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_buslanes);
 
     return val;
   }
@@ -963,7 +1277,7 @@ int hm_get_utilization_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
   if (bridge_unit_utilization != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_utilization (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_utilization);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_utilization (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_utilization);
 
     return val;
   }
@@ -1122,7 +1436,7 @@ int hm_get_memoryspeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int b
 
   if (bridge_unit_memoryspeed != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_memoryspeed (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_memoryspeed);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_memoryspeed (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_memoryspeed);
 
     return val;
   }
@@ -1239,7 +1553,7 @@ int hm_get_corespeed_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
 
   if (bridge_unit_corespeed != HM_BRIDGE_PASS)
   {
-    const int val = hashcat_ctx->bridge_ctx->get_unit_corespeed (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_corespeed);
+    const int val = hashcat_ctx->bridge_ctx->get_unit_corespeed (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_corespeed);
 
     return val;
   }
@@ -1473,7 +1787,7 @@ int64_t hm_get_power_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int bac
   if (bridge_unit_power != HM_BRIDGE_PASS)
   {
     // an unsigned reading cannot use -1, so a bridge reports no reading as 0
-    const u64 val = hashcat_ctx->bridge_ctx->get_unit_power (hashcat_ctx->bridge_ctx->platform_context, bridge_unit_power);
+    const u64 val = hashcat_ctx->bridge_ctx->get_unit_power (hashcat_ctx, hashcat_ctx->bridge_ctx->platform_context, bridge_unit_power);
 
     if (val) return (int64_t) val;
   }

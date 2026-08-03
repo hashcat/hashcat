@@ -124,7 +124,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // assume no signature found
   if (line_len < 12) return (PARSER_SALT_LENGTH);
 
-  char *spn_info_start  = strchr (line_buf + 12 + 1, '*');
+  const char *spn_info_start  = strchr (line_buf + 12 + 1, '*');
 
   int is_spn_provided = 0;
 
@@ -158,7 +158,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // assume $krb5tgs$18$user$realm$*spn*$checksum$edata2
   else
   {
-    char *spn_info_stop = strchr ((const char *) spn_info_start + 1, '*');
+    const char *spn_info_stop = strchr (spn_info_start + 1, '*');
 
     if (spn_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 

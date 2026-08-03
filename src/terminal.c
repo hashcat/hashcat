@@ -12,6 +12,7 @@
 #include "status.h"
 #include "shared.h"
 #include "hwmon.h"
+#include "bridges.h"
 #include "interface.h"
 #include "hashcat.h"
 #include "timer.h"
@@ -1577,6 +1578,57 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+// The bridge's unit inventory, printed the same way whether it heads a run or answers -I. Units that
+// describe themselves identically are folded into one line, because a box of identical cards would
+// otherwise spend a screen saying the same thing.
+
+static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->enabled == false) return;
+
+  const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
+
+  const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
+
+  char line[HCBUFSIZ_TINY] = { 0 };
+
+  memset (line, '=', len);
+
+  line[len] = 0;
+
+  event_log_info (hashcat_ctx, "%s", line);
+
+  bool all_same = true;
+
+  char *tmp = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, 0);
+
+  for (int i = 1; i < unit_count; i++)
+  {
+    if (strcmp (tmp, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i)))
+    {
+      all_same = false;
+
+      break;
+    }
+  }
+
+  if (all_same == true)
+  {
+    event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
+  }
+  else
+  {
+    for (int i = 0; i < unit_count; i++)
+    {
+      event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
+    }
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+}
+
 void backend_info (hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
@@ -1586,6 +1638,29 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     printf ("{ ");
+  }
+
+  // Bridge units, when the hash mode named one. A bridge is selected by the mode, so -I on its own
+  // has nothing to load and the backend devices below are the whole answer. For a mode that does use
+  // a bridge they are not: the units compute and the devices only feed them, so a list without them
+  // describes the machine rather than the work.
+  //
+  // Left out of --machine-readable, which emits JSON here and would be broken by plain lines.
+
+  if (user_options->machine_readable == false)
+  {
+    bridge_units_info (hashcat_ctx);
+
+    // Say why the section is absent rather than leaving someone with an FPGA to conclude their card
+    // was not found. Only when no mode was named: with one that simply has no bridge there are no
+    // units to talk about and the silence is the right answer.
+
+    if ((hashcat_ctx->bridge_ctx->enabled == false) && (user_options->hash_mode_chgd == false))
+    {
+      event_log_info (hashcat_ctx, "Bridge units are selected by the hash mode, so none are listed here.");
+      event_log_info (hashcat_ctx, "Add -m <hash mode> to list the units that mode would use.");
+      event_log_info (hashcat_ctx, NULL);
+    }
   }
 
   if (user_options->backend_info > 1)
@@ -2539,52 +2614,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true) return;
   if (user_options->status_json      == true) return;
 
-  /**
-   * Bridges
-   */
-
-  if (bridge_ctx->enabled == true)
-  {
-    const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
-
-    const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
-
-    char line[HCBUFSIZ_TINY] = { 0 };
-
-    memset (line, '=', len);
-
-    line[len] = 0;
-
-    event_log_info (hashcat_ctx, "%s", line);
-
-    bool all_same = true;
-
-    char *tmp = bridge_ctx->get_unit_info (bridge_ctx->platform_context, 0);
-
-    for (int i = 1; i < unit_count; i++)
-    {
-      if (strcmp (tmp, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i)))
-      {
-        all_same = false;
-
-        break;
-      }
-    }
-
-    if (all_same == true)
-    {
-      event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
-    }
-    else
-    {
-      for (int i = 0; i < unit_count; i++)
-      {
-        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i));
-      }
-    }
-
-    event_log_info (hashcat_ctx, NULL);
-  }
+  bridge_units_info (hashcat_ctx);
 
   /**
    * CUDA
@@ -2610,7 +2640,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_cuda[0];
 
@@ -2711,7 +2741,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_hip[0];
 
@@ -2801,7 +2831,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_metal[0];
 
@@ -2899,7 +2929,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
         {
@@ -3105,6 +3135,10 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   printf ("REJECTED\t%" PRIu64 "\t", hashcat_status->progress_rejected);
 
+  #ifdef WITH_BRAIN
+  printf ("BRAIN_REJECTED\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->brain_rejects_attacks, hashcat_status->brain_rejects_hashes);
+  #endif
+
   printf ("UTIL\t");
 
   if (bridge_ctx->enabled == true)
@@ -3263,6 +3297,10 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"recovered_hashes\": [%u, %u],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": [%u, %u],", hashcat_status->salts_done, hashcat_status->salts_cnt);
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
+  #ifdef WITH_BRAIN
+  printf (" \"brain_rejected_position\": %" PRIu64 ",", hashcat_status->brain_rejects_attacks);
+  printf (" \"brain_rejected_candidate\": %" PRIu64 ",", hashcat_status->brain_rejects_hashes);
+  #endif
   printf (" \"devices\": [");
 
   if (bridge_ctx->enabled == true)
@@ -3336,6 +3374,58 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   status_status_destroy (hashcat_ctx, hashcat_status);
 
   hcfree (hashcat_status);
+}
+
+// The per device speed lines for a run that is driven by a bridge.
+//
+// A bridge does the work, so the backend device's thread and vector geometry says nothing about it.
+// Report what the bridge is actually handed instead: the candidates in a launch, and the iteration
+// chunk that launch covers.
+//
+// Units are listed one per line when the bridge computes in waves, because that is an accelerator and
+// each unit is a separate piece of hardware whose own rate is worth seeing, the same way a multi-GPU
+// run lists its devices. A bridge that expresses its parallelism as many NARROW units instead, one
+// CPU thread each, reports a multiple of 1, and listing every one of those would be a wall of lines
+// that says nothing, so they stay folded into the total below.
+
+static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashcat_status_t *hashcat_status)
+{
+  const bool wide_units = (bridge_workitem_multiple (hashcat_ctx, 0) > 1);
+
+  // count the ACTIVE units, not every unit the platform has. -d can leave a single unit running out
+  // of many, and testing the total there would fold the one line away while the total line below is
+  // also suppressed, so the run would report no speed at all
+
+  if ((hashcat_status->device_info_active > 1) && (wide_units == false)) return;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
+
+    // with a single unit there is no total line underneath, so it carries the #* itself
+
+    if (hashcat_status->device_info_active == 1)
+    {
+      event_log_info (hashcat_ctx,
+        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
+        device_info->speed_sec_dev,
+        device_info->exec_msec_dev,
+        device_info->kernel_power_dev,
+        device_info->kernel_loops_dev);
+
+      continue;
+    }
+
+    event_log_info (hashcat_ctx,
+      "Speed.#%02u........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u", device_id + 1,
+      device_info->speed_sec_dev,
+      device_info->exec_msec_dev,
+      device_info->kernel_power_dev,
+      device_info->kernel_loops_dev);
+  }
 }
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
@@ -3805,20 +3895,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    if (hashcat_status->device_info_cnt == 1)
-    {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
-
-      // A bridge does the work, so the backend device's thread and vector geometry says nothing about
-      // it. Report what the bridge is actually handed instead: the candidates in a launch, and the
-      // iteration chunk that launch covers.
-      event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
-        device_info0->speed_sec_dev,
-        device_info0->exec_msec_dev,
-        device_info0->kernel_power_dev,
-        device_info0->kernel_loops_dev);
-    }
+    status_display_bridge_speed (hashcat_ctx, hashcat_status);
   }
   else
   {
@@ -3936,6 +4013,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Brain.Link.All...: RX: %sB, TX: %sB",
       hashcat_status->brain_rx_all,
       hashcat_status->brain_tx_all);
+
+    // Rejected counts length and rule rejects as well, so it cannot be read as a brain saving. This
+    // line is the brain's own share of it, split the way the two client features work: position is
+    // feature 2 skipping a keyspace range, candidate is feature 1 dropping a word already seen.
+
+    event_log_info (hashcat_ctx,
+      "Brain.Rejects....: %" PRIu64 " (position %" PRIu64 ", candidate %" PRIu64 ")",
+      hashcat_status->brain_rejects_attacks + hashcat_status->brain_rejects_hashes,
+      hashcat_status->brain_rejects_attacks,
+      hashcat_status->brain_rejects_hashes);
 
     if (bridge_ctx->enabled == true)
     {
@@ -4479,20 +4566,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    if (hashcat_status->device_info_cnt == 1)
-    {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
-
-      // A bridge does the work, so the backend device's thread and vector geometry says nothing about
-      // it. Report what the bridge is actually handed instead: the candidates in a launch, and the
-      // iteration chunk that launch covers.
-      event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
-        device_info0->speed_sec_dev,
-        device_info0->exec_msec_dev,
-        device_info0->kernel_power_dev,
-        device_info0->kernel_loops_dev);
-    }
+    status_display_bridge_speed (hashcat_ctx, hashcat_status);
   }
   else
   {

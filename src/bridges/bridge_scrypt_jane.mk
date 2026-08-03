@@ -19,21 +19,22 @@ SCRYPT_JANE_CFLAGS += -mavx2
 endif
 else
 ifeq ($(IS_PPC),1)
-SCRYPT_JANE_CFLAGS += -mcpu=native
-SCRYPT_JANE_CFLAGS += -mtune=native
+SCRYPT_JANE_CFLAGS += $(MCPU_NATIVE)
 else
-SCRYPT_JANE_CFLAGS += -march=native
-SCRYPT_JANE_CFLAGS += -mtune=native
+SCRYPT_JANE_CFLAGS += $(MARCH_NATIVE)
 endif
 endif
 endif
 endif
 
+# scrypt-jane writes its mix functions as naked inline asm, and LTO cannot see through them.
+# The reference from one partition to scrypt_ChunkMix_avx in another is then left undefined and
+# the link fails. This used to be guarded on clang, but the problem is not clang specific, gcc
+# fails the same way, so the exclusion applies to any cross compiler
+
 ifeq ($(ENABLE_LTO),1)
 ifeq ($(BUILD_MODE),cross)
-ifeq ($(CC_WIN_CLANG),1)
 bridges/bridge_scrypt_jane.dll: SCRYPT_JANE_CFLAGS += -fno-lto
-endif
 endif
 endif
 

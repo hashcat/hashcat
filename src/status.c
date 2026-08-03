@@ -1613,6 +1613,22 @@ u64 status_get_progress_rejected (const hashcat_ctx_t *hashcat_ctx)
   return progress_rejected;
 }
 
+#ifdef WITH_BRAIN
+u64 status_get_brain_rejects_attacks (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  return status_ctx->brain_rejects_attacks;
+}
+
+u64 status_get_brain_rejects_hashes (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  return status_ctx->brain_rejects_hashes;
+}
+#endif
+
 double status_get_progress_rejected_percent (const hashcat_ctx_t *hashcat_ctx)
 {
   const u64 progress_cur      = status_get_progress_cur      (hashcat_ctx);
@@ -2483,9 +2499,32 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
 
   int output_len = 0;
 
-  if (num_temperature >= 0)
+  // A bridge unit carrying several temperature sensors renders its own field, so all of the readings
+  // show on one line. The plain reading is still what the abort watchdog uses, because the unit is
+  // only as cool as its hottest sensor.
+
+  char temp_str[64];
+
+  temp_str[0] = 0;
+
+  if (hm_get_bridge_temperature_str ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx, temp_str, sizeof (temp_str)) == true)
+  {
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "%s ", temp_str);
+  }
+  else if (num_temperature >= 0)
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3dc ", num_temperature);
+  }
+  else if (hm_bridge_owns_device ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx) == true)
+  {
+    // A bridge unit with no reading at all, which is a property of the hardware rather than a failure
+    // to read it: a 1.15y clone is built without the die sensors and says so, and a design without a
+    // system monitor has nothing to report either.
+    //
+    // Say so. Dropping the field leaves a line that reads as though the temperature were forgotten,
+    // next to sibling units that show one, and the obvious reading of that is that something broke.
+
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp: N/A ");
   }
 
   if (num_fanspeed >= 0)
@@ -2511,6 +2550,26 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
   if (num_buslanes >= 0)
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus:%u ", num_buslanes);
+  }
+  else
+  {
+    // Lanes are a PCIe idea and a unit reached some other way has none, so the bridge reports no
+    // number here and it is right not to. Dropping the field is what misleads: beside sibling units
+    // that DO show a lane count, a line ending after the clock reads as a unit attached to nothing.
+    //
+    // So let it say what the link actually is. "USB 480Mb/s" answers the same question a lane count
+    // answers, how fat the pipe is, and answers it better than a placeholder would.
+
+    char bus_str[64];
+
+    if (hm_get_bridge_buslanes_str ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx, bus_str, sizeof (bus_str)) == true)
+    {
+      output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "%s ", bus_str);
+    }
+    else if (hm_bridge_owns_device ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx) == true)
+    {
+      output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus: N/A ");
+    }
   }
 
   if (num_power >= 0)
@@ -2697,6 +2756,11 @@ void status_progress_reset (hashcat_ctx_t *hashcat_ctx)
   memset (status_ctx->words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
+
+  #ifdef WITH_BRAIN
+  status_ctx->brain_rejects_attacks = 0;
+  status_ctx->brain_rejects_hashes  = 0;
+  #endif
 }
 
 int status_ctx_init (hashcat_ctx_t *hashcat_ctx)

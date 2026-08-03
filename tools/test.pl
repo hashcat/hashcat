@@ -62,11 +62,18 @@ elsif ($TYPE eq 'single')
 }
 elsif ($TYPE eq 'passthrough')
 {
-  passthrough ();
+  usage_exit () if scalar @ARGV > 1;
+
+  # taken OFF @ARGV, because the read loop below uses the diamond operator and would otherwise treat
+  # the iteration count as a file to read candidates from
+
+  passthrough ('', shift @ARGV);
 }
 elsif ($TYPE eq 'potthrough')
 {
-  passthrough ('potthrough');
+  usage_exit () if scalar @ARGV > 1;
+
+  passthrough ('potthrough', shift @ARGV);
 }
 elsif ($TYPE eq "verify")
 {
@@ -499,6 +506,12 @@ sub passthrough
 {
   my $option = shift || '';
 
+  # The iteration count is whatever the module's third generator argument means: a bcrypt cost, a
+  # PBKDF2 round count, and so on. Left out, the module picks its own default and the output is
+  # exactly what it always was.
+
+  my $iter = shift;
+
   while (my $word = <>)
   {
     chomp $word;
@@ -553,7 +566,7 @@ sub passthrough
 
       $idx++;
 
-      my $hash = module_generate_hash ($word, $salt);
+      my $hash = defined ($iter) ? module_generate_hash ($word, $salt, $iter) : module_generate_hash ($word, $salt);
 
       next unless defined $hash;
 
@@ -797,7 +810,12 @@ sub random_count
 {
   my $max = shift;
 
-  return unless is_count($max);
+  # Parentheses are required. is_count is imported at RUNTIME inside the eval at the top of this file,
+  # so at COMPILE time it is not a known sub, and Perl parses the bareword form as an indirect method
+  # call on the argument instead: random_count (20) dies with "Can't locate object method is_count via
+  # package 20". Every other call site here already has them.
+
+  return unless is_count ($max);
 
   return int ((rand ($max - 1)) + 1);
 }
@@ -918,8 +936,8 @@ sub usage_exit
     . "Usage:\n"
     . " $f edge        <mode> [attack-type] [optimized]\n"
     . " $f single      <mode> [length]\n"
-    . " $f passthrough <mode>\n"
-    . " $f potthrough  <mode>\n"
+    . " $f passthrough <mode> [iter]\n"
+    . " $f potthrough  <mode> [iter]\n"
     . " $f verify      <mode> <hashfile> <cracksfile> <outfile>\n"
     . "\n"
     . "Edge:\n"
@@ -935,7 +953,8 @@ sub usage_exit
     . "\n"
     . "Passthrough:\n"
     . " Generates hashes for strings entered via stdin and prints them to stdout.\n"
-    . " Each call generates a hash with a new random salt.\n"
+    . " Each call generates a hash with a new random salt. [iter] sets the mode's work\n"
+    . " factor where it has one, such as a bcrypt cost, and defaults to the module's own.\n"
     . "\n"
     . "Potthrough:\n"
     . " Like passthrough, but includes both the hash and the plain in hash:plain format,\n"

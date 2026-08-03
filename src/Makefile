@@ -8,7 +8,7 @@ DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v7.1.2
 MACOS_UNIVERSAL_BINARY  ?= 0
-ENABLE_LTO              ?= 1
+ENABLE_LTO              ?= 0
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
 ENABLE_UNRAR            ?= 1
@@ -299,6 +299,19 @@ ifeq ($(MAINTAINER_MODE),0)
 ifeq ($(BUILD_MODE),native)
 HAVE_MARCH_NATIVE       := $(shell echo | $(CC) -march=native -E - >/dev/null 2>&1 && echo 1 || echo 0)
 HAVE_MCPU_NATIVE        := $(shell echo | $(CC) -mcpu=native -E - >/dev/null 2>&1 && echo 1 || echo 0)
+
+# The same answer, in a form a bridge .mk can append without repeating the question. Asking once and
+# then having three other files decide for themselves is how DragonFlyBSD kept failing after the probe
+# above was added: the main binary respected it and every bridge that wanted -march=native did not.
+# Empty when the compiler will not take the flag, so appending it is always safe.
+
+ifeq ($(HAVE_MARCH_NATIVE),1)
+MARCH_NATIVE            := -march=native -mtune=native
+endif
+
+ifeq ($(HAVE_MCPU_NATIVE),1)
+MCPU_NATIVE             := -mcpu=native -mtune=native
+endif
 ifneq ($(UNAME),Darwin)
 ifeq ($(IS_PPC),1)
 ifeq ($(HAVE_MCPU_NATIVE),1)
@@ -647,7 +660,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pcfg_common pcfg pcfg_cpu_omen pcfg_cpu_prob pcfg_cpu_random pcfg_gpu_prob pcfg_gpu_omen pcfg_loopback pcfg_perf pcfg_trainer pcfg_trainer_utils pcfg_backend pcfg_dispatch pcfg_model pcfg_omen_analysis pcfg_omen_stats pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight generic terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pcfg_common pcfg pcfg_cpu_omen pcfg_cpu_prob pcfg_cpu_random pcfg_gpu_prob pcfg_gpu_omen pcfg_loopback pcfg_perf pcfg_trainer pcfg_trainer_utils pcfg_backend pcfg_dispatch pcfg_model pcfg_omen_analysis pcfg_omen_stats pidfile potfile pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain

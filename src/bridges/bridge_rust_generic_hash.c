@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "event.h"
 #include "bridges.h"
 #include "memory.h"
 #include "shared.h"
@@ -201,8 +202,10 @@ static char *DEFAULT_DYNLIB_FILENAME = "./Rust/bridges/generic_hash/target/relea
 static char *DEFAULT_DYNLIB_FILENAME_FALLBACK = "./bridges/subs/generic_hash.so";
 #endif
 
-void *platform_init (user_options_t *user_options, MAYBE_UNUSED folder_config_t *folder_config)
+void *platform_init (hashcat_ctx_t *hashcat_ctx)
 {
+  MAYBE_UNUSED user_options_t  *user_options  = hashcat_ctx->user_options;
+
   // Verify CPU features
 
   if (cpu_chipset_test() == -1) return NULL;
@@ -231,7 +234,7 @@ void *platform_init (user_options_t *user_options, MAYBE_UNUSED folder_config_t 
 
   if (!bridge_context->lib)
   {
-    fprintf (stderr, "ERROR: %s: %s\n\n", bridge_context->dynlib_filename, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", bridge_context->dynlib_filename, strerror (errno));
 
     hcfree (bridge_context);
 
@@ -244,7 +247,7 @@ void *platform_init (user_options_t *user_options, MAYBE_UNUSED folder_config_t 
     (ptr)->name = (type) hc_dlsym ((ptr)->lib, #name);                                          \
     if (!(ptr)->name)                                                                           \
     {                                                                                           \
-      fprintf (stderr, "%s is missing from %s shared library.", #name, (ptr)->dynlib_filename); \
+      event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, (ptr)->dynlib_filename); \
       hcfree (bridge_context);                                                                  \
       return NULL;                                                                              \
     }                                                                                           \
@@ -282,7 +285,7 @@ void *platform_init (user_options_t *user_options, MAYBE_UNUSED folder_config_t 
   return bridge_context;
 }
 
-void platform_term (void *platform_context)
+void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -293,7 +296,7 @@ void platform_term (void *platform_context)
   hcfree (bridge_context);
 }
 
-bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -340,7 +343,7 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   return true;
 }
 
-void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+void thread_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -353,7 +356,7 @@ void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   bridge_context->drop_context (unit_buf->unit_context);
 }
 
-int get_unit_count (void *platform_context)
+int get_unit_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -362,7 +365,7 @@ int get_unit_count (void *platform_context)
 
 // we support units of mixed speed, that's why the workitem count is unit specific
 
-int get_workitem_count (void *platform_context, const int unit_idx)
+int get_workitem_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -377,12 +380,12 @@ int get_workitem_count (void *platform_context, const int unit_idx)
 // and no partial wave to waste: a batch of N costs N hashes whatever N is. Parallelism is expressed as
 // UNITS, not as width inside a unit, which is the structural difference from an accelerator that holds
 // many cores behind a single unit.
-int get_workitem_multiple (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED const int unit_idx)
+int get_workitem_multiple (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED const int unit_idx)
 {
   return 1;
 }
 
-char *get_unit_info (void *platform_context, const int unit_idx)
+char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -391,7 +394,7 @@ char *get_unit_info (void *platform_context, const int unit_idx)
   return unit_buf->unit_info_buf;
 }
 
-bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -409,7 +412,7 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   return true;
 }
 
-const char *st_update_hash (MAYBE_UNUSED void *platform_context)
+const char *st_update_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -420,7 +423,7 @@ const char *st_update_hash (MAYBE_UNUSED void *platform_context)
   return *constant;
 }
 
-const char *st_update_pass (MAYBE_UNUSED void *platform_context)
+const char *st_update_pass (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context)
 {
   bridge_context_t *bridge_context = platform_context;
 
@@ -451,11 +454,13 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->st_update_hash        = st_update_hash;
   bridge_ctx->st_update_pass        = st_update_pass;
 
-  bridge_ctx->get_unit_temperature  = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_fanspeed     = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_utilization  = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_corespeed    = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_memoryspeed  = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_buslanes     = BRIDGE_DEFAULT;
-  bridge_ctx->get_unit_power        = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_str   = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_abort = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_fanspeed          = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_utilization       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_corespeed         = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_memoryspeed       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_buslanes          = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_power             = BRIDGE_DEFAULT;
 }

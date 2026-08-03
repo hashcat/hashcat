@@ -39,6 +39,12 @@ tools/luks2_tests
 .vscode
 .python-version
 test_edge*
+
+# tools/test.sh names its working directory test_<unix timestamp> and leaves it in the repository
+# root. Anchored and restricted to digits on purpose: a bare test_* would also match
+# tools/test_modules/ and hide every new test module from git.
+/test_[0-9]*/
+
 Rust/feeds/*/target
 Rust/bridges/*/target
 
