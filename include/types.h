@@ -1210,6 +1210,33 @@ typedef struct pw_pre
 
 } pw_pre_t;
 
+// One prepared batch of candidates, and everything a launch needs to know about it. Building a batch
+// is host work and running it is device work, so they are kept apart: the buffers belong to the batch
+// rather than to the device, which is what lets the next batch be built while this one runs.
+
+#define PW_PIPE_SLOTS 2
+
+typedef struct pw_batch
+{
+  pw_idx_t *pws_idx;
+  u32      *pws_comp;
+  u64       pws_cnt;
+
+  // slow candidates keep the rule and the base word each candidate came from, so --debug-mode can
+  // report them. That is read while the batch runs, so it belongs to the batch too.
+
+  pw_pre_t *pws_base;
+  u64       pws_base_cnt;
+
+  // where this batch sits in the keyspace. The restore point may only advance past a batch that has
+  // actually been launched, so the figures travel with the batch instead of with the device.
+
+  u64 words_off;
+  u64 words_fin;
+  u64 words_extra;
+
+} pw_batch_t;
+
 typedef struct cpt
 {
   u32       cracked;
@@ -1477,15 +1504,19 @@ typedef struct hc_device_param
 
   void     *hooks_buf;
 
+  // the batch currently being launched. These point into one of the slots below, so everything
+  // downstream of the launch reads them exactly as it always did.
+
   pw_idx_t *pws_idx;
   u32      *pws_comp;
   u64       pws_cnt;
 
+  pw_batch_t pws_slot[PW_PIPE_SLOTS];
+
   pw_pre_t *pws_pre_buf;  // for slow candidates
   u64       pws_pre_cnt;
 
-  pw_pre_t *pws_base_buf; // for debug mode
-  u64       pws_base_cnt;
+  pw_pre_t *pws_base_buf; // for debug mode, a view of the batch being launched
 
   void    *h_tmps; // we need this only for bridges
 

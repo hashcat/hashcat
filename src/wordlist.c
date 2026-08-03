@@ -384,13 +384,13 @@ void pw_pre_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw
   }
 }
 
-void pw_base_add (hc_device_param_t *device_param, pw_pre_t *pw_pre)
+void pw_base_add (pw_batch_t *batch, const u64 pws_max, pw_pre_t *pw_pre)
 {
-  if (device_param->pws_base_cnt < device_param->kernel_power)
+  if (batch->pws_base_cnt < pws_max)
   {
-    memcpy (device_param->pws_base_buf + device_param->pws_base_cnt, pw_pre, sizeof (pw_pre_t));
+    memcpy (batch->pws_base + batch->pws_base_cnt, pw_pre, sizeof (pw_pre_t));
 
-    device_param->pws_base_cnt++;
+    batch->pws_base_cnt++;
   }
   else
   {
@@ -400,11 +400,30 @@ void pw_base_add (hc_device_param_t *device_param, pw_pre_t *pw_pre)
   }
 }
 
-void pw_add_zerocopy (hc_device_param_t *device_param, u8 *out_buf, const int pw_len)
+// Hand a batch back empty. The staging buffers used to be cleared in full every time, which for a
+// large launch is tens of megabytes of memset to guarantee one zero: pw_add writes every byte it
+// uses, and only the prefix it wrote is ever uploaded. The one thing it cannot write for itself is
+// the first entry's offset, because each entry only sets up the NEXT one.
+
+void pw_batch_reset (pw_batch_t *batch)
 {
-  if (device_param->pws_cnt < device_param->kernel_power)
+  batch->pws_cnt      = 0;
+  batch->pws_base_cnt = 0;
+
+  batch->words_off   = 0;
+  batch->words_fin   = 0;
+  batch->words_extra = 0;
+
+  batch->pws_idx[0].off = 0;
+  batch->pws_idx[0].cnt = 0;
+  batch->pws_idx[0].len = 0;
+}
+
+void pw_add_zerocopy (pw_batch_t *batch, const u64 pws_max, u8 *out_buf, const int pw_len)
+{
+  if (batch->pws_cnt < pws_max)
   {
-    pw_idx_t *pw_idx = device_param->pws_idx + device_param->pws_cnt;
+    pw_idx_t *pw_idx = batch->pws_idx + batch->pws_cnt;
 
     const u32 pw_len4 = (pw_len + 3) & ~3; // round up to multiple of 4
 
@@ -421,7 +440,7 @@ void pw_add_zerocopy (hc_device_param_t *device_param, u8 *out_buf, const int pw
 
     pw_idx_next->off = pw_idx->off + pw_idx->cnt;
 
-    device_param->pws_cnt++;
+    batch->pws_cnt++;
   }
   else
   {
@@ -431,25 +450,11 @@ void pw_add_zerocopy (hc_device_param_t *device_param, u8 *out_buf, const int pw
   }
 }
 
-// Hand the staging buffers back empty.
-//
-// Only the first index entry has to be cleared. Every entry sets up the offset of the NEXT one, and
-// pw_add writes every byte of every candidate it adds, including the padding to a four byte boundary,
-// so the rest is either written before it is read or never uploaded at all. Clearing all of it was
-// kernel_power_max * 256 bytes of memset for every batch.
-
-void pws_reset (hc_device_param_t *device_param)
+void pw_add (pw_batch_t *batch, const u64 pws_max, const u8 *pw_buf, const int pw_len)
 {
-  device_param->pws_idx[0].off = 0;
-  device_param->pws_idx[0].cnt = 0;
-  device_param->pws_idx[0].len = 0;
-}
-
-void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len)
-{
-  if (device_param->pws_cnt < device_param->kernel_power)
+  if (batch->pws_cnt < pws_max)
   {
-    pw_idx_t *pw_idx = device_param->pws_idx + device_param->pws_cnt;
+    pw_idx_t *pw_idx = batch->pws_idx + batch->pws_cnt;
 
     const u32 pw_len4 = (pw_len + 3) & ~3; // round up to multiple of 4
 
@@ -458,7 +463,7 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
     pw_idx->cnt = pw_len4_cnt;
     pw_idx->len = pw_len;
 
-    u8 *dst = (u8 *) (device_param->pws_comp + pw_idx->off);
+    u8 *dst = (u8 *) (batch->pws_comp + pw_idx->off);
 
     memcpy (dst, pw_buf, pw_len);
 
@@ -470,7 +475,7 @@ void pw_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len
 
     pw_idx_next->off = pw_idx->off + pw_idx->cnt;
 
-    device_param->pws_cnt++;
+    batch->pws_cnt++;
   }
   else
   {

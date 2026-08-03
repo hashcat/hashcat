@@ -1186,6 +1186,74 @@ int copy_pws_comp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
   return 0;
 }
 
+// A launch is a chain of host steps around one device step and the steps are spread over several
+// files, so the split can only be seen by accumulating them in one place. The numbers are read as
+// proportions of a whole launch, which is why they are summed rather than sampled.
+//
+// Diagnostic only: the buckets are shared by every device thread without a lock, so a run with more
+// than one unit adds their times together instead of separating them.
+
+static double g_pipe_msec[PIPE_SLOTS];
+static u64    g_pipe_launches;
+static u64    g_pipe_cands;
+
+static bool pipe_enabled (void)
+{
+  static int on = -1;
+
+  if (on == -1) on = (getenv ("HASHCAT_PIPE") != NULL) ? 1 : 0;
+
+  const bool result = (on == 1) ? true : false;
+
+  return result;
+}
+
+void pipe_mark (hc_timer_t *timer)
+{
+  if (pipe_enabled () == false) return;
+
+  hc_timer_set (timer);
+}
+
+void pipe_acc (const pipe_slot_t slot, hc_timer_t *timer)
+{
+  if (pipe_enabled () == false) return;
+
+  g_pipe_msec[slot] += hc_timer_get (*timer);
+
+  hc_timer_set (timer);
+}
+
+void pipe_launch_done (const u64 cands)
+{
+  if (pipe_enabled () == false) return;
+
+  g_pipe_launches++;
+  g_pipe_cands += cands;
+
+  if ((g_pipe_launches % 50) != 0) return;
+
+  static const char *names[PIPE_SLOTS] = { "feed", "copy", "init", "xfer", "launch", "comp" };
+
+  // feed is deliberately left out of the total. It runs on the producer thread, so it costs the
+  // launch nothing, and counting it would make every other share look smaller than it is.
+
+  double total = 0;
+
+  for (int i = PIPE_COPY; i < PIPE_SLOTS; i++) total += g_pipe_msec[i];
+
+  if (total <= 0.0) return;
+
+  fprintf (stderr, "[host] %" PRIu64 " launches, %.0f ms total", g_pipe_launches, total);
+
+  for (int i = 0; i < PIPE_SLOTS; i++)
+  {
+    fprintf (stderr, ", %s %.0f (%.1f%%, %.2f ms)", names[i], g_pipe_msec[i], 100.0 * g_pipe_msec[i] / total, g_pipe_msec[i] / (double) g_pipe_launches);
+  }
+
+  fprintf (stderr, ", effective %.0f H/s\n", (double) g_pipe_cands / (total / 1000.0));
+}
+
 int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos, const bool is_autotune)
 {
   bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
@@ -1264,6 +1332,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
     }
 
+    hc_timer_t timer_fast;
+
+    pipe_mark (&timer_fast);
+
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
       // this is not perfectly right, only in case algorithm has to add 0x80 (most of the cases for fast optimized kernels)
@@ -1285,6 +1357,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
     {
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_4, pws_pos, pws_cnt, true, fast_iteration, is_autotune) == -1) return -1;
     }
+
+    pipe_acc (PIPE_LAUNCH, &timer_fast);
+
+    pipe_launch_done (pws_cnt);
   }
   else
   {
@@ -1344,6 +1420,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         RUN_COMP
         CLEAN_HOOK_DATA
     */
+
+    hc_timer_t timer_stage;
+
+    pipe_mark (&timer_stage);
 
     if (true)
     {
@@ -1493,6 +1573,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         }
       }
     }
+
+    pipe_acc (PIPE_INIT, &timer_stage);
 
     if (true)
     {
@@ -1803,6 +1885,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
     }
 
+    pipe_mark (&timer_stage);
+
     if (true)
     {
       if (hashconfig->opts_type & OPTS_TYPE_DEEP_COMP_KERNEL)
@@ -1893,6 +1977,10 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         }
       }
     }
+
+    pipe_acc (PIPE_COMP, &timer_stage);
+
+    pipe_launch_done (pws_cnt);
 
     /*
      * maybe we should add this zero of temporary buffers
@@ -1985,6 +2073,22 @@ static void rebuild_pws_compressed_append (hc_device_param_t *device_param, cons
     pw_idx_t *pw_idx_dst_next = pw_idx_dst + 1;
 
     pw_idx_dst_next->off = pw_idx_dst->off + pw_idx_dst->cnt;
+  }
+
+  // The buffers belong to the pipeline slot this batch came out of, not to the device, so the slot
+  // has to learn about the replacement too. Leaving it pointing at freed memory would only show up
+  // one batch later, when the producer refills that slot.
+
+  for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+  {
+    pw_batch_t *slot = &device_param->pws_slot[slot_pos];
+
+    if (slot->pws_comp != device_param->pws_comp) continue;
+
+    slot->pws_comp = tmp_pws_comp;
+    slot->pws_idx  = tmp_pws_idx;
+
+    break;
   }
 
   hcfree (device_param->pws_comp);
@@ -3222,7 +3326,13 @@ int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
   }
 
+  hc_timer_t timer_stage = timer_bridge;
+
+  pipe_acc (PIPE_XFER, &timer_stage);
+
   if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
+
+  pipe_acc (PIPE_LAUNCH, &timer_stage);
 
   if (device_param->is_cuda == true)
   {
@@ -3250,6 +3360,8 @@ int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     /* blocking */
     if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
   }
+
+  pipe_acc (PIPE_XFER, &timer_stage);
 
   const double exec_msec = hc_timer_get (timer_bridge);
 
@@ -16577,16 +16689,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       const u64 size_host_extra = (512 * 1024 * 1024) / backend_ctx->backend_devices_active;
 
+      // the staging buffers are allocated once per pipeline slot, because the next batch is built
+      // while the current one runs
+
       const u64 size_total_host
-        = size_pws_comp
-        + size_pws_idx
+        = (size_pws_comp * PW_PIPE_SLOTS)
+        + (size_pws_idx  * PW_PIPE_SLOTS)
         + size_hooks
         #ifdef WITH_BRAIN
         + size_brain_link_in
         + size_brain_link_out
         #endif
         + size_pws_pre
-        + size_pws_base
+        + (size_pws_base * PW_PIPE_SLOTS)
         + size_host_extra;
 
       if (size_total_host > accel_limit_host) memory_limit_hit = 1;
@@ -16755,13 +16870,21 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->h_tmps = h_tmps;
     }
 
-    u32 *pws_comp = (u32 *) hcmalloc (size_pws_comp);
+    // One set of staging buffers per pipeline slot. The slots are what the buffers belong to, and
+    // device_param->pws_comp / pws_idx are only a view of whichever slot is being launched.
 
-    device_param->pws_comp = pws_comp;
+    for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+    {
+      pw_batch_t *slot = &device_param->pws_slot[slot_pos];
 
-    pw_idx_t *pws_idx = (pw_idx_t *) hcmalloc (size_pws_idx);
+      slot->pws_comp = (u32 *)      hcmalloc (size_pws_comp);
+      slot->pws_idx  = (pw_idx_t *) hcmalloc (size_pws_idx);
+      slot->pws_base = (pw_pre_t *) hcmalloc (size_pws_base);
+    }
 
-    device_param->pws_idx = pws_idx;
+    device_param->pws_comp     = device_param->pws_slot[0].pws_comp;
+    device_param->pws_idx      = device_param->pws_slot[0].pws_idx;
+    device_param->pws_base_buf = device_param->pws_slot[0].pws_base;
 
     pw_t *combs_buf = (pw_t *) hccalloc (KERNEL_COMBS, sizeof (pw_t));
 
@@ -16788,10 +16911,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     pw_pre_t *pws_pre_buf = (pw_pre_t *) hcmalloc (size_pws_pre);
 
     device_param->pws_pre_buf = pws_pre_buf;
-
-    pw_pre_t *pws_base_buf = (pw_pre_t *) hcmalloc (size_pws_base);
-
-    device_param->pws_base_buf = pws_base_buf;
 
     /**
      * kernel args
@@ -17080,10 +17199,17 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     if (device_param->skipped == true) continue;
 
     hcfree_bridge_aligned (device_param->h_tmps);
-    hcfree (device_param->pws_comp);
-    hcfree (device_param->pws_idx);
+
+    for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+    {
+      pw_batch_t *slot = &device_param->pws_slot[slot_pos];
+
+      hcfree (slot->pws_comp);
+      hcfree (slot->pws_idx);
+      hcfree (slot->pws_base);
+    }
+
     hcfree (device_param->pws_pre_buf);
-    hcfree (device_param->pws_base_buf);
     hcfree (device_param->combs_buf);
     hcfree (device_param->hooks_buf);
     hcfree (device_param->scratch_buf);
@@ -17413,6 +17539,15 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
       //device_param->opencl_command_queue = NULL;
       //device_param->opencl_context       = NULL;
+    }
+
+    for (int slot_pos = 0; slot_pos < PW_PIPE_SLOTS; slot_pos++)
+    {
+      pw_batch_t *slot = &device_param->pws_slot[slot_pos];
+
+      slot->pws_comp = NULL;
+      slot->pws_idx  = NULL;
+      slot->pws_base = NULL;
     }
 
     device_param->h_tmps              = NULL;
