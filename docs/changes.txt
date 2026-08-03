@@ -5,6 +5,7 @@
 ##
 
 Docker: Add hashcat-toolchain
+Hardware Monitor: Added power limit (Cap) and PCIe link generation (Gen) status fields for NVML (NVIDIA) devices
 
 - Docker: Added Ubuntu 26.04 runtime images for CUDA and AMD
 - Docker: Updated the bundled Python to 3.14.6 and Rust to 1.97.1

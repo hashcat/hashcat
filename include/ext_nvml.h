@@ -198,6 +198,8 @@ typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CLOCKINFO) (nvmlDevice_t, n
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_THRESHOLD) (nvmlDevice_t, nvmlTemperatureThresholds_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRPCIELINKGENERATION) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRPCIELINKWIDTH) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWER_USAGE) (nvmlDevice_t, unsigned int *);
+typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_POWER_MANAGEMENT_LIMIT) (nvmlDevice_t, unsigned int *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS) (nvmlDevice_t, unsigned long long *);
 typedef nvmlReturn_t (*NVML_API_CALL NVML_DEVICE_SET_COMPUTEMODE) (nvmlDevice_t, nvmlComputeMode_t);
@@ -222,6 +224,8 @@ typedef struct hm_nvml_lib
   NVML_DEVICE_GET_THRESHOLD nvmlDeviceGetTemperatureThreshold;
   NVML_DEVICE_GET_CURRPCIELINKGENERATION nvmlDeviceGetCurrPcieLinkGeneration;
   NVML_DEVICE_GET_CURRPCIELINKWIDTH nvmlDeviceGetCurrPcieLinkWidth;
+  NVML_DEVICE_GET_POWER_USAGE nvmlDeviceGetPowerUsage;
+  NVML_DEVICE_GET_POWER_MANAGEMENT_LIMIT nvmlDeviceGetPowerManagementLimit;
   NVML_DEVICE_GET_CURRENTCLOCKSTHROTTLEREASONS nvmlDeviceGetCurrentClocksThrottleReasons;
   NVML_DEVICE_GET_SUPPORTEDCLOCKSTHROTTLEREASONS nvmlDeviceGetSupportedClocksThrottleReasons;
   NVML_DEVICE_GET_PCIINFO nvmlDeviceGetPciInfo;
@@ -245,6 +249,9 @@ int hm_NVML_nvmlDeviceGetUtilizationRates (void *hashcat_ctx, nvmlDevice_t devic
 int hm_NVML_nvmlDeviceGetClockInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlClockType_t type, unsigned int *clockfreq);
 int hm_NVML_nvmlDeviceGetTemperatureThreshold (void *hashcat_ctx, nvmlDevice_t device, nvmlTemperatureThresholds_t thresholdType, unsigned int *temp);
 int hm_NVML_nvmlDeviceGetCurrPcieLinkWidth (void *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkWidth);
+int hm_NVML_nvmlDeviceGetCurrPcieLinkGeneration (void *hashcat_ctx, nvmlDevice_t device, unsigned int *currLinkGen);
+int hm_NVML_nvmlDeviceGetPowerUsage (void *hashcat_ctx, nvmlDevice_t device, unsigned int *milliwatts);
+int hm_NVML_nvmlDeviceGetPowerManagementLimit (void *hashcat_ctx, nvmlDevice_t device, unsigned int *milliwatts);
 int hm_NVML_nvmlDeviceGetPciInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlPciInfo_t *pci);
 int hm_NVML_nvmlDeviceGetMemoryInfo (void *hashcat_ctx, nvmlDevice_t device, nvmlMemory_t *mem);
 
