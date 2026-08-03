@@ -38,13 +38,19 @@ ifeq ($(BUILD_MODE),cross)
 endif
 
 ifeq ($(CHECK_DLL),true)
+
+# find whichever python the msys2 package under $(WIN_PYTHON) provides, rather than naming one
+# version here. Pinning the version meant that bumping the msys2 package silently stopped the
+# headers from being found, and the only symptom was the plugin quietly going missing
+
+WIN_PYTHON_INCLUDE := $(lastword $(sort $(wildcard $(WIN_PYTHON)/mingw64/include/python3.*)))
+
 ifeq ($(REPORT_MISSING_DLL),false)
-PYTHON_CONFIG := $(shell ls $(WIN_PYTHON)/mingw64/include/python3.12/ 2>/dev/null)
-ifeq ($(PYTHON_CONFIG),)
+ifeq ($(WIN_PYTHON_INCLUDE),)
 	REPORT_MISSING_DLL := true
 endif
 endif
-PYTHON_CFLAGS_WIN := -I$(WIN_PYTHON)/mingw64/include/python3.12/
+PYTHON_CFLAGS_WIN := -I$(WIN_PYTHON_INCLUDE)/
 endif
 
 ifeq ($(BUILD_MODE),cross)

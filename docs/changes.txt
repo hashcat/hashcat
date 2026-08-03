@@ -6,11 +6,20 @@
 
 Docker: Add hashcat-toolchain
 
+- Docker: Added Ubuntu 26.04 runtime images for CUDA and AMD
+- Docker: Updated the bundled Python to 3.14.6 and Rust to 1.97.1
+- Docker: Removed the Ubuntu 18.04 build, its mingw-w64 is too old to link current Rust
+- Build: LTO is now off by default and enabled only for the released binaries
+
 ##
 ## Bugs
 ##
 
 - Added workaround for CUDA memory leak in benchmark mode caused by register spilling
+- Fixed the Rust bridges failing to build in the Ubuntu 20.04 and Arch containers, libclang was missing
+- Fixed the Windows Rust plugin failing to link in the Arch container, lld was missing
+- Fixed the Windows Python plugins silently going missing when the bundled Python is not 3.12
+- Fixed bridge_scrypt_jane failing to link with LTO on an older mingw-w64
 - Fixed bugs on multiple DES based modules when used with CPU devices
 - Fixed MSYS2 build
 - Disable setShouldMaximizeConcurrentCompilation on ext_metal.m, due to segfault on macos Tahoe
