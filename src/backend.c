@@ -1208,6 +1208,34 @@ static bool pipe_enabled (void)
   return result;
 }
 
+// How many launches between reports. HASHCAT_PIPE=1 keeps the fifty it always used, and any larger
+// value is that many launches instead.
+//
+// Fifty is a lot of launches when one of them is slow. A bridge unit on an expensive hash can take
+// seconds per launch, so the first report lands several minutes in, and the whole point of the
+// instrument is to answer a question quickly. It is a diagnostic, so the interval is the user's.
+
+static u64 pipe_every (void)
+{
+  static u64 every = 0;
+
+  if (every == 0)
+  {
+    const char *env = getenv ("HASHCAT_PIPE");
+
+    every = 50;
+
+    if (env)
+    {
+      const int want = atoi (env);
+
+      if (want > 1) every = (u64) want;
+    }
+  }
+
+  return every;
+}
+
 void pipe_mark (hc_timer_t *timer)
 {
   if (pipe_enabled () == false) return;
@@ -1231,7 +1259,7 @@ void pipe_launch_done (const u64 cands)
   g_pipe_launches++;
   g_pipe_cands += cands;
 
-  if ((g_pipe_launches % 50) != 0) return;
+  if ((g_pipe_launches % pipe_every ()) != 0) return;
 
   static const char *names[PIPE_SLOTS] = { "feed", "copy", "init", "xfer", "launch", "comp" };
 
@@ -4984,6 +5012,24 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   backend_ctx->devices_param = devices_param;
 
+  // Virtual devices on one physical device build byte-identical programs, and a program is what the
+  // per-device host memory is made of. Sharing it costs nothing measurable and saves the lot.
+  //
+  // ON BY DEFAULT, because the case that needs it cannot ask for it: a bridge makes one virtual
+  // device per unit, and a machine small enough to run out of memory does so during device setup,
+  // where the devices that do not fit are simply dropped. Eleven units on a 4 GB machine lost two of
+  // them that way, and the user's only clue was one line in the middle of the startup log.
+  //
+  // `HASHCAT_CLSHARE=0` turns it off. It is worth having, because the one thing sharing changes that
+  // nothing else does is putting every clone in ONE context, and how a driver behaves with several
+  // command queues on one context is a property of the driver. Measured with no speed change on
+  // PoCL, on Intel's OpenCL CPU runtime and on AMD's GPU driver. NVIDIA and Metal have not been
+  // measured, which is the reason the switch still exists.
+
+  const char *clshare_env = getenv ("HASHCAT_CLSHARE");
+
+  backend_ctx->opencl_program_share = (clshare_env == NULL) ? true : (atoi (clshare_env) != 0);
+
   /**
    * Load and map CUDA library calls, then init CUDA
    */
@@ -7231,14 +7277,27 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
         if (sscanf (opencl_platform_version, "OpenCL %d.%d", &opencl_version_maj, &opencl_version_min) == 2)
         {
+          // These have to be exclusive.
+          //
+          // A platform reporting OpenCL 1.2 used to set BOTH the 1.1 and the 1.2 flag, and the build
+          // option chain further down tests the 1.1 flag first, so every OpenCL 1.2 platform was
+          // compiled as OpenCL C 1.1. That language version has no file scope `static`, which
+          // inc_rp_common.cl uses for its lookup tables, so a rules or wordlist attack could not build
+          // its amplifier kernel at all while a mask attack, which pulls in no rule code, was fine.
+          //
+          // It stayed hidden because the mainstream runtimes all report 2.x or 3.x and take a different
+          // branch. It needs a platform that reports exactly 1.2 to appear.
+
           if (opencl_version_maj == 1)
           {
-            device_param->use_opencl11 = true;
-          }
-
-          if ((opencl_version_maj == 1) && (opencl_version_min == 2))
-          {
-            device_param->use_opencl12 = true;
+            if (opencl_version_min >= 2)
+            {
+              device_param->use_opencl12 = true;
+            }
+            else
+            {
+              device_param->use_opencl11 = true;
+            }
           }
 
           if (opencl_version_maj == 2)
@@ -8892,7 +8951,46 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       CL_rc = hc_clCreateContext (hashcat_ctx, properties, 1, &device_param->opencl_device, NULL, NULL, &device_param->opencl_context);
       */
 
-      if (hc_clCreateContext (hashcat_ctx, NULL, 1, &device_param->opencl_device, NULL, NULL, &device_param->opencl_context) == -1)
+      // Virtual devices are clones of ONE physical device, and a cl_program belongs to the context it
+      // was built in. So sharing the program, which is what actually costs host memory, is only
+      // possible if the clones share the context as well. Everything else stays per clone: its own
+      // command queue, its own buffers and its own kernel objects, all created from this context.
+
+      device_param->opencl_context_is_clone = false;
+
+      if (backend_ctx->opencl_program_share == true)
+      {
+        for (int prev_idx = 0; prev_idx < backend_devices_cnt; prev_idx++)
+        {
+          hc_device_param_t *prev_param = &backend_ctx->devices_param[prev_idx];
+
+          if (prev_param->is_opencl == false) continue;
+          if (prev_param->opencl_context == NULL) continue;
+          if (prev_param->opencl_device != device_param->opencl_device) continue;
+
+          device_param->opencl_context = prev_param->opencl_context;
+          device_param->opencl_context_is_clone = true;
+
+          break;
+        }
+      }
+
+      if (device_param->opencl_context_is_clone == true)
+      {
+        // retained rather than flagged, so every existing release path stays balanced with no
+        // ownership bookkeeping anywhere else
+
+        if (hc_clRetainContext (hashcat_ctx, device_param->opencl_context) == -1)
+        {
+          device_param->skipped = true;
+
+          backend_ctx->opencl_devices_active--;
+          backend_ctx->backend_devices_active--;
+
+          continue;
+        }
+      }
+      else if (hc_clCreateContext (hashcat_ctx, NULL, 1, &device_param->opencl_device, NULL, NULL, &device_param->opencl_context) == -1)
       {
         device_param->skipped = true;
 
@@ -9326,7 +9424,18 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
         if (bridge_same_unit_class (hashcat_ctx, device_param_src->bridge_link_device, device_param_dst->bridge_link_device) == false) continue;
       }
 
-      device_param_dst->kernel_accel   = device_param_src->kernel_accel;
+      // Aligning two units must never raise one above what its own buffers can hold.
+      //
+      // kernel_accel_max is not a property of the unit, it is what survived that device's memory
+      // sizing, and two identical devices can end up with different values when the host ran short
+      // part way through setting them up. Copying the source's accel across then launches over buffers that
+      // were allocated for a smaller one, which surfaces as CL_INVALID_VALUE from clEnqueueCopyBuffer
+      // and, on a bridge, as a send of more candidates than were ever staged.
+      //
+      // So clamp. A unit held below its siblings is not identical to them in any way that matters, and
+      // an uneven batch size is a far better outcome than an out of bounds launch.
+
+      device_param_dst->kernel_accel   = MIN (device_param_src->kernel_accel, device_param_dst->kernel_accel_max);
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
       device_param_dst->kernel_threads = device_param_src->kernel_threads;
 
@@ -9613,6 +9722,73 @@ static int get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx_t *hashcat_ctx,
   *result = dynamic_local_mem_size;
 
   return 0;
+}
+
+// Which of a device's four programs a lookup is about. They are built from different sources with
+// different options, so a clone may reuse one and have to build another.
+
+typedef enum program_slot
+{
+  PROGRAM_SLOT_MAIN   = 0,
+  PROGRAM_SLOT_SHARED = 1,
+  PROGRAM_SLOT_MP     = 2,
+  PROGRAM_SLOT_AMP    = 3,
+
+} program_slot_t;
+
+// The program an earlier clone of this same physical device already built, or NULL when there is
+// none to take.
+//
+// A cl_program is the expensive object: a runtime that compiles at startup keeps the whole module
+// behind it, which measures at about 165 MiB per program however warm the on-disk cache is. Virtual
+// devices on one physical device build byte-identical programs, so N of them pay that N times for
+// nothing. The two checksums are hashcat's own kernel cache keys, which is exactly the question
+// "would these two builds produce the same file", so agreeing on them is what makes a program
+// interchangeable.
+//
+// The handle is retained rather than tracked, so every release path already in the tree stays
+// balanced and none of them has to learn about sharing.
+
+static cl_program opencl_program_borrow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const int backend_devices_idx, const program_slot_t slot)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (backend_ctx->opencl_program_share == false) return NULL;
+  if (device_param->is_opencl == false) return NULL;
+
+  for (int prev_idx = 0; prev_idx < backend_devices_idx; prev_idx++)
+  {
+    hc_device_param_t *prev_param = &backend_ctx->devices_param[prev_idx];
+
+    if (prev_param->skipped == true) continue;
+    if (prev_param->skipped_warning == true) continue;
+    if (prev_param->is_opencl == false) continue;
+    if (prev_param->opencl_context != device_param->opencl_context) continue;
+
+    const char *key = (slot == PROGRAM_SLOT_MAIN) ? device_param->opencl_chksum : device_param->opencl_chksum_amp_mp;
+
+    const char *prev_key = (slot == PROGRAM_SLOT_MAIN) ? prev_param->opencl_chksum : prev_param->opencl_chksum_amp_mp;
+
+    if (strcmp (key, prev_key) != 0) continue;
+
+    cl_program program = NULL;
+
+    switch (slot)
+    {
+      case PROGRAM_SLOT_MAIN:   program = prev_param->opencl_program;        break;
+      case PROGRAM_SLOT_SHARED: program = prev_param->opencl_program_shared; break;
+      case PROGRAM_SLOT_MP:     program = prev_param->opencl_program_mp;     break;
+      case PROGRAM_SLOT_AMP:    program = prev_param->opencl_program_amp;    break;
+    }
+
+    if (program == NULL) continue;
+
+    if (hc_clRetainProgram (hashcat_ctx, program) == -1) return NULL;
+
+    return program;
+  }
+
+  return NULL;
 }
 
 #if defined (__APPLE__)
@@ -13573,6 +13749,66 @@ void backend_session_context_reset (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+// Set HASHCAT_MEMORY to print how the per-device memory budget was spent. It answers the question a
+// remote report cannot: which buffer grew, and how much of the budget was reserve rather than a real
+// allocation. Off by default and it costs nothing when off.
+
+static bool memory_debug_enabled (void)
+{
+  static int on = -1;
+
+  if (on == -1) on = (getenv ("HASHCAT_MEMORY") != NULL) ? 1 : 0;
+
+  const bool result = (on == 1) ? true : false;
+
+  return result;
+}
+
+// How many active devices share one physical device.
+//
+// A bridge clones its host device once per unit, and --backend-devices-virtmulti does the same on
+// request, but device_available_mem describes the physical device. Every clone would otherwise budget
+// against the whole of it, so N clones plan to use N times what exists. Returns 1 for an ordinary
+// device, which leaves its budget exactly as it was.
+
+static u32 backend_device_sharers (const backend_ctx_t *backend_ctx, const hc_device_param_t *device_param)
+{
+  u32 sharers = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    const hc_device_param_t *other_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (other_param->skipped == true) continue;
+
+    if (device_param->is_cuda == true)
+    {
+      if (other_param->is_cuda == false) continue;
+      if (other_param->cuda_device != device_param->cuda_device) continue;
+    }
+    else if (device_param->is_hip == true)
+    {
+      if (other_param->is_hip == false) continue;
+      if (other_param->hip_device != device_param->hip_device) continue;
+    }
+    else if (device_param->is_opencl == true)
+    {
+      if (other_param->is_opencl == false) continue;
+      if (other_param->opencl_device != device_param->opencl_device) continue;
+    }
+    else
+    {
+      continue;
+    }
+
+    sharers++;
+  }
+
+  const u32 result = MAX (sharers, 1);
+
+  return result;
+}
+
 int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
   const bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
@@ -13593,6 +13829,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
   u32 hardware_power_all = 0;
 
   int backend_memory_hit_warnings    = 0;
+
+  bool memory_hit_shared_reported    = false;
   int backend_runtime_skip_warnings  = 0;
   int backend_kernel_build_warnings  = 0;
   int backend_kernel_create_warnings = 0;
@@ -13616,6 +13854,41 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
     if (device_param->skipped == true) continue;
+
+    // Once a device sharing this physical device has been refused for want of memory, stop setting up
+    // the rest of them.
+    //
+    // The memory check sits at the END of this loop body, but almost everything before it costs memory
+    // that is never given back: a runtime context, a built program, the kernels. So carrying on after a
+    // refusal spends more of exactly what just ran out, and makes the next device likelier to fail than
+    // the one before it. Worse, the spending happens whether or not the device is then accepted, so a
+    // run can be killed by the setup of devices it had already decided not to use.
+    //
+    // Only devices sharing the physical device are held back. A second, unrelated device has its own
+    // memory and its own reason to be tried.
+
+    if (device_param->memory_hit_shared == true)
+    {
+      device_param->skipped_warning = true;
+
+      // Counted like a device that hit the limit itself, because that is what it would have done. The
+      // aggregate check at the end of this function compares this total against the active device count
+      // to decide whether NOTHING came up, and holding these back silently would hide that case.
+
+      backend_memory_hit_warnings++;
+
+      // Said once. One line explaining that the rest were held back is useful; ten identical lines are
+      // the noise this change exists to remove.
+
+      if (memory_hit_shared_reported == false)
+      {
+        event_log_warning (hashcat_ctx, "* Device #%u and the later units on this device were not initialised, because memory ran out before them.", device_param->device_id + 1);
+
+        memory_hit_shared_reported = true;
+      }
+
+      continue;
+    }
 
     EVENT_DATA (EVENT_BACKEND_DEVICE_INIT_PRE, &backend_devices_idx, sizeof (int));
 
@@ -14382,8 +14655,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * create input buffers on device : calculate size of fixed memory buffers
      */
 
-    u64 size_root_css   = SP_PW_MAX *           sizeof (cs_t);
-    u64 size_markov_css = SP_PW_MAX * CHARSIZ * sizeof (cs_t);
+    // These two are indexed by password position. Two things bound how many positions can ever be
+    // read, and sizing by SP_PW_MAX respects neither.
+    //
+    // First, only the mask-driven attacks create these buffers at all, a few hundred lines below. A
+    // straight wordlist run allocates neither, so counting them reserved 64 MiB per device against
+    // something that is never made.
+    //
+    // Second, a mask longer than the mode's pw_max is skipped before it reaches a kernel, in
+    // mask_ctx_update_loop, so positions past pw_max are unreachable. A mode with a short pw_max
+    // caps it far below the 256 that was always reserved.
+
+    const bool css_in_use = (user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) ? true : false;
+
+    const u64 css_pos_max = MIN ((u64) SP_PW_MAX, (u64) hashconfig->pw_max);
+
+    u64 size_root_css   = (css_in_use == true) ? css_pos_max *           sizeof (cs_t) : 4;
+    u64 size_markov_css = (css_in_use == true) ? css_pos_max * CHARSIZ * sizeof (cs_t) : 4;
 
     device_param->size_root_css   = size_root_css;
     device_param->size_markov_css = size_markov_css;
@@ -14663,6 +14951,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
+    snprintf (device_param->opencl_chksum_amp_mp, sizeof (device_param->opencl_chksum_amp_mp), "%s", device_name_chksum_amp_mp);
+
     /**
      * kernel cache
      */
@@ -14718,10 +15008,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       generate_cached_kernel_shared_filename (folder_config->cache_dir, device_name_chksum_amp_mp, cached_file, device_param->is_metal);
 
+      device_param->opencl_program_shared = opencl_program_borrow (hashcat_ctx, device_param, backend_devices_idx, PROGRAM_SLOT_SHARED);
+
       #if defined (__APPLE__)
-      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "shared_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_shared, &device_param->cuda_module_shared, &device_param->hip_module_shared, &device_param->metal_library_shared);
+      const bool rc_load_kernel = (device_param->opencl_program_shared != NULL) ? true : load_kernel (hashcat_ctx, device_param, "shared_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_shared, &device_param->cuda_module_shared, &device_param->hip_module_shared, &device_param->metal_library_shared);
       #else
-      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "shared_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_shared, &device_param->cuda_module_shared, &device_param->hip_module_shared, NULL);
+      const bool rc_load_kernel = (device_param->opencl_program_shared != NULL) ? true : load_kernel (hashcat_ctx, device_param, "shared_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_shared, &device_param->cuda_module_shared, &device_param->hip_module_shared, NULL);
       #endif
 
       if (rc_load_kernel == false)
@@ -14861,6 +15153,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
+      snprintf (device_param->opencl_chksum, sizeof (device_param->opencl_chksum), "%s", device_name_chksum);
+
       /**
        * kernel source filename
        */
@@ -14888,10 +15182,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
        * load kernel
        */
 
+      device_param->opencl_program = opencl_program_borrow (hashcat_ctx, device_param, backend_devices_idx, PROGRAM_SLOT_MAIN);
+
       #if defined (__APPLE__)
-      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable, &device_param->opencl_program, &device_param->cuda_module, &device_param->hip_module, &device_param->metal_library);
+      const bool rc_load_kernel = (device_param->opencl_program != NULL) ? true : load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable, &device_param->opencl_program, &device_param->cuda_module, &device_param->hip_module, &device_param->metal_library);
       #else
-      const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable, &device_param->opencl_program, &device_param->cuda_module, &device_param->hip_module, NULL);
+      const bool rc_load_kernel = (device_param->opencl_program != NULL) ? true : load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable, &device_param->opencl_program, &device_param->cuda_module, &device_param->hip_module, NULL);
       #endif
 
       if (rc_load_kernel == false)
@@ -14941,10 +15237,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         generate_cached_kernel_mp_filename (hashconfig->opti_type, hashconfig->opts_type, folder_config->cache_dir, device_name_chksum_amp_mp, cached_file, device_param->is_metal);
 
+        device_param->opencl_program_mp = opencl_program_borrow (hashcat_ctx, device_param, backend_devices_idx, PROGRAM_SLOT_MP);
+
         #if defined (__APPLE__)
-        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "mp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_mp, &device_param->cuda_module_mp, &device_param->hip_module_mp, &device_param->metal_library_mp);
+        const bool rc_load_kernel = (device_param->opencl_program_mp != NULL) ? true : load_kernel (hashcat_ctx, device_param, "mp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_mp, &device_param->cuda_module_mp, &device_param->hip_module_mp, &device_param->metal_library_mp);
         #else
-        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "mp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_mp, &device_param->cuda_module_mp, &device_param->hip_module_mp, NULL);
+        const bool rc_load_kernel = (device_param->opencl_program_mp != NULL) ? true : load_kernel (hashcat_ctx, device_param, "mp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_mp, &device_param->cuda_module_mp, &device_param->hip_module_mp, NULL);
         #endif
 
         if (rc_load_kernel == false)
@@ -14994,10 +15292,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         generate_cached_kernel_amp_filename (user_options_extra->attack_kern, folder_config->cache_dir, device_name_chksum_amp_mp, cached_file, device_param->is_metal);
 
+        device_param->opencl_program_amp = opencl_program_borrow (hashcat_ctx, device_param, backend_devices_idx, PROGRAM_SLOT_AMP);
+
         #if defined (__APPLE__)
-        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "amp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_amp, &device_param->cuda_module_amp, &device_param->hip_module_amp, &device_param->metal_library_amp);
+        const bool rc_load_kernel = (device_param->opencl_program_amp != NULL) ? true : load_kernel (hashcat_ctx, device_param, "amp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_amp, &device_param->cuda_module_amp, &device_param->hip_module_amp, &device_param->metal_library_amp);
         #else
-        const bool rc_load_kernel = load_kernel (hashcat_ctx, device_param, "amp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_amp, &device_param->cuda_module_amp, &device_param->hip_module_amp, NULL);
+        const bool rc_load_kernel = (device_param->opencl_program_amp != NULL) ? true : load_kernel (hashcat_ctx, device_param, "amp_kernel", source_file, cached_file, build_options_buf, cache_disable, &device_param->opencl_program_amp, &device_param->cuda_module_amp, &device_param->hip_module_amp, NULL);
         #endif
 
         if (rc_load_kernel == false)
@@ -16505,6 +16805,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       accel_limit_host = MIN (accel_limit_host, GiB8);
     }
 
+    // device_available_mem belongs to the physical device, so every clone sharing it has to budget
+    // against its own share rather than against the whole. accel_limit_host above already divides for
+    // the same reason. Without this a bridge with ten units passes ten independent checks and then the
+    // sum, which nothing ever computes, is what runs the machine out of memory.
+
+    const u32 device_sharers = backend_device_sharers (backend_ctx, device_param);
+
+    const u64 device_available_mem_share = device_param->device_available_mem / device_sharers;
+
     // Opposite direction check: find out if we would request too much memory on memory blocks which are based on kernel_accel
 
     u64 size_pws      = 4;
@@ -16536,7 +16845,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     // Still not 100% sure about the 64MiB here
 
-    const u64 size_device_extra = MAX ((64ULL * 1024 * 1024), size_device_extra1234);
+    // The 64 MiB is headroom for the compute APIs disagreeing with themselves about how much memory a
+    // device really has. That inaccuracy belongs to the physical device, so it is taken once and then
+    // shared, rather than charged in full to every clone sitting on the same device. Eleven clones
+    // charging 64 MiB each reserved 704 MiB of margin for one device's worth of uncertainty.
+
+    const u64 size_device_extra_all = MAX ((64ULL * 1024 * 1024), size_device_extra1234);
+
+    const u64 size_device_extra = MAX (size_device_extra1234, size_device_extra_all / backend_device_sharers (backend_ctx, device_param));
 
     // we will first decrease accel and when reached that limit, we will decrease threads
     // when we decrease limit this will restore accel_max
@@ -16550,11 +16866,33 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       const u64 device_processors = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors);
       const u64 kernel_threads    = ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_max);
 
-      const u64 kernel_power_max = device_processors * kernel_threads * kernel_accel_max;
+      const bool device_is_bridged = bridge_active (hashcat_ctx, device_param->bridge_link_device);
+
+      // How many candidates one launch can hold, which is what every buffer below is sized from.
+      //
+      // A BRIDGE LAUNCHES kernel_accel CANDIDATES AND NOTHING MORE. Its hardware_power is 1, because
+      // the geometry of the device that generates the candidates says nothing about the unit that
+      // consumes them, and autotune has always known this. Sizing the buffers by that geometry anyway
+      // asks for device_processors * kernel_threads times the memory a launch can ever use.
+      //
+      // It is not a harmless over-reserve. The buffers are what kernel_accel_max is searched against,
+      // so the over-count lands as a smaller launch: 64 units on one GPU were capped at 14 waves
+      // instead of the 32 autotune wanted, and ran 17 percent below the same units given full
+      // launches. Worse, the cap comes from a share of the device's memory divided by the number of
+      // units, so the launch one unit gets depends on how many OTHER units are present.
+
+      const u64 kernel_power_max = (device_is_bridged == true) ? kernel_accel_max : device_processors * kernel_threads * kernel_accel_max;
 
       // size_spilling
+      //
+      // This reserves room for the private memory a kernel spills to global memory under register
+      // pressure. A bridge has no such kernel: it replaces the loop kernel, which is the hot one, and
+      // what remains runs once per batch and does almost nothing. The reserve still has to be paid per
+      // work item, and a CPU runtime asks for far more of it than a GPU does. PoCL reports 1024 bytes
+      // against 16 on a discrete GPU, which is 31 MiB per unit on a bridge batch, for kernels that
+      // cannot spill.
 
-      const u64 size_spilling = kernel_power_max * local_size_bytes;
+      const u64 size_spilling = (device_is_bridged == true) ? 0 : kernel_power_max * local_size_bytes;
 
       // size_pws
 
@@ -16687,7 +17025,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_kernel_params
         + size_spilling;
 
-      if (size_total > device_param->device_available_mem) memory_limit_hit = 1;
+      if (size_total > device_available_mem_share) memory_limit_hit = 1;
 
       const u64 size_host_extra = (512 * 1024 * 1024) / backend_ctx->backend_devices_active;
 
@@ -16735,6 +17073,50 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       size_total_host_all += size_total_host;
 
+      if (memory_debug_enabled () == true)
+      {
+        const u64 MiB = 1024 * 1024;
+
+        event_log_info (hashcat_ctx, "* Device #%u: memory budget, %u device(s) share this physical device", device_id + 1, device_sharers);
+        event_log_info (hashcat_ctx, "  accel %u, threads %u, kernel_power %" PRIu64, kernel_accel_max, (u32) kernel_threads, kernel_power_max);
+        event_log_info (hashcat_ctx, "  device_available_mem %" PRIu64 " MiB, share %" PRIu64 " MiB", device_param->device_available_mem / MiB, device_available_mem_share / MiB);
+        event_log_info (hashcat_ctx, "  size_total           %" PRIu64 " MiB", size_total / MiB);
+        event_log_info (hashcat_ctx, "    pws                %" PRIu64 " MiB", size_pws / MiB);
+        event_log_info (hashcat_ctx, "    pws_amp            %" PRIu64 " MiB", size_pws_amp / MiB);
+        event_log_info (hashcat_ctx, "    pws_comp           %" PRIu64 " MiB", size_pws_comp / MiB);
+        event_log_info (hashcat_ctx, "    pws_idx            %" PRIu64 " MiB", size_pws_idx / MiB);
+        event_log_info (hashcat_ctx, "    tmps               %" PRIu64 " MiB", size_tmps / MiB);
+        event_log_info (hashcat_ctx, "    hooks              %" PRIu64 " MiB", size_hooks / MiB);
+        event_log_info (hashcat_ctx, "    bitmaps            %" PRIu64 " MiB", (bitmap_ctx->bitmap_size * 8) / MiB);
+        event_log_info (hashcat_ctx, "    spilling           %" PRIu64 " MiB (%u bytes per work item)", size_spilling / MiB, local_size_bytes);
+        event_log_info (hashcat_ctx, "    device_extra       %" PRIu64 " MiB (reserve, not allocated)", size_device_extra / MiB);
+
+        // Everything the lines above do not name, so the breakdown always adds up to size_total and a
+        // buffer that grows unexpectedly cannot hide in the gap.
+
+        const u64 size_named = (bitmap_ctx->bitmap_size * 8) + size_hooks + size_pws + size_pws_amp
+                             + size_pws_comp + size_pws_idx + size_tmps + size_spilling + size_device_extra;
+
+        event_log_info (hashcat_ctx, "    other              %" PRIu64 " MiB", (size_total - size_named) / MiB);
+        // free host memory is re-read for every device, so it falls as earlier devices allocate. On a
+        // unified memory device that fall is the real wall, because the device buffers come out of the
+        // same RAM while device_available_mem above keeps reporting the figure it started with.
+
+        u64 free_mem = 0;
+
+        if (get_free_memory (&free_mem) == false) free_mem = 0;
+
+        event_log_info (hashcat_ctx, "  free host mem now    %" PRIu64 " MiB", free_mem / MiB);
+        event_log_info (hashcat_ctx, "  accel_limit_host     %" PRIu64 " MiB", accel_limit_host / MiB);
+        event_log_info (hashcat_ctx, "  size_total_host      %" PRIu64 " MiB", size_total_host / MiB);
+        event_log_info (hashcat_ctx, "    pws_comp x%d        %" PRIu64 " MiB", PW_PIPE_SLOTS, (size_pws_comp * PW_PIPE_SLOTS) / MiB);
+        event_log_info (hashcat_ctx, "    pws_idx  x%d        %" PRIu64 " MiB", PW_PIPE_SLOTS, (size_pws_idx  * PW_PIPE_SLOTS) / MiB);
+        event_log_info (hashcat_ctx, "    pws_pre            %" PRIu64 " MiB", size_pws_pre / MiB);
+        event_log_info (hashcat_ctx, "    pws_base x%d        %" PRIu64 " MiB", PW_PIPE_SLOTS, (size_pws_base * PW_PIPE_SLOTS) / MiB);
+        event_log_info (hashcat_ctx, "    host_extra         %" PRIu64 " MiB (reserve, not allocated)", size_host_extra / MiB);
+        event_log_info (hashcat_ctx, NULL);
+      }
+
       break;
     }
 
@@ -16745,6 +17127,38 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       backend_memory_hit_warnings++;
 
       device_param->skipped_warning = true;
+
+      // Tell the devices behind this one, on the same physical device, not to bother. See the comment
+      // at the top of the loop for why setting them up anyway is actively harmful.
+
+      for (int other_idx = 0; other_idx < backend_ctx->backend_devices_cnt; other_idx++)
+      {
+        hc_device_param_t *other_param = &backend_ctx->devices_param[other_idx];
+
+        if (other_param->skipped == true) continue;
+
+        if (device_param->is_cuda == true)
+        {
+          if (other_param->is_cuda == false) continue;
+          if (other_param->cuda_device != device_param->cuda_device) continue;
+        }
+        else if (device_param->is_hip == true)
+        {
+          if (other_param->is_hip == false) continue;
+          if (other_param->hip_device != device_param->hip_device) continue;
+        }
+        else if (device_param->is_opencl == true)
+        {
+          if (other_param->is_opencl == false) continue;
+          if (other_param->opencl_device != device_param->opencl_device) continue;
+        }
+        else
+        {
+          continue;
+        }
+
+        other_param->memory_hit_shared = true;
+      }
 
       continue;
     }

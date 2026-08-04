@@ -1301,6 +1301,11 @@ typedef struct hc_device_param
   bool    skipped;              // permanent
   bool    skipped_warning;      // iteration
 
+  // Set on the other virtual devices sharing one physical device once any of them has been refused for
+  // want of memory, so the rest are not set up at a cost that only deepens the shortage.
+
+  bool    memory_hit_shared;
+
   u32     device_processors;
   u64     device_maxmem_alloc;
   u64     device_global_mem;
@@ -2011,6 +2016,18 @@ typedef struct hc_device_param
   cl_mem            opencl_d_st_esalts_buf;
   cl_mem            opencl_d_kernel_param;
 
+  // Whether this device's context and programs came from an earlier clone of the same physical
+  // device rather than being built here. A cl_program is what costs the host memory, and it belongs
+  // to a context, so the two are shared or neither is.
+
+  bool              opencl_context_is_clone;
+
+  // What makes two builds interchangeable. hashcat already computes these to name the kernel cache
+  // file, and a clone that agrees on both can use the program a previous clone built.
+
+  char              opencl_chksum[16];
+  char              opencl_chksum_amp_mp[16];
+
 } hc_device_param_t;
 
 typedef struct backend_ctx
@@ -2058,6 +2075,13 @@ typedef struct backend_ctx
   int                 metal_devices_active;
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
+
+  // Whether virtual devices on one physical device share the compiled program instead of each
+  // building their own. A program costs about 165 MiB of host memory on a runtime that compiles at
+  // startup, and that is per virtual device, so a bridge with many units pays it many times over for
+  // byte-identical builds.
+
+  bool                opencl_program_share;
 
   int                 backend_devices_filter[DEVICES_MAX];
 
