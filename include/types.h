@@ -2016,6 +2016,16 @@ typedef struct hc_device_param
   cl_mem            opencl_d_st_esalts_buf;
   cl_mem            opencl_d_kernel_param;
 
+  // Which presentation group this device belongs to, as the device index of the group's first
+  // member. A device that leads its own group carries its own index, which is what every device
+  // outside a bridge does, so nothing about an ordinary run changes.
+  //
+  // Many devices can be ONE thing the user is looking at. Grouping is how those stay separate: work
+  // is fed, tuned and failed per device, and reported per group. Without it sixty four devices of one
+  // kind are sixty four status lines saying the same number.
+
+  int               group_id;
+
   // Whether this device's context and programs came from an earlier clone of the same physical
   // device rather than being built here. A cl_program is what costs the host memory, and it belongs
   // to a context, so the two are shared or neither is.
@@ -2897,6 +2907,13 @@ typedef struct device_info
 {
   bool    skipped_dev;
   bool    skipped_warning_dev;
+
+  // Which group reports for this device, as the index of the group's first member, and how many
+  // devices that group holds. A device that leads its own group carries its own index and a size of
+  // 1, which is every device outside a bridge.
+
+  int     group_id_dev;
+  int     group_size_dev;
   double  hashes_msec_dev;
   double  hashes_msec_dev_benchmark;
   double  exec_msec_dev;
@@ -3006,6 +3023,11 @@ typedef struct hashcat_status
   device_info_t device_info_buf[DEVICES_MAX];
   int           device_info_cnt;
   int           device_info_active;
+
+  // How many groups are actually running. The status view prints one line per group, so this is what
+  // decides whether a total line underneath would say anything the lines above did not.
+
+  int           group_info_active;
 
   double  hashes_msec_all;
   double  exec_msec_all;
@@ -3213,6 +3235,20 @@ typedef struct bridge_ctx
 
   char     *(*get_unit_class)        (hashcat_ctx_t *, void *, const int);
 
+  // What one unit is MADE OF, for a bridge whose unit is several pieces of hardware driven together.
+  //
+  // OPTIONAL, and a bridge whose units are single things leaves both unset. A bridge that groups
+  // hardware has to answer them, because grouping is what takes the per-unit Speed line away from the
+  // individual member: without a way to list them, a user with forty of them can see that one is
+  // misbehaving and has no way to learn which.
+  //
+  // The member index is the unit's own numbering, from 0, and it is the SAME number the bridge uses
+  // anywhere else it names a member. get_unit_member_info returns NULL for an index the unit does not
+  // have.
+
+  int       (*get_unit_member_count) (hashcat_ctx_t *, void *, const int);
+  char     *(*get_unit_member_info)  (hashcat_ctx_t *, void *, const int, const int);
+
   // ★ hashes IS PASSED EXPLICITLY AND YOU MUST USE IT. Do not read hashcat_ctx->hashes here.
   //
   // The self test hands these functions a hashes_t that is a LOCAL COPY of the real one with its
@@ -3264,6 +3300,19 @@ typedef struct bridge_ctx
   // thing. Return 0 to keep the default.
 
   u32 (*get_unit_temperature_abort) (hashcat_ctx_t *, void *, const int);
+
+  // Optional. How many of a unit's members report no temperature at all.
+  //
+  // A unit made of one piece of hardware is watched or it is not, and get_unit_temperature returning
+  // -1 says which. A unit made of several is neither: the watchdog acts on the hottest member that
+  // HAS a sensor, and the members that have none are simply not covered. Sensor presence is not even
+  // a property of the class, because two members can report the same class string when only one of
+  // them has a sensor fitted.
+  //
+  // So the banner has to be able to say how much of a watched unit is actually watched. Returning 0,
+  // or leaving this unset, means everything the unit holds is covered.
+
+  int (*get_unit_temperature_unwatched) (hashcat_ctx_t *, void *, const int);
 
   int (*get_unit_fanspeed)    (hashcat_ctx_t *, void *, const int);
   int (*get_unit_utilization) (hashcat_ctx_t *, void *, const int);

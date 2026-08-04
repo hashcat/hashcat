@@ -11,6 +11,7 @@
 #include "timer.h"
 #include "hashes.h"
 #include "hwmon.h"
+#include "backend.h"
 #include "outfile.h"
 #include "monitor.h"
 #include "mpsp.h"
@@ -215,6 +216,46 @@ int status_get_device_info_active (const hashcat_ctx_t *hashcat_ctx)
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
   return backend_ctx->backend_devices_active;
+}
+
+// How many presentation groups are running. One line is printed per group, so this is what says
+// whether a total line underneath them would add anything.
+
+int status_get_group_info_active (const hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  int cnt = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    if (backend_ctx_device_is_group_leader (hashcat_ctx, backend_devices_idx) == false) continue;
+
+    cnt++;
+  }
+
+  return cnt;
+}
+
+int status_get_group_id_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  return device_param->group_id;
+}
+
+int status_get_group_size_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const int size = backend_ctx_device_group_size (hashcat_ctx, backend_devices_idx, NULL);
+
+  return size;
 }
 
 bool status_get_skipped_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
@@ -2174,6 +2215,11 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
 
   if (hm_is_hwmon_group_leader ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx) == false) return NULL;
 
+  // Then the DISPLAY's own grouping, which is a separate question from which devices carry sensors.
+  // A group is one line whatever it is made of, and the line below is built by walking its members. The watchdog above walks every device and is deliberately not narrowed by this.
+
+  if (backend_ctx_device_is_group_leader (hashcat_ctx, backend_devices_idx) == false) return NULL;
+
   char *output_buf = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (output_buf, HCBUFSIZ_TINY, "N/A");
@@ -2196,15 +2242,112 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
   // show on one line. The plain reading is still what the abort watchdog uses, because the unit is
   // only as cool as its hottest sensor.
 
-  char temp_str[64];
+  // Wide enough for a large group. A group names the hottest few of its members, and a name plus a
+  // reading is far longer than the "62/61/59/58c" a single device produces.
+
+  char temp_str[256];
 
   temp_str[0] = 0;
 
+  // A bridge unit that renders its own field renders the WHOLE line, and the fields below are skipped
+  // for it. They describe one piece of hardware and a unit can be forty, so a single clock and a single
+  // lane count would be picking one member to speak for all of them. What does not change during a run
+  // is reported once at startup instead, per member, which is where a large unit needs it anyway.
+
+  // A GROUP of several devices renders its own field across its members, because a group is what the
+  // user is looking at and every member is a separate piece of hardware with its own sensor.
+  //
+  // The hottest few, NAMED, re-picked on every refresh so the set is dynamic. That is readable at
+  // sixty four members and it never hides the hot one, which an average would. The rest are counted
+  // rather than listed, and members with no sensor are counted separately: a group where five members
+  // show a temperature and fifty nine show nothing looks broken until you can see that fifty nine
+  // have no sensor fitted.
+
+  const int group_size = backend_ctx_device_group_size (hashcat_ctx, backend_devices_idx, NULL);
+
+  if (group_size > 1)
+  {
+    const backend_ctx_t *backend_ctx_grp = hashcat_ctx->backend_ctx;
+
+    const hc_device_param_t *leader_param = &backend_ctx_grp->devices_param[backend_devices_idx];
+
+    int hottest_idx[HWMON_GROUP_SHOW];
+    int hottest_val[HWMON_GROUP_SHOW];
+
+    int shown = 0;
+    int with_sensor = 0;
+    int without_sensor = 0;
+
+    for (int i = backend_devices_idx; i < backend_ctx_grp->backend_devices_cnt; i++)
+    {
+      const hc_device_param_t *member_param = &backend_ctx_grp->devices_param[i];
+
+      if (member_param->skipped == true) continue;
+      if (member_param->skipped_warning == true) continue;
+      if (member_param->group_id != leader_param->group_id) continue;
+
+      const int temp = hm_get_temperature_with_devices_idx ((hashcat_ctx_t *) hashcat_ctx, i);
+
+      if (temp < 0)
+      {
+        without_sensor++;
+
+        continue;
+      }
+
+      with_sensor++;
+
+      // insertion sort into the top list, which is cheap because the list is five long
+
+      int pos = shown;
+
+      for (int k = 0; k < shown; k++)
+      {
+        if (temp > hottest_val[k]) { pos = k; break; }
+      }
+
+      if (pos >= HWMON_GROUP_SHOW) continue;
+
+      for (int k = MIN (shown, HWMON_GROUP_SHOW - 1); k > pos; k--)
+      {
+        hottest_val[k] = hottest_val[k - 1];
+        hottest_idx[k] = hottest_idx[k - 1];
+      }
+
+      hottest_val[pos] = temp;
+      hottest_idx[pos] = i;
+
+      if (shown < HWMON_GROUP_SHOW) shown++;
+    }
+
+    int len = snprintf (output_buf, HCBUFSIZ_TINY, "Temp:");
+
+    for (int k = 0; k < shown; k++)
+    {
+      len += snprintf (output_buf + len, HCBUFSIZ_TINY - len, " #%02u:%dc", hottest_idx[k] + 1, hottest_val[k]);
+    }
+
+    if (with_sensor > shown) len += snprintf (output_buf + len, HCBUFSIZ_TINY - len, " +%d", with_sensor - shown);
+
+    if (without_sensor > 0) len += snprintf (output_buf + len, HCBUFSIZ_TINY - len, " %dxN/A", without_sensor);
+
+    if (with_sensor == 0) snprintf (output_buf, HCBUFSIZ_TINY, "Temp: N/A (%d devices, no sensors)", without_sensor);
+
+    hc_thread_mutex_unlock (status_ctx->mux_hwmon);
+
+    return output_buf;
+  }
+
   if (hm_get_bridge_temperature_str ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx, temp_str, sizeof (temp_str)) == true)
   {
-    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "%s ", temp_str);
+    snprintf (output_buf, HCBUFSIZ_TINY, "%s", temp_str);
+
+    hc_thread_mutex_unlock (status_ctx->mux_hwmon);
+
+    return output_buf;
   }
-  else if (num_temperature >= 0)
+
+  if (num_temperature >= 0)
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3dc ", num_temperature);
   }

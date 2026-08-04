@@ -1298,6 +1298,45 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
 // describe themselves identically are folded into one line, because a box of identical cards would
 // otherwise spend a screen saying the same thing.
 
+// What each unit is made of, when a unit is made of more than one thing.
+//
+// A bridge whose unit is one piece of hardware answers nothing here and nothing is printed. A unit
+// that groups hardware has to list it: the group is what shows up in the status line from then on, so
+// this is the only place the individual members are named, and the number each one is given here is
+// the number it is called by everywhere else.
+
+static bool bridge_has_members (const bridge_ctx_t *bridge_ctx)
+{
+  if (bridge_ctx->get_unit_member_count == NULL) return false;
+  if (bridge_ctx->get_unit_member_count == BRIDGE_DEFAULT) return false;
+  if (bridge_ctx->get_unit_member_info  == NULL) return false;
+  if (bridge_ctx->get_unit_member_info  == BRIDGE_DEFAULT) return false;
+
+  return true;
+}
+
+static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit_idx)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_has_members (bridge_ctx) == false) return;
+
+  const int member_count = bridge_ctx->get_unit_member_count (hashcat_ctx, bridge_ctx->platform_context, unit_idx);
+
+  if (member_count < 1) return;
+
+  event_log_info (hashcat_ctx, NULL);
+
+  for (int m = 0; m < member_count; m++)
+  {
+    const char *info = bridge_ctx->get_unit_member_info (hashcat_ctx, bridge_ctx->platform_context, unit_idx, m);
+
+    if (info == NULL) continue;
+
+    event_log_info (hashcat_ctx, "%s", info);
+  }
+}
+
 static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
@@ -1316,29 +1355,38 @@ static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
 
   event_log_info (hashcat_ctx, "%s", line);
 
-  bool all_same = true;
+  // Folding is for a bridge whose units really are interchangeable, which is every bridge whose units
+  // are CPU threads. A bridge that lists what each unit is MADE OF is not one of those: the members
+  // are the point, folding would throw them away, and the unit line is what the member lines hang off.
 
-  char *tmp = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, 0);
-
-  for (int i = 1; i < unit_count; i++)
-  {
-    if (strcmp (tmp, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i)))
-    {
-      all_same = false;
-
-      break;
-    }
-  }
+  bool all_same = (bridge_has_members (bridge_ctx) == false);
 
   if (all_same == true)
   {
-    event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
+    char *tmp = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, 0);
+
+    for (int i = 1; i < unit_count; i++)
+    {
+      if (strcmp (tmp, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i)))
+      {
+        all_same = false;
+
+        break;
+      }
+    }
+
+    if (all_same == true) event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
   }
-  else
+
+  if (all_same == false)
   {
     for (int i = 0; i < unit_count; i++)
     {
       event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
+
+      bridge_unit_members_info (hashcat_ctx, i);
+
+      if ((i + 1) < unit_count) event_log_info (hashcat_ctx, NULL);
     }
   }
 
@@ -3117,13 +3165,54 @@ static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashc
     if (device_info->skipped_dev == true) continue;
     if (device_info->skipped_warning_dev == true) continue;
 
-    // with a single unit there is no total line underneath, so it carries the #* itself
+    // One line per GROUP. A group of one prints exactly what it always printed, so a single device, a
+    // pair of different devices and many identical ones all read the same way.
+    //
+    // Devices of a kind are added together, because that is the question being asked: how fast is all
+    // of this. Which individual device is misbehaving is a different question and it has a different
+    // answer, the per member listing at startup and the temperature field.
 
-    if (hashcat_status->device_info_active == 1)
+    if (device_info->group_id_dev != device_id) continue;
+
+    const int group_size = device_info->group_size_dev;
+
+    double hashes_msec_grp = 0;
+
+    for (int i = device_id; i < hashcat_status->device_info_cnt; i++)
     {
+      const device_info_t *member_info = hashcat_status->device_info_buf + i;
+
+      if (member_info->skipped_dev == true) continue;
+      if (member_info->skipped_warning_dev == true) continue;
+      if (member_info->group_id_dev != device_id) continue;
+
+      hashes_msec_grp += member_info->hashes_msec_dev;
+    }
+
+    char speed_grp[HCBUFSIZ_TINY];
+
+    format_speed_display (hashes_msec_grp * 1000, speed_grp, sizeof (speed_grp));
+
+    // with a single group there is no total line underneath, so it carries the #* itself
+
+    if (hashcat_status->group_info_active == 1)
+    {
+      if (group_size > 1)
+      {
+        event_log_info (hashcat_ctx,
+          "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u (x%d)",
+          speed_grp,
+          device_info->exec_msec_dev,
+          device_info->kernel_power_dev,
+          device_info->kernel_loops_dev,
+          group_size);
+
+        continue;
+      }
+
       event_log_info (hashcat_ctx,
         "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
-        device_info->speed_sec_dev,
+        speed_grp,
         device_info->exec_msec_dev,
         device_info->kernel_power_dev,
         device_info->kernel_loops_dev);
@@ -3131,9 +3220,25 @@ static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashc
       continue;
     }
 
+    // A group of several says how many devices it speaks for, because a speed with no idea how many
+    // things produced it cannot be judged.
+
+    if (group_size > 1)
+    {
+      event_log_info (hashcat_ctx,
+        "Speed.#%02u........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u (x%d)", device_id + 1,
+        speed_grp,
+        device_info->exec_msec_dev,
+        device_info->kernel_power_dev,
+        device_info->kernel_loops_dev,
+        group_size);
+
+      continue;
+    }
+
     event_log_info (hashcat_ctx,
       "Speed.#%02u........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u", device_id + 1,
-      device_info->speed_sec_dev,
+      speed_grp,
       device_info->exec_msec_dev,
       device_info->kernel_power_dev,
       device_info->kernel_loops_dev);
@@ -3602,7 +3707,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (hashcat_status->device_info_active > 1)
+  // Per GROUP, not per device. Many identical devices report as one line, and a total underneath a
+  // single line only repeats it.
+
+  if (hashcat_status->group_info_active > 1)
   {
     event_log_info (hashcat_ctx,
       "Speed.#*.........: %9sH/s",

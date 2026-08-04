@@ -19,6 +19,9 @@ void format_speed_display_1k (double val,    char *buf, size_t len);
 
 int         status_get_device_info_cnt                (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_device_info_active             (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_group_info_active              (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_group_id_dev                   (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
+int         status_get_group_size_dev                 (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 bool        status_get_skipped_dev                    (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 bool        status_get_skipped_warning_dev            (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 char       *status_get_session                        (const hashcat_ctx_t *hashcat_ctx);

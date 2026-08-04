@@ -9383,6 +9383,100 @@ void backend_ctx_devices_destroy (hashcat_ctx_t *hashcat_ctx)
   backend_ctx->need_iokit           = false;
 }
 
+// Work out which devices the user should see as ONE thing.
+//
+// A device is the unit of work: it has its own thread, its own launch, its own tuning and its own
+// failure. That is right and it has to stay right, because a launch sized for one device is the only
+// launch size that device can use. What is NOT needed is one status line per device.
+//
+// So the two questions are separated. A group is a set of devices that are the same kind of thing,
+// and it exists only for reporting. Nothing about dispatch, tuning or buffers knows it is there.
+//
+// Outside a bridge every device is its own group and nothing changes. Under a bridge the bridge is
+// asked, because only it can tell two units apart: every unit is a virtual device cloned from the
+// same physical one, so anything that asks the BACKEND what a device is gets the same answer for all
+// of them.
+//
+// The group is named by its FIRST member, so a group's number is a device number that really exists
+// and -d keeps meaning what it always meant.
+
+void backend_ctx_devices_group (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (backend_ctx->enabled == false) return;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    device_param->group_id = backend_devices_idx;
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    if (bridge_active (hashcat_ctx, device_param->bridge_link_device) == false) continue;
+
+    for (int prev_idx = 0; prev_idx < backend_devices_idx; prev_idx++)
+    {
+      hc_device_param_t *prev_param = &backend_ctx->devices_param[prev_idx];
+
+      if (prev_param->skipped == true) continue;
+      if (prev_param->skipped_warning == true) continue;
+
+      if (bridge_same_unit_class (hashcat_ctx, prev_param->bridge_link_device, device_param->bridge_link_device) == false) continue;
+
+      device_param->group_id = prev_param->group_id;
+
+      break;
+    }
+  }
+}
+
+// Whether this device is the first of its group, which is the one that reports for it and the one
+// that is autotuned on its behalf.
+
+bool backend_ctx_device_is_group_leader (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  const bool leader = (device_param->group_id == backend_devices_idx) ? true : false;
+
+  return leader;
+}
+
+// How many devices the group led by this one holds, and where it ends.
+
+int backend_ctx_device_group_size (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx, int *last_idx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  int cnt = 0;
+
+  int last = backend_devices_idx;
+
+  for (int i = backend_devices_idx; i < backend_ctx->backend_devices_cnt; i++)
+  {
+    const hc_device_param_t *other_param = &backend_ctx->devices_param[i];
+
+    if (other_param->skipped == true) continue;
+    if (other_param->skipped_warning == true) continue;
+    if (other_param->group_id != device_param->group_id) continue;
+
+    cnt++;
+
+    last = i;
+  }
+
+  if (last_idx != NULL) *last_idx = last;
+
+  return cnt;
+}
+
 void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t   *backend_ctx  = hashcat_ctx->backend_ctx;
@@ -9390,6 +9484,38 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
   hashconfig_t    *hashconfig   = hashcat_ctx->hashconfig;
 
   if (backend_ctx->enabled == false) return;
+
+  // Only a group's leader was autotuned, so its answer is what the rest of the group has. This is not
+  // an alignment for tidiness the way the pass below is: without it a member has no tuning at all.
+  //
+  // Clamped for the same reason the pass below clamps. kernel_accel_max is not a property of the
+  // hardware, it is what survived that device's own memory sizing, and launching over buffers that
+  // were allocated for a smaller number is an out of bounds launch rather than an uneven one.
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    if (device_param->group_id == backend_devices_idx) continue;
+
+    const hc_device_param_t *leader_param = &backend_ctx->devices_param[device_param->group_id];
+
+    if (leader_param->skipped == true) continue;
+    if (leader_param->skipped_warning == true) continue;
+
+    device_param->kernel_accel   = MIN (leader_param->kernel_accel, device_param->kernel_accel_max);
+    device_param->kernel_loops   = leader_param->kernel_loops;
+    device_param->kernel_threads = leader_param->kernel_threads;
+
+    device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                                 : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+                                 * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads);
+
+    device_param->kernel_power = device_param->hardware_power * device_param->kernel_accel;
+  }
 
   for (int backend_devices_cnt_src = 0; backend_devices_cnt_src < backend_ctx->backend_devices_cnt; backend_devices_cnt_src++)
   {
