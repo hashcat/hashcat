@@ -32,6 +32,14 @@ int  backend_ctx_device_get_memory_free     (hashcat_ctx_t *hashcat_ctx, hc_devi
 int  backend_ctx_devices_init               (hashcat_ctx_t *hashcat_ctx, const int comptime);
 void backend_ctx_devices_destroy            (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_devices_sync_tuning        (hashcat_ctx_t *hashcat_ctx);
+
+// Presentation groups. A group is devices that are the same kind of thing, reported as one line. It
+// exists for the status view only: work is fed, tuned and failed per DEVICE. See the comment on
+// backend_ctx_devices_group.
+
+void backend_ctx_devices_group              (hashcat_ctx_t *hashcat_ctx);
+bool backend_ctx_device_is_group_leader     (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
+int  backend_ctx_device_group_size          (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx, int *last_idx);
 void backend_ctx_devices_update_power       (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_devices_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 

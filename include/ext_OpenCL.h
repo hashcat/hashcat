@@ -202,6 +202,8 @@ typedef cl_int           (CL_API_CALL *OCL_CLRELEASEEVENT)            (cl_event)
 typedef cl_int           (CL_API_CALL *OCL_CLRELEASEKERNEL)           (cl_kernel);
 typedef cl_int           (CL_API_CALL *OCL_CLRELEASEMEMOBJECT)        (cl_mem);
 typedef cl_int           (CL_API_CALL *OCL_CLRELEASEPROGRAM)          (cl_program);
+typedef cl_int           (CL_API_CALL *OCL_CLRETAINCONTEXT)           (cl_context);
+typedef cl_int           (CL_API_CALL *OCL_CLRETAINPROGRAM)           (cl_program);
 typedef cl_int           (CL_API_CALL *OCL_CLSETKERNELARG)            (cl_kernel, cl_uint, size_t, const void *);
 typedef cl_int           (CL_API_CALL *OCL_CLUNLOADPLATFORMCOMPILER)  (cl_platform_id);
 typedef cl_int           (CL_API_CALL *OCL_CLWAITFOREVENTS)           (cl_uint, const cl_event *);
@@ -245,6 +247,8 @@ typedef struct hc_opencl_lib
   OCL_CLRELEASEKERNEL             clReleaseKernel;
   OCL_CLRELEASEMEMOBJECT          clReleaseMemObject;
   OCL_CLRELEASEPROGRAM            clReleaseProgram;
+  OCL_CLRETAINCONTEXT             clRetainContext;
+  OCL_CLRETAINPROGRAM             clRetainProgram;
   OCL_CLSETKERNELARG              clSetKernelArg;
   OCL_CLUNLOADPLATFORMCOMPILER    clUnloadPlatformCompiler;
   OCL_CLWAITFOREVENTS             clWaitForEvents;
@@ -291,6 +295,8 @@ int hc_clReleaseKernel           (void *hashcat_ctx, cl_kernel kernel);
 int hc_clReleaseProgram          (void *hashcat_ctx, cl_program program);
 int hc_clReleaseCommandQueue     (void *hashcat_ctx, cl_command_queue command_queue);
 int hc_clReleaseContext          (void *hashcat_ctx, cl_context context);
+int hc_clRetainProgram           (void *hashcat_ctx, cl_program program);
+int hc_clRetainContext           (void *hashcat_ctx, cl_context context);
 int hc_clEnqueueMapBuffer        (void *hashcat_ctx, cl_command_queue command_queue, cl_mem buffer, cl_bool blocking_map, cl_map_flags map_flags, size_t offset, size_t size, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event, void **buf);
 int hc_clEnqueueUnmapMemObject   (void *hashcat_ctx, cl_command_queue command_queue, cl_mem memobj, void *mapped_ptr, cl_uint num_events_in_wait_list, const cl_event *event_wait_list, cl_event *event);
 int hc_clGetKernelWorkGroupInfo  (void *hashcat_ctx, cl_kernel kernel, cl_device_id device, cl_kernel_work_group_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);

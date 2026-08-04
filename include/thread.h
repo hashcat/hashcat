@@ -12,7 +12,11 @@
 #include <windows.h>
 #else
 #include <pthread.h>
+#if defined(__APPLE__)
+#include <dispatch/dispatch.h>
+#else
 #include <semaphore.h>
+#endif // __APPLE__
 #endif // _WIN
 
 #if defined (_WIN)
@@ -67,10 +71,21 @@
 #define hc_thread_cond_wait(c,m)    pthread_cond_wait      (&c, &m)
 #define hc_thread_cond_delete(c)    pthread_cond_destroy   (&c)
 
-#define hc_thread_sem_init(s)       sem_init  (&s, 0, 0)
-#define hc_thread_sem_post(s)       sem_post  (&s)
-#define hc_thread_sem_wait(s)       sem_wait  (&s)
-#define hc_thread_sem_close(s)      sem_close (&s)
+#if defined (__APPLE__)
+
+#define hc_thread_sem_init(s)       ((s) = dispatch_semaphore_create (0))
+#define hc_thread_sem_wait(s)       dispatch_semaphore_wait ((s), DISPATCH_TIME_FOREVER)
+#define hc_thread_sem_post(s)       dispatch_semaphore_signal ((s))
+#define hc_thread_sem_close(s)      dispatch_release ((s))
+
+#else
+
+#define hc_thread_sem_init(s)       sem_init    (&s, 0, 0)
+#define hc_thread_sem_post(s)       sem_post    (&s)
+#define hc_thread_sem_wait(s)       sem_wait    (&s)
+#define hc_thread_sem_close(s)      sem_destroy (&s)
+
+#endif // __APPLE__
 
 #endif
 

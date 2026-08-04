@@ -11,6 +11,8 @@
 #include "shared.h"
 #include "folder.h"
 #include "hwmon.h"
+#include "backend.h"
+#include "bridges.h"
 
 // general functions
 
@@ -225,6 +227,14 @@ bool hm_is_hwmon_group_leader (hashcat_ctx_t *hashcat_ctx, const int backend_dev
 
   const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_device_idx];
 
+  // THIS IS ABOUT HARDWARE, NOT ABOUT THE DISPLAY. It answers "does this device carry a sensor of its
+  // own", and the WATCHDOG walks it to find out what it can protect. A presentation group must never
+  // narrow it: eleven devices where five have sensors is five things to watch, however many lines the
+  // status view chooses to draw. Folding the list to one line here once left those five unwatched and
+  // said "Temperature abort trigger disabled" because the FIRST device happened to have no sensor.
+  //
+  // The status view does its own grouping, in status_get_hwmon_dev.
+
   for (int i = 0; i < backend_device_idx; i++)
   {
     const hc_device_param_t *device_param_prev = &backend_ctx->devices_param[i];
@@ -436,6 +446,31 @@ u32 hm_get_bridge_temperature_abort (hashcat_ctx_t *hashcat_ctx, const int backe
   return result;
 }
 
+// How much of a unit the watchdog cannot see.
+//
+// Zero for a unit that is one piece of hardware, which is the only case there used to be: there,
+// "watched" is a yes or no answer and the reading being -1 is what says no. A unit made of several
+// members is neither, because the watchdog acts on the hottest member that HAS a sensor and the
+// members that have none are simply outside its reach. Sensor presence is not a property of the class
+// either: two members can report the same class string when only one has a sensor fitted.
+
+int hm_get_bridge_temperature_unwatched (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx)
+{
+  bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->get_unit_temperature_unwatched == NULL)           return 0;
+  if (bridge_ctx->get_unit_temperature_unwatched == MODULE_DEFAULT) return 0;
+
+  const int unit = hm_get_bridge_unit (hashcat_ctx, backend_device_idx, (const void *) bridge_ctx->get_unit_temperature_unwatched);
+
+  if (unit == HM_BRIDGE_NO_READING) return 0;
+  if (unit == HM_BRIDGE_PASS)       return 0;
+
+  const int result = bridge_ctx->get_unit_temperature_unwatched (hashcat_ctx, bridge_ctx->platform_context, unit);
+
+  return result;
+}
+
 // Name the limits the watchdog will really enforce, for the units that carry one of their own. The
 // user's setting is not the number that applies to those, so it is worth saying which is.
 //
@@ -502,6 +537,12 @@ void hm_temperature_abort_banner (hashcat_ctx_t *hashcat_ctx)
   int idx_buf[DEVICES_MAX];
   int lim_buf[DEVICES_MAX];   // -1 marks a unit with no sensor, which cannot be watched at all
 
+  // How many members of each unit report no sensor. Zero for a unit that is one piece of hardware, and
+  // it is grouped on as well as the limit, so two units are only folded onto one line when the same
+  // sentence is true of both.
+
+  int unw_buf[DEVICES_MAX];
+
   int cnt = 0;
   int watched_cnt = 0;
   int compute_cnt = 0;
@@ -540,6 +581,7 @@ void hm_temperature_abort_banner (hashcat_ctx_t *hashcat_ctx)
       if (cnt == DEVICES_MAX) break;
 
       idx_buf[cnt] = backend_devices_idx;
+      unw_buf[cnt] = hm_get_bridge_temperature_unwatched (hashcat_ctx, backend_devices_idx);
 
       // A limit is only a limit if something can measure against it. The watchdog compares a reading
       // of -1 against the threshold and -1 is never greater, so naming a number for a unit with no
@@ -629,6 +671,7 @@ void hm_temperature_abort_banner (hashcat_ctx_t *hashcat_ctx)
     {
       if (emitted[j] == true) continue;
       if (lim_buf[j] != lim_buf[i]) continue;
+      if (unw_buf[j] != unw_buf[i]) continue;
 
       emitted[j] = true;
 
@@ -654,6 +697,19 @@ void hm_temperature_abort_banner (hashcat_ctx_t *hashcat_ctx)
     {
       if (many == true) event_log_info (hashcat_ctx, "* Bridge units %s abort at %dc", units, lim_buf[i]);
       else              event_log_info (hashcat_ctx, "* Bridge unit %s aborts at %dc", units, lim_buf[i]);
+
+      // A unit made of several members is watched on the hottest member that has a sensor, and the
+      // ones without a sensor are not covered at all. Saying only that the unit aborts at a
+      // temperature would claim a guard over hardware nothing can measure, which is exactly the fault
+      // that the "no temperature sensor" line above exists to avoid for a unit that is one thing.
+
+      if (unw_buf[i] > 0)
+      {
+        const char *members = (unw_buf[i] > 1) ? "members report" : "member reports";
+
+        if (many == true) event_log_info (hashcat_ctx, "  on their hottest member, and %d %s no sensor in each", unw_buf[i], members);
+        else              event_log_info (hashcat_ctx, "  on its hottest member, and %d of its %s no sensor",    unw_buf[i], members);
+      }
     }
   }
 }

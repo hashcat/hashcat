@@ -73,8 +73,12 @@ typedef struct timespec   hc_timer_t;
 
 #if defined (_POSIX)
 #include <pthread.h>
+#if defined (__APPLE__)
+#include <dispatch/dispatch.h>
+#else
 #include <semaphore.h>
-#endif
+#endif // __APPLE__
+#endif // _POSIX
 
 #if defined (_WIN)
 typedef HANDLE             hc_thread_t;
@@ -85,8 +89,13 @@ typedef HANDLE             hc_thread_semaphore_t;
 typedef pthread_t          hc_thread_t;
 typedef pthread_mutex_t    hc_thread_mutex_t;
 typedef pthread_cond_t     hc_thread_cond_t;
-typedef sem_t              hc_thread_semaphore_t;
-#endif
+
+#if defined (__APPLE__)
+typedef dispatch_semaphore_t hc_thread_semaphore_t;
+#else
+typedef sem_t                hc_thread_semaphore_t;
+#endif // __APPLE__
+#endif // _WIN
 
 // enums
 
@@ -1349,6 +1358,11 @@ typedef struct hc_device_param
   bool    skipped;              // permanent
   bool    skipped_warning;      // iteration
 
+  // Set on the other virtual devices sharing one physical device once any of them has been refused for
+  // want of memory, so the rest are not set up at a cost that only deepens the shortage.
+
+  bool    memory_hit_shared;
+
   u32     device_processors;
   u64     device_maxmem_alloc;
   u64     device_global_mem;
@@ -2212,6 +2226,28 @@ typedef struct hc_device_param
   cl_mem            opencl_d_pcfg_data_buffer_part_p8;
   cl_mem            opencl_d_pcfg_part_offsets;
 
+  // Which presentation group this device belongs to, as the device index of the group's first
+  // member. A device that leads its own group carries its own index, which is what every device
+  // outside a bridge does, so nothing about an ordinary run changes.
+  //
+  // Many devices can be ONE thing the user is looking at. Grouping is how those stay separate: work
+  // is fed, tuned and failed per device, and reported per group. Without it sixty four devices of one
+  // kind are sixty four status lines saying the same number.
+
+  int               group_id;
+
+  // Whether this device's context and programs came from an earlier clone of the same physical
+  // device rather than being built here. A cl_program is what costs the host memory, and it belongs
+  // to a context, so the two are shared or neither is.
+
+  bool              opencl_context_is_clone;
+
+  // What makes two builds interchangeable. hashcat already computes these to name the kernel cache
+  // file, and a clone that agrees on both can use the program a previous clone built.
+
+  char              opencl_chksum[16];
+  char              opencl_chksum_amp_mp[16];
+
 } hc_device_param_t;
 
 typedef struct backend_ctx
@@ -2259,6 +2295,13 @@ typedef struct backend_ctx
   int                 metal_devices_active;
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
+
+  // Whether virtual devices on one physical device share the compiled program instead of each
+  // building their own. A program costs about 165 MiB of host memory on a runtime that compiles at
+  // startup, and that is per virtual device, so a bridge with many units pays it many times over for
+  // byte-identical builds.
+
+  bool                opencl_program_share;
 
   int                 backend_devices_filter[DEVICES_MAX];
 
@@ -3122,6 +3165,13 @@ typedef struct device_info
 {
   bool    skipped_dev;
   bool    skipped_warning_dev;
+
+  // Which group reports for this device, as the index of the group's first member, and how many
+  // devices that group holds. A device that leads its own group carries its own index and a size of
+  // 1, which is every device outside a bridge.
+
+  int     group_id_dev;
+  int     group_size_dev;
   double  hashes_msec_dev;
   double  hashes_msec_dev_benchmark;
   double  exec_msec_dev;
@@ -3232,6 +3282,11 @@ typedef struct hashcat_status
   device_info_t device_info_buf[DEVICES_MAX];
   int           device_info_cnt;
   int           device_info_active;
+
+  // How many groups are actually running. The status view prints one line per group, so this is what
+  // decides whether a total line underneath would say anything the lines above did not.
+
+  int           group_info_active;
 
   double  hashes_msec_all;
   double  exec_msec_all;
@@ -3439,6 +3494,20 @@ typedef struct bridge_ctx
 
   char     *(*get_unit_class)        (hashcat_ctx_t *, void *, const int);
 
+  // What one unit is MADE OF, for a bridge whose unit is several pieces of hardware driven together.
+  //
+  // OPTIONAL, and a bridge whose units are single things leaves both unset. A bridge that groups
+  // hardware has to answer them, because grouping is what takes the per-unit Speed line away from the
+  // individual member: without a way to list them, a user with forty of them can see that one is
+  // misbehaving and has no way to learn which.
+  //
+  // The member index is the unit's own numbering, from 0, and it is the SAME number the bridge uses
+  // anywhere else it names a member. get_unit_member_info returns NULL for an index the unit does not
+  // have.
+
+  int       (*get_unit_member_count) (hashcat_ctx_t *, void *, const int);
+  char     *(*get_unit_member_info)  (hashcat_ctx_t *, void *, const int, const int);
+
   // ★ hashes IS PASSED EXPLICITLY AND YOU MUST USE IT. Do not read hashcat_ctx->hashes here.
   //
   // The self test hands these functions a hashes_t that is a LOCAL COPY of the real one with its
@@ -3490,6 +3559,19 @@ typedef struct bridge_ctx
   // thing. Return 0 to keep the default.
 
   u32 (*get_unit_temperature_abort) (hashcat_ctx_t *, void *, const int);
+
+  // Optional. How many of a unit's members report no temperature at all.
+  //
+  // A unit made of one piece of hardware is watched or it is not, and get_unit_temperature returning
+  // -1 says which. A unit made of several is neither: the watchdog acts on the hottest member that
+  // HAS a sensor, and the members that have none are simply not covered. Sensor presence is not even
+  // a property of the class, because two members can report the same class string when only one of
+  // them has a sensor fitted.
+  //
+  // So the banner has to be able to say how much of a watched unit is actually watched. Returning 0,
+  // or leaving this unset, means everything the unit holds is covered.
+
+  int (*get_unit_temperature_unwatched) (hashcat_ctx_t *, void *, const int);
 
   int (*get_unit_fanspeed)    (hashcat_ctx_t *, void *, const int);
   int (*get_unit_utilization) (hashcat_ctx_t *, void *, const int);
