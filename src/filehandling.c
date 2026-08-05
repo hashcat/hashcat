@@ -1042,7 +1042,7 @@ size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
   {
     if (c == '\n') break;
 
-    if (line_len == line_sz)
+    if (line_len == line_sz - 1)
     {
       line_truncated++;
     }
