@@ -73,7 +73,7 @@ int set_cpu_affinity (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
   DWORD_PTR aff_mask = 0;
   const int cpu_id_max = 8 * sizeof (aff_mask);
   #elif defined (__NetBSD__)
-  cpuset_t * cpuset;
+  cpuset_t *cpuset = NULL;
   const int cpu_id_max = 8 * cpuset_size (cpuset);
   cpuset = cpuset_create ();
   if (cpuset == NULL)
