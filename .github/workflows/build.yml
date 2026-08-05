@@ -18,7 +18,6 @@ on:
   push:
     branches:
       - master
-      - fix_netbsd_workflow
     tags:
       - v*
     paths:
