@@ -140,9 +140,9 @@ int hash_encode (const user_options_t *user_options, const hashconfig_t *hashcon
   char       *hook_salts_buf_ptr = (char *) hook_salts_buf;
   hashinfo_t *hash_info_ptr      = NULL;
 
-  digests_buf_ptr    += digest_cur * hashconfig->dgst_size;
-  esalts_buf_ptr     += digest_cur * hashconfig->esalt_size;
-  hook_salts_buf_ptr += digest_cur * hashconfig->hook_salt_size;
+  digests_buf_ptr    += (u64) digest_cur * hashconfig->dgst_size;
+  esalts_buf_ptr     += (u64) digest_cur * hashconfig->esalt_size;
+  hook_salts_buf_ptr += (u64) digest_cur * hashconfig->hook_salt_size;
 
   if (hash_info) hash_info_ptr = hash_info[digest_cur];
 
@@ -523,9 +523,9 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
     char       *hook_salts_buf_ptr = (char *) hook_salts_buf;
     hashinfo_t *hash_info_ptr      = NULL;
 
-    digests_buf_ptr    += digest_cur * hashconfig->dgst_size;
-    esalts_buf_ptr     += digest_cur * hashconfig->esalt_size;
-    hook_salts_buf_ptr += digest_cur * hashconfig->hook_salt_size;
+    digests_buf_ptr    += (u64) digest_cur * hashconfig->dgst_size;
+    esalts_buf_ptr     += (u64) digest_cur * hashconfig->esalt_size;
+    hook_salts_buf_ptr += (u64) digest_cur * hashconfig->hook_salt_size;
 
     if (hash_info) hash_info_ptr = hash_info[digest_cur];
 
@@ -2050,7 +2050,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->hook_salt_size > 0)
     {
-      char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
+      char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + ((u64) salts_cnt * hashconfig->hook_salt_size);
 
       memcpy (hook_salts_buf_new_ptr, hashes_buf[0].hook_salt, hashconfig->hook_salt_size);
 
@@ -2102,7 +2102,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
         if (hashconfig->hook_salt_size > 0)
         {
-          char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
+          char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + ((u64) salts_cnt * hashconfig->hook_salt_size);
 
           memcpy (hook_salts_buf_new_ptr, hashes_buf[hashes_pos].hook_salt, hashconfig->hook_salt_size);
 
@@ -2120,7 +2120,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->hook_salt_size > 0)
       {
-        char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
+        char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + ((u64) salts_cnt * hashconfig->hook_salt_size);
 
         hashes_buf[hashes_pos].hook_salt = hook_salts_buf_new_ptr;
       }
@@ -2128,7 +2128,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     salt_buf->digests_cnt++;
 
-    digests_buf_new_ptr = ((char *) digests_buf_new) + (hashes_pos * hashconfig->dgst_size);
+    digests_buf_new_ptr = ((char *) digests_buf_new) + ((u64) hashes_pos * hashconfig->dgst_size);
 
     memcpy (digests_buf_new_ptr, hashes_buf[hashes_pos].digest, hashconfig->dgst_size);
 
@@ -2136,7 +2136,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->esalt_size > 0)
     {
-      char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (hashes_pos * hashconfig->esalt_size);
+      char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + ((u64) hashes_pos * hashconfig->esalt_size);
 
       memcpy (esalts_buf_new_ptr, hashes_buf[hashes_pos].esalt, hashconfig->esalt_size);
 
