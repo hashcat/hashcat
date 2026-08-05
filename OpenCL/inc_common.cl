@@ -2165,10 +2165,6 @@ DECLSPEC u32 hc_umulhi (const u32 x, const u32 y)
 {
   #if defined IS_CUDA || defined IS_HIP
   return __umulhi (x, y);
-  #elif defined IS_OPENCL
-  return mul_hi (x, y);
-  #elif defined IS_METAL
-  return mulhi (x, y);
   #else
   return h32_from_64_S ((u64) x * (u64) y);
   #endif
