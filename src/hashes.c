@@ -316,6 +316,41 @@ static void apply_permutation_hash (hash_t *hashes_buf, u32 *indices, const u32 
   }
 }
 
+// tie-break: runs longer than this are sorted with hc_qsort_r instead of insertion sort
+// keeps insertion sort for the common (tiny) runs while avoiding O(m^2) blowup on
+// hash types where dgst_pos2/dgst_pos3 are constant (e.g. LM, Half MD5) and every key is equal
+
+#define RADIX_TIE_QSORT_THRESHOLD 256
+
+typedef struct radix_tie_ctx
+{
+  const hash_t *hashes_buf;
+  u32           dgst_pos0;
+  u32           dgst_pos1;
+
+} radix_tie_ctx_t;
+
+// compare two index values by their digest's (dgst_pos1, dgst_pos0)
+// used only within a tied run, where dgst_pos3/dgst_pos2 are already equal
+
+static int sort_by_digest_idx_p1p0 (const void *v1, const void *v2, void *v3)
+{
+  const u32 idx1 = *(const u32 *) v1;
+  const u32 idx2 = *(const u32 *) v2;
+
+  const radix_tie_ctx_t *ctx = (const radix_tie_ctx_t *) v3;
+
+  const u32 *d1 = (const u32 *) ctx->hashes_buf[idx1].digest;
+  const u32 *d2 = (const u32 *) ctx->hashes_buf[idx2].digest;
+
+  if (d1[ctx->dgst_pos1] > d2[ctx->dgst_pos1]) return  1;
+  if (d1[ctx->dgst_pos1] < d2[ctx->dgst_pos1]) return -1;
+  if (d1[ctx->dgst_pos0] > d2[ctx->dgst_pos0]) return  1;
+  if (d1[ctx->dgst_pos0] < d2[ctx->dgst_pos0]) return -1;
+
+  return 0;
+}
+
 // radix sort for non-salted hash lists
 // uses compact key+index arrays to minimize memory and maximize cache efficiency
 // returns 0 on success, -1 on allocation failure
@@ -365,7 +400,17 @@ static int hc_radix_sort_by_digest (hash_t *hashes_buf, u32 *hashes_cnt_ptr, con
 
     while (j < hashes_cnt && keys[j] == keys[i]) j++;
 
-    if (j - i > 1)
+    if (j - i > RADIX_TIE_QSORT_THRESHOLD)
+    {
+      // large tied run (dgst_pos3/dgst_pos2 constant across many hashes):
+      // insertion sort would be O(m^2), fall back to qsort on the index slice.
+      // keys[i..j) are all equal here, so only indices[] need reordering.
+
+      radix_tie_ctx_t ctx = { hashes_buf, dgst_pos0, dgst_pos1 };
+
+      hc_qsort_r (&indices[i], j - i, sizeof (u32), sort_by_digest_idx_p1p0, &ctx);
+    }
+    else if (j - i > 1)
     {
       // sub-sort this run by dgst_pos1, dgst_pos0 using insertion sort
 
