@@ -1084,6 +1084,16 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if (user_options->segment_size_chgd == true)
+  {
+    if (user_options->segment_size == 0)
+    {
+      event_log_error (hashcat_ctx, "Invalid --segment-size value specified - must be greater than 0.");
+
+      return -1;
+    }
+  }
+
   if (user_options->bitmap_max > 31)
   {
     event_log_error (hashcat_ctx, "Invalid --bitmap-max value specified - must be lower than 32.");
