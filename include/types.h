@@ -1115,6 +1115,9 @@ typedef struct hashes
 
   int          parser_token_length_cnt;
 
+  bool         radix_deduped;
+  bool         radix_digests_reordered;
+
 } hashes_t;
 
 typedef struct hashconfig
