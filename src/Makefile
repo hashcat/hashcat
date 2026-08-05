@@ -408,7 +408,7 @@ endif
 endif
 
 ifeq ($(DEBUG),0)
-CFLAGS                  += -O3 -fomit-frame-pointer
+CFLAGS                  += -O2 -fomit-frame-pointer
 ifneq ($(UNAME),Darwin)
 ifeq ($(and $(filter MSYS2,$(UNAME)),$(filter 1,$(CC_NATIVE_CLANG))),)
 CFLAGS                  += -fno-plt
