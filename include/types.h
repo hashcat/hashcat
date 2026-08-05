@@ -73,18 +73,29 @@ typedef struct timespec   hc_timer_t;
 
 #if defined (_POSIX)
 #include <pthread.h>
+#if defined (__APPLE__)
+#include <dispatch/dispatch.h>
+#else
 #include <semaphore.h>
-#endif
+#endif // __APPLE__
+#endif // _POSIX
 
 #if defined (_WIN)
-typedef HANDLE           hc_thread_t;
-typedef CRITICAL_SECTION hc_thread_mutex_t;
-typedef HANDLE           hc_thread_semaphore_t;
+typedef HANDLE             hc_thread_t;
+typedef CRITICAL_SECTION   hc_thread_mutex_t;
+typedef CONDITION_VARIABLE hc_thread_cond_t;
+typedef HANDLE             hc_thread_semaphore_t;
 #else
-typedef pthread_t        hc_thread_t;
-typedef pthread_mutex_t  hc_thread_mutex_t;
-typedef sem_t            hc_thread_semaphore_t;
-#endif
+typedef pthread_t          hc_thread_t;
+typedef pthread_mutex_t    hc_thread_mutex_t;
+typedef pthread_cond_t     hc_thread_cond_t;
+
+#if defined (__APPLE__)
+typedef dispatch_semaphore_t hc_thread_semaphore_t;
+#else
+typedef sem_t                hc_thread_semaphore_t;
+#endif // __APPLE__
+#endif // _WIN
 
 // enums
 
