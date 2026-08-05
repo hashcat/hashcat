@@ -1281,8 +1281,12 @@ function attack_3()
       # passwords can't be smaller than mask in -a 3 = mask attack
 
       if [ "${#pass}" -lt ${i} ]; then
-        i=$((i + 1))
-        continue
+        if [ "${hash_type}" -eq 14400 ] && [ "${#pass}" -gt 1 ]; then
+          i=$((${#pass} - 1))
+        else
+          i=$((i + 1))
+          continue
+        fi
       fi
 
       pass_part_2=$(echo -n "${pass}" | cut -b  $((i + 1))-)
@@ -1433,6 +1437,10 @@ function attack_3()
     if   [ "${hash_type}" -eq 22000 ]; then
       increment_min=8
       increment_max=9
+    fi
+
+    if [ "${hash_type}" -eq 11500 ] || [ "${hash_type}" -eq 27900 ]; then
+      increment_max=3
     fi
 
     # if file_only -> decode all base64 "hashes" and put them in the temporary file
@@ -1929,12 +1937,22 @@ function attack_6()
           pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
         fi
 
+        mask_len=${i}
+
         if [ ${#pass} -le ${i} ]; then
-          i=$((i + 1))
-          continue
+          if ([ "${hash_type}" -eq 3000 ] || [ "${hash_type}" -eq 8500 ] || [ "${hash_type}" -eq 8501 ] || [ "${hash_type}" -eq 7701 ] || [ "${hash_type}" -eq 14400 ] || [ "${hash_type}" -eq 16000 ]) && [ ${#pass} -gt 1 ]; then
+            mask_len=$((${#pass} - 1))
+          else
+            i=$((i + 1))
+            continue
+          fi
         fi
 
-        echo "${pass}" | cut -b -$((${#pass} - i)) >> "${dict1_a6}"
+        if ([ "${hash_type}" -eq 11500 ] || [ "${hash_type}" -eq 27900 ]) && [ ${mask_len} -gt 3 ]; then
+          mask_len=3
+        fi
+
+        echo "${pass}" | cut -b -$((${#pass} - mask_len)) >> "${dict1_a6}"
 
         # the block below is just a fancy way to do a "shuf" (or sort -R) because macOS doesn't really support it natively
         # we do not really need a shuf, but it's actually better for testing purposes
@@ -1968,9 +1986,14 @@ function attack_6()
 
         mask=""
 
-        for j in $(seq 1 ${i}); do
+        for j in $(seq 1 ${mask_len}); do
           mask="${mask}?d"
         done
+
+        if [ "${min}" -eq 0 ]; then
+          mask=${mask_custom}
+          dict1_a6=${OUTD}/${hash_type}_dict1_custom
+        fi
 
         CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1_a6} ${mask}"
 
@@ -2602,6 +2625,64 @@ function attack_7()
 
       fi
 
+      # hack for fixed_len hash types: dict2 is too short, reconstruct longer dict
+
+      if [ "${hash_type}" -eq 33501 ] || [ "${hash_type}" -eq 33502 ]; then
+
+        dict_file=${OUTD}/${hash_type}_dict2_multi_${i}_longer
+        rm -f "${dict_file}"
+
+        mask_len=${#mask}
+        mask_len=$((mask_len / 2))
+
+        j=1
+
+        while read -r -u 9 hash; do
+
+          pass_part_1=$(sed -n ${j}p "${OUTD}/${hash_type}_dict1_multi_${i}")
+          pass_part_2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
+
+          pass="${pass_part_1}${pass_part_2}"
+
+          pass_suffix=$(echo "${pass}" | cut -b $((mask_len + 1))-)
+
+          echo "${pass_suffix}" >> "${dict_file}"
+
+          j=$((j + 1))
+
+        done 9< "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
+
+      fi
+
+      # hack for fixed_len hash types: dict2 is too short, reconstruct longer dict
+
+      if [ "${hash_type}" -eq 33501 ] || [ "${hash_type}" -eq 33502 ]; then
+
+        dict_file=${OUTD}/${hash_type}_dict2_multi_${i}_longer
+        rm -f "${dict_file}"
+
+        mask_len=${#mask}
+        mask_len=$((mask_len / 2))
+
+        j=1
+
+        while read -r -u 9 hash; do
+
+          pass_part_1=$(sed -n ${j}p "${OUTD}/${hash_type}_dict1_multi_${i}")
+          pass_part_2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
+
+          pass="${pass_part_1}${pass_part_2}"
+
+          pass_suffix=$(echo "${pass}" | cut -b $((mask_len + 1))-)
+
+          echo "${pass_suffix}" >> "${dict_file}"
+
+          j=$((j + 1))
+
+        done 9< "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
+
+      fi
+
       CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} ${hash_file} ${mask} ${dict_file}"
 
       echo "> Testing hash type $hash_type with attack mode 7, markov ${MARKOV}, multi hash with word len ${i}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
@@ -2674,6 +2755,28 @@ function cryptoloop_test()
   CMD="unset"
 
   mkdir -p ${OUTD}/cl_tests
+
+  local hash_name cipher_name
+  case $((hashType / 10 % 10)) in
+    1) hash_name="sha1" ;;
+    2) hash_name="sha256" ;;
+    3) hash_name="sha512" ;;
+    4) hash_name="ripemd160" ;;
+    5) hash_name="whirlpool" ;;
+  esac
+  case $((hashType % 10)) in
+    1) cipher_name="aes" ;;
+    2) cipher_name="serpent" ;;
+    3) cipher_name="twofish" ;;
+  esac
+
+  local img_file="${TDIR}/cl_tests/hashcat_${hash_name}_${cipher_name}_${keySize}.img"
+
+  if [ ! -f "${img_file}" ]; then
+    echo "! ${img_file} not found, skipping cryptoloop test ${hashType}/${keySize}" >> "${OUTD}/logfull.txt"
+    return
+  fi
+
   chmod u+x "${TDIR}/cryptoloop2hashcat.py"
 
   case $hashType in
@@ -2807,7 +2910,7 @@ function cryptoloop_test()
     14553)
       case $keySize in
         128|192|256)
-          eval \"${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_whirlpool_twofish_${keySize}.img\" --hash whirlpool --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash
+          eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_whirlpool_twofish_${keySize}.img\" --hash whirlpool --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash hashca?l"
           ;;
       esac
