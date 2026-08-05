@@ -12,11 +12,9 @@ SCRYPT_YESCRYPT_CFLAGS += -mavx2
 endif
 else
 ifeq ($(IS_PPC),1)
-SCRYPT_YESCRYPT_CFLAGS += -mcpu=native
-SCRYPT_YESCRYPT_CFLAGS += -mtune=native
+SCRYPT_YESCRYPT_CFLAGS += $(MCPU_NATIVE)
 else
-SCRYPT_YESCRYPT_CFLAGS += -march=native
-SCRYPT_YESCRYPT_CFLAGS += -mtune=native
+SCRYPT_YESCRYPT_CFLAGS += $(MARCH_NATIVE)
 endif
 endif
 endif

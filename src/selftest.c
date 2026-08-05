@@ -718,7 +718,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
           st_hashes.esalts_buf      = st_hashes.st_esalts_buf;
           st_hashes.hook_salts_buf  = st_hashes.st_hook_salts_buf;
 
-          if (bridge_ctx->launch_loop (bridge_ctx->platform_context, device_param, hashconfig, &st_hashes, 0, 1) == false) return -1;
+          if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, &st_hashes, 0, 1) == false) return -1;
 
           if (COPY_TMPS)
           {
@@ -881,7 +881,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
             st_hashes.esalts_buf      = st_hashes.st_esalts_buf;
             st_hashes.hook_salts_buf  = st_hashes.st_hook_salts_buf;
 
-            if (bridge_ctx->launch_loop2 (bridge_ctx->platform_context, device_param, hashconfig, &st_hashes, 0, 1) == false) return -1;
+            if (bridge_ctx->launch_loop2 (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, &st_hashes, 0, 1) == false) return -1;
 
             if (COPY_TMPS)
             {
@@ -1265,7 +1265,7 @@ HC_API_CALL void *thread_selftest (void *p)
   {
     if (bridge_ctx->thread_init != BRIDGE_DEFAULT)
     {
-      if (bridge_ctx->thread_init (bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
+      if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
     }
   }
 
@@ -1313,7 +1313,7 @@ HC_API_CALL void *thread_selftest (void *p)
   {
     if (bridge_ctx->thread_term != BRIDGE_DEFAULT)
     {
-      bridge_ctx->thread_term (bridge_ctx->platform_context, device_param, hashconfig, hashes);
+      bridge_ctx->thread_term (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes);
     }
   }
 

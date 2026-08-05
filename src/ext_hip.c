@@ -89,6 +89,25 @@ int hip_init (void *hashcat_ctx)
 
   #else
   hip->lib = hc_dlopen ("libamdhip64.so");
+
+  // The unversioned name is a link that only the -dev package ships, so on a distro that splits its
+  // packages the runtime is installed and this still fails. Fall back to the sonames, newest first,
+  // the way the CUDA and NVRTC loaders already do. The range is walked rather than hardcoded so a
+  // later ROCm does not need another edit here.
+
+  if (hip->lib == NULL)
+  {
+    char soname[64];
+
+    for (int major = 9; major >= 4; major--)
+    {
+      snprintf (soname, sizeof (soname), "libamdhip64.so.%d", major);
+
+      hip->lib = hc_dlopen (soname);
+
+      if (hip->lib) break;
+    }
+  }
   #endif
 
   if (hip->lib == NULL) return -1;

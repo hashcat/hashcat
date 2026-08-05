@@ -30,8 +30,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_MULTIHASH_DESPITE_ESALT
                                   | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_MATCH_TUNINGS // optional - improves performance
-                                  | BRIDGE_TYPE_LAUNCH_LOOP
+static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_LAUNCH_LOOP
                                   | BRIDGE_TYPE_UPDATE_SELFTEST;
 static const char *BRIDGE_NAME    = "python_generic_hash_mp";
 static const char *ST_PASS        = "hashcat";

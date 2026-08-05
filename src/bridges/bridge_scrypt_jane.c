@@ -40,6 +40,12 @@ typedef struct
   //void *X;
   void *Y;
 
+  // V and Y hold ROMix state that has to survive between chunks, so each candidate in a
+  // launch needs its own. these are the per candidate strides into the two allocations.
+
+  size_t V_stride;
+  size_t Y_stride;
+
   // implementation specific
 
   char    unit_info_buf[1024];
@@ -106,7 +112,7 @@ static void units_term (bridge_scrypt_jane_t *bridge_scrypt_jane)
   }
 }
 
-void *platform_init (MAYBE_UNUSED user_options_t *user_options)
+void *platform_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
   // Verify CPU features
 
@@ -126,7 +132,7 @@ void *platform_init (MAYBE_UNUSED user_options_t *user_options)
   return bridge_scrypt_jane;
 }
 
-void platform_term (void *platform_context)
+void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   bridge_scrypt_jane_t *bridge_scrypt_jane = platform_context;
 
@@ -138,7 +144,7 @@ void platform_term (void *platform_context)
   }
 }
 
-int get_unit_count (void *platform_context)
+int get_unit_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   bridge_scrypt_jane_t *bridge_scrypt_jane = platform_context;
 
@@ -147,7 +153,7 @@ int get_unit_count (void *platform_context)
 
 // we support units of mixed speed, that's why the workitem count is unit specific
 
-int get_workitem_count (void *platform_context, const int unit_idx)
+int get_workitem_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   bridge_scrypt_jane_t *bridge_scrypt_jane = platform_context;
 
@@ -156,7 +162,18 @@ int get_workitem_count (void *platform_context, const int unit_idx)
   return unit_buf->workitem_count;
 }
 
-char *get_unit_info (void *platform_context, const int unit_idx)
+// The multiple this bridge computes in.
+//
+// One unit here is one CPU thread working through its batch sequentially, so there is no width to fill
+// and no partial wave to waste: a batch of N costs N hashes whatever N is. Parallelism is expressed as
+// UNITS, not as width inside a unit, which is the structural difference from an accelerator that holds
+// many cores behind a single unit.
+int get_workitem_multiple (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED const int unit_idx)
+{
+  return 1;
+}
+
+char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   bridge_scrypt_jane_t *bridge_scrypt_jane = platform_context;
 
@@ -165,7 +182,7 @@ char *get_unit_info (void *platform_context, const int unit_idx)
   return unit_buf->unit_info_buf;
 }
 
-bool salt_prepare (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   // selftest hash
 
@@ -196,19 +213,50 @@ bool salt_prepare (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig
 
   bridge_scrypt_jane_t *bridge_scrypt_jane = platform_context;
 
+  // How many candidates one launch carries. Now that V is per candidate rather than per unit,
+  // the batch size costs real memory: 128 * r * N for every candidate, on every unit. So the
+  // honest bound is what the host has free, not a fixed constant. N_ACCEL stays only as a
+  // ceiling, so this can never end up slower than it was before.
+  //
+  // A quarter of free memory is the budget. hashcat still has its own host buffers to allocate
+  // after this, and being wrong here costs the user an out of memory kill rather than a warning.
+
+  u64 free_memory = 0;
+
+  u64 workitem_count = N_ACCEL;
+
+  if (get_free_memory (&free_memory) == true)
+  {
+    const u64 per_candidate = (u64) largest_V + (u64) largest_Y;
+
+    const u64 budget = (free_memory / 4) / (u64) bridge_scrypt_jane->units_cnt;
+
+    const u64 fits = budget / per_candidate;
+
+    workitem_count = MAX (MIN (fits, (u64) N_ACCEL), 1);
+  }
+
   for (int unit_idx = 0; unit_idx < bridge_scrypt_jane->units_cnt; unit_idx++)
   {
     unit_t *unit_buf = &bridge_scrypt_jane->units_buf[unit_idx];
 
-    unit_buf->V = hcmalloc_bridge_aligned (largest_V, 64);
+    unit_buf->workitem_count = workitem_count;
+
+    unit_buf->V_stride = largest_V;
+    unit_buf->Y_stride = largest_Y;
+
+    unit_buf->V = hcmalloc_bridge_aligned (largest_V * workitem_count, 64);
     //unit_buf->X = hcmalloc_bridge_aligned (largest_X, 64);
-    unit_buf->Y = hcmalloc_bridge_aligned (largest_Y, 64);
+    unit_buf->Y = hcmalloc_bridge_aligned (largest_Y * workitem_count, 64);
+
+    if (unit_buf->V == NULL) return false;
+    if (unit_buf->Y == NULL) return false;
   }
 
   return true;
 }
 
-void salt_destroy (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+void salt_destroy (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   bridge_scrypt_jane_t *bridge_scrypt_jane = platform_context;
 
@@ -222,7 +270,7 @@ void salt_destroy (void *platform_context, MAYBE_UNUSED hashconfig_t *hashconfig
   }
 }
 
-bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   bridge_scrypt_jane_t *bridge_scrypt_jane = platform_context;
 
@@ -236,15 +284,20 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
 
   scrypt_tmp_t *scrypt_tmp = (scrypt_tmp_t *) device_param->h_tmps;
 
-  scrypt_mix_word_t *V = unit_buf->V;
-  //scrypt_mix_word_t *X = unit_buf->X;
-  scrypt_mix_word_t *Y = unit_buf->Y;
-
   const u32 N = salt_buf->scrypt_N;
   const u32 r = salt_buf->scrypt_r;
   const u32 p = salt_buf->scrypt_p;
 
   const size_t chunk_bytes = 64 * 2 * r;
+
+  // One ROMix takes 2N steps, N to fill V and N to mix. The p of them run back to back, so the
+  // iteration space is p * 2N, which is what the module reports as salt_iter. hashcat hands us a
+  // slice of that space and we advance every candidate through it by exactly that much.
+
+  const u32 steps_per_romix = N * 2;
+
+  const u32 loop_pos = (u32) device_param->kernel_param.loop_pos;
+  const u32 loop_cnt = (u32) device_param->kernel_param.loop_cnt;
 
   // hashcat guarantees h_tmps[] is 64 byte aligned
 
@@ -252,9 +305,27 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   {
     u8 *X = (u8 *) scrypt_tmp->P;
 
-    for (u32 i = 0; i < p; i++)
+    u8 *V = (u8 *) unit_buf->V + (unit_buf->V_stride * pw_cnt);
+    u8 *Y = (u8 *) unit_buf->Y + (unit_buf->Y_stride * pw_cnt);
+
+    u32 pos  = loop_pos;
+    u32 left = loop_cnt;
+
+    // a slice can straddle the boundary between two consecutive ROMix runs, so walk it
+
+    while (left)
     {
-      scrypt_ROMix ((scrypt_mix_word_t *) (X + (chunk_bytes * i)), (scrypt_mix_word_t *) Y, (scrypt_mix_word_t *) V, N, r);
+      const u32 romix_idx = pos / steps_per_romix;
+      const u32 local_pos = pos % steps_per_romix;
+
+      if (romix_idx >= p) break;
+
+      const u32 take = MIN (left, steps_per_romix - local_pos);
+
+      scrypt_ROMix_range ((scrypt_mix_word_t *) (X + (chunk_bytes * romix_idx)), (scrypt_mix_word_t *) Y, (scrypt_mix_word_t *) V, N, r, local_pos, take);
+
+      pos  += take;
+      left -= take;
     }
 
     scrypt_tmp++;
@@ -268,17 +339,28 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->bridge_context_size       = BRIDGE_CONTEXT_SIZE_CURRENT;
   bridge_ctx->bridge_interface_version  = BRIDGE_INTERFACE_VERSION_CURRENT;
 
-  bridge_ctx->platform_init       = platform_init;
-  bridge_ctx->platform_term       = platform_term;
-  bridge_ctx->get_unit_count      = get_unit_count;
-  bridge_ctx->get_unit_info       = get_unit_info;
-  bridge_ctx->get_workitem_count  = get_workitem_count;
-  bridge_ctx->thread_init         = BRIDGE_DEFAULT;
-  bridge_ctx->thread_term         = BRIDGE_DEFAULT;
-  bridge_ctx->salt_prepare        = salt_prepare;
-  bridge_ctx->salt_destroy        = salt_destroy;
-  bridge_ctx->launch_loop         = launch_loop;
-  bridge_ctx->launch_loop2        = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_hash      = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_pass      = BRIDGE_DEFAULT;
+  bridge_ctx->platform_init         = platform_init;
+  bridge_ctx->platform_term         = platform_term;
+  bridge_ctx->get_unit_count        = get_unit_count;
+  bridge_ctx->get_unit_info         = get_unit_info;
+  bridge_ctx->get_workitem_count    = get_workitem_count;
+  bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+  bridge_ctx->thread_init           = BRIDGE_DEFAULT;
+  bridge_ctx->thread_term           = BRIDGE_DEFAULT;
+  bridge_ctx->salt_prepare          = salt_prepare;
+  bridge_ctx->salt_destroy          = salt_destroy;
+  bridge_ctx->launch_loop           = launch_loop;
+  bridge_ctx->launch_loop2          = BRIDGE_DEFAULT;
+  bridge_ctx->st_update_hash        = BRIDGE_DEFAULT;
+  bridge_ctx->st_update_pass        = BRIDGE_DEFAULT;
+
+  bridge_ctx->get_unit_temperature       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_str   = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_abort = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_fanspeed          = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_utilization       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_corespeed         = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_memoryspeed       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_buslanes          = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_power             = BRIDGE_DEFAULT;
 }

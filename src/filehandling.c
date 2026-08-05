@@ -365,9 +365,15 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = (size_t) -1;
 
-  if (ptr == NULL || fp == NULL) return n;
+  // The zero check comes first on purpose. Reading nothing is a no-op that never dereferences ptr, so
+  // it succeeds even when the caller has no buffer, which is what an empty container looks like after
+  // an allocation for zero elements returned NULL. Testing ptr first turned that into a failure return
+  // of (size_t) -1, and a caller comparing it against its own count then reported a short read of
+  // 18446744073709551600 bytes.
 
   if (size == 0 || nmemb == 0) return 0;
+
+  if (ptr == NULL || fp == NULL) return n;
 
   if (fp->pfp)
   {
@@ -509,9 +515,11 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = -1;
 
-  if (ptr == NULL || fp == NULL) return n;
+  // Ordered the same way and for the same reason as hc_fread above.
 
   if (size == 0 || nmemb == 0) return 0;
+
+  if (ptr == NULL || fp == NULL) return n;
 
   if (fp->pfp)
   {

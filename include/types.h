@@ -73,18 +73,29 @@ typedef struct timespec   hc_timer_t;
 
 #if defined (_POSIX)
 #include <pthread.h>
+#if defined (__APPLE__)
+#include <dispatch/dispatch.h>
+#else
 #include <semaphore.h>
-#endif
+#endif // __APPLE__
+#endif // _POSIX
 
 #if defined (_WIN)
-typedef HANDLE           hc_thread_t;
-typedef CRITICAL_SECTION hc_thread_mutex_t;
-typedef HANDLE           hc_thread_semaphore_t;
+typedef HANDLE             hc_thread_t;
+typedef CRITICAL_SECTION   hc_thread_mutex_t;
+typedef CONDITION_VARIABLE hc_thread_cond_t;
+typedef HANDLE             hc_thread_semaphore_t;
 #else
-typedef pthread_t        hc_thread_t;
-typedef pthread_mutex_t  hc_thread_mutex_t;
-typedef sem_t            hc_thread_semaphore_t;
-#endif
+typedef pthread_t          hc_thread_t;
+typedef pthread_mutex_t    hc_thread_mutex_t;
+typedef pthread_cond_t     hc_thread_cond_t;
+
+#if defined (__APPLE__)
+typedef dispatch_semaphore_t hc_thread_semaphore_t;
+#else
+typedef sem_t                hc_thread_semaphore_t;
+#endif // __APPLE__
+#endif // _WIN
 
 // enums
 
@@ -142,6 +153,7 @@ typedef enum event_identifier
   EVENT_MONITOR_RUNTIME_LIMIT     = 0x00000090,
   EVENT_MONITOR_STATUS_REFRESH    = 0x00000091,
   EVENT_MONITOR_TEMP_ABORT        = 0x00000092,
+  EVENT_MONITOR_TEMP_ABORT_FEEDER = 0x00000099,
   EVENT_MONITOR_THROTTLE1         = 0x00000093,
   EVENT_MONITOR_THROTTLE2         = 0x00000094,
   EVENT_MONITOR_THROTTLE3         = 0x00000095,
@@ -515,8 +527,13 @@ typedef enum opts_type
 typedef enum bridge_type
 {
   BRIDGE_TYPE_NONE                   = 0,            // no bridge support
-  BRIDGE_TYPE_MATCH_TUNINGS          = (1ULL <<  1), // Disables autotune and adjusts -n, -u and -T for the backend device according to match bridge dimensions
   BRIDGE_TYPE_UPDATE_SELFTEST        = (1ULL <<  2), // updates the selftest configured in the module. Can be useful for generic hash modes such as the python one
+
+  // launch_loop() honours kernel_param.loop_pos and .loop_cnt, so hashcat may split the salt's
+  // iteration space into chunks and call it once per chunk. Without this the bridge is handed the
+  // whole range in a single call, which is what a one-shot implementation needs.
+
+  BRIDGE_TYPE_LOOP_CHUNKED           = (1ULL <<  3),
 
   BRIDGE_TYPE_LAUNCH_INIT            = (1ULL << 10), // attention! not yet implemented
   BRIDGE_TYPE_LAUNCH_LOOP            = (1ULL << 11),
@@ -531,16 +548,6 @@ typedef enum bridge_type
   BRIDGE_TYPE_REPLACE_LOOP           = (1ULL << 21),
   BRIDGE_TYPE_REPLACE_LOOP2          = (1ULL << 22),
   BRIDGE_TYPE_REPLACE_COMP           = (1ULL << 23), // attention! not yet implemented
-
-  BRIDGE_TYPE_FORCE_WORKITEMS_001    = (1ULL << 30), // This override the workitem counts reported from the bridge device
-  BRIDGE_TYPE_FORCE_WORKITEMS_002    = (1ULL << 31), // Can be useful if this is not a physical hardware
-  BRIDGE_TYPE_FORCE_WORKITEMS_004    = (1ULL << 32),
-  BRIDGE_TYPE_FORCE_WORKITEMS_008    = (1ULL << 33),
-  BRIDGE_TYPE_FORCE_WORKITEMS_016    = (1ULL << 34),
-  BRIDGE_TYPE_FORCE_WORKITEMS_032    = (1ULL << 35),
-  BRIDGE_TYPE_FORCE_WORKITEMS_064    = (1ULL << 36),
-  BRIDGE_TYPE_FORCE_WORKITEMS_128    = (1ULL << 37),
-  BRIDGE_TYPE_FORCE_WORKITEMS_256    = (1ULL << 36),
 
 } bridge_type_t;
 
@@ -837,6 +844,7 @@ typedef enum user_options_map
   #ifdef WITH_BRAIN
   IDX_BRAIN_CLIENT              = 'z',
   IDX_BRAIN_CLIENT_FEATURES     = 0xff09,
+  IDX_BRAIN_FEED                = 0xff17,
   IDX_BRAIN_HOST                = 0xff0a,
   IDX_BRAIN_PASSWORD            = 0xff0b,
   IDX_BRAIN_PORT                = 0xff0c,
@@ -1214,6 +1222,33 @@ typedef struct pw_pre
 
 } pw_pre_t;
 
+// One prepared batch of candidates, and everything a launch needs to know about it. Building a batch
+// is host work and running it is device work, so they are kept apart: the buffers belong to the batch
+// rather than to the device, which is what lets the next batch be built while this one runs.
+
+#define PW_PIPE_SLOTS 2
+
+typedef struct pw_batch
+{
+  pw_idx_t *pws_idx;
+  u32      *pws_comp;
+  u64       pws_cnt;
+
+  // slow candidates keep the rule and the base word each candidate came from, so --debug-mode can
+  // report them. That is read while the batch runs, so it belongs to the batch too.
+
+  pw_pre_t *pws_base;
+  u64       pws_base_cnt;
+
+  // where this batch sits in the keyspace. The restore point may only advance past a batch that has
+  // actually been launched, so the figures travel with the batch instead of with the device.
+
+  u64 words_off;
+  u64 words_fin;
+  u64 words_extra;
+
+} pw_batch_t;
+
 typedef struct cpt
 {
   u32       cracked;
@@ -1276,6 +1311,11 @@ typedef struct hc_device_param
 
   bool    skipped;              // permanent
   bool    skipped_warning;      // iteration
+
+  // Set on the other virtual devices sharing one physical device once any of them has been refused for
+  // want of memory, so the rest are not set up at a cost that only deepens the shortage.
+
+  bool    memory_hit_shared;
 
   u32     device_processors;
   u64     device_maxmem_alloc;
@@ -1464,6 +1504,7 @@ typedef struct hc_device_param
   u64  size_brain_link_out;
 
   int           brain_link_client_fd;
+  bool          brain_link_reported;    // a failed link is retried per batch, so report an outage once
   link_speed_t  brain_link_recv_speed;
   link_speed_t  brain_link_send_speed;
   bool          brain_link_recv_active;
@@ -1481,15 +1522,19 @@ typedef struct hc_device_param
 
   void     *hooks_buf;
 
+  // the batch currently being launched. These point into one of the slots below, so everything
+  // downstream of the launch reads them exactly as it always did.
+
   pw_idx_t *pws_idx;
   u32      *pws_comp;
   u64       pws_cnt;
 
+  pw_batch_t pws_slot[PW_PIPE_SLOTS];
+
   pw_pre_t *pws_pre_buf;  // for slow candidates
   u64       pws_pre_cnt;
 
-  pw_pre_t *pws_base_buf; // for debug mode
-  u64       pws_base_cnt;
+  pw_pre_t *pws_base_buf; // for debug mode, a view of the batch being launched
 
   void    *h_tmps; // we need this only for bridges
 
@@ -1982,6 +2027,28 @@ typedef struct hc_device_param
   cl_mem            opencl_d_st_esalts_buf;
   cl_mem            opencl_d_kernel_param;
 
+  // Which presentation group this device belongs to, as the device index of the group's first
+  // member. A device that leads its own group carries its own index, which is what every device
+  // outside a bridge does, so nothing about an ordinary run changes.
+  //
+  // Many devices can be ONE thing the user is looking at. Grouping is how those stay separate: work
+  // is fed, tuned and failed per device, and reported per group. Without it sixty four devices of one
+  // kind are sixty four status lines saying the same number.
+
+  int               group_id;
+
+  // Whether this device's context and programs came from an earlier clone of the same physical
+  // device rather than being built here. A cl_program is what costs the host memory, and it belongs
+  // to a context, so the two are shared or neither is.
+
+  bool              opencl_context_is_clone;
+
+  // What makes two builds interchangeable. hashcat already computes these to name the kernel cache
+  // file, and a clone that agrees on both can use the program a previous clone built.
+
+  char              opencl_chksum[16];
+  char              opencl_chksum_amp_mp[16];
+
 } hc_device_param_t;
 
 typedef struct backend_ctx
@@ -2029,6 +2096,13 @@ typedef struct backend_ctx
   int                 metal_devices_active;
   int                 opencl_devices_cnt;
   int                 opencl_devices_active;
+
+  // Whether virtual devices on one physical device share the compiled program instead of each
+  // building their own. A program costs about 165 MiB of host memory on a runtime that compiles at
+  // startup, and that is per virtual device, so a bridge with many units pays it many times over for
+  // byte-identical builds.
+
+  bool                opencl_program_share;
 
   int                 backend_devices_filter[DEVICES_MAX];
 
@@ -2091,14 +2165,23 @@ typedef struct backend_ctx
 
 } backend_ctx_t;
 
+// KERNEL_ACCEL_MAX bounds a per-multiprocessor multiplier, which is what kernel_accel means for a
+// compute kernel: the launch is hardware_power * kernel_accel, so 1024 is already an enormous grid.
+//
+// Under an assimilation bridge hardware_power is 1 and kernel_accel IS the candidate count in a
+// launch, so the same number is a much smaller thing. A bridge whose unit is itself wide computes in
+// waves of its own width and wants many whole waves per launch, which can put its useful range in the
+// thousands, and 1024 would then express only the bottom few percent of it.
+
 typedef enum kernel_workload
 {
-  KERNEL_ACCEL_MIN   = 1,
-  KERNEL_ACCEL_MAX   = 1024,
-  KERNEL_LOOPS_MIN   = 1,
-  KERNEL_LOOPS_MAX   = 1024,
-  KERNEL_THREADS_MIN = 1,
-  KERNEL_THREADS_MAX = 1024,
+  KERNEL_ACCEL_MIN        = 1,
+  KERNEL_ACCEL_MAX        = 1024,
+  KERNEL_ACCEL_MAX_BRIDGE = 16384,
+  KERNEL_LOOPS_MIN        = 1,
+  KERNEL_LOOPS_MAX        = 1024,
+  KERNEL_THREADS_MIN      = 1,
+  KERNEL_THREADS_MAX      = 1024,
 
 } kernel_workload_t;
 
@@ -2479,6 +2562,7 @@ typedef struct user_options
   bool         benchmark_all;
   #ifdef WITH_BRAIN
   bool         brain_client;
+  bool         brain_feed;
   bool         brain_server;
   #endif
   bool         color_cracked;
@@ -2834,6 +2918,13 @@ typedef struct device_info
 {
   bool    skipped_dev;
   bool    skipped_warning_dev;
+
+  // Which group reports for this device, as the index of the group's first member, and how many
+  // devices that group holds. A device that leads its own group carries its own index and a size of
+  // 1, which is every device outside a bridge.
+
+  int     group_id_dev;
+  int     group_size_dev;
   double  hashes_msec_dev;
   double  hashes_msec_dev_benchmark;
   double  exec_msec_dev;
@@ -2851,6 +2942,7 @@ typedef struct device_info
   int     kernel_loops_dev;
   int     kernel_threads_dev;
   int     vector_width_dev;
+  u64     kernel_power_dev;
   int     salt_pos_dev;
   u64     innerloop_pos_dev;
   u64     innerloop_left_dev;
@@ -2922,6 +3014,10 @@ typedef struct hashcat_status
   u64         progress_ignore;
   u64         progress_rejected;
   double      progress_rejected_percent;
+  #ifdef WITH_BRAIN
+  u64         brain_rejects_attacks;
+  u64         brain_rejects_hashes;
+  #endif
   u64         progress_restored;
   u64         progress_skip;
   u64         restore_point;
@@ -2938,6 +3034,11 @@ typedef struct hashcat_status
   device_info_t device_info_buf[DEVICES_MAX];
   int           device_info_cnt;
   int           device_info_active;
+
+  // How many groups are actually running. The status view prints one line per group, so this is what
+  // decides whether a total line underneath would say anything the lines above did not.
+
+  int           group_info_active;
 
   double  hashes_msec_all;
   double  exec_msec_all;
@@ -2999,6 +3100,16 @@ typedef struct status_ctx
   u64 *words_progress_done;     // progress number of words done     per salt
   u64 *words_progress_rejected; // progress number of words rejected per salt
   u64 *words_progress_restored; // progress number of words restored per salt
+
+  #ifdef WITH_BRAIN
+  // words_progress_rejected mixes every reason a candidate was dropped, so it cannot answer "how much
+  // did the brain save". These two count only the brain, split by mechanism, because the mechanisms
+  // are independent: ATTACKS skips a keyspace position another client already reserved, HASHES drops
+  // a candidate the brain has seen before whatever position it came from.
+
+  u64 brain_rejects_attacks;
+  u64 brain_rejects_hashes;
+  #endif
 
   int bypass_digests_done_new;  // --bypass-threshold cracked counter
 
@@ -3089,6 +3200,12 @@ typedef struct event_ctx
 
 typedef void (*BRIDGE_INIT) (void *);
 
+// Declared ahead of bridge_ctx because platform_init takes one, and the definition comes further
+// down this file. A bridge is handed the whole context rather than a few pieces of it, which is what
+// lets it call hashcat's own logging functions with no wrapper of any kind.
+
+typedef struct hashcat_ctx hashcat_ctx_t;
+
 typedef struct bridge_ctx
 {
   // local variables
@@ -3108,24 +3225,112 @@ typedef struct bridge_ctx
 
   // functions
 
-  void     *(*platform_init)      (user_options_t *);
-  void      (*platform_term)      (void *);
+  void     *(*platform_init)      (hashcat_ctx_t *);
+  void      (*platform_term)      (hashcat_ctx_t *, void *);
 
-  int       (*get_unit_count)     (void *);
-  char     *(*get_unit_info)      (void *, const int);
-  int       (*get_workitem_count) (void *, const int);
+  int       (*get_unit_count)        (hashcat_ctx_t *, void *);
+  char     *(*get_unit_info)         (hashcat_ctx_t *, void *, const int);
+  int       (*get_workitem_count)    (hashcat_ctx_t *, void *, const int);
+  int       (*get_workitem_multiple) (hashcat_ctx_t *, void *, const int);
 
-  bool      (*salt_prepare)       (void *, hashconfig_t *, hashes_t *);
-  void      (*salt_destroy)       (void *, hashconfig_t *, hashes_t *);
+  // Which units are interchangeable, for anything that wants to treat one unit's answer as valid for
+  // another. Two units share a class when the same tuning is right for both.
+  //
+  // OPTIONAL. Leave it unset and units are compared by get_unit_info instead, which is correct
+  // whenever a bridge's units are genuinely identical, and that is the usual case for a bridge whose
+  // units are CPU threads. A bridge whose unit info names the individual device, by carrying its
+  // device node for instance, has to answer this or no two of its units will ever look alike.
+  //
+  // It describes the CLASS, never the instance: same board, same design, same width, same clock. It
+  // must not carry a serial number, a device path or an index.
 
-  bool      (*thread_init)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
-  void      (*thread_term)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+  char     *(*get_unit_class)        (hashcat_ctx_t *, void *, const int);
 
-  bool      (*launch_loop)        (void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
-  bool      (*launch_loop2)       (void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+  // What one unit is MADE OF, for a bridge whose unit is several pieces of hardware driven together.
+  //
+  // OPTIONAL, and a bridge whose units are single things leaves both unset. A bridge that groups
+  // hardware has to answer them, because grouping is what takes the per-unit Speed line away from the
+  // individual member: without a way to list them, a user with forty of them can see that one is
+  // misbehaving and has no way to learn which.
+  //
+  // The member index is the unit's own numbering, from 0, and it is the SAME number the bridge uses
+  // anywhere else it names a member. get_unit_member_info returns NULL for an index the unit does not
+  // have.
 
-  const char *(*st_update_pass)  (void *);
-  const char *(*st_update_hash)  (void *);
+  int       (*get_unit_member_count) (hashcat_ctx_t *, void *, const int);
+  char     *(*get_unit_member_info)  (hashcat_ctx_t *, void *, const int, const int);
+
+  // ★ hashes IS PASSED EXPLICITLY AND YOU MUST USE IT. Do not read hashcat_ctx->hashes here.
+  //
+  // The self test hands these functions a hashes_t that is a LOCAL COPY of the real one with its
+  // digest, salt, esalt and hook salt buffers swapped for the self test's own. It is not the struct
+  // hanging off hashcat_ctx, and it never will be. A bridge that reaches through the context instead
+  // of taking the argument computes against the user's real hashes during the self test, which
+  // either passes for the wrong reason or fails for one that makes no sense.
+  //
+  // This is the one place where having the whole context is a hazard rather than a convenience, and
+  // it is why these signatures still carry what looks like redundant information. hashconfig is kept
+  // beside it for the same reason: they arrive as a pair and separating them invites the mistake.
+
+  bool      (*salt_prepare)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
+  void      (*salt_destroy)       (hashcat_ctx_t *, void *, hashconfig_t *, hashes_t *);
+
+  bool      (*thread_init)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+  void      (*thread_term)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *);
+
+  bool      (*launch_loop)        (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+  bool      (*launch_loop2)       (hashcat_ctx_t *, void *, hc_device_param_t *, hashconfig_t *, hashes_t *, const u32, const u64);
+
+  const char *(*st_update_pass)  (hashcat_ctx_t *, void *);
+  const char *(*st_update_hash)  (hashcat_ctx_t *, void *);
+
+  // Sensor readings for one unit, for bridges whose units are real hardware.
+  //
+  // hwmon otherwise describes the device that generates the candidates, which under a bridge is only
+  // the feeder. These report the device that actually does the work instead.
+  //
+  // A bridge that has no sensors leaves them all at BRIDGE_DEFAULT. Return -1 for a reading this
+  // particular unit cannot give, or 0 for the unsigned ones, which is what the rest of hwmon uses.
+
+  int (*get_unit_temperature) (hashcat_ctx_t *, void *, const int);
+
+  // Optional. A bridge unit whose hardware carries SEVERAL temperature sensors can render its own
+  // field, so all of the readings show on one line instead of a single summary number. Return false
+  // to let the plain get_unit_temperature reading be formatted as usual.
+
+  bool (*get_unit_temperature_str) (hashcat_ctx_t *, void *, const int, char *, const size_t);
+
+  // How the unit is attached, as text, when a lane count cannot say it. Optional, and only needed by a
+  // bridge whose units are not all reached the same way.
+
+  bool (*get_unit_buslanes_str) (hashcat_ctx_t *, void *, const int, char *, const size_t);
+
+  // Optional. What temperature this unit must not exceed, when the bridge knows better than the
+  // watchdog's default does. The default is chosen for GPUs, and a unit that is not one has no reason
+  // to share it: its sensor may not sit where a GPU's does, so the same number does not mean the same
+  // thing. Return 0 to keep the default.
+
+  u32 (*get_unit_temperature_abort) (hashcat_ctx_t *, void *, const int);
+
+  // Optional. How many of a unit's members report no temperature at all.
+  //
+  // A unit made of one piece of hardware is watched or it is not, and get_unit_temperature returning
+  // -1 says which. A unit made of several is neither: the watchdog acts on the hottest member that
+  // HAS a sensor, and the members that have none are simply not covered. Sensor presence is not even
+  // a property of the class, because two members can report the same class string when only one of
+  // them has a sensor fitted.
+  //
+  // So the banner has to be able to say how much of a watched unit is actually watched. Returning 0,
+  // or leaving this unset, means everything the unit holds is covered.
+
+  int (*get_unit_temperature_unwatched) (hashcat_ctx_t *, void *, const int);
+
+  int (*get_unit_fanspeed)    (hashcat_ctx_t *, void *, const int);
+  int (*get_unit_utilization) (hashcat_ctx_t *, void *, const int);
+  int (*get_unit_corespeed)   (hashcat_ctx_t *, void *, const int);
+  int (*get_unit_memoryspeed) (hashcat_ctx_t *, void *, const int);
+  int (*get_unit_buslanes)    (hashcat_ctx_t *, void *, const int);
+  u64 (*get_unit_power)       (hashcat_ctx_t *, void *, const int);
 
 } bridge_ctx_t;
 
@@ -3233,7 +3438,7 @@ typedef struct module_ctx
 
 } module_ctx_t;
 
-typedef struct hashcat_ctx
+struct hashcat_ctx
 {
   brain_ctx_t           *brain_ctx;
   bitmap_ctx_t          *bitmap_ctx;
@@ -3269,7 +3474,7 @@ typedef struct hashcat_ctx
 
   void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
 
-} hashcat_ctx_t;
+};
 
 typedef struct thread_param
 {

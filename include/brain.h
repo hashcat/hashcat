@@ -18,9 +18,19 @@
 #include <fcntl.h>
 
 #if defined (_WIN)
-#define _WINNT_WIN32 0x0601
-#include <ws2tcpip.h>
+
+// The macro is _WIN32_WINNT. It was spelled _WINNT_WIN32 here, so nothing ever read it.
+// Its value selects Windows 7, and ws2tcpip.h only declares inet_ntop from Vista upwards.
+// Recent mingw defaults above that line and declares it regardless, which kept this hidden.
+// Below it the declaration is absent and the call in brain_server falls back to an implicit
+// one. clang rejects that outright and C23 removes it.
+
+#define _WIN32_WINNT 0x0601
+
+// winsock2.h first, because ws2tcpip.h builds on it
+
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #include <wincrypt.h>
 #define SEND_FLAGS 0
 #else
@@ -52,6 +62,12 @@ static const int BRAIN_LINK_VERSION_CUR           = 1;
 static const int BRAIN_LINK_VERSION_MIN           = 1;
 static const int BRAIN_LINK_CHUNK_SIZE            = 4 * 1024;
 static const int BRAIN_LINK_CANDIDATES_MAX        = 128 * 1024 * 256; // units * threads * accel
+
+// How many candidates --brain-feed hashes before handing them over. It is also what the feeder
+// declares as its passwords_max at connect, because the server refuses a lookup larger than that,
+// so the two cannot drift apart.
+
+#define BRAIN_FEED_CHUNK 65536
 
 typedef enum brain_operation
 {
@@ -200,6 +216,9 @@ u64   brain_compute_attack_wordlist     (const char *filename);
 u32   brain_auth_challenge              (void);
 u64   brain_auth_hash                   (const u32 challenge, const char *pw_buf, const int pw_len);
 
+// returns 0 when connected, otherwise the errno-style reason. It does not log, so the caller owns the
+// message and can name the host and port that failed.
+
 int   brain_connect                     (int sockfd, const struct sockaddr *addr, socklen_t addrlen, const int timeout);
 bool  brain_recv                        (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx);
 bool  brain_send                        (int sockfd, void *buf, size_t len, int flags, hc_device_param_t *device_param, const status_ctx_t *status_ctx);
@@ -209,10 +228,11 @@ bool  brain_send_all                    (int sockfd, void *buf, size_t len, int 
 bool  brain_client_reserve              (hc_device_param_t *device_param, const status_ctx_t *status_ctx, u64 words_off, u64 work, u64 *overlap);
 bool  brain_client_commit               (hc_device_param_t *device_param, const status_ctx_t *status_ctx);
 bool  brain_client_lookup               (hc_device_param_t *device_param, const status_ctx_t *status_ctx);
-bool  brain_client_connect              (hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest);
+bool  brain_client_connect              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest);
 void  brain_client_disconnect           (hc_device_param_t *device_param);
 void  brain_client_generate_hash        (u64 *hash, const char *line_buf, const size_t line_len);
 
+int   brain_feed                        (hashcat_ctx_t *hashcat_ctx);
 int   brain_server                      (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist, const u32 brain_server_timer);
 bool  brain_server_read_hash_dumps      (brain_server_dbs_t *brain_server_dbs, const char *path);
 bool  brain_server_write_hash_dumps     (brain_server_dbs_t *brain_server_dbs, const char *path);

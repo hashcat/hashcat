@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "event.h"
 #include "bridges.h"
 #include "memory.h"
 #include "shared.h"
@@ -331,7 +332,7 @@ static int resolve_pyenv_libpath (char *out_buf, const size_t out_sz)
   return -1;
 }
 
-static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
+static bool init_python (hashcat_ctx_t *hashcat_ctx, hc_python_lib_t *python, user_options_t *user_options)
 {
   char pythondll_path[PATH_MAX];
 
@@ -515,12 +516,13 @@ static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
 
   if (python->lib == NULL)
   {
-    fprintf (stderr, "Unable to find suitable Python library for -m 72000.\n\n");
-    fprintf (stderr, "Most users who encounter this error are just missing the so called 'free-threaded' library support.\n");
-    fprintf (stderr, "* On Windows, during install, there's an option 'free-threaded' that you need to click, it's just disabled by default.\n");
-    fprintf (stderr, "* On Linux and MacOS, use `pyenv` and select a version that ends with a `t` (for instance `3.13t`).\n");
-    fprintf (stderr, "  However, on Linux (not MacOS) it's better to use -m 73000 instead. So you probably want to ignore this.\n");
-    fprintf (stderr, "\n");
+    event_log_error (hashcat_ctx, "Unable to find suitable Python library for -m 72000.");
+    event_log_info (hashcat_ctx, "Most users who encounter this error are just missing the so called 'free-threaded' library support.");
+    event_log_info (hashcat_ctx, "* On Windows, during install, there's an option 'free-threaded' that you need to click, it's just disabled by default.");
+    event_log_info (hashcat_ctx, "* On Linux and MacOS, use `pyenv` and select a version that ends with a `t` (for instance `3.13t`).");
+    event_log_info (hashcat_ctx, "  However, on Linux (not MacOS) it's better to use -m 73000 instead. So you probably want to ignore this.");
+    event_log_info (hashcat_ctx, NULL);
+    event_log_info (hashcat_ctx, NULL);
 
     return false;
   }
@@ -542,12 +544,13 @@ static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
   {
     if (user_options->machine_readable == false)
     {
-      fprintf (stderr, "Attention!!! The 'free-threaded' python library has some major downsides.\n");
-      fprintf (stderr, "  The main purpose of this module is to give Windows and macOS users a multithreading option.\n");
-      fprintf (stderr, "  It seems to be a lot slower, and relevant modules such as `cffi` are incompatibile.\n");
-      fprintf (stderr, "  Since your are on Linux we highly recommend to stick to multiprocessing module.\n");
-      fprintf (stderr, "  Maybe 'free-threaded' mode will become more mature in the future.\n");
-      fprintf (stderr, "  For now, we high recommend to stick to -m 73000 instead.\n\n");
+      event_log_error (hashcat_ctx, "Attention!!! The 'free-threaded' python library has some major downsides.");
+      event_log_info (hashcat_ctx, "  The main purpose of this module is to give Windows and macOS users a multithreading option.");
+      event_log_info (hashcat_ctx, "  It seems to be a lot slower, and relevant modules such as `cffi` are incompatibile.");
+      event_log_info (hashcat_ctx, "  Since your are on Linux we highly recommend to stick to multiprocessing module.");
+      event_log_info (hashcat_ctx, "  Maybe 'free-threaded' mode will become more mature in the future.");
+      event_log_info (hashcat_ctx, "  For now, we high recommend to stick to -m 73000 instead.");
+      event_log_info (hashcat_ctx, NULL);
     }
   }
   #endif
@@ -558,11 +561,11 @@ static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
       if ((noerr) != -1) { \
         if (!(ptr)->name) { \
           if ((noerr) == 1) { \
-            fprintf (stderr, "%s is missing from %s shared library.", #name, #libname); \
+            event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
             return false; \
           } \
           if ((noerr) != 1) { \
-            fprintf (stderr, "%s is missing from %s shared library.", #name, #libname); \
+            event_log_error (hashcat_ctx, "%s is missing from %s shared library.", #name, #libname); \
             return true; \
           } \
         } \
@@ -578,14 +581,14 @@ static bool init_python (hc_python_lib_t *python, user_options_t *user_options)
 
   if (sscanf (version_str, "%d.%d", &major, &minor) != 2)
   {
-    fprintf (stderr, "Python version string is not valid: %s\n", version_str);
+    event_log_error (hashcat_ctx, "Python version string is not valid: %s", version_str);
 
     return false;
   }
 
   if ((major < 3) || (major == 3 && minor < 13))
   {
-    fprintf (stderr, "Python version mismatch: Need at least v3.13\n");
+    event_log_error (hashcat_ctx, "Python version mismatch: Need at least v3.13");
 
     return false;
   }
@@ -695,8 +698,10 @@ static void units_term (python_interpreter_t *python_interpreter)
   }
 }
 
-void *platform_init (user_options_t *user_options)
+void *platform_init (hashcat_ctx_t *hashcat_ctx)
 {
+  MAYBE_UNUSED user_options_t  *user_options  = hashcat_ctx->user_options;
+
   // Verify CPU features
 
   if (cpu_chipset_test () == -1) return NULL;
@@ -709,7 +714,7 @@ void *platform_init (user_options_t *user_options)
 
   python_interpreter->python = python;
 
-  if (init_python (python, user_options) == false) return NULL;
+  if (init_python (hashcat_ctx, python, user_options) == false) return NULL;
 
   python->Py_Initialize ();
 
@@ -727,7 +732,7 @@ void *platform_init (user_options_t *user_options)
   return python_interpreter;
 }
 
-void platform_term (void *platform_context)
+void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -746,7 +751,7 @@ void platform_term (void *platform_context)
   hcfree (python_interpreter);
 }
 
-bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -919,7 +924,7 @@ bool thread_init (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   return true;
 }
 
-void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
+void thread_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -968,7 +973,7 @@ void thread_term (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   python->Py_EndInterpreter (unit_buf->tstate);
 }
 
-int get_unit_count (void *platform_context)
+int get_unit_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -977,7 +982,7 @@ int get_unit_count (void *platform_context)
 
 // we support units of mixed speed, that's why the workitem count is unit specific
 
-int get_workitem_count (void *platform_context, const int unit_idx)
+int get_workitem_count (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -986,7 +991,18 @@ int get_workitem_count (void *platform_context, const int unit_idx)
   return unit_buf->workitem_count;
 }
 
-char *get_unit_info (void *platform_context, const int unit_idx)
+// The multiple this bridge computes in.
+//
+// One unit here is one CPU thread working through its batch sequentially, so there is no width to fill
+// and no partial wave to waste: a batch of N costs N hashes whatever N is. Parallelism is expressed as
+// UNITS, not as width inside a unit, which is the structural difference from an accelerator that holds
+// many cores behind a single unit.
+int get_workitem_multiple (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED const int unit_idx)
+{
+  return 1;
+}
+
+char *get_unit_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_context, const int unit_idx)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -995,7 +1011,7 @@ char *get_unit_info (void *platform_context, const int unit_idx)
   return unit_buf->unit_info_buf;
 }
 
-bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
+bool launch_loop (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_param_t *device_param, MAYBE_UNUSED hashconfig_t *hashconfig, MAYBE_UNUSED hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u64 pws_cnt)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -1101,7 +1117,7 @@ bool launch_loop (MAYBE_UNUSED void *platform_context, MAYBE_UNUSED hc_device_pa
   return true;
 }
 
-const char *st_update_hash (MAYBE_UNUSED void *platform_context)
+const char *st_update_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -1121,7 +1137,7 @@ const char *st_update_hash (MAYBE_UNUSED void *platform_context)
 
   if (source == NULL)
   {
-    fprintf (stderr, "ERROR: %s: %s\n\n", python_interpreter->source_filename, strerror (errno));
+    event_log_error (hashcat_ctx, "ERROR: %s: %s", python_interpreter->source_filename, strerror (errno));
 
     return NULL;
   }
@@ -1170,7 +1186,7 @@ const char *st_update_hash (MAYBE_UNUSED void *platform_context)
   return s;
 }
 
-const char *st_update_pass (MAYBE_UNUSED void *platform_context)
+const char *st_update_pass (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *platform_context)
 {
   python_interpreter_t *python_interpreter = platform_context;
 
@@ -1239,17 +1255,28 @@ void bridge_init (bridge_ctx_t *bridge_ctx)
   bridge_ctx->bridge_context_size       = BRIDGE_CONTEXT_SIZE_CURRENT;
   bridge_ctx->bridge_interface_version  = BRIDGE_INTERFACE_VERSION_CURRENT;
 
-  bridge_ctx->platform_init       = platform_init;
-  bridge_ctx->platform_term       = platform_term;
-  bridge_ctx->get_unit_count      = get_unit_count;
-  bridge_ctx->get_unit_info       = get_unit_info;
-  bridge_ctx->get_workitem_count  = get_workitem_count;
-  bridge_ctx->thread_init         = thread_init;
-  bridge_ctx->thread_term         = thread_term;
-  bridge_ctx->salt_prepare        = BRIDGE_DEFAULT;
-  bridge_ctx->salt_destroy        = BRIDGE_DEFAULT;
-  bridge_ctx->launch_loop         = launch_loop;
-  bridge_ctx->launch_loop2        = BRIDGE_DEFAULT;
-  bridge_ctx->st_update_hash      = st_update_hash;
-  bridge_ctx->st_update_pass      = st_update_pass;
+  bridge_ctx->platform_init         = platform_init;
+  bridge_ctx->platform_term         = platform_term;
+  bridge_ctx->get_unit_count        = get_unit_count;
+  bridge_ctx->get_unit_info         = get_unit_info;
+  bridge_ctx->get_workitem_count    = get_workitem_count;
+  bridge_ctx->get_workitem_multiple = get_workitem_multiple;
+  bridge_ctx->thread_init           = thread_init;
+  bridge_ctx->thread_term           = thread_term;
+  bridge_ctx->salt_prepare          = BRIDGE_DEFAULT;
+  bridge_ctx->salt_destroy          = BRIDGE_DEFAULT;
+  bridge_ctx->launch_loop           = launch_loop;
+  bridge_ctx->launch_loop2          = BRIDGE_DEFAULT;
+  bridge_ctx->st_update_hash        = st_update_hash;
+  bridge_ctx->st_update_pass        = st_update_pass;
+
+  bridge_ctx->get_unit_temperature       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_str   = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_temperature_abort = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_fanspeed          = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_utilization       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_corespeed         = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_memoryspeed       = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_buslanes          = BRIDGE_DEFAULT;
+  bridge_ctx->get_unit_power             = BRIDGE_DEFAULT;
 }

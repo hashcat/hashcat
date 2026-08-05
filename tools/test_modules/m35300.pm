@@ -11,7 +11,7 @@ use warnings;
 use Crypt::RC4;
 use Digest::HMAC_MD5 qw (hmac_md5);
 
-sub module_constraints { [[32, 32], [16, 16], [0, 27], [16, 16], [-1, -1]] }
+sub module_constraints { [[32, 32], [16, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
 {

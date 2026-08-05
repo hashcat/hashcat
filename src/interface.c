@@ -533,8 +533,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // selftest bridge update
   if (hashconfig->bridge_type & BRIDGE_TYPE_UPDATE_SELFTEST)
   {
-    if (bridge_ctx->st_update_hash) hashconfig->st_hash = bridge_ctx->st_update_hash (bridge_ctx->platform_context);
-    if (bridge_ctx->st_update_pass) hashconfig->st_pass = bridge_ctx->st_update_pass (bridge_ctx->platform_context);
+    if (bridge_ctx->st_update_hash) hashconfig->st_hash = bridge_ctx->st_update_hash (hashcat_ctx, bridge_ctx->platform_context);
+    if (bridge_ctx->st_update_pass) hashconfig->st_pass = bridge_ctx->st_update_pass (hashcat_ctx, bridge_ctx->platform_context);
   }
 
   return 0;

@@ -22,7 +22,7 @@ apt-get clean && rm -rf /var/lib/apt/lists/*
 ENV PYENV_ROOT /root/.pyenv
 ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 RUN git clone --depth=1 https://github.com/pyenv/pyenv.git .pyenv
-RUN pyenv install 3.13 && pyenv global 3.13
+RUN pyenv install 3.14 && pyenv global 3.14
 
 ## Install rust
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
