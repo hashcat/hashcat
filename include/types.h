@@ -131,6 +131,8 @@ typedef enum event_identifier
   EVENT_CRACKER_FINISHED          = 0x00000030,
   EVENT_CRACKER_HASH_CRACKED      = 0x00000031,
   EVENT_CRACKER_STARTING          = 0x00000032,
+  EVENT_GENERIC_INIT_POST         = 0x00000140,
+  EVENT_GENERIC_INIT_PRE          = 0x00000141,
   EVENT_HASHCONFIG_PRE            = 0x00000040,
   EVENT_HASHCONFIG_POST           = 0x00000041,
   EVENT_HASHLIST_COUNT_LINES_POST = 0x00000050,
@@ -2855,6 +2857,27 @@ typedef struct generic_global_ctx
   char  *profile_dir;
   char  *cache_dir;
 
+  // What the status display puts inside "Guess.Base.......: Feed (...)". A feed may write its own
+  // during global_init (), because the plugin name alone says what is generating and not what it is
+  // generating from: "Feed (rockyou.pcfg)" tells the user something that "Feed (pcfg)" does not.
+  // Left empty, hashcat falls back to the plugin name.
+
+  char   guess_base[256];
+
+  // A feed built from several named sources laid end to end can publish where each one begins in the
+  // keyspace, and then the status line says which source the run has reached rather than naming only
+  // the first one. segment_first[i] is the offset source i starts at, ascending.
+  //
+  // hashcat reports the source holding the restore point, which is the contiguous prefix every device
+  // has finished. Asking a device where it is would give a different answer per device and flicker
+  // between them, because the whole point of the feed is that devices work separate ranges at once.
+  //
+  // A feed with nothing to segment leaves segments_cnt at zero and keeps guess_base as it is.
+
+  u64          segments_cnt;
+  const char **segment_names;
+  const u64   *segment_first;
+
   bool   error;
   char   error_msg[256];
 
@@ -2864,6 +2887,13 @@ typedef struct generic_global_ctx
 
 typedef struct generic_thread_ctx
 {
+  // A failure inside thread_init (), thread_term (), thread_next () or thread_seek () is reported
+  // here and not in the global context, because those four run on one device thread each and a
+  // shared flag would let one device's failure speak for all of them.
+
+  bool   error;
+  char   error_msg[256];
+
   void  *thrdata; // super generic
 
 } generic_thread_ctx_t;
@@ -2874,7 +2904,7 @@ typedef u64  (*GENERIC_GLOBAL_KEYSPACE) (generic_global_ctx_t *, generic_thread_
 
 typedef bool (*GENERIC_THREAD_INIT)     (generic_global_ctx_t *, generic_thread_ctx_t *);
 typedef void (*GENERIC_THREAD_TERM)     (generic_global_ctx_t *, generic_thread_ctx_t *);
-typedef int  (*GENERIC_THREAD_NEXT)     (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *);
+typedef int  (*GENERIC_THREAD_NEXT)     (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int);
 typedef bool (*GENERIC_THREAD_SEEK)     (generic_global_ctx_t *, generic_thread_ctx_t *, const u64);
 
 typedef struct generic_ctx
@@ -2884,6 +2914,9 @@ typedef struct generic_ctx
   generic_global_ctx_t  global_ctx;
   generic_thread_ctx_t *thread_ctx;
 
+  // what the user asked for, and the file that turned out to be
+
+  char *plugin_name;
   char *dynlib_filename;
 
   hc_dynlib_t lib;

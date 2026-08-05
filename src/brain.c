@@ -148,11 +148,12 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 
 u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 {
-  const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-  const hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
-  const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
-  const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
-  const user_options_t   *user_options   = hashcat_ctx->user_options;
+  const combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   XXH64_state_t *state = XXH64_createState ();
 
@@ -596,7 +597,59 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_GENERIC)
   {
-    // todo: ATTACK_MODE_GENERIC brain compute attack
+    // Two clients are running the same attack when they load the same feed with the same arguments,
+    // so the plugin name and everything after it go into the hash. The arguments are what the feed
+    // reads from, a wordlist path for one feed and a model for another, and hashcat cannot say which,
+    // so all of them are taken as given.
+
+    const generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
+
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
+    {
+      const char *workv = user_options_extra->hc_workv[i];
+
+      XXH64_update (state, workv, strlen (workv));
+    }
+
+    // A feed that reads a file is a different attack when the file changes, and the path alone does
+    // not say that. The feed is the only thing that knows, so it says so through guess_base.
+
+    XXH64_update (state, generic_ctx->global_ctx.guess_base, strlen (generic_ctx->global_ctx.guess_base));
+
+    const int wordlist_autohex = user_options->wordlist_autohex;
+
+    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
+
+    if (user_options->encoding_from)
+    {
+      const char *encoding_from = user_options->encoding_from;
+
+      XXH64_update (state, encoding_from, strlen (encoding_from));
+    }
+
+    if (user_options->encoding_to)
+    {
+      const char *encoding_to = user_options->encoding_to;
+
+      XXH64_update (state, encoding_to, strlen (encoding_to));
+    }
+
+    if (user_options->rule_buf_l)
+    {
+      const char *rule_buf_l = user_options->rule_buf_l;
+
+      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
+    }
+
+    const int loopback = user_options->loopback;
+
+    XXH64_update (state, &loopback, sizeof (loopback));
+
+    // The rules are part of the attack, not a detail of it. Two runs over the same feed with
+    // different rules produce different candidates, so leaving these out makes the brain call them
+    // the same attack and refuse the second one as already done.
+
+    XXH64_update (state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
   }
   else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {

@@ -1315,7 +1315,7 @@ static bool bridge_has_members (const bridge_ctx_t *bridge_ctx)
   return true;
 }
 
-static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit_idx)
+static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit_idx, const bool blank_before)
 {
   const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
 
@@ -1325,7 +1325,11 @@ static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit
 
   if (member_count < 1) return;
 
-  event_log_info (hashcat_ctx, NULL);
+  // The blank line belongs to the BLOCK, not to each unit in it. Several units of a kind are listed
+  // under one heading, and a blank between every one of them would put the boards back into separate
+  // paragraphs, which is the shape this exists to remove.
+
+  if (blank_before == true) event_log_info (hashcat_ctx, NULL);
 
   for (int m = 0; m < member_count; m++)
   {
@@ -1380,13 +1384,79 @@ static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
 
   if (all_same == false)
   {
+    // Units of a kind get ONE block between them, with all of their boards listed under it.
+    //
+    // A unit is one board by default, so without this a rack of eight is eight headings each
+    // announcing "x 1 board" and each followed by a single line. The information is the same and the
+    // shape of it is not: what a fleet owner wants to see is what kinds of thing are present and what
+    // each kind is made of. It also matches the status view, which groups the same devices the same
+    // way for the same reason.
+
+    bool done[DEVICES_MAX];
+
+    memset (done, 0, sizeof (done));
+
+    bool first_block = true;
+
     for (int i = 0; i < unit_count; i++)
     {
-      event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
+      if (done[i] == true) continue;
 
-      bridge_unit_members_info (hashcat_ctx, i);
+      int members[DEVICES_MAX];
+      int members_cnt = 0;
 
-      if ((i + 1) < unit_count) event_log_info (hashcat_ctx, NULL);
+      int boards = 0;
+
+      for (int j = i; j < unit_count; j++)
+      {
+        if (done[j] == true) continue;
+        if ((j != i) && (bridge_same_unit_class (hashcat_ctx, i, j) == false)) continue;
+
+        done[j] = true;
+
+        members[members_cnt] = j;
+
+        members_cnt++;
+
+        boards += (bridge_has_members (bridge_ctx) == true)
+                ? bridge_ctx->get_unit_member_count (hashcat_ctx, bridge_ctx->platform_context, j)
+                : 1;
+      }
+
+      if (first_block == false) event_log_info (hashcat_ctx, NULL);
+
+      first_block = false;
+
+      // One unit keeps the singular heading it always had. Several are named by their range when they
+      // are contiguous, which they are whenever the bridge groups its own discovery by class, and by
+      // a count when they are not, because a range that skips a unit would be a lie.
+
+      if (members_cnt == 1)
+      {
+        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
+      }
+      else
+      {
+        char *class_str = (bridge_ctx->get_unit_class != NULL) && (bridge_ctx->get_unit_class != BRIDGE_DEFAULT)
+                        ? bridge_ctx->get_unit_class (hashcat_ctx, bridge_ctx->platform_context, i)
+                        : bridge_ctx->get_unit_info  (hashcat_ctx, bridge_ctx->platform_context, i);
+
+        const bool contiguous = ((members[members_cnt - 1] - members[0]) == (members_cnt - 1)) ? true : false;
+
+        if (contiguous == true)
+        {
+          event_log_info (hashcat_ctx, "* Units #%02d-#%02d: %s x %d board%s", members[0] + 1, members[members_cnt - 1] + 1, class_str, boards, (boards == 1) ? "" : "s");
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "* Units x%d: %s x %d board%s", members_cnt, class_str, boards, (boards == 1) ? "" : "s");
+        }
+      }
+
+      for (int m = 0; m < members_cnt; m++)
+      {
+        bridge_unit_members_info (hashcat_ctx, members[m], (m == 0) ? true : false);
+      }
     }
   }
 
@@ -3572,14 +3642,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case GUESS_MODE_GENERIC:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       break;
 
     case GUESS_MODE_GENERIC_RULES_FILE:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (%s)",
@@ -3590,7 +3662,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case GUESS_MODE_GENERIC_RULES_GEN:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (Generated)");

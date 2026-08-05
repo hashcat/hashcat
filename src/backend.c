@@ -4246,6 +4246,128 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   return 0;
 }
 
+// Fill combs_buf with the next slice of the amplifier dictionary, and report how many entries were
+// filled, which is fewer than asked for once the file runs out.
+//
+// The words are read straight from the file rather than through the wordlist reader, because every base
+// batch walks the amplifier from the start again and there is no offset to seek to.
+//
+// This existed twice, once for the optimized kernel and once for the pure one, and the only difference
+// was that the pure copy had the PT_ADD80 block commented out. That block cannot fire there in any case:
+// interface.c clears PT_ADD01, PT_ADD06 and PT_ADD80 whenever the optimized kernel is not in use. So the
+// two really were the same reader and this is it.
+//
+// Note it truncates an over-length word where the wordlist reader rejects one. That difference is
+// preserved here rather than settled, because settling it changes what a wordlist produces.
+
+static u64 combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HCFILE *combs_fp, const u64 innerloop_left, const u32 salt_pos, const u64 pws_cnt, const bool iconv_enabled, iconv_t iconv_ctx, char *iconv_tmp)
+{
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  char *line_buf = device_param->scratch_buf;
+
+  u64 i = 0;
+
+  while (i < innerloop_left)
+  {
+    if (hc_feof (combs_fp)) break;
+
+    size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
+
+    line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
+
+    if (line_len > PW_MAX) continue;
+
+    char *line_buf_new = line_buf;
+
+    char rule_buf_out[RP_PASSWORD_SIZE];
+
+    if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
+    {
+      if (line_len >= RP_PASSWORD_SIZE) continue;
+
+      memset (rule_buf_out, 0, sizeof (rule_buf_out));
+
+      const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, (u32) line_len, rule_buf_out);
+
+      if (rule_len_out < 0)
+      {
+        if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+        {
+          for (u32 association_salt_pos = 0; association_salt_pos < pws_cnt; association_salt_pos++)
+          {
+            status_ctx->words_progress_rejected[association_salt_pos] += 1;
+          }
+        }
+        else
+        {
+          status_ctx->words_progress_rejected[salt_pos] += pws_cnt;
+        }
+
+        continue;
+      }
+
+      line_len = rule_len_out;
+
+      line_buf_new = rule_buf_out;
+    }
+
+    // do the on-the-fly encoding
+
+    if (iconv_enabled == true)
+    {
+      char  *iconv_ptr = iconv_tmp;
+      size_t iconv_sz  = HCBUFSIZ_TINY;
+
+      if (iconv (iconv_ctx, &line_buf_new, &line_len, &iconv_ptr, &iconv_sz) == (size_t) -1) continue;
+
+      line_buf_new = iconv_tmp;
+      line_len     = HCBUFSIZ_TINY - iconv_sz;
+    }
+
+    line_len = MIN (line_len, PW_MAX);
+
+    u8 *ptr = (u8 *) device_param->combs_buf[i].i;
+
+    memcpy (ptr, line_buf_new, line_len);
+
+    memset (ptr + line_len, 0, PW_MAX - line_len);
+
+    if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+    {
+      uppercase (ptr, line_len);
+    }
+
+    if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
+    {
+      if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
+      {
+        ptr[line_len] = 0x80;
+      }
+
+      if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
+      {
+        ptr[line_len] = 0x06;
+      }
+
+      if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
+      {
+        ptr[line_len] = 0x01;
+      }
+    }
+
+    device_param->combs_buf[i].pw_len = (u32) line_len;
+
+    i++;
+  }
+
+  return i;
+}
+
 int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt)
 {
   combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
@@ -4455,102 +4577,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           {
             if (user_options->attack_mode == ATTACK_MODE_COMBI)
             {
-              char *line_buf = device_param->scratch_buf;
-
-              u64 i = 0;
-
-              while (i < innerloop_left)
-              {
-                if (hc_feof (combs_fp)) break;
-
-                size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
-
-                line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
-
-                if (line_len > PW_MAX) continue;
-
-                char *line_buf_new = line_buf;
-
-                char rule_buf_out[RP_PASSWORD_SIZE];
-
-                if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
-                {
-                  if (line_len >= RP_PASSWORD_SIZE) continue;
-
-                  memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-                  const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, (u32) line_len, rule_buf_out);
-
-                  if (rule_len_out < 0)
-                  {
-                    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
-                    {
-                      for (u32 association_salt_pos = 0; association_salt_pos < pws_cnt; association_salt_pos++)
-                      {
-                        status_ctx->words_progress_rejected[association_salt_pos] += 1;
-                      }
-                    }
-                    else
-                    {
-                      status_ctx->words_progress_rejected[salt_pos] += pws_cnt;
-                    }
-
-                    continue;
-                  }
-
-                  line_len = rule_len_out;
-
-                  line_buf_new = rule_buf_out;
-                }
-
-                // do the on-the-fly encoding
-
-                if (iconv_enabled == true)
-                {
-                  char  *iconv_ptr = iconv_tmp;
-                  size_t iconv_sz  = HCBUFSIZ_TINY;
-
-                  if (iconv (iconv_ctx, &line_buf_new, &line_len, &iconv_ptr, &iconv_sz) == (size_t) -1) continue;
-
-                  line_buf_new = iconv_tmp;
-                  line_len     = HCBUFSIZ_TINY - iconv_sz;
-                }
-
-                line_len = MIN (line_len, PW_MAX);
-
-                u8 *ptr = (u8 *) device_param->combs_buf[i].i;
-
-                memcpy (ptr, line_buf_new, line_len);
-
-                memset (ptr + line_len, 0, PW_MAX - line_len);
-
-                if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-                {
-                  uppercase (ptr, line_len);
-                }
-
-                if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-                {
-                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
-                  {
-                    ptr[line_len] = 0x80;
-                  }
-
-                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
-                  {
-                    ptr[line_len] = 0x06;
-                  }
-
-                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
-                  {
-                    ptr[line_len] = 0x01;
-                  }
-                }
-
-                device_param->combs_buf[i].pw_len = (u32) line_len;
-
-                i++;
-              }
+              const u64 i = combs_buf_fill (hashcat_ctx, device_param, combs_fp, innerloop_left, salt_pos, pws_cnt, iconv_enabled, iconv_ctx, iconv_tmp);
 
               for (u64 j = i; j < innerloop_left; j++)
               {
@@ -4646,104 +4673,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           {
             if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
             {
-              char *line_buf = device_param->scratch_buf;
-
-              u64 i = 0;
-
-              while (i < innerloop_left)
-              {
-                if (hc_feof (combs_fp)) break;
-
-                size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
-
-                line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
-
-                if (line_len > PW_MAX) continue;
-
-                char *line_buf_new = line_buf;
-
-                char rule_buf_out[RP_PASSWORD_SIZE];
-
-                if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
-                {
-                  if (line_len >= RP_PASSWORD_SIZE) continue;
-
-                  memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-                  const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, (u32) line_len, rule_buf_out);
-
-                  if (rule_len_out < 0)
-                  {
-                    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
-                    {
-                      for (u32 association_salt_pos = 0; association_salt_pos < pws_cnt; association_salt_pos++)
-                      {
-                        status_ctx->words_progress_rejected[association_salt_pos] += 1;
-                      }
-                    }
-                    else
-                    {
-                      status_ctx->words_progress_rejected[salt_pos] += pws_cnt;
-                    }
-
-                    continue;
-                  }
-
-                  line_len = rule_len_out;
-
-                  line_buf_new = rule_buf_out;
-                }
-
-                // do the on-the-fly encoding
-
-                if (iconv_enabled == true)
-                {
-                  char  *iconv_ptr = iconv_tmp;
-                  size_t iconv_sz  = HCBUFSIZ_TINY;
-
-                  if (iconv (iconv_ctx, &line_buf_new, &line_len, &iconv_ptr, &iconv_sz) == (size_t) -1) continue;
-
-                  line_buf_new = iconv_tmp;
-                  line_len     = HCBUFSIZ_TINY - iconv_sz;
-                }
-
-                line_len = MIN (line_len, PW_MAX);
-
-                u8 *ptr = (u8 *) device_param->combs_buf[i].i;
-
-                memcpy (ptr, line_buf_new, line_len);
-
-                memset (ptr + line_len, 0, PW_MAX - line_len);
-
-                if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-                {
-                  uppercase (ptr, line_len);
-                }
-
-                /*
-                if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-                {
-                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
-                  {
-                    ptr[line_len] = 0x80;
-                  }
-
-                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
-                  {
-                    ptr[line_len] = 0x06;
-                  }
-
-                  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
-                  {
-                    ptr[line_len] = 0x01;
-                  }
-                }
-                */
-
-                device_param->combs_buf[i].pw_len = (u32) line_len;
-
-                i++;
-              }
+              const u64 i = combs_buf_fill (hashcat_ctx, device_param, combs_fp, innerloop_left, salt_pos, pws_cnt, iconv_enabled, iconv_ctx, iconv_tmp);
 
               for (u64 j = i; j < innerloop_left; j++)
               {

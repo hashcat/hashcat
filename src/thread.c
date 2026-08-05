@@ -197,9 +197,25 @@ int myquit (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (status_ctx->devices_status != STATUS_RUNNING && status_ctx->devices_status != STATUS_PAUSED) return -1;
+  const bool running = ((status_ctx->devices_status == STATUS_RUNNING) || (status_ctx->devices_status == STATUS_PAUSED));
 
-  status_ctx->devices_status = STATUS_QUIT;
+  // A session that has already failed still has to be quittable.
+  //
+  // A device thread that gives up sets STATUS_ERROR and returns, and every other device thread keeps
+  // running, because nothing clears the run flags on that path. The guard here used to refuse any
+  // status but the two above, so q cleared nothing and returned -1, and the caller does not look at
+  // the return value. The session was then unquittable and only a signal ended it. What made this
+  // reachable was a bridge losing its last board: the status line said Error and the remaining
+  // devices carried on with a keyspace 29 days wide.
+  //
+  // The error status is kept rather than replaced with STATUS_QUIT, because the session really did
+  // fail and the exit code has to keep saying so.
+
+  const bool failed = (status_ctx->devices_status == STATUS_ERROR);
+
+  if ((running == false) && (failed == false)) return -1;
+
+  if (running == true) status_ctx->devices_status = STATUS_QUIT;
 
   status_ctx->run_main_level1   = false;
   status_ctx->run_main_level2   = false;

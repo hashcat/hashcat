@@ -1255,6 +1255,28 @@ static void main_bridges_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_info_nn (hashcat_ctx, "Initialized bridges");
 }
 
+static void main_generic_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
+
+  event_log_info_nn (hashcat_ctx, "Initializing feed plugin %s. Please be patient...", generic_ctx->plugin_name);
+}
+
+static void main_generic_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
+
+  event_log_info_nn (hashcat_ctx, "Initialized feed plugin %s", generic_ctx->plugin_name);
+}
+
 static void main_bridges_salt_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1300,6 +1322,8 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_CRACKER_FINISHED:          main_cracker_finished          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_STARTING:          main_cracker_starting          (hashcat_ctx, buf, len); break;
+    case EVENT_GENERIC_INIT_POST:         main_generic_init_post         (hashcat_ctx, buf, len); break;
+    case EVENT_GENERIC_INIT_PRE:          main_generic_init_pre          (hashcat_ctx, buf, len); break;
     case EVENT_HASHCONFIG_PRE:            main_hashconfig_pre            (hashcat_ctx, buf, len); break;
     case EVENT_HASHCONFIG_POST:           main_hashconfig_post           (hashcat_ctx, buf, len); break;
     case EVENT_HASHLIST_COUNT_LINES_POST: main_hashlist_count_lines_post (hashcat_ctx, buf, len); break;
