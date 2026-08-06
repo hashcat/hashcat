@@ -86,6 +86,9 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
         char *line_buf = NULL;
         u32   line_len = 0;
 
+        // Declared here, not inside the loop: line_buf may point at it after the break.
+        char rule_buf_out[RP_PASSWORD_SIZE];
+
         while (true)
         {
           HCFILE *fp = &extra_info_straight->fp;
@@ -93,8 +96,6 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
           get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
 
           // post-process rule engine
-
-          char rule_buf_out[RP_PASSWORD_SIZE];
 
           if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
           {
@@ -137,13 +138,14 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
         char *line_buf = NULL;
         u32   line_len = 0;
 
+        // Declared here, not inside the loop: line_buf may point at it after the break.
+        char rule_buf_out[RP_PASSWORD_SIZE];
+
         while (true)
         {
           get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
 
           // post-process rule engine
-
-          char rule_buf_out[RP_PASSWORD_SIZE];
 
           if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
           {
@@ -261,6 +263,9 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       char *line_buf = NULL;
       u32   line_len = 0;
 
+      // Declared here, not inside the loop: line_buf may point at it after the break.
+      char rule_buf_out[RP_PASSWORD_SIZE];
+
       while (true)
       {
         HCFILE *fp = &extra_info_straight->fp;
@@ -268,8 +273,6 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
         get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
 
         // post-process rule engine
-
-        char rule_buf_out[RP_PASSWORD_SIZE];
 
         if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
         {
@@ -335,13 +338,14 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       char *line_buf = NULL;
       u32   line_len = 0;
 
+      // Declared here, not inside the loop: line_buf may point at it after the break.
+      char rule_buf_out[RP_PASSWORD_SIZE];
+
       while (true)
       {
         get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
 
         // post-process rule engine
-
-        char rule_buf_out[RP_PASSWORD_SIZE];
 
         if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
         {
@@ -374,6 +378,9 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
     char *line_buf = extra_info_combi->scratch_buf;
     u32   line_len = 0;
 
+    // Declared here, not inside the loop: line_buf may point at it after the break.
+    char rule_buf_out[RP_PASSWORD_SIZE];
+
     while (true)
     {
       line_len = (u32) fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
@@ -385,8 +392,6 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       if (run_rule_engine ((int) user_options_extra->rule_len_r, user_options->rule_buf_r))
       {
         if (line_len >= RP_PASSWORD_SIZE) continue;
-
-        char rule_buf_out[RP_PASSWORD_SIZE];
 
         memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
