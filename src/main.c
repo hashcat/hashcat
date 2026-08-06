@@ -545,7 +545,10 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   event_log_info (hashcat_ctx, "Hashes: %u digests; %u unique digests, %u unique salts", hashes->hashes_cnt_orig, hashes->digests_cnt, hashes->salts_cnt);
   event_log_info (hashcat_ctx, "Bitmaps: %u bits, %u entries, 0x%08x mask, %u bytes, %u/%u rotates", bitmap_ctx->bitmap_bits, bitmap_ctx->bitmap_nums, bitmap_ctx->bitmap_mask, bitmap_ctx->bitmap_size, bitmap_ctx->bitmap_shift1, bitmap_ctx->bitmap_shift2);
 
-  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+   || (user_options->attack_mode == ATTACK_MODE_GENERIC)
+   || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+   || (user_options->attack_mode == ATTACK_MODE_PCFG))
   {
     event_log_info (hashcat_ctx, "Rules: %u", straight_ctx->kernel_rules_cnt);
   }
@@ -650,6 +653,8 @@ static void main_backend_session_hostmem (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 
   if (user_options->quiet == true) return;
 
+  if (user_options->pcfg_loopback == true && user_options->attack_mode == ATTACK_MODE_PCFG) return;
+
   const u64 *hostmem = (const u64 *) buf;
 
   u64 free_memory = 0;
@@ -712,9 +717,20 @@ static void main_bitmap_final_overflow (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if (user_options->quiet == true) return;
 
+  const u32 *suggested_bitmap_max = (const u32 *) buf;
+
   event_log_advice (hashcat_ctx, "Bitmap table overflowed at %d bits.", user_options->bitmap_max);
   event_log_advice (hashcat_ctx, "This typically happens with too many hashes and reduces your performance.");
-  event_log_advice (hashcat_ctx, "You can increase the bitmap table size with --bitmap-max, but");
+
+  if (suggested_bitmap_max != NULL)
+  {
+    event_log_advice (hashcat_ctx, "You can increase the bitmap table size with --bitmap-max to %u, but", *suggested_bitmap_max);
+  }
+  else
+  {
+    event_log_advice (hashcat_ctx, "You can increase the bitmap table size with --bitmap-max, but");
+  }
+
   event_log_advice (hashcat_ctx, "this creates a trade-off between L2-cache and bitmap efficiency.");
   event_log_advice (hashcat_ctx, "It is therefore not guaranteed to restore full performance.");
   event_log_advice (hashcat_ctx, NULL);
@@ -840,7 +856,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
     event_log_advice (hashcat_ctx, NULL);
   }
 
-  if (user_options->slow_candidates == false)
+  if (user_options->slow_candidates == false && user_options->attack_mode != ATTACK_MODE_PCFG)
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
@@ -1298,6 +1314,42 @@ static void main_bridges_salt_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_info_nn (hashcat_ctx, "Initialized bridge salts");
 }
 
+static void main_pcfg_ctx_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Initializing PCFG. Please be patient...");
+}
+
+static void main_pcfg_ctx_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Initialized PCFG");
+}
+
+static void main_pcfg_gen_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Initializing PCFG Generator. Please be patient...");
+}
+
+static void main_pcfg_gen_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  event_log_info_nn (hashcat_ctx, "Initialized PCFG Generator");
+}
+
 static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, const size_t len)
 {
   switch (id)
@@ -1360,6 +1412,10 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_OUTERLOOP_FINISHED:        main_outerloop_finished        (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_MAINSCREEN:      main_outerloop_mainscreen      (hashcat_ctx, buf, len); break;
     case EVENT_OUTERLOOP_STARTING:        main_outerloop_starting        (hashcat_ctx, buf, len); break;
+    case EVENT_PCFG_CTX_INIT_POST:        main_pcfg_ctx_init_post        (hashcat_ctx, buf, len); break;
+    case EVENT_PCFG_CTX_INIT_PRE:         main_pcfg_ctx_init_pre         (hashcat_ctx, buf, len); break;
+    case EVENT_PCFG_GEN_INIT_POST:        main_pcfg_gen_init_post        (hashcat_ctx, buf, len); break;
+    case EVENT_PCFG_GEN_INIT_PRE:         main_pcfg_gen_init_pre         (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_ALL_CRACKED:       main_potfile_all_cracked       (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_HASH_LEFT:         main_potfile_hash_left         (hashcat_ctx, buf, len); break;
     case EVENT_POTFILE_HASH_SHOW:         main_potfile_hash_show         (hashcat_ctx, buf, len); break;

@@ -17,10 +17,13 @@
 #include "rp.h"
 #include "rp_cpu.h"
 #include "slow_candidates.h"
-#include "dispatch.h"
 #include "generic.h"
 #include "convert.h"
 #include "user_options.h"
+#include "pcfg_common.h"
+#include "pcfg_cpu_random.h"
+#include "pcfg_dispatch.h"
+#include "dispatch.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -804,6 +807,12 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   const u32 attack_mode = user_options->attack_mode;
   const u32 attack_kern = user_options_extra->attack_kern;
   const u32 base_source = user_options_extra->base_source;
+
+  // handling PCFG attack
+  if (attack_mode == ATTACK_MODE_PCFG)
+  {
+    return calc_pcfg (hashcat_ctx, device_param);
+  }
 
   if (user_options->slow_candidates == true)
   {

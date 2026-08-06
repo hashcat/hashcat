@@ -6,6 +6,8 @@
 #ifndef HC_HASHCAT_H
 #define HC_HASHCAT_H
 
+int   inner2_loop                (hashcat_ctx_t *hashcat_ctx);
+
 int   hashcat_init               (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t));
 void  hashcat_destroy            (hashcat_ctx_t *hashcat_ctx);
 

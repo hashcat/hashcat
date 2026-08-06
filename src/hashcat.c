@@ -48,8 +48,12 @@
 #include "tuningdb.h"
 #include "user_options.h"
 #include "wordlist.h"
-#include "hashcat.h"
 #include "usage.h"
+#include "pcfg.h"
+#include "pcfg_perf.h"
+#include "pcfg_trainer.h"
+#include "pcfg_loopback.h"
+#include "hashcat.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -57,7 +61,7 @@
 
 // inner2_loop iterates through wordlists, then calls kernel execution
 
-static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
+int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t             *hashes              = hashcat_ctx->hashes;
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
@@ -98,6 +102,14 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (restore_ctx->restore_execute == true)
   {
+    // Restore not supported for AHF mode (non-deterministic keyspace)
+    if ((user_options->attack_mode == ATTACK_MODE_PCFG) && (user_options->pcfg_mode == PCFG_MODE_CPU_RANDOM_AHF))
+    {
+      event_log_error (hashcat_ctx, "Restore is not supported with --pcfg-mode 1 (keyspace is non-deterministic).");
+
+      return -1;
+    }
+
     restore_ctx->restore_execute = false;
 
     restore_data_t *rd = restore_ctx->rd;
@@ -128,25 +140,36 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   const u64 amplifier_cnt = user_options_extra_amplifier (hashcat_ctx);
 
-  status_ctx->words_base = status_ctx->words_cnt / amplifier_cnt;
+  // PCFG is the one mode whose keyspace is not known here: pcfg_gen_init () computes it further down
+  // and sets words_base and words_cnt itself, then answers --keyspace on its own. So this round is left
+  // out of the walk, and outer_loop leaves it out of the total for the same reason.
 
-  // Where this round sits in the queue, and how much longer the queue is now. A mask that was skipped
-  // for being too short or too long returned above and adds nothing, which is right: it is not part
-  // of the keyspace and --keyspace must not count it.
+  const bool is_pcfg = (user_options->attack_mode == ATTACK_MODE_PCFG);
 
-  const u64 walk_first = status_ctx->words_walk_base;
+  u64 walk_first = status_ctx->words_walk_base;
 
-  status_ctx->words_walk_base += status_ctx->words_base;
-  status_ctx->words_walk_cnt  += status_ctx->words_cnt;
-
-  // --keyspace answers for the whole queue, so every round is sized and none of them is run. The
-  // total is reported once the queue has been walked, by outer_loop.
-
-  if (user_options->keyspace == true)
+  if (is_pcfg == false)
   {
-    status_ctx->devices_status = STATUS_RUNNING;
+    status_ctx->words_base = status_ctx->words_cnt / amplifier_cnt;
 
-    return 0;
+    // Where this round sits in the queue, and how much longer the queue is now. A mask that was skipped
+    // for being too short or too long returned above and adds nothing, which is right: it is not part
+    // of the keyspace and --keyspace must not count it.
+
+    walk_first = status_ctx->words_walk_base;
+
+    status_ctx->words_walk_base += status_ctx->words_base;
+    status_ctx->words_walk_cnt  += status_ctx->words_cnt;
+
+    // --keyspace answers for the whole queue, so every round is sized and none of them is run. The
+    // total is reported once the queue has been walked, by outer_loop.
+
+    if (user_options->keyspace == true)
+    {
+      status_ctx->devices_status = STATUS_RUNNING;
+
+      return 0;
+    }
   }
 
   // This round's share of the window --skip and --limit describe. Both are positions in the queue, so
@@ -205,11 +228,14 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // restore stuff
 
-  if (status_ctx->words_off > status_ctx->words_base)
+  if (user_options->attack_mode != ATTACK_MODE_PCFG)
   {
-    event_log_error (hashcat_ctx, "Restore value is greater than keyspace.");
+    if (status_ctx->words_off > status_ctx->words_base)
+    {
+      event_log_error (hashcat_ctx, "Restore value is greater than keyspace.");
 
-    return -1;
+      return -1;
+    }
   }
 
   // A source that cannot be seeked only reaches a position by consuming everything before it, so the
@@ -423,6 +449,74 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   /**
+   * PCFG: create generators and setup performance thread (if enabled)
+   */
+
+  if (user_options->attack_mode == ATTACK_MODE_PCFG)
+  {
+    pcfg_ctx_t *pcfg_ctx = hashcat_ctx->pcfg_ctx;
+
+    // Restore: words_off is the absolute position saved by cycle_restore.
+    // Replace pcfg_skip (which only has the original --skip value from
+    // pcfg_ctx_init) with the absolute position, so generators fast-forward
+    // to the correct resume point. This handles both restore-only and
+    // --skip + restore cases, since words_off is always absolute after the
+    // first run (words_done tracks absolute positions via the adjustment below).
+
+    if (status_ctx->words_off > 0)
+    {
+      pcfg_ctx->pcfg_skip = status_ctx->words_off;
+      status_ctx->words_off = 0;  // temporary: avoid internal restore checks failing
+    }
+
+    EVENT (EVENT_PCFG_GEN_INIT_PRE);
+
+    if (pcfg_gen_init (hashcat_ctx) != 0)
+    {
+      event_log_error (hashcat_ctx, "PCFG gen init failed.");
+
+      return -1;
+    }
+
+    EVENT (EVENT_PCFG_GEN_INIT_POST);
+
+    // Absolute tracking: pcfg_gen_init sets words_base = effective_keyspace
+    // (total - skip). Adjust to words_base = total so words_cur accumulates
+    // absolute positions for correct session saves. Per-device words_done
+    // stays at 0 (incremental); get_pcfg_words_cur() in pcfg_dispatch.c
+    // computes pcfg_skip + SUM(words_done) for the correct absolute position.
+
+    if (pcfg_ctx->pcfg_skip > 0)
+    {
+      status_ctx->words_off = pcfg_ctx->pcfg_skip;
+
+      const u64 total_ks = status_ctx->words_base + pcfg_ctx->pcfg_skip;
+      status_ctx->words_base = total_ks;
+
+      const u64 amp = user_options_extra_amplifier (hashcat_ctx);
+
+      if (amp > 1 && total_ks > UINT64_MAX / amp)
+        status_ctx->words_cnt = UINT64_MAX;
+      else if (amp > 0)
+        status_ctx->words_cnt = total_ks * amp;
+      else
+        status_ctx->words_cnt = total_ks;
+
+      status_ctx->words_cur = pcfg_ctx->pcfg_skip;
+    }
+
+    if (user_options->keyspace == true)
+    {
+      EVENT (EVENT_CALCULATED_WORDS_BASE);
+      EVENT (EVENT_CALCULATED_WORDS_CNT);
+
+      status_ctx->devices_status = STATUS_RUNNING;
+
+      return 0;
+    }
+  }
+
+  /**
    * Prepare cracking stats
    */
 
@@ -571,6 +665,7 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
   restore_ctx_t  *restore_ctx   = hashcat_ctx->restore_ctx;
   status_ctx_t   *status_ctx    = hashcat_ctx->status_ctx;
   straight_ctx_t *straight_ctx  = hashcat_ctx->straight_ctx;
+  user_options_t *user_options  = hashcat_ctx->user_options;
 
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
@@ -605,6 +700,9 @@ static int inner1_loop (hashcat_ctx_t *hashcat_ctx)
       if (inner2_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
 
       if (status_ctx->run_main_level3 == false) break;
+
+      // pcfg_loopback: bypass during -a0 skips remaining wordlists
+      if (user_options->pcfg_loopback && status_ctx->devices_status == STATUS_BYPASS) break;
     }
 
     if (status_ctx->run_main_level3 == true)
@@ -668,6 +766,16 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   user_options_extra_init_late (hashcat_ctx);
 
   EVENT (EVENT_HASHCONFIG_POST);
+
+  /**
+   * PCFG context init
+   */
+
+  EVENT (EVENT_PCFG_CTX_INIT_PRE);
+
+  if (pcfg_ctx_init (hashcat_ctx) == -1) return -1;
+
+  EVENT (EVENT_PCFG_CTX_INIT_POST);
 
   /**
    * deprecated notice
@@ -1155,6 +1263,12 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
       event_log_advice (hashcat_ctx, NULL);
     }
   }
+  else if (user_options->stdout_flag == true && user_options->runtime > 0)
+  {
+    hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, hashcat_ctx);
+
+    inner_threads_cnt++;
+  }
 
   // main call
 
@@ -1186,6 +1300,9 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
       if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
 
       if (status_ctx->run_main_level2 == false) break;
+
+      // pcfg_loopback: bypass during -a0 skips remaining masks
+      if (user_options->pcfg_loopback && status_ctx->devices_status == STATUS_BYPASS) break;
     }
 
     if (status_ctx->run_main_level2 == true)
@@ -1201,14 +1318,24 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   // --keyspace answers for the whole queue and the queue has now been walked, so this is the earliest
   // the answer exists. One number, whether the queue held one round or fifty, which is what lets
   // --skip and --limit address it.
+  //
+  // PCFG took no part in the walk, because inner1_loop cannot size it before pcfg_gen_init () runs. It
+  // reports its own keyspace from there, so the total is not recomputed over it here.
 
-  if (user_options->keyspace == true)
+  if ((user_options->keyspace == true) && (user_options->attack_mode != ATTACK_MODE_PCFG))
   {
     status_ctx->words_base = status_ctx->words_walk_base;
     status_ctx->words_cnt  = status_ctx->words_walk_cnt;
 
     EVENT (EVENT_CALCULATED_WORDS_BASE);
     EVENT (EVENT_CALCULATED_WORDS_CNT);
+  }
+
+  // PCFG loopback phase: after -a0 completes (or is bypassed), train model and run -a10
+
+  if (user_options->pcfg_loopback == true && status_ctx->run_main_level2 == true)
+  {
+    if (pcfg_loopback_run (hashcat_ctx) == -1) myabort (hashcat_ctx);
   }
 
   // wait for inner threads
@@ -1290,6 +1417,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->backend_ctx        = (backend_ctx_t *)         hcmalloc (sizeof (backend_ctx_t));
   hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        hcmalloc (sizeof (outcheck_ctx_t));
   hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         hcmalloc (sizeof (outfile_ctx_t));
+  hashcat_ctx->pcfg_ctx           = (pcfg_ctx_t *)            hcmalloc (sizeof (pcfg_ctx_t));
   hashcat_ctx->pidfile_ctx        = (pidfile_ctx_t *)         hcmalloc (sizeof (pidfile_ctx_t));
   hashcat_ctx->potfile_ctx        = (potfile_ctx_t *)         hcmalloc (sizeof (potfile_ctx_t));
   hashcat_ctx->restore_ctx        = (restore_ctx_t *)         hcmalloc (sizeof (restore_ctx_t));
@@ -1326,6 +1454,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->outcheck_ctx);
   hcfree (hashcat_ctx->outfile_ctx);
   hcfree (hashcat_ctx->pidfile_ctx);
+  hcfree (hashcat_ctx->pcfg_ctx);
   hcfree (hashcat_ctx->potfile_ctx);
   hcfree (hashcat_ctx->restore_ctx);
   hcfree (hashcat_ctx->status_ctx);
@@ -2138,6 +2267,7 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   backend_ctx_destroy         (hashcat_ctx);
   outcheck_ctx_destroy        (hashcat_ctx);
   outfile_destroy             (hashcat_ctx);
+  pcfg_ctx_destroy            (hashcat_ctx);
   pidfile_ctx_destroy         (hashcat_ctx);
   potfile_destroy             (hashcat_ctx);
   restore_ctx_destroy         (hashcat_ctx);
@@ -2262,6 +2392,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->exec_msec_dev                  = status_get_exec_msec_dev                  (hashcat_ctx, device_id);
     device_info->speed_sec_dev                  = status_get_speed_sec_dev                  (hashcat_ctx, device_id);
     device_info->guess_candidates_dev           = status_get_guess_candidates_dev           (hashcat_ctx, device_id);
+    device_info->pcfg_model_info_dev            = status_get_pcfg_model_info_dev            (hashcat_ctx, device_id);
     #if defined (__APPLE__)
     device_info->hwmon_fan_dev                  = status_get_hwmon_fan_dev                  (hashcat_ctx);
     #endif

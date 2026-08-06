@@ -16,6 +16,24 @@
 #include <Xz.h>
 #include <XzCrc64.h>
 
+#if defined(__AVX2__)
+#include <immintrin.h>
+#define SIMD_MODE_AVX2
+#elif defined(__SSE2__) || (defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86)))
+#include <emmintrin.h>
+#define SIMD_MODE_SSE2
+#elif defined(__ARM_NEON) || defined(__ARM_NEON__) || defined(__aarch64__)
+#include <arm_neon.h>
+#define SIMD_MODE_NEON
+#if defined(__aarch64__)
+#define NEON_AARCH64
+#endif
+#endif
+
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
 /* Maybe _LZMA_NO_SYSTEM_SIZE_T defined? */
 #if defined (__clang__) || defined (__GNUC__)
 #include <assert.h>
@@ -1071,13 +1089,76 @@ size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
   return line_len;
 }
 
+#if defined(SIMD_MODE_AVX2) || defined(SIMD_MODE_SSE2)
+static inline u32 hc_popcount32 (const u32 x)
+{
+  #if defined(__GNUC__) || defined(__clang__)
+  return (u32) __builtin_popcount (x);
+  #elif defined(_MSC_VER)
+  return (u32) __popcnt (x);
+  #else
+  u32 v = x;
+  v = v - ((v >> 1) & 0x55555555);
+  v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
+  return (((v + (v >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+  #endif
+}
+#endif
+
+#if defined(SIMD_MODE_NEON)
+static inline u32 neon_count_newlines_16 (const u8 *ptr, const uint8x16_t vnl)
+{
+  uint8x16_t data = vld1q_u8 (ptr);
+  uint8x16_t cmp  = vceqq_u8 (data, vnl);
+  uint8x16_t ones = vshrq_n_u8 (cmp, 7);  // 0xFF -> 1, 0x00 -> 0
+
+  #if defined(NEON_AARCH64)
+  return vaddvq_u8 (ones);
+  #else
+  // AArch32: horizontal sum via pairwise addition
+  uint8x8_t sum = vadd_u8 (vget_low_u8 (ones), vget_high_u8 (ones));
+  sum = vpadd_u8 (sum, sum);
+  sum = vpadd_u8 (sum, sum);
+  sum = vpadd_u8 (sum, sum);
+  return vget_lane_u8 (sum, 0);
+  #endif
+}
+
+static inline u32 neon_count_newlines_64 (const u8 *ptr, const uint8x16_t vnl)
+{
+  // Process 4x16 bytes at once for better throughput
+  uint8x16_t d0 = vld1q_u8 (ptr);
+  uint8x16_t d1 = vld1q_u8 (ptr + 16);
+  uint8x16_t d2 = vld1q_u8 (ptr + 32);
+  uint8x16_t d3 = vld1q_u8 (ptr + 48);
+
+  uint8x16_t c0 = vshrq_n_u8 (vceqq_u8 (d0, vnl), 7);
+  uint8x16_t c1 = vshrq_n_u8 (vceqq_u8 (d1, vnl), 7);
+  uint8x16_t c2 = vshrq_n_u8 (vceqq_u8 (d2, vnl), 7);
+  uint8x16_t c3 = vshrq_n_u8 (vceqq_u8 (d3, vnl), 7);
+
+  // Sum all into single vector, then reduce
+  uint8x16_t sum8 = vaddq_u8 (vaddq_u8 (c0, c1), vaddq_u8 (c2, c3));
+
+  #if defined(NEON_AARCH64)
+  return vaddvq_u8 (sum8);
+  #else
+  uint8x8_t sum = vadd_u8 (vget_low_u8 (sum8), vget_high_u8 (sum8));
+  sum = vpadd_u8 (sum, sum);
+  sum = vpadd_u8 (sum, sum);
+  sum = vpadd_u8 (sum, sum);
+  return vget_lane_u8 (sum, 0);
+  #endif
+}
+#endif // SIMD_MODE_NEON
+
 u64 count_lines (HCFILE *fp)
 {
-  u64 cnt = 0;
+  u64    cnt        = 0;
+  char   last_char  = '\0';
+  size_t total_read = 0;
 
   char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE + 1);
-
-  char prev = '\n';
 
   while (!hc_feof (fp))
   {
@@ -1085,15 +1166,131 @@ u64 count_lines (HCFILE *fp)
 
     if (nread < 1) continue;
 
-    for (size_t i = 0; i < nread; i++)
-    {
-      if (prev == '\n') cnt++;
+    total_read += nread;
+    last_char   = buf[nread - 1];
 
-      prev = buf[i];
+    const char *ptr = buf;
+    const char *end = buf + nread;
+
+    #if defined(SIMD_MODE_AVX2)
+    {
+      // AVX2 path: 32 bytes per iteration
+
+      const __m256i vnl = _mm256_set1_epi8 ('\n');
+
+      // Process 128 bytes (4x32) for better pipelining
+      while (ptr + 128 <= end)
+      {
+        __m256i d0 = _mm256_loadu_si256 ((const __m256i *) (ptr));
+        __m256i d1 = _mm256_loadu_si256 ((const __m256i *) (ptr + 32));
+        __m256i d2 = _mm256_loadu_si256 ((const __m256i *) (ptr + 64));
+        __m256i d3 = _mm256_loadu_si256 ((const __m256i *) (ptr + 96));
+
+        u32 m0 = (u32) _mm256_movemask_epi8 (_mm256_cmpeq_epi8 (d0, vnl));
+        u32 m1 = (u32) _mm256_movemask_epi8 (_mm256_cmpeq_epi8 (d1, vnl));
+        u32 m2 = (u32) _mm256_movemask_epi8 (_mm256_cmpeq_epi8 (d2, vnl));
+        u32 m3 = (u32) _mm256_movemask_epi8 (_mm256_cmpeq_epi8 (d3, vnl));
+
+        cnt += hc_popcount32 (m0) + hc_popcount32 (m1) +
+               hc_popcount32 (m2) + hc_popcount32 (m3);
+
+        ptr += 128;
+      }
+
+      // Remaining 32-byte chunks
+      while (ptr + 32 <= end)
+      {
+        __m256i data = _mm256_loadu_si256 ((const __m256i *) ptr);
+        __m256i cmp  = _mm256_cmpeq_epi8 (data, vnl);
+
+        cnt += hc_popcount32 ((u32) _mm256_movemask_epi8 (cmp));
+
+        ptr += 32;
+      }
+    }
+
+    #elif defined(SIMD_MODE_SSE2)
+    {
+      // SSE2 path: 16 bytes per iteration
+
+      const __m128i vnl = _mm_set1_epi8 ('\n');
+
+      // Process 64 bytes (4x16) for better pipelining
+      while (ptr + 64 <= end)
+      {
+        __m128i d0 = _mm_loadu_si128 ((const __m128i *) (ptr));
+        __m128i d1 = _mm_loadu_si128 ((const __m128i *) (ptr + 16));
+        __m128i d2 = _mm_loadu_si128 ((const __m128i *) (ptr + 32));
+        __m128i d3 = _mm_loadu_si128 ((const __m128i *) (ptr + 48));
+
+        u32 m0 = (u32) _mm_movemask_epi8 (_mm_cmpeq_epi8 (d0, vnl));
+        u32 m1 = (u32) _mm_movemask_epi8 (_mm_cmpeq_epi8 (d1, vnl));
+        u32 m2 = (u32) _mm_movemask_epi8 (_mm_cmpeq_epi8 (d2, vnl));
+        u32 m3 = (u32) _mm_movemask_epi8 (_mm_cmpeq_epi8 (d3, vnl));
+
+        cnt += hc_popcount32 (m0) + hc_popcount32 (m1) +
+               hc_popcount32 (m2) + hc_popcount32 (m3);
+
+        ptr += 64;
+      }
+
+      // Remaining 16-byte chunks
+      while (ptr + 16 <= end)
+      {
+        __m128i data = _mm_loadu_si128 ((const __m128i *) ptr);
+        __m128i cmp  = _mm_cmpeq_epi8 (data, vnl);
+
+        cnt += hc_popcount32 ((u32) _mm_movemask_epi8 (cmp));
+
+        ptr += 16;
+      }
+    }
+
+    // NEON path: 16 bytes per iteration (with 64-byte unrolling)
+    #elif defined(SIMD_MODE_NEON)
+    {
+      const uint8x16_t vnl = vdupq_n_u8 ('\n');
+
+      // Process 64 bytes at once for better throughput
+      while (ptr + 64 <= end)
+      {
+        cnt += neon_count_newlines_64 ((const u8 *) ptr, vnl);
+        ptr += 64;
+      }
+
+      // Remaining 16-byte chunks
+      while (ptr + 16 <= end)
+      {
+        cnt += neon_count_newlines_16 ((const u8 *) ptr, vnl);
+        ptr += 16;
+      }
+    }
+    #endif
+
+    // Scalar fallback with loop unrolling (for remaining bytes)
+    while (ptr + 8 <= end)
+    {
+      cnt += (ptr[0] == '\n') + (ptr[1] == '\n') +
+             (ptr[2] == '\n') + (ptr[3] == '\n') +
+             (ptr[4] == '\n') + (ptr[5] == '\n') +
+             (ptr[6] == '\n') + (ptr[7] == '\n');
+
+      ptr += 8;
+    }
+
+    while (ptr < end)
+    {
+      cnt += (*ptr++ == '\n');
     }
   }
 
   hcfree (buf);
+
+  // Handle last line without trailing newline
+  if (total_read > 0 && last_char != '\n')
+  {
+    cnt++;
+  }
 
   return cnt;
 }

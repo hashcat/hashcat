@@ -29,6 +29,7 @@
 
 #define CL_DEVICE_TOPOLOGY_AMD                      0x4037
 #define CL_DEVICE_BOARD_NAME_AMD                    0x4038
+#define CL_DEVICE_GLOBAL_FREE_MEMORY_AMD            0x4039
 
 typedef union
 {
@@ -78,6 +79,23 @@ typedef enum openclBufferMemoryFlagsId
   opencl_d_st_salts_buf_memoryFlags,
   opencl_d_st_esalts_buf_memoryFlags,
   opencl_d_kernel_param_memoryFlags,
+  opencl_d_pcfg_data_buffer_memoryFlags,
+  opencl_d_pcfg_term_blocks_memoryFlags,
+  opencl_d_pcfg_structure_memoryFlags,
+  opencl_d_pcfg_cumulative_memoryFlags,
+  opencl_d_pcfg_omen_structures_memoryFlags,
+  opencl_d_pcfg_omen_slot_maps_memoryFlags,
+  opencl_d_pcfg_omen_batch_entries_memoryFlags,
+  opencl_d_pcfg_omen_partitions_memoryFlags,
+  opencl_d_pcfg_data_buffer_part_p1_memoryFlags,
+  opencl_d_pcfg_data_buffer_part_p2_memoryFlags,
+  opencl_d_pcfg_data_buffer_part_p3_memoryFlags,
+  opencl_d_pcfg_data_buffer_part_p4_memoryFlags,
+  opencl_d_pcfg_data_buffer_part_p5_memoryFlags,
+  opencl_d_pcfg_data_buffer_part_p6_memoryFlags,
+  opencl_d_pcfg_data_buffer_part_p7_memoryFlags,
+  opencl_d_pcfg_data_buffer_part_p8_memoryFlags,
+  opencl_d_pcfg_part_offsets_memoryFlags,
   OCL_BUFFER_CNT
 
 } openclBufferMemoryFlagsId_t;
@@ -120,10 +138,27 @@ static const cl_mem_flags openclMemoryFlags[OCL_BUFFER_CNT] =
   [opencl_d_st_digests_buf_memoryFlags] = CL_MEM_READ_ONLY,
   [opencl_d_st_salts_buf_memoryFlags] = CL_MEM_READ_ONLY,
   [opencl_d_st_esalts_buf_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_kernel_param_memoryFlags] = CL_MEM_READ_ONLY
+  [opencl_d_kernel_param_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_data_buffer_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_term_blocks_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_structure_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_cumulative_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_omen_structures_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_omen_slot_maps_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_omen_batch_entries_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_omen_partitions_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_data_buffer_part_p1_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_data_buffer_part_p2_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_data_buffer_part_p3_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_data_buffer_part_p4_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_data_buffer_part_p5_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_data_buffer_part_p6_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_data_buffer_part_p7_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_data_buffer_part_p8_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_part_offsets_memoryFlags] = CL_MEM_READ_ONLY
 };
 
-#define HC_OCL_CREATEBUFFER(ctx, size, ptr, buf_name)                                     \
+#define HC_OCL_CREATEBUFFER(ctx, dev_param, size, ptr, buf_name)                          \
   do {                                                                                    \
     if (hc_clCreateBuffer_ext(ctx, device_param->opencl_context,                          \
                               openclMemoryFlags[opencl_d_##buf_name##_memoryFlags], size, \
@@ -151,9 +186,11 @@ typedef cl_int           (CL_API_CALL *OCL_CLFINISH)                  (cl_comman
 typedef cl_int           (CL_API_CALL *OCL_CLFLUSH)                   (cl_command_queue);
 typedef cl_int           (CL_API_CALL *OCL_CLGETDEVICEIDS)            (cl_platform_id, cl_device_type, cl_uint, cl_device_id *, cl_uint *);
 typedef cl_int           (CL_API_CALL *OCL_CLGETDEVICEINFO)           (cl_device_id, cl_device_info, size_t, void *, size_t *);
+typedef cl_int           (CL_API_CALL *OCL_CLGETMEMOBJECTINFO)        (cl_mem, cl_mem_info, size_t, void *, size_t *);
 typedef cl_int           (CL_API_CALL *OCL_CLGETEVENTINFO)            (cl_event, cl_event_info, size_t, void *, size_t *);
 typedef cl_int           (CL_API_CALL *OCL_CLGETEVENTPROFILINGINFO)   (cl_event, cl_profiling_info, size_t, void *, size_t *);
 typedef cl_int           (CL_API_CALL *OCL_CLGETKERNELWORKGROUPINFO)  (cl_kernel, cl_device_id, cl_kernel_work_group_info, size_t, void *, size_t *);
+typedef cl_int           (CL_API_CALL *OCL_CLGETKERNELINFO)           (cl_kernel, cl_kernel_info, size_t, void *, size_t *);
 typedef cl_int           (CL_API_CALL *OCL_CLGETPLATFORMIDS)          (cl_uint, cl_platform_id *, cl_uint *);
 typedef cl_int           (CL_API_CALL *OCL_CLGETPLATFORMINFO)         (cl_platform_id, cl_platform_info, size_t, void *, size_t *);
 typedef cl_int           (CL_API_CALL *OCL_CLGETPROGRAMBUILDINFO)     (cl_program, cl_device_id, cl_program_build_info, size_t, void *, size_t *);
@@ -194,6 +231,7 @@ typedef struct hc_opencl_lib
   OCL_CLFLUSH                     clFlush;
   OCL_CLGETDEVICEIDS              clGetDeviceIDs;
   OCL_CLGETDEVICEINFO             clGetDeviceInfo;
+  OCL_CLGETMEMOBJECTINFO          clGetMemObjectInfo;
   OCL_CLGETEVENTINFO              clGetEventInfo;
   OCL_CLGETEVENTPROFILINGINFO     clGetEventProfilingInfo;
   OCL_CLGETKERNELWORKGROUPINFO    clGetKernelWorkGroupInfo;
@@ -201,6 +239,7 @@ typedef struct hc_opencl_lib
   OCL_CLGETPLATFORMINFO           clGetPlatformInfo;
   OCL_CLGETPROGRAMBUILDINFO       clGetProgramBuildInfo;
   OCL_CLGETPROGRAMINFO            clGetProgramInfo;
+  OCL_CLGETKERNELINFO             clGetKernelInfo;
   OCL_CLLINKPROGRAM               clLinkProgram;
   OCL_CLRELEASECOMMANDQUEUE       clReleaseCommandQueue;
   OCL_CLRELEASECONTEXT            clReleaseContext;
@@ -240,6 +279,7 @@ int hc_clGetPlatformIDs          (void *hashcat_ctx, cl_uint num_entries, cl_pla
 int hc_clGetPlatformInfo         (void *hashcat_ctx, cl_platform_id platform, cl_platform_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
 int hc_clGetDeviceIDs            (void *hashcat_ctx, cl_platform_id platform, cl_device_type device_type, cl_uint num_entries, cl_device_id *devices, cl_uint *num_devices);
 int hc_clGetDeviceInfo           (void *hashcat_ctx, cl_device_id device, cl_device_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
+int hc_clGetMemObjectInfo        (void *hashcat_ctx, cl_mem mem, cl_mem_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret);
 int hc_clCreateContext           (void *hashcat_ctx, const cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *errinfo, const void *private_info, size_t cb, void *user_data), void *user_data, cl_context *context);
 int hc_clCreateCommandQueue      (void *hashcat_ctx, cl_context context, cl_device_id device, cl_command_queue_properties properties, cl_command_queue *command_queue);
 int hc_clCreateBuffer            (void *hashcat_ctx, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_mem *mem);

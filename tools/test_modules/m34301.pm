@@ -19,7 +19,7 @@ sub module_generate_hash
   my $python_code = <<'PYCODE';
 #!/usr/bin/env python3
 import hashlib, hmac, random, os, sys
-from Crypto.Cipher import AES  # pip install pycryptodome
+from Crypto.Cipher import AES
 
 # password comes from argv[1] (Perl passes $word as the first arg)
 password = sys.argv[1]

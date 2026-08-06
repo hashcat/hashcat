@@ -87,6 +87,9 @@ void loopback_destroy (hashcat_ctx_t *hashcat_ctx)
 
   if (loopback_ctx->enabled == false) return;
 
+  // memory leak
+  hcfree (loopback_ctx->filename);
+
   memset (loopback_ctx, 0, sizeof (loopback_ctx_t));
 }
 

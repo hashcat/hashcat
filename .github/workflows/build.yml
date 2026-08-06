@@ -26,7 +26,6 @@ on:
       - 'include/**.h'
       - 'src/**.c'
       - 'src/**.mk'
-      - 'tools/**'
       - '**/Makefile'
       - '.github/workflows/build.yml'
   pull_request:
@@ -38,7 +37,6 @@ on:
       - 'include/**.h'
       - 'src/**.c'
       - 'src/**.mk'
-      - 'tools/**'
       - '**/Makefile'
       - '.github/workflows/build.yml'
 
@@ -116,6 +114,18 @@ jobs:
           WIN_PYTHON: ""
         run: |
           make ENABLE_LTO=0 CC=clang CXX=clang++
+
+      - name: Install dependencies (Linux only)
+        if: matrix.os_name_lowercase == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libomp-dev
+
+      - name: Install dependencies (macOS only)
+        if: matrix.os_name_lowercase == 'macos'
+        run: |
+          brew install llvm libomp
+          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
 
       - name: Build (Linux/macOS)
         if: matrix.os_name_lowercase == 'linux' || matrix.os_name_lowercase == 'macos'
@@ -236,7 +246,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-               wget ca-certificates zstd tar git make pkg-config llvm cmake g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 libc++-dev libc++abi-dev lld pkg-config python3
+               wget ca-certificates zstd tar git make pkg-config llvm cmake g++-mingw-w64-x86-64 gcc-mingw-w64-x86-64 libc++-dev libc++abi-dev lld pkg-config python3 libomp-dev
 
           mkdir ~/src && cd ~/src
           mkdir /opt/win-iconv-64

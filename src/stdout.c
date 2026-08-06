@@ -13,6 +13,8 @@
 #include "backend.h"
 #include "shared.h"
 #include "thread.h"
+#include "memory.h"
+#include "pcfg.h"
 #include "stdout.h"
 
 static void out_flush (out_t *out)
@@ -49,6 +51,38 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   {
     out_flush (out);
   }
+}
+
+static int pws_to_host_pcfg (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_t *pws_host, u64 pws_cnt)
+{
+  if (device_param->is_cuda == true)
+  {
+    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return -1;
+    if (hc_cuMemcpyDtoH (hashcat_ctx, pws_host, device_param->cuda_d_pws_buf, pws_cnt * sizeof (pw_t)) == -1) return -1;
+    if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+  }
+
+  if (device_param->is_hip == true)
+  {
+    if (hc_hipSetDevice (hashcat_ctx, device_param->hip_device) == -1) return -1;
+    if (hc_hipMemcpyDtoH (hashcat_ctx, pws_host, device_param->hip_d_pws_buf, pws_cnt * sizeof (pw_t)) == -1) return -1;
+    if (hc_hipStreamSynchronize (hashcat_ctx, device_param->hip_stream) == -1) return -1;
+  }
+
+  #if defined (__APPLE__)
+  if (device_param->is_metal == true)
+  {
+    if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, pws_host, device_param->metal_d_pws_buf, 0, pws_cnt * sizeof (pw_t)) == -1) return -1;
+  }
+  #endif
+
+  if (device_param->is_opencl == true)
+  {
+    if (hc_clEnqueueReadBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_buf, CL_TRUE, 0, pws_cnt * sizeof (pw_t), pws_host, 0, NULL, NULL) == -1) return -1;
+  }
+
+  return 0;
 }
 
 int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt)
@@ -117,7 +151,53 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
   int rc = 0;
 
-  if (user_options->attack_mode == ATTACK_MODE_BF)
+  if (user_options->attack_mode == ATTACK_MODE_PCFG && (user_options->pcfg_mode == PCFG_MODE_GPU_PROB || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST))
+  {
+    pw_t *pws_host = (pw_t *) hcmalloc (pws_cnt * sizeof (pw_t));
+
+    rc = (pws_host != NULL) ? 0 : -1;
+
+    if (rc == 0)
+    {
+      rc = pws_to_host_pcfg (hashcat_ctx, device_param, pws_host, pws_cnt);
+
+      if (rc == 0)
+      {
+        for (u64 i = 0; i < pws_cnt; i++)
+        {
+          u32 pw_len = pws_host[i].pw_len;
+
+          if (pw_len == 0) continue;
+          if (pw_len > hashconfig->pw_max) pw_len = hashconfig->pw_max;
+
+          for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
+          {
+            const u64 off = device_param->innerloop_pos + il_pos;
+
+            memcpy (plain_buf, pws_host[i].i, pw_len);
+
+            if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+            {
+              plain_len = apply_rules_optimized (straight_ctx->kernel_rules_buf[off].cmds, &plain_buf[0], &plain_buf[4], pw_len);
+            }
+            else
+            {
+              plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw_len);
+            }
+
+            if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
+
+            out_push (&out, plain_ptr, plain_len);
+
+            memset (plain_ptr, 0, PW_MAX);
+          }
+        }
+      }
+
+      hcfree (pws_host);
+    }
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
@@ -204,7 +284,10 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if (rc == -1) break;
 
-      if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+      if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+       || (user_options->attack_mode == ATTACK_MODE_GENERIC)
+       || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+       || (user_options->attack_mode == ATTACK_MODE_PCFG))
       {
         while (pw_idx <= pw_idx_last)
         {

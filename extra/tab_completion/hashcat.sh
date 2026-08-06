@@ -460,7 +460,7 @@ _hashcat ()
 {
   local VERSION=7.1.2
 
-  local ATTACK_MODES="0 1 3 6 7 8 9"
+  local ATTACK_MODES="0 1 3 6 7 8 9 10"
   local HCCAPX_MESSAGE_PAIRS="0 1 2 3 4 5"
   local OUTFILE_FORMATS="1 2 3 4 5 6"
   local OPENCL_DEVICE_TYPES="1 2 3"
@@ -473,8 +473,9 @@ _hashcat ()
   local BUILD_IN_CHARSETS='?l ?u ?d ?a ?b ?s ?h ?H'
 
   local SHORT_OPTS="-m -a -V -h -H -b -t -T -o -p -c -d -D -w -n -u -j -k -r -g -1 -2 -3 -4 -5 -6 -7 -8 -i -I -s -l -O -S -z -M -Y -R -v"
-  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-json --status-timer --stdin-timeout-abort --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-inverse --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-json --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --deprecated-check-disable --left --username --dynamic-x --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --hash-info --backend-ignore-cuda --backend-ignore-opencl --backend-ignore-hip --backend-ignore-metal --backend-info --backend-devices --backend-devices-virtmulti --backend-devices-virthost --backend-devices-keepfree --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-disable --hwmon-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-func-sel --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --custom-charset5 --custom-charset6 --custom-charset7 --custom-charset8 --hook-threads --increment --increment-min --increment-max --increment-inverse --logfile-disable --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --multiply-accel-disable --self-test-disable --slow-candidates --brain-server --brain-server-timer --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password --identify --bridge-parameter1 --bridge-parameter2 --bridge-parameter3 --bridge-parameter4 --advice-disable --benchmark-max --benchmark-min --bypass-delay --bypass-threshold --metal-compiler-runtime --total-candidates --color-cracked --hash-copy --brain-feed"
-  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -5 -6 -7 -8 -s -l --hash-type --attack-mode --status-timer --stdin-timeout-abort --markov-hcstat2 --markov-threshold --runtime --session --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --backend-devices --backend-devices-virtmulti --backend-devices-virthost --backend-devices-keepfree --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-func-sel --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --custom-charset5 --custom-charset6 --custom-charset7 --custom-charset8 --hook-threads --increment-min --increment-max --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --brain-server-timer --brain-client-features --brain-host --brain-password --brain-port --brain-session --brain-session-whitelist --bridge-parameter1 --bridge-parameter2 --bridge-parameter3 --bridge-parameter4 --benchmark-max --benchmark-min --bypass-delay --bypass-threshold --metal-compiler-runtime"
+  local LONG_OPTS="--hash-type --attack-mode --version --help --quiet --benchmark --benchmark-all --hex-salt --hex-wordlist --hex-charset --force --status --status-json --status-timer --stdin-timeout-abort --machine-readable --loopback --markov-hcstat2 --markov-disable --markov-inverse --markov-classic --markov-threshold --runtime --session --speed-only --progress-only --restore --restore-file-path --restore-disable --outfile --outfile-format --outfile-autohex-disable --outfile-json --outfile-check-timer --outfile-check-dir --wordlist-autohex-disable --separator --show --deprecated-check-disable --left --username --dynamic-x --remove --remove-timer --potfile-disable --potfile-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --example-hashes --hash-info --backend-ignore-cuda --backend-ignore-opencl --backend-ignore-hip --backend-ignore-metal --backend-info --backend-devices --backend-devices-virtmulti --backend-devices-virthost --backend-devices-keepfree --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-disable --hwmon-temp-abort --skip --limit --keyspace --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-func-sel --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --custom-charset5 --custom-charset6 --custom-charset7 --custom-charset8 --hook-threads --increment --increment-min --increment-max --increment-inverse --logfile-disable --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --stdout --keep-guessing --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --optimized-kernel-enable --multiply-accel-disable --self-test-disable --slow-candidates --brain-server --brain-server-timer --brain-client --brain-client-features --brain-host --brain-port --brain-session --brain-session-whitelist --brain-password --identify --bridge-parameter1 --bridge-parameter2 --bridge-parameter3 --bridge-parameter4 --advice-disable --benchmark-max --benchmark-min --bypass-delay --bypass-threshold --metal-compiler-runtime --total-candidates --color-cracked --hash-copy --brain-feed --pcfg-model --pcfg-train --pcfg-train-format --pcfg-model-save --pcfg-model-update --pcfg-models-merge --pcfg-burst-first --pcfg-burst-size --pcfg-token-types --pcfg-pw-complex --pcfg-pw-len-max --pcfg-pw-len-min --pcfg-token-len-max --pcfg-token-len-min --pcfg-token-count-max --pcfg-token-count-min --pcfg-struct-prob-max --pcfg-struct-prob-min --pcfg-terminal-count-min --pcfg-keyspace-max --pcfg-train-df-disable --pcfg-train-af-disable --pcfg-train-af-threshold --pcfg-shuffle --pcfg-mode --pcfg-ahf-type --pcfg-ahf-terminals-min --pcfg-model-info --pcfg-omen-type --pcfg-omen-cost-min --pcfg-omen-cost-max --pcfg-omen-keyspace-max --pcfg-omen-max-alloc-perc --pcfg-omen-stats --pcfg-perf-threshold --pcfg-loopback --pcfg-model-diff"
+
+  local OPTIONS="-m -a -t -o -p -c -d -w -n -u -j -k -r -g -1 -2 -3 -4 -5 -6 -7 -8 -s -l --hash-type --attack-mode --status-timer --stdin-timeout-abort --markov-hcstat2 --markov-threshold --runtime --session --outfile --outfile-format --outfile-check-timer --outfile-check-dir --separator --remove-timer --potfile-path --restore-file-path --debug-mode --debug-file --induction-dir --segment-size --bitmap-min --bitmap-max --cpu-affinity --backend-devices --backend-devices-virtmulti --backend-devices-virthost --backend-devices-keepfree --opencl-device-types --backend-vector-width --workload-profile --kernel-accel --kernel-loops --kernel-threads --spin-damp --hwmon-temp-abort --skip --limit --rule-left --rule-right --rules-file --generate-rules --generate-rules-func-min --generate-rules-func-max --generate-rules-func-sel --generate-rules-seed --custom-charset1 --custom-charset2 --custom-charset3 --custom-charset4 --custom-charset5 --custom-charset6 --custom-charset7 --custom-charset8 --hook-threads --increment-min --increment-max --scrypt-tmto --keyboard-layout-mapping --truecrypt-keyfiles --veracrypt-keyfiles --veracrypt-pim-start --veracrypt-pim-stop --hccapx-message-pair --nonce-error-corrections --encoding-from --encoding-to --brain-server-timer --brain-client-features --brain-host --brain-password --brain-port --brain-session --brain-session-whitelist --bridge-parameter1 --bridge-parameter2 --bridge-parameter3 --bridge-parameter4 --benchmark-max --benchmark-min --bypass-delay --bypass-threshold --metal-compiler-runtime --total-candidates --color-cracked --pcfg-model --pcfg-train --pcfg-train-format --pcfg-model-save --pcfg-models-merge --pcfg-burst-size --pcfg-token-types --pcfg-pw-len-max --pcfg-pw-len-min --pcfg-token-len-max --pcfg-token-len-min --pcfg-token-count-max --pcfg-token-count-min --pcfg-struct-prob-max --pcfg-struct-prob-min --pcfg-terminal-count-min --pcfg-keyspace-max --pcfg-train-af-threshold --pcfg-mode --pcfg-ahf-type --pcfg-ahf-terminals-min --pcfg-omen-type --pcfg-omen-cost-min --pcfg-omen-cost-max --pcfg-omen-keyspace-max --pcfg-omen-max-alloc-perc --pcfg-perf-threshold --pcfg-model-diff"
 
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
@@ -722,6 +723,24 @@ _hashcat ()
 
       COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${cur_sel}))
       return 0
+      ;;
+
+    --pcfg-model|--pcfg-train|--pcfg-model-save|--pcfg-models-merge|--pcfg-model-diff)
+      _hashcat_files_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+      COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
+      return 0
+      ;;
+
+    --pcfg-mode)
+      COMPREPLY=($(compgen -W "0 1 2 3 4 5 6 7" -- ${cur}))
+      return 0
+      ;;
+
+    --pcfg-train-format|--pcfg-ahf-type|--pcfg-omen-type)
+      COMPREPLY=($(compgen -W "0 1" -- ${cur}))
+      return 0
+      ;;
+
   esac
 
   # allow also the VARIANTS w/o spaces
@@ -881,7 +900,7 @@ _hashcat ()
     *)
       case "${attack_mode}" in
 
-        0|9)
+        0|9|10)
           # dict/directory are files here
           _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
           COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))

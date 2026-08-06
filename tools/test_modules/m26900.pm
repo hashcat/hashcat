@@ -25,6 +25,9 @@ sub module_generate_hash
 
   my $engineID_orig = $engineID;
 
+  # strip trailing zero bytes to match C module encoding
+  $engineID_orig =~ s/(00)+$//;
+
   $engineID = join '', $engineID, "0" x $pad_len;
 
   # make salt even if needed

@@ -16,14 +16,21 @@
 #include "interface.h"
 #include "hashcat.h"
 #include "timer.h"
+#include "pcfg.h"
 #include "terminal.h"
 
 static const size_t MAXIMUM_EXAMPLE_HASH_LENGTH = 200;
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
-static const char *const PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
-static const char *const PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_ACTIVE  = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_PAUSED  = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+
+// Prob or OMEN Classic or OMEN Interleaved
+static const char *const PROMPT_PCFG_V1 = "[S]truct ";
+static const char *const PROMPT_PCFG_V2 = "[S]truct [C]ost ";
+static const char *const PROMPT_PCFG_V3 = "[L]oop ";
+static const char *const PROMPT_PCFG_V4 = "[C]ost [L]oop ";
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
@@ -177,6 +184,27 @@ int setup_console (void)
 void send_prompt (hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+  const pcfg_ctx_t     *pcfg_ctx     = hashcat_ctx->pcfg_ctx;
+
+  if (pcfg_ctx != NULL)
+  {
+    if (user_options->attack_mode == ATTACK_MODE_PCFG && user_options->pcfg_mode != PCFG_MODE_CPU_RANDOM_AHF)
+    {
+      if (user_options->pcfg_mode == PCFG_MODE_GPU_PROB
+       || user_options->pcfg_mode == PCFG_MODE_CPU_PROB)  fprintf (stdout, "%s", PROMPT_PCFG_V1);
+
+      if (user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_COST || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST || user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_STRUCT || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT)
+      {
+        if (user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC)
+          fprintf (stdout, "%s", PROMPT_PCFG_V2);                     // [S]truct [C]ost
+        else if (user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT)
+          fprintf (stdout, "%s", PROMPT_PCFG_V3);                     // [L]oop  (Mode 7 interleaved: loop only)
+        else
+          fprintf (stdout, "%s", PROMPT_PCFG_V4);                     // [C]ost [L]oop  (Mode 4/5/6 interleaved)
+      }
+    }
+  }
 
   if (status_ctx->devices_status == STATUS_PAUSED)
   {
@@ -193,6 +221,8 @@ void send_prompt (hashcat_ctx_t *hashcat_ctx)
 void clear_prompt (hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+  const pcfg_ctx_t     *pcfg_ctx     = hashcat_ctx->pcfg_ctx;
 
   size_t prompt_sz = 0;
 
@@ -203,6 +233,25 @@ void clear_prompt (hashcat_ctx_t *hashcat_ctx)
   else
   {
     prompt_sz = strlen (PROMPT_ACTIVE);
+  }
+
+  if (pcfg_ctx != NULL)
+  {
+    if (user_options->attack_mode == ATTACK_MODE_PCFG && user_options->pcfg_mode != PCFG_MODE_CPU_RANDOM_AHF)
+    {
+      if (user_options->pcfg_mode == PCFG_MODE_GPU_PROB
+       || user_options->pcfg_mode == PCFG_MODE_CPU_PROB)  prompt_sz += strlen (PROMPT_PCFG_V1);
+
+      if (user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_COST || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST || user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_STRUCT || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT)
+      {
+        if (user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC)
+          prompt_sz += strlen (PROMPT_PCFG_V2);
+        else if (user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT)
+          prompt_sz += strlen (PROMPT_PCFG_V3);
+        else
+          prompt_sz += strlen (PROMPT_PCFG_V4);
+      }
+    }
   }
 
   fputc ('\r', stdout);
@@ -221,6 +270,7 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
+  pcfg_ctx_t     *pcfg_ctx     = hashcat_ctx->pcfg_ctx;
 
   // this is required, because some of the variables down there are not initialized at that point
   while (status_ctx->devices_status == STATUS_INIT) usleep (100000);
@@ -248,6 +298,164 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
     switch (ch)
     {
+      case 'S':
+      {
+        bool changes = false;
+
+        if (pcfg_ctx != NULL)
+        {
+          if (user_options->attack_mode == ATTACK_MODE_PCFG && user_options->pcfg_mode != PCFG_MODE_CPU_RANDOM_AHF)
+          {
+            if (user_options->pcfg_mode == PCFG_MODE_GPU_PROB || user_options->pcfg_mode == PCFG_MODE_CPU_PROB
+             || (user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_COST && user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC)
+             || (user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST && user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC)
+             || (user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_STRUCT && user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC)
+             || (user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT && user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC))
+            {
+              // skip to the next struct
+              for (int i = 0; i < pcfg_ctx->num_generators; i++)
+              {
+                if (pcfg_ctx->generators[i] != NULL)
+                {
+                  const u32 s_idx = pcfg_ctx->generators[i]->curr_struct_idx;
+                  const u32 s_cnt = pcfg_ctx->generators[i]->model->struct_cnt;
+                  const u32 s_display = (s_idx < s_cnt) ? s_idx + 1 : s_cnt;
+
+                  event_log_info (hashcat_ctx, "PCFG: Requesting struct skip on generator #%d (current struct: %u/%u)", i + 1, s_display, s_cnt);
+
+                  pcfg_ctx->generators[i]->skip_structure = true;
+                  changes = true;
+                }
+              }
+            }
+          }
+        }
+
+        if (changes == true)
+        {
+          event_log_info (hashcat_ctx, NULL);
+
+          status_display (hashcat_ctx);
+
+          event_log_info (hashcat_ctx, NULL);
+
+          if (quiet == false) send_prompt (hashcat_ctx);
+        }
+
+        break;
+      }
+
+      case 'C':
+      {
+        // Cost skip (omen_skip_cost) — Classic all modes + Interleaved 4/5/6 (NOT Mode 7 interleaved)
+        bool changes = false;
+
+        if (pcfg_ctx != NULL)
+        {
+          if (user_options->attack_mode == ATTACK_MODE_PCFG && user_options->pcfg_mode != PCFG_MODE_CPU_RANDOM_AHF)
+          {
+            bool is_omen = false;
+            bool allow_cost = false;
+
+            is_omen = (user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_COST
+                    || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST
+                    || user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_STRUCT
+                    || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT);
+
+            if (is_omen)
+            {
+              if (user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC)
+                allow_cost = true;                                                    // all Classic
+              else if (user_options->pcfg_mode != PCFG_MODE_GPU_OMEN_BY_STRUCT)
+                allow_cost = true;                                                    // Interleaved 4/5/6 (NOT Mode 7)
+            }
+
+            if (allow_cost)
+            {
+              pcfg_ctx->omen_cost_skip_done = false;
+
+              for (int i = 0; i < pcfg_ctx->num_generators; i++)
+              {
+                if (pcfg_ctx->generators[i] != NULL)
+                {
+                  event_log_info (hashcat_ctx, "PCFG: Requesting cost skip on generator #%d (current cost: %u/%u)", i + 1, pcfg_ctx->generators[i]->omen_by_cost_current, pcfg_ctx->generators[i]->omen_max_target_cost);
+
+                  pcfg_ctx->generators[i]->omen_skip_cost = true;
+                  changes = true;
+                }
+              }
+            }
+          }
+        }
+
+        if (changes == true)
+        {
+          event_log_info (hashcat_ctx, NULL);
+
+          status_display (hashcat_ctx);
+
+          event_log_info (hashcat_ctx, NULL);
+
+          if (quiet == false) send_prompt (hashcat_ctx);
+        }
+
+        break;
+      }
+
+      case 'L':
+      {
+        // Loop skip (omen_skip_loop) — Interleaved only (all OMEN modes)
+        bool changes = false;
+
+        if (pcfg_ctx != NULL)
+        {
+          if (user_options->attack_mode == ATTACK_MODE_PCFG && user_options->pcfg_mode != PCFG_MODE_CPU_RANDOM_AHF)
+          {
+            bool allow_loop = false;
+
+            allow_loop = ((user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_COST
+                        || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST
+                        || user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_STRUCT
+                        || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT)
+                       && user_options->pcfg_omen_type != PCFG_OMEN_TYPE_CLASSIC);
+
+            if (allow_loop)
+            {
+              for (int i = 0; i < pcfg_ctx->num_generators; i++)
+              {
+                if (pcfg_ctx->generators[i] != NULL)
+                {
+                  const u32 s_idx = pcfg_ctx->generators[i]->curr_struct_idx;
+                  const u32 s_cnt = pcfg_ctx->generators[i]->model->struct_cnt;
+                  const u32 s_display = (s_idx < s_cnt) ? s_idx + 1 : s_cnt;
+                  const u64 l_idx = pcfg_ctx->generators[i]->omen_global_loop_idx;
+                  const u64 l_max = pcfg_ctx->omen_max_loops;
+                  const u64 l_display = (l_max > 0 && l_idx < l_max) ? l_idx + 1 : l_max;
+
+                  event_log_info (hashcat_ctx, "PCFG: Requesting loop skip on generator #%d (current loop: %" PRIu64 "/%" PRIu64 ", struct: %u/%u)", i + 1, l_display, l_max, s_display, s_cnt);
+
+                  pcfg_ctx->generators[i]->omen_skip_loop = true;
+                  changes = true;
+                }
+              }
+            }
+          }
+        }
+
+        if (changes == true)
+        {
+          event_log_info (hashcat_ctx, NULL);
+
+          status_display (hashcat_ctx);
+
+          event_log_info (hashcat_ctx, NULL);
+
+          if (quiet == false) send_prompt (hashcat_ctx);
+        }
+
+        break;
+      }
+
       case 's':
       case '\r':
       case '\n':
@@ -506,6 +714,27 @@ int tty_getchar (void)
   return getchar ();
 }
 
+int tty_getchar_nb (void)
+{
+  fd_set rfds;
+
+  FD_ZERO (&rfds);
+
+  FD_SET (fileno (stdin), &rfds);
+
+  struct timeval tv;
+
+  tv.tv_sec  = 0;
+  tv.tv_usec = 0;
+
+  int retval = select (1, &rfds, NULL, NULL, &tv);
+
+  if (retval ==  0) return  0;
+  if (retval == -1) return -1;
+
+  return getchar ();
+}
+
 int tty_fix (void)
 {
   if (!havemodes) return 0;
@@ -555,6 +784,27 @@ int tty_getchar (void)
   return getchar ();
 }
 
+int tty_getchar_nb (void)
+{
+  fd_set rfds;
+
+  FD_ZERO (&rfds);
+
+  FD_SET (fileno (stdin), &rfds);
+
+  struct timeval tv;
+
+  tv.tv_sec  = 0;
+  tv.tv_usec = 0;
+
+  int retval = select (1, &rfds, NULL, NULL, &tv);
+
+  if (retval ==  0) return  0;
+  if (retval == -1) return -1;
+
+  return getchar ();
+}
+
 int tty_fix ()
 {
   if (!havemodes) return 0;
@@ -591,6 +841,40 @@ int tty_getchar (void)
   // is sent to stdin which unblocks WaitForSingleObject () and sets rc 0.
   // Then it wants to read with getche () a keyboard input
   // which has never been made.
+
+  INPUT_RECORD buf[100];
+
+  DWORD num = 0;
+
+  memset (buf, 0, sizeof (buf));
+
+  ReadConsoleInput (stdinHandle, buf, 100, &num);
+
+  FlushConsoleInputBuffer (stdinHandle);
+
+  for (DWORD i = 0; i < num; i++)
+  {
+    if (buf[i].EventType != KEY_EVENT) continue;
+
+    KEY_EVENT_RECORD KeyEvent = buf[i].Event.KeyEvent;
+
+    if (KeyEvent.bKeyDown != TRUE) continue;
+
+    return KeyEvent.uChar.AsciiChar;
+  }
+
+  return 0;
+}
+
+int tty_getchar_nb (void)
+{
+  HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
+
+  DWORD rc = WaitForSingleObject (stdinHandle, 0);
+
+  if (rc == WAIT_TIMEOUT)   return  0;
+  if (rc == WAIT_ABANDONED) return -1;
+  if (rc == WAIT_FAILED)    return -1;
 
   INPUT_RECORD buf[100];
 
@@ -1986,12 +2270,12 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->machine_readable == false)
     {
-      event_log_info (hashcat_ctx, "Metal.Version.: %s", metal_runtimeVersionStr);
+      event_log_info (hashcat_ctx, "Metal.Runtime.Version.: %s", metal_runtimeVersionStr);
       event_log_info (hashcat_ctx, NULL);
     }
     else
     {
-      printf ("\"Version\": \"%s\", ", metal_runtimeVersionStr);
+      printf ("\"RuntimeVersion\": \"%s\", ", metal_runtimeVersionStr);
     }
 
     if (user_options->machine_readable == true)
@@ -2034,6 +2318,8 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       cl_uint        opencl_device_vendor_id = device_param->opencl_device_vendor_id;
       char          *opencl_device_vendor    = device_param->opencl_device_vendor;
 
+      int   metal_version                    = device_param->metal_version;
+
       if (device_param->device_id_alias_cnt)
       {
         if (user_options->machine_readable == false)
@@ -2071,6 +2357,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Unified.: %d", device_host_unified_memory);
         event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  Metal.Version..: %u", metal_version);
       }
       else
       {
@@ -2086,6 +2373,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         printf ("\"MemoryFree\": \"%" PRIu64 " MB\", ", device_available_mem / 1024 / 1024);
         printf ("\"MemoryUnified\": \"%d\", ", device_host_unified_memory);
         printf ("\"LocalMemory\": \"%" PRIu64 " MB\", ", device_local_mem_size / 1024);
+        printf ("\"MetalVersion\": \"%u\", ", metal_version);
       }
 
       switch (device_physical_location)
@@ -3444,17 +3732,35 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   {
     case GUESS_MODE_STRAIGHT_FILE:
 
-      event_log_info (hashcat_ctx,
-        "Guess.Base.......: File (%s)",
-        hashcat_status->guess_base);
+      if (user_options->attack_mode == ATTACK_MODE_PCFG)
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: %s",
+          hashcat_status->guess_base);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: File (%s)",
+          hashcat_status->guess_base);
+      }
 
       break;
 
     case GUESS_MODE_STRAIGHT_FILE_RULES_FILE:
 
-      event_log_info (hashcat_ctx,
-        "Guess.Base.......: File (%s)",
-        hashcat_status->guess_base);
+      if (user_options->attack_mode == ATTACK_MODE_PCFG)
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: %s",
+          hashcat_status->guess_base);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: File (%s)",
+          hashcat_status->guess_base);
+      }
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (%s)",
@@ -3464,9 +3770,18 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
     case GUESS_MODE_STRAIGHT_FILE_RULES_GEN:
 
-      event_log_info (hashcat_ctx,
-        "Guess.Base.......: File (%s)",
-        hashcat_status->guess_base);
+      if (user_options->attack_mode == ATTACK_MODE_PCFG)
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: %s",
+          hashcat_status->guess_base);
+      }
+      else
+      {
+        event_log_info (hashcat_ctx,
+          "Guess.Base.......: File (%s)",
+          hashcat_status->guess_base);
+      }
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (Generated)");
@@ -3818,10 +4133,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (hashcat_status->digests_cnt > 1000)
   {
-    const int    digests_remain         = hashcat_status->digests_cnt - hashcat_status->digests_done;
+    const u32    digests_remain         = hashcat_status->digests_cnt - hashcat_status->digests_done;
     const double digests_remain_percent = (double) digests_remain / (double) hashcat_status->digests_cnt * 100;
 
-    const int    salts_remain           = hashcat_status->salts_cnt - hashcat_status->salts_done;
+    const u32    salts_remain           = hashcat_status->salts_cnt - hashcat_status->salts_done;
     const double salts_remain_percent   = (double) salts_remain / (double) hashcat_status->salts_cnt * 100;
 
     if (hashcat_status->salts_cnt > 1)
@@ -4087,6 +4402,249 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx,
         "Candidates.#%02u...: %s", device_id + 1,
         device_info->guess_candidates_dev);
+    }
+  }
+
+  if (user_options->attack_mode == ATTACK_MODE_PCFG)
+  {
+    pcfg_ctx_t *pcfg_ctx = hashcat_ctx->pcfg_ctx;
+
+    if (pcfg_ctx)
+    {
+      int pos;
+
+      if (user_options->pcfg_mode == PCFG_MODE_CPU_RANDOM_AHF)
+      {
+        char *pcfg_ahf_settings = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+        pos = 0;
+
+        pos += snprintf (pcfg_ahf_settings + pos, HCBUFSIZ_TINY - pos - 1, "Type:%s", (pcfg_ctx->ahf_type == PCFG_AHF_TYPE_MARKOV) ? "Markov" : "Random");
+
+        pos += snprintf (pcfg_ahf_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Burst:%u", user_options->pcfg_burst_size);
+
+        if (user_options->pcfg_token_types != NULL)
+        {
+          pos += snprintf (pcfg_ahf_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Types:%s", user_options->pcfg_token_types);
+        }
+
+        event_log_info (hashcat_ctx, "PCFG.AHF.Mode....: %s", pcfg_ahf_settings);
+
+        hcfree (pcfg_ahf_settings);
+      }
+
+      char *pcfg_settings = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+      bool pcfg_settings_used = false;
+
+      pos = 0;
+
+      pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, "Mode:");
+
+      pcfg_settings_used = true;
+
+      switch (user_options->pcfg_mode)
+      {
+        case PCFG_MODE_CPU_RANDOM:
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, "Random (CPU)");
+          break;
+        case PCFG_MODE_CPU_RANDOM_AHF:
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, "AHF %s (CPU)",
+                           pcfg_ctx->ahf_type == PCFG_AHF_TYPE_MARKOV ? "Markov" : "Random");
+          break;
+        case PCFG_MODE_CPU_PROB:
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, "Prob (CPU)");
+          break;
+        case PCFG_MODE_GPU_PROB:
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, "Prob (GPU)");
+          break;
+        case PCFG_MODE_CPU_OMEN_BY_COST:
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, "OMEN By Cost %s (CPU)",
+                           user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC ? "Classic" : "Interleaved");
+          break;
+        case PCFG_MODE_GPU_OMEN_BY_COST:
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, "OMEN By Cost %s (GPU)",
+                           user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC ? "Classic" : "Interleaved");
+          break;
+        case PCFG_MODE_CPU_OMEN_BY_STRUCT:
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, "OMEN By Struct %s (CPU)",
+                           user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC ? "Classic" : "Interleaved");
+          break;
+        case PCFG_MODE_GPU_OMEN_BY_STRUCT:
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, "OMEN By Struct %s (GPU)",
+                           user_options->pcfg_omen_type == PCFG_OMEN_TYPE_CLASSIC ? "Classic" : "Interleaved");
+          break;
+      }
+
+      if (user_options->pcfg_mode != PCFG_MODE_CPU_RANDOM_AHF)
+      {
+        if (user_options->pcfg_mode == PCFG_MODE_CPU_RANDOM
+        || ((user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_COST || user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_STRUCT) && user_options->pcfg_omen_type == PCFG_OMEN_TYPE_INTERLEAVED)
+        || ((user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST) && user_options->pcfg_omen_type == PCFG_OMEN_TYPE_INTERLEAVED))
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Burst:%u", user_options->pcfg_burst_size);
+        }
+
+
+      }
+
+      /*
+      //if (user_options->pcfg_mode != PCFG_MODE_GPU_PROB && user_options->pcfg_mode != PCFG_MODE_GPU_OMEN_BY_STRUCT)
+      {
+        if (pcfg_ctx->pcfg_limit > 0)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Limit:%" PRIu64 "", pcfg_ctx->pcfg_limit);
+        }
+      }
+      */
+
+      if (user_options->pcfg_mode != PCFG_MODE_CPU_RANDOM_AHF)
+      {
+        if (user_options->pcfg_token_types != NULL)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Types:%s", user_options->pcfg_token_types);
+        }
+      }
+
+      if (user_options->pcfg_shuffle == true)
+      {
+        pcfg_settings_used = true;
+        pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Struct Shuffle:Yes");
+      }
+
+      if (user_options->pcfg_struct_prob_min != PCFG_STRUCT_PROB_MIN && user_options->pcfg_struct_prob_max != PCFG_STRUCT_PROB_MAX)
+      {
+        pcfg_settings_used = true;
+        pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Prob Min/Max:%.4f%%/%.4f%%", user_options->pcfg_struct_prob_min, user_options->pcfg_struct_prob_max);
+      }
+      else
+      {
+        if (user_options->pcfg_struct_prob_min != PCFG_STRUCT_PROB_MIN)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Prob Min:%.4f%%", user_options->pcfg_struct_prob_min);
+        }
+
+        if (user_options->pcfg_struct_prob_max != PCFG_STRUCT_PROB_MAX)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Prob Max:%.4f%%", user_options->pcfg_struct_prob_max);
+        }
+      }
+
+      if (user_options->pcfg_token_count_min_chgd == true && user_options->pcfg_token_count_max_chgd == true)
+      {
+        pcfg_settings_used = true;
+        pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Tokens Min/Max:%d/%d", user_options->pcfg_token_count_min, user_options->pcfg_token_count_max);
+      }
+      else
+      {
+        if (user_options->pcfg_token_count_min_chgd == true)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Tokens Min:%d", user_options->pcfg_token_count_min);
+        }
+
+        if (user_options->pcfg_token_count_max_chgd == true)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Tokens Max:%d", user_options->pcfg_token_count_max);
+        }
+      }
+
+      if (user_options->pcfg_token_len_min_chgd == true && user_options->pcfg_token_len_max_chgd == true)
+      {
+        pcfg_settings_used = true;
+        pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Token Len Min/Max:%d/%d", user_options->pcfg_token_len_min, user_options->pcfg_token_len_max);
+      }
+      else
+      {
+        if (user_options->pcfg_token_len_min_chgd == true)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Token Len Min:%d", user_options->pcfg_token_len_min);
+        }
+
+        if (user_options->pcfg_token_len_max_chgd == true)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Token Len Max:%d", user_options->pcfg_token_len_max);
+        }
+      }
+
+      if (user_options->pcfg_pw_len_min_chgd == true && user_options->pcfg_pw_len_max_chgd == true)
+      {
+        pcfg_settings_used = true;
+        pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Pwd Len Min/Max:%d/%d", user_options->pcfg_pw_len_min, user_options->pcfg_pw_len_max);
+      }
+      else
+      {
+        if (user_options->pcfg_pw_len_min_chgd == true)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Pwd Len Min:%d", user_options->pcfg_pw_len_min);
+        }
+
+        if (user_options->pcfg_pw_len_max_chgd == true)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Pwd Len Max:%d", user_options->pcfg_pw_len_max);
+        }
+      }
+
+      if (user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_STRUCT || user_options->pcfg_mode == PCFG_MODE_GPU_OMEN_BY_COST || user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_COST || user_options->pcfg_mode == PCFG_MODE_CPU_OMEN_BY_STRUCT)
+      {
+        if (user_options->pcfg_omen_cost_min != PCFG_OMEN_COST_MIN && user_options->pcfg_omen_cost_max != PCFG_OMEN_COST_MAX)
+        {
+          pcfg_settings_used = true;
+          pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", OMEN Cost Min/Max:%d/%d", user_options->pcfg_omen_cost_min, user_options->pcfg_omen_cost_max);
+        }
+        else
+        {
+          if (user_options->pcfg_omen_cost_min != PCFG_OMEN_COST_MIN)
+          {
+            pcfg_settings_used = true;
+            pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", OMEN Cost Min:%d", user_options->pcfg_omen_cost_min);
+          }
+
+          if (user_options->pcfg_omen_cost_max != PCFG_OMEN_COST_MAX)
+          {
+            pcfg_settings_used = true;
+            pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", OMEN Cost Max:%d", user_options->pcfg_omen_cost_max);
+          }
+        }
+      }
+
+      if (user_options->pcfg_pw_complex == true)
+      {
+        pcfg_settings_used = true;
+        pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Pwd Complex:Yes");
+      }
+
+      if (pcfg_ctx->loopback_enabled == true)
+      {
+        pcfg_settings_used = true;
+        pos += snprintf (pcfg_settings + pos, HCBUFSIZ_TINY - pos - 1, ", Loopback ID:%u", pcfg_ctx->loopback_generation);
+      }
+
+      if (pcfg_settings_used == true) event_log_info (hashcat_ctx, "PCFG.Settings....: %s", pcfg_settings);
+
+      hcfree (pcfg_settings);
+
+      // pcfg others
+      for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+      {
+        const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+        if (device_info->skipped_dev == true) continue;
+        if (device_info->skipped_warning_dev == true) continue;
+        if (device_info->pcfg_model_info_dev == NULL) continue;
+
+        event_log_info (hashcat_ctx, "PCFG.Info.#%02u....: %s", device_id + 1, device_info->pcfg_model_info_dev);
+      }
     }
   }
 

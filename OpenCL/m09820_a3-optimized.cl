@@ -128,9 +128,9 @@ DECLSPEC void m09820m (LOCAL_AS u32 *S, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, 
 
     // initial compare
 
-    int digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
+    const u32 digest_pos = find_hash (digest, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);
 
-    if (digest_pos == -1) continue;
+    if (digest_pos == (u32) -1) continue;
 
     if (esalt_bufs[DIGESTS_OFFSET_HOST].secondBlockLen != 0)
     {

@@ -1,7 +1,7 @@
 
 # Hashcat – Build Documentation
 
-**Revision**: 1.7  
+**Revision**: 1.8
 **Author**: See `docs/credits.txt`
 
 ---
@@ -14,7 +14,7 @@ Check your Python version:
 
 ```bash
 $ python3 --version
-# Expected output: Python 3.13.3
+# Expected output: Python 3.14.3
 ```
 
 If you can't install Python ≥ 3.12 globally, you can use **pyenv**.
@@ -29,10 +29,10 @@ If you can't install Python ≥ 3.12 globally, you can use **pyenv**.
 
 #### On Linux
 
-Install required libraries to build Python:
+Install required packages via apt:
 
 ```bash
-$ sudo apt install libbz2-dev libssl-dev libncurses5-dev libffi-dev libreadline-dev libsqlite3-dev liblzma-dev
+$ sudo apt install libbz2-dev libssl-dev libncurses5-dev libffi-dev libreadline-dev libsqlite3-dev liblzma-dev libomp-dev git
 ```
 
 Install `pyenv`:
@@ -45,10 +45,16 @@ $ curl https://pyenv.run | bash
 
 #### On macOS
 
-Install `pyenv` via Homebrew:
+Install required packages via Homebrew:
 
 ```bash
-$ brew install pyenv
+$ brew install pyenv llvm libomp
+```
+
+Add `llvm` to your PATH:
+
+```bash
+echo "$(brew --prefix llvm)/bin" >> ~/.bashrc
 ```
 
 ---
@@ -58,7 +64,7 @@ $ brew install pyenv
 Install Python 3.12 (or newer):
 
 ```bash
-$ pyenv install 3.12
+$ pyenv install 3.14.3
 ```
 
 Check installed versions:
@@ -67,12 +73,21 @@ Check installed versions:
 $ pyenv versions
 # Example:
 # * system
-#   3.12.11
+#   3.14.3
 ```
 
 ---
 
-### 🔹 Step 3: Clone the Hashcat repository
+### 🔹 Step 3: Install Rustup
+
+```bash
+$ curl https://sh.rustup.rs -sSf | sh -s -- -y
+$ . "$HOME/.cargo/env"
+```
+
+---
+
+### 🔹 Step 4: Clone the Hashcat repository
 
 ```bash
 $ git clone https://github.com/hashcat/hashcat.git
@@ -81,15 +96,15 @@ $ cd hashcat
 
 ---
 
-### 🔹 Step 4: Set the local Python version
+### 🔹 Step 5: Set the local Python version
 
 ```bash
-$ pyenv local 3.12.11
+$ pyenv local 3.14.3
 ```
 
 ---
 
-### 🔹 Step 5: Build Hashcat
+### 🔹 Step 6: Build Hashcat
 
 ```bash
 $ make clean && make
@@ -97,7 +112,7 @@ $ make clean && make
 
 ---
 
-### 🔹 Step 6 (Optional): Install Hashcat (Linux only)
+### 🔹 Step 7 (Optional): Install Hashcat (Linux only)
 
 ```bash
 $ make install

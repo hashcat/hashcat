@@ -114,7 +114,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
     #if defined (__APPLE__)
     if (device_param->is_metal == true)
     {
-      if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
+      if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
     }
     #endif
 
@@ -159,7 +159,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
         #if defined (__APPLE__)
         if (device_param->is_metal == true)
         {
-          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
+          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
         }
         #endif
 
@@ -233,9 +233,9 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
         #if defined (__APPLE__)
         if (device_param->is_metal == true)
         {
-          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, &comb, 1 * sizeof (pw_t)) == -1) return -1;
+          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, &comb, 1 * sizeof (pw_t)) == -1) return -1;
 
-          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
+          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
         }
         #endif
 
@@ -280,7 +280,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
           #if defined (__APPLE__)
           if (device_param->is_metal == true)
           {
-            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
+            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
           }
           #endif
 
@@ -341,7 +341,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
           #if defined (__APPLE__)
           if (device_param->is_metal == true)
           {
-            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_bfs_c, 0, &bf, 1 * sizeof (bf_t)) == -1) return -1;
+            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_bfs_c, 0, &bf, 1 * sizeof (bf_t)) == -1) return -1;
           }
           #endif
 
@@ -447,7 +447,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
           #if defined (__APPLE__)
           if (device_param->is_metal == true)
           {
-            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
+            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
           }
           #endif
 
@@ -485,7 +485,7 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
       #if defined (__APPLE__)
       if (device_param->is_metal == true)
       {
-        if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
+        if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_buf, 0, &pw, 1 * sizeof (pw_t)) == -1) return -1;
       }
       #endif
 
@@ -602,7 +602,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
       #if defined (__APPLE__)
       if (device_param->is_metal == true)
       {
-        if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->hooks_buf, device_param->metal_d_hooks, 0, device_param->size_hooks) == -1) return -1;
+        if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->hooks_buf, device_param->metal_d_hooks, 0, device_param->size_hooks) == -1) return -1;
       }
       #endif
 
@@ -627,7 +627,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
       #if defined (__APPLE__)
       if (device_param->is_metal == true)
       {
-        if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_hooks, 0, device_param->hooks_buf, device_param->size_hooks) == -1) return -1;
+        if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_hooks, 0, device_param->hooks_buf, device_param->size_hooks) == -1) return -1;
       }
       #endif
 
@@ -698,7 +698,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
             #if defined (__APPLE__)
             if (device_param->is_metal == true)
             {
-              if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->h_tmps, device_param->metal_d_tmps, 0, hashconfig->tmp_size) == -1) return -1;
+              if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->h_tmps, device_param->metal_d_tmps, 0, hashconfig->tmp_size) == -1) return -1;
             }
             #endif
 
@@ -739,7 +739,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
             #if defined (__APPLE__)
             if (device_param->is_metal == true)
             {
-              if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_tmps, 0, device_param->h_tmps, hashconfig->tmp_size) == -1) return -1;
+              if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_tmps, 0, device_param->h_tmps, hashconfig->tmp_size) == -1) return -1;
             }
             #endif
 
@@ -773,7 +773,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
         #if defined (__APPLE__)
         if (device_param->is_metal == true)
         {
-          if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->hooks_buf, device_param->metal_d_hooks, 0, device_param->size_hooks) == -1) return -1;
+          if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->hooks_buf, device_param->metal_d_hooks, 0, device_param->size_hooks) == -1) return -1;
         }
         #endif
 
@@ -798,7 +798,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
         #if defined (__APPLE__)
         if (device_param->is_metal == true)
         {
-          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_hooks, 0, device_param->hooks_buf, device_param->size_hooks) == -1) return -1;
+          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_hooks, 0, device_param->hooks_buf, device_param->size_hooks) == -1) return -1;
         }
         #endif
 
@@ -861,7 +861,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
               #if defined (__APPLE__)
               if (device_param->is_metal == true)
               {
-                if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->h_tmps, device_param->metal_d_tmps, 0, hashconfig->tmp_size) == -1) return -1;
+                if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->h_tmps, device_param->metal_d_tmps, 0, hashconfig->tmp_size) == -1) return -1;
               }
               #endif
 
@@ -898,7 +898,7 @@ static int selftest_run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
               #if defined (__APPLE__)
               if (device_param->is_metal == true)
               {
-                if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_tmps, 0, device_param->h_tmps, hashconfig->tmp_size) == -1) return -1;
+                if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_tmps, 0, device_param->h_tmps, hashconfig->tmp_size) == -1) return -1;
               }
               #endif
 
@@ -977,7 +977,7 @@ static int selftest_cleanup (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   #if defined (__APPLE__)
   if (device_param->is_metal == true)
   {
-    if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, num_cracked, device_param->metal_d_result, 0, sizeof (u32)) == -1) return -1;
+    if (hc_mtlMemcpyDtoH (hashcat_ctx, device_param, device_param->metal_device, device_param->metal_command_queue, num_cracked, device_param->metal_d_result, 0, sizeof (u32)) == -1) return -1;
   }
   #endif
 

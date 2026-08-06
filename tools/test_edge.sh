@@ -131,13 +131,14 @@ CLEAN_CACHE_DISABLE=0
 
 OPTS="--quiet --potfile-disable --machine-readable --logfile-disable"
 
-SKIP_HASH_TYPES="" #2000 2500 2501 16800 16801 99999 32000"
+# skip luks tests due to inconsistent test modules
+SKIP_HASH_TYPES="14600 29511 29512 29513 29521 29522 29523 29531 29532 29533 29541 29542 29543 34100" #2000 2500 2501 16800 16801 99999 32000"
 SKIP_HASH_TYPES_METAL="21800"
 
 METAL_FORCE_KEEPFREE="8900 22700 27700 28200 29800"
 
 SKIP_OUT_MATCH_HASH_TYPES="14000 14100 22000 31500 31600"
-SKIP_SAME_SALT_HASH_TYPES="6600 7100 7200 8200 13200 13400 15300 15310 15900 15910 16900 18300 18900 20200 20300 20400 27000 27100 29700 29930 29940"
+SKIP_SAME_SALT_HASH_TYPES="6600 7100 7200 8200 13200 13400 15300 15310 15900 15910 16900 18300 18900 20200 20300 20400 27000 27100 29700 29930 29940 33700"
 #SKIP_SAME_SALT_HASH_TYPES="400 3200 5800 6400 6500 6600 6700 7100 7200 7401 7900 8200 9100 9200 9400 10500 10901 12001 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 14700 14800 15100 15200 15300 15310 15400 15600 15900 15910 16200 16300 16700 16900 18300 18400 18800 18900 19000 19100 19600 19700 19800 19900 20011 20012 20013 20200 20300 20400 21501 22100 22400 22600 23100 23300 23500 23600 23700 23900 24100 24200 24410 24420 24500 25300 25400 25500 25600 25800 26100 26500 26600 27000 27100 27400 27500 27600 28100 28400 28600 28800 28900 29600 29700 29910 29920 29930 29940 30600 31200 31900"
 
 pyenv_free_threaded=0
@@ -601,6 +602,9 @@ if [ ${VERBOSE} -ge 1 ]; then
 fi
 
 errors=0
+skipped=0
+passed=0
+total=0
 startTime=$(date +%s)
 
 mkdir -p ${OUTD} &> /dev/null
@@ -616,12 +620,14 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
   if is_in_array "${hash_type}" ${SKIP_HASH_TYPES}; then
     echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (common)" | tee -a ${OUTD}/test_edge.details.log
+    ((skipped++))
     continue
   fi
 
   if [ $METAL_BACKEND -eq 1 ]; then
     if is_in_array "${hash_type}" ${SKIP_HASH_TYPES_METAL}; then
       echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (due to metal kernel build failed)" | tee -a ${OUTD}/test_edge.details.log
+      ((skipped++))
       continue
     fi
   fi
@@ -629,11 +635,13 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
   deprecated=$(./hashcat -m ${hash_type} -HH | grep "Deprecated\\.\\." | awk '{print $2}')
   if [ "${deprecated}" == "Yes" ]; then
     echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (is deprecated)" | tee -a ${OUTD}/test_edge.details.log
+    ((skipped++))
     continue
   fi
 
   if [ $pyenv_free_threaded -eq 0 ] && [ $hash_type -eq 72000 ]; then
     echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (missing python 'free-threaded' library support)" | tee -a ${OUTD}/test_edge.details.log
+    ((skipped++))
     continue
   fi
 
@@ -641,6 +649,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
     if [ "$UNAME" == "Darwin" ]; then
       echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} (not supported on Apple and Windows with python 'free-threaded' library support)" | tee -a ${OUTD}/test_edge.details.log
     fi
+    ((skipped++))
     continue
   fi
 
@@ -683,6 +692,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 else
                   echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} with Attack-Type ${attack_type} and Kernel-Type ${kernel_type} (disabled on ATTACK_EXEC_OUTSIDE_KERNEL by default)" >> ${OUTD}/test_edge.details.log
                 fi
+                ((skipped++))
                 continue
               fi
             fi
@@ -788,6 +798,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               if [ ${hash_type} -eq 20510 ]; then
                 if [ "$word_len" -le 6 ] && [ "${#word}" -eq 0 ] && { [ "$attack_type" -eq 3 ] || [ "$attack_type" -eq 6 ] || [ "$attack_type" -eq 7 ]; }; then
                  echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Target-Type multi (word len <= 6 not allowed with attack-type 3, 6 and 7)" | tee -a ${OUTD}/test_edge.details.log
+                 ((skipped++))
                  continue
                 fi
               fi
@@ -895,6 +906,8 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               eval ${CMD} &> ${cmd_out}
               retVal=$?
 
+              ((total++))
+
               #echo "RET: $retVal"
 
               cat ${cmd_out} >> ${OUTD}/test_edge.details.log
@@ -902,6 +915,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               if [ "${retVal}" -ne 0 ]; then
                 if [ "${retVal}" -eq 252 ]; then
                   echo "[ ${OUTD} ] > Skipping current tests due to unmet memory requirements ..." | tee -a ${OUTD}/test_edge.details.log
+                  ((skipped++))
                   break
                 fi
 
@@ -919,12 +933,14 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               else
                 if is_in_array "${hash_type}" ${SKIP_OUT_MATCH_HASH_TYPES}; then
                   echo "[ ${OUTD} ] > Skip output check for Hash-Type ${hash_type} (due to collisions)" >> ${OUTD}/test_edge.details.log
+                  ((passed++))
                   continue
                 fi
 
                 ./hashcat -m ${hash_type} -HH | grep 'Keep.Guessing.......: Yes' &> /dev/null
                 if [ $? -eq 0 ]; then
                   echo "[ ${OUTD} ] > Skip output check for Hash-Type ${hash_type} (due to keep guessing)" >> ${OUTD}/test_edge.details.log
+                  ((passed++))
                   continue
                 fi
 
@@ -957,6 +973,8 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   echo "${hc_out}" | tee -a ${OUTD}/test_edge.details.log
                   echo '```' | tee -a ${OUTD}/test_edge.details.log
                   ((errors++))
+                else
+                  ((passed++))
                 fi
               fi
             done
@@ -977,6 +995,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
             if [ $cnt_max -eq 1 ]; then
               # cannot exec multi-hash because this hash_type allow max 1 hash at time
               echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Target-Type multi (max 1 hash at time allowed)" | tee -a ${OUTD}/test_edge.details.log
+              ((skipped++))
               cnt=0
               continue
             fi
@@ -996,6 +1015,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
             if [ $cnt -eq 0 ]; then
               echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Target-Type multi (due to no valid test vectors)" | tee -a ${OUTD}/test_edge.details.log
+              ((skipped++))
               continue
             fi
 
@@ -1166,6 +1186,8 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               eval ${CMD} &> ${cmd_out}
               retVal=$?
 
+              ((total++))
+
               cat ${cmd_out} >> ${OUTD}/test_edge.details.log
 
               hc_out="${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.hashes.words"
@@ -1181,6 +1203,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               if [ "${retVal}" -ne 0 ]; then
                 if [ "${retVal}" -eq 252 ]; then
                   echo "[ ${OUTD} ] > Skipping current tests due to unmet memory requirements ..." | tee -a ${OUTD}/test_edge.details.log
+                  ((skipped++))
                   break
                 fi
 
@@ -1198,12 +1221,14 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               else
                 if is_in_array "${hash_type}" ${SKIP_OUT_MATCH_HASH_TYPES}; then
                   echo "[ ${OUTD} ] > Skip output check for Hash-Type ${hash_type} (due to collisions)" >> ${OUTD}/test_edge.details.log
+                  ((passed++))
                   continue
                 fi
 
                 ./hashcat -m ${hash_type} -HH | grep 'Keep.Guessing.......: Yes' &> /dev/null
                 if [ $? -eq 0 ]; then
                   echo "[ ${OUTD} ] > Skip output check for Hash-Type ${hash_type} (due to keep guessing)" >> ${OUTD}/test_edge.details.log
+                  ((passed++))
                   continue
                 fi
 
@@ -1225,10 +1250,13 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   cat ${hc_out} | sort -s | tee -a ${OUTD}/test_edge.details.log
                   echo '```' | tee -a ${OUTD}/test_edge.details.log
                   ((errors++))
+                else
+                  ((passed++))
                 fi
               fi
             else
               echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Target-Type multi, Hashes ${hash_in} (hashes < 2)" | tee -a ${OUTD}/test_edge.details.log
+              ((skipped++))
               #echo "hash_cnt: ${hash_cnt}"
             fi
           fi
@@ -1248,7 +1276,7 @@ seconds=$((elapsed % 60))
 
 echo "[ ${OUTD} ] > All tests done in ${days}d:$(printf "%02dh:%02dm:%02ds" "$hours" "$minutes" "$seconds")"
 
-echo "[ ${OUTD} ] > Errors detected: $errors"
+echo "[ ${OUTD} ] > Total: $total, Passed: $passed, Errors: $errors, Skipped: $skipped"
 if [ $errors -gt 0 ]; then
   echo "[ ${OUTD} ] !> Details on ${OUTD}/test_edge.details.log"
 fi

@@ -96,7 +96,7 @@ DECLSPEC void memzero_be_S (PRIVATE_AS u32 *block, const u32 start_offset, const
   }
 }
 
-DECLSPEC void aes128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data,
+DECLSPEC void aes128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, u32 data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data,
                                   SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ks[44];
@@ -128,7 +128,7 @@ DECLSPEC void aes128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_
   }
 }
 
-DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data,
+DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, u32 data_len, PRIVATE_AS const u32 *iv, PRIVATE_AS const u32 *key, PRIVATE_AS u32 *decrypted_data,
                                   SHM_TYPE u32 *s_te0, SHM_TYPE u32 *s_te1, SHM_TYPE u32 *s_te2, SHM_TYPE u32 *s_te3, SHM_TYPE u32 *s_te4)
 {
   u32 ks[60];

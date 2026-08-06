@@ -3,6 +3,7 @@
 *.exe
 *.bin
 *.app
+*.pcfg
 hashcat
 hashcat.exe
 libhashcat.so.*
@@ -36,6 +37,7 @@ include/CL
 tools/luks_tests
 tools/luks2_tests
 .vscode
+.python-version
 test_edge*
 
 # tools/test.sh names its working directory test_<unix timestamp> and leaves it in the repository

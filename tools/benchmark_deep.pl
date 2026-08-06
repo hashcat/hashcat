@@ -9,6 +9,7 @@ use strict;
 use warnings;
 
 use File::Path qw(make_path);
+use Getopt::Long;
 
 my $startTime        = time();
 my $workdir          = "test_benchmarkDeep_$startTime";
@@ -18,7 +19,6 @@ my $amd_cache        = "~/.AMD";
 my $hashcat_path     = ".";
 my $kernels_cache    = "$hashcat_path/kernels";
 my $hashcat_bin      = "$hashcat_path/hashcat";
-my $device           = 1;
 my $workload_profile = 3;
 my $runtime          = 11;
 my $sleep_sec        = 13;
@@ -26,57 +26,35 @@ my $default_mask     = "?a?a?a?a?a?a?a";
 my $result           = "$workdir/result.txt";
 my $old_hashcat      = 0; # requires to have ran with new hashcat before to create the hashfiles
 my $repeats          = 0;
-my $cpu_benchmark    = 0;
+my $attack_mode      = 3;
+my $wordlist_path    = "example.dict";
+my $backend_devices  = "1";
+my $pcfg_mode        = 0;
+my $pcfg_model       = undef;
 
 unless (-d $workdir)
 {
   make_path($workdir) or die "Unable to create '$workdir': $!";
 }
 
-print "\n[$workdir] > Hardware preparations... You may need to adjust some settings and probably can ignore some of the error\n\n";
+print "[$workdir] > Hardware preparations... You may need to adjust some settings and probably can ignore some of the error\n";
 
 if ($^O eq 'linux')
 {
-  system ("echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor");
+  system ("echo performance | sudo tee /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor > /dev/null") if (glob ("/sys/devices/system/cpu/cpu*/cpufreq/scaling_governor"));
 
-  if ($cpu_benchmark == 1)
-  {
-    system ("sudo echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo"); ## for CPU benchmark Intel
-    system ("sudo echo 0 > /sys/devices/system/cpu/cpufreq/boost");         ## for CPU benchmark AMD
-  }
-  else
-  {
-    #system ("rocm-smi --resetprofile --resetclocks --resetfans");
-    #system ("rocm-smi --setfan 100% --setperflevel high");
+  system ("sudo sh -c 'echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo'") if (-e "/sys/devices/system/cpu/intel_pstate/no_turbo"); ## for CPU benchmark Intel
+  system ("sudo sh -c 'echo 0 > /sys/devices/system/cpu/cpufreq/boost'")         if (-e "/sys/devices/system/cpu/cpufreq/boost");         ## for CPU benchmark AMD
 
-    system ("nvidia-settings -a GPUPowerMizerMode=1 -a GPUFanControlState=1 -a GPUTargetFanSpeed=100");
-  }
+  #system ("rocm-smi --resetprofile --resetclocks --resetfans");
+  #system ("rocm-smi --setfan 100% --setperflevel high");
 
-  system ("rm -rf $nvidia_cache");
-  system ("rm -rf $amd_cache");
-}
-elsif ($^O eq 'darwin')
-{
-  open(my $stderr_orig, '>&', STDERR) or die "Can't dup STDERR: $!";
-
-  open(STDERR, '>', '/dev/null') or die "Can't redirect STDERR: $!";
-
-  chomp(my $temp_dir  = `getconf DARWIN_USER_TEMP_DIR`);
-  chomp(my $cache_dir = `getconf DARWIN_USER_CACHE_DIR`);
-
-  # cleanup OpenCL cache
-  system("find \"$temp_dir\" -mindepth 1 -exec rm -rf {} +");
-  # cleanup OpenCL/Metal cache
-  system("rm -rf \"$cache_dir/com.apple.metalfe/*\"");
-  # cleanup Metal cache
-  system("rm -rf \"$cache_dir/com.apple.metal/*\"");
-
-  open(STDERR, '>&', $stderr_orig) or die "Can't restore STDERR: $!";
+  system ("nvidia-settings -a GPUPowerMizerMode=1 -a GPUFanControlState=1 -a GPUTargetFanSpeed=100") if (`which nvidia-settings 2>/dev/null` =~ /\S/);
 }
 
-system ("rm -rf $kernels_cache");
+clean_cache();
 
-print "\n\n[$workdir] > Starting...\n\n";
+print "[$workdir] > Starting...\n";
 
 my @hash_types_selection =
 (
@@ -189,6 +167,11 @@ my @hash_types_selection =
   1710,
   1720,
 );
+
+#my @hash_types =
+#(
+#  0, 20, 50, 60, 100, 120, 150, 160, 200, 300, 400, 500, 600, 900, 1000, 1100, 1300, 1400, 1420, 1450, 1460, 1500, 1600, 1700, 1720, 1750, 1760, 1800, 2100, 2400, 2410, 2611, 2711, 2811, 3000, 3100, 3200, 3710, 3800, 3910, 4010, 4110, 4300, 4400, 4500, 4520, 4700, 4800, 4900, 5100, 5200, 5300, 5400, 5500, 5600, 5800, 6000, 6100, 6211, 6221, 6231, 6241, 6300, 6400, 6500, 6600, 6700, 6800, 6900, 7000, 7100, 7300, 7400, 7500, 7700, 7701, 7800, 7801, 7900, 8000, 8100, 8200, 8300, 8400, 8500, 8600, 8700, 8800, 8900, 9000, 9100, 9400, 9500, 9600, 9700, 9710, 9720, 9800, 9810, 9820, 9900, 10100, 10300, 10400, 10410, 10420, 10500, 10700, 10800, 10900, 11000, 11100, 11200, 11300, 11400, 11500, 11600, 11700, 11750, 11760, 11800, 11850, 11860, 11900, 12000, 12200, 12300, 12400, 12500, 12600, 12700, 12800, 12900, 13000, 13100, 13200, 13300, 13400, 13500, 13600, 13711, 13721, 13731, 13741, 13751, 13761, 13771, 13800, 13900, 14000, 14100, 14400, 14700, 14800, 14900, 15000, 15100, 15300, 15400, 15500, 15600, 15900, 16000, 16100, 16200, 16300, 16400, 16600, 16900, 17300, 17400, 17500, 17600, 17700, 17800, 17900, 18000, 18100, 18200, 18300, 18400, 18500, 18600, 18700, 18800, 18900, 19000, 19100, 19200, 19300, 19500, 19600, 19700, 19800, 19900, 20011, 20012, 20013, 20500, 20510, 20600, 20710, 20800, 20900, 21000, 21100, 21200, 21300, 21400, 21500, 21600, 21700, 21800, 22000, 22100, 22200, 22300, 22400, 22500, 22600, 22700, 22911, 22921, 22931, 22941, 22951, 23001, 23002, 23003, 23100, 23200, 23300, 23400, 23500, 23600, 23700, 23800, 23900, 24100, 24200, 24300, 24410, 24420, 24500, 24600, 24700, 24800, 24900, 25300, 25400, 25500, 26000, 26100,
+#);
 
 my @hash_types =
 (
@@ -550,6 +533,20 @@ my @hash_types =
   28700,
 );
 
+GetOptions(
+  'attack-mode|a=i'     => \$attack_mode,
+  'wordlist|w=s'        => \$wordlist_path,
+  'backend-devices|d=s' => \$backend_devices,
+  'runtime|r=i'         => \$runtime,
+  'pcfg-mode=i'         => \$pcfg_mode,
+  'pcfg-model=s'        => \$pcfg_model,
+) or die "Usage: $0 [--attack-mode 0|3|10] [--wordlist path] [--backend-devices 1,3] [--runtime secs] [--pcfg-mode 0-7] [--pcfg-model path] [hash_types...]\n";
+
+if ($attack_mode != 0 && $attack_mode != 3 && $attack_mode != 10)
+{
+  die "Error: only attack-mode 0, 3 and 10 are supported\n";
+}
+
 if (scalar @ARGV)
 {
   @hash_types = @ARGV;
@@ -558,6 +555,67 @@ if (scalar @ARGV)
 unlink ($result);
 
 chdir ($hashcat_path);
+
+my $effective_wordlist = $wordlist_path;
+
+if ($attack_mode == 0 || $attack_mode == 10)
+{
+  my %passwords_to_exclude;
+
+  for my $ht (@hash_types)
+  {
+    my $module = get_module ($ht);
+
+    next if ($module->{"is_binary"} || $module->{"is_binary_pass"});
+
+    my $st_pass = $module->{"st_pass"};
+
+    if (defined $st_pass && $st_pass ne "")
+    {
+      $passwords_to_exclude{$st_pass} = 1;
+    }
+  }
+
+  if (scalar keys %passwords_to_exclude > 0)
+  {
+    my $filtered = "$workdir/wordlist_filtered.txt";
+
+    open (my $wl_in,  "<", $wordlist_path) or die "Cannot open $wordlist_path: $!";
+    open (my $wl_out, ">", $filtered)      or die "Cannot open $filtered: $!";
+
+    while (my $word = <$wl_in>)
+    {
+      chomp $word;
+      next if (exists $passwords_to_exclude{$word});
+      print $wl_out "$word\n";
+    }
+
+    close ($wl_in);
+    close ($wl_out);
+
+    $effective_wordlist = $filtered;
+
+    printf("[$workdir] > Filtered wordlist: excluded %d password(s), saved to %s\n",
+      scalar keys %passwords_to_exclude, $filtered);
+  }
+}
+
+if ($attack_mode == 10 && !defined $pcfg_model)
+{
+  $pcfg_model = "$workdir/benchmark.pcfg";
+
+  printf("[$workdir] > Training PCFG model from %s...\n", $effective_wordlist);
+
+  my $train_cmd = sprintf("%s --quiet --attack-mode 10 --pcfg-train %s --pcfg-model-save %s --pcfg-train-af-disable --pcfg-model-info > /dev/null 2>&1",
+    $hashcat_bin, $effective_wordlist, $pcfg_model);
+
+  system ($train_cmd) == 0 or die "Error: PCFG training failed\n";
+}
+
+if ($attack_mode == 10 && !-e $pcfg_model)
+{
+  die "Error: pcfg model file '$pcfg_model' not found\n";
+}
 
 for my $hash_type (@hash_types)
 {
@@ -570,6 +628,18 @@ for my $hash_type (@hash_types)
   if ($old_hashcat == 0)
   {
     my $module = get_module ($hash_type);
+
+    if ($attack_mode == 0 || $attack_mode == 10)
+    {
+      if ($module->{"is_binary"} || $module->{"is_binary_pass"})
+      {
+        printf("[$workdir] > Skipping hash type %d (binary hash or password)\n", $hash_type);
+        open (OUT, ">>", $result) or die;
+        print OUT "$hash_type:-1\n";
+        close (OUT);
+        next;
+      }
+    }
 
     my $st_hash   = $module->{"st_hash"};
     my $is_binary = $module->{"is_binary"};
@@ -587,12 +657,15 @@ for my $hash_type (@hash_types)
 
     close (OUT);
 
-    $mask = $module->{"mask"};
+    if ($attack_mode == 3)
+    {
+      $mask = $module->{"mask"};
+    }
   }
 
   my @command =
   (
-    $hashcat_bin, "-D2",
+    $hashcat_bin, "-D1,2",
     "--quiet",
     $filepath,
     "--keep-guessing",
@@ -609,18 +682,23 @@ for my $hash_type (@hash_types)
     "--machine-readable",
     "--optimized-kernel-enable",
     "--workload-profile", $workload_profile,
+    "--backend-devices", $backend_devices,
     "--hash-type", $hash_type,
-    "--attack-mode", 3,
-    $mask
+    "--attack-mode", $attack_mode,
   );
 
-  if ($cpu_benchmark == 1)
+  if ($attack_mode == 3)
   {
-    push (@command, "--opencl-device-types", 1);
+    push @command, $mask;
   }
-  else
+  elsif ($attack_mode == 0)
   {
-    push (@command, "--backend-devices", $device);
+    push @command, $effective_wordlist;
+  }
+  elsif ($attack_mode == 10)
+  {
+    push @command, "--pcfg-model", $pcfg_model;
+    push @command, "--pcfg-mode", $pcfg_mode;
   }
 
   print "[$workdir] > Executing command: ", join (" ", @command), "\n";
@@ -629,18 +707,18 @@ for my $hash_type (@hash_types)
 
   for (my $i = 0; $i <= $repeats; $i++)
   {
-    printf ("[$workdir] > Run #%d\n", $i);
+    printf("[$workdir] > Run #%d\n", $i);
 
     open (IN, "-|", @command, "--runtime", 1);
     close (IN);
 
-    my $was_slower = 0;
-
     my $speed = 0;
 
-    my $sample = 0;
-
     open (IN, "-|", @command);
+
+    my $was_slower = 0;
+
+    my $sample = 0;
 
     while (my $line = <IN>)
     {
@@ -656,7 +734,9 @@ for my $hash_type (@hash_types)
 
       $sample++;
 
-      if ($sample > 5)
+      my $warmup = ($attack_mode == 0) ? 2 : 5;
+
+      if ($sample > $warmup)
       {
         if ($data[3] > $speed)
         {
@@ -679,18 +759,54 @@ for my $hash_type (@hash_types)
   }
 
   open (OUT, ">>", $result) or die;
-  print OUT $final_speed, "\n";
+  print OUT "$hash_type:$final_speed\n";
   close (OUT);
+}
 
-  my $endTime = time();
-  my $elapsed = $endTime - $startTime;
+my $endTime = time();
+my $elapsed = $endTime - $startTime;
 
-  my $days    = int($elapsed / 86400);
-  my $hours   = int(($elapsed % 86400) / 3600);
-  my $minutes = int(($elapsed % 3600) / 60);
-  my $seconds = $elapsed % 60;
+my $days    = int($elapsed / 86400);
+my $hours   = int(($elapsed % 86400) / 3600);
+my $minutes = int(($elapsed % 3600) / 60);
+my $seconds = $elapsed % 60;
 
-  printf("\n\n[$workdir] > All tests done in: %d days, %02d hours, %02d minutes, %02d seconds\n", $days, $hours, $minutes, $seconds);
+printf("\n\n[$workdir] > All tests done in: %d days, %02d hours, %02d minutes, %02d seconds\n", $days, $hours, $minutes, $seconds);
+
+sub clean_cache
+{
+  print "[$workdir] > Cleaning cache...\n";
+
+  if ($^O eq 'linux')
+  {
+    system ("rm -rf $nvidia_cache");
+    system ("rm -rf $amd_cache");
+  }
+  elsif ($^O eq 'darwin')
+  {
+    chomp(my $temp_dir  = `getconf DARWIN_USER_TEMP_DIR`);
+    chomp(my $cache_dir = `getconf DARWIN_USER_CACHE_DIR`);
+
+    if (-d "$temp_dir/homed")
+    {
+      system("find \"$temp_dir\" -mindepth 1 -exec rm -rf {} + 2>/dev/null");
+    }
+
+    if (-d "$cache_dir/com.apple.metalfe")
+    {
+      system("rm -rf \"$cache_dir/com.apple.metalfe\"");
+    }
+
+    if (-d "$cache_dir/com.apple.metal")
+    {
+      system("rm -rf \"$cache_dir/com.apple.metal\"");
+    }
+  }
+
+  if (-d $kernels_cache)
+  {
+    system ("rm -rf $kernels_cache/*");
+  }
 }
 
 sub get_module
@@ -698,12 +814,14 @@ sub get_module
   my $hash_type = shift;
 
   my $st_hash         = undef;
+  my $st_pass         = undef;
   my $is_binary       = 0;
+  my $is_binary_pass  = 0;
   my $pw_min          = -1;
   my $pw_max          = -1;
   my $benchmark_mask  = undef;
 
-  my $path = sprintf ("src/modules/module_%05d.c", $hash_type);
+  my $path = sprintf("src/modules/module_%05d.c", $hash_type);
 
   open (IN, $path) or die;
 
@@ -726,6 +844,16 @@ sub get_module
     if ($line =~ /ST_HASH *= \"(.*)\"/)
     {
       $st_hash = $1;
+    }
+
+    if ($line =~ /ST_PASS\s*=\s*"(.*)"/)
+    {
+      $st_pass = $1;
+
+      if ($st_pass =~ /\\x/)
+      {
+        $is_binary_pass = 1;
+      }
     }
 
     if ($line =~ /const u32 pw_min = (\d+);/)
@@ -773,9 +901,11 @@ sub get_module
 
   my $module =
   {
-    "is_binary" => $is_binary,
-    "st_hash"   => $st_hash,
-    "mask"      => $mask,
+    "is_binary"      => $is_binary,
+    "is_binary_pass" => $is_binary_pass,
+    "st_hash"        => $st_hash,
+    "st_pass"        => $st_pass,
+    "mask"           => $mask,
   };
 
   return $module;

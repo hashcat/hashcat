@@ -126,10 +126,12 @@ bool remove_file_suffix (char *file, const char *suffix);
 int suppress_stderr (void);
 void restore_stderr (int saved_fd);
 
+bool get_free_swap_memory (u64 *free_mem);
 bool get_free_memory (u64 *free_mem);
 
 u32 previous_power_of_two (const u32 x);
 u32 next_power_of_two (const u32 x);
+u64 next_power_of_two_64 (const u64 x);
 
 typedef size_t (*hc_memchr_t) (const u8 *ptr, int ch, size_t max_len);
 

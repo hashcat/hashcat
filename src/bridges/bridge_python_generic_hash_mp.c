@@ -28,6 +28,7 @@
 typedef void                (PYTHON_API_CALL *PY_INITIALIZE)                    ();
 typedef void                (PYTHON_API_CALL *PY_FINALIZE)                      ();
 typedef void                (PYTHON_API_CALL *PY_DECREF)                        (PyObject *);
+typedef void                (PYTHON_API_CALL *PY_INCREF)                        (PyObject *);
 typedef PyObject           *(PYTHON_API_CALL *PYBOOL_FROMLONG)                  (long);
 typedef PyObject           *(PYTHON_API_CALL *PYBYTES_FROMSTRINGANDSIZE)        (const char *, Py_ssize_t);
 typedef int                 (PYTHON_API_CALL *PYDICT_DELITEMSTRING)             (PyObject *, const char *);
@@ -84,6 +85,7 @@ typedef struct hc_python_lib
   PY_INITIALIZE                     Py_Initialize;
   PY_FINALIZE                       Py_Finalize;
   PY_DECREF                         Py_DecRef;
+  PY_INCREF                         Py_IncRef;
   PYBOOL_FROMLONG                   PyBool_FromLong;
   PYBYTES_FROMSTRINGANDSIZE         PyBytes_FromStringAndSize;
   PYDICT_DELITEMSTRING              PyDict_DelItemString;
@@ -578,6 +580,7 @@ static bool init_python (hashcat_ctx_t *hashcat_ctx, hc_python_lib_t *python, us
   HC_LOAD_FUNC_PYTHON (python, Py_Initialize,                     Py_Initialize,                      PY_INITIALIZE,                    PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, Py_Finalize,                       Py_Finalize,                        PY_FINALIZE,                      PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, Py_DecRef,                         Py_DecRef,                          PY_DECREF,                        PYTHON, 1);
+  HC_LOAD_FUNC_PYTHON (python, Py_IncRef,                         Py_IncRef,                          PY_INCREF,                        PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyBool_FromLong,                   PyBool_FromLong,                    PYBOOL_FROMLONG,                  PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyBytes_FromStringAndSize,         PyBytes_FromStringAndSize,          PYBYTES_FROMSTRINGANDSIZE,        PYTHON, 1);
   HC_LOAD_FUNC_PYTHON (python, PyDict_DelItemString,              PyDict_DelItemString,               PYDICT_DELITEMSTRING,             PYTHON, 1);
@@ -822,6 +825,7 @@ void *platform_init (hashcat_ctx_t *hashcat_ctx)
     return false;
   }
 
+  python->Py_IncRef (unit_buf->pContext); // PyTuple_SetItem steals a reference
   python->PyTuple_SetItem (unit_buf->pArgs, 0, unit_buf->pContext);
   python->PyTuple_SetItem (unit_buf->pArgs, 2, python->PyLong_FromLong (0));
   python->PyTuple_SetItem (unit_buf->pArgs, 3, python->PyBool_FromLong (false));
@@ -843,9 +847,9 @@ void platform_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_cont
 
   python->Py_DecRef (unit_buf->pArgs);
   python->Py_DecRef (unit_buf->pContext);
-  python->Py_DecRef (unit_buf->pFunc_kernel_loop);
-  python->Py_DecRef (unit_buf->pFunc_Term);
-  python->Py_DecRef (unit_buf->pFunc_Init);
+  //python->Py_DecRef (unit_buf->pFunc_kernel_loop); // borrowed ref from PyDict_GetItemString
+  //python->Py_DecRef (unit_buf->pFunc_Term);        // borrowed ref from PyDict_GetItemString
+  //python->Py_DecRef (unit_buf->pFunc_Init);        // borrowed ref from PyDict_GetItemString
   python->Py_DecRef (unit_buf->pGlobals);
 
   //python->PyEval_RestoreThread (python_interpreter->tstate);
@@ -904,9 +908,12 @@ bool thread_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
     return false;
   }
 
+  python->Py_IncRef (unit_buf->pContext); // PyTuple_SetItem steals a reference
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
   PyObject *pReturn = python->PyObject_CallObject (unit_buf->pFunc_Init, pArgs);
+
+  python->Py_DecRef (pArgs);
 
   if (pReturn == NULL)
   {
@@ -943,9 +950,12 @@ void thread_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED void *pl
     return;
   }
 
+  python->Py_IncRef (unit_buf->pContext); // PyTuple_SetItem steals a reference
   python->PyTuple_SetItem (pArgs, 0, unit_buf->pContext);
 
   python->PyObject_CallObject (unit_buf->pFunc_Term, pArgs);
+
+  python->Py_DecRef (pArgs);
 
   python->PyDict_DelItemString (unit_buf->pContext, "salts_cnt");
   python->PyDict_DelItemString (unit_buf->pContext, "salts_size");
@@ -1132,7 +1142,7 @@ const char *st_update_hash (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
 
-  python->Py_DecRef (constant);
+  //python->Py_DecRef (constant); // borrowed ref from PyDict_GetItemString
 
   python->PyGILState_Release (unit_buf->gstate);
 
@@ -1160,7 +1170,7 @@ const char *st_update_pass (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSE
 
   const char *s = python->PyUnicode_AsUTF8 (constant);
 
-  python->Py_DecRef (constant);
+  //python->Py_DecRef (constant); // borrowed ref from PyDict_GetItemString
 
   python->PyGILState_Release (unit_buf->gstate);
 

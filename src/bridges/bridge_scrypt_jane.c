@@ -10,6 +10,10 @@
 #include "shared.h"
 #include "cpu_features.h"
 
+#if defined(__aarch64__) || defined(__arm__)
+#include <sse2neon.h>
+#endif
+
 #include "code/scrypt-jane-portable.h"
 #include "code/scrypt-jane-hash.h"
 #include "code/scrypt-jane-romix.h"

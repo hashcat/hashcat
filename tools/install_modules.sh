@@ -7,12 +7,24 @@
 
 ## Test suite installation helper script
 
+linux_check_pkg () {
+  if ! dpkg -s "$1" >/dev/null 2>&1; then
+    echo "Package $1 is NOT installed"
+    exit 1
+  fi
+}
+
+IS_RPI=0
 IS_APPLE=0
 IS_APPLE_SILICON=0
 
 UNAME=$(uname -s)
 if [ "${UNAME}" == "Darwin" ]; then
   IS_APPLE=1
+else
+  if [[ -r /proc/cpuinfo ]] && grep -q Raspberry /proc/cpuinfo; then
+    IS_RPI=1
+  fi
 fi
 
 if [ ${IS_APPLE} -eq 1 ]; then
@@ -23,6 +35,11 @@ fi
 
 # Sum of all exit codes
 ERRORS=0
+
+if [ ${IS_APPLE} -eq 0 ]; then
+  linux_check_pkg cpanminus
+  linux_check_pkg zlib1g-dev
+fi
 
 # Perl prints a warning block to stderr whenever LC_* names a locale the system does not have.
 # Several module test suites capture the output of a subprocess and compare it, so that injected
@@ -65,11 +82,20 @@ install_module ()
 
 echo "> Installing perl deps ..."
 
-if [ ${IS_APPLE} -eq 1 ]; then
-  # workaround for test failed with Net::SSLeay on Apple
+if [ ${IS_APPLE} -eq 1 ] || [ ${IS_RPI} -eq 1 ]; then
+  # workaround for test failed with Net::SSLeay
   cpanm --notest Net::SSLeay
 else
   cpanm Net::SSLeay
+fi
+
+ERRORS=$((ERRORS+$?))
+
+if [ ${IS_RPI} -eq 1 ]; then
+  # workaround for build failed with Crypt::DES
+  cpanm https://github.com/matrix/perl-crypt-des.git
+else
+  cpanm Crypt::DES
 fi
 
 ERRORS=$((ERRORS+$?))
@@ -89,7 +115,6 @@ Crypt::Blowfish
 Crypt::Camellia
 Crypt::CBC
 Crypt::Cipher::Serpent
-Crypt::DES
 Crypt::DES_EDE3
 Crypt::Digest::BLAKE2s_256
 Crypt::Digest::RIPEMD160
@@ -197,14 +222,16 @@ else
 
   echo "> Installing python3 deps ..."
 
+  pip3 uninstall pygost cryptoplus pycryptodome pycryptodomex cryptography setuptools argon2-cffi sm3utils -y
+
   pip3 install git+https://github.com/matrix/pygost
   ERRORS=$((ERRORS+$?))
 
-  pip3 install pycryptoplus
+  pip3 install git+https://github.com/matrix/pycryptoplus
   ERRORS=$((ERRORS+$?))
 
-  pip3 install pycryptodome
-  ERRORS=$((ERRORS+$?))
+  #pip3 install pycryptodome
+  #ERRORS=$((ERRORS+$?))
 
   pip3 install cryptography
   ERRORS=$((ERRORS+$?))
@@ -213,6 +240,9 @@ else
   ERRORS=$((ERRORS+$?))
 
   pip3 install argon2-cffi
+  ERRORS=$((ERRORS+$?))
+
+  pip3 install sm3utils
   ERRORS=$((ERRORS+$?))
 
 fi

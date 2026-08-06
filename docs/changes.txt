@@ -42,7 +42,22 @@
 ## Improvements
 ##
 
+- Added new attack-mode: Probabilistic Context-Free Grammar Attack (aka "PCFG") with Probability, OMEN, and AHF (Adaptive Hybrid-Fuzzing) generation strategies
+- Added --session/--restore, --skip/--limit, and --keyspace support for PCFG attack mode (-a 10)
+- Enable SSE2 intrinsics path for scrypt-jane bridge on ARM via sse2neon
+- Exclude tools directory from github action build triggers
+- Improved performance by skip unnecessary memset of pws_comp/pws_idx in dispatch loops
+- Replaced qsort with in-place MSD radix sort for non-salted hash deduplication
+- Replaced scalar line counting with SIMD-accelerated implementation (AVX2/SSE2/NEON)
+- Updated benchmark_deep.pl: now support --attack-mode (only 0, 3 and 10) and other options
+- Updated github workflow: add OpenMP support, fix NetBSD job
+- Updated install_modules.sh: add missing py sm3utils, fix py cryptocplus, fix perl DES, handle RPI
+- Updated makefile: add OpenMP support, switch from -O2 to -O3
+- Updated test_edge.sh: fix 33700 handling, skip luks, add more stats
+- Updated BUILD.md: add missing Rustup stage and required packages for Linux/MacOS
+
 - Docker: Added hashcat-toolchain
+- Docker: update hashcat_binaries to version 2.1
 - Docker: Added Ubuntu 26.04 runtime images for CUDA and AMD
 - Docker: Added an Ubuntu 18.04 image with separate gcc/mingw and clang builds
 - Docker: Updated the bundled Python to 3.14.6 and Rust to 1.97.1
@@ -82,6 +97,29 @@
 ## Bugs
 ##
 
+- Added workaround for CUDA memory leak in benchmark mode caused by register spilling
+- Fixed bug on 35500 kernel with Metal
+- Fixed bugs on 13731, 13732 and 13733 with AMD: add missing module_jit_build_options to force native_threads to 32 with GPU devices
+- Fixed the Rust bridges failing to build in the Ubuntu 20.04 and Arch containers, libclang was missing
+- Fixed the Windows Rust plugin failing to link in the Arch container, lld was missing
+- Fixed the Windows Python plugins silently going missing when the bundled Python is not 3.12
+- Fixed bridge_scrypt_jane failing to link with LTO on an older mingw-w64
+- Fixed bugs on multiple DES based modules when used with CPU devices
+- Fixed memory leak in loopback context (missing filename deallocation)
+- Fixed module_constraints for 14400, 15000, 34400, 34500, 35300 and 35400
+- Fixed module_generate_hash for 26900 by strip trailing zero bytes from engineID
+- Fixed setShouldMaximizeConcurrentCompilation on Metal backend for parallel PSO compilation
+- Fixed test.pl indirect method call syntax for is_count
+- Fixed test.sh attack mode 3 and 6 for hash type 3000, 8500, 8501, 7701, 11500, 14000, 14100, 14400, 16000 and 27900
+- Fixed test.sh attack mode 7 for hash type 33501 and 33502
+- Fixed test.sh cryptoloop_test bug for hash type 14553
+- Fixed unsupported get_segwit_address call for modules 28504 and 30904
+- Fixed u32 multiplication overflow in pointer arithmetic for large hash/salt counts
+- Fixed signed integer issues (int to u32) in find_hash(), hashcat_status_t, and sort_by_salt()
+- Fixed AUX2/AUX3/AUX4 kernel dispatch returning AUX1 pipeline on both Metal and OpenCL backends
+- Fixed Python reference counting bugs in bridge (crash with Python 3.14+)
+- Fixed MSYS2 build
+- Fixed --runtime usage togheter with --stdout
 - Fixed missing libclang dependencies for Rust bridges in Ubuntu 20.04 and Arch containers
 - Fixed the Windows Rust plugin failing to link in the Arch container because lld was missing
 - Fixed Windows Python plugins disappearing when the bundled Python version was not 3.12
@@ -111,6 +149,17 @@
 - Fixed brain attack identities not including the rules, so two different attacks shared a database
 - Fixed the progress line counting the words --skip left out as work that had already been done
 
+##
+## Backends
+##
+
+- Added Metal 4 support
+
+##
+## Features
+##
+
+- PCFG Loopback: After dictionary attack, auto-train PCFG model from cracked passwords and run iterative PCFG attacks until no new cracks are found
 ##
 ## Other changes
 ##

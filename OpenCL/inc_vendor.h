@@ -50,7 +50,11 @@ using namespace metal;
 #define KERNEL_FQ   extern "C" __global__
 #elif defined IS_METAL
 #define CONSTANT_VK constant
+//#if defined USE_METAL4
+//#define CONSTANT_AS device
+//#else
 #define CONSTANT_AS constant
+//#endif
 #define GLOBAL_AS   device
 #define LOCAL_VK    threadgroup
 #define LOCAL_AS    threadgroup

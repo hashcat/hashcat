@@ -70,6 +70,29 @@ static bool generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, const 
   return false;
 }
 
+#if defined (DEBUG)
+static u32 calc_suggested_bitmap_max (const u64 num_hashes)
+{
+  if (num_hashes == 0) return 1;
+
+  u32 bitmap_max = 0;
+  u64 n = num_hashes - 1;
+
+  while (n > 0)
+  {
+    n >>= 1;
+    bitmap_max++;
+  }
+
+  bitmap_max++;
+
+  // set the cap
+  if (bitmap_max > 31) bitmap_max = 31;
+
+  return bitmap_max;
+}
+#endif
+
 int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   hashes_t       *hashes       = hashcat_ctx->hashes;
@@ -133,7 +156,20 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if (bitmap_bits == bitmap_max)
   {
+    #if defined (DEBUG)
+    u32 bitmap_max_suggested = calc_suggested_bitmap_max (hashes->digests_cnt);
+
+    if (bitmap_max_suggested > 1)
+    {
+      EVENT_DATA (EVENT_BITMAP_FINAL_OVERFLOW, &bitmap_max_suggested, sizeof (u32));
+    }
+    else
+    {
+      EVENT_DATA (EVENT_BITMAP_FINAL_OVERFLOW, NULL, 0);
+    }
+    #else
     EVENT_DATA (EVENT_BITMAP_FINAL_OVERFLOW, NULL, 0);
+    #endif
   }
 
   bitmap_nums = 1U << bitmap_bits;

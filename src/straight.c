@@ -13,6 +13,7 @@
 #include "rp.h"
 #include "wordlist.h"
 #include "generic.h"
+#include "pcfg.h"
 #include "straight.h"
 
 static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
@@ -337,9 +338,11 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
 int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
+  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  pcfg_ctx_t           *pcfg_ctx           = hashcat_ctx->pcfg_ctx;
 
   straight_ctx->enabled = false;
 
@@ -352,6 +355,22 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->version      == true) return 0;
 
   if (user_options->attack_mode  == ATTACK_MODE_BF)      return 0;
+
+  if (user_options->attack_mode  == ATTACK_MODE_PCFG)
+  {
+    // setup fake dictionary
+    straight_ctx->dicts_cnt = 1;
+    straight_ctx->dicts_pos = 0;
+    straight_ctx->dicts = (char **) hccalloc (1, sizeof (char *));
+    straight_ctx->dicts[0] = hcstrdup ("PCFG Generator");
+    straight_ctx->dict = straight_ctx->dicts[0];
+
+    // set words_cnt
+    if (pcfg_ctx && pcfg_ctx->enabled)
+    {
+      status_ctx->words_cnt = pcfg_ctx->pcfg_limit;
+    }
+  }
 
   straight_ctx->enabled = true;
 

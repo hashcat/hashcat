@@ -209,8 +209,10 @@ int ocl_init (void *hashcat_ctx)
   HC_LOAD_FUNC (ocl, clFlush,                   OCL_CLFLUSH,                    OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetDeviceIDs,            OCL_CLGETDEVICEIDS,             OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetDeviceInfo,           OCL_CLGETDEVICEINFO,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetMemObjectInfo,        OCL_CLGETMEMOBJECTINFO,         OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetEventInfo,            OCL_CLGETEVENTINFO,             OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetKernelWorkGroupInfo,  OCL_CLGETKERNELWORKGROUPINFO,   OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clGetKernelInfo,           OCL_CLGETKERNELINFO,            OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetPlatformIDs,          OCL_CLGETPLATFORMIDS,           OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetPlatformInfo,         OCL_CLGETPLATFORMINFO,          OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetProgramBuildInfo,     OCL_CLGETPROGRAMBUILDINFO,      OpenCL, 1);
@@ -528,6 +530,24 @@ int hc_clGetDeviceInfo (void *hashcat_ctx, cl_device_id device, cl_device_info p
   return 0;
 }
 
+int hc_clGetMemObjectInfo (void *hashcat_ctx, cl_mem mem, cl_mem_info param_name, size_t param_value_size, void *param_value, size_t *param_value_size_ret)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+  const cl_int CL_err = ocl->clGetMemObjectInfo (mem, param_name, param_value_size, param_value, param_value_size_ret);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "clGetMemObjectInfo(): %s", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
 int hc_clCreateContext (void *hashcat_ctx, const cl_context_properties *properties, cl_uint num_devices, const cl_device_id *devices, void (CL_CALLBACK *pfn_notify) (const char *errinfo, const void *private_info, size_t cb, void *user_data), void *user_data, cl_context *context)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
@@ -579,7 +599,9 @@ int hc_clCreateBuffer_ext (void *hashcat_ctx, cl_context context, cl_mem_flags f
     flags |= CL_MEM_USE_HOST_PTR;
   }
 
-  return hc_clCreateBuffer (hashcat_ctx, context, flags, size, host_ptr, mem);
+  int rc = hc_clCreateBuffer (hashcat_ctx, context, flags, size, host_ptr, mem);
+
+  return rc;
 }
 
 int hc_clCreateBuffer (void *hashcat_ctx, cl_context context, cl_mem_flags flags, size_t size, void *host_ptr, cl_mem *mem)
@@ -592,7 +614,7 @@ int hc_clCreateBuffer (void *hashcat_ctx, cl_context context, cl_mem_flags flags
 
   *mem = ocl->clCreateBuffer (context, flags, size, host_ptr, &CL_err);
 
-  if (CL_err != CL_SUCCESS)
+  if (CL_err != CL_SUCCESS || *mem == NULL)
   {
     event_log_error (hashcat_ctx, "clCreateBuffer(): %s", val2cstr_cl (CL_err));
 
@@ -720,6 +742,8 @@ int hc_clCreateKernel (void *hashcat_ctx, cl_program program, const char *kernel
 
 int hc_clReleaseMemObject (void *hashcat_ctx, cl_mem mem)
 {
+  if (mem == NULL) return 0;
+
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
   OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
