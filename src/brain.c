@@ -165,6 +165,26 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
   XXH64_update (state, &hash_mode,   sizeof (hash_mode));
   XXH64_update (state, &attack_mode, sizeof (attack_mode));
 
+  // The attack identity is what the "attacks" feature is keyed on, and that feature trades in ranges:
+  // a client reserves a start and a length, and the brain answers with how much of that an earlier
+  // client already covered. So the identity has to say what the range covers, and --skip and --limit
+  // are what decide that. Two runs of the same command with different --limit reach different parts
+  // of the keyspace and are not the same attack.
+  //
+  // Leaving them out is the dangerous direction. The brain would take a run that only ever tries one
+  // candidate as covering the whole command, and hand that coverage to the next client.
+  //
+  // The "hashes" feature does not care either way. It is keyed on the session and asks about one
+  // candidate at a time, so where in the keyspace a candidate came from never enters into it.
+  //
+  // --skip used to be left out here, but by accident: it was cleared as soon as the first round had
+  // taken it, which was long before this ran.
+
+  // Both are u64 in user_options and both are truncated to 32 bits here, so two attacks whose --skip
+  // differs only above 2^32 get the same identity, and a --skip past 2^31 is hashed as a negative
+  // number. Widening these two would give every attack that has ever run a new identity, so it is
+  // left as it is rather than changed in passing.
+
   const int skip  = user_options->skip;
   const int limit = user_options->limit;
 
@@ -199,7 +219,74 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
   XXH64_update (state, &veracrypt_pim_stop, sizeof (veracrypt_pim_stop));
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if (user_options_extra->base_source == BASE_SOURCE_FEED)
+  {
+    // Two clients are running the same attack when they load the same feeds with the same arguments,
+    // so the plugin name and everything after it go into the hash. The arguments are what the feed
+    // reads from, a wordlist path for one feed and a model for another, and hashcat cannot say which,
+    // so all of them are taken as given.
+    //
+    // Every live instance, not only the base one. -a 1's amplifier is a second dictionary and it
+    // decides the candidates as much as the first does, so a run that leaves it out calls two
+    // different attacks the same and lets the brain refuse the second one as already covered.
+
+    for (int role = 0; role < GENERIC_ROLE_CNT; role++)
+    {
+      const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+      if (generic_ctx->enabled == false) continue;
+
+      for (int i = 0; i < generic_ctx->workc; i++)
+      {
+        const char *workv = generic_ctx->workv[i];
+
+        XXH64_update (state, workv, strlen (workv));
+      }
+
+      // A feed that reads a file is a different attack once that file changes, and its path does not
+      // say so. What the feed reads from does, and the feed is the only thing that can know it: the
+      // wordlist feed already works one out to name the seek database it caches, from the file's size,
+      // its modification time and both of its ends.
+
+      XXH64_update (state, &generic_ctx->global_ctx.source_ident, sizeof (generic_ctx->global_ctx.source_ident));
+    }
+
+    const int wordlist_autohex = user_options->wordlist_autohex;
+
+    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
+
+    if (user_options->encoding_from)
+    {
+      const char *encoding_from = user_options->encoding_from;
+
+      XXH64_update (state, encoding_from, strlen (encoding_from));
+    }
+
+    if (user_options->encoding_to)
+    {
+      const char *encoding_to = user_options->encoding_to;
+
+      XXH64_update (state, encoding_to, strlen (encoding_to));
+    }
+
+    if (user_options->rule_buf_l)
+    {
+      const char *rule_buf_l = user_options->rule_buf_l;
+
+      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
+    }
+
+    const int loopback = user_options->loopback;
+
+    XXH64_update (state, &loopback, sizeof (loopback));
+
+    // The rules are part of the attack, not a detail of it. Two runs over the same feed with
+    // different rules produce different candidates, so leaving these out makes the brain call them
+    // the same attack and refuse the second one as already done.
+
+    XXH64_update (state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
     if (straight_ctx->dict)
     {
@@ -594,62 +681,6 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
       XXH64_update (state, rule_buf_r, strlen (rule_buf_r));
     }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_GENERIC)
-  {
-    // Two clients are running the same attack when they load the same feed with the same arguments,
-    // so the plugin name and everything after it go into the hash. The arguments are what the feed
-    // reads from, a wordlist path for one feed and a model for another, and hashcat cannot say which,
-    // so all of them are taken as given.
-
-    const generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
-
-    for (int i = 0; i < user_options_extra->hc_workc; i++)
-    {
-      const char *workv = user_options_extra->hc_workv[i];
-
-      XXH64_update (state, workv, strlen (workv));
-    }
-
-    // A feed that reads a file is a different attack when the file changes, and the path alone does
-    // not say that. The feed is the only thing that knows, so it says so through guess_base.
-
-    XXH64_update (state, generic_ctx->global_ctx.guess_base, strlen (generic_ctx->global_ctx.guess_base));
-
-    const int wordlist_autohex = user_options->wordlist_autohex;
-
-    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
-
-    if (user_options->encoding_from)
-    {
-      const char *encoding_from = user_options->encoding_from;
-
-      XXH64_update (state, encoding_from, strlen (encoding_from));
-    }
-
-    if (user_options->encoding_to)
-    {
-      const char *encoding_to = user_options->encoding_to;
-
-      XXH64_update (state, encoding_to, strlen (encoding_to));
-    }
-
-    if (user_options->rule_buf_l)
-    {
-      const char *rule_buf_l = user_options->rule_buf_l;
-
-      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
-    }
-
-    const int loopback = user_options->loopback;
-
-    XXH64_update (state, &loopback, sizeof (loopback));
-
-    // The rules are part of the attack, not a detail of it. Two runs over the same feed with
-    // different rules produce different candidates, so leaving these out makes the brain call them
-    // the same attack and refuse the second one as already done.
-
-    XXH64_update (state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
   }
   else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {

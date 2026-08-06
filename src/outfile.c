@@ -444,7 +444,9 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
 
-  u64 crackpos = device_param->words_off;
+  // The batch being launched, and not the one the producer has moved on to filling.
+
+  u64 crackpos = device_param->words_off_launch;
 
   if (user_options->slow_candidates == true)
   {

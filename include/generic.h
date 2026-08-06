@@ -57,15 +57,14 @@ do                                                                              
 int   generic_filename       (const folder_config_t *folder_config, const char *plugin_name, const char *prefix, char *out_buf, const size_t out_size);
 char *generic_resolve        (const folder_config_t *folder_config, const char *plugin_name, bool *by_name);
 
-bool generic_global_init     (hashcat_ctx_t *hashcat_ctx);
-void generic_global_term     (hashcat_ctx_t *hashcat_ctx);
-u64  generic_global_keyspace (hashcat_ctx_t *hashcat_ctx);
-bool generic_thread_init     (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
-void generic_thread_term     (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
-int  generic_thread_next     (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, u8 *out_buf, const int out_size);
-int  generic_thread_seek     (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx, const u64 offset);
+int  generic_thread_next     (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, u8 *out_buf, const int out_size);
+int  generic_thread_seek     (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, const u64 offset);
+
+int  generic_ctx_base_round  (hashcat_ctx_t *hashcat_ctx, const char *path);
+int  generic_ctx_base_discard (hashcat_ctx_t *hashcat_ctx, const int device_id, const u64 count);
 
 int  generic_ctx_init        (hashcat_ctx_t *hashcat_ctx);
+void generic_ctx_roles_swap  (hashcat_ctx_t *hashcat_ctx);
 void generic_ctx_destroy     (hashcat_ctx_t *hashcat_ctx);
 
 #endif // HC_GENERIC_H

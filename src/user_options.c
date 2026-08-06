@@ -2633,9 +2633,15 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
+  // PCFG produces its own candidates, so base_source leaves it at WL_MODE_NONE and every status line
+  // keyed on wordlist_mode would go quiet. WL_MODE_FILE used to say "there are words and they are not
+  // stdin", which is what those lines actually ask; that value is gone now that a file is read through
+  // a feed, and WL_MODE_GENERIC is what answers the same question. No feed instance is opened for it:
+  // generic_ctx_init () goes by base_source, which stays BASE_SOURCE_NONE.
+
   if (user_options->attack_mode == ATTACK_MODE_PCFG)
   {
-    user_options_extra->wordlist_mode = WL_MODE_FILE;
+    user_options_extra->wordlist_mode = WL_MODE_GENERIC;
   }
 
   // automatic status
@@ -2643,6 +2649,16 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
   {
     user_options->status = true;
+
+    // A pipe is restorable, and --skip works on it, as long as it is fed the same candidates in the
+    // same order. "cat wordlist.txt | hashcat --skip 1000" is a thing people run and a thing an
+    // overlay hands out, so it is the user's job to feed the same stream again and hashcat's job to
+    // start where it was asked to. It reaches a position by reading and throwing away everything
+    // before it, in generic_ctx_base_discard (), because a stream cannot be seeked.
+    //
+    // Reading stdin through a feed is what made this work at all. The old producer never advanced the
+    // restore point, so a restore file was written saying zero and restoring re-read the new pipe
+    // from the start whatever it was told.
   }
 }
 
@@ -2818,52 +2834,100 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+// Which producer fills a batch of base words for this run. The attack mode is not the answer: it says
+// what the user asked for and goes on saying it, and several modes can take their base words from more
+// than one place.
+//
+// A wordlist reaches the generic feed wherever the feed can express what the mode was asked to do. The
+// feed seeks, so a device jumps straight to its own range instead of reading and discarding every word
+// another device already took. It also lays several dictionaries end to end into one keyspace, which is
+// what makes --skip and --limit work across all of them.
+//
+// Two things are excluded, and both are the same reason rather than an oversight. Reading candidates
+// from stdin has no feed equivalent. Neither has an induction round: a feed is handed its sources once,
+// in global_init (), which runs before the first round, so a second round would re-read the original
+// wordlist instead of the words --loopback or --induction-dir just produced. Those runs take the
+// wordlist reader, which is correct and only slower.
+//
+// HASHCAT_A0_LEGACY_READER=1 puts the wordlist reader back. It is there because this is a large change
+// to the most used attack modes, not because either path is expected to be wrong.
+
+// How much of the attack one instance covers. Everything is one keyspace unless the run is really a
+// queue of attacks, and only two things are: an induction round, whose dictionary does not exist
+// until the round before it is read, and -a 9 over more than one dictionary, where each one is its
+// own attack over the same salts.
+
+static u32 user_options_extra_base_scope (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->loopback      == true) return BASE_SCOPE_PER_ROUND;
+  if (user_options->induction_dir != NULL) return BASE_SCOPE_PER_ROUND;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    if (user_options_extra->hc_workc != 1) return BASE_SCOPE_PER_ROUND;
+
+    if (hc_path_is_directory (user_options_extra->hc_workv[0]) == true) return BASE_SCOPE_PER_ROUND;
+  }
+
+  return BASE_SCOPE_ALL_SOURCES;
+}
+
+static u32 user_options_extra_base_source (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const u32 attack_mode = user_options->attack_mode;
+
+  if (attack_mode == ATTACK_MODE_BF)      return BASE_SOURCE_MASK;
+  if (attack_mode == ATTACK_MODE_GENERIC) return BASE_SOURCE_FEED;
+
+  const bool reads_words = (attack_mode == ATTACK_MODE_STRAIGHT) || (attack_mode == ATTACK_MODE_COMBI) || (attack_mode == ATTACK_MODE_HYBRID1) || (attack_mode == ATTACK_MODE_HYBRID2) || (attack_mode == ATTACK_MODE_ASSOCIATION);
+
+  if (reads_words == false) return BASE_SOURCE_NONE;
+
+  // -a 7 is the one mode whose base words are not settled here. The optimized kernel builds mask plus
+  // word and takes its base from the dictionary; the pure kernel builds word plus mask and takes its
+  // base from the mask. Which kernel it will be is decided inside hashconfig_init, which has not run,
+  // so the answer given here is the pure one and user_options_extra_init_late () upgrades it once the
+  // kernel type is known.
+
+  if (attack_mode == ATTACK_MODE_HYBRID2) return BASE_SOURCE_MASK;
+
+  return BASE_SOURCE_FEED;
+}
+
+// Finish base_source once the hash mode is known. Only -a 7 has anything left to decide, and
+// OPTI_TYPE_OPTIMIZED_KERNEL is written inside hashconfig_init and by nothing after it, so this is the
+// earliest the question can be answered.
+//
+// Every reader of base_source runs later than this. induct_ctx_init only ever looks at -a 0 and -a 9,
+// user_options_check_files works from the attack mode alone, the one early reader of wordlist_mode
+// tests for stdin which -a 7 cannot be, and straight_ctx_init, combinator_ctx_init, mask_ctx_init and
+// generic_ctx_init are all further down outer_loop.
+
+void user_options_extra_init_late (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t   *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->attack_mode != ATTACK_MODE_HYBRID2) return;
+
+  if (user_options_extra->base_source != BASE_SOURCE_MASK) return;
+
+  if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) return;
+
+  user_options_extra->base_source   = BASE_SOURCE_FEED;
+  user_options_extra->wordlist_mode = WL_MODE_GENERIC;
+}
+
 void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-
-  // -a 0 reads its wordlists through the generic feed rather than through the wordlist reader. The
-  // feed seeks, so a device jumps straight to its own range instead of reading and discarding every
-  // word another device already took, which is what made -a 0 no faster on a second device than on
-  // one. It also makes --skip and --limit work across several dictionaries, which the wordlist
-  // reader has to refuse.
-  //
-  // HASHCAT_A0_LEGACY_READER=1 puts the old reader back. It is there because this is a large change
-  // to the most used attack mode, not because either path is expected to be wrong. Two things do
-  // differ: several dictionaries become one keyspace rather than one attack each, so there is no
-  // Guess.Queue, and the LM specific 7 byte truncation is not applied.
-  //
-  // It only engages where the feed can express what -a 0 was asked to do, which means a real
-  // wordlist on the command line. Reading candidates from stdin has no feed equivalent.
-  //
-  // An induction round has none either, and this is the reason it is excluded rather than an
-  // oversight. A feed is handed its sources once, in global_init (), which runs before the first
-  // round. The words a --loopback or an --induction-dir produces only exist after that round has
-  // finished, so a second round would re-read the original wordlist instead of the induced one.
-  // Until a feed can be re-sourced between rounds, those runs take the wordlist reader and stay
-  // correct.
-
-  bool a0_via_feed = false;
-
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    if (getenv ("HASHCAT_A0_LEGACY_READER") == NULL)
-    {
-      const bool no_hash_arg = (user_options->keyspace == true) || (user_options->stdout_flag == true);
-
-      const int dicts_cnt = (no_hash_arg == true) ? user_options->hc_argc : user_options->hc_argc - 1;
-
-      const bool induction = (user_options->loopback == true) || (user_options->induction_dir != NULL);
-
-      if ((dicts_cnt >= 1) && (induction == false))
-      {
-        user_options->attack_mode = ATTACK_MODE_GENERIC;
-
-        a0_via_feed = true;
-      }
-    }
-  }
 
   // separator
 
@@ -2893,6 +2957,30 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
 
   user_options_extra->rule_len_l = (int) strlen (user_options->rule_buf_l);
   user_options_extra->rule_len_r = (int) strlen (user_options->rule_buf_r);
+
+  // The base word is the left hand side of a candidate, so -j is its rule and -k the amplifier's.
+
+  user_options_extra->rule_buf_base = user_options->rule_buf_l;
+  user_options_extra->rule_len_base = user_options_extra->rule_len_l;
+
+  user_options_extra->rule_buf_amp  = user_options->rule_buf_r;
+  user_options_extra->rule_len_amp  = user_options_extra->rule_len_r;
+
+  // -a 7 appends a word to a mask, so its word is the right hand side and -k is the rule for it. That
+  // holds whichever loop the word ends up in: the optimized kernel makes it the base and the pure
+  // kernel makes it the amplifier, and -k applies either way. Which means this one does not have to
+  // wait for the kernel type, and it must not: the pure kernel counts that dictionary twice, once in
+  // combinator_ctx_init and once per round in straight_ctx_update_loop, and the two counts divide into
+  // each other. They have to be made with the same rule.
+  //
+  // The mask is the other side and nothing applies a rule to a mask, so both fields naming -k is right
+  // rather than merely harmless.
+
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  {
+    user_options_extra->rule_buf_base = user_options->rule_buf_r;
+    user_options_extra->rule_len_base = user_options_extra->rule_len_r;
+  }
 
   // hc_hash and hc_work*
 
@@ -2929,49 +3017,30 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
     user_options_extra->hc_workv = user_options->hc_argv + 1;
   }
 
-  // The feed takes its plugin name as the first work argument, so one has to be put in front of the
-  // wordlists that -a 0 was given. The array holds one pointer per argument, it is allocated once per
-  // session and it has to stay reachable for as long as the feed does, which is until the process
-  // ends. So it is deliberately not freed rather than leaked by accident.
+  // base_source, and how much of the attack one instance of it covers
 
-  if (a0_via_feed == true)
-  {
-    char **workv = (char **) hcmalloc ((user_options_extra->hc_workc + 1) * sizeof (char *));
+  user_options_extra->base_source = user_options_extra_base_source (hashcat_ctx);
+  user_options_extra->base_scope  = user_options_extra_base_scope  (hashcat_ctx);
 
-    workv[0] = "wordlist";
-
-    for (int i = 0; i < user_options_extra->hc_workc; i++)
-    {
-      workv[i + 1] = user_options_extra->hc_workv[i];
-    }
-
-    user_options_extra->hc_workv = workv;
-
-    user_options_extra->hc_workc = user_options_extra->hc_workc + 1;
-  }
-
-  // wordlist_mode
+  // wordlist_mode says the same thing base_source does and is kept because a lot of code reads it. It
+  // is derived here rather than worked out a second time.
 
   user_options_extra->wordlist_mode = WL_MODE_NONE;
 
-  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+  switch (user_options_extra->base_source)
   {
-    if (user_options->attack_mode == ATTACK_MODE_GENERIC)
-    {
-      user_options_extra->wordlist_mode = WL_MODE_GENERIC;
-    }
-    else
-    {
-      user_options_extra->wordlist_mode = (user_options_extra->hc_workc >= 1) ? WL_MODE_FILE : WL_MODE_STDIN;
-    }
+    case BASE_SOURCE_MASK: user_options_extra->wordlist_mode = WL_MODE_MASK;    break;
+    case BASE_SOURCE_FEED: user_options_extra->wordlist_mode = WL_MODE_GENERIC; break;
   }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+
+  // -a 0 with no wordlist reads its candidates from a pipe, and that is a feed like any other. It is
+  // the one whose plugin hashcat picks rather than the user, so base_source cannot tell it apart from
+  // a wordlist and this is where the difference is kept: which plugin to open, whether to print the
+  // stdin prompt, and that the run is not restorable.
+
+  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) && (user_options_extra->hc_workc == 0))
   {
-    user_options_extra->wordlist_mode = WL_MODE_FILE;
-  }
-  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-  {
-    user_options_extra->wordlist_mode = WL_MODE_MASK;
+    user_options_extra->wordlist_mode = WL_MODE_STDIN;
   }
   //else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
   //{
@@ -2984,6 +3053,52 @@ void user_options_extra_destroy (hashcat_ctx_t *hashcat_ctx)
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   memset (user_options_extra, 0, sizeof (user_options_extra_t));
+}
+
+// Settle which rule belongs to the base word and which to the amplifier, once the attack mode has
+// finished deciding what its base word is.
+//
+// Finish the base and amplifier rules for -a 1, which is the only mode that cannot answer earlier.
+//
+// It takes the larger of its two dictionaries as the base so that the base loop is the long one, and
+// that choice is made by counting both, in combinator_ctx_init. The rule follows the dictionary rather
+// than the loop, so a base-right attack reads its base words with -k and its amplifier words with -j.
+//
+// Everything that reads either side runs after this: the producers, the counters in
+// straight_ctx_update_loop and the amplifier readers are all inside the attack loop. The two counts
+// combinator_ctx_init itself makes are the ones that pick the base, and they are deliberately made
+// before the choice exists, both with -j, which is what they were made with before this existed.
+
+void user_options_extra_init_rules (hashcat_ctx_t *hashcat_ctx)
+{
+  const combinator_ctx_t *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  const user_options_t   *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t   *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->attack_mode != ATTACK_MODE_COMBI) return;
+
+  if (combinator_ctx->combs_mode != COMBINATOR_MODE_BASE_RIGHT) return;
+
+  user_options_extra->rule_buf_base = user_options->rule_buf_r;
+  user_options_extra->rule_len_base = user_options_extra->rule_len_r;
+
+  user_options_extra->rule_buf_amp  = user_options->rule_buf_l;
+  user_options_extra->rule_len_amp  = user_options_extra->rule_len_l;
+}
+
+// Which of the hash mode's length bounds a base word is judged against. See base_length_t for why the
+// three cases are what they are.
+
+u32 user_options_extra_base_length (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) return BASE_LENGTH_NONE;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI) return BASE_LENGTH_MAX;
+
+  return BASE_LENGTH_BOTH;
 }
 
 u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
@@ -3033,7 +3148,6 @@ u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx)
 
 int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
 {
-  dictstat_ctx_t       *dictstat_ctx       = hashcat_ctx->dictstat_ctx;
   folder_config_t      *folder_config      = hashcat_ctx->folder_config;
   logfile_ctx_t        *logfile_ctx        = hashcat_ctx->logfile_ctx;
   outcheck_ctx_t       *outcheck_ctx       = hashcat_ctx->outcheck_ctx;
@@ -3727,37 +3841,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  // dictstat
-
-  if (dictstat_ctx->enabled == true)
-  {
-    if (hc_path_exist (dictstat_ctx->filename) == true)
-    {
-      if (hc_path_is_directory (dictstat_ctx->filename) == true)
-      {
-        event_log_error (hashcat_ctx, "%s: A directory cannot be used as a dictstat argument.", dictstat_ctx->filename);
-
-        return -1;
-      }
-
-      if (hc_path_write (dictstat_ctx->filename) == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
-
-        return -1;
-      }
-    }
-    else
-    {
-      if (hc_path_create (dictstat_ctx->filename) == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", dictstat_ctx->filename, strerror (errno));
-
-        return -1;
-      }
-    }
-  }
-
   // single kernel and module existence check to detect "7z e" errors
 
   char *modulefile = (char *) hcmalloc (HCBUFSIZ_TINY);
@@ -3817,8 +3900,6 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   // tuning file check already done
 
   // debugfile check already done
-
-  // dictstat
 
   if (user_options->keyboard_layout_mapping != NULL)
   {

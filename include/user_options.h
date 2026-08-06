@@ -26,6 +26,9 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_extra_destroy (hashcat_ctx_t *hashcat_ctx);
 
+void user_options_extra_init_late (hashcat_ctx_t *hashcat_ctx);
+void user_options_extra_init_rules (hashcat_ctx_t *hashcat_ctx);
+u32 user_options_extra_base_length (hashcat_ctx_t *hashcat_ctx);
 u64 user_options_extra_amplifier (hashcat_ctx_t *hashcat_ctx);
 
 void user_options_logger (hashcat_ctx_t *hashcat_ctx);

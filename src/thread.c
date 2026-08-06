@@ -7,6 +7,7 @@
 #include "types.h"
 #include "event.h"
 #include "timer.h"
+#include "user_options.h"
 #include "thread.h"
 
 /*
@@ -226,9 +227,89 @@ int myquit (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// Move the dispatcher to the first word of the next source the feed was given, and say whether there
+// was one.
+//
+// Bypass means "skip the wordlist I am on". Several dictionaries used to be several attacks, so ending
+// the attack was the same thing as moving to the next one. A feed lays them end to end into a single
+// keyspace, so ending the attack there skips every remaining dictionary at once, which is not what the
+// key means and is what a user reported. The offsets of the sources are already known, because the
+// status display uses them to say which one the run has reached.
+//
+// The words in between are booked as rejected. Progress counts everything that has been decided, not
+// only what was hashed, and without booking them the run can never reach its keyspace and never ends.
+//
+// Returns false when there is nothing to move to, and then the caller bypasses the way it always did.
+// That covers a single source, the last source, and every attack mode not reading from a feed.
+
+static bool bypass_to_next_source (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options_extra->base_source != BASE_SOURCE_FEED) return false;
+
+  const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+  if (generic_ctx->enabled == false) return false;
+
+  const generic_global_ctx_t *global_ctx = &generic_ctx->global_ctx;
+
+  if (global_ctx->segments_cnt < 2) return false;
+
+  hashes_t     *hashes     = hashcat_ctx->hashes;
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  hc_thread_mutex_lock (status_ctx->mux_dispatcher);
+
+  const u64 words_off = status_ctx->words_off;
+
+  bool found = false;
+
+  u64 next_first = 0;
+
+  for (u64 i = 0; i < global_ctx->segments_cnt; i++)
+  {
+    if (global_ctx->segment_first[i] <= words_off) continue;
+
+    next_first = global_ctx->segment_first[i];
+
+    found = true;
+
+    break;
+  }
+
+  if (found == false)
+  {
+    hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+
+    return false;
+  }
+
+  const u64 skipped = next_first - words_off;
+
+  status_ctx->words_off = next_first;
+
+  hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
+
+  const u64 amplifier = user_options_extra_amplifier (hashcat_ctx);
+
+  hc_thread_mutex_lock (status_ctx->mux_counter);
+
+  for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
+  {
+    status_ctx->words_progress_rejected[salt_pos] += skipped * amplifier;
+  }
+
+  hc_thread_mutex_unlock (status_ctx->mux_counter);
+
+  return true;
+}
+
 int bypass (hashcat_ctx_t *hashcat_ctx)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (bypass_to_next_source (hashcat_ctx) == true) return 0;
 
   status_ctx->devices_status = STATUS_BYPASS;
 

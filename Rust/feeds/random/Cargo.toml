@@ -1,5 +1,5 @@
 [package]
-name = "dummy"
+name = "random"
 version = "7.1.2"
 edition = "2024"
 
