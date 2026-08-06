@@ -591,7 +591,11 @@ static int mangle_dupeblock_prepend (char arr[RP_PASSWORD_SIZE], int arr_len, in
 
   if ((arr_len + ulen) >= RP_PASSWORD_SIZE) return arr_len;
 
-  char cs[100];
+  // ulen is bounded by arr_len, not by 100. The p token resolves to the position
+  // saved by the last reject rule, which reaches 254, so a rule such as /Xyp on a
+  // long enough word asked for more bytes than this buffer used to hold.
+
+  char cs[RP_PASSWORD_SIZE];
 
   memset (cs, 0, sizeof (cs));
   memcpy (cs, arr, ulen);
