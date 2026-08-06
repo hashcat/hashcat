@@ -7613,17 +7613,6 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
 
       device_param->regsPerBlock = prop.regsPerBlock;
 
-      // regsPerMultiprocessor
-
-      if (hc_hipGetDeviceProperties (hashcat_ctx, &prop, hip_device) == -1)
-      {
-        device_param->skipped = true;
-
-        continue;
-      }
-
-      device_param->regsPerMultiprocessor = prop.regsPerMultiprocessor;
-
       // sm_minor, sm_major
 
       int sm_major = 0;
@@ -9508,7 +9497,7 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
                   if (backend_ctx->rc_hip_init == -1)
                   {
                     event_log_warning (hashcat_ctx, "Failed to initialize the AMD main driver HIP runtime library.");
-                    event_log_warning (hashcat_ctx, "Could not open libamdhip64.so, nor any libamdhip64.so.N beside it. Install the AMD HIP SDK, or on a distribution that splits its packages, the runtime package providing the soname.");
+                    event_log_warning (hashcat_ctx, "Could not open libamdhip64.so, nor any libamdhip64.so.N beside it, nor Hygon DTK's libgalaxyhip.so. Install the AMD HIP SDK or Hygon DTK, or on a distribution that splits its packages, the runtime package providing the soname.");
                     event_log_warning (hashcat_ctx, NULL);
                   }
                   else

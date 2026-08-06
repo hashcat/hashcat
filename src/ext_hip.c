@@ -108,6 +108,21 @@ int hip_init (void *hashcat_ctx)
       if (hip->lib) break;
     }
   }
+
+  // Hygon DTK 25.04.2 exposes the HIP runtime through libgalaxyhip.so and uses
+  // a legacy ABI. Try it only after the ROCm sonames, and remember which runtime
+  // was loaded so the attribute values and device property layout can be chosen
+  // accordingly.
+
+  if (hip->lib == NULL)
+  {
+    hip->lib = hc_dlopen ("libgalaxyhip.so");
+
+    if (hip->lib)
+    {
+      hip->is_dtk = true;
+    }
+  }
   #endif
 
   if (hip->lib == NULL) return -1;
@@ -202,6 +217,10 @@ int hip_init (void *hashcat_ctx)
   HC_LOAD_FUNC_HIP_FALLBACK (hip, hipGetDeviceProperties,    hipGetDevicePropertiesR0600,  hipGetDeviceProperties, HIP_HIPGETDEVICEPROPERTIES,     HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleOccupancyMaxActiveBlocksPerMultiprocessor, hipModuleOccupancyMaxActiveBlocksPerMultiprocessor, HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR, HIP, 1);
 
+  // hipGetDeviceProperties is the same symbol in both ABIs; keep a second,
+  // layout-correct pointer for the Hygon DTK legacy hipDevicePropDTK_t.
+  hip->hipGetDevicePropertiesDTK = (HIP_HIPGETDEVICEPROPERTIES_DTK) hip->hipGetDeviceProperties;
+
   return 0;
 }
 
@@ -215,7 +234,13 @@ void hip_close (void *hashcat_ctx)
   {
     if (hip->lib)
     {
-      hc_dlclose (hip->lib);
+      // Hygon DTK registers C++ exit handlers that call back into libgalaxyhip.so.
+      // Closing the handle here would leave those handlers pointing at unmapped
+      // memory and crash the process during exit, so keep the library loaded.
+      if (hip->is_dtk == false)
+      {
+        hc_dlclose (hip->lib);
+      }
     }
 
     hcfree (backend_ctx->hip);
@@ -471,7 +496,31 @@ int hc_hipDeviceGetAttribute (void *hashcat_ctx, int *pi, hipDeviceAttribute_t a
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
-  const hipError_t HIP_err = hip->hipDeviceGetAttribute (pi, attrib, dev);
+  int attrib_actual = (int) attrib;
+
+  if (hip->is_dtk)
+  {
+    switch (attrib)
+    {
+      case hipDeviceAttributeMaxThreadsPerBlock:            attrib_actual = 18; break;
+      case hipDeviceAttributeMaxSharedMemoryPerBlock:       attrib_actual = 25; break;
+      case hipDeviceAttributeTotalConstantMemory:           attrib_actual = 26; break;
+      case hipDeviceAttributeWarpSize:                      attrib_actual = 27; break;
+      case hipDeviceAttributeMaxRegistersPerBlock:          attrib_actual = 28; break;
+      case hipDeviceAttributeClockRate:                     attrib_actual = 29; break;
+      case hipDeviceAttributeMultiprocessorCount:           attrib_actual = 32; break;
+      case hipDeviceAttributeComputeCapabilityMajor:        attrib_actual = 36; break;
+      case hipDeviceAttributeComputeCapabilityMinor:        attrib_actual = 37; break;
+      case hipDeviceAttributePciBusId:                      attrib_actual = 39; break;
+      case hipDeviceAttributePciDeviceId:                   attrib_actual = 40; break;
+      case hipDeviceAttributeIntegrated:                    attrib_actual = 42; break;
+      case hipDeviceAttributeMaxRegistersPerMultiprocessor: attrib_actual = 69; break;
+      case hipDeviceAttributeKernelExecTimeout:             attrib_actual = 79; break;
+      default:                                             break;
+    }
+  }
+
+  const hipError_t HIP_err = hip->hipDeviceGetAttribute (pi, (hipDeviceAttribute_t) attrib_actual, dev);
 
   if (HIP_err != hipSuccess)
   {
@@ -479,11 +528,11 @@ int hc_hipDeviceGetAttribute (void *hashcat_ctx, int *pi, hipDeviceAttribute_t a
 
     if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %s", dev, attrib, pStr);
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %s", dev, attrib_actual, pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %d", dev, attrib, HIP_err);
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %d", dev, attrib_actual, HIP_err);
     }
 
     return -1;
@@ -1505,6 +1554,89 @@ int hc_hipGetDeviceProperties (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevi
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
+
+  if (hip->is_dtk)
+  {
+    hipDevicePropDTK_t dprop;
+
+    memset (&dprop, 0, sizeof (dprop));
+
+    const hipError_t HIP_err = hip->hipGetDevicePropertiesDTK (&dprop, dev);
+
+    if (HIP_err != hipSuccess)
+    {
+      const char *pStr = NULL;
+
+      if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
+      {
+        event_log_error (hashcat_ctx, "hipGetDeviceProperties(dev=%d): %s", dev, pStr);
+      }
+      else
+      {
+        event_log_error (hashcat_ctx, "hipGetDeviceProperties(dev=%d): %d", dev, HIP_err);
+      }
+
+      return -1;
+    }
+
+    // Map the legacy DTK layout into the ROCm layout hashcat expects elsewhere.
+    memset (prop, 0, sizeof (*prop));
+
+    strncpy (prop->name, dprop.name, sizeof (prop->name) - 1);
+    prop->totalGlobalMem       = dprop.totalGlobalMem;
+    prop->sharedMemPerBlock    = dprop.sharedMemPerBlock;
+    prop->regsPerBlock         = dprop.regsPerBlock;
+    prop->warpSize             = dprop.warpSize;
+    prop->maxThreadsPerBlock   = dprop.maxThreadsPerBlock;
+    memcpy (prop->maxThreadsDim, dprop.maxThreadsDim, sizeof (dprop.maxThreadsDim));
+    for (int i = 0; i < 3; i++) prop->maxGridSize[i] = (int) dprop.maxGridSize[i];
+    prop->clockRate            = dprop.clockRate;
+    prop->totalConstMem        = dprop.totalConstMem;
+    prop->major                = dprop.major;
+    prop->minor                = dprop.minor;
+    prop->multiProcessorCount  = dprop.multiProcessorCount;
+    prop->l2CacheSize          = dprop.l2CacheSize;
+    prop->maxThreadsPerMultiProcessor = dprop.maxThreadsPerMultiProcessor;
+    prop->computeMode          = dprop.computeMode;
+    prop->clockInstructionRate = dprop.clockInstructionRate;
+    prop->arch                 = dprop.arch;
+    prop->concurrentKernels    = dprop.concurrentKernels;
+    prop->pciDomainID          = dprop.pciDomainID;
+    prop->pciBusID             = dprop.pciBusID;
+    prop->pciDeviceID          = dprop.pciDeviceID;
+    prop->maxSharedMemoryPerMultiProcessor = dprop.maxSharedMemoryPerMultiProcessor;
+    prop->isMultiGpuBoard      = dprop.isMultiGpuBoard;
+    prop->canMapHostMemory     = dprop.canMapHostMemory;
+    strncpy (prop->gcnArchName, dprop.gcnArchName, sizeof (prop->gcnArchName) - 1);
+    prop->integrated           = dprop.integrated;
+    prop->cooperativeLaunch    = dprop.cooperativeLaunch;
+    prop->cooperativeMultiDeviceLaunch = dprop.cooperativeMultiDeviceLaunch;
+    prop->maxTexture1DLinear   = dprop.maxTexture1DLinear;
+    prop->maxTexture1D         = dprop.maxTexture1D;
+    memcpy (prop->maxTexture2D, dprop.maxTexture2D, sizeof (dprop.maxTexture2D));
+    memcpy (prop->maxTexture3D, dprop.maxTexture3D, sizeof (dprop.maxTexture3D));
+    prop->hdpMemFlushCntl      = dprop.hdpMemFlushCntl;
+    prop->hdpRegFlushCntl      = dprop.hdpRegFlushCntl;
+    prop->memPitch             = dprop.memPitch;
+    prop->textureAlignment     = dprop.textureAlignment;
+    prop->texturePitchAlignment = dprop.texturePitchAlignment;
+    prop->kernelExecTimeoutEnabled = dprop.kernelExecTimeoutEnabled;
+    prop->ECCEnabled           = dprop.ECCEnabled;
+    prop->tccDriver            = dprop.tccDriver;
+    prop->cooperativeMultiDeviceUnmatchedFunc      = dprop.cooperativeMultiDeviceUnmatchedFunc;
+    prop->cooperativeMultiDeviceUnmatchedGridDim   = dprop.cooperativeMultiDeviceUnmatchedGridDim;
+    prop->cooperativeMultiDeviceUnmatchedBlockDim  = dprop.cooperativeMultiDeviceUnmatchedBlockDim;
+    prop->cooperativeMultiDeviceUnmatchedSharedMem = dprop.cooperativeMultiDeviceUnmatchedSharedMem;
+    prop->isLargeBar           = dprop.isLargeBar;
+    prop->asicRevision         = dprop.asicRevision;
+    prop->managedMemory        = dprop.managedMemory;
+    prop->directManagedMemAccessFromHost = dprop.directManagedMemAccessFromHost;
+    prop->concurrentManagedAccess = dprop.concurrentManagedAccess;
+    prop->pageableMemoryAccess = dprop.pageableMemoryAccess;
+    prop->pageableMemoryAccessUsesHostPageTables = dprop.pageableMemoryAccessUsesHostPageTables;
+
+    return 0;
+  }
 
   const hipError_t HIP_err = hip->hipGetDeviceProperties (prop, dev);
 
