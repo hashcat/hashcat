@@ -17,6 +17,36 @@
 #include "timer.h"
 #include "emu_inc_hash_sha1.h"
 
+// The whole-wordlist hex decode, on its own so that the generic feed path can apply it without
+// going through get_next_word (). It is driven by the hash mode and not by anything the user or a
+// plugin chose, so it always applies when the mode asks for it.
+
+size_t convert_hex_wordlist (char *line_buf, const size_t line_len)
+{
+  if (line_len & 1) return (line_len); // not in hex
+
+  size_t i, j;
+
+  for (i = 0, j = 0; j < line_len; i += 1, j += 2)
+  {
+    line_buf[i] = hex_to_u8 ((const u8 *) &line_buf[j]);
+  }
+
+  memset (line_buf + i, 0, line_len - i);
+
+  return (i);
+}
+
+// Uppercase in place, ASCII only, for the modes whose plaintext is defined uppercase.
+
+void convert_to_uppercase (char *line_buf, const size_t line_len)
+{
+  for (size_t i = 0; i < line_len; i++)
+  {
+    if ((line_buf[i] >= 'a') && (line_buf[i] <= 'z')) line_buf[i] -= 0x20;
+  }
+}
+
 size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -26,16 +56,9 @@ size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_
 
   if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
   {
-    size_t i, j;
+    const size_t new_len = convert_hex_wordlist (line_buf, line_len);
 
-    for (i = 0, j = 0; j < line_len; i += 1, j += 2)
-    {
-      line_buf[i] = hex_to_u8 ((const u8 *) &line_buf[j]);
-    }
-
-    memset (line_buf + i, 0, line_len - i);
-
-    return (i);
+    return (new_len);
   }
 
   if (user_options->wordlist_autohex == true)

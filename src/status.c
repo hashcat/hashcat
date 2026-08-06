@@ -532,6 +532,31 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
   return GUESS_MODE_NONE;
 }
 
+// How far into the keyspace the work has got, as the furthest point any device has finished. That is
+// deliberately not the restore point: the restore point is the prefix EVERY device is past, so with
+// several devices working separate ranges it trails behind, and it is what makes a resume safe rather
+// than what tells a user where the run is.
+
+static u64 status_get_words_cur_furthest (const hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
+
+  u64 words_cur = status_ctx->words_cur;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    words_cur = MAX (words_cur, device_param->words_done);
+  }
+
+  return words_cur;
+}
+
 char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
@@ -615,7 +640,49 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_GENERIC)
   {
-    // todo ATTACK_MODE_GENERIC probably python source file or so? here we will not have a wordlist!
+    const generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
+
+    const generic_global_ctx_t *global_ctx = &generic_ctx->global_ctx;
+
+    // A feed made of several sources says which one the run has reached, because naming only the first
+    // of eighteen wordlists tells the user nothing about where the attack is. This is the same thing
+    // Guess.Queue said when several dictionaries were several attacks.
+    //
+    // The position is the furthest any device has reached, not the restore point. Devices work
+    // separate ranges at the same time, so the restore point is the contiguous prefix all of them are
+    // past, which lags a long way behind the file actually being read and can sit at zero for a whole
+    // run. Asking where the work has got to answers the question the user is asking.
+
+    if (global_ctx->segments_cnt > 1)
+    {
+      const u64 words_cur = status_get_words_cur_furthest (hashcat_ctx);
+
+      u64 segment_idx = 0;
+
+      for (u64 i = 0; i < global_ctx->segments_cnt; i++)
+      {
+        if (global_ctx->segment_first[i] > words_cur) break;
+
+        segment_idx = i;
+      }
+
+      char buf[HCBUFSIZ_TINY];
+
+      snprintf (buf, sizeof (buf), "[%" PRIu64 "/%" PRIu64 "] %s", segment_idx + 1, global_ctx->segments_cnt, global_ctx->segment_names[segment_idx]);
+
+      char *guess_base = strdup (buf);
+
+      return guess_base;
+    }
+
+    // a feed that named itself during global_init () gets to say what it is generating from. One
+    // that did not is named by the plugin the user asked for.
+
+    if (global_ctx->guess_base[0] != 0) return strdup (global_ctx->guess_base);
+
+    if (generic_ctx->plugin_name) return strdup (generic_ctx->plugin_name);
+
+    return NULL;
   }
 
   return NULL;

@@ -591,7 +591,11 @@ static int mangle_dupeblock_prepend (char arr[RP_PASSWORD_SIZE], int arr_len, in
 
   if ((arr_len + ulen) >= RP_PASSWORD_SIZE) return arr_len;
 
-  char cs[100];
+  // ulen is bounded by arr_len, not by 100. The p token resolves to the position
+  // saved by the last reject rule, which reaches 254, so a rule such as /Xyp on a
+  // long enough word asked for more bytes than this buffer used to hold.
+
+  char cs[RP_PASSWORD_SIZE];
 
   memset (cs, 0, sizeof (cs));
   memcpy (cs, arr, ulen);
@@ -1035,9 +1039,13 @@ static bool reject_contain_class (char arr[RP_PASSWORD_SIZE], int arr_len, char 
   return false;
 }
 
-static bool reject_contain (char arr[RP_PASSWORD_SIZE], char c, int *pos_mem)
+// Bounded by arr_len rather than by a NUL. arr is not a string: it holds arr_len
+// bytes and a candidate may legitimately contain 0x00, which made strchr () stop
+// early and report a character as missing when it was present.
+
+static bool reject_contain (char arr[RP_PASSWORD_SIZE], const int arr_len, char c, int *pos_mem)
 {
-  const char *match = strchr (arr, c);
+  const char *match = (const char *) memchr (arr, c, (size_t) arr_len);
   if (match == NULL) return false;
 
   *pos_mem = (int)(match - arr);
@@ -1529,12 +1537,12 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_REJECT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
-        if (reject_contain (out, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
+        if (reject_contain (out, out_len, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_NOT_CONTAIN:
         NEXT_RULEPOS (rule_pos);
-        if (!reject_contain (out, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
+        if (!reject_contain (out, out_len, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL_FIRST:
@@ -1659,7 +1667,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
             switch (rule_new[rule_pos])
             {
               case '?':
-                if (reject_contain (out, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
+                if (reject_contain (out, out_len, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'l':
@@ -1685,7 +1693,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
             switch (rule_new[rule_pos])
             {
               case '?':
-                if (!reject_contain (out, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
+                if (!reject_contain (out, out_len, rule_new[rule_pos], &pos_mem)) return (RULE_RC_REJECT_ERROR);
                 break;
 
               case 'l':

@@ -52,6 +52,33 @@ typedef struct extra_info_mask
 
 } extra_info_mask_t;
 
+// The generic feed under --slow-candidates, which is also what --brain-client turns on. It is the
+// straight reader with the wordlist replaced by the feed, so the amplifier runs on the host and the
+// brain gets to see every final candidate.
+//
+// The feed is per device, so this carries the device id rather than a file handle. It also carries
+// the reject flag, because a -j rule that throws a base word away must not make the feed skip an
+// offset: the offset is what --skip, --restore and the brain all count in.
+
+typedef struct extra_info_generic
+{
+  u64 pos;
+
+  int device_id;
+
+  u64 rule_pos_prev;
+  u64 rule_pos;
+
+  bool reject;
+
+  u8  base_buf[256];
+  u32 base_len;
+
+  u8  out_buf[256];
+  u32 out_len;
+
+} extra_info_generic_t;
+
 void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u64 cur, const u64 end);
 void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info);
 

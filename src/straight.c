@@ -40,6 +40,75 @@ static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
   return 0;
 }
 
+// Turn a range of the work arguments into the dictionary list. A directory becomes every readable file
+// inside it, sorted by name so the keyspace is the same on every machine, and anything else is added as
+// it stands.
+//
+// The range is the only thing the attack modes disagree about. -a 0 and -a 9 take every argument, -a 6
+// leaves the last one to the mask, and -a 7 leaves the first one to it.
+
+static int straight_ctx_add_workv (hashcat_ctx_t *hashcat_ctx, const int from, const int to)
+{
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  for (int i = from; i < to; i++)
+  {
+    char *l0_filename = user_options_extra->hc_workv[i];
+
+    // at this point we already verified the path actually exist and is readable
+
+    if (hc_path_is_directory (l0_filename) == false)
+    {
+      if (straight_ctx_add_wl (hashcat_ctx, l0_filename) == -1) return -1;
+
+      continue;
+    }
+
+    char **dictionary_files = scan_directory (l0_filename);
+
+    if (dictionary_files != NULL)
+    {
+      qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
+
+      for (int d = 0; dictionary_files[d] != NULL; d++)
+      {
+        char *l1_filename = dictionary_files[d];
+
+        if (hc_path_read (l1_filename) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
+
+          hcfree (dictionary_files);
+
+          return -1;
+        }
+
+        if (hc_path_is_file (l1_filename) == true)
+        {
+          if (straight_ctx_add_wl (hashcat_ctx, l1_filename) == -1)
+          {
+            hcfree (dictionary_files);
+
+            return -1;
+          }
+        }
+      }
+    }
+
+    hcfree (dictionary_files);
+  }
+
+  if (straight_ctx->dicts_cnt == 0)
+  {
+    event_log_error (hashcat_ctx, "No usable dictionary file found.");
+
+    return -1;
+  }
+
+  return 0;
+}
+
 int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
@@ -369,61 +438,7 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options_extra->wordlist_mode == WL_MODE_FILE)
     {
-      for (int i = 0; i < user_options_extra->hc_workc; i++)
-      {
-        char *l0_filename = user_options_extra->hc_workv[i];
-
-        // at this point we already verified the path actually exist and is readable
-
-        if (hc_path_is_directory (l0_filename) == true)
-        {
-          char **dictionary_files;
-
-          dictionary_files = scan_directory (l0_filename);
-
-          if (dictionary_files != NULL)
-          {
-            qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
-
-            for (int d = 0; dictionary_files[d] != NULL; d++)
-            {
-              char *l1_filename = dictionary_files[d];
-
-              if (hc_path_read (l1_filename) == false)
-              {
-                event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
-
-                hcfree (dictionary_files);
-
-                return -1;
-              }
-
-              if (hc_path_is_file (l1_filename) == true)
-              {
-                if (straight_ctx_add_wl (hashcat_ctx, l1_filename) == -1)
-                {
-                  hcfree (dictionary_files);
-
-                  return -1;
-                }
-              }
-            }
-          }
-
-          hcfree (dictionary_files);
-        }
-        else
-        {
-          if (straight_ctx_add_wl (hashcat_ctx, l0_filename) == -1) return -1;
-        }
-      }
-
-      if (straight_ctx->dicts_cnt == 0)
-      {
-        event_log_error (hashcat_ctx, "No usable dictionary file found.");
-
-        return -1;
-      }
+      if (straight_ctx_add_workv (hashcat_ctx, 0, user_options_extra->hc_workc) == -1) return -1;
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_COMBI)
@@ -436,119 +451,11 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
   {
-    for (int i = 0; i < user_options_extra->hc_workc - 1; i++)
-    {
-      char *l0_filename = user_options_extra->hc_workv[i];
-
-      // at this point we already verified the path actually exist and is readable
-
-      if (hc_path_is_directory (l0_filename) == true)
-      {
-        char **dictionary_files;
-
-        dictionary_files = scan_directory (l0_filename);
-
-        if (dictionary_files != NULL)
-        {
-          qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
-
-          for (int d = 0; dictionary_files[d] != NULL; d++)
-          {
-            char *l1_filename = dictionary_files[d];
-
-            if (hc_path_read (l1_filename) == false)
-            {
-              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
-
-              hcfree (dictionary_files);
-
-              return -1;
-            }
-
-            if (hc_path_is_file (l1_filename) == true)
-            {
-              if (straight_ctx_add_wl (hashcat_ctx, l1_filename) == -1)
-              {
-                hcfree (dictionary_files);
-
-                return -1;
-              }
-            }
-          }
-        }
-
-        hcfree (dictionary_files);
-      }
-      else
-      {
-        if (straight_ctx_add_wl (hashcat_ctx, l0_filename) == -1) return -1;
-      }
-    }
-
-    if (straight_ctx->dicts_cnt == 0)
-    {
-      event_log_error (hashcat_ctx, "No usable dictionary file found.");
-
-      return -1;
-    }
+    if (straight_ctx_add_workv (hashcat_ctx, 0, user_options_extra->hc_workc - 1) == -1) return -1;
   }
   else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
   {
-    for (int i = 1; i < user_options_extra->hc_workc; i++)
-    {
-      char *l0_filename = user_options_extra->hc_workv[i];
-
-      // at this point we already verified the path actually exist and is readable
-
-      if (hc_path_is_directory (l0_filename) == true)
-      {
-        char **dictionary_files;
-
-        dictionary_files = scan_directory (l0_filename);
-
-        if (dictionary_files != NULL)
-        {
-          qsort (dictionary_files, (size_t) count_dictionaries (dictionary_files), sizeof (char *), sort_by_stringptr);
-
-          for (int d = 0; dictionary_files[d] != NULL; d++)
-          {
-            char *l1_filename = dictionary_files[d];
-
-            if (hc_path_read (l1_filename) == false)
-            {
-              event_log_error (hashcat_ctx, "%s: %s", l1_filename, strerror (errno));
-
-              hcfree (dictionary_files);
-
-              return -1;
-            }
-
-            if (hc_path_is_file (l1_filename) == true)
-            {
-              if (straight_ctx_add_wl (hashcat_ctx, l1_filename) == -1)
-              {
-                hcfree (dictionary_files);
-
-                return -1;
-              }
-            }
-          }
-        }
-
-        hcfree (dictionary_files);
-      }
-      else
-      {
-        if (straight_ctx_add_wl (hashcat_ctx, l0_filename) == -1) return -1;
-      }
-    }
-
-    if (straight_ctx->dicts_cnt == 0)
-    {
-      event_log_error (hashcat_ctx, "No usable dictionary file found.");
-
-      return -1;
-    }
+    if (straight_ctx_add_workv (hashcat_ctx, 1, user_options_extra->hc_workc) == -1) return -1;
   }
   else if (user_options->attack_mode == ATTACK_MODE_GENERIC)
   {

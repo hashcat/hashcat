@@ -14,6 +14,65 @@
 #include "generic.h"
 #include "dynloader.h"
 
+// Report and clear a global error, same reasoning as generic_thread_error ().
+
+static bool generic_global_error (hashcat_ctx_t *hashcat_ctx, generic_global_ctx_t *global_ctx)
+{
+  if (global_ctx->error == false) return false;
+
+  event_log_error (hashcat_ctx, "%s", global_ctx->error_msg);
+
+  global_ctx->error = false;
+
+  global_ctx->error_msg[0] = 0;
+
+  return true;
+}
+
+// Where a feed named on the command line is looked for. A feed is named, not pathed: "-a 8 hash
+// wordlist" finds the shipped wordlist feed the same way "-m 0" finds its module, so a user does not
+// have to know where hashcat installed its shared files. Two prefixes are tried because a feed
+// written in Rust is installed as rust_<name> and one written in C as feed_<name>.
+//
+// A name that matches nothing is used as a path, so a plugin still under development keeps working
+// from wherever it was built.
+
+int generic_filename (const folder_config_t *folder_config, const char *plugin_name, const char *prefix, char *out_buf, const size_t out_size)
+{
+  #if defined (_WIN) || defined (__CYGWIN__)
+  return snprintf (out_buf, out_size, "%s/feeds/%s%s.dll", folder_config->shared_dir, prefix, plugin_name);
+  #else
+  return snprintf (out_buf, out_size, "%s/feeds/%s%s.so", folder_config->shared_dir, prefix, plugin_name);
+  #endif
+}
+
+char *generic_resolve (const folder_config_t *folder_config, const char *plugin_name, bool *by_name)
+{
+  const char *prefixes[] = { "feed_", "rust_", "" };
+
+  for (int i = 0; i < 3; i++)
+  {
+    char *filename = (char *) hcmalloc (HCBUFSIZ_TINY);
+
+    generic_filename (folder_config, plugin_name, prefixes[i], filename, HCBUFSIZ_TINY);
+
+    if (hc_path_read (filename) == true)
+    {
+      if (by_name) *by_name = true;
+
+      return filename;
+    }
+
+    hcfree (filename);
+  }
+
+  if (by_name) *by_name = false;
+
+  char *filename = hcstrdup (plugin_name);
+
+  return filename;
+}
+
 bool generic_global_init (hashcat_ctx_t *hashcat_ctx)
 {
   generic_ctx_t        *generic_ctx        = hashcat_ctx->generic_ctx;
@@ -36,12 +95,7 @@ bool generic_global_init (hashcat_ctx_t *hashcat_ctx)
 
   const bool rc = generic_ctx->global_init (&generic_ctx->global_ctx, &generic_ctx->thread_ctx, hashcat_ctx);
 
-  if (generic_ctx->global_ctx.error == true)
-  {
-    event_log_error (hashcat_ctx, "%s", generic_ctx->global_ctx.error_msg);
-
-    return false;
-  }
+  if (generic_global_error (hashcat_ctx, &generic_ctx->global_ctx) == true) return false;
 
   return rc;
 }
@@ -52,11 +106,12 @@ void generic_global_term (hashcat_ctx_t *hashcat_ctx)
 
   generic_ctx->global_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx, hashcat_ctx);
 
-  if (generic_ctx->global_ctx.error == true)
-  {
-    event_log_error (hashcat_ctx, "%s", generic_ctx->global_ctx.error_msg);
-  }
+  generic_global_error (hashcat_ctx, &generic_ctx->global_ctx);
 }
+
+// Returns the keyspace, GENERIC_KEYSPACE_UNKNOWN for a feed that cannot count itself, or
+// GENERIC_KEYSPACE_ERROR when the plugin failed. The last two used to be the same value, so a plugin
+// that could not open its input ran on as an endless feed.
 
 u64 generic_global_keyspace (hashcat_ctx_t *hashcat_ctx)
 {
@@ -64,14 +119,25 @@ u64 generic_global_keyspace (hashcat_ctx_t *hashcat_ctx)
 
   const u64 keyspace = generic_ctx->global_keyspace (&generic_ctx->global_ctx, &generic_ctx->thread_ctx, hashcat_ctx);
 
-  if (generic_ctx->global_ctx.error == true)
-  {
-    event_log_error (hashcat_ctx, "%s", generic_ctx->global_ctx.error_msg);
-
-    return -1ULL;
-  }
+  if (generic_global_error (hashcat_ctx, &generic_ctx->global_ctx) == true) return GENERIC_KEYSPACE_ERROR;
 
   return keyspace;
+}
+
+// Report and clear a per-device error. The flag has to be cleared, because nothing else does it and
+// a flag that stays set makes every later call on that device look like it failed too.
+
+static bool generic_thread_error (hashcat_ctx_t *hashcat_ctx, generic_thread_ctx_t *thread_ctx)
+{
+  if (thread_ctx->error == false) return false;
+
+  event_log_error (hashcat_ctx, "%s", thread_ctx->error_msg);
+
+  thread_ctx->error = false;
+
+  thread_ctx->error_msg[0] = 0;
+
+  return true;
 }
 
 bool generic_thread_init (hashcat_ctx_t *hashcat_ctx, const int device_id)
@@ -80,12 +146,7 @@ bool generic_thread_init (hashcat_ctx_t *hashcat_ctx, const int device_id)
 
   const bool rc = generic_ctx->thread_init (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id]);
 
-  if (generic_ctx->global_ctx.error == true)
-  {
-    event_log_error (hashcat_ctx, "%s", generic_ctx->global_ctx.error_msg);
-
-    return false;
-  }
+  if (generic_thread_error (hashcat_ctx, &generic_ctx->thread_ctx[device_id]) == true) return false;
 
   return rc;
 }
@@ -96,45 +157,54 @@ void generic_thread_term (hashcat_ctx_t *hashcat_ctx, const int device_id)
 
   generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id]);
 
-  if (generic_ctx->global_ctx.error == true)
-  {
-    event_log_error (hashcat_ctx, "%s", generic_ctx->global_ctx.error_msg);
-  }
+  generic_thread_error (hashcat_ctx, &generic_ctx->thread_ctx[device_id]);
 }
 
-int generic_thread_next (hashcat_ctx_t *hashcat_ctx, const int device_id, u8 *out_buf)
+int generic_thread_next (hashcat_ctx_t *hashcat_ctx, const int device_id, u8 *out_buf, const int out_size)
 {
   generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
 
-  const int out_len = generic_ctx->thread_next (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id], out_buf);
+  const int out_len = generic_ctx->thread_next (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id], out_buf, out_size);
 
-  if (generic_ctx->global_ctx.error == true)
+  if (generic_thread_error (hashcat_ctx, &generic_ctx->thread_ctx[device_id]) == true) return GENERIC_RC_ERROR;
+
+  // a plugin that returns any other negative value has not said what it means, so it is a failure and
+  // not a quiet end of input
+
+  if (out_len < 0)
   {
-    event_log_error (hashcat_ctx, "%s", generic_ctx->global_ctx.error_msg);
+    if (out_len == GENERIC_RC_EOF) return GENERIC_RC_EOF;
 
-    return -1U;
+    event_log_error (hashcat_ctx, "%s: thread_next returned %d", generic_ctx->dynlib_filename, out_len);
+
+    return GENERIC_RC_ERROR;
   }
 
   return out_len;
 }
 
-bool generic_thread_seek (hashcat_ctx_t *hashcat_ctx, const int device_id, const u64 offset)
+int generic_thread_seek (hashcat_ctx_t *hashcat_ctx, const int device_id, const u64 offset)
 {
   generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
 
   const bool rc = generic_ctx->thread_seek (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id], offset);
 
-  if (generic_ctx->global_ctx.error == true)
+  if (generic_thread_error (hashcat_ctx, &generic_ctx->thread_ctx[device_id]) == true) return GENERIC_RC_ERROR;
+
+  if (rc == false)
   {
-    event_log_error (hashcat_ctx, "%s", generic_ctx->global_ctx.error_msg);
+    event_log_error (hashcat_ctx, "%s: seek to %" PRIu64 " failed", generic_ctx->dynlib_filename, offset);
+
+    return GENERIC_RC_ERROR;
   }
 
-  return rc;
+  return 0;
 }
 
 int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
+  folder_config_t      *folder_config      = hashcat_ctx->folder_config;
   generic_ctx_t        *generic_ctx        = hashcat_ctx->generic_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
@@ -165,7 +235,9 @@ int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * dynloader
    */
 
-  generic_ctx->dynlib_filename = user_options_extra->hc_workv[0];
+  generic_ctx->plugin_name = user_options_extra->hc_workv[0];
+
+  generic_ctx->dynlib_filename = generic_resolve (folder_config, generic_ctx->plugin_name, NULL);
 
   generic_ctx->lib = hc_dlopen (generic_ctx->dynlib_filename);
 
@@ -246,11 +318,23 @@ int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_CLEAR_EVENT_LINE);
 
-  if (generic_global_init (hashcat_ctx) == false) return -1;
+  // A feed can have a lot to do before it produces its first word. A PCFG plugin loads a grammar,
+  // and a grammar trained on a modest wordlist is already hundreds of megabytes. Without a line
+  // around it that is a silent freeze on startup with no output at all.
+
+  EVENT (EVENT_GENERIC_INIT_PRE);
+
+  const bool rc_init = generic_global_init (hashcat_ctx);
+
+  EVENT (EVENT_GENERIC_INIT_POST);
+
+  if (rc_init == false) return -1;
 
   status_ctx->words_cnt = generic_global_keyspace (hashcat_ctx);
 
-  if (status_ctx->words_cnt != -1ULL)
+  if (status_ctx->words_cnt == GENERIC_KEYSPACE_ERROR) return -1;
+
+  if (status_ctx->words_cnt != GENERIC_KEYSPACE_UNKNOWN)
   {
     status_ctx->words_cnt *= straight_ctx->kernel_rules_cnt;
   }
@@ -289,6 +373,8 @@ void generic_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (generic_ctx->thread_ctx);
 
   generic_global_term (hashcat_ctx);
+
+  hcfree (generic_ctx->dynlib_filename);
 
   hcfree (straight_ctx->kernel_rules_buf);
 

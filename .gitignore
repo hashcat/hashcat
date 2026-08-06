@@ -48,6 +48,9 @@ test_edge*
 Rust/feeds/*/target
 Rust/bridges/*/target
 
+# Left behind by builds from before the bindings moved into OUT_DIR
+Rust/hashcat-sys/src/bindings.rs
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

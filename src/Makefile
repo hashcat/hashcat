@@ -107,7 +107,7 @@ endif
 
 MODULE_INTERFACE_VERSION := 700
 BRIDGE_INTERFACE_VERSION := 720
-FEEDS_INTERFACE_VERSION  := 713
+FEEDS_INTERFACE_VERSION  := 720
 
 ##
 ## Native compiler paths
@@ -914,6 +914,30 @@ uninstall:
 ##
 ## native compiled hashcat library and frontend
 ##
+
+##
+## Header dependencies
+##
+
+## The object rules name only the .c file, so nothing here used to notice a header change and make
+## would happily link a binary built against the old one. That is silent and it has cost real time:
+## a struct that grew in one translation unit and not in another, and a constant that kept its old
+## value after being edited.
+##
+## Every object depends on every header rather than on the ones it actually includes. Precision is
+## not worth buying here, because obj/combined.NATIVE.a depends on all of these objects and all 593
+## modules depend on that archive, so touching any core source already rebuilds the modules. Tracking
+## exactly which header went into which object would save about five seconds of a twenty second
+## build, and nothing at all for common.h and types.h, which nearly every source includes.
+##
+## The modules, bridges and feeds need no rule of their own: they depend on the archive, so they pick
+## this up through it.
+
+HEADERS_ALL             := $(wildcard include/*.h)
+
+$(NATIVE_OBJS): $(HEADERS_ALL)
+$(LINUX_OBJS):  $(HEADERS_ALL)
+$(WIN_OBJS):    $(HEADERS_ALL)
 
 obj/%.NATIVE.o: src/%.c
 	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $< -o $@ -fpic
