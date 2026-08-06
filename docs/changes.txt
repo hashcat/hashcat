@@ -5,6 +5,7 @@
 ##
 
 Docker: Add hashcat-toolchain
+- Added hash-mode: OpenSSH Private Keys (bcrypt/AES-256-CTR, OpenSSH-Key-V1)
 
 - Docker: Added Ubuntu 26.04 runtime images for CUDA and AMD
 - Docker: Updated the bundled Python to 3.14.6 and Rust to 1.97.1
@@ -2534,7 +2535,6 @@ It combines all features of all hashcat projects in one project.
 ##
 ## Technical
 ##
-
 - Removed deprecated GCC version check requirement
 - Removed NPROCS from Makefile, let make automatically detect the optimal number of parallel threads
 - Dropped all C++ overloading functions to normal function which helps support more OpenCL platforms
