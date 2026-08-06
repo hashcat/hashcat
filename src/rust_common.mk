@@ -1,7 +1,4 @@
-# Shared Rust build configuration.
-# Included before bridge/feed .mk files so that CARGO_PRESENT and other
-# variables are available everywhere, and hashcat-sys is pre-built exactly
-# once to avoid parallel bindings.rs generation races.
+# Shared Rust build configuration, included before the bridge and feed .mk files that use it.
 
 RUST_BUILD_MODE ?= release
 
@@ -46,21 +43,4 @@ endif
 ifeq ($(BUILD_MODE),native)
 RUSTFLAGS_SO    += -C target-cpu=native
 RUSTFLAGS_DLL   += -C target-cpu=native
-endif
-
-RED             ?= $(shell tput setaf 1)
-RESET           ?= $(shell tput sgr 0)
-
-# Pre-build hashcat-sys to generate bindings.rs exactly once
-HASHCAT_SYS_DIR   := Rust/hashcat-sys
-HASHCAT_SYS_STAMP := $(HASHCAT_SYS_DIR)/.build-stamp
-
-ifeq ($(CARGO_PRESENT),true)
-$(HASHCAT_SYS_STAMP): $(HASHCAT_SYS_DIR)/build.rs $(HASHCAT_SYS_DIR)/src/hashcat_types.h
-	$(RM) -f $(HASHCAT_SYS_DIR)/src/bindings.rs
-	RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $(HASHCAT_SYS_DIR)/Cargo.toml
-	@touch $@
-else
-$(HASHCAT_SYS_STAMP):
-	@touch $@
 endif

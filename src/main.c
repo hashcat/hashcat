@@ -19,6 +19,7 @@
 #include "status.h"
 #include "shared.h"
 #include "event.h"
+#include "hwmon.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -620,14 +621,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_info (hashcat_ctx, "Watchdog: Hardware monitoring interface not found on your system.");
   }
 
-  if (hwmon_ctx->enabled == true && user_options->hwmon_temp_abort > 0)
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->hwmon_temp_abort);
-  }
-  else
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
-  }
+  hm_temperature_abort_banner (hashcat_ctx);
 
   event_log_info (hashcat_ctx, NULL);
 }
@@ -889,6 +883,23 @@ static void main_monitor_noinput_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 static void main_monitor_noinput_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   event_log_error (hashcat_ctx, "No password candidates received in stdin mode, aborting");
+}
+
+// The candidate generator, not the unit. Worth its own message because the device number in the
+// payload is a VIRTUAL one belonging to a bridge unit, so reporting it the usual way would name the
+// unit, which is running perfectly well, while the GPU beside it is the thing overheating.
+
+static void main_monitor_temp_abort_feeder (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
+  {
+    clear_prompt (hashcat_ctx);
+  }
+
+  event_log_error (hashcat_ctx, "Temperature limit on the candidate generator reached, aborting");
 }
 
 static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -1244,6 +1255,28 @@ static void main_bridges_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_info_nn (hashcat_ctx, "Initialized bridges");
 }
 
+static void main_generic_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
+
+  event_log_info_nn (hashcat_ctx, "Initializing feed plugin %s. Please be patient...", generic_ctx->plugin_name);
+}
+
+static void main_generic_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const generic_ctx_t *generic_ctx = hashcat_ctx->generic_ctx;
+
+  event_log_info_nn (hashcat_ctx, "Initialized feed plugin %s", generic_ctx->plugin_name);
+}
+
 static void main_bridges_salt_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1289,6 +1322,8 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_CRACKER_FINISHED:          main_cracker_finished          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_STARTING:          main_cracker_starting          (hashcat_ctx, buf, len); break;
+    case EVENT_GENERIC_INIT_POST:         main_generic_init_post         (hashcat_ctx, buf, len); break;
+    case EVENT_GENERIC_INIT_PRE:          main_generic_init_pre          (hashcat_ctx, buf, len); break;
     case EVENT_HASHCONFIG_PRE:            main_hashconfig_pre            (hashcat_ctx, buf, len); break;
     case EVENT_HASHCONFIG_POST:           main_hashconfig_post           (hashcat_ctx, buf, len); break;
     case EVENT_HASHLIST_COUNT_LINES_POST: main_hashlist_count_lines_post (hashcat_ctx, buf, len); break;
@@ -1307,6 +1342,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_RUNTIME_LIMIT:     main_monitor_runtime_limit     (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_STATUS_REFRESH:    main_monitor_status_refresh    (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_TEMP_ABORT:        main_monitor_temp_abort        (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_TEMP_ABORT_FEEDER: main_monitor_temp_abort_feeder (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE1:         main_monitor_throttle1         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE2:         main_monitor_throttle2         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE3:         main_monitor_throttle3         (hashcat_ctx, buf, len); break;
@@ -1406,6 +1442,15 @@ int main (int argc, char **argv)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   #ifdef WITH_BRAIN
+  if (user_options->brain_feed == true)
+  {
+    const int rc = brain_feed (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return rc;
+  }
+
   if (user_options->brain_server == true)
   {
     const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist, user_options->brain_server_timer);

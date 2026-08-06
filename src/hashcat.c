@@ -202,17 +202,39 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->devices_status = STATUS_AUTOTUNE;
 
+  // Which devices are interchangeable, decided before anything is measured, because it decides what
+  // has to be measured at all.
+
+  backend_ctx_devices_group (hashcat_ctx);
+
+  // AUTOTUNE ONE DEVICE PER GROUP, not one per device.
+  //
+  // Every trial is a real launch, and on an accelerator a real launch is the algorithm running at the
+  // user's own cost factor. Sixty four identical devices measured the same answer sixty four times
+  // over and then had it overwritten by backend_ctx_devices_sync_tuning below, which has always
+  // copied one group member's tuning onto the rest. The measurement was the part that was redundant,
+  // not the copy.
+  //
+  // A device that is not the leader of its group is left at its minimum here and takes the leader's
+  // answer from sync_tuning, clamped to what its own buffers can hold.
+
+  int autotune_cnt = 0;
+
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
+    if (backend_ctx_device_is_group_leader (hashcat_ctx, backend_devices_idx) == false) continue;
+
     thread_param_t *thread_param = threads_param + backend_devices_idx;
 
     thread_param->hashcat_ctx = hashcat_ctx;
     thread_param->tid         = backend_devices_idx;
 
-    hc_thread_create (c_threads[backend_devices_idx], thread_autotune, thread_param);
+    hc_thread_create (c_threads[autotune_cnt], thread_autotune, thread_param);
+
+    autotune_cnt++;
   }
 
-  hc_thread_wait (backend_ctx->backend_devices_cnt, c_threads);
+  hc_thread_wait (autotune_cnt, c_threads);
 
   // check for any autotune failures
   // by default, skipping device on error
@@ -2073,6 +2095,10 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->progress_ignore             = status_get_progress_ignore            (hashcat_ctx);
   hashcat_status->progress_rejected           = status_get_progress_rejected          (hashcat_ctx);
   hashcat_status->progress_rejected_percent   = status_get_progress_rejected_percent  (hashcat_ctx);
+  #ifdef WITH_BRAIN
+  hashcat_status->brain_rejects_attacks       = status_get_brain_rejects_attacks      (hashcat_ctx);
+  hashcat_status->brain_rejects_hashes        = status_get_brain_rejects_hashes       (hashcat_ctx);
+  #endif
   hashcat_status->progress_restored           = status_get_progress_restored          (hashcat_ctx);
   hashcat_status->progress_skip               = status_get_progress_skip              (hashcat_ctx);
   hashcat_status->restore_point               = status_get_restore_point              (hashcat_ctx);
@@ -2106,6 +2132,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 
   hashcat_status->device_info_cnt    = status_get_device_info_cnt    (hashcat_ctx);
   hashcat_status->device_info_active = status_get_device_info_active (hashcat_ctx);
+  hashcat_status->group_info_active  = status_get_group_info_active  (hashcat_ctx);
 
   for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
   {
@@ -2113,6 +2140,8 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
 
     device_info->skipped_dev                    = status_get_skipped_dev                    (hashcat_ctx, device_id);
     device_info->skipped_warning_dev            = status_get_skipped_warning_dev            (hashcat_ctx, device_id);
+    device_info->group_id_dev                   = status_get_group_id_dev                   (hashcat_ctx, device_id);
+    device_info->group_size_dev                 = status_get_group_size_dev                 (hashcat_ctx, device_id);
     device_info->hashes_msec_dev                = status_get_hashes_msec_dev                (hashcat_ctx, device_id);
     device_info->hashes_msec_dev_benchmark      = status_get_hashes_msec_dev_benchmark      (hashcat_ctx, device_id);
     device_info->exec_msec_dev                  = status_get_exec_msec_dev                  (hashcat_ctx, device_id);
@@ -2130,6 +2159,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
     device_info->kernel_loops_dev               = status_get_kernel_loops_dev               (hashcat_ctx, device_id);
     device_info->kernel_threads_dev             = status_get_kernel_threads_dev             (hashcat_ctx, device_id);
     device_info->vector_width_dev               = status_get_vector_width_dev               (hashcat_ctx, device_id);
+    device_info->kernel_power_dev               = status_get_kernel_power_dev               (hashcat_ctx, device_id);
     device_info->salt_pos_dev                   = status_get_salt_pos_dev                   (hashcat_ctx, device_id);
     device_info->innerloop_pos_dev              = status_get_innerloop_pos_dev              (hashcat_ctx, device_id);
     device_info->innerloop_left_dev             = status_get_innerloop_left_dev             (hashcat_ctx, device_id);

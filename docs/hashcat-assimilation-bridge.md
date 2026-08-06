@@ -62,9 +62,20 @@ Depending on interface compatibility, code from other password cracking tools (e
 
 - Bridges are optional and configured on a per-plugin basis.
 - Hashcat v7 includes working bridges for CPU and Python.
-- FPGA support has been verified internally but is excluded from this release due to licensing issues.
+- FPGA bridges for bcrypt (`-m 75000`) and scrypt (`-m 75010`) are shipping soon. An FPGA is not plug and play: a bitstream has to be programmed into the fabric before the device exists at all, and a PCIe card also needs a kernel driver built on your machine. `docs/hashcat-fpga-setup.md` covers the whole procedure, and is what the bridge points you at when it refuses to start.
 
 > **Call to FPGA Developers**: Contribute an open FPGA implementation and bitstream and the Hashcat Developer Team will support in integrating it into a bridge. Please contact us on Discord.
+
+## Selecting units
+
+A bridge reports one or more *bridge units*, and each becomes one virtual backend device. So the device options work on units:
+
+- `-d` selects which units run. `-d 2` runs unit 2 alone, `-d 1,3` runs units 1 and 3.
+- `-R` selects the physical device that generates the candidates, which is a separate question.
+
+`hashcat -I -m <hash mode>` lists the units that mode would use, and the `Assimilation Bridge` block printed at the start of a run lists them again. A bridge is selected by the hash mode, so `-I` on its own cannot list units and says so rather than leaving you to conclude your hardware was not found. The same numbering is used by `-d`, `Speed.#NN`, `Hardware.Mon.#NN` and the watchdog, so a number means the same unit everywhere it appears.
+
+Units of the same kind are given the same tuning, so a machine holding several identical cards does not show them running different batch sizes. Units that genuinely differ, a mix of two board types for instance, keep the tuning each one measured for itself.
 
 ## Conclusion
 

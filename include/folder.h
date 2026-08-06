@@ -24,6 +24,10 @@
 #endif // __APPLE__
 #endif // _WIN
 
+// Legacy only. This directory predates XDG support and is no longer used for anything; it is named
+// here so a user who still has one can be told where their files moved to. Do not resolve paths
+// through it and do not mention it in a document.
+
 #define DOT_HASHCAT     ".hashcat"
 #define SESSIONS_FOLDER "sessions"
 

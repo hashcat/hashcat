@@ -20,6 +20,7 @@
 
 #ifdef WITH_BRAIN
 #include "brain.h"
+#include "generic.h"
 #endif
 
 #ifdef WITH_BRAIN
@@ -164,6 +165,7 @@ static const struct option long_options[] =
   {"workload-profile",          required_argument, NULL, IDX_WORKLOAD_PROFILE},
   #ifdef WITH_BRAIN
   {"brain-client",              no_argument,       NULL, IDX_BRAIN_CLIENT},
+  {"brain-feed",                no_argument,       NULL, IDX_BRAIN_FEED},
   {"brain-client-features",     required_argument, NULL, IDX_BRAIN_CLIENT_FEATURES},
   {"brain-server",              no_argument,       NULL, IDX_BRAIN_SERVER},
   {"brain-server-timer",        required_argument, NULL, IDX_BRAIN_SERVER_TIMER},
@@ -214,6 +216,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->bitmap_min                = BITMAP_MIN;
   #ifdef WITH_BRAIN
   user_options->brain_client              = BRAIN_CLIENT;
+  user_options->brain_feed                = false;
   user_options->brain_client_features     = BRAIN_CLIENT_FEATURES;
   user_options->brain_host                = NULL;
   user_options->brain_port                = BRAIN_PORT;
@@ -600,6 +603,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_SLOW_CANDIDATES:           user_options->slow_candidates           = true;                            break;
       #ifdef WITH_BRAIN
       case IDX_BRAIN_CLIENT:              user_options->brain_client              = true;                            break;
+      case IDX_BRAIN_FEED:                user_options->brain_feed                = true;                            break;
       case IDX_BRAIN_CLIENT_FEATURES:     user_options->brain_client_features     = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_BRAIN_SERVER:              user_options->brain_server              = true;                            break;
       case IDX_BRAIN_SERVER_TIMER:        user_options->brain_server_timer        = hc_strtoul (optarg, NULL, 10);
@@ -652,6 +656,45 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   }
 
   #ifdef WITH_BRAIN
+  // The feeder is a mode of its own: it reads stdin and exits, so it takes neither the client's nor
+  // the server's other arguments. The session cannot be computed here because there is no hash list,
+  // so it has to be given, and hashcat prints it on the status line of any brain run.
+
+  if (user_options->brain_feed == true)
+  {
+    if (user_options->brain_client == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --brain-feed with --brain-client is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->brain_server == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --brain-feed with --brain-server is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->brain_password == NULL)
+    {
+      event_log_error (hashcat_ctx, "Using --brain-feed requires --brain-password.");
+
+      return -1;
+    }
+
+    if (user_options->brain_session == 0)
+    {
+      event_log_error (hashcat_ctx, "Using --brain-feed requires --brain-session.");
+      event_log_warning (hashcat_ctx, "The session says which brain database the candidates belong in. It is normally");
+      event_log_warning (hashcat_ctx, "computed from the hash list, which a feeder does not have. Any brain run prints");
+      event_log_warning (hashcat_ctx, "it on the status line as Brain Session/Attack.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+  }
+
   if ((user_options->brain_client == true) && (user_options->brain_server == true))
   {
     event_log_error (hashcat_ctx, "Can not have --brain-client and --brain-server at the same time.");
@@ -744,7 +787,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
      && (user_options->attack_mode != ATTACK_MODE_COMBI)
-     && (user_options->attack_mode != ATTACK_MODE_BF))
+     && (user_options->attack_mode != ATTACK_MODE_BF)
+     && (user_options->attack_mode != ATTACK_MODE_GENERIC))
     {
       event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified in slow-candidates mode.");
 
@@ -756,7 +800,8 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
      && (user_options->attack_mode != ATTACK_MODE_COMBI)
-     && (user_options->attack_mode != ATTACK_MODE_BF))
+     && (user_options->attack_mode != ATTACK_MODE_BF)
+     && (user_options->attack_mode != ATTACK_MODE_GENERIC))
     {
       event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified in brain-client mode.");
 
@@ -1076,9 +1121,18 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->kernel_accel > 1024)
+    // This runs long before hashconfig_init, so whether the selected mode is an assimilation bridge
+    // is not knowable yet. Only the looser of the two ceilings can be applied here. The tighter
+    // KERNEL_ACCEL_MAX is enforced in backend.c for a non-bridge mode, where the mode IS known.
+    //
+    // A non-bridge mode still refuses exactly the values it refused before, with the same message and
+    // the same exit. What did change is WHEN: the refusal now comes during backend startup rather
+    // than during argument parsing, so devices are enumerated first. That is the price of the mode
+    // not being known here, and it is only paid on a command line that was going to be rejected.
+
+    if (user_options->kernel_accel > KERNEL_ACCEL_MAX_BRIDGE)
     {
-      event_log_error (hashcat_ctx, "Invalid --kernel-accel value specified - must be <= 1024.");
+      event_log_error (hashcat_ctx, "Invalid --kernel-accel value specified - must be <= %d.", KERNEL_ACCEL_MAX_BRIDGE);
 
       return -1;
     }
@@ -1104,12 +1158,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if (user_options->kernel_loops > KERNEL_LOOPS_MAX)
-    {
-      event_log_error (hashcat_ctx, "Invalid kernel-loops specified.");
-
-      return -1;
-    }
+    // no upper bound is checked here. KERNEL_LOOPS_MAX is only the default ceiling, and a module
+    // is free to raise its own through module_kernel_loops_max. Several do, up to 131072. This
+    // runs before hashconfig_init, so the real ceiling is not known yet. backend_session_begin
+    // holds the value against the module's range and warns if it has to drop it.
   }
 
   if (user_options->kernel_threads_chgd == true)
@@ -1798,6 +1850,12 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     show_error = false;
   }
   #ifdef WITH_BRAIN
+  else if (user_options->brain_feed == true)
+  {
+    // reads stdin and exits, so it takes no hash file and no attack arguments
+
+    show_error = false;
+  }
   else if (user_options->brain_server == true)
   {
     show_error = false;
@@ -1870,7 +1928,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
     else if (user_options->attack_mode == ATTACK_MODE_GENERIC)
     {
-      if (user_options->hc_argc == 2)
+      // a feed takes as many arguments as it wants, and the wordlist feed takes one per source
+
+      if (user_options->hc_argc >= 2)
       {
         show_error = false;
       }
@@ -2097,7 +2157,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   {
     user_options->slow_candidates = true;
   }
-  #endif
+    #endif
 
   if (user_options->hwmon == false)
   {
@@ -2565,6 +2625,48 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
+  // -a 0 reads its wordlists through the generic feed rather than through the wordlist reader. The
+  // feed seeks, so a device jumps straight to its own range instead of reading and discarding every
+  // word another device already took, which is what made -a 0 no faster on a second device than on
+  // one. It also makes --skip and --limit work across several dictionaries, which the wordlist
+  // reader has to refuse.
+  //
+  // HASHCAT_A0_LEGACY_READER=1 puts the old reader back. It is there because this is a large change
+  // to the most used attack mode, not because either path is expected to be wrong. Two things do
+  // differ: several dictionaries become one keyspace rather than one attack each, so there is no
+  // Guess.Queue, and the LM specific 7 byte truncation is not applied.
+  //
+  // It only engages where the feed can express what -a 0 was asked to do, which means a real
+  // wordlist on the command line. Reading candidates from stdin has no feed equivalent.
+  //
+  // An induction round has none either, and this is the reason it is excluded rather than an
+  // oversight. A feed is handed its sources once, in global_init (), which runs before the first
+  // round. The words a --loopback or an --induction-dir produces only exist after that round has
+  // finished, so a second round would re-read the original wordlist instead of the induced one.
+  // Until a feed can be re-sourced between rounds, those runs take the wordlist reader and stay
+  // correct.
+
+  bool a0_via_feed = false;
+
+  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  {
+    if (getenv ("HASHCAT_A0_LEGACY_READER") == NULL)
+    {
+      const bool no_hash_arg = (user_options->keyspace == true) || (user_options->stdout_flag == true);
+
+      const int dicts_cnt = (no_hash_arg == true) ? user_options->hc_argc : user_options->hc_argc - 1;
+
+      const bool induction = (user_options->loopback == true) || (user_options->induction_dir != NULL);
+
+      if ((dicts_cnt >= 1) && (induction == false))
+      {
+        user_options->attack_mode = ATTACK_MODE_GENERIC;
+
+        a0_via_feed = true;
+      }
+    }
+  }
+
   // separator
 
   if (user_options->separator)
@@ -2625,6 +2727,27 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
     user_options_extra->hc_hash  = user_options->hc_argv[0];
     user_options_extra->hc_workc = user_options->hc_argc - 1;
     user_options_extra->hc_workv = user_options->hc_argv + 1;
+  }
+
+  // The feed takes its plugin name as the first work argument, so one has to be put in front of the
+  // wordlists that -a 0 was given. The array holds one pointer per argument, it is allocated once per
+  // session and it has to stay reachable for as long as the feed does, which is until the process
+  // ends. So it is deliberately not freed rather than leaked by accident.
+
+  if (a0_via_feed == true)
+  {
+    char **workv = (char **) hcmalloc ((user_options_extra->hc_workc + 1) * sizeof (char *));
+
+    workv[0] = "wordlist";
+
+    for (int i = 0; i < user_options_extra->hc_workc; i++)
+    {
+      workv[i + 1] = user_options_extra->hc_workv[i];
+    }
+
+    user_options_extra->hc_workv = workv;
+
+    user_options_extra->hc_workc = user_options_extra->hc_workc + 1;
   }
 
   // wordlist_mode
@@ -3098,29 +3221,40 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   }
   else if (user_options->attack_mode == ATTACK_MODE_GENERIC)
   {
-    //for (int i = 0; i < user_options_extra->hc_workc; i++)
+    // The first argument is a plugin name and only falls back to being a path, so it is checked
+    // against the shipped feeds first. A name that matches neither is reported as the path it would
+    // have been, because that is the form the user typed.
 
-    char *library_filename = user_options_extra->hc_workv[0];
+    char *plugin_name = user_options_extra->hc_workv[0];
 
-    if (hc_path_exist (library_filename) == false)
+    bool by_name = false;
+
+    char *library_filename = generic_resolve (folder_config, plugin_name, &by_name);
+
+    hcfree (library_filename);
+
+    if (by_name == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", library_filename, strerror (errno));
+      if (hc_path_exist (plugin_name) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
-      return -1;
-    }
+        return -1;
+      }
 
-    if (hc_path_is_directory (library_filename) == true)
-    {
-      event_log_error (hashcat_ctx, "%s: A directory cannot be used as first plugin argument.", library_filename);
+      if (hc_path_is_directory (plugin_name) == true)
+      {
+        event_log_error (hashcat_ctx, "%s: A directory cannot be used as first plugin argument.", plugin_name);
 
-      return -1;
-    }
+        return -1;
+      }
 
-    if (hc_path_read (library_filename) == false)
-    {
-      event_log_error (hashcat_ctx, "%s: %s", library_filename, strerror (errno));
+      if (hc_path_read (plugin_name) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
-      return -1;
+        return -1;
+      }
     }
 
     for (int i = 0; i < (int) user_options->rp_files_cnt; i++)

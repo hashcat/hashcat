@@ -1,6 +1,7 @@
-FROM nvidia/cuda:12.9.1-devel-ubuntu24.04
+FROM hashcat-binaries as build
 
-ENV HASHCAT_VERSION=7.1.2
+FROM nvidia/cuda:13.3.1-devel-ubuntu26.04 as runtime
+
 ENV NVIDIA_VISIBLE_DEVICES=all
 ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 ENV DEBIAN_FRONTEND=noninteractive
@@ -10,7 +11,7 @@ WORKDIR /root/
 
 RUN \
 apt-get update && apt-get upgrade -y && \
-apt-get install -y curl wget unzip tar p7zip-full libjudy-dev libpcre3-dev libmhash-dev vim screen git  make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev && \
+apt-get install -y curl wget unzip tar 7zip libjudy-dev libpcre2-dev libmhash-dev vim screen git make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev llvm libncurses-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev && \
 apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN removeopencl=$(dpkg --list | awk '/opencl/ && $2 ~ /^cuda-opencl-/ {print $2; exit}') && \
@@ -18,8 +19,8 @@ apt-get remove -y $removeopencl && \
 apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install pyenv
-ENV PYENV_ROOT /root/.pyenv
-ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+ENV PYENV_ROOT=/root/.pyenv
+ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
 RUN git clone --depth=1 https://github.com/pyenv/pyenv.git .pyenv
 RUN pyenv install 3.14 && pyenv global 3.14
 
@@ -29,7 +30,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 RUN rustup target add x86_64-pc-windows-gnu
 
 # Add hashcat
-RUN curl https://hashcat.net/files/hashcat-${HASHCAT_VERSION}.7z -o hashcat-${HASHCAT_VERSION}.7z
-RUN 7z x hashcat-${HASHCAT_VERSION}.7z && export HASHCAT_DIRECTORY=$(ls | grep -E '^hashcat-[0-9]+\.[0-9]+\.[0-9]+\.7z$' | sed 's/\.7z$//') && mv hashcat-${HASHCAT_VERSION} hashcat && rm *.7z
+RUN mkdir /root/hashcat
+COPY --from=build /root/hashcat /root/hashcat
 
 WORKDIR /root/hashcat

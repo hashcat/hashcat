@@ -8,7 +8,7 @@ DEBUG                   := 0
 PRODUCTION              := 0
 PRODUCTION_VERSION      := v7.1.2
 MACOS_UNIVERSAL_BINARY  ?= 0
-ENABLE_LTO              ?= 1
+ENABLE_LTO              ?= 0
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
 ENABLE_UNRAR            ?= 1
@@ -94,8 +94,8 @@ endif
 ##
 
 MODULE_INTERFACE_VERSION := 700
-BRIDGE_INTERFACE_VERSION := 700
-FEEDS_INTERFACE_VERSION  := 713
+BRIDGE_INTERFACE_VERSION := 720
+FEEDS_INTERFACE_VERSION  := 720
 
 ##
 ## Native compiler paths
@@ -275,20 +275,46 @@ endif
 endif
 endif
 
+# -march=native asks the compiler what the host processor is, and the answer is not always one the
+# compiler will then accept. Under a hypervisor the CPUID presented to the guest can map to a
+# processor name that has no 64 bit support, which the driver rejects as an unknown target CPU, and
+# the build stops on a flag that was only meant to be an optimisation. Ask before using it.
+
 ifeq ($(MAINTAINER_MODE),0)
 ifeq ($(BUILD_MODE),native)
+HAVE_MARCH_NATIVE       := $(shell echo | $(CC) -march=native -E - >/dev/null 2>&1 && echo 1 || echo 0)
+HAVE_MCPU_NATIVE        := $(shell echo | $(CC) -mcpu=native -E - >/dev/null 2>&1 && echo 1 || echo 0)
+
+# The same answer, in a form a bridge .mk can append without repeating the question. Asking once and
+# then having three other files decide for themselves is how DragonFlyBSD kept failing after the probe
+# above was added: the main binary respected it and every bridge that wanted -march=native did not.
+# Empty when the compiler will not take the flag, so appending it is always safe.
+
+ifeq ($(HAVE_MARCH_NATIVE),1)
+MARCH_NATIVE            := -march=native -mtune=native
+endif
+
+ifeq ($(HAVE_MCPU_NATIVE),1)
+MCPU_NATIVE             := -mcpu=native -mtune=native
+endif
 ifneq ($(UNAME),Darwin)
 ifeq ($(IS_PPC),1)
+ifeq ($(HAVE_MCPU_NATIVE),1)
 CFLAGS                  += -mcpu=native
-CFLAGS                  += -mtune=native
-else
-CFLAGS                  += -march=native
 CFLAGS                  += -mtune=native
 endif
 else
-ifeq ($(MACOS_UNIVERSAL_BINARY),0)
+ifeq ($(HAVE_MARCH_NATIVE),1)
 CFLAGS                  += -march=native
 CFLAGS                  += -mtune=native
+endif
+endif
+else
+ifeq ($(MACOS_UNIVERSAL_BINARY),0)
+ifeq ($(HAVE_MARCH_NATIVE),1)
+CFLAGS                  += -march=native
+CFLAGS                  += -mtune=native
+endif
 endif
 endif
 endif
@@ -591,7 +617,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile restore rp rp_cpu selftest slow_candidates shared status stdout straight generic terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dictstat dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -695,9 +721,7 @@ clean:
 	$(RM) -rf kernels
 	$(RM) -rf Rust/bridges/*/target
 	$(RM) -rf Rust/feeds/*/target
-	$(RM) -rf Rust/hashcat-sys/target
 	$(RM) -rf Rust/hashcat-sys/src/bindings.rs
-	$(RM) -f  Rust/hashcat-sys/.build-stamp
 
 .PHONY: distclean
 distclean: clean
@@ -847,6 +871,30 @@ uninstall:
 ##
 ## native compiled hashcat library and frontend
 ##
+
+##
+## Header dependencies
+##
+
+## The object rules name only the .c file, so nothing here used to notice a header change and make
+## would happily link a binary built against the old one. That is silent and it has cost real time:
+## a struct that grew in one translation unit and not in another, and a constant that kept its old
+## value after being edited.
+##
+## Every object depends on every header rather than on the ones it actually includes. Precision is
+## not worth buying here, because obj/combined.NATIVE.a depends on all of these objects and all 593
+## modules depend on that archive, so touching any core source already rebuilds the modules. Tracking
+## exactly which header went into which object would save about five seconds of a twenty second
+## build, and nothing at all for common.h and types.h, which nearly every source includes.
+##
+## The modules, bridges and feeds need no rule of their own: they depend on the archive, so they pick
+## this up through it.
+
+HEADERS_ALL             := $(wildcard include/*.h)
+
+$(NATIVE_OBJS): $(HEADERS_ALL)
+$(LINUX_OBJS):  $(HEADERS_ALL)
+$(WIN_OBJS):    $(HEADERS_ALL)
 
 obj/%.NATIVE.o: src/%.c
 	$(CC) -c $(CCFLAGS) $(CFLAGS_NATIVE) $< -o $@ -fpic
@@ -1283,7 +1331,7 @@ hashcat.dll: src/main.c obj/combined.WIN.a $(WIN_ICONV)/lib/libiconv.a
 
 endif
 
-# Pre-build hashcat-sys before any Rust plugin targets
+# Shared Rust configuration, used by the .mk files below
 include src/rust_common.mk
 
 # Give developers a chance to add some 3rd party dependancies

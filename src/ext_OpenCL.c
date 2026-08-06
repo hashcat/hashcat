@@ -221,6 +221,8 @@ int ocl_init (void *hashcat_ctx)
   HC_LOAD_FUNC (ocl, clReleaseKernel,           OCL_CLRELEASEKERNEL,            OpenCL, 1);
   HC_LOAD_FUNC (ocl, clReleaseMemObject,        OCL_CLRELEASEMEMOBJECT,         OpenCL, 1);
   HC_LOAD_FUNC (ocl, clReleaseProgram,          OCL_CLRELEASEPROGRAM,           OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clRetainContext,           OCL_CLRETAINCONTEXT,            OpenCL, 1);
+  HC_LOAD_FUNC (ocl, clRetainProgram,           OCL_CLRETAINPROGRAM,            OpenCL, 1);
   HC_LOAD_FUNC (ocl, clSetKernelArg,            OCL_CLSETKERNELARG,             OpenCL, 1);
   HC_LOAD_FUNC (ocl, clWaitForEvents,           OCL_CLWAITFOREVENTS,            OpenCL, 1);
   HC_LOAD_FUNC (ocl, clGetEventProfilingInfo,   OCL_CLGETEVENTPROFILINGINFO,    OpenCL, 1);
@@ -799,6 +801,42 @@ int hc_clReleaseContext (void *hashcat_ctx, cl_context context)
   if (CL_err != CL_SUCCESS)
   {
     event_log_error (hashcat_ctx, "clReleaseContext(): %s", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_clRetainProgram (void *hashcat_ctx, cl_program program)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+  const cl_int CL_err = ocl->clRetainProgram (program);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "clRetainProgram(): %s", val2cstr_cl (CL_err));
+
+    return -1;
+  }
+
+  return 0;
+}
+
+int hc_clRetainContext (void *hashcat_ctx, cl_context context)
+{
+  backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+
+  OCL_PTR *ocl = (OCL_PTR *) backend_ctx->ocl;
+
+  const cl_int CL_err = ocl->clRetainContext (context);
+
+  if (CL_err != CL_SUCCESS)
+  {
+    event_log_error (hashcat_ctx, "clRetainContext(): %s", val2cstr_cl (CL_err));
 
     return -1;
   }

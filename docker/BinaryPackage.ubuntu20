@@ -6,11 +6,17 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN echo "dash dash/sh boolean false" | debconf-set-selections && dpkg-reconfigure dash
 
+# libclang-dev is here for its libclang, which bindgen loads at build time to generate the
+# hashcat-sys bindings. Without it the Rust bridges fail with "Unable to find libclang".
+# lld is here because the Windows Rust plugin is linked with -fuse-ld=lld, and without
+# it the cross build stops at "collect2: fatal error: cannot find 'ld'"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     build-essential \
     git \
+    libclang-dev \
+    lld \
     wget \
     pkg-config \
     make \
@@ -64,7 +70,7 @@ RUN cmake \
 
 WORKDIR /root
 
-ENV PYTHON_VERSION=3.13.3
+ENV PYTHON_VERSION=3.14.6
 
 RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
     tar xzf Python-${PYTHON_VERSION}.tgz
@@ -90,9 +96,9 @@ WORKDIR /root
 
 RUN mkdir /opt/win-python
 WORKDIR /opt/win-python
-RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
-RUN unzstd mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
-RUN tar -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar
+RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst
+RUN unzstd mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst
+RUN tar -xf mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar
 
 ## Custom patches
 

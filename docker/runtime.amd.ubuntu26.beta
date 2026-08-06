@@ -1,0 +1,38 @@
+FROM hashcat-binaries as build
+
+FROM rocm/dev-ubuntu-26.04:7.14.0-full as runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+WORKDIR /root/
+
+RUN \
+apt-get update && apt-get upgrade -y && \
+apt-get install -y curl wget unzip tar 7zip libjudy-dev libpcre2-dev libmhash-dev vim screen git make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev llvm libncurses-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev && \
+apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# The base image ships the ROCm OpenCL driver and the HIP runtime but wires up
+# neither, so register the ICD and put the ROCm libraries on the loader path.
+# Without this hashcat cannot dlopen libamdhip64.so or libOpenCL.so.
+RUN mkdir -p /etc/OpenCL/vendors && \
+echo /opt/rocm/lib/opencl/libamdocl64.so > /etc/OpenCL/vendors/amdocl64.icd && \
+printf '/opt/rocm/lib\n/opt/rocm/lib/opencl\n' > /etc/ld.so.conf.d/rocm.conf && \
+ldconfig
+
+# Install pyenv
+ENV PYENV_ROOT=/root/.pyenv
+ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+RUN git clone --depth=1 https://github.com/pyenv/pyenv.git .pyenv
+RUN pyenv install 3.14 && pyenv global 3.14
+
+## Install rust
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup target add x86_64-pc-windows-gnu
+
+# Add hashcat
+RUN mkdir /root/hashcat
+COPY --from=build /root/hashcat /root/hashcat
+
+WORKDIR /root/hashcat

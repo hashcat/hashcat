@@ -11,13 +11,16 @@ ifeq ($(BRIDGE_SUFFIX),dll)
 PLUGINS_DEFAULT := $(PLUGINS_WIN)
 endif
 
+RED             := $(shell tput setaf 1)
+RESET           := $(shell tput sgr 0)
+
 ifeq ($(CARGO_PRESENT),true)
 
-$(RUST_SUBS_DIR)/%.so: $(RUST_SCAN_DIR)/%/Cargo.toml | $(HASHCAT_SYS_STAMP)
+$(RUST_SUBS_DIR)/%.so: $(RUST_SCAN_DIR)/%/Cargo.toml
 	RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $^
 	cp Rust/bridges/$*/target/$(RUST_BUILD_MODE)/lib$*.$(RUST_LIB_EXT) $@
 ifeq ($(RUSTUP_PRESENT),true)
-$(RUST_SUBS_DIR)/%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml | $(HASHCAT_SYS_STAMP)
+$(RUST_SUBS_DIR)/%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml
 	$(RUST_RUSTUP) --quiet target add x86_64-pc-windows-gnu
 	RUSTFLAGS="$(RUSTFLAGS_DLL)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $^ --target x86_64-pc-windows-gnu
 	cp Rust/bridges/$*/target/x86_64-pc-windows-gnu/$(RUST_BUILD_MODE)/$*.dll $@
