@@ -2583,8 +2583,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     if (digests_buf_new != NULL)
     {
-      // note: hashes_pos will be converted to (u64) in a future PR, and this comment will be removed
-      char *digests_buf_new_ptr = ((char *) digests_buf_new) + (hashes_pos * hashconfig->dgst_size);
+      char *digests_buf_new_ptr = ((char *) digests_buf_new) + ((u64) hashes_pos * hashconfig->dgst_size);
 
       memcpy (digests_buf_new_ptr, hashes_buf[hashes_pos].digest, hashconfig->dgst_size);
 
