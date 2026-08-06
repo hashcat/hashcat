@@ -4282,11 +4282,18 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 // Note it truncates an over-length word where the wordlist reader rejects one. That difference is
 // preserved here rather than settled, because settling it changes what a wordlist produces.
 
-// Book one amplifier line that filled no slot. -a 9 spreads it over every salt because there one base
-// word belongs to one salt, so a missing amplifier word is missing from all of them.
+// Book the amplifier lines that filled no slot against one salt. -a 9 spreads them over every salt
+// because there one base word belongs to one salt, so a missing amplifier word is missing from all of
+// them.
+//
+// The count is passed in rather than booked one at a time, because the amplifier can be read once and
+// shared by every salt. Whoever read it knows how many lines it dropped, and only the caller knows
+// which salts that chunk is about to be tested against.
 
-static void combs_buf_reject (hashcat_ctx_t *hashcat_ctx, const u32 salt_pos, const u64 pws_cnt)
+static void combs_buf_reject (hashcat_ctx_t *hashcat_ctx, const u32 salt_pos, const u64 pws_cnt, const u64 rejects)
 {
+  if (rejects == 0) return;
+
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
   user_options_t *user_options = hashcat_ctx->user_options;
 
@@ -4294,13 +4301,13 @@ static void combs_buf_reject (hashcat_ctx_t *hashcat_ctx, const u32 salt_pos, co
   {
     for (u32 association_salt_pos = 0; association_salt_pos < pws_cnt; association_salt_pos++)
     {
-      status_ctx->words_progress_rejected[association_salt_pos] += 1;
+      status_ctx->words_progress_rejected[association_salt_pos] += rejects;
     }
 
     return;
   }
 
-  status_ctx->words_progress_rejected[salt_pos] += pws_cnt;
+  status_ctx->words_progress_rejected[salt_pos] += pws_cnt * rejects;
 }
 
 // One chunk of the amplifier, out of the amplifier feed instance. -a 1's amplifier is a wordlist like
@@ -4311,8 +4318,12 @@ static void combs_buf_reject (hashcat_ctx_t *hashcat_ctx, const u32 salt_pos, co
 // The count comes back through a pointer because the return value has to be able to say the feed
 // failed. A short chunk is a normal answer and not a failure: the caller zero fills the rest and
 // shortens the innerloop to match.
+//
+// The dropped lines come back the same way instead of being booked here. What this reads does not
+// depend on the salt, so it can be read once and shared by every salt, and then only the caller knows
+// how many salts the drop has to be booked against.
 
-static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 innerloop_left, const u32 salt_pos, const u64 pws_cnt, const pw_transform_t *transform, u64 *filled)
+static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 innerloop_left, const pw_transform_t *transform, u64 *filled, u64 *rejects)
 {
   combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
   hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
@@ -4320,8 +4331,10 @@ static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   char *line_buf = device_param->scratch_buf;
 
   u64 i = 0;
+  u64 r = 0;
 
-  filled[0] = 0;
+  filled[0]  = 0;
+  rejects[0] = 0;
 
   while (i < innerloop_left)
   {
@@ -4338,7 +4351,7 @@ static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     if (line_len_raw > HCBUFSIZ_LARGE)
     {
-      combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt);
+      r++;
 
       continue;
     }
@@ -4350,7 +4363,7 @@ static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     if (line_len_t < 0)
     {
-      combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt);
+      r++;
 
       continue;
     }
@@ -4361,7 +4374,7 @@ static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
     if (line_len_t > PW_MAX)
     {
-      combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt);
+      r++;
 
       continue;
     }
@@ -4399,12 +4412,277 @@ static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
     i++;
   }
 
-  filled[0] = i;
+  filled[0]  = i;
+  rejects[0] = r;
 
   return 0;
 }
 
-int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt)
+// Everything that has to be on the device before a launch that is not the base words: the rule chunk,
+// the combinator chunk, or the mask processor's output. None of it depends on the salt, which is what
+// lets the salt inner order prepare it once and hand the same chunk to every salt.
+//
+// innerloop_left is in and out. A short amplifier chunk shortens it, and the caller needs the
+// shortened value for the progress accounting. rejects comes back for the caller to book, because
+// only the caller knows which salts the chunk is about to be tested against.
+
+static int amp_prepare (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 innerloop_pos, u64 *innerloop_left_io, const pw_transform_t *transform, u64 *rejects)
+{
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  u64 innerloop_left = innerloop_left_io[0];
+
+  rejects[0] = 0;
+
+  // initialize and copy amplifiers
+
+  if (user_options->slow_candidates == true)
+  {
+  }
+  else
+  {
+    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    {
+      if (device_param->is_cuda == true)
+      {
+        if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_rules_c, device_param->cuda_d_rules + (innerloop_pos * sizeof (kernel_rule_t)), innerloop_left * sizeof (kernel_rule_t)) == -1) return -1;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_rules_c, device_param->hip_d_rules + (innerloop_pos * sizeof (kernel_rule_t)), innerloop_left * sizeof (kernel_rule_t)) == -1) return -1;
+      }
+
+      #if defined (__APPLE__)
+      if (device_param->is_metal == true)
+      {
+        if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_rules_c, 0, device_param->metal_d_rules, innerloop_pos * sizeof (kernel_rule_t), innerloop_left * sizeof (kernel_rule_t)) == -1) return -1;
+      }
+      #endif
+
+      if (device_param->is_opencl == true)
+      {
+        if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, device_param->opencl_d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL) == -1) return -1;
+      }
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+    {
+      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
+        if (user_options->attack_mode == ATTACK_MODE_COMBI)
+        {
+          u64 i = 0;
+          u64 r = 0;
+
+          if (combs_buf_fill (hashcat_ctx, device_param, innerloop_left, transform, &i, &r) == -1) return -1;
+
+          rejects[0] += r;
+
+          for (u64 j = i; j < innerloop_left; j++)
+          {
+            memset (&device_param->combs_buf[j], 0, sizeof (pw_t));
+          }
+
+          innerloop_left = i;
+
+          if (device_param->is_cuda == true)
+          {
+            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          #if defined (__APPLE__)
+          if (device_param->is_metal == true)
+          {
+            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+          #endif
+
+          if (device_param->is_opencl == true)
+          {
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
+          }
+        }
+        else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+        {
+          u64 off = innerloop_pos;
+
+          device_param->kernel_params_mp_buf64[3] = off;
+
+          if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
+
+          if (device_param->is_cuda == true)
+          {
+            if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          #if defined (__APPLE__)
+          if (device_param->is_metal == true)
+          {
+            if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->metal_d_combs, 0, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+          #endif
+
+          if (device_param->is_opencl == true)
+          {
+            if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
+          }
+        }
+        else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+        {
+          u64 off = innerloop_pos;
+
+          device_param->kernel_params_mp_buf64[3] = off;
+
+          if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
+
+          if (device_param->is_cuda == true)
+          {
+            if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          #if defined (__APPLE__)
+          if (device_param->is_metal == true)
+          {
+            if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->metal_d_combs, 0, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+          #endif
+
+          if (device_param->is_opencl == true)
+          {
+            if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
+          }
+        }
+      }
+      else
+      {
+        if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        {
+          u64 i = 0;
+          u64 r = 0;
+
+          if (combs_buf_fill (hashcat_ctx, device_param, innerloop_left, transform, &i, &r) == -1) return -1;
+
+          rejects[0] += r;
+
+          for (u64 j = i; j < innerloop_left; j++)
+          {
+            memset (&device_param->combs_buf[j], 0, sizeof (pw_t));
+          }
+
+          innerloop_left = i;
+
+          if (device_param->is_cuda == true)
+          {
+            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          #if defined (__APPLE__)
+          if (device_param->is_metal == true)
+          {
+            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+          #endif
+
+          if (device_param->is_opencl == true)
+          {
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
+          }
+        }
+        else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+        {
+          u64 off = innerloop_pos;
+
+          device_param->kernel_params_mp_buf64[3] = off;
+
+          if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
+
+          if (device_param->is_cuda == true)
+          {
+            if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+
+          #if defined (__APPLE__)
+          if (device_param->is_metal == true)
+          {
+            if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->metal_d_combs, 0, innerloop_left * sizeof (pw_t)) == -1) return -1;
+          }
+          #endif
+
+          if (device_param->is_opencl == true)
+          {
+            if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
+          }
+        }
+      }
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+    {
+      u64 off = innerloop_pos;
+
+      device_param->kernel_params_mp_r_buf64[3] = off;
+
+      if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_R, innerloop_left) == -1) return -1;
+
+      if (device_param->is_cuda == true)
+      {
+        if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_bfs_c, device_param->cuda_d_bfs, innerloop_left * sizeof (bf_t)) == -1) return -1;
+      }
+
+      if (device_param->is_hip == true)
+      {
+        if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_bfs_c, device_param->hip_d_bfs, innerloop_left * sizeof (bf_t)) == -1) return -1;
+      }
+
+      #if defined (__APPLE__)
+      if (device_param->is_metal == true)
+      {
+        if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_bfs_c, 0, device_param->metal_d_bfs, 0, innerloop_left * sizeof (bf_t)) == -1) return -1;
+      }
+      #endif
+
+      if (device_param->is_opencl == true)
+      {
+        if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bfs, device_param->opencl_d_bfs_c, 0, 0, innerloop_left * sizeof (bf_t), 0, NULL, NULL) == -1) return -1;
+      }
+    }
+  }
+
+  innerloop_left_io[0] = innerloop_left;
+
+  return 0;
+}
+
+// The salt loop outside the amplifier loop, which is the order hashcat has always used. Every attack
+// runs this unless the salt inner order below is switched on for a slow hash.
+
+static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt, const u32 highest_pw_len, const pw_transform_t *transform)
 {
   combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -4414,53 +4692,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
   straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
-
-  // do the on-the-fly combinator mode encoding
-
-  // The amplifier's transform. It is set up here rather than per chunk because the iconv descriptor
-  // inside it is expensive to open and belongs to this thread for the whole launch. -k is the rule for
-  // this side of the candidate.
-
-  pw_transform_t transform;
-
-  if (pw_transform_init (&transform, hashcat_ctx, GENERIC_ROLE_AMP, (int) user_options_extra->rule_len_amp, user_options_extra->rule_buf_amp) == -1) return -1;
-
-  // find highest password length, this is for optimization stuff
-
-  u32 highest_pw_len = 0;
-
-  if (user_options->slow_candidates == true)
-  {
-    /*
-    for (u64 pws_idx = 0; pws_idx < pws_cnt; pws_idx++)
-    {
-      pw_idx_t *pw_idx = device_param->pws_idx + pws_idx;
-
-      highest_pw_len = MAX (highest_pw_len, pw_idx->len);
-    }
-    */
-  }
-  else
-  {
-    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-    {
-    }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-    {
-    }
-    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-    {
-      highest_pw_len = device_param->kernel_params_mp_l_buf32[4]
-                     + device_param->kernel_params_mp_l_buf32[5];
-    }
-  }
-
-  // we make use of this in status view
-
-  device_param->outerloop_multi = 1;
-  device_param->outerloop_msec  = 0;
-  device_param->outerloop_pos   = 0;
-  device_param->outerloop_left  = pws_cnt;
 
   // loop start: most outer loop = salt iteration, then innerloops (if multi)
 
@@ -4573,234 +4804,12 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
       // initialize and copy amplifiers
 
-      if (user_options->slow_candidates == true)
       {
-      }
-      else
-      {
-        if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-        {
-          if (device_param->is_cuda == true)
-          {
-            if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_rules_c, device_param->cuda_d_rules + (innerloop_pos * sizeof (kernel_rule_t)), innerloop_left * sizeof (kernel_rule_t)) == -1) return -1;
-          }
+        u64 amp_rejects = 0;
 
-          if (device_param->is_hip == true)
-          {
-            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_rules_c, device_param->hip_d_rules + (innerloop_pos * sizeof (kernel_rule_t)), innerloop_left * sizeof (kernel_rule_t)) == -1) return -1;
-          }
+        if (amp_prepare (hashcat_ctx, device_param, innerloop_pos, &innerloop_left, transform, &amp_rejects) == -1) return -1;
 
-          #if defined (__APPLE__)
-          if (device_param->is_metal == true)
-          {
-            if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_rules_c, 0, device_param->metal_d_rules, innerloop_pos * sizeof (kernel_rule_t), innerloop_left * sizeof (kernel_rule_t)) == -1) return -1;
-          }
-          #endif
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_rules, device_param->opencl_d_rules_c, innerloop_pos * sizeof (kernel_rule_t), 0, innerloop_left * sizeof (kernel_rule_t), 0, NULL, NULL) == -1) return -1;
-          }
-        }
-        else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-        {
-          if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-          {
-            if (user_options->attack_mode == ATTACK_MODE_COMBI)
-            {
-              u64 i = 0;
-
-              if (combs_buf_fill (hashcat_ctx, device_param, innerloop_left, salt_pos, pws_cnt, &transform, &i) == -1) return -1;
-
-              for (u64 j = i; j < innerloop_left; j++)
-              {
-                memset (&device_param->combs_buf[j], 0, sizeof (pw_t));
-              }
-
-              innerloop_left = i;
-
-              if (device_param->is_cuda == true)
-              {
-                if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              if (device_param->is_hip == true)
-              {
-                if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              #if defined (__APPLE__)
-              if (device_param->is_metal == true)
-              {
-                if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-              #endif
-
-              if (device_param->is_opencl == true)
-              {
-                if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
-              }
-            }
-            else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-            {
-              u64 off = innerloop_pos;
-
-              device_param->kernel_params_mp_buf64[3] = off;
-
-              if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
-
-              if (device_param->is_cuda == true)
-              {
-                if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              if (device_param->is_hip == true)
-              {
-                if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              #if defined (__APPLE__)
-              if (device_param->is_metal == true)
-              {
-                if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->metal_d_combs, 0, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-              #endif
-
-              if (device_param->is_opencl == true)
-              {
-                if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
-              }
-            }
-            else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-            {
-              u64 off = innerloop_pos;
-
-              device_param->kernel_params_mp_buf64[3] = off;
-
-              if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
-
-              if (device_param->is_cuda == true)
-              {
-                if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              if (device_param->is_hip == true)
-              {
-                if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              #if defined (__APPLE__)
-              if (device_param->is_metal == true)
-              {
-                if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->metal_d_combs, 0, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-              #endif
-
-              if (device_param->is_opencl == true)
-              {
-                if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
-              }
-            }
-          }
-          else
-          {
-            if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
-            {
-              u64 i = 0;
-
-              if (combs_buf_fill (hashcat_ctx, device_param, innerloop_left, salt_pos, pws_cnt, &transform, &i) == -1) return -1;
-
-              for (u64 j = i; j < innerloop_left; j++)
-              {
-                memset (&device_param->combs_buf[j], 0, sizeof (pw_t));
-              }
-
-              innerloop_left = i;
-
-              if (device_param->is_cuda == true)
-              {
-                if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              if (device_param->is_hip == true)
-              {
-                if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              #if defined (__APPLE__)
-              if (device_param->is_metal == true)
-              {
-                if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-              #endif
-
-              if (device_param->is_opencl == true)
-              {
-                if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
-              }
-            }
-            else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-            {
-              u64 off = innerloop_pos;
-
-              device_param->kernel_params_mp_buf64[3] = off;
-
-              if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
-
-              if (device_param->is_cuda == true)
-              {
-                if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              if (device_param->is_hip == true)
-              {
-                if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-
-              #if defined (__APPLE__)
-              if (device_param->is_metal == true)
-              {
-                if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->metal_d_combs, 0, innerloop_left * sizeof (pw_t)) == -1) return -1;
-              }
-              #endif
-
-              if (device_param->is_opencl == true)
-              {
-                if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
-              }
-            }
-          }
-        }
-        else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
-        {
-          u64 off = innerloop_pos;
-
-          device_param->kernel_params_mp_r_buf64[3] = off;
-
-          if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP_R, innerloop_left) == -1) return -1;
-
-          if (device_param->is_cuda == true)
-          {
-            if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_bfs_c, device_param->cuda_d_bfs, innerloop_left * sizeof (bf_t)) == -1) return -1;
-          }
-
-          if (device_param->is_hip == true)
-          {
-            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_bfs_c, device_param->hip_d_bfs, innerloop_left * sizeof (bf_t)) == -1) return -1;
-          }
-
-          #if defined (__APPLE__)
-          if (device_param->is_metal == true)
-          {
-            if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_bfs_c, 0, device_param->metal_d_bfs, 0, innerloop_left * sizeof (bf_t)) == -1) return -1;
-          }
-          #endif
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_bfs, device_param->opencl_d_bfs_c, 0, 0, innerloop_left * sizeof (bf_t), 0, NULL, NULL) == -1) return -1;
-          }
-        }
+        combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt, amp_rejects);
       }
 
       if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_pos, pws_cnt, fast_iteration, salt_pos, false) == -1) return -1;
@@ -4949,9 +4958,309 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     //device_param->speed_only_finish = true;
   }
 
+  return 0;
+}
+
+// The salt loop inside the amplifier loop, for slow hashes. Every live salt sees amplifier item 0
+// before any salt sees item 1, so a salt that cracks early stops costing anything for the rest of the
+// sweep, and the good candidates reach every hash first.
+//
+// This does not reduce the work needed to exhaust a keyspace. Salt s is cracked by the same candidate
+// under either order and consumes the same number of launches getting there. What it changes is where
+// the cracks land in time, which is what matters for every run that is stopped before it exhausts.
+//
+// The amplifier is prepared once per chunk instead of once per salt, which is a real throughput win
+// for -a 1, -a 6 and -a 7, where the amplifier file was re-read for every salt.
+
+static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt, const u32 highest_pw_len, const pw_transform_t *transform)
+{
+  combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
+  hashes_t              *hashes             = hashcat_ctx->hashes;
+  mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
+  status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
+  straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_t        *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  const u32 salts_cnt = hashes->salts_cnt;
+
+  // The salts still worth testing, rebuilt once per amplifier chunk. With the salt loop innermost a
+  // cracked salt would otherwise cost a loop iteration and a kernel parameter update on every
+  // amplifier step, and a slow hash list can hold thousands of them.
+
+  u32 *live_salts = (u32 *) hcmalloc (salts_cnt * sizeof (u32));
+
+  // Back to the first amplifier word, once for this batch rather than once per salt. Every salt reads
+  // the same amplifier, so it is read once here and the chunk is shared.
+
+  if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2)))
+  {
+    if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, device_param->device_id, 0) != 0)
+    {
+      hcfree (live_salts);
+
+      return -1;
+    }
+  }
+
+  // one host iteration is one amplifier item, because this order only ever runs for a slow hash
+
+  const u64 innerloop_step = 1;
+
+  u64 innerloop_cnt = 0;
+
+  if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)  innerloop_cnt = straight_ctx->kernel_rules_cnt;
+  else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)     innerloop_cnt = combinator_ctx->combs_cnt;
+  else if (user_options_extra->attack_kern == ATTACK_KERN_BF)        innerloop_cnt = mask_ctx->bfs_cnt;
+
+  int rc_final = 0;
+
+  for (u64 innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
+  {
+    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+
+    u32 fast_iteration = 0;
+
+    u64 innerloop_left = innerloop_cnt - innerloop_pos;
+
+    if (innerloop_left > innerloop_step)
+    {
+      innerloop_left = innerloop_step;
+
+      fast_iteration = 1;
+    }
+
+    hc_thread_mutex_lock (status_ctx->mux_display);
+
+    device_param->innerloop_pos  = innerloop_pos;
+    device_param->innerloop_left = innerloop_left;
+
+    device_param->kernel_param.il_cnt = innerloop_left;
+
+    device_param->outerloop_multi = (double) innerloop_cnt / (double) (innerloop_pos + innerloop_left);
+
+    hc_thread_mutex_unlock (status_ctx->mux_display);
+
+    // A cracked salt is credited for this chunk and dropped from the sweep. The credit is the count
+    // before a short chunk shortens it, which is what the salt major order books for a skipped salt.
+
+    u32 live_cnt = 0;
+
+    for (u32 salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
+    {
+      if (hashes->salts_shown[salt_pos] == 1)
+      {
+        status_ctx->words_progress_done[salt_pos] += pws_cnt * innerloop_left;
+
+        continue;
+      }
+
+      live_salts[live_cnt] = salt_pos;
+
+      live_cnt++;
+    }
+
+    // every salt is done, so there is nothing to prepare the amplifier for
+
+    if (live_cnt == 0) continue;
+
+    // the amplifier, once for every salt below rather than once each
+
+    u64 amp_rejects = 0;
+
+    if (amp_prepare (hashcat_ctx, device_param, innerloop_pos, &innerloop_left, transform, &amp_rejects) == -1)
+    {
+      rc_final = -1;
+
+      break;
+    }
+
+    // An amplifier line that filled no slot is missing from every salt that was going to be tested
+    // against it, which under the salt major order is exactly the salts that would each have read it
+    // and dropped it themselves.
+
+    for (u32 live_pos = 0; live_pos < live_cnt; live_pos++)
+    {
+      combs_buf_reject (hashcat_ctx, live_salts[live_pos], pws_cnt, amp_rejects);
+    }
+
+    for (u32 live_pos = 0; live_pos < live_cnt; live_pos++)
+    {
+      while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+
+      const u32 salt_pos = live_salts[live_pos];
+
+      // A salt cracked by an earlier salt in this same chunk is dropped here rather than at the top of
+      // the next one, because with the salt loop innermost the list is only rebuilt once per chunk.
+
+      if (hashes->salts_shown[salt_pos] == 1)
+      {
+        status_ctx->words_progress_done[salt_pos] += pws_cnt * innerloop_left;
+
+        continue;
+      }
+
+      salt_t *salt_buf = &hashes->salts_buf[salt_pos];
+
+      device_param->kernel_param.salt_pos_host       = salt_pos;
+      device_param->kernel_param.digests_cnt         = salt_buf->digests_cnt;
+      device_param->kernel_param.digests_offset_host = salt_buf->digests_offset;
+
+      if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_pos, pws_cnt, fast_iteration, salt_pos, false) == -1)
+      {
+        rc_final = -1;
+
+        break;
+      }
+
+      if (status_ctx->run_thread_level2 == true)
+      {
+        const u64 perf_sum_all = pws_cnt * innerloop_left;
+
+        const double speed_msec = hc_timer_get (device_param->timer_speed);
+
+        hc_timer_set (&device_param->timer_speed);
+
+        u32 speed_pos = device_param->speed_pos;
+
+        device_param->speed_cnt[speed_pos] = perf_sum_all;
+
+        device_param->speed_msec[speed_pos] = speed_msec;
+
+        speed_pos++;
+
+        if (speed_pos == SPEED_CACHE)
+        {
+          speed_pos = 0;
+        }
+
+        device_param->speed_pos = speed_pos;
+
+        hc_thread_mutex_lock (status_ctx->mux_counter);
+
+        status_ctx->words_progress_done[salt_pos] += perf_sum_all;
+
+        hc_thread_mutex_unlock (status_ctx->mux_counter);
+      }
+
+      check_cracked (hashcat_ctx, device_param);
+
+      if (status_ctx->run_thread_level2 == false) break;
+    }
+
+    if (rc_final == -1) break;
+
+    if (status_ctx->run_thread_level2 == false) break;
+  }
+
+  hcfree (live_salts);
+
+  return rc_final;
+}
+
+// Which of the two orders an attack runs. The salt inner order is off unless the environment asks for
+// it, because what it changes is the order hashes land in the pot and that has to be measured on real
+// hardware before it becomes what everyone gets.
+
+static bool salt_inner_enabled (const hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  // a fast hash runs its amplifier loop inside the kernel, so there are no two host loops to exchange
+
+  if (hashconfig->attack_exec != ATTACK_EXEC_OUTSIDE_KERNEL) return false;
+
+  // -a 9 forces salts_cnt to 1 because the kernel uses the gid as the salt index, so its salt loop is
+  // degenerate and there is nothing to invert
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) return false;
+
+  // slow candidates builds the whole candidate on the host, so innerloop_cnt is 1 and again there is
+  // no amplifier loop
+
+  if (user_options->slow_candidates == true) return false;
+
+  // the benchmark measures one launch and stops, and it extrapolates from the nesting it knows
+
+  if (user_options->speed_only == true) return false;
+
+  const char *env = getenv ("HASHCAT_SALT_INNER");
+
+  if (env == NULL) return false;
+
+  const bool enabled = (atoi (env) != 0);
+
+  return enabled;
+}
+
+int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt)
+{
+  user_options_t        *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // do the on-the-fly combinator mode encoding
+
+  // The amplifier's transform. It is set up here rather than per chunk because the iconv descriptor
+  // inside it is expensive to open and belongs to this thread for the whole launch. -k is the rule for
+  // this side of the candidate.
+
+  pw_transform_t transform;
+
+  if (pw_transform_init (&transform, hashcat_ctx, GENERIC_ROLE_AMP, (int) user_options_extra->rule_len_amp, user_options_extra->rule_buf_amp) == -1) return -1;
+
+  // find highest password length, this is for optimization stuff
+
+  u32 highest_pw_len = 0;
+
+  if (user_options->slow_candidates == true)
+  {
+    /*
+    for (u64 pws_idx = 0; pws_idx < pws_cnt; pws_idx++)
+    {
+      pw_idx_t *pw_idx = device_param->pws_idx + pws_idx;
+
+      highest_pw_len = MAX (highest_pw_len, pw_idx->len);
+    }
+    */
+  }
+  else
+  {
+    if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+    {
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
+    {
+    }
+    else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
+    {
+      highest_pw_len = device_param->kernel_params_mp_l_buf32[4]
+                     + device_param->kernel_params_mp_l_buf32[5];
+    }
+  }
+
+  // we make use of this in status view
+
+  device_param->outerloop_multi = 1;
+  device_param->outerloop_msec  = 0;
+  device_param->outerloop_pos   = 0;
+  device_param->outerloop_left  = pws_cnt;
+
+  int rc_final = 0;
+
+  if (salt_inner_enabled (hashcat_ctx) == true)
+  {
+    rc_final = run_cracker_amp_major (hashcat_ctx, device_param, pws_pos, pws_cnt, highest_pw_len, &transform);
+  }
+  else
+  {
+    rc_final = run_cracker_salt_major (hashcat_ctx, device_param, pws_pos, pws_cnt, highest_pw_len, &transform);
+  }
+
   pw_transform_term (&transform);
 
-  return 0;
+  return rc_final;
 }
 
 int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
@@ -15039,7 +15348,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
-    snprintf (device_param->opencl_chksum_amp_mp, sizeof (device_param->opencl_chksum_amp_mp), "%s", device_name_chksum_amp_mp);
+    // The same eight hex digits, written again rather than copied across. A copy is a "%s" out of a
+    // HCBUFSIZ_TINY buffer into a 16 byte one, and the compiler has to assume the whole 4096 bytes
+    // could be live even though the line above just wrote eight digits into it.
+
+    snprintf (device_param->opencl_chksum_amp_mp, sizeof (device_param->opencl_chksum_amp_mp), "%08x", md5_ctx.h[0]);
 
     /**
      * kernel cache
@@ -15241,7 +15554,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
-      snprintf (device_param->opencl_chksum, sizeof (device_param->opencl_chksum), "%s", device_name_chksum);
+      snprintf (device_param->opencl_chksum, sizeof (device_param->opencl_chksum), "%08x", md5_ctx.h[0]);
 
       /**
        * kernel source filename

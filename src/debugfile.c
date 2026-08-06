@@ -59,7 +59,7 @@ static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_
   }
 }
 
-void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, const u32 rule_len, const u8 *mod_plain_ptr, const u32 mod_plain_len, const u8 *orig_plain_ptr, const u32 orig_plain_len)
+void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, const u32 rule_len, const u8 *mod_plain_ptr, const u32 mod_plain_len, const u8 *orig_plain_ptr, const u32 orig_plain_len, const u64 word_pos)
 {
   debugfile_ctx_t      *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -93,9 +93,33 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
   {
     hc_fputc (':', &debugfile_ctx->fp);
 
+    // Which wordlist the base word came out of.
+    //
+    // Every attack mode reads its base words through a feed instance now, and all of a feed's sources
+    // are one keyspace, so there is no longer a "current dictionary" to name: several wordlists are
+    // one attack and different devices are inside different ones at the same moment. What names it is
+    // where this word sat in that keyspace, which is what the feed's segment table answers.
+
+    const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+    const generic_global_ctx_t *global_ctx = &generic_ctx->global_ctx;
+
     if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
       hc_fprintf (&debugfile_ctx->fp, "<stdin>");
+    }
+    else if (global_ctx->segments_cnt > 0)
+    {
+      u64 segment_idx = 0;
+
+      for (u64 i = 0; i < global_ctx->segments_cnt; i++)
+      {
+        if (global_ctx->segment_first[i] > word_pos) break;
+
+        segment_idx = i;
+      }
+
+      hc_fprintf (&debugfile_ctx->fp, "%s", global_ctx->segment_names[segment_idx]);
     }
     else if (user_options_extra->wordlist_mode == WL_MODE_GENERIC)
     {

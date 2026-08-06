@@ -327,6 +327,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
   const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
@@ -564,7 +565,13 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
     if ((debug_plain_len > 0) || (debug_rule_len > 0))
     {
-      debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len);
+      // Where the BASE word sat in the feed's keyspace, which is what says which wordlist it came out
+      // of. build_crackpos takes the same number and multiplies it by the amplifier; debug mode 5
+      // wants it before that.
+
+      const u64 word_pos = (user_options->slow_candidates == true) ? plain->gidvid : device_param->words_off_launch + plain->gidvid;
+
+      debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len, word_pos);
     }
   }
 
