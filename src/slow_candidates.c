@@ -50,8 +50,6 @@ static void slow_candidates_generic_base (hashcat_ctx_t *hashcat_ctx, extra_info
 
   char rule_buf_out[RP_PASSWORD_SIZE];
 
-  memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
   const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, (char *) extra_info_generic->base_buf, (int) extra_info_generic->base_len, rule_buf_out);
 
   if (rule_len_out < 0)
@@ -100,8 +98,6 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
           {
             if (line_len >= RP_PASSWORD_SIZE) continue;
 
-            memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
             const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
 
             if (rule_len_out < 0) continue;
@@ -149,8 +145,6 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
           {
             if (line_len >= RP_PASSWORD_SIZE) continue;
 
-            memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
             const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
 
             if (rule_len_out < 0) continue;
@@ -185,8 +179,6 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
           if (line_len >= RP_PASSWORD_SIZE) continue;
 
           char rule_buf_out[RP_PASSWORD_SIZE];
-
-          memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
           const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
 
@@ -275,8 +267,6 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
         {
           if (line_len >= RP_PASSWORD_SIZE) continue;
 
-          memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
           const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
 
           if (rule_len_out < 0) continue;
@@ -347,8 +337,6 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
         {
           if (line_len >= RP_PASSWORD_SIZE) continue;
 
-          memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
           const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
 
           if (rule_len_out < 0) continue;
@@ -387,8 +375,6 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
         if (line_len >= RP_PASSWORD_SIZE) continue;
 
         char rule_buf_out[RP_PASSWORD_SIZE];
-
-        memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
         const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, (int) user_options_extra->rule_len_r, line_buf, (int) line_len, rule_buf_out);
 

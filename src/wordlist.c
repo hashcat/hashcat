@@ -346,8 +346,6 @@ void get_next_word (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, char **out_buf, u32 
 
       char rule_buf_out[RP_PASSWORD_SIZE];
 
-      memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
       const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, (u32) len, rule_buf_out);
 
       if (rule_len_out < 0) continue;
@@ -690,8 +688,6 @@ int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u
         if (len >= RP_PASSWORD_SIZE) continue;
 
         char rule_buf_out[RP_PASSWORD_SIZE];
-
-        memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
         const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, (u32) len, rule_buf_out);
 
