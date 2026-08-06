@@ -22,6 +22,7 @@
 #include "emu_inc_hash_md5.h"
 #include "event.h"
 #include "dynloader.h"
+#include "generic.h"
 #include "backend.h"
 #include "bridges.h"
 #include "terminal.h"
@@ -1064,6 +1065,27 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
   const u32 off = pw_idx.off;
   const u32 cnt = pw_idx.cnt;
   const u32 len = pw_idx.len;
+
+  // Everything above came out of device memory, and cnt is about to be used as the length of a copy
+  // INTO pw->i, which holds exactly 64 words. Nothing guarantees what was read is a candidate this
+  // run put there: the status display asks for one from its own thread while the cracking thread is
+  // uploading the next batch over the top of it, and a torn read gives an arbitrary cnt.
+  //
+  // Unbounded, that is not a wrong candidate on the status line, it is a DMA write of cnt * 4 bytes
+  // into a 256 byte buffer. On an AMD card it shows up as a page fault storm from SDMA0 and takes the
+  // whole context down with an illegal memory access.
+  //
+  // So an index that cannot be one of ours is refused rather than clamped. Clamping would hand back a
+  // candidate assembled from whatever the buffer happened to hold, and the caller has no way to tell
+  // that from a real one.
+
+  const u32 cnt_max = (u32) (sizeof (pw->i) / sizeof (u32));
+  const u64 comp_max = device_param->size_pws_comp / sizeof (u32);
+
+  if (cnt > cnt_max) return -1;
+  if (len > PW_MAX)  return -1;
+
+  if (((u64) off + (u64) cnt) > comp_max) return -1;
 
   if (cnt > 0)
   {
@@ -4260,87 +4282,99 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
 // Note it truncates an over-length word where the wordlist reader rejects one. That difference is
 // preserved here rather than settled, because settling it changes what a wordlist produces.
 
-static u64 combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, HCFILE *combs_fp, const u64 innerloop_left, const u32 salt_pos, const u64 pws_cnt, const bool iconv_enabled, iconv_t iconv_ctx, char *iconv_tmp)
+// Book one amplifier line that filled no slot. -a 9 spreads it over every salt because there one base
+// word belongs to one salt, so a missing amplifier word is missing from all of them.
+
+static void combs_buf_reject (hashcat_ctx_t *hashcat_ctx, const u32 salt_pos, const u64 pws_cnt)
 {
-  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    for (u32 association_salt_pos = 0; association_salt_pos < pws_cnt; association_salt_pos++)
+    {
+      status_ctx->words_progress_rejected[association_salt_pos] += 1;
+    }
+
+    return;
+  }
+
+  status_ctx->words_progress_rejected[salt_pos] += pws_cnt;
+}
+
+// One chunk of the amplifier, out of the amplifier feed instance. -a 1's amplifier is a wordlist like
+// any other, so it is read the way every other wordlist is read now, and the second reader that knew
+// how to walk a file goes with it. A feed also says when it has run out, where fgetl could only be
+// asked afterwards and was one read late.
+//
+// The count comes back through a pointer because the return value has to be able to say the feed
+// failed. A short chunk is a normal answer and not a failure: the caller zero fills the rest and
+// shortens the innerloop to match.
+
+static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 innerloop_left, const u32 salt_pos, const u64 pws_cnt, const pw_transform_t *transform, u64 *filled)
+{
+  combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+  hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
 
   char *line_buf = device_param->scratch_buf;
 
   u64 i = 0;
 
+  filled[0] = 0;
+
   while (i < innerloop_left)
   {
-    if (hc_feof (combs_fp)) break;
+    const int line_len_raw = generic_thread_next (hashcat_ctx, GENERIC_ROLE_AMP, device_param->device_id, (u8 *) line_buf, HCBUFSIZ_LARGE);
 
-    size_t line_len = fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
+    // the amplifier has run out. What it produced is a complete chunk, just a short one
 
-    line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
+    if (line_len_raw == GENERIC_RC_EOF) break;
 
-    if (line_len > PW_MAX) continue;
+    if (line_len_raw == GENERIC_RC_ERROR) return -1;
+
+    // A feed reports the true length of a word even when it only had room to write the first out_size
+    // bytes of it, so one that does not fit has to be thrown away here rather than believed.
+
+    if (line_len_raw > HCBUFSIZ_LARGE)
+    {
+      combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt);
+
+      continue;
+    }
+
+    // Everything that happens to an amplifier word, in the one order every producer uses. The rule is
+    // -k, which is this side's, and it is inside the transform rather than spelled out here.
+
+    const int line_len_t = pw_transform_apply (transform, (u8 *) line_buf, line_len_raw, HCBUFSIZ_LARGE);
+
+    if (line_len_t < 0)
+    {
+      combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt);
+
+      continue;
+    }
+
+    // An amplifier word that will not fit is booked rather than truncated. It used to be cut down to
+    // PW_MAX, which for an encoding change means cutting a utf-16 string in half: that is not a
+    // shorter password, it is a different one.
+
+    if (line_len_t > PW_MAX)
+    {
+      combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt);
+
+      continue;
+    }
+
+    size_t line_len = (size_t) line_len_t;
 
     char *line_buf_new = line_buf;
-
-    char rule_buf_out[RP_PASSWORD_SIZE];
-
-    if (run_rule_engine (user_options_extra->rule_len_r, user_options->rule_buf_r))
-    {
-      if (line_len >= RP_PASSWORD_SIZE) continue;
-
-      memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-      const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, user_options_extra->rule_len_r, line_buf, (u32) line_len, rule_buf_out);
-
-      if (rule_len_out < 0)
-      {
-        if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
-        {
-          for (u32 association_salt_pos = 0; association_salt_pos < pws_cnt; association_salt_pos++)
-          {
-            status_ctx->words_progress_rejected[association_salt_pos] += 1;
-          }
-        }
-        else
-        {
-          status_ctx->words_progress_rejected[salt_pos] += pws_cnt;
-        }
-
-        continue;
-      }
-
-      line_len = rule_len_out;
-
-      line_buf_new = rule_buf_out;
-    }
-
-    // do the on-the-fly encoding
-
-    if (iconv_enabled == true)
-    {
-      char  *iconv_ptr = iconv_tmp;
-      size_t iconv_sz  = HCBUFSIZ_TINY;
-
-      if (iconv (iconv_ctx, &line_buf_new, &line_len, &iconv_ptr, &iconv_sz) == (size_t) -1) continue;
-
-      line_buf_new = iconv_tmp;
-      line_len     = HCBUFSIZ_TINY - iconv_sz;
-    }
-
-    line_len = MIN (line_len, PW_MAX);
 
     u8 *ptr = (u8 *) device_param->combs_buf[i].i;
 
     memcpy (ptr, line_buf_new, line_len);
 
     memset (ptr + line_len, 0, PW_MAX - line_len);
-
-    if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-    {
-      uppercase (ptr, line_len);
-    }
 
     if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
     {
@@ -4365,7 +4399,9 @@ static u64 combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
     i++;
   }
 
-  return i;
+  filled[0] = i;
+
+  return 0;
 }
 
 int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt)
@@ -4381,20 +4417,13 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   // do the on-the-fly combinator mode encoding
 
-  bool iconv_enabled = false;
+  // The amplifier's transform. It is set up here rather than per chunk because the iconv descriptor
+  // inside it is expensive to open and belongs to this thread for the whole launch. -k is the rule for
+  // this side of the candidate.
 
-  iconv_t iconv_ctx = NULL;
+  pw_transform_t transform;
 
-  char iconv_tmp[HCBUFSIZ_TINY] = { 0 };
-
-  if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
-  {
-    iconv_enabled = true;
-
-    iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
-
-    if (iconv_ctx == (iconv_t) -1) return -1;
-  }
+  if (pw_transform_init (&transform, hashcat_ctx, GENERIC_ROLE_AMP, (int) user_options_extra->rule_len_amp, user_options_extra->rule_buf_amp) == -1) return -1;
 
   // find highest password length, this is for optimization stuff
 
@@ -4454,8 +4483,6 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     device_param->kernel_param.digests_cnt         = salt_buf->digests_cnt;
     device_param->kernel_param.digests_offset_host = salt_buf->digests_offset;
 
-    HCFILE *combs_fp = &device_param->combs_fp;
-
     if (user_options->slow_candidates == true)
     {
     }
@@ -4463,7 +4490,11 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     {
       if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2)))
       {
-        hc_rewind (combs_fp);
+        // Back to the first amplifier word for this pass. It says where to start rather than leaving
+        // it to wherever the last chunk stopped, which is the same thing the rewind did and is now
+        // true by statement instead of by arithmetic.
+
+        if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, device_param->device_id, 0) != 0) return -1;
       }
     }
 
@@ -4577,7 +4608,9 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           {
             if (user_options->attack_mode == ATTACK_MODE_COMBI)
             {
-              const u64 i = combs_buf_fill (hashcat_ctx, device_param, combs_fp, innerloop_left, salt_pos, pws_cnt, iconv_enabled, iconv_ctx, iconv_tmp);
+              u64 i = 0;
+
+              if (combs_buf_fill (hashcat_ctx, device_param, innerloop_left, salt_pos, pws_cnt, &transform, &i) == -1) return -1;
 
               for (u64 j = i; j < innerloop_left; j++)
               {
@@ -4673,7 +4706,9 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
           {
             if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
             {
-              const u64 i = combs_buf_fill (hashcat_ctx, device_param, combs_fp, innerloop_left, salt_pos, pws_cnt, iconv_enabled, iconv_ctx, iconv_tmp);
+              u64 i = 0;
+
+              if (combs_buf_fill (hashcat_ctx, device_param, innerloop_left, salt_pos, pws_cnt, &transform, &i) == -1) return -1;
 
               for (u64 j = i; j < innerloop_left; j++)
               {
@@ -4914,10 +4949,7 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
     //device_param->speed_only_finish = true;
   }
 
-  if (iconv_enabled == true)
-  {
-    iconv_close (iconv_ctx);
-  }
+  pw_transform_term (&transform);
 
   return 0;
 }
@@ -9572,7 +9604,7 @@ void backend_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
    * Inform user about possible slow speeds
    */
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK))
   {
     if (status_ctx->words_base < kernel_power_all)
     {
@@ -18073,8 +18105,9 @@ void backend_session_reset (hashcat_ctx_t *hashcat_ctx)
 
     device_param->pws_cnt = 0;
 
-    device_param->words_off  = 0;
-    device_param->words_done = 0;
+    device_param->words_off        = 0;
+    device_param->words_off_launch = 0;
+    device_param->words_done       = 0;
 
     #if defined (_WIN)
     device_param->timer_speed.QuadPart = 0;

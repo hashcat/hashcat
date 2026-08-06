@@ -33,9 +33,10 @@ static int sort_by_mtime (const void *p1, const void *p2)
 
 int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
-  folder_config_t *folder_config = hashcat_ctx->folder_config;
-  induct_ctx_t    *induct_ctx    = hashcat_ctx->induct_ctx;
-  user_options_t  *user_options  = hashcat_ctx->user_options;
+  folder_config_t      *folder_config      = hashcat_ctx->folder_config;
+  induct_ctx_t         *induct_ctx         = hashcat_ctx->induct_ctx;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   induct_ctx->enabled = false;
 
@@ -55,6 +56,13 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT)
    && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)) return 0;
+
+  // An induction round reads a dictionary that did not exist when the session started, because the
+  // round before it wrote the words. A feed handed every source at once cannot express that: it is
+  // given its sources in global_init () and a second round would re-read the original wordlist. So
+  // induction asks for one instance per round instead, and this is the other half of that.
+
+  if (user_options_extra->base_scope != BASE_SCOPE_PER_ROUND) return 0;
 
   induct_ctx->enabled = true;
 

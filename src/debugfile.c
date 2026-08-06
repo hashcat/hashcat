@@ -62,7 +62,6 @@ static void debugfile_format_plain (hashcat_ctx_t *hashcat_ctx, const u8 *plain_
 void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, const u32 rule_len, const u8 *mod_plain_ptr, const u32 mod_plain_len, const u8 *orig_plain_ptr, const u32 orig_plain_len)
 {
   debugfile_ctx_t      *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (debugfile_ctx->enabled == false) return;
@@ -94,11 +93,7 @@ void debugfile_write_append (hashcat_ctx_t *hashcat_ctx, const u8 *rule_buf, con
   {
     hc_fputc (':', &debugfile_ctx->fp);
 
-    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
-    {
-      hc_fprintf (&debugfile_ctx->fp, "%s", straight_ctx->dict);
-    }
-    else if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
+    if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
     {
       hc_fprintf (&debugfile_ctx->fp, "<stdin>");
     }

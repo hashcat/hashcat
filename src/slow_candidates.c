@@ -10,63 +10,108 @@
 #include "emu_inc_rp.h"
 #include "emu_inc_rp_optimized.h"
 #include "wordlist.h"
+#include "convert.h"
 #include "mpsp.h"
-#include "filehandling.h"
 #include "slow_candidates.h"
 #include "shared.h"
 #include "generic.h"
 
-// Pull one base word from the feed and apply -j to it. Shared by seek () and next () so that the
-// two can never disagree about what a base index holds.
+// Pull one base word from the base word instance and apply the base rule to it. Shared by seek () and
+// next () so that the two can never disagree about what a base index holds, and shared by the straight
+// and the combinator readers so that the two can never disagree about what a base word is.
 
-static void slow_candidates_generic_base (hashcat_ctx_t *hashcat_ctx, extra_info_generic_t *extra_info_generic)
+static void slow_candidates_base_next (hashcat_ctx_t *hashcat_ctx, const int device_id, const pw_transform_t *transform, u8 *base_buf, u32 *base_len_out, bool *reject)
 {
-  const user_options_t       *user_options       = hashcat_ctx->user_options;
-  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  reject[0] = false;
 
-  extra_info_generic->reject = false;
-
-  const int base_len = generic_thread_next (hashcat_ctx, extra_info_generic->device_id, extra_info_generic->base_buf, PW_MAX);
+  const int base_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_id, base_buf, PW_MAX);
 
   if (base_len < 0)
   {
-    extra_info_generic->base_len = 0;
+    base_len_out[0] = 0;
 
-    extra_info_generic->reject = true;
+    reject[0] = true;
 
     return;
   }
 
-  extra_info_generic->base_len = (u32) base_len;
+  // A feed reports the true length of the candidate even when it only had room to write the first
+  // PW_MAX bytes, so a longer one has to be thrown away here rather than believed. A transform below
+  // can shorten a line, but only one that was short enough to be written in the first place: there is
+  // no second read here to recover a line that never fitted, which is the one thing the fast producer
+  // can do and this cannot.
+  //
+  // It is rejected in place rather than replaced, so the offset it occupies stays occupied. That is
+  // what keeps --skip, --restore and the brain agreeing with a run over the same feed.
 
-  if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l) == 0) return;
-
-  if (extra_info_generic->base_len >= RP_PASSWORD_SIZE)
+  if (base_len > PW_MAX)
   {
-    extra_info_generic->reject = true;
+    base_len_out[0] = 0;
+
+    reject[0] = true;
 
     return;
   }
 
-  char rule_buf_out[RP_PASSWORD_SIZE];
+  const int work_len = pw_transform_apply (transform, base_buf, base_len, PW_MAX);
 
-  memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-  const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, (char *) extra_info_generic->base_buf, (int) extra_info_generic->base_len, rule_buf_out);
-
-  if (rule_len_out < 0)
+  if (work_len < 0)
   {
-    extra_info_generic->reject = true;
+    base_len_out[0] = 0;
+
+    reject[0] = true;
 
     return;
   }
 
-  memcpy (extra_info_generic->base_buf, rule_buf_out, rule_len_out);
-
-  extra_info_generic->base_len = (u32) rule_len_out;
+  base_len_out[0] = (u32) work_len;
 }
 
-void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u64 cur, const u64 end)
+// One amplifier line of a -a 1, with -k applied. The amplifier is counted the same way the base is,
+// so this consumes exactly one line per call and says whether that line can be used, rather than
+// reading on until it finds one that can.
+
+static bool slow_candidates_combs_next (hashcat_ctx_t *hashcat_ctx, const int device_id, const pw_transform_t *transform, char **out_buf, u32 *out_len)
+{
+  char *line_buf = out_buf[0];
+
+  out_len[0] = 0;
+
+  const int line_len_raw = generic_thread_next (hashcat_ctx, GENERIC_ROLE_AMP, device_id, (u8 *) line_buf, HCBUFSIZ_LARGE);
+
+  // Out of words, or the feed failed, or the word is longer than the buffer it was asked to write
+  // into. All three mean this amplifier slot produces no candidate, and the caller rejects it in
+  // place so the slot stays occupied.
+
+  if (line_len_raw < 0) return false;
+
+  if (line_len_raw > HCBUFSIZ_LARGE) return false;
+
+  const int line_len = pw_transform_apply (transform, (u8 *) line_buf, line_len_raw, HCBUFSIZ_LARGE);
+
+  if (line_len < 0) return false;
+
+  if (line_len > PW_MAX) return false;
+
+  out_len[0] = (u32) line_len;
+
+  return true;
+}
+
+// Put both sources where offset end says they are.
+//
+// Neither branch has to replay. One base word is one block of offsets, so the base index is the
+// quotient and where inside that block the offset sits is the remainder. What the remainder addresses
+// is the only thing the two branches disagree about: a rules position is an index into a buffer that
+// is already in memory, and an amplifier position is a second feed that has to be seeked as well.
+//
+// A remainder of zero needs no fetch at all. next () sees the start of a base word and fetches it
+// itself, and doing it here as well would consume two.
+//
+// cur is unused now that neither branch replays, and it stays in the signature because it is what a
+// producer knows without having to work anything out.
+
+void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_UNUSED const u64 cur, const u64 end)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
@@ -74,154 +119,53 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   const u32 attack_mode = user_options->attack_mode;
+  const u32 base_source = user_options_extra->base_source;
 
-  if (attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    extra_info_straight_t *extra_info_straight = (extra_info_straight_t *) extra_info;
+  // -a 1 is asked about first because both of its sources are feeds, so it answers to the feed test
+  // as well and the feed branch has no amplifier to place.
 
-    for (u64 i = cur; i < end; i++)
-    {
-      if ((i % straight_ctx->kernel_rules_cnt) == 0)
-      {
-        char *line_buf = NULL;
-        u32   line_len = 0;
-
-        while (true)
-        {
-          HCFILE *fp = &extra_info_straight->fp;
-
-          get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
-
-          // post-process rule engine
-
-          char rule_buf_out[RP_PASSWORD_SIZE];
-
-          if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
-          {
-            if (line_len >= RP_PASSWORD_SIZE) continue;
-
-            memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-            const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-
-            if (rule_len_out < 0) continue;
-
-            line_buf = rule_buf_out;
-            line_len = (u32) rule_len_out;
-          }
-
-          break;
-        }
-
-        memcpy (extra_info_straight->base_buf, line_buf, line_len);
-
-        extra_info_straight->base_len = line_len;
-      }
-    }
-
-    extra_info_straight->rule_pos_prev = end % straight_ctx->kernel_rules_cnt;
-
-    extra_info_straight->rule_pos = extra_info_straight->rule_pos_prev;
-  }
-  else if (attack_mode == ATTACK_MODE_COMBI)
+  if (attack_mode == ATTACK_MODE_COMBI)
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
-    HCFILE *base_fp = &extra_info_combi->base_fp;
-    HCFILE *combs_fp = &extra_info_combi->combs_fp;
+    const u64 combs_cnt = combinator_ctx->combs_cnt;
 
-    for (u64 i = cur; i < end; i++)
+    const u64 base_idx = end / combs_cnt;
+    const u64 comb_idx = end % combs_cnt;
+
+    // Landing past the end of the feed means there is nothing here to generate. Saying so with the
+    // reject flag stops the caller counting a candidate that does not exist.
+
+    if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_BASE, extra_info_combi->device_id, base_idx) != 0)
     {
-      if ((i % combinator_ctx->combs_cnt) == 0)
+      extra_info_combi->base_len = 0;
+
+      extra_info_combi->base_reject = true;
+    }
+    else if (comb_idx > 0)
+    {
+      slow_candidates_base_next (hashcat_ctx, extra_info_combi->device_id, &extra_info_combi->transform_base, extra_info_combi->base_buf, &extra_info_combi->base_len, &extra_info_combi->base_reject);
+
+      if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, extra_info_combi->device_id, comb_idx) != 0)
       {
-        char *line_buf = NULL;
-        u32   line_len = 0;
-
-        while (true)
-        {
-          get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
-
-          // post-process rule engine
-
-          char rule_buf_out[RP_PASSWORD_SIZE];
-
-          if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
-          {
-            if (line_len >= RP_PASSWORD_SIZE) continue;
-
-            memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-            const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-
-            if (rule_len_out < 0) continue;
-
-            line_buf = rule_buf_out;
-            line_len = (u32) rule_len_out;
-          }
-
-          break;
-        }
-
-        memcpy (extra_info_combi->base_buf, line_buf, line_len);
-
-        extra_info_combi->base_len = line_len;
-
-        hc_rewind (combs_fp);
-      }
-
-      char *line_buf = extra_info_combi->scratch_buf;
-      u32   line_len = 0;
-
-      while (true)
-      {
-        line_len = (u32) fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
-
-        line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
-
-        // post-process rule engine
-
-        if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
-        {
-          if (line_len >= RP_PASSWORD_SIZE) continue;
-
-          char rule_buf_out[RP_PASSWORD_SIZE];
-
-          memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-          const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-
-          if (rule_len_out < 0) continue;
-        }
-
-        break;
+        extra_info_combi->base_reject = true;
       }
     }
 
-    extra_info_combi->comb_pos_prev = end % combinator_ctx->combs_cnt;
+    extra_info_combi->comb_pos_prev = comb_idx;
 
-    extra_info_combi->comb_pos = extra_info_combi->comb_pos_prev;
+    extra_info_combi->comb_pos = comb_idx;
   }
-  else if (attack_mode == ATTACK_MODE_BF)
-  {
-    // nothing to do
-  }
-  else if (attack_mode == ATTACK_MODE_GENERIC)
+  else if (base_source == BASE_SOURCE_FEED)
   {
     extra_info_generic_t *extra_info_generic = (extra_info_generic_t *) extra_info;
-
-    // Unlike the wordlist reader this does not have to replay. One base word is one offset, so the
-    // feed can be told the base index directly and the rules position falls out of the remainder.
 
     const u64 rules_cnt = straight_ctx->kernel_rules_cnt;
 
     const u64 base_idx = end / rules_cnt;
     const u64 rule_idx = end % rules_cnt;
 
-    // Landing past the end of the feed means there is nothing here to generate. Saying so with the
-    // reject flag stops the caller counting a candidate that does not exist, which otherwise runs
-    // the progress counter away past the keyspace and never terminates.
-
-    if (generic_thread_seek (hashcat_ctx, extra_info_generic->device_id, base_idx) != 0)
+    if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_BASE, extra_info_generic->device_id, base_idx) != 0)
     {
       extra_info_generic->base_len = 0;
 
@@ -229,15 +173,16 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, const u
     }
     else if (rule_idx > 0)
     {
-      // Landing part way through a base word means next () will not fetch one, so it has to be here.
-      // Landing exactly on a boundary means next () fetches it itself and nothing is needed.
-
-      slow_candidates_generic_base (hashcat_ctx, extra_info_generic);
+      slow_candidates_base_next (hashcat_ctx, extra_info_generic->device_id, &extra_info_generic->transform, extra_info_generic->base_buf, &extra_info_generic->base_len, &extra_info_generic->reject);
     }
 
     extra_info_generic->rule_pos_prev = rule_idx;
 
     extra_info_generic->rule_pos = rule_idx;
+  }
+  else if (attack_mode == ATTACK_MODE_BF)
+  {
+    // nothing to do
   }
 }
 
@@ -251,120 +196,24 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   const u32 attack_mode = user_options->attack_mode;
+  const u32 base_source = user_options_extra->base_source;
 
-  if (attack_mode == ATTACK_MODE_STRAIGHT)
-  {
-    extra_info_straight_t *extra_info_straight = (extra_info_straight_t *) extra_info;
+  // -a 1 is asked about first for the same reason as in seek (): both of its sources are feeds, so it
+  // answers to the feed test as well and the feed branch would build a candidate with no amplifier on
+  // it.
 
-    if ((extra_info_straight->pos % straight_ctx->kernel_rules_cnt) == 0)
-    {
-      char *line_buf = NULL;
-      u32   line_len = 0;
-
-      while (true)
-      {
-        HCFILE *fp = &extra_info_straight->fp;
-
-        get_next_word (hashcat_ctx, fp, &line_buf, &line_len);
-
-        // post-process rule engine
-
-        char rule_buf_out[RP_PASSWORD_SIZE];
-
-        if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
-        {
-          if (line_len >= RP_PASSWORD_SIZE) continue;
-
-          memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-          const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-
-          if (rule_len_out < 0) continue;
-
-          line_buf = rule_buf_out;
-          line_len = (u32) rule_len_out;
-        }
-
-        break;
-      }
-
-      memcpy (extra_info_straight->base_buf, line_buf, line_len);
-
-      extra_info_straight->base_len = line_len;
-    }
-
-    memcpy (extra_info_straight->out_buf, extra_info_straight->base_buf, extra_info_straight->base_len);
-
-    extra_info_straight->out_len = extra_info_straight->base_len;
-
-    memset (extra_info_straight->out_buf + extra_info_straight->base_len, 0, sizeof (extra_info_straight->out_buf) - extra_info_straight->out_len);
-
-    u32 *out_ptr = (u32 *) extra_info_straight->out_buf;
-
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      extra_info_straight->out_len = MIN (extra_info_straight->out_len, 31); // max length supported by apply_rules_optimized()
-
-      extra_info_straight->out_len = apply_rules_optimized (straight_ctx->kernel_rules_buf[extra_info_straight->rule_pos].cmds, &out_ptr[0], &out_ptr[4], extra_info_straight->out_len);
-    }
-    else
-    {
-      extra_info_straight->out_len = MIN (extra_info_straight->out_len, 256); // max length supported by apply_rules()
-
-      extra_info_straight->out_len = apply_rules (straight_ctx->kernel_rules_buf[extra_info_straight->rule_pos].cmds, out_ptr, extra_info_straight->out_len);
-    }
-
-    extra_info_straight->rule_pos_prev = extra_info_straight->rule_pos;
-
-    extra_info_straight->rule_pos++;
-
-    if (extra_info_straight->rule_pos == straight_ctx->kernel_rules_cnt)
-    {
-      extra_info_straight->rule_pos = 0;
-    }
-  }
-  else if (attack_mode == ATTACK_MODE_COMBI)
+  if (attack_mode == ATTACK_MODE_COMBI)
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
-    HCFILE *base_fp = &extra_info_combi->base_fp;
-    HCFILE *combs_fp = &extra_info_combi->combs_fp;
-
     if ((extra_info_combi->pos % combinator_ctx->combs_cnt) == 0)
     {
-      char *line_buf = NULL;
-      u32   line_len = 0;
+      slow_candidates_base_next (hashcat_ctx, extra_info_combi->device_id, &extra_info_combi->transform_base, extra_info_combi->base_buf, &extra_info_combi->base_len, &extra_info_combi->base_reject);
 
-      while (true)
+      if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, extra_info_combi->device_id, 0) != 0)
       {
-        get_next_word (hashcat_ctx, base_fp, &line_buf, &line_len);
-
-        // post-process rule engine
-
-        char rule_buf_out[RP_PASSWORD_SIZE];
-
-        if (run_rule_engine ((int) user_options_extra->rule_len_l, user_options->rule_buf_l))
-        {
-          if (line_len >= RP_PASSWORD_SIZE) continue;
-
-          memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-          const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, (int) user_options_extra->rule_len_l, line_buf, (int) line_len, rule_buf_out);
-
-          if (rule_len_out < 0) continue;
-
-          line_buf = rule_buf_out;
-          line_len = (u32) rule_len_out;
-        }
-
-        break;
+        extra_info_combi->base_reject = true;
       }
-
-      memcpy (extra_info_combi->base_buf, line_buf, line_len);
-
-      extra_info_combi->base_len = line_len;
-
-      hc_rewind (combs_fp);
     }
 
     memcpy (extra_info_combi->out_buf, extra_info_combi->base_buf, extra_info_combi->base_len);
@@ -374,32 +223,11 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
     char *line_buf = extra_info_combi->scratch_buf;
     u32   line_len = 0;
 
-    while (true)
-    {
-      line_len = (u32) fgetl (combs_fp, line_buf, HCBUFSIZ_LARGE);
+    // The amplifier line is consumed whatever happens to it, because the amplifier is counted in
+    // lines too. A line -k throws away rejects the candidate it would have made rather than handing
+    // the slot to the line after it.
 
-      line_len = convert_from_hex (hashcat_ctx, line_buf, line_len);
-
-      // post-process rule engine
-
-      if (run_rule_engine ((int) user_options_extra->rule_len_r, user_options->rule_buf_r))
-      {
-        if (line_len >= RP_PASSWORD_SIZE) continue;
-
-        char rule_buf_out[RP_PASSWORD_SIZE];
-
-        memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-        const int rule_len_out = _old_apply_rule (user_options->rule_buf_r, (int) user_options_extra->rule_len_r, line_buf, (int) line_len, rule_buf_out);
-
-        if (rule_len_out < 0) continue;
-
-        line_buf = rule_buf_out;
-        line_len = (u32) rule_len_out;
-      }
-
-      break;
-    }
+    const bool amp_usable = slow_candidates_combs_next (hashcat_ctx, extra_info_combi->device_id, &extra_info_combi->transform_amp, &line_buf, &line_len);
 
     // this can overflow so we move it up
 
@@ -416,6 +244,10 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       extra_info_combi->out_len += line_len;
     }
 
+    extra_info_combi->reject = (extra_info_combi->base_reject == true) || (amp_usable == false);
+
+    if (extra_info_combi->reject == true) extra_info_combi->out_len = 0;
+
     extra_info_combi->comb_pos_prev = extra_info_combi->comb_pos;
 
     extra_info_combi->comb_pos++;
@@ -425,19 +257,13 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
       extra_info_combi->comb_pos = 0;
     }
   }
-  else if (attack_mode == ATTACK_MODE_BF)
-  {
-    extra_info_mask_t *extra_info_mask = (extra_info_mask_t *) extra_info;
-
-    sp_exec (extra_info_mask->pos, (char *) extra_info_mask->out_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, 0, mask_ctx->css_cnt);
-  }
-  else if (attack_mode == ATTACK_MODE_GENERIC)
+  else if (base_source == BASE_SOURCE_FEED)
   {
     extra_info_generic_t *extra_info_generic = (extra_info_generic_t *) extra_info;
 
     if ((extra_info_generic->pos % straight_ctx->kernel_rules_cnt) == 0)
     {
-      slow_candidates_generic_base (hashcat_ctx, extra_info_generic);
+      slow_candidates_base_next (hashcat_ctx, extra_info_generic->device_id, &extra_info_generic->transform, extra_info_generic->base_buf, &extra_info_generic->base_len, &extra_info_generic->reject);
     }
 
     // A base word the -j rule threw away is still a base word. Every candidate it would have made is
@@ -480,5 +306,11 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
     {
       extra_info_generic->rule_pos = 0;
     }
+  }
+  else if (attack_mode == ATTACK_MODE_BF)
+  {
+    extra_info_mask_t *extra_info_mask = (extra_info_mask_t *) extra_info;
+
+    sp_exec (extra_info_mask->pos, (char *) extra_info_mask->out_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, 0, mask_ctx->css_cnt);
   }
 }

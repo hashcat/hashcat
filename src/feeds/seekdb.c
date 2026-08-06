@@ -6,7 +6,18 @@
 static const size_t SEEKDB_STEP = 8192;
 static const size_t SAMPLE_SIZE = 65536;
 
-static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist)
+// Where this wordlist's seek database lives, and what the wordlist is.
+//
+// The two are the same question. A seek database is only valid for the exact file it was built from,
+// so it is named after a hash of that file's size, modification time and both of its ends, and looking
+// the name up is what decides whether the cached one can be reused. That same hash answers "is this
+// still the same wordlist" for anyone else who has to know, so it is handed back rather than left
+// inside the file name.
+//
+// ident is where it goes. It is only written when a path could be built, so a caller that got NULL
+// has nothing to read.
+
+static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist, u64 *ident)
 {
   char *seekdb_dir = NULL;
 
@@ -76,6 +87,8 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
   hc_asprintf (&seekdb_path, "%s/%016" PRIx64 ".seekdb", seekdb_dir, hash);
 
   hcfree (seekdb_dir);
+
+  ident[0] = hash;
 
   return seekdb_path;
 }

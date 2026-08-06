@@ -20,6 +20,7 @@
 #include "dispatch.h"
 #include "generic.h"
 #include "convert.h"
+#include "user_options.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -113,12 +114,15 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 {
   backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
   status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-  user_options_t *user_options = hashcat_ctx->user_options;
 
   hc_thread_mutex_lock (status_ctx->mux_dispatcher);
 
+  // words_limit is this round's share of --limit and not --limit itself. --increment and a mask file
+  // are a queue of rounds and the queue is one keyspace, so a round that starts part way into the
+  // window stops part way into it as well.
+
   const u64 words_off  = status_ctx->words_off;
-  const u64 words_base = (user_options->limit == 0) ? status_ctx->words_base : MIN (user_options->limit, status_ctx->words_base);
+  const u64 words_base = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
 
   device_param->words_off = words_off;
 
@@ -152,314 +156,13 @@ static u64 get_work (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   return work;
 }
 
-// Everything the stdin producer carries between batches.
-
-typedef struct stdin_fill_state
-{
-  char *buf;
-
-  bool    iconv_enabled;
-  iconv_t iconv_ctx;
-  char   *iconv_tmp;
-
-} stdin_fill_state_t;
-
-static int fill_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_batch_t *batch, void *state)
-{
-  user_options_t       *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-
-  stdin_fill_state_t *sf = (stdin_fill_state_t *) state;
-
-  const u32 attack_mode = user_options->attack_mode;
-  const u32 attack_kern = user_options_extra->attack_kern;
-
-  hc_thread_mutex_lock (status_ctx->mux_dispatcher);
-
-  if (feof (stdin) != 0)
-  {
-    hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
-
-    return 0;
-  }
-
-  #define DISABLE_READ_TIMEOUT_AFTER 1000
-
-  int selects_returned = 0;
-
-  while (batch->pws_cnt < device_param->kernel_power)
-  {
-    if (selects_returned < DISABLE_READ_TIMEOUT_AFTER)
-    {
-      const int rc_select = select_read_timeout_console (1);
-
-      if (rc_select == -1) break;
-
-      if (rc_select == 0)
-      {
-        if (status_ctx->run_thread_level1 == false) break;
-
-        status_ctx->stdin_read_timeout_cnt++;
-
-        continue;
-      }
-
-      status_ctx->stdin_read_timeout_cnt = 0;
-
-      selects_returned++;
-    }
-
-    char *line_buf = fgets (sf->buf, HCBUFSIZ_LARGE - 1, stdin);
-
-    if (line_buf == NULL) break;
-
-    size_t line_len = in_superchop (line_buf);
-
-    line_len = convert_from_hex (hashcat_ctx, line_buf, (u32) line_len);
-
-    // do the on-the-fly encoding
-
-    if (sf->iconv_enabled == true)
-    {
-      char  *iconv_ptr = sf->iconv_tmp;
-      size_t iconv_sz  = HCBUFSIZ_TINY;
-
-      if (iconv (sf->iconv_ctx, &line_buf, &line_len, &iconv_ptr, &iconv_sz) == (size_t) -1) continue;
-
-      line_buf = sf->iconv_tmp;
-      line_len = HCBUFSIZ_TINY - iconv_sz;
-    }
-
-    // post-process rule engine
-
-    char rule_buf_out[RP_PASSWORD_SIZE];
-
-    int   rule_jk_len = (int)    user_options_extra->rule_len_l;
-    const char *rule_jk_buf = user_options->rule_buf_l;
-
-    if (attack_mode == ATTACK_MODE_HYBRID2)
-    {
-      rule_jk_len = (int)    user_options_extra->rule_len_r;
-      rule_jk_buf = user_options->rule_buf_r;
-    }
-
-    if (run_rule_engine (rule_jk_len, rule_jk_buf))
-    {
-      if (line_len >= RP_PASSWORD_SIZE) continue;
-
-      memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-      const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, line_buf, (int) line_len, rule_buf_out);
-
-      if (rule_len_out < 0) continue;
-
-      line_buf = rule_buf_out;
-      line_len = (size_t) rule_len_out;
-    }
-
-    if (line_len > PW_MAX) continue;
-
-    // hmm that's always the case, or?
-
-    if (attack_kern == ATTACK_KERN_STRAIGHT)
-    {
-      if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
-      {
-        batch->words_extra++;
-
-        continue;
-      }
-    }
-
-    pw_add (batch, device_param->kernel_power, (const u8 *) line_buf, (const int) line_len);
-
-    if (status_ctx->run_thread_level1 == false) break;
-  }
-
-  hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
-
-  return 0;
-}
-
-static int calc_stdin (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
-{
-  user_options_t *user_options = hashcat_ctx->user_options;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
-  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
-  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-
-  stdin_fill_state_t sf;
-
-  sf.buf           = (char *) hcmalloc (HCBUFSIZ_LARGE);
-  sf.iconv_enabled = false;
-  sf.iconv_ctx     = NULL;
-  sf.iconv_tmp     = NULL;
-
-  if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
-  {
-    sf.iconv_enabled = true;
-
-    sf.iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
-
-    if (sf.iconv_ctx == (iconv_t) -1)
-    {
-      hcfree (sf.buf);
-
-      return -1;
-    }
-
-    sf.iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
-  }
-
-  pw_pipe_t pipe;
-
-  pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_stdin, &sf, false);
-
-  int rc_final = 0;
-
-  while (status_ctx->run_thread_level1 == true)
-  {
-    pw_batch_t *batch = pw_pipe_take (&pipe);
-
-    if (batch == NULL) break;
-
-    if (batch->words_extra > 0)
-    {
-      hc_thread_mutex_lock (status_ctx->mux_counter);
-
-      for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
-      {
-        status_ctx->words_progress_rejected[salt_pos] += batch->words_extra * straight_ctx->kernel_rules_cnt;
-      }
-
-      hc_thread_mutex_unlock (status_ctx->mux_counter);
-    }
-
-    // flush
-
-    device_param->pws_idx  = batch->pws_idx;
-    device_param->pws_comp = batch->pws_comp;
-    device_param->pws_cnt  = batch->pws_cnt;
-
-    if (run_copy (hashcat_ctx, device_param, device_param->pws_cnt) == -1)
-    {
-      rc_final = -1;
-
-      break;
-    }
-
-    if (run_cracker (hashcat_ctx, device_param, -1, device_param->pws_cnt) == -1) // no pws_pos?
-    {
-      rc_final = -1;
-
-      break;
-    }
-
-    device_param->pws_cnt = 0;
-
-    pw_pipe_release (&pipe, batch);
-
-    if (status_ctx->run_thread_level1 == false) break;
-
-    if (device_param->speed_only_finish == true) break;
-  }
-
-  pw_pipe_stop (&pipe);
-
-  if (pw_pipe_failed (&pipe) == true) rc_final = -1;
-
-  device_param->kernel_accel_prev   = device_param->kernel_accel;
-  device_param->kernel_loops_prev   = device_param->kernel_loops;
-  device_param->kernel_threads_prev = device_param->kernel_threads;
-
-  device_param->kernel_accel   = 0;
-  device_param->kernel_loops   = 0;
-  device_param->kernel_threads = 0;
-
-  if (sf.iconv_enabled == true)
-  {
-    iconv_close (sf.iconv_ctx);
-
-    hcfree (sf.iconv_tmp);
-  }
-
-  hcfree (sf.buf);
-
-  return rc_final;
-}
-
-#if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_calc_stdin (void *p)
-#else
-HC_API_CALL void *thread_calc_stdin (void *p)
-#endif
-{
-  thread_param_t *thread_param = (thread_param_t *) p;
-
-  hashcat_ctx_t *hashcat_ctx = thread_param->hashcat_ctx;
-  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
-  bridge_ctx_t  *bridge_ctx  = hashcat_ctx->bridge_ctx;
-  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
-  hashes_t      *hashes      = hashcat_ctx->hashes;
-
-  if (backend_ctx->enabled == false) return 0;
-
-  hc_device_param_t *device_param = backend_ctx->devices_param + thread_param->tid;
-
-  if (device_param->skipped) return 0;
-  if (device_param->skipped_warning == true) return 0;
-
-  if (bridge_ctx->enabled == true)
-  {
-    if (bridge_ctx->thread_init != BRIDGE_DEFAULT)
-    {
-      if (bridge_ctx->thread_init (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes) == false) return 0;
-    }
-  }
-
-  if (device_param->is_cuda == true)
-  {
-    if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) return 0;
-  }
-
-  if (device_param->is_hip == true)
-  {
-    if (hc_hipSetDevice (hashcat_ctx, device_param->hip_device) == -1) return 0;
-  }
-
-  if (calc_stdin (hashcat_ctx, device_param) == -1)
-  {
-    status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-    status_ctx->devices_status = STATUS_ERROR;
-  }
-
-  if (device_param->is_cuda == true)
-  {
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return 0;
-  }
-
-  if (bridge_ctx->enabled == true)
-  {
-    if (bridge_ctx->thread_term != BRIDGE_DEFAULT)
-    {
-      bridge_ctx->thread_term (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes);
-    }
-  }
-
-  return 0;
-}
-
 // Everything the slow-candidate producer carries between batches. The three slow-candidate modes
 // build their candidates from different sources but drive them through the same loop, so they share
 // one producer and hand it pointers into whichever extra_info struct they own.
 
 typedef struct slow_fill_state
 {
-  hashcat_ctx_t *reader_ctx;   // owns the wordlist reader, where the mode has one
-  void          *extra_info;
+  void *extra_info;
 
   u64       *pos;
   const u8  *out_buf;
@@ -573,7 +276,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 
       batch->words_fin = words_fin;
 
-      if (sc->seek == true) slow_candidates_seek (sc->reader_ctx, sc->extra_info, sc->words_cur, words_off);
+      if (sc->seek == true) slow_candidates_seek (hashcat_ctx, sc->extra_info, sc->words_cur, words_off);
 
       sc->words_cur = words_off;
 
@@ -581,7 +284,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
       {
         sc->pos[0] = i;
 
-        slow_candidates_next (sc->reader_ctx, sc->extra_info);
+        slow_candidates_next (hashcat_ctx, sc->extra_info);
 
         // The source refused this one. It still occupies its offset, so the loop moves on rather
         // than fetching a replacement, and the caller counts it the way it counts a length reject.
@@ -719,163 +422,29 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 }
 
 
-// Everything the wordlist producer carries between batches. It owns its own wordlist reader, because
-// the reader keeps a buffer that only one thread may touch.
-
-typedef struct wl_fill_state
-{
-  HCFILE fp;
-
-  hashcat_ctx_t *hashcat_ctx_tmp;
-
-  u64 words_cur;
-
-} wl_fill_state_t;
-
-// A producer that reads words gets its own hashcat_ctx with its own wl_data, because the reader keeps
-// a segment buffer that only one thread may touch. Everything else in the context is shared on
-// purpose: the copy is of the pointers, not of what they point at.
+// Book one base word that produced no candidate. It stays booked against its own offset rather than
+// being replaced, so --skip, --restore and the brain all keep counting the same positions. Both
+// producers share this, because both count their base words the same way: a source holds as many base
+// words as it holds lines, and one that cannot be turned into a candidate is a rejected word rather
+// than a word that was never there.
 //
-// Returns NULL on failure, having freed whatever it had taken. The caller still owns any file it
-// opened before calling this.
+// -a 9 cannot do even that. Word N is the guess for salt N, so a missing candidate would move every
+// later word onto the previous hash, and there is nothing to put in its place. The run stops instead
+// and says which word it was.
 
-static hashcat_ctx_t *wl_reader_create (hashcat_ctx_t *hashcat_ctx)
+static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_batch_t *batch, u64 *words_extra, const u64 word_pos)
 {
-  hashcat_ctx_t *reader_ctx = (hashcat_ctx_t *) hcmalloc (sizeof (hashcat_ctx_t));
-
-  memcpy (reader_ctx, hashcat_ctx, sizeof (hashcat_ctx_t)); // yes we actually want to copy these pointers
-
-  reader_ctx->wl_data = (wl_data_t *) hcmalloc (sizeof (wl_data_t));
-
-  if (wl_data_init (reader_ctx) == -1)
+  if (reject_fatal == true)
   {
-    hcfree (reader_ctx->wl_data);
-    hcfree (reader_ctx);
+    event_log_error (hashcat_ctx, "Word %" PRIu64 " of the wordlist cannot be used as a candidate", word_pos + 1);
+    event_log_error (hashcat_ctx, "Attack mode 9 pairs word N with salt N, so it has nothing to put in its place");
 
-    return NULL;
+    return -1;
   }
 
-  return reader_ctx;
-}
+  batch->words_extra++;
 
-static void wl_reader_destroy (hashcat_ctx_t *reader_ctx)
-{
-  wl_data_destroy (reader_ctx);
-
-  hcfree (reader_ctx->wl_data);
-  hcfree (reader_ctx);
-}
-
-static int fill_wordlist (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_batch_t *batch, void *state)
-{
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-
-  wl_fill_state_t *wl = (wl_fill_state_t *) state;
-
-  const u32 attack_mode = user_options->attack_mode;
-  const u32 attack_kern = user_options_extra->attack_kern;
-
-  hc_timer_t timer_feed;
-
-  pipe_mark (&timer_feed);
-
-  u64 words_extra = -1U;
-
-  while (words_extra)
-  {
-    const u64 work = get_work (hashcat_ctx, device_param, words_extra);
-
-    if (work == 0) break;
-
-    words_extra = 0;
-
-    const u64 words_off = device_param->words_off;
-    const u64 words_fin = words_off + work;
-
-    batch->words_off = words_off;
-    batch->words_fin = words_fin;
-
-    char *line_buf;
-    u32   line_len;
-
-    char rule_buf_out[RP_PASSWORD_SIZE];
-
-    for ( ; wl->words_cur < words_off; wl->words_cur++) get_next_word (wl->hashcat_ctx_tmp, &wl->fp, &line_buf, &line_len);
-
-    for ( ; wl->words_cur < words_fin; wl->words_cur++)
-    {
-      get_next_word (wl->hashcat_ctx_tmp, &wl->fp, &line_buf, &line_len);
-
-      // post-process rule engine
-
-      int   rule_jk_len = (int)    user_options_extra->rule_len_l;
-      const char *rule_jk_buf = user_options->rule_buf_l;
-
-      if (attack_mode == ATTACK_MODE_HYBRID2)
-      {
-        rule_jk_len = (int)    user_options_extra->rule_len_r;
-        rule_jk_buf = user_options->rule_buf_r;
-      }
-
-      if (run_rule_engine (rule_jk_len, rule_jk_buf))
-      {
-        if (line_len >= RP_PASSWORD_SIZE) continue;
-
-        memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-        const int rule_len_out = _old_apply_rule (rule_jk_buf, rule_jk_len, line_buf, (int) line_len, rule_buf_out);
-
-        if (rule_len_out < 0) continue;
-
-        line_buf = rule_buf_out;
-        line_len = (u32) rule_len_out;
-      }
-
-      // -a 9 does not reject on length, because that would bring the schedule out of sync
-
-      if (attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        if (attack_mode == ATTACK_MODE_ASSOCIATION)
-        {
-          // do nothing, test fix for above scenario
-        }
-        else
-        {
-          if ((line_len < hashconfig->pw_min) || (line_len > hashconfig->pw_max))
-          {
-            words_extra++;
-
-            continue;
-          }
-        }
-      }
-      else if (attack_kern == ATTACK_KERN_COMBI)
-      {
-        // do not check if minimum restriction is satisfied (line_len >= hashconfig->pw_min) here
-        // since we still need to combine the plains
-
-        if (line_len > hashconfig->pw_max)
-        {
-          words_extra++;
-
-          continue;
-        }
-      }
-
-      pw_add (batch, device_param->kernel_power, (const u8 *) line_buf, (const int) line_len);
-
-      if (status_ctx->run_thread_level1 == false) break;
-    }
-
-    batch->words_extra += words_extra;
-
-    if (status_ctx->run_thread_level1 == false) break;
-  }
-
-  pipe_acc (PIPE_FEED, &timer_feed);
+  words_extra[0]++;
 
   return 0;
 }
@@ -885,23 +454,21 @@ static int fill_wordlist (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
 
 typedef struct generic_fill_state
 {
-  bool    iconv_enabled;
-  iconv_t iconv_ctx;
-  char   *iconv_tmp;
+  // Everything that happens to a base word between the feed handing it over and the device receiving
+  // it, in the order every other producer uses it in. See pw_transform_t.
 
-  int         rule_jk_len;
-  const char *rule_jk_buf;
+  pw_transform_t transform;
 
-  bool rule_engine;
-  bool wordlist_autohex;
-  bool mods;
+  // Which of the hash mode's length bounds apply to a base word, which is the one thing the attack
+  // modes genuinely disagree about here.
 
-  // Driven by the hash mode rather than by the user or the plugin, so these apply whatever the feed
-  // declared. They are what -a 0 does inside its own word reader, and a feed has no business
-  // knowing about them.
+  u32 length_policy;
 
-  bool pt_uppercase;
-  bool pt_hex;
+  // Whether a base word that cannot be turned into a candidate ends the run. -a 9 is the mode that
+  // cannot absorb one: word N belongs to salt N, so dropping one moves every later word onto the
+  // previous hash.
+
+  bool reject_fatal;
 
   // The feed writes the candidate straight into the buffer that gets uploaded, which holds exactly
   // PW_MAX per candidate. That is what makes the feed zero copy and it is the whole reader advantage
@@ -956,7 +523,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
     if ((gf->seek_known == false) || (gf->seek_pos != words_off))
     {
-      if (generic_thread_seek (hashcat_ctx, device_param->device_id, words_off) != 0) return -1;
+      if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, words_off) != 0) return -1;
 
       gf->seek_known = true;
       gf->seek_pos   = words_off;
@@ -974,7 +541,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       u8 *work_buf = pw_buf;
 
-      int pw_len = generic_thread_next (hashcat_ctx, device_param->device_id, pw_buf, PW_MAX);
+      int pw_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX);
 
       // the feed is dry. Whatever it produced before this call still has to be launched, so the
       // batch is finished rather than thrown away, and the pipeline is told on the next one
@@ -1002,9 +569,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       {
         if (gf->can_shrink == false)
         {
-          batch->words_extra++;
-
-          words_extra++;
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
 
           continue;
         }
@@ -1012,9 +577,9 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
         // It might still finish short enough, so read it again somewhere it fits. The feed is one
         // candidate past it now, so it has to be sent back.
 
-        if (generic_thread_seek (hashcat_ctx, device_param->device_id, words_off + work_cur) != 0) return -1;
+        if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, words_off + work_cur) != 0) return -1;
 
-        pw_len = generic_thread_next (hashcat_ctx, device_param->device_id, gf->scratch, gf->scratch_size);
+        pw_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, gf->scratch, gf->scratch_size);
 
         if (pw_len == GENERIC_RC_EOF)
         {
@@ -1027,9 +592,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
         if (pw_len > gf->scratch_size)
         {
-          batch->words_extra++;
-
-          words_extra++;
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
 
           continue;
         }
@@ -1037,88 +600,15 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
         work_buf = gf->scratch;
       }
 
-      // The hash mode's own transforms. -a 0 does these inside its word reader, so they have to
-      // happen here for the same wordlist to produce the same candidates.
+      // Everything that happens to a base word, in the one order every producer uses.
 
-      if (gf->pt_uppercase == true) convert_to_uppercase ((char *) work_buf, pw_len);
+      pw_len = pw_transform_apply (&gf->transform, work_buf, pw_len, (work_buf == pw_buf) ? PW_MAX : gf->scratch_size);
 
-      if (gf->pt_hex == true) pw_len = (int) convert_hex_wordlist ((char *) work_buf, pw_len);
-
-      if (gf->mods == true)
+      if (pw_len < 0)
       {
-        if (gf->wordlist_autohex == true)
-        {
-          if (is_hexify ((const u8 *) work_buf, pw_len) == true)
-          {
-            pw_len = (int) exec_unhexify ((const u8 *) work_buf, (u32) pw_len, (u8 *) work_buf, (u32) pw_len);
-          }
-        }
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
 
-        if (gf->iconv_enabled == true)
-        {
-          char  *iconv_ptr = gf->iconv_tmp;
-          size_t iconv_sz  = HCBUFSIZ_TINY;
-
-          char  *in_pw_buf = (char *) work_buf;
-          size_t in_pw_len = pw_len;
-
-          if (iconv (gf->iconv_ctx, &in_pw_buf, &in_pw_len, &iconv_ptr, &iconv_sz) == (size_t) -1)
-          {
-            batch->words_extra++;
-
-            words_extra++;
-
-            continue;
-          }
-          else
-          {
-            const size_t iconv_left = HCBUFSIZ_TINY - iconv_sz;
-
-            if (iconv_left <= PW_MAX)
-            {
-              memcpy (work_buf, gf->iconv_tmp, iconv_left);
-
-              pw_len = iconv_left;
-            }
-            else
-            {
-              batch->words_extra++;
-
-              words_extra++;
-
-              continue;
-            }
-          }
-        }
-
-        if (gf->rule_engine == true)
-        {
-          if (pw_len >= RP_PASSWORD_SIZE)
-          {
-            batch->words_extra++;
-
-            words_extra++;
-
-            continue;
-          }
-
-          char rule_buf_out[RP_PASSWORD_SIZE] = { 0 };
-
-          const int rule_len_out = _old_apply_rule (gf->rule_jk_buf, gf->rule_jk_len, (char *) work_buf, (int) pw_len, rule_buf_out);
-
-          if (rule_len_out < 0)
-          {
-            batch->words_extra++;
-
-            words_extra++;
-
-            continue;
-          }
-
-          memcpy (work_buf, rule_buf_out, rule_len_out);
-
-          pw_len = rule_len_out;
-        }
+        continue;
       }
 
       // Only now is the length final, so only now can it be judged. Rejecting before the transforms
@@ -1127,22 +617,24 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (pw_len > PW_MAX)
       {
-        batch->words_extra++;
-
-        words_extra++;
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
 
         continue;
       }
 
       if (work_buf != pw_buf) memcpy (pw_buf, work_buf, pw_len);
 
-      if ((pw_len < (int) hashconfig->pw_min) || (pw_len > (int) hashconfig->pw_max))
+      if (gf->length_policy != BASE_LENGTH_NONE)
       {
-        batch->words_extra++;
+        const bool too_short = (gf->length_policy == BASE_LENGTH_BOTH) && (pw_len < (int) hashconfig->pw_min);
+        const bool too_long  = (pw_len > (int) hashconfig->pw_max);
 
-        words_extra++;
+        if ((too_short == true) || (too_long == true))
+        {
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
 
-        continue;
+          continue;
+        }
       }
 
       pw_add_zerocopy (batch, device_param->kernel_power, pw_buf, pw_len);
@@ -1224,6 +716,12 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     device_param->pws_comp = batch->pws_comp;
     device_param->pws_cnt  = pws_cnt;
 
+    // Where this batch starts, for whatever the launch reports about it. The producer has already
+    // moved device_param->words_off on to the batch it is filling next, so that field cannot answer
+    // for the one being launched here.
+
+    device_param->words_off_launch = words_off;
+
     if (slow == true) device_param->pws_base_buf = batch->pws_base;
 
     if (pws_cnt)
@@ -1297,16 +795,15 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t             *hashes             = hashcat_ctx->hashes;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
-  generic_ctx_t        *generic_ctx        = hashcat_ctx->generic_ctx;
 
   const u32 attack_mode = user_options->attack_mode;
   const u32 attack_kern = user_options_extra->attack_kern;
+  const u32 base_source = user_options_extra->base_source;
 
   if (user_options->slow_candidates == true)
   {
@@ -1359,121 +856,25 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     }
     #endif
 
-    // attack modes from here
+    // attack modes from here. -a 1 is asked about before the feed, because both of its sources are
+    // feeds and it would answer to that test as well.
 
-    if (attack_mode == ATTACK_MODE_STRAIGHT)
+    if (attack_mode == ATTACK_MODE_COMBI)
     {
-      char *dictfile = straight_ctx->dict;
-
-      extra_info_straight_t extra_info_straight;
-
-      memset (&extra_info_straight, 0, sizeof (extra_info_straight));
-
-      if (hc_fopen (&extra_info_straight.fp, dictfile, "rb") == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
-
-        return -1;
-      }
-
-      hashcat_ctx_t *hashcat_ctx_tmp = wl_reader_create (hashcat_ctx);
-
-      if (hashcat_ctx_tmp == NULL)
-      {
-        hc_fclose (&extra_info_straight.fp);
-
-        return -1;
-      }
-
-      slow_fill_state_t sc;
-
-      sc.reader_ctx = hashcat_ctx_tmp;
-      sc.extra_info = &extra_info_straight;
-      sc.pos        = &extra_info_straight.pos;
-      sc.out_buf    = extra_info_straight.out_buf;
-      sc.out_len    = &extra_info_straight.out_len;
-      sc.base_buf   = extra_info_straight.base_buf;
-      sc.base_len   = &extra_info_straight.base_len;
-      sc.rule_pos   = &extra_info_straight.rule_pos_prev;
-      sc.reject     = NULL;
-      sc.seek       = true;
-      sc.reject_len = true;
-      sc.keep_base  = true;
-      sc.words_cur  = 0;
-
-      bool pipe_serial = false;
-
-      #ifdef WITH_BRAIN
-      sc.brain_highest = highest;
-
-      pipe_serial = user_options->brain_client;
-      #endif
-
-      pw_pipe_t pipe;
-
-      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc, pipe_serial);
-
-      const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
-
-      hc_fclose (&extra_info_straight.fp);
-
-      wl_reader_destroy (hashcat_ctx_tmp);
-
-      if (rc_final == -1) return -1;
-    }
-    else if (attack_mode == ATTACK_MODE_COMBI)
-    {
-      const u32 combs_mode = combinator_ctx->combs_mode;
-
-      char *base_file;
-      char *combs_file;
-
-      if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
-      {
-        base_file  = combinator_ctx->dict1;
-        combs_file = combinator_ctx->dict2;
-      }
-      else
-      {
-        base_file  = combinator_ctx->dict2;
-        combs_file = combinator_ctx->dict1;
-      }
-
       extra_info_combi_t extra_info_combi;
 
       memset (&extra_info_combi, 0, sizeof (extra_info_combi));
 
-      if (hc_fopen (&extra_info_combi.base_fp, base_file, "rb") == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", base_file, strerror (errno));
-
-        return -1;
-      }
-
-      if (hc_fopen (&extra_info_combi.combs_fp, combs_file, "rb") == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", combs_file, strerror (errno));
-
-        hc_fclose (&extra_info_combi.base_fp);
-
-        return -1;
-      }
-
       extra_info_combi.scratch_buf = device_param->scratch_buf;
 
-      hashcat_ctx_t *hashcat_ctx_tmp = wl_reader_create (hashcat_ctx);
+      extra_info_combi.device_id = device_param->device_id;
 
-      if (hashcat_ctx_tmp == NULL)
-      {
-        hc_fclose (&extra_info_combi.base_fp);
-        hc_fclose (&extra_info_combi.combs_fp);
+      if (pw_transform_init (&extra_info_combi.transform_base, hashcat_ctx, GENERIC_ROLE_BASE, (int) user_options_extra->rule_len_base, user_options_extra->rule_buf_base) == -1) return -1;
 
-        return -1;
-      }
+      if (pw_transform_init (&extra_info_combi.transform_amp, hashcat_ctx, GENERIC_ROLE_AMP, (int) user_options_extra->rule_len_amp, user_options_extra->rule_buf_amp) == -1) return -1;
 
       slow_fill_state_t sc;
 
-      sc.reader_ctx = hashcat_ctx_tmp;
       sc.extra_info = &extra_info_combi;
       sc.pos        = &extra_info_combi.pos;
       sc.out_buf    = extra_info_combi.out_buf;
@@ -1481,7 +882,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       sc.base_buf   = NULL;
       sc.base_len   = NULL;
       sc.rule_pos   = NULL;
-      sc.reject     = NULL;
+      sc.reject     = &extra_info_combi.reject;
       sc.seek       = true;
       sc.reject_len = true;
       sc.keep_base  = true;
@@ -1501,10 +902,54 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
 
-      hc_fclose (&extra_info_combi.base_fp);
-      hc_fclose (&extra_info_combi.combs_fp);
+      pw_transform_term (&extra_info_combi.transform_base);
+      pw_transform_term (&extra_info_combi.transform_amp);
 
-      wl_reader_destroy (hashcat_ctx_tmp);
+      if (rc_final == -1) return -1;
+    }
+    else if (base_source == BASE_SOURCE_FEED)
+    {
+      extra_info_generic_t extra_info_generic;
+
+      memset (&extra_info_generic, 0, sizeof (extra_info_generic));
+
+      // The feed keeps one generator per device and hashcat addresses it by device id, so unlike the
+      // wordlist reader there is no private copy of hashcat_ctx to make here.
+
+      extra_info_generic.device_id = device_param->device_id;
+
+      if (pw_transform_init (&extra_info_generic.transform, hashcat_ctx, GENERIC_ROLE_BASE, (int) user_options_extra->rule_len_base, user_options_extra->rule_buf_base) == -1) return -1;
+
+      slow_fill_state_t sc;
+
+      sc.extra_info = &extra_info_generic;
+      sc.pos        = &extra_info_generic.pos;
+      sc.out_buf    = extra_info_generic.out_buf;
+      sc.out_len    = &extra_info_generic.out_len;
+      sc.base_buf   = extra_info_generic.base_buf;
+      sc.base_len   = &extra_info_generic.base_len;
+      sc.rule_pos   = &extra_info_generic.rule_pos_prev;
+      sc.reject     = &extra_info_generic.reject;
+      sc.seek       = true;
+      sc.reject_len = true;
+      sc.keep_base  = true;
+      sc.words_cur  = 0;
+
+      bool pipe_serial = false;
+
+      #ifdef WITH_BRAIN
+      sc.brain_highest = highest;
+
+      pipe_serial = user_options->brain_client;
+      #endif
+
+      pw_pipe_t pipe;
+
+      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc, pipe_serial);
+
+      const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
+
+      pw_transform_term (&extra_info_generic.transform);
 
       if (rc_final == -1) return -1;
     }
@@ -1518,7 +963,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       slow_fill_state_t sc;
 
-      sc.reader_ctx = hashcat_ctx;
       sc.extra_info = &extra_info_mask;
       sc.pos        = &extra_info_mask.pos;
       sc.out_buf    = extra_info_mask.out_buf;
@@ -1548,49 +992,6 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       if (rc_final == -1) return -1;
     }
-    else if (attack_mode == ATTACK_MODE_GENERIC)
-    {
-      extra_info_generic_t extra_info_generic;
-
-      memset (&extra_info_generic, 0, sizeof (extra_info_generic));
-
-      // The feed keeps one generator per device and hashcat addresses it by device id, so unlike the
-      // wordlist reader there is no private copy of hashcat_ctx to make here.
-
-      extra_info_generic.device_id = device_param->device_id;
-
-      slow_fill_state_t sc;
-
-      sc.reader_ctx = hashcat_ctx;
-      sc.extra_info = &extra_info_generic;
-      sc.pos        = &extra_info_generic.pos;
-      sc.out_buf    = extra_info_generic.out_buf;
-      sc.out_len    = &extra_info_generic.out_len;
-      sc.base_buf   = extra_info_generic.base_buf;
-      sc.base_len   = &extra_info_generic.base_len;
-      sc.rule_pos   = &extra_info_generic.rule_pos_prev;
-      sc.reject     = &extra_info_generic.reject;
-      sc.seek       = true;
-      sc.reject_len = true;
-      sc.keep_base  = true;
-      sc.words_cur  = 0;
-
-      bool pipe_serial = false;
-
-      #ifdef WITH_BRAIN
-      sc.brain_highest = highest;
-
-      pipe_serial = user_options->brain_client;
-      #endif
-
-      pw_pipe_t pipe;
-
-      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_slow, &sc, pipe_serial);
-
-      const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, true, 0);
-
-      if (rc_final == -1) return -1;
-    }
 
     #ifdef WITH_BRAIN
     if (user_options->brain_client == true)
@@ -1601,20 +1002,13 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
   }
   else
   {
-    if ((attack_mode == ATTACK_MODE_BF) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (attack_mode == ATTACK_MODE_HYBRID2)))
+    // The two producers left. A base word is either generated from a mask, which the device does for
+    // itself, or read from a feed. -a 3 and -a 7 under the pure kernel are the mask, and they are the
+    // whole of what BASE_SOURCE_MASK means, so the test that used to spell that out by attack mode and
+    // kernel type is the one below.
+
+    if (base_source == BASE_SOURCE_MASK)
     {
-      if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (attack_mode == ATTACK_MODE_HYBRID2))
-      {
-        char *dictfile = straight_ctx->dict;
-
-        if (hc_fopen (&device_param->combs_fp, dictfile, "rb") == false)
-        {
-          event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
-
-          return -1;
-        }
-      }
-
       while (status_ctx->run_thread_level1 == true)
       {
         const u64 work = get_work (hashcat_ctx, device_param, -1);
@@ -1625,6 +1019,11 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         const u64 words_fin = words_off + work;
 
         device_param->pws_cnt = work;
+
+        // The mask producer is not pipelined, so the two are the same batch here. It is still set
+        // rather than left behind, because what reads it cannot tell the two paths apart.
+
+        device_param->words_off_launch = words_off;
 
         if (run_copy    (hashcat_ctx, device_param, device_param->pws_cnt) == -1) return -1;
         if (run_cracker (hashcat_ctx, device_param, -1, device_param->pws_cnt) == -1) return -1;
@@ -1641,53 +1040,16 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
         }
       }
     }
-    else if (attack_mode == ATTACK_MODE_GENERIC)
+    else if (base_source == BASE_SOURCE_FEED)
     {
-      bool iconv_enabled = false;
-
-      iconv_t iconv_ctx = NULL;
-
-      char *iconv_tmp = NULL;
-
-      if (generic_ctx->iconv_enable == true)
-      {
-        if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
-        {
-          iconv_enabled = true;
-
-          iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
-
-          if (iconv_ctx == (iconv_t) -1)
-          {
-            event_log_error (hashcat_ctx, "iconv_open: %s", strerror (errno));
-
-            return -1;
-          }
-
-          iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
-        }
-      }
-
       generic_fill_state_t gf;
 
-      gf.iconv_enabled = iconv_enabled;
-      gf.iconv_ctx     = iconv_ctx;
-      gf.iconv_tmp     = iconv_tmp;
+      if (pw_transform_init (&gf.transform, hashcat_ctx, GENERIC_ROLE_BASE, (int) user_options_extra->rule_len_base, user_options_extra->rule_buf_base) == -1) return -1;
 
-      gf.rule_jk_len = (int) user_options_extra->rule_len_l;
-      gf.rule_jk_buf =       user_options->rule_buf_l;
+      gf.length_policy = user_options_extra_base_length (hashcat_ctx);
+      gf.reject_fatal  = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
 
-      gf.rule_engine      = generic_ctx->rules_enable && run_rule_engine (gf.rule_jk_len, gf.rule_jk_buf);
-      gf.wordlist_autohex = generic_ctx->autohex_enable && user_options->wordlist_autohex;
-      gf.mods             = gf.iconv_enabled | gf.rule_engine | gf.wordlist_autohex;
-
-      gf.pt_uppercase = (hashconfig->opts_type & OPTS_TYPE_PT_UPPER) ? true : false;
-      gf.pt_hex       = (hashconfig->opts_type & OPTS_TYPE_PT_HEX)   ? true : false;
-
-      // Only these three can make a candidate come out shorter than it arrived. Without one of
-      // them an over-length candidate is over-length for good and there is nothing to re-read.
-
-      gf.can_shrink   = gf.pt_hex | gf.wordlist_autohex | gf.iconv_enabled;
+      gf.can_shrink   = pw_transform_shrinks (&gf.transform);
       gf.scratch_size = HCBUFSIZ_TINY;
       gf.scratch      = (gf.can_shrink == true) ? (u8 *) hcmalloc (gf.scratch_size) : NULL;
 
@@ -1698,90 +1060,8 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_generic, &gf, false);
 
-      const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, false, straight_ctx->kernel_rules_cnt);
-
-      hcfree (gf.scratch);
-
-      if (iconv_enabled == true)
-      {
-        iconv_close (iconv_ctx);
-
-        hcfree (iconv_tmp);
-      }
-
-      if (rc_final == -1) return -1;
-    }
-    else
-    {
-      char *dictfile = straight_ctx->dict;
-
-      if (attack_mode == ATTACK_MODE_COMBI)
-      {
-        if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-        {
-          dictfile = combinator_ctx->dict1;
-        }
-        else
-        {
-          dictfile = combinator_ctx->dict2;
-        }
-
-        const u32 combs_mode = combinator_ctx->combs_mode;
-
-        if (combs_mode == COMBINATOR_MODE_BASE_LEFT)
-        {
-          const char *dictfilec = combinator_ctx->dict2;
-
-          if (hc_fopen (&device_param->combs_fp, dictfilec, "rb") == false)
-          {
-            event_log_error (hashcat_ctx, "%s: %s", combinator_ctx->dict2, strerror (errno));
-
-            return -1;
-          }
-        }
-        else if (combs_mode == COMBINATOR_MODE_BASE_RIGHT)
-        {
-          const char *dictfilec = combinator_ctx->dict1;
-
-          if (hc_fopen (&device_param->combs_fp, dictfilec, "rb") == false)
-          {
-            event_log_error (hashcat_ctx, "%s: %s", dictfilec, strerror (errno));
-
-            return -1;
-          }
-        }
-      }
-
-      wl_fill_state_t wl_state;
-
-      wl_state.words_cur = 0;
-
-      if (hc_fopen (&wl_state.fp, dictfile, "rb") == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", dictfile, strerror (errno));
-
-        return -1;
-      }
-
-      hashcat_ctx_t *hashcat_ctx_tmp = wl_reader_create (hashcat_ctx);
-
-      if (hashcat_ctx_tmp == NULL)
-      {
-        if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
-
-        hc_fclose (&wl_state.fp);
-
-        return -1;
-      }
-
-      wl_state.hashcat_ctx_tmp = hashcat_ctx_tmp;
-
-      pw_pipe_t pipe;
-
-      pw_pipe_start (&pipe, hashcat_ctx, device_param, fill_wordlist, &wl_state, false);
-
-      // One rejected base word stood for a whole amplifier's worth of candidates. Which amplifier
-      // depends on the kernel, and it does not change during the attack, so it is resolved once here.
+      // One rejected base word stood for a whole amplifier's worth of candidates, and which amplifier
+      // depends on the kernel exactly as it does for the wordlist reader.
 
       u64 reject_amplifier = 0;
 
@@ -1790,11 +1070,9 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       const int rc_final = pipe_run (hashcat_ctx, device_param, &pipe, false, reject_amplifier);
 
-      if (attack_mode == ATTACK_MODE_COMBI) hc_fclose (&device_param->combs_fp);
+      hcfree (gf.scratch);
 
-      hc_fclose (&wl_state.fp);
-
-      wl_reader_destroy (hashcat_ctx_tmp);
+      pw_transform_term (&gf.transform);
 
       if (rc_final == -1) return -1;
     }
