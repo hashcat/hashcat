@@ -24,32 +24,42 @@ This open design allows for:
 
 ## Example Feeds
 
-We provide three sample feeds:
+We provide four sample feeds. Between them they cover the three shapes a feed can have: one that can seek freely, one that can only start over, and one that cannot go back at all.
 
 1. `feed_wordlist`
 
-	- A simple wordlist loader, similar to -a 0
+	- A simple wordlist loader, and the feed -a 0 itself is built on
 	- Takes any number of wordlists and directories, laid end to end into a single keyspace
-	- Because it is one keyspace rather than one attack per file, `--skip` and `--limit` keep working across the whole set, which -a 0 has to refuse when it is given more than one dictionary
+	- Because it is one keyspace rather than one attack per file, `--skip` and `--limit` address the whole set rather than each file
 	- Much higher performance than classical -a 0 due to improved seeking
 	- Uses a seek database instead of the traditional dictstat file, allowing efficient random access without repeatedly calling next()
 	- Especially beneficial on multi-GPU systems
 
-2. `feed_dummy`
+2. `feed_stdin`
 
-	- The smallest feed that is still correct, in C
+	- Reads candidates from a pipe, and is what `-a 0` with no wordlist runs
+	- The one shipped feed that **cannot seek at all**. The word at offset N is whichever word arrives next, so an offset is not a position in anything that still exists
+	- `thread_seek()` therefore accepts what it is told and reads on. Refusing would be worse than useless: hashcat treats a refused seek as a hard error, so a second device joining the attack would kill the run
+	- One mutex inside the plugin hands every line out exactly once however many devices are asking. This is the opposite of the advice further down about each thread opening its own resources, and it is what a feed over a socket, a queue or any other single shared stream has to do
+	- There is one seek it must honour: hashcat re-reads a candidate when a transform could make it shorter, by seeking back to the offset it just read and calling `thread_next()` again. A seek that did nothing would swallow the following line instead. The plugin keeps the line in its buffer and hands that one back
+	- Reports an unknown keyspace
+	- `--skip`, `--limit` and `--restore` still work on it, because hashcat reaches a position in a stream by reading and throwing away everything before it. That costs the user nothing but feeding the same candidates in the same order
+
+3. `feed_random`
+
+	- A random password generator, and the smallest feed that is still correct, in C
 	- Generates from a deterministic pseudo random sequence, so it is the simplest kind of feed that cannot seek: word number N only exists once the N words before it have been produced
 	- `thread_seek()` therefore reseeds and replays, which is what any probabilistic generator has to do
 	- Because the sequence is a pure function of a fixed seed, every device produces the same word for the same offset, so hashcat can split the range across devices and `--restore` lands on the word it left off at. A generator seeded from the clock or from a thread id can do neither
 	- Reports an unknown keyspace
 
-3. `rust_dummy`
+4. `rust_random`
 
 	- The same generator again, in Rust, producing byte identical words
 	- Demonstrates two things:
 	  a) a feed that does not report a keyspace
 	  b) feeds do not need to be written in C to be efficient
-	- Because it matches `feed_dummy` word for word, the two can be diffed against each other to check a port
+	- Because it matches `feed_random` word for word, the two can be diffed against each other to check a port
 
 ## Design Philosophy
 
@@ -108,6 +118,8 @@ typedef struct generic_global_ctx
   const char **segment_names;
   const u64   *segment_first;
 
+  u64 source_ident;
+
   bool   error;
   char   error_msg[256];
 
@@ -123,6 +135,7 @@ Notes:
 - Attributes `workc` and `workv` contain the command line arguments that belong to attack mode -a 8. For example, if your feed reads a wordlist, the filename can be passed on the hashcat command line and you can retrieve it from these variables. The feed plugin name is always workv[0], so for the wordlist example you would find this in workv[1].
 - `guess_base` is what the status display puts inside `Guess.Base.......: Feed (...)`. Write your own during `global_init()` if the plugin name alone is not informative: `Feed (rockyou.pcfg)` tells the user something that `Feed (pcfg)` does not. Leave it empty and hashcat uses the plugin name.
 - The three `segment_*` fields are optional and only worth filling if your feed draws from several named sources laid end to end. Publish where each one begins in the keyspace, ascending, and the status display names the source the run has reached instead of whatever `guess_base` holds: `Guess.Base.......: Feed ([6/18] d06.txt)`. Leave `segments_cnt` at zero and nothing changes. Fill these once the offsets are actually known, which for the wordlist feed means in `global_keyspace()` and not in `global_init()`, because the offset a source starts at is only known after every earlier source has been counted. The arrays and the strings they point at have to stay valid until `global_term()`, and freeing them is your job.
+- `source_ident` is one number saying what your feed reads from, so that something which has to tell two runs apart can do it without knowing what a source is. Fill it during `global_init()` or `global_keyspace()` if you can. The brain is what needs it: it keys its record of covered keyspace on the attack, so a feed whose inputs have changed since the last run has to come out different or that run is told its work was already done. A path is not enough, because the same path holds different words on different days. The wordlist feed already has the answer for free: it names its seek database after a hash of each file's size, modification time and both of its ends, and folds those together. Leave it at zero if your feed cannot say, which is what the stdin feed does.
 - The error field on this structure is for the three global functions only. The four per device functions report through their own thread context, see below. Set it only if a real error occurs. An end of file condition is not an error. When you set this field, you may also provide an error message in error_msg.
 - If you print messages to the console, check the quiet flag first. This flag is set when the user runs hashcat with `--quiet`.
 
@@ -187,7 +200,7 @@ This function is called once for each thread at shutdown. Use it to close and fr
 
 This function is used by hashcat for synchronization. You are given an absolute offset. You must seek your generator for this thread to that position. After a seek call, hashcat will call `thread_next()` to request candidates starting from that position.
 
-If your generator cannot seek directly, you must advance your state step by step until you reach the requested offset. Tip: store the current position in your per thread data structure. `feed_dummy` is a worked example of exactly that.
+If your generator cannot seek directly, you must advance your state step by step until you reach the requested offset. Tip: store the current position in your per thread data structure. `feed_random` is a worked example of exactly that.
 
 Hashcat does not call this when the offset is already where your generator sits, so a straight run through the keyspace on one device costs a single seek. Handle a backward offset anyway. With several devices the offsets interleave, and a `--skip` or a `--restore` can land anywhere.
 
@@ -228,9 +241,9 @@ Examples:
 
 This model gives you flexibility. You can centralize some work in the global functions or let each thread manage its own resources. Both approaches are valid depending on your use case.
 
-## Advantages Over stdin
+## Advantages Over A Pipe
 
-Unlike feeding candidates over stdin, attack mode 8 allows:
+A pipe is a feed too, `feed_stdin` above, so this is not a comparison between a feed and something else. It is what a feed written for the job can do that one reading a single shared stream cannot:
 
 - Independent threads per compute device
 - No mutex bottlenecks on shared pipes
@@ -245,13 +258,13 @@ Attack mode 8 includes two skeletons: one in `C` and one in `Rust`. Place your i
 
 Put your code in `src/feeds/` and prefix it with `feed_`, for example `src/feeds/feed_wordlist.c`. It will be compiled automatically. Adding a matching header file such as `feed_wordlist.h` is recommended.
 
-C Skeleton: `src/feeds/feed_dummy.c`
+C Skeleton: `src/feeds/feed_random.c`
 
 ### Rust
 
 Create your project with `cargo init myfeed --lib` and move it into the `Rust/feeds/` folder. It will be compiled automatically.
 
-Rust Skeleton: `Rust/feeds/dummy`
+Rust Skeleton: `Rust/feeds/random`
 
 ## Options
 
@@ -264,7 +277,7 @@ The first defines which interface version your implementation supports.
 
 For a C feed, set it to `FEEDS_INTERFACE_VERSION_CURRENT`, which the build passes in on the compile line from `FEEDS_INTERFACE_VERSION` in `src/Makefile`. Modules do the same thing with `MODULE_INTERFACE_VERSION_CURRENT`. Do not set it to `GENERIC_PLUGIN_VERSION_REQ`: that is the minimum hashcat accepts, so a feed declaring it would re-declare compatibility on every rebuild without the source having earned it, and the check could never fail.
 
-Do not write the number out in your source either, for the same reason. It would survive an interface change and go on claiming a compatibility the source no longer has, which is a silent failure rather than a loud one. A Rust feed reads it from the environment variable `FEEDS_INTERFACE_VERSION_CURRENT`, which `src/feeds/rust_support.mk` sets when it invokes cargo, and `Rust/feeds/dummy` shows how to parse it in a const context. Built by hand with nothing in the environment it comes out as 0 and hashcat refuses the feed, which is the intended outcome.
+Do not write the number out in your source either, for the same reason. It would survive an interface change and go on claiming a compatibility the source no longer has, which is a silent failure rather than a loud one. A Rust feed reads it from the environment variable `FEEDS_INTERFACE_VERSION_CURRENT`, which `src/feeds/rust_support.mk` sets when it invokes cargo, and `Rust/feeds/random` shows how to parse it in a const context. Built by hand with nothing in the environment it comes out as 0 and hashcat refuses the feed, which is the intended outcome.
 
 The second defines which post processing features of hashcat your feed should allow. Current options are:
 

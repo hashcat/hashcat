@@ -349,7 +349,9 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
     source->first_line = feed_global->line_count;
 
-    char *seekdb_file = seekdb_path (global_ctx, source->path);
+    u64 source_ident = 0;
+
+    char *seekdb_file = seekdb_path (global_ctx, source->path, &source_ident);
 
     if (seekdb_file == NULL)
     {
@@ -359,6 +361,12 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
       return GENERIC_KEYSPACE_UNKNOWN;
     }
+
+    // Fold each source into what the feed as a whole reads from, in the order they were given, so that
+    // the same files in a different order come out different. They are different: a keyspace position
+    // means a different word.
+
+    global_ctx->source_ident = XXH64 (&source_ident, sizeof (source_ident), global_ctx->source_ident);
 
     source->seek_db = seekdb_load (seekdb_file, &source->seek_count, &source->line_count, &source->size);
 

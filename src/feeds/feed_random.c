@@ -3,12 +3,12 @@
  * License.....: MIT
  */
 
-// The smallest feed that is still correct.
+// A random password generator, and the smallest feed that is still correct.
 //
-// It generates words from a deterministic pseudo random sequence, which makes it the simplest kind
-// of feed that cannot seek: word number N only exists once the generator has produced the N words
-// before it. seek () therefore reseeds and replays, which is what any probabilistic generator has to
-// do, and it is the reason a feed does not have to be a file to work under -a 8.
+// It produces words from a deterministic pseudo random sequence, which makes it the simplest kind of
+// feed that cannot seek: word number N only exists once the generator has produced the N words before
+// it. seek () therefore reseeds and replays, which is what any probabilistic generator has to do, and
+// it is the reason a feed does not have to be a file to work under -a 8.
 //
 // Because the sequence is a pure function of the seed, every device produces the same word for the
 // same offset, so hashcat can hand different ranges to different devices and a --restore lands on
@@ -28,36 +28,36 @@ const int GENERIC_PLUGIN_OPTIONS = 0;
 // Any fixed value works. What matters is that it never changes between runs, because it is what
 // makes --restore and multi device splitting land on the same words.
 
-static const u64 DUMMY_SEED = 0x2545f4914f6cdd1dULL;
+static const u64 RANDOM_SEED = 0x2545f4914f6cdd1dULL;
 
-static const char DUMMY_ALPHABET[] = "abcdefghijklmnopqrstuvwxyz0123456789";
+static const char RANDOM_ALPHABET[] = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-typedef struct dummy_thread
+typedef struct random_thread
 {
   u64 state;
   u64 pos;
 
-} dummy_thread_t;
+} random_thread_t;
 
 // xorshift64*. Small, has no state to allocate and repeats after 2^64 - 1 words, which is more than
 // a feed will ever be asked for.
 
-static u64 dummy_rand (dummy_thread_t *dummy_thread)
+static u64 random_rand (random_thread_t *random_thread)
 {
-  u64 x = dummy_thread->state;
+  u64 x = random_thread->state;
 
   x ^= x >> 12;
   x ^= x << 25;
   x ^= x >> 27;
 
-  dummy_thread->state = x;
+  random_thread->state = x;
 
   const u64 result = x * 0x2545f4914f6cdd1dULL;
 
   return result;
 }
 
-static void dummy_error (generic_thread_ctx_t *thread_ctx, const char *msg)
+static void random_error (generic_thread_ctx_t *thread_ctx, const char *msg)
 {
   thread_ctx->error = true;
 
@@ -80,19 +80,19 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
 bool thread_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx)
 {
-  dummy_thread_t *dummy_thread = hcmalloc (sizeof (dummy_thread_t));
+  random_thread_t *random_thread = hcmalloc (sizeof (random_thread_t));
 
-  if (dummy_thread == NULL)
+  if (random_thread == NULL)
   {
-    dummy_error (thread_ctx, "hcmalloc failed");
+    random_error (thread_ctx, "hcmalloc failed");
 
     return false;
   }
 
-  dummy_thread->state = DUMMY_SEED;
-  dummy_thread->pos   = 0;
+  random_thread->state = RANDOM_SEED;
+  random_thread->pos   = 0;
 
-  thread_ctx->thrdata = dummy_thread;
+  thread_ctx->thrdata = random_thread;
 
   return true;
 }
@@ -106,14 +106,14 @@ void thread_term (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_
 
 int thread_next (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size)
 {
-  dummy_thread_t *dummy_thread = thread_ctx->thrdata;
+  random_thread_t *random_thread = thread_ctx->thrdata;
 
   // Never write more than out_size. hashcat hands out a pointer into the buffer it uploads, so a
   // long word does not get truncated, it lands on top of something else.
 
-  const u64 r = dummy_rand (dummy_thread);
+  const u64 r = random_rand (random_thread);
 
-  const int alphabet_len = (int) (sizeof (DUMMY_ALPHABET) - 1);
+  const int alphabet_len = (int) (sizeof (RANDOM_ALPHABET) - 1);
 
   int out_len = 6 + (int) (r % 8);
 
@@ -121,32 +121,32 @@ int thread_next (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_c
 
   for (int i = 0; i < out_len; i++)
   {
-    const u64 c = dummy_rand (dummy_thread);
+    const u64 c = random_rand (random_thread);
 
-    out_buf[i] = DUMMY_ALPHABET[c % alphabet_len];
+    out_buf[i] = RANDOM_ALPHABET[c % alphabet_len];
   }
 
-  dummy_thread->pos++;
+  random_thread->pos++;
 
   return out_len;
 }
 
 bool thread_seek (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, const u64 offset)
 {
-  dummy_thread_t *dummy_thread = thread_ctx->thrdata;
+  random_thread_t *random_thread = thread_ctx->thrdata;
 
   // Seeking forward only has to keep generating. Seeking back has to start over, because a
   // pseudo random sequence has no way to run in reverse.
 
-  if (offset < dummy_thread->pos)
+  if (offset < random_thread->pos)
   {
-    dummy_thread->state = DUMMY_SEED;
-    dummy_thread->pos   = 0;
+    random_thread->state = RANDOM_SEED;
+    random_thread->pos   = 0;
   }
 
   u8 scratch[PW_MAX];
 
-  while (dummy_thread->pos < offset)
+  while (random_thread->pos < offset)
   {
     if (thread_next (global_ctx, thread_ctx, scratch, PW_MAX) < 0) return false;
   }

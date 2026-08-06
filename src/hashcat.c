@@ -24,7 +24,6 @@
 #include "combinator.h"
 #include "cpt.h"
 #include "debugfile.h"
-#include "dictstat.h"
 #include "dispatch.h"
 #include "event.h"
 #include "hashes.h"
@@ -64,10 +63,12 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   induct_ctx_t         *induct_ctx          = hashcat_ctx->induct_ctx;
   logfile_ctx_t        *logfile_ctx         = hashcat_ctx->logfile_ctx;
   backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;
+  mask_ctx_t           *mask_ctx            = hashcat_ctx->mask_ctx;
   restore_ctx_t        *restore_ctx         = hashcat_ctx->restore_ctx;
   status_ctx_t         *status_ctx          = hashcat_ctx->status_ctx;
-  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
+  straight_ctx_t       *straight_ctx        = hashcat_ctx->straight_ctx;
   user_options_t       *user_options        = hashcat_ctx->user_options;
+  user_options_extra_t *user_options_extra  = hashcat_ctx->user_options_extra;
 
   //status_ctx->run_main_level1   = true;
   //status_ctx->run_main_level2   = true;
@@ -88,6 +89,13 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->words_off = 0;
   status_ctx->words_cur = 0;
 
+  // Where the round starts is only settled below, once its own keyspace is known, because --skip is a
+  // position in the whole queue of rounds and not in this one. A restored session is the exception:
+  // its position came out of the restore file and is already this round's, so it is taken here and
+  // --restore overrides --skip exactly as it always did.
+
+  bool restored = false;
+
   if (restore_ctx->restore_execute == true)
   {
     restore_ctx->restore_execute = false;
@@ -97,17 +105,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     status_ctx->words_off = rd->words_cur;
     status_ctx->words_cur = status_ctx->words_off;
 
-    // --restore always overrides --skip
-
-    user_options->skip = 0;
-  }
-
-  if (user_options->skip > 0)
-  {
-    status_ctx->words_off = user_options->skip;
-    status_ctx->words_cur = status_ctx->words_off;
-
-    user_options->skip = 0;
+    restored = true;
   }
 
   backend_session_reset (hashcat_ctx);
@@ -132,14 +130,77 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->words_base = status_ctx->words_cnt / amplifier_cnt;
 
-  EVENT (EVENT_CALCULATED_WORDS_BASE);
-  EVENT (EVENT_CALCULATED_WORDS_CNT);
+  // Where this round sits in the queue, and how much longer the queue is now. A mask that was skipped
+  // for being too short or too long returned above and adds nothing, which is right: it is not part
+  // of the keyspace and --keyspace must not count it.
+
+  const u64 walk_first = status_ctx->words_walk_base;
+
+  status_ctx->words_walk_base += status_ctx->words_base;
+  status_ctx->words_walk_cnt  += status_ctx->words_cnt;
+
+  // --keyspace answers for the whole queue, so every round is sized and none of them is run. The
+  // total is reported once the queue has been walked, by outer_loop.
 
   if (user_options->keyspace == true)
   {
     status_ctx->devices_status = STATUS_RUNNING;
 
     return 0;
+  }
+
+  // This round's share of the window --skip and --limit describe. Both are positions in the queue, so
+  // they are moved to the front of this round, and a round the window does not reach is not run at
+  // all rather than run with no work in it.
+
+  status_ctx->words_skip  = 0;
+  status_ctx->words_limit = 0;
+
+  const bool one_round = ((mask_ctx->masks_cnt <= 1) && (straight_ctx->dicts_cnt <= 1));
+
+  if (user_options->skip > walk_first)
+  {
+    status_ctx->words_skip = user_options->skip - walk_first;
+
+    // A queue of rounds passes over one the window does not reach. A single round has nothing to pass
+    // over to, so a --skip past its end is the command line mistake it always was and the keyspace
+    // check further down is what says so.
+
+    if ((status_ctx->words_skip >= status_ctx->words_base) && (one_round == false))
+    {
+      // The round has finished the nothing the window asked of it. Saying so is what keeps a run
+      // whose window covers no round at all from ending in the state it started in, which reports a
+      // failure for a chunk that was simply empty. A chunk at the end of the queue is one somebody
+      // in a distributed setup has been handed.
+
+      status_ctx->devices_status = STATUS_EXHAUSTED;
+
+      logfile_sub_msg ("STOP");
+
+      return 0;
+    }
+  }
+
+  if (user_options->limit > 0)
+  {
+    if (user_options->limit <= walk_first)
+    {
+      status_ctx->devices_status = STATUS_EXHAUSTED;
+
+      logfile_sub_msg ("STOP");
+
+      return 0;
+    }
+
+    status_ctx->words_limit = user_options->limit - walk_first;
+  }
+
+  // A restored session is already where it belongs, and --restore overrides --skip.
+
+  if (restored == false)
+  {
+    status_ctx->words_off = status_ctx->words_skip;
+    status_ctx->words_cur = status_ctx->words_off;
   }
 
   // restore stuff
@@ -151,7 +212,39 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  // A source that cannot be seeked only reaches a position by consuming everything before it, so the
+  // words --skip or --restore passes over are read and thrown away here. This is a pipe, and it is
+  // done before the device threads exist because the offsets they ask for are one per device and none
+  // of them is where the run starts.
+  //
+  // Those words were read, so they are booked as rejected rather than as restored: the two counters
+  // are added together to make the progress line, and booking them in both would count them twice.
+
+  if ((user_options_extra->wordlist_mode == WL_MODE_STDIN) && (status_ctx->words_off > 0))
+  {
+    // Any device's thread context will do, because the plugin holds one stream behind one mutex and
+    // nothing else is reading it yet. It has to be one that exists, though: only devices that were
+    // not skipped were given a thread context.
+
+    int device_id = -1;
+
+    for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+    {
+      hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+      if (device_param->skipped == true) continue;
+      if (device_param->skipped_warning == true) continue;
+
+      device_id = device_param->device_id;
+
+      break;
+    }
+
+    if (device_id == -1) return -1;
+
+    if (generic_ctx_base_discard (hashcat_ctx, device_id, status_ctx->words_off) == -1) return -1;
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
     const u64 progress_restored = 1 * amplifier_cnt;
 
@@ -358,14 +451,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     thread_param->hashcat_ctx = hashcat_ctx;
     thread_param->tid         = backend_devices_idx;
 
-    if (user_options_extra->wordlist_mode == WL_MODE_STDIN)
-    {
-      hc_thread_create (c_threads[backend_devices_idx], thread_calc_stdin, thread_param);
-    }
-    else
-    {
-      hc_thread_create (c_threads[backend_devices_idx], thread_calc, thread_param);
-    }
+    hc_thread_create (c_threads[backend_devices_idx], thread_calc, thread_param);
   }
 
   hc_thread_wait (backend_ctx->backend_devices_cnt, c_threads);
@@ -575,6 +661,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     return -1;
   }
+
+  // -a 7 cannot say where its base words come from until the kernel type is settled, and
+  // hashconfig_init is what settles it.
+
+  user_options_extra_init_late (hashcat_ctx);
 
   EVENT (EVENT_HASHCONFIG_POST);
 
@@ -799,10 +890,15 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   cpt_ctx_init (hashcat_ctx);
 
   /**
-   * Wordlist allocate buffer
+   * generic mode init
    */
 
-  if (wl_data_init (hashcat_ctx) == -1) return -1;
+  // Ahead of the combinator, because -a 1 amplifies with a wordlist and the number of amplifier words
+  // is a feed instance's keyspace. Ahead of the mask too, which is the other way round: -a 6 and -a 7
+  // amplify with the mask and the mask is only sized once per round, so the feed keyspace is left in
+  // base words here and straight_ctx_update_loop finishes it.
+
+  if (generic_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * straight mode init
@@ -816,6 +912,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   if (combinator_ctx_init (hashcat_ctx) == -1) return -1;
 
+  // -a 1 has now chosen which of its two dictionaries is the base, which is the last thing needed to
+  // say which of -j and -k applies to a base word and which to an amplifier word.
+
+  user_options_extra_init_rules (hashcat_ctx);
+
   /**
    * charsets : keep them together for more easy maintenance
    */
@@ -823,34 +924,45 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   if (mask_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
-   * generic mode init
+   * prevent the user from using --skip/--limit together with multiple word lists
    */
 
-  if (generic_ctx_init (hashcat_ctx) == -1) return -1;
-
-  /**
-   * prevent the user from using --skip/--limit together with maskfile and/or multiple word lists
-   */
+  // --increment and a mask file are a queue of rounds and the queue is one keyspace, so --skip and
+  // --limit address the queue and no longer have to be refused. A queue of dictionaries is not the
+  // same thing: induction writes the dictionary the next round reads, so the queue's length is not
+  // known when the window would have to be divided up.
 
   if (user_options->skip != 0 || user_options->limit != 0)
   {
-    if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
+    if (straight_ctx->dicts_cnt > 1)
     {
-      event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with --increment, mask files, multiple dictionaries, or --stdout.");
+      event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with multiple dictionaries or --stdout.");
+
+      return -1;
+    }
+
+    // A resumed session starts inside one round of the queue, and the restore file records the
+    // position in that round without recording how far into the queue the round itself begins. The
+    // window cannot be divided up without that, and dividing it wrongly would run a chunk past its
+    // own end, so the combination is refused rather than guessed at.
+
+    if ((restore_ctx->restore_execute == true) && (mask_ctx->masks_cnt > 1))
+    {
+      event_log_error (hashcat_ctx, "Use of --skip/--limit is not supported with --restore over several masks.");
 
       return -1;
     }
   }
 
   /**
-   * prevent the user from using --keyspace together with maskfile and/or multiple word lists
+   * prevent the user from using --keyspace together with multiple word lists
    */
 
   if (user_options->keyspace == true)
   {
-    if ((mask_ctx->masks_cnt > 1) || (straight_ctx->dicts_cnt > 1))
+    if (straight_ctx->dicts_cnt > 1)
     {
-      event_log_error (hashcat_ctx, "Use of --keyspace is not supported with --increment or mask files.");
+      event_log_error (hashcat_ctx, "Use of --keyspace is not supported with multiple dictionaries.");
 
       return -1;
     }
@@ -933,7 +1045,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
         status_progress_destroy (hashcat_ctx);
         generic_ctx_destroy     (hashcat_ctx);
         straight_ctx_destroy    (hashcat_ctx);
-        wl_data_destroy         (hashcat_ctx);
 
         return 0;
       }
@@ -1061,6 +1172,11 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   EVENT (EVENT_INNERLOOP1_STARTING);
 
+  // The queue of rounds starts here, so this is where how far into it the run has got starts at zero.
+
+  status_ctx->words_walk_base = 0;
+  status_ctx->words_walk_cnt  = 0;
+
   if (mask_ctx->masks_cnt)
   {
     for (u32 masks_pos = mask_ctx->masks_pos; masks_pos < mask_ctx->masks_cnt; masks_pos++)
@@ -1080,6 +1196,19 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   else
   {
     if (inner1_loop (hashcat_ctx) == -1) myabort (hashcat_ctx);
+  }
+
+  // --keyspace answers for the whole queue and the queue has now been walked, so this is the earliest
+  // the answer exists. One number, whether the queue held one round or fifty, which is what lets
+  // --skip and --limit address it.
+
+  if (user_options->keyspace == true)
+  {
+    status_ctx->words_base = status_ctx->words_walk_base;
+    status_ctx->words_cnt  = status_ctx->words_walk_cnt;
+
+    EVENT (EVENT_CALCULATED_WORDS_BASE);
+    EVENT (EVENT_CALCULATED_WORDS_CNT);
   }
 
   // wait for inner threads
@@ -1120,7 +1249,6 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   status_progress_destroy (hashcat_ctx);
   generic_ctx_destroy     (hashcat_ctx);
   straight_ctx_destroy    (hashcat_ctx);
-  wl_data_destroy         (hashcat_ctx);
 
   return 0;
 }
@@ -1147,10 +1275,9 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->combinator_ctx     = (combinator_ctx_t *)      hcmalloc (sizeof (combinator_ctx_t));
   hashcat_ctx->cpt_ctx            = (cpt_ctx_t *)             hcmalloc (sizeof (cpt_ctx_t));
   hashcat_ctx->debugfile_ctx      = (debugfile_ctx_t *)       hcmalloc (sizeof (debugfile_ctx_t));
-  hashcat_ctx->dictstat_ctx       = (dictstat_ctx_t *)        hcmalloc (sizeof (dictstat_ctx_t));
   hashcat_ctx->event_ctx          = (event_ctx_t *)           hcmalloc (sizeof (event_ctx_t));
   hashcat_ctx->folder_config      = (folder_config_t *)       hcmalloc (sizeof (folder_config_t));
-  hashcat_ctx->generic_ctx        = (generic_ctx_t *)         hcmalloc (sizeof (generic_ctx_t));
+  hashcat_ctx->generic_ctx        = (generic_ctx_t *)         hccalloc (GENERIC_ROLE_CNT, sizeof (generic_ctx_t));
   hashcat_ctx->hashcat_user       = (hashcat_user_t *)        hcmalloc (sizeof (hashcat_user_t));
   hashcat_ctx->hashconfig         = (hashconfig_t *)          hcmalloc (sizeof (hashconfig_t));
   hashcat_ctx->hashes             = (hashes_t *)              hcmalloc (sizeof (hashes_t));
@@ -1171,7 +1298,6 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->tuning_db          = (tuning_db_t *)           hcmalloc (sizeof (tuning_db_t));
   hashcat_ctx->user_options_extra = (user_options_extra_t *)  hcmalloc (sizeof (user_options_extra_t));
   hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (sizeof (user_options_t));
-  hashcat_ctx->wl_data            = (wl_data_t *)             hcmalloc (sizeof (wl_data_t));
 
   return 0;
 }
@@ -1184,7 +1310,6 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->combinator_ctx);
   hcfree (hashcat_ctx->cpt_ctx);
   hcfree (hashcat_ctx->debugfile_ctx);
-  hcfree (hashcat_ctx->dictstat_ctx);
   hcfree (hashcat_ctx->event_ctx);
   hcfree (hashcat_ctx->folder_config);
   hcfree (hashcat_ctx->generic_ctx);
@@ -1208,7 +1333,6 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->tuning_db);
   hcfree (hashcat_ctx->user_options_extra);
   hcfree (hashcat_ctx->user_options);
-  hcfree (hashcat_ctx->wl_data);
 
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }
@@ -1348,12 +1472,6 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    */
 
   if (potfile_init (hashcat_ctx) == -1) return -1;
-
-  /**
-   * dictstat init
-   */
-
-  if (dictstat_init (hashcat_ctx) == -1) return -1;
 
   /**
    * loopback init
@@ -1747,7 +1865,6 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   // read dictionary cache
 
-  dictstat_read (hashcat_ctx);
 
   // autodetect
 
@@ -1916,7 +2033,6 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
   // final update dictionary cache
 
-  dictstat_write (hashcat_ctx);
 
   // final logfile entry
 
@@ -2013,7 +2129,6 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   #endif
 
   debugfile_destroy           (hashcat_ctx);
-  dictstat_destroy            (hashcat_ctx);
   folder_config_destroy       (hashcat_ctx);
   hwmon_ctx_destroy           (hashcat_ctx);
   induct_ctx_destroy          (hashcat_ctx);
