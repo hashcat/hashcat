@@ -24,8 +24,16 @@
 // Recent mingw defaults above that line and declares it regardless, which kept this hidden.
 // Below it the declaration is absent and the call in brain_server falls back to an implicit
 // one. clang rejects that outright and C23 removes it.
+//
+// Only set when nothing has set it already. common.h reaches string.h and therefore the mingw
+// headers, which pick their own value, so by the time this is read the macro is usually already
+// defined and redefining it warns on every file that includes this one. Recent mingw chooses a
+// HIGHER version than the floor wanted here, and a higher version declares everything a lower one
+// does, so leaving it alone is correct as well as quieter.
 
+#ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0601
+#endif
 
 // winsock2.h first, because ws2tcpip.h builds on it
 

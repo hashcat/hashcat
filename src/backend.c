@@ -6080,7 +6080,11 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
       // a count of the survivors. Counting survivors would hand the first one unit 0, and -d would
       // then run a different unit than the one the user asked for
 
-      if (is_virtualized == true) device_param->bridge_link_device = cuda_devices_idx;
+      if (is_virtualized == true)
+      {
+        device_param->bridge_link_device = cuda_devices_idx;
+        device_param->is_virtual         = (cuda_devices_idx > 0);
+      }
 
       backend_ctx->backend_device_from_cuda[cuda_devices_idx] = *backend_devices_idx;
 
@@ -6564,7 +6568,11 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
 
       // see the note on the unit index in the cuda path
 
-      if (is_virtualized == true) device_param->bridge_link_device = hip_devices_idx;
+      if (is_virtualized == true)
+      {
+        device_param->bridge_link_device = hip_devices_idx;
+        device_param->is_virtual         = (hip_devices_idx > 0);
+      }
 
       backend_ctx->backend_device_from_hip[hip_devices_idx] = *backend_devices_idx;
 
@@ -7102,7 +7110,11 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
 
       // see the note on the unit index in the cuda path
 
-      if (is_virtualized == true) device_param->bridge_link_device = metal_devices_idx;
+      if (is_virtualized == true)
+      {
+        device_param->bridge_link_device = metal_devices_idx;
+        device_param->is_virtual         = (metal_devices_idx > 0);
+      }
 
       backend_ctx->backend_device_from_metal[metal_devices_idx] = *backend_devices_idx;
 
@@ -7515,7 +7527,11 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
         // see the note on the unit index in the cuda path
 
-        if (is_virtualized == true) device_param->bridge_link_device = (int) opencl_platform_devices_idx;
+        if (is_virtualized == true)
+        {
+          device_param->bridge_link_device = (int) opencl_platform_devices_idx;
+          device_param->is_virtual         = (opencl_platform_devices_idx > 0);
+        }
 
         backend_ctx->backend_device_from_opencl[opencl_devices_cnt] = *backend_devices_idx;
 
@@ -8867,6 +8883,111 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
   backend_ctx->opencl_devices_active  = opencl_devices_active;
 }
 
+// Why nothing is left, printed under "No devices found/left."
+//
+// That sentence on its own describes the outcome and none of the cause, and everything needed to name
+// the cause is in hand at this point: the filter this run used, what the machine actually reported, and
+// whether a bridge is waiting for a device that will never arrive. A user whose 33 bridge units were all
+// ready spent a day looking at hardware because of it, when the answer was that -D 3 selects OpenCL
+// accelerator cards and his machine has none.
+
+static void backend_ctx_devices_none_reason (hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
+  const bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  // Nothing was ever discovered, which is a different problem from everything being filtered out and
+  // has a different fix. No runtime, no driver, or no permission to reach one.
+
+  if (backend_ctx->backend_devices_cnt == 0)
+  {
+    event_log_warning (hashcat_ctx, "No OpenCL, CUDA, HIP or Metal device was found at all.");
+    event_log_warning (hashcat_ctx, "Run hashcat -I to see what the backends report, and check that a runtime is installed.");
+    event_log_warning (hashcat_ctx, NULL);
+
+    return;
+  }
+
+  // Devices were found and none survived. Count what was there and how much of it this run's device
+  // type filter is responsible for, which is the case that reads as broken hardware.
+
+  // Counted over PHYSICAL devices. A bridge run clones its host device once per unit, so counting the
+  // raw list would report one GPU as sixty-four of them, in the middle of a message whose whole job is
+  // to describe the machine accurately.
+
+  int found_cpu   = 0;
+  int found_gpu   = 0;
+  int found_accel = 0;
+
+  int found_total = 0;
+  int cut_by_type = 0;
+
+  for (int i = 0; i < backend_ctx->backend_devices_cnt; i++)
+  {
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[i];
+
+    if (device_param->is_virtual == true) continue;
+
+    const cl_device_type t = device_param->opencl_device_type;
+
+    if (t & CL_DEVICE_TYPE_CPU)         found_cpu++;
+    if (t & CL_DEVICE_TYPE_GPU)         found_gpu++;
+    if (t & CL_DEVICE_TYPE_ACCELERATOR) found_accel++;
+
+    found_total++;
+
+    if ((backend_ctx->opencl_device_types_filter & t) == 0) cut_by_type++;
+  }
+
+  event_log_warning (hashcat_ctx, "%d device(s) were found and none of them is usable for this run.", found_total);
+
+  if ((found_cpu + found_gpu + found_accel) > 0)
+  {
+    event_log_warning (hashcat_ctx, "Found: %d CPU, %d GPU, %d accelerator.", found_cpu, found_gpu, found_accel);
+  }
+
+  // The device type filter is the one worth naming, because -D is the only way a user can silently ask
+  // for a class of device that is not present.
+
+  if ((found_total > 0) && (cut_by_type == found_total))
+  {
+    if (user_options->opencl_device_types == NULL)
+    {
+      event_log_warning (hashcat_ctx, "All of them were excluded by the default device type selection.");
+    }
+    else
+    {
+      event_log_warning (hashcat_ctx, "All of them were excluded by -D %s.", user_options->opencl_device_types);
+      event_log_warning (hashcat_ctx, "-D 1 is CPU, -D 2 is GPU and -D 3 is an OpenCL accelerator card.");
+    }
+  }
+  else if (user_options->backend_devices != NULL)
+  {
+    event_log_warning (hashcat_ctx, "Check -d %s, which is what selects among them.", user_options->backend_devices);
+  }
+
+  // The reason this function exists. A bridge unit computes but does not feed itself: a backend device
+  // generates its candidates. Units without one is the state that used to be reported as no devices at
+  // all, which sends the owner of the hardware looking at the hardware.
+
+  if (bridge_ctx->enabled == true)
+  {
+    const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
+
+    if (unit_count > 0)
+    {
+      event_log_warning (hashcat_ctx, NULL);
+      event_log_warning (hashcat_ctx, "This hash-mode has %d bridge unit(s) ready and nothing left to drive them.", unit_count);
+      event_log_warning (hashcat_ctx, "A bridge unit does the computing, and a backend device generates the candidates for it,");
+      event_log_warning (hashcat_ctx, "so at least one has to survive. A bridge's own hardware is never selected with -D,");
+      event_log_warning (hashcat_ctx, "and on a machine with no GPU no -D is needed at all.");
+    }
+  }
+
+  event_log_warning (hashcat_ctx, NULL);
+}
+
 int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -8979,6 +9100,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   if (backend_ctx->backend_devices_active == 0)
   {
     event_log_error (hashcat_ctx, "No devices found/left.");
+
+    backend_ctx_devices_none_reason (hashcat_ctx);
 
     return -1;
   }
@@ -9551,6 +9674,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   if (backend_ctx->backend_devices_active == 0)
   {
     event_log_error (hashcat_ctx, "No devices found/left.");
+
+    backend_ctx_devices_none_reason (hashcat_ctx);
 
     return -1;
   }

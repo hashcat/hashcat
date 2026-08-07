@@ -1145,8 +1145,23 @@ endif
 endif
 
 LFLAGS_CROSS_WIN        := $(LFLAGS)
+
+# The C++ runtime goes INTO the binary that needs it, because no runtime DLL is shipped beside them.
+# Only module_23800 references any C++ at all, through unrar, so it was the one binary in the package
+# importing libstdc++-6.dll, and LoadLibrary failed on every Windows machine that did not happen to
+# have one on the search path. A module that references no C++ links nothing extra and does not grow.
+#
+# The static archive is named directly rather than asking for -static-libstdc++. That flag only governs
+# the libstdc++ a driver adds by itself, so it cannot override an explicit -lstdc++, and clang reports
+# it as an unused argument and links the import library anyway.
+#
+# The explicit one arrives here in LFLAGS, from the unrar block, so it has to be taken back out. Naming
+# the archive while it is still on the line links both, and then every symbol in libsupc++ is defined
+# twice and lld stops.
+
 ifneq ($(UNAME),Darwin)
-LFLAGS_CROSS_WIN        += -lstdc++
+LFLAGS_CROSS_WIN        := $(filter-out -lstdc++,$(LFLAGS_CROSS_WIN))
+LFLAGS_CROSS_WIN        += -l:libstdc++.a
 endif
 
 ifeq ($(CC_WIN_CLANG),0)

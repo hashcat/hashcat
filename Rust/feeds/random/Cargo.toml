@@ -8,6 +8,9 @@ edition = "2024"
 [lib]
 crate-type = ["cdylib"]
 
+[build-dependencies]
+winresource = "0.1"
+
 [profile.release]
 opt-level = 3
 codegen-units = 1

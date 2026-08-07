@@ -59,6 +59,8 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
     event_log_error (hashcat_ctx, "%s", dlerror ());
     #endif
 
+    hcfree (module_file);
+
     return false;
   }
 
@@ -67,6 +69,8 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
   if (module_ctx->module_init == NULL)
   {
     event_log_error (hashcat_ctx, "Cannot load symbol 'module_init' in module %s", module_file);
+
+    hcfree (module_file);
 
     return false;
   }
@@ -546,6 +550,25 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
+
+  // A module that never got as far as module_init () has every function pointer still at NULL, because
+  // module_load () memsets the context and then returns early when the file cannot be opened or has no
+  // module_init symbol. MODULE_DEFAULT is (void *) -1 rather than NULL, so each "was this one set" test
+  // below is true for a module that was never loaded, and the first of them calls through a null
+  // pointer.
+  //
+  // Autodetect is where this bites. It walks every hash-mode in turn and destroys the context after
+  // each one whether the load succeeded or not, so a single plugin that will not load takes the whole
+  // sweep down with it rather than being skipped.
+
+  if (module_ctx->module_init == NULL)
+  {
+    module_unload (module_ctx);
+
+    memset (hashconfig, 0, sizeof (hashconfig_t));
+
+    return;
+  }
 
   if (module_ctx->module_hook_extra_param_term != MODULE_DEFAULT)
   {

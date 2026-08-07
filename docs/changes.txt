@@ -77,6 +77,7 @@ This part has not changed.
 - Docker: Removed the Ubuntu 18.04 build because its mingw-w64 cannot link current Rust
 - Build: Disabled LTO by default; release binaries still enable it
 - Build: Disabled setShouldMaximizeConcurrentCompilation in ext_metal.m due to a macOS Tahoe crash
+- Help: -D 3 is now described as 'OpenCL Accelerator'; bridge hardware is selected by hash-mode and never by -D
 - Rules: Added the 'convert to lower hex' and 'convert to upper hex' operations
 - Rules: Added the 'insert every' operation
 - Rules: Added the 'shift case' operation
@@ -142,6 +143,17 @@ This part has not changed.
 - Fixed a restored position beyond the keyspace wrapping the remaining work to a huge value
 - Fixed brain attack identities not including the rules, so two different attacks shared a database
 - Fixed the progress line counting the words --skip left out as work that had already been done
+- Fixed a crash in autodetect and --identify when any hash-mode's module could not be loaded
+- Fixed a memory leak in module_load() on the paths where the module file cannot be opened or has no module_init
+- Fixed RAR3-p Compressed being unusable on Windows because module_23800.dll imported libstdc++-6.dll
+- Fixed feeds/rust_random.dll shipping with no Windows version information
+- Fixed cargo refusing a --locked, offline or vendored build after winresource was added without regenerating the lockfiles
+- Fixed the packaged Rust bridge sources rebuilding without version information because their build.rs was not copied
+- Fixed the binaries container failing to build 7-Zip after its toolchain moved to GCC 16
+- Fixed the binaries container packaging an incomplete archive when the build had failed
+- Fixed redefinition warnings from the Python.h and _WIN32_WINNT include order
+- Fixed "No devices found/left." not naming what removed the devices, nor that a bridge was left with units and nothing to drive them
+- Fixed -I listing one backend device per bridge unit instead of one per physical device
 
 ##
 ## Other changes

@@ -1725,6 +1725,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
+      // One entry per physical device. The other copies of a virtualised device are the bridge
+      // units, and the Assimilation Bridge section above is where those are described.
+
+      if (device_param->is_virtual == true) continue;
+
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
       u32   device_processors             = device_param->device_processors;
@@ -1876,6 +1881,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
+      // One entry per physical device. The other copies of a virtualised device are the bridge
+      // units, and the Assimilation Bridge section above is where those are described.
+
+      if (device_param->is_virtual == true) continue;
+
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
       u32   device_processors             = device_param->device_processors;
@@ -2009,6 +2019,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      // One entry per physical device. The other copies of a virtualised device are the bridge
+      // units, and the Assimilation Bridge section above is where those are described.
+
+      if (device_param->is_virtual == true) continue;
 
       int   device_id                        = device_param->device_id;
       int   device_max_transfer_rate         = device_param->device_max_transfer_rate;
@@ -2283,6 +2298,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
 
         const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+        // One entry per physical device. The other copies of a virtualised device are the bridge
+        // units, and the Assimilation Bridge section above is where those are described.
+
+        if (device_param->is_virtual == true) continue;
 
         int            device_id                      = device_param->device_id;
         char          *device_name                    = device_param->device_name;

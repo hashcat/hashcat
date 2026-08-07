@@ -1392,6 +1392,16 @@ typedef struct hc_device_param
 
   int     bridge_link_device;
 
+  // A copy of another device rather than a device of its own. Virtualisation makes one backend device
+  // per bridge unit, all of them the same physical device, because a unit computes but does not feed
+  // itself and needs something to generate its candidates.
+  //
+  // The first copy is left unmarked and stands for the physical device. The rest are marked here so
+  // that -I can describe the machine rather than the work: a run with 33 bridge units otherwise lists
+  // 33 identical CPUs, which reads as something being badly wrong.
+
+  bool    is_virtual;
+
   st_status_t st_status;        // selftest status
 
   at_status_t at_status;        // autotune status
