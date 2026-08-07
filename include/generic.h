@@ -60,6 +60,8 @@ char *generic_resolve        (const folder_config_t *folder_config, const char *
 int  generic_thread_next     (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, u8 *out_buf, const int out_size);
 int  generic_thread_seek     (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, const u64 offset);
 
+int  generic_association_in_sync   (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t *generic_ctx);
+
 int  generic_ctx_base_round  (hashcat_ctx_t *hashcat_ctx, const char *path);
 int  generic_ctx_base_discard (hashcat_ctx_t *hashcat_ctx, const int device_id, const u64 count);
 

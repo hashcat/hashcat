@@ -3703,6 +3703,41 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
+    // A feed scoped to one source per round has a queue of rounds and says which one it is on. -a 9 over
+    // several wordlists is one round per wordlist, and -a 9 splitting its own hash file is one round per
+    // word of the account name. A feed handed every source at once answers 1 of 1 here and says where it
+    // has reached inside Guess.Base instead.
+
+    case GUESS_MODE_GENERIC:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
+    case GUESS_MODE_GENERIC_RULES_FILE:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
+    case GUESS_MODE_GENERIC_RULES_GEN:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
     case GUESS_MODE_MASK:
 
       event_log_info (hashcat_ctx,

@@ -279,6 +279,7 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  Combinator       | MD5   | hashcat -a 1 -m 0 example0.hash example.dict example.dict",
   "  Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule",
   "  Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule",
+  "  Association      | $1$   | hashcat -a 9 -m 500 user500.hash -r rules/best66.rule",
   "",
   "If you still have no idea what just happened, try the following pages:",
   "",

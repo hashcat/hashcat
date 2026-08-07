@@ -9,6 +9,7 @@
 #include "event.h"
 #include "logfile.h"
 #include "shared.h"
+#include "hlfmt.h"
 #include "folder.h"
 #include "rp.h"
 #include "wordlist.h"
@@ -36,6 +37,53 @@ static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)
   straight_ctx->dicts[straight_ctx->dicts_cnt] = hcstrdup (dict);
 
   straight_ctx->dicts_cnt++;
+
+  return 0;
+}
+
+// The rounds of -a 9 splitting its own hash file. There is no file per round: a round is "try the Nth
+// word of every account name", so the list is as long as the widest account name in the file.
+//
+// The names are walked here rather than the count being asked of the feed, because the round list has to
+// exist before any round is opened and the feed is opened one round at a time.
+
+static int straight_ctx_add_association_rounds (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+  u32 words_max = 1;
+
+  if (hashes->hash_info)
+  {
+    hlfmt_word_t words[ASSOCIATION_WORDS_MAX];
+
+    for (u32 i = 0; i < hashes->digests_cnt; i++)
+    {
+      const user_t *user = hashes->hash_info[i]->user;
+
+      if (user == NULL) continue;
+
+      const u32 words_cnt = hlfmt_user_words (user->user_name, user->user_len, words, ASSOCIATION_WORDS_MAX);
+
+      if (words_cnt > words_max) words_max = words_cnt;
+    }
+  }
+
+  straight_ctx->dicts = (char **) hcmalloc (words_max * sizeof (char *));
+
+  straight_ctx->dicts_avail = words_max;
+  straight_ctx->dicts_cnt   = words_max;
+
+  for (u32 i = 0; i < words_max; i++)
+  {
+    char *name = NULL;
+
+    hc_asprintf (&name, "%u", i);
+
+    straight_ctx->dicts[i] = name;
+  }
 
   return 0;
 }
@@ -120,24 +168,33 @@ static int straight_ctx_add_workv (hashcat_ctx_t *hashcat_ctx, const int from, c
 
 static u64 straight_ctx_round_words (hashcat_ctx_t *hashcat_ctx, const char *dict)
 {
-  HCFILE fp;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if (hc_fopen (&fp, dict, "rb") == false)
+  // An empty dictionary is a round with nothing in it rather than a failure, and that is worth knowing
+  // before a feed is stood up for it. -a 9 splitting its own hash file has no file here: its rounds are
+  // the words an account name became, so there is nothing to stat and nothing that can be empty.
+
+  if (user_options_extra->association_autosplit == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", dict, strerror (errno));
+    HCFILE fp;
 
-    return GENERIC_KEYSPACE_ERROR;
-  }
+    if (hc_fopen (&fp, dict, "rb") == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %s", dict, strerror (errno));
 
-  struct stat st;
+      return GENERIC_KEYSPACE_ERROR;
+    }
 
-  const int rc_stat = hc_fstat (&fp, &st);
+    struct stat st;
 
-  hc_fclose (&fp);
+    const int rc_stat = hc_fstat (&fp, &st);
 
-  if (rc_stat == 0)
-  {
-    if (st.st_size == 0) return 0;
+    hc_fclose (&fp);
+
+    if (rc_stat == 0)
+    {
+      if (st.st_size == 0) return 0;
+    }
   }
 
   if (generic_ctx_base_round (hashcat_ctx, dict) == -1) return GENERIC_KEYSPACE_ERROR;
@@ -178,7 +235,6 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   induct_ctx_t         *induct_ctx         = hashcat_ctx->induct_ctx;
-  hashes_t             *hashes             = hashcat_ctx->hashes;
   logfile_ctx_t        *logfile_ctx        = hashcat_ctx->logfile_ctx;
   mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
@@ -246,13 +302,7 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
     if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
     {
-      if (generic_ctx->keyspace != hashes->salts_cnt)
-      {
-        event_log_error (hashcat_ctx, "Number of words in wordlist '%s' is not in sync with number of unique salts", generic_ctx->workv[1]);
-        event_log_error (hashcat_ctx, "Words: %" PRIu64 ", salts: %d", generic_ctx->keyspace, hashes->salts_cnt);
-
-        return -1;
-      }
+      if (generic_association_in_sync (hashcat_ctx, generic_ctx) == -1) return -1;
     }
 
     u64 amplifier = 1;
@@ -398,7 +448,16 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (user_options_extra->base_scope == BASE_SCOPE_ALL_SOURCES) return 0;
   }
 
-  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+  // -a 9 splitting its own hash file has no dictionaries. Its rounds are the words one account name
+  // becomes, so the list is a round per word and the widest name in the file says how many. Every round
+  // hands out one word per hash, and an account with fewer words repeats its last one, because the
+  // kernel reads the salt index off the word's position in the batch and no account can sit a round out.
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    if (straight_ctx_add_association_rounds (hashcat_ctx) == -1) return -1;
+  }
+  else if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     // Reading candidates from stdin is the one case with no dictionaries to list. Testing for that
     // rather than for the wordlist reader is what lets a feed scoped to one round have the list too.

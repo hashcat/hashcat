@@ -383,6 +383,8 @@ static int generic_instance_open (hashcat_ctx_t *hashcat_ctx, const generic_role
 
 int generic_ctx_base_round (hashcat_ctx_t *hashcat_ctx, const char *path)
 {
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
   generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
 
   generic_instance_destroy (hashcat_ctx, generic_ctx);
@@ -390,7 +392,10 @@ int generic_ctx_base_round (hashcat_ctx_t *hashcat_ctx, const char *path)
   generic_ctx->workc = 2;
   generic_ctx->workv = (char **) hcmalloc (2 * sizeof (char *));
 
-  generic_ctx->workv[0] = "wordlist";
+  // -a 9 splitting its own hash file has no file to name per round. Its rounds are the words one account
+  // name becomes, so the source is which of those words this round is trying.
+
+  generic_ctx->workv[0] = (user_options_extra->association_autosplit == true) ? "association" : "wordlist";
   generic_ctx->workv[1] = (char *) path;
 
   generic_ctx->workv_owned = true;
@@ -483,6 +488,36 @@ static bool generic_amp_is_wordlist (const hashcat_ctx_t *hashcat_ctx)
   if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) return false;
 
   return true;
+}
+
+// -a 9 pairs word N with salt N, so the two counts have to agree exactly. Asked at init and again per
+// round, because a scope that knows its keyspace at init should be refused before any device is brought
+// up rather than after the self-test, and a scope that reads one dictionary per round can only be asked
+// once that round's dictionary has been counted.
+//
+// A hash-mode with no salt is the common way to arrive here: every one of its hashes shares the single
+// salt, so there is one salt to pair with however many words there are. Naming the file the words came
+// out of is what makes that readable, and the autosplit form has no such file to name.
+
+int generic_association_in_sync (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t *generic_ctx)
+{
+  const hashes_t             *hashes             = hashcat_ctx->hashes;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (generic_ctx->keyspace == hashes->salts_cnt) return 0;
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    event_log_error (hashcat_ctx, "Number of words split out of hash file '%s' is not in sync with number of unique salts", hashes->hashfile);
+  }
+  else
+  {
+    event_log_error (hashcat_ctx, "Number of words in wordlist '%s' is not in sync with number of unique salts", generic_ctx->workv[1]);
+  }
+
+  event_log_error (hashcat_ctx, "Words: %" PRIu64 ", salts: %d", generic_ctx->keyspace, hashes->salts_cnt);
+
+  return -1;
 }
 
 int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)
@@ -595,21 +630,9 @@ int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)
     if (generic_instance_open (hashcat_ctx, GENERIC_ROLE_BASE, from, to) == -1) return -1;
   }
 
-  // -a 9 pairs word N with salt N, so the two counts have to agree exactly. Asked here as well as per
-  // round, because a scope that knows its keyspace at init should be refused before any device is
-  // brought up rather than after the self-test.
-
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
-    const hashes_t *hashes = hashcat_ctx->hashes;
-
-    if (generic_ctx->keyspace != hashes->salts_cnt)
-    {
-      event_log_error (hashcat_ctx, "Number of words in wordlist '%s' is not in sync with number of unique salts", generic_ctx->workv[1]);
-      event_log_error (hashcat_ctx, "Words: %" PRIu64 ", salts: %d", generic_ctx->keyspace, hashes->salts_cnt);
-
-      return -1;
-    }
+    if (generic_association_in_sync (hashcat_ctx, generic_ctx) == -1) return -1;
   }
 
   return 0;

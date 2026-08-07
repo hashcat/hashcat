@@ -903,6 +903,48 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// Whether any line of the hash file has a separator on it, which is what says the file can be split
+// into username and hash at all. Only the first lines are looked at, as many as the format detection
+// above reads, because a file where none of those has one is not the shape the user thinks it is.
+
+static bool hashfile_has_separator (hashcat_ctx_t *hashcat_ctx, HCFILE *fp)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+  bool found = false;
+
+  u32 num_check = 0;
+
+  while (!hc_feof (fp))
+  {
+    const size_t line_len = fgetl (fp, line_buf, HCBUFSIZ_LARGE);
+
+    if (line_len == 0) continue;
+
+    // The username is what sits in front of the separator, so a line that starts with one has no
+    // username on it and does not count as a line this file can be split at.
+
+    if (line_buf[0] == hashconfig->separator) continue;
+
+    if (memchr (line_buf, hashconfig->separator, line_len) != NULL)
+    {
+      found = true;
+
+      break;
+    }
+
+    if (num_check == 100) break;
+
+    num_check++;
+  }
+
+  hcfree (line_buf);
+
+  return found;
+}
+
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -927,6 +969,21 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     if (hashlist_mode == HL_MODE_ARG)
     {
       hashes_avail = 1;
+
+      if (user_options_extra->association_autosplit == true)
+      {
+        if (strchr (user_options_extra->hc_hash, hashconfig->separator) == NULL)
+        {
+          event_log_error (hashcat_ctx, "%s: no username followed by '%c'.", user_options_extra->hc_hash, hashconfig->separator);
+
+          event_log_warning (hashcat_ctx, "Attack mode 9 given only a hash splits it at the first '%c', taking the username in", hashconfig->separator);
+          event_log_warning (hashcat_ctx, "front of it as the candidate. Use -p to set a different separator, or name a");
+          event_log_warning (hashcat_ctx, "wordlist as a second argument.");
+          event_log_warning (hashcat_ctx, NULL);
+
+          return -1;
+        }
+      }
     }
     else if (hashlist_mode == HL_MODE_FILE_PLAIN)
     {
@@ -957,6 +1014,30 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       }
 
       hashlist_format = hlfmt_detect (hashcat_ctx, &fp, 100); // 100 = max numbers to "scan". could be hashes_avail, too
+
+      // A hash file with no separator in it cannot be split into username and hash, so every line would
+      // fail to parse and the run would end on "No hashes loaded" with a warning per line and no word
+      // about the separator. Said here instead, before any of that, because this is the one thing the
+      // user has to change.
+
+      if (user_options_extra->association_autosplit == true)
+      {
+        hc_rewind (&fp);
+
+        if (hashfile_has_separator (hashcat_ctx, &fp) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: no line begins with a username followed by '%c'.", hashfile, hashconfig->separator);
+
+          event_log_warning (hashcat_ctx, "Attack mode 9 given only a hash file splits each line at the first '%c', taking the", hashconfig->separator);
+          event_log_warning (hashcat_ctx, "username in front of it as the candidate. Use -p to set a different separator, or");
+          event_log_warning (hashcat_ctx, "name a wordlist as a second argument to pair the two files by line number.");
+          event_log_warning (hashcat_ctx, NULL);
+
+          hc_fclose (&fp);
+
+          return -1;
+        }
+      }
 
       hc_fclose (&fp);
 

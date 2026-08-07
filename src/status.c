@@ -664,7 +664,11 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
   {
-    return 1;
+    // A feed handed every source at once is one entry in the queue, and it says where inside itself the
+    // run has reached with its own segments instead. A feed scoped to one source per round is a real
+    // queue of rounds, and the round is the position in it, so those fall through to the answer below.
+
+    if (user_options_extra->base_scope == BASE_SCOPE_ALL_SOURCES) return 1;
   }
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
@@ -721,7 +725,11 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
   {
-    return 1;
+    // A feed handed every source at once is one entry in the queue, and it says where inside itself the
+    // run has reached with its own segments instead. A feed scoped to one source per round is a real
+    // queue of rounds, and the round is the position in it, so those fall through to the answer below.
+
+    if (user_options_extra->base_scope == BASE_SCOPE_ALL_SOURCES) return 1;
   }
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))

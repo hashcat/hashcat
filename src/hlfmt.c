@@ -21,6 +21,173 @@ static const char *const HLFMT_TEXT_NETNTLM2 = "NetNTLMv2";
 static const char *const HLFMT_TEXT_NSLDAP   = "nsldap";
 static const char *const HLFMT_TEXT_NSLDAPS  = "nsldaps";
 
+// Turning one account name into the words an association attack can try for that account.
+//
+// "j.smith" is three tries and not one, because the account name is a hint rather than a password and
+// the parts of it are hints in their own right. john's single mode does the same thing, and it takes
+// the parts from the gecos field and the home directory too. Here there is only the name.
+//
+// Every word is a substring of the name, so nothing is copied and the words point into the caller's
+// buffer. The whole name is always first, which is what makes the first round of an attack identical to
+// what a one word per account run has always done.
+
+static bool association_word_is_separator (const char c)
+{
+  if ((c >= 'a') && (c <= 'z')) return false;
+  if ((c >= 'A') && (c <= 'Z')) return false;
+  if ((c >= '0') && (c <= '9')) return false;
+
+  // Anything above ASCII is a letter as far as this is concerned. Splitting inside a UTF-8 sequence
+  // would produce words that are not words, and a name in a non-latin script would be split to pieces.
+
+  if ((u8) c >= 0x80) return false;
+
+  return true;
+}
+
+static bool association_word_add (hlfmt_word_t *out_words, u32 *out_cnt, const u32 out_max, const char *buf, const u32 len)
+{
+  if (len == 0) return true;
+
+  if (*out_cnt == out_max) return false;
+
+  // A name whose parts repeat, and a name with no separator in it at all, would otherwise be tried
+  // twice. Every account is tried as often as the widest account in the file, so a duplicate here is
+  // paid for by every other account too.
+
+  for (u32 i = 0; i < *out_cnt; i++)
+  {
+    if (out_words[i].len != len) continue;
+
+    if (memcmp (out_words[i].buf, buf, len) == 0) return true;
+  }
+
+  out_words[*out_cnt].buf = buf;
+  out_words[*out_cnt].len = len;
+
+  *out_cnt = *out_cnt + 1;
+
+  return true;
+}
+
+// Split again on case and digit boundaries, so that "JEdgarHoover" is also J, Edgar and Hoover.
+//
+// A capital starts a new word when it begins a capitalised one, which is a capital with a small letter
+// either side of it. Cutting before every capital instead, which is what john does, turns "HTTPServer"
+// into H, T, T, P and Server. Those single letters are not candidates on their own, and each one costs a
+// round for every account in the file, so the rule here is the narrower one and "HTTPServer" stays
+// HTTP and Server.
+
+static void association_words_split_more (hlfmt_word_t *out_words, u32 *out_cnt, const u32 out_max, const char *buf, const u32 len)
+{
+  u32 start = 0;
+
+  for (u32 i = 1; i < len; i++)
+  {
+    const char prev = buf[i - 1];
+    const char cur  = buf[i];
+
+    const bool prev_digit = ((prev >= '0') && (prev <= '9'));
+    const bool cur_digit  = ((cur  >= '0') && (cur  <= '9'));
+
+    const bool prev_lower = ((prev >= 'a') && (prev <= 'z'));
+    const bool cur_upper  = ((cur  >= 'A') && (cur  <= 'Z'));
+
+    bool next_lower = false;
+
+    if ((i + 1) < len) next_lower = ((buf[i + 1] >= 'a') && (buf[i + 1] <= 'z'));
+
+    bool boundary = false;
+
+    if (prev_digit != cur_digit) boundary = true;
+
+    if (cur_upper == true)
+    {
+      if (prev_lower == true) boundary = true;
+      if (next_lower == true) boundary = true;
+    }
+
+    if (boundary == false) continue;
+
+    if (association_word_add (out_words, out_cnt, out_max, buf + start, i - start) == false) return;
+
+    start = i;
+  }
+
+  // Only worth adding when something was split off before it, otherwise this is the whole word again
+
+  if (start == 0) return;
+
+  association_word_add (out_words, out_cnt, out_max, buf + start, len - start);
+}
+
+u32 hlfmt_user_words (const char *user_buf, const u32 user_len, hlfmt_word_t *out_words, const u32 out_max)
+{
+  if (user_len == 0) return 0;
+  if (out_max  == 0) return 0;
+
+  hlfmt_word_t all[ASSOCIATION_WORDS_COLLECT];
+
+  u32 all_cnt = 0;
+
+  // The whole name first, so that round zero of an attack is exactly the one word per account run
+
+  association_word_add (all, &all_cnt, ASSOCIATION_WORDS_COLLECT, user_buf, user_len);
+
+  // Then the parts between the separators, "j.smith" giving j and smith
+
+  u32 start = 0;
+
+  for (u32 i = 0; i <= user_len; i++)
+  {
+    const bool end = (i == user_len) ? true : association_word_is_separator (user_buf[i]);
+
+    if (end == false) continue;
+
+    if (association_word_add (all, &all_cnt, ASSOCIATION_WORDS_COLLECT, user_buf + start, i - start) == false) break;
+
+    start = i + 1;
+  }
+
+  // Then the case and digit boundaries inside each of those parts. Walked over what has been collected
+  // so far rather than over the name again, because "JEdgarHoover.2024" wants splitting on both.
+
+  const u32 split_cnt = all_cnt;
+
+  for (u32 i = 0; i < split_cnt; i++)
+  {
+    association_words_split_more (all, &all_cnt, ASSOCIATION_WORDS_COLLECT, all[i].buf, all[i].len);
+  }
+
+  // Over the cap, drop the shortest. A name that falls apart into a dozen pieces would otherwise make
+  // every other account in the file run a dozen times, and the pieces it would spend that on are its
+  // initials. The whole name is the longest of its own parts, so it is never the one dropped.
+
+  while (all_cnt > out_max)
+  {
+    u32 worst = 1;
+
+    for (u32 i = 2; i < all_cnt; i++)
+    {
+      if (all[i].len <= all[worst].len) worst = i;
+    }
+
+    for (u32 i = worst; i < (all_cnt - 1); i++)
+    {
+      all[i] = all[i + 1];
+    }
+
+    all_cnt--;
+  }
+
+  for (u32 i = 0; i < all_cnt; i++)
+  {
+    out_words[i] = all[i];
+  }
+
+  return all_cnt;
+}
+
 // hlfmt hashcat
 
 static void hlfmt_hash_hashcat (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *line_buf, const int line_len, char **hashbuf_pos, int *hashbuf_len)

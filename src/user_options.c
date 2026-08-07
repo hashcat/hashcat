@@ -2061,7 +2061,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
     else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
     {
-      if (user_options->hc_argc >= 2)
+      // The hash file on its own is the shorter form, where the words are the hash file's own first
+      // fields. A wordlist after it is the older form, where the two files are lined up by line number.
+
+      if (user_options->hc_argc >= 1)
       {
         show_error = false;
       }
@@ -2456,6 +2459,17 @@ void user_options_postprocess (hashcat_ctx_t *hashcat_ctx)
     // restore point, so a restore file was written saying zero and restoring re-read the new pipe
     // from the start whatever it was told.
   }
+
+  // Splitting the hash file is what --username already does, so it is turned on rather than reinvented.
+  // The hash side is then the text after the first separator, which is what the hash parser has to see,
+  // and the username side is kept per hash, which is where the feed picks the words up. Saying
+  // --username as well is not a contradiction and not an error, it asks for the half of this that it
+  // has always asked for.
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    user_options->username = true;
+  }
 }
 
 void user_options_info (hashcat_ctx_t *hashcat_ctx)
@@ -2663,6 +2677,11 @@ static u32 user_options_extra_base_scope (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
+    // An account name becomes several words, and each of them is a round over the same hashes. Asked
+    // before the argument count, because that count is zero here.
+
+    if (user_options_extra->association_autosplit == true) return BASE_SCOPE_PER_ROUND;
+
     if (user_options_extra->hc_workc != 1) return BASE_SCOPE_PER_ROUND;
 
     if (hc_path_is_directory (user_options_extra->hc_workv[0]) == true) return BASE_SCOPE_PER_ROUND;
@@ -2809,6 +2828,22 @@ void user_options_extra_init (hashcat_ctx_t *hashcat_ctx)
     user_options_extra->hc_hash  = user_options->hc_argv[0];
     user_options_extra->hc_workc = user_options->hc_argc - 1;
     user_options_extra->hc_workv = user_options->hc_argv + 1;
+  }
+
+  // -a 9 with a hash file and nothing else takes its words out of that file. One argument means nothing
+  // to -a 9 today, it is a usage error, so no flag is needed to ask for this and nothing changes meaning.
+  //
+  // --keyspace and --stdout have no hash file at all, and their single argument is the wordlist, which
+  // is why hc_hash rather than the argument count is what this asks.
+
+  user_options_extra->association_autosplit = false;
+
+  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+  {
+    if (user_options_extra->hc_hash != NULL)
+    {
+      if (user_options_extra->hc_workc == 0) user_options_extra->association_autosplit = true;
+    }
   }
 
   // base_source, and how much of the attack one instance of it covers

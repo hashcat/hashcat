@@ -2753,6 +2753,12 @@ typedef struct user_options_extra
   int    hc_workc;  // can be 0 in bf-mode = default mask
   char **hc_workv;
 
+  // -a 9 given nothing but a hash file splits that file itself: on each line the text before the first
+  // separator is the candidate and the rest is the hash. That is the same pairing the two argument form
+  // makes, with the wordlist taken out of the hash file instead of out of a second file.
+
+  bool   association_autosplit;
+
 } user_options_extra_t;
 
 typedef struct brain_ctx

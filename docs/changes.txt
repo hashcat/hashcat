@@ -28,6 +28,8 @@
 - Attack-Mode 0: --skip, --limit and --restore now work on stdin if the same stream is fed again
 - Attack-Mode 1: Both dictionaries are now read through a feed, with --slow-candidates as well
 - Attack-Mode 9: Compares wordlist lines against unique salts, refusing files it once accepted
+- Attack-Mode 9: A hash file of username, separator and hash is now split by hashcat, with no wordlist
+- Attack-Mode 9: The username in front of the first separator becomes the candidate, and rules apply
 - Mask attacks: --increment and mask files now form one keyspace, so --skip and --limit apply to all
 - Mask attacks: --keyspace now answers for the whole increment or mask file instead of being refused
 
@@ -75,6 +77,7 @@
 - Backends: Memory budgets are divided among virtual devices on one physical device
 - Backends: A failed clone no longer causes the remaining clones to allocate resources
 - Bridges: Added three optional entry points for units made from multiple components
+- Status View: Attacks reading one source per round report their position again in Guess.Queue
 - Threads: Updated thread macros and types
 - Benchmark: Added a workaround for a CUDA benchmark memory leak caused by register spilling
 
