@@ -57,11 +57,15 @@ static void thread_error_set (generic_thread_ctx_t *thread_ctx, const char *fmt,
   va_end (ap);
 }
 
-static size_t process_word (const u8 *buf, const size_t len, u8 *out_buf, const size_t out_size)
-{
-  size_t word_len = len;
+// Hand out the word that starts here, and say where the next one starts. Finding the end of it and
+// taking the line ending off is hc_line_next () in shared.c, which is the same code the stdin feed and
+// the line counter use.
 
-  while ((word_len > 0) && (buf[word_len - 1] == '\r')) word_len--;
+static size_t process_word (const u8 *buf, const size_t max_len, u8 *out_buf, const size_t out_size, size_t *out_len)
+{
+  size_t word_len = 0;
+
+  const size_t step = hc_line_next (buf, max_len, &word_len);
 
   // hashcat hands out a pointer straight into the buffer it uploads, so there is no room past
   // out_size. Write no more than that, and still report the real length: hashcat rejects an
@@ -72,7 +76,9 @@ static size_t process_word (const u8 *buf, const size_t len, u8 *out_buf, const 
 
   memcpy ((char *) out_buf, buf, copy_len);
 
-  return word_len;
+  *out_len = word_len;
+
+  return step;
 }
 
 static int thread_next_source (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size);
@@ -529,26 +535,15 @@ int thread_next (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED gen
     return word_len;
   }
 
-  hc_memchr_t hc_memchr = hc_memchr_get ();
+  const size_t remaining = fd_len - fd_off;
 
-  size_t remaining = fd_len - fd_off;
-  size_t step      = hc_memchr (fd_mem + fd_off, '\n', remaining);
+  size_t word_len = 0;
 
-  // if no newline, process till EOF
-  if (step == remaining)
-  {
-    size_t word_len = process_word (fd_mem + fd_off, step, out_buf, out_size);
+  const size_t step = process_word (fd_mem + fd_off, remaining, out_buf, out_size, &word_len);
 
-    feed_thread->fd_off += step;
-    feed_thread->fd_line++;
+  // a word with no line ending after it is the last one in the file, and it runs to the end
 
-    return (int) word_len;
-  }
-
-  // found newline
-  size_t word_len = process_word (fd_mem + fd_off, step, out_buf, out_size);
-
-  feed_thread->fd_off += step + 1; // +1 = skip '\n'
+  feed_thread->fd_off += (step < remaining) ? (step + 1) : remaining;
   feed_thread->fd_line++;
 
   return (int) word_len;

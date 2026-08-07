@@ -1,6 +1,33 @@
 * changes v7.1.2 -> v7.1.x
 
 ##
+## Backward Incompatible Changes
+##
+
+1. Plugins: module_dictstat_disable was removed from the module interface
+
+A module that still sets it will no longer compile and reports "module_ctx_t has no member named module_dictstat_disable".
+Delete that line. There is no replacement and nothing needs to be added in its place.
+The option existed because a hash mode could produce a different number of candidates than the number of lines in a wordlist.
+A wordlist keyspace is now always its line count, regardless of the hash mode or any rules being applied.
+
+2. Distribution: Support multiple wordlists, folders and --increment with --keyspace, -s and -l
+
+In all attack modes, --skip and --limit now apply to the complete run instead of restarting for each part of it.
+
+Previously this did not work because multiple wordlists in -a 0, and --increment or mask files in -a 3/6/7
+were treated as separate attacks, each with its own keyspace numbering.
+
+They now form one virtual keyspace. This means --skip 1000 skips the first thousand keyspace units of the complete run
+rather than the first thousand from every file or mask. Hashcat automatically seeks to the correct wordlist or mask.
+
+Both --skip and --limit are expressed in --keyspace units, which are base words rather than final candidates.
+Amplification happens afterwards: rules for -a 0, and the remaining mask positions for -a 3.
+For example, "?l?l?l" has a keyspace of 676 base words but produces 17576 candidates.
+With this change, --skip 300 therefore leaves 376 base words, which expand to 9776 candidates.
+This part has not changed.
+
+##
 ## New Algorithms
 ##
 
@@ -38,7 +65,6 @@
 ##
 
 - Dictionary cache was removed. Wordlist line counts (and offsets!) are now in the new seekdbs
-- Removed module_dictstat_disable because keyspace no longer depends on the hash mode or rules
 
 ##
 ## Improvements
@@ -55,7 +81,7 @@
 - Rules: Added the 'insert every' operation
 - Rules: Added the 'shift case' operation
 - Rules: Added the 'add byte value' operation
-- Wordlists: Added runtime-selected AVX2, AVX512 and NEON vectorized line scanning
+- Wordlists: Added runtime-selected vectorized line scanning, AVX2 on x86 and NEON on arm64
 - Building: Added support for Android and Termux
 - Building: Added support for LoongArch, PowerPC and MIPS
 - Building: Added OpenBSD, NetBSD and MSYS2 jobs to the GitHub workflow
@@ -77,6 +103,8 @@
 - Backends: Memory budgets are divided among virtual devices on one physical device
 - Backends: A failed clone no longer causes the remaining clones to allocate resources
 - Bridges: Added three optional entry points for units made from multiple components
+- Attack-Mode 0: Reading candidates from a pipe no longer slows down as devices are added
+- Startup: Hash files, potfiles, rule files and mask files are read about three times faster
 - Status View: Attacks reading one source per round report their position again in Guess.Queue
 - Threads: Updated thread macros and types
 - Benchmark: Added a workaround for a CUDA benchmark memory leak caused by register spilling
@@ -85,6 +113,7 @@
 ## Bugs
 ##
 
+- Fixed a one byte buffer overflow in fgetl() when a line was as long as the caller's buffer
 - Fixed missing libclang dependencies for Rust bridges in Ubuntu 20.04 and Arch containers
 - Fixed the Windows Rust plugin failing to link in the Arch container because lld was missing
 - Fixed Windows Python plugins disappearing when the bundled Python version was not 3.12
