@@ -2439,6 +2439,8 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   #ifdef WITH_BRAIN
   if (user_options->brain_client == true)
   {
+    brain_client_check_features (hashcat_ctx);
+
     const u32 brain_session = brain_compute_session (hashcat_ctx);
 
     user_options->brain_session = brain_session;

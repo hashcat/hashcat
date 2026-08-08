@@ -779,7 +779,7 @@ typedef enum user_options_defaults
   BITMAP_MIN               = 16,
   #ifdef WITH_BRAIN
   BRAIN_CLIENT             = false,
-  BRAIN_CLIENT_FEATURES    = 2,
+  BRAIN_CLIENT_FEATURES    = 3,
   BRAIN_PORT               = 6863,
   BRAIN_SERVER             = false,
   BRAIN_SESSION            = 0,
@@ -2546,6 +2546,7 @@ typedef struct user_options
   bool         attack_mode_chgd;
   bool         autodetect;
   #ifdef WITH_BRAIN
+  bool         brain_client_features_chgd;
   bool         brain_host_chgd;
   bool         brain_port_chgd;
   bool         brain_password_chgd;

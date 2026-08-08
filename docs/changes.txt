@@ -27,6 +27,20 @@ For example, "?l?l?l" has a keyspace of 676 base words but produces 17576 candid
 With this change, --skip 300 therefore leaves 376 base words, which expand to 9776 candidates.
 This part has not changed.
 
+3. Brain: --brain-client-features now defaults to 3 instead of 2
+
+The client dedups on the candidate itself again, not only on the keyspace position of an attack.
+Two different wordlists holding the same words therefore dedup against each other out of the box,
+which is what most people expect the brain to do.
+
+The candidate feature costs the brain server eight bytes per candidate for as long as the session lives,
+so hashcat now switches it off by itself on hash modes that cannot benefit from it.
+A mode that computes inside the kernel and has fewer than 1024 salts produces candidates far faster
+than the server can usefully remember them, and looking one up costs the server more than testing it
+costs the client. The attack feature stays on in that case, so clients on one session still avoid
+each other's keyspace, and nothing is aborted.
+Setting --brain-client-features on the command line overrules the decision in either direction.
+
 ##
 ## New Algorithms
 ##
