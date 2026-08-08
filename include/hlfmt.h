@@ -28,6 +28,16 @@
 
 #define ASSOCIATION_WORDS_COLLECT 32
 
+// The shortest piece worth trying on its own. Below this a split produces initials and stray digits,
+// which are not passwords, and every one of them costs a round for EVERY account in the file rather
+// than only for the name it came out of. That is what makes a useless piece expensive.
+//
+// The whole account name is exempt. It is the candidate the attack is really about, round zero is meant
+// to be byte for byte what one word per account always did, and a person whose account is "jo" should
+// still have "jo" tried.
+
+#define ASSOCIATION_WORD_MIN_LEN 3
+
 // An account with fewer words than the round count would spend the rest of its rounds repeating itself.
 // Those rounds are already paid for, so they are filled with one of these applied to the words the
 // account does have.

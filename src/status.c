@@ -1619,6 +1619,20 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  // -a 9 splitting its own hash file runs its rounds as one attack, so the progress it counts is the
+  // whole queue and the total it is measured against has to be the whole queue too.
+  //
+  // The multiplication is exact rather than an estimate. Every round pairs one word with every digest,
+  // and generic_association_in_sync refuses any round where that is not true, so a round is always
+  // words_cnt candidates and there are dicts_cnt of them.
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    if (straight_ctx->dicts_cnt > 1) progress_end *= straight_ctx->dicts_cnt;
+  }
+
   return progress_end;
 }
 

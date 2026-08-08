@@ -49,6 +49,14 @@ static bool association_word_add (hlfmt_word_t *out_words, u32 *out_cnt, const u
 {
   if (len == 0) return true;
 
+  // Too short to be a password on its own. Returns true rather than false because false means "the
+  // collection is full, stop", which would abandon the rest of the name over one useless piece.
+  //
+  // The first word is the whole account name and is exempt. It is added before any split, so an empty
+  // collection is the test for it, and a short name is still tried as itself.
+
+  if ((*out_cnt > 0) && (len < ASSOCIATION_WORD_MIN_LEN)) return true;
+
   if (*out_cnt == out_max) return false;
 
   // A name whose parts repeat, and a name with no separator in it at all, would otherwise be tried

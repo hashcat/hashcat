@@ -1278,6 +1278,20 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
+
+    // An association attack has no keyspace of its own. It pairs one candidate with each hash, so what
+    // it would count is a property of the hash file, and --keyspace never reads a hash file: every
+    // argument it is given is work. Without this the hash file is opened as a wordlist and the run ends
+    // on a line count that does not match a salt count of one, which reads like a broken hash file.
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      event_log_error (hashcat_ctx, "Combining -a 9 with --keyspace is not allowed.");
+
+      event_log_warning (hashcat_ctx, "An association attack takes its keyspace from the hash file, which --keyspace does not read.");
+
+      return -1;
+    }
   }
 
   if (user_options->total_candidates == true)
@@ -1292,6 +1306,18 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
    if (user_options->left == true)
     {
       event_log_error (hashcat_ctx, "Combining --left with --total-candidates is not allowed.");
+
+      return -1;
+    }
+
+    // Same reason as the --keyspace case above. --total-candidates turns into --keyspace in
+    // user_options_preprocess, which runs after this, so it has to be refused on its own name here.
+
+    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
+    {
+      event_log_error (hashcat_ctx, "Combining -a 9 with --total-candidates is not allowed.");
+
+      event_log_warning (hashcat_ctx, "An association attack takes its keyspace from the hash file, which --total-candidates does not read.");
 
       return -1;
     }
