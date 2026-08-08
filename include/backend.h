@@ -30,6 +30,7 @@ void backend_ctx_destroy                    (hashcat_ctx_t *hashcat_ctx);
 int  backend_ctx_devices_init               (hashcat_ctx_t *hashcat_ctx, const int comptime);
 void backend_ctx_devices_destroy            (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_devices_sync_tuning        (hashcat_ctx_t *hashcat_ctx);
+bool backend_ctx_devices_tuning_restore     (hashcat_ctx_t *hashcat_ctx);
 
 // Presentation groups. A group is devices that are the same kind of thing, reported as one line. It
 // exists for the status view only: work is fed, tuned and failed per DEVICE. See the comment on

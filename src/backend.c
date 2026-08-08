@@ -10011,6 +10011,64 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+// Put back the tuning the previous round measured, and say whether there was one to put back.
+//
+// run_cracker saves kernel_accel, kernel_loops and kernel_threads and then zeroes them on its way out
+// of every round, so a round that wants to skip autotune has the numbers waiting but only if a round
+// really ran before it in this process. A session restored into the middle of a queue has not run one,
+// and a device that was skipped for part of the run has not either, so the answer there is false and
+// the caller measures as usual.
+//
+// hardware_power and kernel_power are recomputed here rather than saved, exactly as autotune computes
+// them, because kernel_threads is what they are derived from and that is one of the three.
+
+bool backend_ctx_devices_tuning_restore (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  hashconfig_t  *hashconfig  = hashcat_ctx->hashconfig;
+
+  if (backend_ctx->enabled == false) return false;
+
+  // Nothing is written until every device has been checked. A partial restore would leave some devices
+  // tuned and the rest at zero, and a device at zero does not launch at all.
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    if (device_param->kernel_accel_prev   == 0) return false;
+    if (device_param->kernel_loops_prev   == 0) return false;
+    if (device_param->kernel_threads_prev == 0) return false;
+  }
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    device_param->kernel_accel   = device_param->kernel_accel_prev;
+    device_param->kernel_loops   = device_param->kernel_loops_prev;
+    device_param->kernel_threads = device_param->kernel_threads_prev;
+
+    const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+                             : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+                             * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads);
+
+    device_param->hardware_power = hardware_power;
+
+    const u32 kernel_power = device_param->hardware_power * device_param->kernel_accel;
+
+    device_param->kernel_power = kernel_power;
+  }
+
+  return true;
+}
+
 void backend_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t        *backend_ctx         = hashcat_ctx->backend_ctx;

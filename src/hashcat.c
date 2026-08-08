@@ -55,6 +55,121 @@
 #include "brain.h"
 #endif
 
+// Measure how every device should be launched for this round.
+//
+// Returns 0 when the round can go ahead, and -10 when every enabled device failed to tune and there is
+// nothing left to run on. A device that failed on its own is skipped here and the run continues on the
+// rest, which is why the caller cannot decide this from a return code alone.
+
+static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_param, hc_thread_t *c_threads)
+{
+  backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
+  status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  EVENT (EVENT_AUTOTUNE_STARTING);
+
+  status_ctx->devices_status = STATUS_AUTOTUNE;
+
+  // Which devices are interchangeable, decided before anything is measured, because it decides what
+  // has to be measured at all.
+
+  backend_ctx_devices_group (hashcat_ctx);
+
+  // AUTOTUNE ONE DEVICE PER GROUP, not one per device.
+  //
+  // Every trial is a real launch, and on an accelerator a real launch is the algorithm running at the
+  // user's own cost factor. Sixty four identical devices measured the same answer sixty four times
+  // over and then had it overwritten by backend_ctx_devices_sync_tuning below, which has always
+  // copied one group member's tuning onto the rest. The measurement was the part that was redundant,
+  // not the copy.
+  //
+  // A device that is not the leader of its group is left at its minimum here and takes the leader's
+  // answer from sync_tuning, clamped to what its own buffers can hold.
+
+  int autotune_cnt = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    if (backend_ctx_device_is_group_leader (hashcat_ctx, backend_devices_idx) == false) continue;
+
+    thread_param_t *thread_param = threads_param + backend_devices_idx;
+
+    thread_param->hashcat_ctx = hashcat_ctx;
+    thread_param->tid         = backend_devices_idx;
+
+    hc_thread_create (c_threads[autotune_cnt], thread_autotune, thread_param);
+
+    autotune_cnt++;
+  }
+
+  hc_thread_wait (autotune_cnt, c_threads);
+
+  // check for any autotune failures
+  // by default, skipping device on error
+  // using --force, accel/loops/threads min values are used instead of skipping
+
+  int at_err = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    if (backend_ctx->enabled == false) continue;
+
+    hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+    if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true) continue;
+
+    if (device_param->at_status == AT_STATUS_FAILED)
+    {
+      at_err++;
+
+      if (user_options->force == false)
+      {
+        event_log_warning (hashcat_ctx, "* Device #%u: skipped, due to kernel autotune failure (%d).", device_param->device_id + 1, device_param->at_rc);
+
+        device_param->skipped = true;
+
+        // update counters
+
+        if (device_param->is_hip == true)    backend_ctx->hip_devices_active--;
+        if (device_param->is_cuda == true)   backend_ctx->cuda_devices_active--;
+        if (device_param->is_opencl == true) backend_ctx->opencl_devices_active--;
+
+        backend_ctx->backend_devices_active--;
+      }
+      else
+      {
+        event_log_warning (hashcat_ctx, "* Device #%u: detected kernel autotune failure (%d), min values will be used", device_param->device_id + 1, device_param->at_rc);
+      }
+    }
+  }
+
+  if (at_err > 0)
+  {
+    event_log_warning (hashcat_ctx, NULL);
+
+    if (user_options->force == false)
+    {
+      // if all enabled devices fail, abort session
+      if (backend_ctx->backend_devices_active <= 0)
+      {
+        event_log_error (hashcat_ctx, "Aborting session due to kernel autotune failures, for all active devices.");
+
+        event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        return -10;
+      }
+    }
+  }
+
+  EVENT (EVENT_AUTOTUNE_FINISHED);
+
+  return 0;
+}
+
 // inner2_loop iterates through wordlists, then calls kernel execution
 
 static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
@@ -82,9 +197,28 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   logfile_sub_msg ("START");
 
-  status_progress_reset (hashcat_ctx);
+  // ONE ATTACK, NOT A QUEUE OF THEM.
+  //
+  // -a 9 splitting its own hash file makes its own rounds, one per word position in an account name,
+  // and the user never asked for them. Reporting them as separate attacks resets the progress, the
+  // elapsed time and the estimate several times over a run, which is what a user watching the status
+  // screen complains about: the run keeps starting again.
+  //
+  // words_walk_base is what says a round already ran in this process. It is only ever advanced by a
+  // round that got far enough to be sized, and outer_loop starts it at zero, so it is true for the
+  // second and later rounds and false for a session restored into the middle of a queue.
 
-  status_ctx->msec_paused = 0;
+  const bool round_continues = ((user_options_extra->association_autosplit == true) && (status_ctx->words_walk_base > 0));
+
+  // msec_paused is subtracted from the elapsed time, so it belongs to whatever timer_running is
+  // measuring. A continuation round leaves that timer alone, so it must leave this alone too.
+
+  if (round_continues == false)
+  {
+    status_progress_reset (hashcat_ctx);
+
+    status_ctx->msec_paused = 0;
+  }
 
   status_ctx->words_off = 0;
   status_ctx->words_cur = 0;
@@ -291,105 +425,29 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * create autotune threads
    */
 
-  EVENT (EVENT_AUTOTUNE_STARTING);
-
-  status_ctx->devices_status = STATUS_AUTOTUNE;
-
-  // Which devices are interchangeable, decided before anything is measured, because it decides what
-  // has to be measured at all.
-
-  backend_ctx_devices_group (hashcat_ctx);
-
-  // AUTOTUNE ONE DEVICE PER GROUP, not one per device.
+  // The rounds of -a 9 splitting its own hash file are one attack, not a queue of different ones. A
+  // round is "try the Nth word of every account name", so every round launches the same kernel over
+  // the same digests with the same keyspace, and measuring each of them separately arrives at the same
+  // answer as many times as there are rounds. On a slow hash that is seconds of real launches per
+  // round, spent to learn nothing.
   //
-  // Every trial is a real launch, and on an accelerator a real launch is the algorithm running at the
-  // user's own cost factor. Sixty four identical devices measured the same answer sixty four times
-  // over and then had it overwritten by backend_ctx_devices_sync_tuning below, which has always
-  // copied one group member's tuning onto the rest. The measurement was the part that was redundant,
-  // not the copy.
-  //
-  // A device that is not the leader of its group is left at its minimum here and takes the leader's
-  // answer from sync_tuning, clamped to what its own buffers can hold.
+  // The one thing a round boundary destroys is the tuning itself, because run_cracker zeroes it on its
+  // way out. So the previous round's answer is taken back from where run_cracker saved it, and a round
+  // that has no previous answer to take falls through and measures as usual.
 
-  int autotune_cnt = 0;
+  bool tuning_reused = false;
 
-  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  if (user_options_extra->association_autosplit == true)
   {
-    if (backend_ctx_device_is_group_leader (hashcat_ctx, backend_devices_idx) == false) continue;
-
-    thread_param_t *thread_param = threads_param + backend_devices_idx;
-
-    thread_param->hashcat_ctx = hashcat_ctx;
-    thread_param->tid         = backend_devices_idx;
-
-    hc_thread_create (c_threads[autotune_cnt], thread_autotune, thread_param);
-
-    autotune_cnt++;
+    tuning_reused = backend_ctx_devices_tuning_restore (hashcat_ctx);
   }
 
-  hc_thread_wait (autotune_cnt, c_threads);
-
-  // check for any autotune failures
-  // by default, skipping device on error
-  // using --force, accel/loops/threads min values are used instead of skipping
-
-  int at_err = 0;
-
-  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  if (tuning_reused == false)
   {
-    if (backend_ctx->enabled == false) continue;
+    const int rc_autotune = inner2_autotune (hashcat_ctx, threads_param, c_threads);
 
-    hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
-
-    if (device_param->skipped == true) continue;
-
-    if (device_param->skipped_warning == true) continue;
-
-    if (device_param->at_status == AT_STATUS_FAILED)
-    {
-      at_err++;
-
-      if (user_options->force == false)
-      {
-        event_log_warning (hashcat_ctx, "* Device #%u: skipped, due to kernel autotune failure (%d).", device_param->device_id + 1, device_param->at_rc);
-
-        device_param->skipped = true;
-
-        // update counters
-
-        if (device_param->is_hip == true)    backend_ctx->hip_devices_active--;
-        if (device_param->is_cuda == true)   backend_ctx->cuda_devices_active--;
-        if (device_param->is_opencl == true) backend_ctx->opencl_devices_active--;
-
-        backend_ctx->backend_devices_active--;
-      }
-      else
-      {
-        event_log_warning (hashcat_ctx, "* Device #%u: detected kernel autotune failure (%d), min values will be used", device_param->device_id + 1, device_param->at_rc);
-      }
-    }
+    if (rc_autotune != 0) return rc_autotune;
   }
-
-  if (at_err > 0)
-  {
-    event_log_warning (hashcat_ctx, NULL);
-
-    if (user_options->force == false)
-    {
-      // if all enabled devices fail, abort session
-      if (backend_ctx->backend_devices_active <= 0)
-      {
-        event_log_error (hashcat_ctx, "Aborting session due to kernel autotune failures, for all active devices.");
-
-        event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
-        event_log_warning (hashcat_ctx, NULL);
-
-        return -10;
-      }
-    }
-  }
-
-  EVENT (EVENT_AUTOTUNE_FINISHED);
 
   /**
    * find same backend devices and equal results
@@ -426,19 +484,24 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * Prepare cracking stats
    */
 
-  hc_timer_set (&status_ctx->timer_running);
+  // A continuation round keeps the clock the queue started on. Restarting it is what makes the elapsed
+  // time and the estimate jump backwards every time a round ends, and the speed is an average over
+  // this same window, so it takes the reading with it.
 
-  time_t runtime_start;
+  if (round_continues == false)
+  {
+    hc_timer_set (&status_ctx->timer_running);
 
-  time (&runtime_start);
+    time (&status_ctx->runtime_start);
+  }
 
-  status_ctx->runtime_start = runtime_start;
+  const time_t runtime_start = status_ctx->runtime_start;
 
   /**
    * create cracker threads
    */
 
-  EVENT (EVENT_CRACKER_STARTING);
+  if (round_continues == false) EVENT (EVENT_CRACKER_STARTING);
 
   status_ctx->devices_status = STATUS_RUNNING;
 
@@ -520,7 +583,21 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   logfile_sub_uint (hashes->digests_done_new);
 
-  EVENT (EVENT_CRACKER_FINISHED);
+  // Whether another round of the same attack follows this one. Only an exhausted round moves on: a
+  // crack that finished the hash list, an abort and a quit all end the run here, and each of them
+  // wants the final status printed rather than swallowed.
+  //
+  // inner1_loop is what actually decides to run the next round, and it decides on run_main_level3.
+  // Asking the same question the same way is what keeps a round from being the last one silently.
+
+  bool round_follows = false;
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    round_follows = ((status_ctx->run_main_level3 == true) && (status_ctx->devices_status == STATUS_EXHAUSTED) && (straight_ctx->dicts_pos + 1 < straight_ctx->dicts_cnt));
+  }
+
+  if (round_follows == false) EVENT (EVENT_CRACKER_FINISHED);
 
   // mark sub logfile
 
