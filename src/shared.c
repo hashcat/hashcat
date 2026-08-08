@@ -617,3 +617,21 @@ u32 next_power_of_two (const u32 x)
 
   return r;
 }
+
+// Whether an on/off environment switch is set, looked up once.
+//
+// Several of these exist (HASHCAT_PIPE, HASHCAT_MEMORY, HASHCAT_PIPE_SYNC, ...) and each one used to
+// carry its own copy of the lookup and its own cache. The cache is what forced the duplication: one
+// static inside a shared function would be a single slot shared by every variable, so the slot stays
+// with the caller and only the logic moves here. Pass a static int initialised to -1.
+//
+// Presence is what counts, not the value, which is how these switches have always behaved.
+
+bool hc_env_flag (const char *name, int *cache)
+{
+  if (*cache == -1) *cache = (getenv (name) != NULL) ? 1 : 0;
+
+  const bool result = (*cache == 1) ? true : false;
+
+  return result;
+}
