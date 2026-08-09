@@ -30,6 +30,15 @@ void backend_ctx_destroy                    (hashcat_ctx_t *hashcat_ctx);
 int  backend_ctx_devices_init               (hashcat_ctx_t *hashcat_ctx, const int comptime);
 void backend_ctx_devices_destroy            (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_devices_sync_tuning        (hashcat_ctx_t *hashcat_ctx);
+bool backend_ctx_devices_tuning_restore     (hashcat_ctx_t *hashcat_ctx);
+
+// Presentation groups. A group is devices that are the same kind of thing, reported as one line. It
+// exists for the status view only: work is fed, tuned and failed per DEVICE. See the comment on
+// backend_ctx_devices_group.
+
+void backend_ctx_devices_group              (hashcat_ctx_t *hashcat_ctx);
+bool backend_ctx_device_is_group_leader     (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
+int  backend_ctx_device_group_size          (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx, int *last_idx);
 void backend_ctx_devices_update_power       (hashcat_ctx_t *hashcat_ctx);
 void backend_ctx_devices_kernel_loops       (hashcat_ctx_t *hashcat_ctx);
 
@@ -51,6 +60,27 @@ void generate_source_kernel_amp_filename    (const u32 attack_kern, char *shared
 void generate_cached_kernel_amp_filename    (const u32 attack_kern, char *cache_dir, const char *device_name_chksum, char *cached_file, bool is_metal);
 
 bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources);
+
+// Where a launch's wall clock goes, split by the stage that spent it. A launch is a chain of host
+// steps around one device step, and the steps live in different files, so the buckets are global and
+// printed together. HASHCAT_PIPE=1 turns it on, and nothing is measured or timed otherwise.
+
+typedef enum pipe_slot
+{
+  PIPE_FEED   = 0,  // building the candidate batch on the host, off the critical path
+  PIPE_COPY   = 1,  // uploading it and running the decompress kernel
+  PIPE_INIT   = 2,  // amplifier, utf16 conversion and the init kernel
+  PIPE_XFER   = 3,  // tmps out to the host and back
+  PIPE_LAUNCH = 4,  // the loop itself, kernel or bridge
+  PIPE_COMP   = 5,  // the comp kernel
+
+  PIPE_SLOTS  = 6,
+
+} pipe_slot_t;
+
+void pipe_mark                              (hc_timer_t *timer);
+void pipe_acc                               (const pipe_slot_t slot, hc_timer_t *timer);
+void pipe_launch_done                       (const u64 cands);
 
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 
@@ -86,6 +116,7 @@ int run_opencl_kernel_memset32              (hashcat_ctx_t *hashcat_ctx, hc_devi
 int run_opencl_kernel_bzero                 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, cl_mem buf, const u64 size);
 
 int run_kernel                              (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 pws_pos, const u64 num, const u32 event_update, const u32 iteration, const bool is_autotune);
+int run_bridge_loop                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 salt_pos, const u64 pws_cnt, const u32 loop_pos, const u32 loop_cnt, const u32 event_update);
 int run_kernel_mp                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kern_run, const u64 num);
 int run_kernel_tm                           (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
 int run_kernel_amp                          (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);

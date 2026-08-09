@@ -96,6 +96,23 @@ int hiprtc_init (void *hashcat_ctx)
   free (hiprtcdllpath);
   #else
   hiprtc->lib = hc_dlopen ("libhiprtc.so");
+
+  // Same as the runtime loader in ext_hip.c: the unversioned name belongs to the -dev package, so
+  // fall back to the sonames newest first.
+
+  if (hiprtc->lib == NULL)
+  {
+    char soname[64];
+
+    for (int major = 9; major >= 4; major--)
+    {
+      snprintf (soname, sizeof (soname), "libhiprtc.so.%d", major);
+
+      hiprtc->lib = hc_dlopen (soname);
+
+      if (hiprtc->lib) break;
+    }
+  }
   #endif
 
   if (hiprtc->lib == NULL) return -1;

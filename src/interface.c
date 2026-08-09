@@ -59,6 +59,8 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
     event_log_error (hashcat_ctx, "%s", dlerror ());
     #endif
 
+    hcfree (module_file);
+
     return false;
   }
 
@@ -67,6 +69,8 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
   if (module_ctx->module_init == NULL)
   {
     event_log_error (hashcat_ctx, "Cannot load symbol 'module_init' in module %s", module_file);
+
+    hcfree (module_file);
 
     return false;
   }
@@ -98,7 +102,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig->benchmark_mask          = default_benchmark_mask          (hashconfig, user_options, user_options_extra);
   hashconfig->benchmark_charset       = default_benchmark_charset       (hashconfig, user_options, user_options_extra);
-  hashconfig->dictstat_disable        = default_dictstat_disable        (hashconfig, user_options, user_options_extra);
   hashconfig->esalt_size              = default_esalt_size              (hashconfig, user_options, user_options_extra);
   hashconfig->forced_outfile_format   = default_forced_outfile_format   (hashconfig, user_options, user_options_extra);
   hashconfig->hash_mode               = default_hash_mode               (hashconfig, user_options, user_options_extra);
@@ -168,7 +171,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   CHECK_DEFINED (module_ctx, module_dgst_pos2);
   CHECK_DEFINED (module_ctx, module_dgst_pos3);
   CHECK_DEFINED (module_ctx, module_dgst_size);
-  CHECK_DEFINED (module_ctx, module_dictstat_disable);
   CHECK_DEFINED (module_ctx, module_esalt_size);
   CHECK_DEFINED (module_ctx, module_extra_buffer_size);
   CHECK_DEFINED (module_ctx, module_extra_tmp_size);
@@ -440,7 +442,6 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (module_ctx->module_benchmark_mask           != MODULE_DEFAULT) hashconfig->benchmark_mask          = module_ctx->module_benchmark_mask           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_benchmark_charset        != MODULE_DEFAULT) hashconfig->benchmark_charset       = module_ctx->module_benchmark_charset        (hashconfig, user_options, user_options_extra);
-  if (module_ctx->module_dictstat_disable         != MODULE_DEFAULT) hashconfig->dictstat_disable        = module_ctx->module_dictstat_disable         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_esalt_size               != MODULE_DEFAULT) hashconfig->esalt_size              = module_ctx->module_esalt_size               (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_forced_outfile_format    != MODULE_DEFAULT) hashconfig->forced_outfile_format   = module_ctx->module_forced_outfile_format    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hash_mode                != MODULE_DEFAULT) hashconfig->hash_mode               = module_ctx->module_hash_mode                (hashconfig, user_options, user_options_extra);
@@ -533,8 +534,8 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   // selftest bridge update
   if (hashconfig->bridge_type & BRIDGE_TYPE_UPDATE_SELFTEST)
   {
-    if (bridge_ctx->st_update_hash) hashconfig->st_hash = bridge_ctx->st_update_hash (bridge_ctx->platform_context);
-    if (bridge_ctx->st_update_pass) hashconfig->st_pass = bridge_ctx->st_update_pass (bridge_ctx->platform_context);
+    if (bridge_ctx->st_update_hash) hashconfig->st_hash = bridge_ctx->st_update_hash (hashcat_ctx, bridge_ctx->platform_context);
+    if (bridge_ctx->st_update_pass) hashconfig->st_pass = bridge_ctx->st_update_pass (hashcat_ctx, bridge_ctx->platform_context);
   }
 
   return 0;
@@ -549,6 +550,25 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
   module_ctx_t *module_ctx = hashcat_ctx->module_ctx;
+
+  // A module that never got as far as module_init () has every function pointer still at NULL, because
+  // module_load () memsets the context and then returns early when the file cannot be opened or has no
+  // module_init symbol. MODULE_DEFAULT is (void *) -1 rather than NULL, so each "was this one set" test
+  // below is true for a module that was never loaded, and the first of them calls through a null
+  // pointer.
+  //
+  // Autodetect is where this bites. It walks every hash-mode in turn and destroys the context after
+  // each one whether the load succeeded or not, so a single plugin that will not load takes the whole
+  // sweep down with it rather than being skipped.
+
+  if (module_ctx->module_init == NULL)
+  {
+    module_unload (module_ctx);
+
+    memset (hashconfig, 0, sizeof (hashconfig_t));
+
+    return;
+  }
 
   if (module_ctx->module_hook_extra_param_term != MODULE_DEFAULT)
   {
@@ -687,13 +707,6 @@ u64 default_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 char default_separator (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
   return user_options_extra->separator;
-}
-
-bool default_dictstat_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const bool dictstat_disable = false;
-
-  return dictstat_disable;
 }
 
 bool default_warmup_disable (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)

@@ -107,7 +107,6 @@ Hashcat will use the following locations depending on your environment:
 
 | Condition                                   | Session Files                          | Kernel Cache                          | Potfiles                              |
 |--------------------------------------------|----------------------------------------|---------------------------------------|----------------------------------------|
-| `$HOME/.hashcat` exists                    | `$HOME/.hashcat/sessions/`             | `$HOME/.hashcat/kernels/`             | `$HOME/.hashcat/`                      |
 | `$XDG_DATA_HOME` and `$XDG_CACHE_HOME` set | `$XDG_DATA_HOME/hashcat/sessions/`     | `$XDG_CACHE_HOME/hashcat/kernels/`    | `$XDG_DATA_HOME/hashcat/`              |
 | Only `$XDG_DATA_HOME` set                  | `$XDG_DATA_HOME/hashcat/sessions/`     | `$HOME/.cache/hashcat/`               | `$XDG_DATA_HOME/hashcat/`              |
 | Only `$XDG_CACHE_HOME` set                 | `$HOME/.local/share/hashcat/sessions/` | `$XDG_CACHE_HOME/hashcat/kernels/`    | `$HOME/.local/share/hashcat/`          |

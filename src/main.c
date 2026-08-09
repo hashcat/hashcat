@@ -19,6 +19,7 @@
 #include "status.h"
 #include "shared.h"
 #include "event.h"
+#include "hwmon.h"
 
 #ifdef WITH_BRAIN
 #include "brain.h"
@@ -200,7 +201,7 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   if (user_options->speed_only   == true) return;
   if (user_options->identify     == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     // see thread_keypress() how to access status information
 
@@ -255,7 +256,7 @@ static void main_cracker_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   // Tell the user we're about to start
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if ((user_options->quiet == false) && (user_options->speed_only == false))
     {
@@ -287,7 +288,7 @@ static void main_cracker_finished (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYB
 
   // if we had a prompt, clear it
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if ((user_options->speed_only == false) && (user_options->quiet == false))
     {
@@ -358,7 +359,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
 
   if (outfile_ctx->fp.pfp != NULL) return; // cracked hash was not written to an outfile
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if (outfile_ctx->filename == NULL) if (user_options->quiet == false) clear_prompt (hashcat_ctx);
   }
@@ -369,7 +370,7 @@ static void main_cracker_hash_cracked (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   if (user_options->color_cracked == true && is_stdout_terminal()) fwrite("\033[0m", 4, 1, stdout);
   fwrite (EOL, strlen (EOL), 1, stdout);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if (status_ctx->devices_status != STATUS_CRACKED)
     {
@@ -620,14 +621,7 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     event_log_info (hashcat_ctx, "Watchdog: Hardware monitoring interface not found on your system.");
   }
 
-  if (hwmon_ctx->enabled == true && user_options->hwmon_temp_abort > 0)
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger set to %uc", user_options->hwmon_temp_abort);
-  }
-  else
-  {
-    event_log_info (hashcat_ctx, "Watchdog: Temperature abort trigger disabled.");
-  }
+  hm_temperature_abort_banner (hashcat_ctx);
 
   event_log_info (hashcat_ctx, NULL);
 }
@@ -747,7 +741,7 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if (user_options->quiet == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -756,7 +750,7 @@ static void main_monitor_throttle1 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     send_prompt (hashcat_ctx);
   }
@@ -769,7 +763,7 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if (user_options->quiet == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -778,7 +772,7 @@ static void main_monitor_throttle2 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     send_prompt (hashcat_ctx);
   }
@@ -791,7 +785,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
 
   if (user_options->quiet == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -801,7 +795,7 @@ static void main_monitor_throttle3 (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_warning (hashcat_ctx, "Driver temperature threshold met on GPU #%u. Expect reduced performance.", *device_id + 1);
   event_log_warning (hashcat_ctx, NULL);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     send_prompt (hashcat_ctx);
   }
@@ -818,7 +812,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (backend_ctx->kernel_power_final > 0) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -848,7 +842,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
 
   if (user_options->slow_candidates == false)
   {
-    if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK))
+    if ((user_options_extra->wordlist_mode == WL_MODE_MASK))
     {
       if ((user_options->attack_mode != ATTACK_MODE_HYBRID1) && (user_options->attack_mode != ATTACK_MODE_HYBRID2) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
       {
@@ -867,7 +861,7 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
   event_log_advice (hashcat_ctx, "  https://hashcat.net/faq/morework");
   event_log_advice (hashcat_ctx, NULL);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     send_prompt (hashcat_ctx);
   }
@@ -891,13 +885,30 @@ static void main_monitor_noinput_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
   event_log_error (hashcat_ctx, "No password candidates received in stdin mode, aborting");
 }
 
+// The candidate generator, not the unit. Worth its own message because the device number in the
+// payload is a VIRTUAL one belonging to a bridge unit, so reporting it the usual way would name the
+// unit, which is running perfectly well, while the GPU beside it is the thing overheating.
+
+static void main_monitor_temp_abort_feeder (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
+  {
+    clear_prompt (hashcat_ctx);
+  }
+
+  event_log_error (hashcat_ctx, "Temperature limit on the candidate generator reached, aborting");
+}
+
 static void main_monitor_temp_abort (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
 
-  if (((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
+  if (((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC)) && user_options->quiet == false)
   {
     clear_prompt (hashcat_ctx);
   }
@@ -914,7 +925,7 @@ static void main_monitor_runtime_limit (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
 
   if (user_options->quiet == true) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     clear_prompt (hashcat_ctx);
   }
@@ -930,7 +941,7 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   if (status_ctx->accessible == false) return;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if (user_options->quiet == false)
     {
@@ -943,7 +954,7 @@ static void main_monitor_status_refresh (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx
 
   status_display (hashcat_ctx);
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if (user_options->quiet == false)
     {
@@ -1244,6 +1255,31 @@ static void main_bridges_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAY
   event_log_info_nn (hashcat_ctx, "Initialized bridges");
 }
 
+static void main_generic_init_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  // the name comes with the event because a run can bring up more than one instance, and the one
+  // being initialised is the one worth naming
+
+  const char *plugin_name = (const char *) buf;
+
+  event_log_info_nn (hashcat_ctx, "Initializing feed plugin %s. Please be patient...", plugin_name);
+}
+
+static void main_generic_init_post (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->quiet == true) return;
+
+  const char *plugin_name = (const char *) buf;
+
+  event_log_info_nn (hashcat_ctx, "Initialized feed plugin %s", plugin_name);
+}
+
 static void main_bridges_salt_pre (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
@@ -1289,6 +1325,8 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_CRACKER_FINISHED:          main_cracker_finished          (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_HASH_CRACKED:      main_cracker_hash_cracked      (hashcat_ctx, buf, len); break;
     case EVENT_CRACKER_STARTING:          main_cracker_starting          (hashcat_ctx, buf, len); break;
+    case EVENT_GENERIC_INIT_POST:         main_generic_init_post         (hashcat_ctx, buf, len); break;
+    case EVENT_GENERIC_INIT_PRE:          main_generic_init_pre          (hashcat_ctx, buf, len); break;
     case EVENT_HASHCONFIG_PRE:            main_hashconfig_pre            (hashcat_ctx, buf, len); break;
     case EVENT_HASHCONFIG_POST:           main_hashconfig_post           (hashcat_ctx, buf, len); break;
     case EVENT_HASHLIST_COUNT_LINES_POST: main_hashlist_count_lines_post (hashcat_ctx, buf, len); break;
@@ -1307,6 +1345,7 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
     case EVENT_MONITOR_RUNTIME_LIMIT:     main_monitor_runtime_limit     (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_STATUS_REFRESH:    main_monitor_status_refresh    (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_TEMP_ABORT:        main_monitor_temp_abort        (hashcat_ctx, buf, len); break;
+    case EVENT_MONITOR_TEMP_ABORT_FEEDER: main_monitor_temp_abort_feeder (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE1:         main_monitor_throttle1         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE2:         main_monitor_throttle2         (hashcat_ctx, buf, len); break;
     case EVENT_MONITOR_THROTTLE3:         main_monitor_throttle3         (hashcat_ctx, buf, len); break;
@@ -1406,6 +1445,15 @@ int main (int argc, char **argv)
   user_options_t *user_options = hashcat_ctx->user_options;
 
   #ifdef WITH_BRAIN
+  if (user_options->brain_feed == true)
+  {
+    const int rc = brain_feed (hashcat_ctx);
+
+    hcfree (hashcat_ctx);
+
+    return rc;
+  }
+
   if (user_options->brain_server == true)
   {
     const int rc = brain_server (user_options->brain_host, user_options->brain_port, user_options->brain_password, user_options->brain_session_whitelist, user_options->brain_server_timer);

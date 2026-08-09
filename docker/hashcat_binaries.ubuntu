@@ -72,8 +72,14 @@ RUN echo "$WD/native/lib" > /etc/ld.so.conf.d/toolchain.conf && \
 ARG SEVEN_ZIP_VERSION=25.01
 ENV SEVEN_ZIP_VERSION=${SEVEN_ZIP_VERSION}
 
+# CFLAGS_WARN_WALL drops the -Werror that 7zip sets for itself. GCC 16 reports the COM reference
+# counting in ProgressUtils.h and RarHandler.cpp as -Warray-bounds, and the build stops there. It is
+# a false positive on 7zip's own code, and 7zip 26.02 reports it in the same two places, so waiting
+# for a newer release does not help. This binary is only the archiver that packs the release, so
+# nothing hashcat ships is built with these flags.
+
 RUN cd $WD/src && git clone --depth 1 --branch ${SEVEN_ZIP_VERSION} https://github.com/ip7z/7zip.git && \
-    cd 7zip/CPP/7zip/Bundles/Alone2 && make -f makefile.gcc -j && cp _o/7zz ${WD}/native/bin/7z && cd $WD/src && rm -rf 7zip
+    cd 7zip/CPP/7zip/Bundles/Alone2 && make -f makefile.gcc CFLAGS_WARN_WALL="-Wall -Wextra" -j && cp _o/7zz ${WD}/native/bin/7z && cd $WD/src && rm -rf 7zip
 
 # win-iconv
 
@@ -94,7 +100,7 @@ RUN cd $WD/src && git clone --depth 1 --branch v${WIN_ICONV_VERSION} https://git
 
 # Python (windows)
 
-ARG WIN_PYTHON_VERSION=3.12.12-1
+ARG WIN_PYTHON_VERSION=3.14.6-2
 ENV WIN_PYTHON_VERSION=${WIN_PYTHON_VERSION}
 
 RUN cd /opt/win-python && \
@@ -104,7 +110,7 @@ RUN cd /opt/win-python && \
 
 # rust
 
-ARG RUST_VERSION=1.90.0
+ARG RUST_VERSION=1.97.1
 ENV RUST_VERSION=${RUST_VERSION}
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}; /root/.cargo/bin/rustup target add x86_64-pc-windows-gnu
@@ -112,6 +118,11 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERS
 ENV PATH=/root/.cargo/bin:$PATH
 
 # hashcat
+
+# ENABLE_LTO is off by default in src/Makefile, because a plain distro cross toolchain cannot
+# always link the result. It is turned back on here, on the make command line, so the released
+# binaries get it. A command line assignment beats the ?= in the Makefile, so this stays
+# correct whatever the default becomes
 
 ARG CACHE_BUST=1 \
     ENABLE_LTO=1 \
@@ -132,6 +143,13 @@ RUN cd /root && git clone https://github.com/hashcat/hashcat.git
 COPY docker/patches/hashcat_binaries/ /root/patches/
 
 RUN bash -c 'shopt -s nullglob; cd /root/hashcat; for p in /root/patches/*.patch /root/patches/*.diff; do patch -p1 < "$p"; done'
+
+# pipefail for the two build steps below, because each pipes make into tee and the exit status of a
+# pipeline is the LAST command's. Without it tee always succeeds, a failed make is reported as a
+# success, and package_bin.sh runs on a half built tree. That produces an archive that looks ordinary
+# and is missing however many binaries make had not reached, which is the worst way for this to fail.
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN if [ "${USE_CLANG}" = "1" ]; then \
       cp -af /root/hashcat /root/hashcat-clang && cd /root/hashcat-clang && \
@@ -173,6 +191,10 @@ RUN if [ "${USE_GCC}" = "1" ]; then \
         done; \
       fi; \
     fi
+
+# Back to the default. The steps below pipe greps whose finding nothing is not a failure.
+
+SHELL ["/bin/sh", "-c"]
 
 RUN if [ "${USE_CLANG}" = "1" ] && [ "${USE_GCC}" = "1" ]; then mv /root/out/* /root/xy/; fi; cd /root && rm -rf /root/out /root/hashcat-* $WD/src /tmp/* /var/tmp/*
 

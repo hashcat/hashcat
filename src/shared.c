@@ -1964,11 +1964,21 @@ static void hc_memchr_init (void)
 {
   #if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86)
 
-  if (cpu_supports_avx512f ())
-  {
-    hc_memchr_cached = hc_memchr_avx512;
-  }
-  else if (cpu_supports_avx2 ())
+  // AVX-512 is not used even where it is available, because it loses. What this scans for is the end of
+  // a password, so it stops after about ten bytes, and a 64 byte load to travel ten bytes costs more
+  // than it saves. Measured on a Zen 5, over a real wordlist of twelve million lines:
+  //
+  //   libc 279 M lines/s, AVX2 276 M/s, AVX-512 238 M/s
+  //
+  // and over fixed length lines it holds at every length from 6 bytes to 200. AVX-512 was never once
+  // the fastest, and it was the one being chosen on every CPU new enough to have it.
+  //
+  // The library's own memchr is as fast as AVX2 here, and on glibc it would do. It is not used because
+  // it is not the same routine everywhere: hashcat ships for Windows and macOS as well, and this is the
+  // one place where a weak libc would cost the whole feed. AVX2 is the same speed on the C library that
+  // is good and faster than the ones that are not.
+
+  if (cpu_supports_avx2 ())
   {
     hc_memchr_cached = hc_memchr_avx2;
   }

@@ -25,8 +25,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_NATIVE_THREADS
                                   | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_MATCH_TUNINGS // optional - improves performance
-                                  | BRIDGE_TYPE_REPLACE_LOOP;
+static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_REPLACE_LOOP;
 static const char *BRIDGE_NAME    = "scrypt_yescrypt";
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "SCRYPT:16384:8:1:OTEyNzU0ODg=:Cc8SPjRH1hFQhuIPCdF51uNGtJ2aOY/isuoMlMUsJ8c=";
@@ -196,7 +195,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;

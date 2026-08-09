@@ -11,6 +11,7 @@
 #include "timer.h"
 #include "hashes.h"
 #include "hwmon.h"
+#include "backend.h"
 #include "outfile.h"
 #include "monitor.h"
 #include "mpsp.h"
@@ -217,6 +218,46 @@ int status_get_device_info_active (const hashcat_ctx_t *hashcat_ctx)
   return backend_ctx->backend_devices_active;
 }
 
+// How many presentation groups are running. One line is printed per group, so this is what says
+// whether a total line underneath them would add anything.
+
+int status_get_group_info_active (const hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  int cnt = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    if (backend_ctx_device_is_group_leader (hashcat_ctx, backend_devices_idx) == false) continue;
+
+    cnt++;
+  }
+
+  return cnt;
+}
+
+int status_get_group_id_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  return device_param->group_id;
+}
+
+int status_get_group_size_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const int size = backend_ctx_device_group_size (hashcat_ctx, backend_devices_idx, NULL);
+
+  return size;
+}
+
 bool status_get_skipped_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -389,13 +430,10 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  bool has_wordlist   = false;
   bool has_rule_file  = false;
   bool has_rule_gen   = false;
   bool has_base_left  = false;
   bool has_mask_cs    = false;
-
-  if (user_options_extra->wordlist_mode == WL_MODE_FILE) has_wordlist = true;
 
   if (user_options->rp_files_cnt > 0) has_rule_file = true;
   if (user_options->rp_gen       > 0) has_rule_gen  = true;
@@ -411,20 +449,28 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
   if (user_options->custom_charset_7) has_mask_cs = true;
   if (user_options->custom_charset_8) has_mask_cs = true;
 
+  // Only the straight kernel family displays as a feed. -a 1, -a 6 and -a 7 keep their own labels even
+  // when the base words come from one, because the label describes how a candidate is put together and
+  // that has not changed: the mask is still one half of it and the second wordlist is still the other.
+
+  if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT))
+  {
+    if (has_rule_file == true)
+    {
+      return GUESS_MODE_GENERIC_RULES_FILE;
+    }
+    if (has_rule_gen == true)
+    {
+      return GUESS_MODE_GENERIC_RULES_GEN;
+    }
+    return GUESS_MODE_GENERIC;
+  }
+
+  // What is left here reads its candidates from stdin. Every other straight attack answered the feed
+  // test above, so GUESS_MODE_STRAIGHT_FILE and its two rule variants have nothing left to name.
+
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
-    if (has_wordlist == true)
-    {
-      if (has_rule_file == true)
-      {
-        return GUESS_MODE_STRAIGHT_FILE_RULES_FILE;
-      }
-      if (has_rule_gen == true)
-      {
-        return GUESS_MODE_STRAIGHT_FILE_RULES_GEN;
-      }
-      return GUESS_MODE_STRAIGHT_FILE;
-    }
     if (has_rule_file == true)
     {
       return GUESS_MODE_STRAIGHT_STDIN_RULES_FILE;
@@ -472,20 +518,83 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
     return GUESS_MODE_HYBRID2;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_GENERIC)
+  return GUESS_MODE_NONE;
+}
+
+// How far into the keyspace the work has got, as the furthest point any device has finished. That is
+// deliberately not the restore point: the restore point is the prefix EVERY device is past, so with
+// several devices working separate ranges it trails behind, and it is what makes a resume safe rather
+// than what tells a user where the run is.
+
+static u64 status_get_words_cur_furthest (const hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+  const status_ctx_t  *status_ctx  = hashcat_ctx->status_ctx;
+
+  u64 words_cur = status_ctx->words_cur;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
-    if (has_rule_file == true)
-    {
-      return GUESS_MODE_GENERIC_RULES_FILE;
-    }
-    if (has_rule_gen == true)
-    {
-      return GUESS_MODE_GENERIC_RULES_GEN;
-    }
-    return GUESS_MODE_GENERIC;
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    words_cur = MAX (words_cur, device_param->words_done);
   }
 
-  return GUESS_MODE_NONE;
+  return words_cur;
+}
+
+// Name the source a feed has reached. Every attack mode reading through a feed shows this, and -a 7 is
+// the one that shows it as Guess.Mod rather than Guess.Base, because there the word is the right hand
+// side of the candidate and the mask is the left.
+
+static char *status_get_guess_feed (const hashcat_ctx_t *hashcat_ctx)
+{
+  const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+  const generic_global_ctx_t *global_ctx = &generic_ctx->global_ctx;
+
+  // A feed made of several sources says which one the run has reached, because naming only the first
+  // of eighteen wordlists tells the user nothing about where the attack is. This is the same thing
+  // Guess.Queue said when several dictionaries were several attacks.
+  //
+  // The position is the furthest any device has reached, not the restore point. Devices work
+  // separate ranges at the same time, so the restore point is the contiguous prefix all of them are
+  // past, which lags a long way behind the file actually being read and can sit at zero for a whole
+  // run. Asking where the work has got to answers the question the user is asking.
+
+  if (global_ctx->segments_cnt > 1)
+  {
+    const u64 words_cur = status_get_words_cur_furthest (hashcat_ctx);
+
+    u64 segment_idx = 0;
+
+    for (u64 i = 0; i < global_ctx->segments_cnt; i++)
+    {
+      if (global_ctx->segment_first[i] > words_cur) break;
+
+      segment_idx = i;
+    }
+
+    char buf[HCBUFSIZ_TINY];
+
+    snprintf (buf, sizeof (buf), "[%" PRIu64 "/%" PRIu64 "] %s", segment_idx + 1, global_ctx->segments_cnt, global_ctx->segment_names[segment_idx]);
+
+    char *guess_base = strdup (buf);
+
+    return guess_base;
+  }
+
+  // a feed that named itself during global_init () gets to say what it is generating from. One
+  // that did not is named by the plugin the user asked for.
+
+  if (global_ctx->guess_base[0] != 0) return strdup (global_ctx->guess_base);
+
+  if (generic_ctx->plugin_name) return strdup (generic_ctx->plugin_name);
+
+  return NULL;
 }
 
 char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
@@ -494,14 +603,12 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
-  {
-    if (user_options_extra->wordlist_mode == WL_MODE_FILE)
-    {
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+  // -a 7 puts the mask on the left of the candidate and the word on the right, and Guess.Base names the
+  // left hand side. So it keeps answering with the mask whatever the base words are read through.
 
-      return strdup (straight_ctx->dict);
-    }
+  if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
+  {
+    return status_get_guess_feed (hashcat_ctx);
   }
 
   if (user_options->attack_mode == ATTACK_MODE_COMBI)
@@ -543,18 +650,26 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
     return strdup (straight_ctx->dict);
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_GENERIC)
-  {
-    // todo ATTACK_MODE_GENERIC probably python source file or so? here we will not have a wordlist!
-  }
-
   return NULL;
 }
 
 int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // -a 7 puts the mask on the left of the candidate and the word on the right, and Guess.Base names the
+  // left hand side. So it keeps answering with the mask whatever the base words are read through.
+
+  if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
+  {
+    // A feed handed every source at once is one entry in the queue, and it says where inside itself the
+    // run has reached with its own segments instead. A feed scoped to one source per round is a real
+    // queue of rounds, and the round is the position in it, so those fall through to the answer below.
+
+    if (user_options_extra->base_scope == BASE_SCOPE_ALL_SOURCES) return 1;
+  }
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
@@ -596,18 +711,26 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
     return straight_ctx->dicts_pos + 1;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_GENERIC)
-  {
-    return 1;
-  }
-
   return 0;
 }
 
 int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  // -a 7 puts the mask on the left of the candidate and the word on the right, and Guess.Base names the
+  // left hand side. So it keeps answering with the mask whatever the base words are read through.
+
+  if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
+  {
+    // A feed handed every source at once is one entry in the queue, and it says where inside itself the
+    // run has reached with its own segments instead. A feed scoped to one source per round is a real
+    // queue of rounds, and the round is the position in it, so those fall through to the answer below.
+
+    if (user_options_extra->base_scope == BASE_SCOPE_ALL_SOURCES) return 1;
+  }
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
@@ -649,11 +772,6 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
     return straight_ctx->dicts_cnt;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_GENERIC)
-  {
-    return 1;
-  }
-
   return 0;
 }
 
@@ -669,8 +787,9 @@ double status_get_guess_base_percent (const hashcat_ctx_t *hashcat_ctx)
 
 char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
@@ -704,6 +823,11 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
+      // -a 7 puts the word on the right of the candidate, so for this one mode it is Guess.Mod that
+      // names where the words come from and Guess.Base that names the mask.
+
+      if (user_options_extra->base_source == BASE_SOURCE_FEED) return status_get_guess_feed (hashcat_ctx);
+
       const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
       return strdup (straight_ctx->dict);
@@ -719,8 +843,9 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
@@ -748,6 +873,8 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
+      if (user_options_extra->base_source == BASE_SOURCE_FEED) return 1;
+
       const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
       return straight_ctx->dicts_pos + 1;
@@ -763,8 +890,9 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  const user_options_t *user_options = hashcat_ctx->user_options;
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
@@ -792,6 +920,8 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
   {
     if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
     {
+      if (user_options_extra->base_source == BASE_SOURCE_FEED) return 1;
+
       const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
       return straight_ctx->dicts_cnt;
@@ -1122,7 +1252,7 @@ time_t status_get_sec_etc (const hashcat_ctx_t *hashcat_ctx)
 
   time_t sec_etc = 0;
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_FILE) || (user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
+  if ((user_options_extra->wordlist_mode == WL_MODE_MASK) || (user_options_extra->wordlist_mode == WL_MODE_GENERIC))
   {
     if (status_ctx->devices_status != STATUS_CRACKED)
     {
@@ -1324,6 +1454,22 @@ u64 status_get_progress_rejected (const hashcat_ctx_t *hashcat_ctx)
   return progress_rejected;
 }
 
+#ifdef WITH_BRAIN
+u64 status_get_brain_rejects_attacks (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  return status_ctx->brain_rejects_attacks;
+}
+
+u64 status_get_brain_rejects_hashes (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  return status_ctx->brain_rejects_hashes;
+}
+#endif
+
 double status_get_progress_rejected_percent (const hashcat_ctx_t *hashcat_ctx)
 {
   const u64 progress_cur      = status_get_progress_cur      (hashcat_ctx);
@@ -1384,13 +1530,13 @@ u64 status_get_progress_ignore (const hashcat_ctx_t *hashcat_ctx)
 
   if (words_cnt == -1ULL) words_cnt = 0;
 
-  if (user_options->limit)
+  if (status_ctx->words_limit)
   {
     const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
     const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
     const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
 
-    words_cnt = MIN (user_options->limit, status_ctx->words_base);
+    words_cnt = MIN (status_ctx->words_limit, status_ctx->words_base);
 
     if (user_options->slow_candidates == true)
     {
@@ -1444,13 +1590,13 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
     progress_end *= hashes->salts_cnt;
   }
 
-  if (user_options->limit)
+  if (status_ctx->words_limit)
   {
     const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
     const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
     const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
 
-    progress_end = MIN (user_options->limit, status_ctx->words_base);
+    progress_end = MIN (status_ctx->words_limit, status_ctx->words_base);
 
     if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
     {
@@ -1473,6 +1619,20 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  // -a 9 splitting its own hash file runs its rounds as one attack, so the progress it counts is the
+  // whole queue and the total it is measured against has to be the whole queue too.
+  //
+  // The multiplication is exact rather than an estimate. Every round pairs one word with every digest,
+  // and generic_association_in_sync refuses any round where that is not true, so a round is always
+  // words_cnt candidates and there are dicts_cnt of them.
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+
+    if (straight_ctx->dicts_cnt > 1) progress_end *= straight_ctx->dicts_cnt;
+  }
+
   return progress_end;
 }
 
@@ -1485,13 +1645,18 @@ u64 status_get_progress_skip (const hashcat_ctx_t *hashcat_ctx)
 
   u64 progress_skip = 0;
 
-  if (user_options->skip)
+  // words_skip is this round's share of --skip and not --skip itself, which is a position in the
+  // whole queue of rounds. Reading --skip here also used to read a zero, because it was cleared as
+  // soon as the first round had taken it, so the progress line counted the skipped part as work
+  // already done instead of leaving it out.
+
+  if (status_ctx->words_skip)
   {
     const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
     const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
     const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
 
-    progress_skip = MIN (user_options->skip, status_ctx->words_base);
+    progress_skip = MIN (status_ctx->words_skip, status_ctx->words_base);
 
     if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
     {
@@ -2148,12 +2313,24 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
 
   hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
 
+  if (device_param->skipped == true) return NULL;
+  if (device_param->skipped_warning == true) return NULL;
+
+  // Several backend devices can share one piece of hardware, and then they share its sensors too.
+  // Only the first device of each group reports, so a machine with one card does not print the same
+  // temperature once per virtual device. Returning NULL here is what the callers already treat as
+  // "this device has nothing to show".
+
+  if (hm_is_hwmon_group_leader ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx) == false) return NULL;
+
+  // Then the DISPLAY's own grouping, which is a separate question from which devices carry sensors.
+  // A group is one line whatever it is made of, and the line below is built by walking its members. The watchdog above walks every device and is deliberately not narrowed by this.
+
+  if (backend_ctx_device_is_group_leader (hashcat_ctx, backend_devices_idx) == false) return NULL;
+
   char *output_buf = (char *) hcmalloc (HCBUFSIZ_TINY);
 
   snprintf (output_buf, HCBUFSIZ_TINY, "N/A");
-
-  if (device_param->skipped == true) return output_buf;
-  if (device_param->skipped_warning == true) return output_buf;
 
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
@@ -2169,9 +2346,129 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
 
   int output_len = 0;
 
+  // A bridge unit carrying several temperature sensors renders its own field, so all of the readings
+  // show on one line. The plain reading is still what the abort watchdog uses, because the unit is
+  // only as cool as its hottest sensor.
+
+  // Wide enough for a large group. A group names the hottest few of its members, and a name plus a
+  // reading is far longer than the "62/61/59/58c" a single device produces.
+
+  char temp_str[256];
+
+  temp_str[0] = 0;
+
+  // A bridge unit that renders its own field renders the WHOLE line, and the fields below are skipped
+  // for it. They describe one piece of hardware and a unit can be forty, so a single clock and a single
+  // lane count would be picking one member to speak for all of them. What does not change during a run
+  // is reported once at startup instead, per member, which is where a large unit needs it anyway.
+
+  // A GROUP of several devices renders its own field across its members, because a group is what the
+  // user is looking at and every member is a separate piece of hardware with its own sensor.
+  //
+  // The hottest few, NAMED, re-picked on every refresh so the set is dynamic. That is readable at
+  // sixty four members and it never hides the hot one, which an average would. The rest are counted
+  // rather than listed, and members with no sensor are counted separately: a group where five members
+  // show a temperature and fifty nine show nothing looks broken until you can see that fifty nine
+  // have no sensor fitted.
+
+  const int group_size = backend_ctx_device_group_size (hashcat_ctx, backend_devices_idx, NULL);
+
+  if (group_size > 1)
+  {
+    const backend_ctx_t *backend_ctx_grp = hashcat_ctx->backend_ctx;
+
+    const hc_device_param_t *leader_param = &backend_ctx_grp->devices_param[backend_devices_idx];
+
+    int hottest_idx[HWMON_GROUP_SHOW];
+    int hottest_val[HWMON_GROUP_SHOW];
+
+    int shown = 0;
+    int with_sensor = 0;
+    int without_sensor = 0;
+
+    for (int i = backend_devices_idx; i < backend_ctx_grp->backend_devices_cnt; i++)
+    {
+      const hc_device_param_t *member_param = &backend_ctx_grp->devices_param[i];
+
+      if (member_param->skipped == true) continue;
+      if (member_param->skipped_warning == true) continue;
+      if (member_param->group_id != leader_param->group_id) continue;
+
+      const int temp = hm_get_temperature_with_devices_idx ((hashcat_ctx_t *) hashcat_ctx, i);
+
+      if (temp < 0)
+      {
+        without_sensor++;
+
+        continue;
+      }
+
+      with_sensor++;
+
+      // insertion sort into the top list, which is cheap because the list is five long
+
+      int pos = shown;
+
+      for (int k = 0; k < shown; k++)
+      {
+        if (temp > hottest_val[k]) { pos = k; break; }
+      }
+
+      if (pos >= HWMON_GROUP_SHOW) continue;
+
+      for (int k = MIN (shown, HWMON_GROUP_SHOW - 1); k > pos; k--)
+      {
+        hottest_val[k] = hottest_val[k - 1];
+        hottest_idx[k] = hottest_idx[k - 1];
+      }
+
+      hottest_val[pos] = temp;
+      hottest_idx[pos] = i;
+
+      if (shown < HWMON_GROUP_SHOW) shown++;
+    }
+
+    int len = snprintf (output_buf, HCBUFSIZ_TINY, "Temp:");
+
+    for (int k = 0; k < shown; k++)
+    {
+      len += snprintf (output_buf + len, HCBUFSIZ_TINY - len, " #%02u:%dc", hottest_idx[k] + 1, hottest_val[k]);
+    }
+
+    if (with_sensor > shown) len += snprintf (output_buf + len, HCBUFSIZ_TINY - len, " +%d", with_sensor - shown);
+
+    if (without_sensor > 0) len += snprintf (output_buf + len, HCBUFSIZ_TINY - len, " %dxN/A", without_sensor);
+
+    if (with_sensor == 0) snprintf (output_buf, HCBUFSIZ_TINY, "Temp: N/A (%d devices, no sensors)", without_sensor);
+
+    hc_thread_mutex_unlock (status_ctx->mux_hwmon);
+
+    return output_buf;
+  }
+
+  if (hm_get_bridge_temperature_str ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx, temp_str, sizeof (temp_str)) == true)
+  {
+    snprintf (output_buf, HCBUFSIZ_TINY, "%s", temp_str);
+
+    hc_thread_mutex_unlock (status_ctx->mux_hwmon);
+
+    return output_buf;
+  }
+
   if (num_temperature >= 0)
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp:%3dc ", num_temperature);
+  }
+  else if (hm_bridge_owns_device ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx) == true)
+  {
+    // A bridge unit with no reading at all, which is a property of the hardware rather than a failure
+    // to read it: a 1.15y clone is built without the die sensors and says so, and a design without a
+    // system monitor has nothing to report either.
+    //
+    // Say so. Dropping the field leaves a line that reads as though the temperature were forgotten,
+    // next to sibling units that show one, and the obvious reading of that is that something broke.
+
+    output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Temp: N/A ");
   }
 
   if (num_fanspeed >= 0)
@@ -2197,6 +2494,26 @@ char *status_get_hwmon_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_
   if (num_buslanes >= 0)
   {
     output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus:%u ", num_buslanes);
+  }
+  else
+  {
+    // Lanes are a PCIe idea and a unit reached some other way has none, so the bridge reports no
+    // number here and it is right not to. Dropping the field is what misleads: beside sibling units
+    // that DO show a lane count, a line ending after the clock reads as a unit attached to nothing.
+    //
+    // So let it say what the link actually is. "USB 480Mb/s" answers the same question a lane count
+    // answers, how fat the pipe is, and answers it better than a placeholder would.
+
+    char bus_str[64];
+
+    if (hm_get_bridge_buslanes_str ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx, bus_str, sizeof (bus_str)) == true)
+    {
+      output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "%s ", bus_str);
+    }
+    else if (hm_bridge_owns_device ((hashcat_ctx_t *) hashcat_ctx, backend_devices_idx) == true)
+    {
+      output_len += snprintf (output_buf + output_len, HCBUFSIZ_TINY - output_len, "Bus: N/A ");
+    }
   }
 
   if (num_power >= 0)
@@ -2326,6 +2643,18 @@ int status_get_kernel_threads_dev (const hashcat_ctx_t *hashcat_ctx, const int b
   return device_param->kernel_threads;
 }
 
+u64 status_get_kernel_power_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
+{
+  const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+  if (device_param->skipped == true) return 0;
+  if (device_param->skipped_warning == true) return 0;
+
+  return device_param->kernel_power;
+}
+
 int status_get_vector_width_dev (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -2371,6 +2700,11 @@ void status_progress_reset (hashcat_ctx_t *hashcat_ctx)
   memset (status_ctx->words_progress_done,     0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_rejected, 0, hashes->salts_cnt * sizeof (u64));
   memset (status_ctx->words_progress_restored, 0, hashes->salts_cnt * sizeof (u64));
+
+  #ifdef WITH_BRAIN
+  status_ctx->brain_rejects_attacks = 0;
+  status_ctx->brain_rejects_hashes  = 0;
+  #endif
 }
 
 int status_ctx_init (hashcat_ctx_t *hashcat_ctx)

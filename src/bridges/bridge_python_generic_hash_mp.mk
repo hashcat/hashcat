@@ -26,13 +26,19 @@ ifeq ($(BUILD_MODE),cross)
 endif
 
 ifeq ($(CHECK_DLL),true)
+
+# find whichever python the msys2 package under $(WIN_PYTHON) provides, rather than naming one
+# version here. Pinning the version meant that bumping the msys2 package silently stopped the
+# headers from being found, and the only symptom was the plugin quietly going missing
+
+WIN_PYTHON_INCLUDE := $(lastword $(sort $(wildcard $(WIN_PYTHON)/mingw64/include/python3.*)))
+
 ifeq ($(REPORT_MISSING_DLL),false)
-PYTHON_CONFIG := $(shell ls $(WIN_PYTHON)/mingw64/include/python3.12/ 2>/dev/null)
-ifeq ($(PYTHON_CONFIG),)
+ifeq ($(WIN_PYTHON_INCLUDE),)
 	REPORT_MISSING_DLL := true
 endif
 endif
-PYTHON_CFLAGS_WIN := -I$(WIN_PYTHON)/mingw64/include/python3.12/
+PYTHON_CFLAGS_WIN := -I$(WIN_PYTHON_INCLUDE)/
 endif
 
 ifeq ($(BUILD_MODE),cross)
@@ -46,12 +52,24 @@ ifeq ($(BRIDGE_SUFFIX),dll)
 PYTHON_CFLAGS := $(PYTHON_CFLAGS_WIN)
 endif
 
+# the warning recipe below claims the same target, so build the plugin only when the headers were
+# actually found. Defining both leaves make to resolve it by overriding one, which works only by
+# accident of ordering and warns on every build
+
+REPORT_MISSING := $(REPORT_MISSING_SO)
+
+ifeq ($(BRIDGE_SUFFIX),dll)
+REPORT_MISSING := $(REPORT_MISSING_DLL)
+endif
+
+ifeq ($(REPORT_MISSING),false)
 ifeq ($(SHARED),1)
 bridges/bridge_python_generic_hash_mp.$(BRIDGE_SUFFIX): src/bridges/bridge_python_generic_hash_mp.c src/cpu_features.c $(HASHCAT_LIBRARY)
 	$(CC)       $(CCFLAGS) $(CFLAGS_NATIVE)       $^ -o $@ $(LFLAGS_NATIVE)      -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(PYTHON_CFLAGS)
 else
 bridges/bridge_python_generic_hash_mp.$(BRIDGE_SUFFIX): src/bridges/bridge_python_generic_hash_mp.c src/cpu_features.c obj/combined.NATIVE.a
 	$(CC)       $(CCFLAGS) $(CFLAGS_NATIVE)       $^ -o $@ $(LFLAGS_NATIVE)      -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(PYTHON_CFLAGS)
+endif
 endif
 endif
 

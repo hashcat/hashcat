@@ -61,7 +61,7 @@ def find_opencl(zfilled_key, visited=None):
 
     kernels = []
     if os.path.isdir(OPENCL_DIR):
-        for filename in os.listdir(OPENCL_DIR):
+        for filename in sorted(os.listdir(OPENCL_DIR)):
             if zfilled_key in filename:
                 for key, abbr in OPENCL_ABBREV.items():
                     if key in filename:
@@ -140,7 +140,7 @@ def find_test(zfilled_key):
         return f"[:white_check_mark:](/tools/test.sh)"
 
     if os.path.isdir(TESTS_DIR):
-        for filename in os.listdir(TESTS_DIR):
+        for filename in sorted(os.listdir(TESTS_DIR)):
             if zfilled_key in filename:
                 return f"[:white_check_mark:](/{TESTS_DIR}/{filename})"
 

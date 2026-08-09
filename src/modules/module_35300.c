@@ -158,7 +158,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
     {
       // format 1: include leading '*' and trailing "*$" in account_info
       const char *acct_start = line_buf + after_etype;        // at leading '*'
-      char *star2 = strchr (acct_start + 1, '*');
+      const char *star2 = strchr (acct_start + 1, '*');
       if (star2 == NULL) return PARSER_SEPARATOR_UNMATCHED;
       if (star2[1] != '$') return PARSER_SEPARATOR_UNMATCHED; // must end with "*$"
 
@@ -365,7 +365,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;

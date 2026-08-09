@@ -327,6 +327,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
   const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
+  const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   const u32 salt_pos    = plain->salt_pos;
   const u32 digest_pos  = plain->digest_pos;  // relative
@@ -564,7 +565,13 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
 
     if ((debug_plain_len > 0) || (debug_rule_len > 0))
     {
-      debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len);
+      // Where the BASE word sat in the feed's keyspace, which is what says which wordlist it came out
+      // of. build_crackpos takes the same number and multiplies it by the amplifier; debug mode 5
+      // wants it before that.
+
+      const u64 word_pos = (user_options->slow_candidates == true) ? plain->gidvid : device_param->words_off_launch + plain->gidvid;
+
+      debugfile_write_append (hashcat_ctx, debug_rule_buf, debug_rule_len, plain_ptr, plain_len, debug_plain_ptr, debug_plain_len, word_pos);
     }
   }
 
@@ -896,6 +903,48 @@ int hashes_init_filename (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// Whether any line of the hash file has a separator on it, which is what says the file can be split
+// into username and hash at all. Only the first lines are looked at, as many as the format detection
+// above reads, because a file where none of those has one is not the shape the user thinks it is.
+
+static bool hashfile_has_separator (hashcat_ctx_t *hashcat_ctx, HCFILE *fp)
+{
+  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
+
+  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+  bool found = false;
+
+  u32 num_check = 0;
+
+  while (!hc_feof (fp))
+  {
+    const size_t line_len = fgetl (fp, line_buf, HCBUFSIZ_LARGE);
+
+    if (line_len == 0) continue;
+
+    // The username is what sits in front of the separator, so a line that starts with one has no
+    // username on it and does not count as a line this file can be split at.
+
+    if (line_buf[0] == hashconfig->separator) continue;
+
+    if (memchr (line_buf, hashconfig->separator, line_len) != NULL)
+    {
+      found = true;
+
+      break;
+    }
+
+    if (num_check == 100) break;
+
+    num_check++;
+  }
+
+  hcfree (line_buf);
+
+  return found;
+}
+
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -920,6 +969,21 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     if (hashlist_mode == HL_MODE_ARG)
     {
       hashes_avail = 1;
+
+      if (user_options_extra->association_autosplit == true)
+      {
+        if (strchr (user_options_extra->hc_hash, hashconfig->separator) == NULL)
+        {
+          event_log_error (hashcat_ctx, "%s: no username followed by '%c'.", user_options_extra->hc_hash, hashconfig->separator);
+
+          event_log_warning (hashcat_ctx, "Attack mode 9 given only a hash splits it at the first '%c', taking the username in", hashconfig->separator);
+          event_log_warning (hashcat_ctx, "front of it as the candidate. Use -p to set a different separator, or name a");
+          event_log_warning (hashcat_ctx, "wordlist as a second argument.");
+          event_log_warning (hashcat_ctx, NULL);
+
+          return -1;
+        }
+      }
     }
     else if (hashlist_mode == HL_MODE_FILE_PLAIN)
     {
@@ -950,6 +1014,30 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       }
 
       hashlist_format = hlfmt_detect (hashcat_ctx, &fp, 100); // 100 = max numbers to "scan". could be hashes_avail, too
+
+      // A hash file with no separator in it cannot be split into username and hash, so every line would
+      // fail to parse and the run would end on "No hashes loaded" with a warning per line and no word
+      // about the separator. Said here instead, before any of that, because this is the one thing the
+      // user has to change.
+
+      if (user_options_extra->association_autosplit == true)
+      {
+        hc_rewind (&fp);
+
+        if (hashfile_has_separator (hashcat_ctx, &fp) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: no line begins with a username followed by '%c'.", hashfile, hashconfig->separator);
+
+          event_log_warning (hashcat_ctx, "Attack mode 9 given only a hash file splits each line at the first '%c', taking the", hashconfig->separator);
+          event_log_warning (hashcat_ctx, "username in front of it as the candidate. Use -p to set a different separator, or");
+          event_log_warning (hashcat_ctx, "name a wordlist as a second argument to pair the two files by line number.");
+          event_log_warning (hashcat_ctx, NULL);
+
+          hc_fclose (&fp);
+
+          return -1;
+        }
+      }
 
       hc_fclose (&fp);
 
@@ -2351,6 +2439,8 @@ int hashes_init_stage4 (hashcat_ctx_t *hashcat_ctx)
   #ifdef WITH_BRAIN
   if (user_options->brain_client == true)
   {
+    brain_client_check_features (hashcat_ctx);
+
     const u32 brain_session = brain_compute_session (hashcat_ctx);
 
     user_options->brain_session = brain_session;

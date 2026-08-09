@@ -260,13 +260,13 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
   // essid
 
-  char *sep_pos = strrchr (line_buf, '*');
+  const char *sep_pos = strrchr (line_buf, '*');
 
   if (sep_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
   if ((line_buf + 64) != sep_pos) return (PARSER_HASH_LENGTH);
 
-  char *essid_pos = sep_pos + 1;
+  const char *essid_pos = sep_pos + 1;
 
   const int essid_len = strlen (essid_pos);
 
@@ -920,7 +920,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;

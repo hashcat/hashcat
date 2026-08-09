@@ -19,7 +19,7 @@ Examples of advanced generators include:
 
 ## 1. Usage
 
-When starting an attack-mode 8 session, the user must specify a plugin as first parameter. This is by design to provide flexibility. Attack-mode 8 does not assign numbers to specific generators but instead lets the user specify a plugin by filename. This makes it possible to have an unlimited number of plugins, including custom plugins that are not part of hashcat's base package.
+When starting an attack-mode 8 session, the user must specify a plugin as first parameter. This is by design to provide flexibility. Attack-mode 8 does not assign numbers to specific generators but instead lets the user name a plugin. This makes it possible to have an unlimited number of plugins, including custom plugins that are not part of hashcat's base package.
 
 Since there are now multiple plugin types in hashcat, we need naming to distinguish them. Password generator plugins are called `feeds`, and the feeds we provide can be found in the "feeds" folder.
 
@@ -32,10 +32,26 @@ Typically, a feed requires a parameter to operate, and these parameters are pass
 In attack-mode 8 we always specify as first parameter the feed, and all other parameters are passed to the feed. So we need to write the command line like this:
 
 ```
-./hashcat -m 0 example0.hash -a 8 feeds/feed_wordlist.so example.dict
+./hashcat -m 0 example0.hash -a 8 wordlist example.dict
+```
+
+A feed is named, not pathed, the same way `-m 0` names a module. Hashcat looks under the `feeds/` folder of its shared directory and tries `feed_<name>`, then `rust_<name>`, then `<name>`. If none of those exist, the name is used as a path, so a feed you built yourself somewhere else still works:
+
+```
+./hashcat -m 0 example0.hash -a 8 /tmp/myfeed.so example.dict
 ```
 
 In this example, the feed handles the next parameters `example.dict`. What it does with these parameters depends entirely on the feed design. In this case, the feed opens and reads the wordlist. Another feed could instead connect to a network socket and accept an IP address, for example.
+
+The wordlist feed takes as many wordlists and directories as you give it, and lays them end to end into a single keyspace:
+
+```
+./hashcat -m 0 example0.hash -a 8 wordlist first.dict second.dict /path/to/dictdir
+```
+
+A directory contributes the files directly inside it, in name order. Because this is one keyspace rather than one attack per file, `--skip` and `--limit` keep working across the whole set. Attack-mode 0 has to refuse them as soon as it is given more than one dictionary.
+
+The status display names the feed on the `Guess.Base` line. A feed may name what it is generating from rather than itself, so the wordlist feed shows `Guess.Base.......: Feed (example.dict)`.
 
 Keep in mind that hashcat always parses the full command line first. All options are interpreted by hashcat's getopt process, and only the `loose parameters` are forwarded to the feed.
 

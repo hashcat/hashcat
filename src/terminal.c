@@ -12,6 +12,7 @@
 #include "status.h"
 #include "shared.h"
 #include "hwmon.h"
+#include "bridges.h"
 #include "interface.h"
 #include "hashcat.h"
 #include "timer.h"
@@ -1293,6 +1294,175 @@ void hash_info (hashcat_ctx_t *hashcat_ctx)
   }
 }
 
+// The bridge's unit inventory, printed the same way whether it heads a run or answers -I. Units that
+// describe themselves identically are folded into one line, because a box of identical cards would
+// otherwise spend a screen saying the same thing.
+
+// What each unit is made of, when a unit is made of more than one thing.
+//
+// A bridge whose unit is one piece of hardware answers nothing here and nothing is printed. A unit
+// that groups hardware has to list it: the group is what shows up in the status line from then on, so
+// this is the only place the individual members are named, and the number each one is given here is
+// the number it is called by everywhere else.
+
+static bool bridge_has_members (const bridge_ctx_t *bridge_ctx)
+{
+  if (bridge_ctx->get_unit_member_count == NULL) return false;
+  if (bridge_ctx->get_unit_member_count == BRIDGE_DEFAULT) return false;
+  if (bridge_ctx->get_unit_member_info  == NULL) return false;
+  if (bridge_ctx->get_unit_member_info  == BRIDGE_DEFAULT) return false;
+
+  return true;
+}
+
+static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit_idx, const bool blank_before)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_has_members (bridge_ctx) == false) return;
+
+  const int member_count = bridge_ctx->get_unit_member_count (hashcat_ctx, bridge_ctx->platform_context, unit_idx);
+
+  if (member_count < 1) return;
+
+  // The blank line belongs to the BLOCK, not to each unit in it. Several units of a kind are listed
+  // under one heading, and a blank between every one of them would put the boards back into separate
+  // paragraphs, which is the shape this exists to remove.
+
+  if (blank_before == true) event_log_info (hashcat_ctx, NULL);
+
+  for (int m = 0; m < member_count; m++)
+  {
+    const char *info = bridge_ctx->get_unit_member_info (hashcat_ctx, bridge_ctx->platform_context, unit_idx, m);
+
+    if (info == NULL) continue;
+
+    event_log_info (hashcat_ctx, "%s", info);
+  }
+}
+
+static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
+{
+  const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
+
+  if (bridge_ctx->enabled == false) return;
+
+  const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
+
+  const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
+
+  char line[HCBUFSIZ_TINY] = { 0 };
+
+  memset (line, '=', len);
+
+  line[len] = 0;
+
+  event_log_info (hashcat_ctx, "%s", line);
+
+  // Folding is for a bridge whose units really are interchangeable, which is every bridge whose units
+  // are CPU threads. A bridge that lists what each unit is MADE OF is not one of those: the members
+  // are the point, folding would throw them away, and the unit line is what the member lines hang off.
+
+  bool all_same = (bridge_has_members (bridge_ctx) == false);
+
+  if (all_same == true)
+  {
+    char *tmp = bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, 0);
+
+    for (int i = 1; i < unit_count; i++)
+    {
+      if (strcmp (tmp, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i)))
+      {
+        all_same = false;
+
+        break;
+      }
+    }
+
+    if (all_same == true) event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
+  }
+
+  if (all_same == false)
+  {
+    // Units of a kind get ONE block between them, with all of their boards listed under it.
+    //
+    // A unit is one board by default, so without this a rack of eight is eight headings each
+    // announcing "x 1 board" and each followed by a single line. The information is the same and the
+    // shape of it is not: what a fleet owner wants to see is what kinds of thing are present and what
+    // each kind is made of. It also matches the status view, which groups the same devices the same
+    // way for the same reason.
+
+    bool done[DEVICES_MAX];
+
+    memset (done, 0, sizeof (done));
+
+    bool first_block = true;
+
+    for (int i = 0; i < unit_count; i++)
+    {
+      if (done[i] == true) continue;
+
+      int members[DEVICES_MAX];
+      int members_cnt = 0;
+
+      int boards = 0;
+
+      for (int j = i; j < unit_count; j++)
+      {
+        if (done[j] == true) continue;
+        if ((j != i) && (bridge_same_unit_class (hashcat_ctx, i, j) == false)) continue;
+
+        done[j] = true;
+
+        members[members_cnt] = j;
+
+        members_cnt++;
+
+        boards += (bridge_has_members (bridge_ctx) == true)
+                ? bridge_ctx->get_unit_member_count (hashcat_ctx, bridge_ctx->platform_context, j)
+                : 1;
+      }
+
+      if (first_block == false) event_log_info (hashcat_ctx, NULL);
+
+      first_block = false;
+
+      // One unit keeps the singular heading it always had. Several are named by their range when they
+      // are contiguous, which they are whenever the bridge groups its own discovery by class, and by
+      // a count when they are not, because a range that skips a unit would be a lie.
+
+      if (members_cnt == 1)
+      {
+        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
+      }
+      else
+      {
+        char *class_str = (bridge_ctx->get_unit_class != NULL) && (bridge_ctx->get_unit_class != BRIDGE_DEFAULT)
+                        ? bridge_ctx->get_unit_class (hashcat_ctx, bridge_ctx->platform_context, i)
+                        : bridge_ctx->get_unit_info  (hashcat_ctx, bridge_ctx->platform_context, i);
+
+        const bool contiguous = ((members[members_cnt - 1] - members[0]) == (members_cnt - 1)) ? true : false;
+
+        if (contiguous == true)
+        {
+          event_log_info (hashcat_ctx, "* Units #%02d-#%02d: %s x %d board%s", members[0] + 1, members[members_cnt - 1] + 1, class_str, boards, (boards == 1) ? "" : "s");
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "* Units x%d: %s x %d board%s", members_cnt, class_str, boards, (boards == 1) ? "" : "s");
+        }
+      }
+
+      for (int m = 0; m < members_cnt; m++)
+      {
+        bridge_unit_members_info (hashcat_ctx, members[m], (m == 0) ? true : false);
+      }
+    }
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+}
+
 void backend_info (hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
@@ -1302,6 +1472,29 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true)
   {
     printf ("{ ");
+  }
+
+  // Bridge units, when the hash mode named one. A bridge is selected by the mode, so -I on its own
+  // has nothing to load and the backend devices below are the whole answer. For a mode that does use
+  // a bridge they are not: the units compute and the devices only feed them, so a list without them
+  // describes the machine rather than the work.
+  //
+  // Left out of --machine-readable, which emits JSON here and would be broken by plain lines.
+
+  if (user_options->machine_readable == false)
+  {
+    bridge_units_info (hashcat_ctx);
+
+    // Say why the section is absent rather than leaving someone with an FPGA to conclude their card
+    // was not found. Only when no mode was named: with one that simply has no bridge there are no
+    // units to talk about and the silence is the right answer.
+
+    if ((hashcat_ctx->bridge_ctx->enabled == false) && (user_options->hash_mode_chgd == false))
+    {
+      event_log_info (hashcat_ctx, "Bridge units are selected by the hash mode, so none are listed here.");
+      event_log_info (hashcat_ctx, "Add -m <hash mode> to list the units that mode would use.");
+      event_log_info (hashcat_ctx, NULL);
+    }
   }
 
   if (user_options->backend_info > 1)
@@ -1532,6 +1725,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
+      // One entry per physical device. The other copies of a virtualised device are the bridge
+      // units, and the Assimilation Bridge section above is where those are described.
+
+      if (device_param->is_virtual == true) continue;
+
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
       u32   device_processors             = device_param->device_processors;
@@ -1683,6 +1881,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
+      // One entry per physical device. The other copies of a virtualised device are the bridge
+      // units, and the Assimilation Bridge section above is where those are described.
+
+      if (device_param->is_virtual == true) continue;
+
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
       u32   device_processors             = device_param->device_processors;
@@ -1816,6 +2019,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      // One entry per physical device. The other copies of a virtualised device are the bridge
+      // units, and the Assimilation Bridge section above is where those are described.
+
+      if (device_param->is_virtual == true) continue;
 
       int   device_id                        = device_param->device_id;
       int   device_max_transfer_rate         = device_param->device_max_transfer_rate;
@@ -2091,6 +2299,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
         const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
+        // One entry per physical device. The other copies of a virtualised device are the bridge
+        // units, and the Assimilation Bridge section above is where those are described.
+
+        if (device_param->is_virtual == true) continue;
+
         int            device_id                      = device_param->device_id;
         char          *device_name                    = device_param->device_name;
         u32            device_processors              = device_param->device_processors;
@@ -2251,52 +2464,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
   if (user_options->machine_readable == true) return;
   if (user_options->status_json      == true) return;
 
-  /**
-   * Bridges
-   */
-
-  if (bridge_ctx->enabled == true)
-  {
-    const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
-
-    const size_t len = event_log_info (hashcat_ctx, "Assimilation Bridge");
-
-    char line[HCBUFSIZ_TINY] = { 0 };
-
-    memset (line, '=', len);
-
-    line[len] = 0;
-
-    event_log_info (hashcat_ctx, "%s", line);
-
-    bool all_same = true;
-
-    char *tmp = bridge_ctx->get_unit_info (bridge_ctx->platform_context, 0);
-
-    for (int i = 1; i < unit_count; i++)
-    {
-      if (strcmp (tmp, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i)))
-      {
-        all_same = false;
-
-        break;
-      }
-    }
-
-    if (all_same == true)
-    {
-      event_log_info (hashcat_ctx, "* Unit #%02d -> #%02d: %s", 1, unit_count, tmp);
-    }
-    else
-    {
-      for (int i = 0; i < unit_count; i++)
-      {
-        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (bridge_ctx->platform_context, i));
-      }
-    }
-
-    event_log_info (hashcat_ctx, NULL);
-  }
+  bridge_units_info (hashcat_ctx);
 
   /**
    * CUDA
@@ -2322,7 +2490,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_cuda[0];
 
@@ -2423,7 +2591,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_hip[0];
 
@@ -2513,7 +2681,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         const int backend_devices_idx = backend_ctx->backend_device_from_metal[0];
 
@@ -2611,7 +2779,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
 
       if (bridge_ctx->enabled == true)
       {
-        const int unit_count = bridge_ctx->get_unit_count (bridge_ctx->platform_context);
+        const int unit_count = bridge_ctx->get_unit_count (hashcat_ctx, bridge_ctx->platform_context);
 
         for (cl_uint opencl_platform_devices_idx = 0; opencl_platform_devices_idx < opencl_platform_devices_cnt; opencl_platform_devices_idx++)
         {
@@ -2817,6 +2985,10 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 
   printf ("REJECTED\t%" PRIu64 "\t", hashcat_status->progress_rejected);
 
+  #ifdef WITH_BRAIN
+  printf ("BRAIN_REJECTED\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->brain_rejects_attacks, hashcat_status->brain_rejects_hashes);
+  #endif
+
   printf ("UTIL\t");
 
   if (bridge_ctx->enabled == true)
@@ -2975,6 +3147,10 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   printf (" \"recovered_hashes\": [%u, %u],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": [%u, %u],", hashcat_status->salts_done, hashcat_status->salts_cnt);
   printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
+  #ifdef WITH_BRAIN
+  printf (" \"brain_rejected_position\": %" PRIu64 ",", hashcat_status->brain_rejects_attacks);
+  printf (" \"brain_rejected_candidate\": %" PRIu64 ",", hashcat_status->brain_rejects_hashes);
+  #endif
   printf (" \"devices\": [");
 
   if (bridge_ctx->enabled == true)
@@ -3048,6 +3224,115 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
   status_status_destroy (hashcat_ctx, hashcat_status);
 
   hcfree (hashcat_status);
+}
+
+// The per device speed lines for a run that is driven by a bridge.
+//
+// A bridge does the work, so the backend device's thread and vector geometry says nothing about it.
+// Report what the bridge is actually handed instead: the candidates in a launch, and the iteration
+// chunk that launch covers.
+//
+// Units are listed one per line when the bridge computes in waves, because that is an accelerator and
+// each unit is a separate piece of hardware whose own rate is worth seeing, the same way a multi-GPU
+// run lists its devices. A bridge that expresses its parallelism as many NARROW units instead, one
+// CPU thread each, reports a multiple of 1, and listing every one of those would be a wall of lines
+// that says nothing, so they stay folded into the total below.
+
+static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashcat_status_t *hashcat_status)
+{
+  const bool wide_units = (bridge_workitem_multiple (hashcat_ctx, 0) > 1);
+
+  // count the ACTIVE units, not every unit the platform has. -d can leave a single unit running out
+  // of many, and testing the total there would fold the one line away while the total line below is
+  // also suppressed, so the run would report no speed at all
+
+  if ((hashcat_status->device_info_active > 1) && (wide_units == false)) return;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
+
+    // One line per GROUP. A group of one prints exactly what it always printed, so a single device, a
+    // pair of different devices and many identical ones all read the same way.
+    //
+    // Devices of a kind are added together, because that is the question being asked: how fast is all
+    // of this. Which individual device is misbehaving is a different question and it has a different
+    // answer, the per member listing at startup and the temperature field.
+
+    if (device_info->group_id_dev != device_id) continue;
+
+    const int group_size = device_info->group_size_dev;
+
+    double hashes_msec_grp = 0;
+
+    for (int i = device_id; i < hashcat_status->device_info_cnt; i++)
+    {
+      const device_info_t *member_info = hashcat_status->device_info_buf + i;
+
+      if (member_info->skipped_dev == true) continue;
+      if (member_info->skipped_warning_dev == true) continue;
+      if (member_info->group_id_dev != device_id) continue;
+
+      hashes_msec_grp += member_info->hashes_msec_dev;
+    }
+
+    char speed_grp[HCBUFSIZ_TINY];
+
+    format_speed_display (hashes_msec_grp * 1000, speed_grp, sizeof (speed_grp));
+
+    // with a single group there is no total line underneath, so it carries the #* itself
+
+    if (hashcat_status->group_info_active == 1)
+    {
+      if (group_size > 1)
+      {
+        event_log_info (hashcat_ctx,
+          "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u (x%d)",
+          speed_grp,
+          device_info->exec_msec_dev,
+          device_info->kernel_power_dev,
+          device_info->kernel_loops_dev,
+          group_size);
+
+        continue;
+      }
+
+      event_log_info (hashcat_ctx,
+        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
+        speed_grp,
+        device_info->exec_msec_dev,
+        device_info->kernel_power_dev,
+        device_info->kernel_loops_dev);
+
+      continue;
+    }
+
+    // A group of several says how many devices it speaks for, because a speed with no idea how many
+    // things produced it cannot be judged.
+
+    if (group_size > 1)
+    {
+      event_log_info (hashcat_ctx,
+        "Speed.#%02u........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u (x%d)", device_id + 1,
+        speed_grp,
+        device_info->exec_msec_dev,
+        device_info->kernel_power_dev,
+        device_info->kernel_loops_dev,
+        group_size);
+
+      continue;
+    }
+
+    event_log_info (hashcat_ctx,
+      "Speed.#%02u........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u", device_id + 1,
+      speed_grp,
+      device_info->exec_msec_dev,
+      device_info->kernel_power_dev,
+      device_info->kernel_loops_dev);
+  }
 }
 
 void status_display (hashcat_ctx_t *hashcat_ctx)
@@ -3377,14 +3662,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case GUESS_MODE_GENERIC:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       break;
 
     case GUESS_MODE_GENERIC_RULES_FILE:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (%s)",
@@ -3395,7 +3682,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case GUESS_MODE_GENERIC_RULES_GEN:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (Generated)");
@@ -3426,6 +3714,41 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       break;
 
     case GUESS_MODE_STRAIGHT_FILE_RULES_GEN:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
+    // A feed scoped to one source per round has a queue of rounds and says which one it is on. -a 9 over
+    // several wordlists is one round per wordlist, and -a 9 splitting its own hash file is one round per
+    // word of the account name. A feed handed every source at once answers 1 of 1 here and says where it
+    // has reached inside Guess.Base instead.
+
+    case GUESS_MODE_GENERIC:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
+    case GUESS_MODE_GENERIC_RULES_FILE:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
+    case GUESS_MODE_GENERIC_RULES_GEN:
 
       event_log_info (hashcat_ctx,
         "Guess.Queue......: %u/%u (%.02f%%)",
@@ -3490,19 +3813,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    if (hashcat_status->device_info_cnt == 1)
-    {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
-
-      event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u",
-        device_info0->speed_sec_dev,
-        device_info0->exec_msec_dev,
-        device_info0->kernel_accel_dev,
-        device_info0->kernel_loops_dev,
-        device_info0->kernel_threads_dev,
-        device_info0->vector_width_dev);
-    }
+    status_display_bridge_speed (hashcat_ctx, hashcat_status);
   }
   else
   {
@@ -3524,7 +3835,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (hashcat_status->device_info_active > 1)
+  // Per GROUP, not per device. Many identical devices report as one line, and a total underneath a
+  // single line only repeats it.
+
+  if (hashcat_status->group_info_active > 1)
   {
     event_log_info (hashcat_ctx,
       "Speed.#*.........: %9sH/s",
@@ -3620,6 +3934,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       "Brain.Link.All...: RX: %sB, TX: %sB",
       hashcat_status->brain_rx_all,
       hashcat_status->brain_tx_all);
+
+    // Rejected counts length and rule rejects as well, so it cannot be read as a brain saving. This
+    // line is the brain's own share of it, split the way the two client features work: position is
+    // feature 2 skipping a keyspace range, candidate is feature 1 dropping a word already seen.
+
+    event_log_info (hashcat_ctx,
+      "Brain.Rejects....: %" PRIu64 " (position %" PRIu64 ", candidate %" PRIu64 ")",
+      hashcat_status->brain_rejects_attacks + hashcat_status->brain_rejects_hashes,
+      hashcat_status->brain_rejects_attacks,
+      hashcat_status->brain_rejects_hashes);
 
     if (bridge_ctx->enabled == true)
     {
@@ -3827,48 +4151,30 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     bool first_dev = true;
     #endif
 
-    if (bridge_ctx->enabled == true)
+    // Devices that share hardware with an earlier device have no hwmon_dev, so one line is printed
+    // per piece of hardware rather than per device. That is why there is no special case for a
+    // bridge here: a bridge is only one of the ways several devices end up on one card.
+
+    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
     {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
+      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
 
-      if (device_info0->hwmon_dev)
+      if (device_info->skipped_dev == true) continue;
+      if (device_info->skipped_warning_dev == true) continue;
+
+      if (device_info->hwmon_dev == NULL) continue;
+
+      #if defined (__APPLE__)
+      if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
       {
-        #if defined (__APPLE__)
-        if (first_dev && strlen (device_info0->hwmon_fan_dev) > 0)
-        {
-          event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info0->hwmon_fan_dev);
-          first_dev = false;
-        }
-        #endif
-
-        event_log_info (hashcat_ctx,
-          "Hardware.Mon.#%02u.: %s", 0 + 1,
-          device_info0->hwmon_dev);
+        event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
+        first_dev = false;
       }
-    }
-    else
-    {
-      for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
-      {
-        const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+      #endif
 
-        if (device_info->skipped_dev == true) continue;
-        if (device_info->skipped_warning_dev == true) continue;
-
-        if (device_info->hwmon_dev == NULL) continue;
-
-        #if defined (__APPLE__)
-        if (first_dev && strlen (device_info->hwmon_fan_dev) > 0)
-        {
-          event_log_info (hashcat_ctx, "Hardware.Mon.SMC.: %s", device_info->hwmon_fan_dev);
-          first_dev = false;
-        }
-        #endif
-
-        event_log_info (hashcat_ctx,
-          "Hardware.Mon.#%02u.: %s", device_id + 1,
-          device_info->hwmon_dev);
-      }
+      event_log_info (hashcat_ctx,
+        "Hardware.Mon.#%02u.: %s", device_id + 1,
+        device_info->hwmon_dev);
     }
   }
 
@@ -3938,19 +4244,7 @@ void status_benchmark (hashcat_ctx_t *hashcat_ctx)
 
   if (bridge_ctx->enabled == true)
   {
-    if (hashcat_status->device_info_cnt == 1)
-    {
-      const device_info_t *device_info0 = hashcat_status->device_info_buf + 0;
-
-      event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u Thr:%u Vec:%u",
-        device_info0->speed_sec_dev,
-        device_info0->exec_msec_dev,
-        device_info0->kernel_accel_dev,
-        device_info0->kernel_loops_dev,
-        device_info0->kernel_threads_dev,
-        device_info0->vector_width_dev);
-    }
+    status_display_bridge_speed (hashcat_ctx, hashcat_status);
   }
   else
   {
