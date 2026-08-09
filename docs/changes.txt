@@ -1,10 +1,87 @@
 * changes v7.1.2 -> v7.1.x
 
 ##
+## Backward Incompatible Changes
+##
+
+1. Plugins: module_dictstat_disable was removed from the module interface
+
+A module that still sets it will no longer compile and reports "module_ctx_t has no member named module_dictstat_disable".
+Delete that line. There is no replacement and nothing needs to be added in its place.
+The option existed because a hash mode could produce a different number of candidates than the number of lines in a wordlist.
+A wordlist keyspace is now always its line count, regardless of the hash mode or any rules being applied.
+
+2. Distribution: Support multiple wordlists, folders and --increment with --keyspace, -s and -l
+
+In all attack modes, --skip and --limit now apply to the complete run instead of restarting for each part of it.
+
+Previously this did not work because multiple wordlists in -a 0, and --increment or mask files in -a 3/6/7
+were treated as separate attacks, each with its own keyspace numbering.
+
+They now form one virtual keyspace. This means --skip 1000 skips the first thousand keyspace units of the complete run
+rather than the first thousand from every file or mask. Hashcat automatically seeks to the correct wordlist or mask.
+
+Both --skip and --limit are expressed in --keyspace units, which are base words rather than final candidates.
+Amplification happens afterwards: rules for -a 0, and the remaining mask positions for -a 3.
+For example, "?l?l?l" has a keyspace of 676 base words but produces 17576 candidates.
+With this change, --skip 300 therefore leaves 376 base words, which expand to 9776 candidates.
+This part has not changed.
+
+3. Brain: --brain-client-features now defaults to 3 instead of 2
+
+The client dedups on the candidate itself again, not only on the keyspace position of an attack.
+Two different wordlists holding the same words therefore dedup against each other out of the box,
+which is what most people expect the brain to do.
+
+The candidate feature costs the brain server eight bytes per candidate for as long as the session lives,
+so hashcat now switches it off by itself on hash modes that cannot benefit from it.
+A mode that computes inside the kernel and has fewer than 1024 salts produces candidates far faster
+than the server can usefully remember them, and looking one up costs the server more than testing it
+costs the client. The attack feature stays on in that case, so clients on one session still avoid
+each other's keyspace, and nothing is aborted.
+Setting --brain-client-features on the command line overrules the decision in either direction.
+
+##
 ## New Algorithms
 ##
 
+- Added hash-mode: GPG (AES-OCB-128 (SHA-1($pass)))
+- Added hash-mode: KeePass AESKDF (KDBX v4)
+- Added hash-mode: Kerberos 5, etype 23, TGS-REP (NT)
+- Added hash-mode: Kerberos 5, etype 23, AS-REP (NT)
+- Added hash-mode: Wordpress bcrypt(hmac-sha384($pass))
+- Added hash-mode: gost12512crypt [$gost12512hash$] (Unix)
+- Added hash-mode: phpass(md5($pass))
+- Added hash-mode: Symfony Legacy SHA256
 - Added hash-mode: yescrypt
+- Added hash-mode: gost-yescrypt
+- Added hash-mode: scryptcrypt, scrypt (Unix)
+
+##
+## New Attack modes and changed Attack modes
+##
+
+- Attack-mode 8: Generate candidates from a feed plugin instead of a built-in attack
+- Attack-Mode 8: Feeds can be written in C or Rust and are named like a module, not pathed
+- Attack-Mode 8: Shipped feeds are: wordlist, stdin, random and rust_random
+- Attack-Mode 8: Feeds support implementations which can't report a keyspace
+- Attack-Mode 8: A feed that cannot report a keyspace runs without a progress denominator
+- Attack-Mode 0: Wordlists are now read through the attack-mode 8 wordlist feed, which can seek
+- Attack-Mode 0: Several wordlists now form one keyspace, so --skip and --limit apply to all of them
+- Attack-Mode 0: Reading candidates from stdin is now a feed and appears as Feed (stdin)
+- Attack-Mode 0: --skip, --limit and --restore now work on stdin if the same stream is fed again
+- Attack-Mode 1: Both dictionaries are now read through a feed, with --slow-candidates as well
+- Attack-Mode 9: Compares wordlist lines against unique salts, refusing files it once accepted
+- Attack-Mode 9: A hash file of username, separator and hash is now split by hashcat, with no wordlist
+- Attack-Mode 9: The username in front of the first separator becomes the candidate, and rules apply
+- Mask attacks: --increment and mask files now form one keyspace, so --skip and --limit apply to all
+- Mask attacks: --keyspace now answers for the whole increment or mask file instead of being refused
+
+##
+## New Features
+##
+
+- Dictionary cache was removed. Wordlist line counts (and offsets!) are now in the new seekdbs
 
 ##
 ## Improvements

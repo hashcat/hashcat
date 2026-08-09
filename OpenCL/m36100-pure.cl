@@ -210,7 +210,7 @@ DECLSPEC void yescrypt_prehash_smix (PRIVATE_AS u32 *X, GLOBAL_AS u32 *V, GLOBAL
   }
 }
 
-KERNEL_FQ KERNEL_FA void m67000_init (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))
+KERNEL_FQ KERNEL_FA void m36100_init (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))
 {
   const u64 gid = get_global_id (0);
 
@@ -383,15 +383,22 @@ DECLSPEC void coop_blockmix_pwxform (XBUF_AS u32 *X, SBOX_AS u32 *sbox, PRIVATE_
         const u32 p0_base = S0_off + ((xl & Smask) >> 2);
         const u32 p1_base = S1_off + ((xh & Smask) >> 2);
 
+        // Smask keeps p0_base and p1_base a multiple of four words, so each
+        // Sbox entry is one aligned 16 byte block. Reading it as a vector lets
+        // the compiler use a single wide load instead of four scalar ones.
+
+        const uint4 s0v = *((SBOX_AS uint4 *) (sbox + p0_base));
+        const uint4 s1v = *((SBOX_AS uint4 *) (sbox + p1_base));
+
         for (u32 k = 0; k < PWXsimple; k++)
         {
           const u32 xlk = (k == 0) ? px0 : px2;
           const u32 xhk = (k == 0) ? px1 : px3;
 
-          const u32 s0_lo = sbox[p0_base + k * 2 + 0];
-          const u32 s0_hi = sbox[p0_base + k * 2 + 1];
-          const u32 s1_lo = sbox[p1_base + k * 2 + 0];
-          const u32 s1_hi = sbox[p1_base + k * 2 + 1];
+          const u32 s0_lo = (k == 0) ? s0v.x : s0v.z;
+          const u32 s0_hi = (k == 0) ? s0v.y : s0v.w;
+          const u32 s1_lo = (k == 0) ? s1v.x : s1v.z;
+          const u32 s1_hi = (k == 0) ? s1v.y : s1v.w;
 
           u64 x = (u64) xhk * (u64) xlk;
           x += ((u64) s0_hi << 32) | s0_lo;
@@ -477,7 +484,7 @@ DECLSPEC void coop_smix2_step (XBUF_AS u32 *X, GLOBAL_AS u32 *V, SBOX_AS u32 *sb
   coop_blockmix_pwxform (X, sbox, s_state, w_ptr, lid);
 }
 
-KERNEL_FQ KERNEL_FA void m67000_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))
+KERNEL_FQ KERNEL_FA void m36100_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))
 {
   const u64 bid = get_group_id (0);
 
@@ -573,7 +580,7 @@ KERNEL_FQ KERNEL_FA void m67000_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
   }
 }
 
-KERNEL_FQ KERNEL_FA void m67000_comp (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))
+KERNEL_FQ KERNEL_FA void m36100_comp (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))
 {
   const u64 gid = get_global_id (0);
 
