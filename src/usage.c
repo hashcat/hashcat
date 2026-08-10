@@ -165,6 +165,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   #endif
   "     --color-cracked            |      | Enables color output for cracked hashes              |",
   "     --hash-copy                |      | Output hashes identically to the input hash          |",
+  "     --encrypt-with-pubkey      | File | Encrypt recovered plains with an RSA public key      | --encrypt-with-pubkey=public.pem",
   "",
   NULL
 };

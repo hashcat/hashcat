@@ -82,6 +82,7 @@ Setting --brain-client-features on the command line overrules the decision in ei
 ##
 
 - Dictionary cache was removed. Wordlist line counts (and offsets!) are now in the new seekdbs
+- Added --encrypt-with-pubkey to encrypt recovered plains with an RSA public key, so the host doing the cracking never sees them (see docs/hashcat-encrypted-plains.md)
 
 ##
 ## Improvements

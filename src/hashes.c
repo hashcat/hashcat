@@ -17,6 +17,7 @@
 #include "backend.h"
 #include "outfile.h"
 #include "potfile.h"
+#include "pubkey.h"
 #include "rp.h"
 #include "shared.h"
 #include "thread.h"
@@ -327,6 +328,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
   const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
+  const pubkey_ctx_t    *pubkey_ctx    = hashcat_ctx->pubkey_ctx;
   const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   const u32 salt_pos    = plain->salt_pos;
@@ -450,6 +452,33 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
     plain_len = module_ctx->module_build_plain_postprocess (hashconfig, hashes, tmps, (u32 *) plain_buf, sizeof (plain_buf), plain_len, (u32 *) postprocess_buf, sizeof (postprocess_buf));
 
     plain_ptr = postprocess_buf;
+  }
+
+  // encrypted output
+  //
+  // This sits after any module postprocessing on purpose. Encrypting inside build_plain would be
+  // undone by the modes that swap the buffer just above, and it would also reach the status display,
+  // which shows candidates rather than results. From here the encrypted form is what the outfile,
+  // the potfile, the loopback file and the terminal all receive.
+
+  u8 encrypted_buf[HCBUFSIZ_TINY] = { 0 };
+
+  if (pubkey_ctx->enabled == true)
+  {
+    int encrypted_len = 0;
+
+    if (pubkey_encrypt_plain (hashcat_ctx, out_buf, out_len, plain_ptr, plain_len, encrypted_buf, sizeof (encrypted_buf), &encrypted_len) == -1)
+    {
+      // Failing the run is deliberate. The caller of a protected run cannot use a result they
+      // cannot decrypt, and writing the password in the clear instead would defeat the point.
+
+      hcfree (tmps);
+
+      return -1;
+    }
+
+    plain_ptr = encrypted_buf;
+    plain_len = encrypted_len;
   }
 
   // crackpos

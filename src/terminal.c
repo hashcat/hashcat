@@ -2893,6 +2893,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t  *bridge_ctx = hashcat_ctx->bridge_ctx;
   const hwmon_ctx_t   *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
+  const pubkey_ctx_t  *pubkey_ctx = hashcat_ctx->pubkey_ctx;
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
@@ -2950,9 +2951,16 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  printf ("CURKU\t%" PRIu64 "\t", hashcat_status->restore_point);
+  // Under --encrypt-with-pubkey the position is withheld here too, or the machine readable output
+  // would hand over what the human one refuses to print. The keyspace total stays: the operator
+  // supplied the wordlist, so it is not news to them.
 
-  printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
+  const u64 mr_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
+  const u64 mr_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
+
+  printf ("CURKU\t%" PRIu64 "\t", mr_restore_point);
+
+  printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", mr_progress_cur, hashcat_status->progress_end_relative_skip);
 
   printf ("RECHASH\t%u\t%u\t", hashcat_status->digests_done, hashcat_status->digests_cnt);
 
@@ -3050,6 +3058,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const pubkey_ctx_t *pubkey_ctx = hashcat_ctx->pubkey_ctx;
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
@@ -3142,11 +3151,17 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (target_json_encoded);
 
-  printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
-  printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
+  // see the note in status_display_machine_readable
+
+  const u64 json_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
+  const u64 json_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
+  const u64 json_rejected      = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_rejected;
+
+  printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", json_progress_cur, hashcat_status->progress_end_relative_skip);
+  printf (" \"restore_point\": %" PRIu64 ",", json_restore_point);
   printf (" \"recovered_hashes\": [%u, %u],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": [%u, %u],", hashcat_status->salts_done, hashcat_status->salts_cnt);
-  printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
+  printf (" \"rejected\": %" PRIu64 ",", json_rejected);
   #ifdef WITH_BRAIN
   printf (" \"brain_rejected_position\": %" PRIu64 ",", hashcat_status->brain_rejects_attacks);
   printf (" \"brain_rejected_candidate\": %" PRIu64 ",", hashcat_status->brain_rejects_hashes);
@@ -3340,6 +3355,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   const bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
+  const pubkey_ctx_t   *pubkey_ctx   = hashcat_ctx->pubkey_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->machine_readable == true)
@@ -3896,35 +3912,48 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, "Recovered/Time...: %s", hashcat_status->cpt);
   }
 
-  switch (hashcat_status->progress_mode)
+  // How far a protected run has got is itself worth withholding. On a job that takes days, handing
+  // over the exact offset would let the operator restart without encryption and skip straight to
+  // where the answer is, instead of repeating the whole search. The Rejected line carries the same
+  // counter as its denominator, so it goes with it.
+
+  if (pubkey_ctx->enabled == true)
   {
-    case PROGRESS_MODE_KEYSPACE_KNOWN:
+    event_log_info (hashcat_ctx, "Progress.........: [Protected]");
+    event_log_info (hashcat_ctx, "Rejected.........: [Protected]");
+  }
+  else
+  {
+    switch (hashcat_status->progress_mode)
+    {
+      case PROGRESS_MODE_KEYSPACE_KNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->progress_cur_relative_skip,
-        hashcat_status->progress_end_relative_skip,
-        hashcat_status->progress_finished_percent);
+        event_log_info (hashcat_ctx,
+          "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          hashcat_status->progress_cur_relative_skip,
+          hashcat_status->progress_end_relative_skip,
+          hashcat_status->progress_finished_percent);
 
-      event_log_info (hashcat_ctx,
-        "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->progress_rejected,
-        hashcat_status->progress_cur_relative_skip,
-        hashcat_status->progress_rejected_percent);
+        event_log_info (hashcat_ctx,
+          "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          hashcat_status->progress_rejected,
+          hashcat_status->progress_cur_relative_skip,
+          hashcat_status->progress_rejected_percent);
 
-      break;
+        break;
 
-    case PROGRESS_MODE_KEYSPACE_UNKNOWN:
+      case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Progress.........: %" PRIu64,
-        hashcat_status->progress_cur_relative_skip);
+        event_log_info (hashcat_ctx,
+          "Progress.........: %" PRIu64,
+          hashcat_status->progress_cur_relative_skip);
 
-      event_log_info (hashcat_ctx,
-        "Rejected.........: %" PRIu64,
-        hashcat_status->progress_rejected);
+        event_log_info (hashcat_ctx,
+          "Rejected.........: %" PRIu64,
+          hashcat_status->progress_rejected);
 
-      break;
+        break;
+    }
   }
 
   #ifdef WITH_BRAIN
@@ -4055,38 +4084,52 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
-  switch (hashcat_status->progress_mode)
+  if (pubkey_ctx->enabled == true)
   {
-    case PROGRESS_MODE_KEYSPACE_KNOWN:
+    event_log_info (hashcat_ctx, "Restore.Point....: [Protected]");
+  }
+  else
+  {
+    switch (hashcat_status->progress_mode)
+    {
+      case PROGRESS_MODE_KEYSPACE_KNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->restore_point,
-        hashcat_status->restore_total,
-        hashcat_status->restore_percent);
+        event_log_info (hashcat_ctx,
+          "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          hashcat_status->restore_point,
+          hashcat_status->restore_total,
+          hashcat_status->restore_percent);
 
-      break;
+        break;
 
-    case PROGRESS_MODE_KEYSPACE_UNKNOWN:
+      case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Restore.Point....: %" PRIu64,
-        hashcat_status->restore_point);
+        event_log_info (hashcat_ctx,
+          "Restore.Point....: %" PRIu64,
+          hashcat_status->restore_point);
 
-      break;
+        break;
+    }
   }
 
   if (bridge_ctx->enabled == true)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + 0;
 
-    event_log_info (hashcat_ctx,
-      "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", 0 + 1,
-      device_info->salt_pos_dev,
-      device_info->innerloop_pos_dev,
-      device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
-      device_info->iteration_pos_dev,
-      device_info->iteration_pos_dev + device_info->iteration_left_dev);
+    if (pubkey_ctx->enabled == true)
+    {
+      event_log_info (hashcat_ctx, "Restore.Sub.#%02u..: [Protected]", 0 + 1);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx,
+        "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", 0 + 1,
+        device_info->salt_pos_dev,
+        device_info->innerloop_pos_dev,
+        device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
+        device_info->iteration_pos_dev,
+        device_info->iteration_pos_dev + device_info->iteration_left_dev);
+    }
   }
   else
   {
@@ -4096,6 +4139,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       if (device_info->skipped_dev == true) continue;
       if (device_info->skipped_warning_dev == true) continue;
+
+      if (pubkey_ctx->enabled == true)
+      {
+        event_log_info (hashcat_ctx, "Restore.Sub.#%02u..: [Protected]", device_id + 1);
+
+        continue;
+      }
 
       event_log_info (hashcat_ctx,
         "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", device_id + 1,

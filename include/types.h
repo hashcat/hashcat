@@ -1017,6 +1017,7 @@ typedef enum user_options_map
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff54,
   IDX_WORKLOAD_PROFILE          = 'w',
+  IDX_ENCRYPT_WITH_PUBKEY       = 0xff70,
 
 } user_options_map_t;
 
@@ -2370,6 +2371,26 @@ typedef struct mf
 
 } mf_t;
 
+// State for --encrypt-with-pubkey. The library handle and the key are void pointers so that no
+// OpenSSL header is needed to build hashcat; see ext_openssl.h.
+
+typedef struct pubkey_ctx
+{
+  bool    enabled;
+
+  void   *openssl;                    // hc_openssl_lib_t
+  void   *pubkey;                     // EVP_PKEY
+
+  int     key_bits;
+  size_t  key_size;
+  size_t  capacity;                   // key_size minus the OAEP overhead
+
+  char    keyid[17];                  // 16 hex characters and a terminator
+
+  u64     run_time;                   // stamped into every payload
+
+} pubkey_ctx_t;
+
 typedef struct outfile_ctx
 {
   HCFILE  fp;
@@ -2673,6 +2694,7 @@ typedef struct user_options
   const char  *rule_buf_l;
   const char  *rule_buf_r;
   const char  *session;
+  char        *encrypt_with_pubkey;
   u32          attack_mode;
   u32          backend_devices_virtmulti;
   u32          backend_devices_virthost;
@@ -3603,6 +3625,7 @@ struct hashcat_ctx
   backend_ctx_t         *backend_ctx;
   outcheck_ctx_t        *outcheck_ctx;
   outfile_ctx_t         *outfile_ctx;
+  pubkey_ctx_t          *pubkey_ctx;
   pidfile_ctx_t         *pidfile_ctx;
   potfile_ctx_t         *potfile_ctx;
   restore_ctx_t         *restore_ctx;
