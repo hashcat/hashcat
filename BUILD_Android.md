@@ -96,6 +96,23 @@ make clean; make
 ./hashcat --version
 ```
 
+> [!IMPORTANT]
+> If you encounter an `Illegal instruction` error, you may need to adjust the target architecture. This is a known issue for some ARM devices ([#4579](https://github.com/hashcat/hashcat/issues/4579)).
+
+```bash
+sed -i 's/-march=native/-march=armv8-a/g' src/Makefile
+sed -i 's/-mtune=native/-mtune=generic/g' src/Makefile
+
+make clean
+make
+```
+
+Verify the fix worked:
+
+```bash
+./hashcat -I
+```
+
 ---
 
 ## 🔧 OpenCL Troubleshooting
