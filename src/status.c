@@ -997,6 +997,7 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   const backend_ctx_t        *backend_ctx        = hashcat_ctx->backend_ctx;
   const status_ctx_t         *status_ctx         = hashcat_ctx->status_ctx;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  const pubkey_ctx_t         *pubkey_ctx         = hashcat_ctx->pubkey_ctx;
 
   if (status_ctx->accessible == false) return NULL;
 
@@ -1022,6 +1023,17 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
 
   if ((device_param->outerloop_left == 0) || (device_param->innerloop_left == 0)) return display;
 
+  // Under --encrypt-with-pubkey the operator must not see candidate material either: as the
+  // keyspace is walked the correct candidate passes through this display like any other, so
+  // showing the range would hand over what the encryption is there to withhold.
+
+  if (pubkey_ctx->enabled == true)
+  {
+    snprintf (display, HCBUFSIZ_TINY, "[Protected]");
+
+    return display;
+  }
+
   const u64 outerloop_first = 0;
   const u64 outerloop_last  = device_param->outerloop_left - 1;
 
@@ -1031,8 +1043,11 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   plain_t plain1 = { outerloop_first, innerloop_first, 0, 0, 0, 0, 0 };
   plain_t plain2 = { outerloop_last,  innerloop_last,  0, 0, 0, 0, 0 };
 
-  u32 plain_buf1[(64 * 2) + 2] = { 0 };
-  u32 plain_buf2[(64 * 2) + 2] = { 0 };
+  // build_plain returns up to PW_MAX * 2 bytes for a combinator candidate, and exec_hexify doubles
+  // that in place, so both buffers have to hold twice the longest candidate plus the terminator.
+
+  u32 plain_buf1[((PW_MAX * 2 * 2) / 4) + 2] = { 0 };
+  u32 plain_buf2[((PW_MAX * 2 * 2) / 4) + 2] = { 0 };
 
   u8 *plain_ptr1 = (u8 *) plain_buf1;
   u8 *plain_ptr2 = (u8 *) plain_buf2;

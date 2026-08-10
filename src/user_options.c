@@ -176,6 +176,7 @@ static const struct option long_options[] =
   {"brain-session-whitelist",   required_argument, NULL, IDX_BRAIN_SESSION_WHITELIST},
   #endif
   {"color-cracked",             no_argument,       NULL, IDX_COLOR_CRACKED},
+  {"encrypt-with-pubkey",       required_argument, NULL, IDX_ENCRYPT_WITH_PUBKEY},
   {NULL,                        0,                 NULL, 0 }
 };
 
@@ -246,6 +247,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->dynamic_x                 = DYNAMIC_X;
   user_options->encoding_from             = ENCODING_FROM;
   user_options->encoding_to               = ENCODING_TO;
+  user_options->encrypt_with_pubkey       = NULL;
   user_options->force                     = FORCE;
   user_options->hash_copy                 = HASH_COPY;
   user_options->hwmon                     = HWMON;
@@ -621,7 +623,18 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       #endif
       case IDX_COLOR_CRACKED:             user_options->color_cracked             = true;                            break;
       case IDX_HASH_COPY:                 user_options->hash_copy                 = true;                            break;
+      case IDX_ENCRYPT_WITH_PUBKEY:       user_options->encrypt_with_pubkey       = optarg;                          break;
     }
+  }
+
+  // The restore file records how far the run got, which is the same thing the status display
+  // withholds under --encrypt-with-pubkey, so it is turned off the same way --restore-disable does
+  // it. This has to happen here and not in user_options_preprocess, because restore_ctx_init runs
+  // before preprocess and would already have set the file up.
+
+  if (user_options->encrypt_with_pubkey != NULL)
+  {
+    user_options->restore_enable = false;
   }
 
   user_options->hc_bin = argv[0];
@@ -655,6 +668,57 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     event_log_error (hashcat_ctx, "Invalid --help/-h value, must have a value greater or equal to 0 and lower than 3.");
 
     return -1;
+  }
+
+  // --encrypt-with-pubkey exists so that a recovered password never appears in the clear on the
+  // machine doing the cracking. The options below would each write it out in the clear somewhere
+  // else, so combining them is refused rather than silently half-honoured.
+
+  if (user_options->encrypt_with_pubkey != NULL)
+  {
+    if (user_options->loopback == true)
+    {
+      event_log_error (hashcat_ctx, "Mixing --encrypt-with-pubkey with --loopback is not allowed.");
+
+      event_log_warning (hashcat_ctx, "The loopback file would receive the encrypted plains and feed them back as candidates.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+
+    if (user_options->debug_file != NULL)
+    {
+      event_log_error (hashcat_ctx, "Mixing --encrypt-with-pubkey with --debug-file is not allowed.");
+
+      event_log_warning (hashcat_ctx, "The debug file records the originating word in the clear.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+
+    if (user_options->debug_mode > 0)
+    {
+      event_log_error (hashcat_ctx, "Mixing --encrypt-with-pubkey with --debug-mode is not allowed.");
+
+      event_log_warning (hashcat_ctx, "The debug output records the originating word in the clear.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+
+    // A protected run writes no restore file, so there is nothing to resume from. The restore file
+    // is turned off in user_options_preprocess, which runs after this, so --restore has to be
+    // refused on its own name here.
+
+    if (user_options->restore == true)
+    {
+      event_log_error (hashcat_ctx, "Mixing --encrypt-with-pubkey with --restore is not allowed.");
+
+      event_log_warning (hashcat_ctx, "A protected run writes no restore file, because it would record how far the run got.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
   }
 
   #ifdef WITH_BRAIN
@@ -3003,6 +3067,18 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
   user_options_t       *user_options       = hashcat_ctx->user_options;
 
+  // public key
+
+  if (user_options->encrypt_with_pubkey != NULL)
+  {
+    if (hc_path_read (user_options->encrypt_with_pubkey) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: %s", user_options->encrypt_with_pubkey, strerror (errno));
+
+      return -1;
+    }
+  }
+
   // brain
 
   #ifdef WITH_BRAIN
@@ -3915,6 +3991,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   #ifdef WITH_BRAIN
   logfile_top_string (user_options->brain_session_whitelist);
   #endif
+  logfile_top_string (user_options->encrypt_with_pubkey);
   logfile_top_string (user_options->bridge_parameter1);
   logfile_top_string (user_options->bridge_parameter2);
   logfile_top_string (user_options->bridge_parameter3);

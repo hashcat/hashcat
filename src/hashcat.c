@@ -40,6 +40,7 @@
 #include "outfile.h"
 #include "pidfile.h"
 #include "potfile.h"
+#include "pubkey.h"
 #include "restore.h"
 #include "selftest.h"
 #include "status.h"
@@ -1368,6 +1369,7 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->outcheck_ctx       = (outcheck_ctx_t *)        hcmalloc (sizeof (outcheck_ctx_t));
   hashcat_ctx->outfile_ctx        = (outfile_ctx_t *)         hcmalloc (sizeof (outfile_ctx_t));
   hashcat_ctx->pidfile_ctx        = (pidfile_ctx_t *)         hcmalloc (sizeof (pidfile_ctx_t));
+  hashcat_ctx->pubkey_ctx         = (pubkey_ctx_t *)          hcmalloc (sizeof (pubkey_ctx_t));
   hashcat_ctx->potfile_ctx        = (potfile_ctx_t *)         hcmalloc (sizeof (potfile_ctx_t));
   hashcat_ctx->restore_ctx        = (restore_ctx_t *)         hcmalloc (sizeof (restore_ctx_t));
   hashcat_ctx->status_ctx         = (status_ctx_t *)          hcmalloc (sizeof (status_ctx_t));
@@ -1404,6 +1406,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->outfile_ctx);
   hcfree (hashcat_ctx->pidfile_ctx);
   hcfree (hashcat_ctx->potfile_ctx);
+  hcfree (hashcat_ctx->pubkey_ctx);
   hcfree (hashcat_ctx->restore_ctx);
   hcfree (hashcat_ctx->status_ctx);
   hcfree (hashcat_ctx->straight_ctx);
@@ -1535,6 +1538,14 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    */
 
   if (outcheck_ctx_init (hashcat_ctx) == -1) return -1;
+
+  /**
+   * public key encryption of recovered plains
+   * done before any output path is set up so that a missing library or an unusable key
+   * stops the run before it can produce a single unprotected result
+   */
+
+  if (pubkey_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * outfile itself
@@ -2217,6 +2228,7 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   outfile_destroy             (hashcat_ctx);
   pidfile_ctx_destroy         (hashcat_ctx);
   potfile_destroy             (hashcat_ctx);
+  pubkey_ctx_destroy          (hashcat_ctx);
   restore_ctx_destroy         (hashcat_ctx);
   tuning_db_destroy           (hashcat_ctx);
   user_options_destroy        (hashcat_ctx);

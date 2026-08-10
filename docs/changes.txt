@@ -82,6 +82,7 @@ Setting --brain-client-features on the command line overrules the decision in ei
 ##
 
 - Dictionary cache was removed. Wordlist line counts (and offsets!) are now in the new seekdbs
+- Added --encrypt-with-pubkey to encrypt recovered plains with an RSA public key, so the host doing the cracking never sees them (see docs/hashcat-encrypted-plains.md)
 
 ##
 ## Improvements
@@ -132,6 +133,7 @@ Setting --brain-client-features on the command line overrules the decision in ei
 ##
 
 - Fixed -m 24420 rejecting the self-describing $PEM$2 encoding that pem2john.py emits for non-SHA1 PRFs
+- Fixed combinator and hybrid attacks reporting a plaintext truncated to 256 characters, which did not match the cracked digest
 - Fixed a one byte buffer overflow in fgetl() when a line was as long as the caller's buffer
 - Fixed missing libclang dependencies for Rust bridges in Ubuntu 20.04 and Arch containers
 - Fixed the Windows Rust plugin failing to link in the Arch container because lld was missing

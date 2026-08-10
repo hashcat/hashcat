@@ -17,6 +17,7 @@
 #include "backend.h"
 #include "outfile.h"
 #include "potfile.h"
+#include "pubkey.h"
 #include "rp.h"
 #include "shared.h"
 #include "thread.h"
@@ -140,9 +141,9 @@ int hash_encode (const user_options_t *user_options, const hashconfig_t *hashcon
   char       *hook_salts_buf_ptr = (char *) hook_salts_buf;
   hashinfo_t *hash_info_ptr      = NULL;
 
-  digests_buf_ptr    += digest_cur * hashconfig->dgst_size;
-  esalts_buf_ptr     += digest_cur * hashconfig->esalt_size;
-  hook_salts_buf_ptr += digest_cur * hashconfig->hook_salt_size;
+  digests_buf_ptr    += (u64) digest_cur * hashconfig->dgst_size;
+  esalts_buf_ptr     += (u64) digest_cur * hashconfig->esalt_size;
+  hook_salts_buf_ptr += (u64) digest_cur * hashconfig->hook_salt_size;
 
   if (hash_info) hash_info_ptr = hash_info[digest_cur];
 
@@ -327,6 +328,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
   const hashconfig_t    *hashconfig    = hashcat_ctx->hashconfig;
   const loopback_ctx_t  *loopback_ctx  = hashcat_ctx->loopback_ctx;
   const module_ctx_t    *module_ctx    = hashcat_ctx->module_ctx;
+  const pubkey_ctx_t    *pubkey_ctx    = hashcat_ctx->pubkey_ctx;
   const user_options_t  *user_options  = hashcat_ctx->user_options;
 
   const u32 salt_pos    = plain->salt_pos;
@@ -452,6 +454,33 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
     plain_ptr = postprocess_buf;
   }
 
+  // encrypted output
+  //
+  // This sits after any module postprocessing on purpose. Encrypting inside build_plain would be
+  // undone by the modes that swap the buffer just above, and it would also reach the status display,
+  // which shows candidates rather than results. From here the encrypted form is what the outfile,
+  // the potfile, the loopback file and the terminal all receive.
+
+  u8 encrypted_buf[HCBUFSIZ_TINY] = { 0 };
+
+  if (pubkey_ctx->enabled == true)
+  {
+    int encrypted_len = 0;
+
+    if (pubkey_encrypt_plain (hashcat_ctx, out_buf, out_len, plain_ptr, plain_len, encrypted_buf, sizeof (encrypted_buf), &encrypted_len) == -1)
+    {
+      // Failing the run is deliberate. The caller of a protected run cannot use a result they
+      // cannot decrypt, and writing the password in the clear instead would defeat the point.
+
+      hcfree (tmps);
+
+      return -1;
+    }
+
+    plain_ptr = encrypted_buf;
+    plain_len = encrypted_len;
+  }
+
   // crackpos
 
   u64 crackpos = 0;
@@ -463,7 +492,7 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
   u8  debug_rule_buf[RP_PASSWORD_SIZE] = { 0 };
   int debug_rule_len  = 0; // -1 error
 
-  u8  debug_plain_ptr[RP_PASSWORD_SIZE] = { 0 };
+  u8  debug_plain_ptr[RP_PASSWORD_SIZE + 1] = { 0 };
   int debug_plain_len = 0;
 
   build_debugdata (hashcat_ctx, device_param, plain, debug_rule_buf, &debug_rule_len, debug_plain_ptr, &debug_plain_len);
@@ -524,9 +553,9 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
     char       *hook_salts_buf_ptr = (char *) hook_salts_buf;
     hashinfo_t *hash_info_ptr      = NULL;
 
-    digests_buf_ptr    += digest_cur * hashconfig->dgst_size;
-    esalts_buf_ptr     += digest_cur * hashconfig->esalt_size;
-    hook_salts_buf_ptr += digest_cur * hashconfig->hook_salt_size;
+    digests_buf_ptr    += (u64) digest_cur * hashconfig->dgst_size;
+    esalts_buf_ptr     += (u64) digest_cur * hashconfig->esalt_size;
+    hook_salts_buf_ptr += (u64) digest_cur * hashconfig->hook_salt_size;
 
     if (hash_info) hash_info_ptr = hash_info[digest_cur];
 
@@ -2138,7 +2167,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->hook_salt_size > 0)
     {
-      char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
+      char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + ((u64) salts_cnt * hashconfig->hook_salt_size);
 
       memcpy (hook_salts_buf_new_ptr, hashes_buf[0].hook_salt, hashconfig->hook_salt_size);
 
@@ -2190,7 +2219,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
         if (hashconfig->hook_salt_size > 0)
         {
-          char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
+          char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + ((u64) salts_cnt * hashconfig->hook_salt_size);
 
           memcpy (hook_salts_buf_new_ptr, hashes_buf[hashes_pos].hook_salt, hashconfig->hook_salt_size);
 
@@ -2208,7 +2237,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
       if (hashconfig->hook_salt_size > 0)
       {
-        char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + (salts_cnt * hashconfig->hook_salt_size);
+        char *hook_salts_buf_new_ptr = ((char *) hook_salts_buf_new) + ((u64) salts_cnt * hashconfig->hook_salt_size);
 
         hashes_buf[hashes_pos].hook_salt = hook_salts_buf_new_ptr;
       }
@@ -2216,7 +2245,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     salt_buf->digests_cnt++;
 
-    digests_buf_new_ptr = ((char *) digests_buf_new) + (hashes_pos * hashconfig->dgst_size);
+    digests_buf_new_ptr = ((char *) digests_buf_new) + ((u64) hashes_pos * hashconfig->dgst_size);
 
     memcpy (digests_buf_new_ptr, hashes_buf[hashes_pos].digest, hashconfig->dgst_size);
 
@@ -2224,7 +2253,7 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     if (hashconfig->esalt_size > 0)
     {
-      char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + (hashes_pos * hashconfig->esalt_size);
+      char *esalts_buf_new_ptr = ((char *) esalts_buf_new) + ((u64) hashes_pos * hashconfig->esalt_size);
 
       memcpy (esalts_buf_new_ptr, hashes_buf[hashes_pos].esalt, hashconfig->esalt_size);
 
