@@ -130,6 +130,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -j, --rule-left                | Rule | Single rule applied to each word from left wordlist  | -j 'c'",
   " -k, --rule-right               | Rule | Single rule applied to each word from right wordlist | -k '^-'",
   " -r, --rules-file               | File | Multiple rules applied to each word from wordlists   | -r rules/best66.rule",
+  "     --rules-concat             |      | Concatenate rules from multiple -r files              |",
   " -g, --generate-rules           | Num  | Generate X random rules                              | -g 10000",
   "     --generate-rules-func-min  | Num  | Force min X functions per rule                       |",
   "     --generate-rules-func-max  | Num  | Force max X functions per rule                       |",

@@ -138,6 +138,7 @@ static const struct option long_options[] =
   {"rule-left",                 required_argument, NULL, IDX_RULE_BUF_L},
   {"rule-right",                required_argument, NULL, IDX_RULE_BUF_R},
   {"rules-file",                required_argument, NULL, IDX_RP_FILE},
+  {"rules-concat",              no_argument,       NULL, IDX_RP_FILE_CONCAT},
   {"runtime",                   required_argument, NULL, IDX_RUNTIME},
   {"scrypt-tmto",               required_argument, NULL, IDX_SCRYPT_TMTO},
   {"segment-size",              required_argument, NULL, IDX_SEGMENT_SIZE},
@@ -334,6 +335,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->version                   = VERSION;
   user_options->wordlist_autohex          = WORDLIST_AUTOHEX;
   user_options->workload_profile          = WORKLOAD_PROFILE;
+  user_options->rp_files_concat           = false;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) hccalloc (256, sizeof (char *));
   user_options->hc_bin                    = PROGNAME;
@@ -505,6 +507,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_ATTACK_MODE:               user_options->attack_mode               = hc_strtoul (optarg, NULL, 10);
                                           user_options->attack_mode_chgd          = true;                            break;
       case IDX_RP_FILE:                   user_options->rp_files[user_options->rp_files_cnt++] = optarg;             break;
+      case IDX_RP_FILE_CONCAT:            user_options->rp_files_concat           = true;                            break;
       case IDX_RP_GEN:                    user_options->rp_gen                    = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_RP_GEN_FUNC_MIN:           user_options->rp_gen_func_min           = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_RP_GEN_FUNC_MAX:           user_options->rp_gen_func_max           = hc_strtoul (optarg, NULL, 10);   break;
@@ -1132,6 +1135,20 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   if ((user_options->rp_files_cnt > 0) && (user_options->rp_gen > 0))
   {
     event_log_error (hashcat_ctx, "Combining -r/--rules-file and -g/--rules-generate is not supported.");
+
+    return -1;
+  }
+
+  if ((user_options->rp_files_concat == true) && (user_options->rp_files_cnt == 0))
+  {
+    event_log_error (hashcat_ctx, "Parameter --rules-concat requires -r/--rules-file.");
+
+    return -1;
+  }
+
+  if ((user_options->rp_files_concat == true) && (user_options->rp_gen > 0))
+  {
+    event_log_error (hashcat_ctx, "Combining --rules-concat with -g/--generate-rules is not supported.");
 
     return -1;
   }
@@ -4109,6 +4126,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->veracrypt_pim_start);
   logfile_top_uint   (user_options->veracrypt_pim_stop);
   logfile_top_uint   (user_options->version);
+  logfile_top_uint   (user_options->rp_files_concat);
   logfile_top_uint   (user_options->workload_profile);
   #ifdef WITH_BRAIN
   logfile_top_uint   (user_options->brain_client);

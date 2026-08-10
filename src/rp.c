@@ -1022,98 +1022,147 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   hcfree (rule_buf);
 
   /**
-   * merge rules
+   * merge or concat rules
    */
 
-  u32 kernel_rules_cnt = 1;
+  u32 kernel_rules_cnt = 0;
 
-  u32 *repeats = (u32 *) hccalloc (user_options->rp_files_cnt + 1, sizeof (u32));
+  kernel_rule_t *kernel_rules_buf = NULL;
 
-  repeats[0] = kernel_rules_cnt;
-
-  for (u32 i = 0; i < user_options->rp_files_cnt; i++)
+  if (user_options->rp_files_concat == true)
   {
-    const u32 kernel_rules_cnt_old = kernel_rules_cnt;
+    /**
+     * flat concatenation
+     */
 
-    kernel_rules_cnt *= all_kernel_rules_cnt[i];
-
-    if (kernel_rules_cnt < kernel_rules_cnt_old) // u32 overflow ?
+    for (u32 i = 0; i < user_options->rp_files_cnt; i++)
     {
-      if (all_kernel_rules_cnt[i] > 0) // at least one "valid" rule
+      const u32 kernel_rules_cnt_old = kernel_rules_cnt;
+
+      kernel_rules_cnt += all_kernel_rules_cnt[i];
+
+      if (kernel_rules_cnt < kernel_rules_cnt_old)
       {
-        event_log_error (hashcat_ctx, "Unsupported number of rules used in rule chaining.");
+        event_log_error (hashcat_ctx, "Unsupported number of rules used in rule concatenation.");
 
         hcfree (all_kernel_rules_cnt);
         hcfree (all_kernel_rules_buf);
-
-        hcfree (rule_buf);
-        hcfree (repeats);
 
         return -1;
       }
     }
 
-    repeats[i + 1] = kernel_rules_cnt;
+    kernel_rules_buf = (kernel_rule_t *) hccalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
+
+    u32 offset = 0;
+
+    for (u32 i = 0; i < user_options->rp_files_cnt; i++)
+    {
+      if (all_kernel_rules_cnt[i] > 0)
+      {
+        memcpy (&kernel_rules_buf[offset], all_kernel_rules_buf[i], all_kernel_rules_cnt[i] * sizeof (kernel_rule_t));
+
+        offset += all_kernel_rules_cnt[i];
+      }
+
+      hcfree (all_kernel_rules_buf[i]);
+    }
   }
-
-  kernel_rule_t *kernel_rules_buf = (kernel_rule_t *) hccalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
-
-  if (kernel_rules_buf == NULL)
+  else
   {
-    event_log_error (hashcat_ctx, "Not enough allocatable memory (RAM) for this ruleset.");
+    /**
+     * cross-product (merge)
+     */
 
-    hcfree (all_kernel_rules_cnt);
-    hcfree (all_kernel_rules_buf);
+    kernel_rules_cnt = 1;
+
+    u32 *repeats = (u32 *) hccalloc (user_options->rp_files_cnt + 1, sizeof (u32));
+
+    repeats[0] = kernel_rules_cnt;
+
+    for (u32 i = 0; i < user_options->rp_files_cnt; i++)
+    {
+      const u32 kernel_rules_cnt_old = kernel_rules_cnt;
+
+      kernel_rules_cnt *= all_kernel_rules_cnt[i];
+
+      if (kernel_rules_cnt < kernel_rules_cnt_old) // u32 overflow ?
+      {
+        if (all_kernel_rules_cnt[i] > 0) // at least one "valid" rule
+        {
+          event_log_error (hashcat_ctx, "Unsupported number of rules used in rule chaining.");
+
+          hcfree (all_kernel_rules_cnt);
+          hcfree (all_kernel_rules_buf);
+
+          hcfree (repeats);
+
+          return -1;
+        }
+      }
+
+      repeats[i + 1] = kernel_rules_cnt;
+    }
+
+    kernel_rules_buf = (kernel_rule_t *) hccalloc (kernel_rules_cnt, sizeof (kernel_rule_t));
+
+    if (kernel_rules_buf == NULL)
+    {
+      event_log_error (hashcat_ctx, "Not enough allocatable memory (RAM) for this ruleset.");
+
+      hcfree (all_kernel_rules_cnt);
+      hcfree (all_kernel_rules_buf);
+
+      hcfree (repeats);
+
+      return -1;
+    }
+
+    u32 invalid_cnt = 0;
+    u32 valid_cnt = 0;
+
+    for (u32 i = 0; i < kernel_rules_cnt; i++)
+    {
+      u32 out_pos = 0;
+
+      kernel_rule_t *out = &kernel_rules_buf[i - invalid_cnt];
+
+      for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+      {
+        u32 in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
+        u32 in_pos;
+
+        kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
+
+        for (in_pos = 0; in->cmds[in_pos]; in_pos++, out_pos++)
+        {
+          if (out_pos == RULES_MAX - 1)
+          {
+            invalid_cnt++;
+
+            break;
+          }
+          else
+          {
+            valid_cnt++;
+          }
+
+          out->cmds[out_pos] = in->cmds[in_pos];
+        }
+      }
+    }
+
+    if (invalid_cnt > 0)
+    {
+      event_log_warning (hashcat_ctx, "Maximum functions per rule exceeded during chaining of rules.");
+      event_log_warning (hashcat_ctx, "Skipped %u rule chains, %u valid chains remain.", invalid_cnt, valid_cnt);
+      event_log_warning (hashcat_ctx, NULL);
+    }
 
     hcfree (repeats);
 
-    return -1;
+    kernel_rules_cnt -= invalid_cnt;
   }
-
-  u32 invalid_cnt = 0;
-  u32 valid_cnt = 0;
-
-  for (u32 i = 0; i < kernel_rules_cnt; i++)
-  {
-    u32 out_pos = 0;
-
-    kernel_rule_t *out = &kernel_rules_buf[i - invalid_cnt];
-
-    for (u32 j = 0; j < user_options->rp_files_cnt; j++)
-    {
-      u32 in_off = (i / repeats[j]) % all_kernel_rules_cnt[j];
-      u32 in_pos;
-
-      kernel_rule_t *in = &all_kernel_rules_buf[j][in_off];
-
-      for (in_pos = 0; in->cmds[in_pos]; in_pos++, out_pos++)
-      {
-        if (out_pos == RULES_MAX - 1)
-        {
-          invalid_cnt++;
-
-          break;
-        }
-        else
-        {
-          valid_cnt++;
-        }
-
-        out->cmds[out_pos] = in->cmds[in_pos];
-      }
-    }
-  }
-
-  if (invalid_cnt > 0)
-  {
-    event_log_warning (hashcat_ctx, "Maximum functions per rule exceeded during chaining of rules.");
-    event_log_warning (hashcat_ctx, "Skipped %u rule chains, %u valid chains remain.", invalid_cnt, valid_cnt);
-    event_log_warning (hashcat_ctx, NULL);
-  }
-
-  hcfree (repeats);
-
-  kernel_rules_cnt -= invalid_cnt;
 
   hcfree (all_kernel_rules_cnt);
   hcfree (all_kernel_rules_buf);

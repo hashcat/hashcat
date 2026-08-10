@@ -989,6 +989,7 @@ typedef enum user_options_map
   IDX_RP_GEN_FUNC_SEL           = 0xff41,
   IDX_RP_GEN                    = 'g',
   IDX_RP_GEN_SEED               = 0xff42,
+  IDX_RP_FILE_CONCAT            = 0xff88,
   IDX_RULE_BUF_L                = 'j',
   IDX_RULE_BUF_R                = 'k',
   IDX_RUNTIME                   = 0xff43,
@@ -2656,6 +2657,7 @@ typedef struct user_options
   bool         veracrypt_pim_stop_chgd;
   bool         version;
   bool         wordlist_autohex;
+  bool         rp_files_concat;
   #ifdef WITH_BRAIN
   char        *brain_host;
   char        *brain_password;
