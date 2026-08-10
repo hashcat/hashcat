@@ -348,9 +348,17 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
   // pw_max is per pw_t element but in combinator we have two pw_t elements.
   // therefore we can support up to 64 in combinator in optimized mode (but limited by general hash limit 55)
-  // or full 512 in pure mode (but limited by hashcat buffer size limit 256).
+  // or the full 2 * PW_MAX in pure mode.
   // some algorithms do not support general default pw_max = 31,
   // therefore we need to use pw_max as a base and not hardcode it.
+  //
+  // The pure branch used to cap at 256 for "hashcat buffer size limit 256",
+  // which no longer holds: every consumer of plain_ptr is sized for the full
+  // combinator length. status.c uses u32[(64 * 2) + 2], which is exactly
+  // 2 * PW_MAX plus room for the terminator, and hashes.c uses HCBUFSIZ_TINY
+  // before handing off to HCBUFSIZ_LARGE writers. Capping below the real
+  // maximum silently reported a truncated password that does not hash to the
+  // digest it was reported against.
 
   if (plain_len > pw_max)
   {
@@ -362,7 +370,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
       }
       else
       {
-        pw_max = MIN ((pw_max * 2), 256);
+        pw_max = MIN ((pw_max * 2), PW_MAX * 2);
       }
     }
   }
