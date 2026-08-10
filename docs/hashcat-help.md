@@ -146,6 +146,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --brain-session-whitelist  | Hex  | Allow given sessions only, separated with commas     | --brain-session-whitelist=0x2ae611db
      --color-cracked            |      | Enables color output for cracked hashes              |
      --hash-copy                |      | Output hashes identically to the input hash          |
+     --encrypt-with-pubkey      | File | Encrypt recovered plains with an RSA public key      | --encrypt-with-pubkey=public.pem
 
 - [ Hash Modes ] -
 
