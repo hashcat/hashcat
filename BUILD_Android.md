@@ -23,7 +23,7 @@ Step 1: Install Dependencies
 ```bash
 apt update
 apt install git make clang python rust libiconv sse2neon
-apt install libbz2 liblzma libsqlite openssl readline ncurses
+apt install libbz2 liblzma libsqlite openssl readline ncurses ncurses-utils
 ```
 
 Install OpenCL Vendor Driver:
