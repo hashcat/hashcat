@@ -131,6 +131,7 @@ Setting --brain-client-features on the command line overrules the decision in ei
 ## Bugs
 ##
 
+- Fixed combinator and hybrid attacks reporting a plaintext truncated to 256 characters, which did not match the cracked digest
 - Fixed a one byte buffer overflow in fgetl() when a line was as long as the caller's buffer
 - Fixed missing libclang dependencies for Rust bridges in Ubuntu 20.04 and Arch containers
 - Fixed the Windows Rust plugin failing to link in the Arch container because lld was missing
