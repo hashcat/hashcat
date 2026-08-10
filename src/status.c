@@ -1043,8 +1043,11 @@ char *status_get_guess_candidates_dev (const hashcat_ctx_t *hashcat_ctx, const i
   plain_t plain1 = { outerloop_first, innerloop_first, 0, 0, 0, 0, 0 };
   plain_t plain2 = { outerloop_last,  innerloop_last,  0, 0, 0, 0, 0 };
 
-  u32 plain_buf1[(64 * 2) + 2] = { 0 };
-  u32 plain_buf2[(64 * 2) + 2] = { 0 };
+  // build_plain returns up to PW_MAX * 2 bytes for a combinator candidate, and exec_hexify doubles
+  // that in place, so both buffers have to hold twice the longest candidate plus the terminator.
+
+  u32 plain_buf1[((PW_MAX * 2 * 2) / 4) + 2] = { 0 };
+  u32 plain_buf2[((PW_MAX * 2 * 2) / 4) + 2] = { 0 };
 
   u8 *plain_ptr1 = (u8 *) plain_buf1;
   u8 *plain_ptr2 = (u8 *) plain_buf2;
