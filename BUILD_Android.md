@@ -22,18 +22,24 @@ Step 1: Install Dependencies
 
 ```bash
 apt update
-apt install git make clang python rust libiconv sse2neon opencl-vendor-driver
+apt install git make clang python rust libiconv sse2neon
 apt install libbz2 liblzma libsqlite openssl readline ncurses
+```
+
+Install OpenCL Vendor Driver:
+
+```bash
+apt install -y opencl-vendor-driver
 ```
 
 Step 2: Verify OpenCL Support
 
 ```bash
 apt install -y clinfo
-clinfo
+clinfo -l
 ```
 
-If clinfo shows 0 platforms, you need to fix OpenCL libraries.
+If clinfo shows nothing, you will need to fix OpenCL libraries.
 
 Step 3: Fix OpenCL Libraries (If Needed)
 
@@ -104,7 +110,7 @@ If the vendor driver doesn't work:
 
 ```bash
 apt remove opencl-vendor-driver
-apt install mesa-opencl-icd
+apt install mesa-opencl-icd-rusticl
 ```
 
 Verify OpenCL Fix
