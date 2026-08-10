@@ -1065,29 +1065,24 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   for (u32 i = 0; i < user_options->rp_files_cnt; i++)
   {
-    const u32 kernel_rules_cnt_old = kernel_rules_cnt;
+    if (overflow_check_u32_mul (kernel_rules_cnt, all_kernel_rules_cnt[i]) == true)
+    {
+      event_log_error (hashcat_ctx, "Unsupported number of rules used in rule chaining.");
+
+      for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+      {
+        hcfree (all_kernel_rules_buf[j]);
+      }
+
+      hcfree (all_kernel_rules_cnt);
+      hcfree (all_kernel_rules_buf);
+
+      hcfree (repeats);
+
+      return -1;
+    }
 
     kernel_rules_cnt *= all_kernel_rules_cnt[i];
-
-    if (kernel_rules_cnt < kernel_rules_cnt_old) // u32 overflow ?
-    {
-      if (all_kernel_rules_cnt[i] > 0) // at least one "valid" rule
-      {
-        event_log_error (hashcat_ctx, "Unsupported number of rules used in rule chaining.");
-
-        for (u32 j = 0; j < user_options->rp_files_cnt; j++)
-        {
-          hcfree (all_kernel_rules_buf[j]);
-        }
-
-        hcfree (all_kernel_rules_cnt);
-        hcfree (all_kernel_rules_buf);
-
-        hcfree (repeats);
-
-        return -1;
-      }
-    }
 
     repeats[i + 1] = kernel_rules_cnt;
   }
