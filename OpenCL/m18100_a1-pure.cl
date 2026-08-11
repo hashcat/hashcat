@@ -97,31 +97,17 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_BASIC ())
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
-      const u32 comb_len = combs_buf[il_pos].pw_len;
-
       u32 c[64];
 
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int idx = 0; idx < 64; idx++)
-      {
-        c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-      }
+      // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+      // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+      // does the plain two piece case the other attack modes need as well.
 
-      switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int i = 0; i < 64; i++)
-      {
-        c[i] |= w[i];
-      }
+      const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
       u32 otp_code0;
 
-      _totp_calculate (&otp_code0, c, pw_len + comb_len, s, 8);
+      _totp_calculate (&otp_code0, c, c_len, s, 8);
 
       COMPARE_M_SCALAR (otp_code0, 0, 0, 0);
     }
@@ -130,32 +116,18 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_BASIC ())
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
-      const u32 comb_len = combs_buf[il_pos].pw_len;
-
       u32 c[64];
 
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int idx = 0; idx < 64; idx++)
-      {
-        c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-      }
+      // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+      // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+      // does the plain two piece case the other attack modes need as well.
 
-      switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int i = 0; i < 64; i++)
-      {
-        c[i] |= w[i];
-      }
+      const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
       u32 otp_code0, otp_code1;
 
-      _totp_calculate (&otp_code0, c, pw_len + comb_len, s +  0, 8);
-      _totp_calculate (&otp_code1, c, pw_len + comb_len, s + 16, 8);
+      _totp_calculate (&otp_code0, c, c_len, s +  0, 8);
+      _totp_calculate (&otp_code1, c, c_len, s + 16, 8);
 
       COMPARE_M_SCALAR (otp_code0, otp_code1, 0, 0);
     }
@@ -164,33 +136,19 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_BASIC ())
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
-      const u32 comb_len = combs_buf[il_pos].pw_len;
-
       u32 c[64];
 
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int idx = 0; idx < 64; idx++)
-      {
-        c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-      }
+      // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+      // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+      // does the plain two piece case the other attack modes need as well.
 
-      switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int i = 0; i < 64; i++)
-      {
-        c[i] |= w[i];
-      }
+      const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
       u32 otp_code0, otp_code1, otp_code2;
 
-      _totp_calculate (&otp_code0, c, pw_len + comb_len, s +  0, 8);
-      _totp_calculate (&otp_code1, c, pw_len + comb_len, s + 16, 8);
-      _totp_calculate (&otp_code2, c, pw_len + comb_len, s + 32, 8);
+      _totp_calculate (&otp_code0, c, c_len, s +  0, 8);
+      _totp_calculate (&otp_code1, c, c_len, s + 16, 8);
+      _totp_calculate (&otp_code2, c, c_len, s + 32, 8);
 
       COMPARE_M_SCALAR (otp_code0, otp_code1, otp_code2, 0);
     }
@@ -199,34 +157,20 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_BASIC ())
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
-      const u32 comb_len = combs_buf[il_pos].pw_len;
-
       u32 c[64];
 
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int idx = 0; idx < 64; idx++)
-      {
-        c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-      }
+      // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+      // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+      // does the plain two piece case the other attack modes need as well.
 
-      switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int i = 0; i < 64; i++)
-      {
-        c[i] |= w[i];
-      }
+      const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
       u32 otp_code0, otp_code1, otp_code2, otp_code3;
 
-      _totp_calculate (&otp_code0, c, pw_len + comb_len, s +  0, 8);
-      _totp_calculate (&otp_code1, c, pw_len + comb_len, s + 16, 8);
-      _totp_calculate (&otp_code2, c, pw_len + comb_len, s + 32, 8);
-      _totp_calculate (&otp_code3, c, pw_len + comb_len, s + 48, 8);
+      _totp_calculate (&otp_code0, c, c_len, s +  0, 8);
+      _totp_calculate (&otp_code1, c, c_len, s + 16, 8);
+      _totp_calculate (&otp_code2, c, c_len, s + 32, 8);
+      _totp_calculate (&otp_code3, c, c_len, s + 48, 8);
 
       COMPARE_M_SCALAR (otp_code0, otp_code1, otp_code2, otp_code3);
     }
@@ -287,31 +231,17 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_BASIC ())
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
-      const u32 comb_len = combs_buf[il_pos].pw_len;
-
       u32 c[64];
 
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int idx = 0; idx < 64; idx++)
-      {
-        c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-      }
+      // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+      // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+      // does the plain two piece case the other attack modes need as well.
 
-      switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int i = 0; i < 64; i++)
-      {
-        c[i] |= w[i];
-      }
+      const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
       u32 otp_code0;
 
-      _totp_calculate (&otp_code0, c, pw_len + comb_len, s, 8);
+      _totp_calculate (&otp_code0, c, c_len, s, 8);
 
       COMPARE_S_SCALAR (otp_code0, 0, 0, 0);
     }
@@ -320,35 +250,21 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_BASIC ())
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
-      const u32 comb_len = combs_buf[il_pos].pw_len;
-
       u32 c[64];
 
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int idx = 0; idx < 64; idx++)
-      {
-        c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-      }
+      // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+      // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+      // does the plain two piece case the other attack modes need as well.
 
-      switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int i = 0; i < 64; i++)
-      {
-        c[i] |= w[i];
-      }
+      const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
       u32 otp_code0, otp_code1;
 
-      _totp_calculate (&otp_code0, c, pw_len + comb_len, s, 8);
+      _totp_calculate (&otp_code0, c, c_len, s, 8);
 
       if (otp_code0 == search[0])
       {
-        _totp_calculate (&otp_code1, c, pw_len + comb_len, s + 16, 8);
+        _totp_calculate (&otp_code1, c, c_len, s + 16, 8);
 
         COMPARE_S_SCALAR (otp_code0, otp_code1, 0, 0);
       }
@@ -358,39 +274,25 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_BASIC ())
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
-      const u32 comb_len = combs_buf[il_pos].pw_len;
-
       u32 c[64];
 
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int idx = 0; idx < 64; idx++)
-      {
-        c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-      }
+      // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+      // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+      // does the plain two piece case the other attack modes need as well.
 
-      switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int i = 0; i < 64; i++)
-      {
-        c[i] |= w[i];
-      }
+      const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
       u32 otp_code0, otp_code1, otp_code2;
 
-      _totp_calculate (&otp_code0, c, pw_len + comb_len, s, 8);
+      _totp_calculate (&otp_code0, c, c_len, s, 8);
 
       if (otp_code0 == search[0])
       {
-        _totp_calculate (&otp_code1, c, pw_len + comb_len, s + 16, 8);
+        _totp_calculate (&otp_code1, c, c_len, s + 16, 8);
 
         if (otp_code1 == search[1])
         {
-          _totp_calculate (&otp_code2, c, pw_len + comb_len, s + 32, 8);
+          _totp_calculate (&otp_code2, c, c_len, s + 32, 8);
 
           COMPARE_S_SCALAR (otp_code0, otp_code1, otp_code2, 0);
         }
@@ -401,43 +303,29 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_BASIC ())
   {
     for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
     {
-      const u32 comb_len = combs_buf[il_pos].pw_len;
-
       u32 c[64];
 
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int idx = 0; idx < 64; idx++)
-      {
-        c[idx] = hc_swap32_S (combs_buf[il_pos].i[idx]);
-      }
+      // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+      // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+      // does the plain two piece case the other attack modes need as well.
 
-      switch_buffer_by_offset_1x64_be_S (c, pw_len);
-
-      #ifdef _unroll
-      #pragma unroll
-      #endif
-      for (int i = 0; i < 64; i++)
-      {
-        c[i] |= w[i];
-      }
+      const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
       u32 otp_code0, otp_code1, otp_code2, otp_code3;
 
-      _totp_calculate (&otp_code0, c, pw_len + comb_len, s, 8);
+      _totp_calculate (&otp_code0, c, c_len, s, 8);
 
       if (otp_code0 == search[0])
       {
-        _totp_calculate (&otp_code1, c, pw_len + comb_len, s + 16, 8);
+        _totp_calculate (&otp_code1, c, c_len, s + 16, 8);
 
         if (otp_code1 == search[1])
         {
-          _totp_calculate (&otp_code2, c, pw_len + comb_len, s + 32, 8);
+          _totp_calculate (&otp_code2, c, c_len, s + 32, 8);
 
           if (otp_code2 == search[2])
           {
-            _totp_calculate (&otp_code3, c, pw_len + comb_len, s + 48, 8);
+            _totp_calculate (&otp_code3, c, c_len, s + 48, 8);
 
             COMPARE_S_SCALAR (otp_code0, otp_code1, otp_code2, otp_code3);
           }

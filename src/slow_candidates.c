@@ -114,6 +114,7 @@ static bool slow_candidates_combs_next (hashcat_ctx_t *hashcat_ctx, const int de
 void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_UNUSED const u64 cur, const u64 end)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
   straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -124,7 +125,7 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_U
   // -a 1 is asked about first because both of its sources are feeds, so it answers to the feed test
   // as well and the feed branch has no amplifier to place.
 
-  if (attack_mode == ATTACK_MODE_COMBI)
+  if (attack_mode == ATTACK_MODE_HYBRID)
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
@@ -146,9 +147,17 @@ void slow_candidates_seek (hashcat_ctx_t *hashcat_ctx, void *extra_info, MAYBE_U
     {
       slow_candidates_base_next (hashcat_ctx, extra_info_combi->device_id, &extra_info_combi->transform_base, extra_info_combi->base_buf, &extra_info_combi->base_len, &extra_info_combi->base_reject);
 
-      if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, extra_info_combi->device_id, comb_idx) != 0)
+      // An amplifier position covers a mask value and, when the mask has a ?q, a word from the second
+      // wordlist as well, with the word running fastest. Only the word has a feed to seek.
+
+      if (mask_ctx->has_q == true)
       {
-        extra_info_combi->base_reject = true;
+        const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+
+        if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, extra_info_combi->device_id, comb_idx % words_cnt) != 0)
+        {
+          extra_info_combi->base_reject = true;
+        }
       }
     }
 
@@ -202,7 +211,7 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
   // answers to the feed test as well and the feed branch would build a candidate with no amplifier on
   // it.
 
-  if (attack_mode == ATTACK_MODE_COMBI)
+  if (attack_mode == ATTACK_MODE_HYBRID)
   {
     extra_info_combi_t *extra_info_combi = (extra_info_combi_t *) extra_info;
 
@@ -210,39 +219,51 @@ void slow_candidates_next (hashcat_ctx_t *hashcat_ctx, void *extra_info)
     {
       slow_candidates_base_next (hashcat_ctx, extra_info_combi->device_id, &extra_info_combi->transform_base, extra_info_combi->base_buf, &extra_info_combi->base_len, &extra_info_combi->base_reject);
 
-      if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, extra_info_combi->device_id, 0) != 0)
+      if (mask_ctx->has_q == true)
       {
-        extra_info_combi->base_reject = true;
+        if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, extra_info_combi->device_id, 0) != 0)
+        {
+          extra_info_combi->base_reject = true;
+        }
       }
     }
 
-    memcpy (extra_info_combi->out_buf, extra_info_combi->base_buf, extra_info_combi->base_len);
+    // The mask value this amplifier position stands for, produced whole and then cut at the markers,
+    // which is what hybrid_assemble () does with it.
 
-    extra_info_combi->out_len = extra_info_combi->base_len;
+    char mask_buf[256];
+
+    hybrid_amp_mask (hashcat_ctx, extra_info_combi->comb_pos, mask_buf);
 
     char *line_buf = extra_info_combi->scratch_buf;
     u32   line_len = 0;
 
-    // The amplifier line is consumed whatever happens to it, because the amplifier is counted in
-    // lines too. A line -k throws away rejects the candidate it would have made rather than handing
-    // the slot to the line after it.
+    bool amp_usable = true;
 
-    const bool amp_usable = slow_candidates_combs_next (hashcat_ctx, extra_info_combi->device_id, &extra_info_combi->transform_amp, &line_buf, &line_len);
+    // The second word, when the mask names one. The line is consumed whatever happens to it, because
+    // the amplifier is counted in lines too: a line -k throws away rejects the candidate it would
+    // have made rather than handing the slot to the line after it.
 
-    // this can overflow so we move it up
-
-    if ((extra_info_combi->out_len + line_len) <= sizeof (extra_info_combi->out_buf))
+    if (mask_ctx->has_q == true)
     {
-      memcpy (extra_info_combi->out_buf + extra_info_combi->out_len, line_buf, line_len);
+      amp_usable = slow_candidates_combs_next (hashcat_ctx, extra_info_combi->device_id, &extra_info_combi->transform_amp, &line_buf, &line_len);
 
-      extra_info_combi->out_len += line_len;
+      // the word index wraps back to the start of the second wordlist as the mask value steps on
 
-      memset (extra_info_combi->out_buf + extra_info_combi->out_len, 0, sizeof (extra_info_combi->out_buf) - extra_info_combi->out_len);
+      const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+
+      if (((extra_info_combi->comb_pos + 1) % words_cnt) == 0)
+      {
+        if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, extra_info_combi->device_id, 0) != 0)
+        {
+          amp_usable = false;
+        }
+      }
     }
-    else
-    {
-      extra_info_combi->out_len += line_len;
-    }
+
+    extra_info_combi->out_len = hybrid_assemble (hashcat_ctx, extra_info_combi->out_buf, mask_buf, extra_info_combi->base_buf, extra_info_combi->base_len, (const u8 *) line_buf, line_len);
+
+    memset (extra_info_combi->out_buf + extra_info_combi->out_len, 0, sizeof (extra_info_combi->out_buf) - extra_info_combi->out_len);
 
     extra_info_combi->reject = (extra_info_combi->base_reject == true) || (amp_usable == false);
 

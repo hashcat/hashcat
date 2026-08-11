@@ -328,38 +328,17 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     return 0;
   }
 
-  // What is left below is the two attacks whose base word is not a feed. -a 1 under
-  // --slow-candidates still reads its base with the wordlist reader, and -a 7 under the pure kernel
-  // takes its base words from the mask.
+  // What is left below is the attacks whose base word is not a feed. -a 1 under --slow-candidates
+  // still reads its base with the wordlist reader, and -a 7 under the pure kernel takes its base
+  // words from the mask, as does -a 12 under the pure kernel when its mask ends in ?w.
   //
   // -a 0, -a 6, -a 8 and -a 9 have all returned above, and so has -a 7 under the optimized kernel.
 
-  if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    logfile_sub_string (combinator_ctx->dict1);
-    logfile_sub_string (combinator_ctx->dict2);
-
-    // Both dictionaries were counted by their own feed instance and the base one sits in the base
-    // slot, whichever of the two the combinator picked. There is nothing to re-read per round.
-
-    const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
-
-    const char *dict = (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT) ? combinator_ctx->dict1 : combinator_ctx->dict2;
-
-    if (straight_ctx_words_apply (hashcat_ctx, generic_ctx->keyspace, combinator_ctx->combs_cnt, dict) == -1) return -1;
-
-    if (status_ctx->words_cnt == 0)
-    {
-      logfile_sub_msg ("STOP");
-
-      return 0;
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_BF)
+  if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     logfile_sub_string (mask_ctx->mask);
   }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
     straight_ctx->dict = straight_ctx->dicts[straight_ctx->dicts_pos];
 
@@ -467,15 +446,15 @@ int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)
       if (straight_ctx_add_workv (hashcat_ctx, 0, user_options_extra->hc_workc) == -1) return -1;
     }
   }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
-    if (straight_ctx_add_workv (hashcat_ctx, 0, user_options_extra->hc_workc - 1) == -1) return -1;
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (straight_ctx_add_workv (hashcat_ctx, 1, user_options_extra->hc_workc) == -1) return -1;
-  }
+    // the mask is first and the wordlists follow it. A ?q wordlist is not in this list: it amplifies,
+    // and only the base word source is listed here.
 
+    const int to = user_options_extra->hc_workc - ((user_options_extra->hybrid_q == true) ? 1 : 0);
+
+    if (straight_ctx_add_workv (hashcat_ctx, 1, to) == -1) return -1;
+  }
   return 0;
 }
 

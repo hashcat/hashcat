@@ -143,9 +143,27 @@ KERNEL_FQ KERNEL_FA void m22951_mxx (KERN_ATTR_ESALT (pem_t))
 
     md5_init (&ctx);
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     u32 t[16];
 
@@ -186,9 +204,27 @@ KERNEL_FQ KERNEL_FA void m22951_mxx (KERN_ATTR_ESALT (pem_t))
 
     ctx.len = 16;
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md5_update (&ctx, t, 8);
 
@@ -376,9 +412,27 @@ KERNEL_FQ KERNEL_FA void m22951_sxx (KERN_ATTR_ESALT (pem_t))
 
     md5_init (&ctx);
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     u32 t[16];
 
@@ -419,9 +473,27 @@ KERNEL_FQ KERNEL_FA void m22951_sxx (KERN_ATTR_ESALT (pem_t))
 
     ctx.len = 16;
 
+    // -a 12 puts the base word inside the amplifier instead of beside it, so a candidate is five
+    // pieces: mask, base word, mask, second word, mask. Any of them may be empty, and the two in the
+    // middle are empty unless the mask carries a ?q.
+    //
+    // Every thread reads the same il_pos, so the branches below are uniform across the warp and the
+    // attack modes that do not take them pay nothing but the compare.
+
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_PRE (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_PRE (il_pos).i, COMBS_PRE (il_pos).pw_len);
+    }
+
     md5_update_global (&ctx, pws[gid].i, pws[gid].pw_len);
 
-    md5_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    if (COMBS_IS_MIDDLE)
+    {
+      if (COMBS_MID  (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      if (COMBS_WORD (il_pos).pw_len > 0) md5_update_global (&ctx, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+    }
+
+    md5_update_global (&ctx, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
 
     md5_update (&ctx, t, 8);
 

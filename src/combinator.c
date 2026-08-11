@@ -7,6 +7,7 @@
 #include "types.h"
 #include "event.h"
 #include "shared.h"
+#include "mpsp.h"
 #include "generic.h"
 #include "combinator.h"
 
@@ -75,129 +76,72 @@ int combinator_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->show         == true) return 0;
   if (user_options->version      == true) return 0;
 
-  if ((user_options->attack_mode != ATTACK_MODE_COMBI)
-   && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
-   && (user_options->attack_mode != ATTACK_MODE_HYBRID2)) return 0;
+  if (user_options->attack_mode != ATTACK_MODE_HYBRID) return 0;
 
   combinator_ctx->enabled = true;
 
-  if (user_options->slow_candidates == true)
+  // The default, which the mask decides for itself per mask in mask_ctx_update_loop. What is left
+  // here is the two arrangements that are settled before any mask is parsed.
+
+  combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_MIDDLE;
+
+  // A ?q amplifies with a wordlist rather than with the mask, and its instance holds the count. The
+  // mask multiplies that in later, once it knows its own size.
+  //
+  // Two wordlists and nothing else is what -a 1 is, and there the bigger one should be the base word
+  // source: the base word is hashed into a context once and the amplifier is appended per candidate,
+  // so the side with more words is the one worth doing once. Both were counted by their own instance
+  // before this ran, and the instances are in the order the dictionaries were typed.
+
+  if (user_options_extra->hybrid_q == true)
   {
-    // this is always need to be COMBINATOR_MODE_BASE_LEFT
+    char *dictfile1 = user_options_extra->hc_workv[1];
+    char *dictfile2 = user_options_extra->hc_workv[2];
 
-    if (user_options->attack_mode == ATTACK_MODE_COMBI)
+    u64 words1_cnt = 0;
+    u64 words2_cnt = 0;
+
+    if (combinator_count_dicts (hashcat_ctx, dictfile1, dictfile2, &words1_cnt, &words2_cnt) == -1) return -1;
+
+    combinator_ctx->combs_cnt = words2_cnt;
+
+    const bool swap = (user_options->attack_mode_typed == ATTACK_MODE_COMBI) && (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) && (words1_cnt < words2_cnt);
+
+    if (swap == true)
     {
-      // display
+      // The rule for the base word follows from this, and user_options_extra_init_rules () works it
+      // out. This used to swap rule_buf_l and rule_buf_r in place, which left the user's own -j
+      // holding the value of their -k for the rest of the session.
 
-      char *dictfile1 = user_options_extra->hc_workv[0];
-      char *dictfile2 = user_options_extra->hc_workv[1];
+      combinator_ctx->combs_cnt = words1_cnt;
 
-      u64 words1_cnt = 0;
-      u64 words2_cnt = 0;
+      combinator_ctx->roles_swapped = true;
 
-      if (combinator_count_dicts (hashcat_ctx, dictfile1, dictfile2, &words1_cnt, &words2_cnt) == -1) return -1;
-
-      combinator_ctx->dict1 = dictfile1;
-      combinator_ctx->dict2 = dictfile2;
-
-      combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-      combinator_ctx->combs_cnt  = words2_cnt;
+      generic_ctx_roles_swap (hashcat_ctx);
     }
+
+    return 0;
   }
-  else
+
+  // The mask is the base word source, so the wordlist is what each base word is combined with and its
+  // instance holds the count. That is a mask ending in ?w under a pure kernel, which is what -a 7
+  // builds and is why it keeps -a 7's speed.
+
+  if (user_options_extra->base_source == BASE_SOURCE_MASK)
   {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP];
+
+    char *dictfile = user_options_extra->hc_workv[1];
+
+    if (generic_ctx->keyspace == GENERIC_KEYSPACE_UNKNOWN)
     {
-      if (user_options->attack_mode == ATTACK_MODE_COMBI)
-      {
-        // display
+      event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile);
 
-        char *dictfile1 = user_options_extra->hc_workv[0];
-        char *dictfile2 = user_options_extra->hc_workv[1];
-
-        u64 words1_cnt = 0;
-        u64 words2_cnt = 0;
-
-        if (combinator_count_dicts (hashcat_ctx, dictfile1, dictfile2, &words1_cnt, &words2_cnt) == -1) return -1;
-
-        combinator_ctx->dict1 = dictfile1;
-        combinator_ctx->dict2 = dictfile2;
-
-        if (words1_cnt >= words2_cnt)
-        {
-          combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-          combinator_ctx->combs_cnt  = words2_cnt;
-        }
-        else
-        {
-          // The rule for the base word follows from this, and user_options_extra_init_rules () works it
-          // out. This used to swap rule_buf_l and rule_buf_r in place, which left the user's own -j
-          // holding the value of their -k for the rest of the session.
-
-          combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
-          combinator_ctx->combs_cnt  = words1_cnt;
-
-          // The instances were created in the order the dictionaries were typed, and the right hand
-          // one has just turned out to be the base
-
-          generic_ctx_roles_swap (hashcat_ctx);
-        }
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-      {
-        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-      {
-        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
-      }
+      return -1;
     }
-    else
-    {
-      // this is always need to be COMBINATOR_MODE_BASE_LEFT
 
-      if (user_options->attack_mode == ATTACK_MODE_COMBI)
-      {
-        // display
-
-        char *dictfile1 = user_options_extra->hc_workv[0];
-        char *dictfile2 = user_options_extra->hc_workv[1];
-
-        u64 words1_cnt = 0;
-        u64 words2_cnt = 0;
-
-        if (combinator_count_dicts (hashcat_ctx, dictfile1, dictfile2, &words1_cnt, &words2_cnt) == -1) return -1;
-
-        combinator_ctx->dict1 = dictfile1;
-        combinator_ctx->dict2 = dictfile2;
-
-        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-        combinator_ctx->combs_cnt  = words2_cnt;
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-      {
-        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-      }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-      {
-        // Under the pure kernel the mask is the base word and the dictionary is what each base word is
-        // combined with, so the dictionary is the amplifier and its instance holds the count.
-
-        const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP];
-
-        char *dictfile = user_options_extra->hc_workv[1];
-
-        if (generic_ctx->keyspace == GENERIC_KEYSPACE_UNKNOWN)
-        {
-          event_log_error (hashcat_ctx, "%s: feed cannot report a keyspace.", dictfile);
-
-          return -1;
-        }
-
-        combinator_ctx->combs_cnt  = generic_ctx->keyspace;
-        combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
-      }
-    }
+    combinator_ctx->combs_cnt  = generic_ctx->keyspace;
+    combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
   }
 
   return 0;

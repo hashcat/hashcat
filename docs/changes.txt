@@ -76,6 +76,10 @@ Setting --brain-client-features on the command line overrules the decision in ei
 - Attack-Mode 9: The username in front of the first separator becomes the candidate, and rules apply
 - Mask attacks: --increment and mask files now form one keyspace, so --skip and --limit apply to all
 - Mask attacks: --keyspace now answers for the whole increment or mask file instead of being refused
+- Attack-Mode 12: A hybrid attack where the mask says where the word goes, with ?w marking the place
+- Attack-Mode 12: ?w?d?d is what -a 6 does and ?d?d?w is what -a 7 does, and mask on both sides is new
+- Attack-Mode 12: ?q marks a word from a second wordlist and has to come after ?w, so ?w?q is -a 1
+- Attack-Mode 12: Literals work anywhere in the mask, so Pass?w?d?d is a valid mask
 
 ##
 ## New Features

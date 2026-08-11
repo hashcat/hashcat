@@ -1205,4 +1205,14 @@ DECLSPEC u32x ix_create_bft       (CONSTANT_AS const bf_t *arr, const u32 il_pos
 DECLSPEC u32x pwlenx_create_combt (GLOBAL_AS   const pw_t *arr, const u32 il_pos);
 DECLSPEC u32x ix_create_combt     (GLOBAL_AS   const pw_t *arr, const u32 il_pos, const int idx);
 
+DECLSPEC u32x pwlenx_create_combp   (GLOBAL_AS const pw_t *arr, const u32 il_pos, const int piece);
+DECLSPEC u32x ix_create_combp       (GLOBAL_AS const pw_t *arr, const u32 il_pos, const int idx, const int piece);
+DECLSPEC u32x pwlenx_create_combsum (GLOBAL_AS const pw_t *arr, const u32 il_pos);
+
+DECLSPEC void combs_piece4_VV (GLOBAL_AS const pw_t *arr, const u32 il_pos, const int piece, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3);
+DECLSPEC void combs_piece6_VV (GLOBAL_AS const pw_t *arr, const u32 il_pos, const int piece, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3);
+DECLSPEC void combs_piece8_VV (GLOBAL_AS const pw_t *arr, const u32 il_pos, const int piece, PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3);
+
+DECLSPEC void combs_fold_VV (PRIVATE_AS u32x *wl0, PRIVATE_AS u32x *wl1, PRIVATE_AS u32x *wl2, PRIVATE_AS u32x *wl3, PRIVATE_AS const u32x *wr0, PRIVATE_AS const u32x *wr1, PRIVATE_AS const u32x *wr2, PRIVATE_AS const u32x *wr3);
+
 #endif

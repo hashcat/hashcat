@@ -13,6 +13,7 @@
 #include "filehandling.h"
 #include "backend.h"
 #include "shared.h"
+#include "generic.h"
 #include "ext_lzma.h"
 #include "mpsp.h"
 
@@ -379,11 +380,146 @@ static int mp_expand (hashcat_ctx_t *hashcat_ctx, const char *in_buf, size_t in_
   return 0;
 }
 
+// ?w marks where the base word goes. It is a position and not a charset, so it contributes no css
+// entry and the caller has to put the css index back after it is seen.
+
+static int mp_set_w_marker (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, const size_t css_pos)
+{
+  mask_ctx_t           *mask_ctx     = hashcat_ctx->mask_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  // The attack mode the run uses, not the one the user typed, because the masks of the three modes
+  // that are rewritten into attack-mode 12 carry a ?w this put there. A user who writes their own ?w
+  // into an aliased mode's mask ends up with two of them and the check below says so.
+
+  if (user_options->attack_mode != ATTACK_MODE_HYBRID)
+  {
+    event_log_error (hashcat_ctx, "?w is supported in attack-mode 12 only. Failed mask: %s", mask_buf);
+
+    return -1;
+  }
+
+  if (mask_ctx->has_w == true)
+  {
+    event_log_error (hashcat_ctx, "A mask can hold only one ?w. Failed mask: %s", mask_buf);
+
+    return -1;
+  }
+
+  mask_ctx->has_w   = true;
+  mask_ctx->pre_len = (u32) css_pos;
+
+  return 0;
+}
+
+// ?q marks a word from a second wordlist. It is optional, it may only follow ?w, and like ?w it is a
+// position rather than a charset.
+
+static int mp_set_q_marker (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, const size_t css_pos)
+{
+  mask_ctx_t           *mask_ctx     = hashcat_ctx->mask_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode != ATTACK_MODE_HYBRID)
+  {
+    event_log_error (hashcat_ctx, "?q is supported in attack-mode 12 only. Failed mask: %s", mask_buf);
+
+    return -1;
+  }
+
+  if (mask_ctx->has_w == false)
+  {
+    event_log_error (hashcat_ctx, "?q names the second word, so it has to come after ?w. Failed mask: %s", mask_buf);
+
+    return -1;
+  }
+
+  if (mask_ctx->has_q == true)
+  {
+    event_log_error (hashcat_ctx, "A mask can hold only one ?q. Failed mask: %s", mask_buf);
+
+    return -1;
+  }
+
+  mask_ctx->has_q   = true;
+  mask_ctx->mid_len = (u32) css_pos - mask_ctx->pre_len;
+
+  return 0;
+}
+
+// Does a mask carry the given marker? Asked before the mask is parsed into a css, because which of the
+// work arguments are wordlists depends on whether ?q is there and generic_ctx_init runs first.
+//
+// A '?' escapes itself, so "??q" is a literal question mark followed by a literal q and not a marker.
+
+bool mask_has_marker (const char *mask, const char marker)
+{
+  if (mask == NULL) return false;
+
+  const size_t mask_len = strlen (mask);
+
+  for (size_t i = 0; i < mask_len; i++)
+  {
+    if (mask[i] != '?') continue;
+
+    i++;
+
+    if (i == mask_len) break;
+
+    if (mask[i] == marker) return true;
+  }
+
+  return false;
+}
+
+// Is the given marker the last thing in the mask? Asked of a -a 12 mask about its ?w, because a mask
+// that ends in the base word is the one shape whose base words the mask processor can produce: the
+// word goes behind them and the mask in front of it never has to be fed again.
+//
+// The same escaping applies, so "??w" ends in a literal w and not in a marker. Walking the whole mask
+// rather than looking at the last two bytes is what tells those apart.
+
+bool mask_ends_with_marker (const char *mask, const char marker)
+{
+  if (mask == NULL) return false;
+
+  const size_t mask_len = strlen (mask);
+
+  bool ends = false;
+
+  for (size_t i = 0; i < mask_len; i++)
+  {
+    ends = false;
+
+    if (mask[i] != '?') continue;
+
+    i++;
+
+    if (i == mask_len) break;
+
+    if (mask[i] != marker) continue;
+
+    ends = (i == (mask_len - 1));
+  }
+
+  return ends;
+}
+
 static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_len, cs_t *mp_sys, cs_t *mp_usr, cs_t *css_buf, u32 *css_cnt)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
+  mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
   memset (css_buf, 0, 256 * sizeof (cs_t));
+
+  // Every mask is parsed from scratch, so the markers found in the previous one must not survive into
+  // this one. With a mask file the masks differ and only some of them may carry a ?w.
+
+  mask_ctx->has_w   = false;
+  mask_ctx->has_q   = false;
+  mask_ctx->pre_len = 0;
+  mask_ctx->mid_len = 0;
 
   size_t mask_pos;
   size_t css_pos;
@@ -453,6 +589,12 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
                   break;
         case '?': rc = mp_add_cs_buf (hashcat_ctx, &chr, 1, css_buf, css_pos);
                   break;
+        case 'w': rc = mp_set_w_marker (hashcat_ctx, mask_buf, css_pos);
+                  css_pos--; // no css entry was added, and the loop is about to step css_pos on
+                  break;
+        case 'q': rc = mp_set_q_marker (hashcat_ctx, mask_buf, css_pos);
+                  css_pos--; // same, ?q is a position and not a charset
+                  break;
         default:  event_log_error (hashcat_ctx, "Syntax error in mask: %s", mask_buf);
                   return -1;
       }
@@ -505,7 +647,21 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
     }
   }
 
-  if (css_pos == 0)
+  // -a 12 is defined by where the word sits, so a mask that does not say where that is has no meaning
+  // in this mode. Checked here rather than at option parsing time because a mask file supplies masks
+  // one at a time and every one of them has to carry the marker.
+
+  if ((hashcat_ctx->user_options->attack_mode == ATTACK_MODE_HYBRID) && (mask_ctx->has_w == false))
+  {
+    event_log_error (hashcat_ctx, "Attack-mode 12 needs a ?w in the mask to say where the word goes. Failed mask: %s", mask_buf);
+
+    return -1;
+  }
+
+  // A mask of ?w alone is a plain wordlist run with extra steps, but it is not a syntax error and the
+  // length check below would reject it for the wrong reason.
+
+  if ((css_pos == 0) && (mask_ctx->has_w == false))
   {
     event_log_error (hashcat_ctx, "Invalid mask length (0).");
 
@@ -1110,9 +1266,125 @@ void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u
   }
 }
 
+// Copy one piece of a -a 12 candidate without running past the end of the buffer, and report how much
+// was taken.
+
+static u32 hybrid_append (u8 *out_buf, const u32 out_len, const u8 *src, const u32 src_len)
+{
+  if (out_len >= PW_MAX) return 0;
+
+  const u32 copy_len = MIN (src_len, PW_MAX - out_len);
+
+  memcpy (out_buf + out_len, src, copy_len);
+
+  return copy_len;
+}
+
+// The mask value at an amplifier position, produced whole. With a ?q an amplifier position covers a
+// mask value and a word from the second wordlist together, and the word index runs fastest so that one
+// pass of the mask is one pass of that wordlist.
+
+u32 hybrid_amp_mask (hashcat_ctx_t *hashcat_ctx, const u64 off, char *mask_buf)
+{
+  const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  u64 mask_pos = off;
+
+  if (mask_ctx->has_q == true)
+  {
+    const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+
+    mask_pos = off / words_cnt;
+  }
+
+  sp_exec (mask_pos, mask_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, 0, mask_ctx->css_cnt);
+
+  return mask_ctx->css_cnt;
+}
+
+// Put one -a 12 candidate together out of the amplifier the fill already built, rather than out of
+// the amplifier position. Two reasons it has to come from the buffer.
+//
+// The bytes in it are the bytes the kernel was given. The second word has been through the -k rule
+// and the encoding options, and reading the feed again here would report the word before any of that.
+// It would also be a second reader of a feed the device thread is in the middle of: the fill seeks
+// once per chunk and then reads forward through it, so a status refresh landing mid chunk would move
+// the shared position and the rest of that chunk would get the wrong words.
+//
+// And the item is no longer at the position it belongs to. A ?q word the transform refuses gives up
+// its item, so everything the fill accepted after it has moved up, and only the fill knows by how
+// much. The buffer is the record of what it decided.
+
+u32 hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 il_pos, u8 *out_buf, const u8 *base_buf, const u32 base_len)
+{
+  const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+
+  u32 out_len = 0;
+
+  if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_MIDDLE)
+  {
+    const pw_t *pre_ptr  = &device_param->combs_buf[((u64) il_pos * COMBS_PIECE_CNT) + COMBS_PIECE_PRE];
+    const pw_t *mid_ptr  = &device_param->combs_buf[((u64) il_pos * COMBS_PIECE_CNT) + COMBS_PIECE_MID];
+    const pw_t *word_ptr = &device_param->combs_buf[((u64) il_pos * COMBS_PIECE_CNT) + COMBS_PIECE_WORD];
+    const pw_t *post_ptr = &device_param->combs_buf[((u64) il_pos * COMBS_PIECE_CNT) + COMBS_PIECE_POST];
+
+    out_len += hybrid_append (out_buf, out_len, (const u8 *) pre_ptr->i,  pre_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, base_buf,                 base_len);
+    out_len += hybrid_append (out_buf, out_len, (const u8 *) mid_ptr->i,  mid_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, (const u8 *) word_ptr->i, word_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, (const u8 *) post_ptr->i, post_ptr->pw_len);
+
+    return out_len;
+  }
+
+  // One buffer, and which side of the base word it goes on is the whole difference between the two
+  // layouts that use one.
+
+  const pw_t *one_ptr = &device_param->combs_buf[il_pos];
+
+  if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+  {
+    out_len += hybrid_append (out_buf, out_len, (const u8 *) one_ptr->i, one_ptr->pw_len);
+    out_len += hybrid_append (out_buf, out_len, base_buf,                base_len);
+
+    return out_len;
+  }
+
+  out_len += hybrid_append (out_buf, out_len, base_buf,                base_len);
+  out_len += hybrid_append (out_buf, out_len, (const u8 *) one_ptr->i, one_ptr->pw_len);
+
+  return out_len;
+}
+
+// Put one -a 12 candidate together from its pieces, in the one order the amplifier kernel also uses:
+// mask, base word, mask, second word, mask. Any of the five may be empty.
+
+u32 hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const char *mask_buf, const u8 *base_buf, const u32 base_len, const u8 *word_buf, const u32 word_len)
+{
+  const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  const u32 pre_len  = mask_ctx->pre_len;
+  const u32 mid_len  = mask_ctx->mid_len;
+  const u32 post_len = mask_ctx->css_cnt - pre_len - mid_len;
+
+  const u8 *mask_ptr = (const u8 *) mask_buf;
+
+  u32 out_len = 0;
+
+  out_len += hybrid_append (out_buf, out_len, mask_ptr,                     pre_len);
+  out_len += hybrid_append (out_buf, out_len, base_buf,                     base_len);
+  out_len += hybrid_append (out_buf, out_len, mask_ptr + pre_len,           mid_len);
+  out_len += hybrid_append (out_buf, out_len, word_buf,                     word_len);
+  out_len += hybrid_append (out_buf, out_len, mask_ptr + pre_len + mid_len, post_len);
+
+  return out_len;
+}
+
 static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
 {
   mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (mask_ctx->masks_avail == mask_ctx->masks_cnt)
   {
@@ -1123,6 +1395,28 @@ static int mask_append_final (hashcat_ctx_t *hashcat_ctx, const char *mask)
     mask_ctx->masks = tmp;
 
     mask_ctx->masks_avail += INCR_MASKS;
+  }
+
+  // -a 6 and -a 7 are -a 12 masks with the ?w at one end, and this is where it goes on. Here rather
+  // than on the argument, because every mask arrives here and this is the last thing that happens to
+  // one: a mask file line arrives with its own charsets already split off, and an --increment mask
+  // arrives already truncated and already mirrored. So -i keeps working for both of them with no
+  // change to the increment machinery at all.
+
+  char mask_buf[256];
+
+  if (user_options->marker_policy != MARKER_POLICY_NONE)
+  {
+    const char *fmt = (user_options->marker_policy == MARKER_POLICY_PREFIX_W) ? "?w%s" : "%s?w";
+
+    if (snprintf (mask_buf, sizeof (mask_buf), fmt, mask) >= (int) sizeof (mask_buf))
+    {
+      event_log_error (hashcat_ctx, "%s: mask is too long.", mask);
+
+      return -1;
+    }
+
+    mask = mask_buf;
   }
 
   mask_ctx->masks[mask_ctx->masks_cnt] = hcstrdup (mask);
@@ -1326,6 +1620,68 @@ static char *mask_ctx_parse_maskfile_find_mask (char *line_buf, const size_t lin
   return mask_buf;
 }
 
+// Does the mask start with the given marker? That is the first token and nothing before it, so the
+// test is the first two bytes and no walk is needed. "??w" starts with a literal question mark.
+
+bool mask_starts_with_marker (const char *mask, const char marker)
+{
+  if (mask == NULL) return false;
+
+  if (mask[0] != '?') return false;
+
+  if (mask[1] != marker) return false;
+
+  return true;
+}
+
+// Does every mask a work argument names end in the given marker? Every one of them, because the base
+// word source is chosen once for the whole session and a mask file cannot change it halfway through.
+// A file whose lines disagree answers false and the run keeps the wordlist as its base, which
+// produces the same candidates in a different order.
+
+bool mask_arg_ends_with_marker (const char *arg, const char marker)
+{
+  if (arg == NULL) return false;
+
+  if (hc_path_exist (arg) == false) return mask_ends_with_marker (arg, marker);
+
+  if (hc_path_is_file (arg) == false) return false;
+
+  HCFILE mask_fp;
+
+  if (hc_fopen (&mask_fp, arg, "r") == false) return false;
+
+  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+  bool all = false;
+
+  while (hc_feof (&mask_fp) == 0)
+  {
+    const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
+
+    if (line_len == 0) continue;
+
+    if (line_buf[0] == '#') continue;
+
+    const char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, line_len);
+
+    if (mask_ends_with_marker (mask_buf, marker) == false)
+    {
+      all = false;
+
+      break;
+    }
+
+    all = true;
+  }
+
+  hcfree (line_buf);
+
+  hc_fclose (&mask_fp);
+
+  return all;
+}
+
 int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
@@ -1339,80 +1695,161 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
   {
-    if (user_options->attack_mode == ATTACK_MODE_COMBI)
-    {
+  // The mask is the base word source, so its size is the base word count and the amplifier count
+    // belongs to the wordlist. That is -a 7 under a pure kernel, and -a 12 under a pure kernel
+    // whenever its mask ends in ?w.
 
+    if (user_options_extra->base_source == BASE_SOURCE_MASK)
+    {
+      mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
+
+      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+
+      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+
+      u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
+
+      for (int i = 0; i < SP_PW_MAX; i++) uniq_tbls[i] = (u32 *) hcmalloc(CHARSIZ * sizeof(u32));
+
+      mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+      for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
+
+      hcfree (uniq_tbls);
+
+      if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
+      {
+        event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+        return -1;
+      }
+
+      if (backend_session_update_mp (hashcat_ctx) == -1) return -1;
     }
-    else if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+    else
     {
-      if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+      mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
+
+      if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+
+      if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+
+      u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
+
+      for (int i = 0; i < SP_PW_MAX; i++) uniq_tbls[i] = (u32 *) hcmalloc(CHARSIZ * sizeof(u32));
+
+      mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+
+      sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+
+      for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
+
+      hcfree (uniq_tbls);
+
+      if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt) == -1)
       {
-        mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
+        event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
-        if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+        return -1;
+      }
 
-        if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+      // A ?q puts a second word in every candidate, and that word amplifies the base word the same
+      // way the mask does. Both live in the one amplifier rather than in two, so the amplifier count
+      // is the product and an amplifier position divides back into a mask index and a word index.
+      // With no mask left at all, ?w?q, the product is just the second wordlist, which is -a 1.
 
-        u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
+      if (mask_ctx->has_q == true)
+      {
+        const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
 
-        for (int i = 0; i < SP_PW_MAX; i++) uniq_tbls[i] = (u32 *) hcmalloc(CHARSIZ * sizeof(u32));
+        if (words_cnt == GENERIC_KEYSPACE_UNKNOWN)
+        {
+          event_log_error (hashcat_ctx, "?q: feed cannot report a keyspace.");
 
-        mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
+          return -1;
+        }
 
-        sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
+        // No instance was opened, so the amplifier count would be multiplied by nothing and the
+        // round would compute an empty keyspace without saying so.
 
-        for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
+        if (words_cnt == 0)
+        {
+          event_log_error (hashcat_ctx, "%s: has a ?q, but no wordlist was given for it.", mask_ctx->mask);
 
-        hcfree (uniq_tbls);
+          return -1;
+        }
 
-        if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &mask_ctx->bfs_cnt) == -1)
+        if (overflow_check_u64_mul (combinator_ctx->combs_cnt, words_cnt) == true)
         {
           event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
 
           return -1;
         }
 
-        if (backend_session_update_mp (hashcat_ctx) == -1) return -1;
+        combinator_ctx->combs_cnt *= words_cnt;
       }
-      else
+
+      // Nothing in front of the base word means everything else is behind it, and everything behind
+      // it is contiguous: the mask between the words, the second word, the mask after it. So the
+      // host can hand the kernel one buffer instead of four, which is the layout every other attack
+      // mode already uses and a quarter of the upload.
+      //
+      // That covers ?w?d?d and ?w?q, and also ?w?d?q, ?w?q?d and ?w?d?q?d, which are only five
+      // pieces on paper.
+      //
+      // The mirror image is one buffer as well. Nothing behind the word and no ?q leaves the whole
+      // mask in front of it, which is the layout -a 7 uses. Only an optimized kernel can be given
+      // it: a pure kernel appends its amplifier to a context that has already absorbed the base
+      // word, so it has no way to put anything in front.
+      //
+      // Anything else really is five pieces, because the base word splits the amplifier in two.
+      //
+      // The mask is parsed per mask, so this is decided per mask as well, and
+      // backend_session_update_combinator () carries it to the devices.
+
+      if (user_options->attack_mode == ATTACK_MODE_HYBRID)
       {
-        mask_ctx->mask = mask_ctx->masks[mask_ctx->masks_pos];
+        const u32 post_len = mask_ctx->css_cnt - mask_ctx->pre_len - mask_ctx->mid_len;
 
-        if (mask_ctx_parse_maskfile (hashcat_ctx) == -1) return -1;
+        const bool mask_in_front = (post_len == 0) && (mask_ctx->has_q == false);
 
-        if (mp_gen_css (hashcat_ctx, mask_ctx->mask, strlen (mask_ctx->mask), mask_ctx->mp_sys, mask_ctx->mp_usr, mask_ctx->css_buf, &mask_ctx->css_cnt) == -1) return -1;
+        const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) != 0;
 
-        u32 **uniq_tbls = (u32 **) hcmalloc (SP_PW_MAX * sizeof(u32 *));
-
-        for (int i = 0; i < SP_PW_MAX; i++) uniq_tbls[i] = (u32 *) hcmalloc(CHARSIZ * sizeof(u32));
-
-        mp_css_to_uniq_tbl (hashcat_ctx, mask_ctx->css_cnt, mask_ctx->css_buf, uniq_tbls);
-
-        sp_tbl_to_css (mask_ctx->root_table_buf, mask_ctx->markov_table_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, user_options->markov_threshold, uniq_tbls);
-
-        for (int i = 0; i < SP_PW_MAX; i++) hcfree (uniq_tbls[i]);
-
-        hcfree (uniq_tbls);
-
-        if (sp_get_sum (0, mask_ctx->css_cnt, mask_ctx->root_css_buf, &combinator_ctx->combs_cnt) == -1)
+        if (combinator_ctx->roles_swapped == true)
         {
-          event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+          // The two wordlists were swapped so that the bigger one is the base word source, so the
+          // smaller one goes in front of it and the candidate still comes out in the order it was
+          // typed.
 
-          return -1;
+          combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
         }
-
-        // do not allow modifier count > 32 bit
-        // https://github.com/hashcat/hashcat/issues/2482
-
-        // if (combinator_ctx->combs_cnt > 0xffffffff)
-        // {
-        //   event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
-
-        //   return -1;
-        // }
-
-        if (backend_session_update_mp (hashcat_ctx) == -1) return -1;
+        else if (mask_ctx->pre_len == 0)
+        {
+          combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_LEFT;
+        }
+        else if ((mask_in_front == true) && (optimized_kernel == true))
+        {
+          combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_RIGHT;
+        }
+        else
+        {
+          combinator_ctx->combs_mode = COMBINATOR_MODE_BASE_MIDDLE;
+        }
       }
+
+      // do not allow modifier count > 32 bit
+      // https://github.com/hashcat/hashcat/issues/2482
+
+      // if (combinator_ctx->combs_cnt > 0xffffffff)
+      // {
+      //   event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of mask: %s", mask_ctx->mask);
+
+      //   return -1;
+      // }
+
+      if (backend_session_update_mp (hashcat_ctx) == -1) return -1;
     }
 
     if (backend_session_update_combinator (hashcat_ctx) == -1) return -1;
@@ -1546,7 +1983,6 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   if (user_options->version      == true) return 0;
 
   if (user_options->attack_mode  == ATTACK_MODE_STRAIGHT)    return 0;
-  if (user_options->attack_mode  == ATTACK_MODE_COMBI)       return 0;
   if (user_options->attack_mode  == ATTACK_MODE_GENERIC)     return 0;
   if (user_options->attack_mode  == ATTACK_MODE_ASSOCIATION) return 0;
 
@@ -1682,11 +2118,13 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       if (mask_append (hashcat_ctx, mask, NULL) == -1) return -1;
     }
   }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
     // display
 
-    char *arg = user_options_extra->hc_workv[user_options_extra->hc_workc - 1];
+    // -a 6 writes the mask last and -a 12 writes it first, and either way it can be a mask file
+
+    char *arg = user_options_extra->hc_workv[(user_options->attack_mode == ATTACK_MODE_HYBRID) ? 0 : (user_options_extra->hc_workc - 1)];
 
     // mod
 
@@ -1752,77 +2190,6 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
       }
     }
   }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    // display
-
-    char *arg = user_options_extra->hc_workv[0];
-
-    // mod
-
-    if (hc_path_exist (arg) == false)
-    {
-      if (mask_append (hashcat_ctx, arg, NULL) == -1) return -1;
-    }
-    else
-    {
-      if (hc_path_is_file (arg) == true)
-      {
-        mask_ctx->mask_from_file = true;
-
-        HCFILE mask_fp;
-
-        if (hc_fopen (&mask_fp, arg, "r") == false)
-        {
-          event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
-
-          return -1;
-        }
-
-        char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
-
-        while (!hc_feof (&mask_fp))
-        {
-          const size_t line_len = fgetl (&mask_fp, line_buf, HCBUFSIZ_LARGE);
-
-          if (line_len == 0) continue;
-
-          if (line_buf[0] == '#') continue;
-
-          char *mask_buf = mask_ctx_parse_maskfile_find_mask (line_buf, line_len);
-
-          char *prepend_buf = NULL;
-
-          if (line_buf != mask_buf)
-          {
-            // if we have custom charsets
-
-            prepend_buf = line_buf;
-
-            mask_buf[-1] = 0;
-          }
-
-          if (mask_append (hashcat_ctx, mask_buf, prepend_buf) == -1)
-          {
-            hc_fclose (&mask_fp);
-
-            return -1;
-          }
-        }
-
-        hcfree (line_buf);
-
-        hc_fclose (&mask_fp);
-      }
-      else
-      {
-        event_log_error (hashcat_ctx, "%s: unsupported file type.", arg);
-
-        return -1;
-      }
-    }
-  }
-
   if (mask_ctx->masks_cnt == 0)
   {
     event_log_error (hashcat_ctx, "Invalid mask.");
@@ -1831,6 +2198,64 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   }
 
   mask_ctx->mask = mask_ctx->masks[0];
+
+  // Does any mask in this run put the base word inside the amplifier rather than at one end of it?
+  // Only such a mask reaches the five piece assembly, and the kernels compile that block in only when
+  // the answer is yes, so a mask with the word at one end builds the kernel every other attack mode
+  // builds. The three modes rewritten into this one are all word at one end.
+  //
+  // A mask that starts with ?w has everything behind the word, which is one buffer. A mask that ends
+  // with ?w has everything in front of it, which is one buffer too, but only an optimized kernel can
+  // be handed it that way round, or a pure kernel that took its base words from the mask instead.
+  //
+  // Read off the mask strings rather than off a parse, because the parse happens per round and this
+  // has to be settled before the kernels are built.
+
+  mask_ctx->needs_middle = false;
+
+  const bool optimized_kernel = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) != 0;
+
+  const bool mask_is_base = (user_options_extra->base_source == BASE_SOURCE_MASK);
+
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
+  {
+    for (u32 mask_pos = 0; mask_pos < mask_ctx->masks_cnt; mask_pos++)
+    {
+      const char *mask = mask_ctx->masks[mask_pos];
+
+      if (mask_starts_with_marker (mask, 'w') == true) continue;
+
+      if ((mask_ends_with_marker (mask, 'w') == true) && ((optimized_kernel == true) || (mask_is_base == true))) continue;
+
+      mask_ctx->needs_middle = true;
+
+      break;
+    }
+  }
+
+  // The last work argument is the wordlist a ?q names, so there has to be a ?q somewhere to name it.
+  // Every mask is in memory by now, so this reads them rather than the file they may have come from.
+
+  if (user_options_extra->hybrid_q == true)
+  {
+    bool has_q = false;
+
+    for (u32 mask_pos = 0; mask_pos < mask_ctx->masks_cnt; mask_pos++)
+    {
+      if (mask_has_marker (mask_ctx->masks[mask_pos], 'q') == false) continue;
+
+      has_q = true;
+
+      break;
+    }
+
+    if (has_q == false)
+    {
+      event_log_error (hashcat_ctx, "%s: given as the wordlist a ?q names, but no mask has a ?q.", user_options_extra->hc_workv[user_options_extra->hc_workc - 1]);
+
+      return -1;
+    }
+  }
 
   return 0;
 }

@@ -196,6 +196,12 @@ typedef enum amplifier_count
 
 } amplifier_count_t;
 
+// How many pieces one amplifier item is cut into. Every attack mode but -a 12 uses one, the single
+// buffer that is appended to the base word. -a 12 uses four: the mask in front of the base word, the
+// mask between the two words, the second word, and the mask behind the last word.
+
+#define COMBS_PIECE_CNT 4
+
 typedef enum vendor_id
 {
   VENDOR_ID_AMD           = (1U << 0),
@@ -286,6 +292,18 @@ typedef enum base_source
 
 } base_source_t;
 
+// Where the ?w marker goes on a mask that was not typed with one. -a 1, -a 6 and -a 7 are rewritten
+// into -a 12 masks, and the marker is put on each mask as it is appended rather than on the argument,
+// so that a mask file gets it per line and --increment gets it per length.
+
+typedef enum marker_policy
+{
+  MARKER_POLICY_NONE     = 0,
+  MARKER_POLICY_PREFIX_W = 1,
+  MARKER_POLICY_SUFFIX_W = 2,
+
+} marker_policy_t;
+
 // How much of the attack one feed instance covers.
 //
 // Normally all of it: every dictionary is laid end to end into one keyspace, which is what makes
@@ -341,6 +359,7 @@ typedef enum attack_mode
   ATTACK_MODE_HYBRID2     = 7,
   ATTACK_MODE_GENERIC     = 8,
   ATTACK_MODE_ASSOCIATION = 9,
+  ATTACK_MODE_HYBRID      = 12,
   ATTACK_MODE_NONE        = 100
 
 } attack_mode_t;
@@ -746,6 +765,10 @@ typedef enum guess_mode
   GUESS_MODE_GENERIC                    = 15,
   GUESS_MODE_GENERIC_RULES_FILE         = 16,
   GUESS_MODE_GENERIC_RULES_GEN          = 17,
+  GUESS_MODE_HYBRID                     = 18,
+  GUESS_MODE_HYBRID_CS                  = 19,
+  GUESS_MODE_HYBRID_Q                   = 20,
+  GUESS_MODE_HYBRID_Q_CS                = 21,
 
 } guess_mode_t;
 
@@ -1545,6 +1568,7 @@ typedef struct hc_device_param
   u64  size_hooks;
   u64  size_bfs;
   u64  size_combs;
+  u64  size_combs_c;
   u64  size_rules;
   u64  size_rules_c;
   u64  size_root_css;
@@ -1582,6 +1606,13 @@ typedef struct hc_device_param
   char     *scratch_buf;
 
   pw_t     *combs_buf;
+
+  // Whether combs_buf holds the amplifier chunk that is on the device. It does for every attack mode
+  // that builds the amplifier on the host, and it does not for the one -a 12 shape whose mask the mask
+  // processor produces on the device. Anything rebuilding a candidate has to know which, because in
+  // the second case the buffer holds whatever was in it last.
+
+  bool      combs_on_host;
 
   void     *hooks_buf;
 
@@ -2564,6 +2595,11 @@ typedef struct user_options
   int          hc_argc;
   char       **hc_argv;
 
+  // The vector the attack mode alias built, kept only so that it can be freed. hc_argv points at it
+  // while the alias is in force and at argv otherwise, so it cannot be freed through hc_argv.
+
+  char       **hc_argv_alias;
+
   bool         attack_mode_chgd;
   bool         autodetect;
   #ifdef WITH_BRAIN
@@ -2696,6 +2732,18 @@ typedef struct user_options
   const char  *session;
   char        *encrypt_with_pubkey;
   u32          attack_mode;
+
+  // The attack mode the user asked for, which is not always the one the run uses. -a 1, -a 6 and
+  // -a 7 are rewritten into -a 12 masks at startup, so everything below the rewrite sees -a 12, and
+  // the few things that have to answer for what was typed read this instead.
+
+  u32          attack_mode_typed;
+
+  // Where that rewrite puts the ?w marker on each mask. It is also what says a mask came from an
+  // aliased mode rather than from the user.
+
+  u32          marker_policy;
+
   u32          backend_devices_virtmulti;
   u32          backend_devices_virthost;
   u32          backend_devices_keepfree;
@@ -2778,6 +2826,12 @@ typedef struct user_options_extra
   u32 base_source;
   u32 base_scope;
   u32 wordlist_mode;
+
+  // Whether the last work argument is the wordlist a ?q names. A -a 12 the user typed says so with a
+  // third argument, a -a 1 rewritten into one always has one, and a -a 6 rewritten into one never
+  // does and may have any number of base wordlists, so the count alone cannot answer it.
+
+  bool hybrid_q;
 
   char   separator;
 
@@ -2875,8 +2929,12 @@ typedef struct combinator_ctx
 {
   bool enabled;
 
-  char *dict1;
-  char *dict2;
+  // Whether the two feed instances were swapped so that the bigger wordlist is the base word source.
+  // Only a mask that is two wordlists and nothing else can be swapped, and the amplifier then goes in
+  // front of the base word rather than behind it, so that the candidate is still the first wordlist's
+  // word followed by the second's.
+
+  bool roles_swapped;
 
   u32 combs_mode;
   u64 combs_cnt;
@@ -2895,6 +2953,20 @@ typedef struct mask_ctx
   cs_t  *css_buf;
   u32    css_cnt;
 
+  // Where the word markers sit in the mask, counted in css entries, which is the same as bytes because
+  // every css entry produces exactly one character. css_buf holds the mask with the markers removed,
+  // so the three mask pieces are the entries below pre_len, the mid_len entries after those, and
+  // whatever is left. Every one of the three is allowed to be empty, and so is ?q.
+  //
+  //   ?d?w?d?q?d   pre_len 1, mid_len 1, has_q true,  one entry left over for the piece at the end
+  //   ?w?d?d       pre_len 0, mid_len 0, has_q false, two entries left over
+  //   ?w?q         pre_len 0, mid_len 0, has_q true,  nothing left over, which is -a 1
+
+  bool   has_w;
+  bool   has_q;
+  u32    pre_len;
+  u32    mid_len;
+
   hcstat_table_t *root_table_buf;
   hcstat_table_t *markov_table_buf;
 
@@ -2902,6 +2974,12 @@ typedef struct mask_ctx
   cs_t  *markov_css_buf;
 
   bool   mask_from_file;
+
+  // Whether any mask in this run puts the base word inside the amplifier rather than at one end of
+  // it. The kernels compile the five piece assembly in only when it does, and it goes into the kernel
+  // cache key, so two runs that build different source out of one file cannot share a cached result.
+
+  bool   needs_middle;
 
   char **masks;
   u32    masks_pos;
@@ -3131,6 +3209,11 @@ typedef struct hashcat_status
   int         guess_base_count;
   double      guess_base_percent;
   char       *guess_mod;
+
+  // The wordlist a ?q names. Guess.Mod is the mask for -a 12 and the mask does not say which wordlist
+  // the ?q reads, so it is carried beside it rather than folded into it.
+
+  char       *guess_mod_q;
   int         guess_mod_offset;
   int         guess_mod_count;
   double      guess_mod_percent;

@@ -384,6 +384,18 @@ DECLSPEC void switch_buffer_by_offset_8x4_le_S (PRIVATE_AS u32 *w0, PRIVATE_AS u
 DECLSPEC void switch_buffer_by_offset_8x4_carry_le_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, PRIVATE_AS u32 *c0, PRIVATE_AS u32 *c1, PRIVATE_AS u32 *c2, PRIVATE_AS u32 *c3, PRIVATE_AS u32 *c4, PRIVATE_AS u32 *c5, PRIVATE_AS u32 *c6, PRIVATE_AS u32 *c7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_be_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_carry_be_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, PRIVATE_AS u32 *w4, PRIVATE_AS u32 *w5, PRIVATE_AS u32 *w6, PRIVATE_AS u32 *w7, PRIVATE_AS u32 *c0, PRIVATE_AS u32 *c1, PRIVATE_AS u32 *c2, PRIVATE_AS u32 *c3, PRIVATE_AS u32 *c4, PRIVATE_AS u32 *c5, PRIVATE_AS u32 *c6, PRIVATE_AS u32 *c7, const u32 offset);
+DECLSPEC u32 combs_len_S (GLOBAL_AS const pw_t *combs_buf, const u32 il_pos, MAYBE_UNUSED const u32 combs_mode);
+
+DECLSPEC u32 combs_copy_bytes (PRIVATE_AS u8 *out, const u32 out_len, GLOBAL_AS const u32 *src, const u32 src_len);
+
+DECLSPEC void combs_base_copy (PRIVATE_AS u32 *out, PRIVATE_AS const u32 *base, const u32 base_len);
+
+DECLSPEC void combs_append_1x64_le_S (PRIVATE_AS u32 *out, const u32 out_len, PRIVATE_AS u32 *src);
+DECLSPEC void combs_append_1x64_be_S (PRIVATE_AS u32 *out, const u32 out_len, PRIVATE_AS u32 *src);
+
+DECLSPEC u32 combs_assemble_1x64_le_S (GLOBAL_AS const pw_t *combs_buf, const u32 il_pos, MAYBE_UNUSED const u32 combs_mode, PRIVATE_AS const u32 *base, const u32 base_len, PRIVATE_AS u32 *out);
+DECLSPEC u32 combs_assemble_1x64_be_S (GLOBAL_AS const pw_t *combs_buf, const u32 il_pos, MAYBE_UNUSED const u32 combs_mode, PRIVATE_AS const u32 *base, const u32 base_len, PRIVATE_AS u32 *out);
+
 DECLSPEC void switch_buffer_by_offset_1x64_le_S (PRIVATE_AS u32 *w, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_1x64_be_S (PRIVATE_AS u32 *w, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_le_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);

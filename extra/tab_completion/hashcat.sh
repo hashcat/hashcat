@@ -460,7 +460,7 @@ _hashcat ()
 {
   local VERSION=7.1.2
 
-  local ATTACK_MODES="0 1 3 6 7 8 9"
+  local ATTACK_MODES="0 1 3 6 7 8 9 12"
   local HCCAPX_MESSAGE_PAIRS="0 1 2 3 4 5"
   local OUTFILE_FORMATS="1 2 3 4 5 6"
   local OPENCL_DEVICE_TYPES="1 2 3"
@@ -1051,6 +1051,71 @@ _hashcat ()
 
             _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
             COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
+            return 0
+
+          fi
+          ;;
+
+        12)
+          if [ "${no_opts}" -eq 2 ]; then
+
+            _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES_AGGRESSIVE}"
+            COMPREPLY=($(compgen -W "${hashcat_file_list}" -- ${hashcat_select}))
+            return 0
+
+          elif [ "${no_opts}" -le 4 ]; then
+
+            # the mask is always last, and the argument before it is a second wordlist only when the
+            # mask carries a ?q, so this position is genuinely both
+
+            local mask=${BUILD_IN_CHARSETS}
+
+            case "${cur}" in
+              *'?w'*'?q'*) ;;
+              *'?w'*)      mask="${mask} ?q" ;;
+              *)           mask="${mask} ?w" ;;
+            esac
+
+            if [ "${has_charset_1}" -eq 1 ]; then
+              mask="${mask} ?1"
+            fi
+
+            if [ "${has_charset_2}" -eq 1 ]; then
+              mask="${mask} ?2"
+            fi
+
+            if [ "${has_charset_3}" -eq 1 ]; then
+              mask="${mask} ?3"
+            fi
+
+            if [ "${has_charset_4}" -eq 1 ]; then
+              mask="${mask} ?4"
+            fi
+
+            if [ -e "${cur}" ]; then # should be hcmask file (but not enforced)
+
+              COMPREPLY=($(compgen -W "${cur}" -- ${cur}))
+              return 0
+
+            fi
+
+            if [ -n "${cur}" ]; then
+
+              local cur_var=$(echo "${cur}" | sed 's/\?$//')
+
+              local h
+              for h in ${mask}; do
+                mask="${mask} ${cur_var}${h}"
+              done
+
+              mask="${mask} ${cur_var}"
+            fi
+
+            _hashcat_files_folders_exclude "${cur}" "${HIDDEN_FILES}"
+
+            mask="${mask} ${hashcat_file_list}"
+
+            COMPREPLY=($(compgen -W "${mask}" -- ${hashcat_select}))
             return 0
 
           fi

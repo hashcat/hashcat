@@ -76,29 +76,17 @@ KERNEL_FQ KERNEL_FA void m30906_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
+    const u32 comb_len = combs_len_S (combs_buf, il_pos, COMBS_MODE);
 
     if ((pw_len + comb_len) != 64) continue;
 
     u32 c[64] = { 0 };
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (u32 i = 0; i < 16; i++)
-    {
-      c[i] = combs_buf[il_pos].i[i];
-    }
+    // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+    // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+    // does the plain two piece case the other attack modes need as well.
 
-    switch_buffer_by_offset_1x64_le_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (u32 i = 0; i < 16; i++)
-    {
-      c[i] |= w[i];
-    }
+    combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
     u32 e = 0;
 
@@ -264,29 +252,17 @@ KERNEL_FQ KERNEL_FA void m30906_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    const u32 comb_len = combs_buf[il_pos].pw_len;
+    const u32 comb_len = combs_len_S (combs_buf, il_pos, COMBS_MODE);
 
     if ((pw_len + comb_len) != 64) continue;
 
     u32 c[64] = { 0 };
 
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (u32 i = 0; i < 16; i++)
-    {
-      c[i] = combs_buf[il_pos].i[i];
-    }
+    // -a 12 puts the base word inside the amplifier instead of beside it, so the candidate is five
+    // pieces: mask, base word, mask, second word, mask. The assembler takes all five in order and
+    // does the plain two piece case the other attack modes need as well.
 
-    switch_buffer_by_offset_1x64_le_S (c, pw_len);
-
-    #ifdef _unroll
-    #pragma unroll
-    #endif
-    for (u32 i = 0; i < 16; i++)
-    {
-      c[i] |= w[i];
-    }
+    combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
     u32 e = 0;
 

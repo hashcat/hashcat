@@ -4003,9 +4003,24 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
     {
       if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
       {
-        if (user_options->attack_mode == ATTACK_MODE_COMBI)
+        if (user_options->attack_mode == ATTACK_MODE_HYBRID)
         {
-          if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT)
+          // An optimized kernel is handed a candidate that already carries its padding byte, and the
+          // byte belongs to whichever of the five pieces ends the candidate. Two arrangements end on
+          // the base word. One is nothing behind the last word and no ?q, which is what -a 7 builds.
+          // The other is the whole amplifier in front of the base word, which is what two wordlists
+          // build when the bigger one was made the base. hybrid_combs_fill () carries the byte in
+          // every other shape.
+
+          const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+          const u32 post_len = mask_ctx->css_cnt - mask_ctx->pre_len - mask_ctx->mid_len;
+
+          const bool amp_in_front = (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT);
+
+          const bool base_ends_candidate = (amp_in_front == true) || ((post_len == 0) && (mask_ctx->has_q == false));
+
+          if (base_ends_candidate == true)
           {
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
             {
@@ -4019,21 +4034,6 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
             {
               rebuild_pws_compressed_append (device_param, pws_cnt, 0x80);
             }
-          }
-        }
-        else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-        {
-          if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)
-          {
-            rebuild_pws_compressed_append (device_param, pws_cnt, 0x01);
-          }
-          else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06)
-          {
-            rebuild_pws_compressed_append (device_param, pws_cnt, 0x06);
-          }
-          else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80)
-          {
-            rebuild_pws_compressed_append (device_param, pws_cnt, 0x80);
           }
         }
 
@@ -4099,137 +4099,79 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
       }
       else
       {
-        if (user_options->attack_mode == ATTACK_MODE_COMBI)
-        {
-          if (device_param->is_cuda == true)
-          {
-            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+        // The base words are the mask, so the mask processor writes them straight into pws on the
+        // device and there is nothing for the host to upload. That is -a 7 under a pure kernel, and
+        // -a 12 under a pure kernel whenever its mask ends in ?w.
 
-            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
-
-            const u32 off = pw_idx->off;
-
-            if (off)
-            {
-              if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
-            }
-          }
-
-          if (device_param->is_hip == true)
-          {
-            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
-
-            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
-
-            const u32 off = pw_idx->off;
-
-            if (off)
-            {
-              if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
-            }
-          }
-
-          #if defined (__APPLE__)
-          if (device_param->is_metal == true)
-          {
-            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_idx, 0, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
-
-            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
-
-            const u32 off = pw_idx->off;
-
-            if (off)
-            {
-              if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_comp_buf, 0, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
-            }
-          }
-          #endif
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, 0, pws_cnt * sizeof (pw_idx_t), device_param->pws_idx, 0, NULL, NULL) == -1) return -1;
-
-            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
-
-            const u32 off = pw_idx->off;
-
-            if (off)
-            {
-              if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL) == -1) return -1;
-            }
-          }
-
-          if (run_kernel_decompress (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
-        }
-        else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-        {
-          if (device_param->is_cuda == true)
-          {
-            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
-
-            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
-
-            const u32 off = pw_idx->off;
-
-            if (off)
-            {
-              if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
-            }
-          }
-
-          if (device_param->is_hip == true)
-          {
-            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
-
-            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
-
-            const u32 off = pw_idx->off;
-
-            if (off)
-            {
-              if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
-            }
-          }
-
-          #if defined (__APPLE__)
-          if (device_param->is_metal == true)
-          {
-            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_idx, 0, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
-
-            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
-
-            const u32 off = pw_idx->off;
-
-            if (off)
-            {
-              if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_comp_buf, 0, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
-            }
-          }
-          #endif
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, 0, pws_cnt * sizeof (pw_idx_t), device_param->pws_idx, 0, NULL, NULL) == -1) return -1;
-
-            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
-
-            const u32 off = pw_idx->off;
-
-            if (off)
-            {
-              if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL) == -1) return -1;
-            }
-          }
-
-          if (run_kernel_decompress (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
-        }
-        else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+        if (user_options_extra->base_source == BASE_SOURCE_MASK)
         {
           const u64 off = device_param->words_off;
 
           device_param->kernel_params_mp_buf64[3] = off;
 
           if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, pws_cnt) == -1) return -1;
+        }
+        else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
+        {
+          if (device_param->is_cuda == true)
+          {
+            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+            }
+          }
+
+          if (device_param->is_hip == true)
+          {
+            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_idx, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pws_comp_buf, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+            }
+          }
+
+          #if defined (__APPLE__)
+          if (device_param->is_metal == true)
+          {
+            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_idx, 0, device_param->pws_idx, pws_cnt * sizeof (pw_idx_t)) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pws_comp_buf, 0, device_param->pws_comp, off * sizeof (u32)) == -1) return -1;
+            }
+          }
+          #endif
+
+          if (device_param->is_opencl == true)
+          {
+            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_idx, CL_TRUE, 0, pws_cnt * sizeof (pw_idx_t), device_param->pws_idx, 0, NULL, NULL) == -1) return -1;
+
+            const pw_idx_t *pw_idx = device_param->pws_idx + pws_cnt;
+
+            const u32 off = pw_idx->off;
+
+            if (off)
+            {
+              if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pws_comp_buf, CL_TRUE, 0, off * sizeof (u32), device_param->pws_comp, 0, NULL, NULL) == -1) return -1;
+            }
+          }
+
+          if (run_kernel_decompress (hashcat_ctx, device_param, pws_cnt) == -1) return -1;
         }
       }
     }
@@ -4418,6 +4360,278 @@ static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
   return 0;
 }
 
+// -a 12 fills its amplifier from the host. The mask is produced whole and then cut at the markers,
+// because sp_exec walks the keyspace index down as it goes and cannot be asked for the pieces one
+// call at a time. Producing it whole is also what makes -a 12 with ?w at the front emit the same
+// candidates in the same order as -a 6 does.
+//
+// One amplifier item is four pieces in a fixed order: the mask in front of the base word, the mask
+// between the two words, the second word, and the mask behind the last word. Any of them may be
+// empty, and with no ?q the middle two always are. The four arrive interleaved, so item i holds them
+// at combs_buf[(i * COMBS_PIECE_CNT) + 0 .. 3].
+
+static int hybrid_combs_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 innerloop_pos, const u64 innerloop_left, const pw_transform_t *transform, u64 *filled, u64 *rejects)
+{
+  const hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
+  const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
+
+  const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
+
+  // A mask that puts one piece behind the base word and nothing anywhere else is the layout every
+  // other attack mode uses, so it gets one buffer per amplifier item instead of four. The piece is
+  // either the mask or the second word, and which one it is decides where the bytes come from.
+  //
+  // A mask that is entirely in front of the base word is one buffer too, and it is the simpler of
+  // the two: the whole mask goes in and nothing else does.
+
+  const bool base_right = (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_RIGHT);
+
+  const bool one_piece = (combinator_ctx->combs_mode != COMBINATOR_MODE_BASE_MIDDLE);
+
+  const u32 piece_cnt = (one_piece == true) ? 1 : COMBS_PIECE_CNT;
+
+  const u32 css_cnt  = mask_ctx->css_cnt;
+  const u32 pre_len  = mask_ctx->pre_len;
+  const u32 mid_len  = mask_ctx->mid_len;
+  const u32 post_len = css_cnt - pre_len - mid_len;
+
+  // The optimized kernels take the three mask piece lengths as numbers rather than reading them off
+  // the buffers, because they are the same for every amplifier item and a scalar shift is cheaper
+  // than a per item one. A mask file hands over one mask at a time, so they are set here rather than
+  // once at session start.
+
+  device_param->kernel_param.pre_len  = pre_len;
+  device_param->kernel_param.mid_len  = mid_len;
+  device_param->kernel_param.post_len = post_len;
+  device_param->kernel_param.has_q    = (mask_ctx->has_q == true) ? 1 : 0;
+
+  // An optimized kernel never appends its own padding byte. The byte arrives already sitting in
+  // whichever piece ends the candidate, so with five pieces the position is a rule rather than a
+  // constant: the piece behind the last word if there is one, else the second word, else nothing
+  // follows the base word and run_copy () puts the byte on the base word the way -a 7 does.
+  //
+  // Writing it at [pw_len] is invisible to a pure kernel and to hybrid_assemble (), which both read
+  // pw_len bytes and no more, so the fill does it without asking which kernels are in play.
+
+  u8 pad_chr = 0;
+
+  if (hashconfig->opts_type & OPTS_TYPE_PT_ADD01)      pad_chr = 0x01;
+  else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD06) pad_chr = 0x06;
+  else if (hashconfig->opts_type & OPTS_TYPE_PT_ADD80) pad_chr = 0x80;
+
+  const bool pad_on_post = (pad_chr != 0) && (post_len > 0) && (post_len < PW_MAX);
+  const bool pad_on_word = (pad_chr != 0) && (post_len == 0) && (mask_ctx->has_q == true);
+
+  // An amplifier position covers a mask value and, when the mask has a ?q, a word from the second
+  // wordlist as well. The word index runs fastest, so a chunk of amplifier items is a run of
+  // consecutive words and the feed is read forward rather than seeked for every one of them.
+
+  u64 words_cnt = 0;
+
+  if (mask_ctx->has_q == true)
+  {
+    words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
+
+    if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, device_param->device_id, innerloop_pos % words_cnt) != 0) return -1;
+  }
+
+  // How much room the second word has. It is the same for every item in the chunk, because the mask
+  // pieces around it are the same for every item. With one buffer the word shares it with both mask
+  // pieces, with four it has a buffer to itself.
+
+  const u32 word_room = (one_piece == true) ? (PW_MAX - mid_len - post_len) : PW_MAX;
+
+  memset (device_param->combs_buf, 0, innerloop_left * piece_cnt * sizeof (pw_t));
+
+  // The mask value only steps on when the word index wraps, so a chunk that is shorter than the
+  // second wordlist runs sp_exec once rather than once per item.
+
+  char mask_buf[256];
+
+  u64 mask_pos_prev = (u64) -1;
+
+  // n walks the amplifier positions the chunk was asked for and i walks the items it fills. They are
+  // the same number until a word is rejected, and from there on the words that were accepted move up.
+  // Exactly one word is read per position either way, so the two stay in step with the feed.
+
+  u64 i = 0;
+  u64 r = 0;
+
+  for (u64 n = 0; n < innerloop_left; n++)
+  {
+    const u64 off = innerloop_pos + n;
+
+    u64 mask_pos = off;
+
+    if (mask_ctx->has_q == true) mask_pos = off / words_cnt;
+
+    if (mask_pos != mask_pos_prev)
+    {
+      sp_exec (mask_pos, mask_buf, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, 0, css_cnt);
+
+      mask_pos_prev = mask_pos;
+    }
+
+    // The second word is read and judged before any of it reaches the amplifier, because a word that
+    // cannot be used takes no item at all and the item it would have taken goes to the next word that
+    // can. Reading it into the scratch buffer rather than into the item is what gives the transform
+    // room to make it longer before it makes it shorter.
+
+    char *line_buf = device_param->scratch_buf;
+
+    u32 word_len = 0;
+
+    if (mask_ctx->has_q == true)
+    {
+      int line_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_AMP, device_param->device_id, (u8 *) line_buf, HCBUFSIZ_LARGE);
+
+      // The word index wraps back to the start of the second wordlist as the mask value steps on, and
+      // the wrap is where the feed reports that it has run out.
+
+      if (line_len == GENERIC_RC_EOF)
+      {
+        if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, device_param->device_id, 0) != 0) return -1;
+
+        line_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_AMP, device_param->device_id, (u8 *) line_buf, HCBUFSIZ_LARGE);
+      }
+
+      // An error, or an end of file that a rewind did not clear, which is a second wordlist that has
+      // gone empty underneath the run.
+
+      if (line_len < 0) return -1;
+
+      // A feed reports the true length of a word even when it only had room to write the first bytes
+      // of it, so one that does not fit has to be thrown away here rather than believed.
+
+      if (line_len > HCBUFSIZ_LARGE)
+      {
+        r++;
+
+        continue;
+      }
+
+      // Everything that happens to an amplifier word, in the one order every producer uses. The rule
+      // is -k, which is this side's, and it is inside the transform rather than spelled out here.
+
+      const int line_len_t = pw_transform_apply (transform, (u8 *) line_buf, line_len, HCBUFSIZ_LARGE);
+
+      if (line_len_t < 0)
+      {
+        r++;
+
+        continue;
+      }
+
+      // A second word that does not fit beside the mask is booked rather than cut down. What is left
+      // of a word cut in half is not a shorter password, it is a different one.
+
+      if ((u32) line_len_t > word_room)
+      {
+        r++;
+
+        continue;
+      }
+
+      word_len = (u32) line_len_t;
+    }
+
+    // With one buffer per item everything behind the base word is written end to end into it, and the
+    // second word goes into the gap the two mask pieces leave for it.
+
+    pw_t *pre_ptr  = &device_param->combs_buf[(i * piece_cnt) + ((one_piece == true) ? 0 : COMBS_PIECE_PRE)];
+    pw_t *mid_ptr  = &device_param->combs_buf[(i * piece_cnt) + ((one_piece == true) ? 0 : COMBS_PIECE_MID)];
+    pw_t *word_ptr = &device_param->combs_buf[(i * piece_cnt) + ((one_piece == true) ? 0 : COMBS_PIECE_WORD)];
+    pw_t *post_ptr = &device_param->combs_buf[(i * piece_cnt) + ((one_piece == true) ? 0 : COMBS_PIECE_POST)];
+
+    // Everything in front of the base word is one buffer and there is nothing to lay out. What is in
+    // it is the whole mask when the mask is what amplifies, and the amplifier word when two wordlists
+    // swapped so that the bigger one became the base.
+    //
+    // The padding byte belongs to whatever ends the candidate, which is the base word either way, and
+    // run_copy () has already put it there.
+
+    if (base_right == true)
+    {
+      if (mask_ctx->has_q == true)
+      {
+        memcpy (pre_ptr->i, line_buf, word_len);
+
+        pre_ptr->pw_len = word_len;
+      }
+      else
+      {
+        memcpy (pre_ptr->i, mask_buf, pre_len);
+
+        pre_ptr->pw_len = pre_len;
+      }
+
+      i++;
+
+      continue;
+    }
+
+    u8 *mid_at  = (u8 *) mid_ptr->i;
+    u8 *word_at = (u8 *) word_ptr->i;
+    u8 *post_at = (u8 *) post_ptr->i;
+
+    if (one_piece == true)
+    {
+      mid_at  = (u8 *) mid_ptr->i;
+      word_at = mid_at + mid_len;
+      post_at = word_at;
+    }
+
+    memcpy (pre_ptr->i, mask_buf,           pre_len);
+    memcpy (mid_at,     mask_buf + pre_len, mid_len);
+
+    pre_ptr->pw_len = pre_len;
+    mid_ptr->pw_len = mid_len;
+
+    if (mask_ctx->has_q == true)
+    {
+      memcpy (word_at, line_buf, word_len);
+
+      word_ptr->pw_len = (one_piece == true) ? (mid_len + word_len) : word_len;
+
+      if (one_piece == true) post_at = word_at + word_len;
+    }
+
+    memcpy (post_at, mask_buf + pre_len + mid_len, post_len);
+
+    if (one_piece == true)
+    {
+      // one buffer, so its length is everything behind the base word and the padding byte goes at the
+      // end of all of it
+
+      const u32 all_len = (u32) (post_at - (u8 *) mid_ptr->i) + post_len;
+
+      mid_ptr->pw_len = all_len;
+
+      if ((pad_chr != 0) && (all_len < PW_MAX)) ((u8 *) mid_ptr->i)[all_len] = pad_chr;
+
+      i++;
+
+      continue;
+    }
+
+    post_ptr->pw_len = post_len;
+
+    if (pad_on_post == true) ((u8 *) post_ptr->i)[post_len] = pad_chr;
+
+    if ((pad_on_word == true) && (mask_ctx->has_q == true))
+    {
+      if (word_ptr->pw_len < PW_MAX) ((u8 *) word_ptr->i)[word_ptr->pw_len] = pad_chr;
+    }
+
+    i++;
+  }
+
+  filled[0]  = i;
+  rejects[0] = r;
+
+  return 0;
+}
+
 // Everything that has to be on the device before a launch that is not the base words: the rule chunk,
 // the combinator chunk, or the mask processor's output. None of it depends on the salt, which is what
 // lets the salt inner order prepare it once and hand the same chunk to every salt.
@@ -4428,6 +4642,7 @@ static int combs_buf_fill (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device
 
 static int amp_prepare (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 innerloop_pos, u64 *innerloop_left_io, const pw_transform_t *transform, u64 *rejects)
 {
+  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   user_options_t       *user_options       = hashcat_ctx->user_options;
   user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
@@ -4469,52 +4684,29 @@ static int amp_prepare (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
     }
     else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
     {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      // -a 12 prepares its amplifier the same way whether the kernels are optimized or not, so it
+      // sits in front of the test on them rather than once inside each of the two branches.
+
+      // A -a 12 whose mask is the base word source amplifies with the wordlist, which is what -a 1
+      // and -a 7 do, so it takes their path below rather than this one.
+
+      if ((user_options->attack_mode == ATTACK_MODE_HYBRID) && (user_options_extra->base_source != BASE_SOURCE_MASK))
       {
-        if (user_options->attack_mode == ATTACK_MODE_COMBI)
+        // Recorded where the other modes record it, so that build_plain and the status display can
+        // rebuild this candidate from the same starting index without knowing how it was produced.
+
+        device_param->kernel_params_mp_buf64[3] = innerloop_pos;
+
+        // A mask that is the one piece behind the base word is what the mask processor already
+        // produces for -a 6, so it produces it here as well, on the device and without an upload.
+        // Every other shape is cut into pieces that only the host knows how to lay out.
+
+        const bool mask_on_device = (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT) && (hashcat_ctx->mask_ctx->has_q == false);
+
+        device_param->combs_on_host = (mask_on_device == false);
+
+        if (mask_on_device == true)
         {
-          u64 i = 0;
-          u64 r = 0;
-
-          if (combs_buf_fill (hashcat_ctx, device_param, innerloop_left, transform, &i, &r) == -1) return -1;
-
-          rejects[0] += r;
-
-          for (u64 j = i; j < innerloop_left; j++)
-          {
-            memset (&device_param->combs_buf[j], 0, sizeof (pw_t));
-          }
-
-          innerloop_left = i;
-
-          if (device_param->is_cuda == true)
-          {
-            if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
-          }
-
-          if (device_param->is_hip == true)
-          {
-            if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
-          }
-
-          #if defined (__APPLE__)
-          if (device_param->is_metal == true)
-          {
-            if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->combs_buf, innerloop_left * sizeof (pw_t)) == -1) return -1;
-          }
-          #endif
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
-          }
-        }
-        else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-        {
-          u64 off = innerloop_pos;
-
-          device_param->kernel_params_mp_buf64[3] = off;
-
           if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
 
           if (device_param->is_cuda == true)
@@ -4538,41 +4730,55 @@ static int amp_prepare (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
           {
             if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
           }
+
+          innerloop_left_io[0] = innerloop_left;
+
+          return 0;
         }
-        else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+
+        u64 i = 0;
+        u64 r = 0;
+
+        if (hybrid_combs_fill (hashcat_ctx, device_param, innerloop_pos, innerloop_left, transform, &i, &r) == -1) return -1;
+
+        rejects[0] += r;
+
+        // A ?q word the transform refuses takes no amplifier item, so the chunk holds fewer items than
+        // it was asked for. The ones it holds are the first ones in it, because the fill packs what it
+        // accepted to the front and it zeroed the whole chunk before it started.
+
+        innerloop_left = i;
+
+        const u64 combs_size = innerloop_left * ((combinator_ctx->combs_mode != COMBINATOR_MODE_BASE_MIDDLE) ? 1 : COMBS_PIECE_CNT) * sizeof (pw_t);
+
+        if (device_param->is_cuda == true)
         {
-          u64 off = innerloop_pos;
-
-          device_param->kernel_params_mp_buf64[3] = off;
-
-          if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
-
-          if (device_param->is_cuda == true)
-          {
-            if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-          }
-
-          if (device_param->is_hip == true)
-          {
-            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-          }
-
-          #if defined (__APPLE__)
-          if (device_param->is_metal == true)
-          {
-            if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->metal_d_combs, 0, innerloop_left * sizeof (pw_t)) == -1) return -1;
-          }
-          #endif
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
-          }
+          if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->combs_buf, combs_size) == -1) return -1;
         }
+
+        if (device_param->is_hip == true)
+        {
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->combs_buf, combs_size) == -1) return -1;
+        }
+
+        #if defined (__APPLE__)
+        if (device_param->is_metal == true)
+        {
+          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->combs_buf, combs_size) == -1) return -1;
+        }
+        #endif
+
+        if (device_param->is_opencl == true)
+        {
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, combs_size, device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
+        }
+      }
+      else if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+      {
       }
       else
       {
-        if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        if (user_options_extra->base_source == BASE_SOURCE_MASK)
         {
           u64 i = 0;
           u64 r = 0;
@@ -4608,36 +4814,6 @@ static int amp_prepare (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
           if (device_param->is_opencl == true)
           {
             if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs_c, CL_TRUE, 0, innerloop_left * sizeof (pw_t), device_param->combs_buf, 0, NULL, NULL) == -1) return -1;
-          }
-        }
-        else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-        {
-          u64 off = innerloop_pos;
-
-          device_param->kernel_params_mp_buf64[3] = off;
-
-          if (run_kernel_mp (hashcat_ctx, device_param, KERN_RUN_MP, innerloop_left) == -1) return -1;
-
-          if (device_param->is_cuda == true)
-          {
-            if (hc_cuMemcpyDtoD (hashcat_ctx, device_param->cuda_d_combs_c, device_param->cuda_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-          }
-
-          if (device_param->is_hip == true)
-          {
-            if (hc_hipMemcpyDtoD (hashcat_ctx, device_param->hip_d_combs_c, device_param->hip_d_combs, innerloop_left * sizeof (pw_t)) == -1) return -1;
-          }
-
-          #if defined (__APPLE__)
-          if (device_param->is_metal == true)
-          {
-            if (hc_mtlMemcpyDtoD (hashcat_ctx, device_param->metal_command_queue, device_param->metal_d_combs_c, 0, device_param->metal_d_combs, 0, innerloop_left * sizeof (pw_t)) == -1) return -1;
-          }
-          #endif
-
-          if (device_param->is_opencl == true)
-          {
-            if (hc_clEnqueueCopyBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_combs, device_param->opencl_d_combs_c, 0, 0, innerloop_left * sizeof (pw_t), 0, NULL, NULL) == -1) return -1;
           }
         }
       }
@@ -4673,6 +4849,12 @@ static int amp_prepare (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
       }
     }
   }
+
+  // A short amplifier chunk is a short launch. The kernel takes its amplifier count from kernel_param
+  // rather than from the size of the upload, so a chunk that lost items to a reject would otherwise be
+  // padded out with whatever the last chunk left in the device buffer.
+
+  device_param->kernel_param.il_cnt = innerloop_left;
 
   innerloop_left_io[0] = innerloop_left;
 
@@ -4719,7 +4901,7 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
     }
     else
     {
-      if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2)))
+      if ((user_options_extra->attack_kern == ATTACK_KERN_COMBI) && (user_options_extra->base_source == BASE_SOURCE_MASK))
       {
         // Back to the first amplifier word for this pass. It says where to start rather than leaving
         // it to wherever the last chunk stopped, which is the same thing the rewind did and is now
@@ -4811,6 +4993,12 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 
         combs_buf_reject (hashcat_ctx, salt_pos, pws_cnt, amp_rejects);
       }
+
+      // Every amplifier item in the chunk was rejected, so there is nothing to launch. The amplifier
+      // kernel of a slow hash reads item zero without asking how many there are, and would run on
+      // whatever the last chunk left behind.
+
+      if (innerloop_left == 0) continue;
 
       if (choose_kernel (hashcat_ctx, device_param, highest_pw_len, pws_pos, pws_cnt, fast_iteration, salt_pos, false) == -1) return -1;
 
@@ -4975,12 +5163,10 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt, const u32 highest_pw_len, const pw_transform_t *transform)
 {
   combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
   hashes_t              *hashes             = hashcat_ctx->hashes;
   mask_ctx_t            *mask_ctx           = hashcat_ctx->mask_ctx;
   status_ctx_t          *status_ctx         = hashcat_ctx->status_ctx;
   straight_ctx_t        *straight_ctx       = hashcat_ctx->straight_ctx;
-  user_options_t        *user_options       = hashcat_ctx->user_options;
   user_options_extra_t  *user_options_extra = hashcat_ctx->user_options_extra;
 
   const u32 salts_cnt = hashes->salts_cnt;
@@ -4994,7 +5180,7 @@ static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
   // Back to the first amplifier word, once for this batch rather than once per salt. Every salt reads
   // the same amplifier, so it is read once here and the chunk is shared.
 
-  if ((user_options->attack_mode == ATTACK_MODE_COMBI) || (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2)))
+  if ((user_options_extra->attack_kern == ATTACK_KERN_COMBI) && (user_options_extra->base_source == BASE_SOURCE_MASK))
   {
     if (generic_thread_seek (hashcat_ctx, GENERIC_ROLE_AMP, device_param->device_id, 0) != 0)
     {
@@ -5084,6 +5270,12 @@ static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
     {
       combs_buf_reject (hashcat_ctx, live_salts[live_pos], pws_cnt, amp_rejects);
     }
+
+    // Every amplifier item in the chunk was rejected, so there is nothing to launch. The amplifier
+    // kernel reads item zero without asking how many there are, and would run on whatever the last
+    // chunk left behind.
+
+    if (innerloop_left == 0) continue;
 
     for (u32 live_pos = 0; live_pos < live_cnt; live_pos++)
     {
@@ -12090,26 +12282,7 @@ static int backend_session_setup_cuda_kernel_types (hashcat_ctx_t *hashcat_ctx, 
         }
       }
     }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-    {
-      if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_mp, device_param->cuda_module_mp, "C_markov") == -1)
-      {
-        event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s create failed.", device_param->device_id + 1, "C_markov");
-
-        device_param->skipped_warning = true;
-
-        return -2; // continue;
-      }
-
-      if (get_cuda_kernel_wgs (hashcat_ctx, device_param->cuda_function_mp, &device_param->kernel_wgs_mp) == -1) return -1;
-
-      if (get_cuda_kernel_local_mem_size (hashcat_ctx, device_param->cuda_function_mp, &device_param->kernel_local_mem_size_mp) == -1) return -1;
-
-      device_param->kernel_dynamic_local_mem_size_mp = device_param->device_local_mem_size - device_param->kernel_local_mem_size_mp;
-
-      device_param->kernel_preferred_wgs_multiple_mp = device_param->cuda_warp_size;
-    }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
     {
       if (hc_cuModuleGetFunction (hashcat_ctx, &device_param->cuda_function_mp, device_param->cuda_module_mp, "C_markov") == -1)
       {
@@ -12803,26 +12976,7 @@ static int backend_session_setup_hip_kernel_types (hashcat_ctx_t *hashcat_ctx, h
         }
       }
     }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-    {
-      if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_mp, device_param->hip_module_mp, "C_markov") == -1)
-      {
-        event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s create failed.", device_param->device_id + 1, "C_markov");
-
-        device_param->skipped_warning = true;
-
-        return -2; //continue;
-      }
-
-      if (get_hip_kernel_wgs (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_wgs_mp) == -1) return -1;
-
-      if (get_hip_kernel_local_mem_size (hashcat_ctx, device_param->hip_function_mp, &device_param->kernel_local_mem_size_mp) == -1) return -1;
-
-      device_param->kernel_dynamic_local_mem_size_mp = device_param->device_local_mem_size - device_param->kernel_local_mem_size_mp;
-
-      device_param->kernel_preferred_wgs_multiple_mp = device_param->hip_warp_size;
-    }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
     {
       if (hc_hipModuleGetFunction (hashcat_ctx, &device_param->hip_function_mp, device_param->hip_module_mp, "C_markov") == -1)
       {
@@ -13507,28 +13661,7 @@ static int backend_session_setup_metal_kernel_types (hashcat_ctx_t *hashcat_ctx,
 
       device_param->kernel_dynamic_local_mem_size_mp_r = 0;
     }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-    {
-      // mp_c: C_markov
-
-      if (hc_mtlCreateKernel (hashcat_ctx, device_param->metal_device, device_param->metal_library_mp, "C_markov", &device_param->metal_function_mp, &device_param->metal_pipeline_mp) == -1)
-      {
-        event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s create failed.", device_param->device_id + 1, "C_markov");
-
-        device_param->skipped_warning = true;
-
-        return -2; //continue;
-      }
-
-      if (get_metal_kernel_wgs (hashcat_ctx, device_param->metal_pipeline_mp, &device_param->kernel_wgs_mp) == -1) return -1;
-
-      if (get_metal_kernel_local_mem_size (hashcat_ctx, device_param->metal_pipeline_mp, &device_param->kernel_local_mem_size_mp) == -1) return -1;
-
-      if (get_metal_kernel_preferred_wgs_multiple (hashcat_ctx, device_param->metal_pipeline_mp, &device_param->kernel_preferred_wgs_multiple_mp) == -1) return -1;
-
-      device_param->kernel_dynamic_local_mem_size_mp = 0;
-    }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
     {
       // mp_c: C_markov
 
@@ -14207,26 +14340,7 @@ static int backend_session_setup_opencl_kernel_types (hashcat_ctx_t *hashcat_ctx
         }
       }
     }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-    {
-      if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program_mp, "C_markov", &device_param->opencl_kernel_mp) == -1)
-      {
-        event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s create failed.", device_param->device_id + 1, "C_markov");
-
-        device_param->skipped_warning = true;
-
-        return -2; //continue;
-      }
-
-      if (get_opencl_kernel_wgs (hashcat_ctx, device_param, device_param->opencl_kernel_mp, &device_param->kernel_wgs_mp) == -1) return -1;
-
-      if (get_opencl_kernel_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel_mp, &device_param->kernel_local_mem_size_mp) == -1) return -1;
-
-      if (get_opencl_kernel_dynamic_local_mem_size (hashcat_ctx, device_param, device_param->opencl_kernel_mp, &device_param->kernel_dynamic_local_mem_size_mp) == -1) return -1;
-
-      if (get_opencl_kernel_preferred_wgs_multiple (hashcat_ctx, device_param, device_param->opencl_kernel_mp, &device_param->kernel_preferred_wgs_multiple_mp) == -1) return -1;
-    }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
     {
       if (hc_clCreateKernel (hashcat_ctx, device_param->opencl_program_mp, "C_markov", &device_param->opencl_kernel_mp) == -1)
       {
@@ -15286,8 +15400,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     u64 size_tm             = 32           * sizeof (bs_word_t);
     u64 size_kernel_params  = 1            * sizeof (kernel_param_t);
 
+    // -a 12 hands the hashing kernel four amplifier pieces per item instead of one, so the copy the
+    // launch reads from is four times as large. The buffer the mask processor writes into keeps its
+    // size, because -a 12 fills its copy from the host and never runs that kernel.
+
+    u64 size_combs_c = size_combs;
+
+    if (user_options->attack_mode == ATTACK_MODE_HYBRID) size_combs_c = size_combs * COMBS_PIECE_CNT;
+
     device_param->size_bfs           = size_bfs;
     device_param->size_combs         = size_combs;
+    device_param->size_combs_c       = size_combs_c;
     device_param->size_tm            = size_tm;
     device_param->size_kernel_params = size_kernel_params;
 
@@ -15480,9 +15603,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // we don't have sm_* on vendors not NV but it doesn't matter
 
     #if defined (DEBUG)
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%d -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_ADD=%u -D HAS_ADDC=%u -D HAS_SUB=%u -D HAS_SUBC=%u -D HAS_VADD=%u -D HAS_VADDC=%u -D HAS_VADD_CO=%u -D HAS_VADDC_CO=%u -D HAS_VSUB=%u -D HAS_VSUBB=%u -D HAS_VSUB_CO=%u -D HAS_VSUBB_CO=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D HAS_SHFW=%u -D VECT_SIZE=%d -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D ATTACK_MODE=%u ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_add, device_param->has_addc, device_param->has_sub, device_param->has_subc, device_param->has_vadd, device_param->has_vaddc, device_param->has_vadd_co, device_param->has_vaddc_co, device_param->has_vsub, device_param->has_vsubb, device_param->has_vsub_co, device_param->has_vsubb_co, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->has_shfw, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern, user_options->attack_mode);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%d -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_ADD=%u -D HAS_ADDC=%u -D HAS_SUB=%u -D HAS_SUBC=%u -D HAS_VADD=%u -D HAS_VADDC=%u -D HAS_VADD_CO=%u -D HAS_VADDC_CO=%u -D HAS_VSUB=%u -D HAS_VSUBB=%u -D HAS_VSUB_CO=%u -D HAS_VSUBB_CO=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D HAS_SHFW=%u -D VECT_SIZE=%d -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D ATTACK_MODE=%u -D COMBS_MIDDLE=%u ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_add, device_param->has_addc, device_param->has_sub, device_param->has_subc, device_param->has_vadd, device_param->has_vaddc, device_param->has_vadd_co, device_param->has_vaddc_co, device_param->has_vsub, device_param->has_vsubb, device_param->has_vsub_co, device_param->has_vsubb_co, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->has_shfw, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern, user_options->attack_mode, (hashcat_ctx->mask_ctx->needs_middle == true) ? 1 : 0);
     #else
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%d -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_ADD=%u -D HAS_ADDC=%u -D HAS_SUB=%u -D HAS_SUBC=%u -D HAS_VADD=%u -D HAS_VADDC=%u -D HAS_VADD_CO=%u -D HAS_VADDC_CO=%u -D HAS_VSUB=%u -D HAS_VSUBB=%u -D HAS_VSUB_CO=%u -D HAS_VSUBB_CO=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D HAS_SHFW=%u -D VECT_SIZE=%d -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D ATTACK_MODE=%u -w ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_add, device_param->has_addc, device_param->has_sub, device_param->has_subc, device_param->has_vadd, device_param->has_vaddc, device_param->has_vadd_co, device_param->has_vaddc_co, device_param->has_vsub, device_param->has_vsubb, device_param->has_vsub_co, device_param->has_vsubb_co, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->has_shfw, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern, user_options->attack_mode);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%d -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_ADD=%u -D HAS_ADDC=%u -D HAS_SUB=%u -D HAS_SUBC=%u -D HAS_VADD=%u -D HAS_VADDC=%u -D HAS_VADD_CO=%u -D HAS_VADDC_CO=%u -D HAS_VSUB=%u -D HAS_VSUBB=%u -D HAS_VSUB_CO=%u -D HAS_VSUBB_CO=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D HAS_SHFW=%u -D VECT_SIZE=%d -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D ATTACK_MODE=%u -D COMBS_MIDDLE=%u -w ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_add, device_param->has_addc, device_param->has_sub, device_param->has_subc, device_param->has_vadd, device_param->has_vaddc, device_param->has_vadd_co, device_param->has_vaddc_co, device_param->has_vsub, device_param->has_vsubb, device_param->has_vsub_co, device_param->has_vsubb_co, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->has_shfw, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern, user_options->attack_mode, (hashcat_ctx->mask_ctx->needs_middle == true) ? 1 : 0);
     #endif
 
     build_options_buf[build_options_len] = 0;
@@ -15706,9 +15829,19 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       char device_name_chksum[HCBUFSIZ_TINY] = { 0 };
 
       // The kernel source can depend on some JiT compiler macros which themself depend on the attack_modes.
-      // ATM this is relevant only for ATTACK_MODE_ASSOCIATION which slightly modifies ATTACK_MODE_STRAIGHT kernels.
+      // ATTACK_MODE_ASSOCIATION slightly modifies ATTACK_MODE_STRAIGHT kernels, and ATTACK_MODE_HYBRID is
+      // the only attack mode that compiles the five piece candidate assembly into the combinator kernels.
+      // Two attack modes that build different source out of the same file must not share a cached kernel.
 
-      const u32 extra_value = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? ATTACK_MODE_ASSOCIATION : ATTACK_MODE_NONE;
+      u32 extra_value = ATTACK_MODE_NONE;
+
+      if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION) extra_value = ATTACK_MODE_ASSOCIATION;
+      if (user_options->attack_mode == ATTACK_MODE_HYBRID)      extra_value = ATTACK_MODE_HYBRID;
+
+      // and the five piece assembly is compiled in only for the masks that reach it, so two -a 12
+      // runs can build different source out of the same file as well
+
+      if (hashcat_ctx->mask_ctx->needs_middle == true) extra_value += 1;
 
       const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
         backend_ctx->comptime,
@@ -16027,7 +16160,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_combs,          size_combs)      == -1) return -1;
-          if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_combs_c,        size_combs)      == -1) return -1;
+          if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_combs_c,        size_combs_c)    == -1) return -1;
           if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_root_css_buf,   size_root_css)   == -1) return -1;
           if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_markov_css_buf, size_markov_css) == -1) return -1;
         }
@@ -16138,7 +16271,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_combs,          size_combs)      == -1) return -1;
-          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_combs_c,        size_combs)      == -1) return -1;
+          if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_combs_c,        size_combs_c)    == -1) return -1;
           if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_root_css_buf,   size_root_css)   == -1) return -1;
           if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_markov_css_buf, size_markov_css) == -1) return -1;
         }
@@ -16240,7 +16373,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           HC_MTL_CREATEBUFFER(hashcat_ctx, size_combs,          NULL, combs);
-          HC_MTL_CREATEBUFFER(hashcat_ctx, size_combs,          NULL, combs_c);
+          HC_MTL_CREATEBUFFER(hashcat_ctx, size_combs_c,        NULL, combs_c);
           HC_MTL_CREATEBUFFER(hashcat_ctx, size_root_css,       NULL, root_css_buf);
           HC_MTL_CREATEBUFFER(hashcat_ctx, size_markov_css,     NULL, markov_css_buf);
         }
@@ -16330,7 +16463,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           HC_OCL_CREATEBUFFER(hashcat_ctx, size_combs,          NULL, combs);
-          HC_OCL_CREATEBUFFER(hashcat_ctx, size_combs,          NULL, combs_c);
+          HC_OCL_CREATEBUFFER(hashcat_ctx, size_combs_c,        NULL, combs_c);
           HC_OCL_CREATEBUFFER(hashcat_ctx, size_root_css,       NULL, root_css_buf);
           HC_OCL_CREATEBUFFER(hashcat_ctx, size_markov_css,     NULL, markov_css_buf);
         }
@@ -16543,7 +16676,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+        if ((user_options->attack_mode == ATTACK_MODE_HYBRID) && (user_options_extra->base_source != BASE_SOURCE_MASK))
         {
           if (device_param->is_cuda == true)
           {
@@ -16893,7 +17026,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_combs,          size_combs)       == -1) return -1;
-          if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_combs_c,        size_combs)       == -1) return -1;
+          if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_combs_c,        size_combs_c)     == -1) return -1;
           if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_root_css_buf,   size_root_css)    == -1) return -1;
           if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_markov_css_buf, size_markov_css)  == -1) return -1;
         }
@@ -16912,11 +17045,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        if (user_options->attack_mode == ATTACK_MODE_HYBRID)
         {
           // prepare mp
 
-          if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+          // The padding byte belongs to whatever ends the candidate. It is the mask for -a 6 and for a
+          // -a 12 whose mask amplifies the word, and it is the word for -a 7 and for a -a 12 whose
+          // mask is the base word.
+
+          if ((user_options->attack_mode == ATTACK_MODE_HYBRID) && (user_options_extra->base_source != BASE_SOURCE_MASK))
           {
             device_param->kernel_params_mp_buf32[5] = 0;
             device_param->kernel_params_mp_buf32[6] = 0;
@@ -16928,7 +17065,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
           }
-          else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+          else
           {
             device_param->kernel_params_mp_buf32[5] = 0;
             device_param->kernel_params_mp_buf32[6] = 0;
@@ -16980,7 +17117,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_combs,          size_combs)       == -1) return -1;
-          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_combs_c,        size_combs)       == -1) return -1;
+          if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_combs_c,        size_combs_c)     == -1) return -1;
           if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_root_css_buf,   size_root_css)    == -1) return -1;
           if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_markov_css_buf, size_markov_css)  == -1) return -1;
         }
@@ -16999,11 +17136,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        if (user_options->attack_mode == ATTACK_MODE_HYBRID)
         {
           // prepare mp
 
-          if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+          // The padding byte belongs to whatever ends the candidate. It is the mask for -a 6 and for a
+          // -a 12 whose mask amplifies the word, and it is the word for -a 7 and for a -a 12 whose
+          // mask is the base word.
+
+          if ((user_options->attack_mode == ATTACK_MODE_HYBRID) && (user_options_extra->base_source != BASE_SOURCE_MASK))
           {
             device_param->kernel_params_mp_buf32[5] = 0;
             device_param->kernel_params_mp_buf32[6] = 0;
@@ -17015,7 +17156,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
           }
-          else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+          else
           {
             device_param->kernel_params_mp_buf32[5] = 0;
             device_param->kernel_params_mp_buf32[6] = 0;
@@ -17068,7 +17209,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           if (run_metal_kernel_bzero (hashcat_ctx, device_param, device_param->metal_d_combs,          size_combs)       == -1) return -1;
-          if (run_metal_kernel_bzero (hashcat_ctx, device_param, device_param->metal_d_combs_c,        size_combs)       == -1) return -1;
+          if (run_metal_kernel_bzero (hashcat_ctx, device_param, device_param->metal_d_combs_c,        size_combs_c)     == -1) return -1;
           if (run_metal_kernel_bzero (hashcat_ctx, device_param, device_param->metal_d_root_css_buf,   size_root_css)    == -1) return -1;
           if (run_metal_kernel_bzero (hashcat_ctx, device_param, device_param->metal_d_markov_css_buf, size_markov_css)  == -1) return -1;
         }
@@ -17087,11 +17228,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        if (user_options->attack_mode == ATTACK_MODE_HYBRID)
         {
           // prepare mp
 
-          if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+          // The padding byte belongs to whatever ends the candidate. It is the mask for -a 6 and for a
+          // -a 12 whose mask amplifies the word, and it is the word for -a 7 and for a -a 12 whose
+          // mask is the base word.
+
+          if ((user_options->attack_mode == ATTACK_MODE_HYBRID) && (user_options_extra->base_source != BASE_SOURCE_MASK))
           {
             device_param->kernel_params_mp_buf32[5] = 0;
             device_param->kernel_params_mp_buf32[6] = 0;
@@ -17103,7 +17248,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
           }
-          else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+          else
           {
             device_param->kernel_params_mp_buf32[5] = 0;
             device_param->kernel_params_mp_buf32[6] = 0;
@@ -17151,7 +17296,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
         {
           if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_combs,          size_combs)      == -1) return -1;
-          if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_combs_c,        size_combs)      == -1) return -1;
+          if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_combs_c,        size_combs_c)    == -1) return -1;
           if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_root_css_buf,   size_root_css)   == -1) return -1;
           if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_markov_css_buf, size_markov_css) == -1) return -1;
         }
@@ -17170,11 +17315,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if ((user_options->attack_mode == ATTACK_MODE_HYBRID1) || (user_options->attack_mode == ATTACK_MODE_HYBRID2))
+        if (user_options->attack_mode == ATTACK_MODE_HYBRID)
         {
           // prepare mp
 
-          if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+          // The padding byte belongs to whatever ends the candidate. It is the mask for -a 6 and for a
+          // -a 12 whose mask amplifies the word, and it is the word for -a 7 and for a -a 12 whose
+          // mask is the base word.
+
+          if ((user_options->attack_mode == ATTACK_MODE_HYBRID) && (user_options_extra->base_source != BASE_SOURCE_MASK))
           {
             device_param->kernel_params_mp_buf32[5] = 0;
             device_param->kernel_params_mp_buf32[6] = 0;
@@ -17186,7 +17335,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS14) device_param->kernel_params_mp_buf32[6] = 1;
             if (hashconfig->opts_type & OPTS_TYPE_PT_ADDBITS15) device_param->kernel_params_mp_buf32[7] = 1;
           }
-          else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+          else
           {
             device_param->kernel_params_mp_buf32[5] = 0;
             device_param->kernel_params_mp_buf32[6] = 0;
@@ -17547,6 +17696,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_bfs                > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_combs              > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (size_combs_c            > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_digests            > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_esalts             > undocumented_single_allocation_apple) memory_limit_hit = 1;
         if (size_hooks              > undocumented_single_allocation_apple) memory_limit_hit = 1;
@@ -17585,6 +17735,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + bitmap_ctx->bitmap_size
         + size_bfs
         + size_combs
+        + size_combs_c
         + size_digests
         + size_esalts
         + size_hooks
@@ -17886,7 +18037,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->pws_idx      = device_param->pws_slot[0].pws_idx;
     device_param->pws_base_buf = device_param->pws_slot[0].pws_base;
 
-    pw_t *combs_buf = (pw_t *) hccalloc (KERNEL_COMBS, sizeof (pw_t));
+    pw_t *combs_buf = (pw_t *) hccalloc (device_param->size_combs_c / sizeof (pw_t), sizeof (pw_t));
 
     device_param->combs_buf = combs_buf;
 
@@ -17957,7 +18108,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+        // -a 3 takes its base words from a mask as well, and it has its own pair of mask processors
+        // rather than this one, so the attack kern has to be part of the question here.
+
+        if ((user_options_extra->attack_kern == ATTACK_KERN_COMBI) && (user_options_extra->base_source == BASE_SOURCE_MASK))
         {
           if (device_param->is_cuda == true)
           {

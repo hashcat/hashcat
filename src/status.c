@@ -426,19 +426,15 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
 {
-  const combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   bool has_rule_file  = false;
   bool has_rule_gen   = false;
-  bool has_base_left  = false;
   bool has_mask_cs    = false;
 
   if (user_options->rp_files_cnt > 0) has_rule_file = true;
   if (user_options->rp_gen       > 0) has_rule_gen  = true;
-
-  if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT) has_base_left = true;
 
   if (user_options->custom_charset_1) has_mask_cs = true;
   if (user_options->custom_charset_2) has_mask_cs = true;
@@ -482,15 +478,6 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
     return GUESS_MODE_STRAIGHT_STDIN;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    if (has_base_left == true)
-    {
-      return GUESS_MODE_COMBINATOR_BASE_LEFT;
-    }
-    return GUESS_MODE_COMBINATOR_BASE_RIGHT;
-  }
-
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     if (has_mask_cs == true)
@@ -500,22 +487,29 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
     return GUESS_MODE_MASK;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-  {
-    if (has_mask_cs == true)
-    {
-      return GUESS_MODE_HYBRID1_CS;
-    }
-    return GUESS_MODE_HYBRID1;
-  }
+  // -a 12 reads its base words through a feed the way -a 6 and -a 7 do, so the feed test above does
+  // not claim it, and it is not one of the two older hybrids either. Without a label of its own the
+  // status display has nothing to print for it at all.
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
+    // A ?q names a second wordlist and the mask does not say which, so that shape has a label of its
+    // own and the display names it beside the mask.
+
+    if (user_options_extra->hybrid_q == true)
+    {
+      if (has_mask_cs == true)
+      {
+        return GUESS_MODE_HYBRID_Q_CS;
+      }
+      return GUESS_MODE_HYBRID_Q;
+    }
+
     if (has_mask_cs == true)
     {
-      return GUESS_MODE_HYBRID2_CS;
+      return GUESS_MODE_HYBRID_CS;
     }
-    return GUESS_MODE_HYBRID2;
+    return GUESS_MODE_HYBRID;
   }
 
   return GUESS_MODE_NONE;
@@ -599,27 +593,15 @@ static char *status_get_guess_feed (const hashcat_ctx_t *hashcat_ctx)
 
 char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   // -a 7 puts the mask on the left of the candidate and the word on the right, and Guess.Base names the
   // left hand side. So it keeps answering with the mask whatever the base words are read through.
 
-  if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
+  if (user_options_extra->base_source == BASE_SOURCE_FEED)
   {
     return status_get_guess_feed (hashcat_ctx);
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-
-    if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-    {
-      return strdup (combinator_ctx->dict1);
-    }
-    return strdup (combinator_ctx->dict2);
   }
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -629,22 +611,12 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
     return strdup (mask_ctx->mask);
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  // Only reachable when the mask is the base word source, because every other -a 12 was claimed by
+  // the feed shortcut above. That is the arrangement -a 7 has under a pure kernel, so it answers the
+  // same way: the wordlist here and the mask in Guess.Mod.
+
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
-
-    return strdup (straight_ctx->dict);
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-      return strdup (mask_ctx->mask);
-    }
-
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
     return strdup (straight_ctx->dict);
@@ -655,14 +627,13 @@ char *status_get_guess_base (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   // -a 7 puts the mask on the left of the candidate and the word on the right, and Guess.Base names the
   // left hand side. So it keeps answering with the mask whatever the base words are read through.
 
-  if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
+  if (user_options_extra->base_source == BASE_SOURCE_FEED)
   {
     // A feed handed every source at once is one entry in the queue, and it says where inside itself the
     // run has reached with its own segments instead. A feed scoped to one source per round is a real
@@ -678,11 +649,6 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
     return straight_ctx->dicts_pos + 1;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    return 1;
-  }
-
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
@@ -690,22 +656,8 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
     return mask_ctx->masks_pos + 1;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
-
-    return straight_ctx->dicts_pos + 1;
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-      return mask_ctx->masks_pos + 1;
-    }
-
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
     return straight_ctx->dicts_pos + 1;
@@ -716,14 +668,13 @@ int status_get_guess_base_offset (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   // -a 7 puts the mask on the left of the candidate and the word on the right, and Guess.Base names the
   // left hand side. So it keeps answering with the mask whatever the base words are read through.
 
-  if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options->attack_mode != ATTACK_MODE_HYBRID2))
+  if (user_options_extra->base_source == BASE_SOURCE_FEED)
   {
     // A feed handed every source at once is one entry in the queue, and it says where inside itself the
     // run has reached with its own segments instead. A feed scoped to one source per round is a real
@@ -739,11 +690,6 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
     return straight_ctx->dicts_cnt;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    return 1;
-  }
-
   if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
@@ -751,22 +697,8 @@ int status_get_guess_base_count (const hashcat_ctx_t *hashcat_ctx)
     return mask_ctx->masks_cnt;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
-    const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
-
-    return straight_ctx->dicts_cnt;
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-      return mask_ctx->masks_cnt;
-    }
-
     const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
 
     return straight_ctx->dicts_cnt;
@@ -785,26 +717,29 @@ double status_get_guess_base_percent (const hashcat_ctx_t *hashcat_ctx)
   return ((double) guess_base_offset / (double) guess_base_count) * 100;
 }
 
+// The wordlist a ?q names, or nothing when the mask has no ?q. Guess.Mod is the mask, and the mask
+// does not say which wordlist the ?q reads, so this is the only place its name reaches the display.
+
+char *status_get_guess_mod_q (const hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options_extra->hybrid_q == false) return NULL;
+
+  const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP];
+
+  if (generic_ctx->workv == NULL) return NULL;
+
+  return strdup (generic_ctx->workv[generic_ctx->workc - 1]);
+}
+
 char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
-  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
   {
     return status_get_rules_file (hashcat_ctx);
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-
-    if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-    {
-      return strdup (combinator_ctx->dict2);
-    }
-    return strdup (combinator_ctx->dict1);
   }
 
   if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -812,27 +747,8 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
-    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-    return strdup (mask_ctx->mask);
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      // -a 7 puts the word on the right of the candidate, so for this one mode it is Guess.Mod that
-      // names where the words come from and Guess.Base that names the mask.
-
-      if (user_options_extra->base_source == BASE_SOURCE_FEED) return status_get_guess_feed (hashcat_ctx);
-
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
-
-      return strdup (straight_ctx->dict);
-    }
-
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
     return strdup (mask_ctx->mask);
@@ -843,16 +759,9 @@ char *status_get_guess_mod (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
-  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
-  {
-    return 1;
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
     return 1;
   }
@@ -862,24 +771,8 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
     return 1;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
-    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-    return mask_ctx->masks_pos + 1;
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      if (user_options_extra->base_source == BASE_SOURCE_FEED) return 1;
-
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
-
-      return straight_ctx->dicts_pos + 1;
-    }
-
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
     return mask_ctx->masks_pos + 1;
@@ -890,16 +783,9 @@ int status_get_guess_mod_offset (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const user_options_t       *user_options       = hashcat_ctx->user_options;
-  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
-  {
-    return 1;
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_COMBI)
   {
     return 1;
   }
@@ -909,24 +795,8 @@ int status_get_guess_mod_count (const hashcat_ctx_t *hashcat_ctx)
     return 1;
   }
 
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID)
   {
-    const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
-
-    return mask_ctx->masks_cnt;
-  }
-
-  if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-    {
-      if (user_options_extra->base_source == BASE_SOURCE_FEED) return 1;
-
-      const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
-
-      return straight_ctx->dicts_cnt;
-    }
-
     const mask_ctx_t *mask_ctx = hashcat_ctx->mask_ctx;
 
     return mask_ctx->masks_cnt;
@@ -981,12 +851,18 @@ char *status_get_guess_charset (const hashcat_ctx_t *hashcat_ctx)
 
 int status_get_guess_mask_length (const hashcat_ctx_t *hashcat_ctx)
 {
-  const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
-  const mask_ctx_t   *mask_ctx   = hashcat_ctx->mask_ctx;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (mask_ctx == NULL) return -1;
 
   if (mask_ctx->mask == NULL) return -1;
+
+  // mp_get_length counts every ?x pair as one character, but ?w and ?q are positions rather than
+  // charsets and contribute nothing to the mask. css_cnt is what the mask actually produces.
+
+  if (user_options->attack_mode == ATTACK_MODE_HYBRID) return (int) mask_ctx->css_cnt;
 
   return mp_get_length (mask_ctx->mask, hashconfig->opts_type);
 }
@@ -2782,6 +2658,7 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hcfree (hashcat_status->speed_sec_all);
   hcfree (hashcat_status->guess_base);
   hcfree (hashcat_status->guess_mod);
+  hcfree (hashcat_status->guess_mod_q);
   hcfree (hashcat_status->guess_charset);
   hcfree (hashcat_status->cpt);
   #ifdef WITH_BRAIN
@@ -2799,6 +2676,7 @@ void status_status_destroy (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashca
   hashcat_status->speed_sec_all           = NULL;
   hashcat_status->guess_base              = NULL;
   hashcat_status->guess_mod               = NULL;
+  hashcat_status->guess_mod_q             = NULL;
   hashcat_status->guess_charset           = NULL;
   hashcat_status->cpt                     = NULL;
   #ifdef WITH_BRAIN

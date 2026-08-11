@@ -541,6 +541,7 @@ NVIDIA GPUs require "NVIDIA CUDA Toolkit"
 - Brute-force
 - Hybrid dict + mask
 - Hybrid mask + dict
+- Hybrid, mask says where the word goes
 
 * = Supports rules
 

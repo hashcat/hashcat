@@ -133,7 +133,7 @@ sub edge
   my $attack_type = shift // 0;
   my $optimized = shift // 0;
 
-  my @attack_types = (0, 1, 3, 6, 7);
+  my @attack_types = (0, 1, 3, 6, 7, 12);
 
   if (not grep $_ == $attack_type, @attack_types)
   {

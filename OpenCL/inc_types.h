@@ -1970,10 +1970,82 @@ typedef enum sm3_constants
 
 typedef enum combinator_mode
 {
-  COMBINATOR_MODE_BASE_LEFT  = 10001,
-  COMBINATOR_MODE_BASE_RIGHT = 10002
+  COMBINATOR_MODE_BASE_LEFT   = 10001,
+  COMBINATOR_MODE_BASE_RIGHT  = 10002,
+
+  // The base word sits between two amplifier pieces rather than beside one. combs_buf holds them as a
+  // pair, the piece in front of the word at index 0 and the piece behind it at index 1, and either is
+  // allowed to be empty. This is what -a 12 uses, and with an empty first piece it produces exactly
+  // what BASE_LEFT produces.
+
+  COMBINATOR_MODE_BASE_MIDDLE = 10003
 
 } combinator_mode_t;
+
+// How many pieces one amplifier item is cut into. Every attack mode but -a 12 uses one, the single
+// buffer that is appended to the base word. -a 12 uses four, and they arrive interleaved, so item
+// il_pos holds them at combs_buf[il_pos * COMBS_PIECE_CNT + 0 .. 3] in this fixed order.
+
+#define COMBS_PIECE_CNT 4
+
+#define COMBS_PIECE_PRE  0
+#define COMBS_PIECE_MID  1
+#define COMBS_PIECE_WORD 2
+#define COMBS_PIECE_POST 3
+
+// The four pieces of amplifier item il_pos. A kernel names them through these rather than indexing
+// combs_buf itself, so the layout is decided in one place instead of in every per mode kernel.
+
+#define COMBS_PIECE(il_pos, n) combs_buf[((il_pos) * COMBS_PIECE_CNT) + (n)]
+
+#define COMBS_PRE(il_pos)  COMBS_PIECE (il_pos, COMBS_PIECE_PRE)
+#define COMBS_MID(il_pos)  COMBS_PIECE (il_pos, COMBS_PIECE_MID)
+#define COMBS_WORD(il_pos) COMBS_PIECE (il_pos, COMBS_PIECE_WORD)
+
+// The same three lengths as numbers. A pure kernel reads them off the buffers because it walks the
+// pieces one at a time anyway, and an optimized kernel shifts by them, which wants a scalar.
+
+#define COMBS_PRE_LEN  kernel_param->pre_len
+#define COMBS_MID_LEN  kernel_param->mid_len
+#define COMBS_POST_LEN kernel_param->post_len
+#define COMBS_HAS_Q    kernel_param->has_q
+
+// How many bytes of assembled candidate a kernel that holds it as bytes has room for. It is the size
+// of one pw_t buffer, which is what those kernels declare.
+
+#define COMBS_BYTES_MAX 256
+
+// Is this launch the one that cuts an amplifier item into pieces? Only a mask with the base word
+// somewhere inside it does, and a run that holds no such mask has to pay nothing for an assembly it
+// never reaches, so the question is answered at compile time first and the whole block folds away.
+//
+// COMBS_MIDDLE is what the host says about the masks this run actually holds, not about the attack
+// mode. -a 1, -a 6 and -a 7 are rewritten into -a 12 masks whose word is at one end, so they build
+// the kernel they always built. Only a mask with something on both sides of the word, or a ?q behind
+// it, turns the block on.
+//
+// It is still a run time test inside such a build, and it has to be. The self test hands the kernel
+// one buffer at index zero the way -a 1 does, and combs_mode is what says so.
+//
+// backend.c puts this into the kernel cache key for that reason. Without it two runs would build
+// different source out of one file and then share the cached result.
+
+#if defined (COMBS_MIDDLE) && (COMBS_MIDDLE == 1)
+#define COMBS_IS_MIDDLE (COMBS_MODE == COMBINATOR_MODE_BASE_MIDDLE)
+#else
+#define COMBS_IS_MIDDLE 0
+#endif
+
+// The piece that follows the last word, which is the one buffer every layout but the five piece one
+// puts in combs_buf, and the amplifier length an optimized kernel adds to the base word length.
+
+#if defined (COMBS_MIDDLE) && (COMBS_MIDDLE == 1)
+#define COMBS_POST(il_pos)     combs_buf[COMBS_IS_MIDDLE ? (((il_pos) * COMBS_PIECE_CNT) + COMBS_PIECE_POST) : (il_pos)]
+#define COMBS_PW_R_LEN(il_pos) (COMBS_IS_MIDDLE ? pwlenx_create_combsum (combs_buf, il_pos) : pwlenx_create_combt (combs_buf, il_pos))
+#else
+#define COMBS_POST(il_pos)     combs_buf[il_pos]
+#define COMBS_PW_R_LEN(il_pos) pwlenx_create_combt (combs_buf, il_pos)
+#endif
 
 #ifdef KERNEL_STATIC
 typedef struct digest
@@ -2000,6 +2072,20 @@ typedef struct kernel_param
   u32 salt_repeat;          // 34
   u64 pws_pos;              // 35
   u64 gid_max;              // 36
+
+  // Bytes of mask that sit in front of the base word, so the position of ?w inside the mask. Zero
+  // puts the word first, which is what every attack mode other than -a 12 does. It replaces
+  // combs_mode for -a 12: zero is the -a 6 layout and a value equal to the mask length is -a 7.
+
+  u32 pre_len;              // 37
+
+  // The other two mask piece lengths and whether the mask has a ?q. All three are properties of the
+  // mask and do not change from one amplifier item to the next, which is what lets an optimized
+  // kernel shift by a scalar instead of by a per item length.
+
+  u32 mid_len;              // 38
+  u32 post_len;             // 39
+  u32 has_q;                // 40
 
 } kernel_param_t;
 

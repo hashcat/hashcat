@@ -2280,6 +2280,7 @@ int hashcat_get_status (hashcat_ctx_t *hashcat_ctx, hashcat_status_t *hashcat_st
   hashcat_status->guess_base_count            = status_get_guess_base_count           (hashcat_ctx);
   hashcat_status->guess_base_percent          = status_get_guess_base_percent         (hashcat_ctx);
   hashcat_status->guess_mod                   = status_get_guess_mod                  (hashcat_ctx);
+  hashcat_status->guess_mod_q                 = status_get_guess_mod_q                (hashcat_ctx);
   hashcat_status->guess_mod_offset            = status_get_guess_mod_offset           (hashcat_ctx);
   hashcat_status->guess_mod_count             = status_get_guess_mod_count            (hashcat_ctx);
   hashcat_status->guess_mod_percent           = status_get_guess_mod_percent          (hashcat_ctx);

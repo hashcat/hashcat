@@ -2663,6 +2663,428 @@ function attack_7()
   fi
 }
 
+# -a 12 is both hybrids and more, because the mask says where the word goes rather than the attack
+# mode saying it. One password is therefore tested in four shapes: the word in front of the mask,
+# behind it, between two pieces of it, and with a ?q that pulls a second word in behind the first.
+# All four have to recover the same password, so a kernel that assembles one of them differently is
+# the only thing that can fail here.
+
+function attack_12()
+{
+  file_only=0
+
+  if is_in_array "${hash_type}" ${FILE_BASED_ALGOS}; then
+    file_only=1
+  fi
+
+  # single hash
+  if [ "${MODE}" -ne 1 ]; then
+
+    e_ce=0
+    e_rs=0
+    e_to=0
+    e_nf=0
+    e_nm=0
+    cnt=0
+
+    echo "> Testing hash type $hash_type with attack mode 12, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+    min=1
+    max=8
+
+    if   [ "${hash_type}" -eq  2500 ]; then
+      max=6
+    elif [ "${hash_type}" -eq 16800 ]; then
+      max=6
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=6
+    fi
+
+    # A hash mode that accepts one candidate length only has nothing for a mask on both sides of the
+    # word to vary, and 20510 reports a plaintext that is not the candidate it was given. attack_6
+    # and attack_7 already cover those.
+
+    skip_type=0
+
+    case "${hash_type}" in
+      14000|14100|14900|15400|20510) skip_type=1 ;;
+    esac
+
+    i=1
+
+    while read -r -u 9 hash; do
+
+      if [ "${skip_type}" -eq 1 ]; then break; fi
+
+      if [ "${i}" -gt 6 ]; then
+        if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
+          break
+        fi
+      fi
+
+      if [ ${i} -gt ${min} ]; then
+
+        if [ "${file_only}" -eq 1 ] && [[ "${GENERATE_CONTAINERS}" -eq 0 ]]; then
+
+          temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
+
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo "${hash}" | base64 -d > "${temp_file}"
+          else
+            echo "${hash}" > "${temp_file}"
+          fi
+
+          hash="${temp_file}"
+
+        fi
+
+        pass=$(sed -n ${i}p "${OUTD}/${hash_type}_passwords.txt")
+
+        pass_len=${#pass}
+
+        # Some of the password becomes mask and the word is what is left. The mask is split between
+        # the two sides of the word, so that the shape with mask on both sides has something on both.
+        #
+        # It is capped at four characters because -a 12 builds its mask on the host and uploads it,
+        # rather than having the mask processor produce it on the device. Every character past that
+        # multiplies the upload by ten and tests nothing the shorter mask has not already tested.
+
+        mask_len=${i}
+
+        if [ "${mask_len}" -gt 4 ]; then
+          mask_len=4
+        fi
+
+        head_len=$((mask_len / 2))
+        tail_len=$((mask_len - head_len))
+
+        word_len=$((pass_len - mask_len))
+
+        if [ "${word_len}" -lt 1 ]; then
+          i=$((i + 1))
+          continue
+        fi
+
+        mask_head=""
+        mask_tail=""
+        mask_full=""
+
+        for j in $(seq 1 ${head_len}); do
+          mask_head="${mask_head}?d"
+        done
+
+        for j in $(seq 1 ${tail_len}); do
+          mask_tail="${mask_tail}?d"
+        done
+
+        for j in $(seq 1 ${mask_len}); do
+          mask_full="${mask_full}?d"
+        done
+
+        # The dictionary is a copy of dict1 with the word appended, so the run has to find the word
+        # among others rather than being handed a one line file.
+
+        dict1_a12=${OUTD}/${hash_type}_dict1_a12
+        dict2_a12=${OUTD}/${hash_type}_dict2_a12
+
+        for shape in first last middle q; do
+
+          cp "${OUTD}/${hash_type}_dict1" "${dict1_a12}"
+
+          rm -f "${dict2_a12}"
+
+          case "${shape}" in
+
+            first)
+              word=$(echo "${pass}" | cut -b -${word_len})
+              mask="?w${mask_full}"
+              dicts="${dict1_a12}"
+              ;;
+
+            last)
+              word=$(echo "${pass}" | cut -b $((mask_len + 1))-)
+              mask="${mask_full}?w"
+              dicts="${dict1_a12}"
+              ;;
+
+            middle)
+              word=$(echo "${pass}" | cut -b $((head_len + 1))-$((head_len + word_len)))
+              mask="${mask_head}?w${mask_tail}"
+              dicts="${dict1_a12}"
+              ;;
+
+            q)
+              # the word itself is cut in two, so that ?w and ?q each carry one half
+
+              q_len=$((word_len / 2))
+
+              if [ "${q_len}" -lt 1 ]; then
+                continue
+              fi
+
+              word=$(echo "${pass}" | cut -b $((head_len + 1))-$((head_len + q_len)))
+              word_q=$(echo "${pass}" | cut -b $((head_len + q_len + 1))-$((head_len + word_len)))
+
+              echo "${word_q}" > "${dict2_a12}"
+
+              mask="${mask_head}?w?q${mask_tail}"
+              dicts="${dict1_a12} ${dict2_a12}"
+              ;;
+
+          esac
+
+          echo "${word}" >> "${dict1_a12}"
+
+          CMD="./${BIN} ${OPTS} -a 12 -m ${hash_type} '${hash}' ${mask} ${dicts}"
+
+          echo -n "[ len $i shape ${shape} ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+          output=$(./${BIN} ${OPTS} -a 12 -m ${hash_type} "${hash}" ${mask} ${dicts} 2>&1)
+
+          ret=${?}
+
+          echo "${output}" >> "${OUTD}/logfull.txt"
+
+          if [ "${ret}" -eq 0 ]; then
+
+            if [ "${pass_only}" -eq 1 ]; then
+              search=":${pass}"
+            else
+              search="${hash}:${pass}"
+            fi
+
+            echo "${output}" | grep -F "${search}" &>/dev/null
+
+            newRet=$?
+
+            if [ "${newRet}" -eq 2 ]; then
+
+              # out-of-memory, workaround
+
+              echo "${output}" | grep -v "^Unsupported\|^$" | head -1 > tmp_file_out
+              echo "${search}" > tmp_file_search
+
+              out_md5=$(md5sum tmp_file_out | cut -d' ' -f1)
+              search_md5=$(md5sum tmp_file_search | cut -d' ' -f1)
+
+              rm tmp_file_out tmp_file_search
+
+              if [ "${out_md5}" == "${search_md5}" ]; then
+                newRet=0
+              fi
+            fi
+
+            if [ "${newRet}" -ne 0 ]; then
+              if [ "${newRet}" -eq 2 ]; then
+                ret=20
+              else
+                ret=10
+              fi
+            fi
+
+          fi
+
+          status ${ret}
+
+        done
+      fi
+
+      if [ "${i}" -eq ${max} ]; then break; fi
+
+      i=$((i + 1))
+
+    done 9< "${OUTD}/${hash_type}_hashes.txt"
+
+    msg="OK"
+
+    if [ "${e_ce}" -ne 0 ]; then
+      msg="Compare Error"
+    elif [ "${e_rs}" -ne 0 ]; then
+      msg="Skip"
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ] || [ "${cnt}" -eq 0 ]; then
+      msg="Error"
+    elif [ "${e_to}" -ne 0 ]; then
+      msg="Warning"
+    fi
+
+    if [ "${skip_type}" -eq 1 ]; then
+      msg="Skip"
+    fi
+
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 12, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+
+    rm -f "${OUTD}/${hash_type}_dict1_a12"
+    rm -f "${OUTD}/${hash_type}_dict2_a12"
+  fi
+
+  # multihash
+  if [ "${MODE}" -ne 0 ]; then
+
+    # no multi hash checks for these modes (because we only have 1 hash for each of them)
+    ! has_multi_hash || return
+
+    e_ce=0
+    e_rs=0
+    e_to=0
+    e_nf=0
+    e_nm=0
+    cnt=0
+
+    min=1
+    max=9
+
+    if   [ "${hash_type}" -eq  2500 ]; then
+      max=5
+    elif [ "${hash_type}" -eq  3000 ]; then
+      max=8
+    elif [ "${hash_type}" -eq  7700 ] || [ "${hash_type}" -eq  7701 ]; then
+      max=8
+    elif [ "${hash_type}" -eq  8500 ]; then
+      max=8
+    elif [ "${hash_type}" -eq 16800 ]; then
+      max=5
+    elif [ "${hash_type}" -eq 22000 ]; then
+      max=5
+    elif [ "${hash_type}" -eq 33500 ]; then
+      min=5
+    elif [ "${hash_type}" -eq 33501 ]; then
+      min=8
+    elif [ "${hash_type}" -eq 33502 ]; then
+      min=8
+    fi
+
+    if is_in_array "${hash_type}" ${TIMEOUT_ALGOS}; then
+      max=5
+      if [ "${hash_type}" -eq 3200 ]; then
+        max=3
+      fi
+    fi
+
+    skip_type=0
+
+    case "${hash_type}" in
+      14000|14100|14900|15400|20510) skip_type=1 ;;
+    esac
+
+    i=2
+    while [ "$i" -lt "$max" ]; do
+
+      if [ "${skip_type}" -eq 1 ]; then break; fi
+
+      if [ "$i" -lt "$min" ]; then
+        i=$((i + 1))
+        continue
+      fi
+
+      hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
+
+      # if file_only -> decode all base64 "hashes" and put them in the temporary file
+
+      if [ "${file_only}" -eq 1 ] && [[ "${GENERATE_CONTAINERS}" -eq 0 ]]; then
+
+        temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
+        rm -f "${temp_file}"
+
+        hash_file=${temp_file}
+
+        while read -r file_only_hash; do
+
+          if [ "${hash_type}" -ne 22000 ]; then
+            echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
+          else
+            echo "${file_only_hash}" >> "${temp_file}"
+          fi
+
+        done < "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
+
+      fi
+
+      # The multi hash dictionaries hold the two halves of every password, so the word goes in front
+      # of the mask with the first half and behind it with the second. That is what -a 6 and -a 7 do
+      # from the same files, and here one attack mode does both.
+
+      for shape in first last; do
+
+        if [ "${shape}" = "first" ]; then
+          dict=${OUTD}/${hash_type}_dict1_multi_${i}
+          mask="?w${mask_6[$i]}"
+        else
+          dict=${OUTD}/${hash_type}_dict2_multi_${i}
+          mask="${mask_7[$i]}?w"
+        fi
+
+        CMD="./${BIN} ${OPTS} -a 12 -m ${hash_type} ${hash_file} ${mask} ${dict}"
+
+        echo "> Testing hash type $hash_type with attack mode 12, markov ${MARKOV}, multi hash with word len ${i}, word ${shape}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+        output=$(./${BIN} ${OPTS} -a 12 -m ${hash_type} ${hash_file} ${mask} ${dict} 2>&1)
+
+        ret=${?}
+
+        echo "${output}" >> "${OUTD}/logfull.txt"
+
+        if [ "${ret}" -eq 0 ]; then
+
+          j=1
+
+          while read -r -u 9 hash; do
+
+            line_dict1=$(sed -n ${j}p "${OUTD}/${hash_type}_dict1_multi_${i}")
+            line_dict2=$(sed -n ${j}p "${OUTD}/${hash_type}_dict2_multi_${i}")
+
+            if [ "${pass_only}" -eq 1 ]; then
+              search=":${line_dict1}${line_dict2}"
+            else
+              search="${hash}:${line_dict1}${line_dict2}"
+            fi
+
+            echo "${output}" | grep -F "${search}" &>/dev/null
+
+            newRet=$?
+
+            if [ "${newRet}" -ne 0 ]; then
+              if [ "${newRet}" -eq 2 ]; then
+                ret=20
+              else
+                ret=10
+              fi
+
+              break
+            fi
+
+            j=$((j + 1))
+
+          done 9< "${OUTD}/${hash_type}_hashes_multi_${i}.txt"
+        fi
+
+        status ${ret}
+
+      done
+
+      i=$((i + 1))
+
+    done
+
+    msg="OK"
+
+    if [ "${e_ce}" -ne 0 ]; then
+      msg="Compare Error"
+    elif [ "${e_rs}" -ne 0 ]; then
+      msg="Skip"
+    elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ] || [ "${cnt}" -eq 0 ]; then
+      msg="Error"
+    elif [ "${e_to}" -ne 0 ]; then
+      msg="Warning"
+    fi
+
+    if [ "${skip_type}" -eq 1 ]; then
+      msg="Skip"
+    fi
+
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 12, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+  fi
+}
+
 function cryptoloop_test()
 {
   hashType=$1
@@ -3818,6 +4240,7 @@ OPTIONS:
   -a    Select attack mode :
         'all'       => all attack modes
         (int)       => attack mode integer code (default : 0)
+                       0, 1, 3, 6, 7 and 12
 
   -x    Select cpu architecture :
         '32'        => 32 bit architecture
@@ -3932,6 +4355,8 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
         ATTACK=6
       elif [ "${OPTARG}" = "7" ]; then
         ATTACK=7
+      elif [ "${OPTARG}" = "12" ]; then
+        ATTACK=12
       else
         usage
       fi
@@ -4358,6 +4783,9 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
               # run attack mode 7 (mask+dict)
               if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 7 ]; then attack_7; fi
+
+              # run attack mode 12 (mask says where the dict word goes)
+              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 12 ]; then attack_12; fi
             fi
 
           fi

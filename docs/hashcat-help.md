@@ -56,7 +56,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --potfile-path             | File | Specific path to potfile                             | --potfile-path=my.pot
      --encoding-from            | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15
      --encoding-to              | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le
-     --debug-mode               | Num  | Defines the debug mode (hybrid only by using rules)  | --debug-mode=4
+     --debug-mode               | Num  | Defines the debug mode, requires -r or -g            | --debug-mode=4
      --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log
      --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts
      --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x
@@ -192,6 +192,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   7 | Hybrid Mask + Wordlist
   8 | Generic
   9 | Association
+ 12 | Hybrid, mask says where the word goes
 
 - [ Built-in Charsets ] -
 
@@ -205,6 +206,13 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   s |  !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
   a | ?l?u?d?s
   b | 0x00 - 0xff
+
+- [ Attack-Mode 12 Markers ] -
+
+  ? | Marker
+ ===+========
+  w | the word from the wordlist, required, once
+  q | a word from a second wordlist, optional, after ?w
 
 - [ OpenCL Device Types ] -
 
@@ -242,6 +250,8 @@ Hardware reached through an assimilation bridge is selected by the hash-mode, ne
   Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule
   Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule
   Association      | $1$   | hashcat -a 9 -m 500 user500.hash -r rules/best66.rule
+  Hybrid           | MD5   | hashcat -a 12 -m 0 example0.hash example.dict ?d?w?d?d
+  Hybrid, two dict | MD5   | hashcat -a 12 -m 0 example0.hash example.dict example.dict ?w-?q!
 
 If you still have no idea what just happened, try the following pages:
 

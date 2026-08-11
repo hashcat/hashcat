@@ -115,7 +115,6 @@ u32 outfile_format_parse (const char *format_string)
 
 int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u32 *plain_buf, int *out_len)
 {
-  const combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
   const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
   const hashes_t             *hashes             = hashcat_ctx->hashes;
   const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
@@ -185,37 +184,6 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
         plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
       }
     }
-    else if (user_options->attack_mode == ATTACK_MODE_COMBI)
-    {
-      pw_t pw;
-
-      const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
-
-      if (rc == -1) return -1;
-
-      for (int i = 0; i < 64; i++)
-      {
-        plain_buf[i] = pw.i[i];
-      }
-
-      plain_len = (int) pw.pw_len;
-
-      char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
-      u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
-
-      if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-      {
-        memcpy (plain_ptr + plain_len, comb_buf, (size_t) comb_len);
-      }
-      else
-      {
-        memmove (plain_ptr + comb_len, plain_ptr, (size_t) plain_len);
-
-        memcpy (plain_ptr, comb_buf, comb_len);
-      }
-
-      plain_len += comb_len;
-    }
     else if (user_options->attack_mode == ATTACK_MODE_BF)
     {
       u64 l_off = device_param->kernel_params_mp_l_buf64[3] + gidvid;
@@ -232,7 +200,29 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       plain_len = (int) mask_ctx->css_cnt;
     }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
+    else if ((user_options->attack_mode == ATTACK_MODE_HYBRID) && (user_options_extra->base_source == BASE_SOURCE_MASK))
+    {
+      // The mask is the base word and the wordlist amplifies it, so the candidate is put back together
+      // the way -a 7 puts it together under a pure kernel: the mask from the outer loop position, then
+      // the amplifier word behind it.
+
+      const u64 off = device_param->kernel_params_mp_buf64[3] + gidvid;
+
+      const u32 start = 0;
+      const u32 stop  = device_param->kernel_params_mp_buf32[4];
+
+      sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
+
+      plain_len = (int) stop;
+
+      const char *comb_buf = (const char *) device_param->combs_buf[il_pos].i;
+      const u32   comb_len =                device_param->combs_buf[il_pos].pw_len;
+
+      memcpy (plain_ptr + plain_len, comb_buf, comb_len);
+
+      plain_len += (int) comb_len;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
     {
       pw_t pw;
 
@@ -240,76 +230,26 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       if (rc == -1) return -1;
 
-      for (int i = 0; i < 64; i++)
+      // Taken back out of the amplifier the host built, which is the record of what the kernel was
+      // actually given. The one shape whose mask the mask processor produces on the device has no host
+      // copy to read, and it is also the one shape whose item is always at its own position, so there
+      // the mask is produced again from that position instead.
+
+      if (device_param->combs_on_host == true)
       {
-        plain_buf[i] = pw.i[i];
-      }
-
-      plain_len = (int) pw.pw_len;
-
-      u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
-
-      u32 start = 0;
-      u32 stop  = device_param->kernel_params_mp_buf32[4];
-
-      sp_exec (off, (char *) plain_ptr + plain_len, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
-
-      plain_len += start + stop;
-    }
-    else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-    {
-      if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
-      {
-        pw_t pw;
-
-        const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
-
-        if (rc == -1) return -1;
-
-        for (int i = 0; i < 64; i++)
-        {
-          plain_buf[i] = pw.i[i];
-        }
-
-        plain_len = (int) pw.pw_len;
-
-        u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
-
-        u32 start = 0;
-        u32 stop  = device_param->kernel_params_mp_buf32[4];
-
-        memmove (plain_ptr + stop, plain_ptr, plain_len);
-
-        sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
-
-        plain_len += start + stop;
+        plain_len = (int) hybrid_amp_rebuild (hashcat_ctx, device_param, il_pos, plain_ptr, (const u8 *) pw.i, pw.pw_len);
       }
       else
       {
-        pw_t pw;
+        const u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
-        const int rc = gidd_to_pw_t (hashcat_ctx, device_param, gidvid, &pw);
+        char mask_buf[256];
 
-        if (rc == -1) return -1;
+        hybrid_amp_mask (hashcat_ctx, off, mask_buf);
 
-        u64 off = device_param->kernel_params_mp_buf64[3] + gidvid;
-
-        u32 start = 0;
-        u32 stop  = device_param->kernel_params_mp_buf32[4];
-
-        sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
-
-        plain_len = stop;
-
-        char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
-        u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
-
-        memcpy (plain_ptr + plain_len, comb_buf, comb_len);
-
-        plain_len += comb_len;
+        plain_len = (int) hybrid_assemble (hashcat_ctx, plain_ptr, mask_buf, (const u8 *) pw.i, pw.pw_len, NULL, 0);
       }
     }
-
     if (user_options->attack_mode == ATTACK_MODE_BF)
     {
       if (hashconfig->opti_type & OPTI_TYPE_BRUTE_FORCE) // lots of optimizations can happen here

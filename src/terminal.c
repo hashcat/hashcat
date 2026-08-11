@@ -3596,6 +3596,68 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
+    case GUESS_MODE_HYBRID:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u]",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
+
+      break;
+
+    case GUESS_MODE_HYBRID_Q:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u], File (%s)",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length,
+        hashcat_status->guess_mod_q);
+
+      break;
+
+    case GUESS_MODE_HYBRID_CS:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u]",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Charset....: %s",
+        hashcat_status->guess_charset);
+
+      break;
+
+    case GUESS_MODE_HYBRID_Q_CS:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u], File (%s)",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length,
+        hashcat_status->guess_mod_q);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Charset....: %s",
+        hashcat_status->guess_charset);
+
+      break;
+
     case GUESS_MODE_HYBRID1_CS:
 
       event_log_info (hashcat_ctx,
@@ -3794,6 +3856,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
+    case GUESS_MODE_HYBRID:
+    case GUESS_MODE_HYBRID_CS:
+    case GUESS_MODE_HYBRID_Q:
+    case GUESS_MODE_HYBRID_Q_CS:
     case GUESS_MODE_HYBRID1:
 
       event_log_info (hashcat_ctx,
