@@ -1189,6 +1189,7 @@ typedef struct hashes
 
   u32          hashes_cnt_orig;
   u32          hashes_cnt;
+  u64          hashes_avail; // number of hash_t/hashinfo_t slots allocated in hashes_buf, >= hashes_cnt
   hash_t      *hashes_buf;
 
   hashinfo_t **hash_info;

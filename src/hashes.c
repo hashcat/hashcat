@@ -1251,6 +1251,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   }
 
   hashes->hashes_buf     = hashes_buf;
+  hashes->hashes_avail   = hashes_avail;
   hashes->digests_buf    = digests_buf;
   hashes->salts_buf      = salts_buf;
   hashes->esalts_buf     = esalts_buf;
@@ -2913,15 +2914,35 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->salts_buf);
   hcfree (hashes->salts_shown);
 
-  // hashinfo_t is always allocated per hash entry (see hashes_init_stage1()), so free it
-  // unconditionally here via hashes_buf rather than via the hash_info lookup array, which
-  // is only ever populated when username/hash-copy/split options are in use
+  // hashinfo_t structs are reachable from two different places depending on how far hash
+  // loading got: hashes->hashes_buf[].hash_info directly, until hashes_init_stage2() builds
+  // the deduplicated hash list and frees hashes_buf (NULLing it out) -- so hashes still in
+  // hashes_buf here are ones that never made it that far (e.g. failed to parse); anything
+  // that did make it into the deduplicated list is only reachable via hashes->hash_info[]
+  // (the array stage2 builds). The two are never both populated for the same hash at once,
+  // so there's no risk of freeing the same hashinfo_t twice.
 
   if (hashes->hashes_buf != NULL)
   {
-    for (u32 hash_pos = 0; hash_pos < hashes->hashes_cnt; hash_pos++)
+    for (u64 hash_pos = 0; hash_pos < hashes->hashes_avail; hash_pos++)
     {
       hashinfo_t *hash_info = hashes->hashes_buf[hash_pos].hash_info;
+
+      if (hash_info == NULL) continue;
+
+      hcfree (hash_info->user);
+      hcfree (hash_info->orighash);
+      hcfree (hash_info->split);
+      hcfree (hash_info->parser_error_msg);
+      hcfree (hash_info);
+    }
+  }
+
+  if (hashes->hash_info != NULL)
+  {
+    for (u32 hash_pos = 0; hash_pos < hashes->hashes_cnt; hash_pos++)
+    {
+      hashinfo_t *hash_info = hashes->hash_info[hash_pos];
 
       if (hash_info == NULL) continue;
 
