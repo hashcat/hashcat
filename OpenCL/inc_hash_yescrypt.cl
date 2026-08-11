@@ -61,7 +61,7 @@ DECLSPEC void yescrypt_simd_unshuffle (PRIVATE_AS const u32 *src, PRIVATE_AS u32
 
 DECLSPEC u64 yescrypt_integerify (PRIVATE_AS const u32 *X, const u32 r)
 {
-  const u32 *last = &X[(2 * r - 1) * 16];
+  PRIVATE_AS const u32 *last = &X[(2 * r - 1) * 16];
 
   return ((u64) last[13] << 32) | last[0];
 }

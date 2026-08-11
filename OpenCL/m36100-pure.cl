@@ -431,7 +431,17 @@ DECLSPEC void coop_blockmix_pwxform (XBUF_AS u32 *X, SBOX_AS u32 *sbox, PRIVATE_
 
   if (lid == 0)
   {
-    yescrypt_salsa20_2 (&X[(r1 - 1) * 16]);
+    const u32 off = (r1 - 1) * 16;
+
+    // yescrypt_salsa20_2 operates on private memory, while X can be local or global.
+
+    u32 salsa[16];
+
+    for (u32 i = 0; i < 16; i++) salsa[i] = X[off + i];
+
+    yescrypt_salsa20_2 (salsa);
+
+    for (u32 i = 0; i < 16; i++) X[off + i] = salsa[i];
   }
 
   SYNC_THREADS ();
