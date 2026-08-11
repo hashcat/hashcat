@@ -254,6 +254,15 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   generic_ctx->thread_ctx = hccalloc (sizeof (generic_thread_ctx_t), DEVICES_MAX);
 
+  // These are indexed by device id everywhere, so each one can say which device it belongs to. It is
+  // set here rather than in generic_thread_init () because global_keyspace () runs before any device
+  // thread starts and plugins call their own thread_init () on thread_ctx[0] from inside it.
+
+  for (int device_id = 0; device_id < DEVICES_MAX; device_id++)
+  {
+    generic_ctx->thread_ctx[device_id].device_id = device_id;
+  }
+
   generic_ctx->autohex_enable = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_AUTOHEX) ? true : false;
   generic_ctx->iconv_enable   = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_ICONV)   ? true : false;
   generic_ctx->rules_enable   = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_RULES)   ? true : false;

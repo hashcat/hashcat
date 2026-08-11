@@ -65,6 +65,14 @@ pub struct generic_global_ctx_t {
     pub profile_dir: *mut c_char,
     pub cache_dir: *mut c_char,
 
+    pub guess_base: [c_char; 256],
+
+    pub segments_cnt: u64,
+    pub segment_names: *const *const c_char,
+    pub segment_first: *const u64,
+
+    pub source_ident: u64,
+
     pub error: bool,
     pub error_msg: [c_char; 256],
 
@@ -75,6 +83,8 @@ pub struct generic_global_ctx_t {
 pub struct generic_thread_ctx_t {
     pub error: bool,
     pub error_msg: [c_char; 256],
+
+    pub device_id: c_int,
 
     pub thrdata: *mut c_void,
 }

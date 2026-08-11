@@ -2974,6 +2974,14 @@ typedef struct generic_thread_ctx
   bool   error;
   char   error_msg[256];
 
+  // Which backend device this thread feeds. hashcat keeps one of these per device and hands each
+  // device its own, so a feed that only produces candidates never needs to know. One that wants to
+  // do work on the same device it feeds does: it is the index into backend_ctx->devices_param, and
+  // with the hashcat_ctx a feed is given in global_init () that is enough to reach the device
+  // itself. Set before thread_init () is called, and left alone afterwards.
+
+  int    device_id;
+
   void  *thrdata; // super generic
 
 } generic_thread_ctx_t;
