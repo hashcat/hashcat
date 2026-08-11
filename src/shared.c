@@ -93,16 +93,26 @@ static const char *const PA_047 = "Invalid CryptoAPI key size";
 static const char *const PA_255 = "Unknown error";
 
 // captures the offending portion of the input line when input_tokenizer() hits
-// PARSER_SEPARATOR_UNMATCHED or PARSER_TOKEN_LENGTH, so strparser() can report
-// it below; parsing runs on a single thread before cracking starts, so a
-// file-static buffer is safe
+// PARSER_SEPARATOR_UNMATCHED or PARSER_TOKEN_LENGTH, so tokenizer_error_report() below
+// can copy it into the caller's hashinfo_t. This is scratch space for the current
+// thread's in-flight input_tokenizer() call only -- it's read back and copied out
+// (see tokenizer_error_report()) before anything else on this thread could overwrite
+// it, but multiple threads do call into this same code (e.g. outfile_check.c's
+// background thread runs for the whole session, not just during initial hash
+// loading), so each thread needs its own copy rather than sharing one file-static
+
+#if defined (_WIN)
+#define HC_THREAD_LOCAL __declspec (thread)
+#else
+#define HC_THREAD_LOCAL __thread
+#endif
 
 #define TOKENIZER_ERROR_SNIPPET_LEN 64
 #define TOKENIZER_ERROR_MSG_LEN     (TOKENIZER_ERROR_SNIPPET_LEN * 4 + 96)
 
-static char tokenizer_error_msg[TOKENIZER_ERROR_MSG_LEN];
-static bool tokenizer_error_set    = false;
-static u32  tokenizer_error_status = 0;
+static HC_THREAD_LOCAL char tokenizer_error_msg[TOKENIZER_ERROR_MSG_LEN];
+static HC_THREAD_LOCAL bool tokenizer_error_set    = false;
+static HC_THREAD_LOCAL u32  tokenizer_error_status = 0;
 
 // len_expected/len_actual are optional (-1 to omit) and append a clause describing the mismatch:
 // "(only X allowed but Y entered)" when too many chars were found, "(X required but only Y entered)"
@@ -192,14 +202,20 @@ static void tokenizer_error_capture (const u32 parser_status, const char *reason
   tokenizer_error_set    = true;
 }
 
-// call from module_hash_decode() right after a non-PARSER_OK input_tokenizer() to fetch the
-// message and copy it into hash_info->parser_error_msg.
-// returns a heap-allocated copy (caller must hcfree() it) or NULL if there's nothing to report
-char *tokenizer_error_dup (const u32 parser_status)
+// call from module_hash_decode() right after a non-PARSER_OK input_tokenizer() to copy the
+// captured message into hash_info->parser_error_msg (a no-op if hash_info is NULL, or if
+// this parser_status didn't come with a captured message). Frees any value already there
+// first, since callers may reuse the same hashinfo_t across more than one decode attempt
+// (e.g. a scratch hashinfo_t shared across many hashes, or the split-hash left/right retry).
+void tokenizer_error_report (hashinfo_t *hash_info, const u32 parser_status)
 {
-  if ((tokenizer_error_set == false) || (parser_status != tokenizer_error_status)) return NULL;
+  if (hash_info == NULL) return;
 
-  return hcstrdup (tokenizer_error_msg);
+  if ((tokenizer_error_set == false) || (parser_status != tokenizer_error_status)) return;
+
+  hcfree (hash_info->parser_error_msg);
+
+  hash_info->parser_error_msg = hcstrdup (tokenizer_error_msg);
 }
 
 static const char *const OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";

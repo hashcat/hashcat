@@ -141,7 +141,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (rc_tokenizer != PARSER_OK)
   {
-    if (hash_info != NULL) hash_info->parser_error_msg = tokenizer_error_dup (rc_tokenizer);
+    tokenizer_error_report (hash_info, rc_tokenizer);
 
     return (rc_tokenizer);
   }
