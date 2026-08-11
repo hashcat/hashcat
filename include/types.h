@@ -1122,6 +1122,7 @@ typedef struct hashinfo
   user_t     *user;
   char       *orighash;
   split_t    *split;
+  char       *parser_error_msg; // set by module_hash_decode() via tokenizer_error_dup() on a tokenizer parse failure
 
 } hashinfo_t;
 

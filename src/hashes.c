@@ -974,6 +974,15 @@ static bool hashfile_has_separator (hashcat_ctx_t *hashcat_ctx, HCFILE *fp)
   return found;
 }
 
+// prefers the module's own parser diagnostic (e.g. "Separator unmatched near '...'"), set via
+// hash_info->parser_error_msg, over the generic strparser() text
+static const char *hashes_parser_error_string (const hash_t *hash, const int parser_status)
+{
+  if ((hash->hash_info != NULL) && (hash->hash_info->parser_error_msg != NULL)) return hash->hash_info->parser_error_msg;
+
+  return strparser (parser_status);
+}
+
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -1140,8 +1149,12 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
   void   *esalts_buf     = NULL;
   void   *hook_salts_buf = NULL;
 
-  if ((user_options->dynamic_x == true) || (user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT) || (user_options->hash_copy == true))
   {
+    // hashinfo_t itself is always allocated (cheap: a handful of pointers) so that
+    // module_hash_decode() always has a non-NULL hash_info to report a parser error
+    // snippet into (see tokenizer_error_dup() in shared.c); the heavier sub-fields
+    // below stay conditional on the options that actually need them
+
     u64 hash_pos;
 
     for (hash_pos = 0; hash_pos < hashes_avail; hash_pos++)
@@ -1384,7 +1397,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
                 }
                 else
                 {
-                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
                 }
               }
 
@@ -1395,7 +1408,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
             }
 
             if (parser_status == PARSER_TOKEN_LENGTH)
@@ -1419,7 +1432,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
                 }
                 else
                 {
-                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
                 }
               }
 
@@ -1430,7 +1443,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
             }
 
             if (parser_status == PARSER_TOKEN_LENGTH)
@@ -1456,7 +1469,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
                 }
                 else
                 {
-                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
                 }
               }
 
@@ -1467,7 +1480,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
             }
 
             if (parser_status == PARSER_TOKEN_LENGTH)
@@ -1494,7 +1507,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               }
               else
               {
-                event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
               }
             }
 
@@ -1503,7 +1516,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           else
           {
             event_log_warning (hashcat_ctx, "Hash was parsed as a commandline argument (not as a file, maybe the file doesn't exist?)");
-            event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+            event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
           }
 
           if (parser_status == PARSER_TOKEN_LENGTH)
@@ -1652,11 +1665,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               if (user_options->machine_readable == true)
               {
-                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status));
               }
               else
               {
-                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status));
               }
 
               hcfree (tmp_line_buf);
@@ -1678,11 +1691,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
                 if (user_options->machine_readable == true)
                 {
-                  event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status_postprocess));
+                  event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status_postprocess));
                 }
                 else
                 {
-                  event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status_postprocess));
+                  event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status_postprocess));
                 }
 
                 hcfree (tmp_line_buf);
@@ -1710,11 +1723,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               if (user_options->machine_readable == true)
               {
-                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status));
               }
               else
               {
-                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status));
               }
 
               hcfree (tmp_line_buf);
@@ -1736,11 +1749,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
                 if (user_options->machine_readable == true)
                 {
-                  event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status_postprocess));
+                  event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status_postprocess));
                 }
                 else
                 {
-                  event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status_postprocess));
+                  event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status_postprocess));
                 }
 
                 hcfree (tmp_line_buf);
@@ -1770,11 +1783,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               if (user_options->machine_readable == true)
               {
-                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status));
               }
               else
               {
-                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status));
               }
 
               hcfree (tmp_line_buf);
@@ -1796,11 +1809,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
                 if (user_options->machine_readable == true)
                 {
-                  event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status_postprocess));
+                  event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status_postprocess));
                 }
                 else
                 {
-                  event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status_postprocess));
+                  event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status_postprocess));
                 }
 
                 hcfree (tmp_line_buf);
@@ -1831,11 +1844,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (user_options->machine_readable == true)
             {
-              event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status));
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status));
             }
 
             hcfree (tmp_line_buf);
@@ -1862,11 +1875,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               if (user_options->machine_readable == true)
               {
-                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status_postprocess));
+                event_log_warning (hashcat_ctx, "%s:%u:%s:%s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status_postprocess));
               }
               else
               {
-                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status_postprocess));
+                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, hashes_parser_error_string (hash, parser_status_postprocess));
               }
 
               hcfree (tmp_line_buf);
@@ -1975,7 +1988,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
             }
           }
 
@@ -1983,7 +1996,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+          event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, hashes_parser_error_string (hash, parser_status));
         }
 
         if (parser_status == PARSER_TOKEN_LENGTH)
@@ -2872,9 +2885,7 @@ int hashes_init_zerohash (hashcat_ctx_t *hashcat_ctx)
 
 void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  hashes_t       *hashes       = hashcat_ctx->hashes;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  hashes_t *hashes = hashcat_ctx->hashes;
 
   hcfree (hashes->digests_buf);
   hcfree (hashes->digests_shown);
@@ -2882,24 +2893,23 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->salts_buf);
   hcfree (hashes->salts_shown);
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (user_options->hash_copy == true))
+  // hashinfo_t is always allocated per hash entry (see hashes_init_stage1()), so free it
+  // unconditionally here via hashes_buf rather than via the hash_info lookup array, which
+  // is only ever populated when username/hash-copy/split options are in use
+
+  if (hashes->hashes_buf != NULL)
   {
     for (u32 hash_pos = 0; hash_pos < hashes->hashes_cnt; hash_pos++)
     {
-      if (user_options->username == true)
-      {
-        hcfree (hashes->hash_info[hash_pos]->user);
-      }
+      hashinfo_t *hash_info = hashes->hashes_buf[hash_pos].hash_info;
 
-      if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY || (user_options->hash_copy == true))
-      {
-        hcfree (hashes->hash_info[hash_pos]->orighash);
-      }
+      if (hash_info == NULL) continue;
 
-      if (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT)
-      {
-        hcfree (hashes->hash_info[hash_pos]->split);
-      }
+      hcfree (hash_info->user);
+      hcfree (hash_info->orighash);
+      hcfree (hash_info->split);
+      hcfree (hash_info->parser_error_msg);
+      hcfree (hash_info);
     }
   }
 
