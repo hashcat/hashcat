@@ -617,7 +617,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma ext_zstd filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memory monitor mpsp outfile_check outfile pidfile potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain

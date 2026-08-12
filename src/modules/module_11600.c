@@ -13,6 +13,7 @@
 #include "emu_inc_cipher_aes.h"
 #include "cpu_crc32.h"
 #include "ext_lzma.h"
+#include "ext_zstd.h"
 #include "zlib.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -137,6 +138,7 @@ bool module_hook_extra_param_init (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 {
   seven_zip_hook_extra_t *seven_zip_hook_extra = (seven_zip_hook_extra_t *) hook_extra_param;
 
+  // UNPSIZE is also referenced by module_hook23() (ZSTD decompression target size)
   #define AESSIZE 8 * 1024 * 1024
   #define UNPSIZE 9999999
 
@@ -340,7 +342,24 @@ void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *ho
         ret = SZ_OK;
       }
     }
-    else // we only support LZMA2 in addition to LZMA1
+    else if (data_type == 8) // ZSTD
+    {
+      ret = SZ_ERROR_DATA;
+
+      // target buffer: use the full decompression buffer capacity
+      size_t zstd_out_len = UNPSIZE;
+
+      // input must be *exactly* the zstd frame: use the AES coder's unpack
+      // size (the compressed stream length). aes_len (the AES packed length)
+      // may include AES-CBC padding and would make ZSTD_decompress fail with
+      // srcSize_wrong ("input not entirely consumed").
+      const size_t zstd_in_len = seven_zip->unpack_size;
+
+      const int zstd_ret = hc_zstd_decompress (decompressed_data, &zstd_out_len, compressed_data, zstd_in_len);
+
+      if (zstd_ret == 0) ret = SZ_OK;
+    }
+    else // we only support LZMA2 in addition to LZMA1 and ZSTD
     {
       ret = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
@@ -589,7 +608,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // this check also returns an error with data_type == 0x80 (special case that means "truncated")
 
-  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7))
+  if ((data_type != 0) && (data_type != 1) && (data_type != 2) && (data_type != 7) && (data_type != 8))
   {
     return (PARSER_SALT_VALUE);
   }
