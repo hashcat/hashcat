@@ -43,6 +43,15 @@ test_edge*
 # tools/test_modules/ and hide every new test module from git.
 /test_[0-9]*/
 
+# tools/compute_sanitizer: the DEBUG=1 sibling binary, per-run results
+# (never overwritten, so never something to commit), and the compiled
+# ground-truth .cu fixtures (source is tracked, the nvcc-built binaries are not).
+/hashcat-sanitizer
+/tools/compute_sanitizer/results/
+/tools/compute_sanitizer/modules/oob_write
+/tools/compute_sanitizer/modules/oob_read
+/tools/compute_sanitizer/modules/uninit_global
+
 Rust/feeds/*/target
 Rust/bridges/*/target
 
