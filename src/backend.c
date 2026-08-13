@@ -15368,23 +15368,27 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * create input buffers on device : calculate size of fixed memory buffers
      */
 
-    // These two are indexed by password position. Two things bound how many positions can ever be
-    // read, and sizing by SP_PW_MAX respects neither.
+    // These two are indexed by password position, and only the mask-driven attacks create them at
+    // all, a few hundred lines below. A straight wordlist run allocates neither, so sizing them for
+    // that case reserved 64 MiB per device against something that is never made.
     //
-    // First, only the mask-driven attacks create these buffers at all, a few hundred lines below. A
-    // straight wordlist run allocates neither, so counting them reserved 64 MiB per device against
-    // something that is never made.
+    // The position count itself has to stay SP_PW_MAX. Bounding it by the mode's pw_max looks safe,
+    // because mask_ctx_update_loop skips a mask longer than pw_max, but that check runs before two
+    // steps that grow the position count past it:
     //
-    // Second, a mask longer than the mode's pw_max is skipped before it reaches a kernel, in
-    // mask_ctx_update_loop, so positions past pw_max are unreachable. A mode with a short pw_max
-    // caps it far below the 256 that was always reserved.
+    //   mp_css_utf16le_expand() / mp_css_utf16be_expand()   doubles css_cnt   (src/mpsp.c)
+    //   mp_css_append_salt()                                adds salt_len     (src/mpsp.c)
+    //
+    // Both bound themselves by 256 rather than by pw_max, and the host-side buffers they fill are
+    // SP_PW_MAX entries for exactly that reason. A 2 character mask against a UTF16LE mode with a
+    // 25 byte appended salt reaches position 28, whatever pw_max happens to be. hashconfig->pw_max
+    // is also reassigned per mask in mask_ctx_update_loop, long after these buffers are allocated,
+    // so it is not a fixed quantity to size against in the first place.
 
     const bool css_in_use = (user_options_extra->attack_kern != ATTACK_KERN_STRAIGHT) ? true : false;
 
-    const u64 css_pos_max = MIN ((u64) SP_PW_MAX, (u64) hashconfig->pw_max);
-
-    u64 size_root_css   = (css_in_use == true) ? css_pos_max *           sizeof (cs_t) : 4;
-    u64 size_markov_css = (css_in_use == true) ? css_pos_max * CHARSIZ * sizeof (cs_t) : 4;
+    u64 size_root_css   = (css_in_use == true) ? SP_PW_MAX *           sizeof (cs_t) : 4;
+    u64 size_markov_css = (css_in_use == true) ? SP_PW_MAX * CHARSIZ * sizeof (cs_t) : 4;
 
     device_param->size_root_css   = size_root_css;
     device_param->size_markov_css = size_markov_css;
