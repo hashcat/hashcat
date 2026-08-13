@@ -92,6 +92,132 @@ static const char *const PA_046 = "Invalid or unsupported CryptoAPI hash type";
 static const char *const PA_047 = "Invalid CryptoAPI key size";
 static const char *const PA_255 = "Unknown error";
 
+// captures the offending portion of the input line when input_tokenizer() hits
+// PARSER_SEPARATOR_UNMATCHED or PARSER_TOKEN_LENGTH, so tokenizer_error_report() below
+// can copy it into the caller's hashinfo_t. This is scratch space for the current
+// thread's in-flight input_tokenizer() call only -- it's read back and copied out
+// (see tokenizer_error_report()) before anything else on this thread could overwrite
+// it, but multiple threads do call into this same code (e.g. outfile_check.c's
+// background thread runs for the whole session, not just during initial hash
+// loading), so each thread needs its own copy rather than sharing one file-static
+
+#if defined (_WIN)
+#define HC_THREAD_LOCAL __declspec (thread)
+#else
+#define HC_THREAD_LOCAL __thread
+#endif
+
+#define TOKENIZER_ERROR_SNIPPET_LEN 64
+#define TOKENIZER_ERROR_MSG_LEN     (TOKENIZER_ERROR_SNIPPET_LEN * 4 + 96)
+
+static HC_THREAD_LOCAL char tokenizer_error_msg[TOKENIZER_ERROR_MSG_LEN];
+static HC_THREAD_LOCAL bool tokenizer_error_set    = false;
+static HC_THREAD_LOCAL u32  tokenizer_error_status = 0;
+
+// len_expected/len_actual are optional (-1 to omit) and append a clause describing the mismatch:
+// "(only X allowed but Y entered)" when too many chars were found, "(X required but only Y entered)"
+// when too few were. separator_expected is optional (0 to omit) and appends "(expected 'X')" -- the
+// separator byte input_tokenizer() was scanning for when it ran out of input, e.g. because a trailing
+// field was dropped entirely and there was nothing left to find the separator in
+static void tokenizer_error_capture (const u32 parser_status, const char *reason, const u8 *buf, const int len, const int len_expected, const int len_actual, const u8 separator_expected)
+{
+  char escaped[TOKENIZER_ERROR_SNIPPET_LEN * 4 + 8];
+
+  escaped[0] = 0;
+
+  if (len > 0)
+  {
+    const int cap = (len < TOKENIZER_ERROR_SNIPPET_LEN) ? len : TOKENIZER_ERROR_SNIPPET_LEN;
+
+    int escaped_len = 0;
+
+    for (int i = 0; i < cap; i++)
+    {
+      const u8 c = buf[i];
+
+      if ((c >= 0x20) && (c < 0x7f) && (c != '\'') && (c != '\\'))
+      {
+        escaped[escaped_len++] = (char) c;
+      }
+      else
+      {
+        escaped_len += snprintf (escaped + escaped_len, 5, "\\x%02x", c);
+      }
+    }
+
+    if (len > cap)
+    {
+      escaped[escaped_len++] = '.';
+      escaped[escaped_len++] = '.';
+      escaped[escaped_len++] = '.';
+    }
+
+    escaped[escaped_len] = 0;
+  }
+
+  char length_clause[64];
+
+  length_clause[0] = 0;
+
+  if (len_expected >= 0)
+  {
+    if (len_actual > len_expected)
+    {
+      snprintf (length_clause, sizeof (length_clause), " (only %d allowed but %d entered)", len_expected, len_actual);
+    }
+    else if (len_actual < len_expected)
+    {
+      snprintf (length_clause, sizeof (length_clause), " (%d required but only %d entered)", len_expected, len_actual);
+    }
+  }
+
+  char separator_clause[24];
+
+  separator_clause[0] = 0;
+
+  if (separator_expected != 0)
+  {
+    if ((separator_expected >= 0x20) && (separator_expected < 0x7f))
+    {
+      snprintf (separator_clause, sizeof (separator_clause), " (expected '%c')", separator_expected);
+    }
+    else
+    {
+      snprintf (separator_clause, sizeof (separator_clause), " (expected '\\x%02x')", separator_expected);
+    }
+  }
+
+  if (escaped[0] != 0)
+  {
+    snprintf (tokenizer_error_msg, sizeof (tokenizer_error_msg), "%s near '%s'%s%s", reason, escaped, separator_clause, length_clause);
+  }
+  else
+  {
+    if ((length_clause[0] == 0) && (separator_clause[0] == 0)) return; // nothing useful to add, strparser() falls back to the plain reason
+
+    snprintf (tokenizer_error_msg, sizeof (tokenizer_error_msg), "%s%s%s", reason, separator_clause, length_clause);
+  }
+
+  tokenizer_error_status = parser_status;
+  tokenizer_error_set    = true;
+}
+
+// call from module_hash_decode() right after a non-PARSER_OK input_tokenizer() to copy the
+// captured message into hash_info->parser_error_msg (a no-op if hash_info is NULL, or if
+// this parser_status didn't come with a captured message). Frees any value already there
+// first, since callers may reuse the same hashinfo_t across more than one decode attempt
+// (e.g. a scratch hashinfo_t shared across many hashes, or the split-hash left/right retry).
+void tokenizer_error_report (hashinfo_t *hash_info, const u32 parser_status)
+{
+  if (hash_info == NULL) return;
+
+  if ((tokenizer_error_set == false) || (parser_status != tokenizer_error_status)) return;
+
+  hcfree (hash_info->parser_error_msg);
+
+  hash_info->parser_error_msg = hcstrdup (tokenizer_error_msg);
+}
+
 static const char *const OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
 static const char *const OPTI_STR_ZERO_BYTE            = "Zero-Byte";
 static const char *const OPTI_STR_PRECOMPUTE_INIT      = "Precompute-Init";
@@ -1101,6 +1227,11 @@ const char *stroptitype (const u32 opti_type)
 
 const char *strparser (const u32 parser_status)
 {
+  if ((tokenizer_error_set == true) && (parser_status == tokenizer_error_status))
+  {
+    return tokenizer_error_msg;
+  }
+
   switch (parser_status)
   {
     case PARSER_OK:                   return PA_000;
@@ -1199,6 +1330,8 @@ const u8 *hc_strchr_last (const u8 *input_buf, const int input_len, const u8 sep
 
 int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token)
 {
+  tokenizer_error_set = false;
+
   int len_left = input_len;
 
   token->buf[0] = input_buf;
@@ -1211,7 +1344,12 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
     {
       int len = token->len[token_idx];
 
-      if (len_left < len) return (PARSER_TOKEN_LENGTH);
+      if (len_left < len)
+      {
+        tokenizer_error_capture (PARSER_TOKEN_LENGTH, PA_035, token->buf[token_idx], len_left, len, len_left, 0);
+
+        return (PARSER_TOKEN_LENGTH);
+      }
     }
     else
     {
@@ -1245,13 +1383,23 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
         next_pos = hc_strchr_next (token->buf[token_idx], len_left, token->sep[token_idx]);
       }
 
-      if (next_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
+      if (next_pos == NULL)
+      {
+        tokenizer_error_capture (PARSER_SEPARATOR_UNMATCHED, PA_009, token->buf[token_idx], len_left, -1, -1, token->sep[token_idx]);
+
+        return (PARSER_SEPARATOR_UNMATCHED);
+      }
 
       const int len = next_pos - token->buf[token_idx];
 
       if (token->attr[token_idx] & TOKEN_ATTR_FIXED_LENGTH)
       {
-        if (len != token->len[token_idx]) return (PARSER_TOKEN_LENGTH);
+        if (len != token->len[token_idx])
+        {
+          tokenizer_error_capture (PARSER_TOKEN_LENGTH, PA_035, token->buf[token_idx], len_left, token->len[token_idx], len, 0);
+
+          return (PARSER_TOKEN_LENGTH);
+        }
       }
 
       token->len[token_idx] = len;
@@ -1318,7 +1466,12 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
   {
     int len = token->len[token_idx];
 
-    if (len_left != len) return (PARSER_TOKEN_LENGTH);
+    if (len_left != len)
+    {
+      tokenizer_error_capture (PARSER_TOKEN_LENGTH, PA_035, token->buf[token_idx], len_left, len, len_left, 0);
+
+      return (PARSER_TOKEN_LENGTH);
+    }
   }
   else
   {
@@ -1343,8 +1496,19 @@ int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token
 
     if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_LENGTH)
     {
-      if (token->len[token_idx] < token->len_min[token_idx]) return (PARSER_TOKEN_LENGTH);
-      if (token->len[token_idx] > token->len_max[token_idx]) return (PARSER_TOKEN_LENGTH);
+      if (token->len[token_idx] < token->len_min[token_idx])
+      {
+        tokenizer_error_capture (PARSER_TOKEN_LENGTH, PA_035, token->buf[token_idx], token->len[token_idx], token->len_min[token_idx], token->len[token_idx], 0);
+
+        return (PARSER_TOKEN_LENGTH);
+      }
+
+      if (token->len[token_idx] > token->len_max[token_idx])
+      {
+        tokenizer_error_capture (PARSER_TOKEN_LENGTH, PA_035, token->buf[token_idx], token->len[token_idx], token->len_max[token_idx], token->len[token_idx], 0);
+
+        return (PARSER_TOKEN_LENGTH);
+      }
     }
 
     if (token->attr[token_idx] & TOKEN_ATTR_VERIFY_DIGIT)

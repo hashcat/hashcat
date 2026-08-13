@@ -118,6 +118,7 @@ Setting --brain-client-features on the command line overrules the decision in ei
 - Modules: GPG (CAST5 (SHA-1($pass))) now supports nonzero IVs and s2ktype 3
 - Modules: Added --hash-copy to keep the original hash line for the potfile and status output
 - Startup: Hash parsing errors now explain what is wrong with the input line
+- Startup: Hash parsing errors now point to the exact part of the line that failed to parse
 - Startup: Module advice notices are now suppressed by --quiet
 - Testing Framework: LUKS1 and LUKS2 test containers are now generated on demand
 - Status View: Devices of the same kind share one speed line showing the member count

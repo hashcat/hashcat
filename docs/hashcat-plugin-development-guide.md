@@ -831,8 +831,15 @@ Finally the tokenizer is called. If any of the verification configuration items 
 ```
 const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
+if (rc_tokenizer != PARSER_OK)
+{
+  if (hash_info != NULL) hash_info->parser_error_msg = tokenizer_error_dup (rc_tokenizer);
+
+  return (rc_tokenizer);
+}
 ```
+
+The `hash_info != NULL` check and the call to `tokenizer_error_dup()` are what let hashcat report which part of the line the tokenizer choked on (e.g. `Separator unmatched near '...'`) instead of just the bare error name. Every stock module follows this shape; if you leave it out, your plugin still works correctly, it just falls back to the generic message on a parse failure.
 
 If everything went well up to this point, the tokenizer has placed the pointer addresses for the start to each of the columns in the token.buf[] array and the corresponding length in the token.len[] array. For instance, if there is only one column, the pointer address in token.buf[0] will be populated as well as token.len[0]. If you have two columns (token_cnt = 2), there will also be token.buf[1] and token.len[1], and so on.
 
