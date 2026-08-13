@@ -250,8 +250,8 @@ Hardware reached through an assimilation bridge is selected by the hash-mode, ne
   Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule
   Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule
   Association      | $1$   | hashcat -a 9 -m 500 user500.hash -r rules/best66.rule
-  Hybrid           | MD5   | hashcat -a 12 -m 0 example0.hash example.dict ?d?w?d?d
-  Hybrid, two dict | MD5   | hashcat -a 12 -m 0 example0.hash example.dict example.dict ?w-?q!
+  Hybrid           | MD5   | hashcat -a 12 -m 0 example0.hash ?d?w?d?d example.dict
+  Hybrid, two dict | MD5   | hashcat -a 12 -m 0 example0.hash ?w-?q! example.dict example.dict
 
 If you still have no idea what just happened, try the following pages:
 
