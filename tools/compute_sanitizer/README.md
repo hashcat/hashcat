@@ -71,7 +71,7 @@ ID` entry).
 ## `run.py exec` — run one command
 
 ```
-tools/compute_sanitizer/run.py exec <test-name> [--tool memcheck|racecheck|synccheck|initcheck] [--leak-check no|full] -- <hashcat-command...>
+tools/compute_sanitizer/run.py exec <test-name> [--tool memcheck|racecheck|synccheck|initcheck] [--leak-check no|full] [--padding N] -- <hashcat-command...>
 ```
 
 - Everything after `--` is the exact hashcat command, passed through as a
@@ -96,6 +96,16 @@ tools/compute_sanitizer/run.py exec <test-name> [--tool memcheck|racecheck|syncc
   `tools/compute_sanitizer/results/<timestamp>-<test-name>/` directory
   (never overwritten) with `command.txt`, `environment.txt`,
   `sanitizer.log`, `summary.txt`, `summary.json`.
+- `--padding N` (default **128**) passes Compute Sanitizer's own `--padding`:
+  N bytes of tracked redzone appended after every device allocation. Without
+  it, a read/write that overshoots one buffer but happens to land inside
+  whatever real allocation the CUDA allocator placed next door goes
+  undetected — not because nothing is wrong, but because memcheck only
+  flags accesses outside *every* allocation, and an adjacent live buffer
+  still counts as "inside an allocation." `--padding` closes exactly that
+  gap: an overshoot into the redzone is flagged even when the real neighbor
+  would otherwise have absorbed it silently. Pass `--padding 0` to fall back
+  to Compute Sanitizer's own default (no redzone) if you need to compare.
 
 ### A real memory fault cascades
 

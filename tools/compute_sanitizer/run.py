@@ -278,6 +278,7 @@ def cmd_exec(ns, sanitizer_passthrough, hc_cmd):
         "--tool", ns.tool,
         "--check-exit-code", "no",
         "--leak-check", ns.leak_check,
+        "--padding", str(ns.padding),
         "--show-backtrace", "device",
         "--print-limit", "20",
         f"--log-file={log_path}",
@@ -332,6 +333,7 @@ def _run_selftest_case(name, binary_path, cs_bin, tool, results_dir):
 
     cs_cmd = [
         cs_bin, "--tool", tool, "--check-exit-code", "no", "--leak-check", "no",
+        "--padding", "128",
         "--show-backtrace", "device", "--print-limit", "20", f"--log-file={log_path}",
         "--", str(binary_path),
     ]
@@ -420,6 +422,11 @@ def build_exec_parser():
     p.add_argument("--tool", default="memcheck", choices=VALID_TOOLS,
                     help="Compute Sanitizer tool to use (default: memcheck)")
     p.add_argument("--leak-check", default="no", choices=("no", "full"))
+    p.add_argument("--padding", type=int, default=128,
+                    help="Compute Sanitizer --padding: bytes of tracked redzone appended after every "
+                         "device allocation, so a read/write that overshoots one buffer but happens to "
+                         "land inside a neighboring allocation is still flagged instead of going silent "
+                         "(default: 128; 0 disables it, matching compute-sanitizer's own default)")
     p.add_argument("--sweep", action="store_true",
                     help="non-interactive mode for test.sh/test_edge.sh: hashcat's stdout/stderr/exit-code "
                          "pass through untouched; requires --results-dir")
