@@ -3,6 +3,14 @@
  * License.....: MIT
  */
 
+// A feed hashes a wordlist to name the seek database that belongs to it. That is the feed's own
+// business and not something the core promises, so xxHash is compiled into this plugin rather than
+// resolved out of the library.
+
+#define XXH_INLINE_ALL
+
+#include "xxhash.h"
+
 #include "common.h"
 #include "types.h"
 #include "memory.h"
@@ -10,9 +18,10 @@
 #include "filehandling.h"
 #include "folder.h"
 #include "shared.h"
+#include "path.h"
+#include "memchr.h"
 #include "timer.h"
 #include "event.h"
-#include "xxhash.h"
 #include "generic.h"
 #include "feed_wordlist.h"
 
@@ -58,7 +67,7 @@ static void thread_error_set (generic_thread_ctx_t *thread_ctx, const char *fmt,
 }
 
 // Hand out the word that starts here, and say where the next one starts. Finding the end of it and
-// taking the line ending off is hc_line_next () in shared.c, which is the same code the stdin feed and
+// taking the line ending off is hc_line_next () in memchr.h, which is the same code the stdin feed and
 // the line counter use.
 
 static size_t process_word (const u8 *buf, const size_t max_len, u8 *out_buf, const size_t out_size, size_t *out_len)

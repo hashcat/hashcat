@@ -13,6 +13,7 @@
 #include "pubkey.h"
 
 #include <time.h>
+#include <inttypes.h>
 
 // --encrypt-with-pubkey encrypts every recovered plain with the recipient's public key before it
 // reaches any sink, so an operator running the job never sees the password on screen, in the

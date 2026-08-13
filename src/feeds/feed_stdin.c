@@ -58,6 +58,8 @@
 #include "memory.h"
 #include "filehandling.h"
 #include "shared.h"
+#include "system.h"
+#include "memchr.h"
 #include "thread.h"
 #include "generic.h"
 

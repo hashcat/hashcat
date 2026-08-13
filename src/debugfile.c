@@ -7,6 +7,7 @@
 #include "types.h"
 #include "event.h"
 #include "shared.h"
+#include "filehandling.h"
 #include "locking.h"
 #include "debugfile.h"
 

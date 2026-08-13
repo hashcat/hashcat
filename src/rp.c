@@ -9,6 +9,7 @@
 #include "convert.h"
 #include "event.h"
 #include "shared.h"
+#include "system.h"
 #include "filehandling.h"
 #include "rp.h"
 #include "rp_cpu.h"

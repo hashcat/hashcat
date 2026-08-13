@@ -60,9 +60,9 @@ typedef struct hlfmt_word
 
 } hlfmt_word_t;
 
-const char *strhlfmt (const u32 hashfile_format);
+HC_PLUGIN_API const char *strhlfmt (const u32 hashfile_format);
 
-u32 hlfmt_user_words (const char *user_buf, const u32 user_len, hlfmt_word_t *out_words, const u32 out_max);
+HC_PLUGIN_API u32 hlfmt_user_words (const char *user_buf, const u32 user_len, hlfmt_word_t *out_words, const u32 out_max);
 
 void hlfmt_hash (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf, const int line_len, char **hashbuf_pos, int *hashbuf_len);
 void hlfmt_user (hashcat_ctx_t *hashcat_ctx, u32 hashfile_format, char *line_buf, const int line_len, char **userbuf_pos, int *userbuf_len);

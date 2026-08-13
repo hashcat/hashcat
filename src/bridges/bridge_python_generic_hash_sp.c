@@ -22,6 +22,9 @@
 #include "bridges.h"
 #include "memory.h"
 #include "shared.h"
+#include "system.h"
+#include "path.h"
+#include "filehandling.h"
 #include "cpu_features.h"
 #include "dynloader.h"
 

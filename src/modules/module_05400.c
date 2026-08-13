@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
 static const u32   DGST_POS0      = 3;
@@ -133,12 +134,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
-  if (rc_tokenizer != PARSER_OK)
-  {
-    tokenizer_error_report (hash_info, rc_tokenizer);
-
-    return (rc_tokenizer);
-  }
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   ikepsk->msg_len[0] =                      token.len[0] / 2;
   ikepsk->msg_len[1] = ikepsk->msg_len[0] + token.len[1] / 2;

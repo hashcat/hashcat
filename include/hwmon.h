@@ -24,7 +24,7 @@ bool hm_get_bridge_temperature_str   (hashcat_ctx_t *hashcat_ctx, const int back
 u32  hm_get_bridge_temperature_abort (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int  hm_get_bridge_temperature_unwatched (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 
-void hm_temperature_abort_banner            (hashcat_ctx_t *hashcat_ctx);
+HC_API void hm_temperature_abort_banner            (hashcat_ctx_t *hashcat_ctx);
 
 int hm_get_threshold_slowdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);
 int hm_get_threshold_shutdown_with_devices_idx (hashcat_ctx_t *hashcat_ctx, const int backend_device_idx);

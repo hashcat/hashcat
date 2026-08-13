@@ -8,10 +8,15 @@
 #include "memory.h"
 #include "event.h"
 #include "shared.h"
+#include "path.h"
 #include "backend.h"
 #include "modules.h"
 #include "dynloader.h"
 #include "interface.h"
+
+// The name that says which plugin interface this core implements is defined in src/plugin_abi.c. It
+// is the first thing a plugin has to get past, and the checks below are what catch a plugin that
+// got past it.
 
 /**
  * parsing
@@ -53,11 +58,25 @@ bool module_load (hashcat_ctx_t *hashcat_ctx, module_ctx_t *module_ctx, const u3
 
   if (module_ctx->module_handle == NULL)
   {
-    #if defined (_WIN)
-    event_log_error (hashcat_ctx, "Cannot load module %s", module_file); // todo: maybe there's a dlerror () equivalent
-    #else
-    event_log_error (hashcat_ctx, "%s", dlerror ());
-    #endif
+    // a plugin built against an interface this core no longer carries is the usual reason, and the
+    // file says which one it was built against, so that is reported rather than the loader's own
+    // words. The Unix loader names the symbol it could not resolve. The Windows loader says only
+    // that a procedure was not found, which reads as a broken install.
+
+    const int plugin_abi = hc_dlplugin_abi (module_file);
+
+    if ((plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION))
+    {
+      event_log_error (hashcat_ctx, "Module %s was built for plugin interface %d, this hashcat provides %d", module_file, plugin_abi, HC_PLUGIN_ABI_VERSION);
+    }
+    else
+    {
+      #if defined (_WIN)
+      event_log_error (hashcat_ctx, "Cannot load module %s: %s", module_file, hc_dlerror ());
+      #else
+      event_log_error (hashcat_ctx, "%s", hc_dlerror ());
+      #endif
+    }
 
     hcfree (module_file);
 

@@ -9,6 +9,7 @@
 #include "filehandling.h"
 #include "hlfmt.h"
 #include "shared.h"
+#include "parser.h"
 
 static const char *const HLFMT_TEXT_HASHCAT  = "native hashcat";
 static const char *const HLFMT_TEXT_PWDUMP   = "pwdump";

@@ -11,6 +11,7 @@
 #include "thread.h"
 #include "status.h"
 #include "shared.h"
+#include "path.h"
 #include "hwmon.h"
 #include "bridges.h"
 #include "interface.h"

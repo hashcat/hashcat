@@ -9,12 +9,15 @@
 #include "event.h"
 #include "logfile.h"
 #include "shared.h"
+#include "path.h"
 #include "folder.h"
 #include "rp.h"
 #include "mpsp.h"
 #include "generic.h"
 #include "dynloader.h"
 #include "user_options.h"
+
+#include <inttypes.h>
 
 // Report and clear a global error, same reasoning as generic_thread_error ().
 
@@ -223,7 +226,16 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   if (generic_ctx->lib == NULL)
   {
-    event_log_error (hashcat_ctx, "%s", hc_dlerror ());
+    const int plugin_abi = hc_dlplugin_abi (generic_ctx->dynlib_filename);
+
+    if ((plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION))
+    {
+      event_log_error (hashcat_ctx, "Feed %s was built for plugin interface %d, this hashcat provides %d", generic_ctx->dynlib_filename, plugin_abi, HC_PLUGIN_ABI_VERSION);
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "%s", hc_dlerror ());
+    }
 
     return -1;
   }

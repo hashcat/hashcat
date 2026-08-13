@@ -1122,7 +1122,6 @@ typedef struct hashinfo
   user_t     *user;
   char       *orighash;
   split_t    *split;
-  char       *parser_error_msg; // set by module_hash_decode() via tokenizer_error_report() on a tokenizer parse failure
 
 } hashinfo_t;
 
@@ -1189,7 +1188,6 @@ typedef struct hashes
 
   u32          hashes_cnt_orig;
   u32          hashes_cnt;
-  u64          hashes_avail; // number of hash_t/hashinfo_t slots allocated in hashes_buf, >= hashes_cnt
   hash_t      *hashes_buf;
 
   hashinfo_t **hash_info;
@@ -2228,6 +2226,11 @@ typedef struct backend_ctx
   bool                need_iokit;
 
   int                 comptime;
+
+  // digest of every kernel source that is shared by all kernels, read once because it does not depend
+  // on the device or on the hash mode
+
+  u32                 kernel_shared_chksum;
 
   int                 force_jit_compilation;
 

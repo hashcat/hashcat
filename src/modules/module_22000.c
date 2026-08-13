@@ -9,6 +9,8 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "parser.h"
 #include "memory.h"
 
 #define DGST_ELEM 4
@@ -814,12 +816,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) input_buf, input_len, &token);
 
-  if (rc_tokenizer != PARSER_OK)
-  {
-    tokenizer_error_report (hash_info, rc_tokenizer);
-
-    return (rc_tokenizer);
-  }
+  if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
   // mac_ap
 

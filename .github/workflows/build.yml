@@ -1,18 +1,37 @@
 name: Build
 
+##
+## What is built, and what is run.
+##
+## The user base is Linux and Windows, so those two are built in both arrangements and, more to the
+## point, the binaries they produce are started and made to crack something. A build that links is
+## not a build that runs: a plugin whose imports do not resolve, a package missing a directory and a
+## core the loader finds somewhere else all pass a compile and fail a user.
+##
+## macOS is built in the arrangement it ships in. FreeBSD stands in for the BSDs here, the other
+## three are built weekly by .github/workflows/bsd.yml.
+##
+## The release binaries are the cross compiled ones, so those are what the run jobs take apart. They
+## are downloaded into a directory of their own and run there, which is what an unpacked archive is.
+##
+
 env:
   include_paths: |
+    bridges/
     charsets/
     docs/
     extra/
+    feeds/
     layouts/
     masks/
     modules/
     OpenCL/
     rules/
+    tunings/
     example*
     hashcat*
     libhashcat*
+    !**/*.debug
 
 on:
   push:
@@ -47,33 +66,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest, freebsd, openbsd, netbsd, dragonflybsd]
-        shared: [0, 1]
         include:
           - os: ubuntu-latest
             os_name: Linux
             os_name_lowercase: linux
+            shared: 0
+          - os: ubuntu-latest
+            os_name: Linux
+            os_name_lowercase: linux
+            shared: 1
           - os: macos-latest
             os_name: macOS
             os_name_lowercase: macos
+            shared: 1
           - os: windows-latest
             os_name: Windows
             os_name_lowercase: windows
+            shared: 0
+          - os: windows-latest
+            os_name: Windows
+            os_name_lowercase: windows
+            shared: 1
           - os: freebsd
             os_name: FreeBSD
             os_name_lowercase: freebsd
-          - os: openbsd
-            os_name: OpenBSD
-            os_name_lowercase: openbsd
-          - os: netbsd
-            os_name: NetBSD
-            os_name_lowercase: netbsd
-          - os: dragonflybsd
-            os_name: DragonflyBSD
-            os_name_lowercase: dragonflybsd
+            shared: 0
 
     name: Build ${{ matrix.os_name }} (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
-    runs-on: ${{ (matrix.os == 'freebsd' || matrix.os == 'openbsd' || matrix.os == 'netbsd' || matrix.os == 'dragonflybsd') && 'ubuntu-latest' || matrix.os }}
+    runs-on: ${{ matrix.os == 'freebsd' && 'ubuntu-latest' || matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -116,6 +136,7 @@ jobs:
           WIN_PYTHON: ""
         run: |
           make ENABLE_LTO=0 CC=clang CXX=clang++
+          bash tools/test_package.sh . --no-device
 
       - name: Build (Linux/macOS)
         if: matrix.os_name_lowercase == 'linux' || matrix.os_name_lowercase == 'macos'
@@ -124,61 +145,22 @@ jobs:
           TERM: xterm
         run: |
           make ENABLE_LTO=0 CC=clang CXX=clang++
+          bash tools/test_package.sh . --no-device
 
       - name: Build (FreeBSD)
         if: matrix.os_name_lowercase == 'freebsd'
         uses: vmactions/freebsd-vm@v1
+        env:
+          SHARED: ${{ matrix.shared }}
         with:
           usesh: true
           envs: SHARED
           prepare: |
             pkg update
-            pkg install -y git gcc gmake gsed python3 rust llvm
+            pkg install -y bash git gcc gmake gsed python3 rust llvm
           run: |
             gmake ENABLE_LTO=0 CC=clang CXX=clang++
-
-      - name: Build (OpenBSD)
-        if: matrix.os_name_lowercase == 'openbsd'
-        uses: vmactions/openbsd-vm@v1
-        with:
-          usesh: true
-          envs: SHARED
-          prepare: |
-            pkg_add git gcc%11 gmake gsed llvm%19
-          run: |
-            export TERM=xterm
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
-
-      - name: Build (NetBSD)
-        if: matrix.os_name_lowercase == 'netbsd'
-        uses: vmactions/netbsd-vm@v1
-        with:
-          usesh: true
-          envs: SHARED
-          prepare: |
-            export PATH="/usr/sbin:$PATH"
-            export PKG_PATH="https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/$(uname -m)/$(uname -r)/All"
-            pkg_add pkgin
-            pkgin -y update
-            pkgin -y full-upgrade
-            pkgin -y install git gcc14 gmake gsed python313 llvm libiconv clang openmp
-          run: |
-            export PATH="/usr/pkg/gcc14/bin:$PATH"
-            export TERM=xterm
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
-
-      - name: Build (DragonflyBSD)
-        if: matrix.os_name_lowercase == 'dragonflybsd'
-        uses: vmactions/dragonflybsd-vm@v1
-        with:
-          usesh: true
-          envs: SHARED
-          prepare: |
-            pkg update
-            pkg install -y git gcc gmake gsed python3 llvm
-          run: |
-            export TERM=xterm
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            bash tools/test_package.sh . --no-device
 
       - name: Generate documentation
         if: matrix.os_name_lowercase == 'linux' && matrix.shared == 0
@@ -223,9 +205,14 @@ jobs:
         with:
           name: hashcat-${{ matrix.os_name_lowercase }}-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
-  build_binaries:
-    name: Build binaries (Linux and Windows)
+
+  binaries:
+    name: Build binaries (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [0, 1]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -265,6 +252,7 @@ jobs:
 
       - name: Build binaries
         env:
+          SHARED: ${{ matrix.shared }}
           TERM: xterm
         run: |
           make binaries \
@@ -275,5 +263,95 @@ jobs:
       - name: Generate artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: hashcat-${{ matrix.os_name_lowercase }}-cross
+          name: hashcat-cross-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
+
+  run_linux:
+    name: Run Linux (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    needs: binaries
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+
+      - name: Download the package
+        uses: actions/download-artifact@v4
+        with:
+          name: hashcat-cross-${{ matrix.shared == 0 && 'static' || 'shared' }}
+          path: package
+
+      # a runner has no GPU, so the device is the processor it already has. Everything the checks do
+      # runs on one, the slowest of them is md5crypt against three words
+
+      - name: Install an OpenCL CPU runtime
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pocl-opencl-icd
+
+      - name: List the backend devices
+        run: |
+          chmod +x package/hashcat.bin
+          cd package && ./hashcat.bin -I
+
+      - name: Run the package
+        run: bash tools/test_package.sh package
+
+  run_windows:
+    name: Run Windows (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    needs: binaries
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [0, 1]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || github.ref }}
+          repository: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name || github.repository }}
+
+      - name: Download the package
+        uses: actions/download-artifact@v4
+        with:
+          name: hashcat-cross-${{ matrix.shared == 0 && 'static' || 'shared' }}
+          path: package
+
+      # Windows ships no OpenCL device of its own, so the CPU runtime is installed here. It is the
+      # one Intel publishes as a wheel, which is a download and a registry entry rather than an
+      # installer. Nothing of it goes near the package directory, so what hashcat.exe finds beside
+      # itself is still only what was unpacked there.
+
+      - name: Install an OpenCL CPU runtime
+        shell: pwsh
+        run: |
+          python -m pip install --disable-pip-version-check --no-warn-script-location intel-opencl-rt
+
+          $runtime = python -c "import os, sys; print(os.path.join(sys.prefix, 'Library', 'bin'))"
+          $icd = Join-Path $runtime 'intelocl64.dll'
+
+          if (-not (Test-Path -Path $icd)) { throw "no OpenCL CPU runtime at $icd" }
+
+          foreach ($key in 'HKLM:\SOFTWARE\Khronos', 'HKLM:\SOFTWARE\Khronos\OpenCL', 'HKLM:\SOFTWARE\Khronos\OpenCL\Vendors')
+          {
+            if (-not (Test-Path -Path $key)) { New-Item -Path $key | Out-Null }
+          }
+
+          New-ItemProperty -Path 'HKLM:\SOFTWARE\Khronos\OpenCL\Vendors' -Name $icd -Value 0 -PropertyType DWord -Force | Out-Null
+
+          Add-Content -Path $env:GITHUB_PATH -Value $runtime
+
+      - name: List the backend devices
+        shell: cmd
+        run: |
+          cd package
+          hashcat.exe -I
+
+      - name: Run the package
+        shell: bash
+        run: bash tools/test_package.sh package

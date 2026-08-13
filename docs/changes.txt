@@ -41,6 +41,15 @@ costs the client. The attack feature stays on in that case, so clients on one se
 each other's keyspace, and nothing is aborted.
 Setting --brain-client-features on the command line overrules the decision in either direction.
 
+4. Plugins: A module, a bridge and a feed now link against the core library instead of carrying a copy of the core
+
+The core ships as libhashcat.so.7 on Linux, libhashcat.7.dylib on macOS and hashcat.dll on Windows, next to the hashcat binary.
+A third-party plugin has to be rebuilt for this release and needs that library present, one directory above it.
+A plugin built against an older interface version is refused by the loader, on every platform, and the name it could not find says which one it wanted.
+What the core offers a plugin is now said in the declaration of each function rather than measured from what the plugins in the tree happen to call, so a module can call a host side hash or cipher entry point that no module in the tree calls.
+A built plugin exports its entry point and nothing else.
+See the section "The Core Library" in docs/hashcat-plugin-development-guide.md.
+
 ##
 ## New Algorithms
 ##
@@ -99,6 +108,13 @@ Setting --brain-client-features on the command line overrules the decision in ei
 - Docker: Removed the Ubuntu 18.04 build because its mingw-w64 cannot link current Rust
 - Build: Disabled LTO by default; release binaries still enable it
 - Build: Disabled setShouldMaximizeConcurrentCompilation in ext_metal.m due to a macOS Tahoe crash
+- Build: The core is now one shared library that the frontend and every plugin link against, so the unpacked release drops from about 413 MB to about 91 MB
+- Build: The development install now ships the headers the plugin API is declared in and the vendored headers they need, instead of every header in the tree
+- Build: Plugins are no longer compiled for the processor that builds them, which takes about a third off a clean build
+- Build: The binaries now name the hardening flags they are built with instead of inheriting them from the build machine
+- Build: A DEBUG=1 build keeps its debug information instead of having it stripped off at the link
+- Build: Two builds of one commit are now the same bytes, with SOURCE_DATE_EPOCH and PRODUCTION=1 pinning what would otherwise move
+- Build: The build tracks its own dependencies now, so editing a shared module body, a feed header or a bundled dependency rebuilds what uses it
 - Help: -D 3 is now described as 'OpenCL Accelerator'; bridge hardware is selected by hash-mode and never by -D
 - Rules: Added the 'convert to lower hex' and 'convert to upper hex' operations
 - Rules: Added the 'insert every' operation
@@ -117,8 +133,7 @@ Setting --brain-client-features on the command line overrules the decision in ei
 - Modules: PBKDF2-based modes now accept iteration counts of up to 8 digits
 - Modules: GPG (CAST5 (SHA-1($pass))) now supports nonzero IVs and s2ktype 3
 - Modules: Added --hash-copy to keep the original hash line for the potfile and status output
-- Startup: Hash parsing errors now explain what is wrong with the input line
-- Startup: Hash parsing errors now point to the exact part of the line that failed to parse
+- Startup: Hash parsing errors now explain what is wrong and name the part of the line that failed
 - Startup: Module advice notices are now suppressed by --quiet
 - Testing Framework: LUKS1 and LUKS2 test containers are now generated on demand
 - Status View: Devices of the same kind share one speed line showing the member count
@@ -178,6 +193,11 @@ Setting --brain-client-features on the command line overrules the decision in ei
 - Fixed redefinition warnings from the Python.h and _WIN32_WINNT include order
 - Fixed "No devices found/left." not naming what removed the devices, nor that a bridge was left with units and nothing to drive them
 - Fixed -I listing one backend device per bridge unit instead of one per physical device
+- Fixed an edited kernel not being compiled again, because the kernel cache key said nothing about the kernel source
+- Fixed 'make linux' building every module, bridge and feed against the native core instead of the Linux one
+- Fixed 'make hashcat.exe' cross compiling with -march=native, which can put instructions in the binary that the target machine does not have
+- Fixed attack-mode 8 dying before the first candidate when hashcat was built with ENABLE_BRAIN=0
+- Fixed a failed build step leaving its half written output behind, which the next make then called up to date
 
 ##
 ## Other changes

@@ -7,6 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "shared.h"
+#include "path.h"
 #include "interface.h"
 #include "usage.h"
 

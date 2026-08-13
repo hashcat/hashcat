@@ -124,7 +124,13 @@ ENV PATH=/root/.cargo/bin:$PATH
 # binaries get it. A command line assignment beats the ?= in the Makefile, so this stays
 # correct whatever the default becomes
 
+# HASHCAT_REF is the tree the package is built from. A clone of master names no particular commit,
+# so what a past release was built from cannot be got back and that release cannot be rebuilt. A tag
+# or a commit is named here instead, and another one is asked for with --build-arg HASHCAT_REF=<ref>.
+# It is bumped with the version in tools/package_bin.sh, which is edited for the same release anyway.
+
 ARG CACHE_BUST=1 \
+    HASHCAT_REF=v7.1.2 \
     ENABLE_LTO=1 \
     MAINTAINER_MODE=1 \
     USE_MOLD=1 \
@@ -132,13 +138,14 @@ ARG CACHE_BUST=1 \
     USE_GCC=0
 
 ENV CACHE_BUST=${CACHE_BUST} \
+    HASHCAT_REF=${HASHCAT_REF} \
     ENABLE_LTO=${ENABLE_LTO} \
     MAINTAINER_MODE=${MAINTAINER_MODE} \
     USE_MOLD=${USE_MOLD} \
     USE_CLANG=${USE_CLANG} \
     USE_GCC=${USE_GCC}
 
-RUN cd /root && git clone https://github.com/hashcat/hashcat.git
+RUN cd /root && git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
 
 COPY docker/patches/hashcat_binaries/ /root/patches/
 
@@ -159,7 +166,7 @@ RUN if [ "${USE_CLANG}" = "1" ]; then \
            AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar \
            CC=clang CC_LINUX=clang CC_WIN=clang \
            CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ \
-           binaries -s -j 2>&1 | stdbuf -oL -eL tee -a /root/binaries.clang.log && \
+           binaries -s -j ${MAX_CORE} 2>&1 | stdbuf -oL -eL tee -a /root/binaries.clang.log && \
       tools/package_bin.sh && \
       cd /root/xy && \
       if [ "${USE_GCC}" = "1" ]; then \
@@ -178,7 +185,7 @@ RUN if [ "${USE_GCC}" = "1" ]; then \
       make USE_MOLD=${USE_MOLD} \
            ENABLE_LTO=${ENABLE_LTO} \
            MAINTAINER_MODE=${MAINTAINER_MODE} \
-           binaries -s -j 2>&1 | stdbuf -oL -eL  tee -a /root/binaries.gcc.log && \
+           binaries -s -j ${MAX_CORE} 2>&1 | stdbuf -oL -eL  tee -a /root/binaries.gcc.log && \
       tools/package_bin.sh && \
       cd /root/xy && \
       if [ "${USE_CLANG}" = "1" ]; then \
@@ -201,7 +208,8 @@ RUN if [ "${USE_CLANG}" = "1" ] && [ "${USE_GCC}" = "1" ]; then mv /root/out/* /
 ARG WITH_CODE_ANALYSIS=0
 ENV WITH_CODE_ANALYSIS=${WITH_CODE_ANALYSIS}
 
-RUN echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
+RUN echo "HASHCAT_REF: ${HASHCAT_REF}" >> /root/toolchain-info.log && \
+    echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
     echo "WIN_ICONV_VERSION: ${WIN_ICONV_VERSION}" >> /root/toolchain-info.log && \
     echo "SEVEN_ZIP_VERSION: ${SEVEN_ZIP_VERSION}" >> /root/toolchain-info.log && \
     echo "RUST_VERSION: ${RUST_VERSION}" >> /root/toolchain-info.log && \

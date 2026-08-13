@@ -151,12 +151,21 @@ using namespace metal;
 #define HC_INLINE inline static
 #endif
 
+// On a device DECLSPEC says how a function is compiled. On the host it says something else, because
+// the host build of these files is compiled into the core and a plugin calls the result: every one
+// of these functions is a host side hash, cipher or helper entry point, so DECLSPEC is where they
+// are put into the plugin contract, once, instead of on a few hundred declarations. IS_NATIVE is
+// set from the include guard of emu_general.h, and that is the header that brings HC_PLUGIN_API in,
+// so the macro is always in hand by the time this is read.
+
 #if defined IS_AMD && defined IS_GPU
 #define DECLSPEC HC_INLINE
 #elif defined IS_CUDA
 #define DECLSPEC __device__
 #elif defined IS_HIP
 #define DECLSPEC __device__ HC_INLINE
+#elif defined IS_NATIVE
+#define DECLSPEC HC_PLUGIN_API
 #else
 #define DECLSPEC
 #endif

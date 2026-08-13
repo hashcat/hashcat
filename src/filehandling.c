@@ -8,6 +8,8 @@
 #include "limits.h"
 #include "memory.h"
 #include "shared.h"
+#include "path.h"
+#include "memchr.h"
 #include "filehandling.h"
 
 #include <Alloc.h>
@@ -1235,4 +1237,147 @@ size_t superchop_with_length (char *buf, const size_t len)
   }
 
   return new_len;
+}
+
+bool hc_path_has_bom (const char *path)
+{
+  u8 buf[8] = { 0 };
+
+  HCFILE fp;
+
+  if (hc_fopen_raw (&fp, path, "rb") == false) return false;
+
+  const size_t nread = hc_fread (buf, 1, sizeof (buf), &fp);
+
+  hc_fclose (&fp);
+
+  if (nread < 1) return false;
+
+  const int bom_size = hc_string_bom_size (buf);
+
+  const bool has_bom = bom_size > 0;
+
+  return has_bom;
+}
+
+bool hc_same_files (char *file1, char *file2)
+{
+  if ((file1 != NULL) && (file2 != NULL))
+  {
+    if (hc_path_is_fifo (file1) == true || hc_path_is_fifo (file2) == true)
+    {
+      return false;
+    }
+
+    struct stat tmpstat_file1;
+    struct stat tmpstat_file2;
+
+    memset (&tmpstat_file1, 0, sizeof (tmpstat_file1));
+    memset (&tmpstat_file2, 0, sizeof (tmpstat_file2));
+
+    int do_check = 0;
+
+    HCFILE fp;
+
+    if (hc_fopen (&fp, file1, "r") == true)
+    {
+      if (hc_fstat (&fp, &tmpstat_file1))
+      {
+        hc_fclose (&fp);
+
+        return false;
+      }
+
+      hc_fclose (&fp);
+
+      do_check++;
+    }
+
+    if (hc_fopen (&fp, file2, "r") == true)
+    {
+      if (hc_fstat (&fp, &tmpstat_file2))
+      {
+        hc_fclose (&fp);
+
+        return false;
+      }
+
+      hc_fclose (&fp);
+
+      do_check++;
+    }
+
+    if (do_check == 2)
+    {
+      tmpstat_file1.st_mode     = 0;
+      tmpstat_file1.st_nlink    = 0;
+      tmpstat_file1.st_uid      = 0;
+      tmpstat_file1.st_gid      = 0;
+      tmpstat_file1.st_rdev     = 0;
+      tmpstat_file1.st_atime    = 0;
+
+      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
+      tmpstat_file1.STAT_NANOSECONDS_ACCESS_TIME = 0;
+      #endif
+
+      #if defined (_POSIX)
+      tmpstat_file1.st_blksize  = 0;
+      tmpstat_file1.st_blocks   = 0;
+      #endif
+
+      tmpstat_file2.st_mode     = 0;
+      tmpstat_file2.st_nlink    = 0;
+      tmpstat_file2.st_uid      = 0;
+      tmpstat_file2.st_gid      = 0;
+      tmpstat_file2.st_rdev     = 0;
+      tmpstat_file2.st_atime    = 0;
+
+      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
+      tmpstat_file2.STAT_NANOSECONDS_ACCESS_TIME = 0;
+      #endif
+
+      #if defined (_POSIX)
+      tmpstat_file2.st_blksize  = 0;
+      tmpstat_file2.st_blocks   = 0;
+      #endif
+
+      if (memcmp (&tmpstat_file1, &tmpstat_file2, sizeof (struct stat)) == 0)
+      {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+char *file_to_buffer (const char *filename)
+{
+  HCFILE fp;
+
+  if (hc_fopen (&fp, filename, "r") == true)
+  {
+    struct stat st;
+
+    memset (&st, 0, sizeof (st));
+
+    if (hc_fstat (&fp, &st))
+    {
+      hc_fclose (&fp);
+
+      return NULL;
+    }
+
+    char *buffer = malloc (st.st_size + 1);
+
+    const size_t nread = hc_fread (buffer, 1, st.st_size, &fp);
+
+    hc_fclose (&fp);
+
+    buffer[nread] = 0;
+
+    return buffer;
+  }
+
+  return NULL;
 }
