@@ -10388,7 +10388,7 @@ void backend_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
    * Inform user about possible slow speeds
    */
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_MASK))
+  if (user_options_extra->wordlist_mode == WL_MODE_MASK)
   {
     if (status_ctx->words_base < kernel_power_all)
     {

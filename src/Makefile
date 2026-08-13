@@ -550,6 +550,10 @@ endif
 else
 ifeq ($(IS_APPLE_SILICON),0)
 ifneq ($(filter $(UNAME),FreeBSD OpenBSD NetBSD DragonFly),$(UNAME))
+## -Wno-nontrivial-memcall names a warning that older clang does not have, and an unknown -Wno- name
+## is itself a warning, once per file compiled. The two travel together so that naming a warning the
+## compiler may not know costs nothing.
+CFLAGS_UNRAR            += -Wno-unknown-warning-option
 CFLAGS_UNRAR            += -Wno-nontrivial-memcall
 endif
 endif
@@ -1247,9 +1251,17 @@ endif
 ## cannot resolve.
 ##
 
-ifeq ($(UNAME),Darwin)
+## Which of these a native build wants is decided by the format it produces and not by the name of
+## the operating system. A native build on MSYS2 writes PE, where there is no run path to record and
+## where -z is not an option the linker has, and reading UNAME instead is what sent both of those to
+## a PE linker and stopped the build.
+
+ifeq ($(FORMAT_NATIVE),MACHO)
 LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,@loader_path -Wl,-rpath,$(LIBRARY_FOLDER)
 LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,@loader_path/.. -Wl,-rpath,$(LIBRARY_FOLDER)
+else ifeq ($(FORMAT_NATIVE),PE)
+LFLAGS_FRONTEND_NATIVE  :=
+LFLAGS_PLUGIN_NATIVE    :=
 else
 LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER)
 LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,defs
@@ -1591,10 +1603,12 @@ LIBRARY_LFLAGS_NATIVE   := -shared
 LIBRARY_LFLAGS_LINUX    := -shared
 LIBRARY_LFLAGS_WIN      := -shared
 
-ifeq ($(UNAME),Darwin)
+ifeq ($(FORMAT_NATIVE),MACHO)
 LIBRARY_LFLAGS_NATIVE   += -install_name @rpath/$(HASHCAT_LIBRARY_NATIVE)
 LIBRARY_LFLAGS_NATIVE   += -current_version $(VERSION_PURE)
 LIBRARY_LFLAGS_NATIVE   += -compatibility_version $(VERSION_MAJOR)
+else ifeq ($(FORMAT_NATIVE),PE)
+## a DLL carries no soname, it is found by the file name written into whatever imports it
 else
 LIBRARY_LFLAGS_NATIVE   += -Wl,-soname,$(HASHCAT_LIBRARY_NATIVE)
 LIBRARY_LFLAGS_NATIVE   += -Wl,-z,defs

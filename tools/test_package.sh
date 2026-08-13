@@ -99,6 +99,11 @@ echo ""
 
 # the binary starts at all, which on a shared arrangement means the loader found the core beside it
 
+TMP_ON_DISK="$(mktemp)"
+TMP_LOADED="$(mktemp)"
+
+trap 'rm -f "$TMP_ON_DISK" "$TMP_LOADED"' EXIT
+
 VERSION="$("$HC" --version 2>&1)"
 
 case "$VERSION" in
@@ -138,7 +143,15 @@ if [ "$MODULES" -eq 0 ]; then
 elif [ "$LISTED" -eq "$MODULES" ]; then
   pass "all $MODULES modules load"
 else
-  fail "$LISTED of $MODULES modules load"
+  # a count says something is wrong and nothing about what, so the modes present on disk and the
+  # modes hashcat answered with are compared and the difference is named
+
+  ls modules/module_*."$PLUGIN_SUFFIX" 2>/dev/null | sed 's/.*module_0*\([0-9]*\)\..*/\1/' | sort -n > "$TMP_ON_DISK"
+  "$HC" --hash-info --quiet 2>/dev/null | sed -n 's/^Hash mode #0*\([0-9]*\).*/\1/p'   | sort -n > "$TMP_LOADED"
+
+  MISSING="$(comm -23 "$TMP_ON_DISK" "$TMP_LOADED" | tr '\n' ' ' | sed 's/ $//')"
+
+  fail "$LISTED of $MODULES modules load, missing: $MISSING"
 fi
 
 # a plugin hands the core its entry point and keeps everything else to itself. A plugin that exports
@@ -195,9 +208,15 @@ check_exports ()
   fi
 }
 
-check_exports modules module_ "module_init"
-check_exports bridges bridge_ "bridge_init"
-check_exports feeds   ""       "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_init global_keyspace global_term thread_init thread_next thread_seek thread_term"
+# one exported name is what the shared arrangement promises. A static plugin carries the core inside
+# itself, and which of those names stay in its dynamic symbol table is up to the platform's linker,
+# so there is nothing to hold it to here.
+
+if [ -n "$LIBRARY" ]; then
+  check_exports modules module_ "module_init"
+  check_exports bridges bridge_ "bridge_init"
+  check_exports feeds   ""       "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_init global_keyspace global_term thread_init thread_next thread_seek thread_term"
+fi
 
 # and the other direction. Where there is a core library, a plugin calls the core through it and
 # names it in its own dependencies. A plugin that names nothing carries a copy of the core instead,
@@ -257,28 +276,12 @@ if [ -n "$LIBRARY" ]; then
   check_core_link feeds
 fi
 
-# the mask engine, which lives in the core
-
-CANDIDATES_SEEN="$("$HC" --stdout -a 3 '?d?d?d?d' 2>/dev/null | count)"
-
-if [ "$CANDIDATES_SEEN" -eq 10000 ]; then
-  pass "a mask attack produces its 10000 candidates"
-else
-  fail "a mask attack produced $CANDIDATES_SEEN candidates instead of 10000"
-fi
-
-# and the wordlist feed, which is a plugin of its own. A package without feeds/ starts, lists every
-# module and still cannot run a single dictionary attack
+# a package without example.dict starts, lists every module, and still cannot run the attack every
+# first time user runs. Whether the words come out the other end is asked further down, because
+# reading them means starting the candidate pipeline and that wants a backend platform.
 
 if [ -f example.dict ]; then
-  WORDS="$(count < example.dict)"
-  CANDIDATES_SEEN="$("$HC" --stdout -a 0 example.dict 2>/dev/null | count)"
-
-  if [ "$CANDIDATES_SEEN" -eq "$WORDS" ]; then
-    pass "the wordlist feed produces all $WORDS candidates of example.dict"
-  else
-    fail "the wordlist feed produced $CANDIDATES_SEEN candidates of the $WORDS in example.dict"
-  fi
+  pass "example.dict is in the package, $(count < example.dict) words"
 else
   fail "no example.dict here, the package is incomplete"
 fi
@@ -290,6 +293,28 @@ else
   echo ""
   echo "## checks that need one backend device"
   echo ""
+
+  # --stdout runs the candidate pipeline, which starts the backend like an attack does. With no
+  # platform present hashcat prints why and exits, so these say nothing without a device.
+
+  CANDIDATES_SEEN="$("$HC" --stdout -a 3 '?d?d?d?d' 2>/dev/null | count)"
+
+  if [ "$CANDIDATES_SEEN" -eq 10000 ]; then
+    pass "a mask attack produces its 10000 candidates"
+  else
+    fail "a mask attack produced $CANDIDATES_SEEN candidates instead of 10000"
+  fi
+
+  if [ -f example.dict ]; then
+    WORDS="$(count < example.dict)"
+    CANDIDATES_SEEN="$("$HC" --stdout -a 0 example.dict 2>/dev/null | count)"
+
+    if [ "$CANDIDATES_SEEN" -eq "$WORDS" ]; then
+      pass "the wordlist feed produces all $WORDS candidates of example.dict"
+    else
+      fail "the wordlist feed produced $CANDIDATES_SEEN candidates of the $WORDS in example.dict"
+    fi
+  fi
 
   DEVICES="$("$HC" -I 2>&1 | grep -c 'Backend Device ID')"
 
