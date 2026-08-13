@@ -9,6 +9,8 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "parser.h"
 #include "memory.h"
 
 #define DGST_ELEM 4

@@ -9,6 +9,8 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "path.h"
 #include "memory.h"
 #include "cpu_crc32.h"
 #include "keyboard_layout.h"

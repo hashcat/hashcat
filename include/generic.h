@@ -12,6 +12,10 @@
 // declare this constant instead, because then a rebuild would re-declare compatibility that the
 // source has not earned.
 
+#if defined (HC_PLUGIN_ABI_MISSING)
+#error "a feed names the plugin interface it is built against: -DHC_PLUGIN_ABI_VERSION=<n>, see docs/hashcat-plugin-development-guide.md"
+#endif
+
 #define GENERIC_PLUGIN_VERSION_REQ 720
 
 // What a call into a feed did. thread_next () returns the candidate length on success, so only the
@@ -53,6 +57,23 @@ do                                                                              
     return -1;                                                                               \
   }                                                                                          \
 } while (0)
+
+// What a feed hands the core. A feed is the one plugin the core still resolves by name rather than
+// through a context it was given, so this is the list, and it is nine names instead of one. They are
+// declared here so that a feed and the loader read the same shapes out of one file, and so that a
+// built feed exports these and nothing else.
+
+HC_PLUGIN_ENTRY extern const int GENERIC_PLUGIN_VERSION;
+HC_PLUGIN_ENTRY extern const int GENERIC_PLUGIN_OPTIONS;
+
+HC_PLUGIN_ENTRY bool global_init     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx);
+HC_PLUGIN_ENTRY void global_term     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx);
+HC_PLUGIN_ENTRY u64  global_keyspace (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx);
+
+HC_PLUGIN_ENTRY bool thread_init     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx);
+HC_PLUGIN_ENTRY void thread_term     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx);
+HC_PLUGIN_ENTRY int  thread_next     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size);
+HC_PLUGIN_ENTRY bool thread_seek     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, const u64 offset);
 
 int   generic_filename       (const folder_config_t *folder_config, const char *plugin_name, const char *prefix, char *out_buf, const size_t out_size);
 char *generic_resolve        (const folder_config_t *folder_config, const char *plugin_name, bool *by_name);

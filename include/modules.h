@@ -2,9 +2,17 @@
 #ifndef HC_MODULES_H
 #define HC_MODULES_H
 
+#if defined (HC_PLUGIN_ABI_MISSING)
+#error "a module names the plugin interface it is built against: -DHC_PLUGIN_ABI_VERSION=<n>, see docs/hashcat-plugin-development-guide.md"
+#endif
+
 static const size_t MODULE_CONTEXT_SIZE_CURRENT = sizeof (module_ctx_t);
 
-void        module_init                     (module_ctx_t *module_ctx);
+// The one name a module hands the core. Everything below is the shape of what module_init () puts
+// into the module context, and none of it is resolved by name, so a built module exports this and
+// nothing else.
+
+HC_PLUGIN_ENTRY void module_init            (module_ctx_t *module_ctx);
 
 u32         module_attack_exec              (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);
 void       *module_benchmark_esalt          (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra);

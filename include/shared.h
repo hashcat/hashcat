@@ -16,161 +16,56 @@
 #include <ctype.h>
 #include <math.h>
 
-#include "zlib.h"
-#include "filehandling.h"
-
-#if defined (_WIN)
-#include <winsock2.h> // needed for select()
-#else
-#include <sys/select.h>
-#endif
-
 #ifndef __MINGW_PRINTF_FORMAT
 #define __MINGW_PRINTF_FORMAT printf
 #endif
 
-int sort_by_string_sized (const void *p1, const void *p2);
-int sort_by_stringptr    (const void *p1, const void *p2);
+HC_PLUGIN_API int sort_by_string_sized (const void *p1, const void *p2);
+HC_PLUGIN_API int sort_by_stringptr    (const void *p1, const void *p2);
 
-bool overflow_check_u32_add (const u32 a, const u32 b);
-bool overflow_check_u32_mul (const u32 a, const u32 b);
-bool overflow_check_u64_add (const u64 a, const u64 b);
-bool overflow_check_u64_mul (const u64 a, const u64 b);
+HC_PLUGIN_API bool overflow_check_u32_add (const u32 a, const u32 b);
+HC_PLUGIN_API bool overflow_check_u32_mul (const u32 a, const u32 b);
+HC_PLUGIN_API bool overflow_check_u64_add (const u64 a, const u64 b);
+HC_PLUGIN_API bool overflow_check_u64_mul (const u64 a, const u64 b);
 
-bool is_power_of_2 (const u32 v);
-u32 smallest_repeat_double (const u32 v);
+HC_PLUGIN_API bool is_power_of_2 (const u32 v);
+HC_PLUGIN_API u32 smallest_repeat_double (const u32 v);
 
-u32 get_random_num (const u32 min, const u32 max);
+HC_PLUGIN_API u32 mydivc32 (const u32 dividend, const u32 divisor);
+HC_PLUGIN_API u64 mydivc64 (const u64 dividend, const u64 divisor);
 
-u32 mydivc32 (const u32 dividend, const u32 divisor);
-u64 mydivc64 (const u64 dividend, const u64 divisor);
+HC_PLUGIN_API void naive_replace (char *s, const char key_char, const char replace_char);
+HC_PLUGIN_API void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char);
 
-char *filename_from_filepath (char *filepath);
+HC_PLUGIN_API __attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3))) int hc_asprintf (char **strp, const char *fmt, ...);
 
-void naive_replace (char *s, const char key_char, const char replace_char);
-void naive_escape (char *s, size_t s_max, const char key_char, const char escape_char);
+HC_PLUGIN_API void  hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
+HC_PLUGIN_API void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
 
-__attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3))) int hc_asprintf (char **strp, const char *fmt, ...);
+HC_PLUGIN_API bool hc_string_is_digit (const char *s);
+HC_PLUGIN_API int  hc_string_bom_size (const u8 *s);
 
-void setup_environment_variables (const folder_config_t *folder_config, const user_options_t *user_options);
-void setup_umask (void);
-void setup_seeding (const bool rp_gen_seed_chgd, const u32 rp_gen_seed);
+HC_PLUGIN_API void hc_string_trim_trailing (char *s);
+HC_PLUGIN_API void hc_string_trim_leading (char *s);
 
-void  hc_qsort_r (void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
-void *hc_bsearch_r (const void *key, const void *base, size_t nmemb, size_t size, int (*compar) (const void *, const void *, void *), void *arg);
+HC_PLUGIN_API u32 hc_strtoul  (const char *nptr, char **endptr, int base);
+HC_PLUGIN_API u64 hc_strtoull (const char *nptr, char **endptr, int base);
 
-bool hc_path_is_file (const char *path);
-bool hc_path_is_directory (const char *path);
-bool hc_path_is_fifo (const char *path);
-bool hc_path_is_empty (const char *path);
-bool hc_path_exist (const char *path);
-bool hc_path_read (const char *path);
-bool hc_path_write (const char *path);
-bool hc_path_create (const char *path);
-bool hc_path_has_bom (const char *path);
+HC_PLUGIN_API u32 power_of_two_ceil_32  (const u32 v);
+HC_PLUGIN_API u32 power_of_two_floor_32 (const u32 v);
 
-bool hc_string_is_digit (const char *s);
-int  hc_string_bom_size (const u8 *s);
+HC_PLUGIN_API u32 round_up_multiple_32 (const u32 v, const u32 m);
+HC_PLUGIN_API u64 round_up_multiple_64 (const u64 v, const u64 m);
 
-void hc_string_trim_trailing (char *s);
-void hc_string_trim_leading (char *s);
+HC_PLUGIN_API void hc_strncat (u8 *dst, const u8 *src, const size_t n);
 
-int hc_get_processor_count (void);
+HC_PLUGIN_API int count_char (const u8 *buf, const int len, const u8 c);
+HC_PLUGIN_API float get_entropy (const u8 *buf, const int len);
 
-bool hc_same_files (char *file1, char *file2);
+HC_API const char *strhashcategory (const u32 hash_category);
+HC_API const char *stroptitype (const u32 opti_type);
 
-u32 hc_strtoul  (const char *nptr, char **endptr, int base);
-u64 hc_strtoull (const char *nptr, char **endptr, int base);
-
-u32 power_of_two_ceil_32  (const u32 v);
-u32 power_of_two_floor_32 (const u32 v);
-
-u32 round_up_multiple_32 (const u32 v, const u32 m);
-u64 round_up_multiple_64 (const u64 v, const u64 m);
-
-void hc_strncat (u8 *dst, const u8 *src, const size_t n);
-
-const u8 *hc_strchr_next (const u8 *input_buf, const int input_len, const u8 separator);
-const u8 *hc_strchr_last (const u8 *input_buf, const int input_len, const u8 separator);
-
-int count_char (const u8 *buf, const int len, const u8 c);
-float get_entropy (const u8 *buf, const int len);
-
-int select_read_timeout  (int sockfd, const int sec);
-int select_write_timeout (int sockfd, const int sec);
-
-int select_read_timeout_console (const int sec);
-
-const char *strparser (const u32 parser_status);
-const char *strhashcategory (const u32 hash_category);
-const char *stroptitype (const u32 opti_type);
-
-bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf, int *out_len);
-int  generic_salt_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 *in_buf, const int in_len, u8 *out_buf);
-
-int input_tokenizer (const u8 *input_buf, const int input_len, hc_token_t *token);
-
-int extract_dynamicx_hash (const u8 *input_buf, const int input_len, u8 **output_buf, int *output_len);
-
-int get_current_arch();
-
-#if defined (__APPLE__)
-bool is_apple_silicon (void);
-#endif
-
-char *file_to_buffer (const char *filename);
-
-bool check_file_suffix (const char *file, const char *suffix);
-bool remove_file_suffix (char *file, const char *suffix);
-
-int suppress_stderr (void);
-void restore_stderr (int saved_fd);
-
-bool get_free_memory (u64 *free_mem);
-
-u32 previous_power_of_two (const u32 x);
-u32 next_power_of_two (const u32 x);
-
-typedef size_t (*hc_memchr_t) (const u8 *ptr, int ch, size_t max_len);
-
-size_t hc_memchr_generic      (const u8 *ptr, int ch, size_t max_len);
-size_t hc_memchr_avx2         (const u8 *ptr, int ch, size_t max_len);
-size_t hc_memchr_avx512       (const u8 *ptr, int ch, size_t max_len);
-
-hc_memchr_t hc_memchr_get     (void);
-
-// Where the next line ends inside a buffer, and how long it is once the line ending is off.
-//
-// Everything that reads lines out of a block wants exactly this and used to have its own copy: the
-// wordlist feed walking an mmap, the stdin feed walking the blocks it read, and counting the lines of a
-// file. One copy means one place decides how a line ends, and it is the place the memchr choice already
-// lives.
-//
-// The return value is where the '\n' is, or max_len when there is none, which is what hc_memchr says
-// and is what lets the caller tell a whole line from the unfinished tail of a block. The length written
-// out is the line without its ending, so a file written on Windows and read anywhere else does not hand
-// out candidates with a carriage return on them.
-//
-// A line is not copied and not terminated. Callers hold buffers they do not own, an mmap or a block
-// another thread filled, and a reader that wrote into them could not be shared by all three.
-//
-// It lives in the header rather than in shared.c because a feed is a shared object and a call into the
-// hashcat library cannot be inlined away. Measured on the stdin feed, that call cost 13 percent: at a
-// hundred million candidates a second there is no room for one that does this little.
-
-static inline size_t hc_line_next (const u8 *buf, const size_t max_len, size_t *out_len)
-{
-  hc_memchr_t hc_memchr = hc_memchr_get ();
-
-  const size_t step = hc_memchr (buf, '\n', max_len);
-
-  size_t line_len = step;
-
-  while ((line_len > 0) && (buf[line_len - 1] == '\r')) line_len--;
-
-  *out_len = line_len;
-
-  return step;
-}
+HC_PLUGIN_API u32 previous_power_of_two (const u32 x);
+HC_PLUGIN_API u32 next_power_of_two (const u32 x);
 
 #endif // HC_SHARED_H

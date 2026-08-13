@@ -20,6 +20,8 @@
 #include "pubkey.h"
 #include "rp.h"
 #include "shared.h"
+#include "path.h"
+#include "parser.h"
 #include "thread.h"
 #include "locking.h"
 #include "hashes.h"
@@ -1370,6 +1372,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hash = &hashes_buf[hashes_cnt];
 
+            parser_error_reset ();
+
             parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf +  0, 16);
 
             if (parser_status == PARSER_OK)
@@ -1384,7 +1388,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
                 }
                 else
                 {
-                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
                 }
               }
 
@@ -1395,7 +1399,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
             }
 
             if (parser_status == PARSER_TOKEN_LENGTH)
@@ -1404,6 +1408,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
 
             hash = &hashes_buf[hashes_cnt];
+
+            parser_error_reset ();
 
             parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf + 16, 16);
 
@@ -1419,7 +1425,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
                 }
                 else
                 {
-                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
                 }
               }
 
@@ -1430,7 +1436,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
             }
 
             if (parser_status == PARSER_TOKEN_LENGTH)
@@ -1441,6 +1447,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           else
           {
             hash_t *hash = &hashes_buf[hashes_cnt];
+
+            parser_error_reset ();
 
             parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
 
@@ -1456,7 +1464,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
                 }
                 else
                 {
-                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+                  event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
                 }
               }
 
@@ -1467,7 +1475,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
             }
 
             if (parser_status == PARSER_TOKEN_LENGTH)
@@ -1479,6 +1487,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         else
         {
           hash_t *hash = &hashes_buf[hashes_cnt];
+
+          parser_error_reset ();
 
           parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
 
@@ -1494,7 +1504,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               }
               else
               {
-                event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
               }
             }
 
@@ -1503,7 +1513,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           else
           {
             event_log_warning (hashcat_ctx, "Hash was parsed as a commandline argument (not as a file, maybe the file doesn't exist?)");
-            event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+            event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
           }
 
           if (parser_status == PARSER_TOKEN_LENGTH)
@@ -1640,6 +1650,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hash = &hashes_buf[hashes_cnt];
 
+            parser_error_reset ();
+
             int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf +  0, 16);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
@@ -1656,7 +1668,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               }
               else
               {
-                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, parser_error_string (parser_status));
               }
 
               hcfree (tmp_line_buf);
@@ -1698,6 +1710,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             hash = &hashes_buf[hashes_cnt];
 
+            parser_error_reset ();
+
             parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf + 16, 16);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
@@ -1714,7 +1728,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               }
               else
               {
-                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, parser_error_string (parser_status));
               }
 
               hcfree (tmp_line_buf);
@@ -1758,6 +1772,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           {
             hash_t *hash = &hashes_buf[hashes_cnt];
 
+            parser_error_reset ();
+
             int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
 
             if (parser_status < PARSER_GLOBAL_ZERO)
@@ -1774,7 +1790,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
               }
               else
               {
-                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+                event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, parser_error_string (parser_status));
               }
 
               hcfree (tmp_line_buf);
@@ -1819,6 +1835,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         {
           hash_t *hash = &hashes_buf[hashes_cnt];
 
+          parser_error_reset ();
+
           int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, hash_buf, hash_len);
 
           if (parser_status < PARSER_GLOBAL_ZERO)
@@ -1835,7 +1853,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error in hashfile: '%s' on line %u (%s): %s", hashes->hashfile, line_num, tmp_line_buf, parser_error_string (parser_status));
             }
 
             hcfree (tmp_line_buf);
@@ -1961,6 +1979,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         hash_t *hash = &hashes_buf[hashes_cnt];
 
+        parser_error_reset ();
+
         int parser_status = module_ctx->module_hash_decode (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, input_buf, input_len);
 
         if (parser_status == PARSER_OK)
@@ -1975,7 +1995,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
             }
             else
             {
-              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+              event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
             }
           }
 
@@ -1983,7 +2003,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, strparser (parser_status));
+          event_log_warning (hashcat_ctx, "Hash parsing error: '%s': %s", input_buf, parser_error_string (parser_status));
         }
 
         if (parser_status == PARSER_TOKEN_LENGTH)
@@ -2611,6 +2631,8 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
 
   int parser_status;
 
+  parser_error_reset ();
+
   if (module_ctx->module_hash_init_selftest != MODULE_DEFAULT)
   {
     parser_status = module_ctx->module_hash_init_selftest (hashconfig, &hash);
@@ -2681,7 +2703,7 @@ int hashes_init_selftest (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    event_log_error (hashcat_ctx, "Self-test hash parsing error: %s", strparser (parser_status));
+    event_log_error (hashcat_ctx, "Self-test hash parsing error: %s", parser_error_string (parser_status));
 
     return -1;
   }

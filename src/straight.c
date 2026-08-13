@@ -9,6 +9,8 @@
 #include "event.h"
 #include "logfile.h"
 #include "shared.h"
+#include "path.h"
+#include "filehandling.h"
 #include "hlfmt.h"
 #include "folder.h"
 #include "rp.h"

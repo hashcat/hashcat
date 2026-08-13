@@ -1,0 +1,107 @@
+name: BSD
+
+##
+## The BSDs, built weekly rather than on every push.
+##
+## Each of these boots a virtual machine and installs a toolchain into it, which is most of a CI run
+## for a share of the user base that rounds to zero. FreeBSD stands in for all of them in
+## .github/workflows/build.yml and catches anything that breaks the family, and this is where the
+## rest of the matrix is kept honest.
+##
+## Run it by hand from the Actions tab before a release, or after touching anything a BSD compiler
+## sees differently.
+##
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [freebsd, openbsd, netbsd, dragonflybsd]
+        shared: [0, 1]
+        include:
+          - os: freebsd
+            os_name: FreeBSD
+          - os: openbsd
+            os_name: OpenBSD
+          - os: netbsd
+            os_name: NetBSD
+          - os: dragonflybsd
+            os_name: DragonflyBSD
+
+    name: Build ${{ matrix.os_name }} (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build (FreeBSD)
+        if: matrix.os == 'freebsd'
+        uses: vmactions/freebsd-vm@v1
+        env:
+          SHARED: ${{ matrix.shared }}
+        with:
+          usesh: true
+          envs: SHARED
+          prepare: |
+            pkg update
+            pkg install -y bash git gcc gmake gsed python3 rust llvm
+          run: |
+            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            bash tools/test_package.sh . --no-device
+
+      - name: Build (OpenBSD)
+        if: matrix.os == 'openbsd'
+        uses: vmactions/openbsd-vm@v1
+        env:
+          SHARED: ${{ matrix.shared }}
+        with:
+          usesh: true
+          envs: SHARED
+          prepare: |
+            pkg_add bash git gcc%11 gmake gsed llvm%19
+          run: |
+            export TERM=xterm
+            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            bash tools/test_package.sh . --no-device
+
+      - name: Build (NetBSD)
+        if: matrix.os == 'netbsd'
+        uses: vmactions/netbsd-vm@v1
+        env:
+          SHARED: ${{ matrix.shared }}
+        with:
+          usesh: true
+          envs: SHARED
+          prepare: |
+            export PATH="/usr/sbin:$PATH"
+            export PKG_PATH="https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/$(uname -m)/$(uname -r)/All"
+            pkg_add pkgin
+            pkgin -y update
+            pkgin -y full-upgrade
+            pkgin -y install bash git gcc14 gmake gsed python313 llvm libiconv clang openmp
+          run: |
+            export PATH="/usr/pkg/gcc14/bin:$PATH"
+            export TERM=xterm
+            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            bash tools/test_package.sh . --no-device
+
+      - name: Build (DragonflyBSD)
+        if: matrix.os == 'dragonflybsd'
+        uses: vmactions/dragonflybsd-vm@v1
+        env:
+          SHARED: ${{ matrix.shared }}
+        with:
+          usesh: true
+          envs: SHARED
+          prepare: |
+            pkg update
+            pkg install -y bash git gcc gmake gsed python3 llvm
+          run: |
+            export TERM=xterm
+            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            bash tools/test_package.sh . --no-device

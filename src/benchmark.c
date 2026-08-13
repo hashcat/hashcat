@@ -8,6 +8,7 @@
 #include "interface.h"
 #include "memory.h"
 #include "shared.h"
+#include "path.h"
 #include "benchmark.h"
 
 static const int DEFAULT_BENCHMARK_ALGORITHMS_BUF[] =

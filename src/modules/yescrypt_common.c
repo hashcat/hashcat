@@ -11,6 +11,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "memory.h"
 
 // The Sbox size is fixed by the yescrypt specification at 3 * (1 << Swidth) * PWXsimple * 8 bytes.

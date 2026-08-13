@@ -14,6 +14,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "emu_inc_bignum_operations.h"
 #include "emu_inc_radmin3_constants.h"
 

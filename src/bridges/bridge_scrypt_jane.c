@@ -8,6 +8,7 @@
 #include "bridges.h"
 #include "memory.h"
 #include "shared.h"
+#include "system.h"
 #include "cpu_features.h"
 
 #include "code/scrypt-jane-portable.h"

@@ -3,11 +3,18 @@
  * License.....: MIT
  */
 
+// A feed hashes the account names it was given to name the seek database that belongs to them. That
+// is the feed's own business and not something the core promises, so xxHash is compiled into this
+// plugin rather than resolved out of the library.
+
+#define XXH_INLINE_ALL
+
+#include "xxhash.h"
+
 #include "common.h"
 #include "types.h"
 #include "memory.h"
 #include "shared.h"
-#include "xxhash.h"
 #include "generic.h"
 #include "hlfmt.h"
 #include "rp.h"

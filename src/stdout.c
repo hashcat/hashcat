@@ -12,6 +12,7 @@
 #include "mpsp.h"
 #include "backend.h"
 #include "shared.h"
+#include "filehandling.h"
 #include "thread.h"
 #include "stdout.h"
 

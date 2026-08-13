@@ -14,6 +14,8 @@
 #include "emu_inc_rp_optimized.h"
 #include "backend.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "path.h"
 #include "locking.h"
 #include "thread.h"
 #include "outfile.h"

@@ -11,6 +11,9 @@
 #include "folder.h"
 #include "memory.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "system.h"
+#include "path.h"
 #include "thread.h"
 #include "timer.h"
 

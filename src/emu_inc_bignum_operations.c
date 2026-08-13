@@ -6,6 +6,7 @@
 #include "types.h"
 #include "common.h"
 #include "emu_general.h"
+#include "emu_inc_bignum_operations.h"
 
 #include "inc_vendor.h"
 #include "inc_platform.h"

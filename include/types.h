@@ -2227,6 +2227,11 @@ typedef struct backend_ctx
 
   int                 comptime;
 
+  // digest of every kernel source that is shared by all kernels, read once because it does not depend
+  // on the device or on the hash mode
+
+  u32                 kernel_shared_chksum;
+
   int                 force_jit_compilation;
 
   // cuda

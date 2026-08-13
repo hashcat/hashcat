@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 #define RAKP_HEX_SALT_MIN 116
 #define RAKP_HEX_SALT_MAX 148

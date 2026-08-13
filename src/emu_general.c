@@ -7,12 +7,17 @@
 #include "types.h"
 #include "emu_general.h"
 
-u32 hc_atomic_dec (u32 *p)
+// These two are declared by inc_platform.h, which says HC_PLUGIN_API through DECLSPEC like every
+// other kernel declaration. It says it over an address space qualifier and a volatile the host body
+// does not carry, so the two cannot be in one translation unit and the macro is written here as
+// well. The bodies are the whole of the host's atomics: one thread runs them.
+
+HC_PLUGIN_API u32 hc_atomic_dec (u32 *p)
 {
   return p[0]--;
 }
 
-u32 hc_atomic_inc (u32 *p)
+HC_PLUGIN_API u32 hc_atomic_inc (u32 *p)
 {
   return p[0]++;
 }

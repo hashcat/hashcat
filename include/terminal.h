@@ -31,18 +31,18 @@
 #endif
 #endif // _POSIX
 
-void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag);
-void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const time_t proc_stop);
+HC_API void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag);
+HC_API void goodbye_screen (hashcat_ctx_t *hashcat_ctx, const time_t proc_start, const time_t proc_stop);
 
-int setup_console (void);
+HC_API int setup_console (void);
 
-void send_prompt  (hashcat_ctx_t *hashcat_ctx);
-void clear_prompt (hashcat_ctx_t *hashcat_ctx);
+HC_API void send_prompt  (hashcat_ctx_t *hashcat_ctx);
+HC_API void clear_prompt (hashcat_ctx_t *hashcat_ctx);
 
 #if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_keypress (void *p);
+HC_API HC_API_CALL DWORD thread_keypress (void *p);
 #else
-HC_API_CALL void *thread_keypress (void *p);
+HC_API HC_API_CALL void *thread_keypress (void *p);
 #endif
 
 #if defined (_WIN)
@@ -53,22 +53,22 @@ int tty_break (void);
 int tty_getchar (void);
 int tty_fix (void);
 
-bool is_stdout_terminal (void);
+HC_API bool is_stdout_terminal (void);
 
 void compress_terminal_line_length (char *out_buf, const size_t keep_from_beginning, const size_t keep_from_end);
 
-void hash_info                          (hashcat_ctx_t *hashcat_ctx);
+HC_API void hash_info                          (hashcat_ctx_t *hashcat_ctx);
 
-void backend_info                       (hashcat_ctx_t *hashcat_ctx);
-void backend_info_compact               (hashcat_ctx_t *hashcat_ctx);
+HC_API void backend_info                       (hashcat_ctx_t *hashcat_ctx);
+HC_API void backend_info_compact               (hashcat_ctx_t *hashcat_ctx);
 
 void status_progress_machine_readable   (hashcat_ctx_t *hashcat_ctx);
-void status_progress                    (hashcat_ctx_t *hashcat_ctx);
+HC_API void status_progress                    (hashcat_ctx_t *hashcat_ctx);
 void status_speed_machine_readable      (hashcat_ctx_t *hashcat_ctx);
-void status_speed                       (hashcat_ctx_t *hashcat_ctx);
+HC_API void status_speed                       (hashcat_ctx_t *hashcat_ctx);
 void status_display_machine_readable    (hashcat_ctx_t *hashcat_ctx);
-void status_display                     (hashcat_ctx_t *hashcat_ctx);
+HC_API void status_display                     (hashcat_ctx_t *hashcat_ctx);
 void status_benchmark_machine_readable  (hashcat_ctx_t *hashcat_ctx);
-void status_benchmark                   (hashcat_ctx_t *hashcat_ctx);
+HC_API void status_benchmark                   (hashcat_ctx_t *hashcat_ctx);
 
 #endif // HC_TERMINAL_H

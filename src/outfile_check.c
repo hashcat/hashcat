@@ -11,6 +11,7 @@
 #include "folder.h"
 #include "hashes.h"
 #include "shared.h"
+#include "path.h"
 #include "thread.h"
 #include "outfile_check.h"
 

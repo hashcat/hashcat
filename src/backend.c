@@ -18,6 +18,9 @@
 #include "filehandling.h"
 #include "wordlist.h"
 #include "shared.h"
+#include "system.h"
+#include "path.h"
+#include "folder.h"
 #include "hashes.h"
 #include "emu_inc_hash_md5.h"
 #include "event.h"
@@ -828,6 +831,90 @@ bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, si
   }
 
   return true;
+}
+
+// A compiled kernel is only valid for the source it was compiled from, and the key it is cached under
+// described the device, the driver and the build options but nothing about that source. Editing a .cl
+// file therefore left the key unchanged, every device went on loading the binary that was compiled
+// before the edit, and nothing on screen said so. The digests below put the source into the key.
+//
+// A kernel source includes nothing but inc_ files besides itself, so a digest of the file being
+// compiled plus a digest of everything else in the kernel directory covers all of it.
+
+static u32 kernel_file_chksum (const char *kernel_file)
+{
+  HCFILE fp;
+
+  if (hc_fopen (&fp, kernel_file, "rb") == false) return 0;
+
+  struct stat st;
+
+  if (stat (kernel_file, &st))
+  {
+    hc_fclose (&fp);
+
+    return 0;
+  }
+
+  const size_t klen = st.st_size;
+
+  // md5_update reads a whole 64 byte block for the tail whatever length it was given, so the buffer
+  // needs room for one
+
+  char *buf = (char *) hccalloc (klen + 64, sizeof (char));
+
+  const size_t num_read = hc_fread (buf, sizeof (char), klen, &fp);
+
+  hc_fclose (&fp);
+
+  if (num_read != klen)
+  {
+    hcfree (buf);
+
+    return 0;
+  }
+
+  md5_ctx_t md5_ctx;
+
+  md5_init   (&md5_ctx);
+  md5_update (&md5_ctx, (u32 *) buf, (int) klen);
+  md5_final  (&md5_ctx);
+
+  hcfree (buf);
+
+  const u32 chksum = md5_ctx.h[0];
+
+  return chksum;
+}
+
+static u32 kernel_shared_chksum (const char *kernel_dir)
+{
+  char **files = scan_directory (kernel_dir);
+
+  if (files == NULL) return 0;
+
+  u32 chksum = 0;
+
+  for (int i = 0; files[i] != NULL; i++)
+  {
+    char *name = filename_from_filepath (files[i]);
+
+    // The per hash-mode kernels are named after the kern_type they serve, and the one that is compiled
+    // is hashed on its own. Everything left is shared by every kernel and belongs in here.
+    //
+    // The per file digests are added rather than chained, so the order in which the directory hands
+    // the files over does not reach the result.
+
+    const bool is_mode_kernel = ((name[0] == 'm') && (name[1] >= '0') && (name[1] <= '9'));
+
+    if (is_mode_kernel == false) chksum += kernel_file_chksum (files[i]);
+
+    hcfree (files[i]);
+  }
+
+  hcfree (files);
+
+  return chksum;
 }
 
 static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, char *binary, size_t binary_size)
@@ -9876,6 +9963,19 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
   backend_ctx->comptime = comptime;
 
+  // Read once here rather than once per device per kernel. It is the same answer for all of them, and
+  // a benchmark run walks through every hash mode in one process.
+
+  const folder_config_t *folder_config = hashcat_ctx->folder_config;
+
+  char *kernel_dir = NULL;
+
+  hc_asprintf (&kernel_dir, "%s/OpenCL", folder_config->shared_dir);
+
+  backend_ctx->kernel_shared_chksum = kernel_shared_chksum (kernel_dir);
+
+  hcfree (kernel_dir);
+
   return 0;
 }
 
@@ -10288,7 +10388,7 @@ void backend_ctx_devices_update_power (hashcat_ctx_t *hashcat_ctx)
    * Inform user about possible slow speeds
    */
 
-  if ((user_options_extra->wordlist_mode == WL_MODE_MASK))
+  if (user_options_extra->wordlist_mode == WL_MODE_MASK)
   {
     if (status_ctx->words_base < kernel_power_all)
     {
@@ -15653,8 +15753,13 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     char device_name_chksum_amp_mp[HCBUFSIZ_TINY] = { 0 };
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u",
+    // The amplifier, the markov and the shared kernel are all named after themselves in the cache file
+    // name, so one key serves all three, and none of them is a per hash-mode kernel. The shared digest
+    // therefore covers every source they are built from.
+
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%08x-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u",
       backend_ctx->comptime,
+      backend_ctx->kernel_shared_chksum,
       backend_ctx->cuda_driver_version,
       backend_ctx->hip_runtimeVersion,
       backend_ctx->metal_runtimeVersion,
@@ -15866,8 +15971,29 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (hashcat_ctx->mask_ctx->needs_middle == true) extra_value += 1;
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
+      /**
+       * kernel source filename
+       */
+
+      // The source is named before the key is built, because the key has to carry a digest of it.
+
+      char source_file[256] = { 0 };
+
+      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, kern_type, hashconfig->opti_type, folder_config->shared_dir, source_file);
+
+      if (hc_path_read (source_file) == false)
+      {
+        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
+
+        return -1;
+      }
+
+      const u32 source_chksum = kernel_file_chksum (source_file);
+
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%08x-%08x-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
         backend_ctx->comptime,
+        backend_ctx->kernel_shared_chksum,
+        source_chksum,
         backend_ctx->cuda_driver_version,
         backend_ctx->hip_runtimeVersion,
         backend_ctx->metal_runtimeVersion,
@@ -15894,21 +16020,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
 
       snprintf (device_param->opencl_chksum, sizeof (device_param->opencl_chksum), "%08x", md5_ctx.h[0]);
-
-      /**
-       * kernel source filename
-       */
-
-      char source_file[256] = { 0 };
-
-      generate_source_kernel_filename (user_options->slow_candidates, hashconfig->attack_exec, user_options_extra->attack_kern, kern_type, hashconfig->opti_type, folder_config->shared_dir, source_file);
-
-      if (hc_path_read (source_file) == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", source_file, strerror (errno));
-
-        return -1;
-      }
 
       /**
        * kernel cached filename
