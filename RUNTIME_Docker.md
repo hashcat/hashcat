@@ -68,17 +68,31 @@ The whole of `/dev/dri` is passed rather than the individual render nodes, so th
 depend on how many GPUs the machine has. Naming `renderD128` and `renderD129` explicitly fails on a
 single GPU box, where only `renderD128` exists, and docker refuses to start the container at all.
 
-The container above runs as root, which is why no group membership is needed. If you run it as an
-ordinary user instead, add the render group by its numeric id from the host. The name does not work,
-because the image has no render group of its own:
+The container above runs as root, which is why no group membership is needed. Adding `--group-add`
+to it changes nothing, and `--user` does not turn it into a non-root container either: the ubuntu26
+amd image creates no account of its own and keeps hashcat in `/root/hashcat`, and `/root` is mode 700
+in the base image, so anyone but root gets `Permission denied` on `hashcat.bin`. Run this image as
+root.
+
+Where the render group does matter is the ubuntu24 amd dockerfile, which builds on
+`rocm/rocm-terminal`, hands the directory to the `rocm-user` account that base image provides and
+ends on `USER rocm-user`. A container from that image is not root, so it needs the group, and it
+needs it by numeric id from the host, because the image has no render group of its own:
 
 ```bash
+docker build -f docker/runtime.amd.ubuntu24.release -t hashcat .
 docker run --rm --device /dev/kfd --device /dev/dri --group-add "$(getent group render | cut -d: -f3)" -it hashcat bash
 ```
 
 ## 2. Build the binaries yourself (TYPE=beta) (docker/runtime.PLATFORM.OS.beta)
 
 This will require the official build container to already be built (with the tag hashcat-binaries) successfully and will pull hashcat from it.
+
+What it pulls is the package that `tools/package_bin.sh` writes, not the tree it was built in, so the
+layout a beta image runs is the layout that ships: the frontend beside the core, every plugin one
+directory below it, and no sources or git checkout carried along. The build image gives that package
+a fixed name at `/root/package` for the runtime images to copy, because the name `package_bin.sh`
+writes carries the version and sits beside its own `.7z`, which a `COPY --from` cannot tell apart.
 
 Here is an example for nvidia on ubuntu:
 

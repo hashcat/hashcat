@@ -24,7 +24,7 @@ USER root
 
 # Add hashcat
 RUN mkdir hashcat && chown rocm-user: hashcat
-COPY --from=build /root/hashcat hashcat
+COPY --from=build /root/package hashcat
 RUN chown -R rocm-user: hashcat
 
 USER rocm-user

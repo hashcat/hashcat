@@ -1030,9 +1030,18 @@ endif
 ## Only clang is asked that way, because -Werror=unused-command-line-argument is a flag gcc does not
 ## have, and asking gcc with it would fail every question.
 
+## A flag can also be taken, meant, and then applied wrongly, which no answer about the flag itself
+## can reach. -fstack-clash-protection only emits anything on a frame big enough to need probing, so
+## a probe with no locals asks a question the flag never touches: x86_64-w64-mingw32-gcc 9.3 answers
+## yes to it and then dies with an internal compiler error, in i386_pe_seh_unwind_emit, on the first
+## function whose frame is large. That is why the probe below allocates one. 64 KB is past the size
+## where gcc switches from straight-line probes to a probing loop, which is the code that is broken;
+## 8 KB compiles fine on the same compiler and would answer yes again. volatile is what stops the
+## array being optimised away before it becomes a frame.
+
 CC_STRICT                = $(if $(filter 1,$(CC_$(1)_CLANG)),-Werror=unused-command-line-argument)
 
-cc_takes                 = $(shell echo 'int main (void) { return 0; }' | $(1) -O2 $(2) -c -x c - -o /dev/null >/dev/null 2>&1 && echo ok)
+cc_takes                 = $(shell echo 'int main (void) { volatile char b[65536]; b[0] = 0; return b[0]; }' | $(1) -O2 $(2) -c -x c - -o /dev/null >/dev/null 2>&1 && echo ok)
 cc_filter                = $(if $(call cc_takes,$(1),$(2)),$(2),$(foreach F,$(2),$(if $(call cc_takes,$(1),$(F)),$(F))))
 
 ## $(1) platform. What the question has to be asked with for the answer to be worth anything.

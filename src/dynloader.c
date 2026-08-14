@@ -122,7 +122,12 @@ int hc_dlplugin_abi (const char *path)
 
   const size_t keep = marker_len + 10;
 
-  char buf[65536];
+  // 8 KB rather than a bigger number: the file is read in chunks and the tail is carried over, so
+  // the size decides how many reads it takes and nothing else. This runs on the loader's stack for
+  // every plugin in the directory, and a frame this size is also within what every compiler in the
+  // release matrix can put stack probes into.
+
+  char buf[8192];
 
   size_t carry = 0;
 

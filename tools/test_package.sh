@@ -172,6 +172,13 @@ fi
 # make. The two are named rather than matched by shape, so a plugin that leaks a type description of
 # its own is still reported.
 
+# __bss_start, _edata and _end are the linker's own. They mark where the sections end and no source
+# file declares them, so they are not API in any arrangement and nothing a plugin does puts them
+# there or takes them away. GNU ld only defines them where something refers to them, which in a
+# plugin is nothing, so a native build never shows them; lld defines them in every shared object it
+# writes, so the cross build shows them on all 593. That is a difference between two linkers about
+# their own bookkeeping and not one about what a plugin offers, so it is read out here.
+
 plugin_exports ()
 {
   case "$(uname -s)" in
@@ -182,7 +189,7 @@ plugin_exports ()
     CYGWIN*|MINGW*|MSYS*) objdump -p "$1" | sed -n '/\[Ordinal\/Name Pointer\] Table/,/^$/ s/^\t\[ *[0-9][0-9]*\].* //p' ;;
     Darwin)               nm -g -U "$1" | awk '{ print $NF }' | sed 's/^_//' ;;
     *)                    nm -D --defined-only --format=posix "$1" | awk '{ print $1 }' ;;
-  esac | grep -v -x -e '_ZTI8RAR_EXIT' -e '_ZTS8RAR_EXIT'
+  esac | grep -v -x -e '_ZTI8RAR_EXIT' -e '_ZTS8RAR_EXIT' -e '__bss_start' -e '_edata' -e '_end'
 }
 
 check_exports ()

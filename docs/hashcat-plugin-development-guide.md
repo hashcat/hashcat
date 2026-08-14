@@ -941,3 +941,20 @@ The first two mean the module has to be rebuilt. The last one means a line is mi
 Finally, if you want the old arrangement back, `make SHARED=0` builds it. Every plugin is then self contained and asks nothing of the runtime loader, which is what to fall back to on a platform where the library misbehaves. Do not mix the two by hand. A plugin built one way, sitting next to a frontend built the other way, puts two copies of the core into one process, each with its own globals. Switching with `make` is safe, because the build knows which arrangement the tree was last built in and relinks what that decides. Copying single files from one tree into the other is not safe.
 
 Nothing at load time catches that. A static plugin is complete, it exports the same one name, and the loader has nothing to fail on. What catches it is `tools/test_package.sh`, which asks every shipped plugin whether it names the core library in its own dependencies, and it is the reason to run that script over a package before shipping it. Note that `SHARED` defaults to 0 on any platform other than Linux and macOS, MSYS2 included, while the Windows release is built shared, so a plugin built natively on Windows against a downloaded release is the case to watch for. Pass `SHARED=1` there.
+
+## Porting a plugin from 7.1.2 ##
+
+The section above is the whole story of how a plugin is built and loaded. This one is the short list of what changed in the source between the 7.1.2 release and now, for somebody who has a working plugin and wants it building again.
+
+What you need to do:
+
+One hook is gone: `module_dictstat_disable`. Remove the line in `module_init()` that registers it and two hooks are new, `module_usage_notice` and `module_advice_notice`, which let a module print a usage or an advice line of its own.
+
+Here's a small sed automatisation line for both halves of that, if your `module_init()` still looks like the in-tree template. It anchors on the field names rather than on line numbers, so it does not care where in the list they sit:
+
+```
+sed -i -e '/module_ctx->module_dictstat_disable/d' \
+       -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
+       src/modules/module_*.c
+```
