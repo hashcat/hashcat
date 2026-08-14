@@ -918,19 +918,13 @@ The number comes from `-DHC_PLUGIN_ABI_VERSION` on your compile line, which is w
 
 The Rust feed is the one plugin here that is not built this way. It calls nothing in the core, cargo never sees a link line, and it declares its interface version in `GENERIC_PLUGIN_VERSION` instead, which the core reads after loading it.
 
-On Linux this is what the user sees:
+This is what the user sees, and it reads the same on every platform:
 
 ```
-/home/user/hashcat/modules/module_12345.so: undefined symbol: HASHCAT_PLUGIN_720
+Module modules/module_12345.so was built for plugin interface 719, this hashcat provides 720
 ```
 
-hashcat then stops. The plugin was built against interface version 720 and the library in front of it carries a different one. Windows says less, because its loader reports a code rather than the name it was looking for, so there you see:
-
-```
-Cannot load module modules/module_12345.dll: The specified procedure could not be found.
-```
-
-If you get that line and the file is there and readable, the plugin was built against a different interface version.
+hashcat then stops. The loader that refused the plugin says different things on different systems, the Unix one names the symbol it could not resolve and the Windows one reports only that a procedure was not found, so hashcat reads the version out of the file itself and reports that instead. If the file is there and readable and you see that line, the plugin needs rebuilding against this hashcat.
 
 Building a plugin against a core whose number has already moved does not get that far on Windows. The link fails there, because an import has to resolve at link time, and it names the same symbol. On Linux and macOS the link succeeds and the refusal happens at load.
 

@@ -70,7 +70,13 @@ done
 
 WORK="$(mktemp -d ./package_test.XXXXXX)"
 
-trap 'rm -rf "$WORK"' EXIT
+TMP_ON_DISK="$(mktemp)"
+TMP_LOADED="$(mktemp)"
+
+# one trap, because a second one replaces the first rather than adding to it, and the scratch
+# directory this makes inside the package under test is then left behind on every run
+
+trap 'rm -rf "$WORK" "$TMP_ON_DISK" "$TMP_LOADED"' EXIT
 
 FAILURES=0
 
@@ -98,11 +104,6 @@ echo "## checks that need no backend device"
 echo ""
 
 # the binary starts at all, which on a shared arrangement means the loader found the core beside it
-
-TMP_ON_DISK="$(mktemp)"
-TMP_LOADED="$(mktemp)"
-
-trap 'rm -f "$TMP_ON_DISK" "$TMP_LOADED"' EXIT
 
 VERSION="$("$HC" --version 2>&1)"
 
@@ -152,6 +153,12 @@ else
   MISSING="$(comm -23 "$TMP_ON_DISK" "$TMP_LOADED" | tr '\n' ' ' | sed 's/ $//')"
 
   fail "$LISTED of $MODULES modules load, missing: $MISSING"
+
+  # the count and the mode number still do not say why, and the loader does
+
+  FIRST="${MISSING%% *}"
+
+  "$HC" -m "$FIRST" --hash-info 2>&1 | grep -iE 'built for plugin interface|cannot load|undefined|no such file' | head -2 | sed 's/^/      /'
 fi
 
 # a plugin hands the core its entry point and keeps everything else to itself. A plugin that exports
@@ -168,7 +175,11 @@ fi
 plugin_exports ()
 {
   case "$(uname -s)" in
-    CYGWIN*|MINGW*|MSYS*) objdump -p "$1" | sed -n 's/^\t\[ *[0-9][0-9]*\] //p' ;;
+    # objdump prints two tables that both begin with a bracketed index. The addresses come first and
+    # the names after, so the names are read only inside the table that holds them, otherwise a line
+    # of the address table is reported as an exported name. Newer binutils also prints an ordinal and
+    # a hint ahead of the name inside that table, so everything up to the last space goes.
+    CYGWIN*|MINGW*|MSYS*) objdump -p "$1" | sed -n '/\[Ordinal\/Name Pointer\] Table/,/^$/ s/^\t\[ *[0-9][0-9]*\].* //p' ;;
     Darwin)               nm -g -U "$1" | awk '{ print $NF }' | sed 's/^_//' ;;
     *)                    nm -D --defined-only --format=posix "$1" | awk '{ print $1 }' ;;
   esac | grep -v -x -e '_ZTI8RAR_EXIT' -e '_ZTS8RAR_EXIT'
@@ -246,6 +257,9 @@ check_core_link ()
   for PLUGIN in "$DIRECTORY"/*."$PLUGIN_SUFFIX"; do
     [ -f "$PLUGIN" ] || continue
 
+    # a Rust plugin is a cdylib that calls nothing in the core, so there is no core for it to name.
+    # The test is the file name because that is what tells the two apart from the outside, which does
+    # mean a C plugin with rust in its name would be skipped as well. There is none.
     case "$PLUGIN" in *rust_*) continue ;; esac
 
     SEEN=$((SEEN + 1))

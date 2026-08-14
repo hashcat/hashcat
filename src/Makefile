@@ -393,6 +393,15 @@ HASHCAT_LIBRARY_NATIVE  := libhashcat.so.$(VERSION_MAJOR)
 HASHCAT_LIBRARY_LINUX   := libhashcat.so.$(VERSION_MAJOR)
 HASHCAT_LIBRARY_WIN     := hashcat.dll
 
+## What a linker resolves -lhashcat against. The runtime needs only the versioned file, because that
+## is the name written into everything that links it, but a plugin built out of tree names the library
+## with -l and the linker looks for the unversioned one. So the developer install adds it as a link
+## beside the library. PE has none: a plugin there names hashcat.dll and the import table records it.
+
+HASHCAT_LIBRARY_DEV_ELF   := libhashcat.so
+HASHCAT_LIBRARY_DEV_MACHO := libhashcat.dylib
+HASHCAT_LIBRARY_DEV_PE    :=
+
 ifeq ($(UNAME),Darwin)
 HASHCAT_LIBRARY_NATIVE  := libhashcat.$(VERSION_MAJOR).dylib
 endif # Darwin
@@ -653,8 +662,23 @@ endif
 # unrar
 ifeq ($(ENABLE_UNRAR),1)
 CFLAGS                  += -I$(DEPS_UNRAR_PATH)
+# UnRAR is C++ and everything that links it needs the runtime named, which is the C++ standard library
+# the system's own compiler uses: libc++ where clang is the system compiler and libstdc++ where gcc is.
+# FreeBSD, NetBSD and DragonFly fell through this without naming one, so on those systems the single
+# module that calls UnRAR, 23800, was linked short of what it needs. Nothing said so until a plugin was
+# actually loaded, because a lazily bound symbol nobody calls costs nothing.
+
 ifeq ($(UNAME),OpenBSD)
 LFLAGS                  += -lc++
+else
+ifeq ($(UNAME),FreeBSD)
+LFLAGS                  += -lc++
+else
+ifeq ($(UNAME),DragonFly)
+LFLAGS                  += -lc++
+else
+ifeq ($(UNAME),NetBSD)
+LFLAGS                  += -lstdc++
 else
 ifeq ($(UNAME),Darwin)
 LFLAGS                  += -lstdc++
@@ -664,6 +688,9 @@ LFLAGS                  += -lstdc++
 else
 ifeq ($(UNAME),Linux)
 LFLAGS                  += -lstdc++
+endif
+endif
+endif
 endif
 endif
 endif
@@ -1604,6 +1631,11 @@ LIBRARY_LFLAGS_LINUX    := -shared
 LIBRARY_LFLAGS_WIN      := -shared
 
 ifeq ($(FORMAT_NATIVE),MACHO)
+## the library is linked with the C++ driver because UnRAR is C++, and that driver names the C++
+## runtime itself. Naming it a second time is a duplicate the linker reports on every build. It is
+## taken out of the flags the library link uses and left in the ones the frontend and the plugins
+## use, because those are linked with the C driver and do need it named.
+LFLAGS_NATIVE_LIBRARY_FILTER := -lstdc++
 LIBRARY_LFLAGS_NATIVE   += -install_name @rpath/$(HASHCAT_LIBRARY_NATIVE)
 LIBRARY_LFLAGS_NATIVE   += -current_version $(VERSION_PURE)
 LIBRARY_LFLAGS_NATIVE   += -compatibility_version $(VERSION_MAJOR)
@@ -1664,7 +1696,7 @@ endif
 define LIBRARY_RULES
 
 $$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) obj/arrangement
-	$$(CXX_$(1)) $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) -o $$@ $$(LFLAGS_$(1)) $$(LIBRARY_LFLAGS_$(1))
+	$$(CXX_$(1)) $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) -o $$@ $$(filter-out $$(LFLAGS_$(1)_LIBRARY_FILTER),$$(LFLAGS_$(1))) $$(LIBRARY_LFLAGS_$(1))
 
 endef
 
@@ -1964,6 +1996,7 @@ install_library: $(HASHCAT_LIBRARY)
 .PHONY: install_library_dev
 install_library_dev: install_make_library_dev_root obj/api.c
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_DEV_FOLDER)
+	$(if $(HASHCAT_LIBRARY_DEV_$(FORMAT_NATIVE)),ln -sf $(HASHCAT_LIBRARY_NATIVE) $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY_DEV_$(FORMAT_NATIVE)))
 	$(INSTALL) -m 644 $(API_HEADERS)                                        $(DESTDIR)$(LIBRARY_DEV_FOLDER)/
 	@for HEADER in $(API_DEP_HEADERS); do \
 	  RELATIVE="$$HEADER"; \

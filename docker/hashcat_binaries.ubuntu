@@ -124,13 +124,19 @@ ENV PATH=/root/.cargo/bin:$PATH
 # binaries get it. A command line assignment beats the ?= in the Makefile, so this stays
 # correct whatever the default becomes
 
-# HASHCAT_REF is the tree the package is built from. A clone of master names no particular commit,
-# so what a past release was built from cannot be got back and that release cannot be rebuilt. A tag
-# or a commit is named here instead, and another one is asked for with --build-arg HASHCAT_REF=<ref>.
-# It is bumped with the version in tools/package_bin.sh, which is edited for the same release anyway.
+# HASHCAT_REF is the tree the package is built from, and it is named rather than left to whatever
+# master happens to be, so that a release can be rebuilt later from the same source. Another one is
+# asked for with --build-arg HASHCAT_REF=<ref>, and it is bumped with the version in
+# tools/package_bin.sh, which is edited for the same release anyway.
+#
+# It cannot be bumped to just anything. This file passes CC_WIN=clang, and a Makefile from before the
+# core library has no way to tell clang which target a Windows artifact is for, so clang builds it for
+# the host, picks the host linker and stops on the first link flag that only means something to PE.
+# The default is master until the first release that contains the core library exists to name, and the
+# check below refuses an older tree in one line rather than letting it fail at the link.
 
 ARG CACHE_BUST=1 \
-    HASHCAT_REF=v7.1.2 \
+    HASHCAT_REF=master \
     ENABLE_LTO=1 \
     MAINTAINER_MODE=1 \
     USE_MOLD=1 \
@@ -146,6 +152,8 @@ ENV CACHE_BUST=${CACHE_BUST} \
     USE_GCC=${USE_GCC}
 
 RUN cd /root && git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
+
+RUN test -f /root/hashcat/include/export.h || { echo "HASHCAT_REF=${HASHCAT_REF} predates the shared core, which this file cannot build"; exit 1; }
 
 COPY docker/patches/hashcat_binaries/ /root/patches/
 
