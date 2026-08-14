@@ -150,6 +150,10 @@ See the section "The Core Library" in docs/hashcat-plugin-development-guide.md.
 - Status View: Attacks reading one source per round report their position again in Guess.Queue
 - Threads: Updated thread macros and types
 - Benchmark: Added a workaround for a CUDA benchmark memory leak caused by register spilling
+- secp256k1: inv_mod now uses a fixed-iteration safegcd inverse; -D USE_LEGACY_BINARY_GCD_INV_MOD restores the binary GCD
+- secp256k1: Factored the repeated Jacobian to affine conversion into point_to_affine
+- Kernels: Added HASHCAT_FORCE_NO_INLINE to build with -D FORCE_NO_INLINE for runtimes that inline the helpers into one slow-to-compile function
+- Backends: Environment on/off switches share one hc_env_flag helper
 
 ##
 ## Bugs
@@ -157,6 +161,8 @@ See the section "The Core Library" in docs/hashcat-plugin-development-guide.md.
 
 - Fixed combinator and hybrid attacks reporting a plaintext truncated to 256 characters, which did not match the cracked digest
 - Fixed a one byte buffer overflow in fgetl() when a line was as long as the caller's buffer
+- Fixed an out-of-bounds read in the secp256k1 point_mul_xy() when the scalar is zero
+- Fixed the secp256k1 inv_mod() looping forever on a zero input, which hangs clFinish on CPU devices
 - Fixed missing libclang dependencies for Rust bridges in Ubuntu 20.04 and Arch containers
 - Fixed the Windows Rust plugin failing to link in the Arch container because lld was missing
 - Fixed Windows Python plugins disappearing when the bundled Python version was not 3.12
