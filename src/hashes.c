@@ -54,6 +54,24 @@ int sort_by_digest_p0p1 (const void *v1, const void *v2, void *v3)
   return 0;
 }
 
+typedef struct split_right
+{
+  int group;
+  u32 index;
+
+} split_right_t;
+
+int sort_by_split_group (const void *v1, const void *v2)
+{
+  const split_right_t *r1 = (const split_right_t *) v1;
+  const split_right_t *r2 = (const split_right_t *) v2;
+
+  if (r1->group < r2->group) return -1;
+  if (r1->group > r2->group) return  1;
+
+  return 0;
+}
+
 int sort_by_salt (const void *v1, const void *v2)
 {
   const salt_t *s1 = (const salt_t *) v1;
@@ -2048,8 +2066,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if (hashes_buf[i].hash_info->split->split_origin == SPLIT_ORIGIN_RIGHT) rights_cnt++;
     }
 
-    int *rights_group = (int *) hcmalloc (rights_cnt * sizeof (int));
-    u32 *rights_index = (u32 *) hcmalloc (rights_cnt * sizeof (u32));
+    split_right_t *rights = (split_right_t *) hcmalloc (rights_cnt * sizeof (split_right_t));
 
     u32 rights_pos = 0;
 
@@ -2057,29 +2074,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     {
       if (hashes_buf[i].hash_info->split->split_origin != SPLIT_ORIGIN_RIGHT) continue;
 
-      rights_group[rights_pos] = hashes_buf[i].hash_info->split->split_group;
-      rights_index[rights_pos] = i;
+      rights[rights_pos].group = hashes_buf[i].hash_info->split->split_group;
+      rights[rights_pos].index = i;
 
       rights_pos++;
     }
 
-    for (u32 i = 1; i < rights_cnt; i++)
-    {
-      int  key_group = rights_group[i];
-      u32  key_index = rights_index[i];
-      u32  j         = i;
-
-      while (j > 0 && rights_group[j - 1] > key_group)
-      {
-        rights_group[j] = rights_group[j - 1];
-        rights_index[j] = rights_index[j - 1];
-
-        j--;
-      }
-
-      rights_group[j] = key_group;
-      rights_index[j] = key_index;
-    }
+    qsort (rights, rights_cnt, sizeof (split_right_t), sort_by_split_group);
 
     // for each LEFT entry, binary search for its partner in the sorted RIGHT array
 
@@ -2100,7 +2101,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         u32 mid = lo + (hi - lo) / 2;
 
-        if (rights_group[mid] < target)
+        if (rights[mid].group < target)
         {
           lo = mid + 1;
         }
@@ -2110,9 +2111,9 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         }
       }
 
-      if (lo < rights_cnt && rights_group[lo] == target)
+      if (lo < rights_cnt && rights[lo].group == target)
       {
-        const u32 j = rights_index[lo];
+        const u32 j = rights[lo].index;
 
         split1->split_neighbor = j;
 
@@ -2120,8 +2121,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
-    hcfree (rights_group);
-    hcfree (rights_index);
+    hcfree (rights);
   }
 
   if (hashes->parser_token_length_cnt > 0)
