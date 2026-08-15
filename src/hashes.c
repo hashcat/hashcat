@@ -1733,6 +1733,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
               hcfree (tmp_line_buf);
 
+              hashes_cnt--;
+
               continue;
             }
 
@@ -1758,6 +1760,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
                 }
 
                 hcfree (tmp_line_buf);
+
+                hashes_cnt--;
 
                 continue;
               }
@@ -2037,26 +2041,87 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     // update split split_neighbor after sorting
     // see https://github.com/hashcat/hashcat/issues/1034 for good examples for testing
 
+    u32 rights_cnt = 0;
+
+    for (u32 i = 0; i < hashes_cnt; i++)
+    {
+      if (hashes_buf[i].hash_info->split->split_origin == SPLIT_ORIGIN_RIGHT) rights_cnt++;
+    }
+
+    int *rights_group = (int *) hcmalloc (rights_cnt * sizeof (int));
+    u32 *rights_index = (u32 *) hcmalloc (rights_cnt * sizeof (u32));
+
+    u32 rights_pos = 0;
+
+    for (u32 i = 0; i < hashes_cnt; i++)
+    {
+      if (hashes_buf[i].hash_info->split->split_origin != SPLIT_ORIGIN_RIGHT) continue;
+
+      rights_group[rights_pos] = hashes_buf[i].hash_info->split->split_group;
+      rights_index[rights_pos] = i;
+
+      rights_pos++;
+    }
+
+    for (u32 i = 1; i < rights_cnt; i++)
+    {
+      int  key_group = rights_group[i];
+      u32  key_index = rights_index[i];
+      u32  j         = i;
+
+      while (j > 0 && rights_group[j - 1] > key_group)
+      {
+        rights_group[j] = rights_group[j - 1];
+        rights_index[j] = rights_index[j - 1];
+
+        j--;
+      }
+
+      rights_group[j] = key_group;
+      rights_index[j] = key_index;
+    }
+
+    // for each LEFT entry, binary search for its partner in the sorted RIGHT array
+
     for (u32 i = 0; i < hashes_cnt; i++)
     {
       split_t *split1 = hashes_buf[i].hash_info->split;
 
       if (split1->split_origin != SPLIT_ORIGIN_LEFT) continue;
 
-      for (u32 j = 0; j < hashes_cnt; j++)
+      const int target = split1->split_group;
+
+      // binary search
+
+      u32 lo = 0;
+      u32 hi = rights_cnt;
+
+      while (lo < hi)
       {
-        split_t *split2 = hashes_buf[j].hash_info->split;
+        u32 mid = lo + (hi - lo) / 2;
 
-        if (split2->split_origin != SPLIT_ORIGIN_RIGHT) continue;
+        if (rights_group[mid] < target)
+        {
+          lo = mid + 1;
+        }
+        else
+        {
+          hi = mid;
+        }
+      }
 
-        if (split1->split_group != split2->split_group) continue;
+      if (lo < rights_cnt && rights_group[lo] == target)
+      {
+        const u32 j = rights_index[lo];
 
         split1->split_neighbor = j;
-        split2->split_neighbor = i;
 
-        break;
+        hashes_buf[j].hash_info->split->split_neighbor = i;
       }
     }
+
+    hcfree (rights_group);
+    hcfree (rights_index);
   }
 
   if (hashes->parser_token_length_cnt > 0)
