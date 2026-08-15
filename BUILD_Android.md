@@ -6,7 +6,7 @@ Author: See `docs/credits.txt`
 
 ---
 
-## ✅ Android Requirements
+## Android Requirements
 
 - Android 8.0 or higher (OpenCL 3.0 support)
 
@@ -14,7 +14,7 @@ Author: See `docs/credits.txt`
 
 ---
 
-## 🛠️ Building Hashcat on Android
+## Building Hashcat on Android
 
 ### Step 1: Install Dependencies
 
@@ -115,7 +115,7 @@ Verify the fix worked:
 
 ---
 
-## 🔧 OpenCL Troubleshooting
+## OpenCL Troubleshooting
 
 If Library Not Found on Device
 
@@ -151,7 +151,7 @@ clinfo | grep "Number of platforms"
 
 ---
 
-## 🚀 Usage Examples
+## Usage Examples
 
 Safe Benchmark (Skips Memory-Intensive Algorithms)
 
@@ -173,7 +173,7 @@ Brute Force
 
 ---
 
-## ⚠️ Known Limitations
+## Known Limitations
 
 Memory-Intensive Algorithms
 
@@ -199,21 +199,21 @@ Recommended for Mobile
 
 ---
 
-## 🚀 Performance Results (POCO X6 Pro)
+## Performance Results (POCO X6 Pro)
 
-| Algorithm | Speed     | Status |
-|-----------|-----------|--------|
-| MD4       | 1179 MH/s | ✅     |
-| MD5       | 853 MH/s  | ✅     |
-| SHA1      | 282 MH/s  | ✅     |
-| SHA256    | 111 MH/s  | ✅     |
-| WPA2      | OOM       | ❌     |
+| Algorithm | Speed     | Status  |
+|-----------|-----------|---------|
+| MD4       | 1179 MH/s | Working |
+| MD5       | 853 MH/s  | Working |
+| SHA1      | 282 MH/s  | Working |
+| SHA256    | 111 MH/s  | Working |
+| WPA2      | OOM       | Crashed |
 
 Real-world: 9-character password cracked in 90 seconds at 694 MH/s
 
 ---
 
-## 🎉 Done
+## Done
 
 Your Android device is now ready for **hashcat!** Perfect for:
 
@@ -227,4 +227,4 @@ Your Android device is now ready for **hashcat!** Perfect for:
 
 ---
 
-Tested on **POCO X6 Pro** • **Android 16** • **Termux 0.119.0-beta.3**
+Tested on **POCO X6 Pro** | **Android 16** | **Termux 0.119.0-beta.3**
