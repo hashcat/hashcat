@@ -138,6 +138,426 @@ int sort_by_hash_no_salt (const void *v1, const void *v2, void *v3)
   return sort_by_digest_p0p1 (d1, d2, v3);
 }
 
+// radix sort threshold: above this count, use radix sort instead of qsort for non-salted hashes
+
+#define RADIX_SORT_THRESHOLD (64 * 1024 * 1024)
+
+// in-place MSD radix sort on parallel (keys, indices) arrays
+// sorts by 8-bit radix using American Flag sort partitioning
+
+static void msd_radix_sort_u64 (u64 *keys, u32 *indices, const u32 count, const int byte_pos)
+{
+  if (count <= 64)
+  {
+    // insertion sort for small subarrays
+
+    for (u32 i = 1; i < count; i++)
+    {
+      const u64 k = keys[i];
+      const u32 d = indices[i];
+
+      u32 j = i;
+
+      while (j > 0 && keys[j - 1] > k)
+      {
+        keys[j]    = keys[j - 1];
+        indices[j] = indices[j - 1];
+
+        j--;
+      }
+
+      keys[j]    = k;
+      indices[j] = d;
+    }
+
+    return;
+  }
+
+  // count occurrences of each byte value
+
+  u32 counts[256];
+
+  memset (counts, 0, sizeof (counts));
+
+  for (u32 i = 0; i < count; i++)
+  {
+    const u8 b = (u8) (keys[i] >> (byte_pos * 8));
+
+    counts[b]++;
+  }
+
+  // skip level if all elements fall in one bucket
+
+  for (int b = 0; b < 256; b++)
+  {
+    if (counts[b] == count)
+    {
+      if (byte_pos > 0)
+      {
+        msd_radix_sort_u64 (keys, indices, count, byte_pos - 1);
+      }
+
+      return;
+    }
+  }
+
+  // compute bucket start positions
+
+  u32 offsets[256];
+  u32 ends[256];
+
+  offsets[0] = 0;
+
+  for (int b = 1; b < 256; b++)
+  {
+    offsets[b] = offsets[b - 1] + counts[b - 1];
+  }
+
+  memcpy (ends, offsets, sizeof (offsets));
+
+  // American Flag sort: in-place permutation via cycle following
+
+  for (int b = 0; b < 256; b++)
+  {
+    const u32 limit = offsets[b] + counts[b];
+
+    while (ends[b] < limit)
+    {
+      u8 target = (u8) (keys[ends[b]] >> (byte_pos * 8));
+
+      if (target == (u8) b)
+      {
+        ends[b]++;
+
+        continue;
+      }
+
+      // pick up displaced element and follow its chain
+
+      u64 floating_key = keys[ends[b]];
+      u32 floating_idx = indices[ends[b]];
+
+      do
+      {
+        const u32 dest = ends[target];
+
+        const u64 tmp_key = keys[dest];
+        const u32 tmp_idx = indices[dest];
+
+        keys[dest]    = floating_key;
+        indices[dest] = floating_idx;
+
+        floating_key = tmp_key;
+        floating_idx = tmp_idx;
+
+        ends[target]++;
+
+        target = (u8) (floating_key >> (byte_pos * 8));
+
+      } while (target != (u8) b);
+
+      keys[ends[b]]    = floating_key;
+      indices[ends[b]] = floating_idx;
+
+      ends[b]++;
+    }
+  }
+
+  // recurse on each non-trivial bucket
+
+  if (byte_pos > 0)
+  {
+    for (int b = 0; b < 256; b++)
+    {
+      if (counts[b] > 1)
+      {
+        msd_radix_sort_u64 (keys + offsets[b], indices + offsets[b], counts[b], byte_pos - 1);
+      }
+    }
+  }
+}
+
+// apply permutation to hashes_buf (and optionally digests_buf) in-place using cycle following
+// after this, hashes_buf[i] = original hashes_buf[indices[i]]
+// if digests_buf is non-NULL, also permutes digest entries and updates digest pointers
+// indices array is destroyed (used as visited markers)
+
+static void apply_permutation_hash (hash_t *hashes_buf, u32 *indices, const u32 count, void *digests_buf, const u32 dgst_size)
+{
+  char *dbase = (char *) digests_buf;
+
+  for (u32 i = 0; i < count; i++)
+  {
+    if (indices[i] == i) continue;
+
+    hash_t tmp_h;
+
+    memcpy (&tmp_h, &hashes_buf[i], sizeof (hash_t));
+
+    u8 tmp_d[256]; // max dgst_size is DGST_SIZE_4_64 = 256
+
+    if (dbase != NULL)
+    {
+      memcpy (tmp_d, dbase + (u64) i * dgst_size, dgst_size);
+    }
+
+    u32 j = i;
+
+    while (indices[j] != i)
+    {
+      const u32 k = indices[j];
+
+      memcpy (&hashes_buf[j], &hashes_buf[k], sizeof (hash_t));
+
+      if (dbase != NULL)
+      {
+        memcpy (dbase + (u64) j * dgst_size, dbase + (u64) k * dgst_size, dgst_size);
+      }
+
+      indices[j] = j;
+
+      j = k;
+    }
+
+    memcpy (&hashes_buf[j], &tmp_h, sizeof (hash_t));
+
+    if (dbase != NULL)
+    {
+      memcpy (dbase + (u64) j * dgst_size, tmp_d, dgst_size);
+    }
+
+    indices[j] = j;
+  }
+
+  if (dbase != NULL)
+  {
+    for (u32 i = 0; i < count; i++)
+    {
+      hashes_buf[i].digest = dbase + (u64) i * dgst_size;
+    }
+  }
+}
+
+// tie-break: runs longer than this are sorted with hc_qsort_r instead of insertion sort
+// keeps insertion sort for the common (tiny) runs while avoiding O(m^2) blowup on
+// hash types where dgst_pos2/dgst_pos3 are constant (e.g. LM, Half MD5) and every key is equal
+
+#define RADIX_TIE_QSORT_THRESHOLD 256
+
+typedef struct radix_tie_ctx
+{
+  const hash_t *hashes_buf;
+  u32           dgst_pos0;
+  u32           dgst_pos1;
+
+} radix_tie_ctx_t;
+
+// compare two index values by their digest's (dgst_pos1, dgst_pos0)
+// used only within a tied run, where dgst_pos3/dgst_pos2 are already equal
+
+static int sort_by_digest_idx_p1p0 (const void *v1, const void *v2, void *v3)
+{
+  const u32 idx1 = *(const u32 *) v1;
+  const u32 idx2 = *(const u32 *) v2;
+
+  const radix_tie_ctx_t *ctx = (const radix_tie_ctx_t *) v3;
+
+  const u32 *d1 = (const u32 *) ctx->hashes_buf[idx1].digest;
+  const u32 *d2 = (const u32 *) ctx->hashes_buf[idx2].digest;
+
+  if (d1[ctx->dgst_pos1] > d2[ctx->dgst_pos1]) return  1;
+  if (d1[ctx->dgst_pos1] < d2[ctx->dgst_pos1]) return -1;
+  if (d1[ctx->dgst_pos0] > d2[ctx->dgst_pos0]) return  1;
+  if (d1[ctx->dgst_pos0] < d2[ctx->dgst_pos0]) return -1;
+
+  return 0;
+}
+
+// radix sort for non-salted hash lists
+// uses compact key+index arrays to minimize memory and maximize cache efficiency
+// returns 0 on success, -1 on allocation failure
+
+static int hc_radix_sort_by_digest (hash_t *hashes_buf, u32 *hashes_cnt_ptr, const hashconfig_t *hashconfig, void *digests_buf, const u32 dgst_size)
+{
+  const u32 hashes_cnt = *hashes_cnt_ptr;
+
+  const u32 dgst_pos0 = hashconfig->dgst_pos0;
+  const u32 dgst_pos1 = hashconfig->dgst_pos1;
+  const u32 dgst_pos2 = hashconfig->dgst_pos2;
+  const u32 dgst_pos3 = hashconfig->dgst_pos3;
+
+  // extract compact sort keys (sequential scan)
+
+  u64 *keys    = (u64 *) hcmalloc (((u64) hashes_cnt) * sizeof (u64));
+
+  if (keys == NULL) return -1;
+
+  u32 *indices = (u32 *) hcmalloc (((u64) hashes_cnt) * sizeof (u32));
+
+  if (indices == NULL)
+  {
+    hcfree (keys);
+
+    return -1;
+  }
+
+  for (u32 i = 0; i < hashes_cnt; i++)
+  {
+    const u32 *d = (const u32 *) hashes_buf[i].digest;
+
+    keys[i]    = ((u64) d[dgst_pos3] << 32) | (u64) d[dgst_pos2];
+    indices[i] = i;
+  }
+
+  // MSD radix sort on compact arrays
+
+  msd_radix_sort_u64 (keys, indices, hashes_cnt, 7);
+
+  // resolve ties (same dgst_pos3+dgst_pos2, different dgst_pos1+dgst_pos0)
+  // for uniformly distributed digests this is near-zero work
+
+  for (u32 i = 0; i < hashes_cnt; )
+  {
+    u32 j = i + 1;
+
+    while (j < hashes_cnt && keys[j] == keys[i]) j++;
+
+    if (j - i > RADIX_TIE_QSORT_THRESHOLD)
+    {
+      // large tied run (dgst_pos3/dgst_pos2 constant across many hashes):
+      // insertion sort would be O(m^2), fall back to qsort on the index slice.
+      // keys[i..j) are all equal here, so only indices[] need reordering.
+
+      radix_tie_ctx_t ctx = { hashes_buf, dgst_pos0, dgst_pos1 };
+
+      hc_qsort_r (&indices[i], j - i, sizeof (u32), sort_by_digest_idx_p1p0, &ctx);
+    }
+    else if (j - i > 1)
+    {
+      // sub-sort this run by dgst_pos1, dgst_pos0 using insertion sort
+
+      for (u32 a = i + 1; a < j; a++)
+      {
+        const u32  idx_a = indices[a];
+        const u64  key_a = keys[a];
+        const u32 *da    = (const u32 *) hashes_buf[idx_a].digest;
+        const u64  sub_a = ((u64) da[dgst_pos1] << 32) | (u64) da[dgst_pos0];
+
+        u32 b = a;
+
+        while (b > i)
+        {
+          const u32 *db    = (const u32 *) hashes_buf[indices[b - 1]].digest;
+          const u64  sub_b = ((u64) db[dgst_pos1] << 32) | (u64) db[dgst_pos0];
+
+          if (sub_b <= sub_a) break;
+
+          keys[b]    = keys[b - 1];
+          indices[b] = indices[b - 1];
+
+          b--;
+        }
+
+        keys[b]    = key_a;
+        indices[b] = idx_a;
+      }
+    }
+
+    i = j;
+  }
+
+  // dedup - remove adjacent duplicates in sorted compact arrays
+  // sequential scan on keys[] (in RAM), near-zero random I/O
+
+  if (hashconfig->potfile_keep_all_hashes == false)
+  {
+    u32 write_pos = 1;
+
+    for (u32 i = 1; i < hashes_cnt; i++)
+    {
+      bool is_dup = false;
+
+      if (keys[i] == keys[write_pos - 1])
+      {
+        const u32 *da = (const u32 *) hashes_buf[indices[i]].digest;
+        const u32 *db = (const u32 *) hashes_buf[indices[write_pos - 1]].digest;
+
+        if (da[dgst_pos1] == db[dgst_pos1] && da[dgst_pos0] == db[dgst_pos0])
+        {
+          is_dup = true;
+        }
+      }
+
+      if (is_dup == false)
+      {
+        keys[write_pos]    = keys[i];
+        indices[write_pos] = indices[i];
+
+        write_pos++;
+      }
+    }
+
+    if (write_pos < hashes_cnt)
+    {
+      // duplicates found - build full permutation for correct in-place reordering
+      // reuse keys[] (8 bytes each >= 4 bytes needed) as reverse mapping scratch
+
+      u32 *rev_map = (u32 *) keys;
+
+      for (u32 i = 0; i < hashes_cnt; i++) rev_map[i] = UINT32_MAX;
+
+      for (u32 i = 0; i < write_pos; i++)
+      {
+        rev_map[indices[i]] = i;
+      }
+
+      // assign unused source positions to remaining destination slots
+
+      u32 next_slot = write_pos;
+
+      for (u32 i = 0; i < hashes_cnt; i++)
+      {
+        if (rev_map[i] == UINT32_MAX)
+        {
+          rev_map[i] = next_slot++;
+        }
+      }
+
+      // invert: indices[new_pos] = old_pos
+
+      for (u32 i = 0; i < hashes_cnt; i++)
+      {
+        indices[rev_map[i]] = i;
+      }
+
+      hcfree (keys);
+
+      apply_permutation_hash (hashes_buf, indices, hashes_cnt, digests_buf, dgst_size);
+
+      for (u32 i = write_pos; i < hashes_cnt; i++)
+      {
+        memset (&hashes_buf[i], 0, sizeof (hash_t));
+      }
+
+      hcfree (indices);
+
+      *hashes_cnt_ptr = write_pos;
+
+      return 0;
+    }
+  }
+
+  hcfree (keys);
+
+  // apply permutation to hashes_buf and digests_buf
+
+  apply_permutation_hash (hashes_buf, indices, hashes_cnt, digests_buf, dgst_size);
+
+  hcfree (indices);
+
+  return 0;
+}
+
 int hash_encode (const user_options_t *user_options, const hashconfig_t *hashconfig, const hashes_t *hashes, const module_ctx_t *module_ctx, char *out_buf, const int out_size, const u32 salt_pos, const u32 digest_pos)
 {
   if (module_ctx->module_hash_encode == MODULE_DEFAULT)
@@ -2048,8 +2468,29 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      hc_qsort_r (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
+      if (hashes_cnt > RADIX_SORT_THRESHOLD)
+      {
+        if (hc_radix_sort_by_digest (hashes_buf, &hashes_cnt, hashconfig, hashes->digests_buf, hashconfig->dgst_size) != 0)
+        {
+          hc_qsort_r (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
+        }
+        else
+        {
+          hashes->radix_digests_reordered = true;
+
+          if (hashconfig->potfile_keep_all_hashes == false)
+          {
+            hashes->radix_deduped = true;
+          }
+        }
+      }
+      else
+      {
+        hc_qsort_r (hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash_no_salt, (void *) hashconfig);
+      }
     }
+
+    hashes->hashes_cnt = hashes_cnt;
 
     EVENT (EVENT_HASHLIST_SORT_HASH_POST);
   }
@@ -2152,41 +2593,44 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_HASHLIST_UNIQUE_HASH_PRE);
 
-  u32 hashes_cnt_new = 1;
-
-  for (u32 hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
+  if (hashes->radix_deduped == false)
   {
-    if (hashconfig->potfile_keep_all_hashes == true)
+    u32 hashes_cnt_new = 1;
+
+    for (u32 hashes_pos = 1; hashes_pos < hashes_cnt; hashes_pos++)
     {
-      // do not sort, because we need to keep all hashes in this particular case
-    }
-    else if (hashconfig->is_salted == true)
-    {
-      if (sort_by_salt (hashes_buf[hashes_pos].salt, hashes_buf[hashes_pos - 1].salt) == 0)
+      if (hashconfig->potfile_keep_all_hashes == true)
+      {
+        // do not sort, because we need to keep all hashes in this particular case
+      }
+      else if (hashconfig->is_salted == true)
+      {
+        if (sort_by_salt (hashes_buf[hashes_pos].salt, hashes_buf[hashes_pos - 1].salt) == 0)
+        {
+          if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest, (void *) hashconfig) == 0) continue;
+        }
+      }
+      else
       {
         if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest, (void *) hashconfig) == 0) continue;
       }
+
+      hash_t tmp;
+
+      memcpy (&tmp, &hashes_buf[hashes_pos], sizeof (hash_t));
+
+      memcpy (&hashes_buf[hashes_cnt_new], &tmp, sizeof (hash_t));
+
+      hashes_cnt_new++;
     }
-    else
+
+    for (u32 i = hashes_cnt_new; i < hashes->hashes_cnt; i++)
     {
-      if (sort_by_digest_p0p1 (hashes_buf[hashes_pos].digest, hashes_buf[hashes_pos - 1].digest, (void *) hashconfig) == 0) continue;
+      memset (&hashes_buf[i], 0, sizeof (hash_t));
     }
 
-    hash_t tmp;
-
-    memcpy (&tmp, &hashes_buf[hashes_pos], sizeof (hash_t));
-
-    memcpy (&hashes_buf[hashes_cnt_new], &tmp, sizeof (hash_t));
-
-    hashes_cnt_new++;
+    hashes_cnt = hashes_cnt_new;
   }
-
-  for (u32 i = hashes_cnt_new; i < hashes->hashes_cnt; i++)
-  {
-    memset (&hashes_buf[i], 0, sizeof (hash_t));
-  }
-
-  hashes_cnt = hashes_cnt_new;
 
   hashes->hashes_cnt = hashes_cnt;
 
@@ -2196,7 +2640,13 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
    * Now generate all the buffers required for later
    */
 
-  void   *digests_buf_new    = hccalloc (hashes_cnt, hashconfig->dgst_size);
+  void   *digests_buf_new    = NULL;
+
+  if (hashes->radix_digests_reordered == false)
+  {
+    digests_buf_new = hccalloc (hashes_cnt, hashconfig->dgst_size);
+  }
+
   salt_t *salts_buf_new      = NULL;
   void   *esalts_buf_new     = NULL;
   void   *hook_salts_buf_new = NULL;
@@ -2268,11 +2718,14 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   salt_buf->digests_cnt++;
 
-  char *digests_buf_new_ptr = ((char *) digests_buf_new) + (0 * hashconfig->dgst_size);
+  if (digests_buf_new != NULL)
+  {
+    char *digests_buf_new_ptr = ((char *) digests_buf_new) + (0 * hashconfig->dgst_size);
 
-  memcpy (digests_buf_new_ptr, hashes_buf[0].digest, hashconfig->dgst_size);
+    memcpy (digests_buf_new_ptr, hashes_buf[0].digest, hashconfig->dgst_size);
 
-  hashes_buf[0].digest = digests_buf_new_ptr;
+    hashes_buf[0].digest = digests_buf_new_ptr;
+  }
 
   if (hashconfig->esalt_size > 0)
   {
@@ -2330,11 +2783,14 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
     salt_buf->digests_cnt++;
 
-    digests_buf_new_ptr = ((char *) digests_buf_new) + ((u64) hashes_pos * hashconfig->dgst_size);
+    if (digests_buf_new != NULL)
+    {
+      char *digests_buf_new_ptr = ((char *) digests_buf_new) + ((u64) hashes_pos * hashconfig->dgst_size);
 
-    memcpy (digests_buf_new_ptr, hashes_buf[hashes_pos].digest, hashconfig->dgst_size);
+      memcpy (digests_buf_new_ptr, hashes_buf[hashes_pos].digest, hashconfig->dgst_size);
 
-    hashes_buf[hashes_pos].digest = digests_buf_new_ptr;
+      hashes_buf[hashes_pos].digest = digests_buf_new_ptr;
+    }
 
     if (hashconfig->esalt_size > 0)
     {
@@ -2353,14 +2809,23 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
 
   EVENT (EVENT_HASHLIST_SORT_SALT_POST);
 
-  hcfree (hashes->digests_buf);
+  if (hashes->radix_digests_reordered == false)
+  {
+    hcfree (hashes->digests_buf);
+  }
+
   hcfree (hashes->salts_buf);
   hcfree (hashes->esalts_buf);
   hcfree (hashes->hook_salts_buf);
 
   hashes->digests_cnt       = digests_cnt;
   hashes->digests_done      = digests_done;
-  hashes->digests_buf       = digests_buf_new;
+
+  if (hashes->radix_digests_reordered == false)
+  {
+    hashes->digests_buf     = digests_buf_new;
+  }
+
   hashes->digests_shown     = digests_shown;
 
   hashes->salts_cnt         = salts_cnt;
