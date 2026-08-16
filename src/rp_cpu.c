@@ -290,9 +290,9 @@ static int mangle_insert_every (char arr[RP_PASSWORD_SIZE], int arr_len, int upo
 
 static int mangle_to_hex_lower (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
-  if (arr_len >= RP_PASSWORD_SIZE) return arr_len;
+  if ((arr_len * 2) >= RP_PASSWORD_SIZE) return arr_len;
 
-  for (int pos = arr_len + 1; pos >= 0; pos--)
+  for (int pos = arr_len - 1; pos >= 0; pos--)
   {
     const u8 tbl[0x10] =
     {
@@ -309,9 +309,9 @@ static int mangle_to_hex_lower (char arr[RP_PASSWORD_SIZE], int arr_len)
 
 static int mangle_to_hex_upper (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
-  if (arr_len >= RP_PASSWORD_SIZE) return arr_len;
+  if ((arr_len * 2) >= RP_PASSWORD_SIZE) return arr_len;
 
-  for (int pos = arr_len + 1; pos >= 0; pos--)
+  for (int pos = arr_len - 1; pos >= 0; pos--)
   {
     const u8 tbl[0x10] =
     {
