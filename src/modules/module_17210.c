@@ -263,6 +263,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (p == NULL) return PARSER_HASH_LENGTH;
   pkzip->hash.data_length = strtoul (p, NULL, 16);
 
+  if (pkzip->hash.data_length > MAX_DATA) return (PARSER_TOKEN_LENGTH);
+
   p = strtok_r (NULL, "*", &saveptr);
   if (p == NULL) return PARSER_HASH_LENGTH;
   u16 checksum_from_crc = 0;
@@ -285,7 +287,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   p = strtok_r (NULL, "*", &saveptr);
   if (p == NULL) return PARSER_HASH_LENGTH;
 
-  hex_to_binary (p, strlen (p), (char *) &(pkzip->hash.data));
+  const size_t data_hex_len = strlen (p);
+
+  if (data_hex_len > MAX_DATA * 2) return (PARSER_TOKEN_LENGTH);
+  if (data_hex_len % 2)            return (PARSER_TOKEN_LENGTH);
+
+  hex_to_binary (p, data_hex_len, (char *) &(pkzip->hash.data));
 
   // fake salt
   salt->salt_buf[0] = pkzip->hash.data[0];
