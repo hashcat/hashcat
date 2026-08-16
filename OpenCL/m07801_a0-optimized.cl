@@ -256,6 +256,14 @@ KERNEL_FQ KERNEL_FA void m07801_m04 (KERN_ATTR_RULES ())
     final[14] = 0;
     final[15] = 0;
 
+    // final[] can hold up to 4 SHA1 blocks (see the SETSHIFTEDINT fix); only
+    // the first block (final[0..15]) is set above, and SETSHIFTEDINT() below
+    // only ever writes as many bytes as are actually appended, so anything
+    // past the appended data and before the length word placed by the block
+    // loop further down would otherwise be uninitialized.
+
+    for (u32 j = 16; j < 64; j++) final[j] = 0;
+
     u32 final_len = pw_len;
 
     u32 i;
@@ -289,21 +297,20 @@ KERNEL_FQ KERNEL_FA void m07801_m04 (KERN_ATTR_RULES ())
     final_len += salt_len;
 
     // calculate
+    //
+    // final_len can reach up to 188 bytes (pw_max 55 + magic_max 82 +
+    // salt_max 51), needing up to 4 SHA1 blocks with padding -- this used to
+    // be hardcoded to at most 2 blocks, silently dropping anything past byte
+    // 119 into a wrong digest instead of a crash.
 
-    if (final_len >= 56)
+    const u32 n_blocks = ((final_len + 8) / 64) + 1;
+
+    final[(n_blocks * 16) - 2] = 0;
+    final[(n_blocks * 16) - 1] = final_len * 8;
+
+    for (u32 b = 0; b < n_blocks; b++)
     {
-      final[30] = 0;
-      final[31] = final_len * 8;
-
-      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
-      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
-    }
-    else
-    {
-      final[14] = 0;
-      final[15] = final_len * 8;
-
-      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + (b * 16) + 0, final + (b * 16) + 4, final + (b * 16) + 8, final + (b * 16) + 12, digest);
     }
 
     COMPARE_M_SIMD (0, 0, digest[2] & 0xffff0000, digest[1]);
@@ -532,6 +539,14 @@ KERNEL_FQ KERNEL_FA void m07801_s04 (KERN_ATTR_RULES ())
     final[14] = 0;
     final[15] = 0;
 
+    // final[] can hold up to 4 SHA1 blocks (see the SETSHIFTEDINT fix); only
+    // the first block (final[0..15]) is set above, and SETSHIFTEDINT() below
+    // only ever writes as many bytes as are actually appended, so anything
+    // past the appended data and before the length word placed by the block
+    // loop further down would otherwise be uninitialized.
+
+    for (u32 j = 16; j < 64; j++) final[j] = 0;
+
     u32 final_len = pw_len;
 
     u32 i;
@@ -565,21 +580,20 @@ KERNEL_FQ KERNEL_FA void m07801_s04 (KERN_ATTR_RULES ())
     final_len += salt_len;
 
     // calculate
+    //
+    // final_len can reach up to 188 bytes (pw_max 55 + magic_max 82 +
+    // salt_max 51), needing up to 4 SHA1 blocks with padding -- this used to
+    // be hardcoded to at most 2 blocks, silently dropping anything past byte
+    // 119 into a wrong digest instead of a crash.
 
-    if (final_len >= 56)
+    const u32 n_blocks = ((final_len + 8) / 64) + 1;
+
+    final[(n_blocks * 16) - 2] = 0;
+    final[(n_blocks * 16) - 1] = final_len * 8;
+
+    for (u32 b = 0; b < n_blocks; b++)
     {
-      final[30] = 0;
-      final[31] = final_len * 8;
-
-      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
-      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
-    }
-    else
-    {
-      final[14] = 0;
-      final[15] = final_len * 8;
-
-      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + (b * 16) + 0, final + (b * 16) + 4, final + (b * 16) + 8, final + (b * 16) + 12, digest);
     }
 
     COMPARE_S_SIMD (0, 0, digest[2] & 0xffff0000, digest[1]);
