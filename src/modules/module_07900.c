@@ -365,7 +365,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *hash_pos = token.buf[3];
 
-  drupal7_decode ((u8 *) digest, hash_pos);
+  // drupal7_decode() takes a u8[44], but the token is 43 characters -- the
+  // final group of four reads buf[43], one past the end of the hash. Copy into
+  // a zero-padded buffer of the size the function actually declares.
+  u8 hash_buf[44] = { 0 };
+
+  memcpy (hash_buf, hash_pos, 43);
+
+  drupal7_decode ((u8 *) digest, hash_buf);
 
   // ugly hack start
 
