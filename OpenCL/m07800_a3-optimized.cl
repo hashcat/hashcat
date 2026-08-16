@@ -115,7 +115,19 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
      * SAP
      */
 
-    u32 final[32];
+    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
+    // variable-length pieces into final[] back to back with no bounds check:
+    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
+    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
+    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
+    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
+    // overflows by design for realistic inputs, not just contrived ones.
+    // Sized here to the worst case with headroom; the sha1_transform calls
+    // a few lines down still only ever process the first two 64-byte blocks
+    // of it (final+0..32), which is a separate, not-yet-addressed question:
+    // whether that's a correctness gap for inputs long enough to need a
+    // third block is outside the scope of this memory-safety fix.
+    u32 final[64];
 
     final[ 0] = w0[0] | s0[0];
     final[ 1] = w0[1] | s0[1];
@@ -340,7 +352,19 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
      * SAP
      */
 
-    u32 final[32];
+    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
+    // variable-length pieces into final[] back to back with no bounds check:
+    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
+    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
+    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
+    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
+    // overflows by design for realistic inputs, not just contrived ones.
+    // Sized here to the worst case with headroom; the sha1_transform calls
+    // a few lines down still only ever process the first two 64-byte blocks
+    // of it (final+0..32), which is a separate, not-yet-addressed question:
+    // whether that's a correctness gap for inputs long enough to need a
+    // third block is outside the scope of this memory-safety fix.
+    u32 final[64];
 
     final[ 0] = w0[0] | s0[0];
     final[ 1] = w0[1] | s0[1];
