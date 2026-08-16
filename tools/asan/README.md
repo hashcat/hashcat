@@ -66,6 +66,45 @@ TOOL=msan tools/asan/repro.sh 32100 --hash '$krb5asrep$17$'
 This compiles the module directly into the harness, so it needs only a
 `make DEBUG=1` core. See the caveat under "Instrument the whole tree" below.
 
+## Checking that a binary really is ASan-instrumented
+
+Worth doing before trusting a "clean" result — a harness built against an
+uninstrumented core reports real bugs as `rc=0`.
+
+```
+ldd ./hashcat | grep -i asan       # libasan.so.6 => ... when shared-linked
+nm -D ./libhashcat.so.7 | grep -c asan
+nm -a ./your_harness | grep -o '__asan_[a-z_]*' | sort -u | head
+```
+
+Check all three of `hashcat`, `libhashcat.so.7` and `modules/module_*.so` —
+they are separate link steps and can disagree, which is the whole reason the
+`DEBUG=2` link bug mattered.
+
+`ldd` is the quickest test but not sufficient on its own: a toolchain that
+statically links the ASan runtime shows nothing there while still being fully
+instrumented. `nm` catches both cases; `strings -a <bin> | grep -q
+AddressSanitizer` works even on a stripped binary.
+
+To tell ASan from MSan, look at the symbol prefix — `__asan_*` vs `__msan_*`.
+
+Runtime check, if you would rather ask the binary than the ELF:
+
+```
+ASAN_OPTIONS=protect_shadow_gap=0:verbosity=1 ./hashcat --version
+```
+
+An instrumented build prints ASan runtime chatter (interceptor and shadow-setup
+lines) before hashcat's own output. A plain build prints only the version.
+
+Example of what disagreement looks like:
+
+```
+                          ldd   nm
+DEBUG=2 hashcat           yes   yes      <- instrumented
+DEBUG=1 hashcat           no    no       <- not
+```
+
 ## Things that will waste your time if you don't know them
 
 ### `protect_shadow_gap=0` is mandatory for the GPU path
@@ -101,16 +140,30 @@ linked against an uninstrumented core reports every one of those runs as
 share a process with an ASan-built plugin. Pass `EXTRA="src/convert.c"` to widen
 it. Use `build.sh` + `sweep.sh` when looking for *unknown* bugs.
 
-### Use gcc for `build.sh`, clang for `repro.sh`
+### The harness and the libhashcat it *loads* must agree
 
-hashcat's `DEBUG=2` build is gcc against shared `libasan.so`. clang statically
-links its own ASan runtime, and mixing them aborts every run with:
+If you see this, every run dies before reaching any hashcat code:
 
 ```
 Your application is linked against incompatible ASan runtimes.
 ```
 
-`repro.sh` can use clang only because it links an uninstrumented core.
+The usual cause is not the compiler. It is that the `libhashcat.so.7` resolved
+at **run** time is not the one linked at **build** time — typically an
+ASan-instrumented copy getting pulled into a harness built against a plain
+`DEBUG=1` core, or the reverse. ASan cannot have its runtime initialised twice
+that way.
+
+Both scripts pin the loader to the core they linked against
+(`LD_LIBRARY_PATH` / `-Wl,-rpath`) for exactly this reason. If you build by
+hand, do the same, and check with `ldd ./your_harness | grep hashcat`.
+
+(Compiler choice is *not* the issue on a stock Ubuntu toolchain: gcc and
+clang there both link the same shared `libasan.so.6`, so they interoperate
+fine. `build.sh` defaults to gcc only to match how the tree itself was built;
+`CC=clang` works. A clang that statically links its own ASan runtime — some
+non-distro builds do — would genuinely conflict with a gcc-built core, so
+verify with `ldd` rather than assuming either way.)
 
 ### `halt_on_error=0`
 

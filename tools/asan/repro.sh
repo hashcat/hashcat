@@ -59,7 +59,7 @@ $CC -std=gnu99 -DDEBUG -DSTATIC_MODULE -g -O1 \
     -DWITH_BRAIN -DWITH_HWMON \
     -DHC_PLUGIN_ABI_VERSION=720 -DMODULE_INTERFACE_VERSION_CURRENT=720 \
     tools/asan/parse_harness.c "src/modules/${MOD}.c" $EXTRA \
-    "$CORE" -ldl -o "$OUT/repro_m${MODE}" -Wl,-rpath,"$CORE_DIR"
+    "$CORE" -ldl -o "$OUT/repro_${TOOL}_m${MODE}" -Wl,-rpath,"$CORE_DIR"
 
 # Pin the loader to the core we just linked against; libhashcat.so.7 can
 # otherwise resolve to another copy on the search path.
@@ -73,4 +73,4 @@ export ASAN_OPTIONS=detect_leaks=0:halt_on_error=0:use_sigaltstack=0
 export MSAN_OPTIONS=use_sigaltstack=0
 
 # argv[1] is ignored under -DSTATIC_MODULE, but the harness still expects it
-exec "$OUT/repro_m${MODE}" x "$MODE" "$@"
+exec "$OUT/repro_${TOOL}_m${MODE}" x "$MODE" "$@"

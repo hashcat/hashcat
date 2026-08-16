@@ -37,9 +37,11 @@ if ! nm -D ./libhashcat.so.7 | grep -q asan; then
   echo "         Bugs inside core helpers will not be reported. Rebuild with DEBUG=2." >&2
 fi
 
-# gcc, not clang. hashcat's DEBUG=2 build links the shared libasan.so, while
-# clang statically links its own ASan runtime; mixing the two makes every run
-# abort with "Your application is linked against incompatible ASan runtimes".
+# gcc by default, to match how the DEBUG=2 tree itself was built. CC=clang
+# works too on a stock toolchain (both link the same shared libasan.so.6).
+# What actually matters is that the libhashcat resolved at run time is the same
+# ASan-instrumented one linked here -- hence the rpath below. Mismatch there is
+# what produces "Your application is linked against incompatible ASan runtimes".
 $CC -std=gnu99 -DDEBUG -Og -ggdb -fsanitize=address -fno-omit-frame-pointer \
     -Iinclude/ -IOpenCL/ -Ideps/LZMA-SDK/C -Ideps/zlib -Ideps/zlib/contrib \
     -Ideps/OpenCL-Headers -Ideps/xxHash -Ideps/unrar \
