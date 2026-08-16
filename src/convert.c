@@ -151,7 +151,12 @@ static bool matches_separator (const u8 *buf, const size_t len, const char separ
 
 bool is_hexify (const u8 *buf, const size_t len)
 {
-  //  if (len < 6) return false; // $HEX[] = 6
+  // "$HEX[]" is 6 bytes, and everything below reads as if at least that many
+  // are present: the u32 compare covers buf[0..3], then buf[4], buf[len - 1]
+  // and buf + 5 with a length of len - 6. Anything shorter reads out of bounds
+  // and underflows that last length.
+
+  if (len < 6) return false; // $HEX[] = 6
 
   // length of the hex string must be a multiple of 2
   // and the length of "$HEX[]" is 6 (also an even length)
