@@ -385,6 +385,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     keepass->contents_len = contents_len / 2;
 
+    if (keepass->contents_len < 16)     return (PARSER_SALT_LENGTH);
+    if (keepass->contents_len % 16 != 0) return (PARSER_SALT_LENGTH);
+
     for (int i = 0, j = 0; j < contents_len; i += 1, j += 8)
     {
       keepass->contents[i] = hex_to_u32 (&contents_pos[j]);
