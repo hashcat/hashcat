@@ -82,4 +82,9 @@ RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.d
 RUN make -s binaries
 RUN tools/package_bin.sh
 
+# see the same step in BinaryPackage.ubuntu20: this is what the runtime images copy out, and it is
+# the package rather than the build tree.
+
+RUN mkdir /root/package && cp -a /root/xy/hashcat-*/. /root/package/
+
 CMD ["/bin/bash"]

@@ -145,10 +145,31 @@ using namespace metal;
  * fast but pure kernels on rocm is a good example
  */
 
-#ifdef NO_INLINE
+#if defined NO_INLINE || defined FORCE_NO_INLINE
 #define HC_INLINE
 #else
 #define HC_INLINE inline static
+#endif
+
+/**
+ * NO_INLINE only drops the `inline static` hint. That is enough for some runtimes, but LLVM-based
+ * OpenCL back-ends (AMD's "LC" / comgr stack) still inline every DECLSPEC helper at -O3 and merge a
+ * kernel built from many large helpers into one huge function. Several LLVM back-end passes (greedy
+ * register allocation, SelectionDAG scheduling) scale ~super-linearly per function, so that single
+ * function can take minutes to compile. FORCE_NO_INLINE emits the hard noinline attribute, which
+ * partitions the kernel back into many small functions.
+ *
+ * This is deliberately a separate switch from NO_INLINE: the two are not interchangeable, and
+ * NO_INLINE already has a meaning that -m 33000 relies on. Out-of-line calls cost runtime
+ * throughput, so FORCE_NO_INLINE stays opt-in per module/device and must never become a global
+ * default. Note -cl-opt-disable is not an alternative: it fails to link the static/DECLSPEC helpers
+ * (`ld.lld: undefined hidden symbol`).
+ */
+
+#ifdef FORCE_NO_INLINE
+#define HC_NOINLINE __attribute__ ((noinline))
+#else
+#define HC_NOINLINE
 #endif
 
 // On a device DECLSPEC says how a function is compiled. On the host it says something else, because
@@ -159,15 +180,15 @@ using namespace metal;
 // so the macro is always in hand by the time this is read.
 
 #if defined IS_AMD && defined IS_GPU
-#define DECLSPEC HC_INLINE
+#define DECLSPEC HC_NOINLINE HC_INLINE
 #elif defined IS_CUDA
-#define DECLSPEC __device__
+#define DECLSPEC __device__ HC_NOINLINE
 #elif defined IS_HIP
-#define DECLSPEC __device__ HC_INLINE
+#define DECLSPEC __device__ HC_NOINLINE HC_INLINE
 #elif defined IS_NATIVE
 #define DECLSPEC HC_PLUGIN_API
 #else
-#define DECLSPEC
+#define DECLSPEC HC_NOINLINE
 #endif
 
 /**

@@ -1316,7 +1316,7 @@ static bool bridge_has_members (const bridge_ctx_t *bridge_ctx)
   return true;
 }
 
-static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit_idx, const bool blank_before)
+static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit_idx)
 {
   const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
 
@@ -1326,11 +1326,12 @@ static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit
 
   if (member_count < 1) return;
 
-  // The blank line belongs to the BLOCK, not to each unit in it. Several units of a kind are listed
-  // under one heading, and a blank between every one of them would put the boards back into separate
-  // paragraphs, which is the shape this exists to remove.
-
-  if (blank_before == true) event_log_info (hashcat_ctx, NULL);
+  // Indented, and directly under the heading they belong to.
+  //
+  // These lines are what the unit above them is MADE OF, so the layout has to say so. A blank line
+  // between the two and no indent under it made them read as a second listing of their own, which is
+  // how they were read: a heading, then a paragraph break, then an unattached line starting with a
+  // number that also appears in the heading.
 
   for (int m = 0; m < member_count; m++)
   {
@@ -1338,7 +1339,7 @@ static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit
 
     if (info == NULL) continue;
 
-    event_log_info (hashcat_ctx, "%s", info);
+    event_log_info (hashcat_ctx, "  %s", info);
   }
 }
 
@@ -1456,7 +1457,7 @@ static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
 
       for (int m = 0; m < members_cnt; m++)
       {
-        bridge_unit_members_info (hashcat_ctx, members[m], (m == 0) ? true : false);
+        bridge_unit_members_info (hashcat_ctx, members[m]);
       }
     }
   }

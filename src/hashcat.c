@@ -565,6 +565,48 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  // A RUN WHERE EVERY DEVICE DIED COMPUTED NOTHING, AND MUST NOT REPORT SUCCESS.
+  //
+  // skipped_warning means a device came up and then went away during the run, which is what a bridge
+  // sets when the last board behind a unit is dropped. Every loop that walks devices already skips
+  // those, so once they are all in that state the walks find nobody, no work is done, and the run
+  // ends normally with whatever status it happened to hold.
+  //
+  // On a real attack the self test catches the cause first and the process exits non-zero. Benchmark
+  // mode has no self test, so an FPGA box whose only board was dropped printed a speed line for the
+  // devices that were still nominally present and exited 0. Measured with a single board: no speed
+  // line at all and exit 0, and with two units where one died, a total that silently omitted half the
+  // hardware.
+  //
+  // Only devices that were meant to run are counted. A device the user excluded is 'skipped' and its
+  // absence is not a failure.
+
+  int devices_live = 0;
+  int devices_lost = 0;
+
+  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  {
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_idx];
+
+    if (device_param->skipped == true) continue;
+
+    if (device_param->skipped_warning == true)
+    {
+      devices_lost++;
+
+      continue;
+    }
+
+    devices_live++;
+  }
+
+  if ((devices_live == 0) && (devices_lost > 0))
+  {
+    event_log_error (hashcat_ctx, "All compute devices were lost during this attack, so nothing was computed.");
+
+    status_ctx->devices_status = STATUS_ERROR;
+  }
+
   // update some timer
 
   time_t runtime_stop;

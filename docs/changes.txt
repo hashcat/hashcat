@@ -4,6 +4,9 @@
 ## Backward Incompatible Changes
 ##
 
+- The core is now a shared library and plugins link against it, so a plugin built for an earlier release has to be rebuilt, and a package must ship the library beside the binary
+- SHARED now defaults to 1, so a build that wants the old arrangement, where every plugin carries its own copy of the core, asks for SHARED=0
+
 1. Plugins: module_dictstat_disable was removed from the module interface
 
 A module that still sets it will no longer compile and reports "module_ctx_t has no member named module_dictstat_disable".
@@ -45,7 +48,7 @@ Setting --brain-client-features on the command line overrules the decision in ei
 
 The core ships as libhashcat.so.7 on Linux, libhashcat.7.dylib on macOS and hashcat.dll on Windows, next to the hashcat binary.
 A third-party plugin has to be rebuilt for this release and needs that library present, one directory above it.
-A plugin built against an older interface version is refused by the loader, on every platform, and the name it could not find says which one it wanted.
+A plugin built against an older interface version is refused on every platform, and hashcat says which version the file was built for and which one it provides.
 What the core offers a plugin is now said in the declaration of each function rather than measured from what the plugins in the tree happen to call, so a module can call a host side hash or cipher entry point that no module in the tree calls.
 A built plugin exports its entry point and nothing else.
 See the section "The Core Library" in docs/hashcat-plugin-development-guide.md.
@@ -147,6 +150,10 @@ See the section "The Core Library" in docs/hashcat-plugin-development-guide.md.
 - Status View: Attacks reading one source per round report their position again in Guess.Queue
 - Threads: Updated thread macros and types
 - Benchmark: Added a workaround for a CUDA benchmark memory leak caused by register spilling
+- secp256k1: inv_mod now uses a fixed-iteration safegcd inverse; -D USE_LEGACY_BINARY_GCD_INV_MOD restores the binary GCD
+- secp256k1: Factored the repeated Jacobian to affine conversion into point_to_affine
+- Kernels: Added HASHCAT_FORCE_NO_INLINE to build with -D FORCE_NO_INLINE for runtimes that inline the helpers into one slow-to-compile function
+- Backends: Environment on/off switches share one hc_env_flag helper
 
 ##
 ## Bugs
@@ -154,6 +161,8 @@ See the section "The Core Library" in docs/hashcat-plugin-development-guide.md.
 
 - Fixed combinator and hybrid attacks reporting a plaintext truncated to 256 characters, which did not match the cracked digest
 - Fixed a one byte buffer overflow in fgetl() when a line was as long as the caller's buffer
+- Fixed an out-of-bounds read in the secp256k1 point_mul_xy() when the scalar is zero
+- Fixed the secp256k1 inv_mod() looping forever on a zero input, which hangs clFinish on CPU devices
 - Fixed missing libclang dependencies for Rust bridges in Ubuntu 20.04 and Arch containers
 - Fixed the Windows Rust plugin failing to link in the Arch container because lld was missing
 - Fixed Windows Python plugins disappearing when the bundled Python version was not 3.12

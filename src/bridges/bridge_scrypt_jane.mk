@@ -3,7 +3,7 @@ SCRYPT_JANE := deps/scrypt-jane-master
 
 BRIDGE_SRC_bridge_scrypt_jane           := src/bridges/bridge_scrypt_jane.c src/cpu_features.c
 
-BRIDGE_CFLAGS_bridge_scrypt_jane        := -I$(SCRYPT_JANE)/ -DSCRYPT_SHA256 -DSCRYPT_SALSA -DSCRYPT_CHOOSE_COMPILETIME -Wno-unused-function -Wno-unused-but-set-variable
+BRIDGE_CFLAGS_bridge_scrypt_jane        := -I$(SCRYPT_JANE)/ -DSCRYPT_SHA256 -DSCRYPT_SALSA -DSCRYPT_CHOOSE_COMPILETIME -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable
 
 BRIDGE_CFLAGS_bridge_scrypt_jane_NATIVE := $(SIMD_NATIVE)
 BRIDGE_CFLAGS_bridge_scrypt_jane_LINUX  := $(SIMD_LINUX)

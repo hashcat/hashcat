@@ -6,6 +6,8 @@
 #ifndef HC_EXT_HIPRTC_H
 #define HC_EXT_HIPRTC_H
 
+#include "export.h"
+
 // start: hiprtc.h
 
 typedef enum hiprtcResult {
@@ -67,12 +69,12 @@ int hiprtc_make_options_array_from_string (char *string, char **options);
 int  hiprtc_init                 (void *hashcat_ctx);
 void hiprtc_close                (void *hashcat_ctx);
 
-int hc_hiprtcCreateProgram       (void *hashcat_ctx, hiprtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames);
-int hc_hiprtcDestroyProgram      (void *hashcat_ctx, hiprtcProgram *prog);
-int hc_hiprtcCompileProgram      (void *hashcat_ctx, hiprtcProgram prog, int numOptions, const char * const *options);
-int hc_hiprtcGetProgramLogSize   (void *hashcat_ctx, hiprtcProgram prog, size_t *logSizeRet);
-int hc_hiprtcGetProgramLog       (void *hashcat_ctx, hiprtcProgram prog, char *log);
-int hc_hiprtcGetCodeSize         (void *hashcat_ctx, hiprtcProgram prog, size_t *codeSizeRet);
-int hc_hiprtcGetCode             (void *hashcat_ctx, hiprtcProgram prog, char *code);
+HC_PLUGIN_API int hc_hiprtcCreateProgram       (void *hashcat_ctx, hiprtcProgram *prog, const char *src, const char *name, int numHeaders, const char * const *headers, const char * const *includeNames);
+HC_PLUGIN_API int hc_hiprtcDestroyProgram      (void *hashcat_ctx, hiprtcProgram *prog);
+HC_PLUGIN_API int hc_hiprtcCompileProgram      (void *hashcat_ctx, hiprtcProgram prog, int numOptions, const char * const *options);
+HC_PLUGIN_API int hc_hiprtcGetProgramLogSize   (void *hashcat_ctx, hiprtcProgram prog, size_t *logSizeRet);
+HC_PLUGIN_API int hc_hiprtcGetProgramLog       (void *hashcat_ctx, hiprtcProgram prog, char *log);
+HC_PLUGIN_API int hc_hiprtcGetCodeSize         (void *hashcat_ctx, hiprtcProgram prog, size_t *codeSizeRet);
+HC_PLUGIN_API int hc_hiprtcGetCode             (void *hashcat_ctx, hiprtcProgram prog, char *code);
 
 #endif // HC_EXT_HIPRTC_H

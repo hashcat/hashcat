@@ -393,6 +393,15 @@ HASHCAT_LIBRARY_NATIVE  := libhashcat.so.$(VERSION_MAJOR)
 HASHCAT_LIBRARY_LINUX   := libhashcat.so.$(VERSION_MAJOR)
 HASHCAT_LIBRARY_WIN     := hashcat.dll
 
+## What a linker resolves -lhashcat against. The runtime needs only the versioned file, because that
+## is the name written into everything that links it, but a plugin built out of tree names the library
+## with -l and the linker looks for the unversioned one. So the developer install adds it as a link
+## beside the library. PE has none: a plugin there names hashcat.dll and the import table records it.
+
+HASHCAT_LIBRARY_DEV_ELF   := libhashcat.so
+HASHCAT_LIBRARY_DEV_MACHO := libhashcat.dylib
+HASHCAT_LIBRARY_DEV_PE    :=
+
 ifeq ($(UNAME),Darwin)
 HASHCAT_LIBRARY_NATIVE  := libhashcat.$(VERSION_MAJOR).dylib
 endif # Darwin
@@ -658,8 +667,23 @@ endif
 # unrar
 ifeq ($(ENABLE_UNRAR),1)
 CFLAGS                  += -I$(DEPS_UNRAR_PATH)
+# UnRAR is C++ and everything that links it needs the runtime named, which is the C++ standard library
+# the system's own compiler uses: libc++ where clang is the system compiler and libstdc++ where gcc is.
+# FreeBSD, NetBSD and DragonFly fell through this without naming one, so on those systems the single
+# module that calls UnRAR, 23800, was linked short of what it needs. Nothing said so until a plugin was
+# actually loaded, because a lazily bound symbol nobody calls costs nothing.
+
 ifeq ($(UNAME),OpenBSD)
 LFLAGS                  += -lc++
+else
+ifeq ($(UNAME),FreeBSD)
+LFLAGS                  += -lc++
+else
+ifeq ($(UNAME),DragonFly)
+LFLAGS                  += -lc++
+else
+ifeq ($(UNAME),NetBSD)
+LFLAGS                  += -lstdc++
 else
 ifeq ($(UNAME),Darwin)
 LFLAGS                  += -lstdc++
@@ -669,6 +693,9 @@ LFLAGS                  += -lstdc++
 else
 ifeq ($(UNAME),Linux)
 LFLAGS                  += -lstdc++
+endif
+endif
+endif
 endif
 endif
 endif
@@ -1008,9 +1035,18 @@ endif
 ## Only clang is asked that way, because -Werror=unused-command-line-argument is a flag gcc does not
 ## have, and asking gcc with it would fail every question.
 
+## A flag can also be taken, meant, and then applied wrongly, which no answer about the flag itself
+## can reach. -fstack-clash-protection only emits anything on a frame big enough to need probing, so
+## a probe with no locals asks a question the flag never touches: x86_64-w64-mingw32-gcc 9.3 answers
+## yes to it and then dies with an internal compiler error, in i386_pe_seh_unwind_emit, on the first
+## function whose frame is large. That is why the probe below allocates one. 64 KB is past the size
+## where gcc switches from straight-line probes to a probing loop, which is the code that is broken;
+## 8 KB compiles fine on the same compiler and would answer yes again. volatile is what stops the
+## array being optimised away before it becomes a frame.
+
 CC_STRICT                = $(if $(filter 1,$(CC_$(1)_CLANG)),-Werror=unused-command-line-argument)
 
-cc_takes                 = $(shell echo 'int main (void) { return 0; }' | $(1) -O2 $(2) -c -x c - -o /dev/null >/dev/null 2>&1 && echo ok)
+cc_takes                 = $(shell echo 'int main (void) { volatile char b[65536]; b[0] = 0; return b[0]; }' | $(1) -O2 $(2) -c -x c - -o /dev/null >/dev/null 2>&1 && echo ok)
 cc_filter                = $(if $(call cc_takes,$(1),$(2)),$(2),$(foreach F,$(2),$(if $(call cc_takes,$(1),$(F)),$(F))))
 
 ## $(1) platform. What the question has to be asked with for the answer to be worth anything.
@@ -1609,6 +1645,11 @@ LIBRARY_LFLAGS_LINUX    := -shared
 LIBRARY_LFLAGS_WIN      := -shared
 
 ifeq ($(FORMAT_NATIVE),MACHO)
+## the library is linked with the C++ driver because UnRAR is C++, and that driver names the C++
+## runtime itself. Naming it a second time is a duplicate the linker reports on every build. It is
+## taken out of the flags the library link uses and left in the ones the frontend and the plugins
+## use, because those are linked with the C driver and do need it named.
+LFLAGS_NATIVE_LIBRARY_FILTER := -lstdc++
 LIBRARY_LFLAGS_NATIVE   += -install_name @rpath/$(HASHCAT_LIBRARY_NATIVE)
 LIBRARY_LFLAGS_NATIVE   += -current_version $(VERSION_PURE)
 LIBRARY_LFLAGS_NATIVE   += -compatibility_version $(VERSION_MAJOR)
@@ -1669,7 +1710,7 @@ endif
 define LIBRARY_RULES
 
 $$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) obj/arrangement
-	$$(CXX_$(1)) $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) -o $$@ $$(LFLAGS_$(1)) $$(LIBRARY_LFLAGS_$(1))
+	$$(CXX_$(1)) $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) -o $$@ $$(filter-out $$(LFLAGS_$(1)_LIBRARY_FILTER),$$(LFLAGS_$(1))) $$(LIBRARY_LFLAGS_$(1))
 
 endef
 
@@ -1969,6 +2010,7 @@ install_library: $(HASHCAT_LIBRARY)
 .PHONY: install_library_dev
 install_library_dev: install_make_library_dev_root obj/api.c
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(LIBRARY_DEV_FOLDER)
+	$(if $(HASHCAT_LIBRARY_DEV_$(FORMAT_NATIVE)),ln -sf $(HASHCAT_LIBRARY_NATIVE) $(DESTDIR)$(LIBRARY_FOLDER)/$(HASHCAT_LIBRARY_DEV_$(FORMAT_NATIVE)))
 	$(INSTALL) -m 644 $(API_HEADERS)                                        $(DESTDIR)$(LIBRARY_DEV_FOLDER)/
 	@for HEADER in $(API_DEP_HEADERS); do \
 	  RELATIVE="$$HEADER"; \

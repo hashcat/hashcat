@@ -3,16 +3,19 @@ name: Build
 ##
 ## What is built, and what is run.
 ##
-## The user base is Linux and Windows, so those two are built in both arrangements and, more to the
-## point, the binaries they produce are started and made to crack something. A build that links is
-## not a build that runs: a plugin whose imports do not resolve, a package missing a directory and a
-## core the loader finds somewhere else all pass a compile and fail a user.
+## The user base is Linux and Windows, so those two are built in both arrangements. Every build is
+## followed by the checks in tools/test_package.sh, because a build that links is not a build that
+## works: a plugin whose imports do not resolve, a package missing a directory and a core the loader
+## finds somewhere else all pass a compile and fail a user.
+##
+## Those checks ask nothing of a backend device, because a runner has none. Anything that needs one
+## says so and is left out here.
 ##
 ## macOS is built in the arrangement it ships in. FreeBSD stands in for the BSDs here, the other
 ## three are built weekly by .github/workflows/bsd.yml.
 ##
-## The release binaries are the cross compiled ones, so those are what the run jobs take apart. They
-## are downloaded into a directory of their own and run there, which is what an unpacked archive is.
+## The cross compiled binaries are the ones that ship, so they are checked too, in the job that
+## builds them and before they are uploaded.
 ##
 
 env:
@@ -259,6 +262,9 @@ jobs:
                CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ \
                CXX_LINUX=clang++ CXX_WIN=clang++ \
                AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar
+
+      - name: Check what is about to be uploaded
+        run: bash tools/test_package.sh . --no-device
 
       - name: Generate artifacts
         uses: actions/upload-artifact@v4

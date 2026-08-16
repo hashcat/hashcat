@@ -6,6 +6,8 @@
 #ifndef HC_EXT_HIP_H
 #define HC_EXT_HIP_H
 
+#include "export.h"
+
 // The general Idea with HIP is to use it for AMD GPU since we use CUDA for NV
 // Therefore, we need to take certain items, such as hipDeviceptr_t from driver specific paths like amd_driver_types.h
 // We just need to keep this in mind in case we need to update these constants from future SDK versions
@@ -682,31 +684,31 @@ int hc_hipEventRecord           (void *hashcat_ctx, hipEvent_t hEvent, hipStream
 int hc_hipEventSynchronize      (void *hashcat_ctx, hipEvent_t hEvent);
 int hc_hipFuncGetAttribute      (void *hashcat_ctx, int *pi, hipFunction_attribute attrib, hipFunction_t hfunc);
 int hc_hipInit                  (void *hashcat_ctx, unsigned int Flags);
-int hc_hipLaunchKernel          (void *hashcat_ctx, hipFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, hipStream_t hStream, void **kernelParams, void **extra);
-int hc_hipMemAlloc              (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize);
-int hc_hipMemFree               (void *hashcat_ctx, hipDeviceptr_t dptr);
+HC_PLUGIN_API int hc_hipLaunchKernel          (void *hashcat_ctx, hipFunction_t f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, hipStream_t hStream, void **kernelParams, void **extra);
+HC_PLUGIN_API int hc_hipMemAlloc              (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t bytesize);
+HC_PLUGIN_API int hc_hipMemFree               (void *hashcat_ctx, hipDeviceptr_t dptr);
 int hc_hipMemGetInfo            (void *hashcat_ctx, size_t *free, size_t *total);
 int hc_hipMemcpyDtoD            (void *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount);
 int hc_hipMemcpyDtoH            (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount);
-int hc_hipMemcpyHtoD            (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount);
+HC_PLUGIN_API int hc_hipMemcpyHtoD            (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount);
 int hc_hipMemsetD32             (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned int ui, size_t N);
 int hc_hipMemsetD8              (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned char uc, size_t N);
 int hc_hipMemcpyDtoDAsync       (void *hashcat_ctx, hipDeviceptr_t dstDevice, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
-int hc_hipMemcpyDtoHAsync       (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
+HC_PLUGIN_API int hc_hipMemcpyDtoHAsync       (void *hashcat_ctx, void *dstHost, hipDeviceptr_t srcDevice, size_t ByteCount, hipStream_t hStream);
 int hc_hipMemcpyHtoDAsync       (void *hashcat_ctx, hipDeviceptr_t dstDevice, const void *srcHost, size_t ByteCount, hipStream_t hStream);
 int hc_hipMemsetD32Async        (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned int ui, size_t N, hipStream_t hStream);
 int hc_hipMemsetD8Async         (void *hashcat_ctx, hipDeviceptr_t dstDevice, unsigned char uc, size_t N, hipStream_t hStream);
-int hc_hipModuleGetFunction     (void *hashcat_ctx, hipFunction_t *hfunc, hipModule_t hmod, const char *name);
+HC_PLUGIN_API int hc_hipModuleGetFunction     (void *hashcat_ctx, hipFunction_t *hfunc, hipModule_t hmod, const char *name);
 int hc_hipModuleGetGlobal       (void *hashcat_ctx, hipDeviceptr_t *dptr, size_t *bytes, hipModule_t hmod, const char *name);
-int hc_hipModuleLoadDataEx      (void *hashcat_ctx, hipModule_t *module, const void *image, unsigned int numOptions, hipJitOption *options, void **optionValues);
-int hc_hipModuleUnload          (void *hashcat_ctx, hipModule_t hmod);
+HC_PLUGIN_API int hc_hipModuleLoadDataEx      (void *hashcat_ctx, hipModule_t *module, const void *image, unsigned int numOptions, hipJitOption *options, void **optionValues);
+HC_PLUGIN_API int hc_hipModuleUnload          (void *hashcat_ctx, hipModule_t hmod);
 int hc_hipRuntimeGetVersion     (void *hashcat_ctx, int *runtimeVersion);
-int hc_hipSetDevice             (void *hashcat_ctx, hipDevice_t dev);
+HC_PLUGIN_API int hc_hipSetDevice             (void *hashcat_ctx, hipDevice_t dev);
 int hc_hipSetDeviceFlags        (void *hashcat_ctx, unsigned int flags);
 int hc_hipStreamCreate          (void *hashcat_ctx, hipStream_t *phStream);
-int hc_hipStreamCreateWithFlags (void *hashcat_ctx, hipStream_t *phStream, unsigned int flags);
-int hc_hipStreamDestroy         (void *hashcat_ctx, hipStream_t hStream);
-int hc_hipStreamSynchronize     (void *hashcat_ctx, hipStream_t hStream);
+HC_PLUGIN_API int hc_hipStreamCreateWithFlags (void *hashcat_ctx, hipStream_t *phStream, unsigned int flags);
+HC_PLUGIN_API int hc_hipStreamDestroy         (void *hashcat_ctx, hipStream_t hStream);
+HC_PLUGIN_API int hc_hipStreamSynchronize     (void *hashcat_ctx, hipStream_t hStream);
 int hc_hipGetDeviceProperties   (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevice_t dev);
 int hc_hipModuleOccupancyMaxActiveBlocksPerMultiprocessor (void *hashcat_ctx, int *numBlocks, hipFunction_t f, int blockSize, size_t dynSharedMemPerBlk);
 

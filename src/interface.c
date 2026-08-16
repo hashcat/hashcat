@@ -148,6 +148,14 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   module_ctx->module_advice_notice = MODULE_DEFAULT; // set all module to have advice_notice empty by default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
   module_ctx->module_init (module_ctx);
 
+  // The two optional fields are the only ones not covered by CHECK_DEFINED below, so a module that
+  // assigns NULL to one of them instead of leaving it alone gets past every guard: the readers test
+  // against MODULE_DEFAULT, not against NULL, and then call it. Seeding them before module_init ()
+  // only covers the module that says nothing. This covers the one that says NULL.
+
+  if (module_ctx->module_usage_notice  == NULL) module_ctx->module_usage_notice  = MODULE_DEFAULT;
+  if (module_ctx->module_advice_notice == NULL) module_ctx->module_advice_notice = MODULE_DEFAULT;
+
   if (module_ctx->module_context_size != MODULE_CONTEXT_SIZE_CURRENT)
   {
     event_log_error (hashcat_ctx, "Module context size in 'module_init()' for hash-mode '%d' is invalid. Is this module based on an old template?", user_options->hash_mode);

@@ -918,19 +918,13 @@ The number comes from `-DHC_PLUGIN_ABI_VERSION` on your compile line, which is w
 
 The Rust feed is the one plugin here that is not built this way. It calls nothing in the core, cargo never sees a link line, and it declares its interface version in `GENERIC_PLUGIN_VERSION` instead, which the core reads after loading it.
 
-On Linux this is what the user sees:
+This is what the user sees, and it reads the same on every platform:
 
 ```
-/home/user/hashcat/modules/module_12345.so: undefined symbol: HASHCAT_PLUGIN_720
+Module modules/module_12345.so was built for plugin interface 719, this hashcat provides 720
 ```
 
-hashcat then stops. The plugin was built against interface version 720 and the library in front of it carries a different one. Windows says less, because its loader reports a code rather than the name it was looking for, so there you see:
-
-```
-Cannot load module modules/module_12345.dll: The specified procedure could not be found.
-```
-
-If you get that line and the file is there and readable, the plugin was built against a different interface version.
+hashcat then stops. The loader that refused the plugin says different things on different systems, the Unix one names the symbol it could not resolve and the Windows one reports only that a procedure was not found, so hashcat reads the version out of the file itself and reports that instead. If the file is there and readable and you see that line, the plugin needs rebuilding against this hashcat.
 
 Building a plugin against a core whose number has already moved does not get that far on Windows. The link fails there, because an import has to resolve at link time, and it names the same symbol. On Linux and macOS the link succeeds and the refusal happens at load.
 
@@ -947,3 +941,20 @@ The first two mean the module has to be rebuilt. The last one means a line is mi
 Finally, if you want the old arrangement back, `make SHARED=0` builds it. Every plugin is then self contained and asks nothing of the runtime loader, which is what to fall back to on a platform where the library misbehaves. Do not mix the two by hand. A plugin built one way, sitting next to a frontend built the other way, puts two copies of the core into one process, each with its own globals. Switching with `make` is safe, because the build knows which arrangement the tree was last built in and relinks what that decides. Copying single files from one tree into the other is not safe.
 
 Nothing at load time catches that. A static plugin is complete, it exports the same one name, and the loader has nothing to fail on. What catches it is `tools/test_package.sh`, which asks every shipped plugin whether it names the core library in its own dependencies, and it is the reason to run that script over a package before shipping it. Note that `SHARED` defaults to 0 on any platform other than Linux and macOS, MSYS2 included, while the Windows release is built shared, so a plugin built natively on Windows against a downloaded release is the case to watch for. Pass `SHARED=1` there.
+
+## Porting a plugin from 7.1.2 ##
+
+The section above is the whole story of how a plugin is built and loaded. This one is the short list of what changed in the source between the 7.1.2 release and now, for somebody who has a working plugin and wants it building again.
+
+What you need to do:
+
+One hook is gone: `module_dictstat_disable`. Remove the line in `module_init()` that registers it and two hooks are new, `module_usage_notice` and `module_advice_notice`, which let a module print a usage or an advice line of its own.
+
+Here's a small sed automatisation line for both halves of that, if your `module_init()` still looks like the in-tree template. It anchors on the field names rather than on line numbers, so it does not care where in the list they sit:
+
+```
+sed -i -e '/module_ctx->module_dictstat_disable/d' \
+       -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
+       src/modules/module_*.c
+```

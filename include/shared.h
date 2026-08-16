@@ -68,4 +68,7 @@ HC_API const char *stroptitype (const u32 opti_type);
 HC_PLUGIN_API u32 previous_power_of_two (const u32 x);
 HC_PLUGIN_API u32 next_power_of_two (const u32 x);
 
+// On/off environment switch, looked up once. Pass a static int initialised to -1 as the cache.
+bool hc_env_flag (const char *name, int *cache);
+
 #endif // HC_SHARED_H

@@ -1308,13 +1308,9 @@ static u64    g_pipe_cands;
 
 static bool pipe_enabled (void)
 {
-  static int on = -1;
+  static int cache = -1;
 
-  if (on == -1) on = (getenv ("HASHCAT_PIPE") != NULL) ? 1 : 0;
-
-  const bool result = (on == 1) ? true : false;
-
-  return result;
+  return hc_env_flag ("HASHCAT_PIPE", &cache);
 }
 
 // How many launches between reports. HASHCAT_PIPE=1 keeps the fifty it always used, and any larger
@@ -14568,13 +14564,21 @@ void backend_session_context_reset (hashcat_ctx_t *hashcat_ctx)
 
 static bool memory_debug_enabled (void)
 {
-  static int on = -1;
+  static int cache = -1;
 
-  if (on == -1) on = (getenv ("HASHCAT_MEMORY") != NULL) ? 1 : 0;
+  return hc_env_flag ("HASHCAT_MEMORY", &cache);
+}
 
-  const bool result = (on == 1) ? true : false;
+// Set HASHCAT_FORCE_NO_INLINE to build the kernels with -D FORCE_NO_INLINE, which forces the
+// DECLSPEC helpers out-of-line (see OpenCL/inc_vendor.h). It exists for runtimes that need minutes
+// to compile a kernel whose helpers all get inlined into one huge function. It costs runtime
+// throughput, so it is off by default and is a knob the user turns rather than a built-in default.
 
-  return result;
+static bool force_no_inline_enabled (void)
+{
+  static int cache = -1;
+
+  return hc_env_flag ("HASHCAT_FORCE_NO_INLINE", &cache);
 }
 
 // How many active devices share one physical device.
@@ -15654,6 +15658,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     char *build_options_buf = (char *) hcmalloc (build_options_sz);
 
     int build_options_len = snprintf(build_options_buf, build_options_sz, "-D KERNEL_STATIC ");
+
+    if (force_no_inline_enabled () == true)
+    {
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D FORCE_NO_INLINE ");
+    }
 
     #if defined (DEBUG) && (DEBUG >= 1)
     // only HIP and OpenCL have '-g'
