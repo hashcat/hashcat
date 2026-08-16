@@ -617,6 +617,10 @@ else
 CFLAGS                  += -DDEBUG -O0 -ggdb
 endif
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
+# ASan must reach the link too, otherwise every target that links the C++ deps
+# (deps/unrar) fails with undefined __asan_* references. CFLAGS alone is not
+# enough for the shared-library layout.
+LFLAGS                  += -fsanitize=address
 endif
 endif
 endif
