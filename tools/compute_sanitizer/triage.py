@@ -73,6 +73,14 @@ _BARE_ADDRESS_RE = re.compile(r"^Address (0x[0-9a-fA-F]+)\s*$")
 # "ERROR SUMMARY: N errors were not printed. Use --print-limit ..." line,
 # which starts with the same literal but isn't the real total.
 _ERROR_SUMMARY_RE = re.compile(r"^ERROR SUMMARY:\s*(\d+) errors?\s*$")
+# racecheck doesn't use "ERROR SUMMARY:" at all -- its own tool-specific
+# footer is "RACECHECK SUMMARY: N hazards displayed (X errors, Y warnings)".
+# Confirmed against a real clean run; without this, that line falls through
+# to the generic "new block" branch and gets misclassified as a spurious
+# "Unknown" finding on every racecheck run, clean or not.
+_RACECHECK_SUMMARY_RE = re.compile(
+    r"^RACECHECK SUMMARY:\s*\d+ hazards? displayed\s*\((\d+) errors?,\s*\d+ warnings?\)\s*$"
+)
 
 
 def infer_kind(what_text):
@@ -122,10 +130,16 @@ def parse_sanitizer_log(log_path):
             total_errors_reported = int(m.group(1))
             continue
 
-        if content.startswith("ERROR SUMMARY:"):
+        m = _RACECHECK_SUMMARY_RE.match(content)
+        if m:
+            total_errors_reported = int(m.group(1))
+            continue
+
+        if content.startswith("ERROR SUMMARY:") or content.startswith("RACECHECK SUMMARY:"):
             # The "N errors were not printed. Use --print-limit ..." follow-up
             # line when --print-limit truncated output -- informational, not
-            # a finding of its own.
+            # a finding of its own. Also catches any RACECHECK SUMMARY: shape
+            # that doesn't match the regex above (e.g. a truncated variant).
             continue
 
         if content == "":

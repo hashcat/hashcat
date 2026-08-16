@@ -608,6 +608,11 @@ else
 CFLAGS                  += -DDEBUG -O0 -ggdb
 endif
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
+# ASan must reach the link too, otherwise every target that links the C++ deps
+# (deps/unrar) fails with undefined __asan_* references. CFLAGS alone is not
+# enough for the shared-library layout: libhashcat.so.7, the module plugins and
+# the feed plugins are all separate link steps.
+LFLAGS                  += -fsanitize=address
 endif
 endif
 endif
