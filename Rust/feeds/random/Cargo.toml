@@ -1,5 +1,5 @@
 [package]
-name = "dummy"
+name = "random"
 version = "7.1.2"
 edition = "2024"
 
@@ -7,6 +7,9 @@ edition = "2024"
 
 [lib]
 crate-type = ["cdylib"]
+
+[build-dependencies]
+winresource = "0.1"
 
 [profile.release]
 opt-level = 3

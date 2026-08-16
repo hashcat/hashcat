@@ -131,6 +131,8 @@ typedef enum event_identifier
   EVENT_CRACKER_FINISHED          = 0x00000030,
   EVENT_CRACKER_HASH_CRACKED      = 0x00000031,
   EVENT_CRACKER_STARTING          = 0x00000032,
+  EVENT_GENERIC_INIT_POST         = 0x00000140,
+  EVENT_GENERIC_INIT_PRE          = 0x00000141,
   EVENT_HASHCONFIG_PRE            = 0x00000040,
   EVENT_HASHCONFIG_POST           = 0x00000041,
   EVENT_HASHLIST_COUNT_LINES_POST = 0x00000050,
@@ -193,6 +195,12 @@ typedef enum amplifier_count
   KERNEL_RULES                      = 256,
 
 } amplifier_count_t;
+
+// How many pieces one amplifier item is cut into. Every attack mode but -a 12 uses one, the single
+// buffer that is appended to the base word. -a 12 uses four: the mask in front of the base word, the
+// mask between the two words, the second word, and the mask behind the last word.
+
+#define COMBS_PIECE_CNT 4
 
 typedef enum vendor_id
 {
@@ -261,11 +269,75 @@ typedef enum wl_mode
 {
   WL_MODE_NONE    = 0,
   WL_MODE_STDIN   = 1,
-  WL_MODE_FILE    = 2,
-  WL_MODE_MASK    = 3,
-  WL_MODE_GENERIC = 4,
+  WL_MODE_MASK    = 2,
+  WL_MODE_GENERIC = 3,
 
 } wl_mode_t;
+
+// Where an attack takes its base words from. This is not the attack mode and must not be confused with
+// it: the attack mode says what the user asked for, this says which producer fills a batch. The two
+// disagree wherever the same mode can take its base words from more than one place. -a 7 is the
+// clearest: under the optimized kernel the dictionary is the base and the mask is the amplifier, and
+// under the pure kernel it is the other way round.
+//
+// The alternative was to rewrite the attack mode itself, which is what hashcat used to do. Every test
+// on the attack mode that ran afterwards then silently meant something else, and --loopback stopped
+// working with no message because of exactly that.
+
+typedef enum base_source
+{
+  BASE_SOURCE_NONE = 0,
+  BASE_SOURCE_MASK = 1,
+  BASE_SOURCE_FEED = 2,
+
+} base_source_t;
+
+// Where the ?w marker goes on a mask that was not typed with one. -a 1, -a 6 and -a 7 are rewritten
+// into -a 12 masks, and the marker is put on each mask as it is appended rather than on the argument,
+// so that a mask file gets it per line and --increment gets it per length.
+
+typedef enum marker_policy
+{
+  MARKER_POLICY_NONE     = 0,
+  MARKER_POLICY_PREFIX_W = 1,
+  MARKER_POLICY_SUFFIX_W = 2,
+
+} marker_policy_t;
+
+// How much of the attack one feed instance covers.
+//
+// Normally all of it: every dictionary is laid end to end into one keyspace, which is what makes
+// --skip and --limit work across all of them and what -a 0 has done since the flip.
+//
+// Two things cannot be expressed that way, and both are a queue of attacks rather than one attack.
+// An induction round produces its dictionary during the run, so it does not exist when the instance
+// would have to be opened. -a 9 pairs word N with salt N, so several dictionaries are several
+// attacks over the same salts and laying them end to end would change what the run means. Both get
+// one instance per round over the one dictionary that round reads.
+
+typedef enum base_scope
+{
+  BASE_SCOPE_ALL_SOURCES = 0,
+  BASE_SCOPE_PER_ROUND   = 1,
+
+} base_scope_t;
+
+// Which lengths an attack will accept for a base word, and the whole of the difference between the
+// attack modes on that question.
+//
+// -a 0 applies both of the hash mode's bounds, because a base word is already the whole candidate. The
+// combinator kernels apply only the upper one: the base word is half a candidate and the other half has
+// not been added yet, so a short one is not too short. -a 9 applies neither, and that is not a relaxation
+// but a requirement. Word N belongs to salt N, so dropping one moves every later word onto the wrong
+// hash.
+
+typedef enum base_length
+{
+  BASE_LENGTH_BOTH = 0,
+  BASE_LENGTH_MAX  = 1,
+  BASE_LENGTH_NONE = 2,
+
+} base_length_t;
 
 typedef enum hl_mode
 {
@@ -287,6 +359,7 @@ typedef enum attack_mode
   ATTACK_MODE_HYBRID2     = 7,
   ATTACK_MODE_GENERIC     = 8,
   ATTACK_MODE_ASSOCIATION = 9,
+  ATTACK_MODE_HYBRID      = 12,
   ATTACK_MODE_NONE        = 100
 
 } attack_mode_t;
@@ -692,6 +765,10 @@ typedef enum guess_mode
   GUESS_MODE_GENERIC                    = 15,
   GUESS_MODE_GENERIC_RULES_FILE         = 16,
   GUESS_MODE_GENERIC_RULES_GEN          = 17,
+  GUESS_MODE_HYBRID                     = 18,
+  GUESS_MODE_HYBRID_CS                  = 19,
+  GUESS_MODE_HYBRID_Q                   = 20,
+  GUESS_MODE_HYBRID_Q_CS                = 21,
 
 } guess_mode_t;
 
@@ -725,7 +802,7 @@ typedef enum user_options_defaults
   BITMAP_MIN               = 16,
   #ifdef WITH_BRAIN
   BRAIN_CLIENT             = false,
-  BRAIN_CLIENT_FEATURES    = 2,
+  BRAIN_CLIENT_FEATURES    = 3,
   BRAIN_PORT               = 6863,
   BRAIN_SERVER             = false,
   BRAIN_SESSION            = 0,
@@ -963,6 +1040,7 @@ typedef enum user_options_map
   IDX_VERSION                   = 'V',
   IDX_WORDLIST_AUTOHEX_DISABLE  = 0xff54,
   IDX_WORKLOAD_PROFILE          = 'w',
+  IDX_ENCRYPT_WITH_PUBKEY       = 0xff70,
 
 } user_options_map_t;
 
@@ -1192,7 +1270,6 @@ typedef struct hashconfig
 
   u32 forced_outfile_format;
 
-  bool dictstat_disable;
   bool hlfmt_disable;
   bool warmup_disable;
   bool outfile_check_disable;
@@ -1339,6 +1416,16 @@ typedef struct hc_device_param
 
   int     bridge_link_device;
 
+  // A copy of another device rather than a device of its own. Virtualisation makes one backend device
+  // per bridge unit, all of them the same physical device, because a unit computes but does not feed
+  // itself and needs something to generate its candidates.
+  //
+  // The first copy is left unmarked and stands for the physical device. The rest are marked here so
+  // that -I can describe the machine rather than the work: a run with 33 bridge units otherwise lists
+  // 33 identical CPUs, which reads as something being badly wrong.
+
+  bool    is_virtual;
+
   st_status_t st_status;        // selftest status
 
   at_status_t at_status;        // autotune status
@@ -1481,6 +1568,7 @@ typedef struct hc_device_param
   u64  size_hooks;
   u64  size_bfs;
   u64  size_combs;
+  u64  size_combs_c;
   u64  size_rules;
   u64  size_rules_c;
   u64  size_root_css;
@@ -1517,8 +1605,14 @@ typedef struct hc_device_param
 
   char     *scratch_buf;
 
-  HCFILE    combs_fp;
   pw_t     *combs_buf;
+
+  // Whether combs_buf holds the amplifier chunk that is on the device. It does for every attack mode
+  // that builds the amplifier on the host, and it does not for the one -a 12 shape whose mask the mask
+  // processor produces on the device. Anything rebuilding a candidate has to know which, because in
+  // the second case the buffer holds whatever was in it last.
+
+  bool      combs_on_host;
 
   void     *hooks_buf;
 
@@ -1539,6 +1633,14 @@ typedef struct hc_device_param
   void    *h_tmps; // we need this only for bridges
 
   u64     words_off;
+
+  // Where the batch being launched starts. words_off above belongs to the producer, which is filling
+  // the next batch while this one runs, so by the time a crack is reported it has already moved on.
+  // A crack is booked at a position in the keyspace, so that position has to come from the batch and
+  // not from wherever the producer happens to have got to.
+
+  u64     words_off_launch;
+
   u64     words_done;
 
   u64     outerloop_pos;
@@ -2125,6 +2227,11 @@ typedef struct backend_ctx
 
   int                 comptime;
 
+  // digest of every kernel source that is shared by all kernels, read once because it does not depend
+  // on the device or on the hash mode
+
+  u32                 kernel_shared_chksum;
+
   int                 force_jit_compilation;
 
   // cuda
@@ -2274,19 +2381,6 @@ typedef struct debugfile_ctx
 
 } debugfile_ctx_t;
 
-typedef struct dictstat
-{
-  u64 cnt;
-
-  struct stat stat;
-
-  char encoding_from[64];
-  char encoding_to[64];
-
-  u8 hash_filename[16];
-
-} dictstat_t;
-
 typedef struct hashdump
 {
   int version;
@@ -2294,22 +2388,6 @@ typedef struct hashdump
   hashes_t hashes;
 
 } hashdump_t;
-
-typedef struct dictstat_ctx
-{
-  bool enabled;
-
-  char *filename;
-
-  dictstat_t *base;
-
-  #if defined (_WIN)
-  u32    cnt;
-  #else
-  size_t cnt;
-  #endif
-
-} dictstat_ctx_t;
 
 typedef struct loopback_ctx
 {
@@ -2328,6 +2406,26 @@ typedef struct mf
   int  mf_len;
 
 } mf_t;
+
+// State for --encrypt-with-pubkey. The library handle and the key are void pointers so that no
+// OpenSSL header is needed to build hashcat; see ext_openssl.h.
+
+typedef struct pubkey_ctx
+{
+  bool    enabled;
+
+  void   *openssl;                    // hc_openssl_lib_t
+  void   *pubkey;                     // EVP_PKEY
+
+  int     key_bits;
+  size_t  key_size;
+  size_t  capacity;                   // key_size minus the OAEP overhead
+
+  char    keyid[17];                  // 16 hex characters and a terminator
+
+  u64     run_time;                   // stamped into every payload
+
+} pubkey_ctx_t;
 
 typedef struct outfile_ctx
 {
@@ -2495,24 +2593,6 @@ typedef struct tuning_db
 
 } tuning_db_t;
 
-typedef struct wl_data
-{
-  bool enabled;
-
-  char *buf;
-  u64  incr;
-  u64  avail;
-  u64  cnt;
-  u64  pos;
-
-  bool    iconv_enabled;
-  iconv_t iconv_ctx;
-  char   *iconv_tmp;
-
-  void (*func) (char *, u64, u64 *, u64 *);
-
-} wl_data_t;
-
 typedef struct user_options
 {
   const char  *hc_bin;
@@ -2520,9 +2600,15 @@ typedef struct user_options
   int          hc_argc;
   char       **hc_argv;
 
+  // The vector the attack mode alias built, kept only so that it can be freed. hc_argv points at it
+  // while the alias is in force and at argv otherwise, so it cannot be freed through hc_argv.
+
+  char       **hc_argv_alias;
+
   bool         attack_mode_chgd;
   bool         autodetect;
   #ifdef WITH_BRAIN
+  bool         brain_client_features_chgd;
   bool         brain_host_chgd;
   bool         brain_port_chgd;
   bool         brain_password_chgd;
@@ -2649,7 +2735,20 @@ typedef struct user_options
   const char  *rule_buf_l;
   const char  *rule_buf_r;
   const char  *session;
+  char        *encrypt_with_pubkey;
   u32          attack_mode;
+
+  // The attack mode the user asked for, which is not always the one the run uses. -a 1, -a 6 and
+  // -a 7 are rewritten into -a 12 masks at startup, so everything below the rewrite sees -a 12, and
+  // the few things that have to answer for what was typed read this instead.
+
+  u32          attack_mode_typed;
+
+  // Where that rewrite puts the ?w marker on each mask. It is also what says a mask came from an
+  // aliased mode rather than from the user.
+
+  u32          marker_policy;
+
   u32          backend_devices_virtmulti;
   u32          backend_devices_virthost;
   u32          backend_devices_keepfree;
@@ -2714,7 +2813,30 @@ typedef struct user_options_extra
   u32 rule_len_r;
   u32 rule_len_l;
 
+  // Which of -j and -k applies to the base word and which to the amplifier. That is not the same
+  // question as which flag the user typed. -j is the rule for the left hand side of a candidate and -k
+  // for the right, but which side the base loop walks depends on the attack mode: -a 7 builds mask plus
+  // word, so its word is the right hand side, and -a 1 takes whichever of its two dictionaries is
+  // larger as the base.
+  //
+  // Resolving it once here is what lets combinator_ctx_init stop swapping the user's own options in
+  // place, and what takes the -a 7 special case out of every producer that reads a base word.
+
+  const char *rule_buf_base;
+  const char *rule_buf_amp;
+
+  u32 rule_len_base;
+  u32 rule_len_amp;
+
+  u32 base_source;
+  u32 base_scope;
   u32 wordlist_mode;
+
+  // Whether the last work argument is the wordlist a ?q names. A -a 12 the user typed says so with a
+  // third argument, a -a 1 rewritten into one always has one, and a -a 6 rewritten into one never
+  // does and may have any number of base wordlists, so the count alone cannot answer it.
+
+  bool hybrid_q;
 
   char   separator;
 
@@ -2722,6 +2844,12 @@ typedef struct user_options_extra
 
   int    hc_workc;  // can be 0 in bf-mode = default mask
   char **hc_workv;
+
+  // -a 9 given nothing but a hash file splits that file itself: on each line the text before the first
+  // separator is the candidate and the rest is the hash. That is the same pairing the two argument form
+  // makes, with the wordlist taken out of the hash file instead of out of a second file.
+
+  bool   association_autosplit;
 
 } user_options_extra_t;
 
@@ -2806,8 +2934,12 @@ typedef struct combinator_ctx
 {
   bool enabled;
 
-  char *dict1;
-  char *dict2;
+  // Whether the two feed instances were swapped so that the bigger wordlist is the base word source.
+  // Only a mask that is two wordlists and nothing else can be swapped, and the amplifier then goes in
+  // front of the base word rather than behind it, so that the candidate is still the first wordlist's
+  // word followed by the second's.
+
+  bool roles_swapped;
 
   u32 combs_mode;
   u64 combs_cnt;
@@ -2826,6 +2958,20 @@ typedef struct mask_ctx
   cs_t  *css_buf;
   u32    css_cnt;
 
+  // Where the word markers sit in the mask, counted in css entries, which is the same as bytes because
+  // every css entry produces exactly one character. css_buf holds the mask with the markers removed,
+  // so the three mask pieces are the entries below pre_len, the mid_len entries after those, and
+  // whatever is left. Every one of the three is allowed to be empty, and so is ?q.
+  //
+  //   ?d?w?d?q?d   pre_len 1, mid_len 1, has_q true,  one entry left over for the piece at the end
+  //   ?w?d?d       pre_len 0, mid_len 0, has_q false, two entries left over
+  //   ?w?q         pre_len 0, mid_len 0, has_q true,  nothing left over, which is -a 1
+
+  bool   has_w;
+  bool   has_q;
+  u32    pre_len;
+  u32    mid_len;
+
   hcstat_table_t *root_table_buf;
   hcstat_table_t *markov_table_buf;
 
@@ -2833,6 +2979,12 @@ typedef struct mask_ctx
   cs_t  *markov_css_buf;
 
   bool   mask_from_file;
+
+  // Whether any mask in this run puts the base word inside the amplifier rather than at one end of
+  // it. The kernels compile the five piece assembly in only when it does, and it goes into the kernel
+  // cache key, so two runs that build different source out of one file cannot share a cached result.
+
+  bool   needs_middle;
 
   char **masks;
   u32    masks_pos;
@@ -2855,6 +3007,40 @@ typedef struct generic_global_ctx
   char  *profile_dir;
   char  *cache_dir;
 
+  // What the status display puts inside "Guess.Base.......: Feed (...)". A feed may write its own
+  // during global_init (), because the plugin name alone says what is generating and not what it is
+  // generating from: "Feed (rockyou.pcfg)" tells the user something that "Feed (pcfg)" does not.
+  // Left empty, hashcat falls back to the plugin name.
+
+  char   guess_base[256];
+
+  // A feed built from several named sources laid end to end can publish where each one begins in the
+  // keyspace, and then the status line says which source the run has reached rather than naming only
+  // the first one. segment_first[i] is the offset source i starts at, ascending.
+  //
+  // hashcat reports the source holding the restore point, which is the contiguous prefix every device
+  // has finished. Asking a device where it is would give a different answer per device and flicker
+  // between them, because the whole point of the feed is that devices work separate ranges at once.
+  //
+  // A feed with nothing to segment leaves segments_cnt at zero and keeps guess_base as it is.
+
+  u64          segments_cnt;
+  const char **segment_names;
+  const u64   *segment_first;
+
+  // What this feed reads from, as one number, so that something which has to tell two runs apart can
+  // do it without knowing what a source is. A path is not enough: the same path holds different words
+  // on different days, and a run over the new contents is a different attack from a run over the old.
+  //
+  // The brain is what needs it. It keys its record of covered keyspace on the attack, so a feed whose
+  // inputs changed has to look like a different attack or the second run is told the first one already
+  // covered it.
+  //
+  // A feed that cannot say leaves it at zero, which is what a pipe does: there is nothing to identify
+  // until it has been read, and by then it is too late to be worth saying.
+
+  u64 source_ident;
+
   bool   error;
   char   error_msg[256];
 
@@ -2864,6 +3050,21 @@ typedef struct generic_global_ctx
 
 typedef struct generic_thread_ctx
 {
+  // A failure inside thread_init (), thread_term (), thread_next () or thread_seek () is reported
+  // here and not in the global context, because those four run on one device thread each and a
+  // shared flag would let one device's failure speak for all of them.
+
+  bool   error;
+  char   error_msg[256];
+
+  // Which backend device this thread feeds. hashcat keeps one of these per device and hands each
+  // device its own, so a feed that only produces candidates never needs to know. One that wants to
+  // do work on the same device it feeds does: it is the index into backend_ctx->devices_param, and
+  // with the hashcat_ctx a feed is given in global_init () that is enough to reach the device
+  // itself. Set before thread_init () is called, and left alone afterwards.
+
+  int    device_id;
+
   void  *thrdata; // super generic
 
 } generic_thread_ctx_t;
@@ -2874,8 +3075,25 @@ typedef u64  (*GENERIC_GLOBAL_KEYSPACE) (generic_global_ctx_t *, generic_thread_
 
 typedef bool (*GENERIC_THREAD_INIT)     (generic_global_ctx_t *, generic_thread_ctx_t *);
 typedef void (*GENERIC_THREAD_TERM)     (generic_global_ctx_t *, generic_thread_ctx_t *);
-typedef int  (*GENERIC_THREAD_NEXT)     (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *);
+typedef int  (*GENERIC_THREAD_NEXT)     (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int);
 typedef bool (*GENERIC_THREAD_SEEK)     (generic_global_ctx_t *, generic_thread_ctx_t *, const u64);
+
+// What a live feed instance is for. A run can hold one of each, and that is what lets -a 1 be
+// expressed without a second reader: its amplifier is a wordlist too, so the number of amplifier
+// words is a feed's keyspace like any other.
+//
+// The roles are slots and not identities. -a 1 cannot say which of its two dictionaries is the base
+// until both have been counted, so the instances are created in the order the dictionaries were
+// typed and combinator_ctx_init puts them in the right slots afterwards.
+
+typedef enum generic_role
+{
+  GENERIC_ROLE_BASE = 0,
+  GENERIC_ROLE_AMP  = 1,
+
+  GENERIC_ROLE_CNT  = 2,
+
+} generic_role_t;
 
 typedef struct generic_ctx
 {
@@ -2884,7 +3102,24 @@ typedef struct generic_ctx
   generic_global_ctx_t  global_ctx;
   generic_thread_ctx_t *thread_ctx;
 
+  // what the user asked for, and the file that turned out to be
+
+  char *plugin_name;
   char *dynlib_filename;
+
+  // What the feed reads from. This is not the command line: -a 8 names its plugin as the first work
+  // argument and the rest belong to the feed, while -a 0 names no plugin at all and every work
+  // argument is a wordlist. Resolving it per attack mode is the only place that has to know, so the
+  // work arguments themselves stay exactly as the user typed them.
+
+  int    workc;
+  char **workv;
+
+  // -a 8 is handed the command line as it stands, so workv points into it. Every other mode needs a
+  // plugin name put in front of its dictionaries and gets an array of its own, which is the only case
+  // with anything to free.
+
+  bool workv_owned;
 
   hc_dynlib_t lib;
 
@@ -2900,6 +3135,12 @@ typedef struct generic_ctx
   bool autohex_enable;
   bool iconv_enable;
   bool rules_enable;
+
+  // What the feed said its keyspace is, in base words, before any amplifier is applied. It cannot be
+  // finished here: -a 6 and -a 7 amplify with the mask, and the mask is only sized once per round, in
+  // mask_ctx_update_loop. So the number is kept and straight_ctx_update_loop finishes it.
+
+  u64 keyspace;
 
 } generic_ctx_t;
 
@@ -2973,6 +3214,11 @@ typedef struct hashcat_status
   int         guess_base_count;
   double      guess_base_percent;
   char       *guess_mod;
+
+  // The wordlist a ?q names. Guess.Mod is the mask for -a 12 and the mask does not say which wordlist
+  // the ?q reads, so it is carried beside it rather than folded into it.
+
+  char       *guess_mod_q;
   int         guess_mod_offset;
   int         guess_mod_count;
   double      guess_mod_percent;
@@ -3092,6 +3338,21 @@ typedef struct status_ctx
                                 // has been finished actually, can be used for restore point therefore
   u64  words_base;              // the unamplified max keyspace
   u64  words_cnt;               // the amplified max keyspace
+
+  // -i and a mask file are a queue of rounds, and the queue is one keyspace. --skip and --limit
+  // address the queue, so each round takes its own share of that window rather than applying the
+  // whole of it again, which is what made --skip reach only the first round. These two are how far
+  // into the queue the rounds before this one already got, unamplified and amplified, and --keyspace
+  // is what they are for once the queue has been walked.
+
+  u64  words_walk_base;
+  u64  words_walk_cnt;
+
+  // This round's share of the window, both positions in the round's own keyspace. words_limit is
+  // zero when the round runs to its own end, which is what --limit not being given means.
+
+  u64  words_skip;
+  u64  words_limit;
 
   /**
    * progress
@@ -3363,7 +3624,6 @@ typedef struct module_ctx
   u32         (*module_dgst_pos2)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_pos3)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_dgst_size)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_dictstat_disable)        (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_esalt_size)              (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   const char *(*module_extra_tuningdb_block)    (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const backend_ctx_t *, const hashes_t *, const u32, const u32);
   u32         (*module_forced_outfile_format)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
@@ -3446,7 +3706,6 @@ struct hashcat_ctx
   combinator_ctx_t      *combinator_ctx;
   cpt_ctx_t             *cpt_ctx;
   debugfile_ctx_t       *debugfile_ctx;
-  dictstat_ctx_t        *dictstat_ctx;
   event_ctx_t           *event_ctx;
   folder_config_t       *folder_config;
   generic_ctx_t         *generic_ctx;
@@ -3462,6 +3721,7 @@ struct hashcat_ctx
   backend_ctx_t         *backend_ctx;
   outcheck_ctx_t        *outcheck_ctx;
   outfile_ctx_t         *outfile_ctx;
+  pubkey_ctx_t          *pubkey_ctx;
   pidfile_ctx_t         *pidfile_ctx;
   potfile_ctx_t         *potfile_ctx;
   restore_ctx_t         *restore_ctx;
@@ -3470,7 +3730,6 @@ struct hashcat_ctx
   tuning_db_t           *tuning_db;
   user_options_extra_t  *user_options_extra;
   user_options_t        *user_options;
-  wl_data_t             *wl_data;
 
   void (*event) (const u32, struct hashcat_ctx *, const void *, const size_t);
 

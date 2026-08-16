@@ -11,6 +11,7 @@
 #include "thread.h"
 #include "status.h"
 #include "shared.h"
+#include "path.h"
 #include "hwmon.h"
 #include "bridges.h"
 #include "interface.h"
@@ -1325,7 +1326,12 @@ static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit
 
   if (member_count < 1) return;
 
-  event_log_info (hashcat_ctx, NULL);
+  // Indented, and directly under the heading they belong to.
+  //
+  // These lines are what the unit above them is MADE OF, so the layout has to say so. A blank line
+  // between the two and no indent under it made them read as a second listing of their own, which is
+  // how they were read: a heading, then a paragraph break, then an unattached line starting with a
+  // number that also appears in the heading.
 
   for (int m = 0; m < member_count; m++)
   {
@@ -1333,7 +1339,7 @@ static void bridge_unit_members_info (hashcat_ctx_t *hashcat_ctx, const int unit
 
     if (info == NULL) continue;
 
-    event_log_info (hashcat_ctx, "%s", info);
+    event_log_info (hashcat_ctx, "  %s", info);
   }
 }
 
@@ -1380,13 +1386,79 @@ static void bridge_units_info (hashcat_ctx_t *hashcat_ctx)
 
   if (all_same == false)
   {
+    // Units of a kind get ONE block between them, with all of their boards listed under it.
+    //
+    // A unit is one board by default, so without this a rack of eight is eight headings each
+    // announcing "x 1 board" and each followed by a single line. The information is the same and the
+    // shape of it is not: what a fleet owner wants to see is what kinds of thing are present and what
+    // each kind is made of. It also matches the status view, which groups the same devices the same
+    // way for the same reason.
+
+    bool done[DEVICES_MAX];
+
+    memset (done, 0, sizeof (done));
+
+    bool first_block = true;
+
     for (int i = 0; i < unit_count; i++)
     {
-      event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
+      if (done[i] == true) continue;
 
-      bridge_unit_members_info (hashcat_ctx, i);
+      int members[DEVICES_MAX];
+      int members_cnt = 0;
 
-      if ((i + 1) < unit_count) event_log_info (hashcat_ctx, NULL);
+      int boards = 0;
+
+      for (int j = i; j < unit_count; j++)
+      {
+        if (done[j] == true) continue;
+        if ((j != i) && (bridge_same_unit_class (hashcat_ctx, i, j) == false)) continue;
+
+        done[j] = true;
+
+        members[members_cnt] = j;
+
+        members_cnt++;
+
+        boards += (bridge_has_members (bridge_ctx) == true)
+                ? bridge_ctx->get_unit_member_count (hashcat_ctx, bridge_ctx->platform_context, j)
+                : 1;
+      }
+
+      if (first_block == false) event_log_info (hashcat_ctx, NULL);
+
+      first_block = false;
+
+      // One unit keeps the singular heading it always had. Several are named by their range when they
+      // are contiguous, which they are whenever the bridge groups its own discovery by class, and by
+      // a count when they are not, because a range that skips a unit would be a lie.
+
+      if (members_cnt == 1)
+      {
+        event_log_info (hashcat_ctx, "* Unit #%02d: %s", i + 1, bridge_ctx->get_unit_info (hashcat_ctx, bridge_ctx->platform_context, i));
+      }
+      else
+      {
+        char *class_str = (bridge_ctx->get_unit_class != NULL) && (bridge_ctx->get_unit_class != BRIDGE_DEFAULT)
+                        ? bridge_ctx->get_unit_class (hashcat_ctx, bridge_ctx->platform_context, i)
+                        : bridge_ctx->get_unit_info  (hashcat_ctx, bridge_ctx->platform_context, i);
+
+        const bool contiguous = ((members[members_cnt - 1] - members[0]) == (members_cnt - 1)) ? true : false;
+
+        if (contiguous == true)
+        {
+          event_log_info (hashcat_ctx, "* Units #%02d-#%02d: %s x %d board%s", members[0] + 1, members[members_cnt - 1] + 1, class_str, boards, (boards == 1) ? "" : "s");
+        }
+        else
+        {
+          event_log_info (hashcat_ctx, "* Units x%d: %s x %d board%s", members_cnt, class_str, boards, (boards == 1) ? "" : "s");
+        }
+      }
+
+      for (int m = 0; m < members_cnt; m++)
+      {
+        bridge_unit_members_info (hashcat_ctx, members[m]);
+      }
     }
   }
 
@@ -1655,6 +1727,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
+      // One entry per physical device. The other copies of a virtualised device are the bridge
+      // units, and the Assimilation Bridge section above is where those are described.
+
+      if (device_param->is_virtual == true) continue;
+
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
       u32   device_processors             = device_param->device_processors;
@@ -1806,6 +1883,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
 
+      // One entry per physical device. The other copies of a virtualised device are the bridge
+      // units, and the Assimilation Bridge section above is where those are described.
+
+      if (device_param->is_virtual == true) continue;
+
       int   device_id                     = device_param->device_id;
       char *device_name                   = device_param->device_name;
       u32   device_processors             = device_param->device_processors;
@@ -1939,6 +2021,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       const int backend_devices_idx = backend_ctx->backend_device_from_metal[metal_devices_idx];
 
       const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+      // One entry per physical device. The other copies of a virtualised device are the bridge
+      // units, and the Assimilation Bridge section above is where those are described.
+
+      if (device_param->is_virtual == true) continue;
 
       int   device_id                        = device_param->device_id;
       int   device_max_transfer_rate         = device_param->device_max_transfer_rate;
@@ -2213,6 +2300,11 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         const int backend_devices_idx = backend_ctx->backend_device_from_opencl_platform[opencl_platforms_idx][opencl_platform_devices_idx];
 
         const hc_device_param_t *device_param = backend_ctx->devices_param + backend_devices_idx;
+
+        // One entry per physical device. The other copies of a virtualised device are the bridge
+        // units, and the Assimilation Bridge section above is where those are described.
+
+        if (device_param->is_virtual == true) continue;
 
         int            device_id                      = device_param->device_id;
         char          *device_name                    = device_param->device_name;
@@ -2803,6 +2895,7 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t  *bridge_ctx = hashcat_ctx->bridge_ctx;
   const hwmon_ctx_t   *hwmon_ctx  = hashcat_ctx->hwmon_ctx;
+  const pubkey_ctx_t  *pubkey_ctx = hashcat_ctx->pubkey_ctx;
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
@@ -2860,9 +2953,16 @@ void status_display_machine_readable (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  printf ("CURKU\t%" PRIu64 "\t", hashcat_status->restore_point);
+  // Under --encrypt-with-pubkey the position is withheld here too, or the machine readable output
+  // would hand over what the human one refuses to print. The keyspace total stays: the operator
+  // supplied the wordlist, so it is not news to them.
 
-  printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
+  const u64 mr_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
+  const u64 mr_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
+
+  printf ("CURKU\t%" PRIu64 "\t", mr_restore_point);
+
+  printf ("PROGRESS\t%" PRIu64 "\t%" PRIu64 "\t", mr_progress_cur, hashcat_status->progress_end_relative_skip);
 
   printf ("RECHASH\t%u\t%u\t", hashcat_status->digests_done, hashcat_status->digests_cnt);
 
@@ -2960,6 +3060,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 {
   const bridge_ctx_t *bridge_ctx = hashcat_ctx->bridge_ctx;
   const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  const pubkey_ctx_t *pubkey_ctx = hashcat_ctx->pubkey_ctx;
 
   hashcat_status_t *hashcat_status = (hashcat_status_t *) hcmalloc (sizeof (hashcat_status_t));
 
@@ -3052,11 +3153,17 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (target_json_encoded);
 
-  printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", hashcat_status->progress_cur_relative_skip, hashcat_status->progress_end_relative_skip);
-  printf (" \"restore_point\": %" PRIu64 ",", hashcat_status->restore_point);
+  // see the note in status_display_machine_readable
+
+  const u64 json_restore_point = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->restore_point;
+  const u64 json_progress_cur  = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_cur_relative_skip;
+  const u64 json_rejected      = (pubkey_ctx->enabled == true) ? 0 : hashcat_status->progress_rejected;
+
+  printf (" \"progress\": [%" PRIu64 ", %" PRIu64 "],", json_progress_cur, hashcat_status->progress_end_relative_skip);
+  printf (" \"restore_point\": %" PRIu64 ",", json_restore_point);
   printf (" \"recovered_hashes\": [%u, %u],", hashcat_status->digests_done, hashcat_status->digests_cnt);
   printf (" \"recovered_salts\": [%u, %u],", hashcat_status->salts_done, hashcat_status->salts_cnt);
-  printf (" \"rejected\": %" PRIu64 ",", hashcat_status->progress_rejected);
+  printf (" \"rejected\": %" PRIu64 ",", json_rejected);
   #ifdef WITH_BRAIN
   printf (" \"brain_rejected_position\": %" PRIu64 ",", hashcat_status->brain_rejects_attacks);
   printf (" \"brain_rejected_candidate\": %" PRIu64 ",", hashcat_status->brain_rejects_hashes);
@@ -3250,6 +3357,7 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   const bridge_ctx_t   *bridge_ctx   = hashcat_ctx->bridge_ctx;
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
   const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
+  const pubkey_ctx_t   *pubkey_ctx   = hashcat_ctx->pubkey_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->machine_readable == true)
@@ -3490,6 +3598,68 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
+    case GUESS_MODE_HYBRID:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u]",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
+
+      break;
+
+    case GUESS_MODE_HYBRID_Q:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u], File (%s)",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length,
+        hashcat_status->guess_mod_q);
+
+      break;
+
+    case GUESS_MODE_HYBRID_CS:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u]",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Charset....: %s",
+        hashcat_status->guess_charset);
+
+      break;
+
+    case GUESS_MODE_HYBRID_Q_CS:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Base.......: File (%s)",
+        hashcat_status->guess_base);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Mod........: Mask (%s) [%u], File (%s)",
+        hashcat_status->guess_mod,
+        hashcat_status->guess_mask_length,
+        hashcat_status->guess_mod_q);
+
+      event_log_info (hashcat_ctx,
+        "Guess.Charset....: %s",
+        hashcat_status->guess_charset);
+
+      break;
+
     case GUESS_MODE_HYBRID1_CS:
 
       event_log_info (hashcat_ctx,
@@ -3572,14 +3742,16 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case GUESS_MODE_GENERIC:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       break;
 
     case GUESS_MODE_GENERIC_RULES_FILE:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (%s)",
@@ -3590,7 +3762,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     case GUESS_MODE_GENERIC_RULES_GEN:
 
       event_log_info (hashcat_ctx,
-        "Guess.Base.......: Generic Feed");
+        "Guess.Base.......: Feed (%s)",
+        hashcat_status->guess_base);
 
       event_log_info (hashcat_ctx,
         "Guess.Mod........: Rules (Generated)");
@@ -3630,6 +3803,41 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
+    // A feed scoped to one source per round has a queue of rounds and says which one it is on. -a 9 over
+    // several wordlists is one round per wordlist, and -a 9 splitting its own hash file is one round per
+    // word of the account name. A feed handed every source at once answers 1 of 1 here and says where it
+    // has reached inside Guess.Base instead.
+
+    case GUESS_MODE_GENERIC:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
+    case GUESS_MODE_GENERIC_RULES_FILE:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
+    case GUESS_MODE_GENERIC_RULES_GEN:
+
+      event_log_info (hashcat_ctx,
+        "Guess.Queue......: %u/%u (%.02f%%)",
+        hashcat_status->guess_base_offset,
+        hashcat_status->guess_base_count,
+        hashcat_status->guess_base_percent);
+
+      break;
+
     case GUESS_MODE_MASK:
 
       event_log_info (hashcat_ctx,
@@ -3650,6 +3858,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       break;
 
+    case GUESS_MODE_HYBRID:
+    case GUESS_MODE_HYBRID_CS:
+    case GUESS_MODE_HYBRID_Q:
+    case GUESS_MODE_HYBRID_Q_CS:
     case GUESS_MODE_HYBRID1:
 
       event_log_info (hashcat_ctx,
@@ -3768,35 +3980,48 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, "Recovered/Time...: %s", hashcat_status->cpt);
   }
 
-  switch (hashcat_status->progress_mode)
+  // How far a protected run has got is itself worth withholding. On a job that takes days, handing
+  // over the exact offset would let the operator restart without encryption and skip straight to
+  // where the answer is, instead of repeating the whole search. The Rejected line carries the same
+  // counter as its denominator, so it goes with it.
+
+  if (pubkey_ctx->enabled == true)
   {
-    case PROGRESS_MODE_KEYSPACE_KNOWN:
+    event_log_info (hashcat_ctx, "Progress.........: [Protected]");
+    event_log_info (hashcat_ctx, "Rejected.........: [Protected]");
+  }
+  else
+  {
+    switch (hashcat_status->progress_mode)
+    {
+      case PROGRESS_MODE_KEYSPACE_KNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->progress_cur_relative_skip,
-        hashcat_status->progress_end_relative_skip,
-        hashcat_status->progress_finished_percent);
+        event_log_info (hashcat_ctx,
+          "Progress.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          hashcat_status->progress_cur_relative_skip,
+          hashcat_status->progress_end_relative_skip,
+          hashcat_status->progress_finished_percent);
 
-      event_log_info (hashcat_ctx,
-        "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->progress_rejected,
-        hashcat_status->progress_cur_relative_skip,
-        hashcat_status->progress_rejected_percent);
+        event_log_info (hashcat_ctx,
+          "Rejected.........: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          hashcat_status->progress_rejected,
+          hashcat_status->progress_cur_relative_skip,
+          hashcat_status->progress_rejected_percent);
 
-      break;
+        break;
 
-    case PROGRESS_MODE_KEYSPACE_UNKNOWN:
+      case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Progress.........: %" PRIu64,
-        hashcat_status->progress_cur_relative_skip);
+        event_log_info (hashcat_ctx,
+          "Progress.........: %" PRIu64,
+          hashcat_status->progress_cur_relative_skip);
 
-      event_log_info (hashcat_ctx,
-        "Rejected.........: %" PRIu64,
-        hashcat_status->progress_rejected);
+        event_log_info (hashcat_ctx,
+          "Rejected.........: %" PRIu64,
+          hashcat_status->progress_rejected);
 
-      break;
+        break;
+    }
   }
 
   #ifdef WITH_BRAIN
@@ -3927,38 +4152,52 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
-  switch (hashcat_status->progress_mode)
+  if (pubkey_ctx->enabled == true)
   {
-    case PROGRESS_MODE_KEYSPACE_KNOWN:
+    event_log_info (hashcat_ctx, "Restore.Point....: [Protected]");
+  }
+  else
+  {
+    switch (hashcat_status->progress_mode)
+    {
+      case PROGRESS_MODE_KEYSPACE_KNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
-        hashcat_status->restore_point,
-        hashcat_status->restore_total,
-        hashcat_status->restore_percent);
+        event_log_info (hashcat_ctx,
+          "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          hashcat_status->restore_point,
+          hashcat_status->restore_total,
+          hashcat_status->restore_percent);
 
-      break;
+        break;
 
-    case PROGRESS_MODE_KEYSPACE_UNKNOWN:
+      case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
-      event_log_info (hashcat_ctx,
-        "Restore.Point....: %" PRIu64,
-        hashcat_status->restore_point);
+        event_log_info (hashcat_ctx,
+          "Restore.Point....: %" PRIu64,
+          hashcat_status->restore_point);
 
-      break;
+        break;
+    }
   }
 
   if (bridge_ctx->enabled == true)
   {
     const device_info_t *device_info = hashcat_status->device_info_buf + 0;
 
-    event_log_info (hashcat_ctx,
-      "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", 0 + 1,
-      device_info->salt_pos_dev,
-      device_info->innerloop_pos_dev,
-      device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
-      device_info->iteration_pos_dev,
-      device_info->iteration_pos_dev + device_info->iteration_left_dev);
+    if (pubkey_ctx->enabled == true)
+    {
+      event_log_info (hashcat_ctx, "Restore.Sub.#%02u..: [Protected]", 0 + 1);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx,
+        "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", 0 + 1,
+        device_info->salt_pos_dev,
+        device_info->innerloop_pos_dev,
+        device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
+        device_info->iteration_pos_dev,
+        device_info->iteration_pos_dev + device_info->iteration_left_dev);
+    }
   }
   else
   {
@@ -3968,6 +4207,13 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
       if (device_info->skipped_dev == true) continue;
       if (device_info->skipped_warning_dev == true) continue;
+
+      if (pubkey_ctx->enabled == true)
+      {
+        event_log_info (hashcat_ctx, "Restore.Sub.#%02u..: [Protected]", device_id + 1);
+
+        continue;
+      }
 
       event_log_info (hashcat_ctx,
         "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", device_id + 1,

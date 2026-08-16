@@ -8,6 +8,8 @@
 #include "memory.h"
 #include "event.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "system.h"
 #include "locking.h"
 #include "loopback.h"
 

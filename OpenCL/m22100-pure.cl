@@ -355,6 +355,17 @@ KERNEL_FQ KERNEL_FA void m22100_loop (KERN_ATTR_TMPS_ESALT (bitlocker_tmp_t, bit
       w1[2] = digest[6];
       w1[3] = digest[7];
     }
+
+    #ifdef REAL_SHM
+
+    // The next round refills s_wb_ke_pc, and every thread has just read all of it. The barrier above
+    // orders the fill against the reads that follow it, but not the reads against the fill that comes
+    // after them, so without this one a thread that is a round ahead overwrites the chunk a thread
+    // behind it is still reading.
+
+    SYNC_THREADS ();
+
+    #endif
   }
 
   unpackv (tmps, last_hash, gid, 0, w0[0]);

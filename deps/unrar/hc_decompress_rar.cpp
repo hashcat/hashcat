@@ -8,11 +8,14 @@
 
 #include "rar.hpp"
 
+#include "export.h"
+#include "ext_unrar.h"
+
 #define WINSIZE 0x100000 // minimum window size 0x20000 (MinAllocSize is 0x40000), 1 MiB
 #define SOLID   false
 #define METHOD  VER_UNPACK // 29 for RAR3 archives
 
-extern "C" unsigned int hc_decompress_rar (unsigned char *Win, unsigned char *Inp, unsigned char *VM, unsigned char *PPM, const unsigned int OutputSize, const unsigned char *Input, const unsigned int PackSize, const unsigned int UnpackSize, const unsigned char *Key, const unsigned char *IV, unsigned int *unpack_failed)
+HC_PLUGIN_API unsigned int hc_decompress_rar (unsigned char *Win, unsigned char *Inp, unsigned char *VM, unsigned char *PPM, const unsigned int OutputSize, const unsigned char *Input, const unsigned int PackSize, const unsigned int UnpackSize, const unsigned char *Key, const unsigned char *IV, unsigned int *unpack_failed)
 {
   ComprDataIO DataIO;
 

@@ -65,13 +65,26 @@ WORKDIR /root
 COPY docker/patches/arch/ /root/patches/
 
 ## hashcat
+
+# the tree the package is built from. A clone of master names no particular commit, so what a past
+# release was built from cannot be got back and that release cannot be rebuilt. A tag or a commit
+# is named here instead, and another one is asked for with --build-arg HASHCAT_REF=<ref>. It is
+# bumped with the version in tools/package_bin.sh, which is edited for the same release anyway.
+
+ARG HASHCAT_REF=v7.1.2
+
 WORKDIR /root
-RUN git clone https://github.com/hashcat/hashcat.git
+RUN git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
 
 ## Compile
 WORKDIR /root/hashcat
 RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do pwd && git apply "$p"; done'
 RUN make -s binaries
 RUN tools/package_bin.sh
+
+# see the same step in BinaryPackage.ubuntu20: this is what the runtime images copy out, and it is
+# the package rather than the build tree.
+
+RUN mkdir /root/package && cp -a /root/xy/hashcat-*/. /root/package/
 
 CMD ["/bin/bash"]

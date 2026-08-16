@@ -12,6 +12,7 @@
 #include "mpsp.h"
 #include "backend.h"
 #include "shared.h"
+#include "filehandling.h"
 #include "thread.h"
 #include "stdout.h"
 
@@ -53,12 +54,12 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 
 int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt)
 {
-  combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-  hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
-  mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
-  outfile_ctx_t    *outfile_ctx    = hashcat_ctx->outfile_ctx;
-  straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
-  user_options_t   *user_options   = hashcat_ctx->user_options;
+  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  outfile_ctx_t        *outfile_ctx        = hashcat_ctx->outfile_ctx;
+  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+  user_options_t       *user_options       = hashcat_ctx->user_options;
 
   // prevent wrong candidates in output when backend_ctx->backend_devices_active > 1
 
@@ -141,7 +142,11 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       }
     }
   }
-  else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0))
+  // The base words are the mask and they exist only on the device, so there is no host word buffer to
+  // copy and the candidate is put together from the outer loop position and the amplifier. That is
+  // -a 7 under a pure kernel, and -a 12 under a pure kernel when its mask ends in ?w.
+
+  else if ((user_options_extra->attack_kern == ATTACK_KERN_COMBI) && (user_options_extra->base_source == BASE_SOURCE_MASK))
   {
     for (u64 gidvid = 0; gidvid < pws_cnt; gidvid++)
     {
@@ -238,36 +243,30 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
           pw_idx++;
         }
       }
-      else if (user_options->attack_mode == ATTACK_MODE_COMBI)
+      else if (user_options->attack_mode == ATTACK_MODE_HYBRID)
       {
+        char mask_buf[256];
+
         while (pw_idx <= pw_idx_last)
         {
-          u32 *pw = pws_comp_blk + (pw_idx->off - off_blk);
+          const u8 *pw = (const u8 *) (pws_comp_blk + (pw_idx->off - off_blk));
 
           for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
           {
-            for (u32 i = 0; i < pw_idx->cnt; i++)
+            // Assembled by the same code the outfile uses, so the two cannot drift apart.
+
+            if (device_param->combs_on_host == true)
             {
-              plain_buf[i] = pw[i];
-            }
-
-            plain_len = pw_idx->len;
-
-            char *comb_buf = (char *) device_param->combs_buf[il_pos].i;
-            u32   comb_len =          device_param->combs_buf[il_pos].pw_len;
-
-            if (combinator_ctx->combs_mode == COMBINATOR_MODE_BASE_LEFT)
-            {
-              memcpy (plain_ptr + plain_len, comb_buf, comb_len);
+              plain_len = hybrid_amp_rebuild (hashcat_ctx, device_param, il_pos, plain_ptr, pw, pw_idx->len);
             }
             else
             {
-              memmove (plain_ptr + comb_len, plain_ptr, plain_len);
+              const u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
 
-              memcpy (plain_ptr, comb_buf, comb_len);
+              hybrid_amp_mask (hashcat_ctx, off, mask_buf);
+
+              plain_len = hybrid_assemble (hashcat_ctx, plain_ptr, mask_buf, pw, pw_idx->len, NULL, 0);
             }
-
-            plain_len += comb_len;
 
             if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
 
@@ -277,66 +276,6 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
           pw_idx++;
         }
       }
-      else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-      {
-        while (pw_idx <= pw_idx_last)
-        {
-          u32 *pw = pws_comp_blk + (pw_idx->off - off_blk);
-
-          for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
-          {
-            for (u32 i = 0; i < pw_idx->cnt; i++)
-            {
-              plain_buf[i] = pw[i];
-            }
-
-            plain_len = pw_idx->len;
-
-            u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
-
-            u32 start = 0;
-            u32 stop  = device_param->kernel_params_mp_buf32[4];
-
-            sp_exec (off, (char *) plain_ptr + plain_len, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
-
-            plain_len += start + stop;
-
-            out_push (&out, plain_ptr, plain_len);
-          }
-
-          pw_idx++;
-        }
-      }
-      else if ((user_options->attack_mode == ATTACK_MODE_HYBRID2) && (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL))
-      {
-        while (pw_idx <= pw_idx_last)
-        {
-          char *pw = (char *) (pws_comp_blk + (pw_idx->off - off_blk));
-
-          for (u32 il_pos = 0; il_pos < il_cnt; il_pos++)
-          {
-            u64 off = device_param->kernel_params_mp_buf64[3] + il_pos;
-
-            u32 start = 0;
-            u32 stop  = device_param->kernel_params_mp_buf32[4];
-
-            sp_exec (off, (char *) plain_ptr, mask_ctx->root_css_buf, mask_ctx->markov_css_buf, start, start + stop);
-
-            plain_len = stop;
-
-            memcpy (plain_ptr + plain_len, pw, pw_idx->len);
-
-            plain_len += pw_idx->len;
-
-            if (plain_len > hashconfig->pw_max) plain_len = hashconfig->pw_max;
-
-            out_push (&out, plain_ptr, plain_len);
-          }
-
-          pw_idx++;
-        }
-      }
-
       gidvid_blk += blk_cnt; // prepare for next block
     }
   }

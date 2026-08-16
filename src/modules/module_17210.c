@@ -263,6 +263,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (p == NULL) return PARSER_HASH_LENGTH;
   pkzip->hash.data_length = strtoul (p, NULL, 16);
 
+  if (pkzip->hash.data_length > MAX_DATA) return (PARSER_TOKEN_LENGTH);
+
   p = strtok_r (NULL, "*", &saveptr);
   if (p == NULL) return PARSER_HASH_LENGTH;
   u16 checksum_from_crc = 0;
@@ -285,7 +287,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   p = strtok_r (NULL, "*", &saveptr);
   if (p == NULL) return PARSER_HASH_LENGTH;
 
-  hex_to_binary (p, strlen (p), (char *) &(pkzip->hash.data));
+  const size_t data_hex_len = strlen (p);
+
+  if (data_hex_len > MAX_DATA * 2) return (PARSER_TOKEN_LENGTH);
+  if (data_hex_len % 2)            return (PARSER_TOKEN_LENGTH);
+
+  hex_to_binary (p, data_hex_len, (char *) &(pkzip->hash.data));
 
   // fake salt
   salt->salt_buf[0] = pkzip->hash.data[0];
@@ -363,6 +370,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -379,7 +387,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -437,5 +444,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

@@ -290,7 +290,11 @@ Brain "Hashes" feature
 Brain "Attacks" feature
 The brain "hashes" feature is everything that we've explained from the beginning - the *low-level* function of the brain. The brain "attacks" feature is the *high-level* strategy which I added to mitigate the bottlenecks. Depending on your use case, you can selectively enable or disable either one.
 
-__The default is `--brain-client-features 2`, the "attacks" feature alone.__ This matters more than it sounds, because almost everything written above describes the "hashes" feature. Out of the box the brain therefore dedups on the KEYSPACE POSITION of an attack, not on the candidate itself, so two different wordlists holding the same words will not dedup against each other unless you ask for feature 1 or 3. Most people's intuition about the brain is a feature 1 intuition, so it is worth being deliberate about which one you want.
+__The default is `--brain-client-features 3`, both features.__ Out of the box the brain therefore dedups on the candidate itself, which is what almost everything written above describes and what most people expect it to do.
+
+The "hashes" feature is not free, though, and what decides whether it is worth using is not how slow the algorithm sounds. It is the rate at which the client produces candidates, and salts divide that rate. Bcrypt over six thousand salts offers the brain eight candidates a second. Raw MD5 over one salt offers sixty million. The first is worth remembering and the second is not: the server keeps eight bytes per candidate for as long as the session lives, and answering a lookup costs it more time than testing that one candidate costs the client.
+
+So hashcat makes the call for you. On a hash mode that computes inside the kernel and has fewer than 1024 salts, the "hashes" feature is switched off and hashcat says so. The "attacks" feature stays on, so several clients on one session still avoid each other's keyspace, and nothing is aborted. Passing `--brain-client-features` yourself overrules the decision in either direction.
 
 The brain "attack" feature should be explained in more detail in order to understand what it is doing. It is a high-level approach, or a compressed hint. Hashcat clients request this "hint" from the brain about a given attack as soon as the client is assigned a new work package from the local hashcat dispatcher. For example, if you have a system with 4 GPUs, the local hashcat dispatcher is responsible for distributing the workload across the local GPUs. What's new is that before a GPU starts actually working on the package, it asks the brain for a high level confirmation of whether or not to proceed. The process of how this work is basically the same as with the low-level architecture: the client "reserves" a package when the hashcat brain moves it to short-term memory - and once it is done, it will be moved to long-term memory.
 
@@ -333,7 +337,7 @@ Brain.Link.All...: RX: 128.5 kB, TX: 1.0 MB
 Brain.Rejects....: 128416 (position 0, candidate 128416)
 ```
 
-Both runs did exactly as much useful work, which is none, and one of them spent 32 bytes doing it while the other spent a megabyte. That is the bandwidth mitigation described above, measured: under the "attacks" feature the whole package is refused before a single candidate hash is sent, so the transfer never happens. It is also why the default is feature 2.
+Both runs did exactly as much useful work, which is none, and one of them spent 32 bytes doing it while the other spent a megabyte. That is the bandwidth mitigation described above, measured: under the "attacks" feature the whole package is refused before a single candidate hash is sent, so the transfer never happens. It is also why the "attacks" feature is the one hashcat keeps when it decides a mode is a poor fit for the "hashes" feature.
 
 A zero on the candidate side while the position side is large does not mean the "hashes" side of the brain is empty. It means nothing ever got far enough to be looked up there. If you want to know what the hashes side actually holds, ask for it with `--brain-client-features 1` or `3`.
 
@@ -385,7 +389,7 @@ Two things to get right:
 * `--brain-session` is required. The session is what says which database the candidates belong in, and it is normally computed from the hash list, which a feeder does not have. Any brain run prints it on the status line as `Brain Session/Attack`, so start the real attack once, note the session, and feed that.
 * Feed through `--stdout` rather than pointing the feeder at a raw wordlist when rules are involved. The hash stored is of the FINAL candidate, after rules are applied, which is exactly what a cracking client looks up. Hashing the raw wordlist would store words that a rule-driven run never asks about.
 
-Remember that what you feed lands in the "hashes" side of the brain, so a client has to be asking for that side to benefit: `--brain-client-features 1` or `3`. With the default of 2 the fed candidates are never consulted.
+Remember that what you feed lands in the "hashes" side of the brain, so a client has to be asking for that side to benefit: `--brain-client-features 1` or `3`. Under the "attacks" feature alone the fed candidates are never consulted, so check the status line if hashcat decided the mode was a poor fit and switched the "hashes" feature off.
 
 ## Commandline Options
 
@@ -397,6 +401,6 @@ Most of the commands are self-explaining. I'm just adding them here to inform yo
 - `--brain-session` to override automatically calculated brain session ID
 - `--brain-session-whitelist` to allow only explicit written session ID on brain server
 - `--brain-password` to specify the brain server authentication password
-- `--brain-client-features` which allows enable and disable certain features of the hashcat brain, __default 2__
+- `--brain-client-features` which allows enable and disable certain features of the hashcat brain, __default 3__
 - `--brain-server-timer` to change how often the server writes its long-term memory to disk, minimum 60 seconds, or `0` for no periodic write at all. It requires `--brain-server`
 - `--brain-feed` to fill a running brain from stdin, see below

@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "filehandling.h"
 #include "shared.h"
+#include "parser.h"
 #include "keyboard_layout.h"
 
 static int sort_by_src_len (const void *p1, const void *p2)

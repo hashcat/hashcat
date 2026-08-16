@@ -22,7 +22,7 @@ function usage()
   echo "-A / --attack-exec <arg>            : set Attack Exec Type (default: all. supported: 0 (Inside kernel), 1 (Outside kernel)"
   echo ""
   echo "-a / --attack-type <arg>            : set Attack Type or a list of comma-separated Attack Types"
-  echo "                                      (default: all. supported: 0 (Straight), 1 (Combination), 3 (Brute-force), 6 (Hybrid Wordlist + Mask), 7 (Hybrid Mask + Wordlist))"
+  echo "                                      (default: all. supported: 0 (Straight), 1 (Combination), 3 (Brute-force), 6 (Hybrid Wordlist + Mask), 7 (Hybrid Mask + Wordlist), 12 (Hybrid, mask says where the word goes))"
   echo "-K / --kernel-type <arg>            : set Kernel Type (default: all. supported: 0 (Pure), 1 (Optimized))"
   echo ""
   echo "-t / --target-type <arg>            : set Target Type (default: all. supported: single, multi)"
@@ -110,7 +110,7 @@ HASH_TYPE_MAX=99999
 ATTACK_EXEC="all"
 ATTACK_EXECS="0 1"
 ATTACK_TYPE="all"
-ATTACK_TYPES="0 1 3 6 7"
+ATTACK_TYPES="0 1 3 6 7 12"
 KERNEL_TYPE="all"
 TARGET_TYPE="all"
 VECTOR_WIDTH="all"
@@ -441,7 +441,7 @@ while [[ $# -gt 0 ]]; do
 
               IFS=',' read -ra INPUT_ATTACK_TYPES <<< "$optarg"
               for atk in "${INPUT_ATTACK_TYPES[@]}"; do
-                if [[ "$atk" =~ ^(0|1|3|6|7)$ ]]; then
+                if [[ "$atk" =~ ^(0|1|3|6|7|12)$ ]]; then
                   ATTACK_TYPES+=" $atk"
                 else
                   echo "Invalid attack type: $atk"

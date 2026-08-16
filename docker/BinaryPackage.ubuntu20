@@ -106,7 +106,14 @@ WORKDIR /root
 
 COPY docker/patches/ubuntu20/ /root/patches/
 
-RUN git clone https://github.com/hashcat/hashcat.git
+# the tree the package is built from. A clone of master names no particular commit, so what a past
+# release was built from cannot be got back and that release cannot be rebuilt. A tag or a commit
+# is named here instead, and another one is asked for with --build-arg HASHCAT_REF=<ref>. It is
+# bumped with the version in tools/package_bin.sh, which is edited for the same release anyway.
+
+ARG HASHCAT_REF=v7.1.2
+
+RUN git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
 
 WORKDIR /root/hashcat
 
@@ -115,5 +122,13 @@ RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.d
 RUN make -s binaries
 
 RUN tools/package_bin.sh
+
+# What the runtime images copy out. It is the package rather than this build tree, so what they run
+# is the layout that ships: the frontend beside the core, every plugin one directory below it, and
+# none of the sources or the git checkout. package_bin.sh names its output after the version and
+# leaves the .7z beside it, and a COPY --from cannot tell the directory from the archive with a
+# glob, so the package is given a fixed name here where a shell can.
+
+RUN mkdir /root/package && cp -a /root/xy/hashcat-*/. /root/package/
 
 RUN ["/bin/bash"]

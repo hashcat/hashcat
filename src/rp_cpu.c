@@ -290,9 +290,9 @@ static int mangle_insert_every (char arr[RP_PASSWORD_SIZE], int arr_len, int upo
 
 static int mangle_to_hex_lower (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
-  if (arr_len >= RP_PASSWORD_SIZE) return arr_len;
+  if ((arr_len * 2) >= RP_PASSWORD_SIZE) return arr_len;
 
-  for (int pos = arr_len + 1; pos >= 0; pos--)
+  for (int pos = arr_len - 1; pos >= 0; pos--)
   {
     const u8 tbl[0x10] =
     {
@@ -309,9 +309,9 @@ static int mangle_to_hex_lower (char arr[RP_PASSWORD_SIZE], int arr_len)
 
 static int mangle_to_hex_upper (char arr[RP_PASSWORD_SIZE], int arr_len)
 {
-  if (arr_len >= RP_PASSWORD_SIZE) return arr_len;
+  if ((arr_len * 2) >= RP_PASSWORD_SIZE) return arr_len;
 
-  for (int pos = arr_len + 1; pos >= 0; pos--)
+  for (int pos = arr_len - 1; pos >= 0; pos--)
   {
     const u8 tbl[0x10] =
     {
@@ -591,7 +591,11 @@ static int mangle_dupeblock_prepend (char arr[RP_PASSWORD_SIZE], int arr_len, in
 
   if ((arr_len + ulen) >= RP_PASSWORD_SIZE) return arr_len;
 
-  char cs[100];
+  // ulen is bounded by arr_len, not by 100. The p token resolves to the position
+  // saved by the last reject rule, which reaches 254, so a rule such as /Xyp on a
+  // long enough word asked for more bytes than this buffer used to hold.
+
+  char cs[RP_PASSWORD_SIZE];
 
   memset (cs, 0, sizeof (cs));
   memcpy (cs, arr, ulen);
@@ -753,26 +757,17 @@ static int mangle_title_sep_class_l (char arr[RP_PASSWORD_SIZE], int arr_len)
 
   for (int pos = 0; pos < arr_len; pos++)
   {
-    if (class_lower (arr[pos]))
+    const int upper = upper_next;
+
+    upper_next = class_lower (arr[pos]);
+
+    MANGLE_LOWER_AT (arr, pos);
+
+    if (upper)
     {
-      upper_next = 1;
-
-      continue;
-    }
-
-    if (upper_next)
-    {
-      upper_next = 0;
-
       MANGLE_UPPER_AT (arr, pos);
     }
-    else
-    {
-      MANGLE_LOWER_AT (arr, pos);
-    }
   }
-
-  MANGLE_UPPER_AT (arr, 0);
 
   return arr_len;
 }
@@ -783,26 +778,17 @@ static int mangle_title_sep_class_u (char arr[RP_PASSWORD_SIZE], int arr_len)
 
   for (int pos = 0; pos < arr_len; pos++)
   {
-    if (class_upper (arr[pos]))
+    const int upper = upper_next;
+
+    upper_next = class_upper (arr[pos]);
+
+    MANGLE_LOWER_AT (arr, pos);
+
+    if (upper)
     {
-      upper_next = 1;
-
-      continue;
-    }
-
-    if (upper_next)
-    {
-      upper_next = 0;
-
       MANGLE_UPPER_AT (arr, pos);
     }
-    else
-    {
-      MANGLE_LOWER_AT (arr, pos);
-    }
   }
-
-  MANGLE_UPPER_AT (arr, 0);
 
   return arr_len;
 }
@@ -843,26 +829,17 @@ static int mangle_title_sep_class_lh (char arr[RP_PASSWORD_SIZE], int arr_len)
 
   for (int pos = 0; pos < arr_len; pos++)
   {
-    if (class_lower_hex (arr[pos]))
+    const int upper = upper_next;
+
+    upper_next = class_lower_hex (arr[pos]);
+
+    MANGLE_LOWER_AT (arr, pos);
+
+    if (upper)
     {
-      upper_next = 1;
-
-      continue;
-    }
-
-    if (upper_next)
-    {
-      upper_next = 0;
-
       MANGLE_UPPER_AT (arr, pos);
     }
-    else
-    {
-      MANGLE_LOWER_AT (arr, pos);
-    }
   }
-
-  MANGLE_UPPER_AT (arr, 0);
 
   return arr_len;
 }
@@ -873,26 +850,17 @@ static int mangle_title_sep_class_uh (char arr[RP_PASSWORD_SIZE], int arr_len)
 
   for (int pos = 0; pos < arr_len; pos++)
   {
-    if (class_upper_hex (arr[pos]))
+    const int upper = upper_next;
+
+    upper_next = class_upper_hex (arr[pos]);
+
+    MANGLE_LOWER_AT (arr, pos);
+
+    if (upper)
     {
-      upper_next = 1;
-
-      continue;
-    }
-
-    if (upper_next)
-    {
-      upper_next = 0;
-
       MANGLE_UPPER_AT (arr, pos);
     }
-    else
-    {
-      MANGLE_LOWER_AT (arr, pos);
-    }
   }
-
-  MANGLE_UPPER_AT (arr, 0);
 
   return arr_len;
 }

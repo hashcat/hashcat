@@ -95,9 +95,29 @@ $ pyenv local 3.12.11
 $ make clean && make
 ```
 
+The build produces `libhashcat.so.7` next to the `hashcat` binary. It holds the core, and the binary,
+the modules, the bridges and the feeds all link against it. It has to travel with them when the tree
+is copied somewhere else, and it is found beside the binary without anything set in the environment.
+`make SHARED=0` builds the older arrangement instead, where every plugin carries its own copy of the
+core.
+
 ---
 
-### 🔹 Step 6 (Optional): Install Hashcat (Linux only)
+### 🔹 Step 6 (Optional): Check the build
+
+```bash
+$ tools/test_package.sh
+```
+
+The binary is started, made to load every module, made to produce candidates through a feed, and
+made to compile a kernel and crack a hash. It reads the directory you give it, the current one by
+default, so it checks an unpacked archive the same way it checks a build tree. The last group of
+checks needs one OpenCL device and a CPU is enough for all of them, `--no-device` leaves that group
+out.
+
+---
+
+### 🔹 Step 7 (Optional): Install Hashcat (Linux only)
 
 ```bash
 $ make install
@@ -134,6 +154,12 @@ See: [BUILD_Docker.md](BUILD_Docker.md)
 | Using Cygwin                           | [BUILD_CYGWIN.md](BUILD_CYGWIN.md)   |
 | Using MSYS2                            | [BUILD_MSYS2.md](BUILD_MSYS2.md)     |
 | From Linux                             | Run: `make win`                      |
+
+The Windows build produces `hashcat.dll` beside `hashcat.exe`. It holds the core, and the executable,
+the modules, the bridges and the feeds all import from it, so it has to travel with them. Windows
+searches the directory of the executable, so nothing has to be set in the environment.
+`make win SHARED=0` builds the older arrangement instead, where every plugin carries its own copy of
+the core.
 
 ---
 

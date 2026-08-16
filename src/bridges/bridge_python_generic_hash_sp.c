@@ -3,12 +3,28 @@
  * License.....: MIT
  */
 
+// Python.h first, before any project or system header.
+//
+// It defines _POSIX_C_SOURCE and _XOPEN_SOURCE itself, and CPython's own documentation says it has to
+// be included before any standard header for that reason. common.h reaches string.h and therefore
+// features.h, which had already fixed both macros to the platform's own values by the time Python.h
+// was reached, so glibc 2.41 and Python 3.14 disagreed and every build printed four redefinition
+// warnings.
+
+#define PY_SSIZE_T_CLEAN
+
+#undef _GNU_SOURCE
+#include <Python.h>
+
 #include "common.h"
 #include "types.h"
 #include "event.h"
 #include "bridges.h"
 #include "memory.h"
 #include "shared.h"
+#include "system.h"
+#include "path.h"
+#include "filehandling.h"
 #include "cpu_features.h"
 #include "dynloader.h"
 
@@ -17,11 +33,6 @@
 #endif
 
 // python interpreter
-
-#define PY_SSIZE_T_CLEAN
-
-#undef _GNU_SOURCE
-#include <Python.h>
 
 #define PYTHON_API_CALL
 

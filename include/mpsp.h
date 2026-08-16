@@ -22,6 +22,15 @@
 
 #define INCR_MASKS    1000
 
+bool  mask_has_marker (const char *mask, const char marker);
+bool  mask_ends_with_marker (const char *mask, const char marker);
+bool  mask_starts_with_marker (const char *mask, const char marker);
+bool  mask_arg_ends_with_marker (const char *arg, const char marker);
+
+u32   hybrid_amp_mask (hashcat_ctx_t *hashcat_ctx, const u64 off, char *mask_buf);
+u32   hybrid_amp_rebuild (hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 il_pos, u8 *out_buf, const u8 *base_buf, const u32 base_len);
+u32   hybrid_assemble (hashcat_ctx_t *hashcat_ctx, u8 *out_buf, const char *mask_buf, const u8 *base_buf, const u32 base_len, const u8 *word_buf, const u32 word_len);
+
 u32   mp_get_length (const char *mask, const u32 opts_type);
 
 void  sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u32 start, u32 stop);

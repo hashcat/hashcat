@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "types.h"
+#include "shared.h"
 #include "wordlist.h"
 #include "pwpipe.h"
 
@@ -70,13 +71,9 @@ static HC_API_CALL void *pw_pipe_thread (void *p)
 
 static bool pw_pipe_sync (void)
 {
-  static int on = -1;
+  static int cache = -1;
 
-  if (on == -1) on = (getenv ("HASHCAT_PIPE_SYNC") != NULL) ? 1 : 0;
-
-  const bool result = (on == 1) ? true : false;
-
-  return result;
+  return hc_env_flag ("HASHCAT_PIPE_SYNC", &cache);
 }
 
 int pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pw_fill_t fill, void *state, const bool serial)

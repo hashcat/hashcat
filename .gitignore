@@ -9,6 +9,7 @@ libhashcat.so.*
 libhashcat*.dylib
 hashcat.dll
 *.debugfile
+*.debug
 *.potfile
 *.restore
 *.dictstat2
@@ -32,6 +33,19 @@ feeds/*.so
 obj/*/*/*.o
 obj/*.o
 obj/*.a
+obj/*/*/*.d
+obj/*.d
+obj/*.map
+obj/*.def
+obj/arrangement
+
+# obj/api.c is written by the build, and make clean deletes it. Tracked it would make every
+# tree that has been cleaned report as modified, and a fresh clone would find it already newer
+# than the headers it is derived from and never regenerate it
+obj/*.c
+libhashcat.so.*
+libhashcat.*.dylib
+hashcat.dll
 include/CL
 tools/luks_tests
 tools/luks2_tests

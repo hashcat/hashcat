@@ -1,54 +1,29 @@
 
 SCRYPT_JANE := deps/scrypt-jane-master
-SCRYPT_JANE_CFLAGS := -I$(SCRYPT_JANE)/ -DSCRYPT_SHA256 -DSCRYPT_SALSA -DSCRYPT_CHOOSE_COMPILETIME -Wno-unused-function -Wno-unused-but-set-variable
+
+BRIDGE_SRC_bridge_scrypt_jane           := src/bridges/bridge_scrypt_jane.c src/cpu_features.c
+
+BRIDGE_CFLAGS_bridge_scrypt_jane        := -I$(SCRYPT_JANE)/ -DSCRYPT_SHA256 -DSCRYPT_SALSA -DSCRYPT_CHOOSE_COMPILETIME -Wno-unused-function -Wno-unused-but-set-variable -Wno-unused-variable
+
+BRIDGE_CFLAGS_bridge_scrypt_jane_NATIVE := $(SIMD_NATIVE)
+BRIDGE_CFLAGS_bridge_scrypt_jane_LINUX  := $(SIMD_LINUX)
+BRIDGE_CFLAGS_bridge_scrypt_jane_WIN    := $(SIMD_WIN)
+
+# scrypt-jane picks its mix implementation at compile time. On ARM the x86 intrinsic path is the one
+# to take, mapped to NEON by sse2neon, rather than the portable scalar fallback. The sse2neon include
+# and its warning suppression are already on CFLAGS_NATIVE and CFLAGS_LINUX for ARM, so only the two
+# defines that select the path belong here. The cross build to Windows is x86 and keeps the x86 path.
 
 ifeq ($(IS_ARM),1)
-ifneq ($(BUILD_MODE),cross)
-SCRYPT_JANE_CFLAGS += -DCPU_X86_FORCE_INTRINSICS -DX86_INTRINSIC_SSE2
-SCRYPT_JANE_CFLAGS += -I$(DEPS_SSE2NEON) -DSSE2NEON_SUPPRESS_WARNINGS
-endif
-endif
-
-ifeq ($(MAINTAINER_MODE),0)
-ifeq ($(BUILD_MODE),cross)
-SCRYPT_JANE_CFLAGS += -mavx2
-else
-ifeq ($(UNAME),Darwin)
-ifeq ($(IS_APPLE_SILICON),0)
-SCRYPT_JANE_CFLAGS += -mavx2
-endif
-else
-ifeq ($(IS_PPC),1)
-SCRYPT_JANE_CFLAGS += $(MCPU_NATIVE)
-else
-SCRYPT_JANE_CFLAGS += $(MARCH_NATIVE)
-endif
-endif
-endif
+BRIDGE_CFLAGS_bridge_scrypt_jane_NATIVE += -DCPU_X86_FORCE_INTRINSICS -DX86_INTRINSIC_SSE2
+BRIDGE_CFLAGS_bridge_scrypt_jane_LINUX  += -DCPU_X86_FORCE_INTRINSICS -DX86_INTRINSIC_SSE2
 endif
 
 # scrypt-jane writes its mix functions as naked inline asm, and LTO cannot see through them.
 # The reference from one partition to scrypt_ChunkMix_avx in another is then left undefined and
 # the link fails. This used to be guarded on clang, but the problem is not clang specific, gcc
-# fails the same way, so the exclusion applies to any cross compiler
+# fails the same way, so the exclusion applies to the Windows build whoever compiles it
 
 ifeq ($(ENABLE_LTO),1)
-ifeq ($(BUILD_MODE),cross)
-bridges/bridge_scrypt_jane.dll: SCRYPT_JANE_CFLAGS += -fno-lto
-endif
-endif
-
-ifeq ($(BUILD_MODE),cross)
-bridges/bridge_scrypt_jane.so:  src/bridges/bridge_scrypt_jane.c src/cpu_features.c obj/combined.LINUX.a
-	$(CC_LINUX) $(CCFLAGS) $(CFLAGS_CROSS_LINUX)  $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(SCRYPT_JANE_CFLAGS)
-bridges/bridge_scrypt_jane.dll: src/bridges/bridge_scrypt_jane.c src/cpu_features.c obj/combined.WIN.a
-	$(CC_WIN)   $(CCFLAGS) $(CFLAGS_CROSS_WIN)    $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(SCRYPT_JANE_CFLAGS)
-else
-ifeq ($(SHARED),1)
-bridges/bridge_scrypt_jane.$(BRIDGE_SUFFIX): src/bridges/bridge_scrypt_jane.c src/cpu_features.c $(HASHCAT_LIBRARY)
-	$(CC)       $(CCFLAGS) $(CFLAGS_NATIVE)       $^ -o $@ $(LFLAGS_NATIVE)      -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(SCRYPT_JANE_CFLAGS)
-else
-bridges/bridge_scrypt_jane.$(BRIDGE_SUFFIX): src/bridges/bridge_scrypt_jane.c src/cpu_features.c obj/combined.NATIVE.a
-	$(CC)       $(CCFLAGS) $(CFLAGS_NATIVE)       $^ -o $@ $(LFLAGS_NATIVE)      -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(SCRYPT_JANE_CFLAGS)
-endif
+BRIDGE_CFLAGS_bridge_scrypt_jane_WIN    += -fno-lto
 endif

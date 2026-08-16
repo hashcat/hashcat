@@ -31,6 +31,6 @@ RUN rustup target add x86_64-pc-windows-gnu
 
 # Add hashcat
 RUN mkdir /root/hashcat
-COPY --from=build /root/hashcat /root/hashcat
+COPY --from=build /root/package /root/hashcat
 
 WORKDIR /root/hashcat
