@@ -647,6 +647,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     if ((hccapx->signature == HCCAPX_SIGNATURE) && (hccapx->version == HCCAPX_VERSION))
     {
+      if (hccapx->essid_len > 32) return (PARSER_SALT_LENGTH);
+      if (hccapx->eapol_len < 1 || hccapx->eapol_len > 256) return (PARSER_HCCAPX_EAPOL_LEN);
+
       tmp_len = 0;
 
       tmp_len += snprintf (tmp_buf, sizeof (tmp_buf) - tmp_len, "WPA*02*");
