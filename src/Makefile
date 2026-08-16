@@ -616,12 +616,24 @@ CFLAGS                  += -DDEBUG -Og -ggdb
 else
 CFLAGS                  += -DDEBUG -O0 -ggdb
 endif
-CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
-# ASan must reach the link too, otherwise every target that links the C++ deps
-# (deps/unrar) fails with undefined __asan_* references. CFLAGS alone is not
+# Which sanitizers DEBUG=2 turns on. Defaults to AddressSanitizer, which is
+# what DEBUG=2 has always meant. Override to add or swap, e.g.
+#   make DEBUG=2 SANITIZE=address,undefined
+#   make DEBUG=2 SANITIZE=undefined
+# ASan and MSan are mutually exclusive; UBSan combines with either.
+SANITIZE                ?= address
+CFLAGS                  += -fsanitize=$(SANITIZE) -fno-omit-frame-pointer
+# Deliberately NOT -fno-sanitize-recover=undefined. Making UBSan fatal at the
+# first finding aborts the process before later, unrelated checks run: a UBSan
+# hit during startup (src/path.c) killed hashcat before hashes_init_stage1 and
+# hid a real ASan stack-use-after-scope in a module parser. Let UBSan report and
+# continue, and leave abort-on-first as a runtime choice via
+# UBSAN_OPTIONS=halt_on_error=1 when that is what you actually want.
+# The sanitizer must reach the link too, otherwise every target that links the
+# C++ deps (deps/unrar) fails with undefined __asan_* references. CFLAGS is not
 # enough for the shared-library layout: libhashcat.so.7, the module plugins and
 # the feed plugins are all separate link steps.
-LFLAGS                  += -fsanitize=address
+LFLAGS                  += -fsanitize=$(SANITIZE)
 endif
 endif
 endif

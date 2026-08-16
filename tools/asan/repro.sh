@@ -16,7 +16,8 @@
 # Usage:
 #   tools/asan/repro.sh <mode> [--hash <line>] [--mutate]
 #
-#   TOOL=msan tools/asan/repro.sh 32100 --hash '$krb5asrep$17$'
+#   TOOL=msan  tools/asan/repro.sh 32100 --hash '$krb5asrep$17$'
+#   TOOL=ubsan tools/asan/repro.sh 8500  --hash '$racf$*A*00'
 #   EXTRA="src/convert.c" tools/asan/repro.sh 8500 --hash '$racf$*A*00'
 #
 set -u
@@ -39,9 +40,14 @@ CORE=${CORE:-./libhashcat.so.7}
 CORE_DIR=$(cd "$(dirname "$CORE")" && pwd)
 
 case "$TOOL" in
-  asan) SAN="-fsanitize=address" ;;
-  msan) SAN="-fsanitize=memory -fsanitize-memory-track-origins=2" ;;
-  *)    echo "usage: TOOL=asan|msan $0 ..." >&2; exit 2 ;;
+  asan)  SAN="-fsanitize=address" ;;
+  # Deliberately no -fno-sanitize-recover=undefined, matching src/Makefile:
+  # aborting on the first UBSan finding hides everything that would have run
+  # after it. Use UBSAN_OPTIONS=halt_on_error=1 per run when you want that.
+  ubsan) SAN="-fsanitize=undefined" ;;
+  both)  SAN="-fsanitize=address,undefined" ;;
+  msan)  SAN="-fsanitize=memory -fsanitize-memory-track-origins=2" ;;
+  *)     echo "usage: TOOL=asan|ubsan|both|msan $0 ..." >&2; exit 2 ;;
 esac
 
 mkdir -p "$OUT"
@@ -71,6 +77,7 @@ export LD_LIBRARY_PATH="$CORE_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 # ("failed to allocate 0x0 bytes of SetAlternateSignalStack").
 export ASAN_OPTIONS=detect_leaks=0:halt_on_error=0:use_sigaltstack=0
 export MSAN_OPTIONS=use_sigaltstack=0
+export UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0
 
 # argv[1] is ignored under -DSTATIC_MODULE, but the harness still expects it
 exec "$OUT/repro_${TOOL}_m${MODE}" x "$MODE" "$@"

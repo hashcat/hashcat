@@ -28,6 +28,12 @@ LOG="$OUT/sweep.log"
 # detect_leaks=0 because hashcat does not free everything by design.
 export ASAN_OPTIONS="detect_leaks=0:halt_on_error=0:log_path=$OUT/tmp_asan"
 
+# UBSan reports look nothing like ASan's: one "file.c:12:34: runtime error: ..."
+# line per finding, printed to stderr, and by default it keeps going without a
+# stack trace. Ask for the trace, and let it continue so one module's first
+# finding does not hide the rest.
+export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=0"
+
 for so in modules/module_*.so; do
   base=$(basename "$so" .so)
   mode=$((10#${base#module_}))
@@ -40,15 +46,22 @@ for so in modules/module_*.so; do
   # fatal errors land on the harness's own stderr, recoverable ones in log_path
   errs=$(cat "$OUT"/tmp_asan.* 2>/dev/null | grep -c "ERROR: AddressSanitizer")
   inline=$(grep -c "ERROR: AddressSanitizer" "$OUT/m${mode}.out" 2>/dev/null)
-  total=$(( ${errs:-0} + ${inline:-0} ))
+  # UBSan findings, deduplicated: the same runtime error inside a loop prints
+  # once per iteration and would otherwise dominate the count
+  ub=$({ cat "$OUT"/tmp_asan.* 2>/dev/null; cat "$OUT/m${mode}.out"; } \
+       | grep -oP "^[^ ]+: runtime error: .*" | sort -u | wc -l)
+  total=$(( ${errs:-0} + ${inline:-0} + ${ub:-0} ))
 
   if [ "$rc" = "124" ]; then
     echo "m${mode}: TIMEOUT (600s)" | tee -a "$LOG"
   elif [ "$total" -gt 0 ]; then
-    echo "m${mode}: *** ${total} ASAN ERRORS ***" | tee -a "$LOG"
+    echo "m${mode}: *** ${total} SANITIZER ERRORS *** (asan=$(( ${errs:-0} + ${inline:-0} )) ubsan=${ub:-0})" | tee -a "$LOG"
     { cat "$OUT"/tmp_asan.* 2>/dev/null; cat "$OUT/m${mode}.out"; } \
       | grep -oP "ERROR: AddressSanitizer: \K[a-z-]+" | sort -u \
       | sed 's/^/    /' | tee -a "$LOG"
+    { cat "$OUT"/tmp_asan.* 2>/dev/null; cat "$OUT/m${mode}.out"; } \
+      | grep -oP "runtime error: \K.*" | sed 's/[0-9]\+/N/g' | sort -u | head -4 \
+      | sed 's/^/    ubsan: /' | tee -a "$LOG"
     { cat "$OUT"/tmp_asan.* 2>/dev/null; cat "$OUT/m${mode}.out"; } \
       | grep -oP "#[0-9]+ 0x[0-9a-f]+ in \K[a-z_0-9]+ [^ ]+\.c:[0-9]+" | sort -u \
       | head -4 | sed 's/^/      /' | tee -a "$LOG"
@@ -64,6 +77,6 @@ rm -f "$OUT"/tmp_asan.* 2>/dev/null
 
 echo "=== ASAN PARSER SWEEP DONE ===" | tee -a "$LOG"
 grep -c ": clean$"      "$LOG" | sed 's/^/clean modes:       /' | tee -a "$LOG"
-grep -c "ASAN ERRORS"   "$LOG" | sed 's/^/modes with errors: /' | tee -a "$LOG"
+grep -c "SANITIZER ERRORS" "$LOG" | sed 's/^/modes with errors: /' | tee -a "$LOG"
 grep -c "TIMEOUT"       "$LOG" | sed 's/^/timeouts:          /' | tee -a "$LOG"
 echo "per-finding logs: $OUT/findings/"

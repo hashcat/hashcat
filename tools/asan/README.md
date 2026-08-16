@@ -66,6 +66,62 @@ TOOL=msan tools/asan/repro.sh 32100 --hash '$krb5asrep$17$'
 This compiles the module directly into the harness, so it needs only a
 `make DEBUG=1` core. See the caveat under "Instrument the whole tree" below.
 
+## UndefinedBehaviorSanitizer
+
+UBSan combines with ASan, so one build can carry both:
+
+```
+make clean
+make DEBUG=2 SANITIZE=address,undefined -j$(nproc)
+SANITIZE=address,undefined tools/asan/build.sh
+tools/asan/sweep.sh
+```
+
+`SANITIZE` is a `src/Makefile` knob added for this. `address` is the default,
+so plain `make DEBUG=2` behaves exactly as before. `SANITIZE=undefined` alone
+is much faster if you only want UBSan.
+
+**`make clean` is required when changing `SANITIZE`.** make does not track
+compiler-flag changes, so without it the existing objects are reused and you
+get the old sanitizer set with none of the new one — silently, and the sweep
+then reports a clean run that proves nothing. `build.sh` warns if the core
+lacks the symbols for what you asked for; `nm -D ./libhashcat.so.7 | grep
+ubsan` is the direct check.
+
+`-fno-sanitize-recover=undefined` is deliberately **not** set. Making UBSan
+fatal at the first finding aborts the process before anything later runs, and
+that is not hypothetical: a UBSan hit during startup in `src/path.c` killed
+hashcat before `hashes_init_stage1`, hiding a real ASan `stack-use-after-scope`
+in a module parser and making a live bug look unreproducible. Use
+`UBSAN_OPTIONS=halt_on_error=1` when you want that, per run. The sweep sets
+`halt_on_error=0` so one module's first finding does not hide the rest, and
+`print_stacktrace=1` because UBSan otherwise prints a bare source location
+with no context.
+
+UBSan reports look nothing like ASan's — one `file.c:12:34: runtime error: ...`
+line per finding on stderr, repeated per loop iteration. The sweep counts them
+separately and deduplicates, so a finding inside a hot loop does not swamp the
+total. Findings are reported as `asan=N ubsan=M`.
+
+### What UBSan will and will not tell you
+
+It answers a different question: *is this operation undefined*, not *is this
+access in bounds*. Signed overflow, shifts past the width of a type, misaligned
+loads, `NULL` arithmetic, bad enum and bool values, dividing `INT_MIN` by -1.
+
+It will not find the bugs in `bugs_found.md`. Worth being concrete, because
+the mistake is tempting: `is_hexify()` casts `const u8 *buf` to `u32 *` and
+loads four bytes from a buffer that may be shorter, which reads like a
+textbook UBSan alignment finding. It is not one — `malloc` returns
+suitably-aligned memory, so the load is aligned and perfectly defined; it is
+simply out of bounds, which is ASan's department. Running the `is_hexify`
+reproducer under UBSan alone prints nothing at all and returns the *correct*
+answers, because the overread happens to land on bytes that do not match the
+`$HEX` signature.
+
+That is the useful lesson: a clean UBSan run says nothing about memory safety.
+Run both.
+
 ## Checking that a binary really is ASan-instrumented
 
 Worth doing before trusting a "clean" result — a harness built against an
@@ -174,9 +230,33 @@ a `stack-use-after-scope`.
 
 ### The harness copies `--hash` into an exact-size allocation
 
-Deliberate and load-bearing. Passing the `argv` pointer straight through would
-put any overread inside the environment block, where neither ASan nor Valgrind
-can bound-check it, and buggy code would look clean.
+Deliberate and load-bearing, and the single reason most of these findings are
+visible at all. Passing the `argv` pointer straight through would put any
+overread inside the environment block, where neither ASan nor Valgrind can
+bound-check it, and buggy code would look clean.
+
+Production hashcat never gives a parser a buffer that ends where the line ends:
+a hash on the command line is parsed out of `argv`
+(`user_options_extra->hc_hash`, `src/hashes.c:1298`) and a hash from a file is
+parsed out of a 16 MB zero-filled buffer (`hcmalloc (HCBUFSIZ_LARGE)`,
+`src/hashes.c:1557`; `hcmalloc` is `calloc`). Measured against an ASan build of
+plain hashcat, that slack absorbs every forward overread here — m7100, m19600,
+m28800, m8500, m8501, m7900, m11600, m29100 and `is_hexify` all run the
+defective code and report **nothing**.
+
+Three kinds of finding survive into plain hashcat, and they are worth knowing
+because they are what you can hand someone who will not build a harness:
+
+- `stack-use-after-scope` — the poisoning is on the stack slot, so the input
+  buffer's size is irrelevant (m25400).
+- reads *before* the buffer — the start of the 16 MB region is a real
+  allocation boundary, so a negative index reports (m32100, m32200, from a
+  hash **file**, not the command line).
+- everything UBSan checks — it instruments the operation, not the memory.
+
+Everything else needs the exact-size allocation. That is not a weaker class of
+bug; it is a bug whose blast radius is currently bounded by an implementation
+detail nobody wrote down.
 
 ## ASan vs Valgrind vs MSan
 
