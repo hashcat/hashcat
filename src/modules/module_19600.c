@@ -106,7 +106,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    */
 
   // assume no signature found
-  if (line_len < 12) return (PARSER_SALT_LENGTH);
+  // the strchr() below starts at offset 13, so admitting a 12-byte line lets it
+  // start one past the terminator
+  if (line_len < 13) return (PARSER_SALT_LENGTH);
 
   const char *spn_info_start  = strchr (line_buf + 12 + 1, '*');
 

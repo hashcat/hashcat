@@ -137,6 +137,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    * is 24 characters in length, so then there should be a '$' at line_len - 25
    */
 
+  // the checksum is 24 characters plus its '$', so the line must be at least
+  // 25 bytes before that offset can be computed -- without this the index
+  // below goes negative and reads in front of the buffer
+  if (line_len < 25) return (PARSER_SALT_LENGTH);
+
   if (line_buf[line_len - 25] == '$')
   {
     // JtR format
