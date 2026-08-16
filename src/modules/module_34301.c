@@ -154,7 +154,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // 9. header
   token.len_min[9] = 400;
-  token.len_max[9] = 600;
+  token.len_max[9] = 512; // sizeof (keepass4->header) * 2
   token.sep[9]     = '*';
   token.attr[9]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
 
@@ -250,6 +250,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   keepass4->header_len = token.len[9];
   if (keepass4->header_len % 2 != 0) return (PARSER_HASH_VALUE); // hex-value needs to be multiple of 2
   keepass4->header_len = keepass4->header_len / 2;
+
+  if (keepass4->header_len > sizeof (keepass4->header)) return (PARSER_SALT_LENGTH);
 
   const u8 *header_pos = token.buf[9];
   hex_decode ((const u8 *) header_pos, keepass4->header_len*2, (u8 *) keepass4->header);
