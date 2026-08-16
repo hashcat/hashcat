@@ -50,11 +50,20 @@ bool bridge_load (hashcat_ctx_t *hashcat_ctx, bridge_ctx_t *bridge_ctx, const ch
 
   if (bridge_ctx->bridge_handle == NULL)
   {
-    #if defined (_WIN)
-    event_log_error (hashcat_ctx, "Cannot load bridge %s", bridge_file); // todo: maybe there's a dlerror () equivalent
-    #else
-    event_log_error (hashcat_ctx, "%s", dlerror ());
-    #endif
+    const int plugin_abi = hc_dlplugin_abi (bridge_file);
+
+    if ((plugin_abi != -1) && (plugin_abi != HC_PLUGIN_ABI_VERSION))
+    {
+      event_log_error (hashcat_ctx, "Bridge %s was built for plugin interface %d, this hashcat provides %d", bridge_file, plugin_abi, HC_PLUGIN_ABI_VERSION);
+    }
+    else
+    {
+      #if defined (_WIN)
+      event_log_error (hashcat_ctx, "Cannot load bridge %s: %s", bridge_file, hc_dlerror ());
+      #else
+      event_log_error (hashcat_ctx, "%s", hc_dlerror ());
+      #endif
+    }
 
     return false;
   }

@@ -7,6 +7,7 @@
 #include "types.h"
 #include "memory.h"
 #include "shared.h"
+#include "path.h"
 #include "interface.h"
 #include "usage.h"
 
@@ -73,7 +74,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --potfile-path             | File | Specific path to potfile                             | --potfile-path=my.pot",
   "     --encoding-from            | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15",
   "     --encoding-to              | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le",
-  "     --debug-mode               | Num  | Defines the debug mode (hybrid only by using rules)  | --debug-mode=4",
+  "     --debug-mode               | Num  | Defines the debug mode, requires -r or -g            | --debug-mode=4",
   "     --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log",
   "     --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts",
   "     --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x",
@@ -165,6 +166,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   #endif
   "     --color-cracked            |      | Enables color output for cracked hashes              |",
   "     --hash-copy                |      | Output hashes identically to the input hash          |",
+  "     --encrypt-with-pubkey      | File | Encrypt recovered plains with an RSA public key      | --encrypt-with-pubkey=public.pem",
   "",
   NULL
 };
@@ -232,6 +234,7 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  7 | Hybrid Mask + Wordlist",
   "  8 | Generic",
   "  9 | Association",
+  " 12 | Hybrid, mask says where the word goes",
   "",
   "- [ Built-in Charsets ] -",
   "",
@@ -246,13 +249,22 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  a | ?l?u?d?s",
   "  b | 0x00 - 0xff",
   "",
+  "- [ Attack-Mode 12 Markers ] -",
+  "",
+  "  ? | Marker",
+  " ===+========",
+  "  w | the word from the wordlist, required, once",
+  "  q | a word from a second wordlist, optional, after ?w",
+  "",
   "- [ OpenCL Device Types ] -",
   "",
   "  # | Device Type",
   " ===+=============",
   "  1 | CPU",
   "  2 | GPU",
-  "  3 | FPGA, DSP, Co-Processor",
+  "  3 | OpenCL Accelerator",
+  "",
+  "Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.",
   "",
   "- [ Workload Profiles ] -",
   "",
@@ -279,6 +291,9 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   "  Combinator       | MD5   | hashcat -a 1 -m 0 example0.hash example.dict example.dict",
   "  Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule",
   "  Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule",
+  "  Association      | $1$   | hashcat -a 9 -m 500 user500.hash -r rules/best66.rule",
+  "  Hybrid           | MD5   | hashcat -a 12 -m 0 example0.hash ?d?w?d?d example.dict",
+  "  Hybrid, two dict | MD5   | hashcat -a 12 -m 0 example0.hash ?w-?q! example.dict example.dict",
   "",
   "If you still have no idea what just happened, try the following pages:",
   "",

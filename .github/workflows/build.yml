@@ -1,18 +1,40 @@
 name: Build
 
+##
+## What is built, and what is run.
+##
+## The user base is Linux and Windows, so those two are built in both arrangements. Every build is
+## followed by the checks in tools/test_package.sh, because a build that links is not a build that
+## works: a plugin whose imports do not resolve, a package missing a directory and a core the loader
+## finds somewhere else all pass a compile and fail a user.
+##
+## Those checks ask nothing of a backend device, because a runner has none. Anything that needs one
+## says so and is left out here.
+##
+## macOS is built in the arrangement it ships in. FreeBSD stands in for the BSDs here, the other
+## three are built weekly by .github/workflows/bsd.yml.
+##
+## The cross compiled binaries are the ones that ship, so they are checked too, in the job that
+## builds them and before they are uploaded.
+##
+
 env:
   include_paths: |
+    bridges/
     charsets/
     docs/
     extra/
+    feeds/
     layouts/
     masks/
     modules/
     OpenCL/
     rules/
+    tunings/
     example*
     hashcat*
     libhashcat*
+    !**/*.debug
 
 on:
   push:
@@ -47,33 +69,34 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest, freebsd, openbsd, netbsd, dragonflybsd]
-        shared: [0, 1]
         include:
           - os: ubuntu-latest
             os_name: Linux
             os_name_lowercase: linux
+            shared: 0
+          - os: ubuntu-latest
+            os_name: Linux
+            os_name_lowercase: linux
+            shared: 1
           - os: macos-latest
             os_name: macOS
             os_name_lowercase: macos
+            shared: 1
           - os: windows-latest
             os_name: Windows
             os_name_lowercase: windows
+            shared: 0
+          - os: windows-latest
+            os_name: Windows
+            os_name_lowercase: windows
+            shared: 1
           - os: freebsd
             os_name: FreeBSD
             os_name_lowercase: freebsd
-          - os: openbsd
-            os_name: OpenBSD
-            os_name_lowercase: openbsd
-          - os: netbsd
-            os_name: NetBSD
-            os_name_lowercase: netbsd
-          - os: dragonflybsd
-            os_name: DragonflyBSD
-            os_name_lowercase: dragonflybsd
+            shared: 0
 
     name: Build ${{ matrix.os_name }} (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
-    runs-on: ${{ (matrix.os == 'freebsd' || matrix.os == 'openbsd' || matrix.os == 'netbsd' || matrix.os == 'dragonflybsd') && 'ubuntu-latest' || matrix.os }}
+    runs-on: ${{ matrix.os == 'freebsd' && 'ubuntu-latest' || matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -116,6 +139,7 @@ jobs:
           WIN_PYTHON: ""
         run: |
           make ENABLE_LTO=0 CC=clang CXX=clang++
+          bash tools/test_package.sh . --no-device
 
       - name: Build (Linux/macOS)
         if: matrix.os_name_lowercase == 'linux' || matrix.os_name_lowercase == 'macos'
@@ -124,61 +148,22 @@ jobs:
           TERM: xterm
         run: |
           make ENABLE_LTO=0 CC=clang CXX=clang++
+          bash tools/test_package.sh . --no-device
 
       - name: Build (FreeBSD)
         if: matrix.os_name_lowercase == 'freebsd'
         uses: vmactions/freebsd-vm@v1
+        env:
+          SHARED: ${{ matrix.shared }}
         with:
           usesh: true
           envs: SHARED
           prepare: |
             pkg update
-            pkg install -y git gcc gmake gsed python3 rust llvm
+            pkg install -y bash git gcc gmake gsed python3 rust llvm
           run: |
             gmake ENABLE_LTO=0 CC=clang CXX=clang++
-
-      - name: Build (OpenBSD)
-        if: matrix.os_name_lowercase == 'openbsd'
-        uses: vmactions/openbsd-vm@v1
-        with:
-          usesh: true
-          envs: SHARED
-          prepare: |
-            pkg_add git gcc%11 gmake gsed llvm%19
-          run: |
-            export TERM=xterm
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
-
-      - name: Build (NetBSD)
-        if: matrix.os_name_lowercase == 'netbsd'
-        uses: vmactions/netbsd-vm@v1
-        with:
-          usesh: true
-          envs: SHARED
-          prepare: |
-            export PATH="/usr/sbin:$PATH"
-            export PKG_PATH="https://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/$(uname -m)/$(uname -r)/All"
-            pkg_add pkgin
-            pkgin -y update
-            pkgin -y full-upgrade
-            pkgin -y install git gcc14 gmake gsed python313 llvm libiconv clang openmp
-          run: |
-            export PATH="/usr/pkg/gcc14/bin:$PATH"
-            export TERM=xterm
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
-
-      - name: Build (DragonflyBSD)
-        if: matrix.os_name_lowercase == 'dragonflybsd'
-        uses: vmactions/dragonflybsd-vm@v1
-        with:
-          usesh: true
-          envs: SHARED
-          prepare: |
-            pkg update
-            pkg install -y git gcc gmake gsed python3 llvm
-          run: |
-            export TERM=xterm
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            bash tools/test_package.sh . --no-device
 
       - name: Generate documentation
         if: matrix.os_name_lowercase == 'linux' && matrix.shared == 0
@@ -223,9 +208,14 @@ jobs:
         with:
           name: hashcat-${{ matrix.os_name_lowercase }}-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
-  build_binaries:
-    name: Build binaries (Linux and Windows)
+
+  binaries:
+    name: Build binaries (${{ matrix.shared == 0 && 'Static' || 'Shared' }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shared: [0, 1]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -265,6 +255,7 @@ jobs:
 
       - name: Build binaries
         env:
+          SHARED: ${{ matrix.shared }}
           TERM: xterm
         run: |
           make binaries \
@@ -272,8 +263,12 @@ jobs:
                CXX_LINUX=clang++ CXX_WIN=clang++ \
                AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar
 
+      - name: Check what is about to be uploaded
+        run: bash tools/test_package.sh . --no-device
+
       - name: Generate artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: hashcat-${{ matrix.os_name_lowercase }}-cross
+          name: hashcat-cross-${{ matrix.shared == 0 && 'static' || 'shared' }}
           path: ${{ env.include_paths }}
+

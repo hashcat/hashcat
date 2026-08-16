@@ -95,26 +95,65 @@ KERNEL_FQ KERNEL_FA void m08300_mxx (KERN_ATTR_BASIC ())
 
     sha1_init (&ctx1);
 
-    const u32 pw_len = pws[gid].pw_len + combs_buf[il_pos].pw_len;
+    const u32 pw_len = pws[gid].pw_len + combs_len_S (combs_buf, il_pos, COMBS_MODE);
 
     // replace "." with the length:
 
     if (pw_len > 0)
     {
-      pw_t combs;
+      if (COMBS_IS_MIDDLE)
+      {
+        // -a 12 puts the base word inside the amplifier, so the candidate is five pieces: mask, base
+        // word, mask, second word, mask. A label length is the length of what follows it, so the
+        // chain runs from the last piece back to the first and the updates then go the other way.
 
-      const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], 0);
+        pw_t post;
 
-      pw_t pw;
+        const u32 first_len_post = replace_dot_by_len (&post, &COMBS_POST (il_pos), 0);
 
-      const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_combs);
+        pw_t word;
 
-      ctx1.w0[0] = (first_len_pw & 0xff) << 24;
+        const u32 first_len_word = replace_dot_by_len (&word, &COMBS_WORD (il_pos), first_len_post);
 
-      ctx1.len = 1;
+        pw_t mid;
 
-      sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
-      sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+        const u32 first_len_mid = replace_dot_by_len (&mid, &COMBS_MID (il_pos), first_len_word);
+
+        pw_t pw;
+
+        const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_mid);
+
+        pw_t pre;
+
+        const u32 first_len_pre = replace_dot_by_len (&pre, &COMBS_PRE (il_pos), first_len_pw);
+
+        ctx1.w0[0] = (first_len_pre & 0xff) << 24;
+
+        ctx1.len = 1;
+
+        sha1_update_swap (&ctx1, pre.i,  pre.pw_len);
+        sha1_update_swap (&ctx1, pw.i,   pw.pw_len);
+        sha1_update_swap (&ctx1, mid.i,  mid.pw_len);
+        sha1_update_swap (&ctx1, word.i, word.pw_len);
+        sha1_update_swap (&ctx1, post.i, post.pw_len);
+      }
+      else
+      {
+        pw_t combs;
+
+        const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], 0);
+
+        pw_t pw;
+
+        const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_combs);
+
+        ctx1.w0[0] = (first_len_pw & 0xff) << 24;
+
+        ctx1.len = 1;
+
+        sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
+        sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+      }
     }
 
     sha1_update (&ctx1, s_pc, salt_len_pc + 1);
@@ -224,26 +263,65 @@ KERNEL_FQ KERNEL_FA void m08300_sxx (KERN_ATTR_BASIC ())
 
     sha1_init (&ctx1);
 
-    const u32 pw_len = pws[gid].pw_len + combs_buf[il_pos].pw_len;
+    const u32 pw_len = pws[gid].pw_len + combs_len_S (combs_buf, il_pos, COMBS_MODE);
 
     // replace "." with the length:
 
     if (pw_len > 0)
     {
-      pw_t combs;
+      if (COMBS_IS_MIDDLE)
+      {
+        // -a 12 puts the base word inside the amplifier, so the candidate is five pieces: mask, base
+        // word, mask, second word, mask. A label length is the length of what follows it, so the
+        // chain runs from the last piece back to the first and the updates then go the other way.
 
-      const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], 0);
+        pw_t post;
 
-      pw_t pw;
+        const u32 first_len_post = replace_dot_by_len (&post, &COMBS_POST (il_pos), 0);
 
-      const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_combs);
+        pw_t word;
 
-      ctx1.w0[0] = (first_len_pw & 0xff) << 24;
+        const u32 first_len_word = replace_dot_by_len (&word, &COMBS_WORD (il_pos), first_len_post);
 
-      ctx1.len = 1;
+        pw_t mid;
 
-      sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
-      sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+        const u32 first_len_mid = replace_dot_by_len (&mid, &COMBS_MID (il_pos), first_len_word);
+
+        pw_t pw;
+
+        const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_mid);
+
+        pw_t pre;
+
+        const u32 first_len_pre = replace_dot_by_len (&pre, &COMBS_PRE (il_pos), first_len_pw);
+
+        ctx1.w0[0] = (first_len_pre & 0xff) << 24;
+
+        ctx1.len = 1;
+
+        sha1_update_swap (&ctx1, pre.i,  pre.pw_len);
+        sha1_update_swap (&ctx1, pw.i,   pw.pw_len);
+        sha1_update_swap (&ctx1, mid.i,  mid.pw_len);
+        sha1_update_swap (&ctx1, word.i, word.pw_len);
+        sha1_update_swap (&ctx1, post.i, post.pw_len);
+      }
+      else
+      {
+        pw_t combs;
+
+        const u32 first_len_combs = replace_dot_by_len (&combs, &combs_buf[il_pos], 0);
+
+        pw_t pw;
+
+        const u32 first_len_pw = replace_dot_by_len (&pw, &pws[gid], first_len_combs);
+
+        ctx1.w0[0] = (first_len_pw & 0xff) << 24;
+
+        ctx1.len = 1;
+
+        sha1_update_swap (&ctx1, pw.i,    pw.pw_len);
+        sha1_update_swap (&ctx1, combs.i, combs.pw_len);
+      }
     }
 
     sha1_update (&ctx1, s_pc, salt_len_pc + 1);

@@ -42,6 +42,14 @@ KERNEL_FQ KERNEL_FA void m14542_mxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   ripemd160_init (&ctx0);
 
+  // the base word as words rather than as a stream. -a 12 puts the base word inside the amplifier,
+  // so the candidate has to be assembled around it per amplifier item instead of appended to a
+  // context that already holds it.
+
+  u32 w_pw[64] = { 0 };
+
+  for (u32 i = 0; i < 64; i++) w_pw[i] = pws[gid].i[i];
+
   u32 w[64] = { 0 };
 
   u32 w_len = 0;
@@ -50,7 +58,7 @@ KERNEL_FQ KERNEL_FA void m14542_mxx (KERN_ATTR_ESALT (cryptoapi_t))
   {
     w_len = pws[gid].pw_len;
 
-    for (u32 i = 0; i < 64; i++) w[i] = pws[gid].i[i];
+    for (u32 i = 0; i < 64; i++) w[i] = w_pw[i];
 
     ctx0_padding = ctx0;
 
@@ -58,7 +66,7 @@ KERNEL_FQ KERNEL_FA void m14542_mxx (KERN_ATTR_ESALT (cryptoapi_t))
 
     ctx0_padding.len = 1;
 
-    ripemd160_update (&ctx0_padding, w, w_len);
+    if (COMBS_IS_MIDDLE == 0) ripemd160_update (&ctx0_padding, w, w_len);
   }
 
   ripemd160_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
@@ -71,14 +79,28 @@ KERNEL_FQ KERNEL_FA void m14542_mxx (KERN_ATTR_ESALT (cryptoapi_t))
   {
     ripemd160_ctx_t ctx = ctx0;
 
-    if (serpent_key_len > 128)
+    if (COMBS_IS_MIDDLE)
     {
-      w_len = combs_buf[il_pos].pw_len;
+      // the whole candidate at once, because the base word no longer starts it. w is the output
+      // buffer because the padded context below wants those same bytes.
 
-      for (u32 i = 0; i < 64; i++) w[i] = combs_buf[il_pos].i[i];
+      w_len = combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w_pw, pws[gid].pw_len, w);
+
+      ripemd160_init (&ctx);
+
+      ripemd160_update (&ctx, w, w_len);
     }
+    else
+    {
+      if (serpent_key_len > 128)
+      {
+        w_len = combs_buf[il_pos].pw_len;
 
-    ripemd160_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+        for (u32 i = 0; i < 64; i++) w[i] = combs_buf[il_pos].i[i];
+      }
+
+      ripemd160_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
 
     ripemd160_final (&ctx);
 
@@ -206,6 +228,14 @@ KERNEL_FQ KERNEL_FA void m14542_sxx (KERN_ATTR_ESALT (cryptoapi_t))
 
   ripemd160_init (&ctx0);
 
+  // the base word as words rather than as a stream. -a 12 puts the base word inside the amplifier,
+  // so the candidate has to be assembled around it per amplifier item instead of appended to a
+  // context that already holds it.
+
+  u32 w_pw[64] = { 0 };
+
+  for (u32 i = 0; i < 64; i++) w_pw[i] = pws[gid].i[i];
+
   u32 w[64] = { 0 };
 
   u32 w_len = 0;
@@ -214,7 +244,7 @@ KERNEL_FQ KERNEL_FA void m14542_sxx (KERN_ATTR_ESALT (cryptoapi_t))
   {
     w_len = pws[gid].pw_len;
 
-    for (u32 i = 0; i < 64; i++) w[i] = pws[gid].i[i];
+    for (u32 i = 0; i < 64; i++) w[i] = w_pw[i];
 
     ctx0_padding = ctx0;
 
@@ -222,7 +252,7 @@ KERNEL_FQ KERNEL_FA void m14542_sxx (KERN_ATTR_ESALT (cryptoapi_t))
 
     ctx0_padding.len = 1;
 
-    ripemd160_update (&ctx0_padding, w, w_len);
+    if (COMBS_IS_MIDDLE == 0) ripemd160_update (&ctx0_padding, w, w_len);
   }
 
   ripemd160_update_global (&ctx0, pws[gid].i, pws[gid].pw_len);
@@ -235,14 +265,28 @@ KERNEL_FQ KERNEL_FA void m14542_sxx (KERN_ATTR_ESALT (cryptoapi_t))
   {
     ripemd160_ctx_t ctx = ctx0;
 
-    if (serpent_key_len > 128)
+    if (COMBS_IS_MIDDLE)
     {
-      w_len = combs_buf[il_pos].pw_len;
+      // the whole candidate at once, because the base word no longer starts it. w is the output
+      // buffer because the padded context below wants those same bytes.
 
-      for (u32 i = 0; i < 64; i++) w[i] = combs_buf[il_pos].i[i];
+      w_len = combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w_pw, pws[gid].pw_len, w);
+
+      ripemd160_init (&ctx);
+
+      ripemd160_update (&ctx, w, w_len);
     }
+    else
+    {
+      if (serpent_key_len > 128)
+      {
+        w_len = combs_buf[il_pos].pw_len;
 
-    ripemd160_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+        for (u32 i = 0; i < 64; i++) w[i] = combs_buf[il_pos].i[i];
+      }
+
+      ripemd160_update_global (&ctx, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
+    }
 
     ripemd160_final (&ctx);
 

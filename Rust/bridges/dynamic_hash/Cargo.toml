@@ -21,6 +21,9 @@ sha3 = "0.10.8"
 thread_local = "1.1.9"
 hashcat-sys = { path = "../../hashcat-sys" }
 
+[build-dependencies]
+winresource = "0.1"
+
 [profile.release]
 opt-level = 3
 codegen-units = 1

@@ -37855,6 +37855,229 @@ DECLSPEC void switch_buffer_by_offset_1x64_be_S (PRIVATE_AS u32 *w, const u32 of
   PACKSV4 (s6, v6, e);                                              \
   PACKSV4 (s7, v7, e);
 
+// attack-mode 12
+
+// One piece into a byte buffer at an offset, for the kernels that hold the candidate as bytes rather
+// than as words. Returns the offset it leaves behind, so the pieces chain. A candidate that would run
+// past the end of the buffer is cut rather than allowed to write outside it.
+
+DECLSPEC u32 combs_copy_bytes (PRIVATE_AS u8 *out, const u32 out_len, GLOBAL_AS const u32 *src, const u32 src_len)
+{
+  if (out_len >= COMBS_BYTES_MAX) return out_len;
+
+  GLOBAL_AS const u8 *src_ptr = (GLOBAL_AS const u8 *) src;
+
+  const u32 room = COMBS_BYTES_MAX - out_len;
+
+  const u32 copy_len = (src_len < room) ? src_len : room;
+
+  for (u32 i = 0; i < copy_len; i++) out[out_len + i] = src_ptr[i];
+
+  const u32 len = out_len + copy_len;
+
+  return len;
+}
+
+// How much the amplifier contributes to the candidate length. Under -a 12 that is all four pieces
+// together, and under every other attack mode it is the one buffer.
+
+DECLSPEC u32 combs_len_S (GLOBAL_AS const pw_t *combs_buf, const u32 il_pos, MAYBE_UNUSED const u32 combs_mode)
+{
+  #if ATTACK_MODE == 12
+  if (combs_mode == COMBINATOR_MODE_BASE_MIDDLE)
+  {
+    u32 len = COMBS_PIECE (il_pos, COMBS_PIECE_PRE).pw_len;
+
+    len += COMBS_PIECE (il_pos, COMBS_PIECE_MID).pw_len;
+    len += COMBS_PIECE (il_pos, COMBS_PIECE_WORD).pw_len;
+    len += COMBS_PIECE (il_pos, COMBS_PIECE_POST).pw_len;
+
+    return len;
+  }
+  #endif
+
+  const u32 one = combs_buf[il_pos].pw_len;
+
+  return one;
+}
+
+// The base word into a full width buffer. A kernel may hold the base word in fewer words than the
+// assembler works in, so only the words its length actually covers are read.
+
+DECLSPEC void combs_base_copy (PRIVATE_AS u32 *out, PRIVATE_AS const u32 *base, const u32 base_len)
+{
+  const u32 cnt = (base_len + 3) / 4;
+
+  for (u32 i = 0; i < 64; i++) out[i] = (i < cnt) ? base[i] : 0;
+}
+
+// One more piece onto the end of a candidate that is being assembled. src holds the piece at offset
+// zero and is moved to where the piece belongs, so the caller does not get it back unchanged.
+
+DECLSPEC void combs_append_1x64_le_S (PRIVATE_AS u32 *out, const u32 out_len, PRIVATE_AS u32 *src)
+{
+  switch_buffer_by_offset_1x64_le_S (src, out_len);
+
+  for (int i = 0; i < 64; i++) out[i] |= src[i];
+}
+
+DECLSPEC void combs_append_1x64_be_S (PRIVATE_AS u32 *out, const u32 out_len, PRIVATE_AS u32 *src)
+{
+  switch_buffer_by_offset_1x64_be_S (src, out_len);
+
+  for (int i = 0; i < 64; i++) out[i] |= src[i];
+}
+
+// The whole candidate in one buffer, and its length. Under -a 12 that is five pieces in a fixed
+// order, mask, base word, mask, second word, mask, and any of them may be empty. Under every other
+// attack mode the amplifier simply follows the base word.
+//
+// A kernel that needs the assembled plaintext as bytes rather than as a hash stream calls this and
+// hands the buffer to the code it already has.
+
+DECLSPEC u32 combs_assemble_1x64_le_S (GLOBAL_AS const pw_t *combs_buf, const u32 il_pos, MAYBE_UNUSED const u32 combs_mode, PRIVATE_AS const u32 *base, const u32 base_len, PRIVATE_AS u32 *out)
+{
+  u32 tmp[64];
+
+  #if ATTACK_MODE == 12
+  if (combs_mode == COMBINATOR_MODE_BASE_MIDDLE)
+  {
+    // the piece in front of the base word starts the candidate, so it never moves
+
+    for (int i = 0; i < 64; i++) out[i] = COMBS_PIECE (il_pos, COMBS_PIECE_PRE).i[i];
+
+    u32 out_len = COMBS_PIECE (il_pos, COMBS_PIECE_PRE).pw_len;
+
+    combs_base_copy (tmp, base, base_len);
+
+    combs_append_1x64_le_S (out, out_len, tmp);
+
+    out_len += base_len;
+
+    const u32 mid_len = COMBS_PIECE (il_pos, COMBS_PIECE_MID).pw_len;
+
+    if (mid_len > 0)
+    {
+      for (int i = 0; i < 64; i++) tmp[i] = COMBS_PIECE (il_pos, COMBS_PIECE_MID).i[i];
+
+      combs_append_1x64_le_S (out, out_len, tmp);
+
+      out_len += mid_len;
+    }
+
+    const u32 word_len = COMBS_PIECE (il_pos, COMBS_PIECE_WORD).pw_len;
+
+    if (word_len > 0)
+    {
+      for (int i = 0; i < 64; i++) tmp[i] = COMBS_PIECE (il_pos, COMBS_PIECE_WORD).i[i];
+
+      combs_append_1x64_le_S (out, out_len, tmp);
+
+      out_len += word_len;
+    }
+
+    const u32 post_len = COMBS_PIECE (il_pos, COMBS_PIECE_POST).pw_len;
+
+    if (post_len > 0)
+    {
+      for (int i = 0; i < 64; i++) tmp[i] = COMBS_PIECE (il_pos, COMBS_PIECE_POST).i[i];
+
+      combs_append_1x64_le_S (out, out_len, tmp);
+
+      out_len += post_len;
+    }
+
+    return out_len;
+  }
+  #endif
+
+  // the base word and one piece behind it, which is what every attack mode other than -a 12 has
+  // and what -a 12 itself has whenever the mask puts nothing in front of the word
+
+  combs_base_copy (out, base, base_len);
+
+  for (int i = 0; i < 64; i++) tmp[i] = combs_buf[il_pos].i[i];
+
+  combs_append_1x64_le_S (out, base_len, tmp);
+
+  const u32 len = base_len + combs_buf[il_pos].pw_len;
+
+  return len;
+}
+
+// The same, for the kernels that hold their buffers big endian. Every piece is byte swapped as it is
+// read, and the base word is expected to be swapped already, which is how those kernels hold it.
+
+DECLSPEC u32 combs_assemble_1x64_be_S (GLOBAL_AS const pw_t *combs_buf, const u32 il_pos, MAYBE_UNUSED const u32 combs_mode, PRIVATE_AS const u32 *base, const u32 base_len, PRIVATE_AS u32 *out)
+{
+  u32 tmp[64];
+
+  #if ATTACK_MODE == 12
+  if (combs_mode == COMBINATOR_MODE_BASE_MIDDLE)
+  {
+    // the piece in front of the base word starts the candidate, so it never moves
+
+    for (int i = 0; i < 64; i++) out[i] = hc_swap32_S (COMBS_PIECE (il_pos, COMBS_PIECE_PRE).i[i]);
+
+    u32 out_len = COMBS_PIECE (il_pos, COMBS_PIECE_PRE).pw_len;
+
+    combs_base_copy (tmp, base, base_len);
+
+    combs_append_1x64_be_S (out, out_len, tmp);
+
+    out_len += base_len;
+
+    const u32 mid_len = COMBS_PIECE (il_pos, COMBS_PIECE_MID).pw_len;
+
+    if (mid_len > 0)
+    {
+      for (int i = 0; i < 64; i++) tmp[i] = hc_swap32_S (COMBS_PIECE (il_pos, COMBS_PIECE_MID).i[i]);
+
+      combs_append_1x64_be_S (out, out_len, tmp);
+
+      out_len += mid_len;
+    }
+
+    const u32 word_len = COMBS_PIECE (il_pos, COMBS_PIECE_WORD).pw_len;
+
+    if (word_len > 0)
+    {
+      for (int i = 0; i < 64; i++) tmp[i] = hc_swap32_S (COMBS_PIECE (il_pos, COMBS_PIECE_WORD).i[i]);
+
+      combs_append_1x64_be_S (out, out_len, tmp);
+
+      out_len += word_len;
+    }
+
+    const u32 post_len = COMBS_PIECE (il_pos, COMBS_PIECE_POST).pw_len;
+
+    if (post_len > 0)
+    {
+      for (int i = 0; i < 64; i++) tmp[i] = hc_swap32_S (COMBS_PIECE (il_pos, COMBS_PIECE_POST).i[i]);
+
+      combs_append_1x64_be_S (out, out_len, tmp);
+
+      out_len += post_len;
+    }
+
+    return out_len;
+  }
+  #endif
+
+  // the base word and one piece behind it, which is what every attack mode other than -a 12 has
+  // and what -a 12 itself has whenever the mask puts nothing in front of the word
+
+  combs_base_copy (out, base, base_len);
+
+  for (int i = 0; i < 64; i++) tmp[i] = hc_swap32_S (combs_buf[il_pos].i[i]);
+
+  combs_append_1x64_be_S (out, base_len, tmp);
+
+  const u32 len = base_len + combs_buf[il_pos].pw_len;
+
+  return len;
+}
+
 DECLSPEC void switch_buffer_by_offset_le_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset)
 {
   #if VECT_SIZE == 1

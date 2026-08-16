@@ -1,97 +1,69 @@
-REPORT_MISSING_SO  := false
-REPORT_MISSING_DLL := false
+BRIDGE_SRC_bridge_python_generic_hash_mp := src/bridges/bridge_python_generic_hash_mp.c src/cpu_features.c
 
-ifeq ($(BRIDGE_SUFFIX),so)
-ifeq ($(REPORT_MISSING_SO),false)
-PYTHON_CONFIG := $(shell command -v python3-config 2>/dev/null)
-ifeq ($(PYTHON_CONFIG),)
-	REPORT_MISSING_SO := true
-endif
-endif
-ifeq ($(REPORT_MISSING_SO),false)
-PYTHON_CFLAGS := $(shell python3-config --includes 2>/dev/null)
-ifeq ($(strip $(PYTHON_CFLAGS)),)
-	REPORT_MISSING_SO := true
-endif
-endif
-endif
+PYTHON_MP_SKIP_SO  := false
+PYTHON_MP_SKIP_DLL := false
 
-CHECK_DLL := false
+# the headers of the python on this machine, for the plugin that will run on this machine
 
-ifeq ($(BRIDGE_SUFFIX),dll)
-  CHECK_DLL := true
+ifneq (,$(PLUGIN_PLATFORM_so))
+ifeq ($(shell command -v python3-config 2>/dev/null),)
+PYTHON_MP_SKIP_SO  := true
 endif
-ifeq ($(BUILD_MODE),cross)
-  CHECK_DLL := true
+ifeq ($(PYTHON_MP_SKIP_SO),false)
+PYTHON_MP_CFLAGS   := $(shell python3-config --includes 2>/dev/null)
+ifeq ($(strip $(PYTHON_MP_CFLAGS)),)
+PYTHON_MP_SKIP_SO  := true
 endif
-
-ifeq ($(CHECK_DLL),true)
+endif
+endif
 
 # find whichever python the msys2 package under $(WIN_PYTHON) provides, rather than naming one
 # version here. Pinning the version meant that bumping the msys2 package silently stopped the
 # headers from being found, and the only symptom was the plugin quietly going missing
 
-WIN_PYTHON_INCLUDE := $(lastword $(sort $(wildcard $(WIN_PYTHON)/mingw64/include/python3.*)))
-
-ifeq ($(REPORT_MISSING_DLL),false)
-ifeq ($(WIN_PYTHON_INCLUDE),)
-	REPORT_MISSING_DLL := true
+ifneq (,$(PLUGIN_PLATFORM_dll))
+PYTHON_MP_INCLUDE_WIN := $(lastword $(sort $(wildcard $(WIN_PYTHON)/mingw64/include/python3.*)))
+ifeq ($(PYTHON_MP_INCLUDE_WIN),)
+PYTHON_MP_SKIP_DLL := true
 endif
-endif
-PYTHON_CFLAGS_WIN := -I$(WIN_PYTHON_INCLUDE)/
+PYTHON_MP_CFLAGS_WIN  := -I$(PYTHON_MP_INCLUDE_WIN)/
 endif
 
-ifeq ($(BUILD_MODE),cross)
-bridges/bridge_python_generic_hash_mp.so:  src/bridges/bridge_python_generic_hash_mp.c src/cpu_features.c obj/combined.LINUX.a
-	$(CC_LINUX)  $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $^ -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(PYTHON_CFLAGS)
-bridges/bridge_python_generic_hash_mp.dll: src/bridges/bridge_python_generic_hash_mp.c src/cpu_features.c obj/combined.WIN.a
-	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $^ -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(PYTHON_CFLAGS_WIN)
-else
-
-ifeq ($(BRIDGE_SUFFIX),dll)
-PYTHON_CFLAGS := $(PYTHON_CFLAGS_WIN)
+ifneq (,$(PLUGIN_PLATFORM_so))
+BRIDGE_CFLAGS_bridge_python_generic_hash_mp_$(PLUGIN_PLATFORM_so)  := $(PYTHON_MP_CFLAGS)
 endif
 
-# the warning recipe below claims the same target, so build the plugin only when the headers were
-# actually found. Defining both leaves make to resolve it by overriding one, which works only by
-# accident of ordering and warns on every build
-
-REPORT_MISSING := $(REPORT_MISSING_SO)
-
-ifeq ($(BRIDGE_SUFFIX),dll)
-REPORT_MISSING := $(REPORT_MISSING_DLL)
-endif
-
-ifeq ($(REPORT_MISSING),false)
-ifeq ($(SHARED),1)
-bridges/bridge_python_generic_hash_mp.$(BRIDGE_SUFFIX): src/bridges/bridge_python_generic_hash_mp.c src/cpu_features.c $(HASHCAT_LIBRARY)
-	$(CC)       $(CCFLAGS) $(CFLAGS_NATIVE)       $^ -o $@ $(LFLAGS_NATIVE)      -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(PYTHON_CFLAGS)
-else
-bridges/bridge_python_generic_hash_mp.$(BRIDGE_SUFFIX): src/bridges/bridge_python_generic_hash_mp.c src/cpu_features.c obj/combined.NATIVE.a
-	$(CC)       $(CCFLAGS) $(CFLAGS_NATIVE)       $^ -o $@ $(LFLAGS_NATIVE)      -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION) $(PYTHON_CFLAGS)
-endif
-endif
+ifneq (,$(PLUGIN_PLATFORM_dll))
+BRIDGE_CFLAGS_bridge_python_generic_hash_mp_$(PLUGIN_PLATFORM_dll) := $(PYTHON_MP_CFLAGS_WIN)
 endif
 
 RED = \033[1;31m
 RESET = \033[0m
 
-ifeq ($(REPORT_MISSING_DLL),true)
-bridges/bridge_python_generic_hash_mp.dll:
-	@echo ""
-	@echo "$(RED)WARNING$(RESET): Skipping regular plugin 73000: Python Windows headers not found."
-	@echo "         To use -m 73000, you must install the required Python headers."
-	@echo "         Otherwise, you can safely ignore this warning."
-	@echo "         See BUILD_WSL.md how to prepare $(WIN_PYTHON)."
-	@echo ""
-endif
+# where the headers were not found the plugin is not built at all. Saying so here is what keeps the
+# warning below from being a second recipe for a file that also has a real one, which make resolves
+# by overriding one of them and warning about it on every build
 
-ifeq ($(REPORT_MISSING_SO),true)
+ifeq ($(PYTHON_MP_SKIP_SO),true)
+BRIDGE_SKIP_bridge_python_generic_hash_mp_$(PLUGIN_PLATFORM_so) := 1
+
 bridges/bridge_python_generic_hash_mp.so:
 	@echo ""
 	@echo "$(RED)WARNING$(RESET): Skipping regular plugin 73000: Python headers not found."
 	@echo "         To use -m 73000, you must install the required Python headers."
 	@echo "         Otherwise, you can safely ignore this warning."
 	@echo "         For more information, see 'docs/hashcat-python-plugin-requirements.md'."
+	@echo ""
+endif
+
+ifeq ($(PYTHON_MP_SKIP_DLL),true)
+BRIDGE_SKIP_bridge_python_generic_hash_mp_$(PLUGIN_PLATFORM_dll) := 1
+
+bridges/bridge_python_generic_hash_mp.dll:
+	@echo ""
+	@echo "$(RED)WARNING$(RESET): Skipping regular plugin 73000: Python Windows headers not found."
+	@echo "         To use -m 73000, you must install the required Python headers."
+	@echo "         Otherwise, you can safely ignore this warning."
+	@echo "         See BUILD_WSL.md how to prepare $(WIN_PYTHON)."
 	@echo ""
 endif

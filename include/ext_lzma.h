@@ -11,8 +11,11 @@
 
 #include "minizip/unzip.h"
 
-int hc_lzma1_decompress (const unsigned char *in, SizeT *in_len, unsigned char *out, SizeT *out_len, const char *props);
-int hc_lzma2_decompress (const unsigned char *in, SizeT *in_len, unsigned char *out, SizeT *out_len, const char *props);
+HC_PLUGIN_API int hc_lzma1_decompress (const unsigned char *in, SizeT *in_len, unsigned char *out, SizeT *out_len, const char *props);
+HC_PLUGIN_API int hc_lzma2_decompress (const unsigned char *in, SizeT *in_len, unsigned char *out, SizeT *out_len, const char *props);
+
+// The allocator the SDK is handed. It is shared with the xz reader in filehandling.c and it is not
+// something a plugin calls.
 
 void *hc_lzma_alloc (MAYBE_UNUSED ISzAllocPtr p, size_t size);
 void  hc_lzma_free  (MAYBE_UNUSED ISzAllocPtr p, void *address);

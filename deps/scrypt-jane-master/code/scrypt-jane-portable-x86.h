@@ -85,7 +85,9 @@
 		typedef __m128d xmmd;
 	#endif
 	#if defined(X86_INTRINSIC_SSE2)
+		#if !defined(__aarch64__) && !defined(__arm__)
 		#include <emmintrin.h>
+		#endif
 		typedef __m128i xmmi;
 	#endif
 	#if defined(X86_INTRINSIC_SSSE3)
@@ -139,8 +141,8 @@
 #endif
 
 #if defined(X86_INTRINSIC_SSSE3)
-	static const packedelem8 ALIGN(16) ssse3_rotl16_32bit      = {{2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13}};
-	static const packedelem8 ALIGN(16) ssse3_rotl8_32bit       = {{3,0,1,2,7,4,5,6,11,8,9,10,15,12,13,14}};
+	static const packedelem8 JANE_ALIGN(16) ssse3_rotl16_32bit      = {{2,3,0,1,6,7,4,5,10,11,8,9,14,15,12,13}};
+	static const packedelem8 JANE_ALIGN(16) ssse3_rotl8_32bit       = {{3,0,1,2,7,4,5,6,11,8,9,10,15,12,13,14}};
 #endif
 
 /*
@@ -461,9 +463,22 @@ get_top_cpuflag_desc(size_t flag) {
 
 #else
 
+typedef enum cpu_flags_x86_t {
+	cpu_mmx = 1 << 0,
+	cpu_sse = 1 << 1,
+	cpu_sse2 = 1 << 2,
+	cpu_sse3 = 1 << 3,
+	cpu_ssse3 = 1 << 4,
+	cpu_sse4_1 = 1 << 5,
+	cpu_sse4_2 = 1 << 6,
+	cpu_avx = 1 << 7,
+	cpu_xop = 1 << 8,
+	cpu_avx2 = 1 << 9
+} cpu_flags_x86;
+
 static size_t
 detect_cpu(void) {
-       return 0;
+	return 0;
 }
 
 #endif /* defined(CPU_X86) || defined(CPU_X86_64) */

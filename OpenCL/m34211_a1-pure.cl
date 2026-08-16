@@ -98,14 +98,25 @@ KERNEL_FQ KERNEL_FA void m34211_mxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    // copy right buffer
-    GLOBAL_AS const u8 *right = (GLOBAL_AS const u8 *) combs_buf[il_pos].i;
-    for (u32 i = 0; i < combs_buf[il_pos].pw_len; i++)
+    // -a 12 puts the base word inside the amplifier instead of beside it, so the base word copied in
+    // above no longer starts the candidate and all five pieces have to be copied per amplifier item.
+
+    u32 comb_len = pws[gid].pw_len + combs_buf[il_pos].pw_len;
+
+    if (COMBS_IS_MIDDLE)
     {
-      combined_buf[i + pws[gid].pw_len] = right[i];
+      comb_len = combs_copy_bytes (combined_buf, 0,        COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, pws[gid].i,            pws[gid].pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+    }
+    else
+    {
+      combs_copy_bytes (combined_buf, pws[gid].pw_len, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
     }
 
-    u32 hash = MurmurHash64A_truncated (comb_ptr, pws[gid].pw_len + combs_buf[il_pos].pw_len);
+    u32 hash = MurmurHash64A_truncated (comb_ptr, comb_len);
 
     const u32 z = 0;
 
@@ -157,14 +168,25 @@ KERNEL_FQ KERNEL_FA void m34211_sxx (KERN_ATTR_BASIC ())
 
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos++)
   {
-    // copy right buffer
-    GLOBAL_AS const u8 *right = (GLOBAL_AS const u8 *) combs_buf[il_pos].i;
-    for (u32 i = 0; i < combs_buf[il_pos].pw_len; i++)
+    // -a 12 puts the base word inside the amplifier instead of beside it, so the base word copied in
+    // above no longer starts the candidate and all five pieces have to be copied per amplifier item.
+
+    u32 comb_len = pws[gid].pw_len + combs_buf[il_pos].pw_len;
+
+    if (COMBS_IS_MIDDLE)
     {
-      combined_buf[i + pws[gid].pw_len] = right[i];
+      comb_len = combs_copy_bytes (combined_buf, 0,        COMBS_PRE  (il_pos).i, COMBS_PRE  (il_pos).pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, pws[gid].i,            pws[gid].pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, COMBS_MID  (il_pos).i, COMBS_MID  (il_pos).pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, COMBS_WORD (il_pos).i, COMBS_WORD (il_pos).pw_len);
+      comb_len = combs_copy_bytes (combined_buf, comb_len, COMBS_POST (il_pos).i, COMBS_POST (il_pos).pw_len);
+    }
+    else
+    {
+      combs_copy_bytes (combined_buf, pws[gid].pw_len, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
     }
 
-    u32 hash = MurmurHash64A_truncated (comb_ptr, pws[gid].pw_len + combs_buf[il_pos].pw_len);
+    u32 hash = MurmurHash64A_truncated (comb_ptr, comb_len);
 
     const u32 z = 0;
 

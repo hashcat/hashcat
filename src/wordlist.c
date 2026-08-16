@@ -8,14 +8,29 @@
 #include "memory.h"
 #include "event.h"
 #include "convert.h"
-#include "dictstat.h"
 #include "rp.h"
 #include "rp_cpu.h"
 #include "shared.h"
 #include "wordlist.h"
-#include "bitops.h"
-#include "timer.h"
-#include "emu_inc_hash_sha1.h"
+
+// The whole-wordlist hex decode. It is driven by the hash mode and not by anything the user or a
+// plugin chose, so it always applies when the mode asks for it.
+
+size_t convert_hex_wordlist (char *line_buf, const size_t line_len)
+{
+  if (line_len & 1) return (line_len); // not in hex
+
+  size_t i, j;
+
+  for (i = 0, j = 0; j < line_len; i += 1, j += 2)
+  {
+    line_buf[i] = hex_to_u8 ((const u8 *) &line_buf[j]);
+  }
+
+  memset (line_buf + i, 0, line_len - i);
+
+  return (i);
+}
 
 size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_t line_len)
 {
@@ -26,16 +41,9 @@ size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_
 
   if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
   {
-    size_t i, j;
+    const size_t new_len = convert_hex_wordlist (line_buf, line_len);
 
-    for (i = 0, j = 0; j < line_len; i += 1, j += 2)
-    {
-      line_buf[i] = hex_to_u8 ((const u8 *) &line_buf[j]);
-    }
-
-    memset (line_buf + i, 0, line_len - i);
-
-    return (i);
+    return (new_len);
   }
 
   if (user_options->wordlist_autohex == true)
@@ -51,308 +59,150 @@ size_t convert_from_hex (hashcat_ctx_t *hashcat_ctx, char *line_buf, const size_
   return (line_len);
 }
 
-int load_segment (hashcat_ctx_t *hashcat_ctx, HCFILE *fp)
+// Set a transform up for one side of a candidate. role says which feed instance that side is read
+// from, because a plugin declares which of these hashcat should do for it: a generator that produces
+// finished candidates does not want the user's rule applied on top of them. PT_UPPER and PT_HEX are
+// not offered as a choice, because they are what the hash mode requires of a plaintext rather than
+// anything the plugin or the user asked for.
+//
+// rule_len and rule_buf are the side this producer is filling: -j for a base word and -k for an
+// amplifier word.
+
+int pw_transform_init (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int rule_len, const char *rule_buf)
 {
-  wl_data_t *wl_data = hashcat_ctx->wl_data;
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+  const generic_ctx_t  *generic_ctx  = &hashcat_ctx->generic_ctx[role];
 
-  // NOTE: use (never changing) ->incr here instead of ->avail otherwise the buffer gets bigger and bigger
+  memset (transform, 0, sizeof (pw_transform_t));
 
-  wl_data->pos = 0;
+  transform->pt_uppercase     = (hashconfig->opts_type & OPTS_TYPE_PT_UPPER) ? true : false;
+  transform->pt_hex           = (hashconfig->opts_type & OPTS_TYPE_PT_HEX)   ? true : false;
+  transform->wordlist_autohex = generic_ctx->autohex_enable && user_options->wordlist_autohex;
 
-  wl_data->cnt = hc_fread (wl_data->buf, 1, wl_data->incr - 1000, fp);
-
-  if (wl_data->cnt == (size_t) -1)
+  if (generic_ctx->rules_enable == true)
   {
+    transform->rule_len = rule_len;
+    transform->rule_buf = rule_buf;
+  }
+
+  if (generic_ctx->iconv_enable == false) return 0;
+
+  if (strcmp (user_options->encoding_from, user_options->encoding_to) == 0) return 0;
+
+  transform->iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
+
+  if (transform->iconv_ctx == (iconv_t) -1)
+  {
+    event_log_error (hashcat_ctx, "iconv_open: %s", strerror (errno));
+
+    transform->iconv_ctx = NULL;
+
     return -1;
   }
 
-  wl_data->buf[wl_data->cnt] = 0;
+  transform->iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
 
-  if (wl_data->cnt == 0) return 0;
-
-  if (wl_data->buf[wl_data->cnt - 1] == '\n') return 0;
-
-  while (!hc_feof (fp))
-  {
-    if (wl_data->cnt == wl_data->avail)
-    {
-      wl_data->buf = (char *) hcrealloc (wl_data->buf, wl_data->avail, wl_data->incr);
-
-      wl_data->avail += wl_data->incr;
-    }
-
-    const int c = hc_fgetc (fp);
-
-    if (c == EOF) break;
-
-    wl_data->buf[wl_data->cnt] = (char) c;
-
-    wl_data->cnt++;
-
-    if (c == '\n') break;
-  }
-
-  // ensure stream ends with a newline
-
-  if (wl_data->buf[wl_data->cnt - 1] != '\n')
-  {
-    wl_data->cnt++;
-
-    wl_data->buf[wl_data->cnt - 1] = '\n';
-  }
+  transform->iconv_enabled = true;
 
   return 0;
 }
 
-void get_next_word_lm_gen (char *buf, u64 sz, u64 *len, u64 *off, u64 cutlen)
+void pw_transform_term (pw_transform_t *transform)
 {
-  char *ptr = buf;
+  if (transform->iconv_enabled == false) return;
 
-  for (u64 i = 0; i < sz; i++, ptr++)
-  {
-    if (*ptr >= 'a' && *ptr <= 'z') *ptr -= 0x20;
+  iconv_close (transform->iconv_ctx);
 
-    if (i == cutlen)
-    {
-      if (cutlen == 20) buf[i - 1]= ']'; // add ] in $HEX[] format
+  hcfree (transform->iconv_tmp);
 
-      *len = i;
-
-      // but continue a loop to skip rest of the line
-    }
-
-    if (*ptr != '\n') continue;
-
-    *off = i + 1;
-
-    if ((i > 0) && (buf[i - 1] == '\r')) i--;
-
-    if (i < cutlen + 1) *len = i;
-
-    return;
-  }
-
-  *off = sz;
-
-  if (sz < cutlen) *len = sz;
+  transform->iconv_enabled = false;
+  transform->iconv_ctx     = NULL;
+  transform->iconv_tmp     = NULL;
 }
 
-void get_next_word_lm_hex (char *buf, u64 sz, u64 *len, u64 *off)
+// Whether a candidate can come out shorter than it arrived. Only these three can do that, and without
+// one of them a word too long for the buffer is too long for good and there is nothing to re-read.
+
+bool pw_transform_shrinks (const pw_transform_t *transform)
 {
-  // this one is called if --hex-wordlist is used
-  // we need 14 hex-digits to get 7 characters
-  // but first convert 7 chars to upper case if they are a-z
+  const bool result = transform->pt_hex | transform->wordlist_autohex | transform->iconv_enabled;
 
-  for (u64 i = 5; i < sz; i++)
-  {
-    if ((i & 1) == 0)
-    {
-      if (is_valid_hex_char (buf[i]))
-        if (is_valid_hex_char (buf[i + 1]))
-        {
-          if (buf[i] == '6')
-            if (buf[i+1] > '0')
-              buf[i] = '4';
-          if (buf[i] == '7')
-            if (buf[i+1] < 'B')
-              buf[i] = '5';
-        }
-    }
-
-    if (i == 12) break;  // stop when 7 chars are converted
-  }
-
-  // call generic next_word
-
-  get_next_word_lm_gen (buf, sz, len, off, 14);
+  return result;
 }
 
-void get_next_word_lm_hex_or_text (char *buf, u64 sz, u64 *len, u64 *off)
+// Apply the whole transform in place, and return the new length or -1 when the word cannot be used.
+//
+// buf_size is what buf can hold. The encoding change is the one step that can make a word LONGER, so
+// it converts into its own buffer and a result that does not fit is refused rather than truncated: a
+// utf-16 string cut in half is not a shorter password, it is a different one.
+
+int pw_transform_apply (const pw_transform_t *transform, u8 *buf, const int len, const int buf_size)
 {
-  // check if not $HEX[..] format
-  bool hex = true;
+  int out_len = len;
 
-  if (sz < 8) hex = false;
+  // 1. how the line spells the password
 
-  if (hex && (buf[0] != '$')) hex = false;
-  if (hex && (buf[1] != 'H')) hex = false;
-  if (hex && (buf[2] != 'E')) hex = false;
-  if (hex && (buf[3] != 'X')) hex = false;
-  if (hex && (buf[4] != '[')) hex = false;
-
-  if (hex)
+  if (transform->pt_hex == true)
   {
-    char *ptr = buf + 5; // starting after '['
+    out_len = (int) convert_hex_wordlist ((char *) buf, (size_t) out_len);
+  }
 
-    for (u64 i = 5; i < sz; i++, ptr++)
+  if (transform->wordlist_autohex == true)
+  {
+    if (is_hexify (buf, (size_t) out_len) == true)
     {
-      if (*ptr == ']')
-      {
-        if ((i & 1) == 0) hex = false; // not even number of characters
-        break;
-      }
-      else
-      {
-        if (is_valid_hex_char (*ptr) == false)
-        {
-          hex = false;
-          break;
-        }
-        // upcase character if it is a letter 'a-z'
-        if ((i & 1) == 1) // if first hex-char
-        {
-          if (is_valid_hex_char (buf[i + 1]))
-          {
-            if (buf[i] == '6')
-              if (buf[i + 1] > '0')
-                buf[i] = '4';
-            if (buf[i] == '7')
-              if (buf[i + 1] < 'B')
-                buf[i] = '5';
-          }
-        }
-      }
+      out_len = (int) exec_unhexify (buf, (size_t) out_len, buf, (size_t) out_len);
     }
   }
-  if (hex)
+
+  // 2. what the user asked to try
+
+  if (run_rule_engine (transform->rule_len, transform->rule_buf))
   {
-    //$HEX[] format so we need max 14 hex-digits + 6 chars '$HEX[]'
-    get_next_word_lm_gen (buf, sz, len, off, 20);
-  }
-  else
-  {
-    // threat it as normal string
-    get_next_word_lm_gen (buf, sz, len, off, 7);
-  }
-}
+    if (out_len >= RP_PASSWORD_SIZE) return -1;
 
-void get_next_word_lm_text (char *buf, u64 sz, u64 *len, u64 *off)
-{
-  get_next_word_lm_gen (buf, sz, len, off, 7);
-}
+    char rule_buf_out[RP_PASSWORD_SIZE];
 
-void get_next_word_uc (char *buf, u64 sz, u64 *len, u64 *off)
-{
-  char *ptr = buf;
+    memset (rule_buf_out, 0, sizeof (rule_buf_out));
 
-  for (u64 i = 0; i < sz; i++, ptr++)
-  {
-    if (*ptr >= 'a' && *ptr <= 'z') *ptr -= 0x20;
+    const int rule_len_out = _old_apply_rule (transform->rule_buf, transform->rule_len, (char *) buf, out_len, rule_buf_out);
 
-    if (*ptr != '\n') continue;
+    if (rule_len_out < 0) return -1;
 
-    *off = i + 1;
+    if (rule_len_out > buf_size) return -1;
 
-    if ((i > 0) && (buf[i - 1] == '\r')) i--;
+    memcpy (buf, rule_buf_out, (size_t) rule_len_out);
 
-    *len = i;
-
-    return;
+    out_len = rule_len_out;
   }
 
-  *off = sz;
-  *len = sz;
-}
+  // 3. what this hash mode hashes
 
-void get_next_word_std (char *buf, u64 sz, u64 *len, u64 *off)
-{
-  char *ptr = buf;
+  if (transform->pt_uppercase == true) uppercase (buf, (size_t) out_len);
 
-  for (u64 i = 0; i < sz; i++, ptr++)
+  // 4. the bytes the kernel gets
+
+  if (transform->iconv_enabled == true)
   {
-    if (*ptr != '\n') continue;
+    char  *iconv_ptr = transform->iconv_tmp;
+    size_t iconv_sz  = HCBUFSIZ_TINY;
 
-    *off = i + 1;
+    char  *in_buf = (char *) buf;
+    size_t in_len = (size_t) out_len;
 
-    if ((i > 0) && (buf[i - 1] == '\r')) i--;
+    if (iconv (transform->iconv_ctx, &in_buf, &in_len, &iconv_ptr, &iconv_sz) == (size_t) -1) return -1;
 
-    *len = i;
+    const size_t iconv_left = HCBUFSIZ_TINY - iconv_sz;
 
-    return;
+    if (iconv_left > (size_t) buf_size) return -1;
+
+    memcpy (buf, transform->iconv_tmp, iconv_left);
+
+    out_len = (int) iconv_left;
   }
 
-  *off = sz;
-  *len = sz;
-}
-
-void get_next_word (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, char **out_buf, u32 *out_len)
-{
-  user_options_t       *user_options       = hashcat_ctx->user_options;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  wl_data_t            *wl_data            = hashcat_ctx->wl_data;
-
-  while (wl_data->pos < wl_data->cnt)
-  {
-    u64 off;
-    u64 len;
-
-    char *ptr = wl_data->buf + wl_data->pos;
-
-    wl_data->func (ptr, wl_data->cnt - wl_data->pos, &len, &off);
-
-    wl_data->pos += off;
-
-    // do the on-the-fly hex decode using original buffer
-    // this is safe as length only decreases in size
-
-    len = (u32) convert_from_hex (hashcat_ctx, ptr, len);
-
-    // do the on-the-fly encoding
-    // needs to write into new buffer because size case both decrease and increase
-
-    if (wl_data->iconv_enabled == true)
-    {
-      char  *iconv_ptr = wl_data->iconv_tmp;
-      size_t iconv_sz  = HCBUFSIZ_TINY;
-
-      size_t ptr_len = len;
-
-      const size_t iconv_rc = iconv (wl_data->iconv_ctx, &ptr, &ptr_len, &iconv_ptr, &iconv_sz);
-
-      if (iconv_rc == (size_t) -1) continue;
-
-      ptr = wl_data->iconv_tmp;
-      len = HCBUFSIZ_TINY - iconv_sz;
-    }
-
-    // this is only a test for length, not writing into output buffer
-
-    if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
-    {
-      if (len >= RP_PASSWORD_SIZE) continue;
-
-      char rule_buf_out[RP_PASSWORD_SIZE];
-
-      memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-      const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, (u32) len, rule_buf_out);
-
-      if (rule_len_out < 0) continue;
-    }
-
-    if (len > PW_MAX) continue;
-
-    *out_buf = ptr;
-    *out_len = (u32) len;
-
-    return;
-  }
-
-  if (hc_feof (fp))
-  {
-    fprintf (stderr, "BUG feof()!!\n");
-
-    return;
-  }
-
-  if (load_segment (hashcat_ctx, fp) == -1)
-  {
-    event_log_error (hashcat_ctx, "Error reading file!\n");
-
-    return;
-  }
-
-  get_next_word (hashcat_ctx, fp, out_buf, out_len);
+  return out_len;
 }
 
 void pw_pre_add (hc_device_param_t *device_param, const u8 *pw_buf, const int pw_len, const u8 *base_buf, const int base_len, const int rule_idx)
@@ -483,356 +333,4 @@ void pw_add (pw_batch_t *batch, const u64 pws_max, const u8 *pw_buf, const int p
 
     return;
   }
-}
-
-int count_words (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, const char *dictfile, u64 *result)
-{
-  combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
-  hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
-  straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
-  mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
-  user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-  user_options_t       *user_options       = hashcat_ctx->user_options;
-  wl_data_t            *wl_data            = hashcat_ctx->wl_data;
-
-  //hc_signal (NULL);
-
-  dictstat_t d;
-
-  memset (&d, 0, sizeof (d));
-
-  if (hc_fstat (fp, &d.stat))
-  {
-    *result = 0;
-
-    return 0;
-  }
-
-  d.stat.st_mode    = 0;
-  d.stat.st_nlink   = 0;
-  d.stat.st_uid     = 0;
-  d.stat.st_gid     = 0;
-  d.stat.st_rdev    = 0;
-  d.stat.st_atime   = 0;
-
-  #if defined (STAT_NANOSECONDS_ACCESS_TIME)
-  d.stat.STAT_NANOSECONDS_ACCESS_TIME = 0;
-  #endif
-
-  #if defined (_POSIX)
-  d.stat.st_blksize = 0;
-  d.stat.st_blocks  = 0;
-  #endif
-
-  memset (d.encoding_from, 0, sizeof (d.encoding_from));
-  memset (d.encoding_to,   0, sizeof (d.encoding_to));
-
-  strncpy (d.encoding_from, user_options->encoding_from, sizeof (d.encoding_from) - 1);
-  strncpy (d.encoding_to,   user_options->encoding_to,   sizeof (d.encoding_to)   - 1);
-
-  if (d.stat.st_size == 0)
-  {
-    *result = 0;
-
-    return 0;
-  }
-
-  const size_t dictfile_len = strlen (dictfile);
-
-  u32 *dictfile_padded = (u32 *) hcmalloc (dictfile_len + 64); // padding required for sha1_update()
-
-  memcpy (dictfile_padded, dictfile, dictfile_len);
-
-  for (size_t i = 0, j = 0; i < dictfile_len; i += 4, j += 1)
-  {
-    dictfile_padded[j] = byte_swap_32 (dictfile_padded[j]);
-  }
-
-  sha1_ctx_t sha1_ctx;
-  sha1_init   (&sha1_ctx);
-  sha1_update (&sha1_ctx, dictfile_padded, dictfile_len);
-  sha1_final  (&sha1_ctx);
-
-  sha1_ctx.h[0] = byte_swap_32 (sha1_ctx.h[0]);
-  sha1_ctx.h[1] = byte_swap_32 (sha1_ctx.h[1]);
-  sha1_ctx.h[2] = byte_swap_32 (sha1_ctx.h[2]);
-  sha1_ctx.h[3] = byte_swap_32 (sha1_ctx.h[3]);
-  sha1_ctx.h[4] = byte_swap_32 (sha1_ctx.h[4]);
-
-  hcfree (dictfile_padded);
-
-  memcpy (d.hash_filename, sha1_ctx.h, 16);
-
-  const u64 cached_cnt = dictstat_find (hashcat_ctx, &d);
-
-  if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l) == 0)
-  {
-    if (cached_cnt)
-    {
-      u64 keyspace = cached_cnt;
-
-      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        if (overflow_check_u64_mul (keyspace, straight_ctx->kernel_rules_cnt) == true) return -1;
-
-        keyspace *= straight_ctx->kernel_rules_cnt;
-      }
-      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-      {
-        if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
-        {
-          if (overflow_check_u64_mul (keyspace, mask_ctx->bfs_cnt) == true) return -1;
-
-          keyspace *= mask_ctx->bfs_cnt;
-        }
-        else
-        {
-          if (overflow_check_u64_mul (keyspace, combinator_ctx->combs_cnt) == true) return -1;
-
-          keyspace *= combinator_ctx->combs_cnt;
-        }
-      }
-
-      cache_hit_t cache_hit;
-
-      cache_hit.dictfile      = dictfile;
-      cache_hit.stat.st_size  = d.stat.st_size;
-      cache_hit.cached_cnt    = cached_cnt;
-      cache_hit.keyspace      = keyspace;
-
-      EVENT_DATA (EVENT_WORDLIST_CACHE_HIT, &cache_hit, sizeof (cache_hit));
-
-      *result = keyspace;
-
-      return 0;
-    }
-  }
-
-  hc_timer_t start;
-
-  hc_timer_set (&start);
-
-  double prev_percent = 0;
-
-  u64 comp = 0;
-  u64 cnt  = 0;
-  u64 cnt2 = 0;
-
-  while (!hc_feof (fp))
-  {
-    if (load_segment (hashcat_ctx, fp) == -1)
-    {
-      return -2;
-    }
-
-    comp += wl_data->cnt;
-
-    u64 i = 0;
-
-    while (i < wl_data->cnt)
-    {
-      u64 len;
-      u64 off;
-
-      char *ptr = wl_data->buf + i;
-
-      wl_data->func (ptr, wl_data->cnt - i, &len, &off);
-
-      i += off;
-
-      // do the on-the-fly hex decode using original buffer
-      // this is safe as length only decreases in size
-
-      len = (u32) convert_from_hex (hashcat_ctx, ptr, len);
-
-      // do the on-the-fly encoding
-
-      if (wl_data->iconv_enabled == true)
-      {
-        char  *iconv_ptr = wl_data->iconv_tmp;
-        size_t iconv_sz  = HCBUFSIZ_TINY;
-
-        size_t ptr_len = len;
-
-        const size_t iconv_rc = iconv (wl_data->iconv_ctx, &ptr, &ptr_len, &iconv_ptr, &iconv_sz);
-
-        if (iconv_rc == (size_t) -1) continue;
-
-        ptr = wl_data->iconv_tmp;
-        len = HCBUFSIZ_TINY - iconv_sz;
-      }
-
-      if (run_rule_engine (user_options_extra->rule_len_l, user_options->rule_buf_l))
-      {
-        if (len >= RP_PASSWORD_SIZE) continue;
-
-        char rule_buf_out[RP_PASSWORD_SIZE];
-
-        memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
-        const int rule_len_out = _old_apply_rule (user_options->rule_buf_l, user_options_extra->rule_len_l, ptr, (u32) len, rule_buf_out);
-
-        if (rule_len_out < 0) continue;
-      }
-
-      cnt2++;
-
-      if (len > PW_MAX) continue;
-
-      d.cnt++;
-
-      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
-      {
-        if (overflow_check_u64_add (cnt, straight_ctx->kernel_rules_cnt) == true) return -1;
-
-        cnt += straight_ctx->kernel_rules_cnt;
-      }
-      else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)
-      {
-        if (((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0) && (user_options->attack_mode == ATTACK_MODE_HYBRID2))
-        {
-          if (overflow_check_u64_add (cnt, mask_ctx->bfs_cnt) == true) return -1;
-
-          cnt += mask_ctx->bfs_cnt;
-        }
-        else
-        {
-          if (overflow_check_u64_add (cnt, combinator_ctx->combs_cnt) == true) return -1;
-
-          cnt += combinator_ctx->combs_cnt;
-        }
-      }
-    }
-
-    double percent = ((double) comp / (double) d.stat.st_size) * 100;
-
-    if ((prev_percent + 1.234) > percent) continue;
-
-    prev_percent = percent;
-
-    if (percent < 100)
-    {
-      cache_generate_t cache_generate;
-
-      cache_generate.dictfile    = dictfile;
-      cache_generate.comp        = comp;
-      cache_generate.percent     = percent;
-      cache_generate.cnt         = cnt;
-      cache_generate.cnt2        = cnt2;
-      cache_generate.runtime     = hc_timer_get (start);
-
-      EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
-    }
-  }
-
-  cache_generate_t cache_generate;
-
-  cache_generate.dictfile    = dictfile;
-  cache_generate.comp        = comp;
-  cache_generate.percent     = 100;
-  cache_generate.cnt         = cnt;
-  cache_generate.cnt2        = cnt2;
-  cache_generate.runtime     = hc_timer_get (start);
-
-  EVENT_DATA (EVENT_WORDLIST_CACHE_GENERATE, &cache_generate, sizeof (cache_generate));
-
-  dictstat_append (hashcat_ctx, &d);
-
-  //hc_signal (sigHandler_default);
-
-  *result = cnt;
-
-  return 0;
-}
-
-int wl_data_init (hashcat_ctx_t *hashcat_ctx)
-{
-  wl_data_t      *wl_data      = hashcat_ctx->wl_data;
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  user_options_t *user_options = hashcat_ctx->user_options;
-
-  wl_data->enabled = false;
-
-  if (user_options->usage         > 0)    return 0;
-  if (user_options->backend_info  > 0)    return 0;
-  if (user_options->hash_info     > 0)    return 0;
-
-  if (user_options->benchmark    == true) return 0;
-  if (user_options->left         == true) return 0;
-  if (user_options->version      == true) return 0;
-
-  wl_data->enabled = true;
-
-  wl_data->buf     = (char *) hcmalloc (user_options->segment_size);
-  wl_data->avail   = user_options->segment_size;
-  wl_data->incr    = user_options->segment_size;
-  wl_data->cnt     = 0;
-  wl_data->pos     = 0;
-
-  /**
-   * choose dictionary parser
-   */
-
-  wl_data->func = get_next_word_std;
-
-  if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
-  {
-    wl_data->func = get_next_word_uc;
-  }
-
-  if (hashconfig->opts_type & OPTS_TYPE_PT_LM)
-  {
-    if (hashconfig->opts_type & OPTS_TYPE_PT_HEX)
-    {
-      wl_data->func = get_next_word_lm_hex;           // all hex in file
-    }
-    else
-    {
-      if (user_options->wordlist_autohex == true)
-      {
-        wl_data->func = get_next_word_lm_hex_or_text; // might be $HEX[] notation
-      }
-      else
-      {
-        wl_data->func = get_next_word_lm_text;        // treat as normal text
-      }
-    }
-  }
-
-  /**
-   * iconv
-   */
-
-  if (strcmp (user_options->encoding_from, user_options->encoding_to) != 0)
-  {
-    wl_data->iconv_enabled = true;
-
-    wl_data->iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
-
-    if (wl_data->iconv_ctx == (iconv_t) -1) return -1;
-
-    wl_data->iconv_tmp = (char *) hcmalloc (HCBUFSIZ_TINY);
-  }
-
-  return 0;
-}
-
-void wl_data_destroy (hashcat_ctx_t *hashcat_ctx)
-{
-  wl_data_t *wl_data = hashcat_ctx->wl_data;
-
-  if (wl_data->enabled == false) return;
-
-  hcfree (wl_data->buf);
-
-  if (wl_data->iconv_enabled == true)
-  {
-    iconv_close (wl_data->iconv_ctx);
-
-    wl_data->iconv_enabled = false;
-
-    hcfree (wl_data->iconv_tmp);
-  }
-
-  memset (wl_data, 0, sizeof (wl_data_t));
 }

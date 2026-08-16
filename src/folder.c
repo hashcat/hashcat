@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "shared.h"
+#include "path.h"
 #include "folder.h"
 #include <libgen.h>
 

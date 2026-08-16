@@ -20,15 +20,19 @@ ifneq ($(filter 1.%,$(RUSTUP_VERSION)),)
 RUSTUP_PRESENT  := true
 endif
 
-COMMON_PREREQS  := src/bridges/bridge_rust_generic_hash.c src/cpu_features.c
 RUST_CRATES     := $(notdir $(patsubst %/Cargo.toml,%,$(subst \,/,$(wildcard $(RUST_SCAN_DIR)/*/Cargo.toml))))
 PLUGINS_LINUX   := $(addprefix $(RUST_SUBS_DIR)/,$(addsuffix .so,$(RUST_CRATES)))
 PLUGINS_WIN     := $(addprefix $(RUST_SUBS_DIR)/,$(addsuffix .dll,$(RUST_CRATES)))
-PLUGINS_DEFAULT := $(PLUGINS_LINUX)
+PLUGINS_NATIVE  := $(addprefix $(RUST_SUBS_DIR)/,$(addsuffix .$(PLUGIN_SUFFIX_NATIVE),$(RUST_CRATES)))
 
-ifeq ($(BRIDGE_SUFFIX),dll)
-PLUGINS_DEFAULT := $(PLUGINS_WIN)
-endif
+BRIDGE_SRC_bridge_rust_generic_hash         := src/bridges/bridge_rust_generic_hash.c src/cpu_features.c
+
+# the crates are built beside the bridge and are not inputs to its compiler, so they are named as
+# prerequisites and nothing else
+
+BRIDGE_DEPS_bridge_rust_generic_hash_NATIVE := $(PLUGINS_NATIVE)
+BRIDGE_DEPS_bridge_rust_generic_hash_LINUX  := $(PLUGINS_LINUX)
+BRIDGE_DEPS_bridge_rust_generic_hash_WIN    := $(PLUGINS_WIN)
 
 RED             := $(shell tput setaf 1)
 RESET           := $(shell tput sgr 0)
@@ -55,18 +59,30 @@ RUSTFLAGS_SO    += -C lto -C embed-bitcode=y
 RUSTFLAGS_DLL   += -C lto -C embed-bitcode=y
 endif
 
-ifeq ($(BUILD_MODE),native)
+# target-cpu=native describes the machine running the build, so it goes to whichever of the two file
+# names belongs to that machine and not to the one built for a release
+
+ifeq ($(PLUGIN_PLATFORM_so),NATIVE)
 RUSTFLAGS_SO    += -C target-cpu=native
+endif
+
+ifeq ($(PLUGIN_PLATFORM_dll),NATIVE)
 RUSTFLAGS_DLL   += -C target-cpu=native
 endif
 
+# MAKEFLAGS is cleared for cargo. make advertises its jobserver in MAKEFLAGS to every recipe, but it
+# only hands the file descriptors behind it to a recipe it believes is a recursive make. cargo reads
+# the advertisement, tries to connect, finds nothing there and says so on every build: "failed to
+# connect to jobserver from environment variable". Nothing is lost by clearing it, cargo then picks
+# its own parallelism, and the alternative of marking the recipe as recursive would also make it run
+# during a dry run.
 $(RUST_SUBS_DIR)/%.so: $(RUST_SCAN_DIR)/%/Cargo.toml
-	RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $^
+	MAKEFLAGS= RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $^
 	cp Rust/bridges/$*/target/$(RUST_BUILD_MODE)/lib$*.$(RUST_LIB_EXT) $@
 ifeq ($(RUSTUP_PRESENT),true)
 $(RUST_SUBS_DIR)/%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml
 	$(RUST_RUSTUP) --quiet target add x86_64-pc-windows-gnu
-	RUSTFLAGS="$(RUSTFLAGS_DLL)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $^ --target x86_64-pc-windows-gnu
+	MAKEFLAGS= RUSTFLAGS="$(RUSTFLAGS_DLL)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $^ --target x86_64-pc-windows-gnu
 	cp Rust/bridges/$*/target/x86_64-pc-windows-gnu/$(RUST_BUILD_MODE)/$*.dll $@
 else
 $(RUST_SUBS_DIR)/%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml
@@ -95,19 +111,4 @@ $(RUST_SUBS_DIR)/%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml
 	@echo "         For more information, see 'docs/hashcat-rust-plugin-requirements.md'."
 	@echo ""
 
-endif
-
-ifeq ($(BUILD_MODE),cross)
-bridges/bridge_rust_generic_hash.so: $(COMMON_PREREQS) obj/combined.LINUX.a $(PLUGINS_LINUX)
-	$(CC_LINUX)  $(CCFLAGS) $(CFLAGS_CROSS_LINUX) $(filter-out $(RUST_SUBS_DIR)/%,$^) -o $@ $(LFLAGS_CROSS_LINUX) -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
-bridges/bridge_rust_generic_hash.dll: $(COMMON_PREREQS) obj/combined.WIN.a $(PLUGINS_WIN)
-	$(CC_WIN)    $(CCFLAGS) $(CFLAGS_CROSS_WIN)   $(filter-out $(RUST_SUBS_DIR)/%,$^) -o $@ $(LFLAGS_CROSS_WIN)   -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
-else
-ifeq ($(SHARED),1)
-bridges/bridge_rust_generic_hash.$(BRIDGE_SUFFIX): $(COMMON_PREREQS) $(HASHCAT_LIBRARY) $(PLUGINS_DEFAULT)
-	$(CC) $(CCFLAGS) $(CFLAGS_NATIVE)             $(filter-out $(RUST_SUBS_DIR)/%,$^) -o $@ $(LFLAGS_NATIVE)      -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
-else
-bridges/bridge_rust_generic_hash.$(BRIDGE_SUFFIX): $(COMMON_PREREQS) obj/combined.NATIVE.a $(PLUGINS_DEFAULT)
-	$(CC) $(CCFLAGS) $(CFLAGS_NATIVE)             $(filter-out $(RUST_SUBS_DIR)/%,$^) -o $@ $(LFLAGS_NATIVE)      -shared -fPIC -D BRIDGE_INTERFACE_VERSION_CURRENT=$(BRIDGE_INTERFACE_VERSION)
-endif
 endif
