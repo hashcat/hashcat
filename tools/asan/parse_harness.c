@@ -242,6 +242,84 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
 
     free (buf);
   }
+
+  // 5. lengthen one interior field at a time, keeping the line's structure
+  //    intact.
+  //
+  //    Truncation finds parsers that read a field before checking the line is
+  //    long enough. This finds the opposite shape: a parser that computes a
+  //    length from one field and applies it at another offset, which stays in
+  //    bounds only while the fields happen to be similarly sized. The example
+  //    hash is usually balanced enough to hide that, so the defect only
+  //    appears once one field is much longer than the rest -- m29100 needed a
+  //    120-character first field against a 20-character last one, and the
+  //    mutations above reached it only by accident.
+  //
+  //    Fields are split on the characters hashcat's own tokenizers use as
+  //    separators, plus the mode's declared one.
+  {
+    const char *seps = "$*:.#";
+
+    for (int f = 0; f < len; f++)
+    {
+      const char c = hash[f];
+
+      const bool is_sep = (strchr (seps, c) != NULL)
+                       || ((hashconfig->separator != 0) && (c == hashconfig->separator));
+
+      // start of a field: position 0, or just after a separator
+      if ((f != 0) && (is_sep == false)) continue;
+
+      const int start = (f == 0) ? 0 : f + 1;
+      if (start >= len) break;
+
+      // extent of this field
+      int end = start;
+      while (end < len)
+      {
+        const char e = hash[end];
+        if (strchr (seps, e) != NULL) break;
+        if ((hashconfig->separator != 0) && (e == hashconfig->separator)) break;
+        end++;
+      }
+
+      const int field_len = end - start;
+      if (field_len <= 0) continue;
+
+      for (int mult = 2; mult <= 8; mult *= 4) // 2x and 8x
+      {
+        const size_t grown = (size_t) field_len * (size_t) mult;
+        const size_t sz    = (size_t) len + grown + 1;
+
+        char *buf = (char *) xalloc (sz);
+
+        memcpy (buf, hash, (size_t) start);
+
+        // repeat the field's own bytes, so character-class checks
+        // (VERIFY_HEX, VERIFY_DIGIT, VERIFY_BASE64) still pass and the input
+        // reaches the parser body instead of being rejected up front
+        for (size_t r = 0; r < (size_t) mult; r++)
+        {
+          memcpy (buf + start + (r * (size_t) field_len), hash + start, (size_t) field_len);
+        }
+
+        const size_t tail_at = (size_t) start + grown;
+
+        memcpy (buf + tail_at, hash + end, (size_t) (len - end));
+
+        const int new_len = (int) (tail_at + (size_t) (len - end));
+
+        buf[new_len] = 0;
+
+        char label[48];
+        snprintf (label, sizeof (label), "field@%d x%d", start, mult);
+
+        parse_one (m, hashconfig, buf, new_len, label);
+
+        free (buf);
+      }
+    }
+  }
 }
 
 int main (int argc, char **argv)
