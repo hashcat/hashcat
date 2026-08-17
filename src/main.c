@@ -1486,7 +1486,13 @@ int main (int argc, char **argv)
 
   if (hashcat_session_init (hashcat_ctx, install_folder, shared_folder, argc, argv, COMPTIME) == 0)
   {
-    if (user_options->usage > 0)
+    if (hashcat_ctx->restore_ctx->print_only == true)
+    {
+      // --restore has printed what the restore file holds and stopped there
+
+      rc_final = 0;
+    }
+    else if (user_options->usage > 0)
     {
       usage_big_print (hashcat_ctx);
 

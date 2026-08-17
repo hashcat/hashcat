@@ -1502,6 +1502,12 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
 
   if (restore_ctx_init (hashcat_ctx, argc, argv) == -1) return -1;
 
+  // --restore has printed the command line the restore file holds and nothing else may run. Stopping
+  // here rather than further down is the point: user_options_preprocess has not run, so nothing has
+  // acted on a path that came out of the file and no output file or directory has been created.
+
+  if (hashcat_ctx->restore_ctx->print_only == true) return 0;
+
   /**
    * process user input
    */

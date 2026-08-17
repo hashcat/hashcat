@@ -869,6 +869,8 @@ typedef enum user_options_defaults
   REMOVE_TIMER             = 60,
   RESTORE_ENABLE           = true,
   RESTORE                  = false,
+  RESTORE_AUTO             = false,
+  RESTORE_POSITION         = false,
   RESTORE_TIMER            = 1,
   RP_GEN                   = 0,
   RP_GEN_FUNC_MAX          = 4,
@@ -1004,8 +1006,10 @@ typedef enum user_options_map
   IDX_REMOVE                    = 0xff3a,
   IDX_REMOVE_TIMER              = 0xff3b,
   IDX_RESTORE                   = 0xff3c,
+  IDX_RESTORE_AUTO              = 0xff86,
   IDX_RESTORE_DISABLE           = 0xff3d,
   IDX_RESTORE_FILE_PATH         = 0xff3e,
+  IDX_RESTORE_POSITION          = 0xff87,
   IDX_RP_FILE                   = 'r',
   IDX_RP_GEN_FUNC_MAX           = 0xff3f,
   IDX_RP_GEN_FUNC_MIN           = 0xff40,
@@ -2528,6 +2532,12 @@ typedef struct restore_ctx
 
   bool    restore_execute;
 
+  // Set when --restore has printed the command line the restore file holds and the run must stop
+  // there. hashcat_session_init returns as soon as it sees this, before anything has opened a file
+  // or created a directory on the strength of what the restore file said.
+
+  bool    print_only;
+
   int     argc;
   char  **argv;
 
@@ -2686,7 +2696,9 @@ typedef struct user_options
   bool         quiet;
   bool         remove;
   bool         restore;
+  bool         restore_auto;
   bool         restore_enable;
+  bool         restore_position;
   bool         self_test;
   bool         show;
   bool         slow_candidates;
