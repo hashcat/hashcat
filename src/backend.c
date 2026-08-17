@@ -10194,7 +10194,7 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_loops   = leader_param->kernel_loops;
     device_param->kernel_threads = leader_param->kernel_threads;
 
-    device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+    device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                                  : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads);
 
@@ -10249,7 +10249,7 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
       device_param_dst->kernel_threads = device_param_src->kernel_threads;
 
-      const u32 hardware_power = bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) ? 1
+      const u32 hardware_power = bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param_dst->bridge_link_device)
                                : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param_dst->device_processors)
                                * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param_dst->kernel_threads);
 
@@ -10343,7 +10343,7 @@ bool backend_ctx_devices_tuning_restore (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_loops   = device_param->kernel_loops_prev;
     device_param->kernel_threads = device_param->kernel_threads_prev;
 
-    const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+    const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                              : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads);
 
@@ -15303,7 +15303,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       const u32 workitem_count = bridge_ctx->get_workitem_count (hashcat_ctx, bridge_ctx->platform_context, device_param->bridge_link_device);
 
-      const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+      const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                                : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads_max);
 
@@ -15316,13 +15316,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // That is what retires the hand-picked per-bridge accel constants: they only had to be right
       // when nothing was going to reconsider them. Now they only have to be a safe ceiling.
       //
-      // The floor is one whole multiple, because a launch smaller than the device's own width cannot be
-      // the answer, and kernel_power is rounded down to a whole multiple wherever it is set, so every
-      // size autotune compares is a size the device can actually use.
+      // The floor is ONE, and that is the whole of the change. hardware_power is the unit's own wave
+      // width, so kernel_power is a whole number of waves for every accel there is and nothing has to
+      // be snapped to keep it that way. kernel_accel counts waves, exactly as it counts multiprocessor
+      // loads on an ordinary device, and -n means the same thing on both.
 
-      const u32 multiple = bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device);
-
-      device_param->kernel_accel_min = MAX (multiple, 1);
+      device_param->kernel_accel_min = 1;
       device_param->kernel_accel_max = MAX (_kernel_accel, device_param->kernel_accel_min);
 
       // An explicit -n has to be re-applied here. The override further up is clamped against the
@@ -15335,14 +15334,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // size those buffers against free host memory report a smaller count on a loaded machine,
       // which is exactly when an unclamped -n would corrupt memory rather than just run slowly.
       //
-      // Snapping down to a whole multiple keeps the launch a size the device can use, matching what
-      // kernel_power does everywhere else.
+      // No snapping. Every accel is a whole number of waves now, so there is nothing to round off and
+      // -n is used as given.
 
       if (user_options->kernel_accel_chgd == true)
       {
-        const u32 accel_req = MIN (MAX (user_options->kernel_accel, device_param->kernel_accel_min), device_param->kernel_accel_max);
-
-        const u32 accel_use = MAX ((accel_req / multiple) * multiple, device_param->kernel_accel_min);
+        const u32 accel_use = MIN (MAX (user_options->kernel_accel, device_param->kernel_accel_min), device_param->kernel_accel_max);
 
         device_param->kernel_accel_min = accel_use;
         device_param->kernel_accel_max = accel_use;
@@ -17727,18 +17724,26 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       // How many candidates one launch can hold, which is what every buffer below is sized from.
       //
-      // A BRIDGE LAUNCHES kernel_accel CANDIDATES AND NOTHING MORE. Its hardware_power is 1, because
-      // the geometry of the device that generates the candidates says nothing about the unit that
-      // consumes them, and autotune has always known this. Sizing the buffers by that geometry anyway
-      // asks for device_processors * kernel_threads times the memory a launch can ever use.
+      // A BRIDGE LAUNCHES ITS OWN WAVE WIDTH TIMES kernel_accel, AND NOTHING MORE. The geometry of the
+      // device that GENERATES the candidates says nothing about the unit that consumes them, so its
+      // multiprocessor count and thread width have no place here. Sizing the buffers by that geometry
+      // anyway asks for device_processors * kernel_threads times the memory a launch can ever use.
       //
       // It is not a harmless over-reserve. The buffers are what kernel_accel_max is searched against,
       // so the over-count lands as a smaller launch: 64 units on one GPU were capped at 14 waves
       // instead of the 32 autotune wanted, and ran 17 percent below the same units given full
       // launches. Worse, the cap comes from a share of the device's memory divided by the number of
       // units, so the launch one unit gets depends on how many OTHER units are present.
+      //
+      // It has to be the WAVE times the accel and not the accel alone. kernel_accel counts waves, so
+      // reading it as a candidate count sizes every buffer by the number of waves in a launch instead
+      // of the number of candidates. On a 496 core unit that is 66 candidates' worth of buffer for a
+      // launch of 32,736, which the GPU reports as an illegal memory access from inside the init
+      // kernel, with nothing to say the size was the problem.
 
-      const u64 kernel_power_max = (device_is_bridged == true) ? kernel_accel_max : device_processors * kernel_threads * kernel_accel_max;
+      const u64 bridge_power = (u64) bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device);
+
+      const u64 kernel_power_max = (device_is_bridged == true) ? bridge_power * kernel_accel_max : device_processors * kernel_threads * kernel_accel_max;
 
       // size_spilling
       //
@@ -18045,7 +18050,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_threads_min = kernel_threads_min;
     device_param->kernel_threads_max = kernel_threads_max;
 
-    const u32 hardware_power_max = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
+    // The same rule as everywhere else, and it was the one place that did not follow it. This feeds
+    // hardware_power_all, which is the denominator of dispatch.c's device_factor, while the numerator
+    // is device_param->hardware_power and that one HAS the bridge branch. So the two halves of the
+    // ratio were computed by different rules. It did not show because every device in a bridged run is
+    // a clone and a uniform error cancels, and it would have started showing the moment the units
+    // stopped being the same width.
+
+    const u32 hardware_power_max = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
+                                 : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads_max);
 
     device_param->kernel_accel_min = kernel_accel_min;

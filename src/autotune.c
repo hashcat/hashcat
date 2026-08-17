@@ -67,7 +67,7 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
   device_param->kernel_param.loop_cnt = kernel_loops; // not a bug, both need to be set
   device_param->kernel_param.il_cnt   = kernel_loops; // because there's two variables for inner iters for slow and fast hashes
 
-  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                            : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                            * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads);
 
@@ -169,31 +169,31 @@ static double try_run_times (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
 // reach it. Without that cap a high iteration count would produce a launch of tens of seconds, and the
 // status line, an abort and --runtime all wait for one launch.
 
-static u32 autotune_wide_accel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_loops, const u32 kernel_threads, const u32 workitem_multiple, const u32 kernel_accel_min, const u32 kernel_accel_max, const double target_msec)
+// kernel_accel COUNTS WAVES here, because a bridged device's hardware_power is the unit's own wave
+// width. So the conversion this function used to do between a candidate count and a wave count is
+// gone: they are the same number, and there is nothing left to snap to a whole wave either.
+
+static u32 autotune_wide_accel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_loops, const u32 kernel_threads, const u32 kernel_accel_min, const u32 kernel_accel_max, const double target_msec)
 {
-  const u32 accel_1 = MAX (kernel_accel_min, workitem_multiple);
+  const u32 accel_1 = kernel_accel_min;
   const u32 accel_2 = MIN (accel_1 * 2, kernel_accel_max);
 
   const double msec_1 = try_run_times (hashcat_ctx, device_param, accel_1, kernel_loops, kernel_threads, 1);
 
-  const double waves_1 = (double) accel_1 / (double) workitem_multiple;
-
-  double per_wave = msec_1 / waves_1;
+  double per_wave = msec_1 / (double) accel_1;
 
   if (accel_2 > accel_1)
   {
     const double msec_2 = try_run_times (hashcat_ctx, device_param, accel_2, kernel_loops, kernel_threads, 1);
 
-    const double waves_2 = (double) accel_2 / (double) workitem_multiple;
-
-    const double slope = (msec_2 - msec_1) / (waves_2 - waves_1);
+    const double slope = (msec_2 - msec_1) / (double) (accel_2 - accel_1);
 
     if (slope > 0) per_wave = slope;
   }
 
   // whatever the line does not explain is the fill and drain, and it is paid once per launch
 
-  const double fixed_msec = msec_1 - (per_wave * waves_1);
+  const double fixed_msec = msec_1 - (per_wave * (double) accel_1);
 
   const double waves_budget  = (target_msec - fixed_msec) / per_wave;
   const double waves_stretch = ((target_msec * BRIDGE_WAVES_MSEC_SCALE) - fixed_msec) / per_wave;
@@ -202,14 +202,10 @@ static u32 autotune_wide_accel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *d
 
   if (waves < 1) waves = 1;
 
-  u64 accel = (u64) (waves * (double) workitem_multiple);
+  u64 accel = (u64) waves;
 
   accel = MAX (accel, kernel_accel_min);
   accel = MIN (accel, kernel_accel_max);
-
-  // a launch the device cannot use is not an answer, so snap to a whole wave
-
-  accel = MAX ((accel / workitem_multiple) * workitem_multiple, kernel_accel_min);
 
   const u32 result = (u32) accel;
 
@@ -267,7 +263,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     device_param->kernel_accel   = kernel_accel_min;
     device_param->kernel_loops   = kernel_loops_min;
     device_param->kernel_threads = kernel_threads_min;
-    device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+    device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                                  : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_min);
     device_param->kernel_power   = device_param->hardware_power * kernel_accel_min;
@@ -348,7 +344,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     // from here it's clear we are allowed to autotune
     // so let's init some fake words
 
-    const u32 hardware_power_max = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+    const u32 hardware_power_max = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                                  : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_max);
 
@@ -718,7 +714,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (wide_unit == true)
     {
-      kernel_accel = autotune_wide_accel (hashcat_ctx, device_param, kernel_loops, kernel_threads, workitem_multiple, kernel_accel_min, kernel_accel_max, target_msec);
+      kernel_accel = autotune_wide_accel (hashcat_ctx, device_param, kernel_loops, kernel_threads, kernel_accel_min, kernel_accel_max, target_msec);
     }
     else if (kernel_accel_min < kernel_accel_max)
     {
@@ -886,7 +882,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   device_param->kernel_loops   = kernel_loops;
   device_param->kernel_threads = kernel_threads;
 
-  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? 1
+  const u32 hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                            : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                            * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : device_param->kernel_threads);
 
