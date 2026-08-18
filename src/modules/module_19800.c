@@ -158,7 +158,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // domain must be uppercase
 
-  u8 domain[128];
+  u8 domain[512];
 
   memcpy (domain, domain_pos, domain_len);
   uppercase (domain, domain_len);
