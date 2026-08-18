@@ -320,6 +320,106 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
       }
     }
   }
+
+  // 6. charset-preserving field PUMP, driven to each field's acceptance
+  //    boundary by binary search.
+  //
+  //    This is the Class-1 finder (token accepted length exceeds the fixed
+  //    field it is written into -- see bugclasses.md). It replaces step 5's
+  //    byte-repetition, which fails a real overflow on two counts: 8x of a
+  //    short example field can still be under the destination (the Kerberos
+  //    domain example is 15 bytes, 8x = 120, under the 128-byte buffer it
+  //    overflows), and repeating a base64 field that ends in '=' puts padding
+  //    mid-string, which VERIFY_BASE64 rejects before the parser body runs.
+  //
+  //    Two ideas make this reliable:
+  //
+  //    (a) Fresh charset-safe fill. '1' if the example field is all digits
+  //        (VERIFY_DIGIT), else 'a' -- a valid hex digit, base64 char, base58
+  //        char and alnum, so the pumped field passes every charset check and
+  //        reaches the decode.
+  //
+  //    (b) Binary search to the length boundary. A base64 field overflows in
+  //        a *narrow* window: m34000 decodes a 173-char token (len_max) into a
+  //        128-byte digest, and base64 writes ceil(173/4)*3 = 132. Fixed
+  //        target lengths miss that -- 64 is too short, 256 is past len_max
+  //        and length-rejected. So per field we binary-search the largest
+  //        length the parser does not reject with PARSER_TOKEN_LENGTH (-35);
+  //        that boundary IS the field's len_max, exactly where a decode-into-
+  //        fixed-field overflow fires. Each probe runs under ASan, so the
+  //        overflow is caught during the search. Length-derived tokens that
+  //        never emit PARSER_TOKEN_LENGTH (e.g. Kerberos account_info) drive
+  //        the boundary to the cap and overflow there.
+  {
+    const char *seps = "$*:.#";
+    const int   CAP = 8192;
+
+    for (int f = 0; f < len; f++)
+    {
+      const char c = hash[f];
+
+      const bool is_sep = (strchr (seps, c) != NULL)
+                       || ((hashconfig->separator != 0) && (c == hashconfig->separator));
+
+      if ((f != 0) && (is_sep == false)) continue;
+
+      const int start = (f == 0) ? 0 : f + 1;
+      if (start >= len) break;
+
+      int end = start;
+      while (end < len)
+      {
+        const char e = hash[end];
+        if (strchr (seps, e) != NULL) break;
+        if ((hashconfig->separator != 0) && (e == hashconfig->separator)) break;
+        end++;
+      }
+
+      const int field_len = end - start;
+      if (field_len <= 0) continue;
+
+      bool all_digit = true;
+      for (int i = start; i < end; i++)
+      {
+        if (hash[i] < '0' || hash[i] > '9') { all_digit = false; break; }
+      }
+      const char fill = all_digit ? '1' : 'a';
+
+      // probe: rebuild the line with this field pumped to length tgt, parse it
+      // (ASan-checked), return the parser rc.
+      #define PROBE_FIELD(tgt, lbl)                                              \
+        ({                                                                       \
+          const size_t _t = (size_t) (tgt);                                      \
+          const size_t _sz = (size_t) start + _t + (size_t) (len - end) + 1;     \
+          char *_b = (char *) xalloc (_sz);                                      \
+          memcpy (_b, hash, (size_t) start);                                     \
+          memset (_b + start, fill, _t);                                         \
+          memcpy (_b + start + _t, hash + end, (size_t) (len - end));            \
+          const int _nl = (int) ((size_t) start + _t + (size_t) (len - end));    \
+          _b[_nl] = 0;                                                           \
+          const int _rc = parse_one (m, hashconfig, _b, _nl, (lbl));             \
+          free (_b);                                                             \
+          _rc;                                                                   \
+        })
+
+      // binary search the largest length not rejected with PARSER_TOKEN_LENGTH.
+      int lo = field_len, hi = CAP;
+      while (lo < hi)
+      {
+        const int mid = lo + (hi - lo + 1) / 2;
+
+        char label[48];
+        snprintf (label, sizeof (label), "pump@%d=%d", start, mid);
+
+        const int rc = PROBE_FIELD (mid, label);
+
+        if (rc == -35) hi = mid - 1;   // PARSER_TOKEN_LENGTH: too long
+        else           lo = mid;       // accepted (or failed for another reason)
+      }
+
+      #undef PROBE_FIELD
+    }
+  }
 }
 
 int main (int argc, char **argv)
