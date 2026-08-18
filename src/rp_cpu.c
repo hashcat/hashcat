@@ -1187,12 +1187,21 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
   if (rule_len < 1) return (RULE_RC_REJECT_ERROR);
 
+  // rule_new below is a fixed buffer and the loop that fills it grows with rule_len, so a rule
+  // longer than that has to be refused before it is copied rather than after. A rule file is read a
+  // line at a time into a HCBUFSIZ_LARGE buffer and the length is not capped anywhere between there
+  // and here. Nothing usable is refused by this. A rule is held as at most 31 operations, which no
+  // rule anywhere near this long can reach, and RP_RULE_SIZE is already the size hashcat gives a
+  // rule buffer elsewhere.
+
+  if (rule_len > RP_RULE_SIZE) return (RULE_RC_SYNTAX_ERROR);
+
   int out_len = in_len;
   int mem_len = 0;
 
   memcpy (out, in, out_len);
 
-  char rule_new[RP_PASSWORD_SIZE];
+  char rule_new[RP_RULE_SIZE];
 
   int rule_len_new = 0;
 
