@@ -144,8 +144,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   ikepsk->msg_len[5] = ikepsk->msg_len[4] + token.len[5] / 2;
   ikepsk->nr_len  = (token.len[6] + token.len[7]) / 2;
 
-  if (ikepsk->msg_len[5] > 512) return (PARSER_SALT_LENGTH);
-  if (ikepsk->nr_len  > 64)  return (PARSER_SALT_LENGTH);
+  if (ikepsk->msg_len[5] >= 512) return (PARSER_SALT_LENGTH);
+  if (ikepsk->nr_len  >= 64)  return (PARSER_SALT_LENGTH);
 
   u8 *ptr1 = (u8 *) ikepsk->msg_buf;
   u8 *ptr2 = (u8 *) ikepsk->nr_buf;
