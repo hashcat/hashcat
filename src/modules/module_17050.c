@@ -204,8 +204,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   // initial vector - twice the amount of bytes because its interpreted as characters
   // 8a4b6c4f82a62c77758acc83*
   token.sep[10]     = '*';
-  token.len_min[10]  = 20;
-  token.len_max[10]  = 40;
+  token.len_min[10]  = 24; // opengpg AES-OCB uses 12 byte nonce only, and gpg->iv holds 16
+  token.len_max[10]  = 24;
   token.attr[10]    = TOKEN_ATTR_VERIFY_LENGTH
                     | TOKEN_ATTR_VERIFY_HEX;
 

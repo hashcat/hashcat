@@ -160,6 +160,11 @@ See the section "The Core Library" in docs/hashcat-plugin-development-guide.md.
 ##
 
 - Fixed combinator and hybrid attacks reporting a plaintext truncated to 256 characters, which did not match the cracked digest
+- Fixed buffer overflows in the RC4 modules 33500, 33501 and 33502, where the plaintext token was not bounded by the field it decodes into
+- Fixed a heap buffer overflow in module 34000, where a base64 target hash wrote past the digest
+- Fixed a stack buffer overflow in module 23400, where a base64 salt wrote past its decode buffer
+- Fixed buffer overflows in modules 11600, 17050 and 70000, where a token wrote past the field it decodes into
+- Fixed a buffer overflow in generic_salt_decode(), where a base64 salt wrote past salt_buf for non optimized kernels
 - Fixed a one byte buffer overflow in fgetl() when a line was as long as the caller's buffer
 - Fixed an out-of-bounds read in the secp256k1 point_mul_xy() when the scalar is zero
 - Fixed the secp256k1 inv_mod() looping forever on a zero input, which hangs clFinish on CPU devices

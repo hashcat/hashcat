@@ -450,7 +450,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[4]      = '$';
   token.len_min[4]  = 0;
-  token.len_max[4]  = 64;
+  token.len_max[4]  = 15; // sizeof (seven_zip->salt_buf) - 1, hash_encode prints it with %s
   token.attr[4]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[5]      = '$';
@@ -612,6 +612,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   seven_zip->iv_buf[3] = hex_to_u32 (iv_buf_pos + 24);
 
   seven_zip->iv_len = iv_len;
+
+  if (salt_buf_len >= (int) sizeof (seven_zip->salt_buf)) return (PARSER_SALT_LENGTH);
 
   memcpy (seven_zip->salt_buf, salt_buf_pos, salt_buf_len); // we just need that for later ascii_digest()
 
