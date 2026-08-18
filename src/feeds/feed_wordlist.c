@@ -365,8 +365,9 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
     source->first_line = feed_global->line_count;
 
     u64 source_ident = 0;
+    u64 source_size  = 0;
 
-    char *seekdb_file = seekdb_path (global_ctx, source->path, &source_ident);
+    char *seekdb_file = seekdb_path (global_ctx, source->path, &source_ident, &source_size);
 
     if (seekdb_file == NULL)
     {
@@ -383,7 +384,7 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
     global_ctx->source_ident = XXH64 (&source_ident, sizeof (source_ident), global_ctx->source_ident);
 
-    source->seek_db = seekdb_load (seekdb_file, &source->seek_count, &source->line_count, &source->size);
+    source->seek_db = seekdb_load (seekdb_file, &source->seek_count, &source->line_count, &source->size, &source->seek_step, source_ident, source_size);
 
     if (source->seek_db)
     {
@@ -420,7 +421,7 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
     hc_timer_set (&start);
 
-    source->seek_db = seekdb_build (feed_thread, seekdb_file, source->path, &source->seek_count, &source->line_count, &source->size, hashcat_ctx);
+    source->seek_db = seekdb_build (feed_thread, seekdb_file, source->path, &source->seek_count, &source->line_count, &source->size, &source->seek_step, source_ident, hashcat_ctx);
 
     cache_generate_t cache_generate;
 
@@ -583,19 +584,38 @@ bool thread_seek (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   const u64 local = offset - source->first_line;
 
-  // The checkpoints land on every SEEKDB_STEP'th line, so the nearest one at or before the target
-  // gets the scan down to at most SEEKDB_STEP lines.
+  // The checkpoints land on every seek_step'th line, so the nearest one at or before the target gets
+  // the scan down to at most that many lines. The step comes from the database rather than from
+  // SEEKDB_STEP, because a database built by an older hashcat may have used a different one.
 
-  const u64 db_idx = local / SEEKDB_STEP;
+  bool checkpoint_used = false;
 
-  if ((source->seek_db) && (db_idx < source->seek_count))
+  if ((source->seek_db) && (source->seek_step > 0))
   {
-    feed_thread->fd_off  = source->seek_db[db_idx];
-    feed_thread->fd_line = db_idx * SEEKDB_STEP;
+    const u64 db_idx = local / source->seek_step;
+
+    if (db_idx < source->seek_count)
+    {
+      const u64 db_off = source->seek_db[db_idx];
+
+      // A checkpoint is the first byte of a line, so the byte in front of it is the line ending that
+      // closed the one before. Where it is not, this database does not describe this file: the size
+      // matched, so a boundary moved without the length changing and the identity hash cannot see
+      // that. Ignoring the checkpoint and scanning instead is slow, and it is right.
+
+      if ((db_off == 0) || ((db_off < fd_len) && (fd_mem[db_off - 1] == '\n')))
+      {
+        feed_thread->fd_off  = db_off;
+        feed_thread->fd_line = db_idx * source->seek_step;
+
+        checkpoint_used = true;
+      }
+    }
   }
-  else if (feed_thread->fd_line > local)
+
+  if ((checkpoint_used == false) && (feed_thread->fd_line > local))
   {
-    // No checkpoint covers the target and the file is already read past it. The scan below only
+    // No checkpoint was usable and the file is already read past the target. The scan below only
     // moves forward, so without this the seek would quietly leave the reader where it was.
 
     feed_thread->fd_off  = 0;

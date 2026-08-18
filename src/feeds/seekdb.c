@@ -6,18 +6,86 @@
 static const size_t SEEKDB_STEP = 8192;
 static const size_t SAMPLE_SIZE = 65536;
 
-// Where this wordlist's seek database lives, and what the wordlist is.
-//
-// The two are the same question. A seek database is only valid for the exact file it was built from,
-// so it is named after a hash of that file's size, modification time and both of its ends, and looking
-// the name up is what decides whether the cached one can be reused. That same hash answers "is this
-// still the same wordlist" for anyone else who has to know, so it is handed back rather than left
-// inside the file name.
-//
-// ident is where it goes. It is only written when a path could be built, so a caller that got NULL
-// has nothing to read.
+// A macro rather than a const, because it sizes the header buffers and a const size_t would make
+// those variable length arrays.
 
-static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist, u64 *ident)
+#define SEEKDB_HEADER_SIZE 512
+
+#define SEEKDB_MAGIC       "HASHCAT-SEEKDB"
+#define SEEKDB_VERSION     1
+
+// Which byte order the offsets in the body are written in.
+//
+// It only started to matter once these files began to travel between machines. The body is written in
+// host order, so a database copied to a machine of the other order would be read as offsets that mean
+// nothing rather than refused, and the run would seek to nonsense.
+
+static const char *seekdb_endian (void)
+{
+  const u32 probe = 1;
+
+  const u8 *probe_ptr = (const u8 *) &probe;
+
+  if (probe_ptr[0] == 1) return "little";
+
+  return "big";
+}
+
+// The wordlist name as it goes into the header.
+//
+// Only the base name, because the header is there to tell a person which file a database belongs to
+// and a full path would additionally say where that person keeps their wordlists. Any byte outside
+// printable ASCII becomes '_', because a file name may hold a newline and that would otherwise add a
+// line to a header that is parsed a line at a time.
+
+static void seekdb_source_name (char *dst, const size_t dst_sz, const char *wordlist)
+{
+  const size_t wordlist_len = strlen (wordlist);
+
+  size_t base = 0;
+
+  for (size_t i = 0; i < wordlist_len; i++)
+  {
+    if ((wordlist[i] == '/') || (wordlist[i] == '\\')) base = i + 1;
+  }
+
+  size_t j = 0;
+
+  for (size_t i = base; i < wordlist_len; i++)
+  {
+    if ((j + 1) >= dst_sz) break;
+
+    const u8 c = (const u8) wordlist[i];
+
+    dst[j] = ((c >= 0x20) && (c < 0x7f)) ? (char) c : '_';
+
+    j++;
+  }
+
+  dst[j] = 0;
+}
+
+// What a wordlist is, as one number.
+//
+// A seek database is only valid for the exact file it was built from, so it is named after a hash of
+// that file's size and both of its ends, and looking the name up is what decides whether a cached one
+// can be reused. That same hash answers "is this still the same wordlist" for anyone else who has to
+// know, so it is handed back rather than left inside the file name.
+//
+// The modification time is deliberately not part of it. It is the only thing here that is not a
+// property of the contents, and no ordinary transport preserves it, so including it meant the same
+// wordlist hashed differently after being copied and every machine had to build its own database.
+//
+// What that gives up is narrower than it looks. A database maps a line number to a byte offset, and a
+// line boundary only moves when a line's length changes, so an edit that keeps every length is still
+// described correctly by the database it was built from. Almost everything that does move a boundary
+// changes the file size, which is hashed. What is left is an edit that keeps the total size and moves
+// a boundary anyway, and thread_seek () checks for that directly when it uses a checkpoint.
+//
+// ident and file_size are where the answers go. Both are only written when a path could be built, so
+// a caller that got NULL has nothing to read.
+
+static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist, u64 *ident, u64 *file_size)
 {
   char *seekdb_dir = NULL;
 
@@ -49,11 +117,7 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 
   XXH64_reset (state, 0);
 
-  //would work better with realpath(), but maybe overkill
-  //XXH64_update (state, wordlist, strlen (wordlist));
-
-  XXH64_update (state, &st.st_size,  sizeof (st.st_size));
-  XXH64_update (state, &st.st_mtime, sizeof (st.st_mtime));
+  XXH64_update (state, &st.st_size, sizeof (st.st_size));
 
   u8 *buf = (u8 *) hcmalloc (SAMPLE_SIZE);
 
@@ -63,11 +127,11 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 
   XXH64_update (state, buf, nread1);
 
-  const size_t file_size = (size_t) st.st_size;
+  const size_t file_len = (size_t) st.st_size;
 
-  if (file_size > SAMPLE_SIZE)
+  if (file_len > SAMPLE_SIZE)
   {
-    hc_fseek (&fp, file_size- SAMPLE_SIZE, SEEK_SET);
+    hc_fseek (&fp, file_len - SAMPLE_SIZE, SEEK_SET);
 
     const size_t nread2 = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
 
@@ -78,7 +142,7 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 
   hc_fclose (&fp);
 
-  u64 hash = XXH64_digest (state);
+  const u64 hash = XXH64_digest (state);
 
   XXH64_freeState (state);
 
@@ -88,13 +152,92 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 
   hcfree (seekdb_dir);
 
-  ident[0] = hash;
+  ident[0]     = hash;
+  file_size[0] = (u64) st.st_size;
 
   return seekdb_path;
 }
 
-static bool seekdb_save (const char *path, u64 line_count, u64 *db, u64 count, const u64 size)
+// One field out of the text header, as a pointer to whatever follows its name.
+//
+// The header is a fixed size block of lines, so this searches a buffer rather than a file, and a name
+// only counts where it starts a line. That keeps a value from being mistaken for a field name.
+
+static const char *seekdb_header_field (const char *header, const char *name)
 {
+  const size_t name_len = strlen (name);
+
+  const char *pos = header;
+
+  while (pos < (header + SEEKDB_HEADER_SIZE))
+  {
+    const size_t left = (size_t) SEEKDB_HEADER_SIZE - (size_t) (pos - header);
+
+    if (left > name_len)
+    {
+      if (strncmp (pos, name, name_len) == 0)
+      {
+        if (pos[name_len] == ' ') return pos + name_len + 1;
+      }
+    }
+
+    const char *next = (const char *) memchr (pos, '\n', left);
+
+    if (next == NULL) break;
+
+    pos = next + 1;
+  }
+
+  return NULL;
+}
+
+static bool seekdb_header_u64 (const char *header, const char *name, const char *fmt, u64 *value)
+{
+  const char *field = seekdb_header_field (header, name);
+
+  if (field == NULL) return false;
+
+  const int rc = sscanf (field, fmt, value);
+
+  if (rc != 1) return false;
+
+  return true;
+}
+
+static bool seekdb_save (const char *path, const char *wordlist, const u64 line_count, const u64 *db, const u64 count, const u64 size, const u64 ident, const u64 content, const u64 step)
+{
+  char source[192];
+
+  seekdb_source_name (source, sizeof (source), wordlist);
+
+  char header[SEEKDB_HEADER_SIZE];
+
+  const u64 built = (u64) time (NULL);
+
+  const int header_len = snprintf (header, SEEKDB_HEADER_SIZE,
+    SEEKDB_MAGIC " %d\n"
+    "endian %s\n"
+    "step %" PRIu64 "\n"
+    "lines %" PRIu64 "\n"
+    "bytes %" PRIu64 "\n"
+    "ident %016" PRIx64 "\n"
+    "content %016" PRIx64 "\n"
+    "built %" PRIu64 "\n"
+    "source %s\n",
+    SEEKDB_VERSION, seekdb_endian (), step, line_count, size, ident, content, built, source);
+
+  if (header_len < 0) return false;
+
+  // A truncated header would be read back as a database missing whichever fields fell off the end, so
+  // it is better to write nothing and rebuild next time than to leave that behind.
+
+  if (header_len >= (int) SEEKDB_HEADER_SIZE) return false;
+
+  // Pad with line endings rather than zero bytes, so the whole header stays printable and `head -c 512`
+  // on the file answers what it is without a tool.
+
+  for (size_t i = (size_t) header_len; i < (size_t) SEEKDB_HEADER_SIZE; i++) header[i] = '\n';
+
   HCFILE fp;
 
   if (hc_fopen (&fp, path, "wb") == false)
@@ -102,14 +245,7 @@ static bool seekdb_save (const char *path, u64 line_count, u64 *db, u64 count, c
     return false;
   }
 
-  if (hc_fwrite (&line_count, sizeof (u64), 1, &fp) != 1)
-  {
-    hc_fclose (&fp);
-
-    return false;
-  }
-
-  if (hc_fwrite (&size, sizeof (u64), 1, &fp) != 1)
+  if (hc_fwrite (header, sizeof (char), (size_t) SEEKDB_HEADER_SIZE, &fp) != (size_t) SEEKDB_HEADER_SIZE)
   {
     hc_fclose (&fp);
 
@@ -128,7 +264,13 @@ static bool seekdb_save (const char *path, u64 line_count, u64 *db, u64 count, c
   return true;
 }
 
-static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *size)
+// Read a database back, and refuse it unless it describes the wordlist in hand.
+//
+// want_ident and want_size come from seekdb_path (), so they are what the file on disk is right now.
+// Every check here is cheap on purpose: this runs before anything has been cracked and a wrong answer
+// is worse than a rebuild.
+
+static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *size, u64 *step, const u64 want_ident, const u64 want_size)
 {
   HCFILE fp;
 
@@ -146,28 +288,138 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
     return NULL;
   }
 
-  if (st.st_size < (ssize_t) sizeof (u64))
+  if (st.st_size < (ssize_t) SEEKDB_HEADER_SIZE)
   {
     hc_fclose (&fp);
 
     return NULL;
   }
 
-  if (hc_fread (line_count, sizeof (u64), 1, &fp) != 1)
+  char header[SEEKDB_HEADER_SIZE + 1];
+
+  if (hc_fread (header, sizeof (char), (size_t) SEEKDB_HEADER_SIZE, &fp) != (size_t) SEEKDB_HEADER_SIZE)
   {
     hc_fclose (&fp);
 
     return NULL;
   }
 
-  if (hc_fread (size, sizeof (u64), 1, &fp) != 1)
+  header[SEEKDB_HEADER_SIZE] = 0;
+
+  // Anything that is not one of ours, or is a format from later than this build understands, is left
+  // alone and rebuilt rather than guessed at.
+
+  u64 version = 0;
+
+  if (seekdb_header_u64 (header, SEEKDB_MAGIC, "%" SCNu64, &version) == false)
   {
     hc_fclose (&fp);
 
     return NULL;
   }
 
-  size_t rem = (st.st_size - sizeof (u64) - sizeof (u64)) / sizeof (u64);
+  if (version != SEEKDB_VERSION)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  const char *endian = seekdb_header_field (header, "endian");
+
+  if (endian == NULL)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  const char *host_endian = seekdb_endian ();
+
+  const size_t host_endian_len = strlen (host_endian);
+
+  if (strncmp (endian, host_endian, host_endian_len) != 0)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  if (endian[host_endian_len] != '\n')
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  u64 header_step = 0;
+
+  if (seekdb_header_u64 (header, "step", "%" SCNu64, &header_step) == false)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  // The step is read from the file rather than taken from SEEKDB_STEP, so retuning that constant
+  // leaves every database already on disk valid and merely coarser. A zero would divide by zero in
+  // thread_seek ().
+
+  if (header_step == 0)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  u64 header_lines = 0;
+
+  if (seekdb_header_u64 (header, "lines", "%" SCNu64, &header_lines) == false)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  u64 header_bytes = 0;
+
+  if (seekdb_header_u64 (header, "bytes", "%" SCNu64, &header_bytes) == false)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  u64 header_ident = 0;
+
+  if (seekdb_header_u64 (header, "ident", "%" SCNx64, &header_ident) == false)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  // The name of the file already says which wordlist this is, but a database that was copied here can
+  // arrive under a name that does not match what is inside it. This is what catches that.
+
+  if (header_ident != want_ident)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  // The size is the check that carries the most weight, because almost every edit that moves a line
+  // boundary also changes it.
+
+  if (header_bytes != want_size)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  const size_t rem = ((size_t) st.st_size - SEEKDB_HEADER_SIZE) / sizeof (u64);
 
   u64 *db = (u64 *) hcmalloc (rem * sizeof (u64));
 
@@ -189,12 +441,15 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
 
   hc_fclose (&fp);
 
-  *count = rem;
+  *count      = rem;
+  *line_count = header_lines;
+  *size       = header_bytes;
+  *step       = header_step;
 
   return db;
 }
 
-static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, const char *wordlist, u64 *count, u64 *line_count, u64 *size, hashcat_ctx_t *hashcat_ctx)
+static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, const char *wordlist, u64 *count, u64 *line_count, u64 *size, u64 *step, const u64 ident, hashcat_ctx_t *hashcat_ctx)
 {
   const u8 *fd_mem = feed_thread->fd_mem;
 
@@ -271,13 +526,22 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
 
   memcpy (db, tmp, checkpoints * sizeof (u64));
 
-  *count = checkpoints;
-
+  *count      = checkpoints;
   *line_count = lines;
+  *size       = feed_thread->fd_len;
+  *step       = SEEKDB_STEP;
 
-  *size = feed_thread->fd_len;
+  // A hash of everything, which the normal path never checks because verifying it costs a full read.
+  // It is here so a database that was copied can be proven to belong to the file it claims, and so a
+  // mismatch can be told apart from a coincidence when one is being chased.
+  //
+  // This is a second walk of the mapping rather than something the scan above could produce on its
+  // way, since that one is looking for line endings. The memory is already faulted in and it is paid
+  // once, when the database is built.
 
-  seekdb_save (seekdb_path, *line_count, db, *count, feed_thread->fd_len);
+  const u64 content = XXH64 (feed_thread->fd_mem, feed_thread->fd_len, 0);
+
+  seekdb_save (seekdb_path, wordlist, *line_count, db, *count, feed_thread->fd_len, ident, content, SEEKDB_STEP);
 
   hcfree (tmp);
 

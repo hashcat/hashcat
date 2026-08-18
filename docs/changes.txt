@@ -98,6 +98,7 @@ See the section "The Core Library" in docs/hashcat-plugin-development-guide.md.
 ##
 
 - Dictionary cache was removed. Wordlist line counts (and offsets!) are now in the new seekdbs
+- Seekdbs can be copied between machines, so a distributed setup can build one once and hand it to every node
 - Added --encrypt-with-pubkey to encrypt recovered plains with an RSA public key, so the host doing the cracking never sees them (see docs/hashcat-encrypted-plains.md)
 
 ##
