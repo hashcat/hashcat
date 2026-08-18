@@ -180,7 +180,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *salt_pos = token.buf[4];
   const int salt_len = token.len[4];
 
-  u8 tmp_buf[SALT_MAX + 1] = { 0 };
+  // base64_decode writes ceil (in_len / 4) * 3 bytes, which is more than the length it
+  // returns. The salt token reaches 344 characters, so the write reaches 258 bytes.
+
+  u8 tmp_buf[SALT_MAX + 4] = { 0 };
 
   int tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
 

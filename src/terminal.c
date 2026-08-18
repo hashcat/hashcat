@@ -3307,10 +3307,10 @@ static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashc
       if (group_size > 1)
       {
         event_log_info (hashcat_ctx,
-          "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u (x%d)",
+          "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u (x%d)",
           speed_grp,
           device_info->exec_msec_dev,
-          device_info->kernel_power_dev,
+          device_info->kernel_accel_dev,
           device_info->kernel_loops_dev,
           group_size);
 
@@ -3318,10 +3318,10 @@ static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashc
       }
 
       event_log_info (hashcat_ctx,
-        "Speed.#*.........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u",
+        "Speed.#*.........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u",
         speed_grp,
         device_info->exec_msec_dev,
-        device_info->kernel_power_dev,
+        device_info->kernel_accel_dev,
         device_info->kernel_loops_dev);
 
       continue;
@@ -3333,10 +3333,10 @@ static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashc
     if (group_size > 1)
     {
       event_log_info (hashcat_ctx,
-        "Speed.#%02u........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u (x%d)", device_id + 1,
+        "Speed.#%02u........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u (x%d)", device_id + 1,
         speed_grp,
         device_info->exec_msec_dev,
-        device_info->kernel_power_dev,
+        device_info->kernel_accel_dev,
         device_info->kernel_loops_dev,
         group_size);
 
@@ -3344,10 +3344,10 @@ static void status_display_bridge_speed (hashcat_ctx_t *hashcat_ctx, const hashc
     }
 
     event_log_info (hashcat_ctx,
-      "Speed.#%02u........: %9sH/s (%0.2fms) @ Batch:%" PRIu64 " Loops:%u", device_id + 1,
+      "Speed.#%02u........: %9sH/s (%0.2fms) @ Accel:%u Loops:%u", device_id + 1,
       speed_grp,
       device_info->exec_msec_dev,
-      device_info->kernel_power_dev,
+      device_info->kernel_accel_dev,
       device_info->kernel_loops_dev);
   }
 }

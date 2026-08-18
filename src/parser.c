@@ -590,6 +590,14 @@ bool generic_salt_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, const u8 
     tmp_len = in_len;
   }
 
+  // out_buf is salt_buf in salt_t, which holds 256 bytes. base64_decode can return more than
+  // that: a 344 character token is within the length the base64 branch accepts and decodes to
+  // 258 bytes. The only other bound is inside the ST_ADD80 and ST_ADD01 blocks below, and
+  // those flags are stripped for every non optimized kernel, which is the same case that
+  // leaves salt_max at SALT_MAX rather than SALT_MAX_OLD.
+
+  if (tmp_len > 256) return false;
+
   if (hashconfig->opts_type & OPTS_TYPE_ST_UTF16LE)
   {
     if (tmp_len >= 128) return false;

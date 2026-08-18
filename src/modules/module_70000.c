@@ -187,14 +187,34 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const int salt_len = token.len[5];
   const u8 *salt_pos = token.buf[5];
 
-  argon2id->salt_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, (u8 *) argon2id->salt_buf);
+  // base64_decode writes ceil (in_len / 4) * 3 bytes, which is more than the length it returns.
+  // Both tokens reach 344 characters, so the write reaches 258 bytes and neither field holds
+  // that. Decode through a buffer that can hold the whole write.
+
+  u8 tmp_buf[512] = { 0 };
+
+  int tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+
+  if (tmp_len > (int) sizeof (argon2id->salt_buf)) return (PARSER_SALT_LENGTH);
+
+  memcpy (argon2id->salt_buf, tmp_buf, tmp_len);
+
+  argon2id->salt_len = tmp_len;
 
   // digest
 
   const int digest_len = token.len[6];
   const u8 *digest_pos = token.buf[6];
 
-  argon2id->digest_len = base64_decode (base64_to_int, (const u8 *) digest_pos, digest_len, (u8 *) argon2id->digest_buf);
+  memset (tmp_buf, 0, sizeof (tmp_buf));
+
+  tmp_len = base64_decode (base64_to_int, (const u8 *) digest_pos, digest_len, tmp_buf);
+
+  if (tmp_len > (int) sizeof (argon2id->digest_buf)) return (PARSER_HASH_LENGTH);
+
+  memcpy (argon2id->digest_buf, tmp_buf, tmp_len);
+
+  argon2id->digest_len = tmp_len;
 
   // comparison digest
 

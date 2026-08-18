@@ -169,7 +169,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[5]     = '$';
   token.len_min[5] = 1 * 2;
-  token.len_max[5] = 64 * 2;
+  token.len_max[5] = 8 * 2; // sizeof (rc4->pt)
   token.attr[5]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 
@@ -253,7 +253,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     dgst[i] = pt[i];
 
-    salt_buf[i] = pt[i];
+    salt_buf_ptr[i] = pt[i];
     salt_len++;
   }
 

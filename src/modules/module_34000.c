@@ -177,13 +177,34 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_iter = argon2_options->iterations * ARGON2_SYNC_POINTS;
   salt->salt_dimy = argon2_options->parallelism;
-  salt->salt_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, (u8 *) salt->salt_buf);
+
+  // base64_decode writes ceil (in_len / 4) * 3 bytes, which is more than the length it returns.
+  // The salt token reaches 344 characters and the target hash token 173, so the writes reach
+  // 258 and 132 bytes. Decode through a buffer that can hold the whole write.
+
+  u8 tmp_buf[512] = { 0 };
+
+  int tmp_len = base64_decode (base64_to_int, (const u8 *) salt_pos, salt_len, tmp_buf);
+
+  if (tmp_len > (int) sizeof (salt->salt_buf)) return (PARSER_SALT_LENGTH);
+
+  memcpy (salt->salt_buf, tmp_buf, tmp_len);
+
+  salt->salt_len = tmp_len;
 
   // digest/ target hash
   const int digest_len = token.len[6];
   const u8 *digest_pos = token.buf[6];
 
-  argon2_options->digest_len = base64_decode (base64_to_int, (const u8 *) digest_pos, digest_len, (u8 *) digest);
+  memset (tmp_buf, 0, sizeof (tmp_buf));
+
+  tmp_len = base64_decode (base64_to_int, (const u8 *) digest_pos, digest_len, tmp_buf);
+
+  if (tmp_len > (int) DGST_SIZE) return (PARSER_HASH_LENGTH);
+
+  memcpy (digest, tmp_buf, tmp_len);
+
+  argon2_options->digest_len = tmp_len;
 
   return (PARSER_OK);
 }
