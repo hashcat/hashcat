@@ -164,8 +164,6 @@ int pw_transform_apply (const pw_transform_t *transform, u8 *buf, const int len,
 
     char rule_buf_out[RP_PASSWORD_SIZE];
 
-    memset (rule_buf_out, 0, sizeof (rule_buf_out));
-
     const int rule_len_out = _old_apply_rule (transform->rule_buf, transform->rule_len, (char *) buf, out_len, rule_buf_out);
 
     if (rule_len_out < 0) return -1;
