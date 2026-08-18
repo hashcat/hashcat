@@ -270,7 +270,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 *account_info_ptr = (u8 *) krb5asrep->account_info;
 
   // Domain must be uppercase
-  u8 domain[128];
+  u8 domain[512];
 
   if (krb5asrep->format == 1)
   {
@@ -321,7 +321,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const krb5asrep_18_t *krb5asrep = (const krb5asrep_18_t *) esalt_buf;
 
-  char *data = (char *) hcmalloc (5120 * 4 * 2);
+  char *data = (char *) hcmalloc (5120 * 4 * 2 + 1);
 
   for (u32 i = 0, j = 0; i < krb5asrep->edata2_len; i += 1, j += 2)
   {

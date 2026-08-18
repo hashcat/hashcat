@@ -232,7 +232,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // domain must be uppercase
 
-  u8 domain[128];
+  u8 domain[512];
 
   memcpy (domain, domain_pos, domain_len);
   uppercase (domain, domain_len);
@@ -280,7 +280,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const krb5tgs_18_t *krb5tgs = (const krb5tgs_18_t *) esalt_buf;
 
-  char *data = (char *) hcmalloc (5120 * 4 * 2);
+  char *data = (char *) hcmalloc (5120 * 4 * 2 + 1);
 
   for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
   {

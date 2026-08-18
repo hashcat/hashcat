@@ -243,7 +243,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const ansible_vault_t *ansible_vault = (const ansible_vault_t *) esalt_buf;
 
-  u8 *ct_data = (u8 *) hcmalloc (16384 + 1);
+  u8 *ct_data = (u8 *) hcmalloc (16384 * 2 + 1);
 
   const u32 *ct_data_ptr = ansible_vault->ct_data_buf;
 
