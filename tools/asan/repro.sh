@@ -75,9 +75,15 @@ export LD_LIBRARY_PATH="$CORE_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 # use_sigaltstack=0 works around clang runtimes older than glibc 2.34, where
 # SIGSTKSZ stopped being a compile-time constant and the runtime computes 0
 # ("failed to allocate 0x0 bytes of SetAlternateSignalStack").
+# All three need use_sigaltstack=0, not just ASan/MSan: UBSan ships the same
+# sanitizer_common runtime and dies the same way without it. Leaving it off
+# here made TOOL=ubsan abort before main() with "failed to allocate 0x0 bytes
+# of SetAlternateSignalStack" -- and because that abort produces no "runtime
+# error:" line, every ubsan repro looked like a clean pass. A false all-clear,
+# which is the one direction that must never fail silently.
 export ASAN_OPTIONS=detect_leaks=0:halt_on_error=0:use_sigaltstack=0
 export MSAN_OPTIONS=use_sigaltstack=0
-export UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0
+export UBSAN_OPTIONS=print_stacktrace=1:halt_on_error=0:use_sigaltstack=0
 
 # argv[1] is ignored under -DSTATIC_MODULE, but the harness still expects it
 exec "$OUT/repro_${TOOL}_m${MODE}" x "$MODE" "$@"

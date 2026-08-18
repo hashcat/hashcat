@@ -26,13 +26,19 @@ LOG="$OUT/sweep.log"
 # halt_on_error=0 keeps going after the first report, so a module with two
 # distinct defects shows both rather than hiding the second behind the first.
 # detect_leaks=0 because hashcat does not free everything by design.
-export ASAN_OPTIONS="detect_leaks=0:halt_on_error=0:log_path=$OUT/tmp_asan"
+# use_sigaltstack=0: harmless under the gcc runtime this script builds against
+# by default, but mandatory under a clang runtime older than glibc 2.34, where
+# SIGSTKSZ stopped being a compile-time constant and the runtime tries to
+# allocate a 0-byte alternate signal stack. Without it the sanitizer aborts
+# before main() and the sweep records a clean pass for every module -- a
+# false all-clear, the one failure direction that must never be silent.
+export ASAN_OPTIONS="detect_leaks=0:halt_on_error=0:use_sigaltstack=0:log_path=$OUT/tmp_asan"
 
 # UBSan reports look nothing like ASan's: one "file.c:12:34: runtime error: ..."
 # line per finding, printed to stderr, and by default it keeps going without a
 # stack trace. Ask for the trace, and let it continue so one module's first
 # finding does not hide the rest.
-export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=0"
+export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=0:use_sigaltstack=0"
 
 for so in modules/module_*.so; do
   base=$(basename "$so" .so)
