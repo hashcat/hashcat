@@ -179,9 +179,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 iterations = hc_strtoul ((const char *) iter_pos, NULL, 10);
 
-  salt->salt_iter = ((1u << iterations) + 32) - 1;
-
   if (iterations == 0) return (PARSER_SALT_VALUE);
+
+  // RAR5 log2 iteration count has no hard spec cap, but salt_iter is u32
+  // and the kernel dispatch loop is u32-bound, so we cannot support > 31.
+
+  if (iterations > 31) return (PARSER_SALT_ITERATION);
+
+  salt->salt_iter = ((1u << iterations) + 32) - 1;
 
   salt->salt_sign[0] = iterations;
 

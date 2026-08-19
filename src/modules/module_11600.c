@@ -685,6 +685,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_sign[0] = data_type;
 
+  // 7-Zip NumCyclesPower can be 0-63 per spec, but salt_iter is u32
+  // and the kernel dispatch loop is u32-bound, so we cannot support > 31.
+
+  if (iter > 31) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = 1u << iter;
 
   /**
