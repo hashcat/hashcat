@@ -299,8 +299,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // iter
 
+  const u32 iter2 = hc_strtoul ((const char *) rounds_pos, NULL, 10);
+
+  if (iter2 < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter  = 10000 - 1;
-  salt->salt_iter2 = hc_strtoul ((const char *) rounds_pos, NULL, 10) - 1;
+  salt->salt_iter2 = iter2 - 1;
 
   return (PARSER_OK);
 }

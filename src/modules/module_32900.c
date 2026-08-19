@@ -111,6 +111,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (iter < 1) return (PARSER_SALT_ITERATION);
 
+  if (iter < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = iter - 1;
 
   // base64 decode salt

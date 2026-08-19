@@ -168,7 +168,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (token.opt_len != -1)
   {
-    salt->salt_iter = hc_strtoul ((const char *) token.opt_buf + 7, NULL, 10) - 1; // 7 = "rounds="
+    const u32 iter = hc_strtoul ((const char *) token.opt_buf + 7, NULL, 10); // 7 = "rounds="
+
+    if (iter < 1) return (PARSER_SALT_ITERATION);
+
+    salt->salt_iter = iter - 1;
   }
 
   // salt

@@ -158,7 +158,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *iter_pos = token.buf[1];
 
-  salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
+  const u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
+
+  if (iter < 1) return (PARSER_SALT_ITERATION);
+
+  salt->salt_iter = iter - 1;
 
   const u8 *salt_pos = token.buf[2];
   const int salt_len = token.len[2];

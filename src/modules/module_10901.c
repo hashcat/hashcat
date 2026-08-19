@@ -132,6 +132,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt_iter = byte_swap_32 (salt_iter); // implementation does a ntohl()
 
+  if (salt_iter < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = salt_iter - 1;
 
   // salt

@@ -197,6 +197,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_len = 36;
 
+  if (bsp->iter < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = bsp->iter - 1;
 
   return (PARSER_OK);
