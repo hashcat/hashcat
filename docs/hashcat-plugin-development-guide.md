@@ -942,6 +942,93 @@ Finally, if you want the old arrangement back, `make SHARED=0` builds it. Every 
 
 Nothing at load time catches that. A static plugin is complete, it exports the same one name, and the loader has nothing to fail on. What catches it is `tools/test_package.sh`, which asks every shipped plugin whether it names the core library in its own dependencies, and it is the reason to run that script over a package before shipping it. Note that `SHARED` defaults to 0 on any platform other than Linux and macOS, MSYS2 included, while the Windows release is built shared, so a plugin built natively on Windows against a downloaded release is the case to watch for. Pass `SHARED=1` there.
 
+## Feed settings ##
+
+This section is about feeds, the `-a 8` plugins, and how one takes settings from the user.
+
+A feed is handed its arguments as strings and nothing parses them for it. That is not an oversight
+that a later release will fix: hashcat's own `getopt` runs before it knows which plugin it is going
+to load, so it cannot know that `--model` belongs to your feed rather than being a typo, and by the
+time your feed exists the command line has long been read and accepted. Anything after the plugin
+name is yours, and `global_ctx->workv` is where it arrives, with `workv[0]` being the name the user
+typed for your feed.
+
+So a setting is written as `key=value` among the sources:
+
+```
+hashcat -a 8 -m 0 hashes.txt myfeed model.dat mode=2 pwlen=6:16
+```
+
+and not as `--myfeed-mode 2`. That is worth being explicit about, because the second form looks more
+like the rest of hashcat and is the wrong shape for two reasons that have nothing to do with taste.
+
+The first is that a work argument is part of the attack's identity and an option is not. The brain
+hashes every one of your arguments into the attack id it keys its record of covered keyspace on, so
+two runs that differ only in `mode=2` against `mode=4` are two attacks and neither is told the other
+already covered its keyspace. A setting that arrived some other way would have to be added to that
+hash by hand, and when it is forgotten nothing reports it: the second run is simply told there is
+nothing left to do. The restore file records the arguments for the same reason, so a resumed session
+comes back with the settings it started with.
+
+The second is that the user's shell has already agreed to leave your arguments alone. hashcat stops
+reading options at the plugin name, so `mode=2` reaches you whatever it is called and cannot collide
+with any of hashcat's own option names, now or in a later release.
+
+You do not have to write the parser. Declare what your feed takes and let `feed_param_parse()` read
+it:
+
+```c
+static const char *model   = NULL;
+static u64         mode    = 0;
+static u64         burst   = 50000;
+static bool        shuffle = false;
+
+static const feed_param_t PARAMS[] =
+{
+  { "model",   FEED_PARAM_TYPE_STR,  &model,   0, 0,       "path to the trained model" },
+  { "mode",    FEED_PARAM_TYPE_U64,  &mode,    0, 7,       "generator to use, 0-7" },
+  { "burst",   FEED_PARAM_TYPE_U64,  &burst,   1, 1000000, "candidates per burst" },
+  { "shuffle", FEED_PARAM_TYPE_BOOL, &shuffle, 0, 0,       "reorder tokens within a structure" },
+  { NULL, 0, NULL, 0, 0, NULL }
+};
+
+bool global_init (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx)
+{
+  if (feed_param_parse (global_ctx->workc, global_ctx->workv, PARAMS, global_ctx->error_msg, sizeof (global_ctx->error_msg)) == false)
+  {
+    global_ctx->error = true;
+
+    return false;
+  }
+
+  ...
+}
+```
+
+Whatever your variables held before the call is the default, because a setting that was not given is
+not written. `min` and `max` bound a `FEED_PARAM_TYPE_U64` and are ignored by the other types; a pair
+left at zero means the feed did not want a range.
+
+A key your table does not list is an error, and that is the point of the call rather than a side
+effect of it. Your settings are invisible to `--help` and to tab completion, so a misspelled one has
+nothing else to catch it, and a feed that quietly ignored what it did not recognise would run a
+different attack than the one it was asked for and say so nowhere. `mode=2 mode=4` is refused for the
+same reason: last-one-wins reads as a preference being applied when it is a mistake.
+
+The other three helpers are there for the cases the table does not cover:
+
+* `feed_param_is_setting()` says whether an argument is a setting, which is how a feed walks its own
+  arguments and picks out the sources: skip the settings and what is left are the paths.
+* `feed_param_lookup()` returns the value of one key as a string, for a feed that wants to read
+  something without declaring it.
+* `feed_param_usage()` writes the table out one setting per line, for a feed to print when its
+  arguments make no sense.
+
+An argument counts as a setting when it is `key=value` with a key that could not be a path: a letter
+followed by letters, digits, dashes or underscores, and no directory separator in front of the `=`.
+Everything else is a source. A file whose name really does look like a setting is still reachable as
+`./mode=2`, because that has a separator in it.
+
 ## Porting a plugin from 7.1.2 ##
 
 The section above is the whole story of how a plugin is built and loaded. This one is the short list of what changed in the source between the 7.1.2 release and now, for somebody who has a working plugin and wants it building again.

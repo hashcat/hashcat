@@ -3084,6 +3084,42 @@ typedef struct generic_thread_ctx
 
 } generic_thread_ctx_t;
 
+// How a feed says what it takes. A feed is handed its arguments as strings and nothing parses them
+// for it: hashcat's own getopt stops at the plugin name, because it cannot know which plugin that is
+// until long after the command line has been read. So a feed that wants named settings reads them
+// out of its own arguments, and this is the shape they are declared in so that every feed reads
+// them the same way and none of them has to write a parser.
+//
+// A setting is written key=value among the sources, "myfeed model.dat mode=2 pwlen=6:16". They are
+// arguments and not options on purpose: the brain hashes every one of them into the attack id
+// (src/brain.c), and the restore file records them, so two runs that differ only in a setting are
+// two attacks and a resumed run gets the settings it started with. A named option outside the work
+// arguments would have neither, and getting that wrong is silent.
+//
+// min and max bound a FEED_PARAM_TYPE_U64 and are ignored by the other types.
+
+typedef enum feed_param_type
+{
+  FEED_PARAM_TYPE_STR  = 0, // dst is a const char **, and it points into the argument
+  FEED_PARAM_TYPE_BOOL = 1, // dst is a bool *, value is 1/0, yes/no, true/false, on/off
+  FEED_PARAM_TYPE_U64  = 2, // dst is a u64 *
+  FEED_PARAM_TYPE_DBL  = 3, // dst is a double *
+
+} feed_param_type_t;
+
+typedef struct feed_param
+{
+  const char        *key;
+  feed_param_type_t  type;
+  void              *dst;
+
+  u64                min;
+  u64                max;
+
+  const char        *help;
+
+} feed_param_t;
+
 typedef bool (*GENERIC_GLOBAL_INIT)     (generic_global_ctx_t *, generic_thread_ctx_t **, void *);
 typedef void (*GENERIC_GLOBAL_TERM)     (generic_global_ctx_t *, generic_thread_ctx_t **, void *);
 typedef u64  (*GENERIC_GLOBAL_KEYSPACE) (generic_global_ctx_t *, generic_thread_ctx_t **, void *);

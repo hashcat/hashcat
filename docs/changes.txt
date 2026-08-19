@@ -184,6 +184,8 @@ argument list is shown instead.
 - Kernels: Added HASHCAT_FORCE_NO_INLINE, which builds with -D FORCE_NO_INLINE for
   runtimes that inline the helpers into one slow-to-compile function
 - Backends: Environment on/off switches share one hc_env_flag helper
+- Feeds: Settings are written as key=value work arguments and one shared parser reads
+  them, so a feed no longer writes its own (see docs/hashcat-plugin-development-guide.md)
 - Hashes: Large hash lists without salts now sort and deduplicate with an in-place radix sort
 - Kernels: Added the DEScrypt pure kernel for attack-mode 3, and both salt paths share one
   multi hash kernel
