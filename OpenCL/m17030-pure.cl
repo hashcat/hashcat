@@ -387,10 +387,7 @@ KERNEL_FQ KERNEL_FA void m17030_aux1 (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
 
   u32 aes_key[4];
 
-  aes_key[0] = hc_swap32_S (h32_from_64 (tmps[gid].h[0]));
-  aes_key[1] = hc_swap32_S (l32_from_64 (tmps[gid].h[0]));
-  aes_key[2] = hc_swap32_S (h32_from_64 (tmps[gid].h[1]));
-  aes_key[3] = hc_swap32_S (l32_from_64 (tmps[gid].h[1]));
+  for (int i = 0; i < 4; i++) aes_key[i] = hc_swap32_S (tmps[gid].h[i]);
 
   u32 iv[4] = {0};
 
