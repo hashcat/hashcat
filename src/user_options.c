@@ -2503,8 +2503,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->show                = false;
     user_options->status              = false;
     user_options->status_timer        = 0;
-    user_options->bitmap_min          = 1;
-    user_options->bitmap_max          = 1;
+    if (user_options->speed_only == false)
+    {
+      user_options->bitmap_min          = 1;
+      user_options->bitmap_max          = 1;
+    }
     #ifdef WITH_BRAIN
     user_options->brain_client        = false;
     #endif
