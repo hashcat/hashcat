@@ -193,6 +193,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_buf[3] = apple_secure_notes->ZCRYPTOSALT[3];
   salt->salt_buf[4] = apple_secure_notes->Z_PK;
 
+  if (apple_secure_notes->ZCRYPTOITERATIONCOUNT < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = apple_secure_notes->ZCRYPTOITERATIONCOUNT - 1;
   salt->salt_len  = 20;
 

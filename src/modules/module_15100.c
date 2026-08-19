@@ -229,6 +229,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (iter < 99) return (PARSER_SALT_ITERATION); // (actually: CRYPT_SHA1_ITERATIONS should be 24680 or more)
 
+  if (iter < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = iter - 1;
 
   // salt
