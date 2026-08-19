@@ -113,6 +113,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->scrypt_p = hc_strtoul ((const char *) p_pos, NULL, 10);
 
   salt->salt_iter    = salt->scrypt_N;
+  if (salt->scrypt_p < 1) return (PARSER_SALT_VALUE);
+
   salt->salt_repeats = salt->scrypt_p - 1;
 
   if (salt->scrypt_N % 1024) return (PARSER_SALT_VALUE); // we set loop count to 1024 fixed

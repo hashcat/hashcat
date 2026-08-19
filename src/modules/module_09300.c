@@ -100,6 +100,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->scrypt_p  = 1;
 
   salt->salt_iter    = salt->scrypt_N;
+  if (salt->scrypt_p < 1) return (PARSER_SALT_VALUE);
+
   salt->salt_repeats = salt->scrypt_p - 1;
 
   // base64 decode hash

@@ -144,6 +144,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   bestcrypt_scrypt->salt_buf[1] = byte_swap_32 (salt->salt_buf[1]);
 
   salt->salt_iter    = salt->scrypt_N;
+  if (salt->scrypt_p < 1) return (PARSER_SALT_VALUE);
+
   salt->salt_repeats = salt->scrypt_p - 1;
 
   // ciphertext
