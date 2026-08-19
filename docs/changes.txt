@@ -160,6 +160,7 @@ See the section "The Core Library" in docs/hashcat-plugin-development-guide.md.
 ## Bugs
 ##
 
+- Fixed -m 24420 rejecting the self-describing $PEM$2 encoding that pem2john.py emits for non-SHA1 PRFs
 - Fixed combinator and hybrid attacks reporting a plaintext truncated to 256 characters, which did not match the cracked digest
 - Fixed buffer overflows in the RC4 modules 33500, 33501 and 33502, where the plaintext token was not bounded by the field it decodes into
 - Fixed a heap buffer overflow in module 34000, where a base64 target hash wrote past the digest

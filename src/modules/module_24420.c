@@ -106,8 +106,57 @@ u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED c
   return tmp_size;
 }
 
-int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
+
+// pem2john.py emits a self-describing variant for non-SHA1 PRFs:
+//
+//   $PEM$2$pbkdf2$sha256$aes256_cbc$4$<salt>$<iter>$<iv>$<len>$<data>
+//
+// The three extra fields are redundant -- type "2" already implies
+// PBKDF2-HMAC-SHA256, and the numeric cipher id follows them -- so they are
+// stripped here and the compact layout below parses unchanged.
+
+static int pem_normalize (const char *line_buf, const int line_len, char *out_buf, const int out_size)
 {
+  const char *p = line_buf;
+
+  // must start with "$PEM$2$"
+  if (line_len < 7) return (-1);
+  if (strncmp (p, "$PEM$2$", 7) != 0) return (-1);
+
+  const char *rest = p + 7;
+
+  // compact form has a digit here; the verbose form has "pbkdf2"
+  if ((*rest >= '0') && (*rest <= '9')) return (-1);
+
+  // skip exactly three '$'-delimited descriptor fields
+  int skipped = 0;
+
+  while ((skipped < 3) && (rest < (line_buf + line_len)))
+  {
+    if (*rest == '$') skipped++;
+
+    rest++;
+  }
+
+  if (skipped != 3) return (-1);
+
+  const int tail_len = line_len - (int) (rest - line_buf);
+
+  if ((7 + tail_len) >= out_size) return (-1);
+
+  memcpy (out_buf, "$PEM$2$", 7);
+  memcpy (out_buf + 7, rest, tail_len);
+
+  out_buf[7 + tail_len] = 0;
+
+  return (7 + tail_len);
+}
+
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf_orig, MAYBE_UNUSED const int line_len_orig)
+{
+  const char *line_buf = line_buf_orig;
+  int line_len = line_len_orig;
+
   u32 *digest = (u32 *) digest_buf;
 
   pkcs_t *pkcs = (pkcs_t *) esalt_buf;
@@ -115,6 +164,18 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   hc_token_t token;
 
   memset (&token, 0, sizeof (hc_token_t));
+
+  // accept pem2john.py's verbose encoding by rewriting it to the compact one
+
+  char norm_buf[HCBUFSIZ_TINY];
+
+  const int norm_len = pem_normalize (line_buf, line_len, norm_buf, sizeof (norm_buf));
+
+  if (norm_len > 0)
+  {
+    line_buf = norm_buf;
+    line_len = norm_len;
+  }
 
   token.token_cnt  = 8;
 
