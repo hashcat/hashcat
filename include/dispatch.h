@@ -23,10 +23,8 @@
 #endif
 
 #if defined (_WIN32) || defined (__WIN32__)
-HC_API_CALL DWORD thread_calc_stdin (void *p);
 HC_API_CALL DWORD thread_calc (void *p);
 #else
-HC_API_CALL void *thread_calc_stdin (void *p);
 HC_API_CALL void *thread_calc (void *p);
 #endif
 

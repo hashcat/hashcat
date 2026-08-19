@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -158,12 +159,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
     {
       // format 1: include leading '*' and trailing "*$" in account_info
       const char *acct_start = line_buf + after_etype;        // at leading '*'
-      char *star2 = strchr (acct_start + 1, '*');
+      const char *star2 = strchr (acct_start + 1, '*');
       if (star2 == NULL) return PARSER_SEPARATOR_UNMATCHED;
       if (star2[1] != '$') return PARSER_SEPARATOR_UNMATCHED; // must end with "*$"
 
       const char *acct_stop_incl = star2 + 2;                 // include "*$"
       const int   acct_len       = (int) (acct_stop_incl - acct_start);
+
+      if (acct_len > (int) sizeof (krb5tgs->account_info)) return (PARSER_SALT_LENGTH);
 
       token.token_cnt++;
 
@@ -184,7 +187,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
       // edata2
       token.sep[4]     = '$';
       token.len_min[4] = 64;
-      token.len_max[4] = 40960;
+      token.len_max[4] = 40958;
       token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
 
       krb5tgs->format = 1;
@@ -202,7 +205,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
       token.sep[3]     = '$';
       token.len_min[3] = 64;
-      token.len_max[3] = 40960;
+      token.len_max[3] = 40958;
       token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
 
       krb5tgs->format = 2;
@@ -222,7 +225,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig,
 
     token.sep[3]     = '$';
     token.len_min[3] = 64;
-    token.len_max[3] = 40960;
+    token.len_max[3] = 40958;
     token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH | TOKEN_ATTR_VERIFY_HEX;
 
     krb5tgs->format = 3;
@@ -303,7 +306,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const krb5tgs_t *krb5tgs = (const krb5tgs_t *) esalt_buf;
 
-  char data[5120 * 2] = { 0 };
+  char data[5120 * 4 * 2 + 1] = { 0 };
   for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i++, j += 2)
   {
     const u8 *ptr = (const u8 *) krb5tgs->edata2;
@@ -349,6 +352,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -365,7 +369,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -423,5 +426,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

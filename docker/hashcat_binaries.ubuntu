@@ -72,8 +72,14 @@ RUN echo "$WD/native/lib" > /etc/ld.so.conf.d/toolchain.conf && \
 ARG SEVEN_ZIP_VERSION=25.01
 ENV SEVEN_ZIP_VERSION=${SEVEN_ZIP_VERSION}
 
+# CFLAGS_WARN_WALL drops the -Werror that 7zip sets for itself. GCC 16 reports the COM reference
+# counting in ProgressUtils.h and RarHandler.cpp as -Warray-bounds, and the build stops there. It is
+# a false positive on 7zip's own code, and 7zip 26.02 reports it in the same two places, so waiting
+# for a newer release does not help. This binary is only the archiver that packs the release, so
+# nothing hashcat ships is built with these flags.
+
 RUN cd $WD/src && git clone --depth 1 --branch ${SEVEN_ZIP_VERSION} https://github.com/ip7z/7zip.git && \
-    cd 7zip/CPP/7zip/Bundles/Alone2 && make -f makefile.gcc -j && cp _o/7zz ${WD}/native/bin/7z && cd $WD/src && rm -rf 7zip
+    cd 7zip/CPP/7zip/Bundles/Alone2 && make -f makefile.gcc CFLAGS_WARN_WALL="-Wall -Wextra" -j && cp _o/7zz ${WD}/native/bin/7z && cd $WD/src && rm -rf 7zip
 
 # win-iconv
 
@@ -94,7 +100,7 @@ RUN cd $WD/src && git clone --depth 1 --branch v${WIN_ICONV_VERSION} https://git
 
 # Python (windows)
 
-ARG WIN_PYTHON_VERSION=3.12.12-1
+ARG WIN_PYTHON_VERSION=3.14.6-2
 ENV WIN_PYTHON_VERSION=${WIN_PYTHON_VERSION}
 
 RUN cd /opt/win-python && \
@@ -104,7 +110,7 @@ RUN cd /opt/win-python && \
 
 # rust
 
-ARG RUST_VERSION=1.90.0
+ARG RUST_VERSION=1.97.1
 ENV RUST_VERSION=${RUST_VERSION}
 
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain ${RUST_VERSION}; /root/.cargo/bin/rustup target add x86_64-pc-windows-gnu
@@ -113,7 +119,24 @@ ENV PATH=/root/.cargo/bin:$PATH
 
 # hashcat
 
+# ENABLE_LTO is off by default in src/Makefile, because a plain distro cross toolchain cannot
+# always link the result. It is turned back on here, on the make command line, so the released
+# binaries get it. A command line assignment beats the ?= in the Makefile, so this stays
+# correct whatever the default becomes
+
+# HASHCAT_REF is the tree the package is built from, and it is named rather than left to whatever
+# master happens to be, so that a release can be rebuilt later from the same source. Another one is
+# asked for with --build-arg HASHCAT_REF=<ref>, and it is bumped with the version in
+# tools/package_bin.sh, which is edited for the same release anyway.
+#
+# It cannot be bumped to just anything. This file passes CC_WIN=clang, and a Makefile from before the
+# core library has no way to tell clang which target a Windows artifact is for, so clang builds it for
+# the host, picks the host linker and stops on the first link flag that only means something to PE.
+# The default is master until the first release that contains the core library exists to name, and the
+# check below refuses an older tree in one line rather than letting it fail at the link.
+
 ARG CACHE_BUST=1 \
+    HASHCAT_REF=master \
     ENABLE_LTO=1 \
     MAINTAINER_MODE=1 \
     USE_MOLD=1 \
@@ -121,17 +144,27 @@ ARG CACHE_BUST=1 \
     USE_GCC=0
 
 ENV CACHE_BUST=${CACHE_BUST} \
+    HASHCAT_REF=${HASHCAT_REF} \
     ENABLE_LTO=${ENABLE_LTO} \
     MAINTAINER_MODE=${MAINTAINER_MODE} \
     USE_MOLD=${USE_MOLD} \
     USE_CLANG=${USE_CLANG} \
     USE_GCC=${USE_GCC}
 
-RUN cd /root && git clone https://github.com/hashcat/hashcat.git
+RUN cd /root && git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
+
+RUN test -f /root/hashcat/include/export.h || { echo "HASHCAT_REF=${HASHCAT_REF} predates the shared core, which this file cannot build"; exit 1; }
 
 COPY docker/patches/hashcat_binaries/ /root/patches/
 
 RUN bash -c 'shopt -s nullglob; cd /root/hashcat; for p in /root/patches/*.patch /root/patches/*.diff; do patch -p1 < "$p"; done'
+
+# pipefail for the two build steps below, because each pipes make into tee and the exit status of a
+# pipeline is the LAST command's. Without it tee always succeeds, a failed make is reported as a
+# success, and package_bin.sh runs on a half built tree. That produces an archive that looks ordinary
+# and is missing however many binaries make had not reached, which is the worst way for this to fail.
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN if [ "${USE_CLANG}" = "1" ]; then \
       cp -af /root/hashcat /root/hashcat-clang && cd /root/hashcat-clang && \
@@ -141,7 +174,7 @@ RUN if [ "${USE_CLANG}" = "1" ]; then \
            AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar \
            CC=clang CC_LINUX=clang CC_WIN=clang \
            CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ \
-           binaries -s -j 2>&1 | stdbuf -oL -eL tee -a /root/binaries.clang.log && \
+           binaries -s -j ${MAX_CORE} 2>&1 | stdbuf -oL -eL tee -a /root/binaries.clang.log && \
       tools/package_bin.sh && \
       cd /root/xy && \
       if [ "${USE_GCC}" = "1" ]; then \
@@ -160,7 +193,7 @@ RUN if [ "${USE_GCC}" = "1" ]; then \
       make USE_MOLD=${USE_MOLD} \
            ENABLE_LTO=${ENABLE_LTO} \
            MAINTAINER_MODE=${MAINTAINER_MODE} \
-           binaries -s -j 2>&1 | stdbuf -oL -eL  tee -a /root/binaries.gcc.log && \
+           binaries -s -j ${MAX_CORE} 2>&1 | stdbuf -oL -eL  tee -a /root/binaries.gcc.log && \
       tools/package_bin.sh && \
       cd /root/xy && \
       if [ "${USE_CLANG}" = "1" ]; then \
@@ -174,12 +207,17 @@ RUN if [ "${USE_GCC}" = "1" ]; then \
       fi; \
     fi
 
+# Back to the default. The steps below pipe greps whose finding nothing is not a failure.
+
+SHELL ["/bin/sh", "-c"]
+
 RUN if [ "${USE_CLANG}" = "1" ] && [ "${USE_GCC}" = "1" ]; then mv /root/out/* /root/xy/; fi; cd /root && rm -rf /root/out /root/hashcat-* $WD/src /tmp/* /var/tmp/*
 
 ARG WITH_CODE_ANALYSIS=0
 ENV WITH_CODE_ANALYSIS=${WITH_CODE_ANALYSIS}
 
-RUN echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
+RUN echo "HASHCAT_REF: ${HASHCAT_REF}" >> /root/toolchain-info.log && \
+    echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
     echo "WIN_ICONV_VERSION: ${WIN_ICONV_VERSION}" >> /root/toolchain-info.log && \
     echo "SEVEN_ZIP_VERSION: ${SEVEN_ZIP_VERSION}" >> /root/toolchain-info.log && \
     echo "RUST_VERSION: ${RUST_VERSION}" >> /root/toolchain-info.log && \

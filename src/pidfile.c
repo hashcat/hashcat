@@ -8,6 +8,8 @@
 #include "memory.h"
 #include "event.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "path.h"
 #include "pidfile.h"
 
 static int check_running_process (hashcat_ctx_t *hashcat_ctx)

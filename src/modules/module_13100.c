@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "memory.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_INSIDE_KERNEL;
@@ -132,7 +133,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     if (line_buf[token.len[0] + 3] == '*')
     {
       const char *account_info_start = line_buf + 12; // we want the * char included
-      char *account_info_stop  = strchr (account_info_start + 1, '*');
+      const char *account_info_stop  = strchr (account_info_start + 1, '*');
 
       if (account_info_stop == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -140,6 +141,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       account_info_stop++; // we want the $ char included
 
       const int account_info_len = account_info_stop - account_info_start;
+
+      if (account_info_len > (int) sizeof (krb5tgs->account_info)) return (PARSER_SALT_LENGTH);
 
       token.token_cnt++;
 
@@ -166,7 +169,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       token.sep[4]     = '$';
       token.len_min[4] = 64;
-      token.len_max[4] = 40960;
+      token.len_max[4] = 40958;
       token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                        | TOKEN_ATTR_VERIFY_HEX;
 
@@ -192,7 +195,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
       token.sep[3]     = '$';
       token.len_min[3] = 64;
-      token.len_max[3] = 40960;
+      token.len_max[3] = 40958;
       token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                        | TOKEN_ATTR_VERIFY_HEX;
 
@@ -219,7 +222,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     token.sep[3]     = '$';
     token.len_min[3] = 64;
-    token.len_max[3] = 40960;
+    token.len_max[3] = 40958;
     token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
 
@@ -305,7 +308,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const krb5tgs_t *krb5tgs = (const krb5tgs_t *) esalt_buf;
 
-  char *data = (char *) hcmalloc (5120 * 4 * 2);
+  char *data = (char *) hcmalloc (5120 * 4 * 2 + 1);
 
   for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
   {
@@ -351,6 +354,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -367,7 +371,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -425,5 +428,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = MODULE_DEFAULT;
   module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

@@ -9,11 +9,12 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "memory.h"
 #include "emu_inc_cipher_aes.h"
 #include "cpu_crc32.h"
 #include "ext_lzma.h"
-#include "zlib.h"
+#include "ext_zlib.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -313,32 +314,9 @@ void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *ho
     }
     else if (data_type == 7) // inflate using zlib (DEFLATE compression)
     {
-      ret = SZ_ERROR_DATA;
+      const bool ok = hc_inflate_raw (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
 
-      z_stream inf;
-
-      inf.zalloc = Z_NULL;
-      inf.zfree  = Z_NULL;
-      inf.opaque = Z_NULL;
-
-      inf.avail_in  = compressed_data_len;
-      inf.next_in   = compressed_data;
-
-      inf.avail_out = decompressed_data_len;
-      inf.next_out  = decompressed_data;
-
-      // inflate:
-
-      inflateInit2 (&inf, -MAX_WBITS);
-
-      int zlib_ret = inflate (&inf, Z_NO_FLUSH);
-
-      inflateEnd (&inf);
-
-      if ((zlib_ret == Z_OK) || (zlib_ret == Z_STREAM_END))
-      {
-        ret = SZ_OK;
-      }
+      ret = (ok == true) ? SZ_OK : SZ_ERROR_DATA;
     }
     else // we only support LZMA2 in addition to LZMA1
     {
@@ -472,7 +450,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[4]      = '$';
   token.len_min[4]  = 0;
-  token.len_max[4]  = 64;
+  token.len_max[4]  = 15; // sizeof (seven_zip->salt_buf) - 1, hash_encode prints it with %s
   token.attr[4]     = TOKEN_ATTR_VERIFY_LENGTH;
 
   token.sep[5]      = '$';
@@ -635,6 +613,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   seven_zip->iv_len = iv_len;
 
+  if (salt_buf_len >= (int) sizeof (seven_zip->salt_buf)) return (PARSER_SALT_LENGTH);
+
   memcpy (seven_zip->salt_buf, salt_buf_pos, salt_buf_len); // we just need that for later ascii_digest()
 
   seven_zip->salt_len = 0;
@@ -704,6 +684,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_len = 16;
 
   salt->salt_sign[0] = data_type;
+
+  // 7-Zip NumCyclesPower can be 0-63 per spec, but salt_iter is u32
+  // and the kernel dispatch loop is u32-bound, so we cannot support > 31.
+
+  if (iter > 31) return (PARSER_SALT_ITERATION);
 
   salt->salt_iter = 1u << iter;
 
@@ -790,6 +775,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -801,13 +787,11 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_build_plain_postprocess  = MODULE_DEFAULT;
   module_ctx->module_deep_comp_kernel         = MODULE_DEFAULT;
   module_ctx->module_deprecated_notice        = MODULE_DEFAULT;
-  module_ctx->module_usage_notice             = module_usage_notice;
   module_ctx->module_dgst_pos0                = module_dgst_pos0;
   module_ctx->module_dgst_pos1                = module_dgst_pos1;
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -865,5 +849,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = module_usage_notice;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

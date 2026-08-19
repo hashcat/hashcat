@@ -19,6 +19,9 @@ void format_speed_display_1k (double val,    char *buf, size_t len);
 
 int         status_get_device_info_cnt                (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_device_info_active             (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_group_info_active              (const hashcat_ctx_t *hashcat_ctx);
+int         status_get_group_id_dev                   (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
+int         status_get_group_size_dev                 (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 bool        status_get_skipped_dev                    (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 bool        status_get_skipped_warning_dev            (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 char       *status_get_session                        (const hashcat_ctx_t *hashcat_ctx);
@@ -30,6 +33,7 @@ int         status_get_guess_base_offset              (const hashcat_ctx_t *hash
 int         status_get_guess_base_count               (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_guess_base_percent             (const hashcat_ctx_t *hashcat_ctx);
 char       *status_get_guess_mod                      (const hashcat_ctx_t *hashcat_ctx);
+char       *status_get_guess_mod_q                    (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_guess_mod_offset               (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_guess_mod_count                (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_guess_mod_percent              (const hashcat_ctx_t *hashcat_ctx);
@@ -64,6 +68,10 @@ double      status_get_progress_finished_percent      (const hashcat_ctx_t *hash
 u64         status_get_progress_done                  (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_progress_rejected              (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_progress_rejected_percent      (const hashcat_ctx_t *hashcat_ctx);
+#ifdef WITH_BRAIN
+u64         status_get_brain_rejects_attacks          (const hashcat_ctx_t *hashcat_ctx);
+u64         status_get_brain_rejects_hashes           (const hashcat_ctx_t *hashcat_ctx);
+#endif
 u64         status_get_progress_restored              (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_progress_cur                   (const hashcat_ctx_t *hashcat_ctx);
 u64         status_get_progress_end                   (const hashcat_ctx_t *hashcat_ctx);
@@ -113,6 +121,7 @@ int         status_get_memoryspeed_dev                (const hashcat_ctx_t *hash
 u64         status_get_progress_dev                   (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 double      status_get_runtime_msec_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_kernel_accel_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
+u64         status_get_kernel_power_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_kernel_loops_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_kernel_threads_dev             (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);
 int         status_get_vector_width_dev               (const hashcat_ctx_t *hashcat_ctx, const int backend_devices_idx);

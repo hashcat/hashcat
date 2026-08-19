@@ -10,7 +10,29 @@ Linux, Windows, and macOS.
    Rust **1.88 or newer** is recommended. Older versions may not work
    reliably.
 
-2. **Build Hashcat**
+2. **Install libclang**
+
+   The `hashcat-sys` crate generates its bindings with `bindgen`, which loads
+   `libclang` at build time. Your distribution splits this out from the clang
+   compiler itself, so installing Rust alone is not enough.
+
+   ```
+   sudo apt install libclang-dev        # Debian, Ubuntu
+   sudo pacman -S clang                 # Arch
+   sudo dnf install clang-devel         # Fedora, RHEL
+   ```
+
+   Without it the build stops with:
+
+   ```
+   Unable to find libclang: "couldn't find any valid shared libraries matching:
+   ['libclang.so', 'libclang-*.so', 'libclang.so.*', 'libclang-*.so.*'] ..."
+   ```
+
+   If the library is installed somewhere `bindgen` does not look, point at it
+   with `LIBCLANG_PATH`.
+
+3. **Build Hashcat**
 
    If you are building Hashcat from source, run:
 
@@ -25,7 +47,7 @@ Linux, Windows, and macOS.
    ./hashcat.bin -m 74000 -b
    ```
 
-3. **Customize the plugin**
+4. **Customize the plugin**
 
    Edit `Rust/bridges/generic_hash/src/generic_hash.rs` to fit your needs.
    Typically, you only need to adjust:
@@ -36,7 +58,7 @@ Linux, Windows, and macOS.
 
    You can also add unit tests before building. Run them with `cargo test`.
 
-4. **Build the customized plugin**
+5. **Build the customized plugin**
 
    ```
    cd Rust/bridges/generic_hash
@@ -45,7 +67,7 @@ Linux, Windows, and macOS.
 
    This produces `libgeneric_hash.so` in `Rust/bridges/generic_hash/target/release`.
 
-5. **Run Hashcat**
+6. **Run Hashcat**
 
    ```
    hashcat -a 0 -m 74000 hashfile wordlist
@@ -66,6 +88,9 @@ Linux, Windows, and macOS.
    Ensure both `cargo` and `rustup` are installed. If Rust was
    installed via `rustup`, you already have them.  Prefer **Rust 1.88
    or newer**.
+
+   The Windows binaries are cross-compiled from WSL, so `libclang` has to be
+   installed on the WSL side too. See step 2 of the Linux section.
 
 2. **Build Hashcat**
 

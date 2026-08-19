@@ -1,0 +1,36 @@
+FROM hashcat-binaries as build
+
+FROM nvidia/cuda:13.3.1-devel-ubuntu26.04 as runtime
+
+ENV NVIDIA_VISIBLE_DEVICES=all
+ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
+
+WORKDIR /root/
+
+RUN \
+apt-get update && apt-get upgrade -y && \
+apt-get install -y curl wget unzip tar 7zip libjudy-dev libpcre2-dev libmhash-dev vim screen git make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev llvm libncurses-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev && \
+apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN removeopencl=$(dpkg --list | awk '/opencl/ && $2 ~ /^cuda-opencl-/ {print $2; exit}') && \
+apt-get remove -y $removeopencl && \
+apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install pyenv
+ENV PYENV_ROOT=/root/.pyenv
+ENV PATH=$PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+RUN git clone --depth=1 https://github.com/pyenv/pyenv.git .pyenv
+RUN pyenv install 3.14 && pyenv global 3.14
+
+## Install rust
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain stable
+ENV PATH="/root/.cargo/bin:${PATH}"
+RUN rustup target add x86_64-pc-windows-gnu
+
+# Add hashcat
+RUN mkdir /root/hashcat
+COPY --from=build /root/package /root/hashcat
+
+WORKDIR /root/hashcat

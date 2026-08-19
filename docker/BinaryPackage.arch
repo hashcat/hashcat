@@ -9,8 +9,14 @@ ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 
 # Install all necessary packages
+# clang is here for its libclang, which bindgen loads at build time to generate the
+# hashcat-sys bindings. Without it the Rust bridges fail with "Unable to find libclang".
+# lld is here because the Windows Rust plugin is linked with -fuse-ld=lld, and without
+# it the cross build stops at "collect2: fatal error: cannot find 'ld'"
 RUN pacman -Sy --noconfirm \
     base-devel \
+    clang \
+    lld \
     git \
     cmake \
     unzip \
@@ -43,12 +49,12 @@ RUN cmake \
     . && \
     make -j$(nproc) && make install
 
-# Download and extract MSYS2 Python headers (still 3.12)
+# Download and extract MSYS2 Python headers
 RUN mkdir /opt/win-python
 WORKDIR /opt/win-python
-RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst && \
-    zstd -d mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst && \
-    tar -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar
+RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst && \
+    zstd -d mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst && \
+    tar -xf mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar
 
 # Init rust
 RUN rustup default stable
@@ -59,13 +65,26 @@ WORKDIR /root
 COPY docker/patches/arch/ /root/patches/
 
 ## hashcat
+
+# the tree the package is built from. A clone of master names no particular commit, so what a past
+# release was built from cannot be got back and that release cannot be rebuilt. A tag or a commit
+# is named here instead, and another one is asked for with --build-arg HASHCAT_REF=<ref>. It is
+# bumped with the version in tools/package_bin.sh, which is edited for the same release anyway.
+
+ARG HASHCAT_REF=v7.1.2
+
 WORKDIR /root
-RUN git clone https://github.com/hashcat/hashcat.git
+RUN git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
 
 ## Compile
 WORKDIR /root/hashcat
 RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do pwd && git apply "$p"; done'
 RUN make -s binaries
 RUN tools/package_bin.sh
+
+# see the same step in BinaryPackage.ubuntu20: this is what the runtime images copy out, and it is
+# the package rather than the build tree.
+
+RUN mkdir /root/package && cp -a /root/xy/hashcat-*/. /root/package/
 
 CMD ["/bin/bash"]

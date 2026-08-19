@@ -211,6 +211,8 @@ The path in which you have to store your module is `src/modules/module_XXXXX.c`.
 
 If you run hashcat under linux or macOS without the `make install` target from the current working directory, then `$SHARED_FOLDER` typically equals the current working directory. On Windows it is always the current working directory because there is no install target in the makefile. A modification of the Makefile is probably only necessary in exceptional cases, i.e. if your module requires an external library. In this case and if you want to contribute the plugin to upstream, then we have to coordinate the development. Please contact us directly in such cases.
 
+Your module does not contain a copy of the hashcat core. It links against the core library which ships next to the hashcat binary, and every core function you call from your module lives in there. You do not have to do anything about this while you write the module, but you do have to know about it the day you hand somebody a compiled plugin. It is described in the section "The Core Library" at the end of this document.
+
 There is no need to implement any black magic into the module. A module covers exactly what you would expect from plugin, which is this:
 
 * Attack type (fast hash or slow hash)
@@ -545,13 +547,15 @@ This is a salt that is hash mode specific and allows you to set a `salt_t` struc
 
 This is the second necessary ingredient for creating a plugin. Particular attention should be paid to the development of the kernel. Compiling the kernel takes a relatively long time, so both hashcat and the various compute APIs try to save a binary kernel in a cached structure. This serves to reduce the startup time and it is important for the user experience (UX). This however can be a pain as a developer.
 
-NOTE: You -must- manually delete all cached kernels with every change to your kernel code. This is -very- important!
+An edited kernel is compiled again by itself. The cache key carries a digest of the kernel source that is about to be compiled and a digest of every other file in the kernel folder, so a change to your .cl file or to any inc_ file it includes is noticed and the cached binary for it is not used.
+
+If you want to clear the cache anyway, delete the folder:
 
 ```
 $ rm -rf kernels/
 ```
 
-Note: `make clean` will automatically remove all cached kernels, but the recompilation with `make` of the whole hashcat binary will of course take much longer and this is therefore not recommended.
+Note: `make clean` also removes all cached kernels, but it makes the next `make` rebuild everything else as well, so deleting the folder is the cheaper way.
 
 Keep in mind that a GPU is a multi-core device; hashcat will always try to utilize the parallelization power of the hardware as much as possible. This can be undesirable behavior while you are developing a kernel. Especially when you start using printf() - your console can get flooded easily with debugging information because hundreds of work items will be executed. Keep in mind that the printf() will be called for every workitem.
 
@@ -663,7 +667,7 @@ The large number of kernel parameters can be confusing when writing a kernel. Bu
 
 The fast hash type is needed if we are cracking a hash that is so fast to compute that the PCI express bottleneck is taking more time than to compute the hash. These raw hashes are designed to compute very fast intentionally. They typically consist of only binary or arithmetic operations either with none or limited memory access. That means they often can be implemented on register level. On the other hand, if we need to access any memory structures just to provide the password candidates, it will hurt the performance significantly. Therefore the general concept of a fast hash kernel is to load a base password candidate directly onto a register and run a for() loop within the kernel which modifies the base password candidate.
 
-The modification is depending on the attack-mode. Hashcat supports 5 different attack-modes with the -a command line flag (0, 1, 3, 6 and 7) but attack-mode 6 and attack-mode 7 share the same kernel code with attack-mode 1. This means we have to implement three kernels. These kernels are implemented in three kernel source files (0, 1, 3). Based on the attack-mode selected by the user on startup, hashcat will load the corresponding kernel.
+The modification is depending on the attack-mode. Hashcat supports 6 different attack-modes with the -a command line flag (0, 1, 3, 6, 7 and 12) but attack-mode 6, attack-mode 7 and attack-mode 12 share the same kernel code with attack-mode 1. This means we have to implement three kernels. These kernels are implemented in three kernel source files (0, 1, 3). Based on the attack-mode selected by the user on startup, hashcat will load the corresponding kernel.
 
 The file name convention for fast hashes is: `OpenCL/mXXXXX_a[0|1|3]-[pure|optimized].cl`
 
@@ -834,6 +838,8 @@ const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &toke
 if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 ```
 
+Nothing else is needed to get a good error message. When the tokenizer rejects a line it also records which part of the line it choked on, and hashcat reports that instead of the bare error name, for example `Separator unmatched near 'abcdefgh' (expected '$')`. A plugin that returns a parser error on its own, without going through the tokenizer, is reported with the plain error name.
+
 If everything went well up to this point, the tokenizer has placed the pointer addresses for the start to each of the columns in the token.buf[] array and the corresponding length in the token.len[] array. For instance, if there is only one column, the pointer address in token.buf[0] will be populated as well as token.len[0]. If you have two columns (token_cnt = 2), there will also be token.buf[1] and token.len[1], and so on.
 
 As always, you can use the tokenizer configurations in the existing modules as a reference, especially for complex hash lines.
@@ -858,3 +864,184 @@ There is one more configuration item which I want to describe:
 
 * TOKEN_ATTR_FIXED_LENGTH: This is for columns of which you know the exact length -and- which are not followed by a separator character. In this case you do not need to set the parameters "len_min" and "len_max", but you need to set the parameter "len" instead. This is a typical pitfall if you copy/paste configuration settings from other modules and switch from a dynamic length to a fixed length. Do not forget to also change the parameter name ("len_min"/"len_max" instead of just "len") and the indices.
 
+## The Core Library ##
+
+This section is about how your plugin is built and how it is loaded. It is not about what you write inside it. You can write your first module without reading any of this. You will want it the day you hand somebody a compiled plugin, or the day a plugin of yours stops loading after a hashcat update.
+
+Your module does not carry a copy of the hashcat core. It used to. A single call to `input_tokenizer()` pulled in the tokenizer, the file handling underneath it, and from there the whole of LZMA, zlib and minizip, and no module ever calls any of that. One call cost 229,920 bytes, and 586 of the 593 modules in the tree make that call. So the core is built once as a library now, and everything links against it: the frontend, the modules, the bridges and the feeds. `module_00000.so` went from 243,752 bytes to 14,288, and the whole modules folder from 181.8 MB to 16.5 MB plus a 2.3 MB library. Nothing in your module source changes because of this. You write the same C file and `make` still finds it by itself.
+
+The library is `libhashcat.so.7` on Linux, `libhashcat.7.dylib` on macOS and `hashcat.dll` on Windows. It sits next to the hashcat binary, which is one directory above `modules/`, and that is where a plugin looks for it. On Linux and macOS the plugin carries an rpath which says "one directory up". On Windows the executable imports the DLL from its own directory, so the library is in the process before the first plugin is loaded. Nobody has to set an environment variable, and the package is still unzip and run. If you build a plugin outside the tree, name the library file on your link line the way `src/Makefile` does, and keep the library one directory above your module.
+
+The library does not export everything it defines. It defines 2,766 names and offers 1,033 of them. The rest is internal machinery that nothing outside the core is meant to call, and a name that is exported is a name a plugin can bind to and that we can then not change.
+
+Which names those are is written in the declaration of each one. `include/export.h` defines two macros and a function carries one of them or it is private:
+
+* `HC_API` is what a program that embeds hashcat calls to run a session: `hashcat_init()`, `hashcat_session_execute()`, `status_display()`. It is promised for as long as the file name of the library stands, and that file name carries the major version alone. hashcat 7.1.2 and 7.2.0 both ship a `libhashcat.so.7`, so a plugin built against one point release keeps working with the next one.
+* `HC_PLUGIN_API` is what a module, a bridge or a feed calls: `input_tokenizer()`, `hex_to_u32()`, the host side hash and cipher entry points, the memory functions, the file helpers. It is promised for as long as MODULE_INTERFACE_VERSION stands, which is 720 today and is the same number your module reports in `module_interface_version`. While that number stands those names keep their prototypes and their meaning and `module_ctx_t` keeps its shape. Names can be added. Nothing is removed or changed underneath a number that has already been released.
+
+The host side hash and cipher entry points are not marked one at a time. They are declared by the kernel headers, every one of them through `DECLSPEC`, which says how a function is declared for the target it is compiled for. On a device that is a calling convention. On the host it is the export contract. So every one of them is offered, including the ones no module in the tree happens to call.
+
+The core is compiled with hidden visibility, which is what makes those macros the truth rather than a comment. There is no list anywhere and nothing measures which names are wanted. If your module calls a core function that carries neither macro, your plugin does not link, and the linker names the symbol:
+
+```
+/usr/bin/ld: /tmp/ccIMTvGO.o: in function `module_hash_decode':
+module_12345.c:(.text+0x184): undefined reference to `hashes_init_stage1'
+```
+
+That is on purpose. Without the check the plugin links happily and the first anyone hears of it is an undefined symbol out of dlopen(), in the middle of somebody's run. If the function is one that plugins ought to be able to call, say so in your pull request and put the macro on its declaration.
+
+Your plugin exports one name back. `module_init` for a module, `bridge_init` for a bridge, and for a feed the nine names the core looks up by string. A plugin is compiled hidden too, so everything else it defines stays inside it. The functions you write for the module context are reached through that context and never by name, which is why they do not have to be visible and why nothing should be relying on them being visible.
+
+Installing the library for development installs the headers this contract is declared in, everything those headers include, and the vendored headers they reach. That is 61 of the 92 in `include/`. It is a closure and not a hand written list: `types.h` is the shape of everything your plugin is handed, and it reaches `brain.h`, `hwmon.h`, `rp.h`, `terminal.h`, `user_options.h` and the backend headers for the structs it embeds, so those come with it and nothing compiles without them. Being installed is not being promised. What the core offers is decided by the macro on each declaration, so a plugin that calls one of the functions those headers declare compiles and then does not link.
+
+If you build a plugin outside the tree, this is the compile line. The interface version is on it, and there is no default for it, so leaving it off is a compile error and not a plugin that loads against anything:
+
+```
+gcc -O2 -fPIC -shared -fvisibility=hidden \
+    -DHC_PLUGIN_ABI_VERSION=720 -DMODULE_INTERFACE_VERSION_CURRENT=720 \
+    -I/usr/local/include/hashcat -I/usr/local/share/hashcat/OpenCL \
+    module_80000.c -o module_80000.so \
+    -L/usr/local/lib -lhashcat -Wl,-rpath,'$ORIGIN/..' -Wl,-z,defs
+```
+
+`-Wl,-z,defs` is worth keeping. It makes the link fail on a name the core does not offer, instead of leaving it to be discovered by `dlopen()` in the middle of a run.
+
+Now the part you came here for. What do you have to do when the plugin ABI changes?
+
+If you ship your plugin as source, nothing at all. It is compiled against whatever core the user has.
+
+If you ship it in binary form, you rebuild it against the new hashcat, and you ship one build per interface version. There is no source change and nothing to register. A plugin that was not rebuilt is refused, and it is refused before any of its code runs.
+
+That refusal is one exported name and one pointer. The core defines a function called `HASHCAT_PLUGIN_720`, and every plugin written in C holds a pointer to it because `include/export.h` says so. Nothing ever calls it. Raise MODULE_INTERFACE_VERSION and the name changes with it, so a plugin built against the old number cannot resolve what it is holding. This is the same mechanism on Linux, macOS and Windows, and it happens before `module_init()` runs.
+
+The number comes from `-DHC_PLUGIN_ABI_VERSION` on your compile line, which is why it is on the line above. `include/modules.h`, `include/bridges.h` and `include/generic.h` are the three headers only a plugin includes, and each one refuses to be read without it. A plugin that was compiled without the number would hold no pointer, load against any core, and find out what had moved by running into it.
+
+The Rust feed is the one plugin here that is not built this way. It calls nothing in the core, cargo never sees a link line, and it declares its interface version in `GENERIC_PLUGIN_VERSION` instead, which the core reads after loading it.
+
+This is what the user sees, and it reads the same on every platform:
+
+```
+Module modules/module_12345.so was built for plugin interface 719, this hashcat provides 720
+```
+
+hashcat then stops. The loader that refused the plugin says different things on different systems, the Unix one names the symbol it could not resolve and the Windows one reports only that a procedure was not found, so hashcat reads the version out of the file itself and reports that instead. If the file is there and readable and you see that line, the plugin needs rebuilding against this hashcat.
+
+Building a plugin against a core whose number has already moved does not get that far on Windows. The link fails there, because an import has to resolve at link time, and it names the same symbol. On Linux and macOS the link succeeds and the refusal happens at load.
+
+The last case is the module whose interface version matches but which was written against an older template. hashcat checks the shape of `module_ctx_t` right after calling `module_init()`:
+
+```
+Module context size in 'module_init()' for hash-mode '12345' is invalid. Is this module based on an old template?
+Interface version in module context in 'module_init()' for hash-mode '12345' is outdated. Please recompile.
+Module context missing field 'module_hash_decode' in 'module_init()' for hash-mode '12345'. Is this module based on an old template?
+```
+
+The first two mean the module has to be rebuilt. The last one means a line is missing in your `module_init()`. Every field is either one of your functions or MODULE_DEFAULT, and this is the reason MODULE_DEFAULT exists.
+
+Finally, if you want the old arrangement back, `make SHARED=0` builds it. Every plugin is then self contained and asks nothing of the runtime loader, which is what to fall back to on a platform where the library misbehaves. Do not mix the two by hand. A plugin built one way, sitting next to a frontend built the other way, puts two copies of the core into one process, each with its own globals. Switching with `make` is safe, because the build knows which arrangement the tree was last built in and relinks what that decides. Copying single files from one tree into the other is not safe.
+
+Nothing at load time catches that. A static plugin is complete, it exports the same one name, and the loader has nothing to fail on. What catches it is `tools/test_package.sh`, which asks every shipped plugin whether it names the core library in its own dependencies, and it is the reason to run that script over a package before shipping it. Note that `SHARED` defaults to 0 on any platform other than Linux and macOS, MSYS2 included, while the Windows release is built shared, so a plugin built natively on Windows against a downloaded release is the case to watch for. Pass `SHARED=1` there.
+
+## Feed settings ##
+
+This section is about feeds, the `-a 8` plugins, and how one takes settings from the user.
+
+A feed is handed its arguments as strings and nothing parses them for it. That is not an oversight
+that a later release will fix: hashcat's own `getopt` runs before it knows which plugin it is going
+to load, so it cannot know that `--model` belongs to your feed rather than being a typo, and by the
+time your feed exists the command line has long been read and accepted. Anything after the plugin
+name is yours, and `global_ctx->workv` is where it arrives, with `workv[0]` being the name the user
+typed for your feed.
+
+So a setting is written as `key=value` among the sources:
+
+```
+hashcat -a 8 -m 0 hashes.txt myfeed model.dat mode=2 pwlen=6:16
+```
+
+and not as `--myfeed-mode 2`. That is worth being explicit about, because the second form looks more
+like the rest of hashcat and is the wrong shape for two reasons that have nothing to do with taste.
+
+The first is that a work argument is part of the attack's identity and an option is not. The brain
+hashes every one of your arguments into the attack id it keys its record of covered keyspace on, so
+two runs that differ only in `mode=2` against `mode=4` are two attacks and neither is told the other
+already covered its keyspace. A setting that arrived some other way would have to be added to that
+hash by hand, and when it is forgotten nothing reports it: the second run is simply told there is
+nothing left to do. The restore file records the arguments for the same reason, so a resumed session
+comes back with the settings it started with.
+
+The second is that the user's shell has already agreed to leave your arguments alone. hashcat stops
+reading options at the plugin name, so `mode=2` reaches you whatever it is called and cannot collide
+with any of hashcat's own option names, now or in a later release.
+
+You do not have to write the parser. Declare what your feed takes and let `feed_param_parse()` read
+it:
+
+```c
+static const char *model   = NULL;
+static u64         mode    = 0;
+static u64         burst   = 50000;
+static bool        shuffle = false;
+
+static const feed_param_t PARAMS[] =
+{
+  { "model",   FEED_PARAM_TYPE_STR,  &model,   0, 0,       "path to the trained model" },
+  { "mode",    FEED_PARAM_TYPE_U64,  &mode,    0, 7,       "generator to use, 0-7" },
+  { "burst",   FEED_PARAM_TYPE_U64,  &burst,   1, 1000000, "candidates per burst" },
+  { "shuffle", FEED_PARAM_TYPE_BOOL, &shuffle, 0, 0,       "reorder tokens within a structure" },
+  { NULL, 0, NULL, 0, 0, NULL }
+};
+
+bool global_init (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx)
+{
+  if (feed_param_parse (global_ctx->workc, global_ctx->workv, PARAMS, global_ctx->error_msg, sizeof (global_ctx->error_msg)) == false)
+  {
+    global_ctx->error = true;
+
+    return false;
+  }
+
+  ...
+}
+```
+
+Whatever your variables held before the call is the default, because a setting that was not given is
+not written. `min` and `max` bound a `FEED_PARAM_TYPE_U64` and are ignored by the other types; a pair
+left at zero means the feed did not want a range.
+
+A key your table does not list is an error, and that is the point of the call rather than a side
+effect of it. Your settings are invisible to `--help` and to tab completion, so a misspelled one has
+nothing else to catch it, and a feed that quietly ignored what it did not recognise would run a
+different attack than the one it was asked for and say so nowhere. `mode=2 mode=4` is refused for the
+same reason: last-one-wins reads as a preference being applied when it is a mistake.
+
+The other three helpers are there for the cases the table does not cover:
+
+* `feed_param_is_setting()` says whether an argument is a setting, which is how a feed walks its own
+  arguments and picks out the sources: skip the settings and what is left are the paths.
+* `feed_param_lookup()` returns the value of one key as a string, for a feed that wants to read
+  something without declaring it.
+* `feed_param_usage()` writes the table out one setting per line, for a feed to print when its
+  arguments make no sense.
+
+An argument counts as a setting when it is `key=value` with a key that could not be a path: a letter
+followed by letters, digits, dashes or underscores, and no directory separator in front of the `=`.
+Everything else is a source. A file whose name really does look like a setting is still reachable as
+`./mode=2`, because that has a separator in it.
+
+## Porting a plugin from 7.1.2 ##
+
+The section above is the whole story of how a plugin is built and loaded. This one is the short list of what changed in the source between the 7.1.2 release and now, for somebody who has a working plugin and wants it building again.
+
+What you need to do:
+
+One hook is gone: `module_dictstat_disable`. Remove the line in `module_init()` that registers it and two hooks are new, `module_usage_notice` and `module_advice_notice`, which let a module print a usage or an advice line of its own.
+
+Here's a small sed automatisation line for both halves of that, if your `module_init()` still looks like the in-tree template. It anchors on the field names rather than on line numbers, so it does not care where in the list they sit:
+
+```
+sed -i -e '/module_ctx->module_dictstat_disable/d' \
+       -e '/module_ctx->module_attack_exec/i\  module_ctx->module_advice_notice            = MODULE_DEFAULT;' \
+       -e '/module_ctx->module_unstable_warning/a\  module_ctx->module_usage_notice             = MODULE_DEFAULT;' \
+       src/modules/module_*.c
+```

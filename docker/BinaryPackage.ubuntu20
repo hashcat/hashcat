@@ -6,11 +6,17 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN echo "dash dash/sh boolean false" | debconf-set-selections && dpkg-reconfigure dash
 
+# libclang-dev is here for its libclang, which bindgen loads at build time to generate the
+# hashcat-sys bindings. Without it the Rust bridges fail with "Unable to find libclang".
+# lld is here because the Windows Rust plugin is linked with -fuse-ld=lld, and without
+# it the cross build stops at "collect2: fatal error: cannot find 'ld'"
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     build-essential \
     git \
+    libclang-dev \
+    lld \
     wget \
     pkg-config \
     make \
@@ -64,7 +70,7 @@ RUN cmake \
 
 WORKDIR /root
 
-ENV PYTHON_VERSION=3.13.3
+ENV PYTHON_VERSION=3.14.6
 
 RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
     tar xzf Python-${PYTHON_VERSION}.tgz
@@ -90,9 +96,9 @@ WORKDIR /root
 
 RUN mkdir /opt/win-python
 WORKDIR /opt/win-python
-RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
-RUN unzstd mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar.zst
-RUN tar -xf mingw-w64-x86_64-python-3.12.10-1-any.pkg.tar
+RUN wget https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst
+RUN unzstd mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar.zst
+RUN tar -xf mingw-w64-x86_64-python-3.14.6-2-any.pkg.tar
 
 ## Custom patches
 
@@ -100,7 +106,14 @@ WORKDIR /root
 
 COPY docker/patches/ubuntu20/ /root/patches/
 
-RUN git clone https://github.com/hashcat/hashcat.git
+# the tree the package is built from. A clone of master names no particular commit, so what a past
+# release was built from cannot be got back and that release cannot be rebuilt. A tag or a commit
+# is named here instead, and another one is asked for with --build-arg HASHCAT_REF=<ref>. It is
+# bumped with the version in tools/package_bin.sh, which is edited for the same release anyway.
+
+ARG HASHCAT_REF=v7.1.2
+
+RUN git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout --detach ${HASHCAT_REF}
 
 WORKDIR /root/hashcat
 
@@ -109,5 +122,13 @@ RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.d
 RUN make -s binaries
 
 RUN tools/package_bin.sh
+
+# What the runtime images copy out. It is the package rather than this build tree, so what they run
+# is the layout that ships: the frontend beside the core, every plugin one directory below it, and
+# none of the sources or the git checkout. package_bin.sh names its output after the version and
+# leaves the .7z beside it, and a COPY --from cannot tell the directory from the archive with a
+# glob, so the package is given a fixed name here where a shell can.
+
+RUN mkdir /root/package && cp -a /root/xy/hashcat-*/. /root/package/
 
 RUN ["/bin/bash"]

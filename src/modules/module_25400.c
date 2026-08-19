@@ -11,6 +11,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 #include "emu_inc_hash_md5.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
@@ -170,6 +171,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const char *input_buf = line_buf;
   int   input_len = line_len;
 
+  // tmp_buf has to outlive the block that fills it -- input_buf is pointed at
+  // it and is still read by the second input_tokenizer() call further down
+  char tmp_buf[1024];
+
   // based on m22000 module_hash_decode() we detect both the hashformat with and without user-password
   u32 *digest = (u32 *) digest_buf;
 
@@ -249,10 +254,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   //check if hashformat without user-password is detected
   if (rc_tokenizer == PARSER_OK)
   {
-    char tmp_buf[1024];
-    int  tmp_len;
+    int tmp_len;
 
-    tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "%s*", line_buf); // simply add an extra asterisk to denote a empty user-password
+    // line_buf is length-delimited, not NUL-terminated, so "%s" would read
+    // past the end of it
+    tmp_len = snprintf (tmp_buf, sizeof (tmp_buf), "%.*s*", line_len, line_buf); // simply add an extra asterisk to denote a empty user-password
 
     input_buf = tmp_buf;
     input_len = tmp_len;
@@ -658,6 +664,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -674,7 +681,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = module_esalt_size;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -732,5 +738,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = module_unstable_warning;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

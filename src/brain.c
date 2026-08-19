@@ -11,7 +11,12 @@
 #include "thread.h"
 #include "convert.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "system.h"
+#include "path.h"
 #include "hashes.h"
+#include "event.h"
+#include "memory.h"
 #include "brain.h"
 
 static bool keep_running = true;
@@ -42,9 +47,56 @@ int brain_logging (FILE *stream, const int client_idx, const char *format, ...)
 
   va_end (ap);
 
+  // A server's output is usually redirected to a file, which makes it block buffered. Without this
+  // the last few kilobytes are lost on a crash, and following the log live shows nothing until a
+  // block happens to fill.
+
+  fflush (stream);
+
   hc_thread_mutex_unlock (mux_display);
 
   return len;
+}
+
+// The brain keeps one entry per candidate for as long as the session lives, so what decides whether
+// it earns its keep is the candidate rate rather than how slow the algorithm sounds. Salts divide
+// that rate: bcrypt over six thousand salts offers the brain eight candidates a second, while raw
+// MD5 over one salt offers sixty million. The first is worth remembering and the second is not.
+//
+// A fast hash with few salts is refused the hash feature, which is the one that stores a candidate.
+// The attack feature keeps working: it stores one record per reserved range rather than one per
+// candidate, so it costs the server nothing at any speed, and it is what keeps a fleet from covering
+// the same keyspace twice. Nothing is aborted and the client stays a client.
+
+void brain_client_check_features (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const hashes_t       *hashes       = hashcat_ctx->hashes;
+  user_options_t       *user_options = hashcat_ctx->user_options;
+
+  // a hash the user asked for by hand is a hash the user gets
+
+  if (user_options->brain_client_features_chgd == true) return;
+
+  if ((user_options->brain_client_features & BRAIN_CLIENT_FEATURE_HASHES) == 0) return;
+
+  // a slow hash is never near the break even, whatever its salt count
+
+  if (hashconfig->attack_exec != ATTACK_EXEC_INSIDE_KERNEL) return;
+
+  if (hashes->salts_cnt >= BRAIN_CLIENT_MIN_SALTS) return;
+
+  user_options->brain_client_features = BRAIN_CLIENT_FEATURE_ATTACKS;
+
+  event_log_warning (hashcat_ctx, "Hash-mode %u computes in kernel and has %u salt(s), so candidates are produced far faster", hashconfig->hash_mode, hashes->salts_cnt);
+  event_log_warning (hashcat_ctx, "than the brain can usefully remember them. Storing them would cost the brain server more time");
+  event_log_warning (hashcat_ctx, "and memory than testing them costs this client.");
+  event_log_warning (hashcat_ctx, NULL);
+  event_log_warning (hashcat_ctx, "The candidate feature was switched off. Keyspace coordination is still on, so several");
+  event_log_warning (hashcat_ctx, "clients on this session still avoid each other's work.");
+  event_log_warning (hashcat_ctx, NULL);
+  event_log_warning (hashcat_ctx, "Use --brain-client-features to overrule this.");
+  event_log_warning (hashcat_ctx, NULL);
 }
 
 u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
@@ -68,7 +120,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
     u32  digests_cnt = hashes->digests_cnt;
     u32 *digests_buf = (u32 *) hashes->digests_buf;
 
-    XXH64_update (state, digests_buf, digests_cnt * hashconfig->dgst_size);
+    XXH64_update (state, digests_buf, (u64) digests_cnt * hashconfig->dgst_size);
 
     // salt
 
@@ -146,11 +198,11 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 
 u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 {
-  const combinator_ctx_t *combinator_ctx = hashcat_ctx->combinator_ctx;
-  const hashconfig_t     *hashconfig     = hashcat_ctx->hashconfig;
-  const mask_ctx_t       *mask_ctx       = hashcat_ctx->mask_ctx;
-  const straight_ctx_t   *straight_ctx   = hashcat_ctx->straight_ctx;
-  const user_options_t   *user_options   = hashcat_ctx->user_options;
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   XXH64_state_t *state = XXH64_createState ();
 
@@ -161,6 +213,26 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
   XXH64_update (state, &hash_mode,   sizeof (hash_mode));
   XXH64_update (state, &attack_mode, sizeof (attack_mode));
+
+  // The attack identity is what the "attacks" feature is keyed on, and that feature trades in ranges:
+  // a client reserves a start and a length, and the brain answers with how much of that an earlier
+  // client already covered. So the identity has to say what the range covers, and --skip and --limit
+  // are what decide that. Two runs of the same command with different --limit reach different parts
+  // of the keyspace and are not the same attack.
+  //
+  // Leaving them out is the dangerous direction. The brain would take a run that only ever tries one
+  // candidate as covering the whole command, and hand that coverage to the next client.
+  //
+  // The "hashes" feature does not care either way. It is keyed on the session and asks about one
+  // candidate at a time, so where in the keyspace a candidate came from never enters into it.
+  //
+  // --skip used to be left out here, but by accident: it was cleared as soon as the first round had
+  // taken it, which was long before this ran.
+
+  // Both are u64 in user_options and both are truncated to 32 bits here, so two attacks whose --skip
+  // differs only above 2^32 get the same identity, and a --skip past 2^31 is hashed as a negative
+  // number. Widening these two would give every attack that has ever run a new identity, so it is
+  // left as it is rather than changed in passing.
 
   const int skip  = user_options->skip;
   const int limit = user_options->limit;
@@ -196,7 +268,80 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
   XXH64_update (state, &veracrypt_pim_stop, sizeof (veracrypt_pim_stop));
 
-  if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
+  if (user_options_extra->base_source == BASE_SOURCE_FEED)
+  {
+    // Two clients are running the same attack when they load the same feeds with the same arguments,
+    // so the plugin name and everything after it go into the hash. The arguments are what the feed
+    // reads from, a wordlist path for one feed and a model for another, and hashcat cannot say which,
+    // so all of them are taken as given.
+    //
+    // Every live instance, not only the base one. -a 1's amplifier is a second dictionary and it
+    // decides the candidates as much as the first does, so a run that leaves it out calls two
+    // different attacks the same and lets the brain refuse the second one as already covered.
+
+    for (int role = 0; role < GENERIC_ROLE_CNT; role++)
+    {
+      const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+      if (generic_ctx->enabled == false) continue;
+
+      // The terminator goes in with the argument. Without it the arguments are concatenated and the
+      // hash cannot tell where one ended, so "wordlist a b" and "wordlist ab" are the same attack to
+      // the brain, and so are two feeds whose settings only differ in where one argument stops and
+      // the next begins. A NUL is the one byte an argument cannot contain, which is what makes the
+      // concatenation reversible again.
+
+      for (int i = 0; i < generic_ctx->workc; i++)
+      {
+        const char *workv = generic_ctx->workv[i];
+
+        XXH64_update (state, workv, strlen (workv) + 1);
+      }
+
+      // A feed that reads a file is a different attack once that file changes, and its path does not
+      // say so. What the feed reads from does, and the feed is the only thing that can know it: the
+      // wordlist feed already works one out to name the seek database it caches, from the file's size,
+      // its modification time and both of its ends.
+
+      XXH64_update (state, &generic_ctx->global_ctx.source_ident, sizeof (generic_ctx->global_ctx.source_ident));
+    }
+
+    const int wordlist_autohex = user_options->wordlist_autohex;
+
+    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
+
+    if (user_options->encoding_from)
+    {
+      const char *encoding_from = user_options->encoding_from;
+
+      XXH64_update (state, encoding_from, strlen (encoding_from));
+    }
+
+    if (user_options->encoding_to)
+    {
+      const char *encoding_to = user_options->encoding_to;
+
+      XXH64_update (state, encoding_to, strlen (encoding_to));
+    }
+
+    if (user_options->rule_buf_l)
+    {
+      const char *rule_buf_l = user_options->rule_buf_l;
+
+      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
+    }
+
+    const int loopback = user_options->loopback;
+
+    XXH64_update (state, &loopback, sizeof (loopback));
+
+    // The rules are part of the attack, not a detail of it. Two runs over the same feed with
+    // different rules produce different candidates, so leaving these out makes the brain call them
+    // the same attack and refuse the second one as already done.
+
+    XXH64_update (state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
+  }
+  else if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
     if (straight_ctx->dict)
     {
@@ -246,50 +391,6 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
     XXH64_update (state, &loopback, sizeof (loopback));
 
     XXH64_update (state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_COMBI)
-  {
-    const u64 wordlist1_hash = brain_compute_attack_wordlist (combinator_ctx->dict1);
-    const u64 wordlist2_hash = brain_compute_attack_wordlist (combinator_ctx->dict2);
-
-    XXH64_update (state, &wordlist1_hash, sizeof (wordlist1_hash));
-    XXH64_update (state, &wordlist2_hash, sizeof (wordlist2_hash));
-
-    const int hex_wordlist = user_options->hex_wordlist;
-
-    XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
-
-    const int wordlist_autohex = user_options->wordlist_autohex;
-
-    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
-
-    if (user_options->encoding_from)
-    {
-      const char *encoding_from = user_options->encoding_from;
-
-      XXH64_update (state, encoding_from, strlen (encoding_from));
-    }
-
-    if (user_options->encoding_to)
-    {
-      const char *encoding_to = user_options->encoding_to;
-
-      XXH64_update (state, encoding_to, strlen (encoding_to));
-    }
-
-    if (user_options->rule_buf_l)
-    {
-      const char *rule_buf_l = user_options->rule_buf_l;
-
-      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
-    }
-
-    if (user_options->rule_buf_r)
-    {
-      const char *rule_buf_r = user_options->rule_buf_r;
-
-      XXH64_update (state, rule_buf_r, strlen (rule_buf_r));
-    }
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
@@ -373,228 +474,6 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
       XXH64_update (state, custom_charset_8, strlen (custom_charset_8));
     }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
-  {
-    const u64 wordlist_hash = brain_compute_attack_wordlist (straight_ctx->dict);
-
-    XXH64_update (state, &wordlist_hash, sizeof (wordlist_hash));
-
-    const char *mask = mask_ctx->mask;
-
-    XXH64_update (state, mask, strlen (mask));
-
-    const int hex_charset = user_options->hex_charset;
-
-    XXH64_update (state, &hex_charset, sizeof (hex_charset));
-
-    const int markov_classic   = user_options->markov_classic;
-    const int markov           = user_options->markov;
-    const int markov_inverse   = user_options->markov_inverse;
-    const int markov_threshold = user_options->markov_threshold;
-
-    XXH64_update (state, &markov_classic,   sizeof (markov_classic));
-    XXH64_update (state, &markov,           sizeof (markov));
-    XXH64_update (state, &markov_inverse,   sizeof (markov_inverse));
-    XXH64_update (state, &markov_threshold, sizeof (markov_threshold));
-
-    if (user_options->markov_hcstat2)
-    {
-      const char *markov_hcstat2 = filename_from_filepath (user_options->markov_hcstat2);
-
-      XXH64_update (state, markov_hcstat2, strlen (markov_hcstat2));
-    }
-
-    if (user_options->custom_charset_1)
-    {
-      const char *custom_charset_1 = user_options->custom_charset_1;
-
-      XXH64_update (state, custom_charset_1, strlen (custom_charset_1));
-    }
-
-    if (user_options->custom_charset_2)
-    {
-      const char *custom_charset_2 = user_options->custom_charset_2;
-
-      XXH64_update (state, custom_charset_2, strlen (custom_charset_2));
-    }
-
-    if (user_options->custom_charset_3)
-    {
-      const char *custom_charset_3 = user_options->custom_charset_3;
-
-      XXH64_update (state, custom_charset_3, strlen (custom_charset_3));
-    }
-
-    if (user_options->custom_charset_4)
-    {
-      const char *custom_charset_4 = user_options->custom_charset_4;
-
-      XXH64_update (state, custom_charset_4, strlen (custom_charset_4));
-    }
-
-    if (user_options->custom_charset_5)
-    {
-      const char *custom_charset_5 = user_options->custom_charset_5;
-
-      XXH64_update (state, custom_charset_5, strlen (custom_charset_5));
-    }
-
-    if (user_options->custom_charset_6)
-    {
-      const char *custom_charset_6 = user_options->custom_charset_6;
-
-      XXH64_update (state, custom_charset_6, strlen (custom_charset_6));
-    }
-
-    if (user_options->custom_charset_7)
-    {
-      const char *custom_charset_7 = user_options->custom_charset_7;
-
-      XXH64_update (state, custom_charset_7, strlen (custom_charset_7));
-    }
-
-    if (user_options->custom_charset_8)
-    {
-      const char *custom_charset_8 = user_options->custom_charset_8;
-
-      XXH64_update (state, custom_charset_8, strlen (custom_charset_8));
-    }
-
-    const int hex_wordlist = user_options->hex_wordlist;
-
-    XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
-
-    const int wordlist_autohex = user_options->wordlist_autohex;
-
-    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
-
-    if (user_options->encoding_from)
-    {
-      const char *encoding_from = user_options->encoding_from;
-
-      XXH64_update (state, encoding_from, strlen (encoding_from));
-    }
-
-    if (user_options->encoding_to)
-    {
-      const char *encoding_to = user_options->encoding_to;
-
-      XXH64_update (state, encoding_to, strlen (encoding_to));
-    }
-
-    if (user_options->rule_buf_l)
-    {
-      const char *rule_buf_l = user_options->rule_buf_l;
-
-      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
-    }
-
-    if (user_options->rule_buf_r)
-    {
-      const char *rule_buf_r = user_options->rule_buf_r;
-
-      XXH64_update (state, rule_buf_r, strlen (rule_buf_r));
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
-  {
-    const char *mask = mask_ctx->mask;
-
-    XXH64_update (state, mask, strlen (mask));
-
-    const u64 wordlist_hash = brain_compute_attack_wordlist (straight_ctx->dict);
-
-    XXH64_update (state, &wordlist_hash, sizeof (wordlist_hash));
-
-    const int hex_charset = user_options->hex_charset;
-
-    XXH64_update (state, &hex_charset, sizeof (hex_charset));
-
-    const int markov_classic   = user_options->markov_classic;
-    const int markov           = user_options->markov;
-    const int markov_inverse   = user_options->markov_inverse;
-    const int markov_threshold = user_options->markov_threshold;
-
-    XXH64_update (state, &markov_classic,   sizeof (markov_classic));
-    XXH64_update (state, &markov,           sizeof (markov));
-    XXH64_update (state, &markov_inverse,   sizeof (markov_inverse));
-    XXH64_update (state, &markov_threshold, sizeof (markov_threshold));
-
-    if (user_options->markov_hcstat2)
-    {
-      const char *markov_hcstat2 = filename_from_filepath (user_options->markov_hcstat2);
-
-      XXH64_update (state, markov_hcstat2, strlen (markov_hcstat2));
-    }
-
-    if (user_options->custom_charset_1)
-    {
-      const char *custom_charset_1 = user_options->custom_charset_1;
-
-      XXH64_update (state, custom_charset_1, strlen (custom_charset_1));
-    }
-
-    if (user_options->custom_charset_2)
-    {
-      const char *custom_charset_2 = user_options->custom_charset_2;
-
-      XXH64_update (state, custom_charset_2, strlen (custom_charset_2));
-    }
-
-    if (user_options->custom_charset_3)
-    {
-      const char *custom_charset_3 = user_options->custom_charset_3;
-
-      XXH64_update (state, custom_charset_3, strlen (custom_charset_3));
-    }
-
-    if (user_options->custom_charset_4)
-    {
-      const char *custom_charset_4 = user_options->custom_charset_4;
-
-      XXH64_update (state, custom_charset_4, strlen (custom_charset_4));
-    }
-
-    const int hex_wordlist = user_options->hex_wordlist;
-
-    XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
-
-    const int wordlist_autohex = user_options->wordlist_autohex;
-
-    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
-
-    if (user_options->encoding_from)
-    {
-      const char *encoding_from = user_options->encoding_from;
-
-      XXH64_update (state, encoding_from, strlen (encoding_from));
-    }
-
-    if (user_options->encoding_to)
-    {
-      const char *encoding_to = user_options->encoding_to;
-
-      XXH64_update (state, encoding_to, strlen (encoding_to));
-    }
-
-    if (user_options->rule_buf_l)
-    {
-      const char *rule_buf_l = user_options->rule_buf_l;
-
-      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
-    }
-
-    if (user_options->rule_buf_r)
-    {
-      const char *rule_buf_r = user_options->rule_buf_r;
-
-      XXH64_update (state, rule_buf_r, strlen (rule_buf_r));
-    }
-  }
-  else if (user_options->attack_mode == ATTACK_MODE_GENERIC)
-  {
-    // todo: ATTACK_MODE_GENERIC brain compute attack
   }
   else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
   {
@@ -753,6 +632,34 @@ u32 brain_auth_challenge (void)
   return val;
 }
 
+// Renders whatever brain_connect returned into the caller's buffer. Windows does not report socket
+// failures as errno values, so it needs its own lookup.
+
+static const char *brain_connect_reason (const int rc, char *buf, const size_t buf_sz)
+{
+  #if defined (_WIN)
+
+  memset (buf, 0, buf_sz);
+
+  FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, rc, MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT), buf, buf_sz, NULL);
+
+  if (buf[0] == 0) snprintf (buf, buf_sz, "error %d", rc);
+
+  return buf;
+
+  #else
+
+  snprintf (buf, buf_sz, "%s", strerror (rc));
+
+  return buf;
+
+  #endif
+}
+
+// Returns 0 when the connection is up, otherwise the errno-style reason it is not. This is only ever
+// called by the client, and the client reports through hashcat's own event log, so nothing here logs
+// on its own. The timeout has no errno of its own, so it borrows ETIMEDOUT.
+
 int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, const int timeout)
 {
   #if defined (_WIN)
@@ -764,73 +671,34 @@ int brain_connect (int sockfd, const struct sockaddr *addr, socklen_t addrlen, c
 
   if (connect (sockfd, addr, addrlen) == SOCKET_ERROR)
   {
-    int err = WSAGetLastError ();
+    const int err = WSAGetLastError ();
 
-    char msg[256];
-
-    memset (msg, 0, sizeof (msg));
-
-    FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,   // flags
-                   NULL,                // lpsource
-                   err,                 // message id
-                   MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),    // languageid
-                   msg,                 // output buffer
-                   sizeof (msg),        // size of msgbuf, bytes
-                   NULL);               // va_list of arguments
-
-    brain_logging (stderr, 0, "connect: %s\n", msg);
-
-    return -1;
+    return (err == 0) ? ECONNREFUSED : err;
   }
 
   #else
 
   const int old_mode = fcntl (sockfd, F_GETFL, 0);
 
-  if (fcntl (sockfd, F_SETFL, old_mode | O_NONBLOCK) == -1)
-  {
-    brain_logging (stderr, 0, "fcntl: %s\n", strerror (errno));
-
-    return -1;
-  }
+  if (fcntl (sockfd, F_SETFL, old_mode | O_NONBLOCK) == -1) return errno;
 
   connect (sockfd, addr, addrlen);
 
   const int rc_select = select_write_timeout (sockfd, timeout);
 
-  if (rc_select == -1) return -1;
+  if (rc_select == -1) return errno;
 
-  if (rc_select == 0)
-  {
-    brain_logging (stderr, 0, "connect: timeout\n");
-
-    return -1;
-  }
+  if (rc_select == 0) return ETIMEDOUT;
 
   int so_error = 0;
 
   socklen_t len = sizeof (so_error);
 
-  if (getsockopt (sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len) == -1)
-  {
-    brain_logging (stderr, 0, "getsockopt: %s\n", strerror (errno));
+  if (getsockopt (sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len) == -1) return errno;
 
-    return -1;
-  }
+  if (fcntl (sockfd, F_SETFL, old_mode) == -1) return errno;
 
-  if (fcntl (sockfd, F_SETFL, old_mode) == -1)
-  {
-    brain_logging (stderr, 0, "fcntl: %s\n", strerror (errno));
-
-    return -1;
-  }
-
-  if (so_error != 0)
-  {
-    brain_logging (stderr, 0, "connect: %s\n", strerror (so_error));
-
-    return -1;
-  }
+  if (so_error != 0) return so_error;
 
   #endif
 
@@ -1001,7 +869,32 @@ bool brain_recv_all (int sockfd, void *buf, size_t len, int flags, hc_device_par
   return true;
 }
 
-bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest)
+// A failed brain link is retried on every batch, so reporting every attempt buries the terminal in
+// hundreds of identical lines. This reports the first failure of an outage and then stays quiet
+// until the link comes back up. It goes through hashcat's event log, not brain_logging: that one
+// writes the brain SERVER's timestamped format straight to stderr, which is wrong for a client and
+// never reaches the session log.
+
+static void brain_client_report (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *format, ...)
+{
+  if (device_param->brain_link_reported == true) return;
+
+  device_param->brain_link_reported = true;
+
+  char buf[HCBUFSIZ_TINY];
+
+  va_list ap;
+
+  va_start (ap, format);
+
+  vsnprintf (buf, sizeof (buf), format, ap);
+
+  va_end (ap);
+
+  event_log_error (hashcat_ctx, "%s", buf);
+}
+
+bool brain_client_connect (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const status_ctx_t *status_ctx, const char *host, const int port, const char *password, u32 brain_session, u32 brain_attack, i64 passwords_max, u64 *highest)
 {
   device_param->brain_link_client_fd   = 0;
   device_param->brain_link_recv_bytes  = 0;
@@ -1016,7 +909,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_link_client_fd == -1)
   {
-    brain_logging (stderr, 0, "socket: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: socket: %s", (host == NULL) ? "127.0.0.1" : host, port, strerror (errno));
 
     return false;
   }
@@ -1026,7 +919,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (setsockopt (brain_link_client_fd, SOL_TCP, TCP_NODELAY, &one, sizeof (one)) == -1)
   {
-    brain_logging (stderr, 0, "setsockopt: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: setsockopt: %s", (host == NULL) ? "127.0.0.1" : host, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1053,6 +946,8 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   bool connected = false;
 
+  int rc_connect = ECONNREFUSED;
+
   struct addrinfo *address_info;
 
   const int rc_getaddrinfo = getaddrinfo (host_real, port_str, &hints, &address_info);
@@ -1063,7 +958,9 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
     for (address_info_ptr = address_info; address_info_ptr != NULL; address_info_ptr = address_info_ptr->ai_next)
     {
-      if (brain_connect (brain_link_client_fd, address_info_ptr->ai_addr, address_info_ptr->ai_addrlen, BRAIN_CLIENT_CONNECT_TIMEOUT) == 0)
+      rc_connect = brain_connect (brain_link_client_fd, address_info_ptr->ai_addr, address_info_ptr->ai_addrlen, BRAIN_CLIENT_CONNECT_TIMEOUT);
+
+      if (rc_connect == 0)
       {
         connected = true;
 
@@ -1075,7 +972,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
   }
   else
   {
-    brain_logging (stderr, 0, "%s: %s\n", host_real, gai_strerror (rc_getaddrinfo));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: %s", host_real, port, gai_strerror (rc_getaddrinfo));
 
     close (brain_link_client_fd);
 
@@ -1084,6 +981,10 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (connected == false)
   {
+    char reason[256];
+
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d is not reachable: %s", host_real, port, brain_connect_reason (rc_connect, reason, sizeof (reason)));
+
     close (brain_link_client_fd);
 
     return false;
@@ -1095,7 +996,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &brain_link_version, sizeof (brain_link_version), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1106,7 +1007,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, &brain_link_version_ok, sizeof (brain_link_version_ok), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: receive: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1115,7 +1016,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_link_version_ok == 0)
   {
-    brain_logging (stderr, 0, "Invalid brain server version\n");
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d rejected our link version %u", host_real, port, BRAIN_LINK_VERSION_CUR);
 
     close (brain_link_client_fd);
 
@@ -1126,7 +1027,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, &challenge, sizeof (challenge), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: receive: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1137,7 +1038,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &response, sizeof (response), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1148,7 +1049,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, &password_ok, sizeof (password_ok), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: receive: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1157,7 +1058,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (password_ok == 0)
   {
-    brain_logging (stderr, 0, "Invalid brain server password\n");
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d rejected the password", host_real, port);
 
     close (brain_link_client_fd);
 
@@ -1166,7 +1067,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &brain_session, sizeof (brain_session), SEND_FLAGS, device_param, status_ctx) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1175,7 +1076,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &brain_attack, sizeof (brain_attack), SEND_FLAGS, device_param, status_ctx) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1184,7 +1085,7 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_send (brain_link_client_fd, &passwords_max, sizeof (passwords_max), SEND_FLAGS, device_param, status_ctx) == false)
   {
-    brain_logging (stderr, 0, "brain_send: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: send: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
@@ -1193,12 +1094,16 @@ bool brain_client_connect (hc_device_param_t *device_param, const status_ctx_t *
 
   if (brain_recv (brain_link_client_fd, highest, sizeof (u64), 0, NULL, NULL) == false)
   {
-    brain_logging (stderr, 0, "brain_recv: %s\n", strerror (errno));
+    brain_client_report (hashcat_ctx, device_param, "Brain server %s port %d: receive: %s", host_real, port, strerror (errno));
 
     close (brain_link_client_fd);
 
     return false;
   }
+
+  // the link is up, so a later outage is a new one and deserves its own message
+
+  device_param->brain_link_reported = false;
 
   return true;
 }
@@ -1281,48 +1186,329 @@ void brain_client_generate_hash (u64 *hash, const char *line_buf, const size_t l
   hash[0] = XXH64 (line_buf, line_len, seed);
 }
 
-void brain_server_db_hash_init (brain_server_db_hash_t *brain_server_db_hash, const u32 brain_session)
+// Which shard a hash belongs to. The sort order compares hash[1] first, so taking the top bits of
+// that word keeps the shards in sort order: shard 0 holds the smallest hashes, and a sorted array
+// walks the shards in turn without ever going back.
+
+u32 brain_server_shard_idx (const u32 *hash)
 {
-  brain_server_db_hash->brain_session = brain_session;
+  const u32 shard_idx = hash[1] >> (32 - BRAIN_SERVER_SHARD_BITS);
 
-  brain_server_db_hash->hb           = 0;
-  brain_server_db_hash->long_cnt     = 0;
-  brain_server_db_hash->long_buf     = NULL;
-  brain_server_db_hash->long_alloc   = 0;
-  brain_server_db_hash->write_hashes = false;
-
-  hc_thread_mutex_init (brain_server_db_hash->mux_hr);
-  hc_thread_mutex_init (brain_server_db_hash->mux_hg);
+  return shard_idx;
 }
 
-bool brain_server_db_hash_realloc (brain_server_db_hash_t *brain_server_db_hash, const i64 new_long_cnt)
+// Reserves an address range without asking for any memory to back it. On POSIX an anonymous mapping
+// is already demand zero, so a page costs nothing until it is written and there is nothing further
+// to do. Windows separates the two, so the range is only reserved here and committed below.
+
+void *brain_server_arena_reserve (const u64 size)
 {
-  if ((brain_server_db_hash->long_cnt + new_long_cnt) > brain_server_db_hash->long_alloc)
-  {
-    const i64 realloc_size_total = (i64) mydivc64 ((const u64) new_long_cnt, (const u64) BRAIN_SERVER_REALLOC_HASH_SIZE) * BRAIN_SERVER_REALLOC_HASH_SIZE;
+  #if defined (_WIN)
 
-    brain_server_hash_long_t *long_buf = (brain_server_hash_long_t *) hcrealloc (brain_server_db_hash->long_buf, brain_server_db_hash->long_alloc * sizeof (brain_server_hash_long_t), realloc_size_total * sizeof (brain_server_hash_long_t));
+  void *buf = VirtualAlloc (NULL, size, MEM_RESERVE, PAGE_NOACCESS);
 
-    if (long_buf == NULL) return false;
+  return buf;
 
-    brain_server_db_hash->long_buf    = long_buf;
-    brain_server_db_hash->long_alloc += realloc_size_total;
-  }
+  #else
+
+  #ifndef MAP_NORESERVE
+  #define MAP_NORESERVE 0
+  #endif
+
+  void *buf = mmap (NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+
+  if (buf == MAP_FAILED) return NULL;
+
+  return buf;
+
+  #endif
+}
+
+void brain_server_arena_release (void *buf, const u64 size)
+{
+  if (buf == NULL) return;
+
+  #if defined (_WIN)
+
+  (void) size;
+
+  VirtualFree (buf, 0, MEM_RELEASE);
+
+  #else
+
+  munmap (buf, size);
+
+  #endif
+}
+
+// Makes room for `need` entries in a buffer that already owns its address range. Nothing moves and
+// nothing is copied, so a shard growing never disturbs the shard next to it. The ceiling is the only
+// thing that can fail, and it is per shard rather than shared, which is the price of not reallocating.
+
+bool brain_server_shard_commit (brain_server_hash_long_t *buf, i64 *alloc, const i64 need, const i64 ceiling)
+{
+  if (need <= *alloc) return true;
+
+  if (need > ceiling) return false;
+
+  i64 new_alloc = *alloc;
+
+  while (new_alloc < need) new_alloc += (new_alloc / 8) + BRAIN_SERVER_COMMIT_STEP;
+
+  new_alloc = MIN (new_alloc, ceiling);
+
+  #if defined (_WIN)
+
+  if (VirtualAlloc (buf, new_alloc * sizeof (brain_server_hash_long_t), MEM_COMMIT, PAGE_READWRITE) == NULL) return false;
+
+  #else
+
+  (void) buf;
+
+  #endif
+
+  *alloc = new_alloc;
 
   return true;
 }
 
+// Merges the sorted src into the sorted dst, dropping duplicates, and returns the new dst count.
+// dst must already hold room for dst_cnt + src_cnt.
+//
+// It runs backwards so that dst can be its own destination. The write index starts above the read
+// index and the two never cross, so no second buffer is needed. Duplicates leave a gap at the front
+// which is closed at the end.
+
+i64 brain_server_merge_sorted (brain_server_hash_long_t *dst, const i64 dst_cnt, const brain_server_hash_long_t *src, const i64 src_cnt)
+{
+  if (src_cnt == 0) return dst_cnt;
+
+  if (dst_cnt == 0)
+  {
+    for (i64 idx = 0; idx < src_cnt; idx++)
+    {
+      dst[idx].hash[0] = src[idx].hash[0];
+      dst[idx].hash[1] = src[idx].hash[1];
+    }
+
+    return src_cnt;
+  }
+
+  const i64 cnt_total = dst_cnt + src_cnt;
+
+  i64 dst_left = dst_cnt - 1;
+  i64 src_left = src_cnt - 1;
+  i64 dupes    = 0;
+
+  for (i64 idx = cnt_total - 1; idx >= dupes; idx--)
+  {
+    int rc = 0;
+
+    if ((dst_left >= 0) && (src_left >= 0))
+    {
+      rc = brain_server_sort_hash (dst[dst_left].hash, src[src_left].hash);
+    }
+    else if (dst_left >= 0)
+    {
+      rc = 1;
+    }
+    else
+    {
+      rc = -1;
+    }
+
+    brain_server_hash_long_t *next = &dst[idx];
+
+    if (rc == -1)
+    {
+      next->hash[0] = src[src_left].hash[0];
+      next->hash[1] = src[src_left].hash[1];
+
+      src_left--;
+    }
+    else if (rc == 1)
+    {
+      next->hash[0] = dst[dst_left].hash[0];
+      next->hash[1] = dst[dst_left].hash[1];
+
+      dst_left--;
+    }
+    else
+    {
+      next->hash[0] = dst[dst_left].hash[0];
+      next->hash[1] = dst[dst_left].hash[1];
+
+      src_left--;
+      dst_left--;
+
+      dupes++;
+    }
+  }
+
+  const i64 new_cnt = cnt_total - dupes;
+
+  if (dupes)
+  {
+    for (i64 idx = 0; idx < new_cnt; idx++)
+    {
+      dst[idx].hash[0] = dst[dupes + idx].hash[0];
+      dst[idx].hash[1] = dst[dupes + idx].hash[1];
+    }
+  }
+
+  return new_cnt;
+}
+
+// Folds a shard's overflow into its main array. This is the only operation whose cost is the size of
+// the shard, and the overflow threshold is what decides how rarely it runs.
+//
+// The caller holds the shard mutex.
+
+bool brain_server_shard_compact (brain_server_db_shard_t *shard)
+{
+  if (shard->over_cnt == 0) return true;
+
+  if (brain_server_shard_commit (shard->long_buf, &shard->long_alloc, shard->long_cnt + shard->over_cnt, BRAIN_SERVER_SHARD_ENTRIES) == false) return false;
+
+  shard->long_cnt = brain_server_merge_sorted (shard->long_buf, shard->long_cnt, shard->over_buf, shard->over_cnt);
+
+  shard->over_cnt = 0;
+
+  return true;
+}
+
+// How large this shard lets its overflow grow before folding it in.
+
+i64 brain_server_shard_overflow_max (const brain_server_db_shard_t *shard)
+{
+  i64 over_max = shard->long_cnt / BRAIN_SERVER_OVERFLOW_DIV;
+
+  over_max = MAX (over_max, BRAIN_SERVER_OVERFLOW_MIN);
+  over_max = MIN (over_max, BRAIN_SERVER_OVERFLOW_MAX);
+
+  return over_max;
+}
+
+// Adds a sorted run of hashes, all belonging to one shard, to that shard's overflow.
+
+bool brain_server_shard_add (brain_server_db_shard_t *shard, const brain_server_hash_long_t *src, const i64 src_cnt)
+{
+  // A run at least as large as the overflow goes straight into the main array. Sending it through
+  // the overflow would only merge it twice, and it is what would otherwise decide how large the
+  // overflow has to be.
+
+  const i64 over_max = brain_server_shard_overflow_max (shard);
+
+  if (src_cnt >= over_max)
+  {
+    if (brain_server_shard_compact (shard) == false) return false;
+
+    if (brain_server_shard_commit (shard->long_buf, &shard->long_alloc, shard->long_cnt + src_cnt, BRAIN_SERVER_SHARD_ENTRIES) == false) return false;
+
+    shard->long_cnt = brain_server_merge_sorted (shard->long_buf, shard->long_cnt, src, src_cnt);
+
+    return true;
+  }
+
+  if (brain_server_shard_commit (shard->over_buf, &shard->over_alloc, shard->over_cnt + src_cnt, BRAIN_SERVER_OVER_ENTRIES) == false) return false;
+
+  shard->over_cnt = brain_server_merge_sorted (shard->over_buf, shard->over_cnt, src, src_cnt);
+
+  if (shard->over_cnt < over_max) return true;
+
+  const bool rc = brain_server_shard_compact (shard);
+
+  return rc;
+}
+
+// Whether a hash is already known to the shard. The caller holds the shard mutex.
+
+bool brain_server_shard_find (const brain_server_db_shard_t *shard, const u32 *hash)
+{
+  if (brain_server_find_hash_long (hash, shard->long_buf, shard->long_cnt) != -1) return true;
+  if (brain_server_find_hash_long (hash, shard->over_buf, shard->over_cnt) != -1) return true;
+
+  return false;
+}
+
+void brain_server_db_hash_init (brain_server_db_hash_t *brain_server_db_hash, const u32 brain_session)
+{
+  brain_server_db_hash->brain_session = brain_session;
+  brain_server_db_hash->write_hashes  = false;
+
+  brain_server_db_hash->shard_buf = (brain_server_db_shard_t *) hccalloc (BRAIN_SERVER_SHARD_CNT, sizeof (brain_server_db_shard_t));
+
+  if (brain_server_db_hash->shard_buf == NULL) return;
+
+  // One reservation for every shard's main array and one for every shard's overflow, each shard
+  // taking a fixed slice. Two mappings for the whole session rather than two thousand, which keeps
+  // the kernel's mapping count where it was.
+
+  const u64 long_size = (u64) BRAIN_SERVER_SHARD_CNT * (u64) BRAIN_SERVER_SHARD_ENTRIES * sizeof (brain_server_hash_long_t);
+  const u64 over_size = (u64) BRAIN_SERVER_SHARD_CNT * (u64) BRAIN_SERVER_OVER_ENTRIES  * sizeof (brain_server_hash_long_t);
+
+  brain_server_db_hash->long_arena = brain_server_arena_reserve (long_size);
+  brain_server_db_hash->over_arena = brain_server_arena_reserve (over_size);
+
+  if ((brain_server_db_hash->long_arena == NULL) || (brain_server_db_hash->over_arena == NULL))
+  {
+    brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
+
+    return;
+  }
+
+  brain_server_hash_long_t *long_base = (brain_server_hash_long_t *) brain_server_db_hash->long_arena;
+  brain_server_hash_long_t *over_base = (brain_server_hash_long_t *) brain_server_db_hash->over_arena;
+
+  for (int shard_idx = 0; shard_idx < BRAIN_SERVER_SHARD_CNT; shard_idx++)
+  {
+    brain_server_db_shard_t *shard = &brain_server_db_hash->shard_buf[shard_idx];
+
+    shard->long_buf = long_base + ((i64) shard_idx * BRAIN_SERVER_SHARD_ENTRIES);
+    shard->over_buf = over_base + ((i64) shard_idx * BRAIN_SERVER_OVER_ENTRIES);
+
+    hc_thread_mutex_init (shard->mux);
+  }
+}
+
+// Total entries across every shard. Only used for the status line, so it is read without taking the
+// shard mutexes: a count that is a few entries stale in a log message is not worth the contention.
+
+i64 brain_server_db_hash_cnt (brain_server_db_hash_t *brain_server_db_hash)
+{
+  i64 cnt = 0;
+
+  for (int shard_idx = 0; shard_idx < BRAIN_SERVER_SHARD_CNT; shard_idx++)
+  {
+    const brain_server_db_shard_t *shard = &brain_server_db_hash->shard_buf[shard_idx];
+
+    cnt += shard->long_cnt + shard->over_cnt;
+  }
+
+  return cnt;
+}
+
 void brain_server_db_hash_free (brain_server_db_hash_t *brain_server_db_hash)
 {
-  hc_thread_mutex_delete (brain_server_db_hash->mux_hg);
-  hc_thread_mutex_delete (brain_server_db_hash->mux_hr);
+  if (brain_server_db_hash->shard_buf)
+  {
+    for (int shard_idx = 0; shard_idx < BRAIN_SERVER_SHARD_CNT; shard_idx++)
+    {
+      hc_thread_mutex_delete (brain_server_db_hash->shard_buf[shard_idx].mux);
+    }
 
-  hcfree (brain_server_db_hash->long_buf);
+    hcfree (brain_server_db_hash->shard_buf);
+  }
 
-  brain_server_db_hash->hb            = 0;
-  brain_server_db_hash->long_cnt      = 0;
-  brain_server_db_hash->long_buf      = NULL;
-  brain_server_db_hash->long_alloc    = 0;
+  const u64 long_size = (u64) BRAIN_SERVER_SHARD_CNT * (u64) BRAIN_SERVER_SHARD_ENTRIES * sizeof (brain_server_hash_long_t);
+  const u64 over_size = (u64) BRAIN_SERVER_SHARD_CNT * (u64) BRAIN_SERVER_OVER_ENTRIES  * sizeof (brain_server_hash_long_t);
+
+  brain_server_arena_release (brain_server_db_hash->long_arena, long_size);
+  brain_server_arena_release (brain_server_db_hash->over_arena, over_size);
+
+  brain_server_db_hash->long_arena    = NULL;
+  brain_server_db_hash->over_arena    = NULL;
+  brain_server_db_hash->shard_buf     = NULL;
   brain_server_db_hash->write_hashes  = false;
   brain_server_db_hash->brain_session = 0;
 }
@@ -1580,14 +1766,6 @@ int brain_server_sort_hash_long (const void *v1, const void *v2)
   return brain_server_sort_hash (d1->hash, d2->hash);
 }
 
-int brain_server_sort_hash_short (const void *v1, const void *v2)
-{
-  const brain_server_hash_short_t *d1 = (const brain_server_hash_short_t *) v1;
-  const brain_server_hash_short_t *d2 = (const brain_server_hash_short_t *) v2;
-
-  return brain_server_sort_hash (d1->hash, d2->hash);
-}
-
 int brain_server_sort_hash_unique (const void *v1, const void *v2)
 {
   const brain_server_hash_unique_t *d1 = (const brain_server_hash_unique_t *) v1;
@@ -1663,17 +1841,16 @@ bool brain_server_write_hash_dumps (brain_server_dbs_t *brain_server_dbs, const 
   {
     brain_server_db_hash_t *brain_server_db_hash = &brain_server_dbs->hash_buf[idx];
 
-    hc_thread_mutex_lock (brain_server_db_hash->mux_hg);
-
     char file[100];
 
     memset (file, 0, sizeof (file));
 
     snprintf (file, sizeof (file), "%s/brain.%08x.ldmp", path, brain_server_db_hash->brain_session);
 
-    brain_server_write_hash_dump (brain_server_db_hash, file);
+    // No session-wide lock. The write takes and drops one shard mutex at a time, so a client waits
+    // for one shard rather than for the whole file.
 
-    hc_thread_mutex_unlock (brain_server_db_hash->mux_hg);
+    brain_server_write_hash_dump (brain_server_db_hash, file);
   }
 
   return true;
@@ -1707,9 +1884,17 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
     return false;
   }
 
-  i64 temp_cnt = (u64) sb.st_size / sizeof (brain_server_hash_long_t);
+  const i64 temp_cnt = (i64) ((u64) sb.st_size / sizeof (brain_server_hash_long_t));
 
-  if (brain_server_db_hash_realloc (brain_server_db_hash, temp_cnt) == false)
+  // The file is one sorted array, which is shard order, so it is read in blocks and each block is
+  // appended to the shards it covers. Nothing has to be merged and no copy of the whole file is
+  // ever held.
+
+  const i64 block_max = 1024 * 1024;
+
+  brain_server_hash_long_t *block_buf = (brain_server_hash_long_t *) hcmalloc (block_max * sizeof (brain_server_hash_long_t));
+
+  if (block_buf == NULL)
   {
     brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
@@ -1718,18 +1903,64 @@ bool brain_server_read_hash_dump (brain_server_db_hash_t *brain_server_db_hash, 
     return false;
   }
 
-  const size_t nread = hc_fread (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), temp_cnt, &fp);
+  i64 read_cnt = 0;
 
-  if (nread != (size_t) temp_cnt)
+  while (read_cnt < temp_cnt)
   {
-    brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes read\n", file, (u64) nread * sizeof (brain_server_hash_long_t));
+    const i64 want = MIN (block_max, temp_cnt - read_cnt);
 
-    hc_fclose (&fp);
+    const size_t nread = hc_fread (block_buf, sizeof (brain_server_hash_long_t), want, &fp);
 
-    return false;
+    if (nread != (size_t) want)
+    {
+      brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes read\n", file, (u64) (read_cnt + (i64) nread) * sizeof (brain_server_hash_long_t));
+
+      hcfree (block_buf);
+
+      hc_fclose (&fp);
+
+      return false;
+    }
+
+    i64 pos = 0;
+
+    while (pos < want)
+    {
+      const u32 shard_idx = brain_server_shard_idx (block_buf[pos].hash);
+
+      i64 end = pos + 1;
+
+      while ((end < want) && (brain_server_shard_idx (block_buf[end].hash) == shard_idx)) end++;
+
+      brain_server_db_shard_t *shard = &brain_server_db_hash->shard_buf[shard_idx];
+
+      if (brain_server_shard_commit (shard->long_buf, &shard->long_alloc, shard->long_cnt + (end - pos), BRAIN_SERVER_SHARD_ENTRIES) == false)
+      {
+        brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
+
+        hcfree (block_buf);
+
+        hc_fclose (&fp);
+
+        return false;
+      }
+
+      for (i64 idx = pos; idx < end; idx++)
+      {
+        shard->long_buf[shard->long_cnt].hash[0] = block_buf[idx].hash[0];
+        shard->long_buf[shard->long_cnt].hash[1] = block_buf[idx].hash[1];
+
+        shard->long_cnt++;
+      }
+
+      pos = end;
+    }
+
+    read_cnt += want;
   }
 
-  brain_server_db_hash->long_cnt     = temp_cnt;
+  hcfree (block_buf);
+
   brain_server_db_hash->write_hashes = false;
 
   hc_fclose (&fp);
@@ -1760,15 +1991,55 @@ bool brain_server_write_hash_dump (brain_server_db_hash_t *brain_server_db_hash,
     return false;
   }
 
-  const size_t nwrite = hc_fwrite (brain_server_db_hash->long_buf, sizeof (brain_server_hash_long_t), brain_server_db_hash->long_cnt, &fp);
+  // One shard at a time, each under its own mutex. Shards are in sort order, so writing them in
+  // sequence produces the same single sorted array the unsharded server wrote.
 
-  if (nwrite != (size_t) brain_server_db_hash->long_cnt)
+  i64 write_cnt = 0;
+
+  for (int shard_idx = 0; shard_idx < BRAIN_SERVER_SHARD_CNT; shard_idx++)
   {
-    brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes written\n", file, (u64) nwrite * sizeof (brain_server_hash_long_t));
+    brain_server_db_shard_t *shard = &brain_server_db_hash->shard_buf[shard_idx];
 
-    hc_fclose (&fp);
+    i64 want = 0;
 
-    return false;
+    size_t nwrite = 0;
+
+    hc_thread_mutex_lock (shard->mux);
+
+    // the overflow has to go in too, and folding it in is what puts it in order
+
+    if (brain_server_shard_compact (shard) == true)
+    {
+      want = shard->long_cnt;
+
+      nwrite = hc_fwrite (shard->long_buf, sizeof (brain_server_hash_long_t), want, &fp);
+    }
+    else
+    {
+      want = -1;
+    }
+
+    hc_thread_mutex_unlock (shard->mux);
+
+    if (want == -1)
+    {
+      brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
+
+      hc_fclose (&fp);
+
+      return false;
+    }
+
+    if (nwrite != (size_t) want)
+    {
+      brain_logging (stderr, 0, "%s: only %" PRIu64 " bytes written\n", file, (u64) write_cnt * sizeof (brain_server_hash_long_t));
+
+      hc_fclose (&fp);
+
+      return false;
+    }
+
+    write_cnt += want;
   }
 
   hc_fclose (&fp);
@@ -2033,34 +2304,17 @@ i64 brain_server_find_hash_long (const u32 *search, const brain_server_hash_long
   return -1;
 }
 
-i64 brain_server_find_hash_short (const u32 *search, const brain_server_hash_short_t *buf, const i64 cnt)
-{
-  for (i64 l = 0, r = cnt; r; r >>= 1)
-  {
-    const i64 m = r >> 1;
-    const i64 c = l + m;
-
-    const int cmp = brain_server_sort_hash_short (search, buf + c);
-
-    if (cmp > 0)
-    {
-      l += m + 1;
-
-      r--;
-    }
-
-    if (cmp == 0) return c;
-  }
-
-  return -1;
-}
+// Both signals mean the same thing to a server: stop listening, write every database out, exit.
+//
+// SIGTERM is what a service manager, a container stop and a plain kill all send. Without it here the
+// default action ends the process where it stands, and everything the brain has learned since the
+// last dump, or everything it ever learned if the periodic dump is off, is gone.
 
 void brain_server_handle_signal (int signo)
 {
-  if (signo == SIGINT)
-  {
-    keep_running = false;
-  }
+  if ((signo != SIGINT) && (signo != SIGTERM)) return;
+
+  keep_running = false;
 }
 
 #if defined (_WIN32) || defined (__WIN32__)
@@ -2448,7 +2702,7 @@ HC_API_CALL void *brain_server_handle_client (void *p)
   brain_server_db_short_t *brain_server_db_short = (brain_server_db_short_t *) hcmalloc (sizeof (brain_server_db_short_t));
 
   brain_server_db_short->short_cnt = 0;
-  brain_server_db_short->short_buf = (brain_server_hash_short_t *) hccalloc (passwords_max, sizeof (brain_server_hash_short_t));
+  brain_server_db_short->short_buf = (brain_server_hash_long_t *) hccalloc (passwords_max, sizeof (brain_server_hash_long_t));
 
   if (brain_server_db_short->short_buf == NULL)
   {
@@ -2637,110 +2891,38 @@ HC_API_CALL void *brain_server_handle_client (void *p)
 
       hc_timer_set (&timer_commit);
 
-      hc_thread_mutex_lock (brain_server_db_hash->mux_hg);
-
-      // long-term memory merge
+      // The client's buffer is sorted, and shards follow the sort order, so it already arrives as
+      // one contiguous run per shard. Each run is handed to its own shard under that shard's mutex,
+      // which is the only lock a commit ever takes.
 
       if (brain_server_db_short->short_cnt)
       {
-        if (brain_server_db_hash_realloc (brain_server_db_hash, brain_server_db_short->short_cnt) == true)
+        i64 pos = 0;
+
+        while (pos < brain_server_db_short->short_cnt)
         {
-          if (brain_server_db_hash->long_cnt == 0)
-          {
-            for (i64 idx = 0; idx < brain_server_db_short->short_cnt; idx++)
-            {
-              brain_server_db_hash->long_buf[idx].hash[0] = brain_server_db_short->short_buf[idx].hash[0];
-              brain_server_db_hash->long_buf[idx].hash[1] = brain_server_db_short->short_buf[idx].hash[1];
-            }
+          const u32 shard_idx = brain_server_shard_idx (brain_server_db_short->short_buf[pos].hash);
 
-            brain_server_db_hash->long_cnt = brain_server_db_short->short_cnt;
-          }
-          else
-          {
-            const i64 cnt_total = brain_server_db_hash->long_cnt + brain_server_db_short->short_cnt;
+          i64 end = pos + 1;
 
-            i64 long_left  = brain_server_db_hash->long_cnt - 1;
-            i64 short_left = brain_server_db_short->short_cnt - 1;
-            i64 long_dupes = 0;
+          while ((end < brain_server_db_short->short_cnt) && (brain_server_shard_idx (brain_server_db_short->short_buf[end].hash) == shard_idx)) end++;
 
-            for (i64 idx = cnt_total - 1; idx >= long_dupes; idx--)
-            {
-              const brain_server_hash_long_t  *long_entry  = &brain_server_db_hash->long_buf[long_left];
-              const brain_server_hash_short_t *short_entry = &brain_server_db_short->short_buf[short_left];
+          brain_server_db_shard_t *shard = &brain_server_db_hash->shard_buf[shard_idx];
 
-              int rc = 0;
+          hc_thread_mutex_lock (shard->mux);
 
-              if ((long_left >= 0) && (short_left >= 0))
-              {
-                rc = brain_server_sort_hash (long_entry->hash, short_entry->hash);
-              }
-              else if (long_left >= 0)
-              {
-                rc = 1;
-              }
-              else if (short_left >= 0)
-              {
-                rc = -1;
-              }
-              else
-              {
-                brain_logging (stderr, client_idx, "unexpected remaining buffers in compare: %" PRIi64 " - %" PRIi64 "\n", long_left, short_left);
-              }
+          const bool rc = brain_server_shard_add (shard, &brain_server_db_short->short_buf[pos], end - pos);
 
-              brain_server_hash_long_t *next = &brain_server_db_hash->long_buf[idx];
+          hc_thread_mutex_unlock (shard->mux);
 
-              if (rc == -1)
-              {
-                next->hash[0] = short_entry->hash[0];
-                next->hash[1] = short_entry->hash[1];
+          if (rc == false) brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
 
-                short_left--;
-              }
-              else if (rc == 1)
-              {
-                next->hash[0] = long_entry->hash[0];
-                next->hash[1] = long_entry->hash[1];
-
-                long_left--;
-              }
-              else
-              {
-                next->hash[0] = long_entry->hash[0];
-                next->hash[1] = long_entry->hash[1];
-
-                short_left--;
-                long_left--;
-
-                long_dupes++;
-              }
-            }
-
-            if ((long_left != -1) || (short_left != -1))
-            {
-              brain_logging (stderr, client_idx, "unexpected remaining buffers in commit: %" PRIi64 " - %" PRIi64 "\n", long_left, short_left);
-            }
-
-            brain_server_db_hash->long_cnt = cnt_total - long_dupes;
-
-            if (long_dupes)
-            {
-              for (i64 idx = 0; idx < brain_server_db_hash->long_cnt; idx++)
-              {
-                brain_server_db_hash->long_buf[idx].hash[0] = brain_server_db_hash->long_buf[long_dupes + idx].hash[0];
-                brain_server_db_hash->long_buf[idx].hash[1] = brain_server_db_hash->long_buf[long_dupes + idx].hash[1];
-              }
-            }
-          }
-        }
-        else
-        {
-          brain_logging (stderr, 0, "%s\n", MSG_ENOMEM);
+          pos = end;
         }
 
         brain_server_db_hash->write_hashes = true;
       }
 
-      hc_thread_mutex_unlock (brain_server_db_hash->mux_hg);
 
       if (brain_server_db_short->short_cnt)
       {
@@ -2802,11 +2984,13 @@ HC_API_CALL void *brain_server_handle_client (void *p)
         send_buf[hash_idx] = 0;
       }
 
+
       // unique temp memory
 
       i64 temp_cnt = 0;
 
       qsort (temp_buf, hashes_cnt, sizeof (brain_server_hash_unique_t), brain_server_sort_hash_unique);
+
 
       brain_server_hash_unique_t *prev = temp_buf + temp_cnt;
 
@@ -2833,35 +3017,42 @@ HC_API_CALL void *brain_server_handle_client (void *p)
 
       temp_cnt++;
 
+
       // check if they are in long term memory
-
-      hc_thread_mutex_lock (brain_server_db_hash->mux_hr);
-
-      brain_server_db_hash->hb++;
-
-      if (brain_server_db_hash->hb == 1)
-      {
-        hc_thread_mutex_lock (brain_server_db_hash->mux_hg);
-      }
-
-      hc_thread_mutex_unlock (brain_server_db_hash->mux_hr);
+      //
+      // temp_buf is sorted, so it walks the shards in order. One shard is locked at a time and the
+      // whole run that belongs to it is answered before moving on, which also keeps the upper levels
+      // of that shard's binary search hot in cache for the rest of the run.
 
       if (temp_cnt > 0)
       {
         i64 temp_idx_new = 0;
 
-        for (i64 temp_idx = 0; temp_idx < temp_cnt; temp_idx++)
+        i64 pos = 0;
+
+        while (pos < temp_cnt)
         {
-          brain_server_hash_unique_t *cur = &temp_buf[temp_idx];
+          const u32 shard_idx = brain_server_shard_idx (temp_buf[pos].hash);
 
-          const i64 r = brain_server_find_hash_long (cur->hash, brain_server_db_hash->long_buf, brain_server_db_hash->long_cnt);
+          i64 end = pos + 1;
 
-          if (r != -1)
+          while ((end < temp_cnt) && (brain_server_shard_idx (temp_buf[end].hash) == shard_idx)) end++;
+
+          brain_server_db_shard_t *shard = &brain_server_db_hash->shard_buf[shard_idx];
+
+          hc_thread_mutex_lock (shard->mux);
+
+          for (i64 temp_idx = pos; temp_idx < end; temp_idx++)
           {
-            send_buf[cur->hash_idx] = 1;
-          }
-          else
-          {
+            brain_server_hash_unique_t *cur = &temp_buf[temp_idx];
+
+            if (brain_server_shard_find (shard, cur->hash) == true)
+            {
+              send_buf[cur->hash_idx] = 1;
+
+              continue;
+            }
+
             brain_server_hash_unique_t *save = temp_buf + temp_idx_new;
 
             temp_idx_new++;
@@ -2871,21 +3062,15 @@ HC_API_CALL void *brain_server_handle_client (void *p)
 
             save->hash_idx = cur->hash_idx; // we need this in a later stage
           }
+
+          hc_thread_mutex_unlock (shard->mux);
+
+          pos = end;
         }
 
         temp_cnt = temp_idx_new;
       }
 
-      hc_thread_mutex_lock (brain_server_db_hash->mux_hr);
-
-      brain_server_db_hash->hb--;
-
-      if (brain_server_db_hash->hb == 0)
-      {
-        hc_thread_mutex_unlock (brain_server_db_hash->mux_hg);
-      }
-
-      hc_thread_mutex_unlock (brain_server_db_hash->mux_hr);
 
       // check if they are in short term memory
 
@@ -2897,7 +3082,7 @@ HC_API_CALL void *brain_server_handle_client (void *p)
         {
           brain_server_hash_unique_t *cur = &temp_buf[temp_idx];
 
-          const i64 r = brain_server_find_hash_short (cur->hash, brain_server_db_short->short_buf, brain_server_db_short->short_cnt);
+          const i64 r = brain_server_find_hash_long (cur->hash, brain_server_db_short->short_buf, brain_server_db_short->short_cnt);
 
           if (r != -1)
           {
@@ -2918,6 +3103,7 @@ HC_API_CALL void *brain_server_handle_client (void *p)
 
         temp_cnt = temp_idx_new;
       }
+
 
       // update remaining
 
@@ -2942,7 +3128,7 @@ HC_API_CALL void *brain_server_handle_client (void *p)
 
           for (i64 idx = cnt_total - 1; idx >= 0; idx--)
           {
-            const brain_server_hash_short_t  *short_entry  = brain_server_db_short->short_buf + short_left;
+            const brain_server_hash_long_t  *short_entry  = brain_server_db_short->short_buf + short_left;
             const brain_server_hash_unique_t *unique_entry = temp_buf + unique_left;
 
             int rc = 0;
@@ -2964,7 +3150,7 @@ HC_API_CALL void *brain_server_handle_client (void *p)
               brain_logging (stderr, client_idx, "unexpected remaining buffers in compare: %" PRIi64 " - %" PRIi64 "\n", short_left, unique_left);
             }
 
-            brain_server_hash_short_t *next = brain_server_db_short->short_buf + idx;
+            brain_server_hash_long_t *next = brain_server_db_short->short_buf + idx;
 
             if (rc == -1)
             {
@@ -2995,6 +3181,7 @@ HC_API_CALL void *brain_server_handle_client (void *p)
         }
       }
 
+
       // opportunity to set counters for stats
 
       int local_lookup_new = 0;
@@ -3011,7 +3198,7 @@ HC_API_CALL void *brain_server_handle_client (void *p)
 
       const double ms = hc_timer_get (timer_lookup);
 
-      brain_logging (stdout, client_idx, "L | %8.2f ms | Long: %" PRIi64 ", Inc: %d, New: %d\n", ms, brain_server_db_hash->long_cnt, hashes_cnt, local_lookup_new);
+      brain_logging (stdout, client_idx, "L | %8.2f ms | Long: %" PRIi64 ", Inc: %d, New: %d\n", ms, brain_server_db_hash_cnt (brain_server_db_hash), hashes_cnt, local_lookup_new);
 
       // send
 
@@ -3058,6 +3245,173 @@ HC_API_CALL void *brain_server_handle_client (void *p)
   brain_server_dbs->client_slots[client_idx] = 0;
 
   close (client_fd);
+
+  return 0;
+}
+
+// Read candidates from stdin, hash them, and hand them to a RUNNING brain server.
+//
+// It goes through the client protocol rather than writing the database file directly, and that is
+// the whole point: a server a team is already cracking against can be extended while it runs, with
+// nothing stopped and no file to keep in step. A lookup is what inserts. The server records every
+// hash it has not seen before, and the commit that follows moves them out of the client's short term
+// memory into the session's long term database.
+//
+// stdin only, because hashcat already knows how to turn any attack into a candidate stream:
+//
+//   hashcat --stdout -a 0 rockyou.txt -r best64.rule | hashcat --brain-feed --brain-session 0x2ae611db --brain-password x
+//
+// Feeding through --stdout also means the hashes stored are of the FINAL candidate, after rules and
+// after a mask has been expanded, which is exactly what a cracking client looks up. Hashing a raw
+// wordlist instead would store words a rule-driven run never asks about.
+//
+// The session has to be given, because it is what says which database these candidates belong in and
+// it is normally computed from the hash list, which a feeder does not have. hashcat prints it on the
+// status line of any brain run as Brain Session/Attack.
+
+int brain_feed (hashcat_ctx_t *hashcat_ctx)
+{
+  user_options_t *user_options = hashcat_ctx->user_options;
+
+  hc_device_param_t device_param;
+
+  memset (&device_param, 0, sizeof (device_param));
+
+  device_param.brain_link_client_fd = -1;
+
+  device_param.size_brain_link_in  = BRAIN_FEED_CHUNK * sizeof (u8);
+  device_param.size_brain_link_out = BRAIN_FEED_CHUNK * BRAIN_HASH_SIZE;
+
+  device_param.brain_link_in_buf  = (u8 *)  hcmalloc (device_param.size_brain_link_in);
+  device_param.brain_link_out_buf = (u32 *) hcmalloc (device_param.size_brain_link_out);
+
+  const u32 brain_session = user_options->brain_session;
+
+  u64 highest = 0;
+
+  // passwords_max is what the server checks a lookup against, and it counts what has accumulated
+  // since the last commit. A whole chunk is committed at a time, so one chunk is the true maximum.
+
+  if (brain_client_connect (hashcat_ctx, &device_param, NULL, user_options->brain_host, user_options->brain_port, user_options->brain_password, brain_session, 0, BRAIN_FEED_CHUNK, &highest) == false)
+  {
+    brain_client_disconnect (&device_param);
+
+    hcfree (device_param.brain_link_in_buf);
+    hcfree (device_param.brain_link_out_buf);
+
+    return -1;
+  }
+
+  event_log_info (hashcat_ctx, "Feeding brain session 0x%08x, reading candidates from stdin.", brain_session);
+  event_log_info (hashcat_ctx, NULL);
+
+  char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+
+  u64 read_cnt  = 0;
+  u64 fed_cnt   = 0;
+  u64 known_cnt = 0;
+  u64 long_cnt  = 0;
+
+  bool ok = true;
+
+  while (true)
+  {
+    char *rc_fgets = fgets (line_buf, HCBUFSIZ_LARGE - 1, stdin);
+
+    const bool eof = (rc_fgets == NULL) ? true : false;
+
+    if (eof == false)
+    {
+      const size_t line_len = in_superchop (line_buf);
+
+      read_cnt++;
+
+      // Mirror what the wordlist reader accepts, so that feeding a list and then cracking that same
+      // list feed the brain and query it with the identical set of candidates. src/wordlist.c drops a
+      // word longer than PW_MAX and keeps everything shorter, an empty line included, so this does the
+      // same. Storing an over-length word would only add an entry no cracking client can ever ask
+      // about, and skipping the empty one would leave a candidate that a client does ask about
+      // un-deduplicated.
+
+      if (line_len > PW_MAX)
+      {
+        long_cnt++;
+      }
+      else
+      {
+        u32 *out_buf = device_param.brain_link_out_buf;
+
+        brain_client_generate_hash ((u64 *) &out_buf[device_param.pws_pre_cnt * 2], line_buf, line_len);
+
+        device_param.pws_pre_cnt++;
+      }
+    }
+
+    const bool full = (device_param.pws_pre_cnt >= BRAIN_FEED_CHUNK) ? true : false;
+
+    if ((full == true) || ((eof == true) && (device_param.pws_pre_cnt > 0)))
+    {
+      const u64 cnt = device_param.pws_pre_cnt;
+
+      // The two calls key off DIFFERENT counters: lookup reads pws_pre_cnt, commit reads pws_cnt and
+      // returns true without sending anything when it is zero. Setting only the first is a commit
+      // that silently does nothing, which looks exactly like a successful feed that stores nothing.
+
+      device_param.pws_cnt = cnt;
+
+      if (brain_client_lookup (&device_param, NULL) == false)
+      {
+        event_log_error (hashcat_ctx, "Brain server stopped answering after %" PRIu64 " candidates. Nothing since the last commit was stored.", fed_cnt);
+
+        ok = false;
+
+        break;
+      }
+
+      // The lookup answered with a byte per candidate saying whether the server had already seen it.
+      // Counting them is what tells a user their feed is landing where they think it is.
+
+      for (u64 i = 0; i < cnt; i++)
+      {
+        if (device_param.brain_link_in_buf[i] == 1) known_cnt++;
+      }
+
+      if (brain_client_commit (&device_param, NULL) == false)
+      {
+        event_log_error (hashcat_ctx, "Brain server refused the commit after %" PRIu64 " candidates.", fed_cnt);
+
+        ok = false;
+
+        break;
+      }
+
+      device_param.pws_pre_cnt = 0;
+
+      fed_cnt += cnt;
+    }
+
+    if (eof == true) break;
+  }
+
+  brain_client_disconnect (&device_param);
+
+  hcfree (line_buf);
+  hcfree (device_param.brain_link_in_buf);
+  hcfree (device_param.brain_link_out_buf);
+
+  if (ok == false) return -1;
+
+  // Every line read has to be accounted for. Two numbers that differ with nothing saying why reads as
+  // a lost candidate, so the skipped count is named whenever it is not zero.
+
+  event_log_info (hashcat_ctx, "Fed %" PRIu64 " candidates from %" PRIu64 " lines into brain session 0x%08x, %" PRIu64 " were already known.", fed_cnt, read_cnt, brain_session, known_cnt);
+
+  if (long_cnt > 0)
+  {
+    event_log_info (hashcat_ctx, "Skipped %" PRIu64 " line(s) longer than %d bytes, which hashcat would not have used as candidates either.", long_cnt, PW_MAX);
+  }
+
+  event_log_info (hashcat_ctx, NULL);
 
   return 0;
 }
@@ -3332,6 +3686,15 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
   brain_logging (stdout, 0, "Brain server started\n");
 
   if (signal (SIGINT, brain_server_handle_signal) == SIG_ERR)
+  {
+    brain_logging (stderr, 0, "signal: %s\n", strerror (errno));
+
+    if (brain_password == NULL) hcfree (auth_password);
+
+    return -1;
+  }
+
+  if (signal (SIGTERM, brain_server_handle_signal) == SIG_ERR)
   {
     brain_logging (stderr, 0, "signal: %s\n", strerror (errno));
 

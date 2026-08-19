@@ -6,6 +6,8 @@
 #ifndef HC_COMMON_H
 #define HC_COMMON_H
 
+#include "export.h"
+
 #define PROGNAME "hashcat"
 
 #if defined (__unix__) || defined (__APPLE__)

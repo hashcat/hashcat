@@ -9,6 +9,7 @@
 #include "bitops.h"
 #include "convert.h"
 #include "shared.h"
+#include "parser.h"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -25,8 +26,8 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_NATIVE_THREADS
                                   | OPTS_TYPE_MP_MULTI_DISABLE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
-static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_MATCH_TUNINGS // optional - improves performance
-                                  | BRIDGE_TYPE_REPLACE_LOOP;
+static const u64   BRIDGE_TYPE    = BRIDGE_TYPE_REPLACE_LOOP
+                                  | BRIDGE_TYPE_LOOP_CHUNKED;
 static const char *BRIDGE_NAME    = "scrypt_jane";
 static const char *ST_PASS        = "hashcat";
 static const char *ST_HASH        = "SCRYPT:16384:8:1:OTEyNzU0ODg=:Cc8SPjRH1hFQhuIPCdF51uNGtJ2aOY/isuoMlMUsJ8c=";
@@ -49,6 +50,20 @@ const char *module_bridge_name    (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 u64         module_bridge_type    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return BRIDGE_TYPE;     }
 
 static const char *SIGNATURE_SCRYPT = "SCRYPT";
+
+u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
+{
+  // salt_iter for this mode is 2 * N * p, which is far above the 1024 default. the ceiling has to
+  // reach it, otherwise the whole space can never be done in one call and the fastest setting is
+  // out of reach. going over is harmless: hashcat clamps each step to the iterations left.
+  //
+  // 2 * 1048576 covers N up to 2^20 at p=1. a bigger N than that needs 128 * r * N bytes of V per
+  // candidate, so memory runs out well before the iteration count does.
+
+  const u32 kernel_loops_max = 2 * 1048576;
+
+  return kernel_loops_max;
+}
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
@@ -119,7 +134,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->scrypt_r = hc_strtoul ((const char *) r_pos, NULL, 10);
   salt->scrypt_p = hc_strtoul ((const char *) p_pos, NULL, 10);
 
-  salt->salt_iter = 1;
+  // one ROMix takes 2N steps, N to fill V and N to mix, and p of them run per candidate. the
+  // bridge honours loop_pos and loop_cnt over that space, so report it instead of a single
+  // indivisible unit. this is what lets -u split a high N into chunks that fit a -w target.
+
+  salt->salt_iter = salt->scrypt_N * 2 * salt->scrypt_p;
 
   if (salt->scrypt_N % 1024) return (PARSER_SALT_VALUE); // we set loop count to 1024 fixed
 
@@ -180,6 +199,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_context_size             = MODULE_CONTEXT_SIZE_CURRENT;
   module_ctx->module_interface_version        = MODULE_INTERFACE_VERSION_CURRENT;
 
+  module_ctx->module_advice_notice            = MODULE_DEFAULT;
   module_ctx->module_attack_exec              = module_attack_exec;
   module_ctx->module_benchmark_esalt          = MODULE_DEFAULT;
   module_ctx->module_benchmark_hook_salt      = MODULE_DEFAULT;
@@ -196,7 +216,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_dgst_pos2                = module_dgst_pos2;
   module_ctx->module_dgst_pos3                = module_dgst_pos3;
   module_ctx->module_dgst_size                = module_dgst_size;
-  module_ctx->module_dictstat_disable         = MODULE_DEFAULT;
   module_ctx->module_esalt_size               = MODULE_DEFAULT;
   module_ctx->module_extra_buffer_size        = MODULE_DEFAULT;
   module_ctx->module_extra_tmp_size           = MODULE_DEFAULT;
@@ -230,7 +249,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
-  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
   module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
@@ -254,5 +273,6 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_st_pass                  = module_st_pass;
   module_ctx->module_tmp_size                 = module_tmp_size;
   module_ctx->module_unstable_warning         = MODULE_DEFAULT;
+  module_ctx->module_usage_notice             = MODULE_DEFAULT;
   module_ctx->module_warmup_disable           = MODULE_DEFAULT;
 }

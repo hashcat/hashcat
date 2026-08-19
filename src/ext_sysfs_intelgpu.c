@@ -7,6 +7,8 @@
 #include "types.h"
 #include "memory.h"
 #include "shared.h"
+#include "filehandling.h"
+#include "path.h"
 #include "event.h"
 #include "folder.h"
 #include "ext_sysfs_intelgpu.h"

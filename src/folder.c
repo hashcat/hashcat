@@ -8,6 +8,7 @@
 #include "memory.h"
 #include "event.h"
 #include "shared.h"
+#include "path.h"
 #include "folder.h"
 #include <libgen.h>
 
@@ -148,10 +149,6 @@ static void get_install_dir (char *install_dir, const char *exec_path)
 #if defined (_POSIX)
 static void get_profile_dir (char *profile_dir, const char *home_dir)
 {
-  snprintf (profile_dir, HCBUFSIZ_TINY, "%s/%s", home_dir, DOT_HASHCAT);
-
-  if (hc_path_is_directory (profile_dir)) return;
-
   char *xdg_data_home = getenv ("XDG_DATA_HOME");
 
   if (xdg_data_home)
@@ -166,10 +163,6 @@ static void get_profile_dir (char *profile_dir, const char *home_dir)
 
 static void get_cache_dir (char *cache_dir, const char *home_dir)
 {
-  snprintf (cache_dir, HCBUFSIZ_TINY, "%s/%s", home_dir, DOT_HASHCAT);
-
-  if (hc_path_is_directory (cache_dir)) return;
-
   char *xdg_cache_home = getenv ("XDG_CACHE_HOME");
 
   if (xdg_cache_home)
@@ -450,6 +443,28 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
     get_profile_dir (profile_dir, home_dir);
     get_cache_dir   (cache_dir,   home_dir);
     get_session_dir (session_dir, profile_dir);
+
+    // $HOME/.hashcat predates XDG support and used to win over it whenever it existed. It no longer
+    // does, so anyone who still has one has just had their potfile, sessions and kernel cache move.
+    //
+    // Nothing is copied or deleted, because guessing which of two potfiles a user wants is not a
+    // decision this should make silently. Say where things are now and let them move what they want.
+
+    char legacy_dir[HCBUFSIZ_TINY];
+
+    snprintf (legacy_dir, sizeof (legacy_dir), "%s/%s", home_dir, DOT_HASHCAT);
+
+    if (hc_path_is_directory (legacy_dir) == true)
+    {
+      event_log_warning (hashcat_ctx, "Found %s, which hashcat no longer uses.", legacy_dir);
+      event_log_warning (hashcat_ctx, "It is left untouched. Everything hashcat keeps per user is now in");
+      event_log_warning (hashcat_ctx, "  %s", profile_dir);
+      event_log_warning (hashcat_ctx, "and the kernel cache is in");
+      event_log_warning (hashcat_ctx, "  %s", cache_dir);
+      event_log_warning (hashcat_ctx, "That is potfiles and sessions, and anything else you were asked to put there.");
+      event_log_warning (hashcat_ctx, "Move what you still want across, then delete the old directory.");
+      event_log_warning (hashcat_ctx, NULL);
+    }
 
     shared_dir = hcstrdup (shared_folder);
 

@@ -9,6 +9,7 @@
 #include "event.h"
 #include "locking.h"
 #include "shared.h"
+#include "filehandling.h"
 #include "logfile.h"
 
 void logfile_generate_topid (hashcat_ctx_t *hashcat_ctx)

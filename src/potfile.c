@@ -14,6 +14,7 @@
 #include "outfile.h"
 #include "locking.h"
 #include "shared.h"
+#include "path.h"
 #include "potfile.h"
 
 static const char MASKED_PLAIN[] = "[notfound]";

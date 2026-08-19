@@ -8,6 +8,8 @@
 #include "limits.h"
 #include "memory.h"
 #include "shared.h"
+#include "path.h"
+#include "memchr.h"
 #include "filehandling.h"
 
 #include <Alloc.h>
@@ -365,9 +367,15 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = (size_t) -1;
 
-  if (ptr == NULL || fp == NULL) return n;
+  // The zero check comes first on purpose. Reading nothing is a no-op that never dereferences ptr, so
+  // it succeeds even when the caller has no buffer, which is what an empty container looks like after
+  // an allocation for zero elements returned NULL. Testing ptr first turned that into a failure return
+  // of (size_t) -1, and a caller comparing it against its own count then reported a short read of
+  // 18446744073709551600 bytes.
 
   if (size == 0 || nmemb == 0) return 0;
+
+  if (ptr == NULL || fp == NULL) return n;
 
   if (fp->pfp)
   {
@@ -509,9 +517,11 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 {
   size_t n = -1;
 
-  if (ptr == NULL || fp == NULL) return n;
+  // Ordered the same way and for the same reason as hc_fread above.
 
   if (size == 0 || nmemb == 0) return 0;
+
+  if (ptr == NULL || fp == NULL) return n;
 
   if (fp->pfp)
   {
@@ -1022,27 +1032,82 @@ void hc_fclose (HCFILE *fp)
   fp->mode = NULL;
 }
 
+// Taking the stream's lock once for a line rather than once for every byte. A plain file is what almost
+// everything here is, and hc_fgetc () goes through four branches and a library call for each byte, with
+// that call taking the lock every time.
+//
+// The compressed backends keep the general path. gzgetc () does its own buffering, and the zip and xz
+// ones decode a byte at a time whatever is asked of them, so there is nothing to hoist out of those.
+
+#if defined (_WIN)
+#define hc_flockfile(f)     _lock_file (f)
+#define hc_funlockfile(f)   _unlock_file (f)
+#define hc_getc_unlocked(f) _getc_nolock (f)
+#else
+#define hc_flockfile(f)     flockfile (f)
+#define hc_funlockfile(f)   funlockfile (f)
+#define hc_getc_unlocked(f) getc_unlocked (f)
+#endif
+
+// line_sz is the size of line_buf, and the line is terminated inside it. It used to be read as the
+// number of characters that may be STORED, and the terminator then went one past that: a line of
+// exactly line_sz bytes wrote line_buf[line_sz], one byte off the end of the buffer.
+//
+// Every one of the twelve callers passes the size of the buffer it allocated, so that is what the
+// parameter already meant everywhere it is used, including a 64 byte stack buffer in ext_sysfs_cpu.c.
+// A line long enough to reach the limit is one character shorter now and says so, which is what the
+// truncation warning is for.
+
 size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
 {
+  if (line_sz == 0) return 0;
+
+  const size_t line_max = line_sz - 1;
+
   int c;
 
   size_t line_len = 0;
 
   size_t line_truncated = 0;
 
-  while ((c = hc_fgetc (fp)) != EOF)
+  if (fp->pfp)
   {
-    if (c == '\n') break;
+    hc_flockfile (fp->pfp);
 
-    if (line_len == line_sz)
+    while ((c = hc_getc_unlocked (fp->pfp)) != EOF)
     {
-      line_truncated++;
+      if (c == '\n') break;
+
+      if (line_len == line_max)
+      {
+        line_truncated++;
+      }
+      else
+      {
+        line_buf[line_len] = (char) c;
+
+        line_len++;
+      }
     }
-    else
-    {
-      line_buf[line_len] = (char) c;
 
-      line_len++;
+    hc_funlockfile (fp->pfp);
+  }
+  else
+  {
+    while ((c = hc_fgetc (fp)) != EOF)
+    {
+      if (c == '\n') break;
+
+      if (line_len == line_max)
+      {
+        line_truncated++;
+      }
+      else
+      {
+        line_buf[line_len] = (char) c;
+
+        line_len++;
+      }
     }
   }
 
@@ -1063,27 +1128,51 @@ size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
   return line_len;
 }
 
+// How many lines a file holds, which is how many line endings it has plus a last line that has none.
+//
+// The blocks were always read whole, but the line endings inside them were counted a byte at a time,
+// and each step of that loop depended on the one before it so nothing could overlap. hc_memchr finds
+// them a vector at a time instead.
+
 u64 count_lines (HCFILE *fp)
 {
   u64 cnt = 0;
 
   char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE + 1);
 
-  char prev = '\n';
+  hc_memchr_t hc_memchr = hc_memchr_get ();
+
+  bool any  = false;
+  char last = '\n';
 
   while (!hc_feof (fp))
   {
-    size_t nread = hc_fread (buf, sizeof (char), HCBUFSIZ_LARGE, fp);
+    const size_t nread = hc_fread (buf, sizeof (char), HCBUFSIZ_LARGE, fp);
 
     if (nread < 1) continue;
 
-    for (size_t i = 0; i < nread; i++)
-    {
-      if (prev == '\n') cnt++;
+    any = true;
 
-      prev = buf[i];
+    size_t off = 0;
+
+    while (off < nread)
+    {
+      const size_t step = hc_memchr ((const u8 *) buf + off, '\n', nread - off);
+
+      if (step == (nread - off)) break;
+
+      cnt++;
+
+      off += step + 1;
     }
+
+    last = buf[nread - 1];
   }
+
+  // A file whose last line has no line ending after it still has that line in it. A file that ends on
+  // one does not have an empty line after it.
+
+  if ((any == true) && (last != '\n')) cnt++;
 
   hcfree (buf);
 
@@ -1148,4 +1237,147 @@ size_t superchop_with_length (char *buf, const size_t len)
   }
 
   return new_len;
+}
+
+bool hc_path_has_bom (const char *path)
+{
+  u8 buf[8] = { 0 };
+
+  HCFILE fp;
+
+  if (hc_fopen_raw (&fp, path, "rb") == false) return false;
+
+  const size_t nread = hc_fread (buf, 1, sizeof (buf), &fp);
+
+  hc_fclose (&fp);
+
+  if (nread < 1) return false;
+
+  const int bom_size = hc_string_bom_size (buf);
+
+  const bool has_bom = bom_size > 0;
+
+  return has_bom;
+}
+
+bool hc_same_files (char *file1, char *file2)
+{
+  if ((file1 != NULL) && (file2 != NULL))
+  {
+    if (hc_path_is_fifo (file1) == true || hc_path_is_fifo (file2) == true)
+    {
+      return false;
+    }
+
+    struct stat tmpstat_file1;
+    struct stat tmpstat_file2;
+
+    memset (&tmpstat_file1, 0, sizeof (tmpstat_file1));
+    memset (&tmpstat_file2, 0, sizeof (tmpstat_file2));
+
+    int do_check = 0;
+
+    HCFILE fp;
+
+    if (hc_fopen (&fp, file1, "r") == true)
+    {
+      if (hc_fstat (&fp, &tmpstat_file1))
+      {
+        hc_fclose (&fp);
+
+        return false;
+      }
+
+      hc_fclose (&fp);
+
+      do_check++;
+    }
+
+    if (hc_fopen (&fp, file2, "r") == true)
+    {
+      if (hc_fstat (&fp, &tmpstat_file2))
+      {
+        hc_fclose (&fp);
+
+        return false;
+      }
+
+      hc_fclose (&fp);
+
+      do_check++;
+    }
+
+    if (do_check == 2)
+    {
+      tmpstat_file1.st_mode     = 0;
+      tmpstat_file1.st_nlink    = 0;
+      tmpstat_file1.st_uid      = 0;
+      tmpstat_file1.st_gid      = 0;
+      tmpstat_file1.st_rdev     = 0;
+      tmpstat_file1.st_atime    = 0;
+
+      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
+      tmpstat_file1.STAT_NANOSECONDS_ACCESS_TIME = 0;
+      #endif
+
+      #if defined (_POSIX)
+      tmpstat_file1.st_blksize  = 0;
+      tmpstat_file1.st_blocks   = 0;
+      #endif
+
+      tmpstat_file2.st_mode     = 0;
+      tmpstat_file2.st_nlink    = 0;
+      tmpstat_file2.st_uid      = 0;
+      tmpstat_file2.st_gid      = 0;
+      tmpstat_file2.st_rdev     = 0;
+      tmpstat_file2.st_atime    = 0;
+
+      #if defined (STAT_NANOSECONDS_ACCESS_TIME)
+      tmpstat_file2.STAT_NANOSECONDS_ACCESS_TIME = 0;
+      #endif
+
+      #if defined (_POSIX)
+      tmpstat_file2.st_blksize  = 0;
+      tmpstat_file2.st_blocks   = 0;
+      #endif
+
+      if (memcmp (&tmpstat_file1, &tmpstat_file2, sizeof (struct stat)) == 0)
+      {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+char *file_to_buffer (const char *filename)
+{
+  HCFILE fp;
+
+  if (hc_fopen (&fp, filename, "r") == true)
+  {
+    struct stat st;
+
+    memset (&st, 0, sizeof (st));
+
+    if (hc_fstat (&fp, &st))
+    {
+      hc_fclose (&fp);
+
+      return NULL;
+    }
+
+    char *buffer = malloc (st.st_size + 1);
+
+    const size_t nread = hc_fread (buffer, 1, st.st_size, &fp);
+
+    hc_fclose (&fp);
+
+    buffer[nread] = 0;
+
+    return buffer;
+  }
+
+  return NULL;
 }

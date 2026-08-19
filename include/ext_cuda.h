@@ -6,6 +6,8 @@
 #ifndef HC_EXT_CUDA_H
 #define HC_EXT_CUDA_H
 
+#include "export.h"
+
 /**
  * from cuda.h (/usr/local/cuda-10.1/targets/x86_64-linux/include/cuda.h)
  */
@@ -1301,36 +1303,36 @@ int hc_cuEventElapsedTime      (void *hashcat_ctx, float *pMilliseconds, CUevent
 int hc_cuEventQuery            (void *hashcat_ctx, CUevent hEvent);
 int hc_cuEventRecord           (void *hashcat_ctx, CUevent hEvent, CUstream hStream);
 int hc_cuEventSynchronize      (void *hashcat_ctx, CUevent hEvent);
-int hc_cuFuncGetAttribute      (void *hashcat_ctx, int *pi, CUfunction_attribute attrib, CUfunction hfunc);
+HC_PLUGIN_API int hc_cuFuncGetAttribute      (void *hashcat_ctx, int *pi, CUfunction_attribute attrib, CUfunction hfunc);
 int hc_cuFuncSetAttribute      (void *hashcat_ctx, CUfunction hfunc, CUfunction_attribute attrib, int value);
 int hc_cuInit                  (void *hashcat_ctx, unsigned int Flags);
-int hc_cuLaunchKernel          (void *hashcat_ctx, CUfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, CUstream hStream, void **kernelParams, void **extra);
-int hc_cuMemAlloc              (void *hashcat_ctx, CUdeviceptr *dptr, size_t bytesize);
+HC_PLUGIN_API int hc_cuLaunchKernel          (void *hashcat_ctx, CUfunction f, unsigned int gridDimX, unsigned int gridDimY, unsigned int gridDimZ, unsigned int blockDimX, unsigned int blockDimY, unsigned int blockDimZ, unsigned int sharedMemBytes, CUstream hStream, void **kernelParams, void **extra);
+HC_PLUGIN_API int hc_cuMemAlloc              (void *hashcat_ctx, CUdeviceptr *dptr, size_t bytesize);
 int hc_cuMemcpyDtoD            (void *hashcat_ctx, CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount);
 int hc_cuMemcpyDtoH            (void *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount);
-int hc_cuMemcpyHtoD            (void *hashcat_ctx, CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount);
+HC_PLUGIN_API int hc_cuMemcpyHtoD            (void *hashcat_ctx, CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount);
 int hc_cuMemsetD32             (void *hashcat_ctx, CUdeviceptr dstDevice, unsigned int ui, size_t N);
 int hc_cuMemsetD8              (void *hashcat_ctx, CUdeviceptr dstDevice, unsigned char uc, size_t N);
 int hc_cuMemcpyDtoDAsync       (void *hashcat_ctx, CUdeviceptr dstDevice, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
-int hc_cuMemcpyDtoHAsync       (void *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
+HC_PLUGIN_API int hc_cuMemcpyDtoHAsync       (void *hashcat_ctx, void *dstHost, CUdeviceptr srcDevice, size_t ByteCount, CUstream hStream);
 int hc_cuMemcpyHtoDAsync       (void *hashcat_ctx, CUdeviceptr dstDevice, const void *srcHost, size_t ByteCount, CUstream hStream);
 int hc_cuMemsetD32Async        (void *hashcat_ctx, CUdeviceptr dstDevice, unsigned int ui, size_t N, CUstream hStream);
 int hc_cuMemsetD8Async         (void *hashcat_ctx, CUdeviceptr dstDevice, unsigned char uc, size_t N, CUstream hStream);
-int hc_cuMemFree               (void *hashcat_ctx, CUdeviceptr dptr);
+HC_PLUGIN_API int hc_cuMemFree               (void *hashcat_ctx, CUdeviceptr dptr);
 int hc_cuMemGetInfo            (void *hashcat_ctx, size_t *free, size_t *total);
-int hc_cuModuleGetFunction     (void *hashcat_ctx, CUfunction *hfunc, CUmodule hmod, const char *name);
+HC_PLUGIN_API int hc_cuModuleGetFunction     (void *hashcat_ctx, CUfunction *hfunc, CUmodule hmod, const char *name);
 int hc_cuModuleGetGlobal       (void *hashcat_ctx, CUdeviceptr *dptr, size_t *bytes, CUmodule hmod, const char *name);
-int hc_cuModuleLoadDataEx      (void *hashcat_ctx, CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues);
-int hc_cuModuleUnload          (void *hashcat_ctx, CUmodule hmod);
-int hc_cuStreamCreate          (void *hashcat_ctx, CUstream *phStream, unsigned int Flags);
-int hc_cuStreamDestroy         (void *hashcat_ctx, CUstream hStream);
-int hc_cuStreamSynchronize     (void *hashcat_ctx, CUstream hStream);
-int hc_cuCtxPushCurrent        (void *hashcat_ctx, CUcontext ctx);
-int hc_cuCtxPopCurrent         (void *hashcat_ctx, CUcontext *pctx);
-int hc_cuLinkCreate            (void *hashcat_ctx, unsigned int numOptions, CUjit_option *options, void **optionValues, CUlinkState *stateOut);
-int hc_cuLinkAddData           (void *hashcat_ctx, CUlinkState state, CUjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, CUjit_option *options, void **optionValues);
-int hc_cuLinkDestroy           (void *hashcat_ctx, CUlinkState state);
-int hc_cuLinkComplete          (void *hashcat_ctx, CUlinkState state, void **cubinOut, size_t *sizeOut);
+HC_PLUGIN_API int hc_cuModuleLoadDataEx      (void *hashcat_ctx, CUmodule *module, const void *image, unsigned int numOptions, CUjit_option *options, void **optionValues);
+HC_PLUGIN_API int hc_cuModuleUnload          (void *hashcat_ctx, CUmodule hmod);
+HC_PLUGIN_API int hc_cuStreamCreate          (void *hashcat_ctx, CUstream *phStream, unsigned int Flags);
+HC_PLUGIN_API int hc_cuStreamDestroy         (void *hashcat_ctx, CUstream hStream);
+HC_PLUGIN_API int hc_cuStreamSynchronize     (void *hashcat_ctx, CUstream hStream);
+HC_PLUGIN_API int hc_cuCtxPushCurrent        (void *hashcat_ctx, CUcontext ctx);
+HC_PLUGIN_API int hc_cuCtxPopCurrent         (void *hashcat_ctx, CUcontext *pctx);
+HC_PLUGIN_API int hc_cuLinkCreate            (void *hashcat_ctx, unsigned int numOptions, CUjit_option *options, void **optionValues, CUlinkState *stateOut);
+HC_PLUGIN_API int hc_cuLinkAddData           (void *hashcat_ctx, CUlinkState state, CUjitInputType type, void *data, size_t size, const char *name, unsigned int numOptions, CUjit_option *options, void **optionValues);
+HC_PLUGIN_API int hc_cuLinkDestroy           (void *hashcat_ctx, CUlinkState state);
+HC_PLUGIN_API int hc_cuLinkComplete          (void *hashcat_ctx, CUlinkState state, void **cubinOut, size_t *sizeOut);
 int hc_cuOccupancyMaxActiveBlocksPerMultiprocessor (void *hashcat_ctx, int *numBlocks, CUfunction func, int blockSize, size_t dynamicSMemSize);
 int hc_cuCtxResetPersistingL2Cache (void *hashcat_ctx);
 int hc_cuCtxGetLimit           (void *hashcat_ctx, size_t *pvalue, CUlimit limit);

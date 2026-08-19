@@ -1,19 +1,352 @@
 * changes v7.1.2 -> v7.1.x
 
 ##
+## Backward Incompatible Changes
+##
+
+1. Plugins: the core is now a shared library and every plugin links against it
+
+A module, a bridge and a feed no longer carry their own copy of the core, so a third party plugin has
+to be rebuilt for this release and needs libhashcat present one directory above it. The library ships
+beside the hashcat binary as libhashcat.so.7 on Linux, libhashcat.7.dylib on macOS and hashcat.dll on
+Windows. A plugin built against an older interface is refused, and hashcat names both versions.
+
+2. Plugins: what the core offers is now declared rather than inferred
+
+Each function says for itself whether a plugin may call it, instead of the set being taken from what
+the plugins in this tree happen to use. A module can therefore call a host side hash or cipher entry
+point that no module here calls. See "The Core Library" in docs/hashcat-plugin-development-guide.md.
+
+3. Build: SHARED now defaults to 1
+
+A build that wants the old arrangement, where every plugin holds its own copy of the core, asks for
+SHARED=0. A package built the new way has to ship the library alongside the binary.
+
+4. Plugins: module_dictstat_disable was removed from the module interface
+
+A module that still sets it will not compile and reports that module_ctx_t has no such member, so
+delete the line. Nothing replaces it. It existed because a hash mode could produce a different number
+of candidates than the wordlist had lines, and a wordlist keyspace is now always its line count.
+
+5. Distribution: --skip and --limit now apply to the whole run
+
+Multiple wordlists in -a 0, and --increment or mask files in -a 3/6/7, used to be separate attacks
+with their own keyspace numbering. They now form one virtual keyspace, so --skip 1000 skips the first
+thousand units of the whole run rather than the first thousand of every file or mask, and hashcat
+seeks to the right wordlist or mask itself.
+
+6. Distribution: --keyspace answers for the whole run as well
+
+Both options stay in --keyspace units, which are base words and not final candidates, and that part is
+unchanged. Amplification still happens afterwards, from rules in -a 0 and from the remaining mask
+positions in -a 3. "?l?l?l" is 676 base words and 17576 candidates, so --skip 300 leaves 376 base
+words, which expand to 9776 candidates.
+
+7. Brain: --brain-client-features now defaults to 3 instead of 2
+
+The client dedups on the candidate itself again, not only on the keyspace position of an attack, so
+two different wordlists holding the same words dedup against each other out of the box. That is what
+most people expect the brain to do.
+
+8. Brain: the candidate feature switches itself off where it cannot pay
+
+It costs the server eight bytes per candidate for as long as the session lives, and a mode that
+computes inside the kernel with fewer than 1024 salts produces candidates faster than the server can
+usefully remember. The attack feature stays on there, so clients still keep out of each other's
+keyspace and nothing is aborted. Setting the option by hand overrules the decision either way.
+
+9. Restore: --restore no longer takes a command line out of the restore file
+
+The file holds the command line of the session it belongs to, and hashcat used to parse that line and
+run it, so anyone able to write the file could choose the arguments. --restore now prints the command
+line it holds and stops.
+
+10. Restore: --restore-position and --restore-auto
+
+--restore-position takes only the resume position from the file and uses the command line you actually
+ran, so no argv is parsed out of a file at all. --restore-auto keeps the old one step resume for
+anything driving hashcat unattended, and prints the command line before using it.
+
+11. Restore: the printed command line is shell quoted
+
+Where an argument holds a byte outside printable ASCII, no pasteable line is printed and the escaped
+argument list is shown instead.
+
+##
+## New Algorithms
+##
+
+- Added hash-mode: GPG (AES-OCB-128 (SHA-1($pass)))
+- Added hash-mode: KeePass AESKDF (KDBX v4)
+- Added hash-mode: Kerberos 5, etype 23, TGS-REP (NT)
+- Added hash-mode: Kerberos 5, etype 23, AS-REP (NT)
+- Added hash-mode: Wordpress bcrypt(hmac-sha384($pass))
+- Added hash-mode: gost12512crypt [$gost12512hash$] (Unix)
+- Added hash-mode: phpass(md5($pass))
+- Added hash-mode: Symfony Legacy SHA256
+- Added hash-mode: yescrypt
+- Added hash-mode: gost-yescrypt
+- Added hash-mode: scryptcrypt, scrypt (Unix)
+
+##
+## New Attack modes and changed Attack modes
+##
+
+- Attack-mode 8: Generate candidates from a feed plugin instead of a built-in attack
+- Attack-Mode 8: Feeds can be written in C or Rust and are named like a module, not pathed
+- Attack-Mode 8: Shipped feeds are: wordlist, stdin, random and rust_random
+- Attack-Mode 8: Feeds support implementations which can't report a keyspace
+- Attack-Mode 8: A feed that cannot report a keyspace runs without a progress denominator
+- Attack-Mode 0: Wordlists are now read through the attack-mode 8 wordlist feed, which can seek
+- Attack-Mode 0: Several wordlists now form one keyspace, so --skip and --limit apply to all of them
+- Attack-Mode 0: Reading candidates from stdin is now a feed and appears as Feed (stdin)
+- Attack-Mode 0: --skip, --limit and --restore now work on stdin if the same stream is fed again
+- Attack-Mode 1: Both dictionaries are now read through a feed, with --slow-candidates as well
+- Attack-Mode 9: Compares wordlist lines against unique salts, refusing files it once accepted
+- Attack-Mode 9: A hash file of username, separator and hash is now split by hashcat, with no wordlist
+- Attack-Mode 9: The username in front of the first separator becomes the candidate, and rules apply
+- Mask attacks: --increment and mask files now form one keyspace, so --skip and --limit apply to all
+- Mask attacks: --keyspace now answers for the whole increment or mask file instead of being refused
+- Attack-Mode 12: A hybrid attack where the mask says where the word goes, with ?w marking the place
+- Attack-Mode 12: ?w?d?d is what -a 6 does and ?d?d?w is what -a 7 does, and mask on both sides is new
+- Attack-Mode 12: ?q marks a word from a second wordlist and has to come after ?w, so ?w?q is -a 1
+- Attack-Mode 12: Literals work anywhere in the mask, so Pass?w?d?d is a valid mask
+
+##
+## New Features
+##
+
+- Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seekdbs
+- Seekdbs are portable between machines, so a distributed setup can build one once and hand it out
+- Added --encrypt-with-pubkey, which encrypts recovered plains with an RSA public key
+- Encrypted plains mean the cracking host never sees them, see docs/hashcat-encrypted-plains.md
+
+##
 ## Improvements
 ##
 
-Docker: Add hashcat-toolchain
+- Docker: Added hashcat-toolchain
+- Docker: Added Ubuntu 26.04 runtime images for CUDA and AMD
+- Docker: Added an Ubuntu 18.04 image with separate gcc/mingw and clang builds
+- Docker: Updated the bundled Python to 3.14.6 and Rust to 1.97.1
+- Docker: Removed the Ubuntu 18.04 build because its mingw-w64 cannot link current Rust
+- Build: Disabled LTO by default, and release binaries still enable it
+- Build: Disabled setShouldMaximizeConcurrentCompilation in ext_metal.m due to a macOS Tahoe crash
+- Build: The frontend and every plugin link one shared core, so the unpacked release drops
+  from about 413 MB to about 91 MB
+- Build: The development install ships the headers the plugin API is declared in, and the
+  vendored headers those need, instead of every header in the tree
+- Build: Plugins are no longer compiled for the processor that builds them, taking about a
+  third off a clean build
+- Build: The binaries name the hardening flags they are built with, instead of inheriting
+  them from the build machine
+- Build: A DEBUG=1 build keeps its debug information instead of having it stripped off at the link
+- Build: Two builds of one commit are the same bytes, with SOURCE_DATE_EPOCH and
+  PRODUCTION=1 pinning what would otherwise move
+- Build: The build tracks its own dependencies, so editing a shared module body, a feed
+  header or a bundled dependency rebuilds what uses it
+- Help: -D 3 is described as 'OpenCL Accelerator'. Bridge hardware is selected by
+  hash-mode and never by -D
+- Rules: Added the 'convert to lower hex' and 'convert to upper hex' operations
+- Rules: Added the 'insert every' operation
+- Rules: Added the 'shift case' operation
+- Rules: Added the 'add byte value' operation
+- Wordlists: Added runtime-selected vectorized line scanning, AVX2 on x86 and NEON on arm64
+- Building: Added support for Android and Termux
+- Building: Added support for LoongArch, PowerPC and MIPS
+- Building: Added OpenBSD, NetBSD and MSYS2 jobs to the GitHub workflow
+- Rust Bridge: Bridge parameters are now passed to the plugin
+- Rust Bridge: Both bridges now share one hashcat-sys crate for their bindings
+- Rust: Added a GitHub action that checks and tests the Rust code
+- Documentation: Added docs/hashcat-rust-plugin-quickstart.md
+- Documentation: Added a usage and advice notice to every module
+- Documentation: Added module numbers and extraction advice to the 2hashcat scripts
+- Modules: PBKDF2-based modes now accept iteration counts of up to 8 digits
+- Modules: GPG (CAST5 (SHA-1($pass))) now supports nonzero IVs and s2ktype 3
+- Modules: Added --hash-copy to keep the original hash line for the potfile and status output
+- Startup: Hash parsing errors now explain what is wrong and name the part of the line that failed
+- Startup: Module advice notices are now suppressed by --quiet
+- Testing Framework: LUKS1 and LUKS2 test containers are now generated on demand
+- Status View: Devices of the same kind share one speed line showing the member count
+- Status View: Grouped temperatures show the hottest members and count the rest
+- Backends: OpenCL clones share contexts and programs, and HASHCAT_CLSHARE=0 turns that off
+- Backends: Memory budgets are divided among virtual devices on one physical device
+- Backends: A failed clone no longer causes the remaining clones to allocate resources
+- Bridges: Added three optional entry points for units made from multiple components
+- Attack-Mode 0: Reading candidates from a pipe no longer slows down as devices are added
+- Startup: Hash files, potfiles, rule files and mask files are read about three times faster
+- Status View: Attacks reading one source per round report their position again in Guess.Queue
+- Threads: Updated thread macros and types
+- Benchmark: Added a workaround for a CUDA benchmark memory leak caused by register spilling
+- secp256k1: inv_mod uses a fixed-iteration safegcd inverse, and
+  -D USE_LEGACY_BINARY_GCD_INV_MOD restores the binary GCD
+- secp256k1: Factored the repeated Jacobian to affine conversion into point_to_affine
+- Kernels: Added HASHCAT_FORCE_NO_INLINE, which builds with -D FORCE_NO_INLINE for
+  runtimes that inline the helpers into one slow-to-compile function
+- Backends: Environment on/off switches share one hc_env_flag helper
+- Feeds: Settings are written as key=value work arguments and one shared parser reads
+  them, so a feed no longer writes its own (see docs/hashcat-plugin-development-guide.md)
+- Hashes: Large hash lists without salts now sort and deduplicate with an in-place radix sort
+- Kernels: Added the DEScrypt pure kernel for attack-mode 3, and both salt paths share one
+  multi hash kernel
+- Autotune: Only the leader of each device group is measured, and the answer is reused
+  across association rounds
+- Slow hashes: HASHCAT_SALT_INNER=1 tests each amplifier item against every active salt
+  before moving on, so an interrupted run favours the leading candidates over the leading salts
+- Bridges: Hardware power is derived from the unit width, so kernel_accel counts waves and
+  the status line reports Accel instead of Batch
+- Build: bridge_scrypt_jane takes the SSE2 intrinsics path on ARM through sse2neon
+- Build: A DEBUG=2 build links with -fsanitize=address instead of failing at the link
 
 ##
 ## Bugs
 ##
 
-- Added workaround for CUDA memory leak in benchmark mode caused by register spilling
-- Fixed bugs on multiple DES based modules when used with CPU devices
-- Fixed MSYS2 build
-- Disable setShouldMaximizeConcurrentCompilation on ext_metal.m, due to segfault on macos Tahoe
+- Fixed combinator and hybrid attacks reporting a plaintext truncated to 256 characters,
+  which did not match the cracked digest
+- Fixed buffer overflows in the RC4 modules 33500, 33501 and 33502, where the plaintext
+  token was not bounded by the field it decodes into
+- Fixed a stack buffer overflow in the Kerberos etype 17 and 18 modules 19600, 19700,
+  19800, 19900, 28800, 28900, 32100 and 32200, where a realm longer than 128 characters was
+  copied into a fixed local buffer
+- Fixed encode buffer overflows in modules 16900, 19600, 19700, 32100 and 32200, seen with
+  --show and --left at the maximum data length
+- Fixed a 0x80 padding byte written one past a full buffer in modules 00111, 01411, 01711,
+  05300, 05400, 11400, 13100, 13600, 18200, 35300 and 35400
+- Fixed a heap buffer overflow in the Kerberos etype 23 modules 13100, 18200, 35300 and
+  35400, where the account_info field was not bounded before it was copied
+- Fixed a heap buffer overflow in module 34000, where a base64 target hash wrote past the digest
+- Fixed a stack buffer overflow in module 23400, where a base64 salt wrote past its decode buffer
+- Fixed buffer overflows in modules 11600, 17050 and 70000, where a token wrote past the
+  field it decodes into
+- Fixed a buffer overflow in generic_salt_decode(), where a base64 salt wrote past
+  salt_buf for non optimized kernels
+- Fixed a one byte buffer overflow in fgetl() when a line was as long as the caller's buffer
+- Fixed an out-of-bounds read in the secp256k1 point_mul_xy() when the scalar is zero
+- Fixed the secp256k1 inv_mod() looping forever on a zero input, which hangs clFinish on CPU devices
+- Fixed missing libclang dependencies for Rust bridges in Ubuntu 20.04 and Arch containers
+- Fixed the Windows Rust plugin failing to link in the Arch container because lld was missing
+- Fixed Windows Python plugins disappearing when the bundled Python version was not 3.12
+- Fixed bridge_scrypt_jane failing to link with LTO on older mingw-w64 versions
+- Fixed bugs in several DES-based modules on CPU devices
+- Fixed the MSYS2 build
+- Fixed mask files not setting the mask length, causing --increment to misbehave
+- Fixed incorrect results from hc_memchr_avx2 and hc_memchr_avx512
+- Fixed the hash category for Mega.nz password-protected links
+- Fixed KeePass 4 accepting truncated hash lines
+- Fixed luks2hashcat.py generating invalid hash files
+- Fixed luks2hashcat.py reporting unencrypted data segments
+- Fixed an incorrect CRC include in m17220_a3-pure.cl
+- Fixed FIXED_LOCAL_SIZE being undefined for module 18600
+- Fixed kernel declarations for module 22800
+- Fixed cross-platform incompatibilities between POSIX and Windows threads
+- Fixed deprecated Bitcoin::Crypto symbols in the Bitcoin 2hashcat scripts
+- Fixed OpenCL 1.2 platforms compiling as OpenCL C 1.1 and rejecting file-scope static data
+- Fixed the NetBSD build conflict between its qsort_r declaration and sort_r.h
+- Fixed a cpuset warning on NetBSD
+- Fixed the status candidate line reading an unbounded length from device memory, risking a crash
+- Fixed --slow-candidates skipping a rejected word instead of rejecting it, shifting later candidates
+- Fixed -a 1 --slow-candidates not applying uppercase or encoding conversion to amplifier words
+- Fixed -a 1 truncating an amplifier word after encoding conversion instead of rejecting it
+- Fixed a file handle leak in -a 7 with the pure kernel, one per mask, dictionary and device
+- Fixed a restored position beyond the keyspace wrapping the remaining work to a huge value
+- Fixed brain attack identities not including the rules, so two different attacks shared a database
+- Fixed the progress line counting the words --skip left out as work that had already been done
+- Fixed a crash in autodetect and --identify when any hash-mode's module could not be loaded
+- Fixed a memory leak in module_load() on the paths where the module file cannot be opened
+  or has no module_init
+- Fixed RAR3-p Compressed being unusable on Windows because module_23800.dll imported libstdc++-6.dll
+- Fixed feeds/rust_random.dll shipping with no Windows version information
+- Fixed cargo refusing a --locked, offline or vendored build after winresource was added
+  without regenerating the lockfiles
+- Fixed the packaged Rust bridge sources rebuilding without version information, because
+  their build.rs was not copied
+- Fixed the binaries container failing to build 7-Zip after its toolchain moved to GCC 16
+- Fixed the binaries container packaging an incomplete archive when the build had failed
+- Fixed redefinition warnings from the Python.h and _WIN32_WINNT include order
+- Fixed "No devices found/left." not naming what removed the devices, nor that a bridge
+  was left with units and nothing to drive them
+- Fixed -I listing one backend device per bridge unit instead of one per physical device
+- Fixed an edited kernel not being compiled again, because the kernel cache key said
+  nothing about the kernel source
+- Fixed 'make linux' building every module, bridge and feed against the native core
+  instead of the Linux one
+- Fixed 'make hashcat.exe' cross compiling with -march=native, which can put instructions
+  in the binary that the target machine does not have
+- Fixed attack-mode 8 dying before the first candidate when hashcat was built with ENABLE_BRAIN=0
+- Fixed a failed build step leaving its half written output behind, which the next make
+  then called up to date
+- Fixed the brain giving two feed attacks one attack id when their arguments differed only
+  in where one argument ended, because the arguments were hashed without their terminator
+- Fixed --restore printing a resume command line that cannot be run when the recorded
+  command line contains '--', because hashcat's own two options were appended after it
+- Fixed POSIXLY_CORRECT deciding which arguments hashcat reads as options, which silently
+  handed hashcat's own options to the attack instead
+- Fixed a 32 bit overflow in the digest, esalt and hook salt buffer offsets, which
+  addressed the wrong hash once a list grew past what 32 bits can index
+- Fixed a one byte write past the debug plain buffer, seen with a rule that produced a
+  password of the maximum length
+- Fixed a double free in the rule processor when the combined rule count of chained rule
+  files exceeded 32 bits
+- Fixed an undetected u32 overflow when chaining rule files, where two large files ran a
+  keyspace of 65536 instead of the intended count and exhausted as though complete
+- Fixed module 10500 rejecting PDF hashes that carry an empty ID field
+- Fixed the yescrypt kernels for modules 36100 and 36200 failing to build on Metal because
+  of the address spaces they used
+- Fixed random rule generation filling the first position operator table with no-ops, so
+  -g never produced those operations
+- Fixed modules 03710, 04010 and 04110 advertising a salt limit their optimized kernel
+  cannot hold, which took a salt of 24 to 51 bytes with -O and then exhausted without cracking
+- Fixed the title case rule with a separator class leaving the separator character
+  unchanged instead of lowercasing it
+- Fixed --show corrupting LM output when a hash has an unusable right half, and made
+  pairing the split halves much faster
+- Fixed a stack buffer overflow in the 'convert to lower hex' and 'convert to upper hex' rules
+- Fixed a stack buffer overflow in mangle_dupeblock_prepend, where a rule such as /Xyp on
+  a long enough word asked for more bytes than the local buffer held
+- Fixed a heap buffer overflow in the PKZIP modules 17200, 17210, 17220, 17225 and 17230,
+  where the hex data token was decoded without being checked against the field it fills
+- Fixed a buffer overflow in modules 22000 and 22001, where the essid and eapol lengths
+  taken from an hccapx file were used without a range check
+- Fixed a GPU hang in modules 13400 and 29700, where a KeePass contents_len below 16, or
+  not a multiple of 16, underflowed a loop bound
+- Fixed a heap buffer overflow in module 34301, where a KeePass 4 header longer than the
+  field it decodes into was accepted
+- Fixed a stack use after scope in module 25400, and a '%s' that read past a line buffer
+  which is length delimited rather than terminated
+- Fixed an out-of-bounds read in is_hexify() for inputs shorter than the six bytes of '$HEX[]'
+- Fixed an out-of-bounds read in the reject_contain rule, and bounded the rule buffer that
+  a long rule line is copied into
+- Fixed an out-of-bounds read of the markov css buffers on device, which also reserved
+  64 MiB per device for buffers a wordlist run never creates
+- Fixed a rare race in --outfile-check
+- Fixed a run that lost every device still exiting successfully, which was most visible in
+  benchmark mode
+- Fixed an unused variable warning on Android builds, and affinity failures there being
+  blamed on pthread_setaffinity_np(), which does not exist on that platform
+- Fixed --keyspace and --total-candidates being accepted with attack-mode 9, where the
+  hash file was opened as a wordlist and the run ended on a line count that did not match a
+  salt count of one
+- Fixed association autosplit trying pieces of an account name shorter than three
+  characters, each of which cost a round against every account in the file
+- Fixed 66 modules underflowing the salt iteration count when the hash carried a zero,
+  which asked the device for about four billion iterations and hung the kernel
+- Fixed 16 modules deriving a salt iteration count by shifting past the width of the type,
+  where a value of 32 or more in the hash gave a count that was never the one asked for
+- Fixed the eight scrypt modules underflowing salt_repeats when the hash carried a
+  parallelism of zero, which hung the kernel on launch
+- Fixed --speed-only measuring with the bitmap flattened to a single entry, which
+  misreported the speed for a list holding many hashes
+
+##
+## Other changes
+##
+
+- Raised MODULE_INTERFACE_VERSION to 720, so third-party modules have to be rebuilt
+- Wordlist keyspace is now the line count, so Progress counts every line and rejects the unusable
+- Brain attack identities now include --skip and --limit, so a partial run is its own attack
+- Added SECURITY.md, which states which inputs are treated as coming from other people and
+  how a report is handled
 
 * changes v7.1.1 -> v7.1.2
 
@@ -31,10 +364,6 @@ Docker: Add hashcat-toolchain
 - CRC Libraries: CRC restructure
 - GOST Libraries: GOST R 34.11-94 restructure
 - SAP CODVN H: Raised the maximum salt length for hash-mode 35000 (isSHA512) from 16 to 192
-- Added 2 new rule ops, 'convert to lower hex' and 'convert to upper hex'
-- Added 1 new rule op, 'insert every'
-- Added a new rule op, 'shift case'
-- Added a new rule op, 'add byte value'
 
 ##
 ## Bugs
@@ -54,7 +383,6 @@ Docker: Add hashcat-toolchain
 ##
 
 Docker: Add initial support for AMD GPUs when running Hashcat inside Docker using HIP and OpenCL
-Docker: Add Ubuntu18 docker which produces one version compiled with gcc/mingw and the other with clang
 Hardware Monitor: Suppress fan speed warnings for unified memory setups (typically internal GPUs)
 Testing Framework: Enable hardware monitor to improve testing of memory-heavy algorithms
 Unit tests: Updated install_modules.sh to use an external module for Digest::MD6

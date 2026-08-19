@@ -35,9 +35,11 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --metal-compiler-runtime   | Num  | Abort Metal kernel build after X seconds of runtime  | --metal-compiler-runtime=180
      --runtime                  | Num  | Abort session after X seconds of runtime             | --runtime=10
      --session                  | Str  | Define specific session name                         | --session=mysession
-     --restore                  |      | Restore session from --session                       |
+     --restore                  |      | Show the command line to resume --session, then stop  |
+     --restore-auto             |      | Resume in one step instead, without showing it first  |
      --restore-disable          |      | Do not write restore file                            |
      --restore-file-path        | File | Specific path to restore file                        | --restore-file-path=x.restore
+     --restore-position         |      | Take only the position from the restore file         |
  -o, --outfile                  | File | Define outfile for recovered hash                    | -o outfile.txt
      --outfile-format           | Str  | Outfile format to use, separated with commas         | --outfile-format=1,3
      --outfile-json             |      | Force JSON format in outfile format                  |
@@ -56,7 +58,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --potfile-path             | File | Specific path to potfile                             | --potfile-path=my.pot
      --encoding-from            | Code | Force internal wordlist encoding from X              | --encoding-from=iso-8859-15
      --encoding-to              | Code | Force internal wordlist encoding to X                | --encoding-to=utf-32le
-     --debug-mode               | Num  | Defines the debug mode (hybrid only by using rules)  | --debug-mode=4
+     --debug-mode               | Num  | Defines the debug mode, requires -r or -g            | --debug-mode=4
      --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log
      --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts
      --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x
@@ -137,14 +139,16 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --brain-server             |      | Enable brain server                                  |
      --brain-server-timer       | Num  | Update the brain server dump each X seconds (min:60) | --brain-server-timer=300
  -z, --brain-client             |      | Enable brain client, activates -S                    |
+     --brain-feed               |      | Hash stdin into a running brain, needs --brain-session|
      --brain-client-features    | Num  | Define brain client features, see below              | --brain-client-features=3
      --brain-host               | Str  | Brain server host (IP or domain)                     | --brain-host=127.0.0.1
-     --brain-port               | Port | Brain server port                                    | --brain-port=13743
+     --brain-port               | Port | Brain server port (default 6863)                     | --brain-port=6863
      --brain-password           | Str  | Brain server authentication password                 | --brain-password=bZfhCvGUSjRq
      --brain-session            | Hex  | Overrides automatically calculated brain session     | --brain-session=0x2ae611db
      --brain-session-whitelist  | Hex  | Allow given sessions only, separated with commas     | --brain-session-whitelist=0x2ae611db
      --color-cracked            |      | Enables color output for cracked hashes              |
      --hash-copy                |      | Output hashes identically to the input hash          |
+     --encrypt-with-pubkey      | File | Encrypt recovered plains with an RSA public key      | --encrypt-with-pubkey=public.pem
 
 - [ Hash Modes ] -
 
@@ -190,6 +194,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   7 | Hybrid Mask + Wordlist
   8 | Generic
   9 | Association
+ 12 | Hybrid, mask says where the word goes
 
 - [ Built-in Charsets ] -
 
@@ -204,13 +209,22 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   a | ?l?u?d?s
   b | 0x00 - 0xff
 
+- [ Attack-Mode 12 Markers ] -
+
+  ? | Marker
+ ===+========
+  w | the word from the wordlist, required, once
+  q | a word from a second wordlist, optional, after ?w
+
 - [ OpenCL Device Types ] -
 
   # | Device Type
  ===+=============
   1 | CPU
   2 | GPU
-  3 | FPGA, DSP, Co-Processor
+  3 | OpenCL Accelerator
+
+Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.
 
 - [ Workload Profiles ] -
 
@@ -237,6 +251,9 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   Combinator       | MD5   | hashcat -a 1 -m 0 example0.hash example.dict example.dict
   Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule
   Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule
+  Association      | $1$   | hashcat -a 9 -m 500 user500.hash -r rules/best66.rule
+  Hybrid           | MD5   | hashcat -a 12 -m 0 example0.hash ?d?w?d?d example.dict
+  Hybrid, two dict | MD5   | hashcat -a 12 -m 0 example0.hash ?w-?q! example.dict example.dict
 
 If you still have no idea what just happened, try the following pages:
 
