@@ -285,11 +285,17 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
 
       if (generic_ctx->enabled == false) continue;
 
+      // The terminator goes in with the argument. Without it the arguments are concatenated and the
+      // hash cannot tell where one ended, so "wordlist a b" and "wordlist ab" are the same attack to
+      // the brain, and so are two feeds whose settings only differ in where one argument stops and
+      // the next begins. A NUL is the one byte an argument cannot contain, which is what makes the
+      // concatenation reversible again.
+
       for (int i = 0; i < generic_ctx->workc; i++)
       {
         const char *workv = generic_ctx->workv[i];
 
-        XXH64_update (state, workv, strlen (workv));
+        XXH64_update (state, workv, strlen (workv) + 1);
       }
 
       // A feed that reads a file is a different attack once that file changes, and its path does not

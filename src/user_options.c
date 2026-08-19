@@ -376,6 +376,22 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   int option_index;
 
+  // Which arguments are options is hashcat's decision and not the environment's. getopt reorders the
+  // command line so that an option is an option wherever it stands, and every example hashcat gives
+  // relies on that: "hashcat -m 0 hash.txt wordlist -r rules/best64.rule" has an option after two
+  // work arguments. POSIXLY_CORRECT turns the reordering off, and then everything from the first
+  // work argument on is handed to the attack instead of being parsed, silently. "-a 8 --stdout feed
+  // --limit 2" prints two candidates normally and runs to exhaustion with the variable set.
+  //
+  // It is removed rather than read, because getopt only asks whether the name exists and a value of
+  // "0" or "" would still mean yes. This changes nothing outside hashcat's own process.
+
+  #if defined (_WIN)
+  _putenv_s ("POSIXLY_CORRECT", "");
+  #else
+  unsetenv ("POSIXLY_CORRECT");
+  #endif
+
   optind = 1;
   optopt = 0;
 
