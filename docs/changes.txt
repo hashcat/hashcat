@@ -266,6 +266,11 @@ argument list is shown instead.
 - Fixed redefinition warnings from the Python.h and _WIN32_WINNT include order
 - Fixed "No devices found/left." not naming what removed the devices, nor that a bridge
   was left with units and nothing to drive them
+- Fixed "No devices found/left." counting the virtualized device list, so a bridge run
+  described the host device as the whole machine and never mentioned the CPU runtime that
+  --backend-devices-virthost could have picked instead
+- Fixed --backend-devices-virthost past the last device reporting that no device was found
+  at all, instead of that the device number it asks for does not exist
 - Fixed -I listing one backend device per bridge unit instead of one per physical device
 - Fixed an edited kernel not being compiled again, because the kernel cache key said
   nothing about the kernel source

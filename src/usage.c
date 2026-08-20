@@ -112,7 +112,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   " -I, --backend-info             |      | Show system/environment/backend API info             | -I or -II",
   " -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1",
   " -Y, --backend-devices-virtmulti| Num  | Spawn X virtual instances on a real device           | -Y 8",
-  " -R, --backend-devices-virthost | Num  | Sets the real device to create virtual instances     | -R 1",
+  " -R, --backend-devices-virthost | Num  | Sets the real device that runs the virtual instances | -R 2",
   "     --backend-devices-keepfree | Num  | Keep specified percentage of device memory free      | --backend-devices-keepfree=5",
   " -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1",
   " -O, --optimized-kernel-enable  |      | Enable optimized kernels (limits password length)    |",

@@ -6297,6 +6297,19 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (backend_ctx, 0, sizeof (backend_ctx_t));
 }
 
+// Append one physical device to the inventory, in backend device order. Called by each backend before
+// it lets virtualization rewrite its device count, because after that point the count describes a
+// clone list and not the machine.
+
+static void backend_ctx_physical_device_add (backend_ctx_t *backend_ctx, const cl_device_type opencl_device_type)
+{
+  if (backend_ctx->physical_devices_cnt >= DEVICES_MAX) return;
+
+  backend_ctx->physical_devices_type[backend_ctx->physical_devices_cnt] = opencl_device_type;
+
+  backend_ctx->physical_devices_cnt++;
+}
+
 static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virthost, int *virthost_finder, int *backend_devices_idx, int *bridge_link_device)
 {
   const bridge_ctx_t   *bridge_ctx    = hashcat_ctx->bridge_ctx;
@@ -6320,6 +6333,10 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
     {
       cuda_close (hashcat_ctx);
     }
+
+    // the machine as it is, recorded before the block below rewrites the count for virtualization
+
+    for (int i = 0; i < cuda_devices_cnt; i++) backend_ctx_physical_device_add (backend_ctx, CL_DEVICE_TYPE_GPU);
 
     if (is_virtualized == true)
     {
@@ -6810,6 +6827,10 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
     {
       hip_close (hashcat_ctx);
     }
+
+    // the machine as it is, recorded before the block below rewrites the count for virtualization
+
+    for (int i = 0; i < hip_devices_cnt; i++) backend_ctx_physical_device_add (backend_ctx, CL_DEVICE_TYPE_GPU);
 
     if (is_virtualized == true)
     {
@@ -7353,6 +7374,10 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
       mtl_close (hashcat_ctx);
     }
 
+    // the machine as it is, recorded before the block below rewrites the count for virtualization
+
+    for (int i = 0; i < metal_devices_cnt; i++) backend_ctx_physical_device_add (backend_ctx, CL_DEVICE_TYPE_GPU);
+
     if (is_virtualized == true)
     {
       if ((*virthost == -1) && (*virthost_finder <= metal_devices_cnt))
@@ -7773,6 +7798,19 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
       cl_uint         opencl_platform_devices_cnt = opencl_platforms_devices_cnt[opencl_platforms_idx];
       cl_uint         opencl_platform_vendor_id   = opencl_platforms_vendor_id[opencl_platforms_idx];
       char           *opencl_platform_version     = opencl_platforms_version[opencl_platforms_idx];
+
+      // the machine as it is, recorded before the block below rewrites this platform's count for
+      // virtualization. A device whose type cannot be read is still counted, because dropping it
+      // would shift every device number after it away from what -I and -d call the same device
+
+      for (u32 i = 0; i < opencl_platform_devices_cnt; i++)
+      {
+        cl_device_type opencl_device_type = 0;
+
+        hc_clGetDeviceInfo (hashcat_ctx, opencl_platform_devices[i], CL_DEVICE_TYPE, sizeof (opencl_device_type), &opencl_device_type, NULL);
+
+        backend_ctx_physical_device_add (backend_ctx, opencl_device_type);
+      }
 
       if (is_virtualized == true)
       {
@@ -9158,6 +9196,92 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
   backend_ctx->opencl_devices_active  = opencl_devices_active;
 }
 
+static const char *backend_ctx_device_type_name (const cl_device_type opencl_device_type)
+{
+  if (opencl_device_type & CL_DEVICE_TYPE_CPU)         return "CPU";
+  if (opencl_device_type & CL_DEVICE_TYPE_GPU)         return "GPU";
+  if (opencl_device_type & CL_DEVICE_TYPE_ACCELERATOR) return "accelerator";
+
+  return "device";
+}
+
+// The device the user should point --backend-devices-virthost at when the current one was rejected by
+// the device type filter: the lowest numbered physical device that the filter does accept. 0 when the
+// machine has none, and then there is nothing to suggest.
+
+static int backend_ctx_virthost_suggestion (const backend_ctx_t *backend_ctx)
+{
+  for (int physical_devices_idx = 0; physical_devices_idx < backend_ctx->physical_devices_cnt; physical_devices_idx++)
+  {
+    const cl_device_type opencl_device_type = backend_ctx->physical_devices_type[physical_devices_idx];
+
+    if ((backend_ctx->opencl_device_types_filter & opencl_device_type) == 0) continue;
+
+    const int suggestion = physical_devices_idx + 1;
+
+    return suggestion;
+  }
+
+  return 0;
+}
+
+// Virtualization runs every backend device on a single physical device, so that one device is the
+// entire selection and the rest of the machine was never a candidate. Listing the inventory without
+// saying so reads as hardware that hashcat cannot see, and the option that decides which device it is
+// has to be named or there is no way to act on the message.
+
+static void backend_ctx_devices_none_reason_virthost (hashcat_ctx_t *hashcat_ctx)
+{
+  const backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  event_log_warning (hashcat_ctx, NULL);
+
+  // The host device number is past the end of the physical device list. Every backend then counts
+  // itself out and no device is created at all, which is not the machine having no device.
+
+  if (backend_ctx->backend_devices_virthost == 0)
+  {
+    event_log_warning (hashcat_ctx, "--backend-devices-virthost=%u asks for device #%u, and this machine has %d.", user_options->backend_devices_virthost, user_options->backend_devices_virthost, backend_ctx->physical_devices_cnt);
+    event_log_warning (hashcat_ctx, "That option picks the one physical device every virtual device runs on, so none were created.");
+    event_log_warning (hashcat_ctx, "Run hashcat -I to see the device numbering.");
+
+    return;
+  }
+
+  const int virthost = backend_ctx->backend_devices_virthost;
+
+  const cl_device_type virthost_type = backend_ctx->physical_devices_type[virthost - 1];
+
+  event_log_warning (hashcat_ctx, "Every virtual device is a copy of one physical device, and --backend-devices-virthost picks it.");
+  event_log_warning (hashcat_ctx, "Here that is device #%d, a %s, so it is the only device this run could have used.", virthost, backend_ctx_device_type_name (virthost_type));
+
+  if ((backend_ctx->opencl_device_types_filter & virthost_type) == 0)
+  {
+    if (user_options->opencl_device_types == NULL)
+    {
+      event_log_warning (hashcat_ctx, "The default device type selection excluded it.");
+    }
+    else
+    {
+      event_log_warning (hashcat_ctx, "-D %s excluded it. -D 1 is CPU, -D 2 is GPU and -D 3 is an OpenCL accelerator card.", user_options->opencl_device_types);
+    }
+
+    const int suggestion = backend_ctx_virthost_suggestion (backend_ctx);
+
+    if (suggestion > 0)
+    {
+      event_log_warning (hashcat_ctx, "Device #%d is a %s. Add --backend-devices-virthost=%d to run on that one instead.", suggestion, backend_ctx_device_type_name (backend_ctx->physical_devices_type[suggestion - 1]), suggestion);
+    }
+  }
+  else if (user_options->backend_devices != NULL)
+  {
+    event_log_warning (hashcat_ctx, "Check -d %s, which selects among the %d virtual device(s) and not among the physical ones.", user_options->backend_devices, backend_ctx->backend_devices_cnt);
+  }
+
+  event_log_warning (hashcat_ctx, "Run hashcat -I to see the device numbering.");
+}
+
 // Why nothing is left, printed under "No devices found/left."
 //
 // That sentence on its own describes the outcome and none of the cause, and everything needed to name
@@ -9175,7 +9299,7 @@ static void backend_ctx_devices_none_reason (hashcat_ctx_t *hashcat_ctx)
   // Nothing was ever discovered, which is a different problem from everything being filtered out and
   // has a different fix. No runtime, no driver, or no permission to reach one.
 
-  if (backend_ctx->backend_devices_cnt == 0)
+  if (backend_ctx->physical_devices_cnt == 0)
   {
     event_log_warning (hashcat_ctx, "No OpenCL, CUDA, HIP or Metal device was found at all.");
     event_log_warning (hashcat_ctx, "Run hashcat -I to see what the backends report, and check that a runtime is installed.");
@@ -9187,32 +9311,28 @@ static void backend_ctx_devices_none_reason (hashcat_ctx_t *hashcat_ctx)
   // Devices were found and none survived. Count what was there and how much of it this run's device
   // type filter is responsible for, which is the case that reads as broken hardware.
 
-  // Counted over PHYSICAL devices. A bridge run clones its host device once per unit, so counting the
-  // raw list would report one GPU as sixty-four of them, in the middle of a message whose whole job is
-  // to describe the machine accurately.
+  // Counted over the physical inventory, not over the device list. Virtualization replaces that list
+  // with copies of a single physical device, so the list would report one GPU as sixty-four of them and
+  // would not mention the CPU runtime the machine also has, in the middle of a message whose whole job
+  // is to describe the machine accurately.
+
+  const int found_total = backend_ctx->physical_devices_cnt;
 
   int found_cpu   = 0;
   int found_gpu   = 0;
   int found_accel = 0;
 
-  int found_total = 0;
   int cut_by_type = 0;
 
-  for (int i = 0; i < backend_ctx->backend_devices_cnt; i++)
+  for (int physical_devices_idx = 0; physical_devices_idx < found_total; physical_devices_idx++)
   {
-    const hc_device_param_t *device_param = &backend_ctx->devices_param[i];
+    const cl_device_type opencl_device_type = backend_ctx->physical_devices_type[physical_devices_idx];
 
-    if (device_param->is_virtual == true) continue;
+    if (opencl_device_type & CL_DEVICE_TYPE_CPU)         found_cpu++;
+    if (opencl_device_type & CL_DEVICE_TYPE_GPU)         found_gpu++;
+    if (opencl_device_type & CL_DEVICE_TYPE_ACCELERATOR) found_accel++;
 
-    const cl_device_type t = device_param->opencl_device_type;
-
-    if (t & CL_DEVICE_TYPE_CPU)         found_cpu++;
-    if (t & CL_DEVICE_TYPE_GPU)         found_gpu++;
-    if (t & CL_DEVICE_TYPE_ACCELERATOR) found_accel++;
-
-    found_total++;
-
-    if ((backend_ctx->opencl_device_types_filter & t) == 0) cut_by_type++;
+    if ((backend_ctx->opencl_device_types_filter & opencl_device_type) == 0) cut_by_type++;
   }
 
   event_log_warning (hashcat_ctx, "%d device(s) were found and none of them is usable for this run.", found_total);
@@ -9222,24 +9342,31 @@ static void backend_ctx_devices_none_reason (hashcat_ctx_t *hashcat_ctx)
     event_log_warning (hashcat_ctx, "Found: %d CPU, %d GPU, %d accelerator.", found_cpu, found_gpu, found_accel);
   }
 
-  // The device type filter is the one worth naming, because -D is the only way a user can silently ask
-  // for a class of device that is not present.
+  const bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
 
-  if ((found_total > 0) && (cut_by_type == found_total))
+  // The device type filter is the one worth naming, because -D is the only way a user can silently ask
+  // for a class of device that is not present. Under virtualization the filter only ever applied to the
+  // host device, so counting the whole inventory against it would be wrong here and that case is
+  // answered further down instead.
+
+  if (is_virtualized == false)
   {
-    if (user_options->opencl_device_types == NULL)
+    if (cut_by_type == found_total)
     {
-      event_log_warning (hashcat_ctx, "All of them were excluded by the default device type selection.");
+      if (user_options->opencl_device_types == NULL)
+      {
+        event_log_warning (hashcat_ctx, "All of them were excluded by the default device type selection.");
+      }
+      else
+      {
+        event_log_warning (hashcat_ctx, "All of them were excluded by -D %s.", user_options->opencl_device_types);
+        event_log_warning (hashcat_ctx, "-D 1 is CPU, -D 2 is GPU and -D 3 is an OpenCL accelerator card.");
+      }
     }
-    else
+    else if (user_options->backend_devices != NULL)
     {
-      event_log_warning (hashcat_ctx, "All of them were excluded by -D %s.", user_options->opencl_device_types);
-      event_log_warning (hashcat_ctx, "-D 1 is CPU, -D 2 is GPU and -D 3 is an OpenCL accelerator card.");
+      event_log_warning (hashcat_ctx, "Check -d %s, which is what selects among them.", user_options->backend_devices);
     }
-  }
-  else if (user_options->backend_devices != NULL)
-  {
-    event_log_warning (hashcat_ctx, "Check -d %s, which is what selects among them.", user_options->backend_devices);
   }
 
   // The reason this function exists. A bridge unit computes but does not feed itself: a backend device
@@ -9259,6 +9386,8 @@ static void backend_ctx_devices_none_reason (hashcat_ctx_t *hashcat_ctx)
       event_log_warning (hashcat_ctx, "and on a machine with no GPU no -D is needed at all.");
     }
   }
+
+  if (is_virtualized == true) backend_ctx_devices_none_reason_virthost (hashcat_ctx);
 
   event_log_warning (hashcat_ctx, NULL);
 }
@@ -9287,6 +9416,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   int virthost = -1;
   int virthost_finder = user_options->backend_devices_virthost;
 
+  backend_ctx->physical_devices_cnt = 0;
+
   // CUDA
 
   backend_ctx_devices_init_cuda (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
@@ -9302,6 +9433,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
   // OCL
 
   backend_ctx_devices_init_opencl (hashcat_ctx, &virthost, &virthost_finder, &backend_devices_idx, &bridge_link_device);
+
+  // What virtualization resolved the host device to, as a backend device number. It stays 0 when no
+  // backend claimed the requested number, which means the number is past the end of the physical
+  // device list and no device was created at all.
+
+  backend_ctx->backend_devices_virthost = (virthost == -1) ? 0 : (int) user_options->backend_devices_virthost;
 
   // all devices combined go into backend_* variables
 

@@ -2197,6 +2197,15 @@ typedef struct backend_ctx
   int                 backend_devices_keepfree;
   int                 backend_devices_active;
 
+  // The machine as the runtimes reported it, recorded before virtualization rewrites the device list.
+  // A virtualized run replaces that list with clones of one physical device, so the list can no longer
+  // answer which hardware is present, which is exactly what a message about having no usable device
+  // left has to describe. Indexed the way backend devices are numbered without virtualization, so
+  // index 0 is device #1 and is also --backend-devices-virthost=1.
+
+  int                 physical_devices_cnt;
+  cl_device_type      physical_devices_type[DEVICES_MAX];
+
   int                 cuda_devices_cnt;
   int                 cuda_devices_active;
   int                 hip_devices_cnt;
