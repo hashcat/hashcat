@@ -29,6 +29,20 @@ LUKS1_ALL_MODES="${LUKS1_LEGACY_MODE} ${LUKS1_MODES}"
 # List of LUKS2 modes which have test containers
 LUKS2_MODES="34100"
 
+# GPG secret-key modes generated on-the-fly with -g:
+#   17010/17020/17030/17040 - gpg1 (GnuPG 1.4) controls the classic S2K
+#     digest/cipher; gpg2 also produces the default SHA1/AES key.
+#   17050 (AES-OCB) - GnuPG 2.3+ protects the on-disk private key with
+#     openpgp-s2k3-ocb-aes (12-byte OCB nonce). An ed25519 key (32-byte d, the
+#     only shape the 17050 kernel verifies) is generated with gpg2 and the hash
+#     is read straight from private-keys-v1.d/*.key by tools/gpg-ocb-aes2hashcat.py
+#     (gpg2john and --export-secret-keys cannot: they re-encode to the wire
+#     format with a 16-byte nonce / CFB).
+GPG_GEN_MODES="17010 17020 17030 17040 17050"
+
+# PKZIP (traditional PKWARE / ZipCrypto) modes generated on-the-fly with -g
+PKZIP_GEN_MODES="17200 17210 17220 17225 17230"
+
 LUKS_MODES="${LUKS1_MODES} ${LUKS2_MODES}"
 
 # Cryptoloop mode which have test containers
@@ -4213,6 +4227,287 @@ function luks2_test()
 }
 
 
+function gpg_run_and_report()
+{
+  # $1 = CMD, $2 = hashType, $3 = attackType, $4 = label (e.g. "GPG-src gpg1-sha1-aes")
+  local CMD="$1"
+  local rt_hashType="$2"
+  local rt_attackType="$3"
+  local rt_label="$4"
+
+  local output ret
+  e_ce=0; e_rs=0; e_to=0; e_nf=0; e_nm=0; cnt=0
+
+  echo "> Testing hash type ${rt_hashType} with attack mode ${rt_attackType}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, ${rt_label}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+  output=$(eval ${CMD} 2>&1)
+  ret=${?}
+
+  echo "${output}" >> "${OUTD}/logfull.txt"
+
+  status ${ret}
+
+  cnt=1
+
+  local msg="OK"
+  if [ "${e_ce}" -ne 0 ]; then
+    msg="Compare Error"
+  elif [ "${e_rs}" -ne 0 ]; then
+    msg="Skip"
+  elif [ "${e_nf}" -ne 0 ] || [ "${e_nm}" -ne 0 ] || [ "${cnt}" -eq 0 ]; then
+    msg="Error"
+  elif [ "${e_to}" -ne 0 ]; then
+    msg="Warning"
+  fi
+
+  echo "[ ${OUTD} ] [ Type ${rt_hashType}, Attack ${rt_attackType}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, ${rt_label} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+
+  status ${ret}
+}
+
+function build_container_cmd()
+{
+  # Build the hashcat command line for a real crypto-container hash, given the
+  # known password. Mirrors luks2_test()'s per-attack handling.
+  # $1 = hashType, $2 = attackType, $3 = hashFile, $4 = password
+  # result in the global CONTAINER_CMD
+  local bc_hashType="$1"
+  local bc_attackType="$2"
+  local bc_hashFile="$3"
+  local bc_password="$4"
+
+  local dictFile1="${OUTD}/${bc_hashType}_cont_dict1"
+  local dictFile2="${OUTD}/${bc_hashType}_cont_dict2"
+  local mainMask="?l"
+  local mask="${mainMask}"
+
+  CONTAINER_CMD=""
+
+  case ${bc_attackType} in
+    0)
+      echo "${bc_password}" > "${dictFile1}" 2>/dev/null
+      CONTAINER_CMD="./${BIN} ${OPTS} -a 0 -m ${bc_hashType} '${bc_hashFile}' ${dictFile1}"
+      ;;
+    1)
+      local part1Len=$((${#bc_password} / 2))
+      local part2Start=$((part1Len + 1))
+
+      echo "${bc_password}" | cut -c-${part1Len}    > "${dictFile1}" 2>/dev/null
+      echo "${bc_password}" | cut -c${part2Start}-  > "${dictFile2}" 2>/dev/null
+
+      CONTAINER_CMD="./${BIN} ${OPTS} -a 1 -m ${bc_hashType} '${bc_hashFile}' ${dictFile1} ${dictFile2}"
+      ;;
+    3)
+      local maskFixedLen=$((${#bc_password} - 1))
+
+      mask="$(echo "${bc_password}" | cut -c-${maskFixedLen} 2>/dev/null)"
+      mask="${mask}${mainMask}"
+
+      CONTAINER_CMD="./${BIN} ${OPTS} -a 3 -m ${bc_hashType} '${bc_hashFile}' ${mask}"
+      ;;
+    6)
+      local part1Len=$((${#bc_password} - 1))
+
+      echo "${bc_password}" | cut -c-${part1Len} > "${dictFile1}" 2>/dev/null
+
+      CONTAINER_CMD="./${BIN} ${OPTS} -a 6 -m ${bc_hashType} '${bc_hashFile}' ${dictFile1} ${mask}"
+      ;;
+    7)
+      echo "${bc_password}" | cut -c2- > "${dictFile1}" 2>/dev/null
+
+      CONTAINER_CMD="./${BIN} ${OPTS} -a 7 -m ${bc_hashType} '${bc_hashFile}' ${mask} ${dictFile1}"
+      ;;
+  esac
+}
+
+function pkzip_test()
+{
+  # Real-container test for the traditional PKWARE / ZipCrypto modes.
+  # Builds genuine archives with InfoZip 'zip', extracts the hash with John's
+  # zip2john, and confirms hashcat cracks the known password. This is the
+  # ground-truth complement to the self-contained test.pl oracles.
+  hashType=$1
+  attackType=$2
+
+  # PKZIP is a fast hash with separate a0/a1/a3 kernels, so when no attack was
+  # forced ("all") we exercise 0/1/3 to cover each kernel rather than only a0.
+  local attackList
+  if [ "${attackType}" -eq 65535 ]; then
+    attackList="0 1 3"
+  else
+    attackList="${attackType}"
+  fi
+
+  local ZIP_BIN="${ZIP_BIN:-zip}"
+  local ZIP2JOHN="${ZIP2JOHN:-$(command -v zip2john 2>/dev/null || echo /home/user/john/run/zip2john)}"
+
+  if ! command -v "${ZIP_BIN}" >/dev/null 2>&1; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : 'zip' not found (install InfoZip zip)"
+    return
+  fi
+  if [ ! -x "${ZIP2JOHN}" ] && ! command -v "${ZIP2JOHN}" >/dev/null 2>&1; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : zip2john not found (set ZIP2JOHN=/path/to/zip2john)"
+    return
+  fi
+
+  local password="hashcat"
+  local zdir="${OUTD}/pkzip_tests"
+  local sdir="${zdir}/src"
+  mkdir -p "${sdir}"
+
+  # a few compressible text files + one incompressible blob (forces a stored entry)
+  local i
+  for i in 1 2 3 4; do
+    yes "pattern ${i} the quick brown fox " 2>/dev/null | head -c 8000 > "${sdir}/t${i}.txt"
+  done
+  head -c 64 /dev/urandom > "${sdir}/rand.bin"
+
+  local zf="${zdir}/${hashType}.zip"
+  local j2jflag=""
+  rm -f "${zf}"
+
+  case ${hashType} in
+    17200) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
+    17210) "${ZIP_BIN}" -0 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
+    17220) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" >/dev/null 2>&1 ;;
+    17225) "${ZIP_BIN}" -e    -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/rand.bin" "${sdir}/t2.txt" >/dev/null 2>&1 ;;
+    17230) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" "${sdir}/t4.txt" >/dev/null 2>&1; j2jflag="-c" ;;
+    *) echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : unsupported PKZIP mode for -g"; return ;;
+  esac
+
+  local hashFile="${zdir}/${hashType}.hash"
+  "${ZIP2JOHN}" ${j2jflag} "${zf}" 2>/dev/null | sed -E 's/^[^:]*://' | grep -oE '^\$pkzip2?\$[^:]+' | head -1 > "${hashFile}"
+
+  if [ ! -s "${hashFile}" ]; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Error : zip2john produced no hash for ${zf}"
+    return
+  fi
+
+  local at
+  for at in ${attackList}; do
+    build_container_cmd "${hashType}" "${at}" "${hashFile}" "${password}"
+
+    if [ -n "${CONTAINER_CMD}" ]; then
+      gpg_run_and_report "${CONTAINER_CMD}" "${hashType}" "${at}" "PKZIP-container"
+    fi
+  done
+}
+
+function gpg_test()
+{
+  # Real-container test for the GPG secret-key modes. gpg1 (GnuPG 1.4) is used
+  # for the classic CFB S2K variants because it honours --s2k-digest-algo /
+  # --s2k-cipher-algo directly; gpg2 (GnuPG 2.x) is used for the AEAD/OCB path
+  # and as a second producer for the default SHA1/AES key. gpg2john extracts the
+  # $gpg$ hash and hashcat cracks the known passphrase.
+  hashType=$1
+  attackType=$2
+
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  local GPG1_BIN="${GPG1_BIN:-gpg1}"
+  local GPG2_BIN="${GPG2_BIN:-gpg}"
+  local GPG2JOHN="${GPG2JOHN:-$(command -v gpg2john 2>/dev/null || echo /home/user/john/run/gpg2john)}"
+  local GPG_OCB_EXTRACT="${GPG_OCB_EXTRACT:-${TDIR}/gpg-ocb-aes2hashcat.py}"
+
+  if [ ! -x "${GPG2JOHN}" ] && ! command -v "${GPG2JOHN}" >/dev/null 2>&1; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : gpg2john not found (set GPG2JOHN=/path/to/gpg2john)"
+    return
+  fi
+
+  if ! command -v "${GPG1_BIN}" >/dev/null 2>&1; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Note : ${GPG1_BIN} (GnuPG 1.x) not found -- classic S2K variants and the AES-128 (aux1) path are skipped; set GPG1_BIN=... if installed elsewhere"
+  fi
+
+  local password="hashcat"
+  local gdir="${OUTD}/gpg_tests"
+  mkdir -p "${gdir}"
+
+  # Each producer appends "label|hashfile" lines to this list.
+  local producers=""
+
+  gpg1_key() { # digest cipher label
+    command -v "${GPG1_BIN}" >/dev/null 2>&1 || return
+    local dg="$1" ci="$2" label="$3"
+    local H; H="$(mktemp -d)"
+    "${GPG1_BIN}" --homedir "${H}" --batch --no-tty --s2k-digest-algo "${dg}" --s2k-cipher-algo "${ci}" --s2k-mode 3 --s2k-count 65536 --gen-key >/dev/null 2>&1 <<EOF
+Key-Type: RSA
+Key-Length: 1024
+Key-Usage: sign
+Name-Real: ${label}
+Name-Email: ${label}@hashcat.test
+Passphrase: ${password}
+Expire-Date: 0
+%commit
+EOF
+    local hf="${gdir}/${hashType}_${label}.hash"
+    "${GPG2JOHN}" "${H}/secring.gpg" 2>/dev/null | sed -E 's/^[^:]*://' | grep -oE '^\$gpg\$[^:]*' | head -1 > "${hf}"
+    rm -rf "${H}"
+    [ -s "${hf}" ] && producers="${producers} ${label}|${hf}"
+  }
+
+  gpg2_key() { # label extra_args...
+    command -v "${GPG2_BIN}" >/dev/null 2>&1 || return
+    local label="$1"; shift
+    local H; H="$(mktemp -d)"
+    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" "$@" --quick-generate-key "${label} <${label}@hashcat.test>" rsa1024 sign 0 >/dev/null 2>&1
+    local sk="${gdir}/${hashType}_${label}.sk.gpg"
+    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --export-secret-keys 2>/dev/null > "${sk}"
+    local hf="${gdir}/${hashType}_${label}.hash"
+    "${GPG2JOHN}" "${sk}" 2>/dev/null | sed -E 's/^[^:]*://' | grep -oE '^\$gpg\$[^:]*' | head -1 > "${hf}"
+    rm -rf "${H}"
+    [ -s "${hf}" ] && producers="${producers} ${label}|${hf}"
+  }
+
+  gpg2_ocb_key() { # label -- GnuPG 2.3+ on-disk OCB key; ed25519 (32-byte d) is
+                   # the only key shape the 17050 kernel verifies
+    command -v "${GPG2_BIN}" >/dev/null 2>&1 || return
+    [ -f "${GPG_OCB_EXTRACT}" ] || { echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : ${GPG_OCB_EXTRACT} not found"; return; }
+    local label="$1"
+    local H; H="$(mktemp -d)"
+    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --quick-generate-key "${label} <${label}@hashcat.test>" ed25519 sign 0 >/dev/null 2>&1
+    local kf; kf="$(ls "${H}"/private-keys-v1.d/*.key 2>/dev/null | head -1)"
+    local hf="${gdir}/${hashType}_${label}.hash"
+    if [ -n "${kf}" ] && grep -aq 'openpgp-s2k3-ocb-aes' "${kf}" 2>/dev/null; then
+      python3 "${GPG_OCB_EXTRACT}" "${kf}" 2>/dev/null | grep -oE '^\$gpg\$[^:]*' | head -1 > "${hf}"
+    fi
+    rm -rf "${H}"
+    [ -s "${hf}" ] && producers="${producers} ${label}|${hf}"
+  }
+
+  case ${hashType} in
+    # 17010/17020/17030 each have two runtime cipher paths in the kernel -- aux1
+    # (AES-128) and aux2 (AES-256), picked from the key's cipher_algo -- so
+    # generate one container for each to exercise both. 17040 (CAST5) is a single
+    # path (no aux kernels).
+    17010) gpg1_key SHA1   AES    gpg1-sha1-aes128;   gpg1_key SHA1   AES256 gpg1-sha1-aes256;   gpg2_key gpg2-default ;;
+    17020) gpg1_key SHA512 AES    gpg1-sha512-aes128; gpg1_key SHA512 AES256 gpg1-sha512-aes256 ;;
+    17030) gpg1_key SHA256 AES    gpg1-sha256-aes128; gpg1_key SHA256 AES256 gpg1-sha256-aes256 ;;
+    17040) gpg1_key SHA1   CAST5  gpg1-sha1-cast5 ;;
+    17050) gpg2_ocb_key gpg2-ed25519-ocb ;;
+    *) echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : unsupported GPG mode for -g"; return ;;
+  esac
+
+  if [ -z "${producers}" ]; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : could not generate a matching GPG container (gpg1/gpg2 unavailable or mode unsupported by local tools)"
+    return
+  fi
+
+  local entry label hf
+  for entry in ${producers}; do
+    label="${entry%%|*}"
+    hf="${entry##*|}"
+
+    build_container_cmd "${hashType}" "${attackType}" "${hf}" "${password}"
+
+    if [ -n "${CONTAINER_CMD}" ]; then
+      gpg_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "GPG-container ${label}"
+    fi
+  done
+}
+
 function usage()
 {
 cat << EOF
@@ -4280,7 +4575,8 @@ OPTIONS:
   -I    Use this folder as input/output folder for packaged tests
         (string)    => path to folder
 
-  -g    Generate crypto-containers on-the-fly (requires sudo)
+  -g    Generate crypto-containers on-the-fly. GPG (gpg1/gpg2) and PKZIP (zip)
+        need no privileges; only LUKS2 generation requires sudo.
 
   -h    Show this help
 
@@ -4756,6 +5052,9 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
             elif is_in_array "${hash_type}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]]; then
               # run luks2 tests
               luks2_test "${hash_type}" ${ATTACK}
+            elif is_in_array "${hash_type}" ${GPG_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+              # generate + test real GPG secret-key containers
+              gpg_test "${hash_type}" ${ATTACK}
             else
               # run attack mode 0 (stdin)
               if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
@@ -4763,7 +5062,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
           else
 
-            if is_in_array "${hash_type}" ${CL_MODES}; then
+            if is_in_array "${hash_type}" ${PKZIP_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+              # generate + test real PKZIP/ZipCrypto containers
+              pkzip_test "${hash_type}" ${ATTACK}
+            elif is_in_array "${hash_type}" ${CL_MODES}; then
               # run cryptoloop tests
               cryptoloop_test "${hash_type}" 128
               cryptoloop_test "${hash_type}" 192
