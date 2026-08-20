@@ -231,9 +231,12 @@ bool need_hexify (const u8 *buf, const size_t len, const char separator, bool al
   return false;
 }
 
-void exec_hexify (const u8 *buf, const size_t len, u8 *out)
+// The input is clamped to PW_MAX, so a caller that advances by len * 2 runs past what was produced
+// and reads whatever the destination held. Report what was written and let the caller advance by it.
+
+size_t exec_hexify (const u8 *buf, const size_t len, u8 *out)
 {
-  const size_t max_len = (len > PW_MAX) ? PW_MAX : len;
+  const size_t max_len = MIN (len, PW_MAX);
 
   for (int i = (int) max_len - 1, j = i * 2; i >= 0; i -= 1, j -= 2)
   {
@@ -241,6 +244,10 @@ void exec_hexify (const u8 *buf, const size_t len, u8 *out)
   }
 
   out[max_len * 2] = 0;
+
+  const size_t out_len = max_len * 2;
+
+  return out_len;
 }
 
 bool is_valid_base64a_string (const u8 *s, const size_t len)

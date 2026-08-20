@@ -890,9 +890,9 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         tmp_buf[tmp_len++] = 'X';
         tmp_buf[tmp_len++] = '[';
 
-        exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+        const size_t hex_len = exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
 
-        tmp_len += strlen (hashconfig->st_pass) * 2;
+        tmp_len += (int) hex_len;
 
         tmp_buf[tmp_len++] = ']';
         tmp_buf[tmp_len++] = 0;
@@ -1154,9 +1154,9 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
         tmp_buf[tmp_len++] = 'X';
         tmp_buf[tmp_len++] = '[';
 
-        exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+        const size_t hex_len = exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
 
-        tmp_len += strlen (hashconfig->st_pass) * 2;
+        tmp_len += (int) hex_len;
 
         tmp_buf[tmp_len++] = ']';
         tmp_buf[tmp_len++] = 0;

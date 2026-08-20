@@ -568,9 +568,11 @@ static int outfile_append_hexify (char *buf, const int len, const u8 *src, int s
     src_len = (room > 0) ? room / 2 : 0;
   }
 
-  exec_hexify (src, (size_t) src_len, (u8 *) buf + len);
+  const size_t hex_len = exec_hexify (src, (size_t) src_len, (u8 *) buf + len);
 
-  return len + src_len * 2;
+  const int out_len = len + (int) hex_len;
+
+  return out_len;
 }
 
 static int outfile_append_chr (char *buf, const int len, const char c)
