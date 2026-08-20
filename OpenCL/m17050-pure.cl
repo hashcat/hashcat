@@ -249,22 +249,46 @@ DECLSPEC void aes256_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data_
 DECLSPEC int check_decoded_data (PRIVATE_AS u32 *decoded_data, const u32 decoded_data_size)
 {
   // GPG AES-OCB already has integrity checking, so doesn't save SHA1 at end of decrypted block..
-  // we could decrypt everything and decrypt the tag, but we know the first 8 bytes, so we use that
-  //  we can't check for printables on only 8 bytes as that is not enough: results in false positives
+  // we could decrypt everything and verify the tag, but we know the first bytes, so we use that.
+  //
+  // The decrypted secret is a canonical S-expression (RFC 4880 / libgcrypt): it starts with
+  // the first secret MPI, encoded as  "(((1:" <name> <decimal-length> ":" <bytes>. The MPI
+  // name is a single byte and depends on the key algorithm, and the length is ASCII decimal,
+  // so both vary by key type:
+  //   ECC / ed25519  (32-byte  d): "(((1:d32:"
+  //   Brainpool/secp (33-byte  d): "(((1:d33:"
+  //   ed448          (57-byte  d): "(((1:d57:"
+  //   RSA-2048      (256-byte  d): "(((1:d256:"
+  //   RSA-4096      (512-byte  d): "(((1:d512:"
+  //   DSA / ElGamal  (nn-byte  x): "(((1:x33:"   <- secret is named 'x', not 'd'
+  // So we match "(((1:" exactly, require the name byte to be 'd' or 'x', and require the next
+  // two bytes to be ASCII decimal digits (a real key's secret is always >= 10 bytes, so the
+  // length has >= 2 digits). This keeps the check key-type-agnostic -- RSA, ECC, DSA/ElGamal
+  // all pass -- while still examining 8 bytes: we can't check for printables on only 8 bytes
+  // as that is not enough (false positives), but 5 exact bytes + a 2-way name byte + 2
+  // digit-class bytes is ~2^-56, which for this slow hash is ample.
+  //
+  // full examples of decrypted data for future reference
+  // ed25519: 28 28 28 31 3a 64 33 32 3a 49 e4 de 08 ac 5b 0f   (((1:d32:I....[.
+  // rsa2048: 28 28 28 31 3a 64 32 35 36 3a 1a 2a a1 ad cf d0   (((1:d256:.*....
+  // rsa4096: 28 28 28 31 3a 64 35 31 32 3a 04 ec 42 a9 cb 49   (((1:d512:..B..I
+  // dsa2048: 28 28 28 31 3a 78 33 33 3a 00 81 64 ..            (((1:x33:...d
 
   #define PACK4(a,b,c,d) ((u32)(a) | ((u32)(b)<<8) | ((u32)(c)<<16) | ((u32)(d)<<24))
-  u32 expected_data[2];
-  expected_data[0] = PACK4('(', '(', '(', '1'); // bytes: 0x28 0x28 0x28 0x31
-  expected_data[1] = PACK4(':', 'd', '3', '2'); // bytes: 0x3A 0x64 0x33 0x32
-  // full example of decrypted data for future reference
-  // 00000000  28 28 28 31 3a 64 33 32 3a 49 e4 de 08 ac 5b 0f   (((1:d32:I....[.
-  // 00000010  89 6a 18 a5 5f 95 28 73 12 25 62 5a 35 10 80 77   .j.._.(s.%bZ5..w
-  // 00000020  71 8d a2 e3 d7 e2 67 bc 53 ad e6 f7 80 04 60 a5   q.....g.S.....`.
 
-  // printf ("expected_data[0] ==  (decoded_data[0]) | =%08x==%08x\n", expected_data[0],  (decoded_data[0]));
-  // printf ("expected_data[1] ==  (decoded_data[1]) | =%08x==%08x\n", expected_data[1],  (decoded_data[1]));
-  return (expected_data[0] ==  (decoded_data[0]))
-      && (expected_data[1] ==  (decoded_data[1]));
+  const u32 w0 = decoded_data[0]; // plaintext bytes 0..3 : "(((1"
+  const u32 w1 = decoded_data[1]; // plaintext bytes 4..7 : ':' <name> <digit> <digit>
+
+  const u32 sep        = (w1 >>  0) & 0xff; // ':'
+  const u32 mpi_name   = (w1 >>  8) & 0xff; // 'd' (RSA/ECC) or 'x' (DSA/ElGamal)
+  const u32 len_digit0 = (w1 >> 16) & 0xff; // plaintext byte 6
+  const u32 len_digit1 = (w1 >> 24) & 0xff; // plaintext byte 7
+
+  return (w0 == PACK4('(', '(', '(', '1'))                    // "(((1"
+      && (sep == ':')
+      && ((mpi_name == 'd') || (mpi_name == 'x'))             // ":d" or ":x"
+      && (len_digit0 >= '0') && (len_digit0 <= '9')
+      && (len_digit1 >= '0') && (len_digit1 <= '9');
 }
 
 KERNEL_FQ KERNEL_FA void m17050_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))

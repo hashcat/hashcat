@@ -33,9 +33,10 @@ LUKS2_MODES="34100"
 #   17010/17020/17030/17040 - gpg1 (GnuPG 1.4) controls the classic S2K
 #     digest/cipher; gpg2 also produces the default SHA1/AES key.
 #   17050 (AES-OCB) - GnuPG 2.3+ protects the on-disk private key with
-#     openpgp-s2k3-ocb-aes (12-byte OCB nonce). An ed25519 key (32-byte d, the
-#     only shape the 17050 kernel verifies) is generated with gpg2 and the hash
-#     is read straight from private-keys-v1.d/*.key by tools/gpg-ocb-aes2hashcat.py
+#     openpgp-s2k3-ocb-aes (12-byte OCB nonce). Both an ed25519 and an rsa2048
+#     key are generated with gpg2 (the kernel verifies both ECC and RSA, whose
+#     decrypted secret starts "(((1:d32:" resp. "(((1:d256:") and the hash is read
+#     straight from private-keys-v1.d/*.key by tools/gpg-ocb-aes2hashcat.py
 #     (gpg2john and --export-secret-keys cannot: they re-encode to the wire
 #     format with a 16-byte nonce / CFB).
 GPG_GEN_MODES="17010 17020 17030 17040 17050"
@@ -4461,13 +4462,16 @@ EOF
     [ -s "${hf}" ] && producers="${producers} ${label}|${hf}"
   }
 
-  gpg2_ocb_key() { # label -- GnuPG 2.3+ on-disk OCB key; ed25519 (32-byte d) is
-                   # the only key shape the 17050 kernel verifies
+  gpg2_ocb_key() { # label keytype -- GnuPG 2.3+ on-disk OCB key (openpgp-s2k3-ocb-aes).
+                   # keytype is the gpg key algo; the 17050 kernel verifies the decrypted
+                   # secret S-expression, which starts "(((1:d<len>:" for both ECC/ed25519
+                   # (32-byte d) and RSA (256/512-byte d), so both key types are covered.
     command -v "${GPG2_BIN}" >/dev/null 2>&1 || return
     [ -f "${GPG_OCB_EXTRACT}" ] || { echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : ${GPG_OCB_EXTRACT} not found"; return; }
     local label="$1"
+    local keytype="$2"
     local H; H="$(mktemp -d)"
-    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --quick-generate-key "${label} <${label}@hashcat.test>" ed25519 sign 0 >/dev/null 2>&1
+    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --quick-generate-key "${label} <${label}@hashcat.test>" "${keytype}" sign 0 >/dev/null 2>&1
     local kf; kf="$(ls "${H}"/private-keys-v1.d/*.key 2>/dev/null | head -1)"
     local hf="${gdir}/${hashType}_${label}.hash"
     if [ -n "${kf}" ] && grep -aq 'openpgp-s2k3-ocb-aes' "${kf}" 2>/dev/null; then
@@ -4486,7 +4490,7 @@ EOF
     17020) gpg1_key SHA512 AES    gpg1-sha512-aes128; gpg1_key SHA512 AES256 gpg1-sha512-aes256 ;;
     17030) gpg1_key SHA256 AES    gpg1-sha256-aes128; gpg1_key SHA256 AES256 gpg1-sha256-aes256 ;;
     17040) gpg1_key SHA1   CAST5  gpg1-sha1-cast5 ;;
-    17050) gpg2_ocb_key gpg2-ed25519-ocb ;;
+    17050) gpg2_ocb_key gpg2-ed25519-ocb ed25519; gpg2_ocb_key gpg2-rsa2048-ocb rsa2048 ;;
     *) echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : unsupported GPG mode for -g"; return ;;
   esac
 
