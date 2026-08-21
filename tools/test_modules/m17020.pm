@@ -54,7 +54,8 @@ def s2k_iterated_salted(password: bytes, salt: bytes, count: int, out_len: int, 
 password    = sys.argv[1].encode()
 salt        = get_random_bytes(8)
 iv          = get_random_bytes(16)
-salt_iter   = randint(1024, 65536)          # decoded byte count, within the parser's 8..65011712
+_c          = randint(0, 96)                 # OpenPGP coded octet -> decoded count in [1024, 65536]
+salt_iter   = (16 + (_c & 15)) << ((_c >> 4) + 6)   # a *valid* count real GnuPG would emit
 cipher_algo = 7                              # 7 = AES-128 (16-byte key)
 
 key = s2k_iterated_salted(password, salt, salt_iter, 16, S2K_HASH)

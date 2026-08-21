@@ -113,6 +113,20 @@ u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   return kernel_loops_max;
 }
 
+static bool is_valid_gpg_s2k_count (const u32 count)
+{
+  // OpenPGP iterated-salted S2K counts are coded octets that decode to
+  // (16 + (c & 15)) << ((c >> 4) + 6). Real GnuPG keys only ever use these
+  // values; rejecting any other count avoids a byte-alignment edge case in the
+  // S2K loop kernel that can otherwise miscompute the key for some passwords.
+  for (u32 c = 0; c < 256; c++)
+  {
+    if (count == ((16u + (c & 15)) << ((c >> 4) + 6))) return true;
+  }
+
+  return false;
+}
+
 int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
 {
   u32 *digest = (u32 *) digest_buf;
@@ -285,12 +299,14 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32 salt_iter = hc_strtoul ((const char *) token.buf[11], NULL, 10);
 
   // if (salt_iter != 0) return (PARSER_HASH_VALUE); // only accept 0 for now
-  if(salt_iter == 0)
+  if (salt_iter == 0)
   {
-    salt->salt_iter = 1;
+    salt->salt_iter = 1; // s2ktype 1: simple salted S2K, no iteration count
   }
   else
   {
+    if (is_valid_gpg_s2k_count (salt_iter) == false) return (PARSER_SALT_ITERATION);
+
     salt->salt_iter = salt_iter;
   }
 

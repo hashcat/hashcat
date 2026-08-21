@@ -77,7 +77,13 @@ def s2k_iterated_salted_sha1_decoded(password: bytes, salt: bytes, count: int, o
 # choose whether to do iterated S2K or salted S2K
 use_iter = randint(0, 1)  # 0 = simple salted S2K, 1 = iterated
 if use_iter:
-    salt_iter = randint(50_000, 60_000)
+    # Use a *real* OpenPGP iterated-S2K count. RFC 4880 3.7.1.3 stores the count
+    # as a coded octet c that decodes to  (16 + (c & 15)) << ((c >> 4) + 6).
+    # Real GnuPG only ever emits these values; feeding an arbitrary integer here
+    # (the old randint) produces counts whose byte-accounting does not always
+    # match hashcat's S2K for some password lengths, yielding uncrackable vectors.
+    c = randint(96, 200)  # decodes to ~65536 .. hundreds of millions, like GnuPG
+    salt_iter = (16 + (c & 15)) << ((c >> 4) + 6)
 else:
     salt_iter = 0  # zero => simple/salted S2K (you treated >1 as iterated)
 
