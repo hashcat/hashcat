@@ -2,6 +2,9 @@
 
 **hashcat** is the world's fastest and most advanced password recovery utility, supporting five unique modes of attack for over 300 highly-optimized hashing algorithms. hashcat currently supports CPUs, GPUs, and other hardware accelerators on Linux, Windows, and macOS, and has facilities to help enable distributed password cracking.
 
+Custom additions in this fork:
+- Fernet hash mode `99998` (HMAC-SHA256, key = SHA256(pass)) in `docs/fernet.md`
+
 ### License ###
 
 **hashcat** is licensed under the MIT license. Refer to [docs/license.txt](docs/license.txt) for more information.
