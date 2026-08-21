@@ -300,7 +300,7 @@ DECLSPEC int ffz (const u32 v);
 
 #ifdef KERNEL_STATIC
 DECLSPEC int hash_comp (PRIVATE_AS const u32 *d1, GLOBAL_AS const u32 *d2);
-DECLSPEC int find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf);
+DECLSPEC u32 find_hash (PRIVATE_AS const u32 *digest, const u32 digests_cnt, GLOBAL_AS const digest_t *digests_buf);
 #endif
 
 DECLSPEC int hc_enc_scan (PRIVATE_AS const u32 *buf, const int len);

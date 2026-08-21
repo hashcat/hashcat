@@ -3957,10 +3957,10 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
 
   if (hashcat_status->digests_cnt > 1000)
   {
-    const int    digests_remain         = hashcat_status->digests_cnt - hashcat_status->digests_done;
+    const u32    digests_remain         = hashcat_status->digests_cnt - hashcat_status->digests_done;
     const double digests_remain_percent = (double) digests_remain / (double) hashcat_status->digests_cnt * 100;
 
-    const int    salts_remain           = hashcat_status->salts_cnt - hashcat_status->salts_done;
+    const u32    salts_remain           = hashcat_status->salts_cnt - hashcat_status->salts_done;
     const double salts_remain_percent   = (double) salts_remain / (double) hashcat_status->salts_cnt * 100;
 
     if (hashcat_status->salts_cnt > 1)
