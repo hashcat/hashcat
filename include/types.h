@@ -884,7 +884,7 @@ typedef enum user_options_defaults
   SKIP                     = 0,
   SLOW_CANDIDATES          = false,
   SPEED_ONLY               = false,
-  PW_LEN_SORT_DISABLE      = false,
+  LENGTH_SORT_DISABLE      = false,
   SPIN_DAMP                = 0,
   STATUS                   = false,
   STATUS_JSON              = false,
@@ -1029,7 +1029,7 @@ typedef enum user_options_map
   IDX_SKIP                      = 's',
   IDX_SLOW_CANDIDATES           = 'S',
   IDX_SPEED_ONLY                = 0xff48,
-  IDX_PW_LEN_SORT_DISABLE       = 0xff5a,
+  IDX_LENGTH_SORT_DISABLE       = 0xff5a,
   IDX_SPIN_DAMP                 = 0xff49,
   IDX_STATUS                    = 0xff4a,
   IDX_STATUS_JSON               = 0xff4b,
@@ -1280,6 +1280,7 @@ typedef struct hashconfig
   u32 forced_outfile_format;
 
   bool hlfmt_disable;
+  bool length_sort;
   bool warmup_disable;
   bool outfile_check_disable;
   bool outfile_check_nocomp;
@@ -2705,7 +2706,7 @@ typedef struct user_options
   bool         show;
   bool         slow_candidates;
   bool         speed_only;
-  bool         pw_len_sort_disable;
+  bool         length_sort_disable;
   bool         status;
   bool         status_json;
   bool         stdout_flag;
@@ -3696,6 +3697,7 @@ typedef struct module_ctx
   u32         (*module_kernel_threads_min)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u32         (*module_kernel_threads_max)      (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_kern_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
+  bool        (*module_length_sort)            (const hashconfig_t *, const user_options_t *, const user_options_extra_t *); // opt-in: cluster equal-length candidates per warp
   u32         (*module_opti_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   u64         (*module_opts_type)               (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
   bool        (*module_outfile_check_disable)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);

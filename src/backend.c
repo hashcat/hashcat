@@ -3978,35 +3978,13 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   }
   #endif
 
-  if ((user_options->pw_len_sort_disable == false) && (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT))
+  // Cluster equal-length candidates per warp for modes that re-hash the password
+  // length-dependently every iteration (length divergence otherwise stalls warps).
+  // Which modes benefit is declared by the module via module_length_sort(), not
+  // hard-coded here, so third-party plugins can opt in too.
+  if ((user_options->length_sort_disable == false) && (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) && (hashconfig->length_sort == true))
   {
-    switch (hashconfig->kern_type)
-    {
-        // cluster equal-length candidates per warp: these kern_types re-hash the
-        // password length-dependently every iteration, so length divergence stalls warps
-        case 501:
-        case 11600:
-        case 12500:
-        case 17010:
-        case 17020:
-        case 17030:
-        case 17050:
-        case 19100:
-        case 19200:
-        case 23700:
-        case 23800:
-        case 23900:
-        case 25000:
-        case 25100:
-        case 25200:
-        case 26700:
-        case 26800:
-        case 26900:
-        case 27300:
-        case 35100:
-        sort_pws_idx_by_len (device_param, pws_cnt);
-        break;
-    }
+    sort_pws_idx_by_len (device_param, pws_cnt);
   }
 
   if (user_options->slow_candidates == true)
