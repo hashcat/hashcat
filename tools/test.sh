@@ -4856,11 +4856,26 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   fi
 
 
+  # Only LUKS2 container generation needs sudo; GPG, PKZIP and the rest generate
+  # entirely in userspace, so only warn about sudo when a LUKS2 mode is selected.
+  needs_sudo=0
+
   if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
-    if sudo -n true 2>/dev/null; then
-      true
+    if [ "${HT}" -eq 65535 ]; then
+      needs_sudo=1
     else
-      echo "We'll need sudo to generate crypto-containers on-the-fly"
+      for _sudo_mode in ${LUKS2_MODES}; do
+        if [ "${_sudo_mode}" -ge "${HT_MIN}" ] && [ "${_sudo_mode}" -le "${HT_MAX}" ]; then
+          needs_sudo=1
+          break
+        fi
+      done
+    fi
+  fi
+
+  if [ "${needs_sudo}" -eq 1 ]; then
+    if ! sudo -n true 2>/dev/null; then
+      echo "We'll need sudo to generate LUKS2 crypto-containers on-the-fly"
     fi
   fi
 
