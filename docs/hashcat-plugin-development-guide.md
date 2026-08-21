@@ -195,11 +195,17 @@ The main options:
 * Select hash type (-m): Test only a special hash-mode
 * Select test mode (-t): Test either single-hash or multi-hash kernel
 * Select attack mode (-a): Test a special attack mode. With a slow hash, this is automatically switches to a straight attack, because there are no attack-mode specific kernel implementations
+* Minimal mode (-M): Test only 24 hash types that cover all distinct code paths and logic branches. This is useful for quick validation without running the full test suite across all hash modes
 
 If the options are not set, attack-mode 0 for hash-mode 0 is executed. To see additional options, see tools/test.sh --help
 
+### test_edge.sh ###
 
+The test_edge.sh is a complementary testing tool that generates edge cases for each hash-mode using the constraints defined in the test modules. Unlike test.sh which tests with random passwords, test_edge.sh specifically targets boundary conditions such as minimum and maximum password lengths, minimum and maximum salt lengths, and other constraint limits.
 
+It automatically tests both Pure and Optimized kernel types for each hash-mode and supports all attack modes. The minimal mode (-M or --minimal) option is also available to restrict testing to the same 24 representative hash types used by test.sh -M.
+
+To see all available options, see tools/test_edge.sh --help
 
 ## Module ##
 

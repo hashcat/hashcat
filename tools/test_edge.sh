@@ -50,6 +50,8 @@ function usage()
   echo ""
   echo "     --skip-clean-cache             : Skip cleaning the kernel caches before starting the tests"
   echo ""
+  echo "-M / --minimal                      : test only 24 hash types covering all distinct code paths, vector-width 1"
+  echo ""
   echo "-f / --force                        : run hashcat using --force"
   echo ""
   echo "-v / --verbose                      : show debug messages (supported: -v or -vv)"
@@ -128,6 +130,7 @@ BACKEND_DEVICES_KEEPFREE=0
 ALL_ATTACKS=0
 SELF_TEST_DISABLE=1
 CLEAN_CACHE_DISABLE=0
+MINIMAL=0
 
 OPTS="--quiet --potfile-disable --machine-readable --logfile-disable"
 
@@ -175,6 +178,12 @@ while [[ $# -gt 0 ]]; do
         usage
       fi
       shift 2
+      ;;
+    --minimal)
+      MINIMAL=1
+      HASH_TYPE="all"
+      VECTOR_WIDTHS="1"
+      shift
       ;;
     --allow-all-attacks)
       ALL_ATTACKS=1
@@ -530,6 +539,11 @@ while [[ $# -gt 0 ]]; do
 
             break
             ;;
+          M)
+            MINIMAL=1
+            HASH_TYPE="all"
+            VECTOR_WIDTHS="1"
+            ;;
           *)
             echo "Unknown option: -$opt"
             usage
@@ -605,6 +619,8 @@ startTime=$(date +%s)
 
 mkdir -p ${OUTD} &> /dev/null
 
+MINIMAL_MODES="0 100 110 400 500 2600 3000 3200 6211 11600 12500 13711 14200 14511 14600 14900 15400 15700 20510 22000 29511 33000 33500 34100"
+
 for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | awk '{print $1+=0}'); do
 
   if [ $HASH_TYPE != "all" ]; then
@@ -612,6 +628,10 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
   else
     if [ $hash_type -lt ${HASH_TYPE_MIN} ]; then continue; fi
     if [ $hash_type -gt ${HASH_TYPE_MAX} ]; then continue; fi
+  fi
+
+  if [ "${MINIMAL}" -eq 1 ]; then
+    if ! is_in_array "${hash_type}" ${MINIMAL_MODES}; then continue; fi
   fi
 
   if is_in_array "${hash_type}" ${SKIP_HASH_TYPES}; then
