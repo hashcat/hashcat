@@ -37,6 +37,18 @@
 
 #define YESCRYPT_FLAG_RW 0x002
 
+// The one flavor the kernel implements: RW, 6 pwxform rounds, gather 4, simple 2 and a
+// 12 KiB Sbox. That combination is the yescrypt RW default and the only one libxcrypt
+// writes. The reference implementation is also built for a single geometry and returns
+// EINVAL for the rest, so this is the algorithm's constraint rather than ours.
+//
+// The check has to be here because the kernel cannot make it. Of the flag bits, only
+// YESCRYPT_FLAG_RW reaches the kernel as a branch; the four that select the geometry are
+// compile time constants in inc_hash_yescrypt.h. Every other flavor would therefore build
+// the same kernel, pass the self-test, and quietly compute this flavor's digest instead.
+
+#define YESCRYPT_FLAGS_SUPPORTED 0x0b6
+
 // one workgroup per hash, and the loop kernel indexes V by the workgroup id
 
 #define YESCRYPT_ACCEL_MAX 1024
@@ -329,6 +341,8 @@ int yescrypt_hash_decode (u32 *digest, salt_t *salt, u32 *flags_out, u32 *t_out,
   {
     return (PARSER_SALT_VALUE);
   }
+
+  if (flags != YESCRYPT_FLAGS_SUPPORTED) return (PARSER_SALT_VALUE);
 
   u32 N_log2;
 
@@ -789,15 +803,40 @@ char *yescrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashco
 
   const u64 state_cnt4 = 32ULL * scrypt_r;
 
-  // The Sbox and the X block move to local memory together whenever both fit. That is worth about
-  // 39 percent, measured on an RX 9070 XT at the j9T parameters: 888 H/s with both in global memory
-  // against 1237 H/s with both in local.
-
-  const u64 lds_per_block = (128ULL * scrypt_r) + YESCRYPT_SBOX_SZ;
-
-  const char *placement = (lds_per_block <= device_param->device_local_mem_size) ? " -D COOP_SBOX_LDS" : " -D COOP_X_GLOBAL";
-
   const u32 expected_threads = yescrypt_expected_threads (hashconfig, user_options, user_options_extra, device_param);
+
+  // X can live in registers instead of local memory. Thread lid keeps every u64 of it whose
+  // index is lid modulo the thread count, which only works when 16r divides evenly by that
+  // count. Real hashes all have an even r, so this is the normal case and the block below is
+  // the fallback. It leaves local memory holding the Sbox and one u64 per thread for the lane
+  // exchange, instead of the Sbox and the whole 128r block.
+
+  const bool x_in_regs = (((16 * scrypt_r) % expected_threads) == 0);
+
+  const u64 lds_x = (x_in_regs == true) ? (8ULL * expected_threads) : (128ULL * scrypt_r);
+
+  // The Sbox moves to local memory whenever it fits alongside whatever X still needs there.
+  // That is worth about 39 percent, measured on an RX 9070 XT at the j9T parameters: 888 H/s
+  // with both in global memory against 1237 H/s with both in local.
+
+  const u64 lds_per_block = lds_x + YESCRYPT_SBOX_SZ;
+
+  const bool sbox_in_lds = (lds_per_block <= device_param->device_local_mem_size);
+
+  char placement[64];
+
+  placement[0] = 0;
+
+  if (sbox_in_lds == true) strcat (placement, " -D COOP_SBOX_LDS");
+
+  if (x_in_regs == true)
+  {
+    strcat (placement, " -D COOP_X_REGS");
+  }
+  else if (sbox_in_lds == false)
+  {
+    strcat (placement, " -D COOP_X_GLOBAL");
+  }
 
   char *jit_build_options = NULL;
 

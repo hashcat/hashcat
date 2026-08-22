@@ -40,6 +40,16 @@ KERNEL_FQ KERNEL_FA void m36100_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
   GLOBAL_AS u32 *sbox = tmps[bid].S;
   #endif
 
+  #ifdef COOP_X_REGS
+
+  // X lives in registers, local memory only carries the lane exchange
+
+  LOCAL_VK u64 s_shfl[FIXED_LOCAL_SIZE];
+
+  yescrypt_smix_loop_reg (s_shfl, sbox, &tmps[bid], d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bid, lid, lsz, LOOP_CNT);
+
+  #else
+
   #ifdef COOP_X_GLOBAL
   GLOBAL_AS u32 *X = tmps[bid].P;
   #else
@@ -48,6 +58,8 @@ KERNEL_FQ KERNEL_FA void m36100_loop (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void
   #endif
 
   yescrypt_smix_loop (X, sbox, &tmps[bid], d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, bid, lid, lsz, LOOP_CNT);
+
+  #endif
 }
 
 KERNEL_FQ KERNEL_FA void m36100_comp (KERN_ATTR_TMPS_ESALT (yescrypt_tmp_t, void))

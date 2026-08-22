@@ -25,83 +25,11 @@
 #define TYPE_I  1
 #define TYPE_ID 2
 
-#if defined IS_CUDA
-#define hc__shfl_sync(shfbuf,mask,var,srcLane,argon2_thread,argon2_lsz) __shfl_sync ((mask),(var),(srcLane))
-#elif defined IS_HIP
-// attention hard coded 32 warps for hip here
-#define hc__shfl_sync(shfbuf,mask,var,srcLane,argon2_thread,argon2_lsz) __shfl ((var),(srcLane),32)
-#elif defined IS_OPENCL
-#define hc__shfl_sync(shfbuf,mask,var,srcLane,argon2_thread,argon2_lsz) hc__shfl ((shfbuf),(var),(srcLane),(argon2_thread),(argon2_lsz))
+// The lane exchange moved to inc_platform.h so every kernel that needs one gets the same
+// implementation. mask is dropped on the way: the platform version always takes the whole
+// wave, which is what every call here passed anyway.
 
-#if defined IS_AMD && defined IS_GPU
-DECLSPEC u64 hc__shfl (MAYBE_UNUSED LOCAL_AS u64 *shuffle_buf, const u64 var, const int src_lane, const u32 argon2_thread, const u32 argon2_lsz)
-{
-  const u32 idx = src_lane << 2;
-
-  const u32 l32 = l32_from_64_S (var);
-  const u32 h32 = h32_from_64_S (var);
-
-  const u32 l32r = __builtin_amdgcn_ds_bpermute (idx, l32);
-  const u32 h32r = __builtin_amdgcn_ds_bpermute (idx, h32);
-
-  const u64 out = hl32_to_64_S (h32r, l32r);
-
-  return out;
-}
-#elif defined IS_NV && defined IS_GPU
-DECLSPEC u64 hc__shfl (MAYBE_UNUSED LOCAL_AS u64 *shuffle_buf, const u64 var, const int src_lane, const u32 argon2_thread, const u32 argon2_lsz)
-{
-  const u32 l32 = l32_from_64_S (var);
-  const u32 h32 = h32_from_64_S (var);
-
-  u32 l32r;
-  u32 h32r;
-
-  asm("shfl.sync.idx.b32 %0, %1, %2, 0x1f, 0;"
-      : "=r"(l32r)
-      : "r"(l32), "r"(src_lane));
-
-  asm("shfl.sync.idx.b32 %0, %1, %2, 0x1f, 0;"
-      : "=r"(h32r)
-      : "r"(h32), "r"(src_lane));
-
-  const u64 out = hl32_to_64_S (h32r, l32r);
-
-  return out;
-}
-#else
-DECLSPEC u64 hc__shfl (MAYBE_UNUSED LOCAL_AS u64 *shuffle_buf, const u64 var, const int src_lane, const u32 argon2_thread, const u32 argon2_lsz)
-{
-  shuffle_buf[argon2_thread] = var;
-
-  barrier (CLK_LOCAL_MEM_FENCE);
-
-  const u64 out = shuffle_buf[src_lane & (argon2_lsz - 1)];
-
-  barrier (CLK_LOCAL_MEM_FENCE);
-
-  return out;
-}
-#endif
-
-#elif defined IS_METAL
-#define hc__shfl_sync(shfbuf,mask,var,srcLane,argon2_thread,argon2_lsz) simd_shuffle_64 ((var),(srcLane),(argon2_lsz))
-
-DECLSPEC u64 simd_shuffle_64 (const u64 var, const int src_lane, const u32 argon2_lsz)
-{
-  const u32 idx = src_lane & (argon2_lsz - 1);
-
-  const u32 l32 = l32_from_64_S (var);
-  const u32 h32 = h32_from_64_S (var);
-
-  u32 l32r = simd_shuffle (l32, idx);
-  u32 h32r = simd_shuffle (h32, idx);
-
-  const u64 out = hl32_to_64_S (h32r, l32r);
-
-  return out;
-}
-#endif
+#define hc__shfl_sync(shfbuf,mask,var,srcLane,argon2_thread,argon2_lsz) hc_shfl_u64 ((shfbuf), (var), (srcLane), (argon2_thread), (argon2_lsz))
 
 #ifdef IS_CPU
 #define ARGON2_G(a,b,c,d)                \
