@@ -563,7 +563,7 @@ _hashcat ()
       return 0
       ;;
 
-    --seekdb-path) # a directory, and it has to exist, so only offer directories
+    --seekdb-path|--induction-dir|--outfile-check-dir) # these three take a directory
       COMPREPLY=($(compgen -d -- ${cur}))
       return 0
       ;;
