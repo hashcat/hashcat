@@ -87,12 +87,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int salt1_len = token.len[0];
   const int salt2_len = token.len[1];
-  const u8 *salt2_pos = token.buf[1];
   const u8 *hash_pos  = token.buf[2];
   const int hash_len  = token.len[2];
   const int salt_len  = salt1_len + 1 + salt2_len;
 
-  const bool parse_rc = generic_salt_decode (hashconfig, salt2_pos, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
+  // salt_len covers token 0, the '.' and token 1, so the decode has to start
+  // at the beginning of the line. Starting it at token 1 instead read
+  // salt1_len + 1 bytes past the end of the salt and, on a long enough first
+  // token, off the end of the line entirely.
+  const bool parse_rc = generic_salt_decode (hashconfig, (const u8 *) line_buf, salt_len, (u8 *) salt->salt_buf, (int *) &salt->salt_len);
 
   if (parse_rc == false) return (PARSER_SALT_LENGTH);
 
