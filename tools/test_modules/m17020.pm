@@ -10,7 +10,7 @@ use warnings;
 
 sub module_constraints { [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]] }
 
-# GPG symmetric secret-key protection (S2K iterated+salted), AES-128-CFB,
+# GPG symmetric secret-key protection (S2K iterated+salted), AES-128/AES-256-CFB,
 # S2K KDF hash = SHA-512 (this mode). Integrity is a trailing SHA-1 checksum
 # over the decrypted data (OpenPGP secret-key usage 254), which is exactly
 # what module_17010's check_decoded_data() verifies.
@@ -56,9 +56,12 @@ salt        = get_random_bytes(8)
 iv          = get_random_bytes(16)
 _c          = randint(0, 96)                 # OpenPGP coded octet -> decoded count in [1024, 65536]
 salt_iter   = (16 + (_c & 15)) << ((_c >> 4) + 6)   # a *valid* count real GnuPG would emit
-cipher_algo = 7                              # 7 = AES-128 (16-byte key)
+cipher_algo = 7 if randint(0, 1) else 9     # 7 = AES-128 (aux1), 9 = AES-256 (aux2)
+key_len     = 16 if cipher_algo == 7 else 32
 
-key = s2k_iterated_salted(password, salt, salt_iter, 16, S2K_HASH)
+# Randomizing the cipher exercises both aux kernels across a run's candidates:
+# aux1 (AES-128) and aux2 (AES-256) are separate code paths in the .cl.
+key = s2k_iterated_salted(password, salt, salt_iter, key_len, S2K_HASH)
 
 # decrypted data = <secret-key material> || SHA1(<secret-key material>)
 # (the trailing checksum is SHA-1 regardless of the S2K hash). Keep the total
