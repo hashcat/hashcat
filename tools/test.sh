@@ -44,6 +44,13 @@ GPG_GEN_MODES="17010 17020 17030 17040 17050"
 # PKZIP (traditional PKWARE / ZipCrypto) modes generated on-the-fly with -g
 PKZIP_GEN_MODES="17200 17210 17220 17225 17230"
 
+# RAR modes generated on-the-fly with -g:
+#   12500 RAR3-hp (header-encrypted), 23700 RAR3-p (store), 23800 RAR3-p
+#   (compressed), 13000 RAR5. RAR3 creation needs a rar CLI that still supports
+#   the -ma4 switch (rar <= 6.x); rar 7.x can only make RAR5. rar_test() prefers
+#   an -ma4-capable rar and otherwise limits itself to RAR5.
+RAR_GEN_MODES="12500 13000 23700 23800"
+
 LUKS_MODES="${LUKS1_MODES} ${LUKS2_MODES}"
 
 # Cryptoloop mode which have test containers
@@ -4512,6 +4519,120 @@ EOF
   done
 }
 
+function rar_test()
+{
+  # Real-container test for RAR. Builds genuine archives with the RARLAB 'rar'
+  # CLI, extracts the hash with John's rar2john, and confirms hashcat cracks the
+  # known password -- the ground-truth complement to the RAR test.pl oracles
+  # (and the only coverage for 23800, which has no oracle).
+  #
+  #   12500 RAR3-hp   -> rar a -ma4 -hp<pw>       -> $RAR3$*0*  (header-encrypted)
+  #   23700 RAR3-p    -> rar a -ma4 -m0 -p<pw>    -> $RAR3$*1*  (stored)
+  #   23800 RAR3-p    -> rar a -ma4 -m3 -p<pw>    -> $RAR3$*1*  (compressed)
+  #   13000 RAR5      -> rar a -p<pw>             -> $rar5$
+  #
+  # RAR3 (-ma4) needs rar <= 6.x; rar 7.x dropped it. We prefer an -ma4-capable
+  # rar and fall back to whatever 'rar' is in PATH (RAR5 only).
+  #
+  # IMPORTANT: `apt install rar` gives rar 7.x, which can ONLY create RAR5 (no
+  # -ma switch), so 12500/23700/23800 cannot be produced that way. Fetch a
+  # legacy rar (<= 6.x) from RARLAB instead -- it is a self-contained static
+  # binary, no install/root needed:
+  #
+  #   curl -O https://www.rarlab.com/rar/rarlinux-x64-612.tar.gz
+  #   mkdir -p /home/user/rar-old
+  #   tar xzf rarlinux-x64-612.tar.gz -C /home/user/rar-old --strip-components=1
+  #   # now /home/user/rar-old/rar supports -ma4 (RAR3). Override with RAR_BIN=... if elsewhere.
+  #
+  # rar2john (John the Ripper) extracts the hash; point RAR2JOHN=... at it if not
+  # at the default path below.
+  hashType=$1
+  attackType=$2
+
+  # RAR is a slow hash with a single kernel per mode; a0 suffices.
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  # Prefer an -ma4-capable rar (RARLAB <= 6.x) so the RAR3 modes work.
+  local RAR_BIN="${RAR_BIN:-}"
+  if [ -z "${RAR_BIN}" ]; then
+    if [ -x /home/user/rar-old/rar ]; then
+      RAR_BIN=/home/user/rar-old/rar
+    else
+      RAR_BIN=rar
+    fi
+  fi
+  local RAR2JOHN="${RAR2JOHN:-$(command -v rar2john 2>/dev/null || echo /home/user/john/run/rar2john)}"
+
+  if ! command -v "${RAR_BIN}" >/dev/null 2>&1 && [ ! -x "${RAR_BIN}" ]; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : rar not found -- fetch rarlinux-x64-612.tar.gz from rarlab.com (see rar_test() header; NOT 'apt install rar', that is rar 7.x = RAR5 only), or set RAR_BIN=/path/to/rar"
+    return
+  fi
+  if [ ! -x "${RAR2JOHN}" ] && ! command -v "${RAR2JOHN}" >/dev/null 2>&1; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : rar2john not found (set RAR2JOHN=/path/to/rar2john)"
+    return
+  fi
+
+  # Does this rar accept -ma4 (RAR3 archive format)?
+  local has_ma4=0
+  local probe; probe="$(mktemp -d)"
+  echo probe > "${probe}/p.txt"
+  if "${RAR_BIN}" a -ma4 -p_ -inul "${probe}/a.rar" "${probe}/p.txt" >/dev/null 2>&1 && [ -s "${probe}/a.rar" ]; then
+    has_ma4=1
+  fi
+  rm -rf "${probe}"
+
+  case ${hashType} in
+    12500|23700|23800)
+      if [ "${has_ma4}" -eq 0 ]; then
+        echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : ${RAR_BIN} cannot create RAR3 (-ma4) -- it is likely rar 7.x; fetch rarlinux-x64-612.tar.gz from rarlab.com (see rar_test() header) or set RAR_BIN=/path/to/rar<=6.x"
+        return
+      fi
+      ;;
+  esac
+
+  local password="hashcat"
+  local rdir="${OUTD}/rar_tests"
+  local sdir="${rdir}/src"
+  mkdir -p "${sdir}"
+
+  # compressible payload (so -m3 actually compresses, exercising the compressed path)
+  yes "pattern the quick brown fox jumps over the lazy dog " 2>/dev/null | head -c 8000 > "${sdir}/payload.txt"
+
+  local arc="${rdir}/${hashType}.rar"
+  local sig='\$RAR3\$'
+  local label
+  rm -f "${arc}"
+
+  case ${hashType} in
+    12500) "${RAR_BIN}" a -ma4 -m3 -hp"${password}" -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-hp" ;;
+    23700) "${RAR_BIN}" a -ma4 -m0 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-store" ;;
+    23800) "${RAR_BIN}" a -ma4 -m3 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-compressed" ;;
+    13000) "${RAR_BIN}" a       -p"${password}"     -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar5"; sig='\$rar5\$' ;;
+    *) echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : unsupported RAR mode for -g"; return ;;
+  esac
+
+  if [ ! -s "${arc}" ]; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Error : rar failed to create ${arc}"
+    return
+  fi
+
+  local hashFile="${rdir}/${hashType}.hash"
+  "${RAR2JOHN}" "${arc}" 2>/dev/null | sed -E 's/^[^:]*://' | grep -oE "^${sig}[^:]+" | head -1 > "${hashFile}"
+
+  if [ ! -s "${hashFile}" ]; then
+    echo "[ ${OUTD} ] [ Type ${hashType} ] > Error : rar2john produced no hash for ${arc}"
+    return
+  fi
+
+  build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${password}"
+
+  if [ -n "${CONTAINER_CMD}" ]; then
+    gpg_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "RAR-container ${label}"
+  fi
+}
+
 function usage()
 {
 cat << EOF
@@ -4753,6 +4874,14 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
   esac
 
 done
+
+# Under -g, RAR modes are generated from real archives, so pull in the RAR gen
+# modes that have no test.pl oracle (e.g. 23800). The others already appear in
+# HASH_TYPES via their .pm; sort -u dedups. Only done for -g so a normal run is
+# unaffected by modes that cannot self-generate.
+if [ "${GENERATE_CONTAINERS}" -eq 1 ]; then
+  HASH_TYPES=$(echo -n "${HASH_TYPES} ${RAR_GEN_MODES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
+fi
 
 # handle Apple Silicon
 
@@ -5074,6 +5203,9 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
             elif is_in_array "${hash_type}" ${GPG_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
               # generate + test real GPG secret-key containers
               gpg_test "${hash_type}" ${ATTACK}
+            elif is_in_array "${hash_type}" ${RAR_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+              # generate + test real RAR (RAR5) archives
+              rar_test "${hash_type}" ${ATTACK}
             else
               # run attack mode 0 (stdin)
               if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
