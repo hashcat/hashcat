@@ -5,7 +5,7 @@ FROM gm4tr1x/hashcat-toolchain:${HOST_ARCH}-${UBUNTU_VERSION} AS builder-toolcha
 
 LABEL org.opencontainers.image.authors="Gabriele 'matrix' Gristina <matrix@hashcat.net>" \
       org.opencontainers.image.title="Hashcat cross-build using hashcat-toolchain" \
-      org.opencontainers.image.version="2.0" \
+      org.opencontainers.image.version="2.1" \
       org.opencontainers.image.description="Docker image based on Ubuntu for cross-compiling Hashcat (Windows and Linux) and optionally scanning for potential vulnerabilities using clang-tidy and scan-build." \
       org.opencontainers.image.source="https://github.com/hashcat/hashcat/blob/master/docker/hashcat_binaries.ubuntu" \
       org.opencontainers.image.licenses="MIT"
@@ -41,6 +41,7 @@ RUN apt-get update && apt-get -y --no-install-recommends install apt-utils && ap
     dos2unix \
     git \
     libc6-dev \
+    libomp-dev \
     make \
     time \
     wget \
@@ -69,7 +70,7 @@ RUN echo "$WD/native/lib" > /etc/ld.so.conf.d/toolchain.conf && \
 
 # 7zip
 
-ARG SEVEN_ZIP_VERSION=25.01
+ARG SEVEN_ZIP_VERSION=26.02
 ENV SEVEN_ZIP_VERSION=${SEVEN_ZIP_VERSION}
 
 # CFLAGS_WARN_WALL drops the -Werror that 7zip sets for itself. GCC 16 reports the COM reference
