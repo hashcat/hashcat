@@ -51,13 +51,26 @@ PKZIP_GEN_MODES="17200 17210 17220 17225 17230"
 #   an -ma4-capable rar and otherwise limits itself to RAR5.
 RAR_GEN_MODES="12500 13000 23700 23800"
 
+# RAR modes that have a checked-in reference hash in tools/rar_tests/ and are
+# therefore tested in every run, with no rar binary needed. 23800 (RAR3-p
+# compressed) is the one RAR mode with no test.pl oracle, because a .pm would
+# have to reproduce RAR's compressor. Its ground truth is instead one hash, read
+# with rar2john out of an archive the real rar built, so the mode is covered by
+# default and -g only adds a freshly generated container on top.
+RAR_TEST_MODES="23800"
+RAR_TEST_PASS="hashcat"
+
 LUKS_MODES="${LUKS1_MODES} ${LUKS2_MODES}"
 
 # Cryptoloop mode which have test containers
 CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 14543 14551 14552 14553"
 
-HASH_TYPES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/')
-HASH_TYPES="${HASH_TYPES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES}"
+# PM_MODES is the set of modes that have a test.pl oracle, kept separately from
+# HASH_TYPES because -g now runs a real-container test in addition to the oracle
+# instead of in place of it, so the dispatch has to know which modes still have
+# an oracle left to run.
+PM_MODES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/' | tr '\n' ' ')
+HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${RAR_TEST_MODES}"
 HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 # Two widths, because -V all multiplies the whole run by however many are listed and five of them
@@ -4235,7 +4248,70 @@ function luks2_test()
 }
 
 
-function gpg_run_and_report()
+# A test that cannot run is recorded here as well as printed, and the whole list
+# is printed again as one block when the run ends. A single Skip line in the
+# middle of thousands of lines of output is easy to miss, and a mode that
+# quietly did nothing looks exactly like a mode that passed.
+SKIPPED_LIST=""
+
+function record_skip()
+{
+  # $1 = hashType, $2 = reason
+  SKIPPED_LIST="${SKIPPED_LIST}${1}|Skip|${2}
+"
+
+  echo "[ ${OUTD} ] [ Type ${1} ] > Skip : ${2}"
+}
+
+function record_note()
+{
+  # Like record_skip, but for a test that did run while covering less than it
+  # normally would, e.g. a GPG mode tested without gpg1 so only some of its
+  # ciphers were produced.
+  # $1 = hashType, $2 = reason
+  SKIPPED_LIST="${SKIPPED_LIST}${1}|Note|${2}
+"
+
+  echo "[ ${OUTD} ] [ Type ${1} ] > Note : ${2}"
+}
+
+function record_error()
+{
+  # A container test that was supposed to run and could not produce its input.
+  # Unlike a skip this is a fault rather than a missing tool, but it has the
+  # same failure mode of being invisible, so it goes in the same summary.
+  # $1 = hashType, $2 = reason
+  SKIPPED_LIST="${SKIPPED_LIST}${1}|Error|${2}
+"
+
+  echo "[ ${OUTD} ] [ Type ${1} ] > Error : ${2}"
+}
+
+function print_skip_summary()
+{
+  if [ -z "${SKIPPED_LIST}" ]; then
+    return
+  fi
+
+  # the same reason is recorded once per vector width and per attack mode, so
+  # collapse repeats and keep the order they first appeared in
+  local unique
+  unique=$(printf '%s' "${SKIPPED_LIST}" | awk '!seen[$0]++')
+
+  local count
+  count=$(printf '%s\n' "${unique}" | grep -c '')
+
+  echo ""
+  echo "[ ${OUTD} ] > ${count} test(s) did not run in full:"
+
+  printf '%s\n' "${unique}" | while IFS='|' read -r sk_type sk_kind sk_reason; do
+    echo "[ ${OUTD} ] [ Type ${sk_type} ] > ${sk_kind} : ${sk_reason}"
+  done
+
+  echo ""
+}
+
+function container_run_and_report()
 {
   # $1 = CMD, $2 = hashType, $3 = attackType, $4 = label (e.g. "GPG-src gpg1-sha1-aes")
   local CMD="$1"
@@ -4347,14 +4423,14 @@ function pkzip_test()
   fi
 
   local ZIP_BIN="${ZIP_BIN:-zip}"
-  local ZIP2JOHN="${ZIP2JOHN:-$(command -v zip2john 2>/dev/null || echo /home/user/john/run/zip2john)}"
+  local ZIP2JOHN="${ZIP2JOHN:-$(command -v zip2john 2>/dev/null || echo "${HOME}/john/run/zip2john")}"
 
   if ! command -v "${ZIP_BIN}" >/dev/null 2>&1; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : 'zip' not found (install InfoZip zip)"
+    record_skip "${hashType}" "'zip' not found (install InfoZip zip)"
     return
   fi
   if [ ! -x "${ZIP2JOHN}" ] && ! command -v "${ZIP2JOHN}" >/dev/null 2>&1; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : zip2john not found (set ZIP2JOHN=/path/to/zip2john)"
+    record_skip "${hashType}" "zip2john not found (set ZIP2JOHN=/path/to/zip2john)"
     return
   fi
 
@@ -4380,14 +4456,14 @@ function pkzip_test()
     17220) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" >/dev/null 2>&1 ;;
     17225) "${ZIP_BIN}" -e    -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/rand.bin" "${sdir}/t2.txt" >/dev/null 2>&1 ;;
     17230) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" "${sdir}/t4.txt" >/dev/null 2>&1; j2jflag="-c" ;;
-    *) echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : unsupported PKZIP mode for -g"; return ;;
+    *) record_skip "${hashType}" "unsupported PKZIP mode for -g"; return ;;
   esac
 
   local hashFile="${zdir}/${hashType}.hash"
   "${ZIP2JOHN}" ${j2jflag} "${zf}" 2>/dev/null | sed -E 's/^[^:]*://' | grep -oE '^\$pkzip2?\$[^:]+' | head -1 > "${hashFile}"
 
   if [ ! -s "${hashFile}" ]; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Error : zip2john produced no hash for ${zf}"
+    record_error "${hashType}" "zip2john produced no hash for ${zf}"
     return
   fi
 
@@ -4396,7 +4472,7 @@ function pkzip_test()
     build_container_cmd "${hashType}" "${at}" "${hashFile}" "${password}"
 
     if [ -n "${CONTAINER_CMD}" ]; then
-      gpg_run_and_report "${CONTAINER_CMD}" "${hashType}" "${at}" "PKZIP-container"
+      container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${at}" "PKZIP-container"
     fi
   done
 }
@@ -4417,16 +4493,16 @@ function gpg_test()
 
   local GPG1_BIN="${GPG1_BIN:-gpg1}"
   local GPG2_BIN="${GPG2_BIN:-gpg}"
-  local GPG2JOHN="${GPG2JOHN:-$(command -v gpg2john 2>/dev/null || echo /home/user/john/run/gpg2john)}"
+  local GPG2JOHN="${GPG2JOHN:-$(command -v gpg2john 2>/dev/null || echo "${HOME}/john/run/gpg2john")}"
   local GPG_OCB_EXTRACT="${GPG_OCB_EXTRACT:-${TDIR}/gpg-ocb-aes2hashcat.py}"
 
   if [ ! -x "${GPG2JOHN}" ] && ! command -v "${GPG2JOHN}" >/dev/null 2>&1; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : gpg2john not found (set GPG2JOHN=/path/to/gpg2john)"
+    record_skip "${hashType}" "gpg2john not found (set GPG2JOHN=/path/to/gpg2john)"
     return
   fi
 
   if ! command -v "${GPG1_BIN}" >/dev/null 2>&1; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Note : ${GPG1_BIN} (GnuPG 1.x) not found -- classic S2K variants and the AES-128 (aux1) path are skipped; set GPG1_BIN=... if installed elsewhere"
+    record_note "${hashType}" "${GPG1_BIN} (GnuPG 1.x) not found, so the classic S2K variants and the AES-128 (aux1) path are skipped; set GPG1_BIN=... if installed elsewhere"
   fi
 
   local password="hashcat"
@@ -4474,7 +4550,7 @@ EOF
                    # secret S-expression, which starts "(((1:d<len>:" for both ECC/ed25519
                    # (32-byte d) and RSA (256/512-byte d), so both key types are covered.
     command -v "${GPG2_BIN}" >/dev/null 2>&1 || return
-    [ -f "${GPG_OCB_EXTRACT}" ] || { echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : ${GPG_OCB_EXTRACT} not found"; return; }
+    [ -f "${GPG_OCB_EXTRACT}" ] || { record_skip "${hashType}" "${GPG_OCB_EXTRACT} not found"; return; }
     local label="$1"
     local keytype="$2"
     local H; H="$(mktemp -d)"
@@ -4498,11 +4574,11 @@ EOF
     17030) gpg1_key SHA256 AES    gpg1-sha256-aes128; gpg1_key SHA256 AES256 gpg1-sha256-aes256 ;;
     17040) gpg1_key SHA1   CAST5  gpg1-sha1-cast5 ;;
     17050) gpg2_ocb_key gpg2-ed25519-ocb ed25519; gpg2_ocb_key gpg2-rsa2048-ocb rsa2048 ;;
-    *) echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : unsupported GPG mode for -g"; return ;;
+    *) record_skip "${hashType}" "unsupported GPG mode for -g"; return ;;
   esac
 
   if [ -z "${producers}" ]; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : could not generate a matching GPG container (gpg1/gpg2 unavailable or mode unsupported by local tools)"
+    record_skip "${hashType}" "could not generate a matching GPG container (gpg1/gpg2 unavailable or mode unsupported by local tools)"
     return
   fi
 
@@ -4514,7 +4590,7 @@ EOF
     build_container_cmd "${hashType}" "${attackType}" "${hf}" "${password}"
 
     if [ -n "${CONTAINER_CMD}" ]; then
-      gpg_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "GPG-container ${label}"
+      container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "GPG-container ${label}"
     fi
   done
 }
@@ -4540,9 +4616,9 @@ function rar_test()
   # binary, no install/root needed:
   #
   #   curl -O https://www.rarlab.com/rar/rarlinux-x64-612.tar.gz
-  #   mkdir -p /home/user/rar-old
-  #   tar xzf rarlinux-x64-612.tar.gz -C /home/user/rar-old --strip-components=1
-  #   # now /home/user/rar-old/rar supports -ma4 (RAR3). Override with RAR_BIN=... if elsewhere.
+  #   mkdir -p "${HOME}/rar-old"
+  #   tar xzf rarlinux-x64-612.tar.gz -C "${HOME}/rar-old" --strip-components=1
+  #   # now ${HOME}/rar-old/rar supports -ma4 (RAR3). Override with RAR_BIN=... if elsewhere.
   #
   # rar2john (John the Ripper) extracts the hash; point RAR2JOHN=... at it if not
   # at the default path below.
@@ -4557,20 +4633,20 @@ function rar_test()
   # Prefer an -ma4-capable rar (RARLAB <= 6.x) so the RAR3 modes work.
   local RAR_BIN="${RAR_BIN:-}"
   if [ -z "${RAR_BIN}" ]; then
-    if [ -x /home/user/rar-old/rar ]; then
-      RAR_BIN=/home/user/rar-old/rar
+    if [ -x "${HOME}/rar-old/rar" ]; then
+      RAR_BIN="${HOME}/rar-old/rar"
     else
       RAR_BIN=rar
     fi
   fi
-  local RAR2JOHN="${RAR2JOHN:-$(command -v rar2john 2>/dev/null || echo /home/user/john/run/rar2john)}"
+  local RAR2JOHN="${RAR2JOHN:-$(command -v rar2john 2>/dev/null || echo "${HOME}/john/run/rar2john")}"
 
   if ! command -v "${RAR_BIN}" >/dev/null 2>&1 && [ ! -x "${RAR_BIN}" ]; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : rar not found -- fetch rarlinux-x64-612.tar.gz from rarlab.com (see rar_test() header; NOT 'apt install rar', that is rar 7.x = RAR5 only), or set RAR_BIN=/path/to/rar"
+    record_skip "${hashType}" "rar not found. Fetch rarlinux-x64-612.tar.gz from rarlab.com (see rar_test() header; NOT 'apt install rar', that is rar 7.x = RAR5 only), or set RAR_BIN=/path/to/rar"
     return
   fi
   if [ ! -x "${RAR2JOHN}" ] && ! command -v "${RAR2JOHN}" >/dev/null 2>&1; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : rar2john not found (set RAR2JOHN=/path/to/rar2john)"
+    record_skip "${hashType}" "rar2john not found (set RAR2JOHN=/path/to/rar2john)"
     return
   fi
 
@@ -4586,7 +4662,7 @@ function rar_test()
   case ${hashType} in
     12500|23700|23800)
       if [ "${has_ma4}" -eq 0 ]; then
-        echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : ${RAR_BIN} cannot create RAR3 (-ma4) -- it is likely rar 7.x; fetch rarlinux-x64-612.tar.gz from rarlab.com (see rar_test() header) or set RAR_BIN=/path/to/rar<=6.x"
+        record_skip "${hashType}" "${RAR_BIN} cannot create RAR3 (-ma4), it is likely rar 7.x; fetch rarlinux-x64-612.tar.gz from rarlab.com (see rar_test() header) or set RAR_BIN=/path/to/rar<=6.x"
         return
       fi
       ;;
@@ -4610,11 +4686,11 @@ function rar_test()
     23700) "${RAR_BIN}" a -ma4 -m0 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-store" ;;
     23800) "${RAR_BIN}" a -ma4 -m3 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-compressed" ;;
     13000) "${RAR_BIN}" a       -p"${password}"     -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar5"; sig='\$rar5\$' ;;
-    *) echo "[ ${OUTD} ] [ Type ${hashType} ] > Skip : unsupported RAR mode for -g"; return ;;
+    *) record_skip "${hashType}" "unsupported RAR mode for -g"; return ;;
   esac
 
   if [ ! -s "${arc}" ]; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Error : rar failed to create ${arc}"
+    record_error "${hashType}" "rar failed to create ${arc}"
     return
   fi
 
@@ -4622,14 +4698,47 @@ function rar_test()
   "${RAR2JOHN}" "${arc}" 2>/dev/null | sed -E 's/^[^:]*://' | grep -oE "^${sig}[^:]+" | head -1 > "${hashFile}"
 
   if [ ! -s "${hashFile}" ]; then
-    echo "[ ${OUTD} ] [ Type ${hashType} ] > Error : rar2john produced no hash for ${arc}"
+    record_error "${hashType}" "rar2john produced no hash for ${arc}"
     return
   fi
 
   build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${password}"
 
   if [ -n "${CONTAINER_CMD}" ]; then
-    gpg_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "RAR-container ${label}"
+    container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "RAR-container ${label}"
+  fi
+}
+
+function rar_container_test()
+{
+  # Reference-hash test for RAR, run in every mode of operation because it needs
+  # nothing but hashcat: tools/rar_tests/<mode>.hash holds the hash rar2john read
+  # out of a real archive, and RAR_TEST_PASS is the password that archive was
+  # built with. Only the hash is kept, since that is all hashcat is given;
+  # tools/rar_tests/_README.txt has the three commands that rebuild it.
+  #
+  # This is what keeps 23800 covered without -g. rar_test() still generates a
+  # fresh archive when -g is given, which is the stronger check; this one is the
+  # floor under it.
+  hashType=$1
+  attackType=$2
+
+  # RAR is a slow hash with a single kernel per mode, so a0 suffices.
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  local hashFile="${TDIR}/rar_tests/${hashType}.hash"
+
+  if [ ! -s "${hashFile}" ]; then
+    record_error "${hashType}" "reference hash ${hashFile} is missing or empty"
+    return
+  fi
+
+  build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${RAR_TEST_PASS}"
+
+  if [ -n "${CONTAINER_CMD}" ]; then
+    container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "RAR-hash reference"
   fi
 }
 
@@ -4700,8 +4809,11 @@ OPTIONS:
   -I    Use this folder as input/output folder for packaged tests
         (string)    => path to folder
 
-  -g    Generate crypto-containers on-the-fly. GPG (gpg1/gpg2) and PKZIP (zip)
-        need no privileges; only LUKS2 generation requires sudo.
+  -g    Generate crypto-containers on-the-fly and test those as well as the
+        normal test.pl oracles, never instead of them. GPG (gpg1/gpg2), PKZIP
+        (zip) and RAR (a RARLAB rar 6.x or older, see rar_test) need no
+        privileges; only LUKS2 generation requires sudo. Anything that cannot
+        run for want of a tool is reported again in a summary at the end.
 
   -h    Show this help
 
@@ -4875,14 +4987,6 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
 
 done
 
-# Under -g, RAR modes are generated from real archives, so pull in the RAR gen
-# modes that have no test.pl oracle (e.g. 23800). The others already appear in
-# HASH_TYPES via their .pm; sort -u dedups. Only done for -g so a normal run is
-# unaffected by modes that cannot self-generate.
-if [ "${GENERATE_CONTAINERS}" -eq 1 ]; then
-  HASH_TYPES=$(echo -n "${HASH_TYPES} ${RAR_GEN_MODES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
-fi
-
 # handle Apple Silicon
 
 IS_APPLE_SILICON=0
@@ -5017,14 +5121,14 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     if [ "${HT}" -eq 65535 ]; then
       for TMP_HT in ${HASH_TYPES}; do
 
-        if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-          if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-            if ! is_in_array "${TMP_HT}" ${TC_MODES}; then
-              if ! is_in_array "${TMP_HT}" ${VC_MODES}; then
-                if ! is_in_array "${TMP_HT}" ${CL_MODES}; then
-                  perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
-                fi
-              fi
+        # only a mode with a .pm has anything for test.pl to generate. That
+        # already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes, which
+        # are container-only. LUKS is the one family that has both, and it uses
+        # its .pm only when -g asks for containers to be generated.
+        if is_in_array "${TMP_HT}" ${PM_MODES}; then
+          if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
+            if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
+              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
             fi
           fi
         fi
@@ -5036,14 +5140,14 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
-        if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-          if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-            if ! is_in_array "${TMP_HT}" ${TC_MODES}; then
-              if ! is_in_array "${TMP_HT}" ${VC_MODES}; then
-                if ! is_in_array "${TMP_HT}" ${CL_MODES}; then
-                  perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
-                fi
-              fi
+        # only a mode with a .pm has anything for test.pl to generate. That
+        # already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes, which
+        # are container-only. LUKS is the one family that has both, and it uses
+        # its .pm only when -g asks for containers to be generated.
+        if is_in_array "${TMP_HT}" ${PM_MODES}; then
+          if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
+            if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
+              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
             fi
           fi
         fi
@@ -5200,45 +5304,66 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
             elif is_in_array "${hash_type}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]]; then
               # run luks2 tests
               luks2_test "${hash_type}" ${ATTACK}
-            elif is_in_array "${hash_type}" ${GPG_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
-              # generate + test real GPG secret-key containers
-              gpg_test "${hash_type}" ${ATTACK}
-            elif is_in_array "${hash_type}" ${RAR_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
-              # generate + test real RAR (RAR5) archives
-              rar_test "${hash_type}" ${ATTACK}
             else
-              # run attack mode 0 (stdin)
-              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
+              # -g adds a real-container run, it does not take the place of the
+              # test.pl oracle. A run with -g has to cover at least what a run
+              # without it covers, otherwise asking for more coverage quietly
+              # removes some.
+              if is_in_array "${hash_type}" ${GPG_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real GPG secret-key containers
+                gpg_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${RAR_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real RAR archives
+                rar_test "${hash_type}" ${ATTACK}
+              fi
+
+              # the committed reference archive, in every run
+              if is_in_array "${hash_type}" ${RAR_TEST_MODES}; then
+                rar_container_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${PM_MODES}; then
+                # run attack mode 0 (stdin)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
+              fi
             fi
 
           else
 
-            if is_in_array "${hash_type}" ${PKZIP_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
-              # generate + test real PKZIP/ZipCrypto containers
-              pkzip_test "${hash_type}" ${ATTACK}
-            elif is_in_array "${hash_type}" ${CL_MODES}; then
+            if is_in_array "${hash_type}" ${CL_MODES}; then
               # run cryptoloop tests
               cryptoloop_test "${hash_type}" 128
               cryptoloop_test "${hash_type}" 192
               cryptoloop_test "${hash_type}" 256
             else
-              # run attack mode 0 (stdin)
-              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
+              # as in the slow-hash branch above, -g is an addition to the
+              # test.pl oracle rather than a replacement for it
+              if is_in_array "${hash_type}" ${PKZIP_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real PKZIP/ZipCrypto containers
+                pkzip_test "${hash_type}" ${ATTACK}
+              fi
 
-              # run attack mode 1 (combinator)
-              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 1 ]; then attack_1; fi
+              if is_in_array "${hash_type}" ${PM_MODES}; then
+                # run attack mode 0 (stdin)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
 
-              # run attack mode 3 (bruteforce)
-              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 3 ]; then attack_3; fi
+                # run attack mode 1 (combinator)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 1 ]; then attack_1; fi
 
-              # run attack mode 6 (dict+mask)
-              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 6 ]; then attack_6; fi
+                # run attack mode 3 (bruteforce)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 3 ]; then attack_3; fi
 
-              # run attack mode 7 (mask+dict)
-              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 7 ]; then attack_7; fi
+                # run attack mode 6 (dict+mask)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 6 ]; then attack_6; fi
 
-              # run attack mode 12 (mask says where the dict word goes)
-              if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 12 ]; then attack_12; fi
+                # run attack mode 7 (mask+dict)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 7 ]; then attack_7; fi
+
+                # run attack mode 12 (mask says where the dict word goes)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 12 ]; then attack_12; fi
+              fi
             fi
 
           fi
@@ -5249,6 +5374,8 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       MODE=${MODE_OLD}
     fi
   done
+
+  print_skip_summary
 
 else
 
@@ -5322,6 +5449,10 @@ if [ "${PACKAGE}" -eq 1 ]; then
     cp ${TDIR}/cl_tests/* "${OUTD}/cl_tests/"
   fi
 
+  # the reference hashes are a couple of lines and always needed by RAR_TEST_MODES
+  mkdir -p "${OUTD}/rar_tests/"
+  cp ${TDIR}/rar_tests/* "${OUTD}/rar_tests/"
+
   # if we package from a given folder, we need to check if e.g. the files needed for multi mode are there
 
   if [ -n "${PACKAGE_FOLDER}" ]; then
@@ -5365,12 +5496,14 @@ if [ "${PACKAGE}" -eq 1 ]; then
   fi
 
   HASH_TYPES_PACKAGED=$(   echo "${HASH_TYPES}"    | tr '\n' ' ' | sed 's/ *$//')
+  PM_MODES_PACKAGED=$(     echo "${PM_MODES}"      | tr '\n' ' ' | sed 's/ *$//')
   HASHFILE_ONLY_PACKAGED=$(echo "${HASHFILE_ONLY}" | tr '\n' ' ' | sed 's/ *$//')
   KEEP_GUESSING_PACKAGED=$(echo "${KEEP_GUESSING}" | tr '\n' ' ' | sed 's/ *$//')
   SLOW_ALGOS_PACKAGED=$(   echo "${SLOW_ALGOS}"    | tr '\n' ' ' | sed 's/ *$//')
 
   sed "${SED_IN_PLACE}" -e 's/^\(PACKAGE_FOLDER\)=""/\1="$( echo "${BASH_SOURCE[0]}" | sed \"s!test.sh\\$!!\" )"/' \
     -e "s/^\(HASH_TYPES\)=\$(.*/\1=\"${HASH_TYPES_PACKAGED}\"/" \
+    -e "s/^\(PM_MODES\)=\$(.*/\1=\"${PM_MODES_PACKAGED}\"/" \
     -e "s/^\(HASHFILE_ONLY\)=\$(.*/\1=\"${HASHFILE_ONLY_PACKAGED}\"/" \
     -e "s/^\(KEEP_GUESSING\)=\$(.*/\1=\"${KEEP_GUESSING_PACKAGED}\"/" \
     -e "s/^\(SLOW_ALGOS\)=\$(.*/\1=\"${SLOW_ALGOS_PACKAGED}\"/" \
