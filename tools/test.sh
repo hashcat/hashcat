@@ -693,7 +693,7 @@ function attack_0()
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
 
-        if [ "${hash_type}" -ne 22000 ]; then
+        if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
           echo "${hash}" | base64 -d > "${temp_file}"
         else
           echo "${hash}" > "${temp_file}"
@@ -823,7 +823,7 @@ function attack_0()
 
       while read -r file_only_hash; do
 
-        if [ "${hash_type}" -ne 22000 ]; then
+        if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
           echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
         else
           echo "${file_only_hash}" >> "${temp_file}"
@@ -968,7 +968,7 @@ function attack_1()
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
 
-          if [ "${hash_type}" -ne 22000 ]; then
+          if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
             echo "${hash}" | base64 -d > "${temp_file}"
           else
             echo "${hash}" > "${temp_file}"
@@ -1149,7 +1149,7 @@ function attack_1()
 
       while read -r file_only_hash; do
 
-        if [ "${hash_type}" -ne 22000 ]; then
+        if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
           echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
         else
           echo "${file_only_hash}" >> "${temp_file}"
@@ -1281,7 +1281,7 @@ function attack_3()
 
         temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
 
-        if [ "${hash_type}" -ne 22000 ]; then
+        if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
           echo "${hash}" | base64 -d > "${temp_file}"
         else
           echo "${hash}" > "${temp_file}"
@@ -1464,7 +1464,7 @@ function attack_3()
 
       while read -r file_only_hash; do
 
-        if [ "${hash_type}" -ne 22000 ]; then
+        if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
           echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
         else
           echo "${file_only_hash}" >> "${temp_file}"
@@ -1924,7 +1924,7 @@ function attack_6()
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
 
-          if [ "${hash_type}" -ne 22000 ]; then
+          if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
             echo "${hash}" | base64 -d > "${temp_file}"
           else
             echo "${hash}" > "${temp_file}"
@@ -2139,7 +2139,7 @@ function attack_6()
 
         while read -r file_only_hash; do
 
-          if [ "${hash_type}" -ne 22000 ]; then
+          if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
             echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
           else
             echo "${file_only_hash}" >> "${temp_file}"
@@ -2305,7 +2305,7 @@ function attack_7()
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
 
-          if [ "${hash_type}" -ne 22000 ]; then
+          if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
             echo "${hash}" | base64 -d > "${temp_file}"
           else
             echo "${hash}" > "${temp_file}"
@@ -2584,7 +2584,7 @@ function attack_7()
 
         while read -r file_only_hash; do
 
-          if [ "${hash_type}" -ne 22000 ]; then
+          if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
             echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
           else
             echo "${file_only_hash}" >> "${temp_file}"
@@ -2750,7 +2750,7 @@ function attack_12()
 
           temp_file="${OUTD}/${hash_type}_filebased_only_temp.txt"
 
-          if [ "${hash_type}" -ne 22000 ]; then
+          if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
             echo "${hash}" | base64 -d > "${temp_file}"
           else
             echo "${hash}" > "${temp_file}"
@@ -3011,7 +3011,7 @@ function attack_12()
 
         while read -r file_only_hash; do
 
-          if [ "${hash_type}" -ne 22000 ]; then
+          if [ "${hash_type}" -ne 22000 ] && [ "${hash_type}" -ne 22001 ]; then
             echo -n "${file_only_hash}" | base64 -d >> "${temp_file}"
           else
             echo "${file_only_hash}" >> "${temp_file}"
