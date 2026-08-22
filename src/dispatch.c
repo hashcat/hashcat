@@ -18,7 +18,7 @@
 #include "rp_cpu.h"
 #include "slow_candidates.h"
 #include "dispatch.h"
-#include "generic.h"
+#include "feed_ctx.h"
 #include "convert.h"
 #include "user_options.h"
 

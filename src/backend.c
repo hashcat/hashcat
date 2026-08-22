@@ -25,7 +25,7 @@
 #include "emu_inc_hash_md5.h"
 #include "event.h"
 #include "dynloader.h"
-#include "generic.h"
+#include "feed_ctx.h"
 #include "backend.h"
 #include "bridges.h"
 #include "terminal.h"

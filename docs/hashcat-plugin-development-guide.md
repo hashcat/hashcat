@@ -914,7 +914,7 @@ If you ship it in binary form, you rebuild it against the new hashcat, and you s
 
 That refusal is one exported name and one pointer. The core defines a function called `HASHCAT_PLUGIN_720`, and every plugin written in C holds a pointer to it because `include/export.h` says so. Nothing ever calls it. Raise MODULE_INTERFACE_VERSION and the name changes with it, so a plugin built against the old number cannot resolve what it is holding. This is the same mechanism on Linux, macOS and Windows, and it happens before `module_init()` runs.
 
-The number comes from `-DHC_PLUGIN_ABI_VERSION` on your compile line, which is why it is on the line above. `include/modules.h`, `include/bridges.h` and `include/generic.h` are the three headers only a plugin includes, and each one refuses to be read without it. A plugin that was compiled without the number would hold no pointer, load against any core, and find out what had moved by running into it.
+The number comes from `-DHC_PLUGIN_ABI_VERSION` on your compile line, which is why it is on the line above. `include/modules.h`, `include/bridges.h` and `include/feed.h` are the three headers only a plugin includes, and each one refuses to be read without it. A plugin that was compiled without the number would hold no pointer, load against any core, and find out what had moved by running into it.
 
 The Rust feed is the one plugin here that is not built this way. It calls nothing in the core, cargo never sees a link line, and it declares its interface version in `GENERIC_PLUGIN_VERSION` instead, which the core reads after loading it.
 
@@ -1034,6 +1034,16 @@ Everything else is a source. A file whose name really does look like a setting i
 The section above is the whole story of how a plugin is built and loaded. This one is the short list of what changed in the source between the 7.1.2 release and now, for somebody who has a working plugin and wants it building again.
 
 What you need to do:
+
+A feed includes `feed.h` where it used to include `generic.h`, which is gone. The contract in it has
+not changed, so that is the whole edit for a feed that only produces candidates. What moved is the
+other half of the old header: the functions hashcat uses to drive feeds are in `feed_ctx.h` now, and a
+feed cannot include that one. If your feed called one of them it was reaching into hashcat's own
+bookkeeping from a plugin thread, and the build will tell you so rather than the run.
+
+`feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h`
+with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for
+them.
 
 One hook is gone: `module_dictstat_disable`. Remove the line in `module_init()` that registers it and two hooks are new, `module_usage_notice` and `module_advice_notice`, which let a module print a usage or an advice line of its own.
 

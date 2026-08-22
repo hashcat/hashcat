@@ -13,7 +13,7 @@
 #include "folder.h"
 #include "rp.h"
 #include "mpsp.h"
-#include "generic.h"
+#include "feed_ctx.h"
 #include "dynloader.h"
 #include "user_options.h"
 
@@ -139,9 +139,21 @@ static bool generic_thread_error (hashcat_ctx_t *hashcat_ctx, generic_thread_ctx
   return true;
 }
 
+// thread_init () and thread_term () both run on the main thread, one device after another, so the
+// device a feed is being initialised for is made current around each call rather than once for the
+// thread. A feed that builds device resources here is otherwise building them on whichever device
+// happened to be current, which for the second device onward is the wrong one.
+//
+// A device that cannot be made current is not a device this feed can be initialised on, and saying
+// so here is better than letting the plugin discover it.
+
 static bool generic_thread_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *generic_ctx, const int device_id)
 {
+  if (feed_device_bind_id (hashcat_ctx, device_id) == false) return false;
+
   const bool rc = generic_ctx->thread_init (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id]);
+
+  feed_device_unbind_id (hashcat_ctx, device_id);
 
   if (generic_thread_error (hashcat_ctx, &generic_ctx->thread_ctx[device_id]) == true) return false;
 
@@ -150,7 +162,11 @@ static bool generic_thread_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gene
 
 static void generic_thread_term (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *generic_ctx, const int device_id)
 {
+  const bool bound = feed_device_bind_id (hashcat_ctx, device_id);
+
   generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id]);
+
+  if (bound == true) feed_device_unbind_id (hashcat_ctx, device_id);
 
   generic_thread_error (hashcat_ctx, &generic_ctx->thread_ctx[device_id]);
 }
@@ -304,7 +320,16 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
     EVENT_DATA (EVENT_GENERIC_INIT_PRE, generic_ctx->plugin_name, strlen (generic_ctx->plugin_name) + 1);
   }
 
+  // A feed says what it loaded on its own account, and every other block of startup output ends with
+  // a blank line. Whether this one has anything to end is not a question the display can answer for
+  // itself, so it is counted: the two marks bracket what the feed said and skip the two lines this
+  // function logs itself, which are the ones that would otherwise make a silent feed look talkative.
+
+  const u64 log_mark_init = event_log_count (hashcat_ctx);
+
   const bool rc_init = generic_global_init (hashcat_ctx, generic_ctx);
+
+  u64 said = event_log_count (hashcat_ctx) - log_mark_init;
 
   if (announce == true)
   {
@@ -315,6 +340,8 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   // The keyspace is kept in base words and finished later. -a 6 and -a 7 amplify with the mask, which
   // mask_ctx_update_loop sizes once per round, so there is nothing here to multiply by yet.
+
+  const u64 log_mark_rest = event_log_count (hashcat_ctx);
 
   generic_ctx->keyspace = generic_global_keyspace (hashcat_ctx, generic_ctx);
 
@@ -329,6 +356,28 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
     if (generic_thread_init (hashcat_ctx, generic_ctx, device_param->device_id) == false) return -1;
   }
+
+  // global_keyspace () and thread_init () are inside the block too. A feed that reports its keyspace
+  // or declines a device is still the same feed talking about the same startup.
+
+  said += event_log_count (hashcat_ctx) - log_mark_rest;
+
+  // The shipped wordlist feed already ends its own block with a blank line, so the separator is due
+  // only when the feed said something and did not finish with one itself.
+
+  if (announce == false) return 0;
+  if (said == 0) return 0;
+
+  // And only when there is a block to separate. --quiet silences the two lines this brackets with,
+  // so a separator without them would be a blank line on its own, and --stdout, which sets quiet
+  // itself, would put that blank line on the candidate stream: an empty password, handed to whatever
+  // is reading, ahead of everything the feed produced. A feed that says something through
+  // feed_say () says it on stderr under --stdout and still counts here, which is what makes this
+  // reachable rather than theoretical.
+
+  if (hashcat_ctx->user_options->quiet == true) return 0;
+
+  if (event_log_last_blank (hashcat_ctx) == false) event_log_info (hashcat_ctx, NULL);
 
   return 0;
 }
@@ -451,12 +500,20 @@ int generic_ctx_base_discard (hashcat_ctx_t *hashcat_ctx, const int device_id, c
 
   u8 *out_buf = (u8 *) hcmalloc (PW_MAX);
 
+  // The third thread that reaches a feed. This is the main thread, before any device thread exists,
+  // and the device is made current around the whole loop for the same reason it is made current
+  // around the producer's: thread_next () may talk to it, and once per loop costs nothing.
+
+  const bool bound = feed_device_bind_id (hashcat_ctx, device_id);
+
   for (u64 i = 0; i < count; i++)
   {
     const int out_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_id, out_buf, PW_MAX);
 
     if (out_len == GENERIC_RC_ERROR)
     {
+      if (bound == true) feed_device_unbind_id (hashcat_ctx, device_id);
+
       hcfree (out_buf);
 
       return -1;
@@ -475,6 +532,8 @@ int generic_ctx_base_discard (hashcat_ctx_t *hashcat_ctx, const int device_id, c
 
     if (status_ctx->run_thread_level1 == false) break;
   }
+
+  if (bound == true) feed_device_unbind_id (hashcat_ctx, device_id);
 
   hcfree (out_buf);
 

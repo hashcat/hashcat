@@ -18,6 +18,7 @@
 #include "hashcat.h"
 #include "timer.h"
 #include "terminal.h"
+#include "user_options.h"
 
 static const size_t MAXIMUM_EXAMPLE_HASH_LENGTH = 200;
 
@@ -3360,6 +3361,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   const pubkey_ctx_t   *pubkey_ctx   = hashcat_ctx->pubkey_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
   if (user_options->machine_readable == true)
   {
     status_display_machine_readable (hashcat_ctx);
@@ -4225,14 +4228,33 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  //if (hashconfig->opts_type & OPTS_TYPE_SLOW_CANDIDATES)
-  if (user_options->slow_candidates == true)
+  // Which side of the bus the candidates are made on. --slow-candidates is one way to end up on the
+  // host and it was the only one this asked about, so every attack that hands the device one finished
+  // candidate per work item claimed to be generating on the device: -a 0 with no rules, -a 8 with a
+  // feed that does not amplify, and both of those on a slow hash as well.
+  //
+  // Two of the three attack kernels carry a generator whatever they were given. The mask processor
+  // and the combinator fill their buffer on the device, so -a 1, -a 3, -a 6 and -a 7 generate there
+  // even when the thing they expand with holds a single entry. The straight kernel has one only when
+  // there are rules to apply, and without them the host built the candidate and paid for the copy.
+
+  bool device_generator = (user_options_extra_amplifier (hashcat_ctx) > 1);
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)    device_generator = true;
+  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI) device_generator = true;
+
+  // --slow-candidates is what it is named after: every candidate is built on the host, whichever
+  // attack kernel would otherwise have had a generator.
+
+  if (user_options->slow_candidates == true) device_generator = false;
+
+  if (device_generator == true)
   {
-    event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
+    event_log_info (hashcat_ctx, "Candidate.Engine.: Device Generator");
   }
   else
   {
-    event_log_info (hashcat_ctx, "Candidate.Engine.: Device Generator");
+    event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
   }
 
   if (bridge_ctx->enabled == true)

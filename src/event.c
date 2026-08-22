@@ -26,6 +26,13 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
     case EVENT_LOG_ADVICE:  is_log = true; break;
   }
 
+  if (is_log == true)
+  {
+    event_ctx->log_cnt++;
+
+    event_ctx->log_blank = (event_ctx->msg_len == 0) && (event_ctx->msg_newline == true);
+  }
+
   if (is_log == false)
   {
     hc_thread_mutex_lock (event_ctx->mux_event);
@@ -319,4 +326,25 @@ void event_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
   hc_thread_mutex_delete (event_ctx->mux_event);
+}
+
+// How many lines have been logged so far. Take it before and after somebody else's work and the
+// difference is how much that work had to say, which is the only way to know whether a block of
+// output needs a blank line after it or would be adding a stray one.
+
+u64 event_log_count (const hashcat_ctx_t *hashcat_ctx)
+{
+  const event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  return event_ctx->log_cnt;
+}
+
+// Whether the last line logged was a blank one. A caller adding a separator after somebody else's
+// output asks this so as not to add a second one after output that already ended in its own.
+
+bool event_log_last_blank (const hashcat_ctx_t *hashcat_ctx)
+{
+  const event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  return event_ctx->log_blank;
 }

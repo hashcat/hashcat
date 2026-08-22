@@ -8,7 +8,7 @@
 #include "event.h"
 #include "shared.h"
 #include "mpsp.h"
-#include "generic.h"
+#include "feed_ctx.h"
 #include "combinator.h"
 
 // The two dictionary counts of a -a 1, as the two feed instances already counted them. Neither

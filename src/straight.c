@@ -15,7 +15,7 @@
 #include "folder.h"
 #include "rp.h"
 #include "wordlist.h"
-#include "generic.h"
+#include "feed_ctx.h"
 #include "straight.h"
 
 static int straight_ctx_add_wl (hashcat_ctx_t *hashcat_ctx, const char *dict)

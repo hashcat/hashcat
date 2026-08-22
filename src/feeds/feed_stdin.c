@@ -61,7 +61,7 @@
 #include "system.h"
 #include "memchr.h"
 #include "thread.h"
-#include "generic.h"
+#include "feed.h"
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 

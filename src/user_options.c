@@ -20,7 +20,7 @@
 #include "rp.h"
 #include "rp_cpu.h"
 
-#include "generic.h"
+#include "feed_ctx.h"
 #include "mpsp.h"
 
 #ifdef WITH_BRAIN

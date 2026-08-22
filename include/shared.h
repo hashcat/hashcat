@@ -68,14 +68,6 @@ HC_API const char *stroptitype (const u32 opti_type);
 HC_PLUGIN_API u32 previous_power_of_two (const u32 x);
 HC_PLUGIN_API u32 next_power_of_two (const u32 x);
 
-// Reading a feed's own settings out of its work arguments. See feed_param_t in types.h for what a
-// setting is and why it travels as an argument rather than as an option.
-
-HC_PLUGIN_API bool        feed_param_is_setting (const char *arg);
-HC_PLUGIN_API const char *feed_param_lookup     (const int workc, char * const *workv, const char *key);
-HC_PLUGIN_API bool        feed_param_parse      (const int workc, char * const *workv, const feed_param_t *params, char *err_buf, const size_t err_size);
-HC_PLUGIN_API int         feed_param_usage      (const feed_param_t *params, char *out_buf, const size_t out_size);
-
 // On/off environment switch, looked up once. Pass a static int initialised to -1 as the cache.
 bool hc_env_flag (const char *name, int *cache);
 

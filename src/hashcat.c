@@ -47,7 +47,7 @@
 #include "restore.h"
 #include "selftest.h"
 #include "status.h"
-#include "generic.h"
+#include "feed_ctx.h"
 #include "straight.h"
 #include "tuningdb.h"
 #include "user_options.h"
