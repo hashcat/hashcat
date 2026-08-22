@@ -23,12 +23,17 @@ use warnings;
 # "A" in front of it, which is what the kernels spell out as
 # ctx.w0[0] = 0x41000000 with ctx.len = 1.
 #
-# The oracle covers the AES half of the matrix, types 0, 3, 6 and 9, across all
-# three key sizes, which is every key-derivation path the mode has: the two
-# short digests that need the second pass and the two long ones that do not.
-# Serpent and Twofish (types 1, 2, 4, 5, 7, 8, 10, 11, 13, 14) and Whirlpool
-# (12, 13, 14) are left out because no cipher or digest available here
-# implements them, so a run covers 4 of the 15 kernels.
+# This oracle covers the AES types, 0, 3, 6 and 9, across all three key sizes,
+# which is every key-derivation path the mode has: the two short digests that
+# need the second pass and the two long ones that do not. Serpent, Twofish and
+# Whirlpool are left out because nothing available to a .pm implements them.
+#
+# They are not left untested, though. test.sh already runs 14500 against the
+# cryptoloop containers in tools/cl_tests, listed under CL_MODES by the kernel
+# number each one selects, and those cover the Serpent and Twofish ciphers.
+# What they do not cover is a random password per run or the -a 0 and -a 1
+# kernels, since every container is cracked with one fixed -a 3 mask, and that
+# is the gap this oracle fills.
 
 sub module_constraints { [[0, 64], [-1, -1], [0, 31], [-1, -1], [-1, -1]] }
 
