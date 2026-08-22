@@ -98,6 +98,18 @@ using namespace metal;
 
 #if   VENDOR_ID == (1 << 0)
 //#define IS_AMD
+// IS_AMD is off, so nothing can ask "is this an AMD GPU" any more. Some code still needs
+// to, to reach an instruction only that hardware has, and the OpenCL backend is the one
+// case IS_AMD_USE_HIP does not already name. This says the same thing without turning the
+// disabled IS_AMD paths back on.
+//
+// The IS_GPU qualifier is load bearing. VENDOR_ID is the *platform* vendor, so a CPU device
+// exposed by an AMD OpenCL platform arrives here too, and everything IS_AMD_USE_OPENCL
+// selects is a __builtin_amdgcn_* that only exists when the target is amdgcn. Without the
+// qualifier such a device tries to compile GPU builtins for x86 and no kernel builds at all.
+#ifdef IS_GPU
+#define IS_AMD_USE_OPENCL
+#endif
 #define IS_GENERIC
 #elif VENDOR_ID == (1 << 1)
 #define IS_APPLE
@@ -179,6 +191,24 @@ using namespace metal;
 // set from the include guard of emu_general.h, and that is the header that brings HC_PLUGIN_API in,
 // so the macro is always in hand by the time this is read.
 
+// The `static` on the last branch is what lets a helper the kernel never calls be dropped
+// before it reaches the back end. Without it these functions have external linkage and the
+// compiler has to emit every one of them into every kernel. inc_common.cl alone is 174
+// functions, so a kernel that calls twenty of them still pays for all 174, at whatever
+// VECT_SIZE it was built with. Measured on gfx1100 with ROCm 7.0.1, a kernel body that
+// calls nothing at all went from 2.97s and 99962 lines of ISA to 0.21s and 197 lines.
+//
+// This branch is where every OpenCL build lands, because the IS_AMD one above is dead.
+// Plain `static` is deliberate. HC_INLINE would add an `inline` hint on top, which measures
+// identically here and brings the whole-kernel inlining problem the FORCE_NO_INLINE comment
+// above describes, so there is no reason to ask for it.
+
+// The `static` on the last branch needs OpenCL C 1.2, which has file scope static. 1.1 does
+// not, and a device reporting 1.0 or 1.1 is now skipped at device init in backend.c rather
+// than compiled with -cl-std=CL1.1. That is not a new requirement: inc_rp_common.cl already
+// declares its lookup tables as `CONSTANT_VK static` at file scope, so rule and wordlist
+// attacks could never build on such a device anyway.
+
 #if defined IS_AMD && defined IS_GPU
 #define DECLSPEC HC_NOINLINE HC_INLINE
 #elif defined IS_CUDA
@@ -188,7 +218,7 @@ using namespace metal;
 #elif defined IS_NATIVE
 #define DECLSPEC HC_PLUGIN_API
 #else
-#define DECLSPEC HC_NOINLINE
+#define DECLSPEC static HC_NOINLINE
 #endif
 
 /**
@@ -207,14 +237,24 @@ using namespace metal;
 // Whitelist some OpenCL specific functions
 // This could create more stable kernels on systems with bad OpenCL drivers
 
+// USE_BITSELECT and USE_ROTATE each say "this backend has the OpenCL builtin of that name".
+// CUDA and HIP have neither, so inc_platform.h supplies bitselect as a macro for both. It
+// does not supply rotate: that macro is commented out at inc_platform.h:48 and :71. So
+// USE_ROTATE must not be set here, or any code that believes it fails to compile with
+// "use of undeclared identifier 'rotate'".
+//
+// Nothing hit that until now, because the two places that test USE_ROTATE without first
+// returning on IS_CUDA or IS_HIP are the fallback arms of hc_swap32 and hc_swap64, and
+// those were unreachable behind the V_PERM_B32 and prmt arms above them. The eight
+// hc_rotl/hc_rotr functions are unaffected either way; each one returns on
+// IS_CUDA || IS_HIP before it reaches its USE_ROTATE branch.
+
 #ifdef IS_CUDA
 #define USE_BITSELECT
-#define USE_ROTATE
 #endif
 
 #ifdef IS_HIP
 #define USE_BITSELECT
-#define USE_ROTATE
 #endif
 
 #ifdef IS_OPENCL

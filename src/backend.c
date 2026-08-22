@@ -6396,7 +6396,6 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
       device_param->is_metal  = false;
       device_param->is_opencl = false;
 
-      device_param->use_opencl11 = false;
       device_param->use_opencl12 = false;
       device_param->use_opencl20 = false;
       device_param->use_opencl30 = false;
@@ -6888,7 +6887,6 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
       device_param->is_metal  = false;
       device_param->is_opencl = false;
 
-      device_param->use_opencl11 = false;
       device_param->use_opencl12 = false;
       device_param->use_opencl20 = false;
       device_param->use_opencl30 = false;
@@ -7434,7 +7432,6 @@ static void backend_ctx_devices_init_metal (hashcat_ctx_t *hashcat_ctx, MAYBE_UN
       device_param->is_metal  = true;
       device_param->is_opencl = false;
 
-      device_param->use_opencl11 = false;
       device_param->use_opencl12 = false;
       device_param->use_opencl20 = false;
       device_param->use_opencl30 = false;
@@ -7867,7 +7864,6 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
         // check OpenCL version
 
-        device_param->use_opencl11 = false;
         device_param->use_opencl12 = false;
         device_param->use_opencl20 = false;
         device_param->use_opencl30 = false;
@@ -7888,6 +7884,16 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           // It stayed hidden because the mainstream runtimes all report 2.x or 3.x and take a different
           // branch. It needs a platform that reports exactly 1.2 to appear.
 
+          // OpenCL C 1.2 is the floor. Anything older cannot build the kernels at all, and
+          // has not been able to for a long time: inc_rp_common.cl declares its lookup
+          // tables as `CONSTANT_VK static` at file scope, and OpenCL C 1.1 has no file scope
+          // static, so every rule or wordlist attack failed to build its amplifier kernel
+          // there. Compiling such a device as CL1.1 only turns that into a confusing kernel
+          // build error much later, so say so here instead.
+          //
+          // No runtime in use reports 1.0 or 1.1. The two that did, Beignet and Mesa, are
+          // already skipped further down.
+
           if (opencl_version_maj == 1)
           {
             if (opencl_version_min >= 2)
@@ -7896,7 +7902,9 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
             }
             else
             {
-              device_param->use_opencl11 = true;
+              event_log_error (hashcat_ctx, "* Device #%u: OpenCL %d.%d is too old, hashcat needs OpenCL 1.2 or later.", device_id + 1, opencl_version_maj, opencl_version_min);
+
+              device_param->skipped = true;
             }
           }
 
@@ -8123,6 +8131,27 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         }
 
         device_param->opencl_device_c_version = opencl_device_c_version;
+
+        // The platform version was already checked further up, but that is the platform, not
+        // this device. OpenCL 3.0 made most of 2.x optional and lets a device advertise a
+        // lower OpenCL C than its platform, so a 3.0 platform can still expose a device whose
+        // OpenCL C is 1.1. That device would be handed -cl-std from the platform version and
+        // fail much later in the kernel build, so ask the device directly as well.
+
+        int device_c_version_maj = 0;
+        int device_c_version_min = 0;
+
+        if (sscanf (opencl_device_c_version, "OpenCL C %d.%d", &device_c_version_maj, &device_c_version_min) == 2)
+        {
+          if ((device_c_version_maj == 1) && (device_c_version_min < 2))
+          {
+            event_log_error (hashcat_ctx, "* Device #%u: OpenCL C %d.%d is too old, hashcat needs OpenCL C 1.2 or later.", device_id + 1, device_c_version_maj, device_c_version_min);
+
+            device_param->skipped = true;
+
+            continue;
+          }
+        }
 
         // device_host_unified_memory
 
@@ -9819,21 +9848,35 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
       }
 
       // instruction set
+      //
+      // This used to run eleven opencl_test_instruction calls per distinct AMD device
+      // type. Each one is a clBuildProgram, so that was eleven kernel builds before
+      // hashcat had read a single module. Ten of the eleven answers are never read again.
+      // HAS_VADD, HAS_VADDC, HAS_VADD_CO, HAS_VADDC_CO, HAS_VSUB_CO and HAS_VSUBB_CO have
+      // no reference anywhere in the tree. HAS_VSUB, HAS_VSUBB and HAS_VBFE appear only on
+      // commented out lines. HAS_VADD3 guarded a #if in inc_common.cl whose two arms were
+      // the same expression, and that is gone now. Those ten get the same fixed values the
+      // HIP path below uses.
+      //
+      // has_vperm is the exception and still has to be asked for. No kernel reads it on
+      // this backend, because every HAS_VPERM in OpenCL/ sits behind IS_AMD, which is
+      // switched off in inc_vendor.h. The host side does read it: 73 modules use it as a
+      // stand in for "is this a recent AMD GPU" when deciding whether to pass -D _unroll.
 
       if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD))
       {
-        #define RUN_INSTRUCTION_CHECKS() \
-          device_param->has_vadd     = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD_U32     %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
-          device_param->has_vaddc    = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADDC_U32    %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
-          device_param->has_vadd_co  = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD_CO_U32  %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
-          device_param->has_vaddc_co = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADDC_CO_U32 %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
-          device_param->has_vsub     = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUB_U32     %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
-          device_param->has_vsubb    = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUBB_U32    %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
-          device_param->has_vsub_co  = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUB_CO_U32  %0, vcc, 0, 0;\"      : \"=v\"(r1)); }"); \
-          device_param->has_vsubb_co = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_SUBB_CO_U32 %0, vcc, 0, 0, vcc;\" : \"=v\"(r1)); }"); \
-          device_param->has_vadd3    = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_ADD3_U32    %0,   0, 0, 0;\"      : \"=v\"(r1)); }"); \
-          device_param->has_vbfe     = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_BFE_U32     %0,   0, 0, 0;\"      : \"=v\"(r1)); }"); \
-          device_param->has_vperm    = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_PERM_B32    %0,   0, 0, 0;\"      : \"=v\"(r1)); }"); \
+        device_param->has_vadd     = true;
+        device_param->has_vaddc    = true;
+        device_param->has_vadd_co  = true;
+        device_param->has_vaddc_co = true;
+        device_param->has_vsub     = true;
+        device_param->has_vsubb    = true;
+        device_param->has_vsub_co  = true;
+        device_param->has_vsubb_co = true;
+        device_param->has_vadd3    = true;
+        device_param->has_vbfe     = true;
+
+        bool probe_vperm = true;
 
         if (backend_devices_idx > 0)
         {
@@ -9841,29 +9884,16 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           if (is_same_device_type (device_param, device_param_prev) == true)
           {
-            device_param->has_vadd     = device_param_prev->has_vadd;
-            device_param->has_vaddc    = device_param_prev->has_vaddc;
-            device_param->has_vadd_co  = device_param_prev->has_vadd_co;
-            device_param->has_vaddc_co = device_param_prev->has_vaddc_co;
-            device_param->has_vsub     = device_param_prev->has_vsub;
-            device_param->has_vsubb    = device_param_prev->has_vsubb;
-            device_param->has_vsub_co  = device_param_prev->has_vsub_co;
-            device_param->has_vsubb_co = device_param_prev->has_vsubb_co;
-            device_param->has_vadd3    = device_param_prev->has_vadd3;
-            device_param->has_vbfe     = device_param_prev->has_vbfe;
-            device_param->has_vperm    = device_param_prev->has_vperm;
+            device_param->has_vperm = device_param_prev->has_vperm;
+
+            probe_vperm = false;
           }
-          else
-          {
-            RUN_INSTRUCTION_CHECKS();
-          }
-        }
-        else
-        {
-          RUN_INSTRUCTION_CHECKS();
         }
 
-        #undef RUN_INSTRUCTION_CHECKS
+        if (probe_vperm == true)
+        {
+          device_param->has_vperm = opencl_test_instruction (hashcat_ctx, device_param->opencl_context, device_param->opencl_device, "__kernel void test () { uint r1; __asm__ __volatile__ (\"V_PERM_B32 %0, 0, 0, 0;\" : \"=v\"(r1)); }");
+        }
       }
 
       if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_platform_vendor_id == VENDOR_ID_NV))
@@ -15829,11 +15859,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_opencl == true)
     {
-      if (device_param->use_opencl11 == true)
-      {
-        build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL1.1 ");
-      }
-      else if (device_param->use_opencl12 == true)
+      if (device_param->use_opencl12 == true)
       {
         build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-cl-std=CL1.2 ");
       }
