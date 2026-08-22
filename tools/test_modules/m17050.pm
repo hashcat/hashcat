@@ -77,7 +77,7 @@ def s2k_iterated_salted_sha1_decoded(password: bytes, salt: bytes, count: int, o
 
 salt_iter = randint(200_000_000, 300_000_000)
 # The 17050 kernel only checks the first decrypted block: "(((1:" <name> <len> ":".
-# Exercise every shape it accepts -- RSA and ECC use the secret MPI 'd', DSA/ElGamal
+# Exercise every shape it accepts. RSA and ECC use the secret MPI 'd', DSA/ElGamal
 # use 'x', and the length is 2 or 3 ASCII digits depending on key type:
 #   ed25519 -> d32   rsa2048 -> d256   ed448 -> d57   dsa/elgamal -> x33
 # Only the marker matters to the kernel, so the trailing bytes are just padding.

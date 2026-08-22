@@ -263,8 +263,8 @@ DECLSPEC int check_decoded_data (PRIVATE_AS u32 *decoded_data, const u32 decoded
   //   DSA / ElGamal  (nn-byte  x): "(((1:x33:"   <- secret is named 'x', not 'd'
   // So we match "(((1:" exactly, require the name byte to be 'd' or 'x', and require the next
   // two bytes to be ASCII decimal digits (a real key's secret is always >= 10 bytes, so the
-  // length has >= 2 digits). This keeps the check key-type-agnostic -- RSA, ECC, DSA/ElGamal
-  // all pass -- while still examining 8 bytes: we can't check for printables on only 8 bytes
+  // length has >= 2 digits). This keeps the check key-type-agnostic, so RSA, ECC, DSA/ElGamal
+  // all pass, while still examining 8 bytes: we can't check for printables on only 8 bytes
   // as that is not enough (false positives), but 5 exact bytes + a 2-way name byte + 2
   // digit-class bytes is ~2^-56, which for this slow hash is ample.
   //

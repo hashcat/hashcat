@@ -4469,7 +4469,7 @@ EOF
     [ -s "${hf}" ] && producers="${producers} ${label}|${hf}"
   }
 
-  gpg2_ocb_key() { # label keytype -- GnuPG 2.3+ on-disk OCB key (openpgp-s2k3-ocb-aes).
+  gpg2_ocb_key() { # label keytype: GnuPG 2.3+ on-disk OCB key (openpgp-s2k3-ocb-aes).
                    # keytype is the gpg key algo; the 17050 kernel verifies the decrypted
                    # secret S-expression, which starts "(((1:d<len>:" for both ECC/ed25519
                    # (32-byte d) and RSA (256/512-byte d), so both key types are covered.
@@ -4489,8 +4489,8 @@ EOF
   }
 
   case ${hashType} in
-    # 17010/17020/17030 each have two runtime cipher paths in the kernel -- aux1
-    # (AES-128) and aux2 (AES-256), picked from the key's cipher_algo -- so
+    # 17010/17020/17030 each have two runtime cipher paths in the kernel, aux1
+    # (AES-128) and aux2 (AES-256), picked from the key's cipher_algo, so
     # generate one container for each to exercise both. 17040 (CAST5) is a single
     # path (no aux kernels).
     17010) gpg1_key SHA1   AES    gpg1-sha1-aes128;   gpg1_key SHA1   AES256 gpg1-sha1-aes256;   gpg2_key gpg2-default ;;
@@ -4523,7 +4523,7 @@ function rar_test()
 {
   # Real-container test for RAR. Builds genuine archives with the RARLAB 'rar'
   # CLI, extracts the hash with John's rar2john, and confirms hashcat cracks the
-  # known password -- the ground-truth complement to the RAR test.pl oracles
+  # known password, the ground-truth complement to the RAR test.pl oracles
   # (and the only coverage for 23800, which has no oracle).
   #
   #   12500 RAR3-hp   -> rar a -ma4 -hp<pw>       -> $RAR3$*0*  (header-encrypted)
@@ -4536,7 +4536,7 @@ function rar_test()
   #
   # IMPORTANT: `apt install rar` gives rar 7.x, which can ONLY create RAR5 (no
   # -ma switch), so 12500/23700/23800 cannot be produced that way. Fetch a
-  # legacy rar (<= 6.x) from RARLAB instead -- it is a self-contained static
+  # legacy rar (<= 6.x) from RARLAB instead. It is a self-contained static
   # binary, no install/root needed:
   #
   #   curl -O https://www.rarlab.com/rar/rarlinux-x64-612.tar.gz
