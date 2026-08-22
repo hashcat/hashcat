@@ -111,6 +111,7 @@ typedef struct generic_global_ctx
 
   char  *profile_dir;
   char  *cache_dir;
+  char  *seekdb_dir;
 
   char   guess_base[256];
 
@@ -133,6 +134,7 @@ Notes:
 - This structure may change over time as we learn more about what developers need.
 - To handle compatibility, your feed library will be built with a version string. Hashcat will use this to check if your feed matches the current structures.
 - Attributes `workc` and `workv` contain the command line arguments that belong to attack mode -a 8. For example, if your feed reads a wordlist, the filename can be passed on the hashcat command line and you can retrieve it from these variables. The feed plugin name is always workv[0], so for the wordlist example you would find this in workv[1].
+- `seekdb_dir` is the directory the user named with `--seekdb-path`, or NULL when they did not. It exists because a feed that caches something per input can be pointed at storage several machines share, so the cache is built once for a cluster rather than once per host. If your feed keeps no such cache, ignore it. If it does, treat NULL as "pick your own place under `cache_dir`", do not create the directory yourself since hashcat has already checked that it is there, and expect it to be read only: write only when you had to build something, and carry on with what is in memory when the write fails.
 - `guess_base` is what the status display puts inside `Guess.Base.......: Feed (...)`. Write your own during `global_init()` if the plugin name alone is not informative: `Feed (rockyou.pcfg)` tells the user something that `Feed (pcfg)` does not. Leave it empty and hashcat uses the plugin name.
 - The three `segment_*` fields are optional and only worth filling if your feed draws from several named sources laid end to end. Publish where each one begins in the keyspace, ascending, and the status display names the source the run has reached instead of whatever `guess_base` holds: `Guess.Base.......: Feed ([6/18] d06.txt)`. Leave `segments_cnt` at zero and nothing changes. Fill these once the offsets are actually known, which for the wordlist feed means in `global_keyspace()` and not in `global_init()`, because the offset a source starts at is only known after every earlier source has been counted. The arrays and the strings they point at have to stay valid until `global_term()`, and freeing them is your job.
 - `source_ident` is one number saying what your feed reads from, so that something which has to tell two runs apart can do it without knowing what a source is. Fill it during `global_init()` or `global_keyspace()` if you can. The brain is what needs it: it keys its record of covered keyspace on the attack, so a feed whose inputs have changed since the last run has to come out different or that run is told its work was already done. A path is not enough, because the same path holds different words on different days. The wordlist feed already has the answer for free: it names its seek database after a hash of each file's size, modification time and both of its ends, and folds those together. Leave it at zero if your feed cannot say, which is what the stdin feed does.

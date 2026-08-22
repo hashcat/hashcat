@@ -117,6 +117,8 @@ To prepare both modes, replace with any large wordlist locally.
 
 First clear caching databases for kernels and dictionary stats. Note the new `seekdbs` folder, used by feed_wordlist.so to enable fast seeks to specific offsets in the wordlist. It acts as a sparse line to byte offset database and also as a keyspace hint, similar to dictstat2.
 
+The folder lives in the hashcat cache directory by default, so every host that reads the same wordlist builds its own copy of the same database, and each of those builds costs a full read of the file. `--seekdb-path` names a different directory instead, and pointing a cluster at one shared mount turns that into a single build for all of it. A database is named and checked by what the wordlist contains, so the directory holds one file per wordlist rather than one per host, and one that does not belong to the file in hand is refused rather than trusted. The mount may be read only: hashcat writes only when it did not find what it needed, and a write that fails leaves the run using the database it just built in memory.
+
 ```
 rm -rf kernels hashcat.dictstat2 seekdbs
 ```

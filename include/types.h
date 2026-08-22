@@ -1020,6 +1020,7 @@ typedef enum user_options_map
   IDX_RULE_BUF_R                = 'k',
   IDX_RUNTIME                   = 0xff43,
   IDX_SCRYPT_TMTO               = 0xff44,
+  IDX_SEEKDB_PATH               = 0xff88,
   IDX_SEGMENT_SIZE              = 'c',
   IDX_SELF_TEST_DISABLE         = 0xff45,
   IDX_SEPARATOR                 = 'p',
@@ -2742,6 +2743,7 @@ typedef struct user_options
   char        *restore_file_path;
   char       **rp_files;
   char        *rp_gen_func_sel;
+  char        *seekdb_path;
   char        *separator;
   char        *truecrypt_keyfiles;
   char        *veracrypt_keyfiles;
@@ -3029,6 +3031,17 @@ typedef struct generic_global_ctx
 
   char  *profile_dir;
   char  *cache_dir;
+
+  // Where seek databases live, when the user named a directory with --seekdb-path. NULL means the
+  // feed picks its own place under cache_dir, which is what happens without the option.
+  //
+  // It is here because a database is described entirely by the wordlist it was built from, so one
+  // built on any machine is usable on every machine that reads the same file, and pointing a whole
+  // cluster at one shared directory turns a build per machine into a build for all of them. The
+  // directory may be read only: a feed writes only when it did not find what it needed, and a write
+  // that fails leaves it running from the database it just built in memory.
+
+  char  *seekdb_dir;
 
   // What the status display puts inside "Guess.Base.......: Feed (...)". A feed may write its own
   // during global_init (), because the plugin name alone says what is generating and not what it is

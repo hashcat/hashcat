@@ -80,6 +80,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log",
   "     --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts",
   "     --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x",
+  "     --seekdb-path              | Dir  | Specify the directory to store seek databases in     | --seekdb-path=/mnt/seekdbs",
   "     --logfile-disable          |      | Disable the logfile                                  |",
   "     --hccapx-message-pair      | Num  | Load only message pairs from hccapx matching X       | --hccapx-message-pair=2",
   "     --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16",
