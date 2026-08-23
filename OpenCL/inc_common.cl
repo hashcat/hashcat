@@ -2667,19 +2667,26 @@ DECLSPEC void mark_hash (GLOBAL_AS plain_t *plains_buf, GLOBAL_AS u32 *d_result,
 {
   const u32 idx = hc_atomic_inc (d_result);
 
+  // Association mode (ATTACK_MODE==9): when DIGESTS_CNT (always 1) is
+  // passed as capacity from a mode-specific path, skip the check — the
+  // per-digest hashes_shown gate already limits results, and the buffer
+  // is sized exactly (plains_cnt == digests_cnt).  When a larger value
+  // (plains_cnt) is passed by keep-guessing or common macros, the
+  // capacity check must apply to prevent global overflow.
   #if ATTACK_MODE == 9
-
-  #else
-  if (idx >= digests_cnt)
-  {
-    // this is kind of tricky: we *must* call hc_atomic_inc() to know about the current value from a multi-thread perspective
-    // this action creates a buffer overflow, so we need to fix it here
-
-    hc_atomic_dec (d_result);
-
-    return;
-  }
+  if (digests_cnt > 1)
   #endif
+  {
+    if (idx >= digests_cnt)
+    {
+      // this is kind of tricky: we *must* call hc_atomic_inc() to know about the current value from a multi-thread perspective
+      // this action creates a buffer overflow, so we need to fix it here
+
+      hc_atomic_dec (d_result);
+
+      return;
+    }
+  }
 
   plains_buf[idx].salt_pos   = salt_pos;
   plains_buf[idx].digest_pos = digest_pos;  // relative

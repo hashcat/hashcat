@@ -992,9 +992,9 @@ KERNEL_FQ KERNEL_FA void m15310_comp (KERN_ATTR_TMPS_ESALT (dpapimk_tmp_v1_t, dp
    && (expected_key[2] == hc_swap32_S (ctx.opad.h[2]))
    && (expected_key[3] == hc_swap32_S (ctx.opad.h[3])))
   {
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
     }
   }
 }

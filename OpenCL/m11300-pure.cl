@@ -351,9 +351,9 @@ KERNEL_FQ KERNEL_FA void m11300_comp (KERN_ATTR_TMPS_ESALT (bitcoin_wallet_tmp_t
 
   if (out[2] == pad && out[3] == pad)
   {
-    if (hc_atomic_inc (&hashes_shown[digest_cur]) == 0)
+    if (hc_atomic_inc (&hashes_shown[digest_cur]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, digest_cur, gid, 0, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, digest_cur, gid, 0, 0, 0);
     }
   }
 }

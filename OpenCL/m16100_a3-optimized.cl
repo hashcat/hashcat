@@ -229,9 +229,9 @@ DECLSPEC void m16100m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
       &&  ((authen_service >= 0x00) && (authen_service <= 0x09))
       &&  ((8 + user_len + port_len + rem_addr_len + data_len) == ct_len))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -247,9 +247,9 @@ DECLSPEC void m16100m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
        &&  (data_len == 0)
        &&  (flags == 0))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -266,9 +266,9 @@ DECLSPEC void m16100m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
        &&  (flags == 0x01 || flags == 0x00)
        &&  (6 + msg_len + data_len == ct_len))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -479,9 +479,9 @@ DECLSPEC void m16100s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
       &&  ((authen_service >= 0x00) && (authen_service <= 0x09))
       &&  ((8 + user_len + port_len + rem_addr_len + data_len) == ct_len))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -497,9 +497,9 @@ DECLSPEC void m16100s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
        &&  (data_len == 0)
        &&  (flags == 0))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }
@@ -516,9 +516,9 @@ DECLSPEC void m16100s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
        &&  (flags == 0x01 || flags == 0x00)
        &&  (6 + msg_len + data_len == ct_len))
       {
-        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+        if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
         {
-          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+          mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
         }
       }
     }

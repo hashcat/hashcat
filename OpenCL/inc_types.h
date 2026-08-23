@@ -2072,6 +2072,8 @@ typedef struct kernel_param
   u32 salt_repeat;          // 34
   u64 pws_pos;              // 35
   u64 gid_max;              // 36
+  u32 keep_guessing_limit;  // 37
+  u32 plains_cnt;           // 38
 
   // Bytes of mask that sit in front of the base word, so the position of ?w inside the mask. Zero
   // puts the word first, which is what every attack mode other than -a 12 does. It replaces

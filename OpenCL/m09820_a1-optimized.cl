@@ -346,9 +346,9 @@ KERNEL_FQ KERNEL_FA void m09820_m04 (KERN_ATTR_ESALT (oldoffice34_t))
 
     const u32 final_hash_pos = DIGESTS_OFFSET_HOST + digest_pos;
 
-    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) == 0)
+    if (hc_atomic_inc (&hashes_shown[final_hash_pos]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, digest_pos, final_hash_pos, gid, il_pos, 0, 0);
     }
   }
 }
@@ -687,9 +687,9 @@ KERNEL_FQ KERNEL_FA void m09820_s04 (KERN_ATTR_ESALT (oldoffice34_t))
       if (null_bytes < MIN_NULL_BYTES) continue;
     }
 
-    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+    if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
     {
-      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+      mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
     }
   }
 }

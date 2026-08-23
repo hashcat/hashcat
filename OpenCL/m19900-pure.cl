@@ -651,11 +651,11 @@ KERNEL_FQ KERNEL_FA void m19900_comp (KERN_ATTR_TMPS_ESALT (krb5pa_18_tmp_t, krb
      && (sha1_hmac_ctx.opad.h[1] == esalt_bufs[DIGESTS_OFFSET_HOST].checksum[1])
      && (sha1_hmac_ctx.opad.h[2] == esalt_bufs[DIGESTS_OFFSET_HOST].checksum[2]))
     {
-      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) == 0)
+      if (hc_atomic_inc (&hashes_shown[DIGESTS_OFFSET_HOST]) < kernel_param->keep_guessing_limit)
       {
         #define il_pos 0
 
-        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, DIGESTS_CNT, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
+        mark_hash (plains_buf, d_return_buf, SALT_POS_HOST, kernel_param->plains_cnt, 0, DIGESTS_OFFSET_HOST + 0, gid, il_pos, 0, 0);
       }
     }
   }

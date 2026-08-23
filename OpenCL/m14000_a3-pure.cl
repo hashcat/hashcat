@@ -2153,16 +2153,23 @@ KERNEL_FQ KERNEL_FA void m14000_mxx (KERN_ATTR_BITSLICE ())
 
         if (tmpResult == 0xffffffff) continue;
 
-        const u32 slice = ffz (tmpResult);
-
         const u32 r0 = search[0];
         const u32 r1 = search[1];
         const u32 r2 = 0;
         const u32 r3 = 0;
 
-        #ifdef KERNEL_STATIC
-        #include COMPARE_M
-        #endif
+        u32 result = ~tmpResult;
+
+        while (result)
+        {
+          const u32 slice = ffz (~result);
+
+          #ifdef KERNEL_STATIC
+          #include COMPARE_M
+          #endif
+
+          result &= result - 1;
+        }
       }
     }
     else
@@ -2650,10 +2657,17 @@ KERNEL_FQ KERNEL_FA void m14000_sxx (KERN_ATTR_BITSLICE ())
 
     if (tmpResult == 0xffffffff) continue;
 
-    const u32 slice = ffz (tmpResult);
+    u32 result = ~tmpResult;
 
-    #ifdef KERNEL_STATIC
-    #include COMPARE_S
-    #endif
+    while (result)
+    {
+      const u32 slice = ffz (~result);
+
+      #ifdef KERNEL_STATIC
+      #include COMPARE_S
+      #endif
+
+      result &= result - 1;
+    }
   }
 }

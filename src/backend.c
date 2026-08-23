@@ -15655,7 +15655,22 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->size_rules    = size_rules;
     device_param->size_rules_c  = size_rules_c;
 
-    u64 size_plains  = (u64) hashes->digests_cnt * sizeof (plain_t);
+    // when --keep-guessing is enabled, grow the plains buffer to hold multiple
+    // candidate plains per digest.  The buffer is sized at the global cap
+    // (256K entries) regardless of digest count — a single digest can use the
+    // full buffer, and the global capacity check in mark_hash is the sole
+    // limiting factor.  Capped at 256K to bound GPU memory with large hash lists.
+    u64 plains_cnt_64 = (user_options->keep_guessing)
+      ? (u64) 256u * 1024u
+      : (u64) hashes->digests_cnt;
+    if (user_options->keep_guessing && plains_cnt_64 > 256u * 1024u)
+      plains_cnt_64 = 256u * 1024u;
+    // never smaller than the one-entry-per-digest baseline: with large
+    // hash lists the cap above must not shrink the buffer below what
+    // a non-keep-guessing run would have allocated
+    if (plains_cnt_64 < (u64) hashes->digests_cnt)
+      plains_cnt_64 = (u64) hashes->digests_cnt;
+    u64 size_plains  = plains_cnt_64 * sizeof (plain_t);
     u64 size_salts   = (u64) hashes->salts_cnt   * sizeof (salt_t);
     u64 size_esalts  = (u64) hashes->digests_cnt * hashconfig->esalt_size;
     u64 size_shown   = (u64) hashes->digests_cnt * sizeof (u32);
@@ -16803,6 +16818,31 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     device_param->kernel_param.salt_repeat         = 0;
     device_param->kernel_param.pws_pos             = 0;
     device_param->kernel_param.gid_max             = 0;
+
+    // Keep-guessing: use the global cap (256K) for plains_cnt directly,
+    // not digests_cnt * 256.  A single digest can use the full buffer;
+    // the global capacity check in mark_hash is the sole bound.
+    // keep_guessing_limit is set independently to match so individual
+    // digests are never capped at a per-digest ceiling — hashes_shown
+    // and d_return_buf are zeroed before each kernel invocation, so
+    // this limit resets per batch.
+    if (user_options->keep_guessing)
+    {
+      u64 kg_plains_cnt_64 = (u64) 256u * 1024u;
+      if (kg_plains_cnt_64 > 256u * 1024u)
+        kg_plains_cnt_64 = 256u * 1024u;
+      // never smaller than the one-entry-per-digest baseline
+      if (kg_plains_cnt_64 < (u64) hashes->digests_cnt)
+        kg_plains_cnt_64 = (u64) hashes->digests_cnt;
+      const u32 plains_cnt = (kg_plains_cnt_64 > UINT32_MAX) ? UINT32_MAX : (u32) kg_plains_cnt_64;
+      device_param->kernel_param.plains_cnt          = plains_cnt;
+      device_param->kernel_param.keep_guessing_limit = 256u * 1024u;
+    }
+    else
+    {
+      device_param->kernel_param.keep_guessing_limit = 1;
+      device_param->kernel_param.plains_cnt          = hashes->digests_cnt;
+    }
 
     if (device_param->is_cuda == true)
     {
