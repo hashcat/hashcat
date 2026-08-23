@@ -51,14 +51,15 @@ PKZIP_GEN_MODES="17200 17210 17220 17225 17230"
 #   an -ma4-capable rar and otherwise limits itself to RAR5.
 RAR_GEN_MODES="12500 13000 23700 23800"
 
-# RAR modes that have a checked-in reference hash in tools/rar_tests/ and are
-# therefore tested in every run, with no rar binary needed. 23800 (RAR3-p
-# compressed) is the one RAR mode with no test.pl oracle, because a .pm would
-# have to reproduce RAR's compressor. Its ground truth is instead one hash, read
-# with rar2john out of an archive the real rar built, so the mode is covered by
-# default and -g only adds a freshly generated container on top.
-RAR_TEST_MODES="23800"
-RAR_TEST_PASS="hashcat"
+# Modes that only -g can reach, kept in HASH_TYPES so that a run which cannot
+# test them says so rather than passing over them in silence.
+#
+# 23800 (RAR3-p, compressed) is the only one: it cannot have a test.pl oracle,
+# because module_23800 includes the unRAR engine and calls hc_decompress_rar(),
+# so a .pm would have to emit a RAR compressed bitstream that only the
+# proprietary compressor can produce. Without -g there is nothing to run, and
+# the run records a skip saying exactly that.
+GEN_ONLY_MODES="23800"
 
 LUKS_MODES="${LUKS1_MODES} ${LUKS2_MODES}"
 
@@ -70,7 +71,7 @@ CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 1454
 # instead of in place of it, so the dispatch has to know which modes still have
 # an oracle left to run.
 PM_MODES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/' | tr '\n' ' ')
-HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${RAR_TEST_MODES}"
+HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${GEN_ONLY_MODES}"
 HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 # Two widths, because -V all multiplies the whole run by however many are listed and five of them
@@ -4599,8 +4600,10 @@ function rar_test()
 {
   # Real-container test for RAR. Builds genuine archives with the RARLAB 'rar'
   # CLI, extracts the hash with John's rar2john, and confirms hashcat cracks the
-  # known password, the ground-truth complement to the RAR test.pl oracles
-  # (and the only coverage for 23800, which has no oracle).
+  # known password, the ground-truth complement to the RAR test.pl oracles.
+  #
+  # 23800 has no oracle to complement, since a .pm would have to reproduce RAR's
+  # compressor, so this is its only coverage and it needs -g.
   #
   #   12500 RAR3-hp   -> rar a -ma4 -hp<pw>       -> $RAR3$*0*  (header-encrypted)
   #   23700 RAR3-p    -> rar a -ma4 -m0 -p<pw>    -> $RAR3$*1*  (stored)
@@ -4669,7 +4672,7 @@ function rar_test()
   esac
 
   local password="hashcat"
-  local rdir="${OUTD}/rar_tests"
+  local rdir="${OUTD}/rar_tests"   # generated per run, nothing checked in
   local sdir="${rdir}/src"
   mkdir -p "${sdir}"
 
@@ -4706,39 +4709,6 @@ function rar_test()
 
   if [ -n "${CONTAINER_CMD}" ]; then
     container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "RAR-container ${label}"
-  fi
-}
-
-function rar_container_test()
-{
-  # Reference-hash test for RAR, run in every mode of operation because it needs
-  # nothing but hashcat: tools/rar_tests/<mode>.hash holds the hash rar2john read
-  # out of a real archive, and RAR_TEST_PASS is the password that archive was
-  # built with. Only the hash is kept, since that is all hashcat is given;
-  # tools/rar_tests/_README.txt has the three commands that rebuild it.
-  #
-  # This is what keeps 23800 covered without -g. rar_test() still generates a
-  # fresh archive when -g is given, which is the stronger check; this one is the
-  # floor under it.
-  hashType=$1
-  attackType=$2
-
-  # RAR is a slow hash with a single kernel per mode, so a0 suffices.
-  if [ "${attackType}" -eq 65535 ]; then
-    attackType=0
-  fi
-
-  local hashFile="${TDIR}/rar_tests/${hashType}.hash"
-
-  if [ ! -s "${hashFile}" ]; then
-    record_error "${hashType}" "reference hash ${hashFile} is missing or empty"
-    return
-  fi
-
-  build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${RAR_TEST_PASS}"
-
-  if [ -n "${CONTAINER_CMD}" ]; then
-    container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "RAR-hash reference"
   fi
 }
 
@@ -5319,9 +5289,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
                 rar_test "${hash_type}" ${ATTACK}
               fi
 
-              # the committed reference archive, in every run
-              if is_in_array "${hash_type}" ${RAR_TEST_MODES}; then
-                rar_container_test "${hash_type}" ${ATTACK}
+              # a mode only -g can reach has nothing to run without it, and a
+              # mode that quietly does nothing looks exactly like one that passed
+              if is_in_array "${hash_type}" ${GEN_ONLY_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]]; then
+                record_skip "${hash_type}" "no test.pl oracle, needs -g to build a real archive"
               fi
 
               if is_in_array "${hash_type}" ${PM_MODES}; then
@@ -5448,10 +5419,6 @@ if [ "${PACKAGE}" -eq 1 ]; then
     mkdir "${OUTD}/cl_tests/"
     cp ${TDIR}/cl_tests/* "${OUTD}/cl_tests/"
   fi
-
-  # the reference hashes are a couple of lines and always needed by RAR_TEST_MODES
-  mkdir -p "${OUTD}/rar_tests/"
-  cp ${TDIR}/rar_tests/* "${OUTD}/rar_tests/"
 
   # if we package from a given folder, we need to check if e.g. the files needed for multi mode are there
 
