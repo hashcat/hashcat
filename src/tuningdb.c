@@ -477,10 +477,6 @@ static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, con
       {
         s.device_name = "DEVICE_TYPE_GPU";
       }
-      else if (device_type & CL_DEVICE_TYPE_ACCELERATOR)
-      {
-        s.device_name = "DEVICE_TYPE_ACCELERATOR";
-      }
 
       entry = (tuning_db_entry_t *) bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
 

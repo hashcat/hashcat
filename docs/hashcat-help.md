@@ -223,7 +223,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  ===+=============
   1 | CPU
   2 | GPU
-  3 | OpenCL Accelerator
 
 Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.
 

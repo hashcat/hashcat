@@ -42,7 +42,7 @@
 
 #define ROTATE_LEFT_WORKAROUND_BUG(a,n) ((a << n) | (a >> (32 - n)))
 
-#define RIPEMD320_STEP_S_WORKAROUND_BUG(f,a,b,c,d,e,x,K,s)  \
+#define RIPEMD320_STEP_S_WORKAROUND_BUG(f,a,b,c,d,e,x,K,s) \
 {                                           \
   a += K;                                   \
   a += x;                                   \
@@ -52,7 +52,7 @@
   c  = hc_rotl32_S (c, 10u);                \
 }
 
-#define RIPEMD320_STEP_WORKAROUND_BUG(f,a,b,c,d,e,x,K,s)  \
+#define RIPEMD320_STEP_WORKAROUND_BUG(f,a,b,c,d,e,x,K,s) \
 {                                         \
   a += make_u32x (K);                     \
   a += x;                                 \

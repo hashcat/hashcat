@@ -31,15 +31,15 @@ typedef struct {
 
 /* CAST uses three different round functions */
 #define CAST_f1(l, r, km, kr) \
-  t = hc_rotl32_S(km + r, kr); \
+  t = hc_rotl32_S(km + r, kr);\
   l ^= ((s_S[0][U8a(t)] ^ s_S[1][U8b(t)]) - \
   s_S[2][U8c(t)]) + s_S[3][U8d(t)];
 #define CAST_f2(l, r, km, kr) \
-  t = hc_rotl32_S(km ^ r, kr); \
+  t = hc_rotl32_S(km ^ r, kr);\
   l ^= ((s_S[0][U8a(t)] - s_S[1][U8b(t)]) + \
   s_S[2][U8c(t)]) ^ s_S[3][U8d(t)];
 #define CAST_f3(l, r, km, kr) \
-  t = hc_rotl32_S(km - r, kr); \
+  t = hc_rotl32_S(km - r, kr);\
   l ^= ((s_S[0][U8a(t)] + s_S[1][U8b(t)]) ^ \
   s_S[2][U8c(t)]) - s_S[3][U8d(t)];
 

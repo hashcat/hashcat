@@ -600,7 +600,24 @@ static bool setup_opencl_device_types_filter (hashcat_ctx_t *hashcat_ctx, const 
     {
       const int device_type = (const int) strtol (next, NULL, 10);
 
-      if (device_type < 1 || device_type > 3)
+      // Device type 3 was the OpenCL accelerator card. Hardware of that kind is reached through an
+      // assimilation bridge now, and a bridge is selected by the hash-mode, so there is nothing left
+      // for -D to point at. Saying so beats accepting the number and selecting nothing.
+
+      if (device_type == 3)
+      {
+        event_log_error (hashcat_ctx, "OpenCL device-type 3, the accelerator card, no longer exists.");
+
+        event_log_warning (hashcat_ctx, "Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.");
+        event_log_warning (hashcat_ctx, "-D 1 is CPU and -D 2 is GPU.");
+        event_log_warning (hashcat_ctx, NULL);
+
+        hcfree (device_types);
+
+        return false;
+      }
+
+      if (device_type < 1 || device_type > 2)
       {
         event_log_error (hashcat_ctx, "Invalid OpenCL device-type %d specified.", device_type);
 
@@ -6188,7 +6205,7 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         // In such a case, automatically enable CPU device type support, since it's disabled by default.
 
-        if ((opencl_device_types_all & (CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_ACCELERATOR)) == 0)
+        if ((opencl_device_types_all & CL_DEVICE_TYPE_GPU) == 0)
         {
           opencl_device_types_filter |= CL_DEVICE_TYPE_CPU;
         }
@@ -6203,11 +6220,6 @@ int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
             opencl_device_types_filter = CL_DEVICE_TYPE_CPU;
           }
         }
-
-        // we don't want accelerators here
-        // for this kind of devices, we use accelerator bridge plugin interface
-
-        opencl_device_types_filter &= ~CL_DEVICE_TYPE_ACCELERATOR;
 
         backend_ctx->opencl_device_types_filter = opencl_device_types_filter;
       }
@@ -9227,9 +9239,8 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
 static const char *backend_ctx_device_type_name (const cl_device_type opencl_device_type)
 {
-  if (opencl_device_type & CL_DEVICE_TYPE_CPU)         return "CPU";
-  if (opencl_device_type & CL_DEVICE_TYPE_GPU)         return "GPU";
-  if (opencl_device_type & CL_DEVICE_TYPE_ACCELERATOR) return "accelerator";
+  if (opencl_device_type & CL_DEVICE_TYPE_CPU) return "CPU";
+  if (opencl_device_type & CL_DEVICE_TYPE_GPU) return "GPU";
 
   return "device";
 }
@@ -9293,7 +9304,7 @@ static void backend_ctx_devices_none_reason_virthost (hashcat_ctx_t *hashcat_ctx
     }
     else
     {
-      event_log_warning (hashcat_ctx, "-D %s excluded it. -D 1 is CPU, -D 2 is GPU and -D 3 is an OpenCL accelerator card.", user_options->opencl_device_types);
+      event_log_warning (hashcat_ctx, "-D %s excluded it. -D 1 is CPU and -D 2 is GPU.", user_options->opencl_device_types);
     }
 
     const int suggestion = backend_ctx_virthost_suggestion (backend_ctx);
@@ -9316,8 +9327,8 @@ static void backend_ctx_devices_none_reason_virthost (hashcat_ctx_t *hashcat_ctx
 // That sentence on its own describes the outcome and none of the cause, and everything needed to name
 // the cause is in hand at this point: the filter this run used, what the machine actually reported, and
 // whether a bridge is waiting for a device that will never arrive. A user whose 33 bridge units were all
-// ready spent a day looking at hardware because of it, when the answer was that -D 3 selects OpenCL
-// accelerator cards and his machine has none.
+// ready spent a day looking at hardware because of it, when the answer was that his -D selected a class
+// of device his machine has none of.
 
 static void backend_ctx_devices_none_reason (hashcat_ctx_t *hashcat_ctx)
 {
@@ -9347,9 +9358,8 @@ static void backend_ctx_devices_none_reason (hashcat_ctx_t *hashcat_ctx)
 
   const int found_total = backend_ctx->physical_devices_cnt;
 
-  int found_cpu   = 0;
-  int found_gpu   = 0;
-  int found_accel = 0;
+  int found_cpu = 0;
+  int found_gpu = 0;
 
   int cut_by_type = 0;
 
@@ -9357,18 +9367,17 @@ static void backend_ctx_devices_none_reason (hashcat_ctx_t *hashcat_ctx)
   {
     const cl_device_type opencl_device_type = backend_ctx->physical_devices_type[physical_devices_idx];
 
-    if (opencl_device_type & CL_DEVICE_TYPE_CPU)         found_cpu++;
-    if (opencl_device_type & CL_DEVICE_TYPE_GPU)         found_gpu++;
-    if (opencl_device_type & CL_DEVICE_TYPE_ACCELERATOR) found_accel++;
+    if (opencl_device_type & CL_DEVICE_TYPE_CPU) found_cpu++;
+    if (opencl_device_type & CL_DEVICE_TYPE_GPU) found_gpu++;
 
     if ((backend_ctx->opencl_device_types_filter & opencl_device_type) == 0) cut_by_type++;
   }
 
   event_log_warning (hashcat_ctx, "%d device(s) were found and none of them is usable for this run.", found_total);
 
-  if ((found_cpu + found_gpu + found_accel) > 0)
+  if ((found_cpu + found_gpu) > 0)
   {
-    event_log_warning (hashcat_ctx, "Found: %d CPU, %d GPU, %d accelerator.", found_cpu, found_gpu, found_accel);
+    event_log_warning (hashcat_ctx, "Found: %d CPU, %d GPU.", found_cpu, found_gpu);
   }
 
   const bool is_virtualized = ((user_options->backend_devices_virtmulti > 1) || (bridge_ctx->enabled == true)) ? true : false;
@@ -9389,7 +9398,7 @@ static void backend_ctx_devices_none_reason (hashcat_ctx_t *hashcat_ctx)
       else
       {
         event_log_warning (hashcat_ctx, "All of them were excluded by -D %s.", user_options->opencl_device_types);
-        event_log_warning (hashcat_ctx, "-D 1 is CPU, -D 2 is GPU and -D 3 is an OpenCL accelerator card.");
+        event_log_warning (hashcat_ctx, "-D 1 is CPU and -D 2 is GPU.");
       }
     }
     else if (user_options->backend_devices != NULL)

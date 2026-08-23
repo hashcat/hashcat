@@ -14,7 +14,7 @@ use Bitcoin::Crypto::Base58 qw (decode_base58check);
 
 use Bitcoin::Crypto::Key::Private;
 
-sub module_constraints { [[51, 51], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
+sub module_constraints { [[64, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
 # Note:
 # We have introduced the function: module_get_random_password ()

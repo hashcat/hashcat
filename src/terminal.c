@@ -2078,7 +2078,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options->machine_readable == false)
       {
-        event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+        event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
         event_log_info (hashcat_ctx, "  Vendor.ID......: %u", opencl_device_vendor_id);
         event_log_info (hashcat_ctx, "  Vendor.........: %s", opencl_device_vendor);
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
@@ -2092,7 +2092,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+        printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
         printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
         printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
         printf ("\"Name\": \"%s\", ", device_name);
@@ -2350,7 +2350,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
         if (user_options->machine_readable == false)
         {
-          event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+          event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
           event_log_info (hashcat_ctx, "    Vendor.ID......: %u", opencl_device_vendor_id);
           event_log_info (hashcat_ctx, "    Vendor.........: %s", opencl_device_vendor);
           event_log_info (hashcat_ctx, "    Name...........: %s", device_name);
@@ -2367,7 +2367,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+          printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
           printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
           printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
           printf ("\"Name\": \"%s\", ", device_name);
@@ -2803,7 +2803,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
             {
               cl_device_type opencl_device_type = device_param->opencl_device_type;
 
-              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
 
               event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1, unit_count,
@@ -2856,7 +2856,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
             {
               cl_device_type opencl_device_type = device_param->opencl_device_type;
 
-              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
 
               event_log_info (hashcat_ctx, "* Device #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1,
@@ -3208,7 +3208,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
       hcfree (device_name_json_encoded);
 
       const char *device_type_desc = ((device_info->device_type & CL_DEVICE_TYPE_CPU) ? "CPU" :
-                                     ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+                                     ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
       printf (" \"device_type\": \"%s\",", device_type_desc);
 
       printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));

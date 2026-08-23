@@ -11,6 +11,7 @@ use warnings;
 use Bitcoin::Crypto         qw (btc_prv btc_extprv);
 use Bitcoin::Crypto::Util   qw (to_format);
 use Bitcoin::Crypto::Base58 qw (decode_base58check);
+use Bitcoin::Crypto::Bech32 qw (encode_segwit);
 
 sub module_constraints { [[64, 64], [-1, -1], [-1, -1], [-1, -1], [-1, -1]] }
 
@@ -37,8 +38,14 @@ sub module_generate_hash
 
   $priv->set_compressed ($IS_COMPRESSED);
 
-  my $pub  = $priv->get_public_key    ();
-  my $hash = $pub->get_segwit_address ();
+  my $pub = $priv->get_public_key ();
+
+  # get_segwit_address () refuses an uncompressed key, because a P2WPKH output that commits to an
+  # uncompressed public key cannot be spent and the library will not help anyone make one. This mode
+  # is for finding the key behind such an address, which is exactly the case where somebody already
+  # made one, so the address is built the way that method builds it rather than through it.
+
+  my $hash = encode_segwit ($pub->network->segwit_hrp, $pub->witness_program->run->stack_serialized);
 
   return $hash;
 }

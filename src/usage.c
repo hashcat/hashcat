@@ -265,7 +265,6 @@ static const char *const USAGE_BIG_POST_HASHMODES[] =
   " ===+=============",
   "  1 | CPU",
   "  2 | GPU",
-  "  3 | OpenCL Accelerator",
   "",
   "Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.",
   "",
