@@ -92,6 +92,7 @@ static bool generic_global_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gene
 
   generic_ctx->global_ctx.cache_dir   = folder_config->cache_dir;
   generic_ctx->global_ctx.profile_dir = folder_config->profile_dir;
+  generic_ctx->global_ctx.seekdb_dir  = user_options->seekdb_path;
 
   // ok we can also add hashcat_ctx, which might be hard to bind, but we make it optional
   // so those who support it, can have full access into hashcat core

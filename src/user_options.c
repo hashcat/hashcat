@@ -146,6 +146,7 @@ static const struct option long_options[] =
   {"rules-file",                required_argument, NULL, IDX_RP_FILE},
   {"runtime",                   required_argument, NULL, IDX_RUNTIME},
   {"scrypt-tmto",               required_argument, NULL, IDX_SCRYPT_TMTO},
+  {"seekdb-path",               required_argument, NULL, IDX_SEEKDB_PATH},
   {"segment-size",              required_argument, NULL, IDX_SEGMENT_SIZE},
   {"self-test-disable",         no_argument,       NULL, IDX_SELF_TEST_DISABLE},
   {"separator",                 required_argument, NULL, IDX_SEPARATOR},
@@ -319,6 +320,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->rule_buf_r                = RULE_BUF_R;
   user_options->runtime                   = RUNTIME;
   user_options->scrypt_tmto               = SCRYPT_TMTO;
+  user_options->seekdb_path               = NULL;
   user_options->segment_size              = SEGMENT_SIZE;
   user_options->self_test                 = SELF_TEST;
   user_options->separator                 = SEPARATOR;
@@ -517,6 +519,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_PROGRESS_ONLY:             user_options->progress_only             = true;                            break;
       case IDX_RESTORE_DISABLE:           user_options->restore_enable            = false;                           break;
       case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
+      case IDX_SEEKDB_PATH:               user_options->seekdb_path               = optarg;                          break;
       case IDX_STATUS:                    user_options->status                    = true;                            break;
       case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
       case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
@@ -1759,6 +1762,27 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if (strlen (user_options->restore_file_path) == 0)
     {
       event_log_error (hashcat_ctx, "Invalid --restore-file-path value - must not be empty.");
+
+      return -1;
+    }
+  }
+
+  if (user_options->seekdb_path != NULL)
+  {
+    if (strlen (user_options->seekdb_path) == 0)
+    {
+      event_log_error (hashcat_ctx, "Invalid --seekdb-path value - must not be empty.");
+
+      return -1;
+    }
+
+    // A directory that is not there is worth stopping for, because the alternative is a run that
+    // quietly rebuilds its seek database every time and never says why. Not being able to write to
+    // one is fine and deliberately not checked: a read only share is a normal way to use this.
+
+    if (hc_path_is_directory (user_options->seekdb_path) == false)
+    {
+      event_log_error (hashcat_ctx, "Invalid --seekdb-path value - must be an existing directory.");
 
       return -1;
     }
@@ -4458,6 +4482,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->rp_gen_seed);
   logfile_top_uint   (user_options->runtime);
   logfile_top_uint   (user_options->scrypt_tmto);
+  logfile_top_string (user_options->seekdb_path);
   logfile_top_uint   (user_options->segment_size);
   logfile_top_uint   (user_options->self_test);
   logfile_top_uint   (user_options->slow_candidates);

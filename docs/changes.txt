@@ -118,6 +118,7 @@ argument list is shown instead.
 
 - Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seekdbs
 - Seekdbs are portable between machines, so a distributed setup can build one once and hand it out
+- New option --seekdb-path: Store seek databases in a given directory, which several hosts can share
 - Added --encrypt-with-pubkey, which encrypts recovered plains with an RSA public key
 - Encrypted plains mean the cracking host never sees them, see docs/hashcat-encrypted-plains.md
 
