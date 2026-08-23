@@ -191,6 +191,16 @@ argument list is shown instead.
 - Backends: Environment on/off switches share one hc_env_flag helper
 - Feeds: Settings are written as key=value work arguments and one shared parser reads
   them, so a feed no longer writes its own (see docs/hashcat-plugin-development-guide.md)
+- PCFG: A ruleset may be one .tar.xz instead of a directory, or have any of its files
+  compressed on their own. A ruleset trained on example.dict is 3.2 MB as a directory
+  and 275 KB as one archive
+- PCFG: Naming no ruleset runs default-passwords, the one hashcat ships. Naming several
+  runs them together, each with an equal share of the run unless weights= says otherwise
+- PCFG: A ruleset is named rather than pathed, the way a hash mode and a feed already are.
+  A name is looked for in <profile>/pcfg and then <shared>/pcfg; anything holding a slash
+  is a path and is never looked for
+- Feeds: A feed is given the shared folder, so one that ships data of its own can find it
+- Files: Added hc_fopen_mem, which reads a file that is already in memory
 - Hashes: Large hash lists without salts now sort and deduplicate with an in-place radix sort
 - Kernels: Added the DEScrypt pure kernel for attack-mode 3, and both salt paths share one
   multi hash kernel

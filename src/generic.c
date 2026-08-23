@@ -16,6 +16,7 @@
 #include "feed_ctx.h"
 #include "dynloader.h"
 #include "user_options.h"
+#include "backend.h"
 
 #include <inttypes.h>
 
@@ -93,6 +94,7 @@ static bool generic_global_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gene
   generic_ctx->global_ctx.cache_dir   = folder_config->cache_dir;
   generic_ctx->global_ctx.profile_dir = folder_config->profile_dir;
   generic_ctx->global_ctx.seekdb_dir  = user_options->seekdb_path;
+  generic_ctx->global_ctx.shared_dir  = folder_config->shared_dir;
 
   // ok we can also add hashcat_ctx, which might be hard to bind, but we make it optional
   // so those who support it, can have full access into hashcat core
@@ -112,8 +114,8 @@ static void generic_global_term (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gene
 }
 
 // Returns the keyspace, GENERIC_KEYSPACE_UNKNOWN for a feed that cannot count itself, or
-// GENERIC_KEYSPACE_ERROR when the plugin failed. The last two used to be the same value, so a plugin
-// that could not open its input ran on as an endless feed.
+// GENERIC_KEYSPACE_ERROR when the plugin failed. The last two are different values, so a plugin that
+// could not open its input is an error rather than an endless feed.
 
 static u64 generic_global_keyspace (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *generic_ctx)
 {
@@ -170,6 +172,29 @@ static void generic_thread_term (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gene
   if (bound == true) feed_device_unbind_id (hashcat_ctx, device_id);
 
   generic_thread_error (hashcat_ctx, &generic_ctx->thread_ctx[device_id]);
+}
+
+// The device engine's answer: a base word and the cell that extends it. One call stands for a whole inner
+// loop, so the feed's own position advances by il_cnt rather than by one.
+
+int generic_thread_next_dev (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int device_id, u8 *out_buf, const int out_size, pcfg_cell_t *cell)
+{
+  generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+  const int out_len = generic_ctx->thread_next_dev (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[device_id], out_buf, out_size, cell);
+
+  if (generic_thread_error (hashcat_ctx, &generic_ctx->thread_ctx[device_id]) == true) return GENERIC_RC_ERROR;
+
+  if (out_len < 0)
+  {
+    if (out_len == GENERIC_RC_EOF) return GENERIC_RC_EOF;
+
+    event_log_error (hashcat_ctx, "%s: thread_next_dev returned %d", generic_ctx->dynlib_filename, out_len);
+
+    return GENERIC_RC_ERROR;
+  }
+
+  return out_len;
 }
 
 int generic_thread_next (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int device_id, u8 *out_buf, const int out_size)
@@ -296,6 +321,9 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   generic_ctx->autohex_enable = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_AUTOHEX) ? true : false;
   generic_ctx->iconv_enable   = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_ICONV)   ? true : false;
   generic_ctx->rules_enable   = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_RULES)   ? true : false;
+  generic_ctx->dev_enable     = (*generic_plugin_options & GENERIC_PLUGIN_OPTIONS_DEVICE)     ? true : false;
+
+  const bool dev_offered = generic_ctx->dev_enable;
 
   HC_LOAD_FUNC_GENERIC (generic_ctx, global_init,     GENERIC_GLOBAL_INIT);
   HC_LOAD_FUNC_GENERIC (generic_ctx, global_term,     GENERIC_GLOBAL_TERM);
@@ -305,6 +333,134 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   HC_LOAD_FUNC_GENERIC (generic_ctx, thread_term,     GENERIC_THREAD_TERM);
   HC_LOAD_FUNC_GENERIC (generic_ctx, thread_next,     GENERIC_THREAD_NEXT);
   HC_LOAD_FUNC_GENERIC (generic_ctx, thread_seek,     GENERIC_THREAD_SEEK);
+
+  // Only a feed that said it runs on the device has to have these, and one that said so and does not is a
+  // broken feed rather than a feed without an device engine.
+
+  if (generic_ctx->dev_enable == true)
+  {
+    HC_LOAD_FUNC_GENERIC (generic_ctx, global_dev_init, GENERIC_GLOBAL_DEV_INIT);
+    HC_LOAD_FUNC_GENERIC (generic_ctx, thread_next_dev, GENERIC_THREAD_NEXT_DEV);
+  }
+
+  // Whether the device engine is going to be used, settled here and nowhere else.
+  //
+  // It has to be settled before global_init () runs, because a feed that can generate two different
+  // ways counts a different keyspace for each and global_init () is where it counts. It also has to be
+  // settled before backend_session_begin (), because the device engine is a different kernel; this runs
+  // from generic_ctx_init (), which is ahead of both.
+  //
+  // Five things can take it away from a feed that advertised one.
+  //
+  // Only the base feed gets the device engine. The amplifier instance of a combinator attack is a
+  // second word list and has nothing to do with this, and neither does a feed used as anything
+  // but the -a 8 base. A -a 4 run is one of those: user_options_alias_attack_mode () rewrote it into
+  // -a 8 with the pcfg feed named, long before this reads the mode.
+  //
+  // And a slow hash does not get one, because it could not have run one.
+  // ATTACK_EXEC_OUTSIDE_KERNEL is hashcat's own line between a mode whose attack kernel carries the
+  // whole hash and one where a separate iteration kernel does. An device engine is an inner loop, and an
+  // outside-kernel mode has no attack kernel to put one in: generate_source_kernel_filename () ignores
+  // attack_kern entirely on that side and takes mXXXXX-pure.cl. So the run announced the device engine,
+  // moved attack_kern to ATTACK_KERN_PCFG, and then died looking for an OpenCL/amp_a2.cl that does not
+  // exist, before the first launch and with nothing said about why.
+  //
+  // On a genuinely slow mode it does not want one either, and that is what makes the switch a gain
+  // rather than a retreat. bcrypt on an RTX 4090 is 237 kH/s and one core of the pcfg feed's plain
+  // path gives 8 to 47 million candidates a second, so the device engine there buys a factor nobody needs
+  // while costing every compromise it forced to exist: a fixed candidate array, a slot ceiling, one
+  // byte length per bucket, a quantised terminal cost, and no OMEN escape.
+  //
+  // That headroom is not a property of every outside-kernel mode and must not be read as one. All 294
+  // of them were measured on that card, and the fastest which takes a password rather than a key is
+  // 12700 at 355 MH/s, then 10500, 25400 and 06700 between 108 and 165. One core cannot feed those.
+  // They land here anyway, because a mode with no attack kernel has nowhere else to go, and what
+  // limits them is the feed rather than the card.
+  //
+  // A feed keeps both exits, so clearing the flag here is the whole switch. dispatch.c reads it to
+  // choose thread_next () over thread_next_dev (), attack_kern stays ATTACK_KERN_STRAIGHT, and dev_avg
+  // stays zero so the status line counts candidates rather than base words.
+
+  const bool is_base = (generic_ctx == &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE]);
+
+  if (is_base == false) generic_ctx->dev_enable = false;
+
+  if (hashcat_ctx->user_options->attack_mode != ATTACK_MODE_GENERIC) generic_ctx->dev_enable = false;
+
+  if (hashcat_ctx->hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL) generic_ctx->dev_enable = false;
+
+  // And --stdout does not get one, for the third time the same reason. It prints what the host
+  // produced and never starts a kernel, so with the device engine on there was nothing to print: it
+  // borrows hash mode 2000, which is inside-kernel, and the run died naming a missing
+  // OpenCL/m02000_a4-pure.cl. An amplifying feed was therefore the one thing --stdout could not show
+  // you, which is the opposite of what it is for.
+
+  if (hashcat_ctx->user_options->stdout_flag == true) generic_ctx->dev_enable = false;
+
+  // And --slow-candidates does not get one, for the fourth time the same reason. Every candidate is
+  // built on the host under it, which is what it is named after, so the device never runs a generator
+  // and generate_source_kernel_filename () takes m00000_a0-pure.cl whatever attack_kern holds. That
+  // test is the first one in the function rather than an arm of the attack_kern switch, so it is easy
+  // to read the switch and conclude the device engine is safe here.
+  //
+  // With the flag left on, the run announced the device engine, moved attack_kern to
+  // ATTACK_KERN_PCFG, compiled the straight kernel, and then bound the three cell arguments the
+  // straight kernel does not have and launched it. That is an illegal memory access on the first
+  // launch and a session that never exits, so it had to be killed.
+  //
+  // --brain-client reaches this the same way, because user_options_preprocess () turns it into
+  // --slow-candidates before anything here runs.
+  //
+  // hashcat's own status line already read it this way: terminal.c clears Candidate.Engine for
+  // --slow-candidates whatever the amplifier count says, so the display and the feed disagreed.
+
+  if (hashcat_ctx->user_options->slow_candidates == true) generic_ctx->dev_enable = false;
+
+  // And rules take it away, for the fifth time the same reason, rather than ending the run.
+  //
+  // The inner loop that would apply them is the one walking the cell and there is no second one, so
+  // the device engine cannot have rules. The host engine can: it is attack mode 0 with a different
+  // reader in front of it, and hashcat's own rules kernel applies them there exactly as it does to a
+  // word list. So -r asks for the host engine rather than for something that does not exist, and the
+  // run is the one the user asked for, slower, instead of an error about a missing rules kernel.
+  //
+  // It has to be cleared here and not where the other refusals live, because the feed counts a
+  // different keyspace for each exit and global_init () is where it counts.
+
+  if (hashcat_ctx->user_options->rp_files_cnt > 0) generic_ctx->dev_enable = false;
+  if (hashcat_ctx->user_options->rp_gen > 0) generic_ctx->dev_enable = false;
+
+  // And a hash mode with no device engine kernel takes it away, for the sixth time the same reason.
+  //
+  // The device engine's kernel is OpenCL/mNNNNN_a4-pure.cl, named by the mode's KERN_TYPE. Most fast
+  // hash modes have one. The rest do not, because their rules kernel does something the hooks cannot
+  // express: it records the crack itself rather than handing back four words to compare, or it takes
+  // the candidate as register words instead of an array. Reading which ones those are means reading
+  // the kernels, and the file being there is the same answer with nothing to keep in step.
+  //
+  // Without this the run ended on a missing file, which said which file but not what to do about it.
+  // The host engine builds every candidate on the host and hands it to the mode's own straight
+  // kernel, so it works for every mode there is. So a PCFG run on a mode with no device kernel is now
+  // the run the user asked for, slower, and the startup line says which engine it got.
+  //
+  // The three modes that pick their kernel from the hash they parsed rather than from a constant,
+  // 14500, 16500 and 16501, are tested here on the constant instead, because backend_session_begin ()
+  // asks module_kern_type_dynamic () a long way after this runs. Every kernel any of the three can
+  // land on has a device engine file, and so does the constant, so the two answers agree today. A
+  // mode whose two answers disagreed would reach the missing file again.
+
+  if (generic_ctx->dev_enable == true)
+  {
+    char source_file[256];
+
+    generate_source_kernel_filename (false, hashcat_ctx->hashconfig->attack_exec, ATTACK_KERN_PCFG,
+                                     hashcat_ctx->hashconfig->kern_type, hashcat_ctx->hashconfig->opti_type,
+                                     hashcat_ctx->folder_config->shared_dir, source_file);
+
+    if (hc_path_read (source_file) == false) generic_ctx->dev_enable = false;
+  }
+
+  generic_ctx->global_ctx.dev_enable = generic_ctx->dev_enable;
 
   // From here on the instance owns resources, so a failure below still has to be torn down
 
@@ -342,11 +498,63 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   // The keyspace is kept in base words and finished later. -a 6 and -a 7 amplify with the mask, which
   // mask_ctx_update_loop sizes once per round, so there is nothing here to multiply by yet.
 
+  // The two exits are not the same attack, so they must not look like one to the brain. They
+  // enumerate the same set only when the feed has nothing the device engine cannot carry, and even then a
+  // position means a base word on one side and a candidate on the other, so a brain that took them for
+  // one attack would hand out ranges in the wrong unit.
+  //
+  // Only a feed that offered an device engine and did not get one is moved. A feed that never had one is
+  // running the attack it always ran, and shifting its identity would throw away every brain session
+  // and restore point anybody has for it.
+
+  if ((dev_offered == true) && (generic_ctx->dev_enable == false))
+  {
+    generic_ctx->global_ctx.source_ident ^= 0x50434647534c4f57ULL;
+  }
+
+  if (generic_ctx->dev_enable == true)
+  {
+    user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+    if (generic_ctx->global_dev_init (&generic_ctx->global_ctx, &generic_ctx->dev_pool, &generic_ctx->dev_pool_size, &generic_ctx->dev_il_cnt, &generic_ctx->dev_avg, &generic_ctx->dev_maxword, &generic_ctx->dev_front, &generic_ctx->dev_step, &generic_ctx->dev_varlen, &generic_ctx->dev_probe) == false)
+    {
+      event_log_error (hashcat_ctx, "%s: device engine init failed: %s", generic_ctx->dynlib_filename, generic_ctx->global_ctx.error_msg);
+
+      return -1;
+    }
+
+    user_options_extra->attack_kern = ATTACK_KERN_PCFG;
+
+    // The device engine has one kernel and it is the pure one.
+    //
+    // There was an optimized form. It kept the md5 block in registers and padded it once outside the
+    // inner loop, and at its own best lane count it measured four to five per cent ahead of the pure
+    // one. What it cost was six kernel bodies, a write path that had to name every word of the block
+    // at compile time, a password length capped at fifty five instead of two hundred and fifty six,
+    // and a candidate length fixed for the whole inner loop, which is exactly what a grammar with
+    // multi byte characters cannot promise. Five per cent did not pay for that.
+    //
+    // -O is refused rather than ignored. hashconfig settled it long before the attack kernel was
+    // known, because the device engine only announces itself here, and the hashes were parsed under it on
+    // the way: a raw md5 digest has had the initial state subtracted out of it for a kernel that is
+    // now not going to run. Clearing the flag at this point leaves those digests wrong, which shows up
+    // as a self-test failure and, with the self-test disabled, as an attack that cracks nothing.
+
+    if (hashcat_ctx->hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    {
+      event_log_error (hashcat_ctx, "The device engine has no optimized kernel. Run this without -O.");
+
+      return -1;
+    }
+
+  }
+
   const u64 log_mark_rest = event_log_count (hashcat_ctx);
 
   generic_ctx->keyspace = generic_global_keyspace (hashcat_ctx, generic_ctx);
 
   if (generic_ctx->keyspace == GENERIC_KEYSPACE_ERROR) return -1;
+
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {

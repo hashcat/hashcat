@@ -159,7 +159,31 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
       {
-        if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
+        // The device engine reaches the optimized kernels too, and the candidate is still the base word
+        // with the cell stepped to il_pos rather than the base word itself. Reporting the base word
+        // names a password that does not hash to the digest that was cracked, whichever kernel found
+        // it, so this has to happen on both sides of the optimized test rather than only the pure one.
+
+        if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+        {
+          const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+          for (int i = 0; i < 14; i++)
+          {
+            plain_buf[i] = pw.i[i];
+          }
+
+          plain_len = pw.pw_len;
+
+          // The candidate's own length, which is not the base word's on a ruleset whose buckets hold
+          // entries of more than one byte length. Reporting the base word's names a password that does
+          // not hash to the digest that was cracked, exactly as reporting the base word itself would.
+
+          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, il_pos, plain_buf, (int) pw.pw_len);
+
+          if (amp_len >= 0) plain_len = amp_len;
+        }
+        else if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
         {
           for (int i = 0; i < 14; i++)
           {
@@ -185,7 +209,28 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
           plain_buf[i] = pw.i[i];
         }
 
-        plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+        // The device engine's candidate is the base word with the cell's trailing slots stepped to il_pos,
+        // and no rule was ever applied to it. Reporting the base word instead names a password that
+        // does not hash to the digest that was cracked.
+
+        if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+        {
+          const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+          plain_len = pw.pw_len;
+
+          // The candidate's own length, which is not the base word's on a ruleset whose buckets hold
+          // entries of more than one byte length. Reporting the base word's names a password that does
+          // not hash to the digest that was cracked, exactly as reporting the base word itself would.
+
+          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, il_pos, plain_buf, (int) pw.pw_len);
+
+          if (amp_len >= 0) plain_len = amp_len;
+        }
+        else
+        {
+          plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+        }
       }
     }
     else if (user_options->attack_mode == ATTACK_MODE_BF)

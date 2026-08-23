@@ -104,6 +104,11 @@ CONSTANT_VK u32 generic_constant[8192]; // 32k
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
+#elif ATTACK_KERN == 2
+#define bfs_buf     g_bfs_buf
+#define rules_buf   g_rules_buf
+#define words_buf_s g_words_buf_s
+#define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 3
 #define rules_buf   g_rules_buf
 #define bfs_buf     ((const bf_t *)      generic_constant)
@@ -328,6 +333,11 @@ CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 1
+#define bfs_buf     g_bfs_buf
+#define rules_buf   g_rules_buf
+#define words_buf_s g_words_buf_s
+#define words_buf_r g_words_buf_r
+#elif ATTACK_KERN == 2
 #define bfs_buf     g_bfs_buf
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s

@@ -12,7 +12,7 @@
 // of it: these functions read and write hashcat's own per instance bookkeeping, and calling one
 // from a plugin thread would step on the state the calling thread is in the middle of.
 //
-// This used to sit in the same header a feed includes, which meant every feed could see all of it.
+// Keeping this out of the header a feed includes is what stops every feed from seeing all of it.
 // The #error below is what turns "no feed includes this" from a sentence into a build failure, and
 // HC_CORE_BUILD is on the core's compile line and on nothing else (src/Makefile:874).
 
@@ -56,6 +56,7 @@ int   generic_filename       (const folder_config_t *folder_config, const char *
 char *generic_resolve        (const folder_config_t *folder_config, const char *plugin_name, bool *by_name);
 
 int  generic_thread_next     (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, u8 *out_buf, const int out_size);
+int  generic_thread_next_dev (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, u8 *out_buf, const int out_size, pcfg_cell_t *cell);
 int  generic_thread_seek     (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int backend_device_idx, const u64 offset);
 
 int  generic_association_in_sync   (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t *generic_ctx);

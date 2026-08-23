@@ -26,6 +26,8 @@ This open design allows for:
 
 We provide four sample feeds. Between them they cover the three shapes a feed can have: one that can seek freely, one that can only start over, and one that cannot go back at all.
 
+Two more feeds ship as attacks rather than as samples, and both are described further down: `feed_pcfg`, which is what `-a 4` runs, and `feed_association`, which is what `-a 9` runs.
+
 1. `feed_wordlist`
 
 	- A simple wordlist loader, and the feed -a 0 itself is built on
@@ -61,11 +63,26 @@ We provide four sample feeds. Between them they cover the three shapes a feed ca
 	  b) feeds do not need to be written in C to be efficient
 	- Because it matches `feed_random` word for word, the two can be diffed against each other to check a port
 
+## Attack Modes Of Their Own
+
+A feed is normally named on the command line after `-a 8`. A feed that ships with hashcat can instead be given an attack-mode number, so that the user never types the plugin name.
+
+`-a 4` is that for the PCFG feed. `user_options_alias_attack_mode ()` in `src/user_options.c` rewrites the command line before anything downstream reads it:
+
+```
+./hashcat -m 0 -a 4 hashes.txt ruleset            what the user types
+./hashcat -m 0 -a 8 hashes.txt pcfg ruleset       what hashcat runs
+```
+
+The rewrite inserts the plugin name and leaves everything else where it was, so `workv[0]` still holds the plugin name and the feed cannot tell which spelling the user used. Both spellings therefore produce the same run and the same brain session.
+
+The same function serves `-a 1`, `-a 6` and `-a 7`, which are rewritten into `-a 12`. Adding a number for a new feed is a line in that function plus an `ATTACK_MODE_*` constant, and the sanity checks that name the mode.
+
 ## Design Philosophy
 
 The interface was intentionally designed to be as simple and straightforward as possible. This allows you to focus on generating high-quality password candidates without needing deep knowledge of hashcat internals. The simplicity also makes it easy to integrate with code-generation tools or AI assistants.
 
-Early experiments showed success reimplementing legacy hashcat attacks such as -a 2 (permutation attack) and -a 5 (table attack).
+Early experiments showed success reimplementing legacy hashcat attacks such as -a 2 (permutation attack) and -a 5 (table attack). The number a legacy attack used is free to be given to a feed: `-a 4` was the toggle-case attack and is the PCFG feed now.
 
 ## Required Functions
 
@@ -133,7 +150,7 @@ Notes:
 
 - This structure may change over time as we learn more about what developers need.
 - To handle compatibility, your feed library will be built with a version string. Hashcat will use this to check if your feed matches the current structures.
-- Attributes `workc` and `workv` contain the command line arguments that belong to attack mode -a 8. For example, if your feed reads a wordlist, the filename can be passed on the hashcat command line and you can retrieve it from these variables. The feed plugin name is always workv[0], so for the wordlist example you would find this in workv[1].
+- Attributes `workc` and `workv` contain the command line arguments that belong to attack mode -a 8. For example, if your feed reads a wordlist, the filename can be passed on the hashcat command line and you can retrieve it from these variables. The feed plugin name is always workv[0], so for the wordlist example you would find this in workv[1]. That holds for a feed with an attack mode of its own too, where the user never typed the name and hashcat put it there, see the section on attack modes of their own above.
 - `seekdb_dir` is the directory the user named with `--seekdb-path`, or NULL when they did not. It exists because a feed that caches something per input can be pointed at storage several machines share, so the cache is built once for a cluster rather than once per host. If your feed keeps no such cache, ignore it. If it does, treat NULL as "pick your own place under `cache_dir`", do not create the directory yourself since hashcat has already checked that it is there, and expect it to be read only: write only when you had to build something, and carry on with what is in memory when the write fails.
 - `guess_base` is what the status display puts inside `Guess.Base.......: Feed (...)`. Write your own during `global_init()` if the plugin name alone is not informative: `Feed (rockyou.pcfg)` tells the user something that `Feed (pcfg)` does not. Leave it empty and hashcat uses the plugin name.
 - The three `segment_*` fields are optional and only worth filling if your feed draws from several named sources laid end to end. Publish where each one begins in the keyspace, ascending, and the status display names the source the run has reached instead of whatever `guess_base` holds: `Guess.Base.......: Feed ([6/18] d06.txt)`. Leave `segments_cnt` at zero and nothing changes. Fill these once the offsets are actually known, which for the wordlist feed means in `global_keyspace()` and not in `global_init()`, because the offset a source starts at is only known after every earlier source has been counted. The arrays and the strings they point at have to stay valid until `global_term()`, and freeing them is your job.

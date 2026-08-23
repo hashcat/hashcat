@@ -1916,9 +1916,9 @@ endif
 
 .PHONY: install
 ifeq ($(SHARED),1)
-install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_kernels install_modules install_bridges install_feeds install_hashcat
+install: install_docs install_shared install_tools install_library install_library_dev install_tunings install_pcfg install_kernels install_modules install_bridges install_feeds install_hashcat
 else
-install: install_docs install_shared install_tools                                     install_tunings install_kernels install_modules install_bridges install_feeds install_hashcat
+install: install_docs install_shared install_tools                                     install_tunings install_pcfg install_kernels install_modules install_bridges install_feeds install_hashcat
 endif
 
 # we need this extra target to make sure that for parallel builds (i.e. 2+ Makefile targets could possible run at the same time)
@@ -1976,6 +1976,19 @@ install_tunings: install_shared
 	$(INSTALL) -m 755 -d                                                    $(DESTDIR)$(SHARED_FOLDER)/tunings
 	$(FIND) tunings/  -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d     $(DESTDIR)$(SHARED_FOLDER)/tunings/{} \;
 	$(FIND) tunings/  -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}     $(DESTDIR)$(SHARED_FOLDER)/tunings/{} \;
+
+## A ruleset ships the way tunings do, under the shared folder, because that is the one hashcat
+## resolves at run time. A ruleset named rather than pathed on the command line is looked for in
+## here, see pcfg_resolve_root () in src/feeds/feed_pcfg.c. It is not in the document folder with
+## rules and masks, because nothing resolves that folder: -r rules/best66.rule is a relative path the
+## C library resolves against the working directory, which is why that example only works from inside
+## an unpacked tree.
+
+.PHONY: install_pcfg
+install_pcfg: install_shared
+	$(INSTALL) -m 755 -d                                                 $(DESTDIR)$(SHARED_FOLDER)/pcfg
+	$(FIND) pcfg/     -mindepth 1 -type d -execdir $(INSTALL) -m 755 -d  $(DESTDIR)$(SHARED_FOLDER)/pcfg/{} \;
+	$(FIND) pcfg/     -mindepth 1 -type f -execdir $(INSTALL) -m 644 {}  $(DESTDIR)$(SHARED_FOLDER)/pcfg/{} \;
 
 .PHONY: install_kernels
 install_kernels: install_shared

@@ -619,7 +619,7 @@ u32 next_power_of_two (const u32 x)
 
 // Whether an on/off environment switch is set, looked up once.
 //
-// Several of these exist (HASHCAT_PIPE, HASHCAT_MEMORY, HASHCAT_PIPE_SYNC, ...) and each one used to
+// Several of these exist (HASHCAT_PIPE, HASHCAT_MEMORY, HASHCAT_PIPE_SYNC, ...) and each would otherwise
 // carry its own copy of the lookup and its own cache. The cache is what forced the duplication: one
 // static inside a shared function would be a single slot shared by every variable, so the slot stays
 // with the caller and only the logic moves here. Pass a static int initialised to -1.
@@ -633,4 +633,147 @@ bool hc_env_flag (const char *name, int *cache)
   const bool result = (*cache == 1) ? true : false;
 
   return result;
+}
+
+// Expanding a PCFG cell on the host, so that a crack can be reported as the candidate that produced it
+// rather than as the base word the device started from. This is the same walk as pcfg_expand () in
+// OpenCL/inc_pcfg.cl and has to stay the same walk: the device decides which candidate matched, and
+// this decides what that candidate was.
+//
+// Bytes are addressed directly here rather than through shifts, which is the same thing on a little
+// endian host and is what the kernel's word arithmetic amounts to.
+
+HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 il_pos, u32 *w, const int base_len)
+{
+  if (pool == NULL) return -1;
+
+  const u32 slot_cnt = (cell->slot_cnt < PCFG_DEV_MAXSLOT) ? cell->slot_cnt : PCFG_DEV_MAXSLOT;
+
+  // Whether an entry is reached by multiplying or by looking its offset up, which is a property of the
+  // grammar and therefore of the cell. The kernel knows it at build time; this is compiled once and is
+  // told. See PCFG_DEV_VARLEN.
+
+  const bool varlen = ((cell->flags & PCFG_CELL_VARLEN) != 0);
+
+  // Nothing on the device and nothing to expand: the base word is the candidate, and its length is the
+  // one the caller handed over. A position past the end of a rectangle of one is still past the end.
+
+  if (slot_cnt == 0)
+  {
+    if (il_pos != 0) return -1;
+
+    return base_len;
+  }
+
+  u32 digit[PCFG_DEV_MAXSLOT];
+
+  u64 carry = il_pos;
+
+  for (int j = (int) slot_cnt - 1; j >= 0; j--)
+  {
+    const u32 radix = cell->slots[j].radix;
+
+    if (radix == 0) return false;
+
+    // A capitalisation slot's digit field carries the upper case image base rather than a starting
+    // digit, so it contributes nothing to the decomposition. An ordinary slot's is always zero today
+    // and is reserved for a rectangle wider than the inner loop.
+
+    // A capitalisation slot's digit field carries something other than a starting digit either way: the
+    // upper case image's base without per entry offsets and the distance to it with them.
+
+    const u64 start = ((PCFG_SLOT_KIND (cell->slots[j].packed) == PCFG_SLOT_KIND_CASE) || (varlen == true)) ? 0 : (u64) cell->slots[j].digit;
+
+    const u64 t = start + carry;
+
+    digit[j] = (u32) (t % radix);
+
+    carry = t / radix;
+  }
+
+  if (carry != 0) return -1;
+
+  const u8 *pb = (const u8 *) pool;
+
+  u8 *wb = (u8 *) w;
+
+  // Where each slot writes and how long the candidate ends up. Without per entry offsets both are
+  // constants of the cell and sit in the descriptor; with them the offset is a running sum over the
+  // digits, exactly as the kernel's odometer word carries it.
+
+  u32 dpos[PCFG_DEV_MAXSLOT];
+
+  u32 pos = PCFG_SLOT_DST_OFF (cell->slots[0].packed);
+
+  for (u32 j = 0; j < slot_cnt; j++)
+  {
+    const u32 packed = cell->slots[j].packed;
+
+    const u32 kind = PCFG_SLOT_KIND (packed);
+
+    const u32 ent_len = (varlen == true) ? (pool[cell->slots[j].pool_off + digit[j] + 1] - pool[cell->slots[j].pool_off + digit[j]]) : PCFG_SLOT_ENT_LEN (packed);
+    const u32 dst_off = (varlen == true) ? pos                                                                                      : PCFG_SLOT_DST_OFF (packed);
+
+    dpos[j] = dst_off;
+
+    if (kind == PCFG_SLOT_KIND_BYTES)
+    {
+      const u32 src = (varlen == true) ? pool[cell->slots[j].pool_off + digit[j]] : cell->slots[j].pool_off + (digit[j] * ent_len);
+
+      for (u32 k = 0; k < ent_len; k++)
+      {
+        wb[dst_off + k] = pb[src + k];
+      }
+
+      pos += ent_len;
+
+      continue;
+    }
+
+    // The capitalisation walk, character by character, which is pcfg_case_slot () in inc_pcfg.cl and
+    // has to agree with it byte for byte. A mask writes over the token in front of it and adds nothing
+    // of its own, so it takes that token's offset and leaves the running one where it found it.
+
+    const u32 from = PCFG_SLOT_FROM (cell->slots[j].packed);
+
+    const u32 tok_len = (varlen == true) ? (pool[cell->slots[from].pool_off + digit[from] + 1] - pool[cell->slots[from].pool_off + digit[from]]) : PCFG_SLOT_ENT_LEN (cell->slots[from].packed);
+
+    const u32 mask_src = (varlen == true) ? pool[cell->slots[j].pool_off + digit[j]] : cell->slots[j].pool_off + (digit[j] * ent_len);
+    const u32 up_src   = (varlen == true) ? pool[cell->slots[from].pool_off + digit[from]] + cell->slots[j].digit : cell->slots[j].digit + (digit[from] * tok_len);
+
+    // Where the mask writes, which is where the token in front of it wrote. Without per entry offsets
+    // slot_geometry () already put that offset in the mask's own descriptor, so the two agree.
+
+    const u32 mdst_off = dpos[from];
+
+    u32 ci = 0;
+    u32 at = 0;
+
+    while ((at < tok_len) && (ci < ent_len))
+    {
+      if (pb[mask_src + ci] == 'U') wb[mdst_off + at] = pb[up_src + at];
+
+      at++;
+
+      while (at < tok_len)
+      {
+        if ((wb[mdst_off + at] & 0xc0) != 0x80) break;
+
+        if (pb[mask_src + ci] == 'U') wb[mdst_off + at] = pb[up_src + at];
+
+        at++;
+      }
+
+      ci++;
+    }
+  }
+
+  // How long the candidate is. The device slots are a suffix of the structure, so the last of them is
+  // where the candidate ends whether or not the lengths vary, and the running offset says where that
+  // is. A cell with no device slots rewrote nothing and its candidate is the base word, which only the
+  // caller knows the length of.
+
+  const int len = (int) pos;
+
+  return len;
 }

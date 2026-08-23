@@ -26,6 +26,93 @@
 #include "brain.h"
 #endif
 
+
+// Widest cell first inside a batch, which is a scheduling order and not an enumeration order.
+//
+// A launch cannot finish before its longest work item does, and the work items of one launch differ by
+// whatever the rectangles do: a mean of a few thousand candidates against a widest cell of a few
+// million is ordinary.
+//
+// Starting the long ones first is the oldest fix for that, and it does not work here: throughput falls
+// and so does utilisation. A scheduling problem would show utilisation rise and throughput fall. Both
+// falling means the host got slower, and the host is the scarce thing. Sorting a batch and then moving
+// a hundred and forty byte cell for each of hundreds of thousands of base words costs more than the
+// tail it saves.
+//
+// It stays behind PCFG_LPT because the sort is on the consumer's critical path and need not be. A
+// version that ordered the batch on the producer thread, where the feed already runs for free, would
+// be measuring the idea rather than the memcpy. Nothing here is that version.
+//
+// **This reorders nothing the feed enumerated.** The batch covers exactly the units it covered before,
+// the cell for a base word travels beside it at the same index, and the position the run reports is a
+// count of base words rather than a place in this array.
+
+static int pcfg_cmp_rect (const void *p1, const void *p2, void *arg)
+{
+  const pcfg_cell_t *cells = (const pcfg_cell_t *) arg;
+
+  const u32 a = ((const u32 *) p1)[0];
+  const u32 b = ((const u32 *) p2)[0];
+
+  if (cells[a].rect < cells[b].rect) return  1;
+  if (cells[a].rect > cells[b].rect) return -1;
+
+  if (a > b) return  1;
+  if (a < b) return -1;
+
+  return 0;
+}
+
+static void pcfg_order_batch (pw_idx_t *pws_idx, pcfg_cell_t *cells, const u64 cnt)
+{
+  if (cnt < 2) return;
+
+  static int cache = -1;
+
+  if (hc_env_flag ("PCFG_LPT", &cache) == false) return;
+
+  u32 *ord = (u32 *) hcmalloc (cnt * sizeof (u32));
+
+  for (u64 i = 0; i < cnt; i++) ord[i] = (u32) i;
+
+  hc_qsort_r (ord, cnt, sizeof (u32), pcfg_cmp_rect, cells);
+
+  // Apply the permutation by following its cycles, so the cells are moved rather than copied: a batch
+  // is hundreds of thousands of them and a cell is a hundred and forty bytes.
+
+  u8 *seen = (u8 *) hccalloc (cnt, sizeof (u8));
+
+  for (u64 i = 0; i < cnt; i++)
+  {
+    if (seen[i]) continue;
+
+    u64 at = i;
+
+    pw_idx_t    hold_idx  = pws_idx[i];
+    pcfg_cell_t hold_cell = cells[i];
+
+    for (;;)
+    {
+      seen[at] = 1;
+
+      const u64 from = ord[at];
+
+      if (from == i) break;
+
+      pws_idx[at] = pws_idx[from];
+      cells[at]   = cells[from];
+
+      at = from;
+    }
+
+    pws_idx[at] = hold_idx;
+    cells[at]   = hold_cell;
+  }
+
+  hcfree (seen);
+  hcfree (ord);
+}
+
 static u64 get_highest_words_done (const hashcat_ctx_t *hashcat_ctx)
 {
   const backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
@@ -449,6 +536,100 @@ static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_
   return 0;
 }
 
+// Lay one cell's share of the launch out, as the cell is added.
+//
+// A cell takes as many waves as its rectangle needs at PCFG_DEV_BLOCK candidates to a work item, not a
+// fixed number, so where a cell's work items start is a prefix sum over the batch and a work item
+// finds its cell through the wave map rather than by dividing its own id.
+//
+// Both are built here rather than at launch time, because this runs on the producer thread and the
+// cell was written a moment ago. Built on the launch thread instead, over a batch of a million cells
+// that are 144 bytes apart, it cost 411 ms of every launch on an RTX 4090 against 26 ms for the copy
+// it sat in.
+
+// PCFG_BLOCK=0 asks for the layout this replaced, where every cell got PCFG_DEV_LANES work items and
+// a work item's run was the rectangle divided by that. It is kept because which of the two wins is a
+// property of the grammar rather than of the code.
+
+static u32 pcfg_block (void)
+{
+  static int block = -1;
+
+  if (block < 0)
+  {
+    const char *env = getenv ("PCFG_BLOCK");
+
+    block = (env != NULL) ? atoi (env) : PCFG_DEV_BLOCK;
+
+    if (block < 0) block = PCFG_DEV_BLOCK;
+  }
+
+  return (u32) block;
+}
+
+static void pcfg_plan_cell (pw_batch_t *batch, const u64 pws_max)
+{
+  const u64 i = batch->pws_cnt - 1;
+
+  pcfg_cell_t *cell = &batch->pcfg_cells[i];
+
+  const u64 rect = (cell->rect > 0) ? cell->rect : 1;
+
+  const u32 block = pcfg_block ();
+
+  // the old layout, which the launch reaches by leaving the batch with no wave count at all
+
+  if (block == 0)
+  {
+    cell->wave_base = 0;
+    cell->blk       = (u32) ((rect + PCFG_DEV_LANES - 1) / PCFG_DEV_LANES);
+
+    if (cell->blk == 0) cell->blk = 1;
+
+    return;
+  }
+
+  const u64 span = (u64) block * PCFG_DEV_WARP;
+
+  u64 nwave = (rect + span - 1) / span;
+
+  // never fewer than PCFG_DEV_FLOOR waves, whatever the rectangle
+
+  static int floor_waves = -1;
+
+  if (floor_waves < 0)
+  {
+    const char *env = getenv ("PCFG_FLOOR");
+
+    floor_waves = (env != NULL) ? atoi (env) : PCFG_DEV_FLOOR;
+
+    if (floor_waves < 1) floor_waves = 1;
+  }
+
+  if (nwave < (u64) floor_waves) nwave = (u64) floor_waves;
+
+  // The wave map holds PCFG_DEV_WMAP waves for every base word the batch can hold. A cell wide enough
+  // to want more than is left takes what is left and its work items run longer, which is where the
+  // whole thing started; one wave is held back for every cell still to come so that everyone gets one.
+
+  const u64 cap  = pws_max * PCFG_DEV_WMAP;
+  const u64 keep = pws_max - batch->pws_cnt;
+  const u64 room = (cap > (batch->pcfg_waves + keep)) ? (cap - batch->pcfg_waves - keep) : 1;
+
+  if (nwave > room) nwave = room;
+
+  const u64 nlane = nwave * PCFG_DEV_WARP;
+
+  cell->wave_base = (u32) batch->pcfg_waves;
+  cell->blk       = (u32) ((rect + nlane - 1) / nlane);
+
+  if (cell->blk == 0) cell->blk = 1;
+
+  for (u64 w = 0; w < nwave; w++) batch->pcfg_wmap[batch->pcfg_waves + w] = (u32) i;
+
+  batch->pcfg_waves += nwave;
+}
+
 // Everything the generic-feed producer carries between batches. The feed plugin keeps its own
 // per-device cursor, so only one thread may drive it.
 
@@ -469,6 +650,11 @@ typedef struct generic_fill_state
   // previous hash.
 
   bool reject_fatal;
+
+  // Whether the feed runs on the device on the device. It then answers with a base word and a cell instead of
+  // one finished candidate, and each answer stands for the whole inner loop.
+
+  bool amp;
 
   // The feed writes the candidate straight into the buffer that gets uploaded, which holds exactly
   // PW_MAX per candidate. That is what makes the feed zero copy and it is the whole reader advantage
@@ -541,7 +727,20 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       u8 *work_buf = pw_buf;
 
-      int pw_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX);
+      // An amplifying feed answers with a base word and the cell that extends it, and one answer
+      // stands for il_cnt candidates rather than one. The cell lands beside the candidate, at the
+      // same index, so a rejected candidate takes neither slot.
+
+      int pw_len;
+
+      if (gf->amp == true)
+      {
+        pw_len = generic_thread_next_dev (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX, &batch->pcfg_cells[batch->pws_cnt]);
+      }
+      else
+      {
+        pw_len = generic_thread_next (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX);
+      }
 
       // the feed is dry. Whatever it produced before this call still has to be launched, so the
       // batch is finished rather than thrown away, and the pipeline is told on the next one
@@ -637,7 +836,14 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
         }
       }
 
+      const u64 pws_was = batch->pws_cnt;
+
       pw_add_zerocopy (batch, device_param->kernel_power, pw_buf, pw_len);
+
+      // and lay out the cell that came with it, while it is still in cache. A full batch does not take
+      // the candidate, so there is nothing to lay out either.
+
+      if ((gf->amp == true) && (batch->pws_cnt > pws_was)) pcfg_plan_cell (batch, device_param->kernel_power);
     }
 
     // How far into the keyspace this batch reached. It is the restore point, so it has to be a
@@ -704,6 +910,13 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
       hc_thread_mutex_unlock (status_ctx->mux_counter);
     }
 
+    // widest cell first, so the launch does not end waiting on one wave
+
+    if (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+    {
+      pcfg_order_batch (batch->pws_idx, batch->pcfg_cells, batch->pws_cnt);
+    }
+
     //
     // flush
     //
@@ -715,6 +928,14 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     device_param->pws_idx  = batch->pws_idx;
     device_param->pws_comp = batch->pws_comp;
     device_param->pws_cnt  = pws_cnt;
+
+    device_param->pcfg_cells_buf  = batch->pcfg_cells;
+    device_param->pcfg_wmap_buf   = batch->pcfg_wmap;
+    // A batch with no waves was laid out the old way, and pcfg_launch_stride () reads a cell count of
+    // zero as exactly that.
+
+    device_param->pcfg_lane_cnt   = (batch->pcfg_waves > 0) ? batch->pws_cnt : 0;
+    device_param->pcfg_lane_total = batch->pcfg_waves;
 
     // Where this batch starts, for whatever the launch reports about it. The producer has already
     // moved device_param->words_off on to the batch it is filling next, so that field cannot answer
@@ -1005,7 +1226,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
     // The two producers left. A base word is either generated from a mask, which the device does for
     // itself, or read from a feed. -a 3, -a 7 under the pure kernel, and -a 12 under the pure kernel
     // when its mask ends in ?w are the mask, and they are the whole of what BASE_SOURCE_MASK means, so
-    // the test that used to spell that out by attack mode and kernel type is the one below.
+    // one test on the source replaces spelling that out by attack mode and kernel type.
 
     if (base_source == BASE_SOURCE_MASK)
     {
@@ -1048,6 +1269,7 @@ static int calc (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
       gf.length_policy = user_options_extra_base_length (hashcat_ctx);
       gf.reject_fatal  = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+      gf.amp           = hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_enable;
 
       gf.can_shrink   = pw_transform_shrinks (&gf.transform);
       gf.scratch_size = HCBUFSIZ_TINY;

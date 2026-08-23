@@ -1,6 +1,8 @@
 ## Generic password candidate interface, aka "slow candidates" mode ##
 
-The first goal of this new interface is to allow attachment of advanced password candidate generators in the future (for example hashcat's table attack, kwprocessor, OMEN, PassGAN, PCFG, princeprocessor, etc.). At this time, the only attack modes that have been added are hashcat's straight attack (including rules engine), combinator attack, and mask attack (AKA brute-force with Markov optimizer). You can enable this new general password-candidate interface by using the new -S/--slow-candidates option.
+The first goal of this new interface is to allow attachment of advanced password candidate generators in the future (for example hashcat's table attack, kwprocessor, PassGAN, princeprocessor, etc.). The attack modes that have been added are hashcat's straight attack (including rules engine), combinator attack, mask attack (AKA brute-force with Markov optimizer), the PCFG attack of `-a 4` and the generic attack mode of `-a 8`. You can enable this new general password-candidate interface by using the new -S/--slow-candidates option.
+
+On `-a 4` the option does one thing more than it does elsewhere. That attack has two engines, one on the host and one in the hash kernel, and `-S` is what selects the host one. See `hashcat-pcfg.md`.
 
 The second goal of the slow candidates engine is to generate password candidates on-host (on CPU). This is useful when attacking large hashlists with fast hashes (but many salts), or generally with slow hashes. Sometimes we cannot fully run large wordlists in combination with rules, because it simply takes too much time. But if we know of a useful pattern that works well with rules, we often want to use rules with a smaller, targeted wordlist instead, in order to exploit the pattern. On GPU, this creates a bottleneck in hashcat's architecture - because hashcat can only assign the words from the wordlist to the GPU compute units.
 

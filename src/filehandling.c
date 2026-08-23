@@ -36,6 +36,16 @@ static bool xz_initialized = false;
 
 static const ISzAlloc xz_alloc = { hc_lzma_alloc, hc_lzma_free };
 
+// A reader over a buffer the caller owns. Nothing here copies and nothing here frees the buffer: one
+// decompressed archive can back a reader per member, and the archive outlives them all.
+
+struct memfile
+{
+  const u8 *buf;
+  size_t    len;
+  size_t    pos;
+};
+
 struct xzfile
 {
   CAlignOffsetAlloc  alloc;
@@ -74,6 +84,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   fp->gfp      = NULL;
   fp->ufp      = NULL;
   fp->xfp      = NULL;
+  fp->mfp      = NULL;
   fp->bom_size = 0;
   fp->path     = NULL;
   fp->mode     = NULL;
@@ -295,6 +306,43 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   return true;
 }
 
+// A read only file over a buffer that is already in memory.
+//
+// Nothing is copied and nothing is freed on close, so whatever produced the buffer owns it and has to
+// outlive the handle. That is the whole point: one decompressed archive backs a reader per member
+// without a copy apiece.
+
+bool hc_fopen_mem (HCFILE *fp, const u8 *buf, const size_t len)
+{
+  if (fp == NULL) return false;
+  if (buf == NULL && len > 0) return false;
+
+  fp->fd       = -1;
+  fp->pfp      = NULL;
+  fp->gfp      = NULL;
+  fp->ufp      = NULL;
+  fp->xfp      = NULL;
+  fp->mfp      = NULL;
+  fp->bom_size = 0;
+  fp->path     = NULL;
+  fp->mode     = NULL;
+
+  fp->uncompressed_size = (off_t) len;
+
+  memfile_t *mfp = (memfile_t *) hccalloc (1, sizeof (*mfp));
+
+  if (mfp == NULL) return false;
+
+  mfp->buf = buf;
+  mfp->len = len;
+  mfp->pos = 0;
+
+  fp->mfp  = mfp;
+  fp->mode = "rb";
+
+  return true;
+}
+
 bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 {
   if (fp == NULL || path == NULL || mode == NULL) return false;
@@ -305,6 +353,7 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
   fp->gfp      = NULL;
   fp->ufp      = NULL;
   fp->xfp      = NULL;
+  fp->mfp      = NULL;
   fp->bom_size = 0;
   fp->path     = NULL;
   fp->mode     = NULL;
@@ -376,6 +425,21 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   if (size == 0 || nmemb == 0) return 0;
 
   if (ptr == NULL || fp == NULL) return n;
+
+  if (fp->mfp)
+  {
+    memfile_t *mfp = fp->mfp;
+
+    const size_t want = size * nmemb;
+    const size_t left = mfp->len - mfp->pos;
+    const size_t take = MIN (want, left);
+
+    memcpy (ptr, mfp->buf + mfp->pos, take);
+
+    mfp->pos += take;
+
+    return take / size;
+  }
 
   if (fp->pfp)
   {
@@ -765,6 +829,19 @@ int hc_fgetc (HCFILE *fp)
 
   if (fp == NULL) return r;
 
+  if (fp->mfp)
+  {
+    memfile_t *mfp = fp->mfp;
+
+    if (mfp->pos >= mfp->len) return EOF;
+
+    r = mfp->buf[mfp->pos];
+
+    mfp->pos++;
+
+    return r;
+  }
+
   if (fp->pfp)
   {
     r = fgetc (fp->pfp);
@@ -815,6 +892,34 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
   char *r = NULL;
 
   if (fp == NULL || buf == NULL || len <= 0) return r;
+
+  if (fp->mfp)
+  {
+    memfile_t *mfp = fp->mfp;
+
+    if (mfp->pos >= mfp->len) return NULL;
+
+    // fgets () keeps the newline, terminates, and stops one short of len so the terminator fits
+
+    size_t i = 0;
+
+    while ((i < (size_t) (len - 1)) && (mfp->pos < mfp->len))
+    {
+      const u8 c = mfp->buf[mfp->pos];
+
+      mfp->pos++;
+
+      buf[i] = (char) c;
+
+      i++;
+
+      if (c == '\n') break;
+    }
+
+    buf[i] = 0;
+
+    return buf;
+  }
 
   if (fp->pfp)
   {
@@ -939,6 +1044,13 @@ int hc_feof (HCFILE *fp)
 
   if (fp == NULL) return r;
 
+  if (fp->mfp)
+  {
+    const memfile_t *mfp = fp->mfp;
+
+    return (mfp->pos >= mfp->len);
+  }
+
   if (fp->pfp)
   {
     r = feof (fp->pfp);
@@ -994,7 +1106,13 @@ void hc_fclose (HCFILE *fp)
 {
   if (fp == NULL) return;
 
-  if (fp->pfp)
+  if (fp->mfp)
+  {
+    // the buffer belongs to whoever opened this, so only the handle goes
+
+    hcfree (fp->mfp);
+  }
+  else if (fp->pfp)
   {
     fclose (fp->pfp);
   }
@@ -1027,6 +1145,7 @@ void hc_fclose (HCFILE *fp)
   fp->gfp = NULL;
   fp->ufp = NULL;
   fp->xfp = NULL;
+  fp->mfp = NULL;
 
   fp->path = NULL;
   fp->mode = NULL;

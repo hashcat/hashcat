@@ -96,6 +96,14 @@
 #define _KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
 #define _KERN_ATTR_RULES()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
 #define _KERN_ATTR_RULES_ESALT(e)          KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
+#define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void),  \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
+#define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e),     \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, e)
 #define _KERN_ATTR_TMPS_HOOKS(t,h)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    h,    void)
@@ -108,6 +116,14 @@
 #define _KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e)
 #define _KERN_ATTR_RULES()                 KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, void)
 #define _KERN_ATTR_RULES_ESALT(e)          KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, e)
+#define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, void),  \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
+#define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e),     \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, e)
 #define _KERN_ATTR_TMPS_HOOKS(t,h)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    h,    void)
@@ -123,7 +139,7 @@
  */
 
 #if defined IS_METAL
-#define KERN_ATTR_MAIN_PARAMS                       \
+#define KERN_ATTR_MAIN_PARAMS                        \
   uint3 hc_gid [[ thread_position_in_grid ]],        \
   uint3 hc_lid [[ thread_position_in_threadgroup ]], \
   uint3 hc_lsz [[ threads_per_threadgroup ]],        \
@@ -150,6 +166,8 @@
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES(), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_RULES_ESALT(e)               _KERN_ATTR_RULES_ESALT(e), KERN_ATTR_MAIN_PARAMS
+#define KERN_ATTR_PCFG()                       _KERN_ATTR_PCFG(), KERN_ATTR_MAIN_PARAMS
+#define KERN_ATTR_PCFG_ESALT(e)                _KERN_ATTR_PCFG_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_TMPS(t)                      _KERN_ATTR_TMPS(t), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_TMPS_ESALT(t,e)              _KERN_ATTR_TMPS_ESALT(t,e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_TMPS_HOOKS(t,h)              _KERN_ATTR_TMPS_HOOKS(t,h), KERN_ATTR_MAIN_PARAMS
@@ -163,6 +181,8 @@
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e)
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES()
 #define KERN_ATTR_RULES_ESALT(e)               _KERN_ATTR_RULES_ESALT(e)
+#define KERN_ATTR_PCFG()                       _KERN_ATTR_PCFG()
+#define KERN_ATTR_PCFG_ESALT(e)                _KERN_ATTR_PCFG_ESALT(e)
 #define KERN_ATTR_TMPS(t)                      _KERN_ATTR_TMPS(t)
 #define KERN_ATTR_TMPS_ESALT(t,e)              _KERN_ATTR_TMPS_ESALT(t,e)
 #define KERN_ATTR_TMPS_HOOKS(t,h)              _KERN_ATTR_TMPS_HOOKS(t,h)

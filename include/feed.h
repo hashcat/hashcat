@@ -10,7 +10,7 @@
 // includes nothing else of the subsystem.
 //
 // The core's own driver functions live in feed_ctx.h and are not visible here on purpose. Both
-// halves used to sit in one header, so every feed could see and call the functions hashcat uses to
+// halves would otherwise sit in one header, letting every feed see and call the functions hashcat uses to
 // drive feeds, and a feed that called one of them would be reaching into the core's own bookkeeping
 // from a plugin thread. Splitting the header by audience is what makes that impossible to write by
 // accident rather than merely wrong.
@@ -52,6 +52,11 @@ typedef enum generic_plugin_options
   GENERIC_PLUGIN_OPTIONS_ICONV     = 1 << 1,
   GENERIC_PLUGIN_OPTIONS_RULES     = 1 << 2,
 
+  // The feed can amplify on the device. It then also exports global_dev_init () and
+  // thread_next_dev (), and hashcat runs the device engine kernel instead of the straight one.
+
+  GENERIC_PLUGIN_OPTIONS_DEVICE       = 1 << 3,
+
   GENERIC_PLUGIN_OPTIONS_UNDEFINED = 0,
 
 } generic_plugin_options_t;
@@ -75,6 +80,32 @@ HC_PLUGIN_ENTRY bool thread_init     (generic_global_ctx_t *global_ctx, generic_
 HC_PLUGIN_ENTRY void thread_term     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx);
 HC_PLUGIN_ENTRY int  thread_next     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size);
 HC_PLUGIN_ENTRY bool thread_seek     (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, const u64 offset);
+
+// The two a feed only exports when it advertises GENERIC_PLUGIN_OPTIONS_DEVICE.
+//
+// global_dev_init () hands over the read only pool every cell indexes into, and says how wide the
+// device side inner loop should be. thread_next_dev () answers with a base candidate and the cell
+// that extends it, where thread_next () would have answered with one finished candidate.
+//
+// maxword is how many words the kernel must give a candidate, which the feed settles from the ruleset
+// because the right answer is a property of the ruleset. It reaches the kernel as a build option, so
+// it has to be known before the backend compiles anything, and it is: this runs from
+// generic_ctx_init (), which is ahead of backend_session_begin ().
+//
+// One call to thread_next_dev () therefore stands for il_cnt candidates, and the feed's own position
+// advances by that many. Its keyspace, its seek and its ordering are the same object either way.
+
+// varlen says whether a slot's bucket may hold entries of more than one byte length, which decides how
+// the kernel reaches an entry and whether the candidate's length is a constant of the cell. Like
+// maxword it is a property of the ruleset, it reaches the kernel as a build option, and it has to be
+// in the kernel cache key. See PCFG_DEV_VARLEN.
+
+// probe is a cell for the autotuner to search the accel with. It is one the feed actually emitted
+// rather than one assembled out of averages, because a zeroed or invented cell makes the accel search
+// tune a launch that never runs and nothing downstream can tell.
+
+HC_PLUGIN_ENTRY bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *pool_size, u32 *il_cnt, u32 *avg, u32 *maxword, u32 *front, u32 *step, u32 *varlen, pcfg_cell_t *probe);
+HC_PLUGIN_ENTRY int  thread_next_dev (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size, pcfg_cell_t *cell);
 
 // ---------------------------------------------------------------------------------------------
 // what the device is doing while a feed runs

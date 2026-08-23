@@ -71,4 +71,19 @@ HC_PLUGIN_API u32 next_power_of_two (const u32 x);
 // On/off environment switch, looked up once. Pass a static int initialised to -1 as the cache.
 bool hc_env_flag (const char *name, int *cache);
 
+// The candidate a cell reaches at il_pos, written into w, and its byte length as the answer.
+//
+// This is the one host copy of the device engine's expander, exported rather than internal so that
+// outfile.c can rebuild a cracked plaintext with it. A second copy of this walk is a copy that will
+// one day disagree with the kernel.
+//
+// It has to produce the same bytes the kernel does, so it reads the cell the same way: entry n of a
+// slot is at pool_off + (n * ent_len) unless the cell says PCFG_CELL_VARLEN, in which case it is at
+// pool[pool_off + n].
+//
+// base_len is the base word's length, which is the answer when the cell has no device slots at all and
+// the base word is therefore the whole candidate. -1 means il_pos is past the end of the rectangle.
+
+HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 il_pos, u32 *w, const int base_len);
+
 #endif // HC_SHARED_H

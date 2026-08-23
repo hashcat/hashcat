@@ -248,15 +248,16 @@ void pw_base_add (pw_batch_t *batch, const u64 pws_max, pw_pre_t *pw_pre)
   }
 }
 
-// Hand a batch back empty. The staging buffers used to be cleared in full every time, which for a
-// large launch is tens of megabytes of memset to guarantee one zero: pw_add writes every byte it
-// uses, and only the prefix it wrote is ever uploaded. The one thing it cannot write for itself is
-// the first entry's offset, because each entry only sets up the NEXT one.
+// Hand a batch back empty. Clearing the staging buffers in full would be tens of megabytes of memset
+// on a large launch to guarantee one zero: pw_add writes every byte it uses, and only the prefix it
+// wrote is ever uploaded. The one thing it cannot write for itself is the first entry's offset,
+// because each entry only sets up the NEXT one.
 
 void pw_batch_reset (pw_batch_t *batch)
 {
   batch->pws_cnt      = 0;
   batch->pws_base_cnt = 0;
+  batch->pcfg_waves   = 0;
 
   batch->words_off   = 0;
   batch->words_fin   = 0;

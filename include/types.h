@@ -353,7 +353,7 @@ typedef enum attack_mode
   ATTACK_MODE_COMBI       = 1,
   ATTACK_MODE_TOGGLE      = 2,
   ATTACK_MODE_BF          = 3,
-  ATTACK_MODE_PERM        = 4,
+  ATTACK_MODE_PCFG        = 4,
   ATTACK_MODE_TABLE       = 5,
   ATTACK_MODE_HYBRID1     = 6,
   ATTACK_MODE_HYBRID2     = 7,
@@ -368,6 +368,7 @@ typedef enum attack_kern
 {
   ATTACK_KERN_STRAIGHT  = 0,
   ATTACK_KERN_COMBI     = 1,
+  ATTACK_KERN_PCFG      = 2,
   ATTACK_KERN_BF        = 3,
   ATTACK_KERN_NONE      = 100
 
@@ -1319,6 +1320,19 @@ typedef struct pw_batch
   u32      *pws_comp;
   u64       pws_cnt;
 
+  // The device engine's cells, one per candidate in this batch. They belong to the batch for the same
+  // reason the candidates do: the next batch is built while this one runs.
+
+  pcfg_cell_t *pcfg_cells;
+
+  // and the wave map that goes with them: which cell each wave of the launch belongs to, and how many
+  // waves that comes to. It is built here, one cell at a time as the cells are, because this runs on
+  // the producer thread where the feed already runs for free. Building it on the launch thread instead
+  // cost 411 ms of every launch on an RTX 4090, against 26 ms for the copy it sits in.
+
+  u32 *pcfg_wmap;
+  u64  pcfg_waves;
+
   // slow candidates keep the rule and the base word each candidate came from, so --debug-mode can
   // report them. That is read while the batch runs, so it belongs to the batch too.
 
@@ -1355,6 +1369,12 @@ typedef struct link_speed
 
 typedef struct xzfile xzfile_t;
 
+// A file that is already in memory. It is opened over a buffer somebody else owns and holds no copy,
+// so whatever produced the buffer has to outlive the handle. That is what lets one decompressed
+// archive serve a reader per member without a copy apiece.
+
+typedef struct memfile memfile_t;
+
 typedef struct hc_fp
 {
   int         fd;
@@ -1363,6 +1383,7 @@ typedef struct hc_fp
   gzFile      gfp; //  gzip fp
   unzFile     ufp; //   zip fp
   xzfile_t   *xfp; //    xz fp
+  memfile_t  *mfp; //  memory fp
 
   int         bom_size;
 
@@ -1577,6 +1598,13 @@ typedef struct hc_device_param
   u64  size_bfs;
   u64  size_combs;
   u64  size_combs_c;
+
+  // The device engine's two buffers. The cells are per work item and are rewritten every launch beside
+  // pws_buf; the pool is the terminal bytes every cell indexes into and is uploaded once.
+
+  u64  size_pcfg_cells;
+  u64  size_pcfg_pool;
+  u64  size_pcfg_wmap;
   u64  size_rules;
   u64  size_rules_c;
   u64  size_root_css;
@@ -1615,6 +1643,21 @@ typedef struct hc_device_param
 
   pw_t     *combs_buf;
 
+  pcfg_cell_t *pcfg_cells_buf;
+
+  // Which cell each wave of the launch belongs to. A cell takes as many waves as its rectangle needs,
+  // so a wave cannot work its own cell out from its id and this is the answer, one word a wave.
+
+  u32 *pcfg_wmap_buf;
+
+  // What the last layout of the PCFG launch came to: how many cells it covered, and how many work
+  // items those cells ask for between them. A cell takes as many work items as its rectangle needs
+  // rather than a fixed number, so the launch size cannot be worked out from the base word count and
+  // has to be read back off the plan.
+
+  u64 pcfg_lane_cnt;
+  u64 pcfg_lane_total;
+
   // Whether combs_buf holds the amplifier chunk that is on the device. It does for every attack mode
   // that builds the amplifier on the host, and it does not for the one -a 12 shape whose mask the mask
   // processor produces on the device. Anything rebuilding a candidate has to know which, because in
@@ -1625,7 +1668,7 @@ typedef struct hc_device_param
   void     *hooks_buf;
 
   // the batch currently being launched. These point into one of the slots below, so everything
-  // downstream of the launch reads them exactly as it always did.
+  // downstream of the launch reads them unchanged.
 
   pw_idx_t *pws_idx;
   u32      *pws_comp;
@@ -1813,6 +1856,9 @@ typedef struct hc_device_param
   CUdeviceptr       cuda_d_rules_c;
   CUdeviceptr       cuda_d_combs;
   CUdeviceptr       cuda_d_combs_c;
+  CUdeviceptr       cuda_d_pcfg_cells;
+  CUdeviceptr       cuda_d_pcfg_pool;
+  CUdeviceptr       cuda_d_pcfg_wmap;
   CUdeviceptr       cuda_d_bfs;
   CUdeviceptr       cuda_d_bfs_c;
   CUdeviceptr       cuda_d_tm_c;
@@ -1896,6 +1942,9 @@ typedef struct hc_device_param
   hipDeviceptr_t    hip_d_rules_c;
   hipDeviceptr_t    hip_d_combs;
   hipDeviceptr_t    hip_d_combs_c;
+  hipDeviceptr_t    hip_d_pcfg_cells;
+  hipDeviceptr_t    hip_d_pcfg_pool;
+  hipDeviceptr_t    hip_d_pcfg_wmap;
   hipDeviceptr_t    hip_d_bfs;
   hipDeviceptr_t    hip_d_bfs_c;
   hipDeviceptr_t    hip_d_tm_c;
@@ -2017,6 +2066,9 @@ typedef struct hc_device_param
   mtl_mem_t         metal_d_rules_c;
   mtl_mem_t         metal_d_combs;
   mtl_mem_t         metal_d_combs_c;
+  mtl_mem_t         metal_d_pcfg_cells;
+  mtl_mem_t         metal_d_pcfg_pool;
+  mtl_mem_t         metal_d_pcfg_wmap;
   mtl_mem_t         metal_d_bfs;
   mtl_mem_t         metal_d_bfs_c;
   mtl_mem_t         metal_d_tm_c;
@@ -2106,6 +2158,9 @@ typedef struct hc_device_param
   cl_mem            opencl_d_rules_c;
   cl_mem            opencl_d_combs;
   cl_mem            opencl_d_combs_c;
+  cl_mem            opencl_d_pcfg_cells;
+  cl_mem            opencl_d_pcfg_pool;
+  cl_mem            opencl_d_pcfg_wmap;
   cl_mem            opencl_d_bfs;
   cl_mem            opencl_d_bfs_c;
   cl_mem            opencl_d_tm_c;
@@ -3043,6 +3098,12 @@ typedef struct generic_global_ctx
 
   char  *seekdb_dir;
 
+  // Where hashcat keeps the files it ships. A feed that carries data of its own finds it here, the
+  // same way the frontend finds the feed itself: shared_dir/feeds is what was searched to load this
+  // plugin, so shared_dir/<something> is where anything shipped beside it lives.
+
+  char  *shared_dir;
+
   // What the status display puts inside "Guess.Base.......: Feed (...)". A feed may write its own
   // during global_init (), because the plugin name alone says what is generating and not what it is
   // generating from: "Feed (rockyou.pcfg)" tells the user something that "Feed (pcfg)" does not.
@@ -3076,6 +3137,32 @@ typedef struct generic_global_ctx
   // until it has been read, and by then it is too late to be worth saying.
 
   u64 source_ident;
+
+  // How many candidates the device engine produces over the whole keyspace, where the feed can say.
+  //
+  // The keyspace a feed reports is base words, and the number of candidates is that times the mean
+  // cell. The mean is an integer and the true one is not, so multiplying the two is short of the truth
+  // by whatever the mean lost to rounding, and the total a run is measured against is short with it.
+  // A feed that already knows the exact number says it here and the multiplication is not used.
+  //
+  // Zero means the feed did not say, and the mean stands.
+
+  u64 dev_total;
+
+  // Whether this instance's device engine is going to be used, settled before global_init () runs so that
+  // a feed which can generate two different ways knows which one it is being loaded for.
+  //
+  // A feed that advertises GENERIC_PLUGIN_OPTIONS_DEVICE does not always get to amplify: an
+  // outside-kernel hash mode has no attack kernel to put an inner loop in, and the device engine instance
+  // of a combinator attack is a second word list rather than an device engine. hashcat settles all of that
+  // in generic_instance_init (), and a feed reads the answer here instead of working it out again from
+  // the hashconfig, which is what would let the two drift apart.
+  //
+  // It matters because the device engine is a constraint, not a feature. A feed may have parts of its
+  // model that only a host loop can carry, and those parts change the keyspace, so it has to know
+  // before it counts itself. false for every feed that never runs on the device.
+
+  bool dev_enable;
 
   bool   error;
   char   error_msg[256];
@@ -3112,7 +3199,9 @@ typedef u64  (*GENERIC_GLOBAL_KEYSPACE) (generic_global_ctx_t *, generic_thread_
 typedef bool (*GENERIC_THREAD_INIT)     (generic_global_ctx_t *, generic_thread_ctx_t *);
 typedef void (*GENERIC_THREAD_TERM)     (generic_global_ctx_t *, generic_thread_ctx_t *);
 typedef int  (*GENERIC_THREAD_NEXT)     (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int);
+typedef int  (*GENERIC_THREAD_NEXT_DEV) (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int, pcfg_cell_t *);
 typedef bool (*GENERIC_THREAD_SEEK)     (generic_global_ctx_t *, generic_thread_ctx_t *, const u64);
+typedef bool (*GENERIC_GLOBAL_DEV_INIT) (generic_global_ctx_t *, const u32 **, u64 *, u32 *, u32 *, u32 *, u32 *, u32 *, u32 *, pcfg_cell_t *);
 
 // What a live feed instance is for. A run can hold one of each, and that is what lets -a 1 be
 // expressed without a second reader: its amplifier is a wordlist too, so the number of amplifier
@@ -3168,9 +3257,56 @@ typedef struct generic_ctx
   GENERIC_THREAD_NEXT      thread_next;
   GENERIC_THREAD_SEEK      thread_seek;
 
+  // The device engine half of the interface, and it is optional. A feed that advertises
+  // GENERIC_PLUGIN_OPTIONS_DEVICE can hand hashcat a base candidate plus the cell that says how the
+  // device is to extend it, instead of one finished candidate per call. Everything else about the
+  // feed is unchanged, because the device engine is a second consumer of the same generator rather than
+  // a different generator.
+
+  GENERIC_GLOBAL_DEV_INIT  global_dev_init;
+  GENERIC_THREAD_NEXT_DEV  thread_next_dev;
+
   bool autohex_enable;
   bool iconv_enable;
   bool rules_enable;
+  bool dev_enable;
+
+  // What global_dev_init () handed over: the terminal pool every cell indexes into, and how wide the
+  // device side inner loop is. The pool is read only and uploaded once per device.
+
+  const u32 *dev_pool;
+  u64        dev_pool_size;
+  u32        dev_il_cnt;
+
+  // How many words the kernel gives a candidate. The feed settles it from the ruleset and the backend
+  // compiles the kernel with it, so the two cannot disagree unless a cached kernel is reused across
+  // rulesets, which is why it is folded into the cache key.
+
+  u32        dev_maxword;
+
+  // Whether a bucket may hold entries of more than one byte length. Settled the same way and folded
+  // into the same cache key, because it changes the kernel's source just as much.
+
+  u32        dev_varlen;
+
+  // A cell the feed really emitted, for the autotuner to probe the accel with. See global_dev_init ().
+
+  pcfg_cell_t dev_probe;
+
+  // The mean rectangle at the front of the stream, which is what the first launches carry and
+  // therefore what the autotuner has to probe with. dev_avg is the average over the whole keyspace and
+  // is what speed and progress are counted in; the two are not the same number.
+
+  u32        dev_front;
+
+  // What one step of the inner loop rewrites, in bytes. The autotuner's probe cell is one slot and this
+  // is how wide to make it, so the probe pays for a step what a real cell pays.
+
+  u32        dev_step;
+
+  // the mean rectangle. What a base word is worth, as opposed to what the inner loop may reach.
+
+  u32        dev_avg;
 
   // What the feed said its keyspace is, in base words, before any amplifier is applied. It cannot be
   // finished here: -a 6 and -a 7 amplify with the mask, and the mask is only sized once per round, in
@@ -3374,6 +3510,16 @@ typedef struct status_ctx
                                 // has been finished actually, can be used for restore point therefore
   u64  words_base;              // the unamplified max keyspace
   u64  words_cnt;               // the amplified max keyspace
+
+  // What the producer of this round knows its unamplified keyspace to be.
+  //
+  // words_base is otherwise recovered by dividing words_cnt by the amplifier, which is exact only
+  // while the product is. A base large enough that base times amplifier does not fit in 64 bits is
+  // reachable from a feed that generates its base words rather than reading them, and there the
+  // division recovers the wrong number from a saturated product. A producer that knows the base says
+  // so here and the division is not consulted. Zero means it did not, which is every mask.
+
+  u64  words_base_given;
 
   // -i and a mask file are a queue of rounds, and the queue is one keyspace. --skip and --limit
   // address the queue, so each round takes its own share of that window rather than applying the

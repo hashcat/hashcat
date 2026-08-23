@@ -58,6 +58,12 @@ cp -r $IN/modules                       $OUT/
 cp -r $IN/rules                         $OUT/
 cp -r $IN/extra                         $OUT/
 cp -r $IN/tunings                       $OUT/
+
+# The PCFG rulesets, which are what -a 4 runs with no ruleset named. Not in the line ending passes
+# below: a ruleset is one .tar.xz and converting it is corrupting it.
+
+cp -r $IN/pcfg                          $OUT/
+
 cp    $IN/example.dict                  $OUT/
 cp    $IN/example[0123456789]*.hash     $OUT/
 cp    $IN/example[0123456789]*.cmd      $OUT/
@@ -142,6 +148,8 @@ chmod 755 $OUT/OpenCL
 chmod 644 $OUT/OpenCL/*
 chmod 755 $OUT/tunings
 chmod 644 $OUT/tunings/*
+chmod 755 $OUT/pcfg
+chmod 644 $OUT/pcfg/*
 chmod 644 $OUT/*.exe
 chmod 644 $OUT/*.dll
 chmod 755 $OUT/*.bin

@@ -667,13 +667,15 @@ The large number of kernel parameters can be confusing when writing a kernel. Bu
 
 The fast hash type is needed if we are cracking a hash that is so fast to compute that the PCI express bottleneck is taking more time than to compute the hash. These raw hashes are designed to compute very fast intentionally. They typically consist of only binary or arithmetic operations either with none or limited memory access. That means they often can be implemented on register level. On the other hand, if we need to access any memory structures just to provide the password candidates, it will hurt the performance significantly. Therefore the general concept of a fast hash kernel is to load a base password candidate directly onto a register and run a for() loop within the kernel which modifies the base password candidate.
 
-The modification is depending on the attack-mode. Hashcat supports 6 different attack-modes with the -a command line flag (0, 1, 3, 6, 7 and 12) but attack-mode 6, attack-mode 7 and attack-mode 12 share the same kernel code with attack-mode 1. This means we have to implement three kernels. These kernels are implemented in three kernel source files (0, 1, 3). Based on the attack-mode selected by the user on startup, hashcat will load the corresponding kernel.
+The modification is depending on the attack-mode. Attack-mode 1, attack-mode 6 and attack-mode 7 share the same kernel code with attack-mode 12, and attack-mode 8 and attack-mode 9 use the attack-mode 0 kernels. That leaves three kernels to implement, in three kernel source files (0, 1, 3). Based on the attack-mode selected by the user on startup, hashcat will load the corresponding kernel.
+
+Attack-mode 4, the PCFG attack, is a fourth kernel and it is optional. See the section on it below.
 
 The file name convention for fast hashes is: `OpenCL/mXXXXX_a[0|1|3]-[pure|optimized].cl`
 
 #### Kernel: fast hash type (optimized) ####
 
-As you can see from this convention, you actually have to implement six kernels if you want to add a full featured fast hash mode to hashcat. It is up to you if you want to save some time only implementing a pure kernel, only an optimized kernel or both. But in each case you must implement all three attack modes to support all the different attack types supported by hashcat.
+As you can see from this convention, you actually have to implement six kernels if you want to add a full featured fast hash mode to hashcat. It is up to you if you want to save some time only implementing a pure kernel, only an optimized kernel or both. But in each case you must implement all three attack modes to support all the different attack types supported by hashcat. A seventh kernel, `a4-pure`, is optional and gives attack-mode 4 a device kernel instead of the host fallback.
 
 Remember we only need to have those three different implementations due to the different ways the password candidate is generated. You may think it would be easier to have like three branches but these branches would already decrease the performance drastically.
 
@@ -693,6 +695,21 @@ The main purpose of pure kernels is to support long passwords (and salts) up to 
 Each fast hash kernel source in pure mode has to provide the following kernel functions with this convention: `mXXXXX_[mxx|sxx]`.
 
 The pure kernels are supposed to run slower than optimized kernels, but it is hard to define a percentage which shows the performance difference because it largely depends on what kind of optimization you can use. For instance, for NTLM in which you can do meet-in-the-middle tests, the optimized kernel is around three times faster than the pure kernel. On contrary, for SHA256-HMAC they have exactly the same performance.
+
+#### Kernel: fast hash type (attack-mode 4) ####
+
+Attack-mode 4 is the PCFG attack, and on a fast hash it amplifies inside the hash kernel the way the rules engine does for attack-mode 0. The file name convention is `OpenCL/mXXXXX_a4-pure.cl`. There is no optimized form.
+
+This kernel is optional. A hash mode without one runs the PCFG attack on the host instead, which is correct and much slower, and hashcat says so on startup rather than failing.
+
+You do not write the kernel. You write four hooks and include the engine, which walks the candidates and does the comparing:
+
+* `pcfg_hash_init ()`: pick up what the mode needs from the kernel's own parameters, which for a salted mode is its salt and for an esalt mode its esalt. Store it on `pcfg_hash_ctx_t`, which is the mode's own struct.
+* `pcfg_hash_setup ()`: what the hash wants written into the candidate array once, before any candidate exists. Most modes leave it empty.
+* `pcfg_hash ()`: the candidate array, a byte length, and the four words a comparison needs. This is the body of the attack-mode 0 loop with the base word paste removed.
+* `pcfg_hash_global ()`: the same for a base word too long for the array, which is read straight out of global memory.
+
+`OpenCL/inc_pcfg_kernel.cl` documents all four and is worth reading before writing one. `OpenCL/m00100_a4-pure.cl` is the smallest complete example.
 
 ### Kernel: slow hash type ###
 

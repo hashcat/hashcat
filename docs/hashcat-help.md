@@ -191,6 +191,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   0 | Straight
   1 | Combination
   3 | Brute-force
+  4 | PCFG, a trained grammar makes the candidates
   6 | Hybrid Wordlist + Mask
   7 | Hybrid Mask + Wordlist
   8 | Generic
@@ -248,6 +249,8 @@ Hardware reached through an assimilation bridge is selected by the hash-mode, ne
   Wordlist         | $P$   | hashcat -a 0 -m 400 example400.hash example.dict
   Wordlist + Rules | MD5   | hashcat -a 0 -m 0 example0.hash example.dict -r rules/best66.rule
   Brute-Force      | MD5   | hashcat -a 3 -m 0 example0.hash ?a?a?a?a?a?a
+  PCFG             | MD5   | hashcat -a 4 -m 0 example0.hash
+  PCFG + ruleset   | MD5   | hashcat -a 4 -m 0 example0.hash /path/to/ruleset
   Combinator       | MD5   | hashcat -a 1 -m 0 example0.hash example.dict example.dict
   Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule
   Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule

@@ -449,7 +449,12 @@ int status_get_guess_mode (const hashcat_ctx_t *hashcat_ctx)
   // when the base words come from one, because the label describes how a candidate is put together and
   // that has not changed: the mask is still one half of it and the second wordlist is still the other.
 
-  if ((user_options_extra->base_source == BASE_SOURCE_FEED) && (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT))
+  // The device engine is a feed too, and one that names itself: feed_pcfg.c writes "<ruleset> (scale N)"
+  // into guess_base during global_init (). Testing only for the straight kernel left ATTACK_KERN_PCFG
+  // falling through every branch below to GUESS_MODE_NONE, so a pcfg run printed no Guess.Base line at
+  // all and the status screen did not say what was generating the candidates.
+
+  if ((user_options_extra->base_source == BASE_SOURCE_FEED) && ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || (user_options_extra->attack_kern == ATTACK_KERN_PCFG)))
   {
     if (has_rule_file == true)
     {
@@ -1658,6 +1663,18 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
       if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_end  *= straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_end  *= combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_end  *= mask_ctx->bfs_cnt;
+
+      // The device engine expands a base word the same way, and --skip and --limit count base words for it
+      // as they do for every other mode. Without this the total stayed in base words while the
+      // progress counted candidates, so --limit 200000 reported 208122% done.
+      //
+      // dev_avg is the mean cell over the whole keyspace, which is what the unlimited total uses too,
+      // so the two agree. It is still only a mean: the cheap cost levels a run starts in hold cells
+      // several times wider than that, so a limit near the front of the stream reads high. Counting it
+      // exactly needs the feed to say how many candidates lie before a given base word, which the
+      // level index could answer and does not expose.
+
+      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)     progress_end  *= hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
     }
   }
 

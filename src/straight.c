@@ -221,14 +221,17 @@ static int straight_ctx_words_apply (hashcat_ctx_t *hashcat_ctx, const u64 words
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
-  if (overflow_check_u64_mul (words_cnt, amplifier) == true)
-  {
-    event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of wordlist: %s", dict);
+  // The base is what the run is addressed by: --skip, --limit, --restore and the split across devices
+  // are all positions in it, and it is what --keyspace answers with. The product is the number of
+  // guesses, which only the progress display reads.
+  //
+  // So a product too large to hold is not a reason to refuse the run. It saturates, the progress
+  // display is short of the truth in a regime no run reaches the end of anyway, and the base is
+  // stated here rather than recovered by division from a number that no longer divides.
 
-    return -1;
-  }
+  status_ctx->words_base_given = words_cnt;
 
-  status_ctx->words_cnt = words_cnt * amplifier;
+  status_ctx->words_cnt = (overflow_check_u64_mul (words_cnt, amplifier) == true) ? UINT64_MAX : (words_cnt * amplifier);
 
   return 0;
 }
@@ -317,15 +320,29 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     {
       amplifier = combinator_ctx->combs_cnt;
     }
-
-    if (overflow_check_u64_mul (generic_ctx->keyspace, amplifier) == true)
+    else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
     {
-      event_log_error (hashcat_ctx, "Integer overflow detected in keyspace of feed: %s", generic_ctx->plugin_name);
-
-      return -1;
+      amplifier = generic_ctx->dev_avg;
     }
 
-    status_ctx->words_cnt = generic_ctx->keyspace * amplifier;
+    // As above: the feed's keyspace is the base and is what the run is addressed by, so a product
+    // that does not fit saturates rather than ending the run. A feed that generates its base words
+    // is the only producer whose base is large enough to reach that.
+
+    status_ctx->words_base_given = generic_ctx->keyspace;
+
+    // Where the feed knows exactly how many candidates it produces, that is the total. The amplifier
+    // it would otherwise be multiplied by is a mean rounded down to an integer, so the product is
+    // always a little short and the run never quite reaches the total it is measured against.
+
+    if (generic_ctx->global_ctx.dev_total > 0)
+    {
+      status_ctx->words_cnt = generic_ctx->global_ctx.dev_total;
+    }
+    else
+    {
+      status_ctx->words_cnt = (overflow_check_u64_mul (generic_ctx->keyspace, amplifier) == true) ? UINT64_MAX : (generic_ctx->keyspace * amplifier);
+    }
 
     return 0;
   }
