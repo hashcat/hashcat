@@ -54,8 +54,7 @@ def s2k_iterated_salted(password: bytes, salt: bytes, count: int, out_len: int, 
 password    = sys.argv[1].encode()
 salt        = get_random_bytes(8)
 iv          = get_random_bytes(16)
-_c          = randint(0, 96)                 # OpenPGP coded octet -> decoded count in [1024, 65536]
-salt_iter   = (16 + (_c & 15)) << ((_c >> 4) + 6)   # a *valid* count real GnuPG would emit
+salt_iter   = randint(1024, 65536)          # decoded byte count, within the parser's 8..65011712
 cipher_algo = 7 if randint(0, 1) else 9     # 7 = AES-128 (aux1), 9 = AES-256 (aux2)
 key_len     = 16 if cipher_algo == 7 else 32
 
