@@ -298,7 +298,7 @@ Most people never need any of them.
 
 | setting | default | what it does |
 |---|---|---|
-| `scale` | 1 | How finely probabilities are graded. Higher is closer to true probability order and costs memory and startup time. |
+| `scale` | 1 | How finely probabilities are graded. Higher is closer to true probability order and costs memory and startup time. Nothing to do with the trainer's `--coverage`. |
 | `costmax` | 64 | How deep to enumerate, in bits. This is what bounds the keyspace; the grammar's real keyspace is far larger. |
 | `weights` | even | The share each ruleset carries when you give more than one. See below. |
 | `threads` | auto | CPU cores used to produce candidates. `0` produces them on the calling thread. The default is 16 on a fast hash and 8 on a slow one, both measured, and capped by the machine. |
@@ -307,6 +307,11 @@ Most people never need any of them.
 | `maxgain` | 1.5 | How much wider the expansion has to get before the bigger candidate buffer is worth taking. |
 | `walk` | 1 | Steps to the next base word where it can instead of working it out from its position. It produces exactly the same run either way, so this is only here to turn off. |
 | `omen` | 1 | Carries the OMEN escape on a slow hash. See section 6.4. A fast hash cannot carry it whatever this says. |
+
+`scale` is hashcat's own setting and is not read from the ruleset, so it reads `scale 1` on the status
+screen until you ask for something else. It is unrelated to `--coverage` in the trainer, which is set
+when the ruleset is built and cannot be changed afterwards. If a ruleset was trained at a coverage
+below 1.0 and you are cracking a fast hash, section 6.4 is the part that matters.
 
 `scale`, `costmax` and `omen` all change which candidate sits at which position in the run, so they
 are part of the attack's identity. Change one and a restore point from before is no longer valid. They
@@ -556,11 +561,14 @@ The tables are the price. They are built at startup and they are not small: 18 M
 trained on a small corpus, 434 MiB for the largest one tried here. The line above tells you before you
 wait for it.
 
-**On a fast hash hashcat drops it**, and says that instead:
+**On a fast hash hashcat drops it**, and says that instead, with what the escape was worth:
 
 ```
-pcfg: OMEN escape dropped, the device engine cannot walk a trellis. This run covers the grammar and not the escape
+pcfg: OMEN escape dropped, the device engine cannot walk a trellis. 40% of the mass, set by coverage
 ```
+
+The percentage is read from the `M` line of the ruleset you gave, so it is that ruleset's figure and
+not a general one. A ruleset trained at `--coverage 1.0` has no `M` line and prints no such message.
 
 The reason is section 6.3. The card is handed a rectangle: a few independent lists, and a candidate is
 one entry from each. An OMEN guess is nothing like that. Each character it writes decides which

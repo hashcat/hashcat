@@ -217,7 +217,7 @@ static u64 straight_ctx_round_words (hashcat_ctx_t *hashcat_ctx, const char *dic
 // straight attack, the amplifier words for a combinator one and the mask for the hybrids. It cannot
 // happen any earlier than here, because mask_ctx_update_loop sizes the mask once per round.
 
-static int straight_ctx_words_apply (hashcat_ctx_t *hashcat_ctx, const u64 words_cnt, const u64 amplifier, const char *dict)
+static int straight_ctx_words_apply (hashcat_ctx_t *hashcat_ctx, const u64 words_cnt, const u64 amplifier, MAYBE_UNUSED const char *dict)
 {
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 

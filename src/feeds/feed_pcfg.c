@@ -15,7 +15,62 @@
 
 #include <math.h>
 #include <inttypes.h>
+// The prefetch workers, on both platforms hashcat builds for.
+//
+// A feed is a plugin and links against nothing but the core, and the core reaches Windows threads
+// through its own macros in a header a plugin does not include. Windows also has no pthread unless a
+// runtime DLL is shipped beside the binary, which hashcat deliberately does not do. So the handful of
+// primitives used here are named once and mapped to whichever platform this is built for.
+
+#if defined (_WIN) || defined (__CYGWIN__)
+
+#include <windows.h>
+
+typedef CRITICAL_SECTION   pcfg_mux_t;
+typedef CONDITION_VARIABLE pcfg_cv_t;
+typedef HANDLE             pcfg_os_thread_t;
+
+#define pcfg_mux_init(m)     InitializeCriticalSection (m)
+#define pcfg_mux_destroy(m)  DeleteCriticalSection (m)
+#define pcfg_mux_lock(m)     EnterCriticalSection (m)
+#define pcfg_mux_unlock(m)   LeaveCriticalSection (m)
+
+#define pcfg_cv_init(c)      InitializeConditionVariable (c)
+#define pcfg_cv_destroy(c)   ((void) (c))
+#define pcfg_cv_wait(c,m)    SleepConditionVariableCS (c, m, INFINITE)
+#define pcfg_cv_broadcast(c) WakeAllConditionVariable (c)
+
+#define pcfg_thread_ret           DWORD WINAPI
+#define pcfg_thread_done          0
+
+#define pcfg_thread_create(t,f,a) (t) = CreateThread (NULL, 0, f, a, 0, NULL)
+#define pcfg_thread_join(t)       do { WaitForSingleObject ((t), INFINITE); CloseHandle (t); } while (0)
+
+#else
+
 #include <pthread.h>
+
+typedef pthread_mutex_t pcfg_mux_t;
+typedef pthread_cond_t  pcfg_cv_t;
+typedef pthread_t       pcfg_os_thread_t;
+
+#define pcfg_mux_init(m)     pthread_mutex_init (m, NULL)
+#define pcfg_mux_destroy(m)  pthread_mutex_destroy (m)
+#define pcfg_mux_lock(m)     pthread_mutex_lock (m)
+#define pcfg_mux_unlock(m)   pthread_mutex_unlock (m)
+
+#define pcfg_cv_init(c)      pthread_cond_init (c, NULL)
+#define pcfg_cv_destroy(c)   pthread_cond_destroy (c)
+#define pcfg_cv_wait(c,m)    pthread_cond_wait (c, m)
+#define pcfg_cv_broadcast(c) pthread_cond_broadcast (c)
+
+#define pcfg_thread_ret           void *
+#define pcfg_thread_done          NULL
+
+#define pcfg_thread_create(t,f,a) pthread_create (&(t), NULL, f, a)
+#define pcfg_thread_join(t)       pthread_join ((t), NULL)
+
+#endif
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN_OPTIONS_DEVICE;
@@ -2561,13 +2616,36 @@ static double omen_mass (const pcfg_root_t *r)
   return p;
 }
 
+// What the M line is worth across every ruleset in the run, as a percentage. A run that drops the
+// escape gives up exactly this much of the probability the grammar was trained to describe. The
+// trainer's coverage setting decides it, not hashcat, so a reader who sees the figure knows which
+// setting to change.
+
+static double omen_mass_pct (const pcfg_root_t *roots, const u32 nroots)
+{
+  double mass = 0.0;
+
+  for (u32 i = 0; i < nroots; i++)
+  {
+    mass += omen_mass (&roots[i]) * roots[i].w;
+  }
+
+  if (mass <= 0.0) return 0.0;
+
+  if (mass > 1.0) mass = 1.0;
+
+  const double pct = mass * 100.0;
+
+  return pct;
+}
+
 static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroots)
 {
   if (global_ctx->dev_enable == true)
   {
     if ((pg->m_lines > 0) && (global_ctx->quiet == false))
     {
-      pmsg (pg, "pcfg: OMEN escape dropped, the device engine cannot walk a trellis. This run covers the grammar and not the escape");
+      pmsg (pg, "pcfg: OMEN escape dropped, the device engine cannot walk a trellis. %.0f%% of the mass, set by coverage", omen_mass_pct (roots, nroots));
     }
 
     return true;
@@ -2577,7 +2655,7 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
   {
     if ((pg->m_lines > 0) && (global_ctx->quiet == false))
     {
-      pmsg (pg, "pcfg: OMEN escape dropped, omen=0");
+      pmsg (pg, "pcfg: OMEN escape dropped, omen=0. %.0f%% of the mass, set by coverage", omen_mass_pct (roots, nroots));
     }
 
     return true;
@@ -3817,245 +3895,12 @@ static bool advance_unit (pcfg_global_t *pg, pcfg_thread_t *th)
   }
 }
 
-HC_PLUGIN_ENTRY bool pcfg_dbg_on       = false;
-HC_PLUGIN_ENTRY u64  pcfg_dbg_units    = 0;
-HC_PLUGIN_ENTRY u64  pcfg_dbg_bits_sum = 0;
-HC_PLUGIN_ENTRY u64  pcfg_dbg_unrank   = 0;
-HC_PLUGIN_ENTRY u64  pcfg_dbg_step     = 0;
-
-HC_PLUGIN_ENTRY u64 pcfg_dbg_devtok[PCFG_MAXTOK + 1];
-HC_PLUGIN_ENTRY u64 pcfg_dbg_why[5];
-HC_PLUGIN_ENTRY u64 pcfg_dbg_bits[PCFG_DEV_KBITS_MAX + 2];
-
-HC_PLUGIN_ENTRY void pcfg_dbg_reset (void)
-{
-  pcfg_dbg_on       = true;
-  pcfg_dbg_units    = 0;
-  pcfg_dbg_bits_sum = 0;
-  pcfg_dbg_unrank   = 0;
-  pcfg_dbg_step     = 0;
-
-  memset (pcfg_dbg_devtok, 0, sizeof (pcfg_dbg_devtok));
-  memset (pcfg_dbg_why,    0, sizeof (pcfg_dbg_why));
-  memset (pcfg_dbg_bits,   0, sizeof (pcfg_dbg_bits));
-}
-
-static void dbg_account (pcfg_global_t *pg, const pcfg_thread_t *th)
-{
-  const pcfg_struct_t *s = &pg->structs[th->si];
-
-  pcfg_dbg_units++;
-
-  u32 devtok = 0;
-  u32 bits   = 0;
-
-  for (u32 ti = 0; ti < th->tcnt; ti++)
-  {
-    if (th->tdev[ti] == false) continue;
-
-    const u32 j   = th->tslot[ti];
-    const u32 len = token_len (s, j);
-
-    const pcfg_tlist_t *ta = &pg->lists[s->list[j]];
-    const pcfg_tlist_t *tm = (len == 2) ? &pg->lists[s->list[j + 1]] : NULL;
-
-    const u64 prod = sat_mul (ta->b_cnt[th->tba[ti]], (len == 2) ? tm->b_cnt[th->tbm[ti]] : 1);
-
-    bits += bitlen (prod);
-
-    devtok++;
-  }
-
-  if (devtok > PCFG_MAXTOK) devtok = PCFG_MAXTOK;
-
-  pcfg_dbg_devtok[devtok]++;
-
-  if (bits > pg->kbits + 1) bits = pg->kbits + 1;
-
-  pcfg_dbg_bits[bits]++;
-  pcfg_dbg_bits_sum += bits;
-
-  if (th->devstart == 0) { pcfg_dbg_why[0]++; return; }
-
-  u32 ti = 0;
-
-  for (u32 k = 0; k < th->tcnt; k++)
-  {
-    if (th->tslot[k] >= th->devstart) break;
-
-    ti = k;
-  }
-
-  const u32 j   = th->tslot[ti];
-  const u32 len = token_len (s, j);
-
-  const pcfg_tlist_t *ta = &pg->lists[s->list[j]];
-  const pcfg_tlist_t *tm = (len == 2) ? &pg->lists[s->list[j + 1]] : NULL;
-
-  const u32 ba = th->tba[ti];
-  const u32 bm = th->tbm[ti];
-
-  bool uni = bucket_uni (pg, ta, ba);
-
-  if (len == 2) uni = uni && bucket_uni (pg, tm, bm);
-
-  const u64 prod = sat_mul (ta->b_cnt[ba], (len == 2) ? tm->b_cnt[bm] : 1);
-
-  const u32 bl = bitlen (prod);
-
-  if (j < s->cut)                        pcfg_dbg_why[3]++;
-  else if (uni == false)                 pcfg_dbg_why[1]++;
-  else if (bl > pg->kbits)               pcfg_dbg_why[2]++;
-  else if ((bl + bits) > pg->kbits)      pcfg_dbg_why[4]++;
-  else                                   pcfg_dbg_why[2]++;
-}
-
-HC_PLUGIN_ENTRY int pcfg_dbg_omen (generic_global_ctx_t *global_ctx, char *buf, const int size)
-{
-  const pcfg_global_t *pg = (const pcfg_global_t *) global_ctx->gbldata;
-
-  int n = snprintf (buf, size, "models=%u levels=%u guesses=%" PRIu64 " bytes=%" PRIu64,
-                    pg->omen_cnt, pg->omen_lvl_cnt, pg->omen_keyspace, pg->omen_bytes);
-
-  for (u32 i = 0; i < pg->omen_lvl_cnt; i++)
-  {
-    const pcfg_omen_lvl_t *ol = &pg->omen_lvl[i];
-    const pcfg_omen_t     *om = &pg->omen[ol->mi];
-
-    n += snprintf (buf + n, size - n, "\n  model=%u level=%u cost=%u guesses=%" PRIu64 " ctx=%u tr=%u ip=%u kmax=%u bmax=%u",
-                   ol->mi, ol->lvl, ol->cost, ol->cnt, om->nctx, om->tr_cnt, om->nip, om->kmax, om->bmax);
-  }
-
-  return n;
-}
-
-HC_PLUGIN_ENTRY bool pcfg_dbg_omen_span (generic_global_ctx_t *global_ctx, const u32 i, u64 *first, u64 *cnt)
-{
-  const pcfg_global_t *pg = (const pcfg_global_t *) global_ctx->gbldata;
-
-  if (i >= pg->omen_lvl_cnt) return false;
-
-  const u32 want = pg->structs_cnt + i;
-
-  for (u32 li = 0; li < pg->lvl_cnt; li++)
-  {
-    if (pg->lvl_cost[li] != pg->omen_lvl[i].cost) continue;
-
-    for (u32 k = 0; k < pg->ls_cnt[li]; k++)
-    {
-      if (pg->ls_struct[li][k] != want) continue;
-
-      first[0] = pg->lvl_pref[li] + pg->ls_pref[li][k];
-      cnt[0]   = pg->omen_lvl[i].cnt;
-
-      return true;
-    }
-  }
-
-  return false;
-}
-
-HC_PLUGIN_ENTRY int pcfg_dbg_state (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, char *buf, const int size)
-{
-  pcfg_global_t *pg = (pcfg_global_t *) global_ctx->gbldata;
-  pcfg_thread_t *th = (pcfg_thread_t *) thread_ctx->thrdata;
-
-  const pcfg_struct_t *s = &pg->structs[th->si];
-
-  int n = snprintf (buf, size, "si=%u cost=%u devstart=%u tcnt=%u nslot=%u cut=%u", th->si, th->cost, th->devstart, th->tcnt, s->nslot, s->cut);
-
-  for (u32 ti = 0; ti < th->tcnt; ti++)
-  {
-    const u32 j   = th->tslot[ti];
-    const u32 len = token_len (s, j);
-
-    const pcfg_tlist_t *ta = &pg->lists[s->list[j]];
-    const pcfg_tlist_t *tm = (len == 2) ? &pg->lists[s->list[j + 1]] : NULL;
-
-    const u32 ba = th->tba[ti];
-    const u32 bm = th->tbm[ti];
-
-    n += snprintf (buf + n, size - n, "\n  t%u slot=%u len=%u dev=%u rem=%u cap=%u fcap=%d e=%" PRIu64 " idx=%u",
-                   ti, j, len, (u32) th->tdev[ti], th->trem[ti], th->tcap[ti], (th->tfcap[ti] == PCFG_NOFCAP) ? -1 : (int) th->tfcap[ti], th->te[ti], th->idx[j]);
-
-    n += snprintf (buf + n, size - n, "  a[%u/%u] cost=%u cnt=%u blen=%u start=%u",
-                   ba, ta->nb, ta->b_cost[ba], ta->b_cnt[ba], ta->b_len[ba], ta->b_start[ba]);
-
-    if (len == 2)
-    {
-      n += snprintf (buf + n, size - n, "  m[%u/%u] cost=%u cnt=%u blen=%u start=%u",
-                     bm, tm->nb, tm->b_cost[bm], tm->b_cnt[bm], tm->b_len[bm], tm->b_start[bm]);
-    }
-  }
-
-  return n;
-}
-
-HC_PLUGIN_ENTRY int pcfg_dbg_lasttok (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, char *buf, const int size)
-{
-  pcfg_global_t *pg = (pcfg_global_t *) global_ctx->gbldata;
-  pcfg_thread_t *th = (pcfg_thread_t *) thread_ctx->thrdata;
-
-  if (th->tcnt == 0) return 0;
-
-  const pcfg_struct_t *s = &pg->structs[th->si];
-
-  const u32 ti  = th->tcnt - 1;
-  const u32 j   = th->tslot[ti];
-  const u32 len = token_len (s, j);
-
-  const pcfg_tlist_t *ta = &pg->lists[s->list[j]];
-  const pcfg_tlist_t *tm = (len == 2) ? &pg->lists[s->list[j + 1]] : NULL;
-
-  const u32 rem  = th->trem[ti];
-  const u32 cap  = th->tcap[ti];
-  const u32 fcap = th->tfcap[ti];
-
-  int n = snprintf (buf, size, "last token slot=%u len=%u dev=%u rem=%u cap=%u fcap=%d at a=%u m=%u", j, len, (u32) th->tdev[ti], rem, cap, (fcap == PCFG_NOFCAP) ? -1 : (int) fcap, th->tba[ti], th->tbm[ti]);
-
-  const u32 nbm = (len == 2) ? tm->nb : 1;
-
-  for (u32 ba = 0; ba < ta->nb; ba++)
-  {
-    for (u32 bm = 0; bm < nbm; bm++)
-    {
-      const u32 cb = ta->b_cost[ba] + ((len == 2) ? tm->b_cost[bm] : 0);
-
-      if (cb != rem) continue;
-
-      const u64 prod = sat_mul (ta->b_cnt[ba], (len == 2) ? tm->b_cnt[bm] : 1);
-
-      bool uni = bucket_uni (pg, ta, ba);
-
-      if (len == 2) uni = uni && bucket_uni (pg, tm, bm);
-
-      const u32 bl = bitlen (prod);
-
-      const bool may = (j >= s->cut);
-
-      const bool dev = (may == true) && (uni == true) && (bl <= cap);
-
-      const bool fro = (fcap != PCFG_NOFCAP) && (bl <= fcap);
-
-      n += snprintf (buf + n, size - n, "\n  a=%u m=%u cb=%u prod=%" PRIu64 " bl=%u uni=%u may=%u dev=%u infront=%u%s",
-                     ba, bm, cb, prod, bl, (u32) uni, (u32) may, (u32) dev, (u32) fro,
-                     ((ba == th->tba[ti]) && (bm == th->tbm[ti])) ? "   <- here" : "");
-
-      if (n > (size - 256)) return n;
-    }
-  }
-
-  return n;
-}
-
 static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const int out_size, pcfg_cell_t *cell)
 {
   if (th->pos >= pg->units) return GENERIC_RC_EOF;
 
   if (th->valid == false)
   {
-    if (pcfg_dbg_on == true) pcfg_dbg_unrank++;
-
     if (unrank_unit (pg, th->pos, th) == false) return GENERIC_RC_ERROR;
   }
 
@@ -4119,20 +3964,13 @@ static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const i
     }
   }
 
-  if (pcfg_dbg_on == true) dbg_account (pg, th);
-
   th->pos++;
 
   th->valid = false;
 
   if (pg->walk == true)
   {
-    if (advance_unit (pg, th) == true)
-    {
-      th->valid = true;
-
-      if (pcfg_dbg_on == true) pcfg_dbg_step++;
-    }
+    if (advance_unit (pg, th) == true) th->valid = true;
   }
 
   return len;
@@ -4203,8 +4041,8 @@ typedef struct pcfg_pf
 {
   pcfg_global_t *pg;
 
-  pthread_mutex_t mux;
-  pthread_cond_t  cv;
+  pcfg_mux_t mux;
+  pcfg_cv_t  cv;
 
   u64  assign;
   u64  take;
@@ -4217,7 +4055,7 @@ typedef struct pcfg_pf
   u32 slots;
 
   u32       nworker;
-  pthread_t worker[PCFG_PF_MAXW];
+  pcfg_os_thread_t worker[PCFG_PF_MAXW];
 
   bool amp;
 
@@ -4226,7 +4064,7 @@ typedef struct pcfg_pf
 
 } pcfg_pf_t;
 
-static void *pf_worker (void *arg)
+static pcfg_thread_ret pf_worker (void *arg)
 {
   pcfg_pf_t *pf = (pcfg_pf_t *) arg;
 
@@ -4235,7 +4073,7 @@ static void *pf_worker (void *arg)
 
   pcfg_thread_t *th = (pcfg_thread_t *) hccalloc (1, sizeof (pcfg_thread_t));
 
-  pthread_mutex_lock (&pf->mux);
+  pcfg_mux_lock (&pf->mux);
 
   while (pf->stop == false)
   {
@@ -4245,7 +4083,7 @@ static void *pf_worker (void *arg)
 
     if (sl->state != PCFG_PF_EMPTY)
     {
-      pthread_cond_wait (&pf->cv, &pf->mux);
+      pcfg_cv_wait (&pf->cv, &pf->mux);
 
       continue;
     }
@@ -4258,7 +4096,7 @@ static void *pf_worker (void *arg)
     sl->seq   = seq;
     sl->gen   = gen;
 
-    pthread_mutex_unlock (&pf->mux);
+    pcfg_mux_unlock (&pf->mux);
 
     th->pos   = pos;
     th->valid = false;
@@ -4286,25 +4124,25 @@ static void *pf_worker (void *arg)
       used += (len < PCFG_PF_WLEN) ? (u32) len : PCFG_PF_WLEN;
     }
 
-    pthread_mutex_lock (&pf->mux);
+    pcfg_mux_lock (&pf->mux);
 
     sl->cnt = n;
 
     sl->state = (sl->gen == pf->gen) ? PCFG_PF_READY : PCFG_PF_EMPTY;
 
-    pthread_cond_broadcast (&pf->cv);
+    pcfg_cv_broadcast (&pf->cv);
   }
 
-  pthread_mutex_unlock (&pf->mux);
+  pcfg_mux_unlock (&pf->mux);
 
   hcfree (th);
 
-  return NULL;
+  return pcfg_thread_done;
 }
 
 static void pf_reset (pcfg_pf_t *pf, const u64 pos)
 {
-  pthread_mutex_lock (&pf->mux);
+  pcfg_mux_lock (&pf->mux);
 
   if (pf->held >= 0)
   {
@@ -4323,8 +4161,8 @@ static void pf_reset (pcfg_pf_t *pf, const u64 pos)
   pf->assign = 0;
   pf->take   = 0;
 
-  pthread_cond_broadcast (&pf->cv);
-  pthread_mutex_unlock (&pf->mux);
+  pcfg_cv_broadcast (&pf->cv);
+  pcfg_mux_unlock (&pf->mux);
 }
 
 static bool pcfg_pf_early (void)
@@ -4358,8 +4196,8 @@ static pcfg_pf_t *pf_start (pcfg_global_t *pg, const u32 nworker, const bool amp
   if (pf->slots < nworker + 1)     pf->slots = nworker + 1;
   if (pf->slots > PCFG_PF_SLOTS_MAX) pf->slots = PCFG_PF_SLOTS_MAX;
 
-  pthread_mutex_init (&pf->mux, NULL);
-  pthread_cond_init  (&pf->cv,  NULL);
+  pcfg_mux_init (&pf->mux);
+  pcfg_cv_init  (&pf->cv);
 
   for (u32 i = 0; i < pf->slots; i++)
   {
@@ -4372,21 +4210,21 @@ static pcfg_pf_t *pf_start (pcfg_global_t *pg, const u32 nworker, const bool amp
 
   pf->nworker = nworker;
 
-  for (u32 i = 0; i < nworker; i++) pthread_create (&pf->worker[i], NULL, pf_worker, pf);
+  for (u32 i = 0; i < nworker; i++) pcfg_thread_create (pf->worker[i], pf_worker, pf);
 
   return pf;
 }
 
 static void pf_stop (pcfg_pf_t *pf)
 {
-  pthread_mutex_lock (&pf->mux);
+  pcfg_mux_lock (&pf->mux);
 
   pf->stop = true;
 
-  pthread_cond_broadcast (&pf->cv);
-  pthread_mutex_unlock (&pf->mux);
+  pcfg_cv_broadcast (&pf->cv);
+  pcfg_mux_unlock (&pf->mux);
 
-  for (u32 i = 0; i < pf->nworker; i++) pthread_join (pf->worker[i], NULL);
+  for (u32 i = 0; i < pf->nworker; i++) pcfg_thread_join (pf->worker[i]);
 
   for (u32 i = 0; i < pf->slots; i++)
   {
@@ -4396,8 +4234,8 @@ static void pf_stop (pcfg_pf_t *pf)
     hcfree (pf->slot[i].cell);
   }
 
-  pthread_mutex_destroy (&pf->mux);
-  pthread_cond_destroy  (&pf->cv);
+  pcfg_mux_destroy (&pf->mux);
+  pcfg_cv_destroy  (&pf->cv);
 
   hcfree (pf);
 }
@@ -4406,34 +4244,34 @@ static int pf_next (pcfg_pf_t *pf, u8 *out_buf, const int out_size, pcfg_cell_t 
 {
   if (pf->held < 0)
   {
-    pthread_mutex_lock (&pf->mux);
+    pcfg_mux_lock (&pf->mux);
 
     const u32 si = (u32) (pf->take % pf->slots);
 
     while ((pf->slot[si].state != PCFG_PF_READY) || (pf->slot[si].seq != pf->take))
     {
-      pthread_cond_wait (&pf->cv, &pf->mux);
+      pcfg_cv_wait (&pf->cv, &pf->mux);
     }
 
     pf->held    = (int) si;
     pf->held_at = 0;
 
-    pthread_mutex_unlock (&pf->mux);
+    pcfg_mux_unlock (&pf->mux);
   }
 
   pcfg_pf_slot_t *sl = &pf->slot[pf->held];
 
   if (pf->held_at >= sl->cnt)
   {
-    pthread_mutex_lock (&pf->mux);
+    pcfg_mux_lock (&pf->mux);
 
     sl->state = PCFG_PF_EMPTY;
 
     pf->held = -1;
     pf->take++;
 
-    pthread_cond_broadcast (&pf->cv);
-    pthread_mutex_unlock (&pf->mux);
+    pcfg_cv_broadcast (&pf->cv);
+    pcfg_mux_unlock (&pf->mux);
 
     return pf_next (pf, out_buf, out_size, cell, pos);
   }

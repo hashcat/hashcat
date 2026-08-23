@@ -18530,6 +18530,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         #endif
         + size_pws_pre
         + (size_pws_base * PW_PIPE_SLOTS)
+        + (size_pcfg_cells * PW_PIPE_SLOTS)
+        + (size_pcfg_wmap * PW_PIPE_SLOTS)
         + size_host_extra;
 
       if (size_total_host > accel_limit_host) memory_limit_hit = 1;
@@ -18839,9 +18841,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       pw_batch_t *slot = &device_param->pws_slot[slot_pos];
 
-      slot->pws_comp = (u32 *)      hcmalloc (size_pws_comp);
-      slot->pws_idx  = (pw_idx_t *) hcmalloc (size_pws_idx);
-      slot->pws_base = (pw_pre_t *) hcmalloc (size_pws_base);
+      slot->pws_comp   = (u32 *)         hcmalloc (size_pws_comp);
+      slot->pws_idx    = (pw_idx_t *)    hcmalloc (size_pws_idx);
+      slot->pws_base   = (pw_pre_t *)    hcmalloc (size_pws_base);
       slot->pcfg_cells = (pcfg_cell_t *) hcmalloc (size_pcfg_cells);
       slot->pcfg_wmap  = (u32 *)         hcmalloc (size_pcfg_wmap);
     }
@@ -18882,6 +18884,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * kernel args
      */
 
+    // CUDA, HIP and OpenCL bind an argument by the address of the handle, so a buffer created after
+    // the list was filled in is still the buffer the launch sees. Metal binds the handle itself, so
+    // every Metal buffer created since then has to be written into the list again here. Missing one
+    // does not fail: run_kernel substitutes a one byte scratch buffer for a NULL argument, and the
+    // device engine then built every candidate out of that instead of out of its cells.
+
     if (device_param->is_cuda == true)
     {
       device_param->kernel_params[ 0] = &device_param->cuda_d_pws_buf;
@@ -18902,6 +18910,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[ 0] = device_param->metal_d_pws_buf.buf_ptr;
       device_param->kernel_params[ 4] = device_param->metal_d_tmps.buf_ptr;
       device_param->kernel_params[ 5] = device_param->metal_d_hooks.buf_ptr;
+
+      device_param->kernel_params[25] = device_param->metal_d_pcfg_cells.buf_ptr;
+      device_param->kernel_params[26] = device_param->metal_d_pcfg_pool.buf_ptr;
+      device_param->kernel_params[27] = device_param->metal_d_pcfg_wmap.buf_ptr;
     }
     #endif
 
@@ -19193,6 +19205,8 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     {
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_buf);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_amp_buf);
+      hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pcfg_cells);
+      hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pcfg_pool);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pcfg_wmap);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_comp_buf);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_idx);
@@ -19278,6 +19292,8 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     {
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pws_buf);
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pws_amp_buf);
+      hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pcfg_cells);
+      hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pcfg_pool);
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pcfg_wmap);
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pws_comp_buf);
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pws_idx);
@@ -19361,6 +19377,8 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     {
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pws_buf);
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pws_amp_buf);
+      hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pcfg_cells);
+      hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pcfg_pool);
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pcfg_wmap);
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pws_comp_buf);
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pws_idx);
@@ -19441,6 +19459,8 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
     {
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pws_buf);
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pws_amp_buf);
+      hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pcfg_cells);
+      hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pcfg_pool);
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pcfg_wmap);
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pws_comp_buf);
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pws_idx);

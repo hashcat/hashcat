@@ -800,7 +800,7 @@ static void feed_optv_common (feed_optv_t *o, const hc_device_param_t *device_pa
 // third is that cpath_real is a POSIX path on a Cygwin or MSYS build while the compiler underneath
 // is native and cannot open one.
 
-static void feed_optv_include_path (feed_optv_t *o, const folder_config_t *folder_config, MAYBE_UNUSED const hc_device_param_t *device_param, const bool quote)
+static void feed_optv_include_path (feed_optv_t *o, const folder_config_t *folder_config, MAYBE_UNUSED const hc_device_param_t *device_param, MAYBE_UNUSED const bool quote)
 {
   #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
 

@@ -76,6 +76,9 @@ typedef enum metalBufferStorageModeId
   metal_d_st_salts_buf_storageMode,
   metal_d_st_esalts_buf_storageMode,
   metal_d_kernel_param_storageMode,
+  metal_d_pcfg_cells_storageMode,
+  metal_d_pcfg_pool_storageMode,
+  metal_d_pcfg_wmap_storageMode,
   //
   metal_private_storageMode,
   metal_shared_storageMode,
@@ -123,6 +126,9 @@ static const metalResourceStorageMode_t metalResourceStorageModes[MTL_BUFFER_CNT
   [metal_d_st_salts_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
   [metal_d_st_esalts_buf_storageMode] = MTL_STORAGE_MODE_SHARED,
   [metal_d_kernel_param_storageMode] = MTL_STORAGE_MODE_SHARED,
+  [metal_d_pcfg_cells_storageMode] = MTL_STORAGE_MODE_SHARED,
+  [metal_d_pcfg_pool_storageMode] = MTL_STORAGE_MODE_SHARED,
+  [metal_d_pcfg_wmap_storageMode] = MTL_STORAGE_MODE_SHARED,
   //
   [metal_private_storageMode] = MTL_STORAGE_MODE_PRIVATE,
   [metal_shared_storageMode] = MTL_STORAGE_MODE_SHARED,
