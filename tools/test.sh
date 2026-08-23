@@ -52,15 +52,16 @@ PKZIP_GEN_MODES="17200 17210 17220 17225 17230"
 RAR_GEN_MODES="12500 13000 23700 23800"
 
 
-# Modes that only -g can reach, kept in HASH_TYPES so that a run which cannot
-# test them says so rather than passing over them in silence.
+# Modes with no test.pl oracle whose ground truth is the module's own self-test
+# vector, read out of hashcat with --hash-info. Every module ships an ST_HASH
+# and ST_PASS pair, a real hash of a real password, so a mode that cannot have
+# a .pm still gets a genuine end to end crack in every run with nothing checked
+# in. See selftest_vector_test(), and -S to run this over every mode.
 #
-# 23800 (RAR3-p, compressed) is the only one: it cannot have a test.pl oracle,
-# because module_23800 includes the unRAR engine and calls hc_decompress_rar(),
-# so a .pm would have to emit a RAR compressed bitstream that only the
-# proprietary compressor can produce. Without -g there is nothing to run, and
-# the run records a skip saying exactly that.
-GEN_ONLY_MODES="23800"
+# 23800 (RAR3-p, compressed) is the case that needs it: an oracle would have to
+# reproduce RAR's compressor, since module_23800 includes the unRAR engine and
+# calls hc_decompress_rar(). Before this it could only be reached with -g.
+SELFTEST_MODES="23800"
 
 # Every mode -g can build a container for, which is the whole of what -g means.
 # On its own -g runs exactly these, and -g together with a -m that selects none
@@ -83,7 +84,7 @@ CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 1454
 # instead of in place of it, so the dispatch has to know which modes still have
 # an oracle left to run.
 PM_MODES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/' | tr '\n' ' ')
-HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${GEN_ONLY_MODES}"
+HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${SELFTEST_MODES}"
 HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
 # Two widths, because -V all multiplies the whole run by however many are listed and five of them
@@ -4615,7 +4616,8 @@ function rar_test()
   # known password, the ground-truth complement to the RAR test.pl oracles.
   #
   # 23800 has no oracle to complement, since a .pm would have to reproduce RAR's
-  # compressor, so this is its only coverage and it needs -g.
+  # compressor. Without -g it is covered by selftest_vector_test() instead, so
+  # this is the stronger check on top rather than its only coverage.
   #
   #   12500 RAR3-hp   -> rar a -ma4 -hp<pw>       -> $RAR3$*0*  (header-encrypted)
   #   23700 RAR3-p    -> rar a -ma4 -m0 -p<pw>    -> $RAR3$*1*  (stored)
@@ -4724,6 +4726,188 @@ function rar_test()
   fi
 }
 
+function selftest_vector_read()
+{
+  # Read a mode's self-test vector out of hashcat itself into the globals
+  # ST_VECTOR_HASH, ST_VECTOR_PASS, ST_VECTOR_FORMAT and ST_VECTOR_DEPRECATED.
+  #
+  # Every module ships an ST_HASH and ST_PASS pair for the startup self test,
+  # and --hash-info publishes it. --machine-readable is the one that can be
+  # trusted here: the human-readable Example.Hash line is truncated past 200
+  # characters, which most container and archive hashes exceed.
+  #
+  # The JSON has a fixed key order, so anchoring each value on the key that
+  # follows it keeps the match correct for hashes that contain almost anything,
+  # including the '*' and ':' separators most of them use.
+  #
+  # $1 = hashType. Returns non-zero when the mode has no usable vector.
+  local sv_hashType="$1"
+  local info
+
+  ST_VECTOR_HASH=""
+  ST_VECTOR_PASS=""
+  ST_VECTOR_FORMAT=""
+  ST_VECTOR_DEPRECATED=0
+
+  info=$(./${BIN} -m "${sv_hashType}" --hash-info --machine-readable 2>/dev/null)
+
+  if [ -z "${info}" ]; then
+    return 1
+  fi
+
+  ST_VECTOR_HASH=$(printf '%s' "${info}"   | sed -n 's/.*"example_hash": "\(.*\)", "example_pass".*/\1/p')
+  ST_VECTOR_PASS=$(printf '%s' "${info}"   | sed -n 's/.*"example_pass": "\(.*\)", "benchmark_mask".*/\1/p')
+  ST_VECTOR_FORMAT=$(printf '%s' "${info}" | sed -n 's/.*"example_hash_format": "\([^"]*\)".*/\1/p')
+
+  # json_encode() escapes backslashes and double quotes, so undo that
+  ST_VECTOR_HASH=$(printf '%s' "${ST_VECTOR_HASH}" | sed -e 's/\\"/"/g' -e 's/\\\\/\\/g')
+
+  if printf '%s' "${info}" | grep -q '"is_deprecated": true'; then
+    ST_VECTOR_DEPRECATED=1
+  fi
+
+  if [ -z "${ST_VECTOR_HASH}" ] || [ -z "${ST_VECTOR_PASS}" ]; then
+    return 1
+  fi
+
+  return 0
+}
+
+function selftest_vector_test()
+{
+  # Crack a mode's own self-test vector. No oracle and nothing checked in: the
+  # hash and the password both come out of the binary under test, and the crack
+  # is a normal run through the normal kernels, so this is an end to end test
+  # rather than the parser check the startup self test performs.
+  #
+  # $1 = hashType, $2 = attackType
+  hashType=$1
+  attackType=$2
+
+  # one vector and one candidate, so attack mode 0 covers it
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  if ! selftest_vector_read "${hashType}"; then
+    record_skip "${hashType}" "no self-test vector published by --hash-info"
+    return
+  fi
+
+  local hashFile="${OUTD}/${hashType}_selftest.hash"
+
+  case "${ST_VECTOR_FORMAT}" in
+    *"binary file only"*)
+      # the module reads its hash file as raw bytes, and --hash-info hands the
+      # vector over hex encoded. printf '%b' keeps this to shell builtins, so
+      # no xxd or od dependency creeps into the default test path.
+      printf '%b' "$(printf '%s' "${ST_VECTOR_HASH}" | sed 's/\(..\)/\\x\1/g')" > "${hashFile}"
+      ;;
+    "N/A")
+      record_skip "${hashType}" "mode has no example hash to crack"
+      return
+      ;;
+    *)
+      # "plain" and "hex-encoded" are both already the literal hash line: the
+      # format names the convention the line itself uses, not the encoding
+      # --hash-info applied to it
+      printf '%s\n' "${ST_VECTOR_HASH}" > "${hashFile}"
+      ;;
+  esac
+
+  if [ ! -s "${hashFile}" ]; then
+    record_error "${hashType}" "could not write the self-test vector to ${hashFile}"
+    return
+  fi
+
+  build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${ST_VECTOR_PASS}"
+
+  if [ -z "${CONTAINER_CMD}" ]; then
+    return
+  fi
+
+  if [ "${ST_VECTOR_DEPRECATED}" -eq 1 ]; then
+    CONTAINER_CMD="${CONTAINER_CMD} --deprecated-check-disable"
+  fi
+
+  # the startup self test would re-derive the same vector on every launch, so
+  # skip it and let the run itself be the test
+  CONTAINER_CMD="${CONTAINER_CMD} --self-test-disable"
+
+  container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "self-test vector"
+}
+
+function selftest_vector_sweep()
+{
+  # -S: run selftest_vector_test() over every hash-mode hashcat knows, or over
+  # the range -m selected, and print one line per mode that did not crack its
+  # own example hash. This is the cheapest possible coverage check: it needs no
+  # oracle, no container, and no external tool, so it reaches the modes the
+  # rest of the suite cannot.
+  local sweep_total=0
+  local sweep_ok=0
+  local sweep_bad=""
+  local sweep_slow=""
+  local sweep_modes
+  local sweep_mode
+
+  sweep_modes=$(./${BIN} --hash-info 2>/dev/null | sed -n 's/^Hash mode #\([0-9]*\)$/\1/p')
+
+  if [ -z "${sweep_modes}" ]; then
+    echo "! could not read the hash-mode list from ./${BIN} --hash-info"
+    return 1
+  fi
+
+  echo "[ ${OUTD} ] > Cracking every hash-mode's own self-test vector"
+
+  for sweep_mode in ${sweep_modes}; do
+
+    if [ "${HT}" -ne 65535 ]; then
+      if [ "${sweep_mode}" -lt "${HT_MIN}" ] || [ "${sweep_mode}" -gt "${HT_MAX}" ]; then
+        continue
+      fi
+    fi
+
+    sweep_total=$((sweep_total + 1))
+
+    local before="${SKIPPED_LIST}"
+    local out
+
+    out=$(selftest_vector_test "${sweep_mode}" 0)
+
+    echo "${out}"
+
+    if echo "${out}" | grep -q '> OK :'; then
+      sweep_ok=$((sweep_ok + 1))
+    elif echo "${out}" | grep -q '> Warning :'; then
+      # hit --runtime before it could finish, which says nothing about the mode
+      sweep_slow="${sweep_slow}${sweep_mode} "
+    elif [ "${SKIPPED_LIST}" = "${before}" ]; then
+      sweep_bad="${sweep_bad}${sweep_mode} "
+    fi
+
+  done
+
+  echo ""
+  echo "[ ${OUTD} ] > ${sweep_ok}/${sweep_total} hash-modes cracked their own self-test vector"
+
+  if [ -n "${sweep_slow}" ]; then
+    echo "[ ${OUTD} ] > hit --runtime ${RUNTIME}, rerun those with -r: ${sweep_slow}"
+  fi
+
+  if [ -n "${sweep_bad}" ]; then
+    echo "[ ${OUTD} ] > did not crack: ${sweep_bad}"
+  fi
+
+  print_skip_summary
+
+  if [ -n "${sweep_bad}" ]; then
+    return 1
+  fi
+
+  return 0
+}
+
 function usage()
 {
 cat << EOF
@@ -4803,6 +4987,14 @@ OPTIONS:
         and what is skipped without it. Note that the 2john tools come from
         John jumbo, not from the john package, and that gpg1 is gnupg1.
 
+  -S    Crack every hash-mode's own self-test vector and report which modes
+        cannot. The hash and the password both come from --hash-info, so this
+        needs no oracle, no container and no external tool, and reaches modes
+        the rest of the suite cannot. Runs on its own instead of the normal
+        suite; -m limits it to one mode or a range. Each run is one candidate
+        against one hash, so -r defaults to 60 here rather than 400; modes that
+        hit it are reported separately from modes that failed.
+
   -h    Show this help
 
 EOF
@@ -4822,8 +5014,11 @@ HT_GIVEN=0
 PACKAGE=0
 OPTIMIZED=1
 GENERATE_CONTAINERS=0
+SELFTEST_ALL=0
+RUNTIME_SET=0
+HT_SET=0
 
-while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
+while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gS" opt; do
 
   case ${opt} in
     "V")
@@ -4864,6 +5059,7 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
       else
         HT=${OPTARG}
       fi
+      HT_SET=1
       ;;
 
     "a")
@@ -4961,6 +5157,11 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
 
     "r")
       RUNTIME=${OPTARG}
+      RUNTIME_SET=1
+      ;;
+
+    "S")
+      SELFTEST_ALL=1
       ;;
 
     "g")
@@ -5027,6 +5228,15 @@ if [ "${OPTIMIZED}" -eq 1 ]; then
 fi
 
 # set max-runtime
+#
+# -S runs every hash-mode in one go, and each run is a single candidate against
+# a single hash, so the normal ceiling only ever applies to a mode that is not
+# going to finish anyway. Cap it much lower by default and report anything that
+# hits the cap as a timeout rather than a failure. -r still wins.
+
+if [ "${SELFTEST_ALL}" -eq 1 ] && [ "${RUNTIME_SET}" -eq 0 ]; then
+  RUNTIME=60
+fi
 
 OPTS="${OPTS} --runtime ${RUNTIME}"
 
@@ -5089,6 +5299,25 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   fi
 
   HT=${HT_MIN}
+
+  # -S runs on its own: it walks every hash-mode hashcat reports rather than
+  # HASH_TYPES, since the whole point is to reach the modes that have no oracle
+  # and no container, so it has to come before the HASH_TYPES filter below.
+  if [ "${SELFTEST_ALL}" -eq 1 ]; then
+    mkdir -p "${OUTD}"
+
+    # -m defaults to 0, which would quietly sweep exactly one mode
+    if [ "${HT_SET}" -eq 0 ]; then
+      HT=65535
+    fi
+
+    selftest_vector_sweep
+    selftest_rc=$?
+
+    echo "[ ${OUTD} ] > full log: ${OUTD}/logfull.txt"
+
+    exit ${selftest_rc}
+  fi
 
   # filter by hash_type
   if [ "${HT}" -ne 65535 ]; then
@@ -5412,10 +5641,9 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
                 rar_test "${hash_type}" ${ATTACK}
               fi
 
-              # a mode only -g can reach has nothing to run without it, and a
-              # mode that quietly does nothing looks exactly like one that passed
-              if is_in_array "${hash_type}" ${GEN_ONLY_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]]; then
-                record_skip "${hash_type}" "no test.pl oracle, needs -g to build a real archive"
+              # the module's own self-test vector, in every run
+              if is_in_array "${hash_type}" ${SELFTEST_MODES}; then
+                selftest_vector_test "${hash_type}" ${ATTACK}
               fi
 
               if is_in_array "${hash_type}" ${PM_MODES}; then
