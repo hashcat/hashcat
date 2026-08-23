@@ -184,6 +184,18 @@ using namespace metal;
 #define HC_NOINLINE
 #endif
 
+/**
+ * HC_NOINLINE_ALWAYS is the same hard noinline attribute, but always on, and it is not the switch
+ * above. FORCE_NO_INLINE is global and opt-in: the user turns it on for a whole run when a runtime
+ * is too slow to build anything. HC_NOINLINE_ALWAYS is a property of one function, it travels with
+ * that function's definition, and it is for the few helpers that are so large that inlining them
+ * cannot pay off anywhere: the caller gets a copy of thousands of instructions to save one call.
+ *
+ * Use it sparingly, and only where the body is big enough that the call is free by comparison.
+ */
+
+#define HC_NOINLINE_ALWAYS __attribute__ ((noinline))
+
 // On a device DECLSPEC says how a function is compiled. On the host it says something else, because
 // the host build of these files is compiled into the core and a plugin calls the result: every one
 // of these functions is a host side hash, cipher or helper entry point, so DECLSPEC is where they

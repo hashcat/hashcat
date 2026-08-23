@@ -498,7 +498,25 @@ DECLSPEC void zlib_memcpy_g (PRIVATE_AS void *dest, MAYBE_GLOBAL const void *src
   }
 }
 
-DECLSPEC tinfl_status tinfl_decompress (PRIVATE_AS tinfl_decompressor *r, MAYBE_GLOBAL const mz_uint8 *pIn_buf_next, PRIVATE_AS size_t *pIn_buf_size, PRIVATE_AS mz_uint8 *pOut_buf_start, PRIVATE_AS mz_uint8 *pOut_buf_next, PRIVATE_AS size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
+// tinfl_decompress() stays out of line, everywhere, on purpose.
+//
+// This is miniz's decompressor written as one coroutine: a single function that holds the whole
+// inflate state machine, a few hundred basic blocks of it. Inlining it saves one call and costs the
+// caller a copy of all of that, so there is no device on which it is a win.
+//
+// It is also what makes the three PKZIP modes that decompress fail to build at all on PoCL. Once
+// DECLSPEC gained its `static`, the helpers became internal and the runtime is free to inline them,
+// so hc_inflate() -> mz_inflate() -> tinfl_decompress() collapses into the kernel body. Building
+// that kernel sends a PoCL function pass into a recursion that does not terminate: hashcat dies
+// with SIGSEGV inside clGetProgramInfo(), before a single candidate is hashed. The stack is not
+// simply too small: raising the limit 16x only makes the recursion 16x deeper, from 14,119 frames
+// at 8 MB to 226,668 at 128 MB. Measured on PoCL 5.0 with LLVM 16.
+//
+// Keeping this one function out of line is enough for all three to build and crack again. 17210 and
+// 17230 never touch inflate and were never affected, and 21800 inflates from a slow hash's _comp
+// kernel, which is small to begin with.
+
+DECLSPEC HC_NOINLINE_ALWAYS tinfl_status tinfl_decompress (PRIVATE_AS tinfl_decompressor *r, MAYBE_GLOBAL const mz_uint8 *pIn_buf_next, PRIVATE_AS size_t *pIn_buf_size, PRIVATE_AS mz_uint8 *pOut_buf_start, PRIVATE_AS mz_uint8 *pOut_buf_next, PRIVATE_AS size_t *pOut_buf_size, const mz_uint32 decomp_flags, mz_streamp pStream)
 {
 
     const int s_length_base[31] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
