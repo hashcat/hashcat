@@ -47,7 +47,7 @@
 #include "restore.h"
 #include "selftest.h"
 #include "status.h"
-#include "generic.h"
+#include "feed_ctx.h"
 #include "straight.h"
 #include "tuningdb.h"
 #include "user_options.h"
@@ -254,6 +254,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
    * Update attack-mode specific stuff based on mask
    */
 
+  // Cleared per round, because a producer states it per round and the value from the round before it
+  // must not be read as this round's.
+
+  status_ctx->words_base_given = 0;
+
   if (mask_ctx_update_loop (hashcat_ctx) == -1) return 0;
 
   /**
@@ -266,7 +271,10 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   const u64 amplifier_cnt = user_options_extra_amplifier (hashcat_ctx);
 
-  status_ctx->words_base = status_ctx->words_cnt / amplifier_cnt;
+  // The division is exact only while words_cnt is, so a producer that knows its base is believed over
+  // it. A mask states nothing and is recovered by division exactly as before.
+
+  status_ctx->words_base = (status_ctx->words_base_given > 0) ? status_ctx->words_base_given : (status_ctx->words_cnt / amplifier_cnt);
 
   // Where this round sits in the queue, and how much longer the queue is now. A mask that was skipped
   // for being too short or too long returned above and adds nothing, which is right: it is not part

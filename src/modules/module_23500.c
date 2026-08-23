@@ -188,6 +188,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (iter_kdf <       1) return (PARSER_SALT_ITERATION);
   if (iter_kdf > 9999999) return (PARSER_SALT_ITERATION);
 
+  if (iter_kdf < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = iter_kdf - 1;
 
   // salt KDF

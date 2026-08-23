@@ -80,6 +80,9 @@ typedef enum openclBufferMemoryFlagsId
   opencl_d_st_salts_buf_memoryFlags,
   opencl_d_st_esalts_buf_memoryFlags,
   opencl_d_kernel_param_memoryFlags,
+  opencl_d_pcfg_cells_memoryFlags,
+  opencl_d_pcfg_pool_memoryFlags,
+  opencl_d_pcfg_wmap_memoryFlags,
   OCL_BUFFER_CNT
 
 } openclBufferMemoryFlagsId_t;
@@ -122,7 +125,10 @@ static const cl_mem_flags openclMemoryFlags[OCL_BUFFER_CNT] =
   [opencl_d_st_digests_buf_memoryFlags] = CL_MEM_READ_ONLY,
   [opencl_d_st_salts_buf_memoryFlags] = CL_MEM_READ_ONLY,
   [opencl_d_st_esalts_buf_memoryFlags] = CL_MEM_READ_ONLY,
-  [opencl_d_kernel_param_memoryFlags] = CL_MEM_READ_ONLY
+  [opencl_d_kernel_param_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_cells_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_pool_memoryFlags] = CL_MEM_READ_ONLY,
+  [opencl_d_pcfg_wmap_memoryFlags] = CL_MEM_READ_ONLY
 };
 
 #define HC_OCL_CREATEBUFFER(ctx, size, ptr, buf_name)                                     \

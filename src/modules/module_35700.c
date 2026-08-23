@@ -204,11 +204,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u8 *iter_pos = token.buf[1];
 
-  u32 salt_iter = 1u << itoa64_to_int (iter_pos[0]);
+  const u32 iter = itoa64_to_int (iter_pos[0]);
 
-  if (salt_iter > 0x80000000) return (PARSER_SALT_ITERATION);
+  if (iter > 31) return (PARSER_SALT_ITERATION);
 
-  salt->salt_iter = salt_iter;
+  salt->salt_iter = 1u << iter;
 
   const u8 *salt_pos = token.buf[2];
   const int salt_len = token.len[2];

@@ -8,6 +8,7 @@
 #include "shared.h"
 #include "wordlist.h"
 #include "pwpipe.h"
+#include "feed_ctx.h"
 
 // The producer. It owns one slot at a time and never touches the one being launched, so the only
 // thing the two sides share is the pair of counting semaphores.
@@ -22,6 +23,20 @@ static HC_API_CALL void *pw_pipe_thread (void *p)
 
   status_ctx_t *status_ctx = pipe->hashcat_ctx->status_ctx;
 
+  // The device this producer is filling for is made current here, once, for the same reason
+  // thread_calc () does it at src/dispatch.c:1123: a feed's thread_next () runs on this thread and
+  // may want to talk to that device. Once for the thread rather than once per call, because fill ()
+  // asks a feed for one candidate at a time and a driver call per candidate would be a real cost on
+  // a path that is already the limit.
+  //
+  // The serial arrangement has no thread of its own: fill () is called from pw_pipe_take () on the
+  // caller's thread, which is thread_calc (), which has already made the same device current. So
+  // there is nothing to do there and nothing here to do it in.
+
+  const bool bound = feed_device_bind (pipe->hashcat_ctx, pipe->device_param);
+
+  if (bound == false) pipe->failed = true;
+
   while (true)
   {
     hc_thread_sem_wait (pipe->sem_free);
@@ -34,7 +49,7 @@ static HC_API_CALL void *pw_pipe_thread (void *p)
 
     bool last = false;
 
-    if (status_ctx->run_thread_level1 == false)
+    if ((status_ctx->run_thread_level1 == false) || (pipe->failed == true))
     {
       last = true;
     }
@@ -61,6 +76,8 @@ static HC_API_CALL void *pw_pipe_thread (void *p)
 
     if (last == true) break;
   }
+
+  if (bound == true) feed_device_unbind (pipe->hashcat_ctx, pipe->device_param);
 
   return 0;
 }

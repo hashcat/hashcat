@@ -123,7 +123,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    */
 
   // assume no signature found
-  if (line_len < 12) return (PARSER_SALT_LENGTH);
+  // the strchr() below starts at offset 13, so admitting a 12-byte line lets it
+  // start one past the terminator
+  if (line_len < 13) return (PARSER_SALT_LENGTH);
 
   const char *spn_info_start  = strchr (line_buf + 12 + 1, '*');
 
@@ -232,7 +234,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // domain must be uppercase
 
-  u8 domain[128];
+  u8 domain[512];
 
   memcpy (domain, domain_pos, domain_len);
   uppercase (domain, domain_len);
@@ -280,7 +282,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const krb5tgs_18_t *krb5tgs = (const krb5tgs_18_t *) esalt_buf;
 
-  char *data = (char *) hcmalloc (5120 * 4 * 2);
+  char *data = (char *) hcmalloc (5120 * 4 * 2 + 1);
 
   for (u32 i = 0, j = 0; i < krb5tgs->edata2_len; i += 1, j += 2)
   {

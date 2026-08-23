@@ -200,6 +200,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   int iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
 
+  if (iter < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = iter - 1;
 
   // salt buffer

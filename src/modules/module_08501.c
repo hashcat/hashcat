@@ -136,7 +136,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   token.len_max[1] = 8;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH;
 
-  token.len_min[2] = 2;
+  // the digest is one DES block and is read below as exactly 16 hex
+  // characters, so anything shorter sends that read off the end of the line
+  token.len_min[2] = 16;
   token.len_max[2] = 16;
   token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;

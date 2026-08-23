@@ -569,14 +569,14 @@ CONSTANT_VK u64a MT7[256] =
   const u8 Lp6 = v8b_from_v64_S ((v6));   \
   const u8 Lp7 = v8a_from_v64_S ((v7));   \
                                           \
-  const u64 X0 = BOX64_S (s_MT0, Lp0);  \
-  const u64 X1 = BOX64_S (s_MT1, Lp1);  \
-  const u64 X2 = BOX64_S (s_MT2, Lp2);  \
-  const u64 X3 = BOX64_S (s_MT3, Lp3);  \
-  const u64 X4 = BOX64_S (s_MT4, Lp4);  \
-  const u64 X5 = BOX64_S (s_MT5, Lp5);  \
-  const u64 X6 = BOX64_S (s_MT6, Lp6);  \
-  const u64 X7 = BOX64_S (s_MT7, Lp7);  \
+  const u64 X0 = BOX64_S (s_MT0, Lp0);    \
+  const u64 X1 = BOX64_S (s_MT1, Lp1);    \
+  const u64 X2 = BOX64_S (s_MT2, Lp2);    \
+  const u64 X3 = BOX64_S (s_MT3, Lp3);    \
+  const u64 X4 = BOX64_S (s_MT4, Lp4);    \
+  const u64 X5 = BOX64_S (s_MT5, Lp5);    \
+  const u64 X6 = BOX64_S (s_MT6, Lp6);    \
+  const u64 X7 = BOX64_S (s_MT7, Lp7);    \
                                           \
   (l) = X0                                \
       ^ X1                                \
@@ -599,14 +599,14 @@ CONSTANT_VK u64a MT7[256] =
   u64 L6;                                         \
   u64 L7;                                         \
                                                   \
-  F1 (L0, K0, K7, K6, K5, K4, K3, K2, K1);  \
-  F1 (L1, K1, K0, K7, K6, K5, K4, K3, K2);  \
-  F1 (L2, K2, K1, K0, K7, K6, K5, K4, K3);  \
-  F1 (L3, K3, K2, K1, K0, K7, K6, K5, K4);  \
-  F1 (L4, K4, K3, K2, K1, K0, K7, K6, K5);  \
-  F1 (L5, K5, K4, K3, K2, K1, K0, K7, K6);  \
-  F1 (L6, K6, K5, K4, K3, K2, K1, K0, K7);  \
-  F1 (L7, K7, K6, K5, K4, K3, K2, K1, K0);  \
+  F1 (L0, K0, K7, K6, K5, K4, K3, K2, K1);        \
+  F1 (L1, K1, K0, K7, K6, K5, K4, K3, K2);        \
+  F1 (L2, K2, K1, K0, K7, K6, K5, K4, K3);        \
+  F1 (L3, K3, K2, K1, K0, K7, K6, K5, K4);        \
+  F1 (L4, K4, K3, K2, K1, K0, K7, K6, K5);        \
+  F1 (L5, K5, K4, K3, K2, K1, K0, K7, K6);        \
+  F1 (L6, K6, K5, K4, K3, K2, K1, K0, K7);        \
+  F1 (L7, K7, K6, K5, K4, K3, K2, K1, K0);        \
                                                   \
   K0 = L0 ^ (rc);                                 \
   K1 = L1;                                        \
@@ -617,14 +617,14 @@ CONSTANT_VK u64a MT7[256] =
   K6 = L6;                                        \
   K7 = L7;                                        \
                                                   \
-  F1 (L0, S0, S7, S6, S5, S4, S3, S2, S1);  \
-  F1 (L1, S1, S0, S7, S6, S5, S4, S3, S2);  \
-  F1 (L2, S2, S1, S0, S7, S6, S5, S4, S3);  \
-  F1 (L3, S3, S2, S1, S0, S7, S6, S5, S4);  \
-  F1 (L4, S4, S3, S2, S1, S0, S7, S6, S5);  \
-  F1 (L5, S5, S4, S3, S2, S1, S0, S7, S6);  \
-  F1 (L6, S6, S5, S4, S3, S2, S1, S0, S7);  \
-  F1 (L7, S7, S6, S5, S4, S3, S2, S1, S0);  \
+  F1 (L0, S0, S7, S6, S5, S4, S3, S2, S1);        \
+  F1 (L1, S1, S0, S7, S6, S5, S4, S3, S2);        \
+  F1 (L2, S2, S1, S0, S7, S6, S5, S4, S3);        \
+  F1 (L3, S3, S2, S1, S0, S7, S6, S5, S4);        \
+  F1 (L4, S4, S3, S2, S1, S0, S7, S6, S5);        \
+  F1 (L5, S5, S4, S3, S2, S1, S0, S7, S6);        \
+  F1 (L6, S6, S5, S4, S3, S2, S1, S0, S7);        \
+  F1 (L7, S7, S6, S5, S4, S3, S2, S1, S0);        \
                                                   \
   S0 = L0 ^ K0;                                   \
   S1 = L1 ^ K1;                                   \
@@ -1952,14 +1952,14 @@ DECLSPEC void whirlpool_hmac_final (PRIVATE_AS whirlpool_hmac_ctx_t *ctx)
   const u8x Lp6 = v8b_from_v64 ((v6));    \
   const u8x Lp7 = v8a_from_v64 ((v7));    \
                                           \
-  const u64x X0 = BOX64 (s_MT0, Lp0);    \
-  const u64x X1 = BOX64 (s_MT1, Lp1);    \
-  const u64x X2 = BOX64 (s_MT2, Lp2);    \
-  const u64x X3 = BOX64 (s_MT3, Lp3);    \
-  const u64x X4 = BOX64 (s_MT4, Lp4);    \
-  const u64x X5 = BOX64 (s_MT5, Lp5);    \
-  const u64x X6 = BOX64 (s_MT6, Lp6);    \
-  const u64x X7 = BOX64 (s_MT7, Lp7);    \
+  const u64x X0 = BOX64 (s_MT0, Lp0);     \
+  const u64x X1 = BOX64 (s_MT1, Lp1);     \
+  const u64x X2 = BOX64 (s_MT2, Lp2);     \
+  const u64x X3 = BOX64 (s_MT3, Lp3);     \
+  const u64x X4 = BOX64 (s_MT4, Lp4);     \
+  const u64x X5 = BOX64 (s_MT5, Lp5);     \
+  const u64x X6 = BOX64 (s_MT6, Lp6);     \
+  const u64x X7 = BOX64 (s_MT7, Lp7);     \
                                           \
   (l) = X0                                \
       ^ X1                                \
@@ -1982,14 +1982,14 @@ DECLSPEC void whirlpool_hmac_final (PRIVATE_AS whirlpool_hmac_ctx_t *ctx)
   u64x L6;                                        \
   u64x L7;                                        \
                                                   \
-  F1x (L0, K0, K7, K6, K5, K4, K3, K2, K1); \
-  F1x (L1, K1, K0, K7, K6, K5, K4, K3, K2); \
-  F1x (L2, K2, K1, K0, K7, K6, K5, K4, K3); \
-  F1x (L3, K3, K2, K1, K0, K7, K6, K5, K4); \
-  F1x (L4, K4, K3, K2, K1, K0, K7, K6, K5); \
-  F1x (L5, K5, K4, K3, K2, K1, K0, K7, K6); \
-  F1x (L6, K6, K5, K4, K3, K2, K1, K0, K7); \
-  F1x (L7, K7, K6, K5, K4, K3, K2, K1, K0); \
+  F1x (L0, K0, K7, K6, K5, K4, K3, K2, K1);       \
+  F1x (L1, K1, K0, K7, K6, K5, K4, K3, K2);       \
+  F1x (L2, K2, K1, K0, K7, K6, K5, K4, K3);       \
+  F1x (L3, K3, K2, K1, K0, K7, K6, K5, K4);       \
+  F1x (L4, K4, K3, K2, K1, K0, K7, K6, K5);       \
+  F1x (L5, K5, K4, K3, K2, K1, K0, K7, K6);       \
+  F1x (L6, K6, K5, K4, K3, K2, K1, K0, K7);       \
+  F1x (L7, K7, K6, K5, K4, K3, K2, K1, K0);       \
                                                   \
   K0 = L0 ^ (rc);                                 \
   K1 = L1;                                        \
@@ -2000,14 +2000,14 @@ DECLSPEC void whirlpool_hmac_final (PRIVATE_AS whirlpool_hmac_ctx_t *ctx)
   K6 = L6;                                        \
   K7 = L7;                                        \
                                                   \
-  F1x (L0, S0, S7, S6, S5, S4, S3, S2, S1); \
-  F1x (L1, S1, S0, S7, S6, S5, S4, S3, S2); \
-  F1x (L2, S2, S1, S0, S7, S6, S5, S4, S3); \
-  F1x (L3, S3, S2, S1, S0, S7, S6, S5, S4); \
-  F1x (L4, S4, S3, S2, S1, S0, S7, S6, S5); \
-  F1x (L5, S5, S4, S3, S2, S1, S0, S7, S6); \
-  F1x (L6, S6, S5, S4, S3, S2, S1, S0, S7); \
-  F1x (L7, S7, S6, S5, S4, S3, S2, S1, S0); \
+  F1x (L0, S0, S7, S6, S5, S4, S3, S2, S1);       \
+  F1x (L1, S1, S0, S7, S6, S5, S4, S3, S2);       \
+  F1x (L2, S2, S1, S0, S7, S6, S5, S4, S3);       \
+  F1x (L3, S3, S2, S1, S0, S7, S6, S5, S4);       \
+  F1x (L4, S4, S3, S2, S1, S0, S7, S6, S5);       \
+  F1x (L5, S5, S4, S3, S2, S1, S0, S7, S6);       \
+  F1x (L6, S6, S5, S4, S3, S2, S1, S0, S7);       \
+  F1x (L7, S7, S6, S5, S4, S3, S2, S1, S0);       \
                                                   \
   S0 = L0 ^ K0;                                   \
   S1 = L1 ^ K1;                                   \

@@ -17,6 +17,7 @@ int _wopen (const char *path, int oflag, ...);
 
 HC_PLUGIN_API bool   hc_fopen     (HCFILE *fp, const char *path, const char *mode);
 HC_PLUGIN_API bool   hc_fopen_raw (HCFILE *fp, const char *path, const char *mode);
+HC_PLUGIN_API bool   hc_fopen_mem (HCFILE *fp, const u8 *buf, const size_t len);
 HC_PLUGIN_API int    hc_fscanf    (HCFILE *fp, const char *format, void *ptr);
 HC_PLUGIN_API int    hc_fprintf   (HCFILE *fp, const char *format, ...);
 HC_PLUGIN_API int    hc_vfprintf  (HCFILE *fp, const char *format, va_list ap);

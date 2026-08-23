@@ -25,7 +25,7 @@
 
 /* 15 terms */
 
-#define sb0(a,b,c,d,e,f,g,h)    \
+#define sb0(a,b,c,d,e,f,g,h) \
     t1 = a ^ d;     \
     t2 = a & d;     \
     t3 = c ^ t1;    \
@@ -44,7 +44,7 @@
 
 /* 15 terms */
 
-#define ib0(a,b,c,d,e,f,g,h)    \
+#define ib0(a,b,c,d,e,f,g,h) \
     t1 = ~a;        \
     t2 = a ^ b;     \
     t3 = t1 | t2;   \
@@ -63,7 +63,7 @@
 
 /* 14 terms!  */
 
-#define sb1(a,b,c,d,e,f,g,h)    \
+#define sb1(a,b,c,d,e,f,g,h) \
     t1 = ~a;        \
     t2 = b ^ t1;    \
     t3 = a | t2;    \
@@ -81,7 +81,7 @@
 
 /* 17 terms */
 
-#define ib1(a,b,c,d,e,f,g,h)    \
+#define ib1(a,b,c,d,e,f,g,h) \
     t1 = a ^ d;     \
     t2 = a & b;     \
     t3 = b ^ c;     \
@@ -102,7 +102,7 @@
 
 /* 16 terms */
 
-#define sb2(a,b,c,d,e,f,g,h)    \
+#define sb2(a,b,c,d,e,f,g,h) \
     t1 = ~a;        \
     t2 = b ^ d;     \
     t3 = c & t1;    \
@@ -122,7 +122,7 @@
 
 /* 16 terms */
 
-#define ib2(a,b,c,d,e,f,g,h)    \
+#define ib2(a,b,c,d,e,f,g,h) \
     t1 = b ^ d;     \
     t2 = ~t1;       \
     t3 = a ^ c;     \
@@ -142,7 +142,7 @@
 
 /* 17 terms */
 
-#define sb3(a,b,c,d,e,f,g,h)    \
+#define sb3(a,b,c,d,e,f,g,h) \
     t1 = a ^ c;     \
     t2 = d ^ t1;    \
     t3 = a & t2;    \
@@ -164,7 +164,7 @@
 /* 16 term solution that performs less well than 17 term one
    in my environment (PPro/PII)
 
-#define sb3(a,b,c,d,e,f,g,h)    \
+#define sb3(a,b,c,d,e,f,g,h) \
     t1 = a ^ b;     \
     t2 = a & c;     \
     t3 = a | d;     \
@@ -185,7 +185,7 @@
 
 /* 17 terms */
 
-#define ib3(a,b,c,d,e,f,g,h)    \
+#define ib3(a,b,c,d,e,f,g,h) \
     t1 = b ^ c;     \
     t2 = b | c;     \
     t3 = a ^ c;     \
@@ -206,7 +206,7 @@
 
 /* 15 terms */
 
-#define sb4(a,b,c,d,e,f,g,h)    \
+#define sb4(a,b,c,d,e,f,g,h) \
     t1 = a ^ d;     \
     t2 = d & t1;    \
     t3 = c ^ t2;    \
@@ -225,7 +225,7 @@
 
 /* 17 terms */
 
-#define ib4(a,b,c,d,e,f,g,h)    \
+#define ib4(a,b,c,d,e,f,g,h) \
     t1 = c ^ d;     \
     t2 = c | d;     \
     t3 = b ^ t2;    \
@@ -246,7 +246,7 @@
 
 /* 16 terms */
 
-#define sb5(a,b,c,d,e,f,g,h)    \
+#define sb5(a,b,c,d,e,f,g,h) \
     t1 = ~a;        \
     t2 = a ^ b;     \
     t3 = a ^ d;     \
@@ -266,7 +266,7 @@
 
 /* 16 terms */
 
-#define ib5(a,b,c,d,e,f,g,h)    \
+#define ib5(a,b,c,d,e,f,g,h) \
     t1 = ~c;        \
     t2 = b & t1;    \
     t3 = d ^ t2;    \
@@ -286,7 +286,7 @@
 
 /* 15 terms */
 
-#define sb6(a,b,c,d,e,f,g,h)    \
+#define sb6(a,b,c,d,e,f,g,h) \
     t1 = ~a;        \
     t2 = a ^ d;     \
     t3 = b ^ t2;    \
@@ -305,7 +305,7 @@
 
 /* 15 terms */
 
-#define ib6(a,b,c,d,e,f,g,h)    \
+#define ib6(a,b,c,d,e,f,g,h) \
     t1 = ~a;        \
     t2 = a ^ b;     \
     t3 = c ^ t2;    \
@@ -324,7 +324,7 @@
 
 /* 17 terms */
 
-#define sb7(a,b,c,d,e,f,g,h)    \
+#define sb7(a,b,c,d,e,f,g,h) \
     t1 = ~c;        \
     t2 = b ^ c;     \
     t3 = b | t1;    \
@@ -345,7 +345,7 @@
 
 /* 17 terms */
 
-#define ib7(a,b,c,d,e,f,g,h)    \
+#define ib7(a,b,c,d,e,f,g,h) \
     t1 = a & b;     \
     t2 = a | b;     \
     t3 = c | t1;    \

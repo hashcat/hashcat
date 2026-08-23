@@ -107,7 +107,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
    */
 
   // assume no signature found
-  if (line_len < 11) return (PARSER_SALT_LENGTH);
+  // the strchr() below starts at offset 12, so admitting a 11-byte line lets it
+  // start one past the terminator
+  if (line_len < 12) return (PARSER_SALT_LENGTH);
 
   const char *spn_info_start  = strchr (line_buf + 11 + 1, '*');
 
@@ -198,7 +200,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // domain must be uppercase
 
-  u8 domain[128];
+  u8 domain[512];
 
   memcpy (domain, domain_pos, domain_len);
   uppercase (domain, domain_len);

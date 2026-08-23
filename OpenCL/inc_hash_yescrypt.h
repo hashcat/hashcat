@@ -63,6 +63,19 @@
 #define XBUF_AS LOCAL_AS
 #endif
 
+// One Sbox entry is two u64 sitting in one aligned 16 byte block. pwxform wants it
+// both ways: as a vector, so the load is a single wide instruction, and as a pair of
+// u64, so the multiply-add takes the addend directly instead of rebuilding it from
+// two halves. Reading it as a vector and using the u64 view costs nothing and saves
+// both the second narrow load and the reassembly.
+
+typedef union yescrypt_sbox_entry
+{
+  uint4 v;
+  u64   q[2];
+
+} yescrypt_sbox_entry_t;
+
 typedef struct yescrypt_tmp
 {
   u32 P[YESCRYPT_STATE_CNT4];

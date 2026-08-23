@@ -243,6 +243,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int cry_rounds = hc_strtoul ((const char *) cry_rounds_pos, NULL, 10);
 
+  if (cry_rounds < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = cry_rounds - 1;
 
   // esalt

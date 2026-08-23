@@ -12,7 +12,7 @@ HC_PLUGIN_API bool is_hexify (const u8 *buf, const size_t len);
 HC_PLUGIN_API size_t exec_unhexify (const u8 *in_buf, const size_t in_len, u8 *out_buf, const size_t out_sz);
 
 HC_PLUGIN_API bool need_hexify (const u8 *buf, const size_t len, const char separator, bool always_ascii);
-HC_PLUGIN_API void exec_hexify (const u8 *buf, const size_t len, u8 *out);
+HC_PLUGIN_API size_t exec_hexify (const u8 *buf, const size_t len, u8 *out);
 
 HC_PLUGIN_API bool is_valid_base64a_string  (const u8 *s, const size_t len);
 HC_PLUGIN_API bool is_valid_base64a_char    (const u8 c);

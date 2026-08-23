@@ -30,7 +30,7 @@ static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat1";
-static const char *ST_HASH        = "$SNMPv3$5$45889431$3081a70201033011020455c0c85c020300ffe30401010201030450304e041180001f88808106d566db57fd600000000002011002020118040e6d61747269785f5348412d333834042000000000000000000000000000000000000000000000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411b3c3590201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd60$89424907553231aaa27055f4b3b0a97c626ed4cdc4b660d903765b607af792a5";
+static const char *ST_HASH        = "$SNMPv3$5$45889431$3081a70201033011020455c0c85c020300ffe30401010201030450304e041180001f88808106d566db57fd600000000002011002020118040e6d61747269785f5348412d333834042000000000000000000000000000000000000000000000000000000000000000000400303d041180001f88808106d566db57fd60000000000400a226020411b3c3590201000201003018301606082b06010201010200060a2b06010401bf0803020a$80001f88808106d566db57fd6000000000$89424907553231aaa27055f4b3b0a97c626ed4cdc4b660d903765b607af792a5";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -201,8 +201,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
                    | TOKEN_ATTR_VERIFY_HEX;
 
   // engineid
+  // len_min lowered from 26 to 10 to accept short (>=5 byte) engine IDs (RFC 3411)
   token.sep[3]     = '$';
-  token.len_min[3] = 26;
+  token.len_min[3] = 10;
   token.len_max[3] = SNMPV3_ENGINEID_MAX;
   token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
@@ -260,10 +261,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u8 *engineID_ptr = (u8 *) snmpv3->engineID_buf;
 
-  hex_decode (engineID_pos, engineID_len, engineID_ptr);
-
-  // force len to 17, zero padding
-  snmpv3->engineID_len = SNMPV3_ENGINEID_MAX / 2;
+  // use the real decoded length so engine IDs != 17 bytes localize correctly
+  snmpv3->engineID_len = hex_decode (engineID_pos, engineID_len, engineID_ptr);
 
   // digest
 

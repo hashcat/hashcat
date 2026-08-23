@@ -15,7 +15,7 @@
 #include "types.h"
 #include "memory.h"
 #include "shared.h"
-#include "generic.h"
+#include "feed.h"
 #include "hlfmt.h"
 #include "rp.h"
 #include "rp_cpu.h"

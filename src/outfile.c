@@ -20,6 +20,8 @@
 #include "thread.h"
 #include "outfile.h"
 
+#include <stdarg.h>
+
 u32 outfile_format_parse (const char *format_string)
 {
   if (format_string == NULL) return 0;
@@ -157,7 +159,31 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
 
       if (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
       {
-        if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
+        // The device engine reaches the optimized kernels too, and the candidate is still the base word
+        // with the cell stepped to il_pos rather than the base word itself. Reporting the base word
+        // names a password that does not hash to the digest that was cracked, whichever kernel found
+        // it, so this has to happen on both sides of the optimized test rather than only the pure one.
+
+        if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+        {
+          const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+          for (int i = 0; i < 14; i++)
+          {
+            plain_buf[i] = pw.i[i];
+          }
+
+          plain_len = pw.pw_len;
+
+          // The candidate's own length, which is not the base word's on a ruleset whose buckets hold
+          // entries of more than one byte length. Reporting the base word's names a password that does
+          // not hash to the digest that was cracked, exactly as reporting the base word itself would.
+
+          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, il_pos, plain_buf, (int) pw.pw_len);
+
+          if (amp_len >= 0) plain_len = amp_len;
+        }
+        else if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
         {
           for (int i = 0; i < 14; i++)
           {
@@ -183,7 +209,28 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
           plain_buf[i] = pw.i[i];
         }
 
-        plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+        // The device engine's candidate is the base word with the cell's trailing slots stepped to il_pos,
+        // and no rule was ever applied to it. Reporting the base word instead names a password that
+        // does not hash to the digest that was cracked.
+
+        if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+        {
+          const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+          plain_len = pw.pw_len;
+
+          // The candidate's own length, which is not the base word's on a ruleset whose buckets hold
+          // entries of more than one byte length. Reporting the base word's names a password that does
+          // not hash to the digest that was cracked, exactly as reporting the base word itself would.
+
+          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, il_pos, plain_buf, (int) pw.pw_len);
+
+          if (amp_len >= 0) plain_len = amp_len;
+        }
+        else
+        {
+          plain_len = apply_rules (straight_ctx->kernel_rules_buf[off].cmds, plain_buf, pw.pw_len);
+        }
       }
     }
     else if (user_options->attack_mode == ATTACK_MODE_BF)
@@ -525,6 +572,80 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
   hc_fclose (&outfile_ctx->fp);
 }
 
+// Bounded appenders for outfile_write's fixed tmp_buf (HCBUFSIZ_LARGE). username,
+// hash and plain are taken from the input line and can be as large as the line
+// buffer itself, so every write is clamped to the space actually left, always
+// keeping one byte for the trailing null. An oversized field is truncated, the
+// entry itself is still written out.
+
+static int outfile_append_raw (char *buf, const int len, const u8 *src, int src_len)
+{
+  const int room = (int) HCBUFSIZ_LARGE - 1 - len;
+
+  if (src_len > room)
+  {
+    src_len = (room > 0) ? room : 0;
+  }
+
+  memcpy (buf + len, src, (size_t) src_len);
+
+  return len + src_len;
+}
+
+static int outfile_append_hex (char *buf, const int len, const u8 *src, int src_len)
+{
+  const int room = (int) HCBUFSIZ_LARGE - 1 - len;
+
+  if ((src_len * 2) > room)
+  {
+    src_len = (room > 0) ? room / 2 : 0;
+  }
+
+  return len + hex_encode (src, src_len, (u8 *) buf + len);
+}
+
+static int outfile_append_hexify (char *buf, const int len, const u8 *src, int src_len)
+{
+  const int room = (int) HCBUFSIZ_LARGE - 1 - len;
+
+  if ((src_len * 2) > room)
+  {
+    src_len = (room > 0) ? room / 2 : 0;
+  }
+
+  const size_t hex_len = exec_hexify (src, (size_t) src_len, (u8 *) buf + len);
+
+  const int out_len = len + (int) hex_len;
+
+  return out_len;
+}
+
+static int outfile_append_chr (char *buf, const int len, const char c)
+{
+  if (len >= (int) HCBUFSIZ_LARGE - 1) return len;
+
+  buf[len] = c;
+
+  return len + 1;
+}
+
+static int outfile_append_fmt (char *buf, const int len, const char *fmt, ...)
+{
+  const int room = (int) HCBUFSIZ_LARGE - len;
+
+  va_list ap;
+
+  va_start (ap, fmt);
+
+  const int n = vsnprintf (buf + len, (size_t) room, fmt, ap);
+
+  va_end (ap);
+
+  if (n >= room) return len + room - 1;
+
+  return len + n;
+}
+
 int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int out_len, const unsigned char *plain_ptr, const u32 plain_len, const u64 crackpos, const unsigned char *username, const u32 user_len, const bool print_eol, char *tmp_buf)
 {
   const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
@@ -537,66 +658,64 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
   if (outfile_ctx->outfile_json == true)
   {
-    tmp_buf[0] = '{'; tmp_len += 1;
+    tmp_len = outfile_append_chr (tmp_buf, tmp_len, '{');
 
     if (user_len > 0)
     {
       if (username != NULL)
       {
-        tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "\"username_hex\": ");
+        tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"username_hex\": ");
 
-        tmp_buf[tmp_len] = '"'; tmp_len += 1;
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
 
-        tmp_len += hex_encode ((const u8 *) username, user_len, (u8 *) tmp_buf + tmp_len);
+        tmp_len = outfile_append_hex (tmp_buf, tmp_len, (const u8 *) username, (int) user_len);
 
-        tmp_buf[tmp_len] = '"'; tmp_len += 1;
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
 
-        tmp_buf[tmp_len] = ','; tmp_len += 1;
-        tmp_buf[tmp_len] = ' '; tmp_len += 1;
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, ',');
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, ' ');
       }
     }
 
     if (hashes->hashlist_mode == HL_MODE_FILE_BINARY)
     {
-      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "\"filename_hex\": ");
+      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"filename_hex\": ");
 
-      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
 
-      tmp_len += hex_encode ((const u8 *) hashes->hashfile, strlen (hashes->hashfile), (u8 *) tmp_buf + tmp_len);
+      tmp_len = outfile_append_hex (tmp_buf, tmp_len, (const u8 *) hashes->hashfile, (int) strlen (hashes->hashfile));
 
-      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
 
-      tmp_buf[tmp_len] = ','; tmp_len += 1;
-      tmp_buf[tmp_len] = ' '; tmp_len += 1;
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, ',');
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, ' ');
     }
     else
     {
-      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "\"hash_hex\": ");
+      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"hash_hex\": ");
 
-      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
 
-      tmp_len += hex_encode ((const u8 *) out_buf, out_len, (u8 *) tmp_buf + tmp_len);
+      tmp_len = outfile_append_hex (tmp_buf, tmp_len, (const u8 *) out_buf, (int) out_len);
 
-      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
 
-      tmp_buf[tmp_len] = ','; tmp_len += 1;
-      tmp_buf[tmp_len] = ' '; tmp_len += 1;
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, ',');
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, ' ');
     }
 
     if (1) // plain
     {
-      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "\"password_hex\": ");
+      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"password_hex\": ");
 
-      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
 
-      tmp_len += hex_encode ((const u8 *) plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
+      tmp_len = outfile_append_hex (tmp_buf, tmp_len, (const u8 *) plain_ptr, (int) plain_len);
 
-      tmp_buf[tmp_len] = '"'; tmp_len += 1;
+      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
     }
 
-    tmp_buf[tmp_len] = '}';
-
-    tmp_len += 1;
+    tmp_len = outfile_append_chr (tmp_buf, tmp_len, '}');
   }
   else
   {
@@ -606,15 +725,11 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
     {
       if (username != NULL)
       {
-        memcpy (tmp_buf + tmp_len, username, user_len);
-
-        tmp_len += user_len;
+        tmp_len = outfile_append_raw (tmp_buf, tmp_len, (const u8 *) username, (int) user_len);
 
         if (outfile_format & (OUTFILE_FMT_TIME_ABS | OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
         {
-          tmp_buf[tmp_len] = hashconfig->separator;
-
-          tmp_len += 1;
+          tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
         }
       }
     }
@@ -625,13 +740,11 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
       time (&now);
 
-      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, (u64) now);
+      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "%" PRIu64, (u64) now);
 
       if (outfile_format & (OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        tmp_buf[tmp_len] = hashconfig->separator;
-
-        tmp_len += 1;
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
       }
     }
 
@@ -650,27 +763,21 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
         diff = (u64) time_now - (u64) time_started;
       }
 
-      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, diff);
+      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "%" PRIu64, diff);
 
       if (outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        tmp_buf[tmp_len] = hashconfig->separator;
-
-        tmp_len += 1;
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
       }
     }
 
     if (outfile_format & OUTFILE_FMT_HASH)
     {
-      memcpy (tmp_buf + tmp_len, out_buf, out_len);
-
-      tmp_len += out_len;
+      tmp_len = outfile_append_raw (tmp_buf, tmp_len, (const u8 *) out_buf, (int) out_len);
 
       if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        tmp_buf[tmp_len] = hashconfig->separator;
-
-        tmp_len += 1;
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
       }
     }
 
@@ -690,50 +797,40 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
       if (convert_to_hex)
       {
-        tmp_buf[tmp_len++] = '$';
-        tmp_buf[tmp_len++] = 'H';
-        tmp_buf[tmp_len++] = 'E';
-        tmp_buf[tmp_len++] = 'X';
-        tmp_buf[tmp_len++] = '[';
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, '$');
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, 'H');
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, 'E');
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, 'X');
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, '[');
 
-        exec_hexify (plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
+        tmp_len = outfile_append_hexify (tmp_buf, tmp_len, plain_ptr, (int) plain_len);
 
-        tmp_len += plain_len * 2;
-
-        tmp_buf[tmp_len++] = ']';
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, ']');
       }
       else
       {
-        memcpy (tmp_buf + tmp_len, plain_ptr, plain_len);
-
-        tmp_len += plain_len;
+        tmp_len = outfile_append_raw (tmp_buf, tmp_len, (const u8 *) plain_ptr, (int) plain_len);
       }
 
       if (outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        tmp_buf[tmp_len] = hashconfig->separator;
-
-        tmp_len += 1;
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
       }
     }
 
     if (outfile_format & OUTFILE_FMT_HEXPLAIN)
     {
-      exec_hexify (plain_ptr, plain_len, (u8 *) tmp_buf + tmp_len);
-
-      tmp_len += plain_len * 2;
+      tmp_len = outfile_append_hexify (tmp_buf, tmp_len, plain_ptr, (int) plain_len);
 
       if (outfile_format & (OUTFILE_FMT_CRACKPOS))
       {
-        tmp_buf[tmp_len] = hashconfig->separator;
-
-        tmp_len += 1;
+        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
       }
     }
 
     if (outfile_format & OUTFILE_FMT_CRACKPOS)
     {
-      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_LARGE - tmp_len, "%" PRIu64, crackpos);
+      tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "%" PRIu64, crackpos);
     }
   }
 

@@ -115,7 +115,19 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
      * SAP
      */
 
-    u32 final[32];
+    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
+    // variable-length pieces into final[] back to back with no bounds check:
+    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
+    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
+    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
+    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
+    // overflows by design for realistic inputs, not just contrived ones.
+    // Sized here to the worst case with headroom; the sha1_transform calls
+    // a few lines down still only ever process the first two 64-byte blocks
+    // of it (final+0..32), which is a separate, not-yet-addressed question:
+    // whether that's a correctness gap for inputs long enough to need a
+    // third block is outside the scope of this memory-safety fix.
+    u32 final[64];
 
     final[ 0] = w0[0] | s0[0];
     final[ 1] = w0[1] | s0[1];
@@ -211,6 +223,14 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     final[14] = 0;
     final[15] = 0;
 
+    // final[] can hold up to 4 SHA1 blocks (see the SETSHIFTEDINT fix); only
+    // the first block (final[0..15]) is set above, and SETSHIFTEDINT() below
+    // only ever writes as many bytes as are actually appended, so anything
+    // past the appended data and before the length word placed by the block
+    // loop further down would otherwise be uninitialized.
+
+    for (u32 j = 16; j < 64; j++) final[j] = 0;
+
     u32 final_len = pw_len;
 
     u32 i;
@@ -244,21 +264,20 @@ DECLSPEC void m07800m (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     final_len += salt_len;
 
     // calculate
+    //
+    // final_len can reach up to 188 bytes (pw_max 55 + magic_max 82 +
+    // salt_max 51), needing up to 4 SHA1 blocks with padding -- this used to
+    // be hardcoded to at most 2 blocks, silently dropping anything past byte
+    // 119 into a wrong digest instead of a crash.
 
-    if (final_len >= 56)
+    const u32 n_blocks = ((final_len + 8) / 64) + 1;
+
+    final[(n_blocks * 16) - 2] = 0;
+    final[(n_blocks * 16) - 1] = final_len * 8;
+
+    for (u32 b = 0; b < n_blocks; b++)
     {
-      final[30] = 0;
-      final[31] = final_len * 8;
-
-      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
-      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
-    }
-    else
-    {
-      final[14] = 0;
-      final[15] = final_len * 8;
-
-      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + (b * 16) + 0, final + (b * 16) + 4, final + (b * 16) + 8, final + (b * 16) + 12, digest);
     }
 
     COMPARE_M_SIMD (digest[3], digest[4], digest[2], digest[1]);
@@ -340,7 +359,19 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
      * SAP
      */
 
-    u32 final[32];
+    // 32 was sized for pw_len alone. SETSHIFTEDINT() below packs three
+    // variable-length pieces into final[] back to back with no bounds check:
+    // the candidate (up to pw_max, 55 for -O), a SHA1-digest-derived "magic
+    // array" chunk (32 + up to 50 from ten mod-6 terms, so up to 82), and
+    // the salt (up to salt_max, 51 for -O). 55+82+51 = 188 bytes needs index
+    // 47 (and SETSHIFTEDINT also touches d+1), i.e. 49 u32 minimum -- 32
+    // overflows by design for realistic inputs, not just contrived ones.
+    // Sized here to the worst case with headroom; the sha1_transform calls
+    // a few lines down still only ever process the first two 64-byte blocks
+    // of it (final+0..32), which is a separate, not-yet-addressed question:
+    // whether that's a correctness gap for inputs long enough to need a
+    // third block is outside the scope of this memory-safety fix.
+    u32 final[64];
 
     final[ 0] = w0[0] | s0[0];
     final[ 1] = w0[1] | s0[1];
@@ -436,6 +467,14 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     final[14] = 0;
     final[15] = 0;
 
+    // final[] can hold up to 4 SHA1 blocks (see the SETSHIFTEDINT fix); only
+    // the first block (final[0..15]) is set above, and SETSHIFTEDINT() below
+    // only ever writes as many bytes as are actually appended, so anything
+    // past the appended data and before the length word placed by the block
+    // loop further down would otherwise be uninitialized.
+
+    for (u32 j = 16; j < 64; j++) final[j] = 0;
+
     u32 final_len = pw_len;
 
     u32 i;
@@ -469,21 +508,20 @@ DECLSPEC void m07800s (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w
     final_len += salt_len;
 
     // calculate
+    //
+    // final_len can reach up to 188 bytes (pw_max 55 + magic_max 82 +
+    // salt_max 51), needing up to 4 SHA1 blocks with padding -- this used to
+    // be hardcoded to at most 2 blocks, silently dropping anything past byte
+    // 119 into a wrong digest instead of a crash.
 
-    if (final_len >= 56)
+    const u32 n_blocks = ((final_len + 8) / 64) + 1;
+
+    final[(n_blocks * 16) - 2] = 0;
+    final[(n_blocks * 16) - 1] = final_len * 8;
+
+    for (u32 b = 0; b < n_blocks; b++)
     {
-      final[30] = 0;
-      final[31] = final_len * 8;
-
-      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
-      sha1_transform (final + 16, final + 20, final + 24, final + 28, digest);
-    }
-    else
-    {
-      final[14] = 0;
-      final[15] = final_len * 8;
-
-      sha1_transform (final +  0, final +  4, final +  8, final + 12, digest);
+      sha1_transform (final + (b * 16) + 0, final + (b * 16) + 4, final + (b * 16) + 8, final + (b * 16) + 12, digest);
     }
 
     COMPARE_S_SIMD (digest[3], digest[4], digest[2], digest[1]);

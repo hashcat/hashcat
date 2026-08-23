@@ -286,9 +286,9 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
       tmp_buf[tmp_len++] = 'X';
       tmp_buf[tmp_len++] = '[';
 
-      exec_hexify ((const u8 *) plain_ptr, plain_len, tmp_buf + tmp_len);
+      const size_t hex_len = exec_hexify ((const u8 *) plain_ptr, plain_len, tmp_buf + tmp_len);
 
-      tmp_len += plain_len * 2;
+      tmp_len += (int) hex_len;
 
       tmp_buf[tmp_len++] = ']';
     }

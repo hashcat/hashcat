@@ -122,6 +122,7 @@ int run_kernel_tm                           (hashcat_ctx_t *hashcat_ctx, hc_devi
 int run_kernel_amp                          (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);
 int run_kernel_decompress                   (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 num);
 int run_copy                                (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt);
+int pcfg_seed_cells                         (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param);
 int run_cracker                             (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt);
 
 #if defined (_WIN32) || defined (__WIN32__)

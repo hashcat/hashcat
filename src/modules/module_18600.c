@@ -311,6 +311,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_len = salt_len;
 
+  if (iterations < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = iterations - 1;
 
   salt->salt_buf[0] = hex_to_u32 (&salt_buf[ 0]);

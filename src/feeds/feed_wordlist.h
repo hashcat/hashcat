@@ -20,6 +20,7 @@ typedef struct feed_source
 
   u64  *seek_db;
   u64   seek_count;
+  u64   seek_step;
   u64   line_count;
   u64   size;
 

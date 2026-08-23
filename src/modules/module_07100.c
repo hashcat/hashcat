@@ -87,6 +87,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char sigchk[21];
   sigchk[20] = '\0';
+
+  // memcpy does not stop at a NUL, so a shorter line would be read past its end
+  if (line_len < 20) return (PARSER_SIGNATURE_UNMATCHED);
+
   memcpy (sigchk, line_buf, 20);
 
   if (strncmp (sigchk, SIGNATURE_SHA512MACOS, 4) == 0)
@@ -172,7 +176,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     const u8 *iter_pos = token.buf[1];
 
-    salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
+    const u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
+
+    if (iter < 1) return (PARSER_SALT_ITERATION);
+
+    salt->salt_iter = iter - 1;
 
     return (PARSER_OK);
   }
@@ -276,7 +284,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
     const u8 *iter_pos = token.buf[1];
 
-    salt->salt_iter = hc_strtoul ((const char *) iter_pos, NULL, 10) - 1;
+    const u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
+
+    if (iter < 1) return (PARSER_SALT_ITERATION);
+
+    salt->salt_iter = iter - 1;
 
     return (PARSER_OK);
   }

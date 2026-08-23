@@ -1244,9 +1244,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     tmp_buf[tmp_len++] = 'X';
     tmp_buf[tmp_len++] = '[';
 
-    exec_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, (u8 *) tmp_buf + tmp_len);
+    const size_t hex_len = exec_hexify ((const u8 *) wpa->essid_buf, wpa->essid_len, (u8 *) tmp_buf + tmp_len);
 
-    tmp_len += wpa->essid_len * 2;
+    tmp_len += (int) hex_len;
 
     tmp_buf[tmp_len++] = ']';
 

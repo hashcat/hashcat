@@ -550,6 +550,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const u32 passwordIterations = byte_swap_32 (hdr.keyblock[keyslot_idx].passwordIterations);
 
+  if (passwordIterations < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = passwordIterations - 1;
 
   // Load AF data for this keyslot into esalt

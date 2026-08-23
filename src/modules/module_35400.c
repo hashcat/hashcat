@@ -170,6 +170,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int account_info_len = (int) (account_info_stop - account_info_start);
 
+  if (account_info_len > (int) sizeof (krb5asrep->account_info)) return (PARSER_SALT_LENGTH);
+
   token.token_cnt  = 4;
 
   if (krb5asrep->format == 1)
@@ -196,7 +198,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     // edata2
     token.sep[4]     = '$';
     token.len_min[4] = 64;
-    token.len_max[4] = 40960;
+    token.len_max[4] = 40958;
     token.attr[4]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
@@ -216,7 +218,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     // edata2
     token.sep[3]     = '$';
     token.len_min[3] = 64;
-    token.len_max[3] = 40960;
+    token.len_max[3] = 40958;
     token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
                      | TOKEN_ATTR_VERIFY_HEX;
   }
@@ -288,7 +290,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   const krb5asrep_t *krb5asrep = (const krb5asrep_t *) esalt_buf;
 
-  char data[5120 * 4 * 2] = { 0 };
+  char data[5120 * 4 * 2 + 1] = { 0 };
 
   for (u32 i = 0, j = 0; i < krb5asrep->edata2_len; i += 1, j += 2)
   {

@@ -24,7 +24,7 @@ DECLSPEC u64 blake2b_rot16_S (const u64 a)
 
   return out.v64;
 
-  #elif (defined IS_AMD || defined IS_HIP)
+  #elif (defined IS_AMD || defined IS_HIP || defined IS_AMD_USE_OPENCL) && HAS_VPERM == 1
 
   vconv64_t in;
 
@@ -98,7 +98,7 @@ DECLSPEC u64 blake2b_rot24_S (const u64 a)
 
   return out.v64;
 
-  #elif (defined IS_AMD || defined IS_HIP)
+  #elif (defined IS_AMD || defined IS_HIP || defined IS_AMD_USE_OPENCL) && HAS_VPERM == 1
 
   vconv64_t in;
 

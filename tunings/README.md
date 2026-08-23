@@ -26,7 +26,6 @@ Each file in this folder with the filename suffix .hctune will be automatically 
 - There's also a hard-wired Device-Name which matches all device types called:
   - DEVICE_TYPE_CPU
   - DEVICE_TYPE_GPU
-  - DEVICE_TYPE_ACCELERATOR
 - The use of wildcards is allowed, some rules:
   - Wildcards can only replace an entire Device-Name, not parts just of it. eg: not Geforce_*
   - The policy is local > global, means the closer you configure something, the more likely it is selected

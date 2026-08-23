@@ -158,7 +158,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   token.sep[7]     = '*';
   token.len_min[7] = 0;
-  token.len_max[7] = 0x200000 * 4 * 2;
+  token.len_max[7] = 0x200000 * 4 * 2 - 2;
   token.attr[7]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_HEX;
 

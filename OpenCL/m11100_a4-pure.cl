@@ -1,0 +1,242 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+#ifdef KERNEL_STATIC
+#include M2S(INCLUDE_PATH/inc_vendor.h)
+#include M2S(INCLUDE_PATH/inc_types.h)
+#include M2S(INCLUDE_PATH/inc_platform.cl)
+#include M2S(INCLUDE_PATH/inc_common.cl)
+#include M2S(INCLUDE_PATH/inc_pcfg.h)
+#include M2S(INCLUDE_PATH/inc_pcfg.cl)
+#include M2S(INCLUDE_PATH/inc_scalar.cl)
+#include M2S(INCLUDE_PATH/inc_hash_md5.cl)
+#endif
+
+#if   VECT_SIZE == 1
+#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i)])
+#elif VECT_SIZE == 2
+#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1])
+#elif VECT_SIZE == 4
+#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3])
+#elif VECT_SIZE == 8
+#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7])
+#elif VECT_SIZE == 16
+#define uint_to_hex_lower8(i) make_u32x (l_bin2asc[(i).s0], l_bin2asc[(i).s1], l_bin2asc[(i).s2], l_bin2asc[(i).s3], l_bin2asc[(i).s4], l_bin2asc[(i).s5], l_bin2asc[(i).s6], l_bin2asc[(i).s7], l_bin2asc[(i).s8], l_bin2asc[(i).s9], l_bin2asc[(i).sa], l_bin2asc[(i).sb], l_bin2asc[(i).sc], l_bin2asc[(i).sd], l_bin2asc[(i).se], l_bin2asc[(i).sf])
+#endif
+
+#define PCFG_HASH_SHARED_DECL                                   \
+  LOCAL_VK u32 l_bin2asc[256];                                  \
+  for (u32 i = lid; i < 256; i += lsz)                          \
+  {                                                             \
+    const u32 i0 = (i >> 0) & 15;                               \
+    const u32 i1 = (i >> 4) & 15;                               \
+    l_bin2asc[i] = ((i0 < 10) ? '0' + i0 : 'a' - 10 + i0) << 8  \
+                 | ((i1 < 10) ? '0' + i1 : 'a' - 10 + i1) << 0; \
+  }                                                             \
+  SYNC_THREADS ();
+
+#define PCFG_HASH_SHARED_BIND(hc) (hc)->l_bin2asc = l_bin2asc;
+
+typedef struct pcfg_hash_ctx
+{
+  u32 challenge;
+  u32 salt_buf0[4];
+  u32 salt_buf1[4];
+  u32 salt_len;
+  LOCAL_AS u32 *l_bin2asc;
+
+} pcfg_hash_ctx_t;
+
+DECLSPEC void pcfg_hash_init (PRIVATE_AS pcfg_hash_ctx_t *hc, GLOBAL_AS const salt_t *salt_bufs, const u32 salt_pos, MAYBE_UNUSED GLOBAL_AS const void *esalt_bufs, MAYBE_UNUSED GLOBAL_AS const digest_t *digests_buf, MAYBE_UNUSED const u32 digest_pos)
+{
+  hc->challenge = salt_bufs[salt_pos].salt_buf[0];
+
+  hc->salt_buf0[0] = salt_bufs[salt_pos].salt_buf[1];
+  hc->salt_buf0[1] = salt_bufs[salt_pos].salt_buf[2];
+  hc->salt_buf0[2] = salt_bufs[salt_pos].salt_buf[3];
+  hc->salt_buf0[3] = salt_bufs[salt_pos].salt_buf[4];
+
+  hc->salt_buf1[0] = salt_bufs[salt_pos].salt_buf[5];
+  hc->salt_buf1[1] = salt_bufs[salt_pos].salt_buf[6];
+  hc->salt_buf1[2] = salt_bufs[salt_pos].salt_buf[7];
+  hc->salt_buf1[3] = salt_bufs[salt_pos].salt_buf[8];
+
+  hc->salt_len = salt_bufs[salt_pos].salt_len - 4;
+}
+
+DECLSPEC void pcfg_hash_setup (MAYBE_UNUSED PRIVATE_AS pcfg_hash_ctx_t *hc, MAYBE_UNUSED PRIVATE_AS u32 *w, MAYBE_UNUSED const u32 pw_len)
+{
+}
+
+DECLSPEC bool pcfg_hash (PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIVATE_AS u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
+{
+  LOCAL_AS u32 *l_bin2asc = hc->l_bin2asc;
+
+  md5_ctx_t ctx1;
+
+  md5_init (&ctx1);
+
+  md5_update (&ctx1, w, len);
+
+  u32 s0[4];
+  u32 s1[4];
+  u32 s2[4];
+  u32 s3[4];
+
+  s0[0] = hc->salt_buf0[0];
+  s0[1] = hc->salt_buf0[1];
+  s0[2] = hc->salt_buf0[2];
+  s0[3] = hc->salt_buf0[3];
+  s1[0] = hc->salt_buf1[0];
+  s1[1] = hc->salt_buf1[1];
+  s1[2] = hc->salt_buf1[2];
+  s1[3] = hc->salt_buf1[3];
+  s2[0] = 0;
+  s2[1] = 0;
+  s2[2] = 0;
+  s2[3] = 0;
+  s3[0] = 0;
+  s3[1] = 0;
+  s3[2] = 0;
+  s3[3] = 0;
+
+  md5_update_64 (&ctx1, s0, s1, s2, s3, hc->salt_len);
+
+  md5_final (&ctx1);
+
+  const u32 a = ctx1.h[0];
+  const u32 b = ctx1.h[1];
+  const u32 c = ctx1.h[2];
+  const u32 d = ctx1.h[3];
+
+  md5_ctx_t ctx;
+
+  md5_init (&ctx);
+
+  ctx.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
+            | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
+  ctx.w0[1] = uint_to_hex_lower8 ((a >> 16) & 255) <<  0
+            | uint_to_hex_lower8 ((a >> 24) & 255) << 16;
+  ctx.w0[2] = uint_to_hex_lower8 ((b >>  0) & 255) <<  0
+            | uint_to_hex_lower8 ((b >>  8) & 255) << 16;
+  ctx.w0[3] = uint_to_hex_lower8 ((b >> 16) & 255) <<  0
+            | uint_to_hex_lower8 ((b >> 24) & 255) << 16;
+  ctx.w1[0] = uint_to_hex_lower8 ((c >>  0) & 255) <<  0
+            | uint_to_hex_lower8 ((c >>  8) & 255) << 16;
+  ctx.w1[1] = uint_to_hex_lower8 ((c >> 16) & 255) <<  0
+            | uint_to_hex_lower8 ((c >> 24) & 255) << 16;
+  ctx.w1[2] = uint_to_hex_lower8 ((d >>  0) & 255) <<  0
+            | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
+  ctx.w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
+            | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
+  ctx.w2[0] = hc->challenge;
+  ctx.w2[1] = 0;
+  ctx.w2[2] = 0;
+  ctx.w2[3] = 0;
+  ctx.w3[0] = 0;
+  ctx.w3[1] = 0;
+  ctx.w3[2] = 0;
+  ctx.w3[3] = 0;
+
+  ctx.len = 32 + 4;
+
+  md5_final (&ctx);
+
+  dgst[0] = ctx.h[DGST_R0];
+  dgst[1] = ctx.h[DGST_R1];
+  dgst[2] = ctx.h[DGST_R2];
+  dgst[3] = ctx.h[DGST_R3];
+
+  return true;
+}
+
+DECLSPEC bool pcfg_hash_global (PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS const u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
+{
+  LOCAL_AS u32 *l_bin2asc = hc->l_bin2asc;
+
+  md5_ctx_t ctx1;
+
+  md5_init (&ctx1);
+
+  md5_update_global (&ctx1, w, len);
+
+  u32 s0[4];
+  u32 s1[4];
+  u32 s2[4];
+  u32 s3[4];
+
+  s0[0] = hc->salt_buf0[0];
+  s0[1] = hc->salt_buf0[1];
+  s0[2] = hc->salt_buf0[2];
+  s0[3] = hc->salt_buf0[3];
+  s1[0] = hc->salt_buf1[0];
+  s1[1] = hc->salt_buf1[1];
+  s1[2] = hc->salt_buf1[2];
+  s1[3] = hc->salt_buf1[3];
+  s2[0] = 0;
+  s2[1] = 0;
+  s2[2] = 0;
+  s2[3] = 0;
+  s3[0] = 0;
+  s3[1] = 0;
+  s3[2] = 0;
+  s3[3] = 0;
+
+  md5_update_64 (&ctx1, s0, s1, s2, s3, hc->salt_len);
+
+  md5_final (&ctx1);
+
+  const u32 a = ctx1.h[0];
+  const u32 b = ctx1.h[1];
+  const u32 c = ctx1.h[2];
+  const u32 d = ctx1.h[3];
+
+  md5_ctx_t ctx;
+
+  md5_init (&ctx);
+
+  ctx.w0[0] = uint_to_hex_lower8 ((a >>  0) & 255) <<  0
+            | uint_to_hex_lower8 ((a >>  8) & 255) << 16;
+  ctx.w0[1] = uint_to_hex_lower8 ((a >> 16) & 255) <<  0
+            | uint_to_hex_lower8 ((a >> 24) & 255) << 16;
+  ctx.w0[2] = uint_to_hex_lower8 ((b >>  0) & 255) <<  0
+            | uint_to_hex_lower8 ((b >>  8) & 255) << 16;
+  ctx.w0[3] = uint_to_hex_lower8 ((b >> 16) & 255) <<  0
+            | uint_to_hex_lower8 ((b >> 24) & 255) << 16;
+  ctx.w1[0] = uint_to_hex_lower8 ((c >>  0) & 255) <<  0
+            | uint_to_hex_lower8 ((c >>  8) & 255) << 16;
+  ctx.w1[1] = uint_to_hex_lower8 ((c >> 16) & 255) <<  0
+            | uint_to_hex_lower8 ((c >> 24) & 255) << 16;
+  ctx.w1[2] = uint_to_hex_lower8 ((d >>  0) & 255) <<  0
+            | uint_to_hex_lower8 ((d >>  8) & 255) << 16;
+  ctx.w1[3] = uint_to_hex_lower8 ((d >> 16) & 255) <<  0
+            | uint_to_hex_lower8 ((d >> 24) & 255) << 16;
+  ctx.w2[0] = hc->challenge;
+  ctx.w2[1] = 0;
+  ctx.w2[2] = 0;
+  ctx.w2[3] = 0;
+  ctx.w3[0] = 0;
+  ctx.w3[1] = 0;
+  ctx.w3[2] = 0;
+  ctx.w3[3] = 0;
+
+  ctx.len = 32 + 4;
+
+  md5_final (&ctx);
+
+  dgst[0] = ctx.h[DGST_R0];
+  dgst[1] = ctx.h[DGST_R1];
+  dgst[2] = ctx.h[DGST_R2];
+  dgst[3] = ctx.h[DGST_R3];
+
+  return true;
+}
+
+#define PCFG_KERNEL_MXX m11100_mxx
+#define PCFG_KERNEL_SXX m11100_sxx
+
+#ifdef KERNEL_STATIC
+#include M2S(INCLUDE_PATH/inc_pcfg_kernel.cl)
+#endif

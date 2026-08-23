@@ -295,7 +295,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     esalt_len = 1 + nonce_len + 1 + nonce_count_len + 1 + nonce_client_len + 1 + qop_len + 1 + 32;
 
-    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
+    if (esalt_len >= max_esalt_len) return (PARSER_SALT_LENGTH);
 
     // init
 
@@ -329,7 +329,7 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   {
     esalt_len = 1 + nonce_len + 1 + 32;
 
-    if (esalt_len > max_esalt_len) return (PARSER_SALT_LENGTH);
+    if (esalt_len >= max_esalt_len) return (PARSER_SALT_LENGTH);
 
     // init
 

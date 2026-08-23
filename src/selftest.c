@@ -127,7 +127,11 @@ static int selftest_init (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_
   {
     if (hashconfig->attack_exec == ATTACK_EXEC_INSIDE_KERNEL)
     {
-      if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT)
+      // The device engine self-tests as the straight kernel does. Its cell buffer is zeroed at allocation
+      // and a cell with no slots extends the base word into itself, so the kernel hashes the test
+      // password exactly once and the expected digest is the same one.
+
+      if ((user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) || (user_options_extra->attack_kern == ATTACK_KERN_PCFG))
       {
         device_param->kernel_param.il_cnt = 1;
 

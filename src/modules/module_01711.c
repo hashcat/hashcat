@@ -148,6 +148,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 *salt_pos = tmp_buf + 64;
   int salt_len = tmp_len - 64;
 
+  if (salt_len >= (int) sizeof (salt->salt_buf)) return (PARSER_SALT_LENGTH);
+
   salt->salt_len = salt_len;
 
   memcpy (salt->salt_buf, salt_pos, salt_len);

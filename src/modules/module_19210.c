@@ -139,6 +139,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     iter = hc_strtoul ((const char *) token.buf[1] + 2, NULL, 10);
   }
 
+  if (iter < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = iter - 1; // iter++; the additional round is added in the init kernel
 
   // salt

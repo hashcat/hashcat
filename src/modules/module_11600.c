@@ -515,7 +515,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // fields only used when data was compressed:
 
-  u8 *crc_len_pos = (u8 *) strchr ((const char *) data_buf_pos, '$');
+  // the token is length-delimited, not NUL-terminated, so strchr() would scan
+  // past the end of the line. hc_strchr_next() is the bounded equivalent.
+  u8 *crc_len_pos = (u8 *) hc_strchr_next (data_buf_pos, data_buf_len, '$');
 
   u32 crc_len_len          = 0;
   u8 *coder_attributes_pos = 0;
@@ -523,11 +525,13 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (crc_len_pos != NULL)
   {
+    const int crc_left = data_buf_len - (int) (crc_len_pos - data_buf_pos) - 1;
+
     data_buf_len = crc_len_pos - data_buf_pos;
 
     crc_len_pos++;
 
-    coder_attributes_pos = (u8 *) strchr ((const char *) crc_len_pos, '$');
+    coder_attributes_pos = (u8 *) hc_strchr_next (crc_len_pos, crc_left, '$');
 
     if (coder_attributes_pos == NULL) return (PARSER_SEPARATOR_UNMATCHED);
 
@@ -684,6 +688,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->salt_len = 16;
 
   salt->salt_sign[0] = data_type;
+
+  // 7-Zip NumCyclesPower can be 0-63 per spec, but salt_iter is u32
+  // and the kernel dispatch loop is u32-bound, so we cannot support > 31.
+
+  if (iter > 31) return (PARSER_SALT_ITERATION);
 
   salt->salt_iter = 1u << iter;
 

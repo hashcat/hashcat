@@ -703,6 +703,16 @@ static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, c
 
   cmd_len = restore_cmd_append (cmd, cmd_sz, cmd_len, bin_quoted);
 
+  // The two options hashcat adds go in front of the arguments the user typed, not after them. A
+  // command line may contain "--", and everything after that is an operand rather than an option:
+  // appended at the end they would arrive as two more work arguments and the printed line would
+  // fail with "--restore-position: No such file or directory". In front they are read as options
+  // whatever the rest of the line looks like, and the order makes no difference anywhere else
+  // because the options may appear in any position.
+
+  cmd_len = restore_cmd_append (cmd, cmd_sz, cmd_len, " --restore-position --restore-file-path=");
+  cmd_len = restore_cmd_append (cmd, cmd_sz, cmd_len, path_quoted);
+
   for (u32 i = 1; i < argc; i++)
   {
     if (quoted[i] == NULL) continue;
@@ -710,9 +720,6 @@ static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, c
     cmd_len = restore_cmd_append (cmd, cmd_sz, cmd_len, " ");
     cmd_len = restore_cmd_append (cmd, cmd_sz, cmd_len, quoted[i]);
   }
-
-  cmd_len = restore_cmd_append (cmd, cmd_sz, cmd_len, " --restore-position --restore-file-path=");
-  cmd_len = restore_cmd_append (cmd, cmd_sz, cmd_len, path_quoted);
 
   // The two lines below go out with printf rather than through the event log, which wraps a message
   // in colour on a terminal and cuts it at HCBUFSIZ_SMALL. Neither is wanted for a line whose whole

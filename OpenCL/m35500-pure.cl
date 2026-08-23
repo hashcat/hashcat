@@ -69,7 +69,7 @@ KERNEL_FQ KERNEL_FA void m35500_init (KERN_ATTR_TMPS (bcrypt_tmp_t))
 
   sha384_hmac_init_swap (&ctx0, key, 9);
 
-  sha384_hmac_update_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
+  sha384_hmac_update_global_swap (&ctx0, pws[gid].i, pws[gid].pw_len);
 
   sha384_hmac_final (&ctx0);
 

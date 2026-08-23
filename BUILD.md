@@ -14,7 +14,7 @@ Check your Python version:
 
 ```bash
 $ python3 --version
-# Expected output: Python 3.13.3
+# Expected output: Python 3.13.9
 ```
 
 If you can't install Python ≥ 3.12 globally, you can use **pyenv**.

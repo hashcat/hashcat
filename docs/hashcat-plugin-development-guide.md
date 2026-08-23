@@ -667,13 +667,15 @@ The large number of kernel parameters can be confusing when writing a kernel. Bu
 
 The fast hash type is needed if we are cracking a hash that is so fast to compute that the PCI express bottleneck is taking more time than to compute the hash. These raw hashes are designed to compute very fast intentionally. They typically consist of only binary or arithmetic operations either with none or limited memory access. That means they often can be implemented on register level. On the other hand, if we need to access any memory structures just to provide the password candidates, it will hurt the performance significantly. Therefore the general concept of a fast hash kernel is to load a base password candidate directly onto a register and run a for() loop within the kernel which modifies the base password candidate.
 
-The modification is depending on the attack-mode. Hashcat supports 6 different attack-modes with the -a command line flag (0, 1, 3, 6, 7 and 12) but attack-mode 6, attack-mode 7 and attack-mode 12 share the same kernel code with attack-mode 1. This means we have to implement three kernels. These kernels are implemented in three kernel source files (0, 1, 3). Based on the attack-mode selected by the user on startup, hashcat will load the corresponding kernel.
+The modification is depending on the attack-mode. Attack-mode 1, attack-mode 6 and attack-mode 7 share the same kernel code with attack-mode 12, and attack-mode 8 and attack-mode 9 use the attack-mode 0 kernels. That leaves three kernels to implement, in three kernel source files (0, 1, 3). Based on the attack-mode selected by the user on startup, hashcat will load the corresponding kernel.
+
+Attack-mode 4, the PCFG attack, is a fourth kernel and it is optional. See the section on it below.
 
 The file name convention for fast hashes is: `OpenCL/mXXXXX_a[0|1|3]-[pure|optimized].cl`
 
 #### Kernel: fast hash type (optimized) ####
 
-As you can see from this convention, you actually have to implement six kernels if you want to add a full featured fast hash mode to hashcat. It is up to you if you want to save some time only implementing a pure kernel, only an optimized kernel or both. But in each case you must implement all three attack modes to support all the different attack types supported by hashcat.
+As you can see from this convention, you actually have to implement six kernels if you want to add a full featured fast hash mode to hashcat. It is up to you if you want to save some time only implementing a pure kernel, only an optimized kernel or both. But in each case you must implement all three attack modes to support all the different attack types supported by hashcat. A seventh kernel, `a4-pure`, is optional and gives attack-mode 4 a device kernel instead of the host fallback.
 
 Remember we only need to have those three different implementations due to the different ways the password candidate is generated. You may think it would be easier to have like three branches but these branches would already decrease the performance drastically.
 
@@ -693,6 +695,21 @@ The main purpose of pure kernels is to support long passwords (and salts) up to 
 Each fast hash kernel source in pure mode has to provide the following kernel functions with this convention: `mXXXXX_[mxx|sxx]`.
 
 The pure kernels are supposed to run slower than optimized kernels, but it is hard to define a percentage which shows the performance difference because it largely depends on what kind of optimization you can use. For instance, for NTLM in which you can do meet-in-the-middle tests, the optimized kernel is around three times faster than the pure kernel. On contrary, for SHA256-HMAC they have exactly the same performance.
+
+#### Kernel: fast hash type (attack-mode 4) ####
+
+Attack-mode 4 is the PCFG attack, and on a fast hash it amplifies inside the hash kernel the way the rules engine does for attack-mode 0. The file name convention is `OpenCL/mXXXXX_a4-pure.cl`. There is no optimized form.
+
+This kernel is optional. A hash mode without one runs the PCFG attack on the host instead, which is correct and much slower, and hashcat says so on startup rather than failing.
+
+You do not write the kernel. You write four hooks and include the engine, which walks the candidates and does the comparing:
+
+* `pcfg_hash_init ()`: pick up what the mode needs from the kernel's own parameters, which for a salted mode is its salt and for an esalt mode its esalt. Store it on `pcfg_hash_ctx_t`, which is the mode's own struct.
+* `pcfg_hash_setup ()`: what the hash wants written into the candidate array once, before any candidate exists. Most modes leave it empty.
+* `pcfg_hash ()`: the candidate array, a byte length, and the four words a comparison needs. This is the body of the attack-mode 0 loop with the base word paste removed.
+* `pcfg_hash_global ()`: the same for a base word too long for the array, which is read straight out of global memory.
+
+`OpenCL/inc_pcfg_kernel.cl` documents all four and is worth reading before writing one. `OpenCL/m00100_a4-pure.cl` is the smallest complete example.
 
 ### Kernel: slow hash type ###
 
@@ -914,7 +931,7 @@ If you ship it in binary form, you rebuild it against the new hashcat, and you s
 
 That refusal is one exported name and one pointer. The core defines a function called `HASHCAT_PLUGIN_720`, and every plugin written in C holds a pointer to it because `include/export.h` says so. Nothing ever calls it. Raise MODULE_INTERFACE_VERSION and the name changes with it, so a plugin built against the old number cannot resolve what it is holding. This is the same mechanism on Linux, macOS and Windows, and it happens before `module_init()` runs.
 
-The number comes from `-DHC_PLUGIN_ABI_VERSION` on your compile line, which is why it is on the line above. `include/modules.h`, `include/bridges.h` and `include/generic.h` are the three headers only a plugin includes, and each one refuses to be read without it. A plugin that was compiled without the number would hold no pointer, load against any core, and find out what had moved by running into it.
+The number comes from `-DHC_PLUGIN_ABI_VERSION` on your compile line, which is why it is on the line above. `include/modules.h`, `include/bridges.h` and `include/feed.h` are the three headers only a plugin includes, and each one refuses to be read without it. A plugin that was compiled without the number would hold no pointer, load against any core, and find out what had moved by running into it.
 
 The Rust feed is the one plugin here that is not built this way. It calls nothing in the core, cargo never sees a link line, and it declares its interface version in `GENERIC_PLUGIN_VERSION` instead, which the core reads after loading it.
 
@@ -942,11 +959,108 @@ Finally, if you want the old arrangement back, `make SHARED=0` builds it. Every 
 
 Nothing at load time catches that. A static plugin is complete, it exports the same one name, and the loader has nothing to fail on. What catches it is `tools/test_package.sh`, which asks every shipped plugin whether it names the core library in its own dependencies, and it is the reason to run that script over a package before shipping it. Note that `SHARED` defaults to 0 on any platform other than Linux and macOS, MSYS2 included, while the Windows release is built shared, so a plugin built natively on Windows against a downloaded release is the case to watch for. Pass `SHARED=1` there.
 
+## Feed settings ##
+
+This section is about feeds, the `-a 8` plugins, and how one takes settings from the user.
+
+A feed is handed its arguments as strings and nothing parses them for it. That is not an oversight
+that a later release will fix: hashcat's own `getopt` runs before it knows which plugin it is going
+to load, so it cannot know that `--model` belongs to your feed rather than being a typo, and by the
+time your feed exists the command line has long been read and accepted. Anything after the plugin
+name is yours, and `global_ctx->workv` is where it arrives, with `workv[0]` being the name the user
+typed for your feed.
+
+So a setting is written as `key=value` among the sources:
+
+```
+hashcat -a 8 -m 0 hashes.txt myfeed model.dat mode=2 pwlen=6:16
+```
+
+and not as `--myfeed-mode 2`. That is worth being explicit about, because the second form looks more
+like the rest of hashcat and is the wrong shape for two reasons that have nothing to do with taste.
+
+The first is that a work argument is part of the attack's identity and an option is not. The brain
+hashes every one of your arguments into the attack id it keys its record of covered keyspace on, so
+two runs that differ only in `mode=2` against `mode=4` are two attacks and neither is told the other
+already covered its keyspace. A setting that arrived some other way would have to be added to that
+hash by hand, and when it is forgotten nothing reports it: the second run is simply told there is
+nothing left to do. The restore file records the arguments for the same reason, so a resumed session
+comes back with the settings it started with.
+
+The second is that the user's shell has already agreed to leave your arguments alone. hashcat stops
+reading options at the plugin name, so `mode=2` reaches you whatever it is called and cannot collide
+with any of hashcat's own option names, now or in a later release.
+
+You do not have to write the parser. Declare what your feed takes and let `feed_param_parse()` read
+it:
+
+```c
+static const char *model   = NULL;
+static u64         mode    = 0;
+static u64         burst   = 50000;
+static bool        shuffle = false;
+
+static const feed_param_t PARAMS[] =
+{
+  { "model",   FEED_PARAM_TYPE_STR,  &model,   0, 0,       "path to the trained model" },
+  { "mode",    FEED_PARAM_TYPE_U64,  &mode,    0, 7,       "generator to use, 0-7" },
+  { "burst",   FEED_PARAM_TYPE_U64,  &burst,   1, 1000000, "candidates per burst" },
+  { "shuffle", FEED_PARAM_TYPE_BOOL, &shuffle, 0, 0,       "reorder tokens within a structure" },
+  { NULL, 0, NULL, 0, 0, NULL }
+};
+
+bool global_init (generic_global_ctx_t *global_ctx, generic_thread_ctx_t **thread_ctx, hashcat_ctx_t *hashcat_ctx)
+{
+  if (feed_param_parse (global_ctx->workc, global_ctx->workv, PARAMS, global_ctx->error_msg, sizeof (global_ctx->error_msg)) == false)
+  {
+    global_ctx->error = true;
+
+    return false;
+  }
+
+  ...
+}
+```
+
+Whatever your variables held before the call is the default, because a setting that was not given is
+not written. `min` and `max` bound a `FEED_PARAM_TYPE_U64` and are ignored by the other types; a pair
+left at zero means the feed did not want a range.
+
+A key your table does not list is an error, and that is the point of the call rather than a side
+effect of it. Your settings are invisible to `--help` and to tab completion, so a misspelled one has
+nothing else to catch it, and a feed that quietly ignored what it did not recognise would run a
+different attack than the one it was asked for and say so nowhere. `mode=2 mode=4` is refused for the
+same reason: last-one-wins reads as a preference being applied when it is a mistake.
+
+The other three helpers are there for the cases the table does not cover:
+
+* `feed_param_is_setting()` says whether an argument is a setting, which is how a feed walks its own
+  arguments and picks out the sources: skip the settings and what is left are the paths.
+* `feed_param_lookup()` returns the value of one key as a string, for a feed that wants to read
+  something without declaring it.
+* `feed_param_usage()` writes the table out one setting per line, for a feed to print when its
+  arguments make no sense.
+
+An argument counts as a setting when it is `key=value` with a key that could not be a path: a letter
+followed by letters, digits, dashes or underscores, and no directory separator in front of the `=`.
+Everything else is a source. A file whose name really does look like a setting is still reachable as
+`./mode=2`, because that has a separator in it.
+
 ## Porting a plugin from 7.1.2 ##
 
 The section above is the whole story of how a plugin is built and loaded. This one is the short list of what changed in the source between the 7.1.2 release and now, for somebody who has a working plugin and wants it building again.
 
 What you need to do:
+
+A feed includes `feed.h` where it used to include `generic.h`, which is gone. The contract in it has
+not changed, so that is the whole edit for a feed that only produces candidates. What moved is the
+other half of the old header: the functions hashcat uses to drive feeds are in `feed_ctx.h` now, and a
+feed cannot include that one. If your feed called one of them it was reaching into hashcat's own
+bookkeeping from a plugin thread, and the build will tell you so rather than the run.
+
+`feed_param_t` and the `feed_param_*` functions moved out of `types.h` and `shared.h` into `feed.h`
+with their signatures unchanged, so a feed that already includes `feed.h` needs no further edit for
+them.
 
 One hook is gone: `module_dictstat_disable`. Remove the line in `module_init()` that registers it and two hooks are new, `module_usage_notice` and `module_advice_notice`, which let a module print a usage or an advice line of its own.
 

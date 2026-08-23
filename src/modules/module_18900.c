@@ -224,6 +224,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   salt->salt_len = 64;
 
+  if (android_backup->iter < 1) return (PARSER_SALT_ITERATION);
+
   salt->salt_iter = android_backup->iter - 1;
 
   digest[0] = android_backup->masterkey_blob[0];

@@ -14,7 +14,7 @@
 #include "backend.h"
 #include "shared.h"
 #include "path.h"
-#include "generic.h"
+#include "feed_ctx.h"
 #include "ext_lzma.h"
 #include "mpsp.h"
 

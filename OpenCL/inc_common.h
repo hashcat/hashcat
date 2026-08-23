@@ -96,6 +96,14 @@
 #define _KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
 #define _KERN_ATTR_RULES()                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void)
 #define _KERN_ATTR_RULES_ESALT(e)          KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e)
+#define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void),  \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
+#define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e),     \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, e)
 #define _KERN_ATTR_TMPS_HOOKS(t,h)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    h,    void)
@@ -108,6 +116,14 @@
 #define _KERN_ATTR_ESALT(e)                KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e)
 #define _KERN_ATTR_RULES()                 KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, void)
 #define _KERN_ATTR_RULES_ESALT(e)          KERN_ATTR (CONSTANT_AS, GLOBAL_AS   const bf_t      *bfs_buf,       void, void, e)
+#define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, void),  \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
+#define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e),     \
+  MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, e)
 #define _KERN_ATTR_TMPS_HOOKS(t,h)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    h,    void)
@@ -123,7 +139,7 @@
  */
 
 #if defined IS_METAL
-#define KERN_ATTR_MAIN_PARAMS                       \
+#define KERN_ATTR_MAIN_PARAMS                        \
   uint3 hc_gid [[ thread_position_in_grid ]],        \
   uint3 hc_lid [[ thread_position_in_threadgroup ]], \
   uint3 hc_lsz [[ threads_per_threadgroup ]],        \
@@ -150,6 +166,8 @@
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES(), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_RULES_ESALT(e)               _KERN_ATTR_RULES_ESALT(e), KERN_ATTR_MAIN_PARAMS
+#define KERN_ATTR_PCFG()                       _KERN_ATTR_PCFG(), KERN_ATTR_MAIN_PARAMS
+#define KERN_ATTR_PCFG_ESALT(e)                _KERN_ATTR_PCFG_ESALT(e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_TMPS(t)                      _KERN_ATTR_TMPS(t), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_TMPS_ESALT(t,e)              _KERN_ATTR_TMPS_ESALT(t,e), KERN_ATTR_MAIN_PARAMS
 #define KERN_ATTR_TMPS_HOOKS(t,h)              _KERN_ATTR_TMPS_HOOKS(t,h), KERN_ATTR_MAIN_PARAMS
@@ -163,6 +181,8 @@
 #define KERN_ATTR_ESALT(e)                     _KERN_ATTR_ESALT(e)
 #define KERN_ATTR_RULES()                      _KERN_ATTR_RULES()
 #define KERN_ATTR_RULES_ESALT(e)               _KERN_ATTR_RULES_ESALT(e)
+#define KERN_ATTR_PCFG()                       _KERN_ATTR_PCFG()
+#define KERN_ATTR_PCFG_ESALT(e)                _KERN_ATTR_PCFG_ESALT(e)
 #define KERN_ATTR_TMPS(t)                      _KERN_ATTR_TMPS(t)
 #define KERN_ATTR_TMPS_ESALT(t,e)              _KERN_ATTR_TMPS_ESALT(t,e)
 #define KERN_ATTR_TMPS_HOOKS(t,h)              _KERN_ATTR_TMPS_HOOKS(t,h)
@@ -284,10 +304,7 @@ DECLSPEC u32  hc_byte_perm_S    (const u32  a, const u32  b, const int  c);
 
 DECLSPEC u32x hc_add3           (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32  hc_add3_S         (const u32  a, const u32  b, const u32  c);
-DECLSPEC u32x hc_bfe            (const u32x a, const u32x b, const u32x c);
 DECLSPEC u32  hc_bfe_S          (const u32  a, const u32  b, const u32  c);
-DECLSPEC u32x hc_lop_0x96       (const u32x a, const u32x b, const u32x c);
-DECLSPEC u32  hc_lop_0x96_S     (const u32  a, const u32  b, const u32  c);
 
 // arithmetic operations
 
@@ -354,11 +371,8 @@ DECLSPEC void switch_buffer_by_offset_8x4_le (PRIVATE_AS u32x *w0, PRIVATE_AS u3
 DECLSPEC void switch_buffer_by_offset_8x4_carry_le (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, PRIVATE_AS u32x *c0, PRIVATE_AS u32x *c1, PRIVATE_AS u32x *c2, PRIVATE_AS u32x *c3, PRIVATE_AS u32x *c4, PRIVATE_AS u32x *c5, PRIVATE_AS u32x *c6, PRIVATE_AS u32x *c7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_be (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, const u32 offset);
 DECLSPEC void switch_buffer_by_offset_8x4_carry_be (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, PRIVATE_AS u32x *w4, PRIVATE_AS u32x *w5, PRIVATE_AS u32x *w6, PRIVATE_AS u32x *w7, PRIVATE_AS u32x *c0, PRIVATE_AS u32x *c1, PRIVATE_AS u32x *c2, PRIVATE_AS u32x *c3, PRIVATE_AS u32x *c4, PRIVATE_AS u32x *c5, PRIVATE_AS u32x *c6, PRIVATE_AS u32x *c7, const u32 offset);
-DECLSPEC void switch_buffer_by_offset_1x64_le (PRIVATE_AS u32x *w, const u32 offset);
-DECLSPEC void switch_buffer_by_offset_1x64_be (PRIVATE_AS u32x *w, const u32 offset);
-DECLSPEC void truncate_block_4x4_le_S (PRIVATE_AS u32 *w0, const u32 len);
-DECLSPEC void truncate_block_4x4_be_S (PRIVATE_AS u32 *w0, const u32 len);
-DECLSPEC void truncate_block_16x4_le_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 len);
+DECLSPEC void truncate_block_4x4_le_S (PRIVATE_AS u32 *w, const u32 len);
+DECLSPEC void truncate_block_4x4_be_S (PRIVATE_AS u32 *w, const u32 len);
 DECLSPEC void truncate_block_16x4_be_S (PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const u32 len);
 DECLSPEC void set_mark_1x4_S (PRIVATE_AS u32 *v, const u32 offset);
 DECLSPEC void append_helper_1x4_S (PRIVATE_AS u32 *r, const u32 v, PRIVATE_AS const u32 *m);
