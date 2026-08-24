@@ -73,6 +73,8 @@ if ! command -v g++ > /dev/null 2>&1; then
   echo
 fi
 
+TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Names of everything that did not install, so the summary can say which rather than how many.
 
 FAILED_MODULES=""
@@ -209,8 +211,17 @@ if [ $? -eq 0 ]; then
     # install the latest version or skip it if it is already present
     pyenv install -s ${latest}
 
-    # enable
-    pyenv local $latest
+    # Enable it where the suite actually runs, which is the repository root, not wherever this
+    # script was started from. pyenv local writes .python-version into the current directory and
+    # applies to that directory and below, so a pin written in tools/ leaves test.sh, which runs
+    # from the root, on the system python. The oracles then shell out to a bare python3 and get
+    # one without pycryptodome:
+    #
+    #   ModuleNotFoundError: No module named 'Crypto'
+    #
+    # A pin at the root covers tools/ as well, so this is the one place to put it.
+
+    ( cd "${TOOLS_DIR}/.." && pyenv local ${latest} )
     if [ $? -eq 0 ]; then
       pyenv_enabled=1
     fi
@@ -265,8 +276,6 @@ fi
 # matter which hash mode is asked for, so a single missing one makes the suite report
 # "Error : 0/0 not found" on every mode, which reads as hashcat failing rather than as a setup
 # problem. Catching it here, where the cause is still in front of you, is the whole point.
-
-TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if perl "${TOOLS_DIR}/test.pl" single 0 2> /dev/null | grep -q hashcat; then
 
