@@ -115,7 +115,8 @@ DECLSPEC void cast128_decrypt_cfb (GLOBAL_AS const u32 *encrypted_data, int data
   PRIVATE_AS u8 *iv8 = (PRIVATE_AS u8*)iv;
 
   // set IV
-  for (int j = 0; j < 16; j++)
+  // CAST5 has an 8 byte block, and essiv is 8 bytes wide.
+  for (int j = 0; j < 8; j++)
   {
     essiv[j] = iv8[j];
   }
