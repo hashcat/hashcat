@@ -11,6 +11,7 @@
 #include "shared.h"
 #include "path.h"
 #include "folder.h"
+#include "filehandling.h"
 #include "rp.h"
 #include "mpsp.h"
 #include "feed_ctx.h"
@@ -420,6 +421,29 @@ static void generic_instance_destroy (hashcat_ctx_t *hashcat_ctx, generic_ctx_t 
 // all address those arguments by position, so moving every index by one to make room for a plugin
 // name changes what all of them see.
 
+// A base wordlist that is a single zstd stream is handed to the shipped zstd feed, which decompresses
+// and seeks inside it; anything else goes to the plain wordlist feed. Detected by magic so a .zst under
+// any name is classified by content and a plaintext file never is. Only the base source is auto-routed;
+// amplifiers (-a 1/6/7) stay on the wordlist feed.
+static const char *generic_base_feed (const char *path)
+{
+  if (path == NULL) return "wordlist";
+
+  HCFILE fp;
+
+  if (hc_fopen_raw (&fp, path, "rb") == false) return "wordlist";
+
+  u8 m[4] = { 0 };
+
+  const size_t n = hc_fread (m, 1, sizeof (m), &fp);
+
+  hc_fclose (&fp);
+
+  if (n == 4 && m[0] == 0x28 && m[1] == 0xb5 && m[2] == 0x2f && m[3] == 0xfd) return "zstd";
+
+  return "wordlist";
+}
+
 static int generic_instance_open (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const int from, const int to)
 {
   generic_ctx_t        *generic_ctx        = &hashcat_ctx->generic_ctx[role];
@@ -428,7 +452,9 @@ static int generic_instance_open (hashcat_ctx_t *hashcat_ctx, const generic_role
   generic_ctx->workc = (to - from) + 1;
   generic_ctx->workv = (char **) hcmalloc ((size_t) generic_ctx->workc * sizeof (char *));
 
-  generic_ctx->workv[0] = "wordlist";
+  generic_ctx->workv[0] = (char *) (((role == GENERIC_ROLE_BASE) && ((to - from) == 1))
+                                    ? generic_base_feed (user_options_extra->hc_workv[from])
+                                    : "wordlist");
 
   for (int i = from; i < to; i++)
   {
@@ -467,7 +493,7 @@ int generic_ctx_base_round (hashcat_ctx_t *hashcat_ctx, const char *path)
   // -a 9 splitting its own hash file has no file to name per round. Its rounds are the words one account
   // name becomes, so the source is which of those words this round is trying.
 
-  generic_ctx->workv[0] = (user_options_extra->association_autosplit == true) ? "association" : "wordlist";
+  generic_ctx->workv[0] = (char *) ((user_options_extra->association_autosplit == true) ? "association" : generic_base_feed (path));
   generic_ctx->workv[1] = (char *) path;
 
   generic_ctx->workv_owned = true;
