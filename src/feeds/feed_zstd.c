@@ -82,6 +82,8 @@ typedef struct
   size_t      max_comp;    // largest compressed frame  -> thread read buffer
   size_t      max_uncomp;  // largest decompressed frame -> thread frame buffer
 
+  u64         build_threads; // cap for the parallel index build / reframe (0 = auto = all cores)
+
 } zf_global_t;
 
 typedef struct
@@ -164,7 +166,7 @@ static u64 file_ident (const char *path, u64 *filesize)
   return h;
 }
 
-static char *cache_path (generic_global_ctx_t *global_ctx, const u64 ident)
+static char *zf_seekdb_dir (generic_global_ctx_t *global_ctx)
 {
   char *dir = NULL;
 
@@ -178,7 +180,14 @@ static char *cache_path (generic_global_ctx_t *global_ctx, const u64 ident)
     hc_mkdir (dir, 0700);
   }
 
+  return dir;
+}
+
+static char *cache_path (generic_global_ctx_t *global_ctx, const u64 ident)
+{
+  char *dir  = zf_seekdb_dir (global_ctx);
   char *path = NULL;
+
   hc_asprintf (&path, "%s/%016" PRIx64 ".zfidx", dir, ident);
   hcfree (dir);
 
@@ -565,7 +574,7 @@ static bool index_build_parallel (zf_global_t *g, const char *path)
   // 2) decode + line-scan every frame in parallel, bounded so threads * largest_frame stays modest
 
   const long ncpu = sysconf (_SC_NPROCESSORS_ONLN);
-  u64 nthreads = (ncpu > 0) ? (u64) ncpu : 1;
+  u64 nthreads = (g->build_threads > 0) ? g->build_threads : ((ncpu > 0) ? (u64) ncpu : 1);
   const u64 by_mem = ((u64) 8 * 1024 * 1024 * 1024) / max_ucs;
   if (by_mem < 1) nthreads = 1; else if (nthreads > by_mem) nthreads = by_mem;
   if (nthreads > nframes) nthreads = nframes;
@@ -704,19 +713,189 @@ static void carry_reserve (zf_thread_t *t, const size_t need)
   t->carry_cap = cap;
 }
 
+// ---- on-the-fly reframing (the zsf tool, embedded) ----
+// Decompress any zstd file and re-emit it as independent, line-aligned frames of ~frame_bytes each,
+// so a single-frame .zst becomes seekable without an offline step. The slow part (compressing each
+// frame) runs in parallel; the decode that cuts frames on line boundaries is serial but fast. Output
+// is a standard multi-frame .zst that the normal index path then indexes.
+
+typedef struct { unsigned char *plain; size_t plen; unsigned char *comp; size_t clen; int level; int err; } rf_job_t;
+typedef struct { rf_job_t *jobs; u64 njobs; u64 next; } rf_pool_t;
+
+static void *rf_worker (void *arg)
+{
+  rf_pool_t *p = (rf_pool_t *) arg;
+  for (;;)
+  {
+    const u64 i = __atomic_fetch_add (&p->next, 1, __ATOMIC_RELAXED);
+    if (i >= p->njobs) break;
+    rf_job_t *j = &p->jobs[i];
+    const size_t bound = ZSTD_compressBound (j->plen);
+    j->comp = (unsigned char *) malloc (bound);
+    if (j->comp == NULL) { j->err = 1; continue; }
+    const size_t c = ZSTD_compress (j->comp, bound, j->plain, j->plen, j->level);
+    if (ZSTD_isError (c)) { j->err = 1; continue; }
+    j->clen = c;
+  }
+  return NULL;
+}
+
+static bool rf_flush (FILE *out, rf_job_t *jobs, u64 njobs, u64 nthreads)
+{
+  if (njobs == 0) return true;
+
+  rf_pool_t p = { jobs, njobs, 0 };
+  u64 nt = nthreads ? nthreads : 1; if (nt > njobs) nt = njobs;
+
+  pthread_t *t = (pthread_t *) hcmalloc (nt * sizeof (pthread_t));
+  u64 spawned = 0;
+  for (u64 i = 0; i < nt; i++) { if (pthread_create (&t[i], NULL, rf_worker, &p) != 0) break; spawned++; }
+  if (spawned == 0) rf_worker (&p);
+  for (u64 i = 0; i < spawned; i++) pthread_join (t[i], NULL);
+  hcfree (t);
+
+  bool ok = true;
+  for (u64 i = 0; i < njobs; i++)
+  {
+    if (jobs[i].err) ok = false;
+    else if (fwrite (jobs[i].comp, 1, jobs[i].clen, out) != jobs[i].clen) ok = false;
+    free (jobs[i].comp); jobs[i].comp = NULL;
+    free (jobs[i].plain); jobs[i].plain = NULL;
+  }
+  return ok;
+}
+
+static bool reframe (const char *inpath, const char *outpath, size_t frame_bytes, int level, u64 nthreads)
+{
+  int fd = open (inpath, O_RDONLY);
+  if (fd == -1) return false;
+
+  ZSTD_DStream *ds = ZSTD_createDStream ();
+  if (ds == NULL) { close (fd); return false; }
+  ZSTD_bounds const wb = ZSTD_dParam_getBounds (ZSTD_d_windowLogMax);
+  if (!ZSTD_isError (wb.error)) ZSTD_DCtx_setParameter (ds, ZSTD_d_windowLogMax, wb.upperBound);
+
+  FILE *out = fopen (outpath, "wb");
+  if (out == NULL) { ZSTD_freeDStream (ds); close (fd); return false; }
+
+  const size_t incap = ZSTD_DStreamInSize ();
+  unsigned char *inbuf  = (unsigned char *) hcmalloc (incap);
+  unsigned char *outbuf = (unsigned char *) hcmalloc (BUILD_OUTBUF);
+
+  size_t cap = frame_bytes + BUILD_OUTBUF + 1;
+  unsigned char *line = (unsigned char *) hcmalloc (cap);
+  size_t head = 0, len = 0;
+
+  const u64 BATCH = (nthreads ? nthreads : 1) * 4;
+  rf_job_t *batch = (rf_job_t *) hcmalloc (BATCH * sizeof (rf_job_t));
+  u64 bn = 0;
+
+  hc_memchr_t mc = hc_memchr_get ();
+  bool ok = true;
+
+  #define RF_EMIT(P,L) do {                                                                    \
+    unsigned char *cpy = (unsigned char *) malloc (L);                                         \
+    if (cpy == NULL) { ok = false; break; }                                                    \
+    memcpy (cpy, (P), (L));                                                                     \
+    batch[bn].plain = cpy; batch[bn].plen = (L); batch[bn].comp = NULL; batch[bn].clen = 0;    \
+    batch[bn].level = level; batch[bn].err = 0; bn++;                                           \
+    if (bn == BATCH) { if (rf_flush (out, batch, bn, nthreads) == false) ok = false; bn = 0; } \
+  } while (0)
+
+  for (;;)
+  {
+    ssize_t rd = read (fd, inbuf, incap);
+    if (rd < 0) { ok = false; break; }
+    if (rd == 0) break;
+
+    ZSTD_inBuffer ib = { inbuf, (size_t) rd, 0 };
+    while (ib.pos < ib.size && ok)
+    {
+      ZSTD_outBuffer ob = { outbuf, BUILD_OUTBUF, 0 };
+      const size_t r = ZSTD_decompressStream (ds, &ob, &ib);
+      if (ZSTD_isError (r)) { ok = false; break; }
+
+      if (head > 0 && len + ob.pos > cap) { memmove (line, line + head, len - head); len -= head; head = 0; }
+      if (len + ob.pos > cap) { size_t nc = cap; while (nc < len + ob.pos) nc *= 2; line = (unsigned char *) hcrealloc (line, cap, nc - cap); cap = nc; }
+      memcpy (line + len, outbuf, ob.pos);
+      len += ob.pos;
+
+      while (ok && (len - head) >= frame_bytes)
+      {
+        const unsigned char *base = line + head;
+        const size_t avail = len - head;
+        const size_t nl = mc (base + frame_bytes - 1, '\n', avail - (frame_bytes - 1));
+        if ((frame_bytes - 1 + nl) >= avail) break; // no newline yet, need more input
+        const size_t cut = (frame_bytes - 1) + nl + 1;
+        RF_EMIT (base, cut);
+        head += cut;
+      }
+      if (head == len) { head = 0; len = 0; }
+    }
+    if (!ok) break;
+  }
+
+  if (ok && (len - head) > 0) RF_EMIT (line + head, len - head);
+  if (ok && bn > 0) { if (rf_flush (out, batch, bn, nthreads) == false) ok = false; bn = 0; }
+
+  #undef RF_EMIT
+
+  for (u64 i = 0; i < bn; i++) { free (batch[i].plain); free (batch[i].comp); }
+
+  hcfree (batch); hcfree (line); hcfree (inbuf); hcfree (outbuf);
+  ZSTD_freeDStream (ds);
+  fclose (out);
+  close (fd);
+
+  if (!ok) unlink (outpath);
+  return ok;
+}
+
 bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
   zf_global_t *g = (zf_global_t *) hccalloc (1, sizeof (zf_global_t));
 
   global_ctx->gbldata = g;
 
-  if (global_ctx->workc < 2)
+  // feed settings, given attack-mode-8 style as key=value among the arguments:
+  //   -a 8 feeds/feed_zstd.so wordlist.zst frame=16 level=19 threads=8
+
+  u64 p_frame = 0, p_level = 19, p_threads = 0;
+
+  const feed_param_t params[] =
   {
-    error_set (global_ctx, "usage: feed_zstd.so <wordlist.zst> (multi-frame for fast --skip)");
+    { "frame",   FEED_PARAM_TYPE_U64, &p_frame,   0, 1024, "reframe into this frame size in MiB (0 = use the file's own frames)" },
+    { "level",   FEED_PARAM_TYPE_U64, &p_level,   1, 22,   "zstd level used when reframing (default 19)" },
+    { "threads", FEED_PARAM_TYPE_U64, &p_threads, 0, 4096, "cores for the parallel build/reframe (0 = all)" },
+    { NULL, 0, NULL, 0, 0, NULL },
+  };
+
+  char perr[256];
+
+  if (feed_param_parse (global_ctx->workc, global_ctx->workv, params, perr, sizeof (perr)) == false)
+  {
+    error_set (global_ctx, "%s", perr);
     return false;
   }
 
-  g->path = hcstrdup (global_ctx->workv[1]);
+  g->build_threads = p_threads;
+
+  // the source is the first argument that is not a key=value setting
+
+  const char *src = NULL;
+
+  for (int i = 1; i < global_ctx->workc; i++)
+  {
+    if (feed_param_is_setting (global_ctx->workv[i]) == false) { src = global_ctx->workv[i]; break; }
+  }
+
+  if (src == NULL)
+  {
+    error_set (global_ctx, "usage: feed_zstd.so <wordlist.zst> [frame=<MiB>] [level=<n>] [threads=<n>]");
+    return false;
+  }
+
+  g->path = hcstrdup (src);
 
   u64 ident = file_ident (g->path, &g->filesize);
 
@@ -724,6 +903,37 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
   {
     error_set (global_ctx, "%s: cannot open", g->path);
     return false;
+  }
+
+  // optional: reframe on the fly into a cached multi-frame file, then operate on that copy
+
+  if (p_frame > 0)
+  {
+    char *dir    = zf_seekdb_dir (global_ctx);
+    char *framed = NULL;
+    hc_asprintf (&framed, "%s/%016" PRIx64 "-f%" PRIu64 "l%" PRIu64 ".zst", dir, ident, p_frame, p_level);
+    hcfree (dir);
+
+    struct stat fst;
+
+    if (stat (framed, &fst) != 0)
+    {
+      feed_say (hashcat_ctx, "feed_zstd: reframing %s into %" PRIu64 " MiB frames (level %" PRIu64 ") ...", g->path, p_frame, p_level);
+
+      const u64 nt = p_threads ? p_threads : ((sysconf (_SC_NPROCESSORS_ONLN) > 0) ? (u64) sysconf (_SC_NPROCESSORS_ONLN) : 1);
+
+      if (reframe (g->path, framed, (size_t) p_frame * 1024 * 1024, (int) p_level, nt) == false)
+      {
+        hcfree (framed);
+        error_set (global_ctx, "%s: reframe failed", g->path);
+        return false;
+      }
+    }
+
+    hcfree (g->path);
+    g->path = framed;
+
+    ident = file_ident (g->path, &g->filesize);
   }
 
   // 1) a zsf sidecar sits next to the file and is already the index
