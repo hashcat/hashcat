@@ -69,7 +69,7 @@ fi
 
 if ! command -v g++ > /dev/null 2>&1; then
   echo "! g++ not found. Digest::MurmurHash3 is C++ and will be the one module that fails."
-  echo "  apt install build-essential, or the equivalent, first."
+  echo "  Run ./install_dependencies.sh first."
   echo
 fi
 
@@ -246,58 +246,6 @@ else
   ERRORS=$((ERRORS+$?))
 
 fi
-
-# test.sh -g builds real crypto-containers, and those need ordinary command line tools rather
-# than perl or python modules, so they are not in the lists above. Install what the package
-# manager can give us. This is best effort on purpose: a run without them still works, it just
-# records a skip naming the tool for every format it could not build.
-#
-# Three of them no package manager here can provide, and tools/README.md says where to get them:
-# John jumbo for the 2john tools, a RARLAB rar 6.x or older for the RAR3 modes, and a veracrypt
-# console build.
-
-GEN_PACKAGES="zip gnupg gnupg1 cryptsetup"
-
-install_gen_tools ()
-{
-  if [ ${IS_APPLE} -eq 1 ]; then
-    echo "> Skipping the test.sh -g tools, this script only knows how to install them with apt."
-    echo "  See tools/README.md for what each format needs."
-    return
-  fi
-
-  if ! command -v apt-get > /dev/null 2>&1; then
-    echo "> No apt-get, so the test.sh -g tools are not installed. On this system, install the"
-    echo "  equivalents of: ${GEN_PACKAGES}"
-    echo "  See tools/README.md for what each one is for."
-    return
-  fi
-
-  local sudo_cmd=""
-
-  if [ "$(id -u)" -ne 0 ]; then
-    if command -v sudo > /dev/null 2>&1; then
-      sudo_cmd="sudo"
-    else
-      echo "> Not root and no sudo, so the test.sh -g tools are not installed. Run:"
-      echo "    apt-get install -y ${GEN_PACKAGES}"
-      return
-    fi
-  fi
-
-  echo "> Installing the test.sh -g tools (${GEN_PACKAGES}) ..."
-
-  if ${sudo_cmd} apt-get install -y ${GEN_PACKAGES} > /dev/null 2>&1; then
-    echo "  ok"
-  else
-    # Not an error for this script: -g is optional and every missing tool is reported again, by
-    # name, in the run that wanted it.
-    echo "  FAILED, so -g will skip the formats whose tools are missing. Run by hand:"
-    echo "    ${sudo_cmd} apt-get install ${GEN_PACKAGES}"
-  fi
-}
-
-install_gen_tools
 
 echo
 
