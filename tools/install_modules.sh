@@ -34,13 +34,43 @@ export LC_ALL=C.UTF-8
 # still rely on one and no longer compile, Crypt::DES among them, which alone takes Crypt::DES_EDE3
 # and every Authen::Passphrase variant down with it. ExtUtils::MakeMaker ignores CFLAGS, so the flag
 # has to travel in PERL_MM_OPT. Anything local::lib already put there has to be kept.
+#
+# It goes in OPTIMIZE and not in CCFLAGS. MakeMaker compiles with both, "$(CCFLAGS) $(OPTIMIZE)",
+# and either one given here replaces what the build worked out for itself. CCFLAGS is the one that
+# matters: replacing it drops the flags perl was built with, and it also drops any a module set for
+# itself. Both have bitten:
+#
+#   Digest::MurmurHash3 appends -x c++ to CCFLAGS so that its XS is compiled as C++ to match
+#   src/MurmurHash3.cpp. Lose that and the two halves link as different languages, so the module
+#   builds, installs, and then cannot be loaded at all:
+#     undefined symbol: MurmurHash3_x64_128
+#
+#   Perl's own ccflags carry -D_GNU_SOURCE, which is what makes glibc declare off64_t. Lose that
+#   and on glibc 2.43 perl.h itself stops compiling:
+#     perl.h:3358: error: unknown type name 'off64_t'
+#   which takes Variable::Magic with it, and under it B::Hooks::EndOfScope, namespace::clean,
+#   namespace::autoclean, Crypt::PBKDF2, Crypt::CBC, Mooish::Base and Bitcoin::Crypto.
+#
+# OPTIMIZE carries no such per module meaning, so appending to $Config{optimize} adds the flag and
+# changes nothing else. The quotes matter: PERL_MM_OPT is split into KEY=VALUE words, so an unquoted
+# multi word value delivers only its first flag.
 
-CCFLAGS_COMPAT="CCFLAGS=-Wno-implicit-function-declaration"
+OPTIMIZE_COMPAT="$(perl -MConfig -e 'print $Config{optimize}') -Wno-implicit-function-declaration"
 
 if [ -n "${PERL_MM_OPT:-}" ]; then
-  export PERL_MM_OPT="${PERL_MM_OPT} ${CCFLAGS_COMPAT}"
+  export PERL_MM_OPT="${PERL_MM_OPT} OPTIMIZE='${OPTIMIZE_COMPAT}'"
 else
-  export PERL_MM_OPT="${CCFLAGS_COMPAT}"
+  export PERL_MM_OPT="OPTIMIZE='${OPTIMIZE_COMPAT}'"
+fi
+
+# Digest::MurmurHash3 is the only C++ module in the lists below, so it is the only one that needs
+# g++ rather than gcc. On a machine with a C compiler but no C++ one it is also the only one that
+# fails, with "cannot execute cc1plus", which does not obviously mean "install g++".
+
+if ! command -v g++ > /dev/null 2>&1; then
+  echo "! g++ not found. Digest::MurmurHash3 is C++ and will be the one module that fails."
+  echo "  apt install build-essential, or the equivalent, first."
+  echo
 fi
 
 # Names of everything that did not install, so the summary can say which rather than how many.
