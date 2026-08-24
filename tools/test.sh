@@ -66,14 +66,30 @@ GEN_ONLY_MODES="23800"
 # On its own -g runs exactly these, and -g together with a -m that selects none
 # of them is an error rather than a run that walks the list and generates
 # nothing. Each generator adds its modes here.
-GEN_MODES="${GPG_GEN_MODES} ${PKZIP_GEN_MODES} ${RAR_GEN_MODES}"
+GEN_MODES="${GPG_GEN_MODES} ${PKZIP_GEN_MODES} ${RAR_GEN_MODES} ${LUKS1_MODES} ${LUKS2_MODES} ${TC_MODES} ${VC_MODES}"
 
 # Of those, the ones whose generator needs root. Everything else builds its
 # container entirely in userspace, so a run that selects none of these never
-# asks for a password. Empty here: GPG, PKZIP and RAR all generate as the user.
-GEN_SUDO_MODES=""
+# asks for a password.
+#
+# LUKS is here because the payload has to be a real filesystem and that means
+# device-mapper, TrueCrypt because tcplay insists on a block device. GPG, PKZIP,
+# RAR and VeraCrypt all generate as the user.
+GEN_SUDO_MODES="${LUKS1_MODES} ${LUKS2_MODES} ${TC_MODES}"
 
 LUKS_MODES="${LUKS1_MODES} ${LUKS2_MODES}"
+
+# The container tests read their volumes from these directories. With -g they
+# are pointed at a directory test.sh fills itself, so the same tests run against
+# freshly built containers instead of the ones shipped in the tree or fetched
+# from hashcat.net.
+TC_TESTS_DIR="${TDIR}/tc_tests"
+VC_TESTS_DIR="${TDIR}/vc_tests"
+LUKS_TESTS_DIR="${TDIR}/luks_tests"
+
+# The password every generated container is built with, and the one the shipped
+# containers already use.
+CONTAINER_PASSWORD="hashcat"
 
 # Cryptoloop mode which have test containers
 CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 14543 14551 14552 14553"
@@ -270,7 +286,7 @@ function init()
 
   #LUKS1
   if is_in_array "$hash_type" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ; then
-    luks_tests_folder="${TDIR}/luks_tests/"
+    luks_tests_folder="${LUKS_TESTS_DIR}/"
 
     if [ ! -d "${luks_tests_folder}" ]; then
       mkdir -p "${luks_tests_folder}"
@@ -3316,6 +3332,358 @@ function cryptoloop_test()
   fi
 }
 
+# Real-container generation for TrueCrypt, VeraCrypt and LUKS1, the -g
+# counterpart of what gpg_test, pkzip_test and rar_test do for their formats.
+# Each one builds the volume with the tool that owns the format, and the
+# existing truecrypt_test, veracrypt_test and luks_test then run against it
+# unchanged, because -g only points TC_TESTS_DIR, VC_TESTS_DIR and
+# LUKS_TESTS_DIR at the directory these functions fill.
+#
+# What each needs:
+#
+#   VeraCrypt : the veracrypt console build. No privileges, it writes the whole
+#               volume itself. 1.26 dropped RIPEMD-160 for new volumes, so
+#               VERACRYPT_BIN pointed at a 1.25.9 or older build is what covers
+#               the RIPEMD-160 modes; a newer one skips them and says so.
+#               No version can write a TrueCrypt volume: -tc/--truecrypt is a
+#               mount-time compatibility flag, never a creation mode.
+#   TrueCrypt : tcplay, plus a loop device and a pty, so sudo and expect. The
+#               format has no free creator left; tcplay is the only one.
+#   LUKS1     : cryptsetup, plus sudo. Writing the header needs no privileges,
+#               but hashcat verifies a LUKS candidate by decrypting the payload
+#               and recognizing a filesystem, so the volume has to be opened and
+#               formatted, and that is device-mapper.
+#
+# Installing what is not packaged:
+#
+#   sudo apt install tcplay expect cryptsetup
+#
+#   # veracrypt is not in any distribution; the console build is a .deb
+#   curl -LO https://launchpad.net/veracrypt/trunk/1.26.24/+download/veracrypt-console-1.26.24-Ubuntu-24.04-amd64.deb
+#   sudo apt install ./veracrypt-console-1.26.24-Ubuntu-24.04-amd64.deb
+#
+#   # 1.26 refuses to create RIPEMD-160 volumes, so the RIPEMD-160 modes need an
+#   # older build. Unpack it beside the current one rather than replacing it,
+#   # and point VERACRYPT_BIN at it only for those runs:
+#   curl -LO https://launchpad.net/veracrypt/trunk/1.25.9/+download/veracrypt-console-1.25.9-Ubuntu-20.04-amd64.deb
+#   dpkg-deb -x veracrypt-console-1.25.9-Ubuntu-20.04-amd64.deb "${HOME}/veracrypt-1.25.9"
+#   VERACRYPT_BIN="${HOME}/veracrypt-1.25.9/usr/bin/veracrypt" ./tools/test.sh -m 13711 -g
+#
+# VERACRYPT_BIN, TCPLAY_BIN and CRYPTSETUP_BIN override the binaries if they
+# live somewhere else.
+
+function container_gen_dir()
+{
+  # Generated volumes go under the run's own output directory, so they never
+  # land next to, or on top of, the ones committed to the tree.
+  local cg_dir="${OUTD}/${1}"
+
+  mkdir -p "${cg_dir}"
+
+  echo "${cg_dir}"
+}
+
+function vc_encryption_name()
+{
+  # test.sh spells a cascade "aes-twofish-serpent"; veracrypt spells the same
+  # thing "AES(Twofish(Serpent))".
+  local ve_cascade="$1"
+  local ve_out=""
+  local ve_close=""
+  local ve_part
+
+  local IFS='-'
+
+  for ve_part in ${ve_cascade}; do
+    case "${ve_part}" in
+      aes)        ve_part="AES" ;;
+      serpent)    ve_part="Serpent" ;;
+      twofish)    ve_part="Twofish" ;;
+      camellia)   ve_part="Camellia" ;;
+      kuznyechik) ve_part="Kuznyechik" ;;
+      *)          return 1 ;;
+    esac
+
+    if [ -z "${ve_out}" ]; then
+      ve_out="${ve_part}"
+    else
+      ve_out="${ve_out}(${ve_part}"
+      ve_close="${ve_close})"
+    fi
+  done
+
+  echo "${ve_out}${ve_close}"
+}
+
+function veracrypt_generate()
+{
+  # $1 = hash, $2 = cipher cascade, $3 = target file
+  local vg_hash="$1"
+  local vg_cascade="$2"
+  local vg_file="$3"
+
+  local VERACRYPT_BIN="${VERACRYPT_BIN:-veracrypt}"
+
+  if ! command -v "${VERACRYPT_BIN}" >/dev/null 2>&1; then
+    record_skip "${hash_type}" "veracrypt not found, so no VeraCrypt volume can be generated (set VERACRYPT_BIN=/path/to/veracrypt)"
+    return 1
+  fi
+
+  local vg_encryption
+
+  vg_encryption="$(vc_encryption_name "${vg_cascade}")"
+
+  if [ -z "${vg_encryption}" ]; then
+    record_skip "${hash_type}" "no veracrypt name for cipher cascade ${vg_cascade}"
+    return 1
+  fi
+
+  rm -f "${vg_file}"
+
+  # 1 MiB is over VeraCrypt's minimum and keeps generation to a moment; hashcat
+  # only ever reads the header.
+  "${VERACRYPT_BIN}" --text --create "${vg_file}" \
+    --size=1M \
+    --password="${CONTAINER_PASSWORD}" \
+    --volume-type=normal \
+    --encryption="${vg_encryption}" \
+    --hash="${vg_hash}" \
+    --filesystem=none \
+    --pim=0 \
+    --keyfiles= \
+    --random-source=/dev/urandom \
+    --non-interactive >/dev/null 2>&1
+
+  if [ ! -s "${vg_file}" ]; then
+    rm -f "${vg_file}"
+
+    if [ "${vg_hash}" = "ripemd160" ]; then
+      # Whether this works depends on the binary rather than on the combination:
+      # VeraCrypt 1.26 dropped RIPEMD-160 for new volumes, 1.25.9 still writes
+      # them, so the message names the way out rather than calling it unsupported.
+      record_skip "${hash_type}" "${VERACRYPT_BIN} will not create RIPEMD-160 volumes; 1.26 dropped them, so point VERACRYPT_BIN at a 1.25.9 or older build to cover these"
+    else
+      record_skip "${hash_type}" "veracrypt refused ${vg_hash} + ${vg_encryption}, which is not a combination it supports"
+    fi
+
+    return 1
+  fi
+
+  return 0
+}
+
+function truecrypt_container_name()
+{
+  # The container each (mode, tcMode) pair wants, as <prf>_<cascade> with _boot
+  # appended for the system-encryption variants. The case statement inside
+  # truecrypt_test() spells the same thing out file by file; this is the same
+  # mapping in the form generation needs, one step ahead of it.
+  # $1 = hashType, $2 = tcMode
+  local tn_type="$1"
+  local tn_mode="$2"
+
+  local tn_group="${tn_type: -2:1}"   # 1 ripemd160, 2 sha512, 3 whirlpool, 4 ripemd160 boot
+  local tn_count="${tn_type: -1:1}"   # ciphers in the cascade
+
+  local tn_prf
+  local tn_boot=""
+
+  case "${tn_group}" in
+    1) tn_prf="ripemd160" ;;
+    2) tn_prf="sha512" ;;
+    3) tn_prf="whirlpool" ;;
+    4) tn_prf="ripemd160"; tn_boot="_boot" ;;
+    *) return 1 ;;
+  esac
+
+  local tn_cascade
+
+  case "${tn_count}${tn_mode}" in
+    10) tn_cascade="aes" ;;
+    11) tn_cascade="serpent" ;;
+    12) tn_cascade="twofish" ;;
+    20) tn_cascade="aes-twofish" ;;
+    21) tn_cascade="serpent-aes" ;;
+    22) tn_cascade="twofish-serpent" ;;
+    30) tn_cascade="aes-twofish-serpent" ;;
+    31) tn_cascade="serpent-twofish-aes" ;;
+    *) return 1 ;;
+  esac
+
+  echo "${tn_prf}_${tn_cascade}${tn_boot}"
+}
+
+function truecrypt_generate()
+{
+  # $1 = prf, $2 = cipher cascade, $3 = target file
+  local tg_prf="$1"
+  local tg_cascade="$2"
+  local tg_file="$3"
+
+  local TCPLAY_BIN="${TCPLAY_BIN:-tcplay}"
+
+  if ! command -v "${TCPLAY_BIN}" >/dev/null 2>&1; then
+    record_skip "${hash_type}" "tcplay not found, so no TrueCrypt volume can be generated (apt install tcplay, or set TCPLAY_BIN=...)"
+    return 1
+  fi
+
+  if ! command -v expect >/dev/null 2>&1; then
+    record_skip "${hash_type}" "expect not found, and tcplay reads its passphrase from a terminal (apt install expect)"
+    return 1
+  fi
+
+  local tg_prf_name
+
+  case "${tg_prf}" in
+    ripemd160) tg_prf_name="RIPEMD160" ;;
+    sha512)    tg_prf_name="SHA512" ;;
+    whirlpool) tg_prf_name="whirlpool" ;;
+    *)
+      record_skip "${hash_type}" "tcplay has no PBKDF PRF for ${tg_prf}"
+      return 1
+      ;;
+  esac
+
+  # tcplay names a cascade innermost first, TrueCrypt names it outermost first,
+  # so these are the same chains read from opposite ends.
+  local tg_cipher
+
+  case "${tg_cascade}" in
+    aes)                 tg_cipher="AES-256-XTS" ;;
+    serpent)             tg_cipher="SERPENT-256-XTS" ;;
+    twofish)             tg_cipher="TWOFISH-256-XTS" ;;
+    aes-twofish)         tg_cipher="TWOFISH-256-XTS,AES-256-XTS" ;;
+    serpent-aes)         tg_cipher="AES-256-XTS,SERPENT-256-XTS" ;;
+    twofish-serpent)     tg_cipher="SERPENT-256-XTS,TWOFISH-256-XTS" ;;
+    aes-twofish-serpent) tg_cipher="SERPENT-256-XTS,TWOFISH-256-XTS,AES-256-XTS" ;;
+    serpent-twofish-aes) tg_cipher="AES-256-XTS,TWOFISH-256-XTS,SERPENT-256-XTS" ;;
+    *)
+      record_skip "${hash_type}" "tcplay has no cipher chain for ${tg_cascade}"
+      return 1
+      ;;
+  esac
+
+  local tg_expect="${OUTD}/tcplay_create.exp"
+
+  cat > "${tg_expect}" << 'EXPECT_EOF'
+set timeout 600
+set dev  [lindex $argv 0]
+set pass [lindex $argv 1]
+set prf  [lindex $argv 2]
+set ciph [lindex $argv 3]
+set bin  [lindex $argv 4]
+spawn $bin --create --device=$dev --cipher=$ciph --pbkdf-prf=$prf --insecure-erase --weak-keys
+expect "Passphrase:"        { send "$pass\r" }
+expect "Repeat passphrase:" { send "$pass\r" }
+expect "(y/n)"              { send "y\r" }
+expect eof
+catch wait result
+exit [lindex $result 3]
+EXPECT_EOF
+
+  rm -f "${tg_file}"
+
+  # tcplay writes only the header, which is all hashcat reads, but it insists on
+  # a block device
+  truncate -s 2M "${tg_file}" 2>/dev/null
+
+  local tg_loop
+
+  tg_loop=$(sudo losetup --show -f "${tg_file}" 2>/dev/null)
+
+  if [ -z "${tg_loop}" ]; then
+    rm -f "${tg_file}"
+
+    record_skip "${hash_type}" "could not attach a loop device, which tcplay needs (sudo losetup)"
+    return 1
+  fi
+
+  sudo expect "${tg_expect}" "${tg_loop}" "${CONTAINER_PASSWORD}" "${tg_prf_name}" "${tg_cipher}" "${TCPLAY_BIN}" >/dev/null 2>&1
+
+  local tg_rc=$?
+
+  sudo losetup -d "${tg_loop}" 2>/dev/null
+
+  if [ "${tg_rc}" -ne 0 ] || [ ! -s "${tg_file}" ]; then
+    rm -f "${tg_file}"
+
+    record_skip "${hash_type}" "tcplay could not create a ${tg_prf} + ${tg_cascade} volume"
+    return 1
+  fi
+
+  return 0
+}
+
+function luks1_generate()
+{
+  # $1 = hash, $2 = cipher, $3 = chain mode, $4 = key size, $5 = target file
+  local lg_hash="$1"
+  local lg_cipher="$2"
+  local lg_mode="$3"
+  local lg_keysize="$4"
+  local lg_file="$5"
+
+  local CRYPTSETUP_BIN="${CRYPTSETUP_BIN:-cryptsetup}"
+
+  if ! command -v "${CRYPTSETUP_BIN}" >/dev/null 2>&1; then
+    record_skip "${hash_type}" "cryptsetup not found, so no LUKS1 container can be generated"
+    return 1
+  fi
+
+  # cbc-essiv is written cbc-essiv:sha256 in a cryptsetup cipher spec
+  local lg_chain="${lg_mode}"
+
+  if [ "${lg_mode}" = "cbc-essiv" ]; then
+    lg_chain="cbc-essiv:sha256"
+  fi
+
+  local lg_name="luksgen$$_${lg_keysize}"
+
+  rm -f "${lg_file}"
+
+  truncate -s 20M "${lg_file}" 2>/dev/null
+
+  # 1000 is cryptsetup's floor, and the point here is to test the format rather
+  # than to wait for a realistic KDF
+  if ! sudo "${CRYPTSETUP_BIN}" luksFormat \
+      --batch-mode \
+      --type luks1 \
+      --cipher "${lg_cipher}-${lg_chain}" \
+      --key-size "${lg_keysize}" \
+      --hash "${lg_hash}" \
+      --pbkdf-force-iterations 1000 \
+      "${lg_file}" <<< "${CONTAINER_PASSWORD}" >/dev/null 2>&1; then
+    rm -f "${lg_file}"
+
+    record_skip "${hash_type}" "cryptsetup refused ${lg_hash} + ${lg_cipher}-${lg_chain} at ${lg_keysize} bits"
+    return 1
+  fi
+
+  # hashcat recognizes a correct LUKS password by the filesystem it uncovers, so
+  # the payload has to be a filesystem and not just bytes
+  if ! sudo "${CRYPTSETUP_BIN}" open "${lg_file}" "${lg_name}" <<< "${CONTAINER_PASSWORD}" >/dev/null 2>&1; then
+    rm -f "${lg_file}"
+
+    record_skip "${hash_type}" "could not open the generated ${lg_hash} + ${lg_cipher}-${lg_chain} container (device-mapper needs sudo)"
+    return 1
+  fi
+
+  sudo mkfs.ext4 -q "/dev/mapper/${lg_name}" >/dev/null 2>&1
+
+  sudo "${CRYPTSETUP_BIN}" close "${lg_name}" >/dev/null 2>&1
+
+  if [ ! -s "${lg_file}" ]; then
+    record_skip "${hash_type}" "the generated ${lg_hash} + ${lg_cipher}-${lg_chain} container came out empty"
+    return 1
+  fi
+
+  # luks_test reads the password out of a file named pw next to the containers,
+  # the same way the downloaded set ships one
+  echo "${CONTAINER_PASSWORD}" > "$(dirname "${lg_file}")/pw"
+
+  return 0
+}
+
 function truecrypt_test()
 {
   hashType=$1
@@ -3325,18 +3693,37 @@ function truecrypt_test()
   mkdir -p ${OUTD}/tc_tests
   chmod u+x "${TDIR}/truecrypt2hashcat.py"
 
+  # -g builds the volume before the case statement below reaches for it, because
+  # the 293xx branches extract the hash the moment they are evaluated.
+  if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+    tcName=$(truecrypt_container_name "${hashType}" "${tcMode}")
+
+    if [ -n "${tcName}" ]; then
+      tcContainer="${TC_TESTS_DIR}/hashcat_${tcName}.tc"
+
+      if [ ! -f "${tcContainer}" ]; then
+        if [ "$(echo "${tcName}" | cut -d_ -f3)" = "boot" ]; then
+          record_skip "${hash_type}" "tcplay cannot create system-encryption (boot) volumes, so those stay on the containers in the tree"
+          return
+        fi
+
+        truecrypt_generate "$(echo "${tcName}" | cut -d_ -f1)" "$(echo "${tcName}" | cut -d_ -f2)" "${tcContainer}" || return
+      fi
+    fi
+  fi
+
   case $hashType in
 
     6211)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TDIR}/tc_tests/hashcat_ripemd160_aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_aes.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TDIR}/tc_tests/hashcat_ripemd160_serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent.tc' hashca?l"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TDIR}/tc_tests/hashcat_ripemd160_twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3344,13 +3731,13 @@ function truecrypt_test()
     6212)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes.tc' hashca?l"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TDIR}/tc_tests/hashcat_ripemd160_twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish-serpent.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3358,10 +3745,10 @@ function truecrypt_test()
     6213)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TDIR}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-twofish-aes.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3369,13 +3756,13 @@ function truecrypt_test()
     6221)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TDIR}/tc_tests/hashcat_sha512_aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_aes.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TDIR}/tc_tests/hashcat_sha512_serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_serpent.tc' hashca?l"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TDIR}/tc_tests/hashcat_sha512_twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_twofish.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3383,13 +3770,13 @@ function truecrypt_test()
     6222)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TDIR}/tc_tests/hashcat_sha512_aes-twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_aes-twofish.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TDIR}/tc_tests/hashcat_sha512_serpent-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_serpent-aes.tc' hashca?l"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TDIR}/tc_tests/hashcat_sha512_twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_twofish-serpent.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3397,10 +3784,10 @@ function truecrypt_test()
     6223)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TDIR}/tc_tests/hashcat_sha512_aes-twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TC_TESTS_DIR}/hashcat_sha512_aes-twofish-serpent.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TDIR}/tc_tests/hashcat_sha512_serpent-twofish-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TC_TESTS_DIR}/hashcat_sha512_serpent-twofish-aes.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3408,13 +3795,13 @@ function truecrypt_test()
     6231)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TDIR}/tc_tests/hashcat_whirlpool_aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_aes.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TDIR}/tc_tests/hashcat_whirlpool_serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent.tc' hashca?l"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TDIR}/tc_tests/hashcat_whirlpool_twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_twofish.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3422,13 +3809,13 @@ function truecrypt_test()
     6232)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TDIR}/tc_tests/hashcat_whirlpool_serpent-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent-aes.tc' hashca?l"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TDIR}/tc_tests/hashcat_whirlpool_twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_twofish-serpent.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3436,10 +3823,10 @@ function truecrypt_test()
     6233)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish-serpent.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TDIR}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent-twofish-aes.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3447,13 +3834,13 @@ function truecrypt_test()
     6241)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TDIR}/tc_tests/hashcat_ripemd160_aes_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_aes_boot.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TDIR}/tc_tests/hashcat_ripemd160_serpent_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent_boot.tc' hashca?l"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TDIR}/tc_tests/hashcat_ripemd160_twofish_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish_boot.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3461,10 +3848,10 @@ function truecrypt_test()
     6242)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish_boot.tc' hashca?l"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes_boot.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3472,7 +3859,7 @@ function truecrypt_test()
     6243)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6243 '${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6243 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent_boot.tc' hashca?l"
           ;;
       esac
       ;;
@@ -3480,15 +3867,15 @@ function truecrypt_test()
     29311)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_aes.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash' hashca?l"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash' hashca?l"
           ;;
       esac
@@ -3497,15 +3884,15 @@ function truecrypt_test()
     29312)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash' hashca?l"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash' hashca?l"
           ;;
       esac
@@ -3514,11 +3901,11 @@ function truecrypt_test()
     29313)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash' hashca?l"
           ;;
       esac
@@ -3527,15 +3914,15 @@ function truecrypt_test()
     29321)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_aes.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_serpent.hash' hashca?l"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_twofish.hash' hashca?l"
           ;;
       esac
@@ -3544,15 +3931,15 @@ function truecrypt_test()
     29322)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash' hashca?l"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash' hashca?l"
           ;;
       esac
@@ -3561,11 +3948,11 @@ function truecrypt_test()
     29323)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_sha512_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash' hashca?l"
           ;;
       esac
@@ -3574,15 +3961,15 @@ function truecrypt_test()
     29331)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_aes.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash' hashca?l"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash' hashca?l"
           ;;
       esac
@@ -3591,15 +3978,15 @@ function truecrypt_test()
     29332)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash' hashca?l"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash' hashca?l"
           ;;
       esac
@@ -3608,11 +3995,11 @@ function truecrypt_test()
     29333)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash' hashca?l"
           ;;
       esac
@@ -3621,15 +4008,15 @@ function truecrypt_test()
     29341)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash' hashca?l"
           ;;
         2)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash' hashca?l"
           ;;
       esac
@@ -3638,11 +4025,11 @@ function truecrypt_test()
     29342)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash' hashca?l"
           ;;
         1)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_serpent-aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash' hashca?l"
           ;;
       esac
@@ -3651,7 +4038,7 @@ function truecrypt_test()
     29343)
       case $tcMode in
         0)
-          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TDIR}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash
+          eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash
           CMD="./${BIN} ${OPTS} -a 3 -m 29343 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash' hashca?l"
           ;;
       esac
@@ -3741,7 +4128,11 @@ function veracrypt_test()
 
   [ -n "$cipher_cascade" ] || return
 
-  filename="${TDIR}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.vc"
+  filename="${VC_TESTS_DIR}/hashcat_${hash_function}_${cipher_cascade}.vc"
+
+  if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ ! -f "${filename}" ]; then
+    veracrypt_generate "${hash_function}" "${cipher_cascade}" "${filename}" || return
+  fi
 
   # The hash-cipher combination might be invalid (e.g. RIPEMD-160 + Kuznyechik)
   [ -f "${filename}" ] || return
@@ -3755,7 +4146,7 @@ function veracrypt_test()
       mkdir -p ${OUTD}/vc_tests
       chmod u+x "${TDIR}/veracrypt2hashcat.py"
 
-      eval \"${TDIR}/veracrypt2hashcat.py\" \"${TDIR}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.vc\" > ${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash
+      eval \"${TDIR}/veracrypt2hashcat.py\" \"${VC_TESTS_DIR}/hashcat_${hash_function}_${cipher_cascade}.vc\" > ${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash
       CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash' hashc?lt"
       ;;
   esac
@@ -3915,12 +4306,12 @@ function luks_test()
       luksPassPartFile1="${OUTD}/${hashType}_dict1"
       luksPassPartFile2="${OUTD}/${hashType}_dict2"
 
-      luksContainer="${TDIR}/luks_tests/hashcat_${luksHash}_${luksCipher}_${luksMode}_${luksKeySize}.luks"
+      luksContainer="${LUKS_TESTS_DIR}/hashcat_${luksHash}_${luksCipher}_${luksMode}_${luksKeySize}.luks"
       luksHashFile="${OUTD}/luks_tests/hashcat_${luksHash}_${luksCipher}_${luksMode}_${luksKeySize}.hash"
 
       case $attackType in
         0)
-          CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${TDIR}/luks_tests/pw'"
+          CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${LUKS_TESTS_DIR}/pw'"
           ;;
         1)
           luksPassPart1Len=$((${#LUKS_PASSWORD} / 2))
@@ -3953,21 +4344,30 @@ function luks_test()
           ;;
       esac
 
+      if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ ! -f "${luksContainer}" ]; then
+        luks1_generate "${luksHash}" "${luksCipher}" "${luksMode}" "${luksKeySize}" "${luksContainer}" || continue
+      fi
+
+      if [ ! -f "${luksContainer}" ]; then
+        record_skip "${hash_type}" "no container for ${luksHash} ${luksCipher} ${luksMode} at ${luksKeySize} bits"
+        continue
+      fi
+
       eval \"${TDIR}/luks2hashcat.py\" \"${luksContainer}\" > "${luksHashFile}"
 
-      luksMode="${luksHash}-${luksCipher}-${luksMode}-${luksKeySize}"
+      # A separate name for the label. Writing it back into luksMode used to
+      # clobber the loop variable, so the next key size never matched the filter
+      # above and every chain mode was tested at one key size instead of the two
+      # or three it has.
+      luksLabel="${luksHash}-${luksCipher}-${luksMode}-${luksKeySize}"
 
       if [ -n "${CMD}" ] && [ ${#CMD} -gt 5 ]; then
-        echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Luks-Mode ${luksMode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+        echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Luks-Mode ${luksLabel}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
-        if [ -f "${luks_first_test_file}" ]; then
-          output=$(eval ${CMD} 2>&1)
-          ret=${?}
+        output=$(eval ${CMD} 2>&1)
+        ret=${?}
 
-          echo "${output}" >> "${OUTD}/logfull.txt"
-        else
-          ret=30
-        fi
+        echo "${output}" >> "${OUTD}/logfull.txt"
 
         e_ce=0
         e_rs=0
@@ -3992,7 +4392,7 @@ function luks_test()
           msg="Warning"
         fi
 
-        echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attackType}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Luks-Mode ${luksMode} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+        echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attackType}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, Luks-Mode ${luksLabel} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
 
         status ${ret}
       fi
@@ -4018,7 +4418,7 @@ function luks_legacy_test()
   LUKS_CIPHER_MODES="cbc-essiv cbc-plain64 xts-plain64"
   LUKS_KEYSIZES="128 256 512"
 
-  LUKS_PASSWORD=$(cat "${TDIR}/luks_tests/pw" 2>/dev/null)
+  LUKS_PASSWORD=$(cat "${LUKS_TESTS_DIR}/pw" 2>/dev/null)
 
   for luks_h in ${LUKS_HASHES}; do
     for luks_c in ${LUKS_CIPHERS}; do
@@ -4060,7 +4460,7 @@ function luks_legacy_test()
           esac
 
           luks_mode="${luks_h}-${luks_c}-${luks_m}-${luks_k}"
-          luks_file="${TDIR}/luks_tests/hashcat_${luks_h}_${luks_c}_${luks_m}_${luks_k}.luks"
+          luks_file="${LUKS_TESTS_DIR}/hashcat_${luks_h}_${luks_c}_${luks_m}_${luks_k}.luks"
           luks_main_mask="?l"
           luks_mask="${luks_main_mask}"
 
@@ -4070,7 +4470,7 @@ function luks_legacy_test()
 
           case $attackType in
             0)
-              CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luks_file}' '${TDIR}/luks_tests/pw'"
+              CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luks_file}' '${LUKS_TESTS_DIR}/pw'"
               ;;
             1)
               luks_pass_part1_len=$((${#LUKS_PASSWORD} / 2))
@@ -4793,9 +5193,12 @@ OPTIONS:
 
   -g    Generate crypto-containers on-the-fly and test those as well as the
         normal test.pl oracles, never instead of them. GPG (gpg1/gpg2), PKZIP
-        (zip) and RAR (a RARLAB rar 6.x or older, see rar_test) need no
-        privileges; only LUKS2 generation requires sudo. Anything that cannot
-        run for want of a tool is reported again in a summary at the end.
+        (zip), RAR (a RARLAB rar 6.x or older, see rar_test) and VeraCrypt (the
+        veracrypt console build, 1.25.9 or older via VERACRYPT_BIN if the
+        RIPEMD-160 modes matter) need no privileges; LUKS1, LUKS2 and TrueCrypt
+        (tcplay, driven through expect) need sudo, for device-mapper and for a
+        loop device. Anything that cannot run for want of a tool is reported
+        again in a summary at the end.
         Runs only the modes it can build a container for: on its own it runs
         all of them, with -m it runs the ones you selected, and a -m that
         selects none of them is an error that lists the ones it has.
@@ -5190,6 +5593,14 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     # make new dir
     mkdir -p "${OUTD}"
 
+    # with -g the container tests read the volumes this run builds rather than
+    # the ones in the tree or the ones fetched from hashcat.net
+    if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+      TC_TESTS_DIR="$(container_gen_dir tc_tests_gen)"
+      VC_TESTS_DIR="$(container_gen_dir vc_tests_gen)"
+      LUKS_TESTS_DIR="$(container_gen_dir luks_tests_gen)"
+    fi
+
     # generate random test entry
     if [ "${HT}" -eq 65535 ]; then
       for TMP_HT in ${HASH_TYPES}; do
@@ -5418,6 +5829,17 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
                 record_skip "${hash_type}" "no test.pl oracle, needs -g to build a real archive"
               fi
 
+              if is_in_array "${hash_type}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real LUKS1 containers. 14600 is the legacy
+                # format, which reads a whole container rather than an extracted
+                # hash and has no generator here.
+                if [ ${hash_type} -eq 14600 ]; then
+                  record_skip "${hash_type}" "the legacy LUKS format is not generated, so -m 14600 stays on the containers fetched from hashcat.net"
+                else
+                  luks_test "${hash_type}" ${ATTACK}
+                fi
+              fi
+
               if is_in_array "${hash_type}" ${PM_MODES}; then
                 # run attack mode 0 (stdin)
                 if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
@@ -5520,7 +5942,7 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
   if [ "${copy_luks_dir}" -eq 1 ]; then
     mkdir "${OUTD}/luks_tests/"
-    cp ${TDIR}/luks_tests/* "${OUTD}/luks_tests/"
+    cp ${LUKS_TESTS_DIR}/* "${OUTD}/luks_tests/"
   fi
 
   if [ "${copy_luks2_dir}" -eq 1 ]; then
@@ -5530,12 +5952,12 @@ if [ "${PACKAGE}" -eq 1 ]; then
 
   if [ "${copy_tc_dir}" -eq 1 ]; then
     mkdir "${OUTD}/tc_tests/"
-    cp ${TDIR}/tc_tests/* "${OUTD}/tc_tests/"
+    cp ${TC_TESTS_DIR}/* "${OUTD}/tc_tests/"
   fi
 
   if [ "${copy_vc_dir}" -eq 1 ]; then
     mkdir "${OUTD}/vc_tests/"
-    cp ${TDIR}/vc_tests/* "${OUTD}/vc_tests/"
+    cp ${VC_TESTS_DIR}/* "${OUTD}/vc_tests/"
   fi
 
   if [ "${copy_cl_dir}" -eq 1 ]; then

@@ -41,7 +41,7 @@ APT_PACKAGES="build-essential g++ curl git wget pkg-config yasm
 libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev
 xz-utils tk-dev libffi-dev liblzma-dev libxml2-dev libxmlsec1-dev
 libgmp-dev libpcap-dev libnss3-dev libkrb5-dev
-zip gnupg gnupg1 cryptsetup"
+zip gnupg gnupg1 cryptsetup tcplay expect"
 
 install_packages ()
 {
@@ -205,11 +205,58 @@ install_rar ()
   rm -f "${tarball}"
 }
 
+# veracrypt 1.25.9, for the RIPEMD-160 modes. 1.26 dropped them, and no distribution carries an
+# older one, so take the console .deb and unpack it rather than install it: it has the same package
+# name as a system veracrypt and installing it would downgrade that.
+
+install_veracrypt ()
+{
+  echo "> veracrypt 1.25.9 console ..."
+
+  if [ -x "${HOME}/veracrypt-1.25.9/usr/bin/veracrypt" ]; then
+    echo "  already present"
+    return
+  fi
+
+  if ! command -v dpkg-deb > /dev/null 2>&1; then
+    echo "  skipped, no dpkg-deb to unpack it with"
+    note_failure "veracrypt"
+    return
+  fi
+
+  local deb="${HOME}/veracrypt-console.deb"
+  local url="https://github.com/veracrypt/VeraCrypt/releases/download/VeraCrypt_1.25.9/veracrypt-console-1.25.9-Ubuntu-23.04-amd64.deb"
+
+  if ! curl -sSLo "${deb}" "${url}"; then
+    echo "  FAILED to download"
+    note_failure "veracrypt"
+    return
+  fi
+
+  mkdir -p "${HOME}/veracrypt-1.25.9"
+
+  if dpkg-deb -x "${deb}" "${HOME}/veracrypt-1.25.9"; then
+    echo "  ok, ${HOME}/veracrypt-1.25.9/usr/bin/veracrypt"
+  else
+    echo "  FAILED to unpack"
+    note_failure "veracrypt"
+  fi
+
+  rm -f "${deb}"
+
+  # test.sh looks for veracrypt on PATH, so it has to be told where this one is.
+
+  if ! grep -q 'VERACRYPT_BIN' "${HOME}/.bashrc" 2> /dev/null; then
+    echo 'export VERACRYPT_BIN="$HOME/veracrypt-1.25.9/usr/bin/veracrypt"' >> "${HOME}/.bashrc"
+  fi
+}
+
 install_packages
 install_cpanm
 install_pyenv
 install_john
 install_rar
+install_veracrypt
 
 echo
 

@@ -44,7 +44,10 @@ that names it, for that format only, repeated in a summary at the end.
 | GPG | 17010, 17020, 17030, 17040, 17050 | `gpg2`, `gpg1`, `gpg2john` | No `gpg1`: only what `gpg2` writes by default is covered, which drops the classic S2K combinations and the AES-128 (aux1) path. A note, not a skip. No `gpg2john`: skipped. |
 | PKZIP | 17200, 17210, 17220, 17225, 17230 | `zip`, `zip2john` | Skipped. |
 | RAR | 12500, 13000, 23700, 23800 | `rar` 6.x or older, `rar2john` | Only RAR5 (13000) is built, the RAR3 modes are skipped. 23800 has no `test.pl` oracle at all, so without `-g` it is skipped whatever is installed. |
+| LUKS1 | 29511 to 29543 | `cryptsetup`, `sudo` | Skipped. |
 | LUKS2 | 34100 | `cryptsetup`, `sudo` | Skipped. |
+| TrueCrypt | 6211 to 6243, 29311 to 29343 | `tcplay`, `expect`, `sudo` | Skipped. |
+| VeraCrypt | 13711 to 13783, 29411 to 29483 | `veracrypt` console build | No veracrypt: skipped. At 1.26 or newer: the RIPEMD-160 modes are skipped, since 1.26 dropped them. |
 
 `install_dependencies.sh` installs all of it, including the three that are easy
 to get wrong:
@@ -58,3 +61,8 @@ to get wrong:
   `$HOME/rar-old`. Override with `RAR_BIN=`.
 * **gpg1** is the separate `gnupg1` package, installed alongside `gnupg` rather
   than instead of it. Override with `GPG1_BIN=`.
+* **veracrypt 1.25.9** for the RIPEMD-160 modes, which 1.26 dropped and no
+  distribution still carries. The script unpacks the console `.deb` into
+  `$HOME/veracrypt-1.25.9` rather than installing it, because it shares a
+  package name with a system veracrypt and would downgrade it. Override with
+  `VERACRYPT_BIN=`.
