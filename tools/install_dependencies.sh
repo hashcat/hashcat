@@ -41,7 +41,8 @@ APT_PACKAGES="build-essential g++ curl git wget pkg-config yasm
 libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev libncursesw5-dev
 xz-utils tk-dev libffi-dev liblzma-dev libxml2-dev libxmlsec1-dev
 libgmp-dev libpcap-dev libnss3-dev libkrb5-dev
-zip gnupg gnupg1 cryptsetup tcplay expect"
+zip gnupg gnupg1 cryptsetup tcplay expect
+p7zip-full libcompress-raw-lzma-perl qpdf ghostscript openssh-client"
 
 install_packages ()
 {
@@ -139,8 +140,8 @@ install_pyenv ()
 # The -g tools with no package. Everything below is optional: without one, -g records a skip that
 # names it and carries on, for that format only.
 
-# John the Ripper jumbo, for zip2john, gpg2john and rar2john. Note that apt install john is core
-# John, which ships none of them. test.sh looks on PATH and then at ${HOME}/john/run.
+# John the Ripper jumbo, for zip2john, gpg2john, rar2john, 7z2john.pl, pdf2john.pl and
+# ssh2john.py. Note that apt install john is core John, which ships none of them. test.sh looks on PATH and then at ${HOME}/john/run.
 
 install_john ()
 {

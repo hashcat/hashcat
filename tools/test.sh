@@ -63,11 +63,29 @@ RAR_GEN_MODES="12500 13000 23700 23800"
 # calls hc_decompress_rar(). Before this it could only be reached with -g.
 SELFTEST_MODES="23800"
 
+# 7-Zip and WinZip AES modes generated on-the-fly with -g. Both come out of the
+# same 7z binary, which nearly every machine already has, so one function covers
+# them: 11600 from a .7z, 13600 from a zip whose entries use WinZip AES.
+SEVENZIP_GEN_MODES="11600 13600"
+
+# PDF modes generated on-the-fly with -g, using qpdf. 10400 is what its 40-bit
+# option produces (V1/R2), 10500 covers both its RC4-128 and its AES-128 output,
+# and 10700 its AES-256. 10600 is not here: it is Adobe's R5 extension, which
+# qpdf does not write, and neither is 10510, which wants V1-2 with R3.
+PDF_GEN_MODES="10400 10500 10700"
+
+# OpenSSH private-key mode generated on-the-fly with -g. ssh-keygen -m PEM
+# writes the classic DEK-Info form with AES-128-CBC, which is $sshng$1$ and so
+# 22931. The other ciphers in the family have no generator here: modern
+# ssh-keygen only writes openssh-key-v1, which no 229xx mode parses, and
+# openssl 3 writes PKCS#8 instead of a DEK-Info header.
+SSH_GEN_MODES="22931"
+
 # Every mode -g can build a container for, which is the whole of what -g means.
 # On its own -g runs exactly these, and -g together with a -m that selects none
 # of them is an error rather than a run that walks the list and generates
 # nothing. Each generator adds its modes here.
-GEN_MODES="${GPG_GEN_MODES} ${PKZIP_GEN_MODES} ${RAR_GEN_MODES} ${LUKS1_MODES} ${LUKS2_MODES} ${TC_MODES} ${VC_MODES}"
+GEN_MODES="${GPG_GEN_MODES} ${PKZIP_GEN_MODES} ${RAR_GEN_MODES} ${SEVENZIP_GEN_MODES} ${PDF_GEN_MODES} ${SSH_GEN_MODES} ${LUKS1_MODES} ${LUKS2_MODES} ${TC_MODES} ${VC_MODES}"
 
 # Of those, the ones whose generator needs root. Everything else builds its
 # container entirely in userspace, so a run that selects none of these never
@@ -75,7 +93,7 @@ GEN_MODES="${GPG_GEN_MODES} ${PKZIP_GEN_MODES} ${RAR_GEN_MODES} ${LUKS1_MODES} $
 #
 # LUKS is here because the payload has to be a real filesystem and that means
 # device-mapper, TrueCrypt because tcplay insists on a block device. GPG, PKZIP,
-# RAR and VeraCrypt all generate as the user.
+# RAR, 7-Zip, WinZip AES, PDF, OpenSSH and VeraCrypt all generate as the user.
 GEN_SUDO_MODES="${LUKS1_MODES} ${LUKS2_MODES} ${TC_MODES}"
 
 LUKS_MODES="${LUKS1_MODES} ${LUKS2_MODES}"
@@ -5126,6 +5144,270 @@ function rar_test()
   fi
 }
 
+function sevenzip_test()
+{
+  # Real-archive test for the 7z family: 11600 from a 7-Zip archive and 13600
+  # from a zip whose entries use WinZip AES. Both are built with the 7z binary
+  # and read back with John's extractors.
+  #
+  # 11600 is generated four ways, because the mode's work does not end at the
+  # KDF: after deriving the key it decrypts and decompresses a block and checks
+  # a CRC, so the codec is part of what is under test. Header encryption on and
+  # off change the hash type (0 and 2) as well.
+  hashType=$1
+  attackType=$2
+
+  # both are slow hashes with one kernel each, so a0 suffices
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  local SEVENZIP_BIN="${SEVENZIP_BIN:-7z}"
+  local SEVENZIP2JOHN="${SEVENZIP2JOHN:-$(command -v 7z2john.pl 2>/dev/null || echo "${HOME}/john/run/7z2john.pl")}"
+  local ZIP2JOHN="${ZIP2JOHN:-$(command -v zip2john 2>/dev/null || echo "${HOME}/john/run/zip2john")}"
+
+  if ! command -v "${SEVENZIP_BIN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "7z not found (apt install p7zip-full, or set SEVENZIP_BIN=/path/to/7z)"
+    return
+  fi
+
+  local password="hashcat"
+  local sdir="${OUTD}/7z_tests"
+
+  mkdir -p "${sdir}"
+
+  # compressible and large enough that the codecs have something to do
+  yes "pattern the quick brown fox jumps over the lazy dog " 2>/dev/null | head -c 8000 > "${sdir}/payload.txt"
+
+  local variants
+
+  case ${hashType} in
+    11600)
+      if [ ! -x "${SEVENZIP2JOHN}" ] && ! command -v "${SEVENZIP2JOHN}" >/dev/null 2>&1; then
+        record_skip "${hashType}" "7z2john.pl not found (set SEVENZIP2JOHN=/path/to/7z2john.pl)"
+        return
+      fi
+
+      if ! perl -MCompress::Raw::Lzma -e 1 >/dev/null 2>&1; then
+        record_skip "${hashType}" "7z2john.pl needs Compress::Raw::Lzma (apt install libcompress-raw-lzma-perl)"
+        return
+      fi
+
+      # label|7z options
+      variants="lzma2-header-encrypted|-mhe=on lzma2-header-plain|-mhe=off stored|-mhe=on:-m0=Copy bzip2|-mhe=on:-m0=BZip2"
+      ;;
+    13600)
+      if [ ! -x "${ZIP2JOHN}" ] && ! command -v "${ZIP2JOHN}" >/dev/null 2>&1; then
+        record_skip "${hashType}" "zip2john not found (set ZIP2JOHN=/path/to/zip2john)"
+        return
+      fi
+
+      variants="aes128|-mem=AES128 aes256|-mem=AES256"
+      ;;
+    *)
+      record_skip "${hashType}" "unsupported 7z mode for -g"
+      return
+      ;;
+  esac
+
+  local variant
+
+  for variant in ${variants}; do
+    local label="${variant%%|*}"
+    local opts="${variant##*|}"
+
+    # options are colon-separated so one variant stays one word above
+    opts="${opts//:/ }"
+
+    local archive="${sdir}/${hashType}_${label}"
+    local hashFile="${sdir}/${hashType}_${label}.hash"
+
+    rm -f "${archive}".7z "${archive}".zip
+
+    if [ "${hashType}" -eq 13600 ]; then
+      archive="${archive}.zip"
+
+      "${SEVENZIP_BIN}" a -tzip ${opts} -p"${password}" "${archive}" "${sdir}/payload.txt" >/dev/null 2>&1
+
+      "${ZIP2JOHN}" "${archive}" 2>/dev/null | grep -oE '^[^:]*:\$zip2\$[^:]*' | sed -E 's/^[^:]*://' | head -1 > "${hashFile}"
+    else
+      archive="${archive}.7z"
+
+      "${SEVENZIP_BIN}" a ${opts} -p"${password}" "${archive}" "${sdir}/payload.txt" >/dev/null 2>&1
+
+      perl "${SEVENZIP2JOHN}" "${archive}" 2>/dev/null | grep -oE '\$7z\$[^:]*' | head -1 > "${hashFile}"
+    fi
+
+    if [ ! -s "${hashFile}" ]; then
+      record_error "${hashType}" "could not read a hash out of the generated ${label} archive"
+      continue
+    fi
+
+    build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${password}"
+
+    if [ -n "${CONTAINER_CMD}" ]; then
+      container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "7z-container ${label}"
+    fi
+  done
+}
+
+function pdf_gen_test()
+{
+  # Real-document test for the PDF modes, built with qpdf and read back with
+  # John's pdf2john.pl. qpdf 11 refuses RC4 unless it is told the caller knows,
+  # hence --allow-weak-crypto on the two RC4 variants.
+  hashType=$1
+  attackType=$2
+
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  local QPDF_BIN="${QPDF_BIN:-qpdf}"
+  local PDF2JOHN="${PDF2JOHN:-$(command -v pdf2john.pl 2>/dev/null || echo "${HOME}/john/run/pdf2john.pl")}"
+
+  if ! command -v "${QPDF_BIN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "qpdf not found (apt install qpdf, or set QPDF_BIN=/path/to/qpdf)"
+    return
+  fi
+
+  if [ ! -x "${PDF2JOHN}" ] && ! command -v "${PDF2JOHN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "pdf2john.pl not found (set PDF2JOHN=/path/to/pdf2john.pl); the .py needs pyhanko and is not used here"
+    return
+  fi
+
+  local password="hashcat"
+  local pdir="${OUTD}/pdf_gen_tests"
+
+  mkdir -p "${pdir}"
+
+  # qpdf encrypts an existing document rather than making one, so there has to
+  # be a document. Ghostscript writes the smallest valid one.
+  local plain="${pdir}/plain.pdf"
+
+  if [ ! -s "${plain}" ]; then
+    if command -v gs >/dev/null 2>&1; then
+      gs -q -o "${plain}" -sDEVICE=pdfwrite -c "showpage" >/dev/null 2>&1
+    fi
+  fi
+
+  if [ ! -s "${plain}" ]; then
+    record_skip "${hashType}" "no gs to write a plain PDF for qpdf to encrypt (apt install ghostscript)"
+    return
+  fi
+
+  local variants
+
+  case ${hashType} in
+    10400) variants="rc4-40|--allow-weak-crypto:--encrypt:PW:PW:40:--" ;;
+    10500) variants="rc4-128|--allow-weak-crypto:--encrypt:PW:PW:128:-- aes-128|--encrypt:PW:PW:128:--use-aes=y:--" ;;
+    10700) variants="aes-256|--encrypt:PW:PW:256:--" ;;
+    *)
+      record_skip "${hashType}" "unsupported PDF mode for -g"
+      return
+      ;;
+  esac
+
+  local variant
+
+  for variant in ${variants}; do
+    local label="${variant%%|*}"
+    local opts="${variant##*|}"
+
+    opts="${opts//:/ }"
+    opts="${opts//PW/${password}}"
+
+    local doc="${pdir}/${hashType}_${label}.pdf"
+    local hashFile="${pdir}/${hashType}_${label}.hash"
+
+    rm -f "${doc}"
+
+    "${QPDF_BIN}" ${opts} "${plain}" "${doc}" >/dev/null 2>&1
+
+    if [ ! -s "${doc}" ]; then
+      record_skip "${hashType}" "qpdf could not write a ${label} document"
+      continue
+    fi
+
+    perl "${PDF2JOHN}" "${doc}" 2>/dev/null | grep -oE '\$pdf\$[^:]*' | head -1 > "${hashFile}"
+
+    if [ ! -s "${hashFile}" ]; then
+      record_error "${hashType}" "pdf2john produced no hash for the ${label} document"
+      continue
+    fi
+
+    build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${password}"
+
+    if [ -n "${CONTAINER_CMD}" ]; then
+      container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "PDF-container ${label}"
+    fi
+  done
+}
+
+function ssh_test()
+{
+  # Real-key test for 22931, built with ssh-keygen and read back with John's
+  # ssh2john.py.
+  #
+  # -m PEM is what makes this work: it writes the classic PEM form with a
+  # DEK-Info header, which is the only OpenSSH key layout hashcat's 229xx modes
+  # parse. Without it ssh-keygen writes openssh-key-v1, whose bcrypt-pbkdf KDF
+  # no released hashcat mode reads.
+  hashType=$1
+  attackType=$2
+
+  if [ "${attackType}" -eq 65535 ]; then
+    attackType=0
+  fi
+
+  local SSHKEYGEN_BIN="${SSHKEYGEN_BIN:-ssh-keygen}"
+  local SSH2JOHN="${SSH2JOHN:-$(command -v ssh2john.py 2>/dev/null || echo "${HOME}/john/run/ssh2john.py")}"
+
+  if ! command -v "${SSHKEYGEN_BIN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "ssh-keygen not found (set SSHKEYGEN_BIN=/path/to/ssh-keygen)"
+    return
+  fi
+
+  if [ ! -f "${SSH2JOHN}" ] && ! command -v "${SSH2JOHN}" >/dev/null 2>&1; then
+    record_skip "${hashType}" "ssh2john.py not found (set SSH2JOHN=/path/to/ssh2john.py)"
+    return
+  fi
+
+  local password="hashcat"
+  local kdir="${OUTD}/ssh_tests"
+
+  mkdir -p "${kdir}"
+
+  local keytype
+
+  for keytype in rsa dsa; do
+    local key="${kdir}/${hashType}_${keytype}"
+    local hashFile="${kdir}/${hashType}_${keytype}.hash"
+
+    rm -f "${key}" "${key}.pub"
+
+    "${SSHKEYGEN_BIN}" -q -m PEM -t "${keytype}" -N "${password}" -C hashcat -f "${key}" >/dev/null 2>&1
+
+    if [ ! -s "${key}" ]; then
+      record_skip "${hashType}" "ssh-keygen would not write a PEM ${keytype} key"
+      continue
+    fi
+
+    python3 "${SSH2JOHN}" "${key}" 2>/dev/null | grep -oE '\$sshng\$[^:]*' | head -1 > "${hashFile}"
+
+    if [ ! -s "${hashFile}" ]; then
+      record_error "${hashType}" "ssh2john produced no hash for the ${keytype} key"
+      continue
+    fi
+
+    build_container_cmd "${hashType}" "${attackType}" "${hashFile}" "${password}"
+
+    if [ -n "${CONTAINER_CMD}" ]; then
+      container_run_and_report "${CONTAINER_CMD}" "${hashType}" "${attackType}" "SSH-key ${keytype}"
+    fi
+  done
+}
+
 function selftest_vector_read()
 {
   # Read a mode's self-test vector out of hashcat itself into the globals
@@ -5377,12 +5659,13 @@ OPTIONS:
 
   -g    Generate crypto-containers on-the-fly and test those as well as the
         normal test.pl oracles, never instead of them. GPG (gpg1/gpg2), PKZIP
-        (zip), RAR (a RARLAB rar 6.x or older, see rar_test) and VeraCrypt (the
-        veracrypt console build, 1.25.9 or older via VERACRYPT_BIN if the
-        RIPEMD-160 modes matter) need no privileges; LUKS1, LUKS2 and TrueCrypt
-        (tcplay, driven through expect) need sudo, for device-mapper and for a
-        loop device. Anything that cannot run for want of a tool is reported
-        again in a summary at the end.
+        (zip), RAR (a RARLAB rar 6.x or older, see rar_test), 7-Zip and WinZip
+        AES (7z), PDF (qpdf and ghostscript), OpenSSH keys (ssh-keygen) and
+        VeraCrypt (the veracrypt console build, 1.25.9 or older via
+        VERACRYPT_BIN if the RIPEMD-160 modes matter) need no privileges;
+        LUKS1, LUKS2 and TrueCrypt (tcplay, driven through expect) need sudo,
+        for device-mapper and for a loop device. Anything that cannot run for
+        want of a tool is reported again in a summary at the end.
         Runs only the modes it can build a container for: on its own it runs
         all of them, with -m it runs the ones you selected, and a -m that
         selects none of them is an error that lists the ones it has.
@@ -6052,6 +6335,21 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
                 rar_test "${hash_type}" ${ATTACK}
               fi
 
+              if is_in_array "${hash_type}" ${SEVENZIP_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real 7-Zip and WinZip AES archives
+                sevenzip_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${PDF_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real encrypted PDFs
+                pdf_gen_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${SSH_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test a real OpenSSH private key
+                ssh_test "${hash_type}" ${ATTACK}
+              fi
+
               # the module's own self-test vector, in every run
               if is_in_array "${hash_type}" ${SELFTEST_MODES}; then
                 selftest_vector_test "${hash_type}" ${ATTACK}
@@ -6087,6 +6385,21 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
               if is_in_array "${hash_type}" ${PKZIP_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
                 # generate + test real PKZIP/ZipCrypto containers
                 pkzip_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${SEVENZIP_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real 7-Zip and WinZip AES archives
+                sevenzip_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${PDF_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real encrypted PDFs
+                pdf_gen_test "${hash_type}" ${ATTACK}
+              fi
+
+              if is_in_array "${hash_type}" ${SSH_GEN_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test a real OpenSSH private key
+                ssh_test "${hash_type}" ${ATTACK}
               fi
 
               if is_in_array "${hash_type}" ${PM_MODES}; then
