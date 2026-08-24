@@ -679,7 +679,16 @@ ifeq ($(UNAME),FreeBSD)
 LFLAGS                  += -lc++
 else
 ifeq ($(UNAME),DragonFly)
+# DragonFly sits with the clang systems by name only. Its base compiler is gcc and its c++ is that
+# gcc, so the runtime it wants is libstdc++, and naming libc++ ended the link at "cannot find -lc++"
+# whichever compiler drove it, because the image carries no libc++ to find. When a clang from a
+# package drives the build instead, CC_NATIVE_CLANG says so and libc++ is the right name again. The
+# rule this block states is that the runtime follows the compiler, so here it asks the compiler.
+ifeq ($(CC_NATIVE_CLANG),1)
 LFLAGS                  += -lc++
+else
+LFLAGS                  += -lstdc++
+endif
 else
 ifeq ($(UNAME),NetBSD)
 LFLAGS                  += -lstdc++
@@ -1310,7 +1319,14 @@ LFLAGS_FRONTEND_NATIVE  :=
 LFLAGS_PLUGIN_NATIVE    :=
 else
 LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER)
-LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,defs
+LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER)
+## A plugin is a shared object too, so it meets the same wall the library does on OpenBSD, where the
+## driver does not link libc into one and -z,defs then reads the whole of libc as undefined. Guarding
+## only the library left the library linking and all 593 plugins failing on abort. See the note beside
+## LIBRARY_LFLAGS_NATIVE for why -lc is not the answer.
+ifneq ($(UNAME),OpenBSD)
+LFLAGS_PLUGIN_NATIVE    += -Wl,-z,defs
+endif
 endif
 
 LFLAGS_FRONTEND_LINUX   := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER)
