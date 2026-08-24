@@ -319,12 +319,26 @@ KERNEL_FQ KERNEL_FA void m17050_init (KERN_ATTR_TMPS_ESALT (gpg_tmp_t, gpg_t))
     memcat_le_S (salted_pw_block, idx * salted_pw_len, salted_pw_block, salted_pw_len);
   }
 
+  const u32 salted_pw_block_len = copies * salted_pw_len;
+
+  // memcat_le_S() copies whole u32 words, so the word that straddles the end of the last
+  // copy comes out holding the next bytes of the repeated salt||pw stream instead of zero.
+  // Everything from salted_pw_block_len on has to read as zero: sha1_update() always pulls
+  // a full 64 byte tail window and ORs it into the running context, and sha1_final() ORs
+  // its 0x80 padding byte into whatever is left sitting there. Leave the slack dirty and the
+  // S2K key comes out wrong whenever the truncated last repetition of salt||pw is shorter
+  // than it, which is why some (iteration count, password length) pairs never cracked.
+  if (salted_pw_block_len < sizeof (salted_pw_block))
+  {
+    memzero_le_S (salted_pw_block, salted_pw_block_len, sizeof (salted_pw_block));
+  }
+
   for (u32 idx = 0; idx < 80; idx++)
   {
     tmps[gid].salted_pw_block[idx] = hc_swap32_S (salted_pw_block[idx]);
   }
 
-  tmps[gid].salted_pw_block_len = (copies * salted_pw_len);
+  tmps[gid].salted_pw_block_len = salted_pw_block_len;
 
   tmps[gid].h[0] = SHA1M_A;
   tmps[gid].h[1] = SHA1M_B;
