@@ -4784,6 +4784,9 @@ OPTIONS:
         (zip) and RAR (a RARLAB rar 6.x or older, see rar_test) need no
         privileges; only LUKS2 generation requires sudo. Anything that cannot
         run for want of a tool is reported again in a summary at the end.
+        tools/README.md lists which tool each format needs, where to get it,
+        and what is skipped without it. Note that the 2john tools come from
+        John jumbo, not from the john package, and that gpg1 is gnupg1.
 
   -h    Show this help
 
