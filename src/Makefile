@@ -773,6 +773,12 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I /usr/pkg/include
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -L /usr/pkg/lib
+# -L is where the linker looks, and the runtime loader does not read it. On the other systems here the
+# prefix the packages live in is already on the loader's own path, so the two questions never came
+# apart. NetBSD keeps packages under /usr/pkg and that is not a path the loader searches, so a build
+# that linked cleanly produced a binary that stopped at "Shared object libiconv.so.2 not found" before
+# reaching main. The rpath records the same directory for the loader.
+LFLAGS_NATIVE           += -Wl,-rpath,/usr/pkg/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
 LFLAGS_NATIVE           += -liconv
@@ -1656,7 +1662,17 @@ else ifeq ($(FORMAT_NATIVE),PE)
 ## a DLL carries no soname, it is found by the file name written into whatever imports it
 else
 LIBRARY_LFLAGS_NATIVE   += -Wl,-soname,$(HASHCAT_LIBRARY_NATIVE)
+## OpenBSD is the exception, and not because it is less strict. Everywhere else the compiler driver
+## links libc into a shared object for you, so -z,defs sees a resolved libc and reports the symbols
+## that are genuinely missing. OpenBSD deliberately does not, because a library that records a
+## dependency on one particular libc hands that choice to whoever loads it. With -z,defs the whole of
+## libc then reads as undefined, strtok_r and memset and errno among them, and the link fails for a
+## reason that has nothing to do with what the check is looking for. Naming -lc here to satisfy it
+## would put that dependency back on every platform, which is the thing OpenBSD is avoiding, so the
+## check is dropped on OpenBSD alone and kept everywhere it still means something.
+ifneq ($(UNAME),OpenBSD)
 LIBRARY_LFLAGS_NATIVE   += -Wl,-z,defs
+endif
 endif
 
 LIBRARY_LFLAGS_LINUX    += -Wl,-soname,$(HASHCAT_LIBRARY_LINUX)
