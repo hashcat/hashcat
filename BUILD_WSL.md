@@ -12,7 +12,7 @@ Enable WSL2.
 
 Press the win + r key on your keyboard simultaneously and in the "Run" popup window type bash and make sure to install additional dependencies necessary for hashcat compilation
 ```bash
-sudo apt install build-essential gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 make git zstd python3-dev cmake clang
+sudo apt install build-essential gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 make git zstd python3-dev cmake clang libclang-dev lld wget curl
 git clone https://github.com/hashcat/hashcat
 git clone https://github.com/win-iconv/win-iconv
 cd win-iconv/
