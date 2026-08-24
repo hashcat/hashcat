@@ -51,6 +51,7 @@ PKZIP_GEN_MODES="17200 17210 17220 17225 17230"
 #   an -ma4-capable rar and otherwise limits itself to RAR5.
 RAR_GEN_MODES="12500 13000 23700 23800"
 
+
 # Modes that only -g can reach, kept in HASH_TYPES so that a run which cannot
 # test them says so rather than passing over them in silence.
 #
@@ -60,6 +61,17 @@ RAR_GEN_MODES="12500 13000 23700 23800"
 # proprietary compressor can produce. Without -g there is nothing to run, and
 # the run records a skip saying exactly that.
 GEN_ONLY_MODES="23800"
+
+# Every mode -g can build a container for, which is the whole of what -g means.
+# On its own -g runs exactly these, and -g together with a -m that selects none
+# of them is an error rather than a run that walks the list and generates
+# nothing. Each generator adds its modes here.
+GEN_MODES="${GPG_GEN_MODES} ${PKZIP_GEN_MODES} ${RAR_GEN_MODES}"
+
+# Of those, the ones whose generator needs root. Everything else builds its
+# container entirely in userspace, so a run that selects none of these never
+# asks for a password. Empty here: GPG, PKZIP and RAR all generate as the user.
+GEN_SUDO_MODES=""
 
 LUKS_MODES="${LUKS1_MODES} ${LUKS2_MODES}"
 
@@ -4784,6 +4796,9 @@ OPTIONS:
         (zip) and RAR (a RARLAB rar 6.x or older, see rar_test) need no
         privileges; only LUKS2 generation requires sudo. Anything that cannot
         run for want of a tool is reported again in a summary at the end.
+        Runs only the modes it can build a container for: on its own it runs
+        all of them, with -m it runs the ones you selected, and a -m that
+        selects none of them is an error that lists the ones it has.
         tools/README.md lists which tool each format needs, where to get it,
         and what is skipped without it. Note that the 2john tools come from
         John jumbo, not from the john package, and that gpg1 is gnupg1.
@@ -4803,6 +4818,7 @@ DEVICE_TYPE="null"
 KERNEL_TYPE="Optimized"
 VECTOR="default"
 HT=0
+HT_GIVEN=0
 PACKAGE=0
 OPTIMIZED=1
 GENERATE_CONTAINERS=0
@@ -4841,6 +4857,8 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
       ;;
 
     "m")
+      HT_GIVEN=1
+
       if [ "${OPTARG}" = "all" ]; then
         HT=65535
       else
@@ -4960,6 +4978,14 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
 
 done
 
+# -g on its own means everything -g can build, not the default of -m 0. Mode 0
+# has no generator, so without this the run starts, finds nothing to generate
+# and reports an error for a run nobody asked for.
+
+if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ "${HT_GIVEN}" -eq 0 ]; then
+  HT=65535
+fi
+
 # handle Apple Silicon
 
 IS_APPLE_SILICON=0
@@ -5061,27 +5087,58 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     fi
   fi
 
-
-  # Only LUKS2 container generation needs sudo; GPG, PKZIP and the rest generate
-  # entirely in userspace, so only warn about sudo when a LUKS2 mode is selected.
-  needs_sudo=0
+  # -g only has a generator for some of the modes. Selecting none of them is
+  # worth stopping for rather than working around: the run would walk the whole
+  # list, build nothing and finish clean, which reads exactly like a pass.
 
   if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+    gen_selected=0
+
     if [ "${HT}" -eq 65535 ]; then
-      needs_sudo=1
+      gen_selected=1
     else
-      for _sudo_mode in ${LUKS2_MODES}; do
-        if [ "${_sudo_mode}" -ge "${HT_MIN}" ] && [ "${_sudo_mode}" -le "${HT_MAX}" ]; then
-          needs_sudo=1
+      for _gen_mode in ${GEN_MODES}; do
+        if [ "${_gen_mode}" -ge "${HT_MIN}" ] && [ "${_gen_mode}" -le "${HT_MAX}" ]; then
+          gen_selected=1
           break
         fi
       done
     fi
+
+    if [ "${gen_selected}" -eq 0 ]; then
+      if [ "${HT_MIN}" -eq "${HT_MAX}" ]; then
+        echo "! -g has no generator for -m ${HT_MIN}"
+      else
+        echo "! -g has no generator for any mode in -m ${HT_MIN}-${HT_MAX}"
+      fi
+
+      echo "! -g can build: $(echo ${GEN_MODES} | tr ' ' '\n' | sort -n | tr '\n' ' ')"
+
+      exit 1
+    fi
+  fi
+
+
+  # Ask for a password only when one of the selected generators actually needs
+  # one, rather than on every -g run. GEN_SUDO_MODES says which those are.
+
+  needs_sudo=0
+
+  if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+    for _sudo_mode in ${GEN_SUDO_MODES}; do
+      if [ "${HT}" -eq 65535 ]; then
+        needs_sudo=1
+        break
+      elif [ "${_sudo_mode}" -ge "${HT_MIN}" ] && [ "${_sudo_mode}" -le "${HT_MAX}" ]; then
+        needs_sudo=1
+        break
+      fi
+    done
   fi
 
   if [ "${needs_sudo}" -eq 1 ]; then
     if ! sudo -n true 2>/dev/null; then
-      echo "We'll need sudo to generate LUKS2 crypto-containers on-the-fly"
+      echo "We'll need sudo to generate some of these crypto-containers on-the-fly"
     fi
   fi
 
@@ -5093,6 +5150,12 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     # generate random test entry
     if [ "${HT}" -eq 65535 ]; then
       for TMP_HT in ${HASH_TYPES}; do
+
+        # -g runs only the modes it can build, so only those need a hash line
+        # generated for them here.
+        if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && ! is_in_array "${TMP_HT}" ${GEN_MODES}; then
+          continue
+        fi
 
         # only a mode with a .pm has anything for test.pl to generate. That
         # already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes, which
@@ -5110,6 +5173,12 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
     else
       for TMP_HT in $(seq "${HT_MIN}" "${HT_MAX}"); do
         if ! is_in_array "${TMP_HT}" ${HASH_TYPES}; then
+          continue
+        fi
+
+        # -g runs only the modes it can build, so only those need a hash line
+        # generated for them here.
+        if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && ! is_in_array "${TMP_HT}" ${GEN_MODES}; then
           continue
         fi
 
@@ -5155,6 +5224,14 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
         # we are done because hash_type is larger than range:
         break
       fi
+    fi
+
+    # -g runs the modes it can build a container for and nothing else. Asking
+    # for generated coverage is not also a request to re-run the oracle suite
+    # for the six hundred modes that have no generator.
+
+    if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && ! is_in_array "${hash_type}" ${GEN_MODES}; then
+      continue
     fi
 
     if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
