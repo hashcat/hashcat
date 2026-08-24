@@ -4978,6 +4978,25 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:g" opt; do
 
 done
 
+# test.sh is not a thing to run under sudo. Where a generator needs root it asks
+# for it per command, and only for that command. Running the whole script as root
+# instead moves HOME, which hides the perl modules install_modules.sh put in the
+# calling user's ${HOME}/.perl5, and test.pl then fails to load a module for every
+# mode. That surfaces as "Error : 0/0 not found" on all of them, which reads as
+# hashcat being broken rather than as a setup mistake, so it is worth stopping for.
+
+if [ -n "${SUDO_USER:-}" ]; then
+  echo "! Do not run test.sh through sudo."
+  echo "!"
+  echo "! Where it needs root it asks per command, for that command only. As root the"
+  echo "! whole run loses ${SUDO_USER}'s perl modules, and every mode then reports 0/0"
+  echo "! rather than saying what is wrong."
+  echo "!"
+  echo "! Run it as ${SUDO_USER} and let it ask."
+
+  exit 1
+fi
+
 # -g on its own means everything -g can build, not the default of -m 0. Mode 0
 # has no generator, so without this the run starts, finds nothing to generate
 # and reports an error for a run nobody asked for.

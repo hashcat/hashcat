@@ -174,3 +174,10 @@ binary; set `GPG1_BIN=/path/to/gpg1` if yours lives somewhere else.
 ./test.sh -m 0 -t all
 ```
 All options: `./test.sh --help`
+
+Run it as yourself, never under `sudo`. Where a generator needs root it asks per
+command, for that command only. Running the whole script as root moves `$HOME`,
+so the perl modules `install_modules.sh` put in your `~/.perl5` are no longer on
+`@INC`, `test.pl` cannot load a module for any mode, and the run reports
+`Error : 0/0 not found` for all of them. test.sh stops with a message rather than
+let that happen.
