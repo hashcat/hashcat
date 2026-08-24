@@ -37,6 +37,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
+#include <pthread.h>
 #include <stdarg.h>
 #include <inttypes.h>
 
@@ -330,7 +332,8 @@ static void index_save_cache (const zf_global_t *g, const char *cpath, const u64
 
 // One streaming pass: decode the whole file, and at each frame boundary record where the frame
 // started and the line it opened on. Bounded memory (one input and one output block), decode only.
-static bool index_build (zf_global_t *g, const char *path)
+// The fallback: correct for anything (unknown content sizes, skippable frames), just single-threaded.
+static bool index_build_serial (zf_global_t *g, const char *path)
 {
   int fd = open (path, O_RDONLY);
   if (fd == -1) return false;
@@ -436,6 +439,211 @@ static bool index_build (zf_global_t *g, const char *path)
   hcfree (frames);
 
   return ok && nframes > 0;
+}
+
+// When every frame carries its content size in its header (one-shot compressed frames -- what the
+// zsf tool and per-chunk `zstd -c` produce), the whole frame layout is known from the headers alone,
+// so each frame can be decoded and line-scanned independently. That turns the first-run count from
+// one serial decode of the entire file into an embarrassingly parallel decode across frames.
+
+typedef struct
+{
+  const unsigned char *map;
+  const u64 *comp_off;     // [nframes + 1]
+  const u64 *uncomp_size;  // [nframes]
+  u64        nframes;
+
+  u64       *nl;           // out: newline count per frame
+  uint8_t   *last_nl;      // out: 1 if the frame's last byte is '\n'
+  int64_t   *first_nl;     // out: offset of first '\n' in the frame, or -1
+  size_t     bufcap;       // per-thread decode buffer (>= largest frame)
+
+  u64        next;         // atomic frame dispenser
+  int        error;
+} zf_build_ctx_t;
+
+static void *zf_build_worker (void *arg)
+{
+  zf_build_ctx_t *b = (zf_build_ctx_t *) arg;
+
+  unsigned char *out = (unsigned char *) malloc (b->bufcap);
+  if (out == NULL) { b->error = 1; return NULL; }
+
+  for (;;)
+  {
+    if (b->error) break;
+
+    const u64 k = __atomic_fetch_add (&b->next, 1, __ATOMIC_RELAXED);
+    if (k >= b->nframes) break;
+
+    const size_t csize = (size_t) (b->comp_off[k + 1] - b->comp_off[k]);
+    const size_t dsize = (size_t) b->uncomp_size[k];
+
+    const size_t ds = ZSTD_decompress (out, b->bufcap, b->map + b->comp_off[k], csize);
+    if (ZSTD_isError (ds) || ds != dsize) { b->error = 1; break; }
+
+    u64 nl = 0;
+    int64_t first = -1;
+
+    for (size_t o = 0; o < ds; o++)
+    {
+      if (out[o] == '\n') { nl++; if (first < 0) first = (int64_t) o; }
+    }
+
+    b->nl[k]       = nl;
+    b->last_nl[k]  = (ds > 0 && out[ds - 1] == '\n') ? 1 : 0;
+    b->first_nl[k] = first;
+  }
+
+  free (out);
+  return NULL;
+}
+
+static bool index_build_parallel (zf_global_t *g, const char *path)
+{
+  int fd = open (path, O_RDONLY);
+  if (fd == -1) return false;
+
+  struct stat st;
+  if (fstat (fd, &st) != 0) { close (fd); return false; }
+
+  const size_t fsz = (size_t) st.st_size;
+  if (fsz == 0) { close (fd); return false; }
+
+  unsigned char *map = (unsigned char *) mmap (NULL, fsz, PROT_READ, MAP_PRIVATE, fd, 0);
+  close (fd);
+  if (map == MAP_FAILED) return false;
+
+  // 1) walk frame headers only (no decode); bail to serial on anything unusual
+  //    (unknown content size, a skippable frame, a truncated tail)
+
+  u64 *comp_off = NULL, *ucs = NULL;
+  u64 nframes = 0, acap = 0;
+  size_t off = 0;
+  bool ok = true;
+
+  while (off < fsz)
+  {
+    const size_t fcs = ZSTD_findFrameCompressedSize (map + off, fsz - off);
+    if (ZSTD_isError (fcs)) { ok = false; break; }
+
+    u32 magic;
+    memcpy (&magic, map + off, sizeof (magic));
+    if ((magic & 0xFFFFFFF0u) == 0x184D2A50u) { ok = false; break; } // skippable frame
+
+    const unsigned long long content = ZSTD_getFrameContentSize (map + off, fcs);
+    if (content == ZSTD_CONTENTSIZE_UNKNOWN || content == ZSTD_CONTENTSIZE_ERROR) { ok = false; break; }
+
+    if (nframes == acap)
+    {
+      const u64 olda = acap;
+      acap = acap ? acap * 2 : 256;
+      comp_off = (u64 *) hcrealloc (comp_off, olda * sizeof (u64), (acap - olda) * sizeof (u64));
+      ucs      = (u64 *) hcrealloc (ucs,      olda * sizeof (u64), (acap - olda) * sizeof (u64));
+    }
+
+    comp_off[nframes] = off;
+    ucs[nframes]      = (u64) content;
+    nframes++;
+    off += fcs;
+  }
+
+  if (ok == false || off != fsz || nframes == 0)
+  {
+    munmap (map, fsz);
+    hcfree (comp_off);
+    hcfree (ucs);
+    return false;
+  }
+
+  comp_off = (u64 *) hcrealloc (comp_off, acap * sizeof (u64), sizeof (u64)); // room for the sentinel
+  comp_off[nframes] = fsz;
+
+  size_t max_ucs = 1;
+  for (u64 i = 0; i < nframes; i++) if (ucs[i] > max_ucs) max_ucs = (size_t) ucs[i];
+
+  // 2) decode + line-scan every frame in parallel, bounded so threads * largest_frame stays modest
+
+  const long ncpu = sysconf (_SC_NPROCESSORS_ONLN);
+  u64 nthreads = (ncpu > 0) ? (u64) ncpu : 1;
+  const u64 by_mem = ((u64) 8 * 1024 * 1024 * 1024) / max_ucs;
+  if (by_mem < 1) nthreads = 1; else if (nthreads > by_mem) nthreads = by_mem;
+  if (nthreads > nframes) nthreads = nframes;
+  if (nthreads < 1) nthreads = 1;
+
+  zf_build_ctx_t b;
+  b.map = map; b.comp_off = comp_off; b.uncomp_size = ucs; b.nframes = nframes;
+  b.nl       = (u64 *)     hcmalloc (nframes * sizeof (u64));
+  b.last_nl  = (uint8_t *) hcmalloc (nframes * sizeof (uint8_t));
+  b.first_nl = (int64_t *) hcmalloc (nframes * sizeof (int64_t));
+  b.bufcap   = max_ucs;
+  b.next     = 0;
+  b.error    = 0;
+
+  pthread_t *tids = (pthread_t *) hcmalloc (nthreads * sizeof (pthread_t));
+  u64 spawned = 0;
+  for (u64 i = 0; i < nthreads; i++)
+  {
+    if (pthread_create (&tids[i], NULL, zf_build_worker, &b) != 0) break;
+    spawned++;
+  }
+  if (spawned == 0) zf_build_worker (&b);
+  for (u64 i = 0; i < spawned; i++) pthread_join (tids[i], NULL);
+  hcfree (tids);
+
+  bool bad = (b.error != 0);
+
+  // 3) combine per-frame summaries: line-starts before frame k = 1 + (newlines in frames < k)
+  //    - (frame k-1 ended on '\n'); line_off[k] skips a leading carried-over partial line.
+
+  zf_frame_t *frames = NULL;
+  u64 total_lines = 0;
+
+  if (bad == false)
+  {
+    frames = (zf_frame_t *) hcmalloc (nframes * sizeof (zf_frame_t));
+    u64 prefix_nl = 0;
+
+    for (u64 k = 0; k < nframes; k++)
+    {
+      frames[k].comp_off    = comp_off[k];
+      frames[k].uncomp_size = ucs[k];
+
+      if (k == 0)
+      {
+        frames[k].first_line = 0;
+        frames[k].line_off   = 0;
+      }
+      else
+      {
+        frames[k].first_line = 1 + prefix_nl - b.last_nl[k - 1];
+        frames[k].line_off   = b.last_nl[k - 1] ? 0 : ((b.first_nl[k] < 0) ? ucs[k] : (u64) (b.first_nl[k] + 1));
+      }
+
+      prefix_nl += b.nl[k];
+    }
+
+    total_lines = prefix_nl + (b.last_nl[nframes - 1] ? 0 : 1);
+  }
+
+  munmap (map, fsz);
+  hcfree (b.nl); hcfree (b.last_nl); hcfree (b.first_nl);
+  hcfree (comp_off); hcfree (ucs);
+
+  if (bad) { hcfree (frames); return false; }
+
+  index_adopt (g, frames, nframes, total_lines);
+  hcfree (frames);
+
+  return true;
+}
+
+// parallel when the frame layout is header-derivable, else the always-correct serial pass
+static bool index_build (zf_global_t *g, const char *path)
+{
+  if (index_build_parallel (g, path)) return true;
+
+  return index_build_serial (g, path);
 }
 
 // ----------------------------------------------------------------------------------------------
