@@ -433,13 +433,14 @@ static const char *generic_base_feed (const char *path)
 
   if (hc_fopen_raw (&fp, path, "rb") == false) return "wordlist";
 
-  u8 m[4] = { 0 };
+  u8 m[6] = { 0 };
 
   const size_t n = hc_fread (m, 1, sizeof (m), &fp);
 
   hc_fclose (&fp);
 
-  if (n == 4 && m[0] == 0x28 && m[1] == 0xb5 && m[2] == 0x2f && m[3] == 0xfd) return "zstd";
+  if (n >= 4 && m[0] == 0x28 && m[1] == 0xb5 && m[2] == 0x2f && m[3] == 0xfd) return "zstd";
+  if (n >= 6 && m[0] == 0xfd && m[1] == 0x37 && m[2] == 0x7a && m[3] == 0x58 && m[4] == 0x5a && m[5] == 0x00) return "xz";
 
   return "wordlist";
 }
