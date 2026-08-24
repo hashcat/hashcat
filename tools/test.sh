@@ -5156,9 +5156,33 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
   fi
 
   if [ "${needs_sudo}" -eq 1 ]; then
+
+    # Ask at the start rather than when the first generator reaches its first sudo
+    # call. A full run is long, and a password prompt an hour in, once nobody is
+    # watching any more, stalls the run until somebody notices.
+
     if ! sudo -n true 2>/dev/null; then
-      echo "We'll need sudo to generate some of these crypto-containers on-the-fly"
+      echo "> Some of the selected modes build their container as root, so this run needs"
+      echo "  sudo. Asking now, rather than stopping for it later."
+
+      if ! sudo -v; then
+        echo "! No root, so those modes cannot be generated. Deselect them, or run without -g."
+
+        exit 1
+      fi
     fi
+
+    # sudo forgets after a few minutes, 15 by default, and a run outlasts that many
+    # times over. Refresh in the background so the prompt does not come back partway
+    # through, and stop when this shell does. The kill -0 is the belt to the trap's
+    # braces: if the script is killed outright the trap never runs, and the loop
+    # ends on its own once its parent is gone.
+
+    ( while kill -0 $$ 2>/dev/null; do sudo -n true 2>/dev/null; sleep 60; done ) &
+
+    SUDO_KEEPALIVE_PID=$!
+
+    trap 'kill "${SUDO_KEEPALIVE_PID}" 2>/dev/null' EXIT
   fi
 
   if [ -z "${PACKAGE_FOLDER}" ]; then
