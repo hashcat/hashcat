@@ -34,7 +34,6 @@ ENABLE_LTO              ?= 0
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
 ENABLE_UNRAR            ?= 1
-USE_MOLD                ?= 0
 USE_SYSTEM_LZMA         ?= 0
 USE_SYSTEM_ZLIB         ?= 0
 USE_SYSTEM_OPENCL       ?= 0
@@ -501,14 +500,6 @@ CFLAGS_HOST_ONLY        += -mcpu=cortex-a72
 endif
 endif
 
-# mold is a linker that lives on this machine. A cross set that wants it says so itself.
-
-ifneq ($(UNAME),Darwin)
-ifeq ($(USE_MOLD),1)
-LFLAGS_HOST_ONLY        += -fuse-ld=mold
-endif
-endif
-
 CFLAGS                  += $(CFLAGS_HOST_ONLY)
 LFLAGS                  += $(LFLAGS_HOST_ONLY)
 
@@ -962,15 +953,11 @@ LFLAGS_LINUX            += -l:libstdc++.a
 LFLAGS_LINUX            += -static-libstdc++
 endif
 
-ifeq ($(USE_MOLD),1)
-LFLAGS_LINUX            += -fuse-ld=mold
-else
 ifeq ($(ENABLE_LTO),1)
 ifeq ($(CC_LINUX_CLANG),1)
 LFLAGS_LINUX            += -fuse-ld=lld
 else
 LFLAGS_LINUX            += -fuse-ld=gold
-endif
 endif
 endif
 
@@ -1318,8 +1305,8 @@ else ifeq ($(FORMAT_NATIVE),PE)
 LFLAGS_FRONTEND_NATIVE  :=
 LFLAGS_PLUGIN_NATIVE    :=
 else
-LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER)
-LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER)
+LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin
+LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin
 ## A plugin is a shared object too, so it meets the same wall the library does on OpenBSD, where the
 ## driver does not link libc into one and -z,defs then reads the whole of libc as undefined. Guarding
 ## only the library left the library linking and all 593 plugins failing on abort. See the note beside
@@ -1329,8 +1316,8 @@ LFLAGS_PLUGIN_NATIVE    += -Wl,-z,defs
 endif
 endif
 
-LFLAGS_FRONTEND_LINUX   := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER)
-LFLAGS_PLUGIN_LINUX     := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,defs
+LFLAGS_FRONTEND_LINUX   := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin
+LFLAGS_PLUGIN_LINUX     := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin -Wl,-z,defs
 
 ##
 ## The core each platform links

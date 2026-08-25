@@ -42,6 +42,7 @@ RUN apt-get update && apt-get -y --no-install-recommends install apt-utils && ap
     git \
     libc6-dev \
     libomp-dev \
+    m4 \
     make \
     time \
     wget \
@@ -99,6 +100,21 @@ RUN cd $WD/src && git clone --depth 1 --branch v${WIN_ICONV_VERSION} https://git
     -D CMAKE_CXX_STANDARD_LIBRARIES="-static-libgcc -static-libstdc++" \
     . && make install && cd $WD/src && rm -rf win-iconv
 
+# GMP
+
+ARG GMP_VERSION=6.3.0
+ENV GMP_VERSION=${GMP_VERSION}
+
+RUN cd $WD/src && wget --no-verbose -t 3 -c --https-only https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && \
+    tar -xf gmp-${GMP_VERSION}.tar.xz && cp -a gmp-${GMP_VERSION} gmp-win && \
+    cd $WD/src/gmp-${GMP_VERSION} && \
+    ./configure --prefix=/usr/local --disable-shared --enable-static --with-pic --enable-fat CC="gcc -std=gnu17" && \
+    make -j ${MAX_CORE} && make install && \
+    cd $WD/src/gmp-win && \
+    ./configure --host=x86_64-w64-mingw32 --prefix=/opt/win-gmp-64 --disable-shared --enable-static --enable-fat CC="x86_64-w64-mingw32-gcc -std=gnu17" && \
+    make -j ${MAX_CORE} && make install && \
+    cd $WD/src && rm -rf gmp-${GMP_VERSION} gmp-win gmp-${GMP_VERSION}.tar.xz
+
 # Python (windows)
 
 ARG WIN_PYTHON_VERSION=3.14.6-2
@@ -140,7 +156,6 @@ ARG CACHE_BUST=1 \
     HASHCAT_REF=master \
     ENABLE_LTO=1 \
     MAINTAINER_MODE=1 \
-    USE_MOLD=1 \
     USE_CLANG=1 \
     USE_GCC=0
 
@@ -148,7 +163,6 @@ ENV CACHE_BUST=${CACHE_BUST} \
     HASHCAT_REF=${HASHCAT_REF} \
     ENABLE_LTO=${ENABLE_LTO} \
     MAINTAINER_MODE=${MAINTAINER_MODE} \
-    USE_MOLD=${USE_MOLD} \
     USE_CLANG=${USE_CLANG} \
     USE_GCC=${USE_GCC}
 
@@ -183,8 +197,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 RUN if [ "${USE_CLANG}" = "1" ]; then \
       cp -af /root/hashcat /root/hashcat-clang && cd /root/hashcat-clang && \
-      make USE_MOLD=${USE_MOLD} \
-           ENABLE_LTO=${ENABLE_LTO} \
+      make ENABLE_LTO=${ENABLE_LTO} \
            MAINTAINER_MODE=${MAINTAINER_MODE} \
            AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar \
            CC=clang CC_LINUX=clang CC_WIN=clang \
@@ -205,8 +218,7 @@ RUN if [ "${USE_CLANG}" = "1" ]; then \
 
 RUN if [ "${USE_GCC}" = "1" ]; then \
       cp -af /root/hashcat /root/hashcat-gcc && cd /root/hashcat-gcc && \
-      make USE_MOLD=${USE_MOLD} \
-           ENABLE_LTO=${ENABLE_LTO} \
+      make ENABLE_LTO=${ENABLE_LTO} \
            MAINTAINER_MODE=${MAINTAINER_MODE} \
            binaries -s -j ${MAX_CORE} 2>&1 | stdbuf -oL -eL  tee -a /root/binaries.gcc.log && \
       tools/package_bin.sh && \
@@ -234,11 +246,11 @@ ENV WITH_CODE_ANALYSIS=${WITH_CODE_ANALYSIS}
 RUN echo "HASHCAT_REF: ${HASHCAT_REF}" >> /root/toolchain-info.log && \
     echo "WIN_PYTHON_VERSION: ${WIN_PYTHON_VERSION}" >> /root/toolchain-info.log && \
     echo "WIN_ICONV_VERSION: ${WIN_ICONV_VERSION}" >> /root/toolchain-info.log && \
+    echo "GMP_VERSION: ${GMP_VERSION}" >> /root/toolchain-info.log && \
     echo "SEVEN_ZIP_VERSION: ${SEVEN_ZIP_VERSION}" >> /root/toolchain-info.log && \
     echo "RUST_VERSION: ${RUST_VERSION}" >> /root/toolchain-info.log && \
     echo "ENABLE_LTO: ${ENABLE_LTO}" >> /root/toolchain-info.log && \
     echo "MAINTAINER_MODE: ${MAINTAINER_MODE}" >> /root/toolchain-info.log && \
-    echo "USE_MOLD: ${USE_MOLD}" >> /root/toolchain-info.log && \
     echo "USE_CLANG: ${USE_CLANG}" >> /root/toolchain-info.log && \
     echo "USE_GCC: ${USE_GCC}" >> /root/toolchain-info.log && \
     echo "WITH_CODE_ANALYSIS: ${WITH_CODE_ANALYSIS}" >> /root/toolchain-info.log && \
@@ -255,9 +267,9 @@ RUN if [ "$WITH_CODE_ANALYSIS" -eq "1" ]; then \
       echo "Checks: 'clang-analyzer-*,cppcoreguidelines-*,-cppcoreguidelines-avoid-magic-numbers,modernize-*,performance-*,-modernize-use-trailing-return-type,-clang-diagnostic-unused-command-line-argument'" > /root/hashcat/.clang-tidy && \
       echo "HeaderFilterRegex: 'src/.*'" >> /root/hashcat/.clang-tidy && \
       cd /root/hashcat && make clean -s && \
-      intercept-build make USE_MOLD=${USE_MOLD} ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j && \
+      intercept-build make ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j && \
       run-clang-tidy -p=. -export-fixes=/root/code-analysis/clang-tidy/fixes.yaml -quiet > /root/code-analysis/clang-tidy/output.log 2>&1 && make clean -s && \
-      scan-build -o /root/code-analysis/scan-build make USE_MOLD=${USE_MOLD} ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j > /root/code-analysis/scan-build/output.log 2>&1 && make clean -s; \
+      scan-build -o /root/code-analysis/scan-build make ENABLE_LTO=${ENABLE_LTO} MAINTAINER_MODE=${MAINTAINER_MODE} AR=llvm-ar AR_LINUX=llvm-ar AR_WIN=llvm-ar CC=clang CC_LINUX=clang CC_WIN=clang CXX=clang++ CXX_LINUX=clang++ CXX_WIN=clang++ linux -s -j > /root/code-analysis/scan-build/output.log 2>&1 && make clean -s; \
     fi
 
 CMD ["/bin/bash"]
