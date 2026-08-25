@@ -15,7 +15,7 @@ HARNESS=${HARNESS:-./asan_harness}
 OUT=${1:-./asan-sweep}
 
 if [ ! -x "$HARNESS" ]; then
-  echo "error: $HARNESS not found -- run tools/asan/build.sh first" >&2
+  echo "error: $HARNESS not found, run tools/asan/build.sh first" >&2
   exit 2
 fi
 
@@ -30,7 +30,7 @@ LOG="$OUT/sweep.log"
 # by default, but mandatory under a clang runtime older than glibc 2.34, where
 # SIGSTKSZ stopped being a compile-time constant and the runtime tries to
 # allocate a 0-byte alternate signal stack. Without it the sanitizer aborts
-# before main() and the sweep records a clean pass for every module -- a
+# before main() and the sweep records a clean pass for every module: a
 # false all-clear, the one failure direction that must never be silent.
 export ASAN_OPTIONS="detect_leaks=0:halt_on_error=0:use_sigaltstack=0:log_path=$OUT/tmp_asan"
 

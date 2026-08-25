@@ -8,7 +8,7 @@
  * ---------------
  * The Compute Sanitizer harness in tools/compute_sanitizer/ can only see CUDA
  * kernels. hashcat's hash-line parsers (module_hash_decode) run entirely on the
- * host in plain C, so the sanitizer is structurally blind to them -- and they
+ * host in plain C, so the sanitizer is structurally blind to them, and they
  * are the part of hashcat that consumes fully attacker-controlled input: a
  * hash file from an untrusted source is parsed by hand-written C with a lot of
  * pointer arithmetic, hex decoding and fixed-size buffers.
@@ -76,7 +76,7 @@ static void build_hashconfig (hashconfig_t *hashconfig, module_ctx_t *m,
 
   // Mirrors the subset of hashconfig_init() that a parser can actually
   // observe. Anything a parser reads that is not set here would be read as
-  // zero -- which is why the harness reports a parser that depends on
+  // zero, which is why the harness reports a parser that depends on
   // something it should not, rather than silently guessing a value.
 
   if (IS_SET (m->module_separator))       hashconfig->separator      = m->module_separator       (hashconfig, uo, uoe);
@@ -93,7 +93,7 @@ static void build_hashconfig (hashconfig_t *hashconfig, module_ctx_t *m,
   // Defaults, mirroring default_pw_max()/default_salt_max() in interface.c.
   // These are NOT optional: most modules leave these fields to the defaults,
   // and a zero salt_max makes every generic salted parser reject its own
-  // example hash with PARSER_SALT_LENGTH -- which would look like the harness
+  // example hash with PARSER_SALT_LENGTH, which would look like the harness
   // "passing" while never exercising a single line of parser code.
   // The interface.c versions are not exported (-fvisibility=hidden), so the
   // logic is restated here; keep in sync with src/interface.c:820,910.
@@ -149,7 +149,7 @@ static int parse_one (module_ctx_t *m, hashconfig_t *hashconfig,
 
   hashinfo_t *hash_info = (hashinfo_t *) xalloc (sizeof (hashinfo_t));
 
-  // hashcat zeroes these before parsing (hashes.c), so the harness does too --
+  // hashcat zeroes these before parsing (hashes.c), so the harness does too;
   // otherwise every parser that writes only some fields would look like a bug.
   memset (digest_buf, 0, hashconfig->dgst_size);
   memset (salt, 0, sizeof (salt_t));
@@ -180,7 +180,7 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
 {
   const int len = (int) strlen (hash);
 
-  // 1. every truncation -- catches parsers that read a field before checking
+  // 1. every truncation: catches parsers that read a field before checking
   //    that the line is long enough to contain it
   for (int i = 0; i <= len; i++)
   {
@@ -196,7 +196,7 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
     free (buf);
   }
 
-  // 2. a length that lies about the buffer -- parsers must trust line_len, not
+  // 2. a length that lies about the buffer: parsers must trust line_len, not
   //    a NUL terminator. Passing a longer len than the data is exactly what a
   //    truncated read from a hash file looks like.
   {
@@ -209,7 +209,7 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
     free (buf);
   }
 
-  // 3. separator storms -- field-splitting parsers that index token.buf[N]
+  // 3. separator storms: field-splitting parsers that index token.buf[N]
   //    without checking token.cnt
   for (int extra = 1; extra <= 3; extra++)
   {
@@ -228,7 +228,7 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
     free (buf);
   }
 
-  // 4. oversized final field -- classic fixed-buffer overflow shape
+  // 4. oversized final field: classic fixed-buffer overflow shape
   {
     const size_t pad = 4096;
     const size_t sz  = (size_t) len + pad + 1;
@@ -251,7 +251,7 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
   //    length from one field and applies it at another offset, which stays in
   //    bounds only while the fields happen to be similarly sized. The example
   //    hash is usually balanced enough to hide that, so the defect only
-  //    appears once one field is much longer than the rest -- m29100 needed a
+  //    appears once one field is much longer than the rest: m29100 needed a
   //    120-character first field against a 20-character last one, and the
   //    mutations above reached it only by accident.
   //
@@ -325,7 +325,7 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
   //    boundary by binary search.
   //
   //    This is the Class-1 finder (token accepted length exceeds the fixed
-  //    field it is written into -- see bugclasses.md). It replaces step 5's
+  //    field it is written into, see bugclasses.md). It replaces step 5's
   //    byte-repetition, which fails a real overflow on two counts: 8x of a
   //    short example field can still be under the destination (the Kerberos
   //    domain example is 15 bytes, 8x = 120, under the 128-byte buffer it
@@ -335,14 +335,14 @@ static void mutate (module_ctx_t *m, hashconfig_t *hashconfig, const char *hash)
   //    Two ideas make this reliable:
   //
   //    (a) Fresh charset-safe fill. '1' if the example field is all digits
-  //        (VERIFY_DIGIT), else 'a' -- a valid hex digit, base64 char, base58
+  //        (VERIFY_DIGIT), else 'a': a valid hex digit, base64 char, base58
   //        char and alnum, so the pumped field passes every charset check and
   //        reaches the decode.
   //
   //    (b) Binary search to the length boundary. A base64 field overflows in
   //        a *narrow* window: m34000 decodes a 173-char token (len_max) into a
   //        128-byte digest, and base64 writes ceil(173/4)*3 = 132. Fixed
-  //        target lengths miss that -- 64 is too short, 256 is past len_max
+  //        target lengths miss that: 64 is too short, 256 is past len_max
   //        and length-rejected. So per field we binary-search the largest
   //        length the parser does not reject with PARSER_TOKEN_LENGTH (-35);
   //        that boundary IS the field's len_max, exactly where a decode-into-
@@ -487,7 +487,7 @@ int main (int argc, char **argv)
   if (module_ctx.module_context_size != MODULE_CONTEXT_SIZE_CURRENT)
   {
     fprintf (stderr, "harness: module context size mismatch for -m %d "
-                     "(got %zu, expected %zu) -- rebuild the plugins\n",
+                     "(got %zu, expected %zu), rebuild the plugins\n",
              hash_mode, module_ctx.module_context_size, (size_t) MODULE_CONTEXT_SIZE_CURRENT);
     return 2;
   }
@@ -538,7 +538,7 @@ int main (int argc, char **argv)
 
   // Copy the input into an exactly-sized heap buffer. When the caller passes
   // --hash, the string lives in argv, and a read past its end is not something
-  // ASan or Valgrind can bound-check -- an exact malloc makes the overread land
+  // ASan or Valgrind can bound-check: an exact malloc makes the overread land
   // on a redzone and get reported, which is the whole point of a repro.
   const int hash_len = (int) strlen (hash);
 

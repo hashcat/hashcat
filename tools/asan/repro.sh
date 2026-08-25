@@ -3,14 +3,14 @@
 # Reproduce a single parser finding, with the module compiled straight into the
 # harness instead of dlopen()ed.
 #
-# Use this when you want a small self-contained binary for one module -- it
+# Use this when you want a small self-contained binary for one module: it
 # needs only a `make DEBUG=1` core, not a full DEBUG=2 tree, and it is the only
 # way to run MemorySanitizer (MSan and ASan cannot share a process, so an
 # MSan harness must not dlopen an ASan-built plugin).
 #
 # The tradeoff: only the harness and the named module are instrumented. A bug
 # inside a core helper such as convert.c or parser.c will NOT be reported
-# unless you add that file to the command line -- pass it via EXTRA. Prefer
+# unless you add that file to the command line, pass it via EXTRA. Prefer
 # tools/asan/build.sh + sweep.sh when you are looking for unknown bugs.
 #
 # Usage:
@@ -78,7 +78,7 @@ export LD_LIBRARY_PATH="$CORE_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 # All three need use_sigaltstack=0, not just ASan/MSan: UBSan ships the same
 # sanitizer_common runtime and dies the same way without it. Leaving it off
 # here made TOOL=ubsan abort before main() with "failed to allocate 0x0 bytes
-# of SetAlternateSignalStack" -- and because that abort produces no "runtime
+# of SetAlternateSignalStack", and because that abort produces no "runtime
 # error:" line, every ubsan repro looked like a clean pass. A false all-clear,
 # which is the one direction that must never fail silently.
 export ASAN_OPTIONS=detect_leaks=0:halt_on_error=0:use_sigaltstack=0

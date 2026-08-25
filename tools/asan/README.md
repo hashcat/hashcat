@@ -5,7 +5,7 @@ the hash-line parsers, the core string/convert helpers, and hashcat's own
 allocation handling under a real workload.
 
 That split matters because the two halves fail differently. Compute Sanitizer
-answers "did a kernel leave its allocation" — and on this codebase it answers
+answers "did a kernel leave its allocation", and on this codebase it answers
 "no" very consistently. The host side is where hand-written C meets fully
 attacker-controlled input: a hash file from an untrusted source is parsed with
 pointer arithmetic, hex decoding and fixed-size buffers.
@@ -27,7 +27,7 @@ Without that, nothing here can be built.
 ### 1. Parser sweep (no GPU)
 
 The high-yield one. Runs every module's `module_hash_decode()` on its own
-example hash plus a family of mutations — every truncation, a length that lies
+example hash plus a family of mutations: every truncation, a length that lies
 about the buffer, separator storms, an oversized trailing field.
 
 ```
@@ -52,7 +52,7 @@ make DEBUG=2 -j$(nproc)
 tools/asan/gpu_sweep.sh              # or --from 6050 to resume
 ```
 
-Slow — budget a few minutes per hash type.
+Slow, budget a few minutes per hash type.
 
 ### 3. Single-mode reproduction
 
@@ -83,7 +83,7 @@ is much faster if you only want UBSan.
 
 **`make clean` is required when changing `SANITIZE`.** make does not track
 compiler-flag changes, so without it the existing objects are reused and you
-get the old sanitizer set with none of the new one — silently, and the sweep
+get the old sanitizer set with none of the new one, silently, and the sweep
 then reports a clean run that proves nothing. `build.sh` warns if the core
 lacks the symbols for what you asked for; `nm -D ./libhashcat.so.7 | grep
 ubsan` is the direct check.
@@ -98,7 +98,7 @@ in a module parser and making a live bug look unreproducible. Use
 `print_stacktrace=1` because UBSan otherwise prints a bare source location
 with no context.
 
-UBSan reports look nothing like ASan's — one `file.c:12:34: runtime error: ...`
+UBSan reports look nothing like ASan's: one `file.c:12:34: runtime error: ...`
 line per finding on stderr, repeated per loop iteration. The sweep counts them
 separately and deduplicates, so a finding inside a hot loop does not swamp the
 total. Findings are reported as `asan=N ubsan=M`.
@@ -112,7 +112,7 @@ loads, `NULL` arithmetic, bad enum and bool values, dividing `INT_MIN` by -1.
 It will not find the bugs in `bugs_found.md`. Worth being concrete, because
 the mistake is tempting: `is_hexify()` casts `const u8 *buf` to `u32 *` and
 loads four bytes from a buffer that may be shorter, which reads like a
-textbook UBSan alignment finding. It is not one — `malloc` returns
+textbook UBSan alignment finding. It is not one: `malloc` returns
 suitably-aligned memory, so the load is aligned and perfectly defined; it is
 simply out of bounds, which is ASan's department. Running the `is_hexify`
 reproducer under UBSan alone prints nothing at all and returns the *correct*
@@ -124,7 +124,7 @@ Run both.
 
 ## Checking that a binary really is ASan-instrumented
 
-Worth doing before trusting a "clean" result — a harness built against an
+Worth doing before trusting a "clean" result: a harness built against an
 uninstrumented core reports real bugs as `rc=0`.
 
 ```
@@ -133,7 +133,7 @@ nm -D ./libhashcat.so.7 | grep -c asan
 nm -a ./your_harness | grep -o '__asan_[a-z_]*' | sort -u | head
 ```
 
-Check all three of `hashcat`, `libhashcat.so.7` and `modules/module_*.so` —
+Check all three of `hashcat`, `libhashcat.so.7` and `modules/module_*.so`:
 they are separate link steps and can disagree, which is the whole reason the
 `DEBUG=2` link bug mattered.
 
@@ -142,7 +142,7 @@ statically links the ASan runtime shows nothing there while still being fully
 instrumented. `nm` catches both cases; `strings -a <bin> | grep -q
 AddressSanitizer` works even on a stripped binary.
 
-To tell ASan from MSan, look at the symbol prefix — `__asan_*` vs `__msan_*`.
+To tell ASan from MSan, look at the symbol prefix: `__asan_*` vs `__msan_*`.
 
 Runtime check, if you would rather ask the binary than the ELF:
 
@@ -185,7 +185,7 @@ disappear once the shadow gap is unprotected.
 plugins, so core *and* modules are checked.
 
 This is not a nicety. Several real bugs have their bad access inside a core
-helper rather than in the module that calls it — an out-of-bounds read in
+helper rather than in the module that calls it: an out-of-bounds read in
 `hex_to_u32()` (`src/convert.c`), a `memcpy` overread in
 `generic_salt_decode()` (`src/parser.c`), a `stack-use-after-scope` that
 surfaces inside `hc_strchr_next()` from a pointer a module handed it. A harness
@@ -205,7 +205,7 @@ Your application is linked against incompatible ASan runtimes.
 ```
 
 The usual cause is not the compiler. It is that the `libhashcat.so.7` resolved
-at **run** time is not the one linked at **build** time — typically an
+at **run** time is not the one linked at **build** time, typically an
 ASan-instrumented copy getting pulled into a harness built against a plain
 `DEBUG=1` core, or the reverse. ASan cannot have its runtime initialised twice
 that way.
@@ -217,14 +217,14 @@ hand, do the same, and check with `ldd ./your_harness | grep hashcat`.
 (Compiler choice is *not* the issue on a stock Ubuntu toolchain: gcc and
 clang there both link the same shared `libasan.so.6`, so they interoperate
 fine. `build.sh` defaults to gcc only to match how the tree itself was built;
-`CC=clang` works. A clang that statically links its own ASan runtime — some
-non-distro builds do — would genuinely conflict with a gcc-built core, so
+`CC=clang` works. A clang that statically links its own ASan runtime (some
+non-distro builds do) would genuinely conflict with a gcc-built core, so
 verify with `ldd` rather than assuming either way.)
 
 ### `halt_on_error=0`
 
 Both sweeps set it. Without it ASan stops at the first report, and a module
-with two distinct defects hides the second behind the first — which is exactly
+with two distinct defects hides the second behind the first, which is exactly
 what happens in at least one module, where the less serious heap overread masks
 a `stack-use-after-scope`.
 
@@ -240,19 +240,19 @@ a hash on the command line is parsed out of `argv`
 (`user_options_extra->hc_hash`, `src/hashes.c:1298`) and a hash from a file is
 parsed out of a 16 MB zero-filled buffer (`hcmalloc (HCBUFSIZ_LARGE)`,
 `src/hashes.c:1557`; `hcmalloc` is `calloc`). Measured against an ASan build of
-plain hashcat, that slack absorbs every forward overread here — m7100, m19600,
+plain hashcat, that slack absorbs every forward overread here: m7100, m19600,
 m28800, m8500, m8501, m7900, m11600, m29100 and `is_hexify` all run the
 defective code and report **nothing**.
 
 Three kinds of finding survive into plain hashcat, and they are worth knowing
 because they are what you can hand someone who will not build a harness:
 
-- `stack-use-after-scope` — the poisoning is on the stack slot, so the input
+- `stack-use-after-scope`: the poisoning is on the stack slot, so the input
   buffer's size is irrelevant (m25400).
-- reads *before* the buffer — the start of the 16 MB region is a real
+- reads *before* the buffer: the start of the 16 MB region is a real
   allocation boundary, so a negative index reports (m32100, m32200, from a
   hash **file**, not the command line).
-- everything UBSan checks — it instruments the operation, not the memory.
+- everything UBSan checks: it instruments the operation, not the memory.
 
 Everything else needs the exact-size allocation. That is not a weaker class of
 bug; it is a bug whose blast radius is currently bounded by an implementation
@@ -260,7 +260,7 @@ detail nobody wrote down.
 
 ## ASan vs Valgrind vs MSan
 
-The same harness runs under Valgrind with no special build — drop
+The same harness runs under Valgrind with no special build: drop
 `-fsanitize=address`, build against a `DEBUG=1` tree, and run it under
 `valgrind`. That is worth knowing, but ASan is the better default here:
 
@@ -269,10 +269,10 @@ The same harness runs under Valgrind with no special build — drop
   enough to sweep all 594 modules in ~25 minutes.
 - **Valgrind** needs no rebuild and instruments everything including the
   system libraries, which is genuinely useful when you suspect the build. But
-  it is 20–50x slower — slow enough that a dozen expensive parsers time out —
+  it is 20 to 50x slower, slow enough that a dozen expensive parsers time out,
   and it **cannot detect `stack-use-after-scope` at all**: the memory is still
   valid stack, and memcheck has no notion of a C block's lifetime.
-- **MSan** answers a different question — *uses of uninitialized values*, not
+- **MSan** answers a different question: *uses of uninitialized values*, not
   out-of-bounds accesses. For a bug where bytes are read past a buffer and then
   compared, MSan is silent by design, and where it does fire it tends to be a
   bare `SIGSEGV` whose appearance depends on heap layout. Supported via
@@ -283,9 +283,9 @@ The same harness runs under Valgrind with no special build — drop
 The harness feeds truncated and corrupted input directly to
 `module_hash_decode()`. Some modes are declared `OPTS_TYPE_BINARY_HASHFILE`,
 where the production caller reads whole fixed-size records with `fread` and a
-short read yields zero — those parsers are entitled to assume a full record,
+short read yields zero: those parsers are entitled to assume a full record,
 and a truncation-driven report against them is a harness artifact, not a bug.
 Check the mode's `opts_type` before filing anything.
 
-Everything else — a parser reached with a short or malformed *line* — is real:
+Everything else, a parser reached with a short or malformed *line*, is real:
 that is precisely the input a hash file provides.

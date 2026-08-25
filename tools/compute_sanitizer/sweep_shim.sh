@@ -9,7 +9,7 @@
 ##
 ## Required env: SANITIZER_SWEEP_DIR (results directory for this sweep run)
 ## Optional env: SANITIZER_SWEEP_TOOL (memcheck|racecheck|synccheck|initcheck, default memcheck)
-##            SANITIZER_SWEEP_PADDING (bytes of redzone after each device allocation, default 128 --
+##            SANITIZER_SWEEP_PADDING (bytes of redzone after each device allocation, default 128,
 ##                                     see run.py exec --padding)
 ##
 
@@ -19,7 +19,7 @@ TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REPO_ROOT="$( cd "${TDIR}/../.." && pwd )"
 
 if [ -z "${SANITIZER_SWEEP_DIR:-}" ]; then
-  echo "sweep_shim.sh: SANITIZER_SWEEP_DIR must be set (internal error -- not meant to be invoked directly)" >&2
+  echo "sweep_shim.sh: SANITIZER_SWEEP_DIR must be set (internal error, not meant to be invoked directly)" >&2
   exit 2
 fi
 

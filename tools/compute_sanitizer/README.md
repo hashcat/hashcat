@@ -1,4 +1,4 @@
-# tools/compute_sanitizer/ — NVIDIA Compute Sanitizer testing for hashcat
+# tools/compute_sanitizer/: NVIDIA Compute Sanitizer testing for hashcat
 
 Runs hashcat's real CUDA kernels on real GPU hardware under NVIDIA's own
 Compute Sanitizer, triaging every finding down to a **hashcat/OpenCL source
@@ -7,14 +7,14 @@ leaving you to read a raw `compute-sanitizer` log by hand.
 
 This is the CUDA-kernel counterpart to `DEBUG=2` (hashcat's own ASan mode,
 host-side C only) and replaces an earlier PoCL+Valgrind approach that
-emulated GPU kernels on the CPU under full Valgrind instrumentation — real
+emulated GPU kernels on the CPU under full Valgrind instrumentation: real
 hardware is both faster and catches exactly the class of bug (GPU kernel
 memory-safety) that emulation was only approximating. This tool is
 **CUDA-only** by design; it does not touch OpenCL/HIP/Metal kernels.
 
 ## Why `--generate-line-info`, not `-G`
 
-hashcat's default release build passes no debug flags to NVRTC — a
+hashcat's default release build passes no debug flags to NVRTC, a
 Compute Sanitizer finding resolves only to a raw kernel name and instruction
 offset. A `DEBUG=1` build adds `--generate-line-info` to the CUDA/NVRTC
 compile options (`src/backend.c`, `load_kernel()`'s CUDA branch), which
@@ -25,7 +25,7 @@ the very memory-access patterns you're trying to test.
 
 `DEBUG=1` builds also pass NVRTC the real `.cl` source filename as the
 compiled program's name (instead of the generic `main_kernel`/
-`shared_kernel`/`mp_kernel`/`amp_kernel` literal used in release builds) —
+`shared_kernel`/`mp_kernel`/`amp_kernel` literal used in release builds):
 NVRTC compiles from an in-memory string, so unlike a real `nvcc` compile of
 an on-disk `.cu` file, there's no filesystem path for the line-info table to
 reference unless the program is explicitly named. Confirmed via a real
@@ -35,7 +35,7 @@ throwaway kernel during development: without this, Compute Sanitizer reports
 No kernel-cache-key changes were needed: hashcat's kernel cache is keyed in
 part on `COMPTIME` (`src/Makefile:233`, a fresh Unix timestamp baked in at
 every link), which is already the first field hashed into both cache-key
-formulas in `src/backend.c` — so a `make clean && make DEBUG=1` rebuild
+formulas in `src/backend.c`, so a `make clean && make DEBUG=1` rebuild
 naturally invalidates any previously-cached kernel binary, DEBUG or not.
 
 ## `run.py build`
@@ -46,7 +46,7 @@ tools/compute_sanitizer/run.py build
 
 `make clean && make DEBUG=1 -j$(nproc)`, then copies `./hashcat` to a
 stable, explicitly-named `./hashcat-sanitizer` sibling (same directory as
-`modules/*.so`, resolved via hashcat's own binary-relative module lookup —
+`modules/*.so`, resolved via hashcat's own binary-relative module lookup,
 no separate module tree needed). Runs a hard sanity check
 (`./hashcat-sanitizer --version`) before declaring success.
 
@@ -65,10 +65,10 @@ tools/compute_sanitizer/run.py check
 
 Reports a found/missing table: `compute-sanitizer`, `nvcc`, hashcat debug
 info, and a visible CUDA device (parsed from `hashcat-sanitizer -I`'s "CUDA
-Info:" section — confirmed this environment reports it as a `Backend Device
+Info:" section, confirmed this environment reports it as a `Backend Device
 ID` entry).
 
-## `run.py exec` — run one command
+## `run.py exec`: run one command
 
 ```
 tools/compute_sanitizer/run.py exec <test-name> [--tool memcheck|racecheck|synccheck|initcheck] [--leak-check no|full] [--padding N] -- <hashcat-command...>
@@ -82,13 +82,13 @@ tools/compute_sanitizer/run.py exec <test-name> [--tool memcheck|racecheck|syncc
   can't see anything. Fails clearly if no CUDA device is visible.
 - Before touching the sanitizer at all, runs the same build-sanity check as
   `run.py build`, and warns (but does not block) if the binary has no debug
-  info — a release-build repro run is still legitimate, it just won't
+  info: a release-build repro run is still legitimate, it just won't
   resolve to source lines.
 - Invokes `compute-sanitizer --tool <tool> --check-exit-code no --leak-check
   <no|full> --show-backtrace device --print-limit 20 --log-file ...`.
   **Never `--error-exitcode`**: hashcat's own exit code and the sanitizer's
   verdict are tracked completely separately (same principle as the earlier
-  Valgrind tool, now re-confirmed empirically here — `--check-exit-code no`
+  Valgrind tool, now re-confirmed empirically here: `--check-exit-code no`
   plus no `--error-exitcode` means the sanitizer's own process exit code
   reflects nothing about what it found, so hashcat's real `$?` is what gets
   captured, and the sanitizer verdict comes purely from parsing the log).
@@ -100,7 +100,7 @@ tools/compute_sanitizer/run.py exec <test-name> [--tool memcheck|racecheck|syncc
   N bytes of tracked redzone appended after every device allocation. Without
   it, a read/write that overshoots one buffer but happens to land inside
   whatever real allocation the CUDA allocator placed next door goes
-  undetected — not because nothing is wrong, but because memcheck only
+  undetected, not because nothing is wrong, but because memcheck only
   flags accesses outside *every* allocation, and an adjacent live buffer
   still counts as "inside an allocation." `--padding` closes exactly that
   gap: an overshoot into the redzone is flagged even when the real neighbor
@@ -116,11 +116,11 @@ block. These are real Compute Sanitizer errors but are *consequences* of the
 first fault, not independent findings. `triage.py` classifies the first
 non-`CudaAPIError` finding (or, if there genuinely isn't one, the first
 `CudaAPIError`) as `primary`, and any `CudaAPIError` blocks that follow a
-real primary fault as `secondary` — kept in the JSON for context, excluded
+real primary fault as `secondary`: kept in the JSON for context, excluded
 from the primary PASS/FAIL count and from the terminal summary's main
 listing (a one-line note reports how many were omitted).
 
-## `run.py selftest` — the ground-truth baseline
+## `run.py selftest`: the ground-truth baseline
 
 ```
 tools/compute_sanitizer/run.py selftest
@@ -131,9 +131,9 @@ Three small, permanent, one-bug-each `.cu` fixtures under `modules/`
 itself), each checked against an exact expected finding kind in
 `modules/expected.json`:
 
-- `oob_write.cu` — `InvalidGlobalWrite` (`memcheck`)
-- `oob_read.cu` — `InvalidGlobalRead` (`memcheck`)
-- `uninit_global.cu` — `UninitializedDeviceMemory` (`initcheck`)
+- `oob_write.cu`: `InvalidGlobalWrite` (`memcheck`)
+- `oob_read.cu`: `InvalidGlobalRead` (`memcheck`)
+- `uninit_global.cu`: `UninitializedDeviceMemory` (`initcheck`)
 
 All three were run against a real GPU during development and verified to
 produce exactly the expected finding, including the `initcheck`-specific log
@@ -147,7 +147,7 @@ Run this after touching `triage.py`'s parsing/classification logic, or any
 time you want to confirm the tool itself is still correct before trusting it
 against real hashcat+GPU output.
 
-## `report.py` — aggregate past runs
+## `report.py`: aggregate past runs
 
 ```
 tools/compute_sanitizer/report.py                    # all runs in tools/compute_sanitizer/results/
@@ -174,7 +174,7 @@ scripts check for `./hashcat-sanitizer` and exit with a clear error if it's
 missing). Each hashcat invocation is transparently routed through
 `tools/compute_sanitizer/sweep_shim.sh`, which wraps it in `run.py exec
 --sweep`: hashcat's own stdout/stderr/exit code pass through completely
-untouched, so the scripts' existing pass/fail parsing is unaffected —
+untouched, so the scripts' existing pass/fail parsing is unaffected;
 Compute Sanitizer's own findings are written to a
 `tools/compute_sanitizer/results/sweep-<timestamp>/` directory instead,
 printed as a pointer at the end of the run.
@@ -182,11 +182,11 @@ printed as a pointer at the end of the run.
 **Performance, measured**: the same GPG mode 17010 example hash that took
 18+ minutes under the earlier PoCL+Valgrind fast tier ran in **~13 seconds**
 end to end here (`run.py exec` wall-clock, real GPU, `memcheck`, one
-candidate) — roughly 80x faster, running on real hardware instead of
+candidate), roughly 80x faster, running on real hardware instead of
 emulating a GPU kernel on the CPU under Valgrind instrumentation. Ordinary
 kernel compiles (`ptxas`) were tens to hundreds of ms each, not minutes, and
 a full MD5 crack completed in under a second end to end. Use the existing
-scoping flags (`-m`/`-a`/`-V`) to bound a run when sweeping many modes —
+scoping flags (`-m`/`-a`/`-V`) to bound a run when sweeping many modes;
 Compute Sanitizer's own overhead is still real (it instruments every device
 memory access), just nowhere near what CPU emulation cost.
 
@@ -194,10 +194,10 @@ memory access), just nowhere near what CPU emulation cost.
 
 ```
 tools/compute_sanitizer/
-├── run.py          # CLI: build / check / exec / selftest
-├── triage.py         # compute-sanitizer log parsing, classification, JSON schema
-├── report.py           # aggregates past runs into a table
-├── sweep_shim.sh          # BIN indirection target for test.sh/test_edge.sh --compute-sanitizer
-├── modules/                 # ground-truth self-test fixtures (see `run.py selftest` above)
-└── results/                   # gitignored; one directory per run, never overwritten
+    run.py           # CLI: build / check / exec / selftest
+    triage.py        # compute-sanitizer log parsing, classification, JSON schema
+    report.py        # aggregates past runs into a table
+    sweep_shim.sh    # BIN indirection target for test.sh/test_edge.sh --compute-sanitizer
+    modules/         # ground-truth self-test fixtures (see `run.py selftest` above)
+    results/         # gitignored; one directory per run, never overwritten
 ```

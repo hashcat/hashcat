@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Run every module's parser under MemorySanitizer, looking for a parser that
-# READS a field it never wrote -- an uninitialized-value bug. That is a
+# READS a field it never wrote: an uninitialized-value bug. That is a
 # different class from what sweep.sh (ASan/UBSan) finds: not an out-of-bounds
 # access, but a value the kernel then hashes, which makes it a correctness
 # risk as much as a memory-safety one.
@@ -10,7 +10,7 @@
 # asan_harness. It uses repro.sh, which compiles the module straight into an
 # MSan-instrumented harness and links a PLAIN (uninstrumented) core.
 #
-# IMPORTANT -- this UNDER-reports by construction. Only the harness, the named
+# IMPORTANT: this UNDER-reports by construction. Only the harness, the named
 # module and whatever EXTRA names are instrumented; uninitialized values that
 # originate inside the uninstrumented core are invisible. A clean result here
 # means "no finding in the instrumented part", never "no finding".
@@ -18,7 +18,7 @@
 # IT ALSO OVER-REPORTS, and that half bites harder. MSan tracks initialization
 # only in instrumented code. When an UNINSTRUMENTED core function writes into a
 # caller-owned buffer, MSan never sees the write, so the caller's next read of
-# that buffer is reported as use-of-uninitialized-value -- a false positive
+# that buffer is reported as use-of-uninitialized-value: a false positive
 # with a completely plausible-looking stack trace.
 #
 # Confirmed instance: every module calling b58dec() (m28501/2/5/6, m30901/2/5/6)
@@ -27,7 +27,7 @@
 #
 # So THIS SWEEP IS A SCREEN, NOT A VERDICT. Two stages:
 #
-#   1. this script -- fast, narrow instrumentation, flags candidates
+#   1. this script: fast, narrow instrumentation, flags candidates
 #   2. per candidate, re-run with the core widely instrumented; a finding that
 #      survives is real, one that disappears was a core artifact:
 #

@@ -22,7 +22,7 @@ compiled with `nvcc -lineinfo` and run under
 A real memory-safety fault poisons the CUDA context: every subsequent CUDA
 API call in the same process reports its own "Program hit cudaError..."
 block. Those are real Compute Sanitizer errors but are *consequences* of the
-first fault, not independent findings -- classified separately as
+first fault, not independent findings, classified separately as
 "secondary" so they don't drown out the one thing a human needs to look at.
 """
 
@@ -73,7 +73,7 @@ _BARE_ADDRESS_RE = re.compile(r"^Address (0x[0-9a-fA-F]+)\s*$")
 # "ERROR SUMMARY: N errors were not printed. Use --print-limit ..." line,
 # which starts with the same literal but isn't the real total.
 _ERROR_SUMMARY_RE = re.compile(r"^ERROR SUMMARY:\s*(\d+) errors?\s*$")
-# racecheck doesn't use "ERROR SUMMARY:" at all -- its own tool-specific
+# racecheck doesn't use "ERROR SUMMARY:" at all; its own tool-specific
 # footer is "RACECHECK SUMMARY: N hazards displayed (X errors, Y warnings)".
 # Confirmed against a real clean run; without this, that line falls through
 # to the generic "new block" branch and gets misclassified as a spurious
@@ -137,7 +137,7 @@ def parse_sanitizer_log(log_path):
 
         if content.startswith("ERROR SUMMARY:") or content.startswith("RACECHECK SUMMARY:"):
             # The "N errors were not printed. Use --print-limit ..." follow-up
-            # line when --print-limit truncated output -- informational, not
+            # line when --print-limit truncated output: informational, not
             # a finding of its own. Also catches any RACECHECK SUMMARY: shape
             # that doesn't match the regex above (e.g. a truncated variant).
             continue
@@ -149,7 +149,7 @@ def parse_sanitizer_log(log_path):
         if (content.startswith("at ") or content.startswith("by ") or content.startswith("Access ")
                 or content.startswith("and ") or content.startswith("Address ")):
             if current is None:
-                # Detail line with no preceding "what" -- shouldn't happen given
+                # Detail line with no preceding "what": shouldn't happen given
                 # the observed format, but don't crash on an unexpected log.
                 current = {"kind": "Unknown", "what": "", "frames": [], "thread": None,
                            "block": None, "access": None, "allocation": None}
@@ -395,7 +395,7 @@ def render_terminal(summary, log_path, case_label=None):
             lines.append("")
 
     if san["secondary_errors"] > 0:
-        lines.append(f"({san['secondary_errors']} secondary CUDA API error(s) omitted -- "
+        lines.append(f"({san['secondary_errors']} secondary CUDA API error(s) omitted, "
                       f"consequences of the fault above poisoning the CUDA context, not independent findings)")
         lines.append("")
 

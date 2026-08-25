@@ -28,7 +28,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ ! -x ./hashcat ]; then
-  echo "error: ./hashcat not found -- run 'make DEBUG=2 -j\$(nproc)' first" >&2
+  echo "error: ./hashcat not found, run 'make DEBUG=2 -j\$(nproc)' first" >&2
   exit 2
 fi
 
@@ -44,14 +44,14 @@ LOG="$OUT/sweep.log"
 # protect_shadow_gap=0 is REQUIRED. ASan maps its shadow gap PROT_NONE, and
 # CUDA's unified virtual addressing needs that range: without it cuInit()
 # fails with "out of memory" and hashcat reports "No OpenCL, HIP or CUDA
-# compatible platform found" -- which looks like a missing driver and is not.
+# compatible platform found", which looks like a missing driver and is not.
 # use_sigaltstack=0 for the same reason it is set in sweep.sh and repro.sh:
 # under a clang runtime older than glibc 2.34 the sanitizer aborts before
 # main(), which would make every mode here look "clean" without running.
 export ASAN_OPTIONS="protect_shadow_gap=0:detect_leaks=0:halt_on_error=0:use_sigaltstack=0:log_path=$OUT/logs/asan"
 
 # A DEBUG=2 SANITIZE=address,undefined tree emits UBSan checks too, and those
-# print to stderr rather than log_path -- they land in $OUT/m<mode>.out. Set
+# print to stderr rather than log_path, they land in $OUT/m<mode>.out. Set
 # the options so they carry a stack trace and do not halt the run.
 export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=0:use_sigaltstack=0"
 
@@ -68,7 +68,7 @@ for mode in $MODES; do
 
   errs=$(cat "$OUT"/logs/asan.* 2>/dev/null | grep -c "ERROR: AddressSanitizer")
 
-  # UBSan does not use log_path -- it prints "file.c:12:34: runtime error: ..."
+  # UBSan does not use log_path: it prints "file.c:12:34: runtime error: ..."
   # to stderr, which lands in m<mode>.out. Checking only the ASan logs would
   # silently discard every UBSan finding on a SANITIZE=address,undefined tree.
   uerrs=$(grep -c "runtime error:" "$OUT/m${mode}.out" 2>/dev/null || echo 0)

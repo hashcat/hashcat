@@ -35,7 +35,7 @@ def find_compute_sanitizer():
         p = shutil.which(candidate)
         if p:
             return p
-    # not on PATH by default in every CUDA install layout -- check common locations
+    # not on PATH by default in every CUDA install layout, check common locations
     for base in sorted(Path("/usr/local").glob("cuda*")):
         cand = base / "bin" / "compute-sanitizer"
         if cand.exists():
@@ -159,7 +159,7 @@ def cmd_build(_ns):
         return 2
 
     debug_ok = has_debug_info(str(dst))
-    print(f"Built ./hashcat-sanitizer -- debug info: {'OK' if debug_ok else 'WARNING: missing'}")
+    print(f"Built ./hashcat-sanitizer, debug info: {'OK' if debug_ok else 'WARNING: missing'}")
     print("NOTE: ./hashcat and every modules/*.so are also now DEBUG=1 builds "
           "(one obj/ tree, unavoidable). Restore the release build afterward with:")
     print("  make clean && make -j$(nproc)")
@@ -227,14 +227,14 @@ def cmd_exec(ns, sanitizer_passthrough, hc_cmd):
 
     ok, output = sanity_check_binary(hc_bin_resolved)
     if not ok:
-        print(f"ERROR: build sanity check failed for {hc_bin_resolved} -- it does not run cleanly.", file=sys.stderr)
+        print(f"ERROR: build sanity check failed for {hc_bin_resolved}: it does not run cleanly.", file=sys.stderr)
         if output:
             print(output, file=sys.stderr)
         return 2
 
     debug_ok = has_debug_info(hc_bin_resolved)
     if not debug_ok:
-        print(f"WARNING: {hc_bin_resolved} was not built with DEBUG=1 -- Compute Sanitizer "
+        print(f"WARNING: {hc_bin_resolved} was not built with DEBUG=1, Compute Sanitizer "
               f"will still catch faults but won't resolve source:line (no --generate-line-info).", file=sys.stderr)
         print("For source-level output run: tools/compute_sanitizer/run.py build", file=sys.stderr)
 
@@ -250,7 +250,7 @@ def cmd_exec(ns, sanitizer_passthrough, hc_cmd):
 
     has_device_select = any(a in ("-d", "--backend-devices", "-D", "--opencl-device-types") for a in hc_cmd)
     if has_device_select:
-        print("WARNING: -d/-D already present in the given command -- left as-is, but "
+        print("WARNING: -d/-D already present in the given command, left as-is, but "
               "--compute-sanitizer normally forces CUDA-only via --backend-ignore-*.", file=sys.stderr)
 
     ignore_flags = ["--backend-ignore-opencl", "--backend-ignore-hip"]
@@ -396,7 +396,7 @@ def cmd_selftest(args):
         all_ok = all_ok and passed
         rows.append((name, "PASS" if passed else "FAIL",
                      f"expected {want_kind}, got {actual_kind}" + (f" ({actual_loc})" if actual_loc else "") +
-                     (f" -- {detail}" if detail and not passed else "")))
+                     (f": {detail}" if detail and not passed else "")))
 
     for name, status, detail in rows:
         print(f"{name:<20} {status:<5} {detail}")
