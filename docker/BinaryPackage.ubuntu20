@@ -17,9 +17,11 @@ RUN apt-get update && \
     git \
     libclang-dev \
     lld \
+    m4 \
     wget \
     pkg-config \
     make \
+    xz-utils \
     gcc-mingw-w64-x86-64 \
     g++-mingw-w64-x86-64 \
     dos2unix \
@@ -65,6 +67,22 @@ RUN cmake \
     -D CMAKE_CXX_COMPILER=$(which x86_64-w64-mingw32-g++) \
     . && \
     make install
+
+## GMP for Linux and for Windows
+
+WORKDIR /root
+
+ENV GMP_VERSION=6.3.0
+
+RUN wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && \
+    tar -xf gmp-${GMP_VERSION}.tar.xz && cp -a gmp-${GMP_VERSION} gmp-win && \
+    cd /root/gmp-${GMP_VERSION} && \
+    ./configure --prefix=/usr/local --disable-shared --enable-static --with-pic --enable-fat CC="gcc -std=gnu17" && \
+    make -j$(nproc) && make install && \
+    cd /root/gmp-win && \
+    ./configure --host=x86_64-w64-mingw32 --prefix=/opt/win-gmp-64 --disable-shared --enable-static --enable-fat CC="x86_64-w64-mingw32-gcc -std=gnu17" && \
+    make -j$(nproc) && make install && \
+    cd /root && rm -rf gmp-${GMP_VERSION} gmp-win gmp-${GMP_VERSION}.tar.xz
 
 ## Ubuntu 20.04: Python version 3.10 is too old, it lacks support for non-GIL mode
 
@@ -117,7 +135,12 @@ RUN git clone https://github.com/hashcat/hashcat.git && git -C hashcat checkout 
 
 WORKDIR /root/hashcat
 
-RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do pwd && git apply "$p"; done'
+# || exit 1 because a for loop returns the status of its last command, so without it a patch that
+# fails is reported as a success whenever another one follows it. A patch that touches binary files
+# has to be made with "git diff --binary"; a plain "git diff" writes only "Binary files a/x and b/x
+# differ", which carries no content, and git apply refuses it rather than applying half the patch.
+
+RUN bash -c 'shopt -s nullglob; for p in /root/patches/*.patch /root/patches/*.diff; do echo "applying $p"; git apply "$p" || exit 1; done'
 
 RUN make -s binaries
 

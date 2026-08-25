@@ -188,8 +188,16 @@ plugin_exports ()
     # a hint ahead of the name inside that table, so everything up to the last space goes.
     CYGWIN*|MINGW*|MSYS*) objdump -p "$1" | sed -n '/\[Ordinal\/Name Pointer\] Table/,/^$/ s/^\t\[ *[0-9][0-9]*\].* //p' ;;
     Darwin)               nm -g -U "$1" | awk '{ print $NF }' | sed 's/^_//' ;;
-    *)                    nm -D --defined-only --format=posix "$1" | awk '{ print $1 }' ;;
-  esac | grep -v -x -e '_ZTI8RAR_EXIT' -e '_ZTS8RAR_EXIT' -e '__bss_start' -e '_edata' -e '_end'
+    *)                    nm -DgP "$1" | awk '$2 != "U" && $2 != "w" { print $1 }' ;;
+  # What comes back is filtered twice. The first list is the two C++ typeinfo symbols UnRAR's exception
+  # type leaves behind, which are hashcat's own and known to be harmless. The second rule drops the
+  # names the implementation reserves for itself, which is everything beginning with an underscore, and
+  # is where a toolchain puts its housekeeping. Linux publishes none of those in .dynsym, FreeBSD
+  # publishes _init and _fini, and the next toolchain will publish a different set again, so the rule
+  # names the class instead of listing the members. __bss_start, _edata and _end were the members it
+  # used to list. A mangled C++ name begins with _Z and is deliberately kept, because one of those in a
+  # plugin is a real export rather than housekeeping.
+  esac | grep -v -x -e '_ZTI8RAR_EXIT' -e '_ZTS8RAR_EXIT' | grep -v -E '^_([^Z]|$)'
 }
 
 check_exports ()

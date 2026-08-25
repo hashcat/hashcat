@@ -30,12 +30,6 @@ endif
 RUSTFLAGS_SO    :=
 RUSTFLAGS_DLL   := -C link-arg=-fuse-ld=lld
 
-ifeq ($(UNAME),Linux)
-ifeq ($(USE_MOLD),1)
-RUSTFLAGS_SO    += -C link-arg=-fuse-ld=mold
-endif
-endif
-
 ifeq ($(ENABLE_LTO),1)
 RUSTFLAGS_SO    += -C lto -C embed-bitcode=y
 RUSTFLAGS_DLL   += -C lto -C embed-bitcode=y

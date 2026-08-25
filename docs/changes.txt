@@ -188,6 +188,9 @@ argument list is shown instead.
 - Kernels: -m 18500 keeps a second hex table in shared memory in the byte order its
   SHA1 half wants, instead of byte swapping every word it builds, for +0.7% on a
   Radeon RX 7900 XTX
+- Kernels: The AES decrypt key schedule can invert each round key through one table
+  lookup instead of two, which 8 hash modes now do for +15% to +41% on a GeForce
+  RTX 4090: -m 16600, -m 22500, -m 22931, -m 22941, -m 22951 and -m 23001 to -m 23003
 - Backends: Environment on/off switches share one hc_env_flag helper
 - Feeds: Settings are written as key=value work arguments and one shared parser reads
   them, so a feed no longer writes its own (see docs/hashcat-plugin-development-guide.md)
