@@ -285,9 +285,9 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u32 salt_iter = hc_strtoul ((const char *) token.buf[11], NULL, 10);
 
   // if (salt_iter != 0) return (PARSER_HASH_VALUE); // only accept 0 for now
-  if(salt_iter == 0)
+  if (salt_iter == 0)
   {
-    salt->salt_iter = 1;
+    salt->salt_iter = 1; // s2ktype 1: simple salted S2K, no iteration count
   }
   else
   {

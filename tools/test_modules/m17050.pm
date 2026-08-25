@@ -19,7 +19,7 @@ sub module_generate_hash
   my $python_code = <<'PYCODE';
 #!/usr/bin/env python3
 import sys
-from random import randint
+from random import randint, choice
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 # from Crypto.Hash import SHA1 #hashlib is 8x faster
@@ -76,7 +76,13 @@ def s2k_iterated_salted_sha1_decoded(password: bytes, salt: bytes, count: int, o
 
 
 salt_iter = randint(200_000_000, 300_000_000)
-plaintext = "(((1:d32:".encode() + get_random_bytes(51) #not sure why we would need 51 bytes here, I'd expect 32 bytes..
+# The 17050 kernel only checks the first decrypted block: "(((1:" <name> <len> ":".
+# Exercise every shape it accepts. RSA and ECC use the secret MPI 'd', DSA/ElGamal
+# use 'x', and the length is 2 or 3 ASCII digits depending on key type:
+#   ed25519 -> d32   rsa2048 -> d256   ed448 -> d57   dsa/elgamal -> x33
+# Only the marker matters to the kernel, so the trailing bytes are just padding.
+mpi_name, mpi_len = choice([("d", "32"), ("d", "256"), ("d", "57"), ("x", "33")])
+plaintext = ("(((1:%s%s:" % (mpi_name, mpi_len)).encode() + get_random_bytes(51)
 salt = get_random_bytes(8)
 nonce = get_random_bytes(12)
 

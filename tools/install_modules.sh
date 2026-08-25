@@ -34,14 +34,46 @@ export LC_ALL=C.UTF-8
 # still rely on one and no longer compile, Crypt::DES among them, which alone takes Crypt::DES_EDE3
 # and every Authen::Passphrase variant down with it. ExtUtils::MakeMaker ignores CFLAGS, so the flag
 # has to travel in PERL_MM_OPT. Anything local::lib already put there has to be kept.
+#
+# It goes in OPTIMIZE and not in CCFLAGS. MakeMaker compiles with both, "$(CCFLAGS) $(OPTIMIZE)",
+# and either one given here replaces what the build worked out for itself. CCFLAGS is the one that
+# matters: replacing it drops the flags perl was built with, and it also drops any a module set for
+# itself. Both have bitten:
+#
+#   Digest::MurmurHash3 appends -x c++ to CCFLAGS so that its XS is compiled as C++ to match
+#   src/MurmurHash3.cpp. Lose that and the two halves link as different languages, so the module
+#   builds, installs, and then cannot be loaded at all:
+#     undefined symbol: MurmurHash3_x64_128
+#
+#   Perl's own ccflags carry -D_GNU_SOURCE, which is what makes glibc declare off64_t. Lose that
+#   and on glibc 2.43 perl.h itself stops compiling:
+#     perl.h:3358: error: unknown type name 'off64_t'
+#   which takes Variable::Magic with it, and under it B::Hooks::EndOfScope, namespace::clean,
+#   namespace::autoclean, Crypt::PBKDF2, Crypt::CBC, Mooish::Base and Bitcoin::Crypto.
+#
+# OPTIMIZE carries no such per module meaning, so appending to $Config{optimize} adds the flag and
+# changes nothing else. The quotes matter: PERL_MM_OPT is split into KEY=VALUE words, so an unquoted
+# multi word value delivers only its first flag.
 
-CCFLAGS_COMPAT="CCFLAGS=-Wno-implicit-function-declaration"
+OPTIMIZE_COMPAT="$(perl -MConfig -e 'print $Config{optimize}') -Wno-implicit-function-declaration"
 
 if [ -n "${PERL_MM_OPT:-}" ]; then
-  export PERL_MM_OPT="${PERL_MM_OPT} ${CCFLAGS_COMPAT}"
+  export PERL_MM_OPT="${PERL_MM_OPT} OPTIMIZE='${OPTIMIZE_COMPAT}'"
 else
-  export PERL_MM_OPT="${CCFLAGS_COMPAT}"
+  export PERL_MM_OPT="OPTIMIZE='${OPTIMIZE_COMPAT}'"
 fi
+
+# Digest::MurmurHash3 is the only C++ module in the lists below, so it is the only one that needs
+# g++ rather than gcc. On a machine with a C compiler but no C++ one it is also the only one that
+# fails, with "cannot execute cc1plus", which does not obviously mean "install g++".
+
+if ! command -v g++ > /dev/null 2>&1; then
+  echo "! g++ not found. Digest::MurmurHash3 is C++ and will be the one module that fails."
+  echo "  Run ./install_dependencies.sh first."
+  echo
+fi
+
+TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Names of everything that did not install, so the summary can say which rather than how many.
 
@@ -179,8 +211,17 @@ if [ $? -eq 0 ]; then
     # install the latest version or skip it if it is already present
     pyenv install -s ${latest}
 
-    # enable
-    pyenv local $latest
+    # Enable it where the suite actually runs, which is the repository root, not wherever this
+    # script was started from. pyenv local writes .python-version into the current directory and
+    # applies to that directory and below, so a pin written in tools/ leaves test.sh, which runs
+    # from the root, on the system python. The oracles then shell out to a bare python3 and get
+    # one without pycryptodome:
+    #
+    #   ModuleNotFoundError: No module named 'Crypto'
+    #
+    # A pin at the root covers tools/ as well, so this is the one place to put it.
+
+    ( cd "${TOOLS_DIR}/.." && pyenv local ${latest} )
     if [ $? -eq 0 ]; then
       pyenv_enabled=1
     fi
@@ -235,8 +276,6 @@ fi
 # matter which hash mode is asked for, so a single missing one makes the suite report
 # "Error : 0/0 not found" on every mode, which reads as hashcat failing rather than as a setup
 # problem. Catching it here, where the cause is still in front of you, is the whole point.
-
-TOOLS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if perl "${TOOLS_DIR}/test.pl" single 0 2> /dev/null | grep -q hashcat; then
 
