@@ -188,7 +188,7 @@ plugin_exports ()
     # a hint ahead of the name inside that table, so everything up to the last space goes.
     CYGWIN*|MINGW*|MSYS*) objdump -p "$1" | sed -n '/\[Ordinal\/Name Pointer\] Table/,/^$/ s/^\t\[ *[0-9][0-9]*\].* //p' ;;
     Darwin)               nm -g -U "$1" | awk '{ print $NF }' | sed 's/^_//' ;;
-    *)                    nm -D --defined-only --format=posix "$1" | awk '{ print $1 }' ;;
+    *)                    nm -DgP "$1" | awk '$2 != "U" && $2 != "w" { print $1 }' ;;
   # What comes back is filtered twice. The first list is the two C++ typeinfo symbols UnRAR's exception
   # type leaves behind, which are hashcat's own and known to be harmless. The second rule drops the
   # names the implementation reserves for itself, which is everything beginning with an underscore, and

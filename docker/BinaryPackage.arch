@@ -49,6 +49,22 @@ RUN cmake \
     . && \
     make -j$(nproc) && make install
 
+# GMP for Linux and for Windows
+
+WORKDIR /root
+
+ENV GMP_VERSION=6.3.0
+
+RUN wget https://gmplib.org/download/gmp/gmp-${GMP_VERSION}.tar.xz && \
+    tar -xf gmp-${GMP_VERSION}.tar.xz && cp -a gmp-${GMP_VERSION} gmp-win && \
+    cd /root/gmp-${GMP_VERSION} && \
+    ./configure --prefix=/usr/local --disable-shared --enable-static --with-pic --enable-fat CC="gcc -std=gnu17" && \
+    make -j$(nproc) && make install && \
+    cd /root/gmp-win && \
+    ./configure --host=x86_64-w64-mingw32 --prefix=/opt/win-gmp-64 --disable-shared --enable-static --enable-fat CC="x86_64-w64-mingw32-gcc -std=gnu17" && \
+    make -j$(nproc) && make install && \
+    cd /root && rm -rf gmp-${GMP_VERSION} gmp-win gmp-${GMP_VERSION}.tar.xz
+
 # Download and extract MSYS2 Python headers
 RUN mkdir /opt/win-python
 WORKDIR /opt/win-python

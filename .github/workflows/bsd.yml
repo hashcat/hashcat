@@ -32,6 +32,9 @@ jobs:
       matrix:
         os: [freebsd, openbsd, netbsd, dragonflybsd]
         shared: [0, 1]
+        exclude:
+          - os: openbsd
+            shared: 1
         include:
           - os: freebsd
             os_name: FreeBSD
