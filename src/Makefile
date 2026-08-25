@@ -34,7 +34,6 @@ ENABLE_LTO              ?= 0
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
 ENABLE_UNRAR            ?= 1
-USE_MOLD                ?= 0
 USE_SYSTEM_LZMA         ?= 0
 USE_SYSTEM_ZLIB         ?= 0
 USE_SYSTEM_OPENCL       ?= 0
@@ -501,14 +500,6 @@ CFLAGS_HOST_ONLY        += -mcpu=cortex-a72
 endif
 endif
 
-# mold is a linker that lives on this machine. A cross set that wants it says so itself.
-
-ifneq ($(UNAME),Darwin)
-ifeq ($(USE_MOLD),1)
-LFLAGS_HOST_ONLY        += -fuse-ld=mold
-endif
-endif
-
 CFLAGS                  += $(CFLAGS_HOST_ONLY)
 LFLAGS                  += $(LFLAGS_HOST_ONLY)
 
@@ -679,7 +670,16 @@ ifeq ($(UNAME),FreeBSD)
 LFLAGS                  += -lc++
 else
 ifeq ($(UNAME),DragonFly)
+# DragonFly sits with the clang systems by name only. Its base compiler is gcc and its c++ is that
+# gcc, so the runtime it wants is libstdc++, and naming libc++ ended the link at "cannot find -lc++"
+# whichever compiler drove it, because the image carries no libc++ to find. When a clang from a
+# package drives the build instead, CC_NATIVE_CLANG says so and libc++ is the right name again. The
+# rule this block states is that the runtime follows the compiler, so here it asks the compiler.
+ifeq ($(CC_NATIVE_CLANG),1)
 LFLAGS                  += -lc++
+else
+LFLAGS                  += -lstdc++
+endif
 else
 ifeq ($(UNAME),NetBSD)
 LFLAGS                  += -lstdc++
@@ -773,6 +773,12 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -I /usr/pkg/include
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -L /usr/pkg/lib
+# -L is where the linker looks, and the runtime loader does not read it. On the other systems here the
+# prefix the packages live in is already on the loader's own path, so the two questions never came
+# apart. NetBSD keeps packages under /usr/pkg and that is not a path the loader searches, so a build
+# that linked cleanly produced a binary that stopped at "Shared object libiconv.so.2 not found" before
+# reaching main. The rpath records the same directory for the loader.
+LFLAGS_NATIVE           += -Wl,-rpath,/usr/pkg/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
 LFLAGS_NATIVE           += -liconv
@@ -947,15 +953,11 @@ LFLAGS_LINUX            += -l:libstdc++.a
 LFLAGS_LINUX            += -static-libstdc++
 endif
 
-ifeq ($(USE_MOLD),1)
-LFLAGS_LINUX            += -fuse-ld=mold
-else
 ifeq ($(ENABLE_LTO),1)
 ifeq ($(CC_LINUX_CLANG),1)
 LFLAGS_LINUX            += -fuse-ld=lld
 else
 LFLAGS_LINUX            += -fuse-ld=gold
-endif
 endif
 endif
 
@@ -1303,12 +1305,19 @@ else ifeq ($(FORMAT_NATIVE),PE)
 LFLAGS_FRONTEND_NATIVE  :=
 LFLAGS_PLUGIN_NATIVE    :=
 else
-LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER)
-LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,defs
+LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin
+LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin
+## A plugin is a shared object too, so it meets the same wall the library does on OpenBSD, where the
+## driver does not link libc into one and -z,defs then reads the whole of libc as undefined. Guarding
+## only the library left the library linking and all 593 plugins failing on abort. See the note beside
+## LIBRARY_LFLAGS_NATIVE for why -lc is not the answer.
+ifneq ($(UNAME),OpenBSD)
+LFLAGS_PLUGIN_NATIVE    += -Wl,-z,defs
+endif
 endif
 
-LFLAGS_FRONTEND_LINUX   := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER)
-LFLAGS_PLUGIN_LINUX     := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,defs
+LFLAGS_FRONTEND_LINUX   := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin
+LFLAGS_PLUGIN_LINUX     := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin -Wl,-z,defs
 
 ##
 ## The core each platform links
@@ -1656,7 +1665,17 @@ else ifeq ($(FORMAT_NATIVE),PE)
 ## a DLL carries no soname, it is found by the file name written into whatever imports it
 else
 LIBRARY_LFLAGS_NATIVE   += -Wl,-soname,$(HASHCAT_LIBRARY_NATIVE)
+## OpenBSD is the exception, and not because it is less strict. Everywhere else the compiler driver
+## links libc into a shared object for you, so -z,defs sees a resolved libc and reports the symbols
+## that are genuinely missing. OpenBSD deliberately does not, because a library that records a
+## dependency on one particular libc hands that choice to whoever loads it. With -z,defs the whole of
+## libc then reads as undefined, strtok_r and memset and errno among them, and the link fails for a
+## reason that has nothing to do with what the check is looking for. Naming -lc here to satisfy it
+## would put that dependency back on every platform, which is the thing OpenBSD is avoiding, so the
+## check is dropped on OpenBSD alone and kept everywhere it still means something.
+ifneq ($(UNAME),OpenBSD)
 LIBRARY_LFLAGS_NATIVE   += -Wl,-z,defs
+endif
 endif
 
 LIBRARY_LFLAGS_LINUX    += -Wl,-soname,$(HASHCAT_LIBRARY_LINUX)

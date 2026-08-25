@@ -24,7 +24,7 @@ typedef struct securezip
 
 } securezip_t;
 
-DECLSPEC void m23001m (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a *s_te2, SHM_TYPE u32a *s_te3, SHM_TYPE u32a *s_te4, SHM_TYPE u32a *s_td0, SHM_TYPE u32a *s_td1, SHM_TYPE u32a *s_td2, SHM_TYPE u32a *s_td3, SHM_TYPE u32a *s_td4, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR_ESALT (securezip_t))
+DECLSPEC void m23001m (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a *s_te2, SHM_TYPE u32a *s_te3, SHM_TYPE u32a *s_te4, SHM_TYPE u32a *s_td0, SHM_TYPE u32a *s_td1, SHM_TYPE u32a *s_td2, SHM_TYPE u32a *s_td3, SHM_TYPE u32a *s_td4, SHM_TYPE u32 *s_inv0, SHM_TYPE u32 *s_inv1, SHM_TYPE u32 *s_inv2, SHM_TYPE u32 *s_inv3, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR_ESALT (securezip_t))
 {
   /**
    * modifiers are taken from args
@@ -352,7 +352,7 @@ DECLSPEC void m23001m (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a
 
     u32 ks[KEYLEN];
 
-    AES128_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+    AES128_set_decrypt_key_inv (ks, key, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
 
     u32 out[4];
 
@@ -376,7 +376,7 @@ DECLSPEC void m23001m (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a
   }
 }
 
-DECLSPEC void m23001s (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a *s_te2, SHM_TYPE u32a *s_te3, SHM_TYPE u32a *s_te4, SHM_TYPE u32a *s_td0, SHM_TYPE u32a *s_td1, SHM_TYPE u32a *s_td2, SHM_TYPE u32a *s_td3, SHM_TYPE u32a *s_td4, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR_ESALT (securezip_t))
+DECLSPEC void m23001s (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a *s_te2, SHM_TYPE u32a *s_te3, SHM_TYPE u32a *s_te4, SHM_TYPE u32a *s_td0, SHM_TYPE u32a *s_td1, SHM_TYPE u32a *s_td2, SHM_TYPE u32a *s_td3, SHM_TYPE u32a *s_td4, SHM_TYPE u32 *s_inv0, SHM_TYPE u32 *s_inv1, SHM_TYPE u32 *s_inv2, SHM_TYPE u32 *s_inv3, PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR_ESALT (securezip_t))
 {
   /**
    * modifiers are taken from args
@@ -704,7 +704,7 @@ DECLSPEC void m23001s (SHM_TYPE u32a *s_te0, SHM_TYPE u32a *s_te1, SHM_TYPE u32a
 
     u32 ks[KEYLEN];
 
-    AES128_set_decrypt_key (ks, key, s_te0, s_te1, s_te2, s_te3, s_td0, s_td1, s_td2, s_td3);
+    AES128_set_decrypt_key_inv (ks, key, s_te0, s_te1, s_te2, s_te3, s_inv0, s_inv1, s_inv2, s_inv3);
 
     u32 out[4];
 
@@ -756,6 +756,11 @@ KERNEL_FQ KERNEL_FA void m23001_m04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -769,6 +774,11 @@ KERNEL_FQ KERNEL_FA void m23001_m04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -786,6 +796,11 @@ KERNEL_FQ KERNEL_FA void m23001_m04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -816,7 +831,7 @@ KERNEL_FQ KERNEL_FA void m23001_m04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
    * main
    */
 
-  m23001m (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m23001m (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ KERNEL_FA void m23001_m08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
@@ -847,6 +862,11 @@ KERNEL_FQ KERNEL_FA void m23001_m08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -860,6 +880,11 @@ KERNEL_FQ KERNEL_FA void m23001_m08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -877,6 +902,11 @@ KERNEL_FQ KERNEL_FA void m23001_m08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -907,7 +937,7 @@ KERNEL_FQ KERNEL_FA void m23001_m08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
    * main
    */
 
-  m23001m (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m23001m (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ KERNEL_FA void m23001_m16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
@@ -938,6 +968,11 @@ KERNEL_FQ KERNEL_FA void m23001_m16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -951,6 +986,11 @@ KERNEL_FQ KERNEL_FA void m23001_m16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -968,6 +1008,11 @@ KERNEL_FQ KERNEL_FA void m23001_m16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -998,7 +1043,7 @@ KERNEL_FQ KERNEL_FA void m23001_m16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
    * main
    */
 
-  m23001m (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m23001m (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ KERNEL_FA void m23001_s04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
@@ -1029,6 +1074,11 @@ KERNEL_FQ KERNEL_FA void m23001_s04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -1042,6 +1092,11 @@ KERNEL_FQ KERNEL_FA void m23001_s04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -1059,6 +1114,11 @@ KERNEL_FQ KERNEL_FA void m23001_s04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -1089,7 +1149,7 @@ KERNEL_FQ KERNEL_FA void m23001_s04 (KERN_ATTR_VECTOR_ESALT (securezip_t))
    * main
    */
 
-  m23001s (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m23001s (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ KERNEL_FA void m23001_s08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
@@ -1120,6 +1180,11 @@ KERNEL_FQ KERNEL_FA void m23001_s08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -1133,6 +1198,11 @@ KERNEL_FQ KERNEL_FA void m23001_s08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -1150,6 +1220,11 @@ KERNEL_FQ KERNEL_FA void m23001_s08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -1180,7 +1255,7 @@ KERNEL_FQ KERNEL_FA void m23001_s08 (KERN_ATTR_VECTOR_ESALT (securezip_t))
    * main
    */
 
-  m23001s (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m23001s (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }
 
 KERNEL_FQ KERNEL_FA void m23001_s16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
@@ -1211,6 +1286,11 @@ KERNEL_FQ KERNEL_FA void m23001_s16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   LOCAL_VK u32 s_te3[256];
   LOCAL_VK u32 s_te4[256];
 
+  LOCAL_VK u32 s_inv0[256];
+  LOCAL_VK u32 s_inv1[256];
+  LOCAL_VK u32 s_inv2[256];
+  LOCAL_VK u32 s_inv3[256];
+
   for (u32 i = lid; i < 256; i += lsz)
   {
     s_td0[i] = td0[i];
@@ -1224,6 +1304,11 @@ KERNEL_FQ KERNEL_FA void m23001_s16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
     s_te2[i] = te2[i];
     s_te3[i] = te3[i];
     s_te4[i] = te4[i];
+
+    s_inv0[i] = td_inv0[i];
+    s_inv1[i] = td_inv1[i];
+    s_inv2[i] = td_inv2[i];
+    s_inv3[i] = td_inv3[i];
   }
 
   SYNC_THREADS ();
@@ -1241,6 +1326,11 @@ KERNEL_FQ KERNEL_FA void m23001_s16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
   CONSTANT_AS u32a *s_te2 = te2;
   CONSTANT_AS u32a *s_te3 = te3;
   CONSTANT_AS u32a *s_te4 = te4;
+
+  CONSTANT_AS u32a *s_inv0 = td_inv0;
+  CONSTANT_AS u32a *s_inv1 = td_inv1;
+  CONSTANT_AS u32a *s_inv2 = td_inv2;
+  CONSTANT_AS u32a *s_inv3 = td_inv3;
 
   #endif
 
@@ -1271,5 +1361,5 @@ KERNEL_FQ KERNEL_FA void m23001_s16 (KERN_ATTR_VECTOR_ESALT (securezip_t))
    * main
    */
 
-  m23001s (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
+  m23001s (s_te0, s_te1, s_te2, s_te3, s_te4, s_td0, s_td1, s_td2, s_td3, s_td4, s_inv0, s_inv1, s_inv2, s_inv3, w, pw_len, pws, rules_buf, combs_buf, words_buf_r, tmps, hooks, bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d, bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d, plains_buf, digests_buf, hashes_shown, salt_bufs, esalt_bufs, d_return_buf, d_extra0_buf, d_extra1_buf, d_extra2_buf, d_extra3_buf, kernel_param, gid, lid, lsz);
 }

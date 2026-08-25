@@ -11,6 +11,14 @@ name: BSD
 ## Run it by hand from the Actions tab before a release, or after touching anything a BSD compiler
 ## sees differently.
 ##
+## No step names CC or CXX. src/Makefile chooses the compiler per platform, asking for cc and c++
+## across the family and for gcc, g++ and gcc-ar on NetBSD in particular, and a command line
+## assignment beats one made in a makefile. Naming clang here overrode that everywhere. It made no
+## difference on FreeBSD and OpenBSD, where base cc is clang and the Makefile would have reached the
+## same answer, but it left the gcc14 the NetBSD step installs unused, and on DragonflyBSD, which
+## carries gcc in base, it sent the link through base binutils ld.gold while the driver asked for the
+## libc++ that clang expects. Let the Makefile answer and the toolchain stays coherent per platform.
+##
 
 on:
   schedule:
@@ -24,6 +32,9 @@ jobs:
       matrix:
         os: [freebsd, openbsd, netbsd, dragonflybsd]
         shared: [0, 1]
+        exclude:
+          - os: openbsd
+            shared: 1
         include:
           - os: freebsd
             os_name: FreeBSD
@@ -51,7 +62,7 @@ jobs:
             pkg update
             pkg install -y bash git gcc gmake gsed python3 rust llvm
           run: |
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            gmake ENABLE_LTO=0
             bash tools/test_package.sh . --no-device
 
       - name: Build (OpenBSD)
@@ -66,7 +77,7 @@ jobs:
             pkg_add bash git gcc%11 gmake gsed llvm%19
           run: |
             export TERM=xterm
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            gmake ENABLE_LTO=0
             bash tools/test_package.sh . --no-device
 
       - name: Build (NetBSD)
@@ -87,7 +98,7 @@ jobs:
           run: |
             export PATH="/usr/pkg/gcc14/bin:$PATH"
             export TERM=xterm
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            gmake ENABLE_LTO=0
             bash tools/test_package.sh . --no-device
 
       - name: Build (DragonflyBSD)
@@ -103,5 +114,5 @@ jobs:
             pkg install -y bash git gcc gmake gsed python3 llvm
           run: |
             export TERM=xterm
-            gmake ENABLE_LTO=0 CC=clang CXX=clang++
+            gmake ENABLE_LTO=0
             bash tools/test_package.sh . --no-device

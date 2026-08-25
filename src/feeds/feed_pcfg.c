@@ -43,12 +43,13 @@ typedef HANDLE             pcfg_os_thread_t;
 #define pcfg_thread_ret           DWORD WINAPI
 #define pcfg_thread_done          0
 
-#define pcfg_thread_create(t,f,a) (t) = CreateThread (NULL, 0, f, a, 0, NULL)
+#define pcfg_thread_create(t,f,a) (((t) = CreateThread (NULL, 0, f, a, 0, NULL)) != NULL)
 #define pcfg_thread_join(t)       do { WaitForSingleObject ((t), INFINITE); CloseHandle (t); } while (0)
 
 #else
 
 #include <pthread.h>
+#include <unistd.h>
 
 typedef pthread_mutex_t pcfg_mux_t;
 typedef pthread_cond_t  pcfg_cv_t;
@@ -67,10 +68,36 @@ typedef pthread_t       pcfg_os_thread_t;
 #define pcfg_thread_ret           void *
 #define pcfg_thread_done          NULL
 
-#define pcfg_thread_create(t,f,a) pthread_create (&(t), NULL, f, a)
+#define pcfg_thread_create(t,f,a) (pthread_create (&(t), NULL, f, a) == 0)
 #define pcfg_thread_join(t)       pthread_join ((t), NULL)
 
 #endif
+
+// How many threads are worth starting. A caller caps this against its own work, so what is wanted
+// here is the machine and not a policy.
+
+static u32 pcfg_cpu_online (void)
+{
+#if defined (_WIN) || defined (__CYGWIN__)
+
+  SYSTEM_INFO si;
+
+  GetSystemInfo (&si);
+
+  const u32 n = (u32) si.dwNumberOfProcessors;
+
+#else
+
+  const long got = sysconf (_SC_NPROCESSORS_ONLN);
+
+  const u32 n = (got > 0) ? (u32) got : 1;
+
+#endif
+
+  if (n == 0) return 1;
+
+  return n;
+}
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN_OPTIONS_DEVICE;
@@ -242,6 +269,13 @@ typedef struct
 
   u64 front_rect;
 
+  // Which pair the per structure suffix arrays currently hold, so a caller that wants the same pair
+  // again reuses them instead of building them a second time.
+
+  bool built;
+  u32  built_maxword;
+  u32  built_kbits;
+
   double maxgain;
 
   u32 *pool;
@@ -355,20 +389,31 @@ static void gerr (generic_global_ctx_t *g, const char *fmt, ...)
   g->error = true;
 }
 
+// A ruleset large enough to matter drives the suffix counts to the top of u64, so every add and
+// every multiply on them saturates. The two overflow tests are the ones libhashcat exports, written
+// out here instead of called. These sit in the innermost loop of the suffix build, and a call into
+// another shared object there cannot be inlined, so it costs a spill of the loop registers on every
+// single addition.
+
 static u64 sat_mul (const u64 a, const u64 b)
 {
-  if (a == 0 || b == 0) return 0;
+  if (a == 0) return 0;
+  if (b == 0) return 0;
 
-  if (overflow_check_u64_mul (a, b) == true) return UINT64_MAX - 1;
+  if (a > (UINT64_MAX / b)) return UINT64_MAX - 1;
 
-  return a * b;
+  const u64 r = a * b;
+
+  return r;
 }
 
 static u64 sat_add (const u64 a, const u64 b)
 {
-  if (overflow_check_u64_add (a, b) == true) return UINT64_MAX - 1;
+  if (a > (UINT64_MAX - b)) return UINT64_MAX - 1;
 
-  return a + b;
+  const u64 r = a + b;
+
+  return r;
 }
 
 static bool pcfg_fopen (HCFILE *fp, const char *path)
@@ -1187,26 +1232,82 @@ static bool merge_read (pcfg_merge_t *m, const pcfg_root_t *r, const char *rel)
 
   if (root_open (r, rel, &fp) == false) return false;
 
-  char line[HCBUFSIZ_TINY];
+  // A ruleset worth giving to the device engine runs to tens of millions of lines, and the library
+  // call that fetches one line at a time costs more than parsing the line does. The whole file is
+  // read in one piece and the lines are cut out of memory instead.
+  //
+  // The cut is the one fgets () was making, buffer size included: a line longer than the buffer was
+  // handed over in pieces and each piece went through the parse on its own, so that still happens
+  // here and the same terminals come out of the same file.
 
-  while (hc_fgets (line, sizeof (line), &fp) != NULL)
+  size_t cap = 1 << 20;
+  size_t len = 0;
+
+  char *img = (char *) hcmalloc (cap + 1);
+
+  while (true)
   {
-    char *tab = strchr (line, '\t');
+    if (len == cap)
+    {
+      const size_t old = cap;
 
-    if (tab == NULL) continue;
+      cap = old * 2;
 
-    *tab = 0;
+      img = (char *) hcrealloc (img, old + 1, cap - old);
+    }
 
-    const size_t vlen = strlen (line);
-    const double p    = strtod (tab + 1, NULL);
+    const size_t got = hc_fread (img + len, 1, cap - len, &fp);
 
-    if (vlen == 0) continue;
-    if (p <= 0.0)  continue;
+    if (got == 0) break;
 
-    merge_add (m, (const u8 *) line, (u32) vlen, p * w);
+    len += got;
   }
 
   hc_fclose (&fp);
+
+  img[len] = 0;
+
+  size_t at = 0;
+
+  while (at < len)
+  {
+    const size_t stop = ((len - at) < (HCBUFSIZ_TINY - 1)) ? len : (at + HCBUFSIZ_TINY - 1);
+
+    size_t end = at;
+
+    while ((end < stop) && (img[end] != '\n')) end++;
+
+    if (end < stop) end++;
+
+    // The line is terminated where it ends rather than copied out, so that the search below stops in
+    // the same place it used to and an embedded zero byte still hides the rest of the line.
+
+    const char keep = img[end];
+
+    img[end] = 0;
+
+    char *line = img + at;
+
+    char *tab = strchr (line, '\t');
+
+    if (tab != NULL)
+    {
+      *tab = 0;
+
+      const size_t vlen = strlen (line);
+      const double p    = strtod (tab + 1, NULL);
+
+      if ((vlen > 0) && (p > 0.0)) merge_add (m, (const u8 *) line, (u32) vlen, p * w);
+
+      *tab = '\t';
+    }
+
+    img[end] = keep;
+
+    at = end;
+  }
+
+  hcfree (img);
 
   return true;
 }
@@ -1714,6 +1815,99 @@ static void build_suffix (pcfg_global_t *pg, pcfg_struct_t *s)
   }
 }
 
+// Both suffix builds are the same shape: one call per structure, and no structure reads or writes
+// another. The grammar itself is only read. So both are swept across cores from here.
+//
+// The split is by chunk and taken as a thread becomes free. The cost of one structure varies by more
+// than an order of magnitude with its cost span and how many buckets its lists hold, and a fixed
+// slice each would leave most of the cores waiting on one unlucky slice.
+
+#define PCFG_BUILD_MAXW  32
+#define PCFG_BUILD_CHUNK 128
+
+typedef void (*pcfg_struct_fn) (pcfg_global_t *pg, pcfg_struct_t *s);
+
+typedef struct
+{
+  pcfg_global_t *pg;
+
+  pcfg_struct_fn fn;
+
+  pcfg_mux_t mux;
+
+  u32 next;
+
+} pcfg_sweep_t;
+
+static pcfg_thread_ret sweep_worker (void *arg)
+{
+  pcfg_sweep_t *sw = (pcfg_sweep_t *) arg;
+
+  pcfg_global_t *pg = sw->pg;
+
+  while (true)
+  {
+    pcfg_mux_lock (&sw->mux);
+
+    const u32 from = sw->next;
+
+    sw->next = from + PCFG_BUILD_CHUNK;
+
+    pcfg_mux_unlock (&sw->mux);
+
+    if (from >= pg->structs_cnt) break;
+
+    u32 upto = from + PCFG_BUILD_CHUNK;
+
+    if (upto > pg->structs_cnt) upto = pg->structs_cnt;
+
+    for (u32 i = from; i < upto; i++) sw->fn (pg, &pg->structs[i]);
+  }
+
+  return pcfg_thread_done;
+}
+
+static void structs_sweep (pcfg_global_t *pg, pcfg_struct_fn fn)
+{
+  // One less than the machine has, because the calling thread takes chunks too.
+
+  u32 nworker = pcfg_cpu_online () - 1;
+
+  const char *env = getenv ("PCFG_BUILD_THREADS");
+
+  if (env != NULL) nworker = (u32) strtoul (env, NULL, 10);
+
+  if (nworker > PCFG_BUILD_MAXW) nworker = PCFG_BUILD_MAXW;
+
+  pcfg_sweep_t sw;
+
+  sw.pg   = pg;
+  sw.fn   = fn;
+  sw.next = 0;
+
+  pcfg_mux_init (&sw.mux);
+
+  pcfg_os_thread_t worker[PCFG_BUILD_MAXW];
+
+  u32 started = 0;
+
+  for (u32 i = 0; i < nworker; i++)
+  {
+    if (pcfg_thread_create (worker[started], sweep_worker, &sw) == false) continue;
+
+    started++;
+  }
+
+  // The calling thread takes chunks as well. That is one more core on the work, and it is also what
+  // makes a machine that would not give out a single thread still finish the sweep.
+
+  sweep_worker (&sw);
+
+  for (u32 i = 0; i < started; i++) pcfg_thread_join (worker[i]);
+
+  pcfg_mux_destroy (&sw.mux);
+}
+
 static void pcfg_pick_varlen (pcfg_global_t *pg)
 {
   u64 merged = 0;
@@ -1881,7 +2075,7 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   pcfg_pick_varlen (pg);
 
-  for (u32 i = 0; i < pg->structs_cnt; i++) build_suffix (pg, &pg->structs[i]);
+  structs_sweep (pg, build_suffix);
 
   pg->m_lines = dropped_m;
 
@@ -3494,21 +3688,8 @@ static u64 front_rect (const pcfg_global_t *pg, const u64 want)
   return cands / units;
 }
 
-static u64 cut_and_count (pcfg_global_t *pg, const u32 maxword, const u32 kbits)
+static void unit_suffix_free (pcfg_global_t *pg)
 {
-  pg->maxword = maxword;
-  pg->maxbyte = (maxword * 4) - 1;
-
-  pg->kbits  = kbits;
-  pg->il_cnt = (u32) 1 << kbits;
-
-  for (u32 i = 0; i < pg->structs_cnt; i++) choose_cut (pg, &pg->structs[i]);
-  for (u32 i = 0; i < pg->structs_cnt; i++) build_unit_suffix (pg, &pg->structs[i]);
-
-  const u64 units = count_units (pg);
-
-  pg->front_rect = front_rect (pg, PCFG_FRONT_UNITS);
-
   for (u32 i = 0; i < pg->structs_cnt; i++)
   {
     hcfree (pg->structs[i].usuf);
@@ -3517,6 +3698,42 @@ static u64 cut_and_count (pcfg_global_t *pg, const u32 maxword, const u32 kbits)
     pg->structs[i].usuf = NULL;
     pg->structs[i].udev = NULL;
   }
+
+  pg->built = false;
+}
+
+// Building the suffix arrays is the most expensive thing the device engine does at startup, so what
+// a call leaves behind is kept rather than thrown away. The next call frees it, and a caller that
+// wants the pair already in hand skips the work entirely.
+
+static void unit_suffix_build (pcfg_global_t *pg)
+{
+  if ((pg->built == true) && (pg->built_maxword == pg->maxword) && (pg->built_kbits == pg->kbits)) return;
+
+  unit_suffix_free (pg);
+
+  for (u32 i = 0; i < pg->structs_cnt; i++) choose_cut (pg, &pg->structs[i]);
+
+  structs_sweep (pg, build_unit_suffix);
+
+  pg->built         = true;
+  pg->built_maxword = pg->maxword;
+  pg->built_kbits   = pg->kbits;
+}
+
+static u64 cut_and_count (pcfg_global_t *pg, const u32 maxword, const u32 kbits)
+{
+  pg->maxword = maxword;
+  pg->maxbyte = (maxword * 4) - 1;
+
+  pg->kbits  = kbits;
+  pg->il_cnt = (u32) 1 << kbits;
+
+  unit_suffix_build (pg);
+
+  const u64 units = count_units (pg);
+
+  pg->front_rect = front_rect (pg, PCFG_FRONT_UNITS);
 
   return units;
 }
@@ -4208,9 +4425,17 @@ static pcfg_pf_t *pf_start (pcfg_global_t *pg, const u32 nworker, const bool amp
     pf->slot[i].cell = (amp == true) ? (pcfg_cell_t *) hcmalloc ((size_t) PCFG_PF_CHUNK * sizeof (pcfg_cell_t)) : NULL;
   }
 
-  pf->nworker = nworker;
+  // Only the workers that really started are counted, because pf_stop () joins that many, and a
+  // handle that was never handed out is not one to wait on.
 
-  for (u32 i = 0; i < nworker; i++) pcfg_thread_create (pf->worker[i], pf_worker, pf);
+  pf->nworker = 0;
+
+  for (u32 i = 0; i < nworker; i++)
+  {
+    if (pcfg_thread_create (pf->worker[pf->nworker], pf_worker, pf) == false) continue;
+
+    pf->nworker++;
+  }
 
   return pf;
 }
@@ -4823,20 +5048,31 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
       }
     }
 
-    u32 lo = PCFG_DEV_KBITS_MIN;
-    u32 hi = PCFG_DEV_KBITS_MAX;
+    // The rectangle only grows with the bit count, so the widest setting decides whether there is
+    // anything to search for. A large ruleset spreads the front of the run across many cheap
+    // structures and never reaches the width that is wanted, and then the answer is the widest
+    // setting and one measurement has just found it. That is also the ruleset where a measurement
+    // costs the most, so the case that used to be the slowest is now the cheapest.
 
-    while (lo < hi)
+    cut_and_count (pg, pg->maxword, PCFG_DEV_KBITS_MAX);
+
+    if (pg->front_rect >= PCFG_DEV_RECT_WANT)
     {
-      const u32 mid = lo + ((hi - lo) / 2);
+      u32 lo = PCFG_DEV_KBITS_MIN;
+      u32 hi = PCFG_DEV_KBITS_MAX;
 
-      cut_and_count (pg, pg->maxword, mid);
+      while (lo < hi)
+      {
+        const u32 mid = lo + ((hi - lo) / 2);
 
-      if (pg->front_rect >= PCFG_DEV_RECT_WANT) hi = mid;
-      else                                      lo = mid + 1;
+        cut_and_count (pg, pg->maxword, mid);
+
+        if (pg->front_rect >= PCFG_DEV_RECT_WANT) hi = mid;
+        else                                      lo = mid + 1;
+      }
+
+      best = lo;
     }
-
-    best = lo;
 
     pg->kbits = best;
 
@@ -4854,7 +5090,7 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
   if (pg->varlen == true) global_ctx->source_ident ^= 0x5ecf6a1d3b2c9e77ULL;
 
-  for (u32 i = 0; i < pg->structs_cnt; i++) choose_cut (pg, &pg->structs[i]);
+  unit_suffix_build (pg);
 
   if (getenv ("PCFG_BUCKET_STATS") != NULL)
   {
@@ -4908,8 +5144,6 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
     fprintf (stderr, "cut stats: structs=%u amplified=%u none=%u (blen_refused=%u too_wide=%u)\n", pg->structs_cnt, some, none, blen, wide);
   }
-
-  for (u32 i = 0; i < pg->structs_cnt; i++) build_unit_suffix (pg, &pg->structs[i]);
 
   build_unit_index (pg);
 
