@@ -11262,7 +11262,18 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
     {
       nvrtcProgram program;
 
-      if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], kernel_name, 0, NULL, NULL) == -1) return false;
+      // DEBUG builds pass the real .cl source filename instead of the generic
+      // per-category literal ("main_kernel", "shared_kernel", ...) so tools
+      // like Compute Sanitizer that read NVRTC's embedded line info can
+      // report a real "m17010-pure.cl:527" instead of "main_kernel:527".
+
+      #if defined (DEBUG)
+      const char *nvrtc_program_name = filename_from_filepath (source_file);
+      #else
+      const char *nvrtc_program_name = kernel_name;
+      #endif
+
+      if (hc_nvrtcCreateProgram (hashcat_ctx, &program, kernel_sources[0], nvrtc_program_name, 0, NULL, NULL) == -1) return false;
 
       char **nvrtc_options = (char **) hccalloc (16 + strlen (build_options_buf) + 1, sizeof (char *)); // ...
 
@@ -11272,6 +11283,14 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       {
         nvrtc_options[nvrtc_options_idx++] = "--std=c++14";
       }
+
+      // Optimized-but-debuggable kernels for Compute Sanitizer's
+      // --show-backtrace device to resolve to source:line. Deliberately not
+      // -G (full device-debug), which disables optimizations entirely.
+
+      #if defined (DEBUG)
+      nvrtc_options[nvrtc_options_idx++] = "--generate-line-info";
+      #endif
 
       //nvrtc_options[nvrtc_options_idx++] = "--restrict";
       nvrtc_options[nvrtc_options_idx++] = "--gpu-architecture";

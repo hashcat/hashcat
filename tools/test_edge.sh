@@ -50,6 +50,12 @@ function usage()
   echo ""
   echo "     --skip-clean-cache             : Skip cleaning the kernel caches before starting the tests"
   echo ""
+  echo "     --compute-sanitizer[=<tool>]   : Run hashcat's CUDA kernels under NVIDIA Compute Sanitizer"
+  echo "                                       (requires tools/compute_sanitizer/run.py build first; CUDA-only,"
+  echo "                                       forces --backend-ignore-opencl/hip/metal). <tool> is one of"
+  echo "                                       memcheck (default), racecheck, synccheck, initcheck."
+  echo "                                       findings reported via tools/compute_sanitizer/report.py --dir <sweep-dir>"
+  echo ""
   echo "-f / --force                        : run hashcat using --force"
   echo ""
   echo "-v / --verbose                      : show debug messages (supported: -v or -vv)"
@@ -128,6 +134,9 @@ BACKEND_DEVICES_KEEPFREE=0
 ALL_ATTACKS=0
 SELF_TEST_DISABLE=1
 CLEAN_CACHE_DISABLE=0
+COMPUTE_SANITIZER_MODE=0
+COMPUTE_SANITIZER_TOOL="memcheck"
+HC_BIN="./hashcat"
 
 OPTS="--quiet --potfile-disable --machine-readable --logfile-disable"
 
@@ -186,6 +195,15 @@ while [[ $# -gt 0 ]]; do
       ;;
     --skip-clean-cache)
       CLEAN_CACHE_DISABLE=1
+      shift
+      ;;
+    --compute-sanitizer)
+      COMPUTE_SANITIZER_MODE=1
+      shift
+      ;;
+    --compute-sanitizer=*)
+      COMPUTE_SANITIZER_MODE=1
+      COMPUTE_SANITIZER_TOOL="${1#--compute-sanitizer=}"
       shift
       ;;
     --vector-width-min)
@@ -561,6 +579,30 @@ if [[ "$VECTOR_WIDTH" != "all" && ( "$VECTOR_WIDTH_MIN" -ne 1 || "$VECTOR_WIDTH_
   usage
 fi
 
+if [ "${COMPUTE_SANITIZER_MODE}" -eq 1 ]; then
+  case "${COMPUTE_SANITIZER_TOOL}" in
+    memcheck|racecheck|synccheck|initcheck) ;;
+    *)
+      echo "Error: --compute-sanitizer tool must be one of memcheck, racecheck, synccheck, initcheck"
+      usage
+      ;;
+  esac
+
+  if [ ! -x "./hashcat-sanitizer" ]; then
+    echo "ERROR: --compute-sanitizer requires a DEBUG=1 build. Run: tools/compute_sanitizer/run.py build" >&2
+    exit 1
+  fi
+
+  SANITIZER_SWEEP_DIR="tools/compute_sanitizer/results/sweep-$(date +%s)"
+  mkdir -p "${SANITIZER_SWEEP_DIR}"
+  export SANITIZER_SWEEP_DIR
+  export SANITIZER_SWEEP_TOOL="${COMPUTE_SANITIZER_TOOL}"
+
+  HC_BIN="tools/compute_sanitizer/sweep_shim.sh"
+
+  echo "> Compute Sanitizer sweep mode enabled (tool=${COMPUTE_SANITIZER_TOOL}). Results: ${SANITIZER_SWEEP_DIR}"
+fi
+
 if [ ${SELF_TEST_DISABLE} -eq 1 ]; then
   OPTS="${OPTS} --self-test-disable"
 fi
@@ -803,7 +845,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               if [ "${attack_type}" -eq 0 ]; then
                 #echo ${word} > test_${hash_type}_${kernel_type}_${attack_type}_${i}.word
 
-                CMD="echo ${word} | ./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 0"
+                CMD="echo ${word} | ${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 0"
               elif [ "${attack_type}" -eq 1 ]; then
                 word=$(eval $x)
 
@@ -823,7 +865,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 echo ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.1.word
                 echo ${word_2} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.2.word
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 1 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.1.word ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.2.word"
+                CMD="${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 1 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.1.word ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.2.word"
               elif [ "${attack_type}" -eq 3 ]; then
 
                 if [ $pt_hex -eq 1 ]; then
@@ -845,7 +887,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   fi
                 fi
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 3 ${word_1}${mask_1}"
+                CMD="${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 3 ${word_1}${mask_1}"
               elif [ "${attack_type}" -eq 6 ]; then
 
                 if [ $pt_hex -eq 1 ]; then
@@ -866,7 +908,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 echo -n ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_1.word
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 6 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_1.word ${mask_1}"
+                CMD="${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 6 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_1.word ${mask_1}"
               elif [ "${attack_type}" -eq 7 ]; then
 
                 if [ $pt_hex -eq 1 ]; then
@@ -887,7 +929,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 echo -n ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_2.word
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 7 ${mask_1} ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_2.word"
+                CMD="${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 7 ${mask_1} ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_2.word"
               fi
 
               cmd_out="${OUTD}/cmd_${hash_type}_${kernel_type}_${attack_type}_${i}.single.log"
@@ -1065,7 +1107,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
                 echo ${word} >> ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}.1.words
 
-                CMD="cat ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}.1.words | ./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 0"
+                CMD="cat ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}.1.words | ${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 0"
               elif [ "${attack_type}" -eq 1 ]; then
                 ((hash_cnt++))
 
@@ -1082,7 +1124,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 echo ${word_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words
                 echo ${word_2} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.words
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 1 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.words"
+                CMD="${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 1 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.words"
               elif [ "${attack_type}" -eq 3 ]; then
                 ((hash_cnt++))
 
@@ -1108,7 +1150,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 echo -n ${word_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words.masks
                 echo ${mask_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words.masks
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 3 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words.masks"
+                CMD="${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 3 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words.masks"
               elif [ "${attack_type}" -eq 6 ]; then
                 ((hash_cnt++))
 
@@ -1131,7 +1173,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 echo ${word_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words
                 echo ${mask_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.masks
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 6 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.masks"
+                CMD="${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 6 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.masks"
               elif [ "${attack_type}" -eq 7 ]; then
                 ((hash_cnt++))
 
@@ -1154,7 +1196,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 echo ${word_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.words
                 echo ${mask_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.masks
 
-                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 7 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.masks ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.words"
+                CMD="${HC_BIN} ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 7 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.masks ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.words"
               fi
             done
 
@@ -1251,4 +1293,8 @@ echo "[ ${OUTD} ] > All tests done in ${days}d:$(printf "%02dh:%02dm:%02ds" "$ho
 echo "[ ${OUTD} ] > Errors detected: $errors"
 if [ $errors -gt 0 ]; then
   echo "[ ${OUTD} ] !> Details on ${OUTD}/test_edge.details.log"
+fi
+
+if [ "${COMPUTE_SANITIZER_MODE}" -eq 1 ]; then
+  echo "[ ${OUTD} ] > Compute Sanitizer findings: see tools/compute_sanitizer/report.py --dir \"${SANITIZER_SWEEP_DIR}\""
 fi
