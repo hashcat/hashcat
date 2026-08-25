@@ -260,8 +260,19 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   if (iv_size != 12) return (PARSER_IV_LENGTH); // opengpg AES-OCB uses 12 byte nonce only
 
   // Salt Iter
+  //
+  // Deliberately unbounded, unlike 17010, 17020 and 17030, which reject
+  // anything outside 8 .. 65011712. Those parse OpenPGP secret-key packets,
+  // where RFC 4880 3.7.1.3 stores the count as a one octet coded value
+  // decoding to (16 + (c & 15)) << ((c >> 4) + 6), so 65011712 really is the
+  // ceiling there. This mode parses the gpg-agent on-disk format instead
+  // (private-keys-v1.d/*.key, openpgp-s2k3-ocb-aes), where the count is a
+  // plain integer that gpg-agent calibrates to roughly 100 ms of work and
+  // rounds to a multiple of 1024. Three keys from GnuPG 2.4.4 on an ordinary
+  // desktop came out at 153683968, 208627712 and 197378048, none of which is
+  // representable as a coded octet. Applying the sibling range check here
+  // would reject most real keys.
   const u32 salt_iter = hc_strtoul ((const char *) token.buf[11], NULL, 10);
-  // if (salt_iter < 8 || salt_iter > 65011712) return (PARSER_SALT_ITERATION); // don't care how much iterations
   salt->salt_iter = salt_iter;
 
   // Salt Value
