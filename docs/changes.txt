@@ -118,6 +118,7 @@ argument list is shown instead.
 
 - Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seekdbs
 - Seekdbs are portable between machines, so a distributed setup can build one once and hand it out
+- New option --seekdb-path: Store seek databases in a given directory, which several hosts can share
 - Added --encrypt-with-pubkey, which encrypts recovered plains with an RSA public key
 - Encrypted plains mean the cracking host never sees them, see docs/hashcat-encrypted-plains.md
 
@@ -145,8 +146,9 @@ argument list is shown instead.
   PRODUCTION=1 pinning what would otherwise move
 - Build: The build tracks its own dependencies, so editing a shared module body, a feed
   header or a bundled dependency rebuilds what uses it
-- Help: -D 3 is described as 'OpenCL Accelerator'. Bridge hardware is selected by
-  hash-mode and never by -D
+- Backend: Removed OpenCL device-type 3, the accelerator card. -D 3 is now an error
+  naming the removal, and hardware of that kind is reached through an assimilation
+  bridge, which is selected by the hash-mode and never by -D
 - Rules: Added the 'convert to lower hex' and 'convert to upper hex' operations
 - Rules: Added the 'insert every' operation
 - Rules: Added the 'shift case' operation
@@ -183,9 +185,22 @@ argument list is shown instead.
 - secp256k1: Factored the repeated Jacobian to affine conversion into point_to_affine
 - Kernels: Added HASHCAT_FORCE_NO_INLINE, which builds with -D FORCE_NO_INLINE for
   runtimes that inline the helpers into one slow-to-compile function
+- Kernels: -m 18500 keeps a second hex table in shared memory in the byte order its
+  SHA1 half wants, instead of byte swapping every word it builds, for +0.7% on a
+  Radeon RX 7900 XTX
 - Backends: Environment on/off switches share one hc_env_flag helper
 - Feeds: Settings are written as key=value work arguments and one shared parser reads
   them, so a feed no longer writes its own (see docs/hashcat-plugin-development-guide.md)
+- PCFG: A ruleset may be one .tar.xz instead of a directory, or have any of its files
+  compressed on their own. A ruleset trained on example.dict is 3.2 MB as a directory
+  and 275 KB as one archive
+- PCFG: Naming no ruleset runs default-passwords, the one hashcat ships. Naming several
+  runs them together, each with an equal share of the run unless weights= says otherwise
+- PCFG: A ruleset is named rather than pathed, the way a hash mode and a feed already are.
+  A name is looked for in <profile>/pcfg and then <shared>/pcfg; anything holding a slash
+  is a path and is never looked for
+- Feeds: A feed is given the shared folder, so one that ships data of its own can find it
+- Files: Added hc_fopen_mem, which reads a file that is already in memory
 - Hashes: Large hash lists without salts now sort and deduplicate with an in-place radix sort
 - Kernels: Added the DEScrypt pure kernel for attack-mode 3, and both salt paths share one
   multi hash kernel
@@ -266,6 +281,11 @@ argument list is shown instead.
 - Fixed redefinition warnings from the Python.h and _WIN32_WINNT include order
 - Fixed "No devices found/left." not naming what removed the devices, nor that a bridge
   was left with units and nothing to drive them
+- Fixed "No devices found/left." counting the virtualized device list, so a bridge run
+  described the host device as the whole machine and never mentioned the CPU runtime that
+  --backend-devices-virthost could have picked instead
+- Fixed --backend-devices-virthost past the last device reporting that no device was found
+  at all, instead of that the device number it asks for does not exist
 - Fixed -I listing one backend device per bridge unit instead of one per physical device
 - Fixed an edited kernel not being compiled again, because the kernel cache key said
   nothing about the kernel source

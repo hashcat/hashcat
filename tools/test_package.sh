@@ -189,7 +189,15 @@ plugin_exports ()
     CYGWIN*|MINGW*|MSYS*) objdump -p "$1" | sed -n '/\[Ordinal\/Name Pointer\] Table/,/^$/ s/^\t\[ *[0-9][0-9]*\].* //p' ;;
     Darwin)               nm -g -U "$1" | awk '{ print $NF }' | sed 's/^_//' ;;
     *)                    nm -D --defined-only --format=posix "$1" | awk '{ print $1 }' ;;
-  esac | grep -v -x -e '_ZTI8RAR_EXIT' -e '_ZTS8RAR_EXIT' -e '__bss_start' -e '_edata' -e '_end'
+  # What comes back is filtered twice. The first list is the two C++ typeinfo symbols UnRAR's exception
+  # type leaves behind, which are hashcat's own and known to be harmless. The second rule drops the
+  # names the implementation reserves for itself, which is everything beginning with an underscore, and
+  # is where a toolchain puts its housekeeping. Linux publishes none of those in .dynsym, FreeBSD
+  # publishes _init and _fini, and the next toolchain will publish a different set again, so the rule
+  # names the class instead of listing the members. __bss_start, _edata and _end were the members it
+  # used to list. A mangled C++ name begins with _Z and is deliberately kept, because one of those in a
+  # plugin is a real export rather than housekeeping.
+  esac | grep -v -x -e '_ZTI8RAR_EXIT' -e '_ZTS8RAR_EXIT' | grep -v -E '^_([^Z]|$)'
 }
 
 check_exports ()
@@ -197,6 +205,7 @@ check_exports ()
   DIRECTORY="$1"
   PREFIX="$2"
   EXPECTED="$3"
+  EXPECTED_ALT="${4:-}"
 
   SEEN=0
   WRONG=0
@@ -208,12 +217,18 @@ check_exports ()
 
     NAMES="$(plugin_exports "$PLUGIN" | sort | tr '\n' ' ' | sed 's/ $//')"
 
-    if [ "$NAMES" != "$EXPECTED" ]; then
-      WRONG=$((WRONG + 1))
+    if [ "$NAMES" = "$EXPECTED" ]; then
+      continue
+    fi
 
-      if [ "$WRONG" -le 3 ]; then
-        printf '      %s exports: %s\n' "$PLUGIN" "$NAMES"
-      fi
+    if [ "$NAMES" = "$EXPECTED_ALT" ]; then
+      continue
+    fi
+
+    WRONG=$((WRONG + 1))
+
+    if [ "$WRONG" -le 3 ]; then
+      printf '      %s exports: %s\n' "$PLUGIN" "$NAMES"
     fi
   done
 
@@ -222,18 +237,23 @@ check_exports ()
   elif [ "$WRONG" -eq 0 ]; then
     pass "all $SEEN plugins in $DIRECTORY/ export exactly what the core resolves"
   else
-    fail "$WRONG of $SEEN plugins in $DIRECTORY/ export more than: $EXPECTED"
+    fail "$WRONG of $SEEN plugins in $DIRECTORY/ do not export exactly: $EXPECTED"
   fi
 }
 
 # one exported name is what the shared arrangement promises. A static plugin carries the core inside
 # itself, and which of those names stay in its dynamic symbol table is up to the platform's linker,
 # so there is nothing to hold it to here.
+#
+# A feed has two shapes it may take. One generates candidates on the host alone. One also generates
+# them on the device, and it exports global_dev_init () and thread_next_dev () on top for that, so
+# both name lists are given here.
 
 if [ -n "$LIBRARY" ]; then
   check_exports modules module_ "module_init"
   check_exports bridges bridge_ "bridge_init"
-  check_exports feeds   ""       "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_init global_keyspace global_term thread_init thread_next thread_seek thread_term"
+  check_exports feeds   ""       "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_init global_keyspace global_term thread_init thread_next thread_seek thread_term" \
+                                 "GENERIC_PLUGIN_OPTIONS GENERIC_PLUGIN_VERSION global_dev_init global_init global_keyspace global_term thread_init thread_next thread_next_dev thread_seek thread_term"
 fi
 
 # and the other direction. Where there is a core library, a plugin calls the core through it and

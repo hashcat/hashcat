@@ -18,6 +18,7 @@
 #include "hashcat.h"
 #include "timer.h"
 #include "terminal.h"
+#include "user_options.h"
 
 static const size_t MAXIMUM_EXAMPLE_HASH_LENGTH = 200;
 
@@ -890,9 +891,9 @@ void hash_info_single_json (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *us
         tmp_buf[tmp_len++] = 'X';
         tmp_buf[tmp_len++] = '[';
 
-        exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+        const size_t hex_len = exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
 
-        tmp_len += strlen (hashconfig->st_pass) * 2;
+        tmp_len += (int) hex_len;
 
         tmp_buf[tmp_len++] = ']';
         tmp_buf[tmp_len++] = 0;
@@ -1154,9 +1155,9 @@ void hash_info_single (hashcat_ctx_t *hashcat_ctx, user_options_extra_t *user_op
         tmp_buf[tmp_len++] = 'X';
         tmp_buf[tmp_len++] = '[';
 
-        exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
+        const size_t hex_len = exec_hexify ((const u8 *) hashconfig->st_pass, strlen (hashconfig->st_pass), (u8 *) tmp_buf + tmp_len);
 
-        tmp_len += strlen (hashconfig->st_pass) * 2;
+        tmp_len += (int) hex_len;
 
         tmp_buf[tmp_len++] = ']';
         tmp_buf[tmp_len++] = 0;
@@ -2077,7 +2078,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options->machine_readable == false)
       {
-        event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+        event_log_info (hashcat_ctx, "  Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
         event_log_info (hashcat_ctx, "  Vendor.ID......: %u", opencl_device_vendor_id);
         event_log_info (hashcat_ctx, "  Vendor.........: %s", opencl_device_vendor);
         event_log_info (hashcat_ctx, "  Name...........: %s", device_name);
@@ -2091,7 +2092,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+        printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
         printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
         printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
         printf ("\"Name\": \"%s\", ", device_name);
@@ -2349,7 +2350,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
 
         if (user_options->machine_readable == false)
         {
-          event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+          event_log_info (hashcat_ctx, "    Type...........: %s", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
           event_log_info (hashcat_ctx, "    Vendor.ID......: %u", opencl_device_vendor_id);
           event_log_info (hashcat_ctx, "    Vendor.........: %s", opencl_device_vendor);
           event_log_info (hashcat_ctx, "    Name...........: %s", device_name);
@@ -2366,7 +2367,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator")));
+          printf ("\"Type\": \"%s\", ", ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other")));
           printf ("\"VendorID\": \"%u\", ", opencl_device_vendor_id);
           printf ("\"Vendor\": \"%s\", ", opencl_device_vendor);
           printf ("\"Name\": \"%s\", ", device_name);
@@ -2802,7 +2803,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
             {
               cl_device_type opencl_device_type = device_param->opencl_device_type;
 
-              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
 
               event_log_info (hashcat_ctx, "* Device #%02u -> #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1, unit_count,
@@ -2855,7 +2856,7 @@ void backend_info_compact (hashcat_ctx_t *hashcat_ctx)
             {
               cl_device_type opencl_device_type = device_param->opencl_device_type;
 
-              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+              const char *device_type_desc = ((opencl_device_type & CL_DEVICE_TYPE_CPU) ? "CPU" : ((opencl_device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
 
               event_log_info (hashcat_ctx, "* Device #%02u: %s, %s, %" PRIu64 "/%" PRIu64 " MB (%" PRIu64 " MB allocatable), %uMCU",
                         device_id + 1,
@@ -3207,7 +3208,7 @@ void status_display_status_json (hashcat_ctx_t *hashcat_ctx)
       hcfree (device_name_json_encoded);
 
       const char *device_type_desc = ((device_info->device_type & CL_DEVICE_TYPE_CPU) ? "CPU" :
-                                     ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Accelerator"));
+                                     ((device_info->device_type & CL_DEVICE_TYPE_GPU) ? "GPU" : "Other"));
       printf (" \"device_type\": \"%s\",", device_type_desc);
 
       printf (" \"speed\": %" PRIu64 ",", (u64) (device_info->hashes_msec_dev * 1000));
@@ -3359,6 +3360,8 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   const hwmon_ctx_t    *hwmon_ctx    = hashcat_ctx->hwmon_ctx;
   const pubkey_ctx_t   *pubkey_ctx   = hashcat_ctx->pubkey_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   if (user_options->machine_readable == true)
   {
@@ -4225,14 +4228,33 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  //if (hashconfig->opts_type & OPTS_TYPE_SLOW_CANDIDATES)
-  if (user_options->slow_candidates == true)
+  // Which side of the bus the candidates are made on. --slow-candidates is one way to end up on the
+  // host and it was the only one this asked about, so every attack that hands the device one finished
+  // candidate per work item claimed to be generating on the device: -a 0 with no rules, -a 8 with a
+  // feed that does not amplify, and both of those on a slow hash as well.
+  //
+  // Two of the three attack kernels carry a generator whatever they were given. The mask processor
+  // and the combinator fill their buffer on the device, so -a 1, -a 3, -a 6 and -a 7 generate there
+  // even when the thing they expand with holds a single entry. The straight kernel has one only when
+  // there are rules to apply, and without them the host built the candidate and paid for the copy.
+
+  bool device_generator = (user_options_extra_amplifier (hashcat_ctx) > 1);
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)    device_generator = true;
+  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI) device_generator = true;
+
+  // --slow-candidates is what it is named after: every candidate is built on the host, whichever
+  // attack kernel would otherwise have had a generator.
+
+  if (user_options->slow_candidates == true) device_generator = false;
+
+  if (device_generator == true)
   {
-    event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
+    event_log_info (hashcat_ctx, "Candidate.Engine.: Device Generator");
   }
   else
   {
-    event_log_info (hashcat_ctx, "Candidate.Engine.: Device Generator");
+    event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
   }
 
   if (bridge_ctx->enabled == true)

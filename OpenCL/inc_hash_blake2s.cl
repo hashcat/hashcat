@@ -77,7 +77,7 @@ DECLSPEC u32 blake2s_rot08_S (const u32 a)
 
   return out.v32;
 
-  #elif (defined IS_AMD || defined IS_HIP)
+  #elif (defined IS_AMD || defined IS_HIP || defined IS_AMD_USE_OPENCL) && HAS_VPERM == 1
 
   vconv32_t in;
 

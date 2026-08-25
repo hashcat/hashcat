@@ -242,8 +242,41 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
   const u32 kernel_loops_min = device_param->kernel_loops_min;
   const u32 kernel_loops_max = device_param->kernel_loops_max;
 
-  const u32 kernel_threads_min = device_param->kernel_threads_min;
-  const u32 kernel_threads_max = device_param->kernel_threads_max;
+  u32 kernel_threads_max = device_param->kernel_threads_max;
+
+  u32 kernel_threads_min = device_param->kernel_threads_min;
+
+  // The device engine's lanes own positions inside one cell's rectangle, so the work per work item does not
+  // change with the group size and the search's efficiency measure, exec time over thread count, has
+  // nothing to reward. It settles on one wave per group, and one wave per group measures a third
+  // slower than two.
+
+  if (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+  {
+    const u32 two_waves = device_param->kernel_preferred_wgs_multiple * 2;
+
+    if ((two_waves > kernel_threads_min) && (two_waves <= kernel_threads_max)) kernel_threads_min = two_waves;
+
+    // The kernel keeps one odometer per work item in shared memory, sized for a group of this many.
+    // A larger group would walk off the end of it.
+
+    if (kernel_threads_max > PCFG_DEV_GROUP) kernel_threads_max = PCFG_DEV_GROUP;
+
+    // A cell's work items are handed out in whole waves and one descriptor is shared by a wave, so a
+    // group has to be a whole number of waves or two of its threads land in different cells holding
+    // the same descriptor. Every device measured picks 32 or 64 here anyway; this is what says so.
+
+    if (kernel_threads_max > PCFG_DEV_WARP) kernel_threads_max -= (kernel_threads_max % PCFG_DEV_WARP);
+    if (kernel_threads_min > PCFG_DEV_WARP) kernel_threads_min -= (kernel_threads_min % PCFG_DEV_WARP);
+
+    if (kernel_threads_min > kernel_threads_max) kernel_threads_min = kernel_threads_max;
+
+    // And the probe has to be given cells, or it measures one candidate per base word where the real
+    // launch walks thousands, maxes the accel out and leaves every launch after it far past the
+    // target. pcfg_seed_cells () explains what that costs.
+
+    if (pcfg_seed_cells (hashcat_ctx, device_param) == -1) return -1;
+  }
 
   /*
   printf ("starting autotune with: %d %d %d %d %d %d\n",

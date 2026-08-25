@@ -62,6 +62,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --debug-file               | File | Output file for debugging rules                      | --debug-file=good.log
      --induction-dir            | Dir  | Specify the induction directory to use for loopback  | --induction=inducts
      --outfile-check-dir        | Dir  | Specify the directory to monitor 3rd party outfiles  | --outfile-check-dir=x
+     --seekdb-path              | Dir  | Specify the directory to store seek databases in     | --seekdb-path=/mnt/seekdbs
      --logfile-disable          |      | Disable the logfile                                  |
      --hccapx-message-pair      | Num  | Load only message pairs from hccapx matching X       | --hccapx-message-pair=2
      --nonce-error-corrections  | Num  | The BF size range to replace AP's nonce last bytes   | --nonce-error-corrections=16
@@ -94,7 +95,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -I, --backend-info             |      | Show system/environment/backend API info             | -I or -II
  -d, --backend-devices          | Str  | Backend devices to use, separated with commas        | -d 1
  -Y, --backend-devices-virtmulti| Num  | Spawn X virtual instances on a real device           | -Y 8
- -R, --backend-devices-virthost | Num  | Sets the real device to create virtual instances     | -R 1
+ -R, --backend-devices-virthost | Num  | Sets the real device that runs the virtual instances | -R 2
      --backend-devices-keepfree | Num  | Keep specified percentage of device memory free      | --backend-devices-keepfree=5
  -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1
  -O, --optimized-kernel-enable  |      | Enable optimized kernels (limits password length)    |
@@ -190,6 +191,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   0 | Straight
   1 | Combination
   3 | Brute-force
+  4 | PCFG, a trained grammar makes the candidates
   6 | Hybrid Wordlist + Mask
   7 | Hybrid Mask + Wordlist
   8 | Generic
@@ -222,7 +224,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  ===+=============
   1 | CPU
   2 | GPU
-  3 | OpenCL Accelerator
 
 Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.
 
@@ -248,6 +249,8 @@ Hardware reached through an assimilation bridge is selected by the hash-mode, ne
   Wordlist         | $P$   | hashcat -a 0 -m 400 example400.hash example.dict
   Wordlist + Rules | MD5   | hashcat -a 0 -m 0 example0.hash example.dict -r rules/best66.rule
   Brute-Force      | MD5   | hashcat -a 3 -m 0 example0.hash ?a?a?a?a?a?a
+  PCFG             | MD5   | hashcat -a 4 -m 0 example0.hash
+  PCFG + ruleset   | MD5   | hashcat -a 4 -m 0 example0.hash /path/to/ruleset
   Combinator       | MD5   | hashcat -a 1 -m 0 example0.hash example.dict example.dict
   Generic          | $1$   | hashcat -a 8 -m 500 example500.hash feeds/feed_wordlist.so 1word.dict -r rules/best66.rule
   Association      | $1$   | hashcat -a 9 -m 500 example500.hash 1word.dict -r rules/best66.rule

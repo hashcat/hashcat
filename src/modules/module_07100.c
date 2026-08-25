@@ -87,6 +87,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   char sigchk[21];
   sigchk[20] = '\0';
+
+  // memcpy does not stop at a NUL, so a shorter line would be read past its end
+  if (line_len < 20) return (PARSER_SIGNATURE_UNMATCHED);
+
   memcpy (sigchk, line_buf, 20);
 
   if (strncmp (sigchk, SIGNATURE_SHA512MACOS, 4) == 0)

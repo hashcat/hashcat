@@ -7,8 +7,6 @@
 #include "types.h"
 #include "shared.h"
 #include "memory.h"
-#include <errno.h>
-#include <inttypes.h>
 
 static const char *const OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
 static const char *const OPTI_STR_ZERO_BYTE            = "Zero-Byte";
@@ -621,7 +619,7 @@ u32 next_power_of_two (const u32 x)
 
 // Whether an on/off environment switch is set, looked up once.
 //
-// Several of these exist (HASHCAT_PIPE, HASHCAT_MEMORY, HASHCAT_PIPE_SYNC, ...) and each one used to
+// Several of these exist (HASHCAT_PIPE, HASHCAT_MEMORY, HASHCAT_PIPE_SYNC, ...) and each would otherwise
 // carry its own copy of the lookup and its own cache. The cache is what forced the duplication: one
 // static inside a shared function would be a single slot shared by every variable, so the slot stays
 // with the caller and only the logic moves here. Pass a static int initialised to -1.
@@ -637,308 +635,145 @@ bool hc_env_flag (const char *name, int *cache)
   return result;
 }
 
-// A feed's settings, read out of the feed's own work arguments. What a setting is and why it is an
-// argument rather than an option is written at feed_param_t in types.h.
+// Expanding a PCFG cell on the host, so that a crack can be reported as the candidate that produced it
+// rather than as the base word the device started from. This is the same walk as pcfg_expand () in
+// OpenCL/inc_pcfg.cl and has to stay the same walk: the device decides which candidate matched, and
+// this decides what that candidate was.
 //
-// A work argument is a setting when it is key=value with a key that could not be a path: a letter
-// followed by letters, digits, dash or underscore, and no directory separator anywhere in front of
-// the '='. Everything else is a source, so a feed splits its own arguments by asking. A file whose
-// name really does look like a setting is still reachable, as ./mode=2, because that has a
-// separator in it.
-//
-// The test is deliberately about shape and not about which keys a feed knows, so that a misspelled
-// setting is still recognised as a setting and can be reported as an unknown one. A rule that fell
-// back to "not a key I know, so it must be a filename" would turn every typo into a missing file.
+// Bytes are addressed directly here rather than through shifts, which is the same thing on a little
+// endian host and is what the kernel's word arithmetic amounts to.
 
-bool feed_param_is_setting (const char *arg)
+HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 il_pos, u32 *w, const int base_len)
 {
-  if (arg == NULL) return false;
+  if (pool == NULL) return -1;
 
-  if ((arg[0] >= 'a' && arg[0] <= 'z') == false && (arg[0] >= 'A' && arg[0] <= 'Z') == false) return false;
+  const u32 slot_cnt = (cell->slot_cnt < PCFG_DEV_MAXSLOT) ? cell->slot_cnt : PCFG_DEV_MAXSLOT;
 
-  for (const char *p = arg; *p; p++)
+  // Whether an entry is reached by multiplying or by looking its offset up, which is a property of the
+  // grammar and therefore of the cell. The kernel knows it at build time; this is compiled once and is
+  // told. See PCFG_DEV_VARLEN.
+
+  const bool varlen = ((cell->flags & PCFG_CELL_VARLEN) != 0);
+
+  // Nothing on the device and nothing to expand: the base word is the candidate, and its length is the
+  // one the caller handed over. A position past the end of a rectangle of one is still past the end.
+
+  if (slot_cnt == 0)
   {
-    if (*p == '=') return (p != arg) ? true : false;
+    if (il_pos != 0) return -1;
 
-    if (*p >= 'a' && *p <= 'z') continue;
-    if (*p >= 'A' && *p <= 'Z') continue;
-    if (*p >= '0' && *p <= '9') continue;
-    if (*p == '-') continue;
-    if (*p == '_') continue;
-
-    return false;
+    return base_len;
   }
 
-  return false;
-}
+  u32 digit[PCFG_DEV_MAXSLOT];
 
-// The value a setting was given, or NULL when the feed's arguments do not carry it. workv[0] is the
-// plugin's own name and is skipped, the same way every feed skips it when reading its sources.
+  u64 carry = il_pos;
 
-const char *feed_param_lookup (const int workc, char * const *workv, const char *key)
-{
-  if (workv == NULL) return NULL;
-  if (key   == NULL) return NULL;
-
-  const size_t key_len = strlen (key);
-
-  for (int i = 1; i < workc; i++)
+  for (int j = (int) slot_cnt - 1; j >= 0; j--)
   {
-    const char *arg = workv[i];
+    const u32 radix = cell->slots[j].radix;
 
-    if (feed_param_is_setting (arg) == false) continue;
+    if (radix == 0) return false;
 
-    if (strncmp (arg, key, key_len) != 0) continue;
+    // A capitalisation slot's digit field carries the upper case image base rather than a starting
+    // digit, so it contributes nothing to the decomposition. An ordinary slot's is always zero today
+    // and is reserved for a rectangle wider than the inner loop.
 
-    if (arg[key_len] != '=') continue;
+    // A capitalisation slot's digit field carries something other than a starting digit either way: the
+    // upper case image's base without per entry offsets and the distance to it with them.
 
-    return arg + key_len + 1;
+    const u64 start = ((PCFG_SLOT_KIND (cell->slots[j].packed) == PCFG_SLOT_KIND_CASE) || (varlen == true)) ? 0 : (u64) cell->slots[j].digit;
+
+    const u64 t = start + carry;
+
+    digit[j] = (u32) (t % radix);
+
+    carry = t / radix;
   }
 
-  return NULL;
-}
+  if (carry != 0) return -1;
 
-static int feed_param_key_list (const feed_param_t *params, char *out_buf, const size_t out_size)
-{
-  int out_len = 0;
+  const u8 *pb = (const u8 *) pool;
 
-  for (const feed_param_t *p = params; p->key != NULL; p++)
+  u8 *wb = (u8 *) w;
+
+  // Where each slot writes and how long the candidate ends up. Without per entry offsets both are
+  // constants of the cell and sit in the descriptor; with them the offset is a running sum over the
+  // digits, exactly as the kernel's odometer word carries it.
+
+  u32 dpos[PCFG_DEV_MAXSLOT];
+
+  u32 pos = PCFG_SLOT_DST_OFF (cell->slots[0].packed);
+
+  for (u32 j = 0; j < slot_cnt; j++)
   {
-    const int rc = snprintf (out_buf + out_len, out_size - (size_t) out_len, "%s%s", (out_len == 0) ? "" : ", ", p->key);
+    const u32 packed = cell->slots[j].packed;
 
-    if (rc < 0) break;
+    const u32 kind = PCFG_SLOT_KIND (packed);
 
-    out_len += rc;
+    const u32 ent_len = (varlen == true) ? (pool[cell->slots[j].pool_off + digit[j] + 1] - pool[cell->slots[j].pool_off + digit[j]]) : PCFG_SLOT_ENT_LEN (packed);
+    const u32 dst_off = (varlen == true) ? pos                                                                                      : PCFG_SLOT_DST_OFF (packed);
 
-    if ((size_t) out_len >= out_size) return (int) out_size - 1;
-  }
+    dpos[j] = dst_off;
 
-  return out_len;
-}
-
-static bool feed_param_store (const feed_param_t *param, const char *value, char *err_buf, const size_t err_size)
-{
-  switch (param->type)
-  {
-    case FEED_PARAM_TYPE_STR:
+    if (kind == PCFG_SLOT_KIND_BYTES)
     {
-      *((const char **) param->dst) = value;
+      const u32 src = (varlen == true) ? pool[cell->slots[j].pool_off + digit[j]] : cell->slots[j].pool_off + (digit[j] * ent_len);
 
-      return true;
+      for (u32 k = 0; k < ent_len; k++)
+      {
+        wb[dst_off + k] = pb[src + k];
+      }
+
+      pos += ent_len;
+
+      continue;
     }
 
-    case FEED_PARAM_TYPE_BOOL:
+    // The capitalisation walk, character by character, which is pcfg_case_slot () in inc_pcfg.cl and
+    // has to agree with it byte for byte. A mask writes over the token in front of it and adds nothing
+    // of its own, so it takes that token's offset and leaves the running one where it found it.
+
+    const u32 from = PCFG_SLOT_FROM (cell->slots[j].packed);
+
+    const u32 tok_len = (varlen == true) ? (pool[cell->slots[from].pool_off + digit[from] + 1] - pool[cell->slots[from].pool_off + digit[from]]) : PCFG_SLOT_ENT_LEN (cell->slots[from].packed);
+
+    const u32 mask_src = (varlen == true) ? pool[cell->slots[j].pool_off + digit[j]] : cell->slots[j].pool_off + (digit[j] * ent_len);
+    const u32 up_src   = (varlen == true) ? pool[cell->slots[from].pool_off + digit[from]] + cell->slots[j].digit : cell->slots[j].digit + (digit[from] * tok_len);
+
+    // Where the mask writes, which is where the token in front of it wrote. Without per entry offsets
+    // slot_geometry () already put that offset in the mask's own descriptor, so the two agree.
+
+    const u32 mdst_off = dpos[from];
+
+    u32 ci = 0;
+    u32 at = 0;
+
+    while ((at < tok_len) && (ci < ent_len))
     {
-      if ((strcmp (value, "1") == 0) || (strcmp (value, "yes")   == 0) || (strcmp (value, "true")  == 0) || (strcmp (value, "on")  == 0))
-      {
-        *((bool *) param->dst) = true;
+      if (pb[mask_src + ci] == 'U') wb[mdst_off + at] = pb[up_src + at];
 
-        return true;
+      at++;
+
+      while (at < tok_len)
+      {
+        if ((wb[mdst_off + at] & 0xc0) != 0x80) break;
+
+        if (pb[mask_src + ci] == 'U') wb[mdst_off + at] = pb[up_src + at];
+
+        at++;
       }
 
-      if ((strcmp (value, "0") == 0) || (strcmp (value, "no")    == 0) || (strcmp (value, "false") == 0) || (strcmp (value, "off") == 0))
-      {
-        *((bool *) param->dst) = false;
-
-        return true;
-      }
-
-      snprintf (err_buf, err_size, "%s: '%s' is not a yes or a no", param->key, value);
-
-      return false;
-    }
-
-    case FEED_PARAM_TYPE_U64:
-    {
-      // strtoull takes a leading '-' and wraps it, so a negative number would arrive as a very large
-      // one and pass any upper bound the feed set. It is rejected before the conversion sees it.
-
-      if (value[0] == 0)
-      {
-        snprintf (err_buf, err_size, "%s: needs a number", param->key);
-
-        return false;
-      }
-
-      if (value[0] == '-')
-      {
-        snprintf (err_buf, err_size, "%s: '%s' is negative", param->key, value);
-
-        return false;
-      }
-
-      char *endptr = NULL;
-
-      errno = 0;
-
-      const unsigned long long v = strtoull (value, &endptr, 10);
-
-      if ((endptr == value) || (*endptr != 0))
-      {
-        snprintf (err_buf, err_size, "%s: '%s' is not a number", param->key, value);
-
-        return false;
-      }
-
-      if (errno == ERANGE)
-      {
-        snprintf (err_buf, err_size, "%s: '%s' does not fit", param->key, value);
-
-        return false;
-      }
-
-      // A pair left at zero is a feed that did not want a range, not a range of nothing.
-
-      if ((param->min != 0) || (param->max != 0))
-      {
-        if (((u64) v < param->min) || ((u64) v > param->max))
-        {
-          snprintf (err_buf, err_size, "%s: %s is outside %" PRIu64 " to %" PRIu64, param->key, value, param->min, param->max);
-
-          return false;
-        }
-      }
-
-      *((u64 *) param->dst) = (u64) v;
-
-      return true;
-    }
-
-    case FEED_PARAM_TYPE_DBL:
-    {
-      char *endptr = NULL;
-
-      errno = 0;
-
-      const double v = strtod (value, &endptr);
-
-      if ((endptr == value) || (*endptr != 0))
-      {
-        snprintf (err_buf, err_size, "%s: '%s' is not a number", param->key, value);
-
-        return false;
-      }
-
-      if (errno == ERANGE)
-      {
-        snprintf (err_buf, err_size, "%s: '%s' does not fit", param->key, value);
-
-        return false;
-      }
-
-      *((double *) param->dst) = v;
-
-      return true;
+      ci++;
     }
   }
 
-  snprintf (err_buf, err_size, "%s: unknown setting type", param->key);
+  // How long the candidate is. The device slots are a suffix of the structure, so the last of them is
+  // where the candidate ends whether or not the lengths vary, and the running offset says where that
+  // is. A cell with no device slots rewrote nothing and its candidate is the base word, which only the
+  // caller knows the length of.
 
-  return false;
-}
+  const int len = (int) pos;
 
-// Read every setting in a feed's arguments into the variables the feed named, and refuse anything
-// it did not name. Whatever the feed left in its variables before the call is the default, because
-// an argument that is not there is not written.
-//
-// Refusing an unknown key is the point of the call. A feed's settings are invisible to --help and to
-// tab completion, so a mistyped one has nothing else to catch it, and a feed that quietly ignored
-// what it did not recognise would run a different attack than the one that was asked for and say
-// nothing. A key given twice is refused for the same reason: last-one-wins reads as a preference
-// being applied when it is a mistake.
-//
-// err_buf is written only on failure. Point it at global_ctx->error_msg and set global_ctx->error.
-
-bool feed_param_parse (const int workc, char * const *workv, const feed_param_t *params, char *err_buf, const size_t err_size)
-{
-  if (params == NULL) return true;
-
-  for (int i = 1; i < workc; i++)
-  {
-    const char *arg = workv[i];
-
-    if (feed_param_is_setting (arg) == false) continue;
-
-    const char *eq = strchr (arg, '=');
-
-    const size_t key_len = (size_t) (eq - arg);
-
-    const feed_param_t *found = NULL;
-
-    for (const feed_param_t *p = params; p->key != NULL; p++)
-    {
-      if (strlen (p->key) != key_len) continue;
-      if (strncmp (p->key, arg, key_len) != 0) continue;
-
-      found = p;
-
-      break;
-    }
-
-    if (found == NULL)
-    {
-      char keys[512];
-
-      keys[0] = 0;
-
-      feed_param_key_list (params, keys, sizeof (keys));
-
-      snprintf (err_buf, err_size, "%.*s: no such setting. this feed takes: %s", (int) key_len, arg, keys);
-
-      return false;
-    }
-
-    for (int j = 1; j < i; j++)
-    {
-      if (feed_param_is_setting (workv[j]) == false) continue;
-
-      if (strncmp (workv[j], arg, key_len + 1) == 0)
-      {
-        snprintf (err_buf, err_size, "%s: given more than once", found->key);
-
-        return false;
-      }
-    }
-
-    if (feed_param_store (found, eq + 1, err_buf, err_size) == false) return false;
-  }
-
-  return true;
-}
-
-// The settings a feed takes, one per line, for the feed to print when its arguments make no sense.
-// Returns the length written.
-
-int feed_param_usage (const feed_param_t *params, char *out_buf, const size_t out_size)
-{
-  if (params == NULL) return 0;
-
-  int out_len = 0;
-
-  for (const feed_param_t *p = params; p->key != NULL; p++)
-  {
-    const char *type = "";
-
-    switch (p->type)
-    {
-      case FEED_PARAM_TYPE_STR:  type = "=<str>";  break;
-      case FEED_PARAM_TYPE_BOOL: type = "=<yes|no>"; break;
-      case FEED_PARAM_TYPE_U64:  type = "=<num>";  break;
-      case FEED_PARAM_TYPE_DBL:  type = "=<real>"; break;
-    }
-
-    char lhs[128];
-
-    snprintf (lhs, sizeof (lhs), "%s%s", p->key, type);
-
-    const int rc = snprintf (out_buf + out_len, out_size - (size_t) out_len, "  %-28s %s\n", lhs, (p->help == NULL) ? "" : p->help);
-
-    if (rc < 0) break;
-
-    out_len += rc;
-
-    if ((size_t) out_len >= out_size) return (int) out_size - 1;
-  }
-
-  return out_len;
+  return len;
 }

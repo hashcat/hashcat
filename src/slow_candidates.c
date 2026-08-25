@@ -14,7 +14,7 @@
 #include "mpsp.h"
 #include "slow_candidates.h"
 #include "shared.h"
-#include "generic.h"
+#include "feed_ctx.h"
 
 // Pull one base word from the base word instance and apply the base rule to it. Shared by seek () and
 // next () so that the two can never disagree about what a base index holds, and shared by the straight

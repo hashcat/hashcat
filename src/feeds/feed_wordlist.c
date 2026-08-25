@@ -22,7 +22,7 @@
 #include "memchr.h"
 #include "timer.h"
 #include "event.h"
-#include "generic.h"
+#include "feed.h"
 #include "feed_wordlist.h"
 
 #if defined (_WIN)

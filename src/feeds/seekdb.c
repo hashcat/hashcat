@@ -84,14 +84,29 @@ static void seekdb_source_name (char *dst, const size_t dst_sz, const char *word
 //
 // ident and file_size are where the answers go. Both are only written when a path could be built, so
 // a caller that got NULL has nothing to read.
+//
+// The directory is global_ctx->seekdb_dir when --seekdb-path named one, and a seekdbs folder inside
+// the cache directory otherwise. Nothing else changes: the name is still the hash, so a directory
+// shared between machines holds one database per wordlist rather than one per machine, and the
+// header checks below decide whether what is found there belongs to the file in hand.
 
 static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist, u64 *ident, u64 *file_size)
 {
   char *seekdb_dir = NULL;
 
-  hc_asprintf (&seekdb_dir, "%s/seekdbs", global_ctx->cache_dir);
+  if (global_ctx->seekdb_dir != NULL)
+  {
+    seekdb_dir = hcstrdup (global_ctx->seekdb_dir);
+  }
+  else
+  {
+    hc_asprintf (&seekdb_dir, "%s/seekdbs", global_ctx->cache_dir);
 
-  hc_mkdir (seekdb_dir, 0700);
+    // Only the directory hashcat owns is created. One the user named is checked at startup instead,
+    // and creating it here would turn a typo into a directory rather than an error.
+
+    hc_mkdir (seekdb_dir, 0700);
+  }
 
   HCFILE fp;
 

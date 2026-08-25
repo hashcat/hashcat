@@ -20,7 +20,7 @@
 #include "common.h"
 #include "types.h"
 #include "memory.h"
-#include "generic.h"
+#include "feed.h"
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 const int GENERIC_PLUGIN_OPTIONS = 0;

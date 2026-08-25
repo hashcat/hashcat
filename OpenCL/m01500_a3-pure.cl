@@ -1479,7 +1479,7 @@ DECLSPEC void s8 (const u32 a1, const u32 a2, const u32 a3, const u32 a4, const 
 //#define SWAP(a, b) { u32 tmp=*a;*a=*b;*b=tmp; }
 #define SWAP(a, b) { u32 tmp=*a;*a=*b;*b=tmp; }
 
-#define DATASWAP  \
+#define DATASWAP   \
   SWAP (D00, D32); \
   SWAP (D01, D33); \
   SWAP (D02, D34); \

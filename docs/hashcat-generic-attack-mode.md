@@ -3,14 +3,14 @@
 
 Attack-Mode 8 is a generic interface that allows hashcat users to customize the password candidate input channel with their own code, most often to implement custom password generator logic.
 
-Hashcat includes several embedded attack modes: 0, 1, 3, 6, 7, 9, and 12. Each attack mode represents a specific password candidate generator implementation. These embedded generators were designed primarily to run efficiently on GPUs. For example, they can read a wordlist and apply rules, generate a virtual wordlist from a mask, or combine both. The purpose of these generators is that they support a multiplier logic. Multiplier logic helps work around the PCIe bottleneck and ensures maximum performance when attacking very fast hashes.
+Hashcat includes several embedded attack modes: 0, 1, 3, 4, 6, 7, 9, and 12. Each attack mode represents a specific password candidate generator implementation. These embedded generators were designed primarily to run efficiently on GPUs. For example, they can read a wordlist and apply rules, generate a virtual wordlist from a mask, or combine both. The purpose of these generators is that they support a multiplier logic. Multiplier logic helps work around the PCIe bottleneck and ensures maximum performance when attacking very fast hashes.
 
 For slow hashes, however, overcoming the PCIe bottleneck is less important, and other features become more useful. Their focus is usually not on multiplier logic but on candidate quality, and therefore they can be considered "advanced" generators. In our terminology, any generator that does not fit into the existing multiplier logic is defined as an "advanced" password generator.
 
 Examples of advanced generators include:
 
 - Logic based systems for contextualized passwords (too complex pattern for normal rules)
-- Statistical models that adapt dynamically using feedback loops (omen, pcfg, ...)
+- Statistical models that adapt dynamically using feedback loops (omen, ...)
 - AI driven candidate generation (passgan, ...)
 - Reading data from a network stream
 - Your own ideas...
@@ -19,7 +19,9 @@ Examples of advanced generators include:
 
 ## 1. Usage
 
-When starting an attack-mode 8 session, the user must specify a plugin as first parameter. This is by design to provide flexibility. Attack-mode 8 does not assign numbers to specific generators but instead lets the user name a plugin. This makes it possible to have an unlimited number of plugins, including custom plugins that are not part of hashcat's base package.
+When starting an attack-mode 8 session, the user must specify a plugin as first parameter. This is by design to provide flexibility. Attack-mode 8 itself does not assign numbers to specific generators but instead lets the user name a plugin. This makes it possible to have an unlimited number of plugins, including custom plugins that are not part of hashcat's base package.
+
+A feed that ships with hashcat can also be given an attack-mode number of its own. The PCFG feed has one: `-a 4 hashes.txt ruleset` is rewritten into `-a 8 hashes.txt pcfg ruleset` before anything downstream reads it, so the two spellings are the same attack. See `hashcat-pcfg.md` for that attack and the section on aliases in `hashcat-generic-attack-mode-development-guide.md` for how a feed gets a number.
 
 Since there are now multiple plugin types in hashcat, we need naming to distinguish them. Password generator plugins are called `feeds`, and the feeds we provide can be found in the "feeds" folder.
 
@@ -61,7 +63,7 @@ Keep in mind that hashcat always parses the full command line first. All options
 
 We debated how useful such an interface is, given that hashcat already provides a generic `STDIN` interface for connecting custom generators. However, there are several reasons why STDIN is good but not optimal.
 
-With STDIN, there is only one input channel feeding multiple output channels. Output channels in this context mean compute devices. Hashcat spawns a unique thread for each compute device so it can handle devices of different speeds. This requires synchronization. The same is true for attack modes 0, 1, 3, 6, 7, and 12, but the difference is that in those modes there is no single input channel.
+With STDIN, there is only one input channel feeding multiple output channels. Output channels in this context mean compute devices. Hashcat spawns a unique thread for each compute device so it can handle devices of different speeds. This requires synchronization. The same is true for attack modes 0, 1, 3, 4, 6, 7, 9, and 12, but the difference is that in those modes there is no single input channel.
 
 For example, when attack-mode 0 is run on four GPUs, hashcat spawns four threads. Each thread opens its own file handle to the wordlist and reads independently. The synchronizer only tells each thread where to start and stop, so parallelization works smoothly.
 
@@ -117,6 +119,8 @@ To prepare both modes, replace with any large wordlist locally.
 
 First clear caching databases for kernels and dictionary stats. Note the new `seekdbs` folder, used by feed_wordlist.so to enable fast seeks to specific offsets in the wordlist. It acts as a sparse line to byte offset database and also as a keyspace hint, similar to dictstat2.
 
+The folder lives in the hashcat cache directory by default, so every host that reads the same wordlist builds its own copy of the same database, and each of those builds costs a full read of the file. `--seekdb-path` names a different directory instead, and pointing a cluster at one shared mount turns that into a single build for all of it. A database is named and checked by what the wordlist contains, so the directory holds one file per wordlist rather than one per host, and one that does not belong to the file in hand is refused rather than trusted. The mount may be read only: hashcat writes only when it did not find what it needed, and a write that fails leaves the run using the database it just built in memory.
+
 ```
 rm -rf kernels hashcat.dictstat2 seekdbs
 ```
@@ -153,6 +157,8 @@ Notes:
 ## 6. Amplifiers
 
 One final note. Attack-mode 8 reuses attack-mode 0 kernels. That means you can optionally add `-r` rules, including stacked rules, exactly as in -a 0 mode.
+
+A feed may also bring a kernel of its own, and the PCFG feed does. On a fast hash it runs `OpenCL/mNNNNN_a4-pure.cl` instead of the attack-mode 0 kernels, and it amplifies inside that kernel rather than through the rules engine. Adding `-r` to such a feed is still allowed and it gives up the feed's own kernel for the attack-mode 0 one. See `hashcat-pcfg.md` for what that costs.
 
 This also makes the mode useful for `fast hashes` and allows very high speeds. Ideally a feed is designed so that it is aware that users can add rules and returns candidates with this in mind. Even better, the feed developer may publish a feed with a matching ruleset, but this is not required.
 

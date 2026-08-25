@@ -29,6 +29,7 @@ env:
     masks/
     modules/
     OpenCL/
+    pcfg/
     rules/
     tunings/
     example*

@@ -104,6 +104,11 @@ CONSTANT_VK u32 generic_constant[8192]; // 32k
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
+#elif ATTACK_KERN == 2
+#define bfs_buf     g_bfs_buf
+#define rules_buf   g_rules_buf
+#define words_buf_s g_words_buf_s
+#define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 3
 #define rules_buf   g_rules_buf
 #define bfs_buf     ((const bf_t *)      generic_constant)
@@ -286,22 +291,20 @@ DECLSPEC u32 rotr32_S (const u32 a, const int n)
   #endif
 }
 
+// No VECT_SIZE split here. rotl64_S is rotr64_S (a, 64 - n) and rotr64_S is
+// ((a >> n) | (a << (64 - n))), so the scalar arm expanded to the same expression the
+// vector arm already used. u64x overloads <<, >> and | at every width, so one line covers
+// both. The 32 bit pair above cannot do this, because rotl32_S and rotr32_S reach
+// hc_funnelshift, which takes one scalar register at a time.
+
 DECLSPEC u64x rotl64 (const u64x a, const int n)
 {
-  #if VECT_SIZE == 1
-  return rotl64_S (a, n);
-  #else
   return ((a << n) | ((a >> (64 - n))));
-  #endif
 }
 
 DECLSPEC u64x rotr64 (const u64x a, const int n)
 {
-  #if VECT_SIZE == 1
-  return rotr64_S (a, n);
-  #else
   return ((a >> n) | ((a << (64 - n))));
-  #endif
 }
 
 DECLSPEC u64 rotl64_S (const u64 a, const int n)
@@ -330,6 +333,11 @@ CONSTANT_VK u32 generic_constant[8192] __attribute__((used)); // 32k
 #define words_buf_s g_words_buf_s
 #define words_buf_r g_words_buf_r
 #elif ATTACK_KERN == 1
+#define bfs_buf     g_bfs_buf
+#define rules_buf   g_rules_buf
+#define words_buf_s g_words_buf_s
+#define words_buf_r g_words_buf_r
+#elif ATTACK_KERN == 2
 #define bfs_buf     g_bfs_buf
 #define rules_buf   g_rules_buf
 #define words_buf_s g_words_buf_s
@@ -611,3 +619,70 @@ DECLSPEC u32 hc_atomic_or (volatile GLOBAL_AS u32 *p, volatile const u32 val)
 #define FIXED_THREAD_COUNT(n) __attribute__((reqd_work_group_size((n), 1, 1)))
 #define SYNC_THREADS() barrier (CLK_LOCAL_MEM_FENCE)
 #endif // IS_OPENCL
+
+// The body of hc_shfl_u64, see inc_platform.h. CUDA and HIP resolve to their own builtin
+// and never get here.
+
+#if defined IS_CUDA
+#elif defined IS_HIP
+#else
+
+DECLSPEC u64 hc_shfl_u64_impl (MAYBE_UNUSED LOCAL_AS u64 *shfl_buf, const u64 var, const int src_lane, MAYBE_UNUSED const u32 lid, MAYBE_UNUSED const u32 lsz)
+{
+  #if defined IS_METAL
+
+  const u32 idx = src_lane & (lsz - 1);
+
+  const u32 l32r = simd_shuffle (l32_from_64_S (var), idx);
+  const u32 h32r = simd_shuffle (h32_from_64_S (var), idx);
+
+  const u64 out = hl32_to_64_S (h32r, l32r);
+
+  return out;
+
+  #elif defined IS_AMD_USE_OPENCL && defined IS_GPU
+
+  // ds_bpermute addresses lanes in bytes, so the lane number shifts up by four
+
+  const u32 idx = src_lane << 2;
+
+  const u32 l32r = __builtin_amdgcn_ds_bpermute (idx, l32_from_64_S (var));
+  const u32 h32r = __builtin_amdgcn_ds_bpermute (idx, h32_from_64_S (var));
+
+  const u64 out = hl32_to_64_S (h32r, l32r);
+
+  return out;
+
+  #elif defined IS_NV && defined IS_GPU
+
+  const u32 l32 = l32_from_64_S (var);
+  const u32 h32 = h32_from_64_S (var);
+
+  u32 l32r;
+  u32 h32r;
+
+  asm ("shfl.sync.idx.b32 %0, %1, %2, 0x1f, 0;" : "=r"(l32r) : "r"(l32), "r"(src_lane));
+  asm ("shfl.sync.idx.b32 %0, %1, %2, 0x1f, 0;" : "=r"(h32r) : "r"(h32), "r"(src_lane));
+
+  const u64 out = hl32_to_64_S (h32r, l32r);
+
+  return out;
+
+  #else
+
+  // nothing to reach, so the exchange goes through local memory
+
+  shfl_buf[lid] = var;
+
+  SYNC_THREADS ();
+
+  const u64 out = shfl_buf[src_lane & (lsz - 1)];
+
+  SYNC_THREADS ();
+
+  return out;
+
+  #endif
+}
+
+#endif

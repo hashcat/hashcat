@@ -479,11 +479,11 @@ int hc_hipDeviceGetAttribute (void *hashcat_ctx, int *pi, hipDeviceAttribute_t a
 
     if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %s", dev, attrib, pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(dev=%d, attrib=%d): %d", dev, attrib, HIP_err);
     }
 
     return -1;
@@ -1507,11 +1507,11 @@ int hc_hipGetDeviceProperties (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevi
 
     if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)
     {
-      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %s", pStr);
+      event_log_error (hashcat_ctx, "hipGetDeviceProperties(dev=%d): %s", dev, pStr);
     }
     else
     {
-      event_log_error (hashcat_ctx, "hipDeviceGetAttribute(): %d", HIP_err);
+      event_log_error (hashcat_ctx, "hipGetDeviceProperties(dev=%d): %d", dev, HIP_err);
     }
 
     return -1;

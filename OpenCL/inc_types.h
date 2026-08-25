@@ -22,6 +22,7 @@
 #define SALT_REPEAT         kernel_param->salt_repeat
 #define PWS_POS             kernel_param->pws_pos
 #define GID_CNT             kernel_param->gid_max
+#define PCFG_LANE_STRIDE    kernel_param->pcfg_lane_stride
 #else
 #define BITMAP_MASK         kernel_param->bitmap_mask
 #define BITMAP_SHIFT1       kernel_param->bitmap_shift1
@@ -38,6 +39,7 @@
 #define SALT_REPEAT         kernel_param->salt_repeat
 #define PWS_POS             kernel_param->pws_pos
 #define GID_CNT             kernel_param->gid_max
+#define PCFG_LANE_STRIDE    kernel_param->pcfg_lane_stride
 #endif
 
 #ifdef IS_CUDA
@@ -2087,6 +2089,13 @@ typedef struct kernel_param
   u32 post_len;             // 39
   u32 has_q;                // 40
 
+  // How many work items every cell gets, when the host has not laid the launch out. Zero means it has,
+  // and then the wave map says which cell a wave belongs to. It is not zero for the self-test, which
+  // runs the kernel before a cell exists at all, and the value is what the device engine gave every cell
+  // before there was a layout to carry.
+
+  u64 pcfg_lane_stride;     // 41
+
 } kernel_param_t;
 
 typedef struct salt
@@ -2150,6 +2159,240 @@ typedef struct pw_idx
   u32 len;
 
 } pw_idx_t;
+
+// One slot of a PCFG cell, and the cell itself. See inc_pcfg.h for what a cell is and why its
+// rectangle is what the device engine's inner loop walks. They live here because the kernel parameter
+// list names the cell type and is assembled before inc_pcfg.h is reached.
+
+#define PCFG_DEV_MAXSLOT 8
+
+// How long a candidate the device engine handles, in words and in bytes. The kernel holds the candidate in
+// an array of this many words, and the array is addressed at a runtime byte offset, so it is scratch
+// rather than registers and every thread in flight carries one.
+//
+// That makes its size the largest single thing in the launch's memory traffic. The rules kernel's
+// pw_t, which this was inherited from, is two hundred and sixty bytes a thread and had the profiler
+// reporting ninety one per cent of L2 with a sixty per cent L1 hit rate, for a candidate ten bytes
+// long.
+//
+// **This has to be a whole number of hash blocks, and one is the right number.** The crypto library
+// reads its input one whole block at a time, the last one included: the tail read is sixteen words
+// wide however few of them the length makes meaningful, and nothing masks the rest off.
+// md5_update_64 () copies all sixteen words into the context and md5_final () writes only the 0x80
+// over the first byte behind the candidate, so the words behind it have to be zero and they have to be
+// there to be read. Twenty four words, which is what this was, is neither: a ninety five byte
+// candidate had words sixteen to thirty one read out of it, which compute-sanitizer reports as an
+// invalid __local__ read and which fails the launch on an RTX 4090 outright.
+//
+// One block is also the fastest, because every extra word is in every frame. What it costs is that a
+// grammar whose candidates run long gets fewer of them amplified.
+//
+// A structure whose candidates could reach past this is not amplified at all; see choose_cut (). Its
+// base word still arrives at the kernel at whatever length the grammar makes it, which is not bounded
+// by anything here, so the kernel hashes that case straight out of the pw_t rather than copying it in.
+
+// The value is a build option, because the right one is a property of the grammar and not of the
+// code. The host settles it in global_dev_init (), which runs ahead of the backend compiling
+// anything, and hands it to the kernel as -D PCFG_DEV_MAXWORD. This default is what a kernel built
+// without one gets, which is the self-test and nothing else.
+//
+// Whatever chooses it must also reach the kernel cache key. A cached kernel is named from a checksum
+// that covers build_options_module_buf and extra_value but not the general build options, so a value
+// that only appears in the latter would let two grammars share one compiled kernel. backend.c folds
+// it into extra_value for that reason.
+
+#ifndef PCFG_DEV_MAXWORD
+#define PCFG_DEV_MAXWORD 16
+#endif
+
+#define PCFG_DEV_MAXBYTE ((PCFG_DEV_MAXWORD * 4) - 1)
+
+// The two the host picks between, in whole hash blocks. One block is the smallest frame and the
+// fastest on a grammar that fits it; two runs on the device more of a grammar whose candidates run long.
+
+#define PCFG_DEV_MAXWORD_LO 16
+#define PCFG_DEV_MAXWORD_HI 32
+
+// The array is a whole number of blocks, and the rule above is what says it has to be. Kept as its own
+// name so that changing PCFG_DEV_MAXWORD to something that is not cannot go unnoticed.
+
+#define PCFG_DEV_WORDS   (((PCFG_DEV_MAXWORD + 15) / 16) * 16)
+
+// How many candidates one work item walks.
+//
+// A cell gets as many work items as its rectangle needs at this many candidates each, so no work item
+// runs longer than this. A rectangle spans six orders of magnitude, so a fixed number of work items
+// per cell instead would make the widest cell in a launch set the length of the whole launch.
+//
+// It is a curve with a maximum. A shorter run is a shorter tail; a longer one gives a work item more
+// candidates to spread its setup over, and the seed and the first write happen before any hashing
+// does. PCFG_BLOCK overrides it.
+
+#define PCFG_DEV_BLOCK 64
+
+// The work item budget a launch may spend, per base word. A batch of unusually wide cells raises the
+// block size until it fits rather than growing the launch past anything sized for it.
+
+#define PCFG_DEV_LANES 512
+
+// How many waves of wave map are held for every base word a batch can hold. A cell wide enough to want
+// more than the batch has left runs longer per work item instead. The map is a word a wave.
+
+#define PCFG_DEV_WMAP 24
+
+// The fewest waves a cell is given, whatever its rectangle.
+//
+// A cell that reaches one candidate needs one lane, so a floor wastes the rest of the wave. Removing
+// it is worse: what those idle work items buy is launch size, and the autotuner cannot make that up
+// because a base word's cost in work items falls by an order of magnitude without them.
+
+#define PCFG_DEV_FLOOR (PCFG_DEV_LANES / PCFG_DEV_WARP)
+
+// The largest work group the device engine's kernels are built for. They keep one odometer per work
+// item in shared memory and one cell descriptor per group of lanes, and both are sized by this, so the
+// host has to hold the group at or below it.
+
+#define PCFG_DEV_GROUP 64
+
+// The granularity a cell's work items are handed out in, which is the work group and not the wave.
+//
+// A wave is the smallest unit that can own a cell, but handing them out by the wave costs more than it
+// saves: a group holds two waves, so two cell descriptors instead of one, and that pushes the shared
+// memory per block over a step of the driver's shared and L1 split. Same instructions, same registers,
+// same occupancy, much worse L1 hit rate.
+//
+// By the group there is one descriptor again. The price is that a cell reaching one candidate costs a
+// whole group rather than a whole wave.
+
+#define PCFG_DEV_WARP PCFG_DEV_GROUP
+
+// Whether an entry is found by multiplying or by looking its offset up.
+//
+// A bucket is a run of terminals a slot draws from, and the device finds entry n of it at
+// pool_off + (n * ent_len). That multiply is the reason a bucket has to agree on byte length, and a
+// pcfg length is a count of characters, so a grammar with multi byte characters has entries of one
+// character length and several byte lengths and the loader has to cut a cost level into one bucket per
+// byte length. On a utf-8 name grammar that is 1159 buckets where 436 would do, and it is why that
+// grammar gets 3.8 candidates out of a work item where a latin one gets 8.
+//
+// With this set the pool carries a u32 offset for every entry of every list, a slot's pool_off is an
+// index into that table rather than a byte offset, and entry n is at pool[pool_off + n] and runs to
+// pool[pool_off + n + 1]. A bucket then has to agree on cost and nothing else.
+//
+// What it costs is that a candidate's length stops being a constant of the cell. Every slot behind a
+// slot whose width can change writes at a byte offset that depends on the digits, so the offsets are
+// carried per lane beside the digits, and pw_len changes under the inner loop rather than being
+// settled before it. That is why this is a build option: a grammar whose lists are already of one byte
+// length compiles the whole of it out.
+//
+// The host settles it in global_dev_init () from the grammar, the same way it settles
+// PCFG_DEV_MAXWORD, and hands it over as -D PCFG_DEV_VARLEN. It has to reach the kernel cache key for
+// the same reason that one does; backend.c folds both into extra_value.
+
+#ifndef PCFG_DEV_VARLEN
+#define PCFG_DEV_VARLEN 0
+#endif
+
+// A lane's odometer word.
+//
+// It holds the digit alone when entries are of one byte length. When they are not it also holds the
+// byte offset the slot writes at, which is a running sum over the digits in front of it and therefore
+// per lane rather than per cell. It rides in the top byte of the same word instead of a row of its
+// own, because a second [PCFG_DEV_GROUP][PCFG_DEV_MAXSLOT + 1] row is 2304 bytes of shared memory per
+// work group and the kernel has about a hundred bytes of headroom before it crosses the step of the
+// driver's shared and L1 split, which costs both occupancy and L1 hit rate. An offset is at most
+// PCFG_DEV_MAXBYTE, which is 127, so a byte holds it with room over.
+//
+// What it costs is the top eight bits of the digit, so a bucket may hold 2^24 entries.
+// pcfg_bucket_cap () holds the loader to it.
+
+#define PCFG_ODO_DIGIT(x)     ((x) & 0x00ffffff)
+#define PCFG_ODO_POS(x)       ((x) >> 24)
+#define PCFG_ODO_PACK(d,p)    ((((u32) (p)) << 24) | ((u32) (d)))
+
+#define PCFG_ODO_MAXDIGIT     0x00ffffff
+
+#define PCFG_SLOT_KIND_BYTES 0
+#define PCFG_SLOT_KIND_CASE  1
+
+#define PCFG_SLOT_ENT_LEN(p) (((p) >>  0) & 0xff)
+#define PCFG_SLOT_DST_OFF(p) (((p) >>  8) & 0xff)
+#define PCFG_SLOT_KIND(p)    (((p) >> 16) & 0xff)
+
+// Which slot a carry landing on this one has to start writing from.
+//
+// A capitalisation slot rewrites the bytes of the token in front of it rather than contributing its
+// own, so a step that lands on a mask has to put that token back before the mask can be applied over
+// it. Which slot that is depends only on the kinds of the slots, which the host settles once per cell,
+// so it is settled once per cell rather than by walking backwards over the case slots on every carry.
+// PCFG_DEV_MAXSLOT is 8, so it fits in the byte the other three fields leave.
+
+#define PCFG_SLOT_FROM(p)    (((p) >> 24) & 0xff)
+
+typedef struct pcfg_slot
+{
+  // Where the slot's bucket begins.
+  //
+  // Without PCFG_DEV_VARLEN it is the byte offset of the bucket's first entry in the pool and entry n
+  // is at pool_off + (n * ent_len). With it, it is the index of the bucket's first entry in the pool's
+  // offset table and entry n is at pool[pool_off + n]. Both are one u32 and both are the only thing
+  // the device needs to reach an entry, which is why the field is shared rather than doubled.
+
+  u32 pool_off;
+  u32 radix;
+  u32 digit;
+  u32 packed;
+
+} pcfg_slot_t;
+
+typedef struct pcfg_cell
+{
+  u32 slot_cnt;
+
+  // how many candidates the rectangle reaches, which the host already knows and the device would
+  // otherwise have to multiply out of the radices before it could decide anything
+
+  u32 rect;
+
+  // how many of them one lane takes, which is not simply the rectangle divided by the lanes.
+  //
+  // A step of the odometer rewrites every slot from the leftmost digit it changed onwards, and a warp
+  // runs one instruction at a time, so **one lane carrying costs the whole warp the write**. With
+  // radices around five and thirty two lanes at unrelated places in the rectangle, some lane carries
+  // on nearly every step and the warp writes two or three slots where a lane writes one.
+  //
+  // Rounding a lane's run up to a whole number of turns of the last digit puts every lane in the warp
+  // at the same place in that digit, so they carry together or not at all. It is a rounding rather
+  // than a free choice because the lanes still have to tile the rectangle exactly: the union of the
+  // runs is what the kernel enumerates and the plaintext count is what says it still is.
+  //
+  // The host works it out because it has the radices in hand and the kernel would need two more
+  // global reads before it could know, and those reads would land in front of the bounds check that
+  // makes an idle lane cheap.
+
+  u32 blk;
+
+  // Which wave of the launch this cell's first one is. A cell takes as many waves as its rectangle
+  // needs rather than a fixed number, so a work item cannot divide its own id to find its cell: it
+  // reads its cell out of pcfg_wmap, which is indexed by wave, and this is what turns that back into
+  // which part of the rectangle it owns.
+
+  u32 wave_base;
+
+  // What the slots mean, which the kernel knows at build time and the host does not.
+  //
+  // PCFG_DEV_VARLEN is a build option, so a kernel is compiled for one grammar and reads its slots one
+  // way. pcfg_expand_host () is ordinary host code compiled once for every grammar hashcat will ever
+  // run, and it has to produce the same bytes as whichever kernel is loaded, so it is told here rather
+  // than at build time. Bit 0 is set when pool_off is an index into the offset table.
+
+  u32 flags;
+
+  pcfg_slot_t slots[PCFG_DEV_MAXSLOT];
+
+} pcfg_cell_t;
+
+#define PCFG_CELL_VARLEN 1
 
 typedef struct bf
 {

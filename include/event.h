@@ -28,6 +28,9 @@ HC_API __attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3))) size_t event_log_i
 HC_API __attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3))) size_t event_log_warning    (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
 HC_API __attribute__ ((format (__MINGW_PRINTF_FORMAT, 2, 3))) size_t event_log_error      (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...);
 
+u64  event_log_count        (const hashcat_ctx_t *hashcat_ctx);
+bool event_log_last_blank   (const hashcat_ctx_t *hashcat_ctx);
+
 int  event_ctx_init         (hashcat_ctx_t *hashcat_ctx);
 void event_ctx_destroy      (hashcat_ctx_t *hashcat_ctx);
 
