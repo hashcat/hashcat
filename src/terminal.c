@@ -1781,6 +1781,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Unified.: %d", device_host_unified_memory);
         event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  Cache.Size.....: %" PRIu64 " MB", device_param->device_cache_size / 1024 / 1024);
         event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
         event_log_info (hashcat_ctx, NULL);
       }
@@ -1937,6 +1938,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Unified.: %d", device_host_unified_memory);
         event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  Cache.Size.....: %" PRIu64 " MB", device_param->device_cache_size / 1024 / 1024);
         event_log_info (hashcat_ctx, "  PCI.Addr.BDFe..: %04x:%02x:%02x.%u", (u16) pcie_domain, pcie_bus, pcie_device, pcie_function);
         event_log_info (hashcat_ctx, NULL);
       }
@@ -2089,6 +2091,7 @@ void backend_info (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "  Memory.Free....: %" PRIu64 " MB", device_available_mem / 1024 / 1024);
         event_log_info (hashcat_ctx, "  Memory.Unified.: %d", device_host_unified_memory);
         event_log_info (hashcat_ctx, "  Local.Memory...: %" PRIu64 " KB", device_local_mem_size / 1024);
+        event_log_info (hashcat_ctx, "  Cache.Size.....: %" PRIu64 " MB", device_param->device_cache_size / 1024 / 1024);
       }
       else
       {

@@ -6858,6 +6858,14 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
 
       device_param->device_processors = device_processors;
 
+      // device_cache_size
+
+      int device_cache_size = 0;
+
+      if (hc_cuDeviceGetAttribute (hashcat_ctx, &device_cache_size, CU_DEVICE_ATTRIBUTE_L2_CACHE_SIZE, cuda_device) == -1) device_cache_size = 0;
+
+      device_param->device_cache_size = (u64) device_cache_size;
+
       // device_global_mem, device_maxmem_alloc, device_available_mem
 
       size_t bytes = 0;
@@ -7322,6 +7330,14 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
       }
 
       device_param->device_processors = device_processors;
+
+      // device_cache_size
+
+      int device_cache_size = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_cache_size, hipDeviceAttributeL2CacheSize, hip_device) == -1) device_cache_size = 0;
+
+      device_param->device_cache_size = (u64) device_cache_size;
 
       // We have 32 threads now
       //if ((device_param->device_processors == 1) && (device_param->device_host_unified_memory == 1))
@@ -8631,6 +8647,14 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         device_param->device_global_mem = device_global_mem;
 
         device_param->device_available_mem = 0;
+
+        // device_cache_size
+
+        cl_ulong device_cache_size = 0;
+
+        if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof (device_cache_size), &device_cache_size, NULL) == -1) device_cache_size = 0;
+
+        device_param->device_cache_size = (u64) device_cache_size;
 
         // device_maxmem_alloc
 

@@ -1209,9 +1209,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
-  if (user_options->bitmap_max > 31)
+  if (user_options->bitmap_max > 28)
   {
-    event_log_error (hashcat_ctx, "Invalid --bitmap-max value specified - must be lower than 32.");
+    event_log_error (hashcat_ctx, "Invalid --bitmap-max value specified - must not be higher than 28.");
 
     return -1;
   }

@@ -799,8 +799,8 @@ typedef enum user_options_defaults
   BENCHMARK_MAX            = 99999,
   BENCHMARK_MIN            = 0,
   BENCHMARK                = false,
-  BITMAP_MAX               = 18,
-  BITMAP_MIN               = 16,
+  BITMAP_MAX               = 24,
+  BITMAP_MIN               = 10,
   #ifdef WITH_BRAIN
   BRAIN_CLIENT             = false,
   BRAIN_CLIENT_FEATURES    = 3,
@@ -1426,6 +1426,7 @@ typedef struct hc_device_param
   u32     device_processors;
   u64     device_maxmem_alloc;
   u64     device_global_mem;
+  u64     device_cache_size;                 // last level cache the device reports, 0 if it reports none
   u64     device_available_mem;
   int     device_host_unified_memory;
   u32     device_maxclock_frequency;

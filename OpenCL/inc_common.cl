@@ -2643,22 +2643,34 @@ DECLSPEC int asn1_check_int_tag (PRIVATE_AS const u32 *buf, const int len)
   return 1;
 }
 
-DECLSPEC u32 check_bitmap (GLOBAL_AS const u32 *bitmap, const u32 bitmap_mask, const u32 bitmap_shift, const u32 digest)
-{
-  return (bitmap[(digest >> bitmap_shift) & bitmap_mask] & (1 << (digest & 0x1f)));
+#define BITMAP_STAGE(tab,t)                                                 \
+{                                                                           \
+  const u32 ht = a + ((t) * b);                                             \
+  const u32 pt = hc_rotl32_S (b, (((t) * 4) + 1)) ^ a;                      \
+                                                                            \
+  const u32 m = (1U << (pt & 31)) | (1U << ((pt >> 5) & 31));               \
+                                                                            \
+  if ((tab[ht & bitmap_mask] & m) != m) return (0);                         \
 }
 
 DECLSPEC u32 check (PRIVATE_AS const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
 {
-  if (check_bitmap (bitmap_s1_a, bitmap_mask, bitmap_shift1, digest[0]) == 0) return (0);
-  if (check_bitmap (bitmap_s1_b, bitmap_mask, bitmap_shift1, digest[1]) == 0) return (0);
-  if (check_bitmap (bitmap_s1_c, bitmap_mask, bitmap_shift1, digest[2]) == 0) return (0);
-  if (check_bitmap (bitmap_s1_d, bitmap_mask, bitmap_shift1, digest[3]) == 0) return (0);
+  // must match bitmap_set() in src/bitmap.c, a mismatch is a silent false negative
 
-  if (check_bitmap (bitmap_s2_a, bitmap_mask, bitmap_shift2, digest[0]) == 0) return (0);
-  if (check_bitmap (bitmap_s2_b, bitmap_mask, bitmap_shift2, digest[1]) == 0) return (0);
-  if (check_bitmap (bitmap_s2_c, bitmap_mask, bitmap_shift2, digest[2]) == 0) return (0);
-  if (check_bitmap (bitmap_s2_d, bitmap_mask, bitmap_shift2, digest[3]) == 0) return (0);
+  (void) bitmap_shift1;
+  (void) bitmap_shift2;
+
+  const u32 a = digest[0] ^ hc_rotl32_S (digest[1], 11) ^ hc_rotl32_S (digest[2], 22) ^ hc_rotl32_S (digest[3],  5);
+  const u32 b = digest[3] ^ hc_rotl32_S (digest[2],  7) ^ hc_rotl32_S (digest[1], 19) ^ hc_rotl32_S (digest[0], 27);
+
+  BITMAP_STAGE (bitmap_s1_a, 0);
+  BITMAP_STAGE (bitmap_s1_b, 1);
+  BITMAP_STAGE (bitmap_s1_c, 2);
+  BITMAP_STAGE (bitmap_s1_d, 3);
+  BITMAP_STAGE (bitmap_s2_a, 4);
+  BITMAP_STAGE (bitmap_s2_b, 5);
+  BITMAP_STAGE (bitmap_s2_c, 6);
+  BITMAP_STAGE (bitmap_s2_d, 7);
 
   return (1);
 }
