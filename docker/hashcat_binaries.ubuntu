@@ -158,7 +158,21 @@ RUN test -f /root/hashcat/include/export.h || { echo "HASHCAT_REF=${HASHCAT_REF}
 
 COPY docker/patches/hashcat_binaries/ /root/patches/
 
-RUN bash -c 'shopt -s nullglob; cd /root/hashcat; for p in /root/patches/*.patch /root/patches/*.diff; do patch -p1 < "$p"; done'
+# git apply rather than patch, because a patch is a git diff and patch(1) only understands part of one.
+# Given a diff carrying binary content, "git diff --binary", patch stops at "File x: git binary diffs
+# are not supported". Given one that only names the binary file without carrying it, which is what a
+# plain "git diff" writes, patch is worse than that: it prints "patching file x", exits 0, and applies
+# nothing, so the build succeeds and ships a package the patch never reached. git apply handles the
+# first and refuses the second by name.
+#
+# || exit 1 because a for loop returns the status of its last command. Without it a patch that fails
+# is reported as a success whenever another one follows it, which is the same trap the pipefail note
+# below describes. A patch that cannot be applied has to stop the build.
+#
+# A patch that touches binary files has to be made with "git diff --binary". Plain "git diff" writes
+# only "Binary files a/x and b/x differ", which carries no content and which nothing can apply.
+
+RUN bash -c 'shopt -s nullglob; cd /root/hashcat; for p in /root/patches/*.patch /root/patches/*.diff; do echo "applying $p"; git apply "$p" || exit 1; done'
 
 # pipefail for the two build steps below, because each pipes make into tee and the exit status of a
 # pipeline is the LAST command's. Without it tee always succeeds, a failed make is reported as a
