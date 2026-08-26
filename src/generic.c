@@ -549,6 +549,16 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
 
   }
 
+  // A feed whose settings asked it a question has answered it by now, and there is nothing here to
+  // run. Both engines can answer, but not in the same place: the device engine counts base words,
+  // and the tables that number comes from are built inside global_dev_init (), so the device half of
+  // an answer does not exist until the call above has returned. Testing it here catches both.
+  //
+  // The keyspace is not asked for and no device thread is started. thread_init () is where a feed
+  // starts its producer threads, and there is nothing left for them to produce.
+
+  if (generic_ctx->global_ctx.described == true) return 0;
+
   const u64 log_mark_rest = event_log_count (hashcat_ctx);
 
   generic_ctx->keyspace = generic_global_keyspace (hashcat_ctx, generic_ctx);
@@ -806,6 +816,24 @@ int generic_association_in_sync (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t
   event_log_error (hashcat_ctx, "Words: %" PRIu64 ", salts: %d", generic_ctx->keyspace, hashes->salts_cnt);
 
   return -1;
+}
+
+// Whether any feed instance was asked to describe the attack rather than to run it. Both roles are
+// asked, because -a 1 counts its two dictionaries as two instances and either of them can be the one
+// that was handed the question.
+
+bool generic_ctx_described (const hashcat_ctx_t *hashcat_ctx)
+{
+  for (int role = 0; role < GENERIC_ROLE_CNT; role++)
+  {
+    const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+    if (generic_ctx->enabled == false) continue;
+
+    if (generic_ctx->global_ctx.described == true) return true;
+  }
+
+  return false;
 }
 
 int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)

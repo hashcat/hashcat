@@ -3165,6 +3165,22 @@ typedef struct generic_global_ctx
 
   bool dev_enable;
 
+  // Whether this feed was asked to describe the attack rather than to run it, which it says by
+  // setting this from global_init () or global_dev_init (). A feed's settings can carry a question,
+  // such as where in the keyspace this attack reaches a given candidate, and an answer to that is
+  // only worth anything when it comes from the tables the run itself would enumerate, under the
+  // engine the run itself was given. That is why such a question is answered from inside the feed
+  // rather than by a second program that has to be kept in step with it.
+  //
+  // The feed has already said its piece by the time hashcat reads this, on its own account and in
+  // its own words. Nothing will read a candidate from it afterwards: no device thread is started,
+  // the queue of rounds is never entered, and the run ends as a success.
+  //
+  // A feed must not exit the process itself. It is a shared object inside a session that has a
+  // potfile open and a restore file to unlink, and half of that is hashcat's to close.
+
+  bool described;
+
   bool   error;
   char   error_msg[256];
 

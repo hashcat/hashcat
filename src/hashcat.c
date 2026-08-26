@@ -1031,6 +1031,31 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   if (generic_ctx_init (hashcat_ctx) == -1) return -1;
 
+  // A feed can be asked to describe the attack instead of running it, and by now it has answered.
+  // There is nothing left for this run to do, so the queue of rounds is never entered.
+  //
+  // devices_status is set for the same reason --keyspace sets it further down. A bare return leaves
+  // STATUS_INIT, EVENT_OUTERLOOP_FINISHED turns STATUS_INIT into STATUS_ERROR because the keypress
+  // thread waits on it, and the status mapping at the end of this file then makes that
+  // RC_FINAL_ERROR. A question that was answered is not a failure.
+  //
+  // The destroys are the ones the tail of this function would have run for what has been initialised
+  // so far. generic_ctx_destroy () is the one that matters: it calls global_term (), so the feed
+  // gives its grammar back rather than leaving it to process exit.
+
+  if (generic_ctx_described (hashcat_ctx) == true)
+  {
+    status_ctx->devices_status = STATUS_RUNNING;
+
+    generic_ctx_destroy (hashcat_ctx);
+    cpt_ctx_destroy     (hashcat_ctx);
+    bitmap_ctx_destroy  (hashcat_ctx);
+    hashes_destroy      (hashcat_ctx);
+    hashconfig_destroy  (hashcat_ctx);
+
+    return 0;
+  }
+
   /**
    * straight mode init
    */
