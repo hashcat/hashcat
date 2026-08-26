@@ -4625,6 +4625,17 @@ int hashes_init_stage2 (hashcat_ctx_t *hashcat_ctx)
     hashes_cnt = hashes_cnt_new;
   }
 
+  // --keyspace, --stdout, --hash-info and --backend-info load no hashes at all, and everything below
+  // still needs one entry to describe: digests_cnt is taken straight from hashes_cnt, and hashcat.c
+  // refuses the run when it is under the mode's hashes_count_min. The old dedup pass handed that
+  // entry over by accident, because it seeded its survivor count at 1 and started comparing at the
+  // second hash; this one starts at 0, so the empty case has to be said out loud.
+  //
+  // A run that really was given hashes and found none is already refused in hashcat.c, right after
+  // stage 1 and before this, so nothing real can be masked here.
+
+  if (hashes_cnt == 0) hashes_cnt = 1;
+
   hashes->hashes_cnt = hashes_cnt;
 
   EVENT (EVENT_HASHLIST_UNIQUE_HASH_POST);
