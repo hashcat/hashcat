@@ -7,6 +7,27 @@
 #include "types.h"
 #include "memory.h"
 
+#if defined (__linux__)
+#include <sys/mman.h>
+#endif
+
+#define HC_HUGEPAGE_MIN  (16 * 1024 * 1024)
+#define HC_HUGEPAGE_SIZE ( 2 * 1024 * 1024)
+
+static void hc_hugepage_hint (MAYBE_UNUSED void *p, MAYBE_UNUSED const size_t sz)
+{
+  #if defined (__linux__) && defined (MADV_HUGEPAGE)
+
+  if (sz < HC_HUGEPAGE_MIN) return;
+
+  const uintptr_t beg = ((uintptr_t) p + HC_HUGEPAGE_SIZE - 1) & ~((uintptr_t) HC_HUGEPAGE_SIZE - 1);
+  const uintptr_t end = ((uintptr_t) p + sz) & ~((uintptr_t) HC_HUGEPAGE_SIZE - 1);
+
+  if (end > beg) madvise ((void *) beg, (size_t) (end - beg), MADV_HUGEPAGE);
+
+  #endif
+}
+
 void *hccalloc (const size_t nmemb, const size_t sz)
 {
   void *p = calloc (nmemb, sz);
@@ -17,6 +38,8 @@ void *hccalloc (const size_t nmemb, const size_t sz)
 
     return (NULL);
   }
+
+  hc_hugepage_hint (p, nmemb * sz);
 
   return (p);
 }
@@ -41,6 +64,8 @@ void *hcrealloc (void *ptr, const size_t oldsz, const size_t addsz)
   }
 
   memset ((char *) p + oldsz, 0, addsz);
+
+  hc_hugepage_hint (p, oldsz + addsz);
 
   return (p);
 }

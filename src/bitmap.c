@@ -7,6 +7,8 @@
 #include "types.h"
 #include "memory.h"
 #include "event.h"
+#include "system.h"
+#include "thread.h"
 #include "bitmap.h"
 
 #define BITMAP_TABLE_CNT      8
@@ -264,24 +266,378 @@ static void bitmap_set (u32 **bitmap_tabs, const u32 bitmap_mask, const u32 d0, 
     const u32 ht = a + (t * b);
     const u32 pt = bitmap_rotl32 (b, ((t * 4) + 1)) ^ a;
 
-    bitmap_tabs[t][ht & bitmap_mask] |= (1U << (pt & 31)) | (1U << ((pt >> 5) & 31));
+    __atomic_or_fetch (&bitmap_tabs[t][ht & bitmap_mask], (1U << (pt & 31)) | (1U << ((pt >> 5) & 31)), __ATOMIC_RELAXED);
   }
+}
+
+// sort the updates into cache sized buckets before applying them
+//
+// a digest sets two bits in each of the eight tables at an index that is a hash of the whole digest,
+// so on a list this size the updates walk over the tables at random and every one of them is a miss.
+// counting them into buckets first, one per region of a table, means a region is read once, updated
+// from its own bucket while it sits in cache, and written once. the bucket a thread applies is the
+// only one touching that region, so nothing has to be atomic there.
+
+#define BITMAP_REGION_BITS 16
+#define BITMAP_RECORDS_MAX (256 * 1024 * 1024)
+#define BITMAP_FILL_CHUNK_MIN (256 * 1024)
+
+typedef struct bitmap_fill
+{
+  int          phase;
+
+  u32        **bitmap_tabs;
+  const char  *digests_buf;
+  u32          dgst_size;
+  u32          dgst_pos0;
+  u32          dgst_pos1;
+  u32          dgst_pos2;
+  u32          dgst_pos3;
+  u32          bitmap_mask;
+  u32          from;
+  u32          to;
+
+  u32         *records;
+  u32         *counts;
+  u32         *cursor;
+  const u32   *bucket_base;
+  u32          region_bits;
+  u32          regions;
+  u32          buckets;
+  u32          bucket_from;
+  u32          bucket_to;
+
+} bitmap_fill_t;
+
+static void *generate_bitmaps_thread (void *p)
+{
+  bitmap_fill_t *param = (bitmap_fill_t *) p;
+
+  u32 **bitmap_tabs = param->bitmap_tabs;
+
+  if (param->phase == 0)
+  {
+    for (u32 t = 0; t < BITMAP_TABLE_CNT; t++)
+    {
+      memset (bitmap_tabs[t] + param->from, 0, (size_t) (param->to - param->from) * sizeof (u32));
+    }
+
+    return NULL;
+  }
+
+  if (param->phase == 4)
+  {
+    const u32 *records     = param->records;
+    const u32 *bucket_base = param->bucket_base;
+
+    const u32 region_bits = param->region_bits;
+    const u32 regions     = param->regions;
+
+    for (u32 b = param->bucket_from; b < param->bucket_to; b++)
+    {
+      u32 *tab = bitmap_tabs[b / regions] + ((u64) (b % regions) << region_bits);
+
+      const u32 end = bucket_base[b + 1];
+
+      for (u32 i = bucket_base[b]; i < end; i++)
+      {
+        const u32 record = records[i];
+
+        const u32 pt = record & 0x3ff;
+
+        tab[record >> 10] |= (1U << (pt & 31)) | (1U << ((pt >> 5) & 31));
+      }
+    }
+
+    return NULL;
+  }
+
+  const u32 dgst_size   = param->dgst_size;
+  const u32 bitmap_mask = param->bitmap_mask;
+
+  const char *digests_buf_ptr = param->digests_buf + ((u64) param->from * dgst_size);
+
+  if (param->phase == 1)
+  {
+    for (u32 i = param->from; i < param->to; i++)
+    {
+      const u32 *digest_ptr = (const u32 *) digests_buf_ptr;
+
+      digests_buf_ptr += dgst_size;
+
+      bitmap_set (bitmap_tabs, bitmap_mask, digest_ptr[param->dgst_pos0], digest_ptr[param->dgst_pos1], digest_ptr[param->dgst_pos2], digest_ptr[param->dgst_pos3]);
+    }
+
+    return NULL;
+  }
+
+  const u32 region_bits = param->region_bits;
+  const u32 regions     = param->regions;
+  const u32 region_mask = (1U << region_bits) - 1;
+
+  if (param->phase == 2)
+  {
+    u32 *counts = param->counts;
+
+    memset (counts, 0, (size_t) param->buckets * sizeof (u32));
+
+    for (u32 i = param->from; i < param->to; i++)
+    {
+      const u32 *digest_ptr = (const u32 *) digests_buf_ptr;
+
+      digests_buf_ptr += dgst_size;
+
+      const u32 d0 = digest_ptr[param->dgst_pos0];
+      const u32 d1 = digest_ptr[param->dgst_pos1];
+      const u32 d2 = digest_ptr[param->dgst_pos2];
+      const u32 d3 = digest_ptr[param->dgst_pos3];
+
+      const u32 a = d0 ^ bitmap_rotl32 (d1, 11) ^ bitmap_rotl32 (d2, 22) ^ bitmap_rotl32 (d3,  5);
+      const u32 b = d3 ^ bitmap_rotl32 (d2,  7) ^ bitmap_rotl32 (d1, 19) ^ bitmap_rotl32 (d0, 27);
+
+      for (u32 t = 0; t < BITMAP_TABLE_CNT; t++)
+      {
+        const u32 idx = (a + (t * b)) & bitmap_mask;
+
+        counts[(t * regions) + (idx >> region_bits)]++;
+      }
+    }
+
+    return NULL;
+  }
+
+  u32 *records = param->records;
+  u32 *cursor  = param->cursor;
+
+  for (u32 i = param->from; i < param->to; i++)
+  {
+    const u32 *digest_ptr = (const u32 *) digests_buf_ptr;
+
+    digests_buf_ptr += dgst_size;
+
+    const u32 d0 = digest_ptr[param->dgst_pos0];
+    const u32 d1 = digest_ptr[param->dgst_pos1];
+    const u32 d2 = digest_ptr[param->dgst_pos2];
+    const u32 d3 = digest_ptr[param->dgst_pos3];
+
+    const u32 a = d0 ^ bitmap_rotl32 (d1, 11) ^ bitmap_rotl32 (d2, 22) ^ bitmap_rotl32 (d3,  5);
+    const u32 b = d3 ^ bitmap_rotl32 (d2,  7) ^ bitmap_rotl32 (d1, 19) ^ bitmap_rotl32 (d0, 27);
+
+    for (u32 t = 0; t < BITMAP_TABLE_CNT; t++)
+    {
+      const u32 idx = (a + (t * b)) & bitmap_mask;
+      const u32 pt  = bitmap_rotl32 (b, ((t * 4) + 1)) ^ a;
+
+      const u32 bucket = (t * regions) + (idx >> region_bits);
+
+      records[cursor[bucket]] = ((idx & region_mask) << 10) | (pt & 0x3ff);
+
+      cursor[bucket]++;
+    }
+  }
+
+  return NULL;
+}
+
+static void generate_bitmaps_run (bitmap_fill_t *params, hc_thread_t *threads, const int threads_cnt, const int phase)
+{
+  for (int t = 0; t < threads_cnt; t++) params[t].phase = phase;
+
+  for (int t = 1; t < threads_cnt; t++)
+  {
+    hc_thread_create (threads[t], generate_bitmaps_thread, &params[t]);
+  }
+
+  generate_bitmaps_thread (&params[0]);
+
+  for (int t = 1; t < threads_cnt; t++)
+  {
+    hc_thread_join (threads[t]);
+  }
+}
+
+static void generate_bitmaps_split (bitmap_fill_t *params, const int threads_cnt, const u32 base, const u32 count)
+{
+  const u64 chunk = ((u64) count + (u64) threads_cnt - 1) / (u64) threads_cnt;
+
+  for (int t = 0; t < threads_cnt; t++)
+  {
+    u64 from = (u64) t * chunk;
+    u64 to   = from + chunk;
+
+    if (from > count) from = count;
+    if (to   > count) to   = count;
+
+    params[t].from = base + (u32) from;
+    params[t].to   = base + (u32) to;
+  }
+}
+
+static bool generate_bitmaps_blocked (bitmap_fill_t *params, hc_thread_t *threads, const int threads_cnt, const u32 digests_cnt, const u32 bitmap_bits)
+{
+  if (bitmap_bits <= BITMAP_REGION_BITS) return false;
+
+  const u32 region_bits = BITMAP_REGION_BITS;
+  const u32 regions     = 1U << (bitmap_bits - region_bits);
+  const u32 buckets     = BITMAP_TABLE_CNT * regions;
+
+  u32 chunk = BITMAP_RECORDS_MAX / (BITMAP_TABLE_CNT * sizeof (u32));
+
+  if (chunk > digests_cnt) chunk = digests_cnt;
+
+  const u64 records_size = (u64) chunk * BITMAP_TABLE_CNT * sizeof (u32);
+  const u64 counts_size  = (u64) threads_cnt * buckets * sizeof (u32);
+
+  u64 free_mem = 0;
+
+  if (get_free_memory (&free_mem) == false) return false;
+  if (free_mem <= (records_size + (counts_size * 2))) return false;
+
+  u32 *records     = (u32 *) hcmalloc (records_size);
+  u32 *counts      = (u32 *) hcmalloc (counts_size);
+  u32 *cursor      = (u32 *) hcmalloc (counts_size);
+  u32 *bucket_base = (u32 *) hcmalloc ((u64) (buckets + 1) * sizeof (u32));
+
+  if ((records == NULL) || (counts == NULL) || (cursor == NULL) || (bucket_base == NULL))
+  {
+    hcfree (records);
+    hcfree (counts);
+    hcfree (cursor);
+    hcfree (bucket_base);
+
+    return false;
+  }
+
+  for (int t = 0; t < threads_cnt; t++)
+  {
+    params[t].records     = records;
+    params[t].counts      = counts + ((size_t) t * buckets);
+    params[t].cursor      = cursor + ((size_t) t * buckets);
+    params[t].bucket_base = bucket_base;
+    params[t].region_bits = region_bits;
+    params[t].regions     = regions;
+    params[t].buckets     = buckets;
+  }
+
+  for (u32 base = 0; base < digests_cnt; base += chunk)
+  {
+    u32 count = digests_cnt - base;
+
+    if (count > chunk) count = chunk;
+
+    generate_bitmaps_split (params, threads_cnt, base, count);
+
+    generate_bitmaps_run (params, threads, threads_cnt, 2);
+
+    u32 run = 0;
+
+    for (u32 b = 0; b < buckets; b++)
+    {
+      bucket_base[b] = run;
+
+      for (int t = 0; t < threads_cnt; t++)
+      {
+        cursor[((size_t) t * buckets) + b] = run;
+
+        run += counts[((size_t) t * buckets) + b];
+      }
+    }
+
+    bucket_base[buckets] = run;
+
+    generate_bitmaps_run (params, threads, threads_cnt, 3);
+
+    u32 b = 0;
+
+    for (int t = 0; t < threads_cnt; t++)
+    {
+      const u32 target = (u32) (((u64) run * (u64) (t + 1)) / (u64) threads_cnt);
+
+      params[t].bucket_from = b;
+
+      while ((b < buckets) && (bucket_base[b] < target)) b++;
+
+      params[t].bucket_to = b;
+    }
+
+    params[threads_cnt - 1].bucket_to = buckets;
+
+    generate_bitmaps_run (params, threads, threads_cnt, 4);
+  }
+
+  hcfree (records);
+  hcfree (counts);
+  hcfree (cursor);
+  hcfree (bucket_base);
+
+  return true;
 }
 
 static void generate_bitmaps (const u32 digests_cnt, const u32 dgst_size, char *digests_buf_ptr, const u32 dgst_pos0, const u32 dgst_pos1, const u32 dgst_pos2, const u32 dgst_pos3, const u32 bitmap_nums, u32 **bitmap_tabs)
 {
-  for (u32 t = 0; t < BITMAP_TABLE_CNT; t++) memset (bitmap_tabs[t], 0, (size_t) bitmap_nums * sizeof (u32));
+  u64 threads_cnt = (u64) hc_get_processor_count ();
 
-  const u32 bitmap_mask = bitmap_nums - 1;
+  if (threads_cnt < 1) threads_cnt = 1;
 
-  for (u32 i = 0; i < digests_cnt; i++)
+  const u64 threads_max = ((u64) digests_cnt / BITMAP_FILL_CHUNK_MIN) + 1;
+
+  if (threads_cnt > threads_max) threads_cnt = threads_max;
+
+  hc_thread_t   *threads = (hc_thread_t *)   hcmalloc ((size_t) threads_cnt * sizeof (hc_thread_t));
+  bitmap_fill_t *params  = (bitmap_fill_t *) hcmalloc ((size_t) threads_cnt * sizeof (bitmap_fill_t));
+
+  u32 bitmap_bits = 0;
+
+  while ((1U << bitmap_bits) < bitmap_nums) bitmap_bits++;
+
+  if ((threads == NULL) || (params == NULL))
   {
-    u32 *digest_ptr = (u32 *) digests_buf_ptr;
+    hcfree (threads);
+    hcfree (params);
 
-    digests_buf_ptr += dgst_size;
+    for (u32 t = 0; t < BITMAP_TABLE_CNT; t++) memset (bitmap_tabs[t], 0, (size_t) bitmap_nums * sizeof (u32));
 
-    bitmap_set (bitmap_tabs, bitmap_mask, digest_ptr[dgst_pos0], digest_ptr[dgst_pos1], digest_ptr[dgst_pos2], digest_ptr[dgst_pos3]);
+    const u32 bitmap_mask = bitmap_nums - 1;
+
+    for (u32 i = 0; i < digests_cnt; i++)
+    {
+      const u32 *digest_ptr = (const u32 *) digests_buf_ptr;
+
+      digests_buf_ptr += dgst_size;
+
+      bitmap_set (bitmap_tabs, bitmap_mask, digest_ptr[dgst_pos0], digest_ptr[dgst_pos1], digest_ptr[dgst_pos2], digest_ptr[dgst_pos3]);
+    }
+
+    return;
   }
+
+  for (u64 t = 0; t < threads_cnt; t++)
+  {
+    memset (&params[t], 0, sizeof (bitmap_fill_t));
+
+    params[t].bitmap_tabs = bitmap_tabs;
+    params[t].digests_buf = digests_buf_ptr;
+    params[t].dgst_size   = dgst_size;
+    params[t].dgst_pos0   = dgst_pos0;
+    params[t].dgst_pos1   = dgst_pos1;
+    params[t].dgst_pos2   = dgst_pos2;
+    params[t].dgst_pos3   = dgst_pos3;
+    params[t].bitmap_mask = bitmap_nums - 1;
+  }
+
+  generate_bitmaps_split (params, (int) threads_cnt, 0, bitmap_nums);
+
+  generate_bitmaps_run (params, threads, (int) threads_cnt, 0);
+
+  if (generate_bitmaps_blocked (params, threads, (int) threads_cnt, digests_cnt, bitmap_bits) == false)
+  {
+    generate_bitmaps_split (params, (int) threads_cnt, 0, digests_cnt);
+
+    generate_bitmaps_run (params, threads, (int) threads_cnt, 1);
+  }
+
+  hcfree (threads);
+  hcfree (params);
 }
 
 int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
