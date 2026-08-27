@@ -113,6 +113,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -l, --limit                    | Num  | Limit X words from the start + skipped words         | -l 1000000
      --keyspace                 |      | Show keyspace base:mod values and quit               |
      --total-candidates         |      | Show total candidate count (base*mod) and quit       |
+     --lookup                   | Str  | Show where this attack reaches candidate X and quit  | --lookup=hashcat
  -j, --rule-left                | Rule | Single rule applied to each word from left wordlist  | -j 'c'
  -k, --rule-right               | Rule | Single rule applied to each word from right wordlist | -k '^-'
  -r, --rules-file               | File | Multiple rules applied to each word from wordlists   | -r rules/best66.rule
