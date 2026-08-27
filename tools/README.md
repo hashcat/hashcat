@@ -44,6 +44,10 @@ that names it, for that format only, repeated in a summary at the end.
 | GPG | 17010, 17020, 17030, 17040, 17050 | `gpg2`, `gpg1`, `gpg2john` | No `gpg1`: only what `gpg2` writes by default is covered, which drops the classic S2K combinations and the AES-128 (aux1) path. A note, not a skip. No `gpg2john`: skipped. |
 | PKZIP | 17200, 17210, 17220, 17225, 17230 | `zip`, `zip2john` | Skipped. |
 | RAR | 12500, 13000, 23700, 23800 | `rar` 6.x or older, `rar2john` | Only RAR5 (13000) is built, the RAR3 modes are skipped. 23800 has no `test.pl` oracle at all, so without `-g` it is skipped whatever is installed. |
+| 7-Zip | 11600 | `7z`, `7z2john.pl`, `Compress::Raw::Lzma` | Skipped. |
+| WinZip AES | 13600 | `7z`, `zip2john` | Skipped. |
+| PDF | 10400, 10500, 10700 | `qpdf`, `gs`, `pdf2john.pl` | Skipped. `gs` writes the plain PDF that `qpdf` then encrypts. |
+| OpenSSH key | 22931 | `ssh-keygen`, `ssh2john.py` | Skipped. |
 | LUKS1 | 29511 to 29543 | `cryptsetup`, `sudo` | Skipped. |
 | LUKS2 | 34100 | `cryptsetup`, `sudo` | Skipped. |
 | TrueCrypt | 6211 to 6243, 29311 to 29343 | `tcplay`, `expect`, `sudo` | Skipped. |
@@ -52,10 +56,12 @@ that names it, for that format only, repeated in a summary at the end.
 `install_dependencies.sh` installs all of it, including the three that are easy
 to get wrong:
 
-* **John jumbo** for `zip2john`, `gpg2john` and `rar2john`. No package has them:
+* **John jumbo** for `zip2john`, `gpg2john`, `rar2john`, `7z2john.pl`,
+  `pdf2john.pl` and `ssh2john.py`. No package has them:
   `apt install john` is core John and ships none of them, so the script builds
-  jumbo in `$HOME/john`. Override with `ZIP2JOHN=`, `GPG2JOHN=`, `RAR2JOHN=`;
-  otherwise `PATH` then `$HOME/john/run/`.
+  jumbo in `$HOME/john`. Override with `ZIP2JOHN=`, `GPG2JOHN=`, `RAR2JOHN=`,
+  `SEVENZIP2JOHN=`, `PDF2JOHN=`, `SSH2JOHN=`; otherwise `PATH` then
+  `$HOME/john/run/`.
 * **rar 6.12** for the RAR3 modes. No package either: `apt install rar` is 7.x,
   which writes RAR5 only, so the script fetches RARLAB's static build into
   `$HOME/rar-old`. Override with `RAR_BIN=`.
