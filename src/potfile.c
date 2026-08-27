@@ -6,6 +6,7 @@
 #include "common.h"
 #include "types.h"
 #include "convert.h"
+#include "dynamicx.h"
 #include "memory.h"
 #include "event.h"
 #include "hashes.h"
@@ -59,8 +60,8 @@ static int sort_by_hash_t_salt (const void *v1, const void *v2)
 }
 */
 
-// this function is special and only used whenever --username or --dynamic-x and --show are used together:
-// it will sort all tree entries according to the settings stored in hashconfig
+// this function is special and only used whenever --username or --dynamic-x is combined with
+// --show or --left: it will sort all tree entries according to the settings stored in hashconfig
 
 int sort_pot_tree_by_hash (const void *v1, const void *v2)
 {
@@ -343,6 +344,17 @@ void potfile_update_hash (hashcat_ctx_t *hashcat_ctx, hash_t *found, char *line_
   }
 }
 
+// One potfile line, against a hash list that may hold the same hash many times over.
+//
+// The password is left on the tree entry and handed to the hashes afterwards, by
+// potfile_apply_hashes. Walking the entry's list here instead would cost one pass over every copy
+// of the hash for every potfile line naming it, and a potfile that has been written to across many
+// runs names the same hash more than once. Two hundred thousand copies against two hundred thousand
+// lines is a minute of that; the same list against a potfile that names each hash once is instant,
+// which is what made it look like the shape of the hash list was the problem.
+//
+// The last line naming a hash still wins, as it did when each line wrote straight through.
+
 void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *line_pw_buf, int line_pw_len, pot_tree_entry_t *tree)
 {
   hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
@@ -369,14 +381,35 @@ void potfile_update_hashes (hashcat_ctx_t *hashcat_ctx, hash_t *hash_buf, char *
   {
     pot_tree_entry_t *found_entry = (pot_tree_entry_t *) *found;
 
-    pot_hash_node_t *node = found_entry->nodes;
+    hcfree (found_entry->pw_buf);
 
-    while (node)
+    found_entry->pw_buf = (char *) hcmalloc (line_pw_len + 1);
+    found_entry->pw_len = line_pw_len;
+
+    if (line_pw_buf != NULL) memcpy (found_entry->pw_buf, line_pw_buf, line_pw_len);
+
+    found_entry->pw_buf[line_pw_len] = 0;
+  }
+}
+
+// Hand what the potfile had to every copy of the hash, once the whole potfile has been read.
+
+static void potfile_apply_hashes (hashcat_ctx_t *hashcat_ctx, pot_tree_entry_t **entries, const u32 entries_cnt)
+{
+  for (u32 i = 0; i < entries_cnt; i++)
+  {
+    pot_tree_entry_t *entry = entries[i];
+
+    if (entry->pw_buf == NULL) continue;
+
+    for (pot_hash_node_t *node = entry->nodes; node != NULL; node = node->next)
     {
-      potfile_update_hash (hashcat_ctx, node->hash_buf, line_pw_buf, line_pw_len);
-
-      node = node->next;
+      potfile_update_hash (hashcat_ctx, node->hash_buf, entry->pw_buf, entry->pw_len);
     }
+
+    hcfree (entry->pw_buf);
+
+    entry->pw_buf = NULL;
   }
 }
 
@@ -428,12 +461,15 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
     hash_buf.hook_salt = hcmalloc (hashconfig->hook_salt_size);
   }
 
-  // we only need this variable in a very specific situation:
-  // whenever we use --username or --dynamic-x and --show together we want to keep all hashes sorted within a nice structure
+  // we only need these in a very specific situation: whenever --username or --dynamic-x is combined
+  // with --show or --left we want to keep all hashes sorted within a nice structure
 
-  pot_tree_entry_t *all_hashes_tree  = NULL;
-  pot_tree_entry_t *tree_entry_cache = NULL;
-  pot_hash_node_t  *tree_nodes_cache = NULL;
+  pot_tree_entry_t  *all_hashes_tree  = NULL;
+  pot_tree_entry_t  *tree_entry_cache = NULL;
+  pot_hash_node_t   *tree_nodes_cache = NULL;
+  pot_tree_entry_t **tree_entries     = NULL;
+
+  u32 tree_entries_cnt = 0;
 
   if (hashconfig->potfile_keep_all_hashes == true)
   {
@@ -443,6 +479,10 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
     // we need *always exactly* one linked list for every hash
     tree_nodes_cache = (pot_hash_node_t  *) hccalloc (hashes_cnt, sizeof (pot_hash_node_t));
+
+    // the entries that made it into the tree, so that they can be walked afterwards without it
+
+    tree_entries = (pot_tree_entry_t **) hccalloc (hashes_cnt, sizeof (pot_tree_entry_t *));
 
     for (u32 hash_pos = 0; hash_pos < hashes_cnt; hash_pos++)
     {
@@ -490,6 +530,8 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
       if (found_entry == new_entry)
       {
         // no updates to the linked list required (since it is the first one!)
+
+        tree_entries[tree_entries_cnt++] = new_entry;
       }
       // case 3: if we have found an already existing entry
       else
@@ -609,8 +651,11 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   if (hashconfig->potfile_keep_all_hashes == true)
   {
+    potfile_apply_hashes (hashcat_ctx, tree_entries, tree_entries_cnt);
+
     pot_tree_destroy (all_hashes_tree); // this could be slow (should we just skip it?)
 
+    hcfree (tree_entries);
     hcfree (tree_nodes_cache);
     hcfree (tree_entry_cache);
   }
@@ -633,6 +678,24 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   hcfree (hash_buf.digest);
 
   return 0;
+}
+
+// --dynamic-x: the tag goes back in front of the hash. What --show and --left reproduce is a line
+// of John's, and John will not read it back without it. Nothing goes between the two, the tag ends
+// with the $ that John writes before the hash.
+
+static int potfile_dynamicx_prefix (const hashinfo_t *hash_info, u8 *out_buf)
+{
+  if (hash_info == NULL) return 0;
+
+  const dynamicx_t *dynamicx = hash_info->dynamicx;
+
+  if (dynamicx == NULL) return 0;
+  if (dynamicx->dynamicx_buf == NULL) return 0;
+
+  memcpy (out_buf, dynamicx->dynamicx_buf, dynamicx->dynamicx_len);
+
+  return (int) dynamicx->dynamicx_len;
 }
 
 int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
@@ -694,12 +757,16 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        int out_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 0, HCBUFSIZ_LARGE - 0, salt_idx, digest_idx);
+        const int tag_len = potfile_dynamicx_prefix (hash1->hash_info, out_buf);
+
+        int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
 
         if (hash2)
         {
-          out_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 16, HCBUFSIZ_LARGE - 16, salt_idx, split_neighbor);
+          hash_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len + hash_len, HCBUFSIZ_LARGE - tag_len - hash_len, salt_idx, split_neighbor);
         }
+
+        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -717,22 +784,6 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
           user_len = user->user_len;
 
           username[user_len] = 0;
-        }
-
-        // dynamic-x
-        unsigned char *dynamicx_buf = NULL;
-
-        u32 dynamicx_len = 0;
-
-        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
-
-        if (dynamicx)
-        {
-          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
-
-          dynamicx_len = dynamicx->dynamicx_len;
-
-          dynamicx_buf[dynamicx_len] = 0;
         }
 
         u8 *tmp_buf = potfile_ctx->tmp_buf;
@@ -808,7 +859,11 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        const int out_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
+        const int tag_len = potfile_dynamicx_prefix (hash->hash_info, out_buf);
+
+        const int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
+
+        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -828,25 +883,6 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
             user_len = user->user_len;
 
             username[user_len] = 0;
-          }
-        }
-
-        // dynamicx
-        unsigned char *dynamicx_buf = NULL;
-
-        u32 dynamicx_len = 0;
-
-        if (hash->hash_info != NULL)
-        {
-          dynamicx_t *dynamicx = hash->hash_info->dynamicx;
-
-          if (dynamicx)
-          {
-            dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
-
-            dynamicx_len = dynamicx->dynamicx_len;
-
-            dynamicx_buf[dynamicx_len] = 0;
           }
         }
 
@@ -971,12 +1007,16 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         u8 *out_buf = potfile_ctx->out_buf;
 
-        int out_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 0, HCBUFSIZ_LARGE - 0, salt_idx, digest_idx);
+        const int tag_len = potfile_dynamicx_prefix (hash1->hash_info, out_buf);
+
+        int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
 
         if (hash2)
         {
-          out_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + 16, HCBUFSIZ_LARGE - 16, salt_idx, split_neighbor);
+          hash_len += hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len + hash_len, HCBUFSIZ_LARGE - tag_len - hash_len, salt_idx, split_neighbor);
         }
+
+        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -994,22 +1034,6 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
           user_len = user->user_len;
 
           username[user_len] = 0;
-        }
-
-        // dynamic-x
-        unsigned char *dynamicx_buf = NULL;
-
-        u32 dynamicx_len = 0;
-
-        dynamicx_t *dynamicx = hash1->hash_info->dynamicx;
-
-        if (dynamicx)
-        {
-          dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
-
-          dynamicx_len = dynamicx->dynamicx_len;
-
-          dynamicx_buf[dynamicx_len] = 0;
         }
 
         u8 *tmp_buf = potfile_ctx->tmp_buf;
@@ -1048,6 +1072,8 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
 
         if (digests_shown[hashes_idx] == 1) continue;
 
+        hash_t *hash = &hashes_buf[hashes_idx];
+
         u8 *out_buf = potfile_ctx->out_buf;
 
         int out_len;
@@ -1071,12 +1097,14 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          out_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_idx, digest_idx);
+          const int tag_len = potfile_dynamicx_prefix (hash->hash_info, out_buf);
+
+          const int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_idx, digest_idx);
+
+          out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, hashconfig->separator, HCBUFSIZ_LARGE);
         }
 
         out_buf[out_len] = 0;
-
-        hash_t *hash = &hashes_buf[hashes_idx];
 
         // user
         unsigned char *username = NULL;
@@ -1094,25 +1122,6 @@ int potfile_handle_left (hashcat_ctx_t *hashcat_ctx)
             user_len = user->user_len;
 
             username[user_len] = 0;
-          }
-        }
-
-        // dynamicx
-        unsigned char *dynamicx_buf = NULL;
-
-        u32 dynamicx_len = 0;
-
-        if (hash->hash_info != NULL)
-        {
-          dynamicx_t *dynamicx = hash->hash_info->dynamicx;
-
-          if (dynamicx)
-          {
-            dynamicx_buf = (unsigned char *) (dynamicx->dynamicx_buf);
-
-            dynamicx_len = dynamicx->dynamicx_len;
-
-            dynamicx_buf[dynamicx_len] = 0;
           }
         }
 

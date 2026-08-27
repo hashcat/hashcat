@@ -9,6 +9,7 @@
 #include "event.h"
 #include "convert.h"
 #include "debugfile.h"
+#include "dynamicx.h"
 #include "filehandling.h"
 #include "hlfmt.h"
 #include "terminal.h"
@@ -1634,18 +1635,27 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
           hc_fputc (separator, &fp);
         }
 
+        // --dynamic-x: the tag goes in front of the hash with nothing between them, because the tag
+        // ends with the $ that John writes before the hash, and the line is then put back into the
+        // spelling it was read in
+
+        int tag_len = 0;
+
         if (user_options->dynamic_x == true)
         {
-          dynamicx_t *dynamicx = hashes->hash_info[idx]->dynamicx;
+          const dynamicx_t *dynamicx = hashes->hash_info[idx]->dynamicx;
 
-          u32 i;
+          if ((dynamicx != NULL) && (dynamicx->dynamicx_buf != NULL))
+          {
+            memcpy (out_buf, dynamicx->dynamicx_buf, dynamicx->dynamicx_len);
 
-          for (i = 0; i < dynamicx->dynamicx_len; i++) hc_fputc (dynamicx->dynamicx_buf[i], &fp);
-
-          hc_fputc (separator, &fp);
+            tag_len = (int) dynamicx->dynamicx_len;
+          }
         }
 
-        const int out_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf, HCBUFSIZ_LARGE, salt_pos, digest_pos);
+        const int hash_len = hash_encode (hashcat_ctx->user_options, hashcat_ctx->hashconfig, hashcat_ctx->hashes, hashcat_ctx->module_ctx, (char *) out_buf + tag_len, HCBUFSIZ_LARGE - tag_len, salt_pos, digest_pos);
+
+        const int out_len = dynamicx_encode ((char *) out_buf, tag_len, hash_len, separator, HCBUFSIZ_LARGE);
 
         out_buf[out_len] = 0;
 
@@ -3179,6 +3189,85 @@ static bool hashlist_parse_threaded (hashcat_ctx_t *hashcat_ctx, HCFILE *fp, u32
   return true;
 }
 
+// --dynamic-x: turn one line of John's into one line of hashcat's.
+//
+// Three things happen here, and they happen before hlfmt_hash because that one takes the line apart.
+//
+// The number in the tag has to be the number the hash-mode was chosen from. One hash list is one
+// hash-mode, so a line carrying a different number is a line for a different hash-mode; it is named
+// and skipped, the way any other line that does not belong in the list is.
+//
+// The fields are rewritten from John's spelling into hashcat's, in place, which shortens the line
+// wherever a $HEX$ field is decoded. That is why line_len is updated.
+//
+// The tag itself is kept per hash, because --left and --remove reproduce the line they read and
+// John will not read it back without it.
+//
+// hashfile is NULL for the single hash given on the command line.
+
+static bool hashes_dynamicx_line (hashcat_ctx_t *hashcat_ctx, char *line_buf, int *line_len, hashinfo_t *hash_info, const char *hashfile, const u32 line_num)
+{
+  const hashconfig_t         *hashconfig         = hashcat_ctx->hashconfig;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  char where[256];
+
+  if (hashfile == NULL)
+  {
+    snprintf (where, sizeof (where), "The hash");
+  }
+  else
+  {
+    snprintf (where, sizeof (where), "Hashfile '%s' on line %u", hashfile, line_num);
+  }
+
+  int tag_len = 0;
+
+  const int dynamic_num = dynamicx_tag_number (line_buf, *line_len, &tag_len);
+
+  if (dynamic_num < 0)
+  {
+    event_log_warning (hashcat_ctx, "%s does not start with $dynamic_N$.", where);
+
+    return false;
+  }
+
+  if (dynamic_num != user_options_extra->dynamicx_num)
+  {
+    event_log_warning (hashcat_ctx, "%s is $dynamic_%d$ in a $dynamic_%d$ hash list.", where, dynamic_num, user_options_extra->dynamicx_num);
+
+    return false;
+  }
+
+  const char *error = NULL;
+
+  int hash_len = 0;
+
+  if (dynamicx_translate (line_buf, *line_len, hashconfig->separator, &tag_len, &hash_len, &error) < 0)
+  {
+    event_log_warning (hashcat_ctx, "%s has %s.", where, error);
+
+    return false;
+  }
+
+  *line_len = tag_len + hash_len;
+
+  if (hash_info != NULL)
+  {
+    dynamicx_t *dynamicx = hash_info->dynamicx;
+
+    if (dynamicx != NULL)
+    {
+      dynamicx->dynamicx_buf = (char *) hcmalloc (tag_len + 1);
+      dynamicx->dynamicx_len = (u32) tag_len;
+
+      memcpy (dynamicx->dynamicx_buf, line_buf, tag_len);
+    }
+  }
+
+  return true;
+}
+
 int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 {
   hashconfig_t          *hashconfig         = hashcat_ctx->hashconfig;
@@ -3473,10 +3562,25 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
     {
       char *input_buf = user_options_extra->hc_hash;
 
-      size_t input_len = strlen (input_buf);
+      int input_len = (int) strlen (input_buf);
 
       char  *hash_buf = NULL;
       int    hash_len = 0;
+
+      bool  dynamicx_ok  = true;
+      char *dynamicx_buf = NULL;
+
+      // before hlfmt_hash, which takes the line apart. hc_hash points into argv and the translation
+      // writes on the line it is given, so the single hash on the command line is copied first.
+
+      if (user_options->dynamic_x == true)
+      {
+        dynamicx_buf = hcstrdup (input_buf);
+
+        dynamicx_ok = hashes_dynamicx_line (hashcat_ctx, dynamicx_buf, &input_len, hashes_buf[hashes_cnt].hash_info, NULL, 0);
+
+        input_buf = dynamicx_buf;
+      }
 
       hlfmt_hash (hashcat_ctx, hashlist_format, input_buf, input_len, &hash_buf, &hash_len);
 
@@ -3485,7 +3589,11 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       if (hash_len < 1)     hash_fmt_error = true;
       if (hash_buf == NULL) hash_fmt_error = true;
 
-      if (hash_fmt_error)
+      if (dynamicx_ok == false)
+      {
+        // already named
+      }
+      else if (hash_fmt_error)
       {
         event_log_warning (hashcat_ctx, "Failed to parse hashes using the '%s' format.", strhlfmt (hashlist_format));
       }
@@ -3716,6 +3824,8 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
           }
         }
       }
+
+      hcfree (dynamicx_buf);
     }
     else if (hashlist_mode == HL_MODE_FILE_PLAIN)
     {
@@ -3750,7 +3860,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
       {
         line_num++;
 
-        const size_t line_len = fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
+        int line_len = (int) fgetl (&fp, line_buf, HCBUFSIZ_LARGE);
 
         if (line_len == 0) continue;
 
@@ -3763,6 +3873,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         char *hash_buf = NULL;
         int   hash_len = 0;
+
+        // before hlfmt_hash, which rewrites the line in place and would take the tag apart
+
+        if (user_options->dynamic_x == true)
+        {
+          if (hashes_dynamicx_line (hashcat_ctx, line_buf, &line_len, hashes_buf[hashes_cnt].hash_info, hashes->hashfile, line_num) == false) continue;
+        }
 
         hlfmt_hash (hashcat_ctx, hashlist_format, line_buf, line_len, &hash_buf, &hash_len);
 
@@ -5379,13 +5496,22 @@ void hashes_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashes->salts_buf);
   hcfree (hashes->salts_shown);
 
-  if ((user_options->username == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (user_options->hash_copy == true))
+  if ((user_options->username == true) || (user_options->dynamic_x == true) || (hashconfig->opts_type & OPTS_TYPE_HASH_COPY) || (user_options->hash_copy == true))
   {
     for (u32 hash_pos = 0; hash_pos < hashes->hashes_cnt; hash_pos++)
     {
       if (user_options->username == true)
       {
         hcfree (hashes->hash_info[hash_pos]->user);
+      }
+
+      if (user_options->dynamic_x == true)
+      {
+        dynamicx_t *dynamicx = hashes->hash_info[hash_pos]->dynamicx;
+
+        if (dynamicx != NULL) hcfree (dynamicx->dynamicx_buf);
+
+        hcfree (dynamicx);
       }
 
       if (hashconfig->opts_type & OPTS_TYPE_HASH_COPY || (user_options->hash_copy == true))

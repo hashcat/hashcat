@@ -2561,6 +2561,13 @@ typedef struct pot_tree_entry
 
   hashconfig_t *hashconfig;
 
+  // The password the potfile has for this hash+salt, kept here rather than pushed straight into the
+  // linked list, because a potfile with the same hash on many lines would otherwise walk the whole
+  // list once per line. It is handed to the nodes once, after the potfile has been read.
+
+  char *pw_buf;
+  int   pw_len;
+
 } pot_tree_entry_t;
 
 typedef struct pot_orig_line_entry
@@ -2925,6 +2932,11 @@ typedef struct user_options_extra
   char   separator;
 
   char  *hc_hash;   // can be filename or string
+
+  // --dynamic-x: the number in the $dynamic_N$ tag of the first hash. One hash list is one -m, so
+  // every other line has to carry the same number, and this is what they are compared against.
+
+  int    dynamicx_num;
 
   int    hc_workc;  // can be 0 in bf-mode = default mask
   char **hc_workv;

@@ -233,6 +233,8 @@ static void hlfmt_hash_hashcat (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, char *l
     char *pos = NULL;
     int   len = 0;
 
+    // the line arrives already translated into hashcat's spelling, all that is left is the tag
+
     if (extract_dynamicx_hash ((const u8 *) line_buf, line_len, (u8 **) &pos, &len) != -1)
     {
       *hashbuf_pos = pos;

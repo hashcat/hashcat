@@ -28,6 +28,7 @@
 #include "cpt.h"
 #include "debugfile.h"
 #include "dispatch.h"
+#include "dynamicx.h"
 #include "event.h"
 #include "hashes.h"
 #include "hwmon.h"
@@ -2076,6 +2077,14 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
   // read dictionary cache
 
 
+  // --dynamic-x: the number in the tag picks the hash-mode, and it does so before autodetect,
+  // because autodetect cannot tell md5($p.$s) from md5($s.$p) by looking at a hash and the tag can
+
+  if ((user_options->dynamic_x == true) && (user_options->identify == false))
+  {
+    if (dynamicx_session_hash_mode (hashcat_ctx) == -1) return -1;
+  }
+
   // autodetect
 
   if (user_options->autodetect == true)
@@ -2090,7 +2099,20 @@ int hashcat_session_execute (hashcat_ctx_t *hashcat_ctx)
 
     if (modes_cnt <= 0)
     {
-      if (user_options->show == false) event_log_error (hashcat_ctx, "No hash-mode matches the structure of the input hash.");
+      if (user_options->show == false)
+      {
+        event_log_error (hashcat_ctx, "No hash-mode matches the structure of the input hash.");
+
+        // John writes the format into the line and autodetect does not read it, so a hash that
+        // came from John lands here with nothing to go on
+
+        if (dynamicx_first_number (hashcat_ctx) >= 0)
+        {
+          event_log_warning (hashcat_ctx, NULL);
+          event_log_warning (hashcat_ctx, "This hash is in John's $dynamic_N$ format. Add --dynamic-x to load it.");
+          event_log_warning (hashcat_ctx, NULL);
+        }
+      }
 
       return -1;
     }
