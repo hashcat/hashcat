@@ -51,7 +51,7 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --show                     |      | Compare hashlist with potfile; show cracked hashes   |
      --left                     |      | Compare hashlist with potfile; show uncracked hashes |
      --username                 |      | Enable ignoring of usernames in hashfile             |
-     --dynamic-x                |      | Ignore $dynamic_X$ prefix in hashes                  |
+     --dynamic-x                |      | Load hashes written in John's $dynamic_X$ format     |
      --remove                   |      | Enable removal of hashes once they are cracked       |
      --remove-timer             | Num  | Update input hash file each X seconds                | --remove-timer=30
      --potfile-disable          |      | Do not write potfile                                 |
