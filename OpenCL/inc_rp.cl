@@ -139,15 +139,9 @@ DECLSPEC void append_block (PRIVATE_AS const u32 *buf_src, const int off_src, PR
 
 DECLSPEC void exchange_byte (PRIVATE_AS u32 *buf, const int off_src, const int off_dst)
 {
-  PRIVATE_AS u8 *ptr = (PRIVATE_AS u8 *) buf;
-
-  const u8 tmp = ptr[off_src];
-
-  ptr[off_src] = ptr[off_dst];
-  ptr[off_dst] = tmp;
-
-  /*
-  something tells me we do this faster
+  // word based access instead of u8 pointer casting, see https://github.com/hashcat/hashcat/issues/3592
+  // also avoids a Mesa rusticl (LLVM 21, AMDGPU backend) compiler crash seen on gfx1013:
+  // variable-index u8 loads/stores on private memory segfault the compiler process
 
   const int sd  = off_src / 4;
   const int sm  = off_src & 3;
@@ -173,7 +167,6 @@ DECLSPEC void exchange_byte (PRIVATE_AS u32 *buf, const int off_src, const int o
 
   buf[sd] ^= xs;
   buf[dd] ^= xd;
-  */
 }
 
 DECLSPEC int mangle_lrest (MAYBE_UNUSED const u8 p0, MAYBE_UNUSED const u8 p1, PRIVATE_AS u32 *buf, const int len)

@@ -2127,9 +2127,20 @@ DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const in
 // Input buffer and Output buffer size has to be multiple of 4 and at least of size 4.
 // The output buffer is not zero padded, so entire buffer has to be set all zero before entering this function or truncated afterwards.
 
+// Read one byte of src_buf through a u32 load instead of a u8 load. Three or more
+// u8 loads from private (stack) memory through a casted pointer with a variable
+// index crash the AMDGPU back end of Mesa rusticl (LLVM 21) while compiling
+// gpu_utf8_to_utf16 - the process dies with SIGSEGV inside libLLVM. Extracting
+// the byte from a word load is semantically identical on little-endian targets
+// and measures the same after optimization on other OpenCL platforms.
+
+DECLSPEC u32 hc_enc_src_byte (PRIVATE_AS const u32 *src_buf, const int pos)
+{
+  return (src_buf[pos >> 2] >> ((pos & 3) << 3)) & 0xff;
+}
+
 DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src_buf, const int src_len, const int src_sz, PRIVATE_AS u32 *dst_buf, const int dst_sz)
 {
-  PRIVATE_AS const u8 *src_ptr = (PRIVATE_AS const u8 *) src_buf;
   PRIVATE_AS       u8 *dst_ptr = (PRIVATE_AS       u8 *) dst_buf;
 
   int src_pos = hc_enc->pos;
@@ -2142,7 +2153,7 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
   while ((src_pos < src_len) && (dst_pos < dst_sz))
   {
-    const u8 c = src_ptr[src_pos];
+    const u8 c = hc_enc_src_byte (src_buf, src_pos);
 
     int extraBytesToRead = -1;
 
@@ -2213,25 +2224,25 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
         break;
       */
       case 3:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++; ch <<= 6;
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++; ch <<= 6;
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++; ch <<= 6;
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++;
         ch -= offsetsFromUTF8_3;
         break;
       case 2:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++; ch <<= 6;
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++; ch <<= 6;
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++;
         ch -= offsetsFromUTF8_2;
         break;
       case 1:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++; ch <<= 6;
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++;
         ch -= offsetsFromUTF8_1;
         break;
       case 0:
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_src_byte (src_buf, src_pos); src_pos++;
         ch -= offsetsFromUTF8_0;
         break;
     }
