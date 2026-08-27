@@ -20,9 +20,21 @@
 #define BITMAP_PENALTY_CACHE  1.25
 #define BITMAP_PENALTY_MEMORY 7.00
 
-#define BITMAP_CACHE_SHARE    0.40
+/* The cache and L1 tiers are blended continuously rather than switched at a
+   threshold: a table that is slightly larger than a tier is slightly slower,
+   not seven times slower. The knees are where each blend is half, measured on
+   RTX 4090, RX 7900 XTX, Radeon Pro W7800, Radeon Pro W5700X and RTX A400. */
 
-#define BITMAP_CACHE_TRUST    (16 * 1024 * 1024)
+#define BITMAP_CACHE_KNEE     0.70
+#define BITMAP_L1_KNEE        1.00
+#define BITMAP_BLEND_ORDER    6
+
+/* Several devices under-report their last level cache, or report none at all:
+   RDNA3 hides Infinity Cache behind a 6 MB figure and Metal reports 0. Sizing
+   against those numbers would confine the tables to a fraction of the cache
+   that is really there, so treat this as the smallest cache worth believing. */
+
+#define BITMAP_CACHE_FLOOR    (24 * 1024 * 1024)
 
 #define BITMAP_COST_MARGIN    0.99
 
@@ -174,22 +186,34 @@ static double bitmap_search_cost (const u64 digests_cnt, const u32 bitmap_bits)
   return false_positive * steps * BITMAP_PENALTY_MEMORY;
 }
 
+// x^n / (x^n + knee^n), the fraction of accesses that miss a tier of this size
+
+static double bitmap_blend (const double x, const double knee)
+{
+  double xn = 1.0;
+  double kn = 1.0;
+
+  for (u32 i = 0; i < BITMAP_BLEND_ORDER; i++)
+  {
+    xn *= x;
+    kn *= knee;
+  }
+
+  return xn / (xn + kn);
+}
+
 static double bitmap_cost (const u64 digests_cnt, const u32 bitmap_bits, const u64 local_mem, const u64 cache_size)
 {
-  const u64 footprint = bitmap_hot_bytes (digests_cnt, bitmap_bits);
+  const double footprint = (double) bitmap_hot_bytes (digests_cnt, bitmap_bits);
 
-  double penalty = BITMAP_PENALTY_MEMORY;
+  const double cache = (double) ((cache_size > BITMAP_CACHE_FLOOR) ? cache_size : BITMAP_CACHE_FLOOR);
 
-  if (cache_size < BITMAP_CACHE_TRUST)
-  {
-    penalty = BITMAP_PENALTY_CACHE;
-  }
-  else if ((double) footprint <= ((double) cache_size * BITMAP_CACHE_SHARE))
-  {
-    penalty = BITMAP_PENALTY_CACHE;
-  }
+  const double miss_l1    = (local_mem != 0) ? bitmap_blend (footprint / (double) local_mem, BITMAP_L1_KNEE) : 1.0;
+  const double miss_cache = bitmap_blend (footprint / cache, BITMAP_CACHE_KNEE);
 
-  if ((local_mem != 0) && (footprint <= local_mem)) penalty = BITMAP_PENALTY_L1;
+  const double penalty = BITMAP_PENALTY_L1
+                       + ((BITMAP_PENALTY_CACHE  - BITMAP_PENALTY_L1)    * miss_l1)
+                       + ((BITMAP_PENALTY_MEMORY - BITMAP_PENALTY_CACHE) * miss_cache);
 
   return (bitmap_stages (digests_cnt, bitmap_bits) * penalty) + bitmap_search_cost (digests_cnt, bitmap_bits);
 }
