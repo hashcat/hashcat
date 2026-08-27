@@ -982,6 +982,7 @@ typedef enum user_options_map
   IDX_LEFT                      = 0xff27,
   IDX_LIMIT                     = 'l',
   IDX_LOGFILE_DISABLE           = 0xff28,
+  IDX_LOOKUP                    = 0xff89,
   IDX_LOOPBACK                  = 0xff29,
   IDX_MACHINE_READABLE          = 0xff2a,
   IDX_MARKOV_CLASSIC            = 0xff2b,
@@ -2790,6 +2791,8 @@ typedef struct user_options
   char        *debug_file;
   char        *induction_dir;
   char        *keyboard_layout_mapping;
+  char        *lookup;
+  char        *lookup_alias;    // "lookup=" plus the above, when -a 4 is handed the question
   char        *markov_hcstat2;
   char        *backend_devices;
   char        *opencl_device_types;
@@ -3027,6 +3030,115 @@ typedef struct combinator_ctx
 
 } combinator_ctx_t;
 
+// Why a mask did not reach the candidate --lookup asked about. Which of the three it is decides what
+// the user can do about it, so they are kept apart rather than reported as one refusal.
+
+typedef enum mask_lookup_miss
+{
+  MASK_LOOKUP_MISS_NONE    = 0,
+  MASK_LOOKUP_MISS_LENGTH  = 1,  // the mask is not the candidate's length, so no offset in it can be
+  MASK_LOOKUP_MISS_CHARSET = 2,  // the mask does not allow that character at that position
+  MASK_LOOKUP_MISS_MARKOV  = 3,  // the mask allows it, and --markov-threshold dropped it from the table
+
+} mask_lookup_miss_t;
+
+// Where the queue of masks reaches the candidate --lookup asked about, filled in one round at a time
+// and read once the queue has been walked.
+//
+// word is a position in the whole queue and not in the round that found it, because that is what
+// --skip addresses. A hit is kept and later rounds cannot displace it: the queue is walked in the
+// order the run would walk it, so the first round that reaches the candidate is where the run does.
+//
+// The masks are copied rather than pointed at. A mask file's line is parsed into mask_ctx->mfs,
+// which the next round overwrites, so a pointer would still be readable and would no longer say
+// what it said when the answer was found.
+//
+// A miss is kept only until a nearer one turns up. Nearer means the mask was the right length when
+// the one before it was not, and failing that means it got further along the candidate before
+// refusing it. That is the mask the user most likely meant, and it is the one worth naming out of a
+// queue that can hold fifty.
+
+typedef struct mask_lookup
+{
+  bool  hit;
+  bool  placed;     // whether word has been moved from this round's numbering to the queue's
+
+  // A mode that hashes the candidate in upper case has every mask charset built in upper case, so
+  // the candidate is folded the same way before it is looked for and the user is told it was. What
+  // the run reaches is the folded spelling, and saying so is the difference between an answer and a
+  // wrong one.
+
+  bool  uppered;
+
+  u32   round;      // masks_pos of the round that reached it
+  char  mask[0x400]; // as wide as mf_t's, so no mask a maskfile can hold is truncated
+
+  u64   word;       // the -s value, counted from the start of the queue
+  u64   amp;        // where in that base word's cell the candidate sits
+  u64   amp_cnt;    // how wide the cell is, which is 1 when -s counts candidates
+
+  // Whether the engine this run did not get would have reached it, and whether that was asked at
+  // all. The two engines differ: the run walks a mask in two pieces and -S walks it in one, and
+  // under --markov-threshold that is not a reordering but a different set of candidates.
+  //
+  // Both directions are worth saying and both happen. A user told only that the mask does not
+  // produce their password would change the mask, when what they needed was -S. And a user handed an
+  // offset who then adds -S for a slow hash would lose the candidate without being told.
+
+  bool  other_probed;
+  bool  other;
+
+  // Masks the run passed over for being outside the mode's password length. They are not part of the
+  // attack and not part of the keyspace, so an answer that does not mention them can read as "no mask
+  // was that long" when one was and the run declined it.
+
+  u32   skipped;
+
+  mask_lookup_miss_t miss;
+
+  u32   round_miss;
+  char  mask_miss[0x400];
+  u32   miss_pos;   // the position that refused it, counted in characters and from 1
+  u32   miss_chr;   // the character it refused
+
+} mask_lookup_t;
+
+// Where a hybrid queue reaches the candidate --lookup asked about. Separate from mask_lookup_t
+// because the two answers are different shapes: -a 3 names one mask offset, and a hybrid names a
+// word, a second word and a mask offset, plus the split of the candidate that produced them.
+
+typedef struct combi_lookup
+{
+  bool  hit;
+  bool  placed;
+
+  // The mirror shape, where the mask is the base word and the dictionary amplifies it. It is a
+  // different decomposition and this does not invert it, so it is reported as unanswered rather than
+  // answered wrongly.
+
+  bool  unsupported;
+
+  u32   round;
+  char  mask[0x400];
+
+  u64   word;       // the -s value, counted from the start of the queue
+  u64   amp;        // where in that base word's cell the candidate sits
+  u64   amp_cnt;    // how wide the cell is
+
+  bool  mask_base;  // the mask is the base word and the wordlist amplifies it
+
+  u32   base_len;   // how the candidate was split between the two words
+  u32   q_len;
+  bool  has_q;
+
+  mask_lookup_miss_t miss;
+
+  char  mask_miss[0x400];
+  u32   miss_pos;
+  u32   miss_chr;
+
+} combi_lookup_t;
+
 typedef struct mask_ctx
 {
   bool   enabled;
@@ -3075,6 +3187,14 @@ typedef struct mask_ctx
   char  *mask;
 
   mf_t  *mfs;
+
+  // --lookup asks where this queue of masks reaches one candidate. It is answered while the queue is
+  // sized rather than by a second walk of it, because a round's tables only exist between
+  // mask_ctx_update_loop () building them and the next round overwriting them.
+
+  mask_lookup_t lookup;
+
+  combi_lookup_t lookup_combi;
 
 } mask_ctx_t;
 

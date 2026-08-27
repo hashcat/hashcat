@@ -5852,7 +5852,7 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
   const bool dev = global_ctx->dev_enable;
 
-  pmsg (pg, "pcfg: lookup '%s'", pg->lookup);
+  pmsg (pg, "lookup: '%s'", pg->lookup);
 
   pcfg_hit_t hit;
 
@@ -5869,23 +5869,23 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     if ((pg->m_lines > 0) && (pg->omen_lvl_cnt == 0))
     {
-      pmsg (pg, "pcfg: no structure in this grammar derives it, so the OMEN escape is the only route to it");
+      pmsg (pg, "lookup: no structure in this grammar derives it, so the OMEN escape is the only route to it");
 
       if (dev == true)
       {
-        pmsg (pg, "pcfg: and this run drops the escape, because the device engine cannot walk a trellis");
-        pmsg (pg, "pcfg: so this attack never tries this password. no -s reaches it and no runtime finds it");
-        pmsg (pg, "pcfg: -S runs the same grammar on the host engine, which carries the escape. ask again with it for the offset");
+        pmsg (pg, "lookup: and this run drops the escape, because the device engine cannot walk a trellis");
+        pmsg (pg, "lookup: so this attack never tries this password. no -s reaches it and no runtime finds it");
+        pmsg (pg, "lookup: -S runs the same grammar on the host engine, which carries the escape. ask again with it for the offset");
       }
       else if (pg->omen_want == false)
       {
-        pmsg (pg, "pcfg: and this run drops the escape, because omen=0 was given");
-        pmsg (pg, "pcfg: so this attack never tries this password. ask again without omen=0 for the offset");
+        pmsg (pg, "lookup: and this run drops the escape, because omen=0 was given");
+        pmsg (pg, "lookup: so this attack never tries this password. ask again without omen=0 for the offset");
       }
       else
       {
-        pmsg (pg, "pcfg: and this run has no escape to carry, for the reason given above");
-        pmsg (pg, "pcfg: so this attack never tries this password");
+        pmsg (pg, "lookup: and this run has no escape to carry, for the reason given above");
+        pmsg (pg, "lookup: so this attack never tries this password");
       }
 
       return;
@@ -5893,8 +5893,8 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     // Not derivable at all. Every structure was tried and so was the escape, where one is carried.
 
-    pmsg (pg, "pcfg: not derivable. nothing in this grammar produces it, at any cost and at any -s");
-    pmsg (pg, "pcfg: it needs a ruleset trained on its parts, named alongside this one to merge the two");
+    pmsg (pg, "lookup: not derivable. nothing in this grammar produces it, at any cost and at any -s");
+    pmsg (pg, "lookup: it needs a ruleset trained on its parts, named alongside this one to merge the two");
 
     return;
   }
@@ -5910,9 +5910,9 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     const u32 want = (u32) ((hit.cost + pg->scale - 1) / pg->scale);
 
-    pmsg (pg, "pcfg: structure %s derives it, at cost %u, and this run stops at costmax %" PRIu64, name, hit.cost, pg->costmax);
-    pmsg (pg, "pcfg: so it is past the end of the run, whatever -s and whatever the runtime");
-    pmsg (pg, "pcfg: costmax=%u reaches it, and every level below it as well, which is a much larger keyspace", want);
+    pmsg (pg, "lookup: structure %s derives it, at cost %u, and this run stops at costmax %" PRIu64, name, hit.cost, pg->costmax);
+    pmsg (pg, "lookup: so it is past the end of the run, whatever -s and whatever the runtime");
+    pmsg (pg, "lookup: costmax=%u reaches it, and every level below it as well, which is a much larger keyspace", want);
 
     return;
   }
@@ -5926,14 +5926,14 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     lookup_slots (pg, &hit, slots, sizeof (slots));
 
-    pmsg (pg, "pcfg: derived by structure %s, at cost %u of costmax %" PRIu64, name, hit.cost, pg->costmax);
-    pmsg (pg, "pcfg: %s", slots);
+    pmsg (pg, "lookup: derived by structure %s, at cost %u of costmax %" PRIu64, name, hit.cost, pg->costmax);
+    pmsg (pg, "lookup: %s", slots);
   }
   else
   {
     // Case 2. No structure spells it, the escape does, and this run carries the escape.
 
-    pmsg (pg, "pcfg: no structure derives it, the OMEN escape does, at level %u and cost %u of costmax %" PRIu64,
+    pmsg (pg, "lookup: no structure derives it, the OMEN escape does, at level %u and cost %u of costmax %" PRIu64,
       pg->omen_lvl[hit.oi].lvl, hit.cost, pg->costmax);
   }
 
@@ -5944,18 +5944,18 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     if (hit.has_unit == false)
     {
-      pmsg (pg, "pcfg: this run reaches it, but its base word could not be placed in the device index");
+      pmsg (pg, "lookup: this run reaches it, but its base word could not be placed in the device index");
 
       return;
     }
 
     const double pct = (pg->units > 0) ? ((double) hit.unit * 100.0 / (double) pg->units) : 0.0;
 
-    pmsg (pg, "pcfg: base word %" PRIu64 " of %" PRIu64 ", %.4f%% into the run, which is candidate %" PRIu64 " of %" PRIu64,
+    pmsg (pg, "lookup: base word %" PRIu64 " of %" PRIu64 ", %.4f%% into the run, which is candidate %" PRIu64 " of %" PRIu64,
       hit.unit, pg->units, pct, hit.pos, pg->keyspace);
 
-    pmsg (pg, "pcfg: this run reaches it at -s %" PRIu64 ", because the device engine counts -s in base words", hit.unit);
-    pmsg (pg, "pcfg: -s %" PRIu64 " -l 1 runs the one cell that holds it", hit.unit);
+    pmsg (pg, "lookup: this run reaches it at -s %" PRIu64 ", because the device engine counts -s in base words", hit.unit);
+    pmsg (pg, "lookup: -s %" PRIu64 " -l 1 runs the one cell that holds it", hit.unit);
 
     return;
   }
@@ -5964,10 +5964,10 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
   {
     const double pct = (pg->keyspace > 0) ? ((double) hit.pos * 100.0 / (double) pg->keyspace) : 0.0;
 
-    pmsg (pg, "pcfg: candidate %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", hit.pos, pg->keyspace, pct);
+    pmsg (pg, "lookup: candidate %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", hit.pos, pg->keyspace, pct);
 
-    pmsg (pg, "pcfg: this run reaches it at -s %" PRIu64 ", because the host engine counts -s in candidates", hit.pos);
-    pmsg (pg, "pcfg: -s %" PRIu64 " -l 1 runs that one candidate and nothing else", hit.pos);
+    pmsg (pg, "lookup: this run reaches it at -s %" PRIu64 ", because the host engine counts -s in candidates", hit.pos);
+    pmsg (pg, "lookup: -s %" PRIu64 " -l 1 runs that one candidate and nothing else", hit.pos);
   }
 }
 

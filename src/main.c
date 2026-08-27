@@ -388,6 +388,11 @@ static void main_calculated_words_base (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx,
   if (user_options->keyspace == false) return;
   if (user_options->total_candidates == true) return;
 
+  // --lookup turns itself into --keyspace to get the queue sized round by round, and then answers a
+  // different question. The keyspace is not what was asked for.
+
+  if (user_options->lookup != NULL) return;
+
   event_log_info (hashcat_ctx, "%" PRIu64 "", status_ctx->words_base);
 }
 

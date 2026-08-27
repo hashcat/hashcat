@@ -112,6 +112,7 @@ static const struct option long_options[] =
   {"left",                      no_argument,       NULL, IDX_LEFT},
   {"limit",                     required_argument, NULL, IDX_LIMIT},
   {"logfile-disable",           no_argument,       NULL, IDX_LOGFILE_DISABLE},
+  {"lookup",                    required_argument, NULL, IDX_LOOKUP},
   {"loopback",                  no_argument,       NULL, IDX_LOOPBACK},
   {"machine-readable",          no_argument,       NULL, IDX_MACHINE_READABLE},
   {"markov-classic",            no_argument,       NULL, IDX_MARKOV_CLASSIC},
@@ -281,6 +282,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->left                      = LEFT;
   user_options->limit                     = LIMIT;
   user_options->logfile                   = LOGFILE;
+  user_options->lookup                    = NULL;
+  user_options->lookup_alias              = NULL;
   user_options->loopback                  = LOOPBACK;
   user_options->machine_readable          = MACHINE_READABLE;
   user_options->markov_classic            = MARKOV_CLASSIC;
@@ -360,6 +363,8 @@ void user_options_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (user_options->rp_files);
 
   hcfree (user_options->hc_argv_alias);
+
+  hcfree (user_options->lookup_alias);
 
   if (user_options->backend_info > 0)
   {
@@ -524,6 +529,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
       case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;                            break;
+      case IDX_LOOKUP:                    user_options->lookup                    = optarg;                          break;
       case IDX_LOOPBACK:                  user_options->loopback                  = true;                            break;
       case IDX_SESSION:                   user_options->session                   = optarg;
                                           user_options->session_chgd              = true;                            break;
@@ -1416,6 +1422,167 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  // --lookup asks where a run reaches one candidate and answers from the tables that run would
+  // enumerate, so it sizes every round exactly as --keyspace does and then reports instead of
+  // summing. It is refused everywhere --keyspace is, on its own name, because it only turns into
+  // --keyspace in user_options_preprocess and that runs after this.
+
+  if (user_options->lookup != NULL)
+  {
+    if (strlen (user_options->lookup) == 0)
+    {
+      event_log_error (hashcat_ctx, "Invalid --lookup value - must not be empty.");
+
+      return -1;
+    }
+
+    // A candidate is bytes, and a ?b mask reaches bytes no shell can pass. $HEX[...] is the spelling
+    // the potfile and --show already use for exactly that, so it is accepted here as well and the
+    // length that has to fit a mask is the decoded one.
+
+    if (is_hexify ((const u8 *) user_options->lookup, strlen (user_options->lookup)) == false)
+    {
+      if (strlen (user_options->lookup) > PW_MAX)
+      {
+        event_log_error (hashcat_ctx, "Invalid --lookup value - must not be longer than %d characters.", PW_MAX);
+
+        return -1;
+      }
+    }
+    else
+    {
+      if (((strlen (user_options->lookup) - 6) / 2) > PW_MAX)
+      {
+        event_log_error (hashcat_ctx, "Invalid --lookup value - must not decode to more than %d bytes.", PW_MAX);
+
+        return -1;
+      }
+    }
+
+    if (user_options->show == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --show with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->left == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --left with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->keyspace == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --keyspace with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->total_candidates == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --total-candidates with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->stdout_flag == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --stdout with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->benchmark == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --benchmark with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->speed_only == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --speed-only with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    if (user_options->progress_only == true)
+    {
+      event_log_error (hashcat_ctx, "Combining --progress-only with --lookup is not allowed.");
+
+      return -1;
+    }
+
+    // -a 4 answers this question already, from tables only its feed has, so --lookup is carried to it
+    // as the setting it already understands rather than reimplemented beside it. That happens in
+    // user_options_alias_attack_mode (), which is where -a 4's command line is rewritten anyway.
+    //
+    // Every other mode is refused, and refused for a reason worth stating: not because there is
+    // nowhere to hang the answer, but because nothing has been written that can invert it yet. A run
+    // that quietly answered nothing would be worse than one that says so.
+
+    if ((user_options->attack_mode != ATTACK_MODE_BF)
+     && (user_options->attack_mode != ATTACK_MODE_STRAIGHT)
+     && (user_options->attack_mode != ATTACK_MODE_COMBI)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID1)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
+     && (user_options->attack_mode != ATTACK_MODE_HYBRID)
+     && (user_options->attack_mode != ATTACK_MODE_PCFG))
+    {
+      event_log_error (hashcat_ctx, "--lookup is supported in attack-modes 0, 3 and 4 only.");
+
+      event_log_warning (hashcat_ctx, "The other attack modes have no inversion yet, so there is no offset to give rather than a wrong one.");
+
+      return -1;
+    }
+
+    // A restored session is handed its command line by the restore file and its position in the
+    // queue by the restore data, and --lookup reads neither: it walks the queue from the front to
+    // number it. Left alone the two produce an answer against the default mask rather than against
+    // the attack that was restored, which is a wrong answer rather than an error.
+
+    if ((user_options->restore == true) || (user_options->restore_position == true))
+    {
+      event_log_error (hashcat_ctx, "Combining --restore with --lookup is not allowed.");
+
+      event_log_warning (hashcat_ctx, "Give --lookup the command line of the run instead. It answers about the attack, not about how far a session got.");
+
+      return -1;
+    }
+
+    // The most natural command line for this option is the run the user has just done with --lookup
+    // added to it, and that one has a hash file in front of the mask. It cannot be taken. --lookup
+    // reads no hashes, exactly as --keyspace reads none, so every argument is work and a hash file
+    // would be opened as the mask. Saying that beats the usage banner the argument count check at
+    // the end of this function would otherwise print.
+
+    // Only the two modes whose command line is one work argument are checked here. The rest take two
+    // or three, and the count table at the end of this function is what knows which.
+
+    if ((user_options->attack_mode == ATTACK_MODE_BF) || (user_options->attack_mode == ATTACK_MODE_STRAIGHT))
+    {
+      const char *want = (user_options->attack_mode == ATTACK_MODE_BF) ? "mask" : "wordlist";
+
+      if (user_options->hc_argc > 1)
+      {
+        event_log_error (hashcat_ctx, "--lookup takes the %s on its own, with no hash file, exactly as --keyspace does.", want);
+
+        event_log_warning (hashcat_ctx, "It answers about the attack and reads no hashes, so the hash file would be read as the %s.", want);
+
+        return -1;
+      }
+
+      if (user_options->hc_argc == 0)
+      {
+        event_log_error (hashcat_ctx, "--lookup needs a %s to look in.", want);
+
+        return -1;
+      }
+    }
+  }
+
   if (user_options->total_candidates == true)
   {
     if (user_options->show == true)
@@ -1977,7 +2144,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     bool mask_is_missing = true;
 
-    if (user_options->keyspace == true || user_options->total_candidates == true) // special case if --keyspace was used: we need the mask but no hash file
+    if (user_options->keyspace == true || user_options->total_candidates == true || user_options->lookup != NULL) // special case if --keyspace was used: we need the mask but no hash file
     {
       if (user_options->hc_argc > 0) mask_is_missing = false;
     }
@@ -2087,7 +2254,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       show_error = false;
     }
   }
-  else if (user_options->keyspace == true || user_options->total_candidates == true)
+  else if (user_options->keyspace == true || user_options->total_candidates == true || user_options->lookup != NULL)
   {
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
@@ -2380,6 +2547,11 @@ void user_options_session_auto (hashcat_ctx_t *hashcat_ctx)
       user_options->session = "keyspace";
     }
 
+    if (user_options->lookup != NULL)
+    {
+      user_options->session = "lookup";
+    }
+
     if (user_options->stdout_flag == true)
     {
       user_options->session = "stdout";
@@ -2447,13 +2619,16 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
   if ((hc_argc < 1) && (attack_mode != ATTACK_MODE_PCFG)) return;
 
-  char **hc_argv = (char **) hccalloc (hc_argc + 2, sizeof (char *));
+  // Two spare slots for the feed name and the terminator, and a third for the setting --lookup is
+  // carried in as. Only the -a 4 branch below uses the third.
+
+  char **hc_argv = (char **) hccalloc (hc_argc + 3, sizeof (char *));
 
   int hc_argc_new = 0;
 
   // the hash file, or the first work argument when there is no hash file
 
-  const bool has_hash_file = (user_options->benchmark == false) && (user_options->hash_info == 0) && (user_options->backend_info == 0) && (user_options->keyspace == false) && (user_options->total_candidates == false) && (user_options->stdout_flag == false);
+  const bool has_hash_file = (user_options->benchmark == false) && (user_options->hash_info == 0) && (user_options->backend_info == 0) && (user_options->keyspace == false) && (user_options->total_candidates == false) && (user_options->lookup == NULL) && (user_options->stdout_flag == false);
 
   int work_from = 0;
 
@@ -2533,6 +2708,23 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
       hc_argc_new++;
     }
 
+    // --lookup is the one spelling of the question, and this is the mode that already answers it. The
+    // answer is the feed's to give: it depends on which engine the run got and on device-tuned sizing,
+    // and neither leaves the feed. So the option is carried in as the setting the feed already reads,
+    // rather than reimplemented next to it out of tables the core does not have.
+    //
+    // Appended last, so a lookup= the user typed themselves is the one further to the left and this
+    // one wins, which is what a command line option should do against a positional setting.
+
+    if (user_options->lookup != NULL)
+    {
+      hc_asprintf (&user_options->lookup_alias, "lookup=%s", user_options->lookup);
+
+      hc_argv[hc_argc_new] = user_options->lookup_alias;
+
+      hc_argc_new++;
+    }
+
     user_options->attack_mode = ATTACK_MODE_GENERIC;
   }
 
@@ -2592,6 +2784,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->keyspace         == true
    || user_options->total_candidates == true
+   || user_options->lookup           != NULL
    || user_options->speed_only       == true
    || user_options->progress_only    == true
    || user_options->identify         == true
@@ -2673,6 +2866,11 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->quiet = true;
   }
 
+  if (user_options->lookup != NULL)
+  {
+    user_options->quiet = true;
+  }
+
   if (user_options->keyspace == true)
   {
     user_options->quiet = true;
@@ -2684,6 +2882,21 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   }
 
   if (user_options->total_candidates == true)
+  {
+    user_options->keyspace = true;
+  }
+
+  // Every mode, -a 4 included, and there is no exception to it: --lookup never takes a hash file.
+  // The feed's answer depends on which engine the run gets and on device-tuned sizing, and none of
+  // that comes from a device -- the engine follows from -m and -S, and the sizing is a plugin call
+  // with no device in it. Verified by asking the same question both ways and getting the same -s.
+  //
+  // --lookup sizes every round of the queue and then reports where one candidate falls in it, which
+  // is what --keyspace already does minus the reporting. Borrowing it rather than repeating it is
+  // also what keeps the two answers in the same units: a --lookup that named an offset --keyspace
+  // did not count would send the user somewhere the run never goes.
+
+  if (user_options->lookup != NULL)
   {
     user_options->keyspace = true;
   }

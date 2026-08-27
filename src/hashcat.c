@@ -282,6 +282,23 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   const u64 walk_first = status_ctx->words_walk_base;
 
+  // --lookup answered in this round's own numbering, because that is the only numbering the round's
+  // tables know. --skip addresses the queue, so the answer is moved into the queue's here, where how
+  // far into it this round begins is finally known. Once moved it stays put: the round that found it
+  // is the first that reaches it and no later round can be nearer.
+
+  if ((mask_ctx->lookup.hit == true) && (mask_ctx->lookup.placed == false))
+  {
+    mask_ctx->lookup.placed = true;
+    mask_ctx->lookup.word  += walk_first;
+  }
+
+  if ((mask_ctx->lookup_combi.hit == true) && (mask_ctx->lookup_combi.placed == false))
+  {
+    mask_ctx->lookup_combi.placed = true;
+    mask_ctx->lookup_combi.word  += walk_first;
+  }
+
   status_ctx->words_walk_base += status_ctx->words_base;
   status_ctx->words_walk_cnt  += status_ctx->words_cnt;
 
@@ -1365,6 +1382,27 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     EVENT (EVENT_CALCULATED_WORDS_BASE);
     EVENT (EVENT_CALCULATED_WORDS_CNT);
+  }
+
+  // --lookup borrows --keyspace to have every round sized, and answers here for the same reason
+  // --keyspace does: the queue has been walked, so both the answer and the run it is a fraction of
+  // exist. Nothing was attacked and no device was opened, exactly as for --keyspace.
+
+  if (user_options->lookup != NULL)
+  {
+    // A queue in which every mask was passed over never reached the --keyspace short-circuit that
+    // says a round ran, so STATUS_INIT survives and EVENT_OUTERLOOP_FINISHED turns it into
+    // STATUS_ERROR. The question below is answered either way, and an answered question is not a
+    // failure. Same reason, and same one line, as the block further up this file.
+
+    if (status_ctx->devices_status == STATUS_INIT) status_ctx->devices_status = STATUS_RUNNING;
+
+    // One of the two says nothing: each returns on the attack mode it is not for. Both are here
+    // rather than behind a switch because that is where a third mode goes.
+
+    mask_ctx_lookup_report     (hashcat_ctx);
+    combi_ctx_lookup_report    (hashcat_ctx);
+    straight_ctx_lookup_report (hashcat_ctx);
   }
 
   // wait for inner threads

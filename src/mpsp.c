@@ -1267,6 +1267,271 @@ void sp_exec (u64 ctx, char *pw_buf, cs_t *root_css_buf, cs_t *markov_css_buf, u
   }
 }
 
+// sp_exec () read backwards: the offset that produces a given stretch of a candidate.
+//
+// Going forward, each position takes one digit off the offset, lowest position first, writes the
+// character that digit selects, and lets that character choose the next position's charset. Every
+// position has a fixed radix, which is what lets sp_get_sum () call the keyspace a plain product, so
+// coming back is a Horner accumulation: find the character in the charset the walk has arrived at and
+// that is the digit.
+//
+// The walk starts from root_css_buf[start] and not from a markov charset, exactly as sp_exec () does,
+// which is what makes the two halves of a split mask invertible one at a time.
+//
+// A character the arrived-at charset does not hold is a real refusal and the position is reported, so
+// the caller can say whether the mask never allowed it there or --markov-threshold dropped it.
+
+static bool sp_rank (const cs_t *root_css_buf, const cs_t *markov_css_buf, const u8 *pw_buf, const u32 start, const u32 stop, u64 *result, u32 *fail_pos)
+{
+  u64 off = 0;
+  u64 mul = 1;
+
+  const cs_t *cs = &root_css_buf[start];
+
+  for (u32 i = start; i < stop; i++)
+  {
+    const u32 k = pw_buf[i];
+
+    u32 m;
+
+    for (m = 0; m < cs->cs_len; m++)
+    {
+      if (cs->cs_buf[m] == k) break;
+    }
+
+    if (m == cs->cs_len)
+    {
+      *fail_pos = i;
+
+      return false;
+    }
+
+    off += (u64) m * mul;
+    mul *= cs->cs_len;
+
+    cs = &markov_css_buf[(i * CHARSIZ) + k];
+  }
+
+  *result = off;
+
+  return true;
+}
+
+// Whether the mask itself allows a character at a position, as opposed to whether the tables built
+// from it still hold that character. The two differ only under --markov-threshold, and telling them
+// apart is the difference between "this mask cannot spell it" and "raise -t and it can".
+
+static bool mp_css_allows (const cs_t *css_buf, const u32 css_pos, const u32 chr)
+{
+  const cs_t *cs = &css_buf[css_pos];
+
+  for (u32 i = 0; i < cs->cs_len; i++)
+  {
+    if (cs->cs_buf[i] == chr) return true;
+  }
+
+  return false;
+}
+
+// Whether -S would reach the candidate, which is the same mask walked in one piece rather than in
+// the two the devices need. Asked on both the hit and the miss path, because the two engines can
+// each hold a candidate the other does not.
+
+static bool mask_ctx_lookup_whole (const mask_ctx_t *mask_ctx, const u8 *pw_buf, const u32 css_cnt_orig)
+{
+  u64 whole = 0;
+
+  u32 whole_fail = 0;
+
+  return sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, 0, css_cnt_orig, &whole, &whole_fail);
+}
+
+// Where this round's mask reaches the candidate --lookup asked about.
+//
+// The run does not walk a mask in one piece. mp_css_split_cnt () cuts it into the amplifier, the
+// css_cnt_r lowest positions, and the base word, everything above them, and the two are enumerated
+// separately: the base word walk starts from root_css_buf[css_cnt_r] rather than from the markov
+// charset the character below it would have chosen. So the cut is walked back the same way, in two
+// pieces, or the answer would be the offset of a candidate this run never produces.
+//
+// css_cnt_orig is the mask's own length. mask_ctx->css_cnt can be longer, because an appended salt
+// adds fixed positions to it, and those are not the user's to spell. They cost nothing to leave out:
+// a fixed position has radix 1, so it contributes no digit and multiplies the offset by nothing.
+
+static void mask_ctx_lookup (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_orig, const u32 css_cnt_r)
+{
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  mask_ctx_t    *mask_ctx = hashcat_ctx->mask_ctx;
+  mask_lookup_t *lookup   = &mask_ctx->lookup;
+
+  if (user_options->lookup == NULL) return;
+
+  // The queue is walked in the order the run walks it, so the first round that reaches the candidate
+  // is where the run reaches it and no later round can be nearer.
+
+  if (lookup->hit == true) return;
+
+  const u8 *arg     = (const u8 *) user_options->lookup;
+  const u32 arg_len = (u32) strlen (user_options->lookup);
+
+  u8 cand[PW_MAX];
+
+  u32 cand_len = 0;
+
+  // A ?b mask produces candidates that no command line can carry, and a shell cannot pass a NUL byte
+  // at all. $HEX[...] is how the rest of hashcat writes such a word, in the potfile and in --show,
+  // so a candidate is accepted in it here for the same reason.
+
+  if (is_hexify (arg, arg_len) == true)
+  {
+    cand_len = (u32) exec_unhexify (arg, arg_len, cand, sizeof (cand));
+  }
+  else
+  {
+    if (arg_len > sizeof (cand)) return;
+
+    memcpy (cand, arg, arg_len);
+
+    cand_len = arg_len;
+  }
+
+  // A mode that hashes in upper case has had every charset folded by mp_add_cs_buf (), so a lower
+  // case candidate would be refused by a run that does reach it, spelled the mode's way.
+
+  if (hashconfig->opts_type & OPTS_TYPE_PT_UPPER)
+  {
+    for (u32 i = 0; i < cand_len; i++) cand[i] = (u8) toupper (cand[i]);
+
+    lookup->uppered = true;
+  }
+
+  // The candidate as the mask spells it. A mode that hashes UTF-16 has had its css expanded to two
+  // entries per character, one of them a fixed zero, and the run compares against that rather than
+  // against what the user typed.
+
+  u8 pw_buf[PW_MAX * 2];
+
+  u32 pw_len = 0;
+
+  // How many css entries one character of the candidate occupies, which is two for a UTF-16 mode and
+  // one for everything else. Every position the user is told about is divided back down by it, so a
+  // refusal is reported at the character they typed and not at the byte the mask counts.
+
+  u32 stride = 1;
+
+  if ((user_options->slow_candidates == false) && (hashconfig->opts_type & OPTS_TYPE_PT_UTF16LE))
+  {
+    for (u32 i = 0; i < cand_len; i++)
+    {
+      pw_buf[(i * 2) + 0] = cand[i];
+      pw_buf[(i * 2) + 1] = 0;
+    }
+
+    pw_len = cand_len * 2;
+    stride = 2;
+  }
+  else if ((user_options->slow_candidates == false) && (hashconfig->opts_type & OPTS_TYPE_PT_UTF16BE))
+  {
+    for (u32 i = 0; i < cand_len; i++)
+    {
+      pw_buf[(i * 2) + 0] = 0;
+      pw_buf[(i * 2) + 1] = cand[i];
+    }
+
+    pw_len = cand_len * 2;
+    stride = 2;
+  }
+  else
+  {
+    memcpy (pw_buf, cand, cand_len);
+
+    pw_len = cand_len;
+  }
+
+  // A mask of the wrong length holds no offset at all. It is still worth recording, because a queue
+  // in which no mask is the right length is a different answer from one where the lengths are there
+  // and the characters are not.
+
+  if (pw_len != css_cnt_orig)
+  {
+    if (lookup->miss == MASK_LOOKUP_MISS_NONE)
+    {
+      lookup->miss       = MASK_LOOKUP_MISS_LENGTH;
+      lookup->round_miss = mask_ctx->masks_pos;
+      lookup->miss_pos   = 0;
+      lookup->miss_chr   = 0;
+
+      snprintf (lookup->mask_miss, sizeof (lookup->mask_miss), "%s", mask_ctx->mask);
+    }
+
+    return;
+  }
+
+  u64 amp  = 0;
+  u64 word = 0;
+
+  u32 fail_pos = 0;
+
+  const bool got = sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, 0, css_cnt_r, &amp, &fail_pos)
+                && sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, css_cnt_r, css_cnt_orig, &word, &fail_pos);
+
+  if (got == false)
+  {
+    // The other engine, asked the same question. -S walks the mask in one piece, so a character the
+    // split refused at the boundary can still be there, and saying so is the difference between
+    // "change the mask" and "add -S". Only the direction that costs one walk is answered: a run that
+    // already has -S has no second engine to offer, because the split is what the devices need.
+
+    // Sticky across the queue, because the claim it backs is about the queue: some mask in it is one
+    // -S would reach. A plain assignment would leave the last round's answer rather than the queue's.
+
+    if (css_cnt_r > 0)
+    {
+      lookup->other_probed = true;
+
+      if (mask_ctx_lookup_whole (mask_ctx, pw_buf, css_cnt_orig) == true) lookup->other = true;
+    }
+
+    // A miss from a mask of the right length always beats one from a mask of the wrong length, and
+    // among those the one that got furthest along the candidate is the one worth naming.
+
+    if ((lookup->miss == MASK_LOOKUP_MISS_NONE) || (lookup->miss == MASK_LOOKUP_MISS_LENGTH) || (((fail_pos / stride) + 1) > lookup->miss_pos))
+    {
+      const u32 chr = pw_buf[fail_pos];
+
+      lookup->miss       = (mp_css_allows (mask_ctx->css_buf, fail_pos, chr) == true) ? MASK_LOOKUP_MISS_MARKOV : MASK_LOOKUP_MISS_CHARSET;
+      lookup->round_miss = mask_ctx->masks_pos;
+      lookup->miss_pos   = (fail_pos / stride) + 1;
+      lookup->miss_chr   = chr;
+
+      snprintf (lookup->mask_miss, sizeof (lookup->mask_miss), "%s", mask_ctx->mask);
+    }
+
+    return;
+  }
+
+  // The same question of the other engine, now that this one has answered. A candidate the split
+  // reaches can be one -S does not: the split walk restarts from root_css_buf[css_cnt_r], and under
+  // --markov-threshold root holds characters the markov table at that position does not. Handing out
+  // an offset without saying that would send a user who later adds -S past their own password.
+
+  if (css_cnt_r > 0)
+  {
+    lookup->other_probed = true;
+    lookup->other        = mask_ctx_lookup_whole (mask_ctx, pw_buf, css_cnt_orig);
+  }
+
+  lookup->hit     = true;
+  lookup->round   = mask_ctx->masks_pos;
+  lookup->word    = word;
+  lookup->amp     = amp;
+  lookup->amp_cnt = mask_ctx->bfs_cnt;
+
+  snprintf (lookup->mask, sizeof (lookup->mask), "%s", mask_ctx->mask);
+}
+
 // Copy one piece of a -a 12 candidate without running past the end of the buffer, and report how much
 // was taken.
 
@@ -1683,6 +1948,11 @@ bool mask_arg_ends_with_marker (const char *arg, const char marker)
   return all;
 }
 
+// Defined below, next to the report that reads what it finds, and called from the hybrid branch of
+// the loop below.
+
+static void mask_ctx_lookup_combi (hashcat_ctx_t *hashcat_ctx);
+
 int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 {
   combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
@@ -1853,6 +2123,11 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
       if (backend_session_update_mp (hashcat_ctx) == -1) return -1;
     }
 
+    // Everything a hybrid lookup needs is settled by here and nowhere earlier: the mask tables, the
+    // three mask piece lengths, and combs_cnt, which the ?q multiplication above is part of.
+
+    mask_ctx_lookup_combi (hashcat_ctx);
+
     if (backend_session_update_combinator (hashcat_ctx) == -1) return -1;
   }
   else if (user_options_extra->attack_kern == ATTACK_KERN_BF)
@@ -1897,6 +2172,11 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
           event_log_warning (hashcat_ctx, "Skipping mask '%s' because it is larger than the maximum password length.", mask_ctx->mask);
           event_log_warning (hashcat_ctx, NULL);
         }
+
+        // Counted because --lookup has to be able to say the run passed over a mask, rather than
+        // report the queue it was left with as though that were the queue the user asked for.
+
+        mask_ctx->lookup.skipped++;
 
         // skip to next mask
 
@@ -1959,11 +2239,616 @@ int mask_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
+      // Everything a lookup needs is here and nowhere else: the tables the run will enumerate, the
+      // cut it will enumerate them in two halves at, and the mask's own length before an appended
+      // salt was added to it. The next round overwrites all three.
+
+      mask_ctx_lookup (hashcat_ctx, css_cnt_orig, css_cnt_lr[1]);
+
       if (backend_session_update_mp_rl (hashcat_ctx, css_cnt_lr[0], css_cnt_lr[1]) == -1) return -1;
     }
   }
 
   return 0;
+}
+
+// Where a hybrid attack reaches the candidate --lookup asked about.
+//
+// -a 1, -a 6, -a 7 and -a 12 are one attack below the option parser, and hybrid_assemble () is the
+// definition of what it produces:
+//
+//   mask[0, pre_len)  base word  mask[pre_len, pre_len + mid_len)  ?q word  mask[.., css_cnt)
+//
+// Only the two word lengths are free, so the inversion is: for each way of splitting the candidate,
+// look the base word up in its feed, the ?q word up in its own, and rank what is left as a mask.
+//
+// The splits are not searched one at a time. Wherever the cut falls, the base word is a prefix of
+// whatever follows the mask in front of it and the ?q word is a suffix of whatever precedes the mask
+// behind it, so one pass of each feed answers every length at once.
+//
+// The mask is walked in ONE piece here, unlike -a 3. mp_css_split_cnt () is called only in the
+// brute force branch; a hybrid run enumerates its mask with a single sp_exec () over the whole of it,
+// so a single sp_rank () over the whole of it is the inverse. It also applies neither the UTF-16
+// expansion nor the appended salt, so there is no stride and no css_cnt_orig to keep apart.
+
+static void mask_ctx_lookup_combi (hashcat_ctx_t *hashcat_ctx)
+{
+  const combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  mask_ctx_t     *mask_ctx = hashcat_ctx->mask_ctx;
+  combi_lookup_t *lookup   = &mask_ctx->lookup_combi;
+
+  if (user_options->lookup == NULL) return;
+
+  if (lookup->hit == true) return;
+
+  const u8 *arg     = (const u8 *) user_options->lookup;
+  const u32 arg_len = (u32) strlen (user_options->lookup);
+
+  u8 cand[PW_MAX];
+
+  u32 cand_len = 0;
+
+  if (is_hexify (arg, arg_len) == true)
+  {
+    cand_len = (u32) exec_unhexify (arg, arg_len, cand, sizeof (cand));
+  }
+  else
+  {
+    if (arg_len > sizeof (cand)) return;
+
+    memcpy (cand, arg, arg_len);
+
+    cand_len = arg_len;
+  }
+
+  const u32 css_cnt  = mask_ctx->css_cnt;
+  const u32 pre_len  = mask_ctx->pre_len;
+  const u32 mid_len  = mask_ctx->mid_len;
+  const u32 post_len = css_cnt - pre_len - mid_len;
+
+  const bool has_q = mask_ctx->has_q;
+
+  // The mirror shape: the mask is the base word and the dictionary amplifies it, which is -a 7 under
+  // a pure kernel and -a 12 under one when its mask ends in ?w. The rewrite puts the ?w last, so the
+  // mask spells the front of the candidate and one word follows it, and there is nothing to split:
+  // the mask's length is known, so the word's is what is left.
+  //
+  // The two halves swap jobs with it. The mask offset is the base word, which is what -s counts, and
+  // the word index is the position inside its cell.
+
+  if (user_options_extra->base_source == BASE_SOURCE_MASK)
+  {
+    if ((has_q == true) || (pre_len != css_cnt))
+    {
+      lookup->unsupported = true;
+
+      return;
+    }
+
+    if (cand_len < (css_cnt + 1))
+    {
+      if (lookup->miss == MASK_LOOKUP_MISS_NONE)
+      {
+        lookup->miss = MASK_LOOKUP_MISS_LENGTH;
+
+        snprintf (lookup->mask_miss, sizeof (lookup->mask_miss), "%s", mask_ctx->mask);
+      }
+
+      return;
+    }
+
+    const u32 word_len = cand_len - css_cnt;
+
+    u64 word_at  = 0;
+    u64 amp_word = 0;
+
+    if (generic_ctx_word_family (hashcat_ctx, GENERIC_ROLE_AMP, cand + cand_len, word_len, word_len, true, &word_at, &amp_word) == -1) return;
+
+    if (word_at == GENERIC_KEYSPACE_UNKNOWN)
+    {
+      if (lookup->miss == MASK_LOOKUP_MISS_NONE) snprintf (lookup->mask_miss, sizeof (lookup->mask_miss), "%s", mask_ctx->mask);
+
+      return;
+    }
+
+    u64 mask_off = 0;
+
+    u32 fail_pos = 0;
+
+    if (sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, cand, 0, css_cnt, &mask_off, &fail_pos) == false)
+    {
+      const u32 chr = cand[fail_pos];
+
+      if ((lookup->miss == MASK_LOOKUP_MISS_NONE) || (lookup->miss == MASK_LOOKUP_MISS_LENGTH))
+      {
+        lookup->miss     = (mp_css_allows (mask_ctx->css_buf, fail_pos, chr) == true) ? MASK_LOOKUP_MISS_MARKOV : MASK_LOOKUP_MISS_CHARSET;
+        lookup->miss_pos = fail_pos + 1;
+        lookup->miss_chr = chr;
+
+        snprintf (lookup->mask_miss, sizeof (lookup->mask_miss), "%s", mask_ctx->mask);
+      }
+
+      return;
+    }
+
+    lookup->hit       = true;
+    lookup->round     = mask_ctx->masks_pos;
+    lookup->word      = mask_off;
+    lookup->amp       = word_at;
+    lookup->amp_cnt   = combinator_ctx->combs_cnt;
+    lookup->base_len  = css_cnt;
+    lookup->q_len     = word_len;
+    lookup->has_q     = false;
+    lookup->mask_base = true;
+
+    snprintf (lookup->mask, sizeof (lookup->mask), "%s", mask_ctx->mask);
+
+    return;
+  }
+
+  // Every mask byte is spelled out in the candidate, and so is at least one byte of a base word.
+  // Anything shorter than that cannot be this round's.
+
+  const u32 words_min = (has_q == true) ? 2 : 1;
+
+  if (cand_len < (css_cnt + words_min))
+  {
+    if (lookup->miss == MASK_LOOKUP_MISS_NONE)
+    {
+      lookup->miss = MASK_LOOKUP_MISS_LENGTH;
+
+      snprintf (lookup->mask_miss, sizeof (lookup->mask_miss), "%s", mask_ctx->mask);
+    }
+
+    return;
+  }
+
+  const u32 words_len = cand_len - css_cnt;
+
+  // How much of the candidate the base word can be. With a ?q the two words share what the mask does
+  // not spell and the cut between them is free, so every split is tried. Without one there is only
+  // one word and it is all of it: a shorter base word would leave bytes belonging to nothing, and
+  // taking the mask from the far end regardless would match a decomposition the run never builds.
+
+  const u32 base_min = (has_q == true) ? 1                : words_len;
+  const u32 base_max = (has_q == true) ? (words_len - 1)  : words_len;
+
+  // Which feed each half of the candidate came out of. -a 1 under an optimized kernel makes the
+  // larger wordlist the base so that the smaller one amplifies it, and the candidate still comes out
+  // in the order it was typed. The word in front is then the amplifier and the word behind is the
+  // base word, which is the opposite of every other shape here. Reading the two roles the wrong way
+  // round finds nothing, and reports a password that is in the run as absent from it.
+
+  const bool swapped = combinator_ctx->roles_swapped;
+
+  const generic_role_t role_pre = (swapped == true) ? GENERIC_ROLE_AMP  : GENERIC_ROLE_BASE;
+  const generic_role_t role_suf = (swapped == true) ? GENERIC_ROLE_BASE : GENERIC_ROLE_AMP;
+
+  u64 pre_idx[PW_MAX];
+  u64 suf_idx[PW_MAX];
+
+  u64 pre_words = 0;
+  u64 suf_words = 0;
+
+  if (generic_ctx_word_family (hashcat_ctx, role_pre, cand + pre_len, base_min, base_max, false, pre_idx, &pre_words) == -1) return;
+
+  if (has_q == true)
+  {
+    const u32 q_min = 1;
+    const u32 q_max = words_len - 1;
+
+    if (generic_ctx_word_family (hashcat_ctx, role_suf, cand + (cand_len - post_len), q_min, q_max, true, suf_idx, &suf_words) == -1) return;
+  }
+
+  bool found = false;
+
+  u64 best_word = 0;
+  u64 best_amp  = 0;
+  u32 best_base = 0;
+
+  for (u32 base_len = base_min; base_len <= base_max; base_len++)
+  {
+    if (pre_idx[base_len - base_min] == GENERIC_KEYSPACE_UNKNOWN) continue;
+
+    const u64 pre_at = pre_idx[base_len - base_min];
+
+    const u32 q_len = words_len - base_len;
+
+    u64 suf_at = 0;
+
+    if (has_q == true)
+    {
+      if (suf_idx[q_len - 1] == GENERIC_KEYSPACE_UNKNOWN) continue;
+
+      suf_at = suf_idx[q_len - 1];
+    }
+
+    // The mask, back in mask order: the piece in front of the base word, the piece between the two
+    // words, and the piece behind the second one, with the words themselves taken out.
+
+    u8 pw_buf[PW_MAX];
+
+    u32 pw_len = 0;
+
+    memcpy (pw_buf + pw_len, cand, pre_len);                                   pw_len += pre_len;
+    memcpy (pw_buf + pw_len, cand + pre_len + base_len, mid_len);              pw_len += mid_len;
+    memcpy (pw_buf + pw_len, cand + (cand_len - post_len), post_len);          pw_len += post_len;
+
+    u64 mask_off = 0;
+
+    u32 fail_pos = 0;
+
+    if (css_cnt > 0)
+    {
+      if (sp_rank (mask_ctx->root_css_buf, mask_ctx->markov_css_buf, pw_buf, 0, css_cnt, &mask_off, &fail_pos) == false)
+      {
+        const u32 chr = pw_buf[fail_pos];
+
+        if ((lookup->miss == MASK_LOOKUP_MISS_NONE) || (lookup->miss == MASK_LOOKUP_MISS_LENGTH))
+        {
+          lookup->miss     = (mp_css_allows (mask_ctx->css_buf, fail_pos, chr) == true) ? MASK_LOOKUP_MISS_MARKOV : MASK_LOOKUP_MISS_CHARSET;
+          lookup->miss_pos = fail_pos + 1;
+          lookup->miss_chr = chr;
+
+          snprintf (lookup->mask_miss, sizeof (lookup->mask_miss), "%s", mask_ctx->mask);
+        }
+
+        continue;
+      }
+    }
+
+    // A ?q puts a second word in every candidate and it amplifies the base word alongside the mask,
+    // so one amplifier position holds both, with the word index running fastest.
+
+    // A ?q word and a mask value live in one amplifier position together, with the word running
+    // fastest. Which word that is follows the roles: the amplifier is the half of the candidate the
+    // base word is not.
+
+    const u64 amp = (swapped == true)
+                  ? ((mask_off * pre_words) + pre_at)
+                  : ((has_q == true) ? ((mask_off * suf_words) + suf_at) : mask_off);
+
+    const u64 word = (swapped == true) ? suf_at : pre_at;
+
+    // Several splits can be real at once, and the run reaches the earliest of them first.
+
+    if ((found == false) || (word < best_word) || ((word == best_word) && (amp < best_amp)))
+    {
+      found     = true;
+      best_word = word;
+      best_amp  = amp;
+      best_base = base_len;
+    }
+  }
+
+  if (found == false) return;
+
+  lookup->hit      = true;
+  lookup->round    = mask_ctx->masks_pos;
+  lookup->word     = best_word;
+  lookup->amp      = best_amp;
+  lookup->amp_cnt  = combinator_ctx->combs_cnt;
+  lookup->base_len = best_base;
+  lookup->q_len    = words_len - best_base;
+  lookup->has_q    = has_q;
+
+  snprintf (lookup->mask, sizeof (lookup->mask), "%s", mask_ctx->mask);
+}
+
+// One byte of a candidate, written so that a ?b mask's answer is readable. The same two spellings
+// the potfile uses, and for the same reason: a byte that is not a character has to be shown as one
+// or the line says nothing.
+
+static const char *mask_lookup_chr (const u32 chr, char *buf, const size_t buf_sz)
+{
+  if ((chr >= 0x20) && (chr <= 0x7e))
+  {
+    snprintf (buf, buf_sz, "'%c'", (char) chr);
+  }
+  else
+  {
+    snprintf (buf, buf_sz, "0x%02x", chr);
+  }
+
+  return buf;
+}
+
+// What --lookup found, said once the queue of rounds has been walked and sized.
+//
+// The numbers are in the units the run counts, which is the reason for answering from inside hashcat
+// rather than from a program alongside it. -a 3 counts -s in base words, and a base word is a cell
+// the devices expand into bfs_cnt candidates, so the offset that reaches a candidate is not the
+// candidate's own ordinal. Under -S there is no cell: the mask is walked in one piece on the host and
+// -s counts candidates. The same question has two answers and only the run knows which one it wants.
+
+// What --lookup found for a hybrid attack. The unit is the base word, as everywhere else, and the
+// split of the candidate is named because it is the part of the answer the user cannot see for
+// themselves: two wordlists and a mask can cut one password in more than one place, and the run
+// reaches whichever cut comes first.
+
+void combi_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
+{
+  const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->lookup == NULL) return;
+
+  if (user_options->attack_mode != ATTACK_MODE_HYBRID) return;
+
+  const combi_lookup_t *lookup = &mask_ctx->lookup_combi;
+
+  event_log_info (hashcat_ctx, "lookup: '%s'", user_options->lookup);
+
+  if ((lookup->hit == false) && (lookup->unsupported == true))
+  {
+    event_log_info (hashcat_ctx, "lookup: this run takes its base words from the mask and amplifies them with the wordlist");
+
+    event_log_info (hashcat_ctx, "lookup: that shape is not inverted yet, so there is no offset to give rather than a wrong one");
+
+    event_log_info (hashcat_ctx, "lookup: -O runs the same attack with the wordlist as the base word, which is answered. ask again with it");
+
+    return;
+  }
+
+  if (status_ctx->words_walk_base == 0)
+  {
+    event_log_info (hashcat_ctx, "lookup: this run has no rounds in it to search");
+
+    return;
+  }
+
+  if (lookup->hit == false)
+  {
+    event_log_info (hashcat_ctx, "lookup: nothing in this run produces it");
+
+    if (lookup->miss == MASK_LOOKUP_MISS_LENGTH)
+    {
+      event_log_info (hashcat_ctx, "lookup: it is too short for the mask %s and a word on top of it", lookup->mask_miss);
+    }
+    else if (lookup->miss == MASK_LOOKUP_MISS_MARKOV)
+    {
+      char chr[8];
+
+      event_log_info (hashcat_ctx, "lookup: mask %s gets furthest: position %u wants %s, which the mask allows and --markov-threshold %u dropped from the table",
+        lookup->mask_miss, lookup->miss_pos, mask_lookup_chr (lookup->miss_chr, chr, sizeof (chr)), user_options->markov_threshold);
+    }
+    else if (lookup->miss == MASK_LOOKUP_MISS_CHARSET)
+    {
+      char chr[8];
+
+      event_log_info (hashcat_ctx, "lookup: mask %s gets furthest: position %u wants %s and that mask does not allow it there",
+        lookup->mask_miss, lookup->miss_pos, mask_lookup_chr (lookup->miss_chr, chr, sizeof (chr)));
+    }
+    else if (lookup->has_q == true)
+    {
+      event_log_info (hashcat_ctx, "lookup: no way of cutting it in two leaves a word in each wordlist");
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "lookup: no way of cutting it leaves a word this wordlist holds and a mask value beside it");
+    }
+
+    return;
+  }
+
+  if (mask_ctx->masks_cnt > 1)
+  {
+    // The ?w the rewrite glued on is not part of the mask the user typed, so it comes off again
+    // before the mask is named back to them.
+
+    char shown[0x400];
+
+    snprintf (shown, sizeof (shown), "%s", lookup->mask);
+
+    const size_t shown_len = strlen (shown);
+
+    if (shown_len >= 2)
+    {
+      if (user_options->marker_policy == MARKER_POLICY_PREFIX_W)
+      {
+        memmove (shown, shown + 2, shown_len - 1);
+      }
+      else if (user_options->marker_policy == MARKER_POLICY_SUFFIX_W)
+      {
+        shown[shown_len - 2] = 0;
+      }
+    }
+
+    event_log_info (hashcat_ctx, "lookup: round %u of %u, mask %s, reaches it", lookup->round + 1, mask_ctx->masks_cnt, shown);
+  }
+
+  if (lookup->mask_base == true)
+  {
+    event_log_info (hashcat_ctx, "lookup: cut as %u bytes of the mask and %u of the wordlist, and the mask is the base word here", lookup->base_len, lookup->q_len);
+  }
+  else if (lookup->has_q == true)
+  {
+    event_log_info (hashcat_ctx, "lookup: cut as %u bytes of the first wordlist and %u of the second", lookup->base_len, lookup->q_len);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "lookup: cut as %u bytes of the wordlist and the rest from the mask", lookup->base_len);
+  }
+
+  const char *segment = (lookup->mask_base == true) ? NULL : generic_ctx_segment_of (hashcat_ctx, GENERIC_ROLE_BASE, lookup->word);
+
+  const double pct = (double) lookup->word * 100.0 / (double) status_ctx->words_walk_base;
+
+  if (segment != NULL)
+  {
+    event_log_info (hashcat_ctx, "lookup: base word %" PRIu64 " of %" PRIu64 ", in %s, %.4f%% into the run", lookup->word, status_ctx->words_walk_base, segment, pct);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "lookup: base word %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", lookup->word, status_ctx->words_walk_base, pct);
+  }
+
+  event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %" PRIu64 ", because it counts -s in base words", lookup->word);
+
+  event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one cell of %" PRIu64 " candidates that holds it, where it is number %" PRIu64,
+    lookup->word, lookup->amp_cnt, lookup->amp + 1);
+
+  if ((user_options->skip != 0) || (user_options->limit != 0))
+  {
+    const u64 from = user_options->skip;
+    const u64 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
+
+    if ((lookup->word >= from) && (lookup->word < upto))
+    {
+      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here covers it", from, upto - from);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here does not cover it", from, upto - from);
+    }
+  }
+}
+
+void mask_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
+{
+  const mask_ctx_t     *mask_ctx     = hashcat_ctx->mask_ctx;
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->lookup == NULL) return;
+
+  // Two report functions are called one after the other and each answers for one attack mode, so the
+  // one this is not for says nothing at all rather than reporting an empty search.
+
+  if (user_options->attack_mode != ATTACK_MODE_BF) return;
+
+  const mask_lookup_t *lookup = &mask_ctx->lookup;
+
+  event_log_info (hashcat_ctx, "lookup: '%s'", user_options->lookup);
+
+  if (lookup->uppered == true)
+  {
+    event_log_info (hashcat_ctx, "lookup: this mode hashes in upper case, so every candidate in the run is, and this one was folded to match");
+  }
+
+  // No round was sized at all, so there was nothing to search. A mask outside the mode's password
+  // length is skipped before its tables are built, and a queue of nothing but those leaves this.
+
+  // A mask the run declined is not one the answer may be silent about, whether or not anything was
+  // left to search afterwards.
+
+  if (lookup->skipped > 0)
+  {
+    event_log_info (hashcat_ctx, "lookup: %u mask(s) were passed over for being outside this mode's password length, and are not part of the run",
+      lookup->skipped);
+  }
+
+  if (status_ctx->words_walk_base == 0)
+  {
+    event_log_info (hashcat_ctx, "lookup: this run has no rounds in it to search");
+
+    return;
+  }
+
+  const bool queue = (mask_ctx->masks_cnt > 1);
+
+  if (lookup->hit == false)
+  {
+    event_log_info (hashcat_ctx, "lookup: nothing in this run produces it");
+
+    if (lookup->miss == MASK_LOOKUP_MISS_LENGTH)
+    {
+      event_log_info (hashcat_ctx, "lookup: no mask in this run is that many characters long, and a mask only ever produces its own length");
+    }
+    else if (lookup->miss == MASK_LOOKUP_MISS_MARKOV)
+    {
+      char chr[8];
+
+      event_log_info (hashcat_ctx, "lookup: mask %s gets furthest: position %u wants %s, which the mask allows and --markov-threshold %u dropped from the table",
+        lookup->mask_miss, lookup->miss_pos, mask_lookup_chr (lookup->miss_chr, chr, sizeof (chr)), user_options->markov_threshold);
+
+      event_log_info (hashcat_ctx, "lookup: raise -t, or drop it, and that mask reaches it");
+    }
+    else if (lookup->miss == MASK_LOOKUP_MISS_CHARSET)
+    {
+      char chr[8];
+
+      event_log_info (hashcat_ctx, "lookup: mask %s gets furthest: position %u wants %s and that mask does not allow it there",
+        lookup->mask_miss, lookup->miss_pos, mask_lookup_chr (lookup->miss_chr, chr, sizeof (chr)));
+    }
+
+    // The run walks a mask in two pieces and -S walks it in one. Under --markov-threshold that is not
+    // a reordering of the same candidates but a different set of them, so an engine this run did not
+    // get can hold a candidate this one does not.
+
+    if (lookup->other == true)
+    {
+      event_log_info (hashcat_ctx, "lookup: -S does reach it, because the host engine walks a mask in one piece where the devices need it in two");
+      event_log_info (hashcat_ctx, "lookup: ask again with -S for the offset, which is a different number in a differently ordered run");
+    }
+
+    return;
+  }
+
+  if (queue == true)
+  {
+    event_log_info (hashcat_ctx, "lookup: round %u of %u, mask %s, reaches it", lookup->round + 1, mask_ctx->masks_cnt, lookup->mask);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "lookup: mask %s reaches it", lookup->mask);
+  }
+
+  const double pct = (double) lookup->word * 100.0 / (double) status_ctx->words_walk_base;
+
+  if (lookup->amp_cnt > 1)
+  {
+    event_log_info (hashcat_ctx, "lookup: base word %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", lookup->word, status_ctx->words_walk_base, pct);
+
+    event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %" PRIu64 ", because -a 3 counts -s in base words", lookup->word);
+
+    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one cell of %" PRIu64 " candidates that holds it, where it is number %" PRIu64,
+      lookup->word, lookup->amp_cnt, lookup->amp + 1);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "lookup: candidate %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", lookup->word, status_ctx->words_walk_base, pct);
+
+    event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %" PRIu64 ", because -S counts -s in candidates", lookup->word);
+
+    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one candidate", lookup->word);
+  }
+
+  // The other engine holds a different set of candidates whenever --markov-threshold prunes, so an
+  // offset handed out without this can send a user who later adds -S past their own password.
+
+  if ((lookup->other_probed == true) && (lookup->other == false))
+  {
+    event_log_info (hashcat_ctx, "lookup: -S would NOT reach it, because the host engine walks a mask in one piece and --markov-threshold %u makes that a different set of candidates",
+      user_options->markov_threshold);
+  }
+
+  // A --skip or --limit on the command line is a chunk somebody was handed, and whether it held the
+  // password is a different question from whether the attack did. The offset above answers the
+  // attack, because the window is not applied to a run that only sizes its rounds, so the window is
+  // answered here instead of being silently ignored.
+  //
+  // --limit had --skip added to it in user_options_preprocess (), so the two are the ends of one
+  // window and not an offset and a length.
+
+  if ((user_options->skip != 0) || (user_options->limit != 0))
+  {
+    const u64 from = user_options->skip;
+    const u64 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
+
+    if ((lookup->word >= from) && (lookup->word < upto))
+    {
+      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here covers it", from, upto - from);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here does not cover it", from, upto - from);
+    }
+  }
 }
 
 int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
@@ -2004,6 +2889,12 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
   mask_ctx->markov_css_buf = (cs_t *) hccalloc (SP_PW_MAX * CHARSIZ, sizeof (cs_t));
 
   mask_ctx->mask_from_file = false;
+
+  // Cleared here rather than relied on, because outer_loop () runs mask_ctx_init () once per hash
+  // mode and the answer belongs to the queue this one is about to build.
+
+  memset (&mask_ctx->lookup, 0, sizeof (mask_ctx->lookup));
+  memset (&mask_ctx->lookup_combi, 0, sizeof (mask_ctx->lookup_combi));
 
   mask_ctx->masks     = NULL;
   mask_ctx->masks_pos = 0;

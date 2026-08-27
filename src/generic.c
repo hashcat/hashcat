@@ -13,6 +13,7 @@
 #include "folder.h"
 #include "rp.h"
 #include "mpsp.h"
+#include "wordlist.h"
 #include "feed_ctx.h"
 #include "dynloader.h"
 #include "user_options.h"
@@ -834,6 +835,309 @@ bool generic_ctx_described (const hashcat_ctx_t *hashcat_ctx)
   }
 
   return false;
+}
+
+// A word as the run would compare it, and whether the index it sits at moves on when the run throws
+// it away.
+//
+// A feed hands back the line. The run does not compare against the line: pw_transform_apply () has
+// had it first, and --hex-wordlist, $HEX[], the -j or -k rule, a mode that hashes in upper case and
+// an encoding change all happen in there. Comparing against the line instead answers about a string
+// the run never builds, which is worse than not answering: it reports a password the run does reach
+// as absent, and hands out an offset for one it does not.
+//
+// The two roles book a refusal differently and both are deliberate. A base word keeps its position
+// whatever happens to it, because --skip addresses that stream positionally and the dispatcher
+// advances seek_pos before it tests anything. An amplifier word gives its slot up, because the fill
+// packs what it accepted and everything after a refusal moves up.
+
+static bool generic_word_transform (const pw_transform_t *transform, u8 *buf, const int out_len, const size_t buf_size, u32 *len_out)
+{
+  if (out_len > PW_MAX) return false;
+
+  const int len = pw_transform_apply (transform, buf, out_len, (int) buf_size);
+
+  if (len < 0) return false;
+
+  *len_out = (u32) len;
+
+  return true;
+}
+
+// Where a feed reaches a candidate: the index of the first word it produces that equals it, and how
+// many more of them there are behind it.
+//
+// There is no index to consult and there is nowhere to put one. A feed is a stream; the only thing
+// that knows what its Nth word is is the feed, and the nine functions it exports have no
+// where-is-this-word among them. So the answer is found the way the run finds it, by reading forward
+// from the start, and it costs one pass. That is what the run's own first pass costs and what
+// grep -n costs, and there is no sublinear answer to pretend to.
+//
+// Read on thread slot 0, brought up and torn down here. No device thread is competing for it:
+// --lookup borrows --keyspace, so the loop that would have initialised one slot per device never
+// ran, and nothing else in the process is reading this feed. global_keyspace () borrows the same slot
+// to count the file and gives it back, so it is free by the time this is called.
+//
+// The index is the answer in --skip units without conversion. A word the length filters will reject
+// still advances it, and so does a duplicate, because the feed counts lines and nothing else - which
+// is also what makes "grep -n minus one" a correct oracle for this.
+
+int generic_ctx_word_index (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u8 *cand, const u32 cand_len, u64 *out_index, u64 *out_more, u64 *out_words)
+{
+  generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+  if (generic_ctx->enabled == false)
+  {
+    event_log_error (hashcat_ctx, "lookup: no feed instance is open for this role");
+
+    return -1;
+  }
+
+  // A feed with a device engine builds device resources in thread_init (), and there is no device
+  // here to build them on, so it is refused rather than initialised onto whatever was current. The
+  // wordlist feed offers no device engine and builds nothing: it allocates its reader and opens no
+  // file until it is told where to start.
+
+  if (generic_ctx->dev_enable == true)
+  {
+    event_log_error (hashcat_ctx, "lookup: %s has a device engine and cannot be read without a device", generic_ctx->dynlib_filename);
+
+    return -1;
+  }
+
+  // thread_init () and thread_term () are called without the device bind that wraps them everywhere
+  // else. That bind makes one device current for a feed that builds resources on it, and this runs
+  // with no devices at all: --lookup borrows --keyspace, so backend_ctx_init () returned before any
+  // device was opened and there is nothing to make current. The test above is what makes that safe.
+
+  if (generic_ctx->thread_init (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]) == false)
+  {
+    event_log_error (hashcat_ctx, "lookup: %s: %s", generic_ctx->dynlib_filename, generic_ctx->thread_ctx[0].error_msg);
+
+    generic_ctx->thread_ctx[0].error = false;
+
+    return -1;
+  }
+
+  // A feed opens nothing until it is told where to start, so the seek is not an optimisation here but
+  // the thing that makes the first word exist.
+
+  pw_transform_t transform;
+
+  if (pw_transform_init (&transform, hashcat_ctx, role, (int) hashcat_ctx->user_options_extra->rule_len_base, hashcat_ctx->user_options_extra->rule_buf_base) == -1)
+  {
+    generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]);
+
+    return -1;
+  }
+
+  int rc = -1;
+
+  if (generic_thread_seek (hashcat_ctx, role, 0, 0) == GENERIC_RC_ERROR)
+  {
+    event_log_error (hashcat_ctx, "lookup: %s: seek to the first word failed", generic_ctx->dynlib_filename);
+  }
+  else
+  {
+    u8 buf[HCBUFSIZ_TINY];
+
+    u64 index = 0;
+    u64 first = 0;
+    u64 more  = 0;
+
+    bool found = false;
+
+    rc = 0;
+
+    while (true)
+    {
+      const int out_len = generic_thread_next (hashcat_ctx, role, 0, buf, sizeof (buf));
+
+      if (out_len == GENERIC_RC_EOF) break;
+
+      if (out_len == GENERIC_RC_ERROR)
+      {
+        rc = -1;
+
+        break;
+      }
+
+      u32 len = 0;
+
+      if (generic_word_transform (&transform, buf, out_len, sizeof (buf), &len) == true)
+      {
+        if ((len == cand_len) && (memcmp (buf, cand, cand_len) == 0))
+        {
+          if (found == false)
+          {
+            found = true;
+            first = index;
+          }
+          else
+          {
+            more++;
+          }
+        }
+      }
+
+      index++;
+    }
+
+    if (rc == 0)
+    {
+      *out_words = index;
+
+      if (found == true)
+      {
+        *out_index = first;
+        *out_more  = more;
+
+        rc = 1;
+      }
+    }
+  }
+
+  pw_transform_term (&transform);
+
+  generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]);
+
+  generic_ctx->thread_ctx[0].error = false;
+
+  return rc;
+}
+
+// The first index at which a feed produces each of a family of words, in one pass.
+//
+// A -a 12 candidate is mask, base word, mask, ?q word, mask, and only the two word lengths are free.
+// That does not make the words independent: whatever the split, the base word is a prefix of what
+// follows the mask in front of it and the ?q word is a suffix of what precedes the mask behind it. So
+// every length can be tested with one comparison per feed word, and every length at once with one
+// pass, rather than one pass per split.
+//
+// anchor is the candidate byte the family is measured from. Going forward, a word of length L must
+// equal anchor[0..L). Going backward, it must equal anchor[-L..0), which is the ?q case: the ?q word
+// ends where the mask behind it begins, and that end is fixed while its start is not.
+//
+// out_index[L - min_len] is the first index of a word of length L, or GENERIC_KEYSPACE_UNKNOWN when
+// no word of that length matched.
+
+int generic_ctx_word_family (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u8 *anchor, const u32 min_len, const u32 max_len, const bool backward, u64 *out_index, u64 *out_words)
+{
+  generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+  if (generic_ctx->enabled == false) return -1;
+
+  if (generic_ctx->dev_enable == true) return -1;
+
+  if (min_len > max_len) return -1;
+
+  for (u32 i = 0; i <= (max_len - min_len); i++) out_index[i] = GENERIC_KEYSPACE_UNKNOWN;
+
+  if (generic_ctx->thread_init (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]) == false)
+  {
+    event_log_error (hashcat_ctx, "lookup: %s: %s", generic_ctx->dynlib_filename, generic_ctx->thread_ctx[0].error_msg);
+
+    generic_ctx->thread_ctx[0].error = false;
+
+    return -1;
+  }
+
+  // The base word keeps its position when the run throws it away and the amplifier word does not, so
+  // the index only always moves on for the base. See generic_word_transform () above.
+
+  const bool advance_on_reject = (role == GENERIC_ROLE_BASE);
+
+  const int   rule_len = (int) ((role == GENERIC_ROLE_BASE) ? hashcat_ctx->user_options_extra->rule_len_base : hashcat_ctx->user_options_extra->rule_len_amp);
+  const char *rule_buf =        (role == GENERIC_ROLE_BASE) ? hashcat_ctx->user_options_extra->rule_buf_base : hashcat_ctx->user_options_extra->rule_buf_amp;
+
+  pw_transform_t transform;
+
+  if (pw_transform_init (&transform, hashcat_ctx, role, rule_len, rule_buf) == -1)
+  {
+    generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]);
+
+    return -1;
+  }
+
+  int rc = -1;
+
+  if (generic_thread_seek (hashcat_ctx, role, 0, 0) != GENERIC_RC_ERROR)
+  {
+    u8 buf[HCBUFSIZ_TINY];
+
+    u64 index = 0;
+
+    rc = 0;
+
+    while (true)
+    {
+      const int out_len = generic_thread_next (hashcat_ctx, role, 0, buf, sizeof (buf));
+
+      if (out_len == GENERIC_RC_EOF) break;
+
+      if (out_len == GENERIC_RC_ERROR)
+      {
+        rc = -1;
+
+        break;
+      }
+
+      u32 len = 0;
+
+      if (generic_word_transform (&transform, buf, out_len, sizeof (buf), &len) == false)
+      {
+        if (advance_on_reject == true) index++;
+
+        continue;
+      }
+
+      if ((len >= min_len) && (len <= max_len))
+      {
+        const u8 *want = (backward == true) ? (anchor - len) : anchor;
+
+        if (memcmp (buf, want, len) == 0)
+        {
+          if (out_index[len - min_len] == GENERIC_KEYSPACE_UNKNOWN) out_index[len - min_len] = index;
+        }
+      }
+
+      index++;
+    }
+
+    if (rc == 0) *out_words = index;
+  }
+
+  pw_transform_term (&transform);
+
+  generic_ctx->thread_term (&generic_ctx->global_ctx, &generic_ctx->thread_ctx[0]);
+
+  generic_ctx->thread_ctx[0].error = false;
+
+  return rc;
+}
+
+// Which of a feed's sources a word index lands in, for a base that is several dictionaries or a
+// folder laid end to end. The feed publishes the two arrays in global_keyspace (); a feed that
+// publishes none is one source and has nothing to say.
+
+const char *generic_ctx_segment_of (const hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u64 index)
+{
+  const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[role];
+
+  const generic_global_ctx_t *global_ctx = &generic_ctx->global_ctx;
+
+  if (global_ctx->segments_cnt < 2) return NULL;
+
+  const char *name = NULL;
+
+  for (u64 i = 0; i < global_ctx->segments_cnt; i++)
+  {
+    if (global_ctx->segment_first[i] > index) break;
+
+    name = global_ctx->segment_names[i];
+  }
+
+  return name;
 }
 
 int generic_ctx_init (hashcat_ctx_t *hashcat_ctx)

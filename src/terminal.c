@@ -34,6 +34,12 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
   if (user_options->quiet       == true)      return;
   if (user_options->keyspace    == true)      return;
   if (user_options->total_candidates == true) return;
+
+  // Both of these are tested on their own name because this runs before user_options_preprocess (),
+  // which is where they turn into --keyspace. By the time goodbye_screen () runs they have, so it
+  // needs neither.
+
+  if (user_options->lookup      != NULL)      return;
   if (user_options->stdout_flag == true)      return;
   if (user_options->show        == true)      return;
   if (user_options->left        == true)      return;

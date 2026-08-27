@@ -15,6 +15,7 @@
 #include "folder.h"
 #include "rp.h"
 #include "wordlist.h"
+#include "convert.h"
 #include "feed_ctx.h"
 #include "straight.h"
 
@@ -367,10 +368,20 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
     // The pure kernel amplifies with the dictionary and takes its base words from the mask, so the
     // keyspace is the mask size times the dictionary, and the dictionary was counted once by the
     // amplifier instance.
+    //
+    // The base is the mask and the amplifier is the dictionary, in that order. Stating them the other
+    // way round makes the run walk one base word per dictionary word over a mask that has a different
+    // number of values in it, and the product is right while both of its factors are wrong:
+    //
+    //   500 words, ?d?d   50000 candidates, 250000 walked, every one of them five times over
+    //   500 words, ?d?d?d 500000 candidates, 250000 walked, and half of them never tried at all
+    //
+    // The second is the one that matters. A run that quietly covers half its own keyspace reports
+    // Exhausted having never guessed the password, and nothing in the status screen says so.
 
     const u64 words_cnt = hashcat_ctx->generic_ctx[GENERIC_ROLE_AMP].keyspace;
 
-    if (straight_ctx_words_apply (hashcat_ctx, words_cnt, mask_ctx->bfs_cnt, straight_ctx->dict) == -1) return -1;
+    if (straight_ctx_words_apply (hashcat_ctx, mask_ctx->bfs_cnt, words_cnt, straight_ctx->dict) == -1) return -1;
 
     if (status_ctx->words_cnt == 0)
     {
@@ -381,6 +392,155 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
   }
 
   return 0;
+}
+
+// Where a wordlist attack reaches the candidate --lookup asked about.
+//
+// -a 0 has no arithmetic to invert. Its base words are the lines of a file, in the order they are in
+// the file, so the answer is the line the word is on and the only work is finding it. That makes the
+// answer exact and the refusal a proof, on one condition: that no rule is in play. A rule turns one
+// base word into many candidates and nothing here inverts a rule, so a run with -r is answered about
+// the base word only, and the report says so rather than letting a miss read as a proof.
+//
+// Read once through the feed rather than through the file, because the file is not necessarily one
+// file: a folder or several dictionaries are laid end to end into one keyspace and only the feed
+// knows the order. The index that comes back is already in --skip units.
+
+void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->lookup == NULL) return;
+
+  if (user_options->attack_mode != ATTACK_MODE_STRAIGHT) return;
+
+  const u8 *arg     = (const u8 *) user_options->lookup;
+  const u32 arg_len = (u32) strlen (user_options->lookup);
+
+  u8 cand[PW_MAX];
+
+  u32 cand_len = 0;
+
+  // A wordlist can hold a line no shell can pass. $HEX[...] is how the potfile and --show write one,
+  // so it is how --lookup takes one.
+
+  if (is_hexify (arg, arg_len) == true)
+  {
+    cand_len = (u32) exec_unhexify (arg, arg_len, cand, sizeof (cand));
+  }
+  else
+  {
+    if (arg_len > sizeof (cand)) return;
+
+    memcpy (cand, arg, arg_len);
+
+    cand_len = arg_len;
+  }
+
+  event_log_info (hashcat_ctx, "lookup: '%s'", user_options->lookup);
+
+  const u64 rules = straight_ctx->kernel_rules_cnt;
+
+  // Whether a rule is in play at all, which is not the same as more than one being in play. A rule
+  // file with a single line gives kernel_rules_cnt == 1, exactly as no rule file does, and testing
+  // the count would then claim "without rules the wordlist is the whole attack" while a rule is
+  // running. This is the test straight_ctx_init () already uses to decide whether to load any.
+
+  const bool ruled = ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0));
+
+  // Two ways of naming the same rule set, because the two sentences below mean different things by
+  // it: a miss is about any one of them having made the candidate, and a hit runs all of them.
+
+  char rules_any[64];
+  char rules_all[64];
+
+  snprintf (rules_any, sizeof (rules_any), (rules == 1) ? "the one rule"  : "one of the %" PRIu64 " rules", rules);
+  snprintf (rules_all, sizeof (rules_all), (rules == 1) ? "the one rule"  : "all %" PRIu64 " rules",         rules);
+
+  u64 index = 0;
+  u64 more  = 0;
+  u64 words = 0;
+
+  const int rc = generic_ctx_word_index (hashcat_ctx, GENERIC_ROLE_BASE, cand, cand_len, &index, &more, &words);
+
+  if (rc == -1)
+  {
+    event_log_info (hashcat_ctx, "lookup: this wordlist could not be read through");
+
+    return;
+  }
+
+  if (rc == 0)
+  {
+    // The wall this mode runs into, and the reason the wording differs from every other one. Without
+    // rules the wordlist is the whole attack and this is a proof. With rules it is not: the candidate
+    // could still be what some rule makes of some other word, and nothing here has looked.
+
+    if (ruled == false)
+    {
+      event_log_info (hashcat_ctx, "lookup: nothing in this run produces it. the wordlist does not hold it, and without rules the wordlist is the whole attack");
+
+      return;
+    }
+
+    event_log_info (hashcat_ctx, "lookup: this wordlist does not hold it as a word, in any of its %" PRIu64 " lines", words);
+
+    event_log_info (hashcat_ctx, "lookup: whether %s makes it out of some other word was NOT checked, and is not something this can answer", rules_any);
+
+    event_log_info (hashcat_ctx, "lookup: so this is not a proof that the run misses it, only that the word itself is not there");
+
+    return;
+  }
+
+  const char *segment = generic_ctx_segment_of (hashcat_ctx, GENERIC_ROLE_BASE, index);
+
+  if (segment != NULL)
+  {
+    event_log_info (hashcat_ctx, "lookup: word %" PRIu64 " of %" PRIu64 ", in %s", index, words, segment);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "lookup: word %" PRIu64 " of %" PRIu64 "", index, words);
+  }
+
+  if (more > 0)
+  {
+    event_log_info (hashcat_ctx, "lookup: it is in this wordlist %" PRIu64 " more times, and the run reaches the first of them", more);
+  }
+
+  const double pct = (status_ctx->words_walk_base > 0) ? ((double) index * 100.0 / (double) status_ctx->words_walk_base) : 0.0;
+
+  event_log_info (hashcat_ctx, "lookup: %.4f%% into the run", pct);
+
+  event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %" PRIu64 ", because -a 0 counts -s in words", index);
+
+  if (ruled == false)
+  {
+    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one word", index);
+  }
+  else
+  {
+    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs that word with %s applied to it", index, rules_all);
+
+    event_log_info (hashcat_ctx, "lookup: an earlier -s may reach it too, through a rule on another word. that was not checked");
+  }
+
+  if ((user_options->skip != 0) || (user_options->limit != 0))
+  {
+    const u64 from = user_options->skip;
+    const u64 upto = (user_options->limit > 0) ? user_options->limit : status_ctx->words_walk_base;
+
+    if ((index >= from) && (index < upto))
+    {
+      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here covers it", from, upto - from);
+    }
+    else
+    {
+      event_log_info (hashcat_ctx, "lookup: the -s %" PRIu64 " -l %" PRIu64 " window given here does not cover it", from, upto - from);
+    }
+  }
 }
 
 int straight_ctx_init (hashcat_ctx_t *hashcat_ctx)

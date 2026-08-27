@@ -802,6 +802,7 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
   if (user_options->benchmark       == true)  return 0;
   if (user_options->keyspace        == true)  return 0;
+  if (user_options->lookup          != NULL)  return 0;
   if (user_options->left            == true)  return 0;
   if (user_options->show            == true)  return 0;
   if (user_options->stdout_flag     == true)  return 0;
