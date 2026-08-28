@@ -1,12 +1,12 @@
 
-# Hashcat – Build Documentation
+# Hashcat Build Documentation
 
 **Revision**: 1.7  
 **Author**: See `docs/credits.txt`
 
 ---
 
-## ✅ Requirements
+## Requirements
 
 - **Python 3.12** or higher
 
@@ -17,15 +17,15 @@ $ python3 --version
 # Expected output: Python 3.13.9
 ```
 
-If you can't install Python ≥ 3.12 globally, you can use **pyenv**.
+If you can't install Python >= 3.12 globally, you can use **pyenv**.
 
 > If you're using `pyenv`, follow **all steps** below. Otherwise, follow only **steps 3 and 5**.
 
 ---
 
-## 🛠️ Building Hashcat – Step-by-Step
+## Building Hashcat, step by step
 
-### 🔹 Step 1: Install dependencies and pyenv
+### Step 1: Install dependencies and pyenv
 
 #### On Linux
 
@@ -53,7 +53,7 @@ $ brew install pyenv
 
 ---
 
-### 🔹 Step 2: Install Python using pyenv
+### Step 2: Install Python using pyenv
 
 Install Python 3.12 (or newer):
 
@@ -72,7 +72,7 @@ $ pyenv versions
 
 ---
 
-### 🔹 Step 3: Clone the Hashcat repository
+### Step 3: Clone the Hashcat repository
 
 ```bash
 $ git clone https://github.com/hashcat/hashcat.git
@@ -81,7 +81,7 @@ $ cd hashcat
 
 ---
 
-### 🔹 Step 4: Set the local Python version
+### Step 4: Set the local Python version
 
 ```bash
 $ pyenv local 3.12.11
@@ -89,7 +89,7 @@ $ pyenv local 3.12.11
 
 ---
 
-### 🔹 Step 5: Build Hashcat
+### Step 5: Build Hashcat
 
 ```bash
 $ make clean && make
@@ -103,7 +103,7 @@ core.
 
 ---
 
-### 🔹 Step 6 (Optional): Check the build
+### Step 6 (Optional): Check the build
 
 ```bash
 $ tools/test_package.sh
@@ -117,7 +117,7 @@ out.
 
 ---
 
-### 🔹 Step 7 (Optional): Install Hashcat (Linux only)
+### Step 7 (Optional): Install Hashcat (Linux only)
 
 ```bash
 $ make install
@@ -133,19 +133,19 @@ Hashcat will use the following locations depending on your environment:
 | None of the above                          | `$HOME/.local/share/hashcat/sessions/` | `$HOME/.cache/hashcat/`               | `$HOME/.local/share/hashcat/`          |
 
 ---
-## 🔥 Building Hashcat for Android
+## Building Hashcat for Android
 
 See: [BUILD_Android.md](BUILD_Android.md)
 
 ---
 
-## 🐳 Building Hashcat with Docker
+## Building Hashcat with Docker
 
 See: [BUILD_Docker.md](BUILD_Docker.md)
 
 ---
 
-## 🪟 Building Hashcat for Windows
+## Building Hashcat for Windows
 
 | Method                                 | Documentation                        |
 |----------------------------------------|--------------------------------------|
@@ -163,6 +163,6 @@ the core.
 
 ---
 
-## 🎉 Done
+## Done
 
-Enjoy your fresh **Hashcat** binaries! 😎
+Enjoy your fresh **Hashcat** binaries!

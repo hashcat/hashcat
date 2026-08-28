@@ -4,7 +4,7 @@
 
 Hashcat v7 introduces a `Python plugin bridge` that allows you to write and integrate custom hash-matching algorithms directly in Python. This plugin system fits into the regular cracking workflow by replacing or extending internal kernel routines.
 
-When enabled, Hashcat uses the plugin’s `calc_hash()` function to compute hash candidates for verification, making it easy to experiment with new or obscure algorithms without modifying core C code or writing OpenCL/CUDA kernels.
+When enabled, Hashcat uses the plugin's `calc_hash()` function to compute hash candidates for verification, making it easy to experiment with new or obscure algorithms without modifying core C code or writing OpenCL/CUDA kernels.
 
 This guide demonstrates how to quickly customize such an algorithm using pure Python. Whether you're prototyping a new hash mode, supporting a proprietary format, or simply prefer high-level development, Python plugins make the process fast and straightforward.
 
@@ -78,7 +78,7 @@ def calc_hash(password: bytes, salt: dict) -> str:
     ).decode("utf-8")
 ```
 
-That’s it.
+That's it.
 
 ### Run Regularly
 

@@ -19,7 +19,7 @@ Ideally, start by walking through `hashcat-python-plugin-quickstart.md`, or read
 
 ## 3. Python Bridge basics
 
-Hashcat implements the CPython interface, loading the embedded interpreter via dynamic loading mechanisms (`dlopen()`, `LoadLibrary()`, etc). This enables runtime flexibility, allowing Hashcat to use whatever Python version is installed on the system. Users of the precompiled Hashcat binaries don’t need Python headers and just a working Python interpreter. Compatibility is checked at runtime, not compile time. If hashcat detect an invalid python version it will stop and print informative instructions on what to do next.
+Hashcat implements the CPython interface, loading the embedded interpreter via dynamic loading mechanisms (`dlopen()`, `LoadLibrary()`, etc). This enables runtime flexibility, allowing Hashcat to use whatever Python version is installed on the system. Users of the precompiled Hashcat binaries don't need Python headers and just a working Python interpreter. Compatibility is checked at runtime, not compile time. If hashcat detect an invalid python version it will stop and print informative instructions on what to do next.
 
 In general, when using any assimilation bridge "application" (such as the Python bridge), the hash mode determines which bridge plugin is loaded (this is a 1:1 relationship). From there, the bridge decides how to proceed. In the case of the Python bridge, it loads the Python library, sets up the interpreter, and finally selects which Python script to execute. Understanding this flow is essential, especially if you plan to contribute to upstream Hashcat on GitHub or want to register a dedicated hash mode number.
 
@@ -208,7 +208,7 @@ Notes:
 - Even though `-m 72000` uses single-threaded Python, the bridge plugin above it manages multiple Python interpreters (one per thread) making it effectively multi-threaded.
 - On Windows/macOS, if `-m 73000` is selected, it silently falls back to `generic_hash_sp.py` due to limitations with multiprocessing. This behavior is important to understand and you might otherwise wonder why your code changes have no effect.
 
-If you modify one of these plugin files, there's a trade-off: you won’t be able to contribute that code directly to the upstream Hashcat repository, since those files are meant to remain clean for demonstration purposes.
+If you modify one of these plugin files, there's a trade-off: you won't be able to contribute that code directly to the upstream Hashcat repository, since those files are meant to remain clean for demonstration purposes.
 
 To address this, the assimilation bridge provides a generic parameter that users can specify via the command line. In the case of the Python bridge, only the first parameter is used. Using `--bridge-parameter1` allows you to override the Python script to be loaded:
 
@@ -216,7 +216,7 @@ To address this, the assimilation bridge provides a generic parameter that users
 $ ./hashcat -m 73000 --bridge-parameter1 ./Python/myimplementation.py hash.txt wordlist.txt ...
 ```
 
-This tells the Python bridge plugin to load `myimplementation.py` located in the local `Python` subdirectory instead of the default `generic_hash_mp.py`. This approach is especially useful if you plan to contribute `myimplementation.py` to the upstream Hashcat repository. If you choose to stay within the generic mode, your Python code won’t have a dedicated hash mode, and you'll need to instruct users to use the `--bridge-parameter1` flag to load your implementation.
+This tells the Python bridge plugin to load `myimplementation.py` located in the local `Python` subdirectory instead of the default `generic_hash_mp.py`. This approach is especially useful if you plan to contribute `myimplementation.py` to the upstream Hashcat repository. If you choose to stay within the generic mode, your Python code won't have a dedicated hash mode, and you'll need to instruct users to use the `--bridge-parameter1` flag to load your implementation.
 
 ### Design Tradeoffs and Format Considerations
 

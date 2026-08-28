@@ -4,7 +4,7 @@ Tested on Windows 11 23H2 x64
 
 ## Prerequisites
 
-1. **Install MSYS2** from the [official website](https://www.msys2.org/) and follow steps 1–7.
+1. **Install MSYS2** from the [official website](https://www.msys2.org/) and follow steps 1-7.
 2. **Open the MSYS2 MINGW64 terminal**
    Do *not* use the plain MSYS or UCRT terminals.
 3. **Update the base system:**
