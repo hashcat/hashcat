@@ -6858,6 +6858,14 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
 
       device_param->device_processors = device_processors;
 
+      // device_processor_threads
+
+      int device_processor_threads = 0;
+
+      if (hc_cuDeviceGetAttribute (hashcat_ctx, &device_processor_threads, CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR, cuda_device) == -1) device_processor_threads = 0;
+
+      device_param->device_processor_threads = device_processor_threads;
+
       // device_cache_size
 
       int device_cache_size = 0;
@@ -7330,6 +7338,14 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
       }
 
       device_param->device_processors = device_processors;
+
+      // device_processor_threads
+
+      int device_processor_threads = 0;
+
+      if (hc_hipDeviceGetAttribute (hashcat_ctx, &device_processor_threads, hipDeviceAttributeMaxThreadsPerMultiProcessor, hip_device) == -1) device_processor_threads = 0;
+
+      device_param->device_processor_threads = device_processor_threads;
 
       // device_cache_size
 
@@ -18333,6 +18349,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     const u64 size_device_extra = MAX (size_device_extra1234, size_device_extra_all / backend_device_sharers (backend_ctx, device_param));
 
+    // The GPU private aperture on AMD is 4 GiB, on every generation from GCN on. Devices from other
+    // vendors have no comparable wall, so they are given a bound the scratch check below can never
+    // reach rather than a special case of their own.
+
+    const bool device_is_amd = (device_param->is_hip == true) || ((device_param->is_opencl == true) && (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD));
+
+    const u64 private_aperture = (device_is_amd == true) ? (4ULL * 1024 * 1024 * 1024) : (u64) -1;
+
     // we will first decrease accel and when reached that limit, we will decrease threads
     // when we decrease limit this will restore accel_max
 
@@ -18455,6 +18479,31 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (size_pws   > device_param->device_maxmem_alloc / 4) memory_limit_hit = 1;
       if (size_tmps  > device_param->device_maxmem_alloc / 4) memory_limit_hit = 1;
       if (size_hooks > device_param->device_maxmem_alloc / 4) memory_limit_hit = 1;
+
+      // AMD backs spilled private memory with a scratch buffer that has to live inside the private
+      // aperture. A dispatch asking for more is rejected with HSA_STATUS_ERROR_OUT_OF_RESOURCES, and
+      // the queue is dead from that point on, so every later call on the device fails as well and none
+      // of the messages name the private segment as the cause.
+      //
+      // The reserve is not sized by the launch. Scratch only has to hold the work items the device keeps
+      // resident at once, so a launch larger than that does not enlarge it, and size_spilling above,
+      // charged per work item of the whole launch, is the wrong figure to compare against the aperture.
+      //
+      // PKZIP is what this catches. Its kernels keep a 64 KiB inflate window plus the huffman tables in
+      // private memory, 77,760 bytes per work item, which puts a 35 processor card running 1024 threads
+      // over the aperture at anything past a single wave of accel.
+      //
+      // Only CUDA and HIP report the residency figure, so an AMD device reached through OpenCL keeps
+      // the behaviour it has today.
+
+      if (device_param->device_processor_threads > 0)
+      {
+        const u64 scratch_workitems = MIN (kernel_power_max, (u64) device_param->device_processors * device_param->device_processor_threads);
+
+        const u64 size_scratch = scratch_workitems * local_size_bytes;
+
+        if (size_scratch > private_aperture) memory_limit_hit = 1;
+      }
 
       // work around, for some reason apple opencl can't have buffers larger 2^31
       // typically runs into trap 6

@@ -1425,6 +1425,7 @@ typedef struct hc_device_param
   bool    memory_hit_shared;
 
   u32     device_processors;
+  u32     device_processor_threads;          // work items one processor holds resident, 0 if the runtime cannot report it
   u64     device_maxmem_alloc;
   u64     device_global_mem;
   u64     device_cache_size;                 // last level cache the device reports, 0 if it reports none

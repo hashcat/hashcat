@@ -274,8 +274,15 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   // The division is exact only while words_cnt is, so a producer that knows its base is believed over
   // it. A mask states nothing and is recovered by division exactly as before.
+  //
+  // A producer states its base in base words, and a base word is what the run is addressed by only
+  // while the amplifier runs on the device. --slow-candidates builds every candidate on the host, so
+  // there the unit is the candidate and words_cnt already counts them. Its amplifier is 1, which
+  // leaves the division exact, so the division is the answer and the stated base is not.
 
-  status_ctx->words_base = (status_ctx->words_base_given > 0) ? status_ctx->words_base_given : (status_ctx->words_cnt / amplifier_cnt);
+  const bool base_given = ((status_ctx->words_base_given > 0) && (user_options->slow_candidates == false));
+
+  status_ctx->words_base = (base_given == true) ? status_ctx->words_base_given : (status_ctx->words_cnt / amplifier_cnt);
 
   // Where this round sits in the queue, and how much longer the queue is now. A mask that was skipped
   // for being too short or too long returned above and adds nothing, which is right: it is not part

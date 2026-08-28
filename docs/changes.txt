@@ -360,6 +360,10 @@ argument list is shown instead.
   parallelism of zero, which hung the kernel on launch
 - Fixed --speed-only measuring with the bitmap flattened to a single entry, which
   misreported the speed for a list holding many hashes
+- Fixed the PKZIP modes 17220 and 17225 overrunning the 4 GiB private aperture on AMD GPUs
+  driven through HIP, where the scratch buffer backing their spilled private memory was never
+  budgeted, so the launch was refused outright on larger cards and lost 58 percent of its
+  throughput on smaller ones
 
 ##
 ## Other changes
