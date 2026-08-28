@@ -5592,7 +5592,34 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
       if (status_ctx->run_thread_level2 == false) break;
     }
 
-    if (user_options->speed_only == true) break;
+    // --progress-only reports outerloop_left and outerloop_msec as one pair, and the measurement
+    // runs until it has spent enough time, which can take more chunks of base words than the one
+    // this call was handed. outerloop_left is reset to the current chunk on every call, so the last
+    // chunk was being paired with every chunk's time and the reported speed came out a factor of
+    // the chunk count too low. An amplifier wide enough to fill the measurement inside one chunk
+    // hid it, which is why a slow hash and a ?a mask read correctly and a ?d mask did not.
+    //
+    // Both sides now cover the same window. speed_cnt holds the candidates each launch in it
+    // covered, and base words are the unit --keyspace, --skip and --limit use, so the total is
+    // divided by the width of the inner loop. This also replaces the outerloop_multi extrapolation,
+    // which said the same thing only while the window stayed inside one chunk.
+
+    if (user_options->speed_only == true)
+    {
+      u64    total_cnt  = device_param->speed_cnt[0];
+      double total_msec = device_param->speed_msec[0];
+
+      for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
+      {
+        total_cnt  += device_param->speed_cnt[speed_pos];
+        total_msec += device_param->speed_msec[speed_pos];
+      }
+
+      device_param->outerloop_left = MAX (total_cnt / innerloop_cnt, 1);
+      device_param->outerloop_msec = total_msec * hashes->salts_cnt;
+
+      break;
+    }
 
     //status screen makes use of this, can't reset here
     //device_param->innerloop_msec = 0;
@@ -5606,20 +5633,6 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
   //device_param->outerloop_msec = 0;
   //device_param->outerloop_pos  = 0;
   //device_param->outerloop_left = 0;
-
-  if (user_options->speed_only == true)
-  {
-    double total_msec = device_param->speed_msec[0];
-
-    for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
-    {
-      total_msec += device_param->speed_msec[speed_pos];
-    }
-
-    device_param->outerloop_msec = total_msec * hashes->salts_cnt * device_param->outerloop_multi;
-
-    //device_param->speed_only_finish = true;
-  }
 
   return 0;
 }
