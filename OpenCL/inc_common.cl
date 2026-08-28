@@ -2154,11 +2154,11 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
     {
       extraBytesToRead = 1;
     }
-    else if ((c == 0xe0) || (c == 0xec) || (c == 0xed) || (c == 0xef))
+    else if ((c >= 0xe0) && (c <= 0xef))
     {
       extraBytesToRead = 2;
     }
-    else if ((c == 0xf0) || (c == 0xf3) || (c == 0xf4))
+    else if ((c >= 0xf0) && (c <= 0xf4))
     {
       extraBytesToRead = 3;
     }
@@ -2299,11 +2299,11 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
     {
       extraBytesToRead = 1;
     }
-    else if ((c == 0xe0) || (c == 0xec) || (c == 0xed) || (c == 0xef))
+    else if ((c >= 0xe0) && (c <= 0xef))
     {
       extraBytesToRead = 2;
     }
-    else if ((c == 0xf0) || (c == 0xf3) || (c == 0xf4))
+    else if ((c >= 0xf0) && (c <= 0xf4))
     {
       extraBytesToRead = 3;
     }

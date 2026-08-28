@@ -61,7 +61,7 @@ DECLSPEC void transform_racf_key (const u32x w0, const u32x w1, PRIVATE_AS u32x 
          | BOX1 (((w1 >> 24) & 0xff), c_ascii_to_ebcdic_pc) << 24;
 }
 
-DECLSPEC void m08500m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m08500m (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args
@@ -121,7 +121,7 @@ DECLSPEC void m08500m (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64],
   }
 }
 
-DECLSPEC void m08500s (LOCAL_AS u32 (*s_SPtrans)[64], LOCAL_AS u32 (*s_skb)[64], PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
+DECLSPEC void m08500s (SHM_TYPE u32 (*s_SPtrans)[64], SHM_TYPE u32 (*s_skb)[64], PRIVATE_AS u32 *w, const u32 pw_len, KERN_ATTR_FUNC_VECTOR ())
 {
   /**
    * modifiers are taken from args

@@ -102,6 +102,16 @@ export LANG=C
 
 OUTD="test_edge_$(date +%s)"
 
+TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# A mode with OPTS_TYPE_BINARY_HASHFILE takes the path of a container file where every other mode
+# takes a hash string, and test.pl prints that container base64 encoded. The base64 has to be
+# decoded back into a file before hashcat sees it, which is what test.sh already does. A mode that
+# also sets the OPTIONAL variant accepts the hash as text and its test module prints it that way,
+# so those are left out.
+
+BINARY_HASHFILE_TYPES=$(grep -l OPTS_TYPE_BINARY_HASHFILE "${TDIR}"/../src/modules/module_*.c | xargs -r grep -L OPTS_TYPE_BINARY_HASHFILE_OPTIONAL | sed -E 's/.*module_0*([0-9]+)\.c/\1/' | tr '\n' ' ')
+
 UNAME=$(uname -s)
 
 HASH_TYPE="all"
@@ -671,6 +681,11 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
         slow_hash=1
       fi
 
+      binary_hashfile=0
+      if is_in_array "${hash_type}" ${BINARY_HASHFILE_TYPES}; then
+        binary_hashfile=1
+      fi
+
       if [ "$ATTACK_EXEC" != "all" ] && ! is_in_array "${slow_hash}" ${ATTACK_EXECS}; then continue; fi
 
       if [ $slow_hash -eq 1 ]; then
@@ -727,8 +742,12 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
       if [ $? -eq 0 ]; then
 
-        check_hash=$(cat ${edge_out} | cut -d, -f8- | head -1)
-        if [ ${#check_hash} -eq 2 ] || [ ${#check_hash} -eq 3 ]; then
+        # test.pl wraps the field in single quotes, so an empty hash arrives as two characters.
+        # Strip the quotes and ask whether anything is left, rather than counting characters. A
+        # length of 3 is a one character hash, which is what mode 99999 emits and is legitimate.
+
+        check_hash=$(cat ${edge_out} | cut -d, -f8- | head -1 | sed -e "s/^'//" -e "s/'$//")
+        if [ -z "${check_hash}" ]; then
           echo "[ ${OUTD} ] !> error detected with Hash-Type ${hash_type}: empty test vectors" | tee -a ${OUTD}/test_edge.details.log
           ((errors++))
           break
@@ -796,6 +815,27 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 echo "[ ${OUTD} ] > Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Test ID ${i}, Word len ${word_len}, Salt len ${salt_len}, Word '${word}', Salt '${salt}', Hash ${hash}" | tee -a ${OUTD}/test_edge.details.log
               else
                 echo "[ ${OUTD} ] > Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Test ID ${i}, Word len ${word_len}, Salt len ${salt_len}, Word '${word}', Salt '${salt}', Hash ${hash}" >> ${OUTD}/test_edge.details.log
+              fi
+
+              # These modes take the path of a container file, and hashcat prints that path where a
+              # cracked hash would normally go, so the output comparison further down matches on it
+              # too. m05200.pm and m09000.pm print the container base64 encoded and it has to be
+              # decoded back into a file. m14600.pm builds a real LUKS image and prints its path,
+              # so that one is already a container and must be passed through untouched.
+
+              if [ ${binary_hashfile} -eq 1 ]; then
+                y="echo -n ${hash}"
+                hash=$(eval $y)
+
+                if [ -f "${hash}" ]; then
+                  hash_file="${hash}"
+                else
+                  hash_file="${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${i}.hashfile"
+
+                  echo -n "${hash}" | base64 -d > ${hash_file}
+                fi
+
+                hash="${hash_file}"
               fi
 
               CMD=""
@@ -971,6 +1011,14 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
             fi
 
             if [ $hash_type -eq 20510 ]; then
+              cnt_max=1
+            fi
+
+            # One binary container holds one hash, and 5200 and 9000 set neither
+            # module_hash_binary_count nor module_hash_binary_parse, so hashcat loads exactly one
+            # hash from the file. Neither mode has a multi hash form to test.
+
+            if [ ${binary_hashfile} -eq 1 ]; then
               cnt_max=1
             fi
 

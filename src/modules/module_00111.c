@@ -112,14 +112,20 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u8 *salt_pos = tmp_buf + 20;
   int salt_len = tmp_len - 20;
 
-  if (salt_len >= (int) sizeof (salt->salt_buf)) return (PARSER_SALT_LENGTH);
+  if (salt_len > (int) sizeof (salt->salt_buf)) return (PARSER_SALT_LENGTH);
 
   salt->salt_len = salt_len;
 
   memcpy (salt->salt_buf, salt_pos, salt_len);
 
+  // only the 0x80 below needs a spare byte, and it is written for optimized kernels alone, so the
+  // stricter bound belongs here rather than on the salt itself. This is the split the generic salt
+  // path already makes.
+
   if (hashconfig->opts_type & OPTS_TYPE_ST_ADD80)
   {
+    if (salt_len >= (int) sizeof (salt->salt_buf)) return (PARSER_SALT_LENGTH);
+
     u8 *ptr = (u8 *) salt->salt_buf;
 
     ptr[salt_len] = 0x80;
