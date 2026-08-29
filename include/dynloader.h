@@ -38,7 +38,7 @@ int hc_dlplugin_abi (const char *path);
 // before anything is loaded.
 
 #ifdef _WIN
-void hc_dynlib_harden_search_path (void);
+HC_PLUGIN_API void hc_dynlib_harden_search_path (void);
 #else
 #define hc_dynlib_harden_search_path()
 #endif
