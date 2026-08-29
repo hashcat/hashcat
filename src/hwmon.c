@@ -2181,12 +2181,27 @@ static int hwmon_ctx_init_adl (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adapte
   return 0;
 }
 
+// Every sysfs read is a path built from the device's PCI address. A runtime that never reported
+// one leaves the address at 0000:00:00.0, which is the host bridge and never a GPU. Reading there
+// fails on every file and prints an error on every refresh of the status screen, so a device
+// without an address is better reported as having no hardware monitor at all.
+
+static bool device_pcie_address_known (const hc_device_param_t *device_param)
+{
+  if (device_param->pcie_domain   > 0) return true;
+  if (device_param->pcie_bus      > 0) return true;
+  if (device_param->pcie_device   > 0) return true;
+  if (device_param->pcie_function > 0) return true;
+
+  return false;
+}
+
 static void hwmon_ctx_init_sysfs_intelgpu (hashcat_ctx_t *hashcat_ctx, hm_attrs_t *hm_adapters_sysfs_intelgpu, int backend_devices_cnt)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
   hwmon_ctx_t   *hwmon_ctx   = hashcat_ctx->hwmon_ctx;
 
-  if (hwmon_ctx->hm_sysfs_amdgpu || hwmon_ctx->hm_iokit)
+  if (hwmon_ctx->hm_sysfs_intelgpu)
   {
     for (int backend_devices_idx = 0; backend_devices_idx < backend_devices_cnt; backend_devices_idx++)
     {
@@ -2199,6 +2214,8 @@ static void hwmon_ctx_init_sysfs_intelgpu (hashcat_ctx_t *hashcat_ctx, hm_attrs_
         const u32 device_id = device_param->device_id;
 
         if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+        if (device_pcie_address_known (device_param) == false) continue;
 
         if (hwmon_ctx->hm_sysfs_intelgpu)
         {
@@ -2271,6 +2288,8 @@ static void hwmon_ctx_init_sysfs_amdgpu_iokit (hashcat_ctx_t *hashcat_ctx, hm_at
         }
 
         if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) == 0) continue;
+
+        if (device_pcie_address_known (device_param) == false) continue;
 
         if (hwmon_ctx->hm_sysfs_amdgpu)
         {

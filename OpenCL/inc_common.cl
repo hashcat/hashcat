@@ -12,112 +12,190 @@
  * vendor specific (or generic) functions
  */
 
+// Every converter below has an OpenCL arm that does not go through vconv32_t or vconv64_t. The
+// union is a type pun, and Mesa does not promote one to registers: each use becomes a store to
+// scratch memory and a load back. whirlpool_transform() takes a byte out of a 64 bit word 1280
+// times per block, which is 2370 scratch operations in mode 6100 where shifting and casting costs
+// 2. Every other backend keeps the union.
+
 DECLSPEC u8 v8a_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v32 >>  0);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v8.a;
+  #endif
 }
 
 DECLSPEC u8 v8b_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v32 >>  8);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v8.b;
+  #endif
 }
 
 DECLSPEC u8 v8c_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v32 >> 16);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v8.c;
+  #endif
 }
 
 DECLSPEC u8 v8d_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v32 >> 24);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v8.d;
+  #endif
 }
 
 DECLSPEC u8 v8a_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >>  0);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.a;
+  #endif
 }
 
 DECLSPEC u8 v8b_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >>  8);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.b;
+  #endif
 }
 
 DECLSPEC u8 v8c_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >> 16);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.c;
+  #endif
 }
 
 DECLSPEC u8 v8d_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >> 24);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.d;
+  #endif
 }
 
 DECLSPEC u8 v8e_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >> 32);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.e;
+  #endif
 }
 
 DECLSPEC u8 v8f_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >> 40);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.f;
+  #endif
 }
 
 DECLSPEC u8 v8g_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >> 48);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.g;
+  #endif
 }
 
 DECLSPEC u8 v8h_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u8 r = (u8) (v64 >> 56);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v8.h;
+  #endif
 }
 
 DECLSPEC u8x v8a_from_v64 (u64x a)
@@ -434,58 +512,97 @@ DECLSPEC u8x v8h_from_v64 (u64x a)
 
 DECLSPEC u16 v16a_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u16 r = (u16) (v32 >>  0);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v16.a;
+  #endif
 }
 
 DECLSPEC u16 v16b_from_v32_S (const u32 v32)
 {
+  #ifdef IS_OPENCL
+  const u16 r = (u16) (v32 >> 16);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v32 = v32;
 
   return v.v16.b;
+  #endif
 }
 
 DECLSPEC u32 v32_from_v16ab_S (const u16 v16a, const u16 v16b)
 {
+  #ifdef IS_OPENCL
+  const u32 r = ((u32) v16b << 16) | ((u32) v16a >> 0);
+
+  return r;
+  #else
   vconv32_t v;
 
   v.v16.a = v16a;
   v.v16.b = v16b;
 
   return v.v32;
+  #endif
 }
 
 DECLSPEC u32 v32a_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u32 r = (u32) (v64 >>  0);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v32.a;
+  #endif
 }
 
 DECLSPEC u32 v32b_from_v64_S (const u64 v64)
 {
+  #ifdef IS_OPENCL
+  const u32 r = (u32) (v64 >> 32);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v64 = v64;
 
   return v.v32.b;
+  #endif
 }
 
 DECLSPEC u64 v64_from_v32ab_S (const u32 v32a, const u32 v32b)
 {
+  // v32a is the low half and v32b the high half. upsample() takes them the other way round. It is
+  // an OpenCL builtin that HIP does not have, so this arm has to stay inside IS_OPENCL.
+
+  #ifdef IS_OPENCL
+  const u64 r = upsample (v32b, v32a);
+
+  return r;
+  #else
   vconv64_t v;
 
   v.v32.a = v32a;
   v.v32.b = v32b;
 
   return v.v64;
+  #endif
 }
 
 // unpack function are similar, but always return u32
@@ -953,6 +1070,38 @@ DECLSPEC u32 hc_rotr32_S (const u32 a, const int n)
   #endif
 }
 
+// No GPU has a native 64 bit rotation, so it always costs two 32 bit funnel shifts. Spelling it
+// this way lets a compiler that recognises a funnel shift emit one instruction per half. n is a
+// literal at every call site, so the swap decision folds away. hl32_to_64_S() puts the halves
+// back together because it is a register pair, where a shift and an or is a real instruction.
+
+#define HC_BITALIGN(hi, lo, n) (((hi) << (32 - (n))) | ((lo) >> (n)))
+
+DECLSPEC u64 hc_rotr64_bitalign_S (const u64 a, const int n)
+{
+  const u32 a0 = (u32) (a >> 32);
+  const u32 a1 = (u32) (a >>  0);
+
+  const int m    = (n >> 0) & 31;
+  const int swap = (n >> 5) & 1;
+
+  // a rotation by a multiple of 32 has no funnel shift in it at all
+
+  if (m == 0)
+  {
+    if (swap == 1) return hl32_to_64_S (a1, a0);
+
+    return a;
+  }
+
+  const u32 t0 = (swap == 1) ? HC_BITALIGN (a0, a1, m) : HC_BITALIGN (a1, a0, m);
+  const u32 t1 = (swap == 1) ? HC_BITALIGN (a1, a0, m) : HC_BITALIGN (a0, a1, m);
+
+  const u64 r = hl32_to_64_S (t0, t1);
+
+  return r;
+}
+
 DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
 {
   #if   defined HC_CPU_OPENCL_EMU_H
@@ -962,7 +1111,9 @@ DECLSPEC u64x hc_rotl64 (const u64x a, const int n)
   #elif (defined IS_AMD || defined IS_HIP)
   return rotl64 (a, n);
   #else
-  #ifdef USE_ROTATE
+  #if defined IS_AMD_GPU && (VECT_SIZE == 1)
+  return hc_rotr64_bitalign_S (a, 64 - n);
+  #elif defined USE_ROTATE
   return rotate (a, make_u64x (n));
   #else
   return ((a << n) | (a >> (64 - n)));
@@ -979,7 +1130,9 @@ DECLSPEC u64x hc_rotr64 (const u64x a, const int n)
   #elif (defined IS_AMD || defined IS_HIP)
   return rotr64 (a, n);
   #else
-  #ifdef USE_ROTATE
+  #if defined IS_AMD_GPU && (VECT_SIZE == 1)
+  return hc_rotr64_bitalign_S (a, n);
+  #elif defined USE_ROTATE
   return rotate (a, make_u64x (64 - n));
   #else
   return ((a >> n) | (a << (64 - n)));
@@ -996,7 +1149,9 @@ DECLSPEC u64 hc_rotl64_S (const u64 a, const int n)
   #elif (defined IS_AMD || defined IS_HIP)
   return rotl64_S (a, n);
   #else
-  #ifdef USE_ROTATE
+  #ifdef IS_AMD_GPU
+  return hc_rotr64_bitalign_S (a, 64 - n);
+  #elif defined USE_ROTATE
   return rotate (a, (u64) (n));
   #else
   return ((a << n) | (a >> (64 - n)));
@@ -1013,7 +1168,9 @@ DECLSPEC u64 hc_rotr64_S (const u64 a, const int n)
   #elif (defined IS_AMD || defined IS_HIP)
   return rotr64_S (a, n);
   #else
-  #ifdef USE_ROTATE
+  #ifdef IS_AMD_GPU
+  return hc_rotr64_bitalign_S (a, n);
+  #elif defined USE_ROTATE
   return rotate (a, (u64) (64 - n));
   #else
   return ((a >> n) | (a << (64 - n)));
@@ -1270,39 +1427,21 @@ DECLSPEC u64x hc_swap64 (const u64x v)
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r.sf) : "r"(tr.sf), "r"(tl.sf));
   #endif
 
-  #elif defined IS_METAL || defined IS_APPLE_SILICON
+  #else
+
+  // A 64 bit byte reverse is two 32 bit ones over the halves, and asking for it that way is what
+  // every backend without a byte permute instruction wants. The 64 bit spellings that were here
+  // ask a compiler to see through a chain of 64 bit shifts, and neither AMD compiler does: on a
+  // gfx1100 the bitselect one cost 20 instructions under ROCm and 22 under Mesa, where this costs
+  // 2 and 6.
 
   const u32x a0 = h32_from_64 (v);
   const u32x a1 = l32_from_64 (v);
 
-  u32x t0 = hc_swap32 (a0);
-  u32x t1 = hc_swap32 (a1);
+  const u32x t0 = hc_swap32 (a0);
+  const u32x t1 = hc_swap32 (a1);
 
   r = hl32_to_64 (t1, t0);
-
-  #else
-
-  #if defined USE_BITSELECT && defined USE_ROTATE
-
-  r = bitselect (bitselect (rotate (v, make_u64x (24)),
-                            rotate (v, make_u64x ( 8)),
-                                       make_u64x (0x000000ff000000ffUL)),
-                 bitselect (rotate (v, make_u64x (56)),
-                            rotate (v, make_u64x (40)),
-                                       make_u64x (0x00ff000000ff0000UL)),
-                                       make_u64x (0xffff0000ffff0000UL));
-  #else
-
-  r = ((v & make_u64x (0xff00000000000000UL)) >> 56)
-    | ((v & make_u64x (0x00ff000000000000UL)) >> 40)
-    | ((v & make_u64x (0x0000ff0000000000UL)) >> 24)
-    | ((v & make_u64x (0x000000ff00000000UL)) >>  8)
-    | ((v & make_u64x (0x00000000ff000000UL)) <<  8)
-    | ((v & make_u64x (0x0000000000ff0000UL)) << 24)
-    | ((v & make_u64x (0x000000000000ff00UL)) << 40)
-    | ((v & make_u64x (0x00000000000000ffUL)) << 56);
-
-  #endif
 
   #endif
   #endif
@@ -1331,30 +1470,16 @@ DECLSPEC u64 hc_swap64_S (const u64 v)
 
   asm volatile ("mov.b64 %0, {%1, %2};" : "=l"(r) : "r"(tr), "r"(tl));
 
-  #elif defined IS_METAL || defined IS_APPLE_SILICON
+  #else
 
   const u32 v0 = h32_from_64_S (v);
   const u32 v1 = l32_from_64_S (v);
 
-  u32 t0 = hc_swap32_S (v0);
-  u32 t1 = hc_swap32_S (v1);
+  const u32 t0 = hc_swap32_S (v0);
+  const u32 t1 = hc_swap32_S (v1);
 
   r = hl32_to_64_S (t1, t0);
 
-  #else
-
-  #ifdef USE_SWIZZLE
-  r = as_ulong (as_uchar8 (v).s76543210);
-  #else
-  r = ((v & (u64) 0xff00000000000000UL) >> 56)
-    | ((v & (u64) 0x00ff000000000000UL) >> 40)
-    | ((v & (u64) 0x0000ff0000000000UL) >> 24)
-    | ((v & (u64) 0x000000ff00000000UL) >>  8)
-    | ((v & (u64) 0x00000000ff000000UL) <<  8)
-    | ((v & (u64) 0x0000000000ff0000UL) << 24)
-    | ((v & (u64) 0x000000000000ff00UL) << 40)
-    | ((v & (u64) 0x00000000000000ffUL) << 56);
-  #endif
   #endif
   #endif
 
@@ -2830,7 +2955,7 @@ DECLSPEC int is_valid_printable_32_incl_common_control (const u32 v)
   return 1;
 }
 
-DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len, KEYBOARD_MAP_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   for (int idx = 0; idx < keyboard_layout_mapping_cnt; idx++)
   {
@@ -2848,7 +2973,7 @@ DECLSPEC int hc_find_keyboard_layout_map (const u32 search, const int search_len
   return -1;
 }
 
-DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw_len, LOCAL_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
+DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw_len, KEYBOARD_MAP_AS keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf, const int keyboard_layout_mapping_cnt)
 {
   u32 out_buf[32] = { 0 };
 

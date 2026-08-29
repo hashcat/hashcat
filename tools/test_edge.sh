@@ -22,7 +22,7 @@ function usage()
   echo "-A / --attack-exec <arg>            : set Attack Exec Type (default: all. supported: 0 (Inside kernel), 1 (Outside kernel)"
   echo ""
   echo "-a / --attack-type <arg>            : set Attack Type or a list of comma-separated Attack Types"
-  echo "                                      (default: all. supported: 0 (Straight), 1 (Combination), 3 (Brute-force), 6 (Hybrid Wordlist + Mask), 7 (Hybrid Mask + Wordlist), 12 (Hybrid, mask says where the word goes))"
+  echo "                                      (default: all. supported: 0 (Straight), 1 (Combination), 3 (Brute-force), 4 (PCFG), 6 (Hybrid Wordlist + Mask), 7 (Hybrid Mask + Wordlist), 8 (Generic), 9 (Association), 12 (Hybrid, mask says where the word goes))"
   echo "-K / --kernel-type <arg>            : set Kernel Type (default: all. supported: 0 (Pure), 1 (Optimized))"
   echo ""
   echo "-t / --target-type <arg>            : set Target Type (default: all. supported: single, multi)"
@@ -65,6 +65,86 @@ function is_in_array()
   for e in "${@:2}"; do
     [ "$e" = "$1" ] && return 0
   done
+
+  return 1
+}
+
+# The mask attacks do not test the correct password on its own. The mask puts candidates on one side
+# of it or the other, and the correct one has to be picked out of them, which is what catches a kernel
+# that reports a neighbour of the match. An attack reading a word list has no mask, so the same noise
+# is written out as words here: the tail of the word replaced by every digit, with the word itself put
+# back in the middle of them.
+#
+# The count is what -a 6 and -a 7 spend, 100 on a fast hash and 10 on a slow one, so every candidate
+# still reaches the device in one launch.
+
+function noise_words()
+{
+  local noise_word=$1
+  local noise_slow=$2
+  local noise_suffix=$3
+
+  local cut_len=2
+
+  if [ "${noise_slow}" -eq 1 ]; then
+    cut_len=1
+  fi
+
+  if [ ${#noise_word} -lt ${cut_len} ]; then
+    cut_len=${#noise_word}
+  fi
+
+  # An empty word has no variant of its own length, and a variant of another length would be testing
+  # the length constraint rather than the password.
+
+  if [ ${cut_len} -eq 0 ]; then
+    printf '%s%s\n' "${noise_word}" "${noise_suffix}"
+    return
+  fi
+
+  local tails=$(echo {0..9})
+
+  if [ ${cut_len} -eq 2 ]; then
+    tails=$(echo {0..9}{0..9})
+  fi
+
+  local stem="${noise_word:0:$(( ${#noise_word} - cut_len ))}"
+
+  local half=$(( $(echo ${tails} | wc -w) / 2 ))
+  local at=0
+
+  for noise_tail in ${tails}; do
+    if [ ${at} -eq ${half} ]; then
+      printf '%s%s\n' "${noise_word}" "${noise_suffix}"
+    fi
+
+    printf '%s%s\n' "${stem}${noise_tail}" "${noise_suffix}"
+
+    at=$((at + 1))
+  done
+}
+
+# A -a 4 ruleset line is a value, a tab, and a probability, so a word holding a tab cannot be written
+# into one. An empty word cannot be written into one either, because a grammar assembles a candidate
+# out of terminals and the shortest terminal is one character long. Neither case says anything is
+# wrong with the attack, so the test vector is skipped rather than failed.
+
+function attack_rejects_word()
+{
+  local check_word=$1
+  local check_attack=$2
+
+  if [ "${check_attack}" -ne 4 ]; then
+    return 1
+  fi
+
+  if [ ${#check_word} -eq 0 ]; then
+    return 0
+  fi
+
+  if [[ "${check_word}" == *$'\t'* ]]; then
+    return 0
+  fi
 
   return 1
 }
@@ -120,7 +200,18 @@ HASH_TYPE_MAX=99999
 ATTACK_EXEC="all"
 ATTACK_EXECS="0 1"
 ATTACK_TYPE="all"
-ATTACK_TYPES="0 1 3 6 7 12"
+
+# -a 9 is in "all" because -a 0 does not cover it. It builds the straight kernels with the salt
+# taken from the global id rather than from the launch, so it is different source, a different
+# cache entry, and its own failure modes: a kernel that shares one hash's salt across a workgroup
+# is correct under every other attack and wrong under this one.
+
+ATTACK_TYPES="0 1 3 4 6 7 8 9 12"
+
+# Attack types 4, 8 and 9 hand hashcat one candidate per word, the same way attack type 0 does, so
+# they cost the same on a slow hash and are not skipped along with the mask attacks.
+
+WHOLE_WORD_ATTACK_TYPES="0 4 8 9"
 KERNEL_TYPE="all"
 TARGET_TYPE="all"
 VECTOR_WIDTH="all"
@@ -146,7 +237,11 @@ SKIP_HASH_TYPES_METAL="21800"
 
 METAL_FORCE_KEEPFREE="8900 22700 27700 28200 29800"
 
-SKIP_OUT_MATCH_HASH_TYPES="14000 14100 22000 31500 31600"
+# 14000, 14100, 31500 and 31600 crack a plaintext other than the one the hash was made from,
+# and 22000 and 22001 write the cracked line as the parts of the handshake rather than as the
+# hash and the plaintext. Neither can be compared against what test.pl generated.
+
+SKIP_OUT_MATCH_HASH_TYPES="14000 14100 22000 22001 31500 31600"
 SKIP_SAME_SALT_HASH_TYPES="6600 7100 7200 8200 13200 13400 15300 15310 15900 15910 16900 18300 18900 20200 20300 20400 27000 27100 29700 29930 29940"
 #SKIP_SAME_SALT_HASH_TYPES="400 3200 5800 6400 6500 6600 6700 7100 7200 7401 7900 8200 9100 9200 9400 10500 10901 12001 12200 12300 12400 12500 12700 12800 12900 13000 13200 13400 13600 14700 14800 15100 15200 15300 15310 15400 15600 15900 15910 16200 16300 16700 16900 18300 18400 18800 18900 19000 19100 19600 19700 19800 19900 20011 20012 20013 20200 20300 20400 21501 22100 22400 22600 23100 23300 23500 23600 23700 23900 24100 24200 24410 24420 24500 25300 25400 25500 25600 25800 26100 26500 26600 27000 27100 27400 27500 27600 28100 28400 28600 28800 28900 29600 29700 29910 29920 29930 29940 30600 31200 31900"
 
@@ -244,12 +339,27 @@ while [[ $# -gt 0 ]]; do
         opt="${optstring:i:1}"
         case "$opt" in
           r)
-            if [[ "$2" =~ ^-?[0-9]+$ ]]; then
-              RUNTIME_MAX="$2"
+            if (( i + 1 < ${#optstring} )); then
+              optarg="${optstring:$((i+1))}"
+              shift_inline=1
+            elif [[ -n "$2" && "$2" != -* ]]; then
+              optarg="$2"
+              shift_inline=0
             else
+              echo "Error: -r requires an argument"
+              usage
+            fi
+
+            if [[ ! "$optarg" =~ ^[0-9]+$ ]]; then
               echo "Error: -r requires a valid argument (integer)"
               usage
             fi
+
+            RUNTIME_MAX="$optarg"
+
+            [[ "$shift_inline" -eq 0 ]] && shift
+
+            break
             ;;
           v)
             (( VERBOSE++ ))
@@ -451,7 +561,7 @@ while [[ $# -gt 0 ]]; do
 
               IFS=',' read -ra INPUT_ATTACK_TYPES <<< "$optarg"
               for atk in "${INPUT_ATTACK_TYPES[@]}"; do
-                if [[ "$atk" =~ ^(0|1|3|6|7|12)$ ]]; then
+                if [[ "$atk" =~ ^(0|1|3|4|6|7|8|9|12)$ ]]; then
                   ATTACK_TYPES+=" $atk"
                 else
                   echo "Invalid attack type: $atk"
@@ -691,7 +801,8 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
       if [ $slow_hash -eq 1 ]; then
         if [ "$ATTACK_EXEC" == "all" ] || is_in_array "1" ${ATTACK_EXECS}; then
           if is_in_array "0" ${ATTACK_TYPES} && [ "$ALL_ATTACKS" -eq 0 ]; then
-            if [ $attack_type -ne 0 ]; then
+            is_in_array "${attack_type}" ${WHOLE_WORD_ATTACK_TYPES}
+            if [ ${?} -eq 1 ]; then
               if [ $HASH_TYPE == "all" ] && [ $hash_type -ne 400 ]; then
                 if [ ${VERBOSE} -ge 2 ]; then
                   echo "[ ${OUTD} ] > Skip processing Hash-Type ${hash_type} with Attack-Type ${attack_type} and Kernel-Type ${kernel_type} (disabled on ATTACK_EXEC_OUTSIDE_KERNEL by default)" | tee -a ${OUTD}/test_edge.details.log
@@ -772,6 +883,16 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
             fi
           fi
 
+          # The cracked hashes are read out of the outfile rather than out of what hashcat printed.
+          # A warning goes to stdout next to the results, "High memory usage by desktop or other apps
+          # detected" for one, and comparing that against the expected plaintext fails a test that
+          # passed. The default outfile format is the hash and the plaintext, which is what the
+          # comparison already expects.
+
+          outfile="${OUTD}/out_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.outfile"
+
+          CUR_OPTS_V="${CUR_OPTS_V} --outfile ${outfile}"
+
           # single hash
           if [ $TARGET_TYPE == all ] || [ $TARGET_TYPE == 0 ]; then
 
@@ -805,10 +926,15 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               word=$(eval $x)
 
               if [ ${hash_type} -eq 20510 ]; then
-                if [ "$word_len" -le 6 ] && [ "${#word}" -eq 0 ] && { [ "$attack_type" -eq 3 ] || [ "$attack_type" -eq 6 ] || [ "$attack_type" -eq 7 ]; }; then
-                 echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Target-Type multi (word len <= 6 not allowed with attack-type 3, 6 and 7)" | tee -a ${OUTD}/test_edge.details.log
+                if [ "$word_len" -le 6 ] && [ "${#word}" -eq 0 ] && { [ "$attack_type" -eq 3 ] || [ "$attack_type" -eq 6 ] || [ "$attack_type" -eq 7 ] || [ "$attack_type" -eq 12 ]; }; then
+                 echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Target-Type multi (word len <= 6 not allowed with attack-type 3, 6, 7 and 12)" | tee -a ${OUTD}/test_edge.details.log
                  continue
                 fi
+              fi
+
+              if attack_rejects_word "${word}" ${attack_type}; then
+                echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Test ID ${i}, Target-Type single (this word cannot be written into the attack's input)" | tee -a ${OUTD}/test_edge.details.log
+                continue
               fi
 
               if [ ${VERBOSE} -ge 1 ]; then
@@ -928,9 +1054,85 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 echo -n ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_2.word
 
                 CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 7 ${mask_1} ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_2.word"
+              elif [ "${attack_type}" -eq 12 ]; then
+
+                # A mask on both sides of the word is the shape -a 6 and -a 7 cannot reach, so that is
+                # what is tested here, and the two sides share the budget those two spend on one. A
+                # word with nothing left once a mask character is taken off each end gets the mask in
+                # front of it instead, and so does a slow hash, whose budget is one character. One ?b
+                # is already 256 candidates, so the hex charset stays in front as well.
+
+                mask_c="?d"
+                cut_len=1
+                both_sides=1
+
+                if [ $pt_hex -eq 1 ]; then
+                  mask_c="?b"
+                  cut_len=2
+                  both_sides=0
+                elif [ $pt_base58 -eq 1 ]; then
+                  mask_c="?a"
+                fi
+
+                if [ ${slow_hash} -eq 1 ]; then
+                  both_sides=0
+                fi
+
+                mid_len=$((${#word} - cut_len - cut_len))
+
+                if [ ${both_sides} -eq 1 ] && [ ${mid_len} -ge 1 ]; then
+                  word_1="${word:${cut_len}:${mid_len}}"
+                  mask_1="${mask_c}?w${mask_c}"
+                else
+                  word_1="${word:${cut_len}}"
+                  mask_1="${mask_c}?w"
+                fi
+
+                echo -n "${word_1}" > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_12.word
+
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 12 ${mask_1} ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_12.word"
+              elif [ "${attack_type}" -eq 4 ]; then
+
+                # The smallest ruleset that produces a named list of candidates. X is the flat token, so
+                # its entries carry their own length and always live in Context/1.txt, and a grammar of
+                # one shape at probability 1 makes the run exactly as long as the list under it.
+
+                ruleset="${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.ruleset"
+
+                mkdir -p ${ruleset}/Grammar ${ruleset}/Context
+
+                printf 'X1\t1.0\n' > ${ruleset}/Grammar/grammar.txt
+
+                noise_words "${word}" ${slow_hash} $'\t1.0' > ${ruleset}/Context/1.txt
+
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 4 ${ruleset}"
+              elif [ "${attack_type}" -eq 8 ]; then
+
+                # -a 0 with no wordlist already runs the stdin feed, so the one worth naming here is the
+                # wordlist feed, which nothing else in this script reaches. The noise around the word
+                # also puts it at an offset the feed has to seek to, rather than at the front.
+
+                noise_words "${word}" ${slow_hash} "" > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_8.word
+
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 8 wordlist ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_8.word"
+              elif [ "${attack_type}" -eq 9 ]; then
+
+                # -a 9 named a wordlist pairs word N with hash N. The other form of it cuts the
+                # candidate off the front of the hash line instead, which needs a separator the word is
+                # not allowed to contain and refuses an empty candidate, so neither edge is reachable
+                # that way.
+                #
+                # One candidate per salt is what the attack is, so this is the one attack here that
+                # cannot be given noise around the word. A second word would be a second salt.
+
+                echo "${word}" > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_9.word
+
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 9 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_9.word"
               fi
 
               cmd_out="${OUTD}/cmd_${hash_type}_${kernel_type}_${attack_type}_${i}.single.log"
+
+              rm -f ${outfile}
 
               eval ${CMD} &> ${cmd_out}
               retVal=$?
@@ -968,7 +1170,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   continue
                 fi
 
-                out=$(grep -v "Unsupported\|STATUS\|^$" ${cmd_out} | sed -e 's/    (user password.*$//g')
+                out=$(cat ${outfile} 2>/dev/null | sed -e 's/    (user password.*$//g')
 
                 x="echo -n ${hash}"
                 hash=$(eval $x)
@@ -1029,6 +1231,15 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               continue
             fi
 
+            # -a 9 gives one candidate to each salt, and every hash of an unsalted mode is on the one
+            # salt, so a second hash there would have no second candidate to go with it.
+
+            if [ ${attack_type} -eq 9 ] && [ ${have_salt} -eq 1 ]; then
+              echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Target-Type multi (every hash is on the same salt, and -a 9 takes one candidate per salt)" | tee -a ${OUTD}/test_edge.details.log
+              cnt=0
+              continue
+            fi
+
             # check if hash_type cannot crack multiple hashes with the same salt
             same_salt=1
 
@@ -1038,6 +1249,13 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               if [ "${multi_hashes_same_salt_allowed}" == "Not" ]; then
                 same_salt=0
               fi
+            fi
+
+            # Two hashes on one salt share a candidate under -a 9 whatever the hash mode allows, so the
+            # salt has to be unique here even where the mode would accept a repeat.
+
+            if [ ${attack_type} -eq 9 ]; then
+              same_salt=0
             fi
 
             cnt=$(wc -l ${edge_out} | awk '{print $1}')
@@ -1055,6 +1273,16 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
             hash_cnt=0
 
             hash_in="${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.hashes"
+
+            ruleset="${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.ruleset"
+
+            if [ ${attack_type} -eq 4 ]; then
+              rm -rf ${ruleset}
+
+              mkdir -p ${ruleset}/Grammar ${ruleset}/Context
+
+              printf 'X1\t1.0\n' > ${ruleset}/Grammar/grammar.txt
+            fi
 
             for ((i = 1; i <= cnt; i++)); do
 
@@ -1098,6 +1326,11 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
               word=$(eval $x)
               hash=$(eval $y)
+
+              if attack_rejects_word "${word}" ${attack_type}; then
+                echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Test ID ${i}, Target-Type multi (this word cannot be written into the attack's input)" | tee -a ${OUTD}/test_edge.details.log
+                continue
+              fi
 
               echo $hash >> ${hash_in}
 
@@ -1203,6 +1436,63 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 echo ${mask_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.masks
 
                 CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 7 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.masks ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.words"
+              elif [ "${attack_type}" -eq 12 ]; then
+                ((hash_cnt++))
+
+                # Same two shapes as the single hash run above, and the masks go into a mask file so
+                # that every word is tried against every one of them.
+
+                mask_c="?d"
+                cut_len=1
+                both_sides=1
+
+                if [ $pt_hex -eq 1 ]; then
+                  mask_c="?b"
+                  cut_len=2
+                  both_sides=0
+                elif [ $pt_base58 -eq 1 ]; then
+                  mask_c="?a"
+                fi
+
+                if [ ${slow_hash} -eq 1 ]; then
+                  both_sides=0
+                fi
+
+                mid_len=$((${#word} - cut_len - cut_len))
+
+                if [ ${both_sides} -eq 1 ] && [ ${mid_len} -ge 1 ]; then
+                  word_1="${word:${cut_len}:${mid_len}}"
+                  mask_1="${mask_c}?w${mask_c}"
+                else
+                  word_1="${word:${cut_len}}"
+                  mask_1="${mask_c}?w"
+                fi
+
+                echo "${word_1}" >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.12.words
+                echo "${mask_1}" >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.12.masks
+
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 12 ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.12.masks ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.12.words"
+              elif [ "${attack_type}" -eq 4 ]; then
+                ((hash_cnt++))
+
+                # The words of the other hashes are the noise here, the same way they are under -a 0
+                # and -a 8, so the ruleset holds one entry per hash and nothing more.
+
+                printf '%s\t1.0\n' "${word}" >> ${ruleset}/Context/1.txt
+
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 4 ${ruleset}"
+              elif [ "${attack_type}" -eq 8 ]; then
+                ((hash_cnt++))
+
+                echo "${word}" >> ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.8.words
+
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 8 wordlist ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.8.words"
+              elif [ "${attack_type}" -eq 9 ]; then
+                ((hash_cnt++))
+
+                echo "${word}" >> ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.9.words
+
+                CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash_in} -a 9 ${OUTD}/edge_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.9.words"
               fi
             done
 
@@ -1211,6 +1501,9 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
 
             if [ $hash_cnt -gt 1 ]; then
               cmd_out="${OUTD}/cmd_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.multi.log"
+
+              rm -f ${outfile}
+
               eval ${CMD} &> ${cmd_out}
               retVal=$?
 
@@ -1230,6 +1523,16 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                 if [ "${retVal}" -eq 252 ]; then
                   echo "[ ${OUTD} ] > Skipping current tests due to unmet memory requirements ..." | tee -a ${OUTD}/test_edge.details.log
                   break
+                fi
+
+                # -a 9 gives one candidate to each salt and wants a single iteration count across the
+                # whole set. test.pl picks an iteration count per test vector for some hash modes, so
+                # hashcat says so and stops before it runs. That is the attack telling the suite what
+                # it takes, not a defect to report.
+
+                if [ ${attack_type} -eq 9 ] && grep -q "Mixed iteration counts are not supported" ${cmd_out}; then
+                  echo "[ ${OUTD} ] > Skipping Hash-Type ${hash_type}, Attack-Type ${attack_type}, Kernel-Type ${kernel_type}, Vector-Width ${vector_width}, Target-Type multi (the test vectors do not share one iteration count)" | tee -a ${OUTD}/test_edge.details.log
+                  continue
                 fi
 
                 echo '```' | tee -a ${OUTD}/test_edge.details.log
@@ -1255,7 +1558,7 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   continue
                 fi
 
-                out=$(grep -v "Unsupported\|STATUS\|^$" ${cmd_out} | sed -e 's/    (user password.*$//g')
+                out=$(cat ${outfile} 2>/dev/null | sed -e 's/    (user password.*$//g')
 
                 md5_1=$(echo "${out}" | sort -s | md5sum | cut -d' ' -f1)
                 md5_2=$(cat ${hc_out} | sort -s | md5sum | cut -d' ' -f1)

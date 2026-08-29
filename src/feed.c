@@ -772,6 +772,7 @@ static void feed_optv_common (feed_optv_t *o, const hc_device_param_t *device_pa
   feed_optv_add (o, "-D LOCAL_MEM_TYPE=%d", device_param->device_local_mem_type);
   feed_optv_add (o, "-D DEVICE_TYPE=%u", (u32) device_param->opencl_device_type);
   feed_optv_add (o, "-D VENDOR_ID=%u", device_param->opencl_platform_vendor_id);
+  feed_optv_add (o, "-D DEVICE_VENDOR_ID=%u", device_param->opencl_device_vendor_id);
   feed_optv_add (o, "-D CUDA_ARCH=%u", (device_param->sm_major * 100) + (device_param->sm_minor * 10));
 
   feed_optv_add (o, "-D HAS_ADD=%u",      device_param->has_add);

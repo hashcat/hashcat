@@ -31,43 +31,70 @@ of candidates than the wordlist had lines, and a wordlist keyspace is now always
 5. Distribution: --skip and --limit now apply to the whole run
 
 Multiple wordlists in -a 0, and --increment or mask files in -a 3/6/7, used to be separate attacks
-with their own keyspace numbering. They now form one virtual keyspace, so --skip 1000 skips the first
+with their own keyspace numbering, and hashcat refused --skip and --limit for all three. A scheduler
+therefore had to split every wordlist, every mask and every increment length into a task of its own
+and add the pieces up itself. They now form one virtual keyspace, so --skip 1000 skips the first
 thousand units of the whole run rather than the first thousand of every file or mask, and hashcat
-seeks to the right wordlist or mask itself.
+seeks to the right wordlist or mask itself. A run over eighteen wordlists is one range to divide up,
+and so is "-i ?d?d?d?d".
+
+Two queues are still refused, and both for the same reason: --loopback and --induction-dir write the
+wordlist the next round reads, so how long the queue will be is not known when the window would have
+to be divided up.
 
 6. Distribution: --keyspace answers for the whole run as well
+
+--keyspace used to be refused for every one of these. The error named --increment and mask files, and
+the same check also caught a directory of wordlists and several wordlists on the command line. It now
+returns one number covering every wordlist, every mask in a mask file and every length in an increment
+range, and that number is the one --skip and --limit address. "-a 3 -i --increment-min 1
+--increment-max 4 ?d?d?d?d" answers 1111, which is 1 + 10 + 100 + 1000.
 
 Both options stay in --keyspace units, which are base words and not final candidates, and that part is
 unchanged. Amplification still happens afterwards, from rules in -a 0 and from the remaining mask
 positions in -a 3. "?l?l?l" is 676 base words and 17576 candidates, so --skip 300 leaves 376 base
 words, which expand to 9776 candidates.
 
-7. Brain: --brain-client-features now defaults to 3 instead of 2
+7. Status: the progress counters are now relative to --skip
+
+Progress in the status screen, "progress" in --status-json and PROGRESS in --machine-readable now
+count the work this run was asked for, and the total beside them is the size of that work. A run given
+"--skip 1000000 --limit 20000000" starts at 0 and ends at 20000000 units, where it used to start at
+1000000 and end at 21000000. The percentage therefore runs from 0 to 100 over the requested range. It
+used to be the position in the whole keyspace, so a chunk taken from the end of a large keyspace
+displayed close to 100 percent for the whole of its run.
+
+CURKU in --machine-readable and Restore.Point in the status screen are unchanged. Both remain
+positions in the whole keyspace and still include what --skip left out, because they answer where the
+run has reached in the wordlist or the mask, not how much of its own work is done. Anything that
+parses --machine-readable and corrects PROGRESS for --skip itself has to stop doing so.
+
+8. Brain: --brain-client-features now defaults to 3 instead of 2
 
 The client dedups on the candidate itself again, not only on the keyspace position of an attack, so
 two different wordlists holding the same words dedup against each other out of the box. That is what
 most people expect the brain to do.
 
-8. Brain: the candidate feature switches itself off where it cannot pay
+9. Brain: the candidate feature switches itself off where it cannot pay
 
 It costs the server eight bytes per candidate for as long as the session lives, and a mode that
 computes inside the kernel with fewer than 1024 salts produces candidates faster than the server can
 usefully remember. The attack feature stays on there, so clients still keep out of each other's
 keyspace and nothing is aborted. Setting the option by hand overrules the decision either way.
 
-9. Restore: --restore no longer takes a command line out of the restore file
+10. Restore: --restore no longer takes a command line out of the restore file
 
 The file holds the command line of the session it belongs to, and hashcat used to parse that line and
 run it, so anyone able to write the file could choose the arguments. --restore now prints the command
 line it holds and stops.
 
-10. Restore: --restore-position and --restore-auto
+11. Restore: --restore-position and --restore-auto
 
 --restore-position takes only the resume position from the file and uses the command line you actually
 ran, so no argv is parsed out of a file at all. --restore-auto keeps the old one step resume for
 anything driving hashcat unattended, and prints the command line before using it.
 
-11. Restore: the printed command line is shell quoted
+12. Restore: the printed command line is shell quoted
 
 Where an argument holds a byte outside printable ASCII, no pasteable line is printed and the escaped
 argument list is shown instead.
@@ -99,6 +126,7 @@ argument list is shown instead.
 - Attack-Mode 8: A feed that cannot report a keyspace runs without a progress denominator
 - Attack-Mode 0: Wordlists are now read through the attack-mode 8 wordlist feed, which can seek
 - Attack-Mode 0: Several wordlists now form one keyspace, so --skip and --limit apply to all of them
+- Attack-Mode 0: --keyspace, --total-candidates and --lookup now accept more than one wordlist as well
 - Attack-Mode 0: Reading candidates from stdin is now a feed and appears as Feed (stdin)
 - Attack-Mode 0: --skip, --limit and --restore now work on stdin if the same stream is fed again
 - Attack-Mode 1: Both dictionaries are now read through a feed, with --slow-candidates as well
@@ -220,6 +248,20 @@ argument list is shown instead.
 ## Bugs
 ##
 
+- Fixed a stored deflate block decoding to nothing in the PKZIP modes 17200, 17220 and 17225 on
+  AMD GPUs, in the HIP backend and in the OpenCL backend both. A file that does not compress is
+  stored rather than deflated, which is what an archived JPEG, MP3 or nested ZIP is, so an
+  archive holding one never cracked at all
+- Fixed an association attack cracking nothing in the kernels for modules 01100, 05300, 05400,
+  05600, 07300, 08000, 13800, 17200, 17210, 17220, 17225 and 17230, where one hash's salt was
+  copied into shared memory and handed to every thread of the workgroup, while -a 9 gives every
+  thread a hash of its own
+- Fixed an association attack ignoring --keyboard-layout-mapping in the TrueCrypt modules 06211
+  to 06233 and the VeraCrypt modules 13711 to 13773, and reading another hash's page table in
+  the BitLocker module 22100, all for the same reason
+- Fixed an association attack cracking only the first hash in modules 11600 and 23800, where
+  the hook that verifies a candidate on the host was given the salt of the launch, which -a 9
+  always sets to the first one
 - Fixed combinator and hybrid attacks reporting a plaintext truncated to 256 characters,
   which did not match the cracked digest
 - Fixed buffer overflows in the RC4 modules 33500, 33501 and 33502, where the plaintext
@@ -268,8 +310,8 @@ argument list is shown instead.
 - Fixed -a 1 truncating an amplifier word after encoding conversion instead of rejecting it
 - Fixed a file handle leak in -a 7 with the pure kernel, one per mask, dictionary and device
 - Fixed a restored position beyond the keyspace wrapping the remaining work to a huge value
+- Fixed --progress-only reporting a speed a factor of the measured chunk count too low
 - Fixed brain attack identities not including the rules, so two different attacks shared a database
-- Fixed the progress line counting the words --skip left out as work that had already been done
 - Fixed a crash in autodetect and --identify when any hash-mode's module could not be loaded
 - Fixed a memory leak in module_load() on the paths where the module file cannot be opened
   or has no module_init

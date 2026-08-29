@@ -255,6 +255,17 @@ KERNEL_FQ KERNEL_FA void m13713_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
 
   const int keyboard_layout_mapping_cnt = esalt_bufs[DIGESTS_OFFSET_HOST].keyboard_layout_mapping_cnt;
 
+  #if ATTACK_MODE == 9
+
+  // An association attack takes its hash from the global id, so a copy shared by the whole
+  // workgroup would hold a different hash's keyboard layout map in every slot. The map is read
+  // out of global memory instead, which is what KEYBOARD_MAP_AS carries into the function that
+  // walks it.
+
+  GLOBAL_AS const keyboard_layout_mapping_t *s_keyboard_layout_mapping_buf = esalt_bufs[DIGESTS_OFFSET_HOST].keyboard_layout_mapping_buf;
+
+  #else
+
   LOCAL_VK keyboard_layout_mapping_t s_keyboard_layout_mapping_buf[256];
 
   for (u32 i = lid; i < 256; i += lsz)
@@ -263,6 +274,8 @@ KERNEL_FQ KERNEL_FA void m13713_init (KERN_ATTR_TMPS_ESALT (vc_tmp_t, vc_t))
   }
 
   SYNC_THREADS ();
+
+  #endif
 
   if (gid >= GID_CNT) return;
 

@@ -1700,7 +1700,7 @@ typedef struct hc_device_param
   u64     outerloop_pos;
   u64     outerloop_left;
   double  outerloop_msec;
-  double  outerloop_multi;
+  double  outerloop_words;
 
   u64     innerloop_pos;
   u64     innerloop_left;
@@ -4099,6 +4099,14 @@ typedef struct hook_thread_param
 
   u32 salt_pos;
   u64 pws_cnt;
+
+  // An association attack gives every candidate a salt of its own, and the kernel reaches it as
+  // pws_pos + gid. A hook runs on the host and has to land on the same salt, so it is handed the
+  // base of the chunk and adds the position of the candidate it is working on. Every other attack
+  // has one salt for the whole launch and uses salt_pos.
+
+  bool salt_per_pw;
+  u64  pws_pos;
 
 } hook_thread_param_t;
 

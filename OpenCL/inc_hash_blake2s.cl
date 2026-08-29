@@ -12,16 +12,12 @@
 
 DECLSPEC u32 blake2s_rot16_S (const u32 a)
 {
-  vconv32_t in;
+  // swapping the two halves of a 32 bit word is a rotation by 16. Writing it as a union makes
+  // Mesa put the value in scratch memory, and blake2s_rot08_S below already says it this way.
 
-  in.v32 = a;
+  const u32 r = hc_rotr32_S (a, 16);
 
-  vconv32_t out;
-
-  out.v16.a = in.v16.b;
-  out.v16.b = in.v16.a;
-
-  return out.v32;
+  return r;
 }
 
 DECLSPEC u32x blake2s_rot16 (const u32x a)

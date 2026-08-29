@@ -129,6 +129,32 @@ KERNEL_FQ KERNEL_FA void m05400_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
    * s_msg
    */
 
+  #if ATTACK_MODE == 9
+
+  // An association attack takes its salt from the global id, so one copy shared by the whole
+  // workgroup would hold a different hash's salt in every slot. This kernel byte swaps the salt as
+  // it copies it, so a pointer into global memory would hand back the unswapped words, and each
+  // thread keeps a copy of its own instead. The attack tries one candidate per hash, so the copy is
+  // made once and read a handful of times.
+
+  if (gid >= GID_CNT) return;
+
+  u32 s_nr_buf[16];
+
+  for (u32 i = 0; i < 16; i++)
+  {
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
+  }
+
+  u32 s_msg_buf[128];
+
+  for (u32 i = 0; i < 128; i++)
+  {
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
+  }
+
+  #else
+
   LOCAL_VK u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
@@ -146,6 +172,8 @@ KERNEL_FQ KERNEL_FA void m05400_m04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
+
+  #endif
 
   /**
    * base
@@ -313,6 +341,32 @@ KERNEL_FQ KERNEL_FA void m05400_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
    * s_msg
    */
 
+  #if ATTACK_MODE == 9
+
+  // An association attack takes its salt from the global id, so one copy shared by the whole
+  // workgroup would hold a different hash's salt in every slot. This kernel byte swaps the salt as
+  // it copies it, so a pointer into global memory would hand back the unswapped words, and each
+  // thread keeps a copy of its own instead. The attack tries one candidate per hash, so the copy is
+  // made once and read a handful of times.
+
+  if (gid >= GID_CNT) return;
+
+  u32 s_nr_buf[16];
+
+  for (u32 i = 0; i < 16; i++)
+  {
+    s_nr_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].nr_buf[i]);
+  }
+
+  u32 s_msg_buf[128];
+
+  for (u32 i = 0; i < 128; i++)
+  {
+    s_msg_buf[i] = hc_swap32_S (esalt_bufs[DIGESTS_OFFSET_HOST].msg_buf[i]);
+  }
+
+  #else
+
   LOCAL_VK u32 s_nr_buf[16];
 
   for (u32 i = lid; i < 16; i += lsz)
@@ -330,6 +384,8 @@ KERNEL_FQ KERNEL_FA void m05400_s04 (KERN_ATTR_RULES_ESALT (ikepsk_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
+
+  #endif
 
   /**
    * base

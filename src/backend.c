@@ -1731,6 +1731,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
           hook_thread_param->salt_pos = salt_pos;
 
+          hook_thread_param->salt_per_pw = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+          hook_thread_param->pws_pos     = device_param->kernel_param.pws_pos;
+
           hook_thread_param->pws_cnt = pws_cnt;
 
           hc_thread_create (c_threads[i], hook12_thread, hook_thread_param);
@@ -1852,8 +1855,6 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             {
               if (speed_msec > 4000)
               {
-                device_param->outerloop_multi *= 1 / iter_part;
-
                 device_param->speed_pos = 1;
 
                 device_param->speed_only_finish = true;
@@ -1915,6 +1916,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
               hook_thread_param->hook_salts_buf = hashes->hook_salts_buf;
 
               hook_thread_param->salt_pos = salt_pos;
+
+              hook_thread_param->salt_per_pw = (user_options->attack_mode == ATTACK_MODE_ASSOCIATION);
+              hook_thread_param->pws_pos     = device_param->kernel_param.pws_pos;
 
               hook_thread_param->pws_cnt = pws_cnt;
 
@@ -5441,8 +5445,6 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 
       device_param->kernel_param.il_cnt = innerloop_left;
 
-      device_param->outerloop_multi = (double) innerloop_cnt / (double) (innerloop_pos + innerloop_left);
-
       hc_thread_mutex_unlock (status_ctx->mux_display);
 
       if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
@@ -5494,6 +5496,12 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
         if (status_ctx->run_thread_level2 == true)
         {
           const u64 perf_sum_all = progress_step (hashcat_ctx, device_param, pws_cnt, innerloop_left);
+
+          // The base words this launch got through, which --progress-only answers in. A launch covers
+          // part of the inner loop for every base word in the chunk, so it is that fraction of the
+          // chunk, and the fractions of one full pass add up to the chunk itself.
+
+          device_param->outerloop_words += (double) pws_cnt * (double) innerloop_left / (double) innerloop_cnt;
 
           const double speed_msec = hc_timer_get (device_param->timer_speed);
 
@@ -5592,31 +5600,45 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
       if (status_ctx->run_thread_level2 == false) break;
     }
 
-    // --progress-only reports outerloop_left and outerloop_msec as one pair, and the measurement
-    // runs until it has spent enough time, which can take more chunks of base words than the one
-    // this call was handed. outerloop_left is reset to the current chunk on every call, so the last
-    // chunk was being paired with every chunk's time and the reported speed came out a factor of
-    // the chunk count too low. An amplifier wide enough to fill the measurement inside one chunk
-    // hid it, which is why a slow hash and a ?a mask read correctly and a ?d mask did not.
+    // --progress-only reports outerloop_left and outerloop_msec as one pair, and the measurement runs
+    // until it has spent enough time, which usually takes more chunks of base words than the one this
+    // call was handed. outerloop_left is reset to the current chunk on every call, so pairing it with
+    // every chunk's time reported a speed a factor of the chunk count too low. An amplifier wide
+    // enough to fill the measurement inside one chunk hid that, which is why a ?a mask read correctly
+    // and a ?d mask did not.
     //
-    // Both sides now cover the same window. speed_cnt holds the candidates each launch in it
-    // covered, and base words are the unit --keyspace, --skip and --limit use, so the total is
-    // divided by the width of the inner loop. This also replaces the outerloop_multi extrapolation,
-    // which said the same thing only while the window stayed inside one chunk.
+    // Both sides cover the same window now. outerloop_words is added up over the same launches
+    // speed_msec is, and in base words, which is the unit --keyspace, --skip and --limit count in.
 
     if (user_options->speed_only == true)
     {
-      u64    total_cnt  = device_param->speed_cnt[0];
       double total_msec = device_param->speed_msec[0];
 
       for (u32 speed_pos = 1; speed_pos < device_param->speed_pos; speed_pos++)
       {
-        total_cnt  += device_param->speed_cnt[speed_pos];
         total_msec += device_param->speed_msec[speed_pos];
       }
 
-      device_param->outerloop_left = MAX (total_cnt / innerloop_cnt, 1);
-      device_param->outerloop_msec = total_msec * hashes->salts_cnt;
+      total_msec *= hashes->salts_cnt;
+
+      // A launch that runs past the target on its own is cut short inside choose_kernel, and the loop
+      // above books nothing for it. What that launch managed is in speed_cnt, so the base words come
+      // from the candidates there rather than from the counter.
+
+      double total_words = device_param->outerloop_words;
+
+      if (total_words == 0) total_words = (double) device_param->speed_cnt[0] / (double) innerloop_cnt;
+
+      // outerloop_left is a whole number of base words and the pair is read as a rate, so the time is
+      // scaled to the count that survives the rounding. A window covering less than one base word
+      // then reports the rate it measured, instead of rounding that rate up to a whole word's worth.
+
+      const u64 outerloop_left = MAX ((u64) total_words, 1);
+
+      if (total_words > 0) total_msec *= (double) outerloop_left / total_words;
+
+      device_param->outerloop_left = outerloop_left;
+      device_param->outerloop_msec = total_msec;
 
       break;
     }
@@ -5711,8 +5733,6 @@ static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
     device_param->innerloop_left = innerloop_left;
 
     device_param->kernel_param.il_cnt = innerloop_left;
-
-    device_param->outerloop_multi = (double) innerloop_cnt / (double) (innerloop_pos + innerloop_left);
 
     hc_thread_mutex_unlock (status_ctx->mux_display);
 
@@ -5922,10 +5942,9 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 
   // we make use of this in status view
 
-  device_param->outerloop_multi = 1;
-  device_param->outerloop_msec  = 0;
-  device_param->outerloop_pos   = 0;
-  device_param->outerloop_left  = pws_cnt;
+  device_param->outerloop_msec = 0;
+  device_param->outerloop_pos  = 0;
+  device_param->outerloop_left = pws_cnt;
 
   int rc_final = 0;
 
@@ -8839,6 +8858,37 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           device_param->skipped = true;
         }
 
+        // The sysfs hwmon backends find a device by its PCI address, and cl_khr_pci_bus_info is the
+        // portable way to ask for one. Mesa's rusticl is the runtime that needs this: it exposes AMD
+        // GPUs but answers none of the AMD or Intel specific queries below, so without this the
+        // address stays at 0000:00:00.0 and every temperature, fan and clock read fails.
+
+        if (strstr (device_extensions, "cl_khr_pci_bus_info") != NULL)
+        {
+          // ext_OpenCL.h includes CL/cl.h and not CL/cl_ext.h, so the extension is spelled out here
+          // the same way the Intel one is further down. Both use token 0x410F: the Khronos extension
+          // was standardised from Intel's and kept its value.
+
+          #define CL_DEVICE_PCI_BUS_INFO_KHR 0x410F
+
+          typedef struct _cl_device_pci_bus_info_khr {
+              cl_uint pci_domain;
+              cl_uint pci_bus;
+              cl_uint pci_device;
+              cl_uint pci_function;
+          } cl_device_pci_bus_info_khr;
+
+          cl_device_pci_bus_info_khr pci_info;
+
+          if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_PCI_BUS_INFO_KHR, sizeof (pci_info), &pci_info, NULL) == 0)
+          {
+            device_param->pcie_domain   = (u8) pci_info.pci_domain;
+            device_param->pcie_bus      = (u8) pci_info.pci_bus;
+            device_param->pcie_device   = (u8) pci_info.pci_device;
+            device_param->pcie_function = (u8) pci_info.pci_function;
+          }
+        }
+
         hcfree (device_extensions);
 
         // kernel_preferred_wgs_multiple
@@ -9163,7 +9213,14 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
           if ((device_param->opencl_platform_vendor_id == VENDOR_ID_AMD) && (device_param->opencl_device_vendor_id == VENDOR_ID_AMD))
           {
             backend_ctx->need_adl = true;
+          }
 
+          // sysfs reaches the card through its PCI address, so it works for an AMD GPU whichever
+          // OpenCL platform exposes it. Testing the platform as well would leave out Mesa's rusticl,
+          // which reports its own name there.
+
+          if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
+          {
             #if defined (__linux__)
             backend_ctx->need_sysfs_amdgpu = true;
             #endif
@@ -16339,9 +16396,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // we don't have sm_* on vendors not NV but it doesn't matter
 
     #if defined (DEBUG)
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%d -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_ADD=%u -D HAS_ADDC=%u -D HAS_SUB=%u -D HAS_SUBC=%u -D HAS_VADD=%u -D HAS_VADDC=%u -D HAS_VADD_CO=%u -D HAS_VADDC_CO=%u -D HAS_VSUB=%u -D HAS_VSUBB=%u -D HAS_VSUB_CO=%u -D HAS_VSUBB_CO=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D HAS_SHFW=%u -D VECT_SIZE=%d -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D ATTACK_MODE=%u -D COMBS_MIDDLE=%u ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_add, device_param->has_addc, device_param->has_sub, device_param->has_subc, device_param->has_vadd, device_param->has_vaddc, device_param->has_vadd_co, device_param->has_vaddc_co, device_param->has_vsub, device_param->has_vsubb, device_param->has_vsub_co, device_param->has_vsubb_co, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->has_shfw, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern, user_options->attack_mode, (hashcat_ctx->mask_ctx->needs_middle == true) ? 1 : 0);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%d -D VENDOR_ID=%u -D DEVICE_VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_ADD=%u -D HAS_ADDC=%u -D HAS_SUB=%u -D HAS_SUBC=%u -D HAS_VADD=%u -D HAS_VADDC=%u -D HAS_VADD_CO=%u -D HAS_VADDC_CO=%u -D HAS_VSUB=%u -D HAS_VSUBB=%u -D HAS_VSUB_CO=%u -D HAS_VSUBB_CO=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D HAS_SHFW=%u -D VECT_SIZE=%d -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D ATTACK_MODE=%u -D COMBS_MIDDLE=%u ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, device_param->opencl_device_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_add, device_param->has_addc, device_param->has_sub, device_param->has_subc, device_param->has_vadd, device_param->has_vaddc, device_param->has_vadd_co, device_param->has_vaddc_co, device_param->has_vsub, device_param->has_vsubb, device_param->has_vsub_co, device_param->has_vsubb_co, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->has_shfw, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern, user_options->attack_mode, (hashcat_ctx->mask_ctx->needs_middle == true) ? 1 : 0);
     #else
-    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%d -D VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_ADD=%u -D HAS_ADDC=%u -D HAS_SUB=%u -D HAS_SUBC=%u -D HAS_VADD=%u -D HAS_VADDC=%u -D HAS_VADD_CO=%u -D HAS_VADDC_CO=%u -D HAS_VSUB=%u -D HAS_VSUBB=%u -D HAS_VSUB_CO=%u -D HAS_VSUBB_CO=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D HAS_SHFW=%u -D VECT_SIZE=%d -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D ATTACK_MODE=%u -D COMBS_MIDDLE=%u -w ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_add, device_param->has_addc, device_param->has_sub, device_param->has_subc, device_param->has_vadd, device_param->has_vaddc, device_param->has_vadd_co, device_param->has_vaddc_co, device_param->has_vsub, device_param->has_vsubb, device_param->has_vsub_co, device_param->has_vsubb_co, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->has_shfw, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern, user_options->attack_mode, (hashcat_ctx->mask_ctx->needs_middle == true) ? 1 : 0);
+    build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D LOCAL_MEM_TYPE=%d -D VENDOR_ID=%u -D DEVICE_VENDOR_ID=%u -D CUDA_ARCH=%u -D HAS_ADD=%u -D HAS_ADDC=%u -D HAS_SUB=%u -D HAS_SUBC=%u -D HAS_VADD=%u -D HAS_VADDC=%u -D HAS_VADD_CO=%u -D HAS_VADDC_CO=%u -D HAS_VSUB=%u -D HAS_VSUBB=%u -D HAS_VSUB_CO=%u -D HAS_VSUBB_CO=%u -D HAS_VPERM=%u -D HAS_VADD3=%u -D HAS_VBFE=%u -D HAS_BFE=%u -D HAS_LOP3=%u -D HAS_MOV64=%u -D HAS_PRMT=%u -D HAS_SHFW=%u -D VECT_SIZE=%d -D DEVICE_TYPE=%u -D DGST_R0=%u -D DGST_R1=%u -D DGST_R2=%u -D DGST_R3=%u -D DGST_ELEM=%u -D KERN_TYPE=%u -D ATTACK_EXEC=%u -D ATTACK_KERN=%u -D ATTACK_MODE=%u -D COMBS_MIDDLE=%u -w ", device_param->device_local_mem_type, device_param->opencl_platform_vendor_id, device_param->opencl_device_vendor_id, (device_param->sm_major * 100) + (device_param->sm_minor * 10), device_param->has_add, device_param->has_addc, device_param->has_sub, device_param->has_subc, device_param->has_vadd, device_param->has_vaddc, device_param->has_vadd_co, device_param->has_vaddc_co, device_param->has_vsub, device_param->has_vsubb, device_param->has_vsub_co, device_param->has_vsubb_co, device_param->has_vperm, device_param->has_vadd3, device_param->has_vbfe, device_param->has_bfe, device_param->has_lop3, device_param->has_mov64, device_param->has_prmt, device_param->has_shfw, device_param->vector_width, (u32) device_param->opencl_device_type, hashconfig->dgst_pos0, hashconfig->dgst_pos1, hashconfig->dgst_pos2, hashconfig->dgst_pos3, hashconfig->dgst_size / 4, kern_type, hashconfig->attack_exec, user_options_extra->attack_kern, user_options->attack_mode, (hashcat_ctx->mask_ctx->needs_middle == true) ? 1 : 0);
     #endif
 
     build_options_buf[build_options_len] = 0;
@@ -19672,11 +19729,12 @@ void backend_session_reset (hashcat_ctx_t *hashcat_ctx)
 
     memset (device_param->exec_msec, 0, EXEC_CACHE * sizeof (double));
 
-    device_param->outerloop_msec = 0;
-    device_param->outerloop_pos  = 0;
-    device_param->outerloop_left = 0;
-    device_param->innerloop_pos  = 0;
-    device_param->innerloop_left = 0;
+    device_param->outerloop_msec  = 0;
+    device_param->outerloop_pos   = 0;
+    device_param->outerloop_left  = 0;
+    device_param->outerloop_words = 0;
+    device_param->innerloop_pos   = 0;
+    device_param->innerloop_left  = 0;
 
     // some more resets:
 
@@ -19876,7 +19934,9 @@ HC_API_CALL void *hook12_thread (void *p)
 
     if (status_ctx->devices_status == STATUS_RUNNING)
     {
-      module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+      const u32 salt_pos = (hook_thread_param->salt_per_pw == true) ? (u32) (hook_thread_param->pws_pos + pw_pos) : hook_thread_param->salt_pos;
+
+      module_ctx->module_hook12 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, salt_pos, pw_pos);
     }
   }
 
@@ -19904,7 +19964,9 @@ HC_API_CALL void *hook23_thread (void *p)
 
     if (status_ctx->devices_status == STATUS_RUNNING)
     {
-      module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, hook_thread_param->salt_pos, pw_pos);
+      const u32 salt_pos = (hook_thread_param->salt_per_pw == true) ? (u32) (hook_thread_param->pws_pos + pw_pos) : hook_thread_param->salt_pos;
+
+      module_ctx->module_hook23 (hook_thread_param->device_param, hook_thread_param->hook_extra_param, hook_thread_param->hook_salts_buf, salt_pos, pw_pos);
     }
   }
 

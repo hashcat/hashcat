@@ -2251,7 +2251,10 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
   {
     if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
     {
-      if (user_options->hc_argc == 1)
+      // Several wordlists are one keyspace, so sizing a run has to accept as many of them as running it
+      // does. One argument is still the minimum: no argument at all is stdin, which has no keyspace.
+
+      if (user_options->hc_argc >= 1)
       {
         show_error = false;
       }
@@ -2279,7 +2282,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
-      if (user_options->hc_argc == 2)
+      // at least one wordlist, and the mask
+
+      if (user_options->hc_argc >= 2)
       {
         show_error = false;
       }
@@ -2295,7 +2300,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID2)
     {
-      if (user_options->hc_argc == 2)
+      // the mask, and at least one wordlist
+
+      if (user_options->hc_argc >= 2)
       {
         show_error = false;
       }

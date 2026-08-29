@@ -134,6 +134,23 @@ using namespace metal;
 #define IS_GENERIC
 #endif
 
+// An AMD GPU driven by a runtime whose compiler does not synthesise a 64 bit rotation for itself,
+// which means AMD's own OpenCL and Mesa's rusticl. VENDOR_ID is the platform vendor and cannot see
+// that: rusticl reports the platform as "Mesa/X.org" and lands on VENDOR_ID_GENERIC while the
+// device it exposes is an AMD one, so the device vendor id is what names both.
+//
+// Apple's OpenCL drives AMD GPUs too and is excluded by name. Its compiler does the rotation well
+// and the manual split gets in the way: on a Radeon Pro W5700X that costs SHA3-256 17 percent,
+// which is the same thing NVIDIA's OpenCL compiler does on a larger scale.
+//
+// The IS_GPU qualifier keeps a CPU device exposed by an AMD platform off this path.
+
+#ifndef IS_APPLE
+#if defined DEVICE_VENDOR_ID && defined IS_GPU && (DEVICE_VENDOR_ID == (1 << 0))
+#define IS_AMD_GPU
+#endif
+#endif
+
 #define LOCAL_MEM_TYPE_LOCAL  1
 #define LOCAL_MEM_TYPE_GLOBAL 2
 

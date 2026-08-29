@@ -187,7 +187,17 @@ DECLSPEC void sha256_transform_z (PRIVATE_AS u32x *digest)
   digest[7] += h;
 }
 
-DECLSPEC void sha256_transform_s (PRIVATE_AS u32x *digest, LOCAL_AS u32 *w)
+// An association attack takes its salt from the global id, so the message schedule below cannot be
+// shared across the workgroup and every thread keeps its own. The address space of the schedule, and
+// of this function's argument, follows the attack.
+
+#if ATTACK_MODE == 9
+#define SALT_SCHEDULE_AS PRIVATE_AS
+#else
+#define SALT_SCHEDULE_AS LOCAL_AS
+#endif
+
+DECLSPEC void sha256_transform_s (PRIVATE_AS u32x *digest, SALT_SCHEDULE_AS u32 *w)
 {
   u32x a = digest[0];
   u32x b = digest[1];
@@ -260,6 +270,27 @@ KERNEL_FQ KERNEL_FA void m08000_m04 (KERN_ATTR_RULES ())
    * precompute final msg blocks
    */
 
+  #if ATTACK_MODE == 9
+
+  // The schedule thread zero precomputes would be handed to every other thread of the workgroup
+  // along with the wrong salt, so each thread builds its own. One candidate is tried per hash in
+  // this attack, so the schedule is built once and read once.
+
+  if (gid >= GID_CNT) return;
+
+  u32 w_s1[64];
+  u32 w_s2[64];
+
+  for (u32 i = 0; i < 64; i++)
+  {
+    w_s1[i] = 0;
+    w_s2[i] = 0;
+  }
+
+  {
+
+  #else
+
   LOCAL_VK u32 w_s1[64];
   LOCAL_VK u32 w_s2[64];
 
@@ -273,6 +304,9 @@ KERNEL_FQ KERNEL_FA void m08000_m04 (KERN_ATTR_RULES ())
 
   if (lid == 0)
   {
+
+  #endif
+
     w_s1[15] =               0 | salt_buf0 >> 16;
 
     #ifdef _unroll
@@ -297,9 +331,17 @@ KERNEL_FQ KERNEL_FA void m08000_m04 (KERN_ATTR_RULES ())
     }
   }
 
+  #if ATTACK_MODE == 9
+
+  // the guard above already ran, and nothing is shared to synchronise on
+
+  #else
+
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
+
+  #endif
 
   /**
    * base
@@ -431,6 +473,27 @@ KERNEL_FQ KERNEL_FA void m08000_s04 (KERN_ATTR_RULES ())
    * precompute final msg blocks
    */
 
+  #if ATTACK_MODE == 9
+
+  // The schedule thread zero precomputes would be handed to every other thread of the workgroup
+  // along with the wrong salt, so each thread builds its own. One candidate is tried per hash in
+  // this attack, so the schedule is built once and read once.
+
+  if (gid >= GID_CNT) return;
+
+  u32 w_s1[64];
+  u32 w_s2[64];
+
+  for (u32 i = 0; i < 64; i++)
+  {
+    w_s1[i] = 0;
+    w_s2[i] = 0;
+  }
+
+  {
+
+  #else
+
   LOCAL_VK u32 w_s1[64];
   LOCAL_VK u32 w_s2[64];
 
@@ -444,6 +507,9 @@ KERNEL_FQ KERNEL_FA void m08000_s04 (KERN_ATTR_RULES ())
 
   if (lid == 0)
   {
+
+  #endif
+
     w_s1[15] =               0 | salt_buf0 >> 16;
 
     #ifdef _unroll
@@ -468,9 +534,17 @@ KERNEL_FQ KERNEL_FA void m08000_s04 (KERN_ATTR_RULES ())
     }
   }
 
+  #if ATTACK_MODE == 9
+
+  // the guard above already ran, and nothing is shared to synchronise on
+
+  #else
+
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
+
+  #endif
 
   /**
    * base

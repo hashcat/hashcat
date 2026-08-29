@@ -1519,14 +1519,18 @@ u64 status_get_brain_rejects_hashes (const hashcat_ctx_t *hashcat_ctx)
 
 double status_get_progress_rejected_percent (const hashcat_ctx_t *hashcat_ctx)
 {
-  const u64 progress_cur      = status_get_progress_cur      (hashcat_ctx);
-  const u64 progress_rejected = status_get_progress_rejected (hashcat_ctx);
+  // The status line prints this percentage next to the fraction it belongs to, and that fraction is
+  // measured against the work this run was asked for. Measuring the percentage against the whole
+  // keyspace instead made the two disagree as soon as --skip left anything out.
+
+  const u64 progress_cur_relative_skip = status_get_progress_cur_relative_skip (hashcat_ctx);
+  const u64 progress_rejected          = status_get_progress_rejected          (hashcat_ctx);
 
   double percent_rejected = 0;
 
-  if (progress_cur)
+  if (progress_cur_relative_skip)
   {
-    percent_rejected = ((double) (progress_rejected) / (double) progress_cur) * 100;
+    percent_rejected = ((double) (progress_rejected) / (double) progress_cur_relative_skip) * 100;
   }
 
   return percent_rejected;

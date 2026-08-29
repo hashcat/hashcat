@@ -176,6 +176,19 @@ KERNEL_FQ KERNEL_FA void m17230_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
 
   SYNC_THREADS ();
 
+  #if ATTACK_MODE == 9
+
+  // An association attack takes its salt from the global id, so one copy shared by the whole
+  // workgroup would hold a different hash's salt in every slot. Each thread reads its own straight
+  // out of global memory instead. The attack tries one candidate per hash, so a copy would not pay
+  // for itself here anyway.
+
+  if (gid >= GID_CNT) return;
+
+  GLOBAL_AS const u32 *l_data = esalt_bufs[DIGESTS_OFFSET_HOST].hashes[0].data;
+
+  #else
+
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
@@ -186,6 +199,8 @@ KERNEL_FQ KERNEL_FA void m17230_sxx (KERN_ATTR_RULES_ESALT (pkzip_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
+
+  #endif
 
   /**
    * base
@@ -346,6 +361,19 @@ KERNEL_FQ KERNEL_FA void m17230_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
 
   SYNC_THREADS ();
 
+  #if ATTACK_MODE == 9
+
+  // An association attack takes its salt from the global id, so one copy shared by the whole
+  // workgroup would hold a different hash's salt in every slot. Each thread reads its own straight
+  // out of global memory instead. The attack tries one candidate per hash, so a copy would not pay
+  // for itself here anyway.
+
+  if (gid >= GID_CNT) return;
+
+  GLOBAL_AS const u32 *l_data = esalt_bufs[DIGESTS_OFFSET_HOST].hashes[0].data;
+
+  #else
+
   LOCAL_VK u32 l_data[MAX_LOCAL];
 
   for (u64 i = lid; i < MAX_LOCAL; i += lsz)
@@ -356,6 +384,8 @@ KERNEL_FQ KERNEL_FA void m17230_mxx (KERN_ATTR_RULES_ESALT (pkzip_t))
   SYNC_THREADS ();
 
   if (gid >= GID_CNT) return;
+
+  #endif
 
   /**
    * base

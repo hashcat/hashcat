@@ -256,6 +256,46 @@ function is_in_array()
   return 1
 }
 
+# What each of the whole word attacks is given after the hash. -a 0 takes its candidates on a pipe
+# and is given nothing, -a 8 names the shipped wordlist feed and the file under it, -a 9 names the
+# list that pairs word N with hash N, and -a 4 names a ruleset directory.
+
+function whole_word_source()
+{
+  local source_attack=$1
+  local source_stem=$2
+
+  if [ "${source_attack}" -eq 4 ]; then
+    printf '%s\n' "${source_stem}_ruleset"
+  elif [ "${source_attack}" -eq 8 ]; then
+    printf 'wordlist %s\n' "${source_stem}_words"
+  elif [ "${source_attack}" -eq 9 ]; then
+    printf '%s\n' "${source_stem}_words"
+  fi
+}
+
+# The smallest ruleset that emits a named list of candidates and nothing else. X is the flat token,
+# so its entries carry their own length and always live in Context/1.txt, and a grammar of one shape
+# at probability 1 makes the run exactly as long as the list under it.
+
+function whole_word_ruleset()
+{
+  local ruleset_attack=$1
+  local ruleset_stem=$2
+
+  if [ "${ruleset_attack}" -ne 4 ]; then
+    return
+  fi
+
+  rm -rf "${ruleset_stem}_ruleset"
+
+  mkdir -p "${ruleset_stem}_ruleset/Grammar" "${ruleset_stem}_ruleset/Context"
+
+  printf 'X1\t1.0\n' > "${ruleset_stem}_ruleset/Grammar/grammar.txt"
+
+  awk '{ printf "%s\t1.0\n", $0 }' "${ruleset_stem}_words" > "${ruleset_stem}_ruleset/Context/1.txt"
+}
+
 function has_multi_hash()
 {
   # no multi hash checks for these modes (because we only have 1 hash for each of them)
@@ -709,8 +749,15 @@ function status()
   fi
 }
 
-function attack_0()
+# -a 0, -a 4, -a 8 and -a 9 all hand hashcat whole candidates instead of assembling them from a mask,
+# so one function runs all four and only the source arguments differ. -a 0 pipes the words in, -a 8
+# names the wordlist feed, -a 4 wraps them in the smallest grammar that emits them, and -a 9 pairs
+# word N with hash N. The attack mode to run is the one argument.
+
+function attack_whole_word()
 {
+  attack_mode=$1
+
   file_only=0
 
   if is_in_array "${hash_type}" ${FILE_BASED_ALGOS}; then
@@ -727,7 +774,7 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode ${attack_mode}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
     max=32
 
@@ -770,11 +817,38 @@ function attack_0()
         pass=$(echo "${pass}" | cut -b 7-) # skip the first 6 chars
       fi
 
-      CMD="echo ${pass} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
+      # A grammar assembles a candidate out of terminals and the shortest terminal is one character
+      # long, so -a 4 has no way to write an empty password down.
+
+      if [ "${attack_mode}" -eq 4 ] && [ "${#pass}" -eq 0 ]; then
+        echo "skipped, an empty password cannot be written into a ruleset" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+        e_rs=$((e_rs + 1))
+        cnt=$((cnt + 1))
+        i=$((i + 1))
+
+        continue
+      fi
+
+      source_argv=$(whole_word_source "${attack_mode}" "${OUTD}/${hash_type}_a${attack_mode}")
+
+      if [ "${attack_mode}" -ne 0 ]; then
+        printf '%s\n' "${pass}" > "${OUTD}/${hash_type}_a${attack_mode}_words"
+
+        whole_word_ruleset "${attack_mode}" "${OUTD}/${hash_type}_a${attack_mode}"
+      fi
 
       echo -n "[ len $((i + 1)) ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
-      output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
+      if [ "${attack_mode}" -eq 0 ]; then
+        CMD="echo ${pass} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} '${hash}'"
+
+        output=$(echo "${pass}" | ./${BIN} ${OPTS} -a 0 -m ${hash_type} "${hash}" 2>&1)
+      else
+        CMD="./${BIN} ${OPTS} -a ${attack_mode} -m ${hash_type} '${hash}' ${source_argv}"
+
+        output=$(./${BIN} ${OPTS} -a ${attack_mode} -m ${hash_type} "${hash}" ${source_argv} 2>&1)
+      fi
 
       ret=${?}
 
@@ -853,7 +927,7 @@ function attack_0()
       msg="Warning"
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attack_mode}, Mode single, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
   fi
 
   # multihash
@@ -862,6 +936,14 @@ function attack_0()
     # no multi hash checks for these modes (because we only have 1 hash for each of them)
     ! has_multi_hash || return
 
+    # -a 9 gives one candidate to each salt, so a multi hash run needs every hash to sit on a salt of
+    # its own. Nothing here knows whether that holds, and test_edge.sh runs the multi case where it
+    # can tell.
+
+    if [ "${attack_mode}" -eq 9 ]; then
+      return
+    fi
+
     e_ce=0
     e_rs=0
     e_to=0
@@ -869,7 +951,10 @@ function attack_0()
     e_nm=0
     cnt=0
 
-    echo "> Testing hash type $hash_type with attack mode 0, markov ${MARKOV}, multi hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+    echo "> Testing hash type $hash_type with attack mode ${attack_mode}, markov ${MARKOV}, multi hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}." >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
+
+    check_passwords="${OUTD}/${hash_type}_passwords.txt"
+    check_hashes="${OUTD}/${hash_type}_hashes.txt"
 
     hash_file=${OUTD}/${hash_type}_hashes.txt
 
@@ -894,9 +979,42 @@ function attack_0()
 
     fi
 
-    CMD="cat ${OUTD}/${hash_type}_passwords.txt | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file}"
+    # -a 4 cannot write an empty password into a ruleset, so the hash that belongs to one is left out
+    # of the run rather than the run being given up. A file based mode has no line to leave out, its
+    # hashes arrive as one blob, so that one keeps its single hash coverage only.
 
-    output=$(./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file} < ${OUTD}/${hash_type}_passwords.txt 2>&1)
+    if [ "${attack_mode}" -eq 4 ]; then
+      if [ "${file_only}" -eq 1 ]; then
+        return
+      fi
+
+      check_passwords="${OUTD}/${hash_type}_a4_multi_passwords"
+      check_hashes="${OUTD}/${hash_type}_a4_multi_hashes"
+
+      grep -v '^$' "${OUTD}/${hash_type}_passwords.txt" > "${check_passwords}"
+
+      awk 'NR == FNR { keep[FNR] = ($0 != ""); next } keep[FNR] { print }' "${OUTD}/${hash_type}_passwords.txt" "${OUTD}/${hash_type}_hashes.txt" > "${check_hashes}"
+
+      hash_file="${check_hashes}"
+    fi
+
+    source_argv=$(whole_word_source "${attack_mode}" "${OUTD}/${hash_type}_a${attack_mode}_multi")
+
+    if [ "${attack_mode}" -ne 0 ]; then
+      cp "${check_passwords}" "${OUTD}/${hash_type}_a${attack_mode}_multi_words"
+
+      whole_word_ruleset "${attack_mode}" "${OUTD}/${hash_type}_a${attack_mode}_multi"
+    fi
+
+    if [ "${attack_mode}" -eq 0 ]; then
+      CMD="cat ${check_passwords} | ./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file}"
+
+      output=$(./${BIN} ${OPTS} -a 0 -m ${hash_type} ${hash_file} < ${check_passwords} 2>&1)
+    else
+      CMD="./${BIN} ${OPTS} -a ${attack_mode} -m ${hash_type} ${hash_file} ${source_argv}"
+
+      output=$(./${BIN} ${OPTS} -a ${attack_mode} -m ${hash_type} ${hash_file} ${source_argv} 2>&1)
+    fi
 
     ret=${?}
 
@@ -908,9 +1026,9 @@ function attack_0()
 
       while read -r -u 9 hash; do
 
-        pass=$(sed -n ${i}p "${OUTD}/${hash_type}_passwords.txt")
+        pass=$(sed -n ${i}p "${check_passwords}")
 
-        if is_in_array "${hash_type}" ${LUKS_MODES}; then
+        if ! (is_in_array "${hash_type}" ${LUKS_MODES}); then
           if [ "${pass_only}" -eq 1 ]; then
             search=":${pass}"
           else
@@ -959,7 +1077,7 @@ function attack_0()
 
         i=$((i + 1))
 
-      done 9< "${OUTD}/${hash_type}_hashes.txt"
+      done 9< "${check_hashes}"
 
     fi
 
@@ -977,7 +1095,7 @@ function attack_0()
       msg="Warning"
     fi
 
-    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack 0, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
+    echo "[ ${OUTD} ] [ Type ${hash_type}, Attack ${attack_mode}, Mode multi,  Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR} ] > $msg : ${e_nf}/${cnt} not found, ${e_nm}/${cnt} not matched, ${e_to}/${cnt} timeout, ${e_rs}/${cnt} skipped"
   fi
 }
 
@@ -5617,7 +5735,7 @@ OPTIONS:
   -a    Select attack mode :
         'all'       => all attack modes
         (int)       => attack mode integer code (default : 0)
-                       0, 1, 3, 6, 7 and 12
+                       0, 1, 3, 4, 6, 7, 8, 9 and 12
 
   -x    Select cpu architecture :
         '32'        => 32 bit architecture
@@ -5757,10 +5875,16 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gS" opt; do
         ATTACK=1
       elif [ "${OPTARG}" = "3" ]; then
         ATTACK=3
+      elif [ "${OPTARG}" = "4" ]; then
+        ATTACK=4
       elif [ "${OPTARG}" = "6" ]; then
         ATTACK=6
       elif [ "${OPTARG}" = "7" ]; then
         ATTACK=7
+      elif [ "${OPTARG}" = "8" ]; then
+        ATTACK=8
+      elif [ "${OPTARG}" = "9" ]; then
+        ATTACK=9
       elif [ "${OPTARG}" = "12" ]; then
         ATTACK=12
       else
@@ -6368,7 +6492,13 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
               if is_in_array "${hash_type}" ${PM_MODES}; then
                 # run attack mode 0 (stdin)
-                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_whole_word 0; fi
+
+                # run attack mode 4 (pcfg), 8 (generic) and 9 (association). Each of them costs one
+                # candidate per word, the same as attack mode 0, so a slow hash can afford them too
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 4 ]; then attack_whole_word 4; fi
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 8 ]; then attack_whole_word 8; fi
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 9 ]; then attack_whole_word 9; fi
               fi
             fi
 
@@ -6404,7 +6534,18 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
               if is_in_array "${hash_type}" ${PM_MODES}; then
                 # run attack mode 0 (stdin)
-                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_0; fi
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 0 ]; then attack_whole_word 0; fi
+
+                # run attack mode 4 (pcfg)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 4 ]; then attack_whole_word 4; fi
+
+                # run attack mode 8 (generic, the wordlist feed)
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 8 ]; then attack_whole_word 8; fi
+
+                # run attack mode 9 (association). -a 0 does not cover it: it builds the straight
+                # kernels with the salt taken from the global id, so it is different source and has
+                # its own failure modes
+                if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 9 ]; then attack_whole_word 9; fi
 
                 # run attack mode 1 (combinator)
                 if [ ${ATTACK} -eq 65535 ] || [ ${ATTACK} -eq 1 ]; then attack_1; fi

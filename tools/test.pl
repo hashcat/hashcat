@@ -133,7 +133,7 @@ sub edge
   my $attack_type = shift // 0;
   my $optimized = shift // 0;
 
-  my @attack_types = (0, 1, 3, 6, 7, 12);
+  my @attack_types = (0, 1, 3, 4, 6, 7, 8, 9, 12);
 
   if (not grep $_ == $attack_type, @attack_types)
   {
@@ -168,7 +168,12 @@ sub edge
     }
   }
 
-  if ($attack_type != 0)
+  # An attack that cuts the word in two needs a word with two halves. Attack types 0, 4, 8 and 9 hand
+  # the whole word to hashcat in one piece, so a one character word is a valid test for them.
+
+  my @whole_word_attack_types = (0, 4, 8, 9);
+
+  if (not grep $_ == $attack_type, @whole_word_attack_types)
   {
     if ($word_min < 2)
     {
