@@ -89,11 +89,52 @@ typedef struct sha256_hmac_ctx_vector
 
 } sha256_hmac_ctx_vector_t;
 
+
+#define HC_IS_BUFFER_SIZE_MULTIPLE_OR_POINTER(buf, multiple)  \
+                                              (  \
+                                                (sizeof(buf) % (multiple)) == 0 ||  \
+                                                sizeof(buf) == sizeof(CONSTANT_VK u32 *) ||  \
+                                                sizeof(buf) == sizeof(CONSTANT_AS u32 *) ||  \
+                                                sizeof(buf) == sizeof(GLOBAL_AS u32 *) ||  \
+                                                sizeof(buf) == sizeof(LOCAL_VK u32 *) ||  \
+                                                sizeof(buf) == sizeof(LOCAL_AS u32 *) ||  \
+                                                sizeof(buf) == sizeof(PRIVATE_AS u32 *)  \
+                                              )
+
+// We disable static asserts when we're including this header from C, since C99
+// doesn't have static asserts
+#if defined(__STDC_VERSION__)
+#  define HC_STATIC_ASSERT(...)
+#else
+#  define HC_STATIC_ASSERT static_assert
+#endif
+
+// Use a define instead of an inline function because the compiler cannot figure
+// out that sizeof(buffer) is a static constant
+#define HC_CHECK_BUFFER_BEFORE_CALL(ctx, buffer, content_len, func, block_size)  \
+                                              do {  \
+                                                HC_STATIC_ASSERT(  \
+                                                  HC_IS_BUFFER_SIZE_MULTIPLE_OR_POINTER(buffer, block_size),  \
+                                                  "Size of buffer is not a multiple of SHA256 block size (64)!"  \
+                                                );  \
+                                                func(ctx, buffer, content_len); \
+                                              } while (0);
+
+#define HC_SHA256_BLOCK_SIZE                  64
+#define HC_SHA256_CHECK_BUFFER_BEFORE_CALL(ctx, buffer, content_len, func)  HC_CHECK_BUFFER_BEFORE_CALL(ctx, buffer, content_len, func, HC_SHA256_BLOCK_SIZE)
+
+#define sha256_update(ctx, w, content_len)            HC_SHA256_CHECK_BUFFER_BEFORE_CALL(ctx, w, content_len, sha256_update_impl)
+#define sha256_update_swap(ctx, w, content_len)       HC_SHA256_CHECK_BUFFER_BEFORE_CALL(ctx, w, content_len, sha256_update_swap_impl)
+#define sha256_hmac_init(ctx, w, content_len)         HC_SHA256_CHECK_BUFFER_BEFORE_CALL(ctx, w, content_len, sha256_hmac_init_impl)
+#define sha256_hmac_init_swap(ctx, w, content_len)    HC_SHA256_CHECK_BUFFER_BEFORE_CALL(ctx, w, content_len, sha256_hmac_init_swap_impl)
+#define sha256_hmac_update(ctx, w, content_len)       HC_SHA256_CHECK_BUFFER_BEFORE_CALL(ctx, w, content_len, sha256_hmac_update_impl)
+#define sha256_hmac_update_swap(ctx, w, content_len)  HC_SHA256_CHECK_BUFFER_BEFORE_CALL(ctx, w, content_len, sha256_hmac_update_swap_impl)
+
 DECLSPEC void sha256_transform (PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3, PRIVATE_AS u32 *digest);
 DECLSPEC void sha256_init (PRIVATE_AS sha256_ctx_t *ctx);
 DECLSPEC void sha256_update_64 (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len);
-DECLSPEC void sha256_update (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
-DECLSPEC void sha256_update_swap (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha256_update_impl (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha256_update_swap_impl (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_update_utf16le (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_update_utf16le_swap (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_update_global (PRIVATE_AS sha256_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
@@ -102,14 +143,14 @@ DECLSPEC void sha256_update_global_utf16le (PRIVATE_AS sha256_ctx_t *ctx, GLOBAL
 DECLSPEC void sha256_update_global_utf16le_swap (PRIVATE_AS sha256_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha256_final (PRIVATE_AS sha256_ctx_t *ctx);
 DECLSPEC void sha256_hmac_init_64 (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w0, PRIVATE_AS const u32 *w1, PRIVATE_AS const u32 *w2, PRIVATE_AS const u32 *w3);
-DECLSPEC void sha256_hmac_init (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
-DECLSPEC void sha256_hmac_init_swap (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha256_hmac_init_impl (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha256_hmac_init_swap_impl (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_hmac_init_global (PRIVATE_AS sha256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha256_hmac_init_global_swap (PRIVATE_AS sha256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha256_hmac_init_global_utf16le_swap (PRIVATE_AS sha256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_64 (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS u32 *w0, PRIVATE_AS u32 *w1, PRIVATE_AS u32 *w2, PRIVATE_AS u32 *w3, const int len);
-DECLSPEC void sha256_hmac_update (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
-DECLSPEC void sha256_hmac_update_swap (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha256_hmac_update_impl (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
+DECLSPEC void sha256_hmac_update_swap_impl (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_utf16le (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_utf16le_swap (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len);
 DECLSPEC void sha256_hmac_update_global (PRIVATE_AS sha256_hmac_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len);

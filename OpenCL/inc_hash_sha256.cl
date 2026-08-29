@@ -345,7 +345,7 @@ DECLSPEC void sha256_update_64 (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS u32 *w0
   }
 }
 
-DECLSPEC void sha256_update (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+DECLSPEC void sha256_update_impl (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -397,7 +397,7 @@ DECLSPEC void sha256_update (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 
   sha256_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
-DECLSPEC void sha256_update_swap (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+DECLSPEC void sha256_update_swap_impl (PRIVATE_AS sha256_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1086,7 +1086,7 @@ DECLSPEC void sha256_hmac_init_64 (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS
   sha256_update_64 (&ctx->opad, b0, b1, b2, b3, 64);
 }
 
-DECLSPEC void sha256_hmac_init (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+DECLSPEC void sha256_hmac_init_impl (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1143,7 +1143,7 @@ DECLSPEC void sha256_hmac_init (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS co
   sha256_hmac_init_64 (ctx, w0, w1, w2, w3);
 }
 
-DECLSPEC void sha256_hmac_init_swap (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+DECLSPEC void sha256_hmac_init_swap_impl (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   u32 w0[4];
   u32 w1[4];
@@ -1465,12 +1465,12 @@ DECLSPEC void sha256_hmac_update_64 (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_
   sha256_update_64 (&ctx->ipad, w0, w1, w2, w3, len);
 }
 
-DECLSPEC void sha256_hmac_update (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+DECLSPEC void sha256_hmac_update_impl (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha256_update (&ctx->ipad, w, len);
 }
 
-DECLSPEC void sha256_hmac_update_swap (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
+DECLSPEC void sha256_hmac_update_swap_impl (PRIVATE_AS sha256_hmac_ctx_t *ctx, PRIVATE_AS const u32 *w, const int len)
 {
   sha256_update_swap (&ctx->ipad, w, len);
 }
