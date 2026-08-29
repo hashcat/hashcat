@@ -95,7 +95,6 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --benchmark-max            |      | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000",
   "     --speed-only               |      | Return expected speed of the attack, then quit       |",
   "     --progress-only            |      | Return ideal progress step size and time to process  |",
-  " -c, --segment-size             | Num  | Sets size in MB to cache from the wordfile to X      | -c 32",
   "     --bitmap-min               | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
   "     --bitmap-max               | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",
   "     --bridge-parameter1        | Str  | Sets the generic parameter 1 for a Bridge            |",

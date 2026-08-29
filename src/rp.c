@@ -1102,6 +1102,14 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     return -1;
   }
 
+  // Both counters count chains, because both are spent as chains: invalid_cnt is how many slots the
+  // output has skipped so far, so it is the distance between the chain being built and where it is
+  // written, and it is subtracted from kernel_rules_cnt at the end. Counting the functions dropped
+  // instead makes that distance grow faster than i does, and the write index turns negative.
+  //
+  // A chain that does not fit is abandoned at the function that overflows it. The remaining files
+  // have nowhere to put their functions either, so walking them only inflated the count.
+
   u32 invalid_cnt = 0;
   u32 valid_cnt = 0;
 
@@ -1110,6 +1118,13 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
     u32 out_pos = 0;
 
     kernel_rule_t *out = &kernel_rules_buf[i - invalid_cnt];
+
+    // the slot is reused when an earlier chain was dropped, so the functions that chain wrote into
+    // it have to go, or a shorter chain landing here later keeps them and runs them
+
+    memset (out, 0, sizeof (kernel_rule_t));
+
+    bool overflow = false;
 
     for (u32 j = 0; j < user_options->rp_files_cnt; j++)
     {
@@ -1122,17 +1137,24 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
       {
         if (out_pos == RULES_MAX - 1)
         {
-          invalid_cnt++;
+          overflow = true;
 
           break;
-        }
-        else
-        {
-          valid_cnt++;
         }
 
         out->cmds[out_pos] = in->cmds[in_pos];
       }
+
+      if (overflow == true) break;
+    }
+
+    if (overflow == true)
+    {
+      invalid_cnt++;
+    }
+    else
+    {
+      valid_cnt++;
     }
   }
 

@@ -13,6 +13,7 @@
 #include <windows.h>
 #else
 #include <dlfcn.h>
+#include <pthread.h>
 #if defined (__APPLE__)
 #include <mach-o/dyld.h>
 #endif // __APPLE__
@@ -31,6 +32,33 @@ HC_PLUGIN_API char        *hc_dlerror ();
 #endif
 
 int hc_dlplugin_abi (const char *path);
+
+// Take the working directory out of the library search order. Windows only, and a no-op elsewhere,
+// because dlopen () of a bare soname never searches the working directory to begin with. Call it
+// before anything is loaded.
+
+#ifdef _WIN
+void hc_dynlib_harden_search_path (void);
+#else
+#define hc_dynlib_harden_search_path()
+#endif
+
+// Run something once, whatever else is happening on other threads.
+//
+// A loader below keeps what it found in file scope, and file scope is per copy of the core.
+// Under SHARED=0 every plugin is built with its own copy, and hashcat_init () starts only the one
+// inside the hashcat binary, so a plugin's copy has to be able to start itself the first time it
+// is asked for anything. That first ask can come from any thread.
+
+#ifdef _WIN
+typedef INIT_ONCE      hc_once_t;
+#define HC_ONCE_INIT   INIT_ONCE_STATIC_INIT
+#else
+typedef pthread_once_t hc_once_t;
+#define HC_ONCE_INIT   PTHREAD_ONCE_INIT
+#endif
+
+void hc_once (hc_once_t *once, void (*init) (void));
 
 // Locating a library and reading its symbols out, written once.
 //

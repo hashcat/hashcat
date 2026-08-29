@@ -872,7 +872,6 @@ typedef enum user_options_defaults
   RP_GEN_SEED              = 0,
   RUNTIME                  = 0,
   SCRYPT_TMTO              = 0,
-  SEGMENT_SIZE             = 33554432,
   SELF_TEST                = true,
   SHOW                     = false,
   SKIP                     = 0,
@@ -1016,7 +1015,6 @@ typedef enum user_options_map
   IDX_RUNTIME                   = 0xff43,
   IDX_SCRYPT_TMTO               = 0xff44,
   IDX_SEEKDB_PATH               = 0xff88,
-  IDX_SEGMENT_SIZE              = 'c',
   IDX_SELF_TEST_DISABLE         = 0xff45,
   IDX_SEPARATOR                 = 'p',
   IDX_SESSION                   = 0xff46,
@@ -2722,7 +2720,6 @@ typedef struct user_options
   bool         rp_gen_seed_chgd;
   bool         runtime_chgd;
   bool         metal_compiler_runtime_chgd;
-  bool         segment_size_chgd;
   bool         workload_profile_chgd;
   bool         skip_chgd;
   bool         limit_chgd;
@@ -2887,7 +2884,6 @@ typedef struct user_options
   u32          runtime;
   u32          metal_compiler_runtime;
   u32          scrypt_tmto;
-  u32          segment_size;
   u32          status_timer;
   u32          stdin_timeout_abort;
   u32          usage;

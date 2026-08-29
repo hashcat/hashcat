@@ -20,6 +20,9 @@ static const char *const ZLIB_SONAMES[] =
   "zlib.dll",
   #elif defined (__APPLE__)
   "libz.1.dylib",
+  "/usr/lib/libz.1.dylib",
+  "/opt/homebrew/lib/libz.1.dylib",
+  "/usr/local/lib/libz.1.dylib",
   "libz.dylib",
   #else
   "libz.so.1",
@@ -76,7 +79,9 @@ static bool zlib_ready = false;
 
 static char zlib_err[512];
 
-void hc_zlib_boot (void)
+static hc_once_t zlib_once = HC_ONCE_INIT;
+
+static void zlib_load (void)
 {
   memset (&zlib_lib, 0, sizeof (zlib_lib));
 
@@ -101,6 +106,11 @@ void hc_zlib_boot (void)
   zlib_ready = true;
 }
 
+void hc_zlib_boot (void)
+{
+  hc_once (&zlib_once, zlib_load);
+}
+
 void hc_zlib_shutdown (void)
 {
   if (zlib_ready == false) return;
@@ -114,6 +124,8 @@ void hc_zlib_shutdown (void)
 
 const hc_zlib_lib_t *hc_zlib (void)
 {
+  hc_once (&zlib_once, zlib_load);
+
   if (zlib_ready == false) return NULL;
 
   return &zlib_lib;
@@ -121,6 +133,8 @@ const hc_zlib_lib_t *hc_zlib (void)
 
 const char *hc_zlib_error (void)
 {
+  hc_once (&zlib_once, zlib_load);
+
   if (zlib_err[0] != 0) return zlib_err;
 
   return "zlib was not loaded";

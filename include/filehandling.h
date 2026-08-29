@@ -10,6 +10,7 @@
 #include <string.h>
 #include <errno.h>
 #include <inttypes.h>
+#include <stdarg.h>
 
 #if defined (__CYGWIN__)
 int _wopen (const char *path, int oflag, ...);

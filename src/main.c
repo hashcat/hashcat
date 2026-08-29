@@ -19,6 +19,7 @@
 #include "status.h"
 #include "shared.h"
 #include "system.h"
+#include "dynloader.h"
 #include "event.h"
 #include "hwmon.h"
 
@@ -1382,6 +1383,11 @@ static void event (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, co
 
 int main (int argc, char **argv)
 {
+  // before any library is loaded, and on Windows only, so that a library found by name cannot come
+  // out of whatever directory hashcat was started in
+
+  hc_dynlib_harden_search_path ();
+
   // this increases the size on windows dos boxes
 
   setup_console ();

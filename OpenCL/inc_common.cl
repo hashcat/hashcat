@@ -141,7 +141,9 @@ DECLSPEC u8 v8d_from_v64_S (const u64 v64)
 DECLSPEC u8 v8e_from_v64_S (const u64 v64)
 {
   #ifdef IS_OPENCL
-  const u8 r = (u8) (v64 >> 32);
+  const u32 hi = (u32) (v64 >> 32);
+
+  const u8 r = (u8) (hi >> 0);
 
   return r;
   #else
@@ -156,7 +158,9 @@ DECLSPEC u8 v8e_from_v64_S (const u64 v64)
 DECLSPEC u8 v8f_from_v64_S (const u64 v64)
 {
   #ifdef IS_OPENCL
-  const u8 r = (u8) (v64 >> 40);
+  const u32 hi = (u32) (v64 >> 32);
+
+  const u8 r = (u8) (hi >> 8);
 
   return r;
   #else
@@ -171,7 +175,9 @@ DECLSPEC u8 v8f_from_v64_S (const u64 v64)
 DECLSPEC u8 v8g_from_v64_S (const u64 v64)
 {
   #ifdef IS_OPENCL
-  const u8 r = (u8) (v64 >> 48);
+  const u32 hi = (u32) (v64 >> 32);
+
+  const u8 r = (u8) (hi >> 16);
 
   return r;
   #else
@@ -186,7 +192,9 @@ DECLSPEC u8 v8g_from_v64_S (const u64 v64)
 DECLSPEC u8 v8h_from_v64_S (const u64 v64)
 {
   #ifdef IS_OPENCL
-  const u8 r = (u8) (v64 >> 56);
+  const u32 hi = (u32) (v64 >> 32);
+
+  const u8 r = (u8) (hi >> 24);
 
   return r;
   #else
@@ -1832,30 +1840,25 @@ DECLSPEC u32 hc_bytealign_S (const u32 a, const u32 b, const int c)
 
 #if defined IS_GENERIC && !defined IS_AMD_USE_OPENCL
 
+// All four byte counts are the same funnel shift at a different amount, so the two functions below
+// spell it as one shift rather than as a chain of compares. A compiler with a funnel shift
+// instruction then emits one of those instead of three shifts and three selects. The zero case has
+// to stay a select, because a shift by 32 is a shift by 0 in C and would leave a | b behind.
+
 DECLSPEC u32x hc_bytealign_be (const u32x a, const u32x b, const int c)
 {
-  u32x r = 0;
+  const int s = (c & 3) * 8;
 
-  const int cm = c & 3;
-
-       if (cm == 0) { r = b;                     }
-  else if (cm == 1) { r = (a << 24) | (b >>  8); }
-  else if (cm == 2) { r = (a << 16) | (b >> 16); }
-  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
+  const u32x r = (s == 0) ? b : ((a << (32 - s)) | (b >> s));
 
   return r;
 }
 
 DECLSPEC u32 hc_bytealign_be_S (const u32 a, const u32 b, const int c)
 {
-  u32 r = 0;
+  const int s = (c & 3) * 8;
 
-  const int cm = c & 3;
-
-       if (cm == 0) { r = b;                     }
-  else if (cm == 1) { r = (a << 24) | (b >>  8); }
-  else if (cm == 2) { r = (a << 16) | (b >> 16); }
-  else if (cm == 3) { r = (a <<  8) | (b >> 24); }
+  const u32 r = (s == 0) ? b : ((a << (32 - s)) | (b >> s));
 
   return r;
 }

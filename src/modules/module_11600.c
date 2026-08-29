@@ -755,15 +755,26 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
     seven_zip->unpack_size,
     data_buf);
 
+  // snprintf returns the length it would have written and not the length it wrote, so a call that
+  // truncates leaves bytes_written past the end of line_buf. The next call would then start out of
+  // bounds and be handed a negative size, which is converted to an enormous one because snprintf
+  // takes a size_t. Clamping after every call is what keeps the accumulator inside the buffer.
+
+  if (bytes_written >= line_size) bytes_written = line_size - 1;
+
   if (seven_zip->data_type > 0)
   {
     bytes_written += snprintf (line_buf + bytes_written, line_size - bytes_written, "$%u$", seven_zip->crc_len);
+
+    if (bytes_written >= line_size) bytes_written = line_size - 1;
 
     const u8 *ptr = (const u8 *) seven_zip->coder_attributes;
 
     for (u32 i = 0, j = 0; i < seven_zip->coder_attributes_len; i += 1, j += 2)
     {
       bytes_written += snprintf (line_buf + bytes_written, line_size - bytes_written, "%02x", ptr[i]);
+
+      if (bytes_written >= line_size) bytes_written = line_size - 1;
     }
   }
 

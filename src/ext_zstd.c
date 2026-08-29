@@ -15,6 +15,9 @@ static const char *const ZSTD_SONAMES[] =
   "zstd.dll",
   #elif defined (__APPLE__)
   "libzstd.1.dylib",
+  "/usr/lib/libzstd.1.dylib",
+  "/opt/homebrew/lib/libzstd.1.dylib",
+  "/usr/local/lib/libzstd.1.dylib",
   "libzstd.dylib",
   #else
   "libzstd.so.1",
@@ -42,7 +45,9 @@ static bool zstd_ready = false;
 
 static char zstd_err[512];
 
-void hc_zstd_boot (void)
+static hc_once_t zstd_once = HC_ONCE_INIT;
+
+static void zstd_load (void)
 {
   memset (&zstd_lib, 0, sizeof (zstd_lib));
 
@@ -67,6 +72,11 @@ void hc_zstd_boot (void)
   zstd_ready = true;
 }
 
+void hc_zstd_boot (void)
+{
+  hc_once (&zstd_once, zstd_load);
+}
+
 void hc_zstd_shutdown (void)
 {
   if (zstd_ready == false) return;
@@ -80,6 +90,8 @@ void hc_zstd_shutdown (void)
 
 const hc_zstd_lib_t *hc_zstd (void)
 {
+  hc_once (&zstd_once, zstd_load);
+
   if (zstd_ready == false) return NULL;
 
   return &zstd_lib;
@@ -87,6 +99,8 @@ const hc_zstd_lib_t *hc_zstd (void)
 
 const char *hc_zstd_error (void)
 {
+  hc_once (&zstd_once, zstd_load);
+
   if (zstd_err[0] != 0) return zstd_err;
 
   return "libzstd was not loaded";

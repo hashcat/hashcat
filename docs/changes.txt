@@ -116,6 +116,14 @@ A wordlist, hash list or rule file inside a .zip is no longer opened. Reading zi
 minizip, and minizip meant carrying zlib's source along with it, so the format that cost the most to
 support was also the one gzip, xz and zstd already cover.
 
+15. Wordlists: -c and --segment-size were removed
+
+The wordlist segment cache the option sized no longer exists. It went away when the feeds layer
+replaced the old wordlist reader, and nothing took the value over, so the option has been parsed and
+then ignored ever since. A command line carrying -c or --segment-size now fails with an unknown
+option rather than being accepted and having no effect. The letter c is retired rather than reused,
+so that an old script does not one day mean something new.
+
 ##
 ## New Algorithms
 ##
@@ -164,6 +172,8 @@ support was also the one gzip, xz and zstd already cover.
 - Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seekdbs
 - Seekdbs are portable between machines, so a distributed setup can build one once and hand it out
 - New option --seekdb-path: Store seek databases in a given directory, which several hosts can share
+- New option --lookup: Report where an attack reaches one given candidate, then quit. A candidate
+  that no shell can pass is written as $HEX[...], the same spelling the potfile and --show use
 - Added --encrypt-with-pubkey, which encrypts recovered plains with an RSA public key
 - Encrypted plains mean the cracking host never sees them, see docs/hashcat-encrypted-plains.md
 - Wordlists, hash lists and rule files may now be zstd compressed, alongside gzip and xz
@@ -237,6 +247,10 @@ support was also the one gzip, xz and zstd already cover.
 - Kernels: The AES decrypt key schedule can invert each round key through one table
   lookup instead of two, which 8 hash modes now do for +15% to +41% on a GeForce
   RTX 4090: -m 16600, -m 22500, -m 22931, -m 22941, -m 22951 and -m 23001 to -m 23003
+- Kernels: A runtime with no byte alignment instruction is given the big endian byte
+  alignment as one funnel shift instead of a chain of compares, and the Whirlpool byte
+  extraction takes the high half of the 64 bit word before shifting. On a Radeon RX
+  9070 XT under Mesa rusticl that is +4.1% on -m 100 and +3% on -m 6100
 - Backends: Environment on/off switches share one hc_env_flag helper
 - Feeds: Settings are written as key=value work arguments and one shared parser reads
   them, so a feed no longer writes its own (see docs/hashcat-plugin-development-guide.md)
@@ -266,6 +280,24 @@ support was also the one gzip, xz and zstd already cover.
 ## Bugs
 ##
 
+- Windows: the working directory is no longer searched for the libraries hashcat loads by name.
+  A DLL left beside a wordlist could otherwise be loaded and run, and the compression
+  libraries made that reachable because Windows ships none of them, so every earlier
+  directory in the search order missed. Supplying one the documented way, beside hashcat.exe,
+  is unaffected
+- Fixed chained rule files corrupting memory. When 4 or more -r files are given and the chain
+  runs past the 31 function limit, the counter for discarded chains was advanced once per
+  dropped function instead of once per dropped chain. It then outran the chain index, and the
+  next chain was written before the start of the buffer. The same counter was subtracted from
+  the rule count, which underflowed to about 4 billion and broke the device memory estimate
+- Fixed the rule file list in the status display writing past its buffer. snprintf reports the
+  length it would have written, so the running total passed the end of the 4 KB buffer once
+  enough -r arguments were given, and the next name was written out of bounds. The list is now
+  truncated at the buffer
+- Fixed the same counting mistake in the 7-Zip hash encoder for -m 11600, where a truncated
+  first write would have left every following write starting past the end of the line buffer.
+  No 7-Zip hash the parser accepts is long enough to reach it, so nothing was miscounted in
+  practice
 - Fixed a stored deflate block decoding to nothing in the PKZIP modes 17200, 17220 and 17225 on
   AMD GPUs, in the HIP backend and in the OpenCL backend both. A file that does not compress is
   stored rather than deflated, which is what an archived JPEG, MP3 or nested ZIP is, so an

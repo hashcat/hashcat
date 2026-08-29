@@ -8,6 +8,8 @@
 #include "thread.h"
 #include "event.h"
 
+#include <stdarg.h>
+
 #ifndef __MINGW_PRINTF_FORMAT
 #define __MINGW_PRINTF_FORMAT printf
 #endif

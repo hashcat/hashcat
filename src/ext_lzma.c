@@ -16,6 +16,9 @@ static const char *const LZMA_SONAMES[] =
   "liblzma-5.dll",
   #elif defined (__APPLE__)
   "liblzma.5.dylib",
+  "/usr/lib/liblzma.5.dylib",
+  "/opt/homebrew/lib/liblzma.5.dylib",
+  "/usr/local/lib/liblzma.5.dylib",
   "liblzma.dylib",
   #else
   "liblzma.so.5",
@@ -47,7 +50,9 @@ static bool lzma_ready = false;
 
 static char lzma_err[512];
 
-void hc_lzma_boot (void)
+static hc_once_t lzma_once = HC_ONCE_INIT;
+
+static void lzma_load (void)
 {
   memset (&lzma_lib, 0, sizeof (lzma_lib));
 
@@ -72,6 +77,11 @@ void hc_lzma_boot (void)
   lzma_ready = true;
 }
 
+void hc_lzma_boot (void)
+{
+  hc_once (&lzma_once, lzma_load);
+}
+
 void hc_lzma_shutdown (void)
 {
   if (lzma_ready == false) return;
@@ -85,6 +95,8 @@ void hc_lzma_shutdown (void)
 
 const hc_lzma_lib_t *hc_lzma (void)
 {
+  hc_once (&lzma_once, lzma_load);
+
   if (lzma_ready == false) return NULL;
 
   return &lzma_lib;
@@ -92,6 +104,8 @@ const hc_lzma_lib_t *hc_lzma (void)
 
 const char *hc_lzma_error (void)
 {
+  hc_once (&lzma_once, lzma_load);
+
   if (lzma_err[0] != 0) return lzma_err;
 
   return "liblzma was not loaded";

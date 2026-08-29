@@ -154,6 +154,7 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
       const size_t nread = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
 
       if (nread == 0) break;
+      if (nread == (size_t) -1) break;
 
       XXH64_update (state, buf, nread);
     }
@@ -162,7 +163,7 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
   {
     const size_t nread1 = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
 
-    XXH64_update (state, buf, nread1);
+    if (nread1 != (size_t) -1) XXH64_update (state, buf, nread1);
 
     const size_t file_len = (size_t) st.st_size;
 
@@ -172,7 +173,7 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 
       const size_t nread2 = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
 
-      XXH64_update (state, buf, nread2);
+      if (nread2 != (size_t) -1) XXH64_update (state, buf, nread2);
     }
   }
 

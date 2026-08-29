@@ -28,9 +28,9 @@
 #endif
 
 #ifdef WITH_BRAIN
-static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:R:z";
+static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:R:z";
 #else
-static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:c:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:R:";
+static const char *const short_options = "hHVvm:a:r:j:k:g:o:t:d:D:n:u:T:p:s:l:1:2:3:4:5:6:7:8:iIbw:OMSY:R:";
 #endif
 
 static char *const SEPARATOR = ":";
@@ -148,7 +148,6 @@ static const struct option long_options[] =
   {"runtime",                   required_argument, NULL, IDX_RUNTIME},
   {"scrypt-tmto",               required_argument, NULL, IDX_SCRYPT_TMTO},
   {"seekdb-path",               required_argument, NULL, IDX_SEEKDB_PATH},
-  {"segment-size",              required_argument, NULL, IDX_SEGMENT_SIZE},
   {"self-test-disable",         no_argument,       NULL, IDX_SELF_TEST_DISABLE},
   {"separator",                 required_argument, NULL, IDX_SEPARATOR},
   {"seperator",                 required_argument, NULL, IDX_SEPARATOR},
@@ -324,7 +323,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->runtime                   = RUNTIME;
   user_options->scrypt_tmto               = SCRYPT_TMTO;
   user_options->seekdb_path               = NULL;
-  user_options->segment_size              = SEGMENT_SIZE;
   user_options->self_test                 = SELF_TEST;
   user_options->separator                 = SEPARATOR;
   user_options->session                   = PROGNAME;
@@ -436,7 +434,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_NONCE_ERROR_CORRECTIONS:
       case IDX_VERACRYPT_PIM_START:
       case IDX_VERACRYPT_PIM_STOP:
-      case IDX_SEGMENT_SIZE:
       case IDX_SCRYPT_TMTO:
       case IDX_BITMAP_MIN:
       case IDX_BITMAP_MAX:
@@ -617,8 +614,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->veracrypt_pim_start_chgd  = true;                            break;
       case IDX_VERACRYPT_PIM_STOP:        user_options->veracrypt_pim_stop        = hc_strtoul (optarg, NULL, 10);
                                           user_options->veracrypt_pim_stop_chgd   = true;                            break;
-      case IDX_SEGMENT_SIZE:              user_options->segment_size              = hc_strtoul (optarg, NULL, 10);
-                                          user_options->segment_size_chgd         = true;                            break;
       case IDX_SCRYPT_TMTO:               user_options->scrypt_tmto               = hc_strtoul (optarg, NULL, 10);
                                           user_options->scrypt_tmto_chgd          = true;                            break;
       case IDX_SEPARATOR:                 user_options->separator                 = optarg;
@@ -1524,7 +1519,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID)
      && (user_options->attack_mode != ATTACK_MODE_PCFG))
     {
-      event_log_error (hashcat_ctx, "--lookup is supported in attack-modes 0, 3 and 4 only.");
+      event_log_error (hashcat_ctx, "--lookup is supported in attack-modes 0, 1, 3, 4, 6, 7 and 12 only.");
 
       event_log_warning (hashcat_ctx, "The other attack modes have no inversion yet, so there is no offset to give rather than a wrong one.");
 
@@ -2976,11 +2971,6 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
   if (user_options->markov_threshold == 0)
   {
     user_options->markov_threshold = 0x100;
-  }
-
-  if (user_options->segment_size_chgd == true)
-  {
-    user_options->segment_size *= (1024 * 1024);
   }
 
   #if !defined (WITH_HWMON)
@@ -4786,7 +4776,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->runtime);
   logfile_top_uint   (user_options->scrypt_tmto);
   logfile_top_string (user_options->seekdb_path);
-  logfile_top_uint   (user_options->segment_size);
   logfile_top_uint   (user_options->self_test);
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);

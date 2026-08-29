@@ -57,12 +57,25 @@ static char *status_get_rules_file (const hashcat_ctx_t *hashcat_ctx)
 
     u32 i;
 
+    // snprintf returns the length it would have written and not the length it wrote, so once the
+    // list fills the buffer tmp_len runs past it. HCBUFSIZ_TINY - tmp_len is then negative, and
+    // snprintf takes its size as a size_t, so the next name would be written out of bounds with no
+    // limit at all. Enough -r arguments, or long enough paths, is all that takes. The list is
+    // truncated instead, and the terminator below always lands inside the buffer.
+
     for (i = 0; i < user_options->rp_files_cnt - 1; i++)
     {
       tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s, ", user_options->rp_files[i]);
+
+      if (tmp_len >= HCBUFSIZ_TINY) break;
     }
 
-    tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s", user_options->rp_files[i]);
+    if (tmp_len < HCBUFSIZ_TINY)
+    {
+      tmp_len += snprintf (tmp_buf + tmp_len, HCBUFSIZ_TINY - tmp_len, "%s", user_options->rp_files[i]);
+    }
+
+    if (tmp_len >= HCBUFSIZ_TINY) tmp_len = HCBUFSIZ_TINY - 1;
 
     tmp_buf[tmp_len] = 0;
 

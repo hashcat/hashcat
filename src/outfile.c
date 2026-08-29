@@ -572,62 +572,10 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
   hc_fclose (&outfile_ctx->fp);
 }
 
-// Bounded appenders for outfile_write's fixed tmp_buf (HCBUFSIZ_LARGE). username,
-// hash and plain are taken from the input line and can be as large as the line
-// buffer itself, so every write is clamped to the space actually left, always
-// keeping one byte for the trailing null. An oversized field is truncated, the
-// entry itself is still written out.
-
-static int outfile_append_raw (char *buf, const int len, const u8 *src, int src_len)
-{
-  const int room = (int) HCBUFSIZ_LARGE - 1 - len;
-
-  if (src_len > room)
-  {
-    src_len = (room > 0) ? room : 0;
-  }
-
-  memcpy (buf + len, src, (size_t) src_len);
-
-  return len + src_len;
-}
-
-static int outfile_append_hex (char *buf, const int len, const u8 *src, int src_len)
-{
-  const int room = (int) HCBUFSIZ_LARGE - 1 - len;
-
-  if ((src_len * 2) > room)
-  {
-    src_len = (room > 0) ? room / 2 : 0;
-  }
-
-  return len + hex_encode (src, src_len, (u8 *) buf + len);
-}
-
-static int outfile_append_hexify (char *buf, const int len, const u8 *src, int src_len)
-{
-  const int room = (int) HCBUFSIZ_LARGE - 1 - len;
-
-  if ((src_len * 2) > room)
-  {
-    src_len = (room > 0) ? room / 2 : 0;
-  }
-
-  const size_t hex_len = exec_hexify (src, (size_t) src_len, (u8 *) buf + len);
-
-  const int out_len = len + (int) hex_len;
-
-  return out_len;
-}
-
-static int outfile_append_chr (char *buf, const int len, const char c)
-{
-  if (len >= (int) HCBUFSIZ_LARGE - 1) return len;
-
-  buf[len] = c;
-
-  return len + 1;
-}
+// The bounded appenders these used to define now live in src/shared.c, because potfile.c builds the
+// same kind of line into the same size of buffer and needs the same clamping. outfile_append_fmt ()
+// stays here: it is this file's JSON formatter, it carries a printf format attribute, and vsnprintf
+// bounds it already.
 
 static int outfile_append_fmt (char *buf, const int len, const char *fmt, ...)
 {
@@ -658,7 +606,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
   if (outfile_ctx->outfile_json == true)
   {
-    tmp_len = outfile_append_chr (tmp_buf, tmp_len, '{');
+    tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '{');
 
     if (user_len > 0)
     {
@@ -666,14 +614,14 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
       {
         tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"username_hex\": ");
 
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
 
-        tmp_len = outfile_append_hex (tmp_buf, tmp_len, (const u8 *) username, (int) user_len);
+        tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) username, (int) user_len);
 
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
 
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, ',');
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, ' ');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ',');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ' ');
       }
     }
 
@@ -681,41 +629,41 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
     {
       tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"filename_hex\": ");
 
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
 
-      tmp_len = outfile_append_hex (tmp_buf, tmp_len, (const u8 *) hashes->hashfile, (int) strlen (hashes->hashfile));
+      tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) hashes->hashfile, (int) strlen (hashes->hashfile));
 
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
 
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, ',');
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, ' ');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ',');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ' ');
     }
     else
     {
       tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"hash_hex\": ");
 
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
 
-      tmp_len = outfile_append_hex (tmp_buf, tmp_len, (const u8 *) out_buf, (int) out_len);
+      tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) out_buf, (int) out_len);
 
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
 
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, ',');
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, ' ');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ',');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ' ');
     }
 
     if (1) // plain
     {
       tmp_len = outfile_append_fmt (tmp_buf, tmp_len, "\"password_hex\": ");
 
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
 
-      tmp_len = outfile_append_hex (tmp_buf, tmp_len, (const u8 *) plain_ptr, (int) plain_len);
+      tmp_len = hc_append_hex (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) plain_ptr, (int) plain_len);
 
-      tmp_len = outfile_append_chr (tmp_buf, tmp_len, '"');
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '"');
     }
 
-    tmp_len = outfile_append_chr (tmp_buf, tmp_len, '}');
+    tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '}');
   }
   else
   {
@@ -725,11 +673,11 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
     {
       if (username != NULL)
       {
-        tmp_len = outfile_append_raw (tmp_buf, tmp_len, (const u8 *) username, (int) user_len);
+        tmp_len = hc_append_raw (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) username, (int) user_len);
 
         if (outfile_format & (OUTFILE_FMT_TIME_ABS | OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
         {
-          tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
+          tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, hashconfig->separator);
         }
       }
     }
@@ -744,7 +692,7 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
       if (outfile_format & (OUTFILE_FMT_TIME_REL | OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, hashconfig->separator);
       }
     }
 
@@ -767,17 +715,17 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
       if (outfile_format & (OUTFILE_FMT_HASH | OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, hashconfig->separator);
       }
     }
 
     if (outfile_format & OUTFILE_FMT_HASH)
     {
-      tmp_len = outfile_append_raw (tmp_buf, tmp_len, (const u8 *) out_buf, (int) out_len);
+      tmp_len = hc_append_raw (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) out_buf, (int) out_len);
 
       if (outfile_format & (OUTFILE_FMT_PLAIN | OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, hashconfig->separator);
       }
     }
 
@@ -797,34 +745,34 @@ int outfile_write (hashcat_ctx_t *hashcat_ctx, const char *out_buf, const int ou
 
       if (convert_to_hex)
       {
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, '$');
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, 'H');
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, 'E');
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, 'X');
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, '[');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '$');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, 'H');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, 'E');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, 'X');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, '[');
 
-        tmp_len = outfile_append_hexify (tmp_buf, tmp_len, plain_ptr, (int) plain_len);
+        tmp_len = hc_append_hexify (tmp_buf, tmp_len, HCBUFSIZ_LARGE, plain_ptr, (int) plain_len);
 
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, ']');
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ']');
       }
       else
       {
-        tmp_len = outfile_append_raw (tmp_buf, tmp_len, (const u8 *) plain_ptr, (int) plain_len);
+        tmp_len = hc_append_raw (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) plain_ptr, (int) plain_len);
       }
 
       if (outfile_format & (OUTFILE_FMT_HEXPLAIN | OUTFILE_FMT_CRACKPOS))
       {
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, hashconfig->separator);
       }
     }
 
     if (outfile_format & OUTFILE_FMT_HEXPLAIN)
     {
-      tmp_len = outfile_append_hexify (tmp_buf, tmp_len, plain_ptr, (int) plain_len);
+      tmp_len = hc_append_hexify (tmp_buf, tmp_len, HCBUFSIZ_LARGE, plain_ptr, (int) plain_len);
 
       if (outfile_format & (OUTFILE_FMT_CRACKPOS))
       {
-        tmp_len = outfile_append_chr (tmp_buf, tmp_len, hashconfig->separator);
+        tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, hashconfig->separator);
       }
     }
 

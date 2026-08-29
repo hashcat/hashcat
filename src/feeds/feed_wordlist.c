@@ -258,6 +258,18 @@ static bool source_fill (feed_thread_t *feed_thread)
 
   const size_t got = hc_fread (feed_thread->win + left, 1, want, &feed_thread->hcfile);
 
+  // A decode error is reported as (size_t) -1, which is not a length. Added to fd_len it makes the
+  // window claim to hold SIZE_MAX bytes, and the next reader walks the whole address space looking
+  // for a line ending. A corrupt .gz is enough to get here. The window keeps what it already had and
+  // the source is finished.
+
+  if (got == (size_t) -1)
+  {
+    feed_thread->win_eof = true;
+
+    return false;
+  }
+
   feed_thread->fd_len += got;
 
   if (got < want) feed_thread->win_eof = true;

@@ -9,6 +9,7 @@
 #include "filehandling.h"
 #include "path.h"
 #include "shared.h"
+#include "convert.h"
 #include "system.h"
 #include "feed.h"
 #include "event.h"
@@ -1277,6 +1278,7 @@ static bool merge_read (pcfg_merge_t *m, const pcfg_root_t *r, const char *rel)
     const size_t got = hc_fread (img + len, 1, cap - len, &fp);
 
     if (got == 0) break;
+    if (got == (size_t) -1) break;
 
     len += got;
   }
@@ -5855,11 +5857,51 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
   pmsg (pg, "lookup: '%s'", pg->lookup);
 
+  // A candidate is bytes, and a grammar trained on real passwords derives words no shell can pass.
+  // $HEX[...] is how the potfile and --show write such a word, and how -a 0 and -a 3 already take
+  // one, so it is taken here as well. The line above echoes what was typed rather than what it
+  // decodes to, so a hex string that is not the one meant is visible in the answer.
+  //
+  // The length is bounded here and not only in user_options.c, because lookup= is a setting a
+  // command line can hand to the feed directly, and that route passes no option validation.
+
+  const u8 *arg     = (const u8 *) pg->lookup;
+  const u32 arg_len = (u32) strlen (pg->lookup);
+
+  u8 cand[PW_MAX];
+
+  u32 cand_len = 0;
+
+  if (is_hexify (arg, arg_len) == true)
+  {
+    if (((arg_len - 6) / 2) > PW_MAX)
+    {
+      pmsg (pg, "lookup: that decodes to more than %d bytes, which is longer than any candidate", PW_MAX);
+
+      return;
+    }
+
+    cand_len = (u32) exec_unhexify (arg, arg_len, cand, sizeof (cand));
+  }
+  else
+  {
+    if (arg_len > PW_MAX)
+    {
+      pmsg (pg, "lookup: that is longer than %d bytes, which is longer than any candidate", PW_MAX);
+
+      return;
+    }
+
+    memcpy (cand, arg, arg_len);
+
+    cand_len = arg_len;
+  }
+
   pcfg_hit_t hit;
 
   memset (&hit, 0, sizeof (hit));
 
-  const bool found = lookup_find (pg, (const u8 *) pg->lookup, (u32) strlen (pg->lookup), &hit);
+  const bool found = lookup_find (pg, cand, cand_len, &hit);
 
   if (found == false)
   {

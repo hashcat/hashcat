@@ -7,6 +7,9 @@
 #include "types.h"
 #include "shared.h"
 #include "memory.h"
+#include "convert.h"
+
+#include <stdarg.h>
 
 static const char *const OPTI_STR_OPTIMIZED_KERNEL     = "Optimized-Kernel";
 static const char *const OPTI_STR_ZERO_BYTE            = "Zero-Byte";
@@ -633,6 +636,82 @@ bool hc_env_flag (const char *name, int *cache)
   const bool result = (*cache == 1) ? true : false;
 
   return result;
+}
+
+// Bounded appenders for a fixed size output buffer.
+//
+// A cracked hash is written out by src/outfile.c and by src/potfile.c, and both build the line in one
+// buffer of HCBUFSIZ_LARGE. The username, the hash and the plaintext all originate in the input line,
+// so none of the 3 has a length this code decides. Every write is therefore clamped to the room
+// actually left, and 1 byte is always kept back so that the caller's trailing null lands inside the
+// buffer. A field that does not fit is truncated and the entry itself is still written out.
+//
+// buf_sz is the size of the whole buffer, not the room remaining. Each function returns the new length.
+//
+// These lived in src/outfile.c alone. potfile.c builds the same kind of line into the same size of
+// buffer and had no bound of any kind, which is exactly the shape a second copy of security relevant
+// code takes when it is not shared, so there is one copy and both callers use it.
+
+int hc_append_raw (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
+{
+  const int room = buf_sz - 1 - len;
+
+  if (src_len > room)
+  {
+    src_len = (room > 0) ? room : 0;
+  }
+
+  memcpy (buf + len, src, (size_t) src_len);
+
+  const int out_len = len + src_len;
+
+  return out_len;
+}
+
+// hex_encode () writes 2 bytes per input byte and no terminator.
+
+int hc_append_hex (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
+{
+  const int room = buf_sz - 1 - len;
+
+  if ((src_len * 2) > room)
+  {
+    src_len = (room > 0) ? room / 2 : 0;
+  }
+
+  const int out_len = len + hex_encode (src, src_len, (u8 *) buf + len);
+
+  return out_len;
+}
+
+// exec_hexify () writes 2 bytes per input byte and then a terminator, which is what the byte held
+// back above is for. It also clamps its own input to PW_MAX, so it can write less than asked.
+
+int hc_append_hexify (char *buf, const int len, const int buf_sz, const u8 *src, int src_len)
+{
+  const int room = buf_sz - 1 - len;
+
+  if ((src_len * 2) > room)
+  {
+    src_len = (room > 0) ? room / 2 : 0;
+  }
+
+  const size_t hex_len = exec_hexify (src, (size_t) src_len, (u8 *) buf + len);
+
+  const int out_len = len + (int) hex_len;
+
+  return out_len;
+}
+
+int hc_append_chr (char *buf, const int len, const int buf_sz, const char c)
+{
+  if (len >= (buf_sz - 1)) return len;
+
+  buf[len] = c;
+
+  const int out_len = len + 1;
+
+  return out_len;
 }
 
 // Expanding a PCFG cell on the host, so that a crack can be reported as the candidate that produced it

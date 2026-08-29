@@ -9,6 +9,41 @@
 
 #ifdef _WIN
 
+#ifndef LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
+#define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS 0x00001000
+#endif
+
+// Take the working directory out of the library search order.
+//
+// LoadLibrary () given a bare file name searches the directory hashcat.exe lives in, then the system
+// directories, and then the working directory. A library that is present in none of the earlier ones
+// is therefore loaded from wherever hashcat happens to be started, and a file dropped next to a
+// wordlist is a library hashcat will run. The libraries this matters most for are the compression
+// ones, because Windows ships none of them, so for those the earlier directories always miss.
+//
+// LOAD_LIBRARY_SEARCH_DEFAULT_DIRS keeps the application directory, the system directory and
+// anything added with AddDllDirectory (), and drops the working directory. Supplying a library the
+// documented way, beside hashcat.exe, is the application directory and is unaffected. A library that
+// only ever resolved out of the working directory stops being found, which is the point.
+//
+// The entry point is resolved rather than linked, so an older SDK still builds this and a Windows
+// without it still runs. A plugin is loaded by path and never went through this search order at all.
+
+void hc_dynlib_harden_search_path (void)
+{
+  const HMODULE kernel32 = GetModuleHandleA ("kernel32.dll");
+
+  if (kernel32 == NULL) return;
+
+  typedef BOOL (WINAPI *set_default_dll_directories_t) (DWORD);
+
+  const set_default_dll_directories_t set_default_dll_directories = (set_default_dll_directories_t) (void *) GetProcAddress (kernel32, "SetDefaultDllDirectories");
+
+  if (set_default_dll_directories == NULL) return;
+
+  set_default_dll_directories (LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+}
+
 hc_dynlib_t hc_dlopen (LPCSTR lpLibFileName)
 {
   return LoadLibraryA (lpLibFileName);
@@ -189,6 +224,50 @@ bool hc_dynlib_syms (hc_dynlib_t lib, void *dst, const hc_dynlib_sym_t *syms, ch
 
   return true;
 }
+
+// Run init exactly once for this copy of the core, and make every other thread wait for it rather
+// than see half of what it did.
+
+#ifdef _WIN
+
+static BOOL CALLBACK hc_once_run (PINIT_ONCE once, PVOID param, PVOID *context)
+{
+  void (*init) (void) = (void (*) (void)) param;
+
+  init ();
+
+  (void) once;
+  (void) context;
+
+  return TRUE;
+}
+
+void hc_once (hc_once_t *once, void (*init) (void))
+{
+  InitOnceExecuteOnce (once, hc_once_run, (PVOID) init, NULL);
+}
+
+#else
+
+// pthread_once () calls a function that takes nothing, so which function to call is left where the
+// thread that ends up running it can find it. Thread local, because the thread that runs it is the
+// one that just wrote it, and any other thread waits inside pthread_once () until that is done.
+
+static __thread void (*hc_once_init) (void);
+
+static void hc_once_run (void)
+{
+  hc_once_init ();
+}
+
+void hc_once (hc_once_t *once, void (*init) (void))
+{
+  hc_once_init = init;
+
+  pthread_once (once, hc_once_run);
+}
+
+#endif
 
 // A plugin that will not load has almost always been built against a plugin interface this core no
 // longer carries. The name it holds says which one, and it is in the file whether the plugin is an

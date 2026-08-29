@@ -378,6 +378,7 @@ check_compressed ()
     case "$COMPRESSED_OUT" in
       *"support is unavailable"*)
         printf '      .%s not checked, this machine has no library for it\n' "$COMPRESSED_EXT"
+        printf '        %s\n' "$(printf '%s' "$COMPRESSED_OUT" | tr -d '\r' | grep -o 'tried:.*' | head -1)"
         return
         ;;
     esac

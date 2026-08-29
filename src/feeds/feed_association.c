@@ -11,6 +11,8 @@
 
 #include "xxhash.h"
 
+#include <stdarg.h>
+
 #include "common.h"
 #include "types.h"
 #include "memory.h"

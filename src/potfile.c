@@ -260,20 +260,18 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
   if (hashconfig->potfile_disable == true) return;
 
-  u8 *tmp_buf = potfile_ctx->tmp_buf;
+  // The hash and the plaintext both come from the input line, so neither has a length this function
+  // decides. Every write goes through the bounded appenders in shared.c, which clamp to the room left
+  // in tmp_buf and keep 1 byte back for the trailing null below. outfile.c writes the same kind of
+  // line through the same helpers.
+
+  char *tmp_buf = (char *) potfile_ctx->tmp_buf;
 
   int tmp_len = 0;
 
-  if (true)
-  {
-    memcpy (tmp_buf + tmp_len, out_buf, out_len);
+  tmp_len = hc_append_raw (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) out_buf, out_len);
 
-    tmp_len += out_len;
-
-    tmp_buf[tmp_len] = hashconfig->separator;
-
-    tmp_len += 1;
-  }
+  tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, hashconfig->separator);
 
   if ((hashconfig->opts_type & OPTS_TYPE_POTFILE_NOPASS) == 0)
   {
@@ -281,23 +279,15 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
     if (need_hexify (plain_ptr, plain_len, hashconfig->separator, always_ascii) == true)
     {
-      tmp_buf[tmp_len++] = '$';
-      tmp_buf[tmp_len++] = 'H';
-      tmp_buf[tmp_len++] = 'E';
-      tmp_buf[tmp_len++] = 'X';
-      tmp_buf[tmp_len++] = '[';
+      tmp_len = hc_append_raw (tmp_buf, tmp_len, HCBUFSIZ_LARGE, (const u8 *) "$HEX[", 5);
 
-      const size_t hex_len = exec_hexify ((const u8 *) plain_ptr, plain_len, tmp_buf + tmp_len);
+      tmp_len = hc_append_hexify (tmp_buf, tmp_len, HCBUFSIZ_LARGE, plain_ptr, (int) plain_len);
 
-      tmp_len += (int) hex_len;
-
-      tmp_buf[tmp_len++] = ']';
+      tmp_len = hc_append_chr (tmp_buf, tmp_len, HCBUFSIZ_LARGE, ']');
     }
     else
     {
-      memcpy (tmp_buf + tmp_len, plain_ptr, plain_len);
-
-      tmp_len += plain_len;
+      tmp_len = hc_append_raw (tmp_buf, tmp_len, HCBUFSIZ_LARGE, plain_ptr, (int) plain_len);
     }
   }
 
