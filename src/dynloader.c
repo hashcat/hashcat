@@ -99,6 +99,97 @@ char *hc_dlerror ()
 
 #endif
 
+// Open the first library in the list that will load.
+//
+// The list is in preference order and it is normally a versioned soname first, then the unversioned
+// development name. A caller that wants a specific ABI names the versioned file: an unversioned
+// name is whichever version the box happens to have a -dev package for, and on a box with none it
+// does not exist at all, which is the case this whole helper is here to survive.
+//
+// Returns NULL and writes the reason when none of them open. The reason names every candidate,
+// because "libzstd not found" sends a user to install a package they may already have, and the list
+// of file names the loader actually wanted is the thing that tells them what is wrong.
+
+hc_dynlib_t hc_dynlib_open (const char *const *sonames, const size_t sonames_cnt, char *err, const size_t err_size)
+{
+  if (sonames == NULL) return NULL;
+
+  for (size_t i = 0; i < sonames_cnt; i++)
+  {
+    if (sonames[i] == NULL) continue;
+
+    hc_dynlib_t lib = hc_dlopen (sonames[i]);
+
+    if (lib) return lib;
+  }
+
+  if (err == NULL) return NULL;
+  if (err_size == 0) return NULL;
+
+  int off = snprintf (err, err_size, "no library could be loaded, tried:");
+
+  if (off < 0) off = 0;
+
+  for (size_t i = 0; i < sonames_cnt; i++)
+  {
+    if (sonames[i] == NULL) continue;
+
+    if ((size_t) off >= err_size) break;
+
+    const int add = snprintf (err + off, err_size - (size_t) off, " %s", sonames[i]);
+
+    if (add < 0) break;
+
+    off += add;
+  }
+
+  err[err_size - 1] = 0;
+
+  return NULL;
+}
+
+// Fill a struct of function pointers from a table, and say which symbol was missing when one is.
+//
+// The table ends with a row whose name is NULL. dst is the caller's struct and each row carries the
+// offsetof () of the field it belongs in, so one loop fills a struct this file knows nothing about.
+
+bool hc_dynlib_syms (hc_dynlib_t lib, void *dst, const hc_dynlib_sym_t *syms, char *err, const size_t err_size)
+{
+  if (lib == NULL) return false;
+  if (dst == NULL) return false;
+  if (syms == NULL) return false;
+
+  u8 *base = (u8 *) dst;
+
+  for (size_t i = 0; syms[i].name != NULL; i++)
+  {
+    const hc_dynlib_sym_t *sym = &syms[i];
+
+    const hc_dynfunc_t fn = hc_dlsym (lib, sym->name);
+
+    if ((fn == NULL) && (sym->required == true))
+    {
+      if (err == NULL) return false;
+      if (err_size == 0) return false;
+
+      snprintf (err, err_size, "%s is missing from the shared library", sym->name);
+
+      return false;
+    }
+
+    // An optional symbol that is not there leaves a null pointer in the field rather than whatever
+    // the caller's struct held, so the caller can test the field instead of asking for a version.
+    //
+    // The write is a memcpy because the field is a function pointer of its own concrete type and
+    // this only has a generic one. Copying the bytes is how that is done without telling the
+    // compiler two incompatible pointer types live at one address.
+
+    memcpy (base + sym->offset, &fn, sizeof (fn));
+  }
+
+  return true;
+}
+
 // A plugin that will not load has almost always been built against a plugin interface this core no
 // longer carries. The name it holds says which one, and it is in the file whether the plugin is an
 // ELF or a PE, so it is read back here. The Unix loader already names the symbol it could not

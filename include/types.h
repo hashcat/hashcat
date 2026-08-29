@@ -12,19 +12,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <math.h>
-#include <zlib.h>
-
-#if !defined(__MACTYPES__)
-#define __MACTYPES__
-#include "ext_lzma.h"
-#undef __MACTYPES__
-#endif
-// end of workaround
 
 #if defined (_WIN)
 #define WINICONV_CONST
@@ -1368,7 +1361,16 @@ typedef struct link_speed
 
 // file handling
 
+// A gzip and an xz reader. Both are declared here and defined in filehandling.c, so that this
+// header says a handle exists without saying what a handle is. Every module, bridge and feed
+// includes this file, and none of them opens a compressed file: naming the concrete types here
+// would put the compression library's own headers on all 593 of their compile lines.
+
+typedef struct gzfile gzfile_t;
+
 typedef struct xzfile xzfile_t;
+
+typedef struct zstdfile zstdfile_t;
 
 // A file that is already in memory. It is opened over a buffer somebody else owns and holds no copy,
 // so whatever produced the buffer has to outlive the handle. That is what lets one decompressed
@@ -1381,9 +1383,9 @@ typedef struct hc_fp
   int         fd;
 
   FILE       *pfp; // plain fp
-  gzFile      gfp; //  gzip fp
-  unzFile     ufp; //   zip fp
+  gzfile_t   *gfp; //  gzip fp
   xzfile_t   *xfp; //    xz fp
+  zstdfile_t *zfp; //  zstd fp
   memfile_t  *mfp; //  memory fp
 
   int         bom_size;

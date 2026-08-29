@@ -287,7 +287,7 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const
 
   if (hc_fopen (&fp, eff_restore_file, "rb") == false)
   {
-    event_log_error (hashcat_ctx, "Restore file '%s': %s", eff_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "Restore file '%s': %s", eff_restore_file, hc_fopen_strerror ());
 
     return -1;
   }
@@ -495,7 +495,7 @@ static int write_restore (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_fopen (&fp, new_restore_file, "wb") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", new_restore_file, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", new_restore_file, hc_fopen_strerror ());
 
     return -1;
   }

@@ -28,6 +28,8 @@
 #include "cpu_features.h"
 #include "dynloader.h"
 
+#include <limits.h>
+
 #if defined (_WIN)
 #include "processenv.h"
 #endif

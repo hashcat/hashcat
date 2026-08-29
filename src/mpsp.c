@@ -919,9 +919,9 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u8 *inbuf = (u8 *) hcmalloc (s.st_size);
 
-  SizeT inlen = (SizeT) hc_fread (inbuf, 1, s.st_size, &fp);
+  size_t inlen = hc_fread (inbuf, 1, s.st_size, &fp);
 
-  if (inlen != (SizeT) s.st_size)
+  if (inlen != (size_t) s.st_size)
   {
     event_log_error (hashcat_ctx, "%s: Could not read data.", hcstat);
 
@@ -940,13 +940,13 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   u8 *outbuf = (u8 *) hcmalloc (SP_FILESZ);
 
-  SizeT outlen = SP_FILESZ;
+  size_t outlen = SP_FILESZ;
 
   const char props = 0x1c; // lzma properties constant, retrieved with 7z2hashcat
 
-  const SRes res = hc_lzma2_decompress (inbuf, &inlen, outbuf, &outlen, &props);
+  const bool res = hc_lzma2_decompress (inbuf, &inlen, outbuf, &outlen, &props);
 
-  if (res != SZ_OK)
+  if (res == false)
   {
     event_log_error (hashcat_ctx, "%s: Could not uncompress data.", hcstat);
 
@@ -2947,7 +2947,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
               if (hc_fopen (&mask_fp, arg, "r") == false)
               {
-                event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
+                event_log_error (hashcat_ctx, "%s: %s", arg, hc_fopen_strerror ());
 
                 return -1;
               }
@@ -3034,7 +3034,7 @@ int mask_ctx_init (hashcat_ctx_t *hashcat_ctx)
 
         if (hc_fopen (&mask_fp, arg, "r") == false)
         {
-          event_log_error (hashcat_ctx, "%s: %s", arg, strerror (errno));
+          event_log_error (hashcat_ctx, "%s: %s", arg, hc_fopen_strerror ());
 
           return -1;
         }

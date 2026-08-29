@@ -537,7 +537,7 @@ int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
   {
     if (hc_fopen (&outfile_ctx->fp, outfile_ctx->filename, "ab") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", outfile_ctx->filename, hc_fopen_strerror ());
 
       return -1;
     }

@@ -99,6 +99,23 @@ anything driving hashcat unattended, and prints the command line before using it
 Where an argument holds a byte outside printable ASCII, no pasteable line is printed and the escaped
 argument list is shown instead.
 
+13. Compression: zlib and the LZMA SDK are loaded from the system rather than compiled in
+
+hashcat carried its own copy of both. They are gone, and the library the machine already has is
+loaded the first time a compressed file is opened. Nothing links against them, so hashcat starts and
+runs normally where none of them is present, and only reading a compressed file needs one. Linux and
+the BSDs have all three in almost every case, and on macOS they come from brew. Windows ships none of
+them: liblzma.dll and libzstd.dll are published by the xz and Zstandard projects, while .gz there
+works only if a zlib1.dll is already on the machine, because the zlib project publishes no Windows
+build at all. Where one is missing, hashcat names the file names it looked for and what to install.
+See docs/hashcat-compression-libraries.md.
+
+14. Compression: zip files are no longer read
+
+A wordlist, hash list or rule file inside a .zip is no longer opened. Reading zip meant carrying
+minizip, and minizip meant carrying zlib's source along with it, so the format that cost the most to
+support was also the one gzip, xz and zstd already cover.
+
 ##
 ## New Algorithms
 ##
@@ -149,6 +166,7 @@ argument list is shown instead.
 - New option --seekdb-path: Store seek databases in a given directory, which several hosts can share
 - Added --encrypt-with-pubkey, which encrypts recovered plains with an RSA public key
 - Encrypted plains mean the cracking host never sees them, see docs/hashcat-encrypted-plains.md
+- Wordlists, hash lists and rule files may now be zstd compressed, alongside gzip and xz
 
 ##
 ## Improvements
@@ -416,6 +434,9 @@ argument list is shown instead.
 - Brain attack identities now include --skip and --limit, so a partial run is its own attack
 - Added SECURITY.md, which states which inputs are treated as coming from other people and
   how a report is handled
+- Removed deps/zlib and deps/LZMA-SDK, 410 files and 128252 lines, in favour of the system libraries
+- tools/test_package.sh now reads a compressed wordlist back, so every platform CI builds for checks
+  that the compression libraries load and decode rather than only that hashcat compiles
 
 * changes v7.1.1 -> v7.1.2
 

@@ -138,19 +138,42 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 
   hc_fseek (&fp, 0, SEEK_SET);
 
-  const size_t nread1 = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
+  // A compressed source is read whole rather than sampled at its ends.
+  //
+  // Sampling is sound for a plain wordlist, where a byte that changes without moving a line ending
+  // leaves every offset in the database still correct. A compressed file has no such property: one
+  // byte alters everything decoded after it, so two files with the same size and the same ends can
+  // hold entirely different wordlists. Reading all of it is what that costs, and it is a smaller
+  // read than the one it protects, because the whole point of the file is that it is smaller than
+  // what it carries.
 
-  XXH64_update (state, buf, nread1);
-
-  const size_t file_len = (size_t) st.st_size;
-
-  if (file_len > SAMPLE_SIZE)
+  if (source_is_compressed (wordlist) == true)
   {
-    hc_fseek (&fp, file_len - SAMPLE_SIZE, SEEK_SET);
+    while (true)
+    {
+      const size_t nread = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
 
-    const size_t nread2 = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
+      if (nread == 0) break;
 
-    XXH64_update (state, buf, nread2);
+      XXH64_update (state, buf, nread);
+    }
+  }
+  else
+  {
+    const size_t nread1 = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
+
+    XXH64_update (state, buf, nread1);
+
+    const size_t file_len = (size_t) st.st_size;
+
+    if (file_len > SAMPLE_SIZE)
+    {
+      hc_fseek (&fp, file_len - SAMPLE_SIZE, SEEK_SET);
+
+      const size_t nread2 = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
+
+      XXH64_update (state, buf, nread2);
+    }
   }
 
   hcfree (buf);
@@ -464,15 +487,24 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
   return db;
 }
 
+// Count the lines of a source and record where every SEEKDB_STEP'th one starts.
+//
+// A mapped source is one run of bytes and is walked once. A compressed one arrives a window at a
+// time, and the only difference that makes is that the walk goes round again: a line ending is
+// counted wherever it turns up, so a line lying across two windows is still one line.
+//
+// The offsets recorded are into the decompressed bytes. For a compressed source nothing can seek to
+// one of them yet, so they are written for the line count they come with rather than for
+// themselves. The size written to the header is the size of the file on disk either way, because
+// that is what the header is checked against when it is read back.
+
 static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, const char *wordlist, u64 *count, u64 *line_count, u64 *size, u64 *step, const u64 ident, hashcat_ctx_t *hashcat_ctx)
 {
-  const u8 *fd_mem = feed_thread->fd_mem;
+  u64 lines       = 0;
+  u64 pos         = 0;
+  u64 last_nl_end = 0;
 
-  size_t fd_len = feed_thread->fd_len;
-
-  u64 lines = 0;
-
-  u64 alloc = (fd_len / SEEKDB_STEP) + 2;
+  u64 alloc = (feed_thread->compressed == true) ? 4096 : (feed_thread->fd_len / SEEKDB_STEP) + 2;
 
   u64 *tmp = (u64 *) hcmalloc (alloc * sizeof (u64));
 
@@ -480,43 +512,90 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
 
   tmp[checkpoints++] = 0;
 
+  XXH64_state_t *xstate = XXH64_createState ();
+
+  XXH64_reset (xstate, 0);
+
   hc_timer_t start;
 
   hc_timer_set (&start);
 
   double prev_percent = 0;
 
-  while (fd_len)
-  {
-    const u8 *next = memchr (fd_mem, '\n', fd_len);
+  bool done = false;
 
-    if (next == NULL)
+  while (done == false)
+  {
+    const u8 *buf = NULL;
+
+    size_t n = 0;
+
+    if (feed_thread->compressed == true)
     {
-      // this should be fine as meassurement to detect if there's a newline at the end of file or not,
-      // because we limit ourself with fd_len and if there's a newline as last byte of the file, the while loop will break naturally
+      source_fill (feed_thread);
+
+      buf = (const u8 *) feed_thread->fd_mem + feed_thread->fd_off;
+      n   = feed_thread->fd_len - feed_thread->fd_off;
+
+      feed_thread->fd_off += n;
+    }
+    else
+    {
+      buf  = (const u8 *) feed_thread->fd_mem;
+      n    = feed_thread->fd_len;
+      done = true;
+    }
+
+    if (n == 0) break;
+
+    XXH64_update (xstate, buf, n);
+
+    size_t i = 0;
+
+    while (i < n)
+    {
+      const u8 *next = (const u8 *) memchr (buf + i, '\n', n - i);
+
+      if (next == NULL)
+      {
+        pos += (u64) (n - i);
+
+        break;
+      }
+
+      const size_t step_size = (size_t) (next - (buf + i)) + 1;
+
+      i   += step_size;
+      pos += (u64) step_size;
 
       lines++;
 
-      break;
+      last_nl_end = pos;
+
+      if ((lines % SEEKDB_STEP) == 0)
+      {
+        if (checkpoints == alloc)
+        {
+          tmp = (u64 *) hcrealloc (tmp, alloc * sizeof (u64), alloc * sizeof (u64));
+
+          alloc *= 2;
+        }
+
+        tmp[checkpoints++] = pos;
+      }
     }
 
-    const size_t step_size = (size_t) (next - fd_mem) + 1;
+    // What has been got through, measured against the file on disk. For a compressed source that is
+    // how far into the compressed bytes the reader has reached, which is the only one of the two
+    // that has a total to compare against.
 
-    fd_mem += step_size;
-    fd_len -= step_size;
+    const u64 cur_pos = (feed_thread->compressed == true) ? (u64) lseek (feed_thread->hcfile.fd, 0, SEEK_CUR) : pos;
 
-    lines++;
+    const u64 den = feed_thread->file_size;
 
-    if ((lines % SEEKDB_STEP) == 0)
-    {
-      tmp[checkpoints++] = (size_t) ((const u8 *) fd_mem - (const u8 *) feed_thread->fd_mem);
-    }
+    double percent = (den > 0) ? (((double) cur_pos / (double) den) * 100) : 0;
 
-    // let's see if we update stats for the user
-
-    const size_t cur_pos = feed_thread->fd_len - fd_len;
-
-    double percent = ((double) (cur_pos) / (double) feed_thread->fd_len) * 100;
+    if (percent > 100) percent = 100;
 
     if ((prev_percent + 1.234) > percent) continue;
 
@@ -537,26 +616,24 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
     }
   }
 
+  // bytes after the last line ending are a line with nothing after it
+
+  if (pos > last_nl_end) lines++;
+
   u64 *db = (u64 *) hccalloc (checkpoints, sizeof (u64));
 
   memcpy (db, tmp, checkpoints * sizeof (u64));
 
   *count      = checkpoints;
   *line_count = lines;
-  *size       = feed_thread->fd_len;
+  *size       = feed_thread->file_size;
   *step       = SEEKDB_STEP;
 
-  // A hash of everything, which the normal path never checks because verifying it costs a full read.
-  // It is here so a database that was copied can be proven to belong to the file it claims, and so a
-  // mismatch can be told apart from a coincidence when one is being chased.
-  //
-  // This is a second walk of the mapping rather than something the scan above could produce on its
-  // way, since that one is looking for line endings. The memory is already faulted in and it is paid
-  // once, when the database is built.
+  const u64 content = XXH64_digest (xstate);
 
-  const u64 content = XXH64 (feed_thread->fd_mem, feed_thread->fd_len, 0);
+  XXH64_freeState (xstate);
 
-  seekdb_save (seekdb_path, wordlist, *line_count, db, *count, feed_thread->fd_len, ident, content, SEEKDB_STEP);
+  seekdb_save (seekdb_path, wordlist, *line_count, db, *count, feed_thread->file_size, ident, content, SEEKDB_STEP);
 
   hcfree (tmp);
 

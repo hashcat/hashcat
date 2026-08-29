@@ -11,18 +11,9 @@
 #include "path.h"
 #include "memchr.h"
 #include "filehandling.h"
-
-#include <Alloc.h>
-#include <7zCrc.h>
-#include <7zFile.h>
-#include <Xz.h>
-#include <XzCrc64.h>
-
-/* Maybe _LZMA_NO_SYSTEM_SIZE_T defined? */
-#if defined (__clang__) || defined (__GNUC__)
-#include <assert.h>
-_Static_assert(sizeof (size_t) == sizeof (SizeT), "Check why sizeof(size_t) != sizeof(SizeT)");
-#endif
+#include "ext_zlib.h"
+#include "ext_lzma.h"
+#include "ext_zstd.h"
 
 #ifndef HCFILE_BUFFER_SIZE
 #define HCFILE_BUFFER_SIZE 256 * 1024
@@ -32,9 +23,15 @@ _Static_assert(sizeof (size_t) == sizeof (SizeT), "Check why sizeof(size_t) != s
 #define HCFILE_CHUNK_SIZE 4 * 1024 * 1024
 #endif
 
-static bool xz_initialized = false;
+// zlib's own handle, and the library it came from. types.h can then name the type without
+// including zlib.h, and a read reaches the function pointers without a lookup of its own.
 
-static const ISzAlloc xz_alloc = { hc_lzma_alloc, hc_lzma_free };
+struct gzfile
+{
+  const hc_zlib_lib_t *z;
+
+  hc_gzfile_t fp;
+};
 
 // A reader over a buffer the caller owns. Nothing here copies and nothing here frees the buffer: one
 // decompressed archive can back a reader per member, and the archive outlives them all.
@@ -46,21 +43,221 @@ struct memfile
   size_t    pos;
 };
 
+// The first 6 bytes of any .xz file.
+
+static const u8 XZ_SIG[] = { 0xfd, '7', 'z', 'X', 'Z', 0x00 };
+
+// The first 4 bytes of any .zst file, which is HC_ZSTD_MAGIC written little endian.
+
+static const u8 ZSTD_SIG[] = { 0x28, 0xb5, 0x2f, 0xfd };
+
+// An .xz reader over the descriptor hc_fopen already opened, so there is one handle for the file
+// rather than the two the previous reader kept.
+//
+// out_size is the uncompressed length taken from the stream index, which is what lets hc_fstat ()
+// answer for a compressed file. Reading the index needs a liblzma new enough to have the call, so
+// out_size_known says whether the answer exists rather than a sentinel standing in for it.
+
 struct xzfile
 {
-  CAlignOffsetAlloc  alloc;
-  UInt64             inBlocks;
-  Byte              *inBuf;
-  bool               inEof;
-  SizeT              inLen;
-  SizeT              inPos;
-  Int64              inProcessed;
-  CFileInStream      inStream;
-  Int64              outProcessed;
-  UInt64             outSize;
-  CXzUnpacker        state;
-  CXzs               streams;
+  const hc_lzma_lib_t *lz;
+
+  int   fd;
+
+  hc_lzma_stream strm;
+
+  u8   *inbuf;
+
+  bool  eof_in;
+  bool  eof_out;
+
+  u64   out_pos;
+  u64   out_size;
+  bool  out_size_known;
 };
+
+// Walk the stream index to the uncompressed size. liblzma asks to be seeked rather than reading
+// the file itself, which is what LZMA_SEEK_NEEDED means.
+
+static bool xz_read_index_size (const hc_lzma_lib_t *lz, const int fd, u64 *out_size)
+{
+  if (lz->lzma_file_info_decoder == NULL) return false;
+  if (lz->lzma_index_uncompressed_size == NULL) return false;
+  if (lz->lzma_index_end == NULL) return false;
+
+  struct stat st;
+
+  if (fstat (fd, &st) == -1) return false;
+
+  hc_lzma_stream strm;
+
+  memset (&strm, 0, sizeof (strm));
+
+  void *index = NULL;
+
+  if (lz->lzma_file_info_decoder (&strm, &index, HC_LZMA_MEMLIMIT_NONE, (u64) st.st_size) != HC_LZMA_OK) return false;
+
+  u8 buf[HCFILE_BUFFER_SIZE];
+
+  bool ok = false;
+
+  while (true)
+  {
+    if (strm.avail_in == 0)
+    {
+      const ssize_t nread = read (fd, buf, sizeof (buf));
+
+      if (nread <= 0) break;
+
+      strm.next_in  = buf;
+      strm.avail_in = (size_t) nread;
+    }
+
+    const int rc = lz->lzma_code (&strm, HC_LZMA_RUN);
+
+    if (rc == HC_LZMA_STREAM_END)
+    {
+      ok = true;
+
+      break;
+    }
+
+    if (rc == HC_LZMA_SEEK_NEEDED)
+    {
+      if (lseek (fd, (off_t) strm.seek_pos, SEEK_SET) == (off_t) -1) break;
+
+      strm.avail_in = 0;
+
+      continue;
+    }
+
+    if (rc != HC_LZMA_OK) break;
+  }
+
+  if (ok == true) *out_size = lz->lzma_index_uncompressed_size (index);
+
+  if (index) lz->lzma_index_end (index, NULL);
+
+  lz->lzma_end (&strm);
+
+  return ok;
+}
+
+// A .zst reader, shaped the same way as the xz one above and over the same descriptor.
+
+struct zstdfile
+{
+  const hc_zstd_lib_t *z;
+
+  int   fd;
+
+  hc_zstd_dstream_t zds;
+
+  u8   *inbuf;
+
+  hc_zstd_inbuf in;
+
+  bool  eof_in;
+  bool  eof_out;
+
+  u64   out_pos;
+};
+
+static size_t zstd_read (zstdfile_t *zfp, u8 *out, const size_t out_len)
+{
+  const hc_zstd_lib_t *z = zfp->z;
+
+  hc_zstd_outbuf outbuf;
+
+  outbuf.dst  = out;
+  outbuf.size = out_len;
+  outbuf.pos  = 0;
+
+  while (outbuf.pos < out_len)
+  {
+    if ((zfp->in.pos == zfp->in.size) && (zfp->eof_in == false))
+    {
+      const ssize_t nread = read (zfp->fd, zfp->inbuf, HCFILE_BUFFER_SIZE);
+
+      if (nread > 0)
+      {
+        zfp->in.src  = zfp->inbuf;
+        zfp->in.size = (size_t) nread;
+        zfp->in.pos  = 0;
+      }
+      else
+      {
+        zfp->eof_in = true;
+      }
+    }
+
+    // Nothing buffered and nothing left in the file is the end of it. Several .zst frames written
+    // one after another are one file, and libzstd walks from one into the next on its own.
+
+    if ((zfp->in.pos == zfp->in.size) && (zfp->eof_in == true))
+    {
+      zfp->eof_out = true;
+
+      break;
+    }
+
+    const size_t rc = z->ZSTD_decompressStream (zfp->zds, &outbuf, &zfp->in);
+
+    if (z->ZSTD_isError (rc)) break;
+  }
+
+  zfp->out_pos += outbuf.pos;
+
+  return outbuf.pos;
+}
+
+// The one decode loop. hc_fread (), hc_fgetc () and hc_fgets () each used to carry their own copy of
+// it, and the only thing that differed was how many bytes they wanted.
+
+static size_t xz_read (xzfile_t *xfp, u8 *out, const size_t out_len)
+{
+  const hc_lzma_lib_t *lz = xfp->lz;
+
+  xfp->strm.next_out  = out;
+  xfp->strm.avail_out = out_len;
+
+  while (xfp->strm.avail_out > 0)
+  {
+    if ((xfp->strm.avail_in == 0) && (xfp->eof_in == false))
+    {
+      const ssize_t nread = read (xfp->fd, xfp->inbuf, HCFILE_BUFFER_SIZE);
+
+      if (nread > 0)
+      {
+        xfp->strm.next_in  = xfp->inbuf;
+        xfp->strm.avail_in = (size_t) nread;
+      }
+      else
+      {
+        xfp->eof_in = true;
+      }
+    }
+
+    const int action = (xfp->eof_in == true) ? HC_LZMA_FINISH : HC_LZMA_RUN;
+
+    const int rc = lz->lzma_code (&xfp->strm, action);
+
+    if (rc == HC_LZMA_STREAM_END)
+    {
+      xfp->eof_out = true;
+
+      break;
+    }
+
+    if (rc != HC_LZMA_OK) break;
+  }
+
+  const size_t produced = out_len - xfp->strm.avail_out;
+
+  xfp->out_pos += produced;
+
+  return produced;
+}
 
 #if defined (__CYGWIN__)
 // workaround for zlib with cygwin build
@@ -74,16 +271,46 @@ int _wopen (const char *path, int oflag, ...)
 }
 #endif
 
+// Set when an open failed for a reason errno has no number for. Thread local, because two devices
+// can be opening their own files at the same time and each has to read back its own reason.
+
+static __thread char fopen_err_buf[512];
+
+static __thread bool fopen_err_set = false;
+
+static void fopen_codec_missing (const char *format, const char *detail, const char *hint)
+{
+  snprintf (fopen_err_buf, sizeof (fopen_err_buf), "%s support is unavailable: %s. To fix this, %s", format, detail, hint);
+
+  fopen_err_set = true;
+
+  // so that a caller still reading errno directly gets something honest rather than whatever the
+  // last unrelated system call left behind, which can read as "Success"
+
+  errno = ENOSYS;
+}
+
+const char *hc_fopen_strerror (void)
+{
+  if (fopen_err_set == true) return fopen_err_buf;
+
+  const char *msg = strerror (errno);
+
+  return msg;
+}
+
 bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 {
   if (fp == NULL || path == NULL || mode == NULL) return false;
+
+  fopen_err_set = false;
 
   /* cleanup */
   fp->fd       = -1;
   fp->pfp      = NULL;
   fp->gfp      = NULL;
-  fp->ufp      = NULL;
   fp->xfp      = NULL;
+  fp->zfp      = NULL;
   fp->mfp      = NULL;
   fp->bom_size = 0;
   fp->path     = NULL;
@@ -129,8 +356,8 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
   unsigned char check[8] = { 0 };
 
   bool is_gzip = false;
-  bool is_zip  = false;
   bool is_xz   = false;
+  bool is_zstd = false;
   bool is_fifo = hc_path_is_fifo (path);
 
   if (is_fifo == false)
@@ -143,13 +370,13 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
       if (read (fd_tmp, check, sizeof (check)) > 0)
       {
-        if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08)                     is_gzip = true;
-        if (check[0] == 0x50 && check[1] == 0x4b && check[2] == 0x03 && check[3] == 0x04) is_zip  = true;
-        if (memcmp (check, XZ_SIG, XZ_SIG_SIZE) == 0)                                     is_xz   = true;
+        if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08) is_gzip = true;
+        if (memcmp (check, XZ_SIG, sizeof (XZ_SIG)) == 0)            is_xz   = true;
+        if (memcmp (check, ZSTD_SIG, sizeof (ZSTD_SIG)) == 0)        is_zstd = true;
 
         // compressed files with BOM will be undetected!
 
-        if (is_gzip == false && is_zip == false && is_xz == false)
+        if (is_gzip == false && is_xz == false && is_zstd == false)
         {
           fp->bom_size = hc_string_bom_size (check);
         }
@@ -172,119 +399,169 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
   if (is_gzip)
   {
-    if ((fp->gfp = gzdopen (fp->fd, mode)) == NULL) return false;
+    const hc_zlib_lib_t *z = hc_zlib ();
 
-    gzbuffer (fp->gfp, HCFILE_BUFFER_SIZE);
-  }
-  else if (is_zip)
-  {
-    if ((fp->ufp = unzOpen64 (path)) == NULL) return false;
+    if (z == NULL)
+    {
+      fopen_codec_missing ("gzip", hc_zlib_error (), hc_zlib_hint ());
 
-    if (unzOpenCurrentFile (fp->ufp) != UNZ_OK) return false;
+      close (fp->fd);
+
+      return false;
+    }
+
+    gzfile_t *gfp = (gzfile_t *) hccalloc (1, sizeof (*gfp));
+
+    if (gfp == NULL)
+    {
+      close (fp->fd);
+
+      return false;
+    }
+
+    gfp->z = z;
+
+    // zlib opens the file itself. It is not handed fp->fd, because a descriptor does not cross a
+    // C runtime boundary on Windows, and hashcat's runtime is not the one zlib1.dll was built with.
+
+    if ((gfp->fp = z->gzopen64 (path, mode)) == NULL)
+    {
+      hcfree (gfp);
+
+      close (fp->fd);
+
+      return false;
+    }
+
+    if (z->gzbuffer) z->gzbuffer (gfp->fp, HCFILE_BUFFER_SIZE);
+
+    fp->gfp = gfp;
   }
   else if (is_xz)
   {
-    /* thread safe on little endian */
-    if (xz_initialized == false)
+    const hc_lzma_lib_t *lz = hc_lzma ();
+
+    if (lz == NULL)
     {
-      CrcGenerateTable ();
-      Crc64GenerateTable ();
-      Sha256Prepare ();
-      xz_initialized = true;
+      fopen_codec_missing ("xz", hc_lzma_error (), hc_lzma_hint ());
+
+      close (fp->fd);
+
+      return false;
     }
 
     xzfile_t *xfp = (xzfile_t *) hccalloc (1, sizeof (*xfp));
-    if (xfp == NULL) return false;
 
-    /* prepare cache line aligned memory allocator */
-    AlignOffsetAlloc_CreateVTable (&xfp->alloc);
-    xfp->alloc.numAlignBits = 7;
-    xfp->alloc.baseAlloc = &xz_alloc;
-    ISzAllocPtr alloc = &xfp->alloc.vt;
-    xfp->inBuf = (Byte *) ISzAlloc_Alloc (alloc, HCFILE_BUFFER_SIZE);
-    if (xfp->inBuf == NULL)
+    if (xfp == NULL)
     {
-      hcfree (xfp);
       close (fp->fd);
+
       return false;
     }
 
-    /* open the file */
-    CFileInStream *inStream = &xfp->inStream;
-    FileInStream_CreateVTable (inStream);
-    CSzFile *file = &inStream->file;
-    File_Construct (file);
-    WRes wres = InFile_Open (file, path);
-    if (wres != SZ_OK)
+    xfp->lz = lz;
+    xfp->fd = fp->fd;
+
+    xfp->inbuf = (u8 *) hcmalloc (HCFILE_BUFFER_SIZE);
+
+    if (xfp->inbuf == NULL)
     {
-      ISzAlloc_Free (alloc, xfp->inBuf);
       hcfree (xfp);
+
       close (fp->fd);
+
       return false;
     }
 
-    /* scan the file */
-    CLookToRead2 lookStream;
-    LookToRead2_CreateVTable (&lookStream, false);
-    lookStream.buf = xfp->inBuf;
-    lookStream.bufSize = HCFILE_BUFFER_SIZE;
-    lookStream.realStream = &inStream->vt;
-    LookToRead2_INIT (&lookStream);
-    Xzs_Construct (&xfp->streams);
-    Int64 offset = 0;
-    SRes res = Xzs_ReadBackward (&xfp->streams, &lookStream.vt, &offset, NULL, alloc);
-    if (res != SZ_OK || offset != 0)
+    // The index is read first, because it lives at the end of the file and the reader has to start
+    // at the beginning. A liblzma too old to have the call leaves the size unknown, which is a
+    // question hc_fstat () is allowed to decline.
+
+    xfp->out_size_known = xz_read_index_size (lz, fp->fd, &xfp->out_size);
+
+    if (lseek (fp->fd, 0, SEEK_SET) == (off_t) -1)
     {
-      Xzs_Free (&xfp->streams, alloc);
-      File_Close (file);
-      ISzAlloc_Free (alloc, xfp->inBuf);
+      hcfree (xfp->inbuf);
       hcfree (xfp);
+
       close (fp->fd);
+
       return false;
     }
 
-    xfp->inBlocks = Xzs_GetNumBlocks (&xfp->streams);
-    xfp->outSize = Xzs_GetUnpackSize (&xfp->streams);
-
-    /* seek to start of the file and fill the buffer */
-    SizeT inLen = HCFILE_BUFFER_SIZE;
-    res = ISeekInStream_Seek (&inStream->vt, &offset, SZ_SEEK_SET);
-    if (res == SZ_OK)
+    if (lz->lzma_stream_decoder (&xfp->strm, HC_LZMA_MEMLIMIT_NONE, HC_LZMA_CONCATENATED) != HC_LZMA_OK)
     {
-      res = ISeekInStream_Read (&inStream->vt, xfp->inBuf, &inLen);
-    }
-    if (res != SZ_OK || inLen == 0)
-    {
-      Xzs_Free (&xfp->streams, alloc);
-      File_Close (file);
-      ISzAlloc_Free (alloc, xfp->inBuf);
+      hcfree (xfp->inbuf);
       hcfree (xfp);
+
       close (fp->fd);
+
       return false;
     }
 
-    xfp->inLen = inLen;
-
-    /* read headers */
-    SizeT outLen = 0;
-    ECoderStatus status;
-    CXzUnpacker *state = &xfp->state;
-    XzUnpacker_Construct (state, alloc);
-    res = XzUnpacker_Code (state, NULL, &outLen, xfp->inBuf, &inLen, false, CODER_FINISH_ANY, &status);
-    if (res != SZ_OK)
-    {
-      XzUnpacker_Free (state);
-      Xzs_Free (&xfp->streams, alloc);
-      File_Close (file);
-      ISzAlloc_Free (alloc, xfp->inBuf);
-      hcfree (xfp);
-      close (fp->fd);
-      return false;
-    }
-
-    xfp->inPos = inLen;
-    xfp->inProcessed = inLen;
     fp->xfp = xfp;
+  }
+  else if (is_zstd)
+  {
+    const hc_zstd_lib_t *z = hc_zstd ();
+
+    if (z == NULL)
+    {
+      fopen_codec_missing ("zstd", hc_zstd_error (), hc_zstd_hint ());
+
+      close (fp->fd);
+
+      return false;
+    }
+
+    zstdfile_t *zfp = (zstdfile_t *) hccalloc (1, sizeof (*zfp));
+
+    if (zfp == NULL)
+    {
+      close (fp->fd);
+
+      return false;
+    }
+
+    zfp->z  = z;
+    zfp->fd = fp->fd;
+
+    zfp->inbuf = (u8 *) hcmalloc (HCFILE_BUFFER_SIZE);
+
+    if (zfp->inbuf == NULL)
+    {
+      hcfree (zfp);
+
+      close (fp->fd);
+
+      return false;
+    }
+
+    zfp->zds = z->ZSTD_createDStream ();
+
+    if (zfp->zds == NULL)
+    {
+      hcfree (zfp->inbuf);
+      hcfree (zfp);
+
+      close (fp->fd);
+
+      return false;
+    }
+
+    if (z->ZSTD_isError (z->ZSTD_initDStream (zfp->zds)))
+    {
+      z->ZSTD_freeDStream (zfp->zds);
+
+      hcfree (zfp->inbuf);
+      hcfree (zfp);
+
+      close (fp->fd);
+
+      return false;
+    }
+
+    fp->zfp = zfp;
   }
   else
   {
@@ -315,13 +592,15 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 bool hc_fopen_mem (HCFILE *fp, const u8 *buf, const size_t len)
 {
   if (fp == NULL) return false;
+
+  fopen_err_set = false;
   if (buf == NULL && len > 0) return false;
 
   fp->fd       = -1;
   fp->pfp      = NULL;
   fp->gfp      = NULL;
-  fp->ufp      = NULL;
   fp->xfp      = NULL;
+  fp->zfp      = NULL;
   fp->mfp      = NULL;
   fp->bom_size = 0;
   fp->path     = NULL;
@@ -347,12 +626,14 @@ bool hc_fopen_raw (HCFILE *fp, const char *path, const char *mode)
 {
   if (fp == NULL || path == NULL || mode == NULL) return false;
 
+  fopen_err_set = false;
+
   /* cleanup */
   fp->fd       = -1;
   fp->pfp      = NULL;
   fp->gfp      = NULL;
-  fp->ufp      = NULL;
   fp->xfp      = NULL;
+  fp->zfp      = NULL;
   fp->mfp      = NULL;
   fp->bom_size = 0;
   fp->path     = NULL;
@@ -483,16 +764,36 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    n = gzfread (ptr, size, nmemb, fp->gfp);
+    const size_t want = size * nmemb;
+
+    size_t done = 0;
+
+    while (done < want)
+    {
+      // gzread takes an unsigned count, so a read larger than that is handed over in pieces
+
+      const size_t left = want - done;
+
+      const unsigned int chunk = (left > 0x40000000) ? 0x40000000 : (unsigned int) left;
+
+      const int got = fp->gfp->z->gzread (fp->gfp->fp, (u8 *) ptr + done, chunk);
+
+      if (got < 0) return (size_t) -1;
+      if (got == 0) break;
+
+      done += (size_t) got;
+    }
+
+    n = done / size;
 
     // Double check to make sure that it successfully read 0 bytes instead of erroring
     if (n == 0)
     {
-      int errnum = Z_OK;
+      int errnum = HC_Z_OK;
 
-      gzerror (fp->gfp, &errnum);
+      fp->gfp->z->gzerror (fp->gfp->fp, &errnum);
 
-      if (errnum != Z_OK)
+      if (errnum != HC_Z_OK)
       {
         return (size_t) -1;
       }
@@ -500,78 +801,23 @@ size_t hc_fread (void *ptr, size_t size, size_t nmemb, HCFILE *fp)
 
     fp->uncompressed_size += n;
   }
-  else if (fp->ufp)
-  {
-    u64 len = (u64) size * nmemb;
-    u64 pos = 0;
-
-    #if defined (_WIN) && !defined (_WIN64)
-    /* check 2 GB limit with 32 bit build */
-    if (len >= INT32_MAX) return n;
-    #endif
-
-    /* assume success */
-    n = nmemb;
-
-    do
-    {
-      unsigned chunk = (len > INT_MAX) ? INT_MAX : (unsigned) len;
-      int result = unzReadCurrentFile (fp->ufp, (unsigned char *) ptr + pos, chunk);
-      if (result < 0) return (size_t) -1;
-      pos += (u64) result;
-      len -= (u64) result;
-      if (chunk != (unsigned) result)
-      {
-        /* partial read */
-        n = pos / size;
-        break;
-      }
-    } while (len);
-  }
   else if (fp->xfp)
   {
-    Byte *outBuf = (Byte *) ptr;
-    SizeT outLen = (SizeT) size * nmemb;
-    SizeT outPos = 0;
-    SRes res = SZ_OK;
-    xzfile_t *xfp = fp->xfp;
+    const size_t want = size * nmemb;
 
-    #if defined (_WIN) && !defined (_WIN64)
-    /* check 2 GB limit with 32 bit build */
-    if (outLen >= INT32_MAX) return n;
-    #endif
+    const size_t produced = xz_read (fp->xfp, (u8 *) ptr, want);
 
-    /* assume success */
-    n = nmemb;
+    n = produced / size;
+  }
+  else if (fp->zfp)
+  {
+    const size_t want = size * nmemb;
 
-    do
-    {
-      /* fill buffer if needed */
-      if (xfp->inLen == xfp->inPos && !xfp->inEof)
-      {
-        xfp->inPos = 0;
-        xfp->inLen = HCFILE_BUFFER_SIZE;
-        res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
-        if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
-      }
+    const size_t produced = zstd_read (fp->zfp, (u8 *) ptr, want);
 
-      /* decode */
-      ECoderStatus status;
-      SizeT inLeft  = xfp->inLen - xfp->inPos;
-      SizeT outLeft = outLen - outPos;
-      res = XzUnpacker_Code (&xfp->state, outBuf + outPos, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
-      xfp->inPos += inLeft;
-      xfp->inProcessed += inLeft;
-      if (res != SZ_OK) return (size_t) -1;
-      if (inLeft == 0 && outLeft == 0)
-      {
-        /* partial read */
-        n = (outPos / size);
-        break;
-      }
-      outPos += outLeft;
-      xfp->outProcessed += outLeft;
-    } while (outPos < outLen);
+    fp->uncompressed_size += produced;
+
+    n = produced / size;
   }
 
   return n;
@@ -627,7 +873,24 @@ size_t hc_fwrite (const void *ptr, size_t size, size_t nmemb, HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    n = gzfwrite (ptr, size, nmemb, fp->gfp);
+    const size_t want = size * nmemb;
+
+    size_t done = 0;
+
+    while (done < want)
+    {
+      const size_t left = want - done;
+
+      const unsigned int chunk = (left > 0x40000000) ? 0x40000000 : (unsigned int) left;
+
+      const int got = fp->gfp->z->gzwrite (fp->gfp->fp, (const u8 *) ptr + done, chunk);
+
+      if (got <= 0) break;
+
+      done += (size_t) got;
+    }
+
+    n = done / size;
   }
 
   return n;
@@ -645,41 +908,21 @@ int hc_fseek (HCFILE *fp, off_t offset, int whence)
   }
   else if (fp->gfp)
   {
-    r = gzseek (fp->gfp, offset, whence);
+    r = (int) fp->gfp->z->gzseek64 (fp->gfp->fp, offset, whence);
   }
-  else if (fp->ufp)
+  else if ((fp->xfp) || (fp->zfp))
   {
-    /*
-    // untested and not used in wordlist engine
-    zlib_filefunc64_32_def *d = NULL;
-    if (whence == SEEK_SET)
-    {
-      r = ZSEEK64 (*d, fp->ufp, offset, ZLIB_FILEFUNC_SEEK_SET);
-    }
-    else if (whence == SEEK_CUR)
-    {
-      r = ZSEEK64 (*d, fp->ufp, offset, ZLIB_FILEFUNC_SEEK_CUR);
-    }
-    else if (whence == SEEK_END)
-    {
-      r = ZSEEK64 (*d, fp->ufp, offset, ZLIB_FILEFUNC_SEEK_END);
-    }
-    // or
-    // r = unzSetOffset (fp->ufp, offset);
-    */
-  }
-  else if (fp->xfp)
-  {
-    /* XZ files are compressed streams, seeking is limited */
+    // A compressed stream has no byte to seek to, so rewinding to the start is the only move that
+    // can be answered without decoding everything in between.
+
     if (offset == 0 && whence == SEEK_SET)
     {
-      /* Rewind to beginning */
-      hc_rewind(fp);
+      hc_rewind (fp);
+
       r = 0;
     }
     else
     {
-      /* Arbitrary seeking not supported for compressed XZ files */
       r = -1;
     }
   }
@@ -697,44 +940,39 @@ void hc_rewind (HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    gzrewind (fp->gfp);
-  }
-  else if (fp->ufp)
-  {
-    unzGoToFirstFile (fp->ufp);
+    fp->gfp->z->gzrewind (fp->gfp->fp);
   }
   else if (fp->xfp)
   {
     xzfile_t *xfp = fp->xfp;
 
-    /* cleanup */
-    xfp->inEof = false;
-    xfp->inLen = 0;
-    xfp->inPos = 0;
-    xfp->inProcessed  = 0;
-    xfp->outProcessed = 0;
+    xfp->lz->lzma_end (&xfp->strm);
 
-    /* reset */
-    Int64 offset = 0;
-    CFileInStream *inStream = &xfp->inStream;
-    SRes res = ISeekInStream_Seek (&inStream->vt, &offset, SZ_SEEK_SET);
-    if (res != SZ_OK) return;
-    CXzUnpacker *state = &xfp->state;
-    XzUnpacker_Init (&xfp->state);
+    memset (&xfp->strm, 0, sizeof (xfp->strm));
 
-    /* fill the buffer */
-    SizeT inLen = HCFILE_BUFFER_SIZE;
-    res = ISeekInStream_Read (&inStream->vt, xfp->inBuf, &inLen);
-    if (res != SZ_OK || inLen == 0) return;
+    xfp->eof_in  = false;
+    xfp->eof_out = false;
+    xfp->out_pos = 0;
 
-    xfp->inLen = inLen;
+    if (lseek (xfp->fd, 0, SEEK_SET) == (off_t) -1) return;
 
-    /* read headers */
-    SizeT outLen = 0;
-    ECoderStatus status;
-    XzUnpacker_Code (state, NULL, &outLen, xfp->inBuf, &inLen, false, CODER_FINISH_ANY, &status);
-    xfp->inPos = inLen;
-    xfp->inProcessed = inLen;
+    xfp->lz->lzma_stream_decoder (&xfp->strm, HC_LZMA_MEMLIMIT_NONE, HC_LZMA_CONCATENATED);
+  }
+  else if (fp->zfp)
+  {
+    zstdfile_t *zfp = fp->zfp;
+
+    if (lseek (zfp->fd, 0, SEEK_SET) == (off_t) -1) return;
+
+    zfp->in.src  = zfp->inbuf;
+    zfp->in.size = 0;
+    zfp->in.pos  = 0;
+
+    zfp->eof_in  = false;
+    zfp->eof_out = false;
+    zfp->out_pos = 0;
+
+    zfp->z->ZSTD_initDStream (zfp->zds);
   }
 }
 
@@ -754,23 +992,23 @@ int hc_fstat (HCFILE *fp, struct stat *buf)
       buf->st_size = fp->uncompressed_size;
     }
   }
-  else if (fp->ufp)
-  {
-    unz_file_info file_info;
-
-    // Get metadata about the current file
-    if (unzGetCurrentFileInfo(fp->ufp, &file_info, NULL, 0, NULL, 0, NULL, 0) == UNZ_OK)
-    {
-      buf->st_size = (off_t) file_info.uncompressed_size;
-    }
-  }
   else if (fp->xfp)
   {
-    /* check that the uncompressed size is known */
     const xzfile_t *xfp = fp->xfp;
-    if (xfp->outSize != (UInt64) ((Int64) -1))
+
+    if (xfp->out_size_known == true)
     {
-      buf->st_size = (off_t) xfp->outSize;
+      buf->st_size = (off_t) xfp->out_size;
+    }
+  }
+  else if (fp->zfp)
+  {
+    // A .zst file carries no index, so there is nothing to read the total from without decoding the
+    // whole file. What is known is what has been handed out, which is the answer gzip gives too.
+
+    if (fp->uncompressed_size > 0)
+    {
+      buf->st_size = fp->uncompressed_size;
     }
   }
 
@@ -789,17 +1027,19 @@ off_t hc_ftell (HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    n = (off_t) gztell (fp->gfp);
-  }
-  else if (fp->ufp)
-  {
-    n = unztell (fp->ufp);
+    n = (off_t) fp->gfp->z->gztell64 (fp->gfp->fp);
   }
   else if (fp->xfp)
   {
-    /* uncompressed bytes */
     const xzfile_t *xfp = fp->xfp;
-    n = (off_t) xfp->outProcessed;
+
+    n = (off_t) xfp->out_pos;
+  }
+  else if (fp->zfp)
+  {
+    const zstdfile_t *zfp = fp->zfp;
+
+    n = (off_t) zfp->out_pos;
   }
 
   return n;
@@ -817,7 +1057,7 @@ int hc_fputc (int c, HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    r = gzputc (fp->gfp, c);
+    r = fp->gfp->z->gzputc (fp->gfp->fp, c);
   }
 
   return r;
@@ -848,39 +1088,22 @@ int hc_fgetc (HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    r = gzgetc (fp->gfp);
-  }
-  else if (fp->ufp)
-  {
-    unsigned char c = 0;
-
-    if (unzReadCurrentFile (fp->ufp, &c, 1) == 1) r = (int) c;
+    r = fp->gfp->z->gzgetc (fp->gfp->fp);
   }
   else if (fp->xfp)
   {
-    Byte out;
-    SRes res = SZ_OK;
-    xzfile_t *xfp = fp->xfp;
+    u8 out;
 
-    /* fill buffer if needed */
-    if (xfp->inLen == xfp->inPos && !xfp->inEof)
-    {
-      xfp->inPos = 0;
-      xfp->inLen = HCFILE_BUFFER_SIZE;
-      res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
-      if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
-    }
+    if (xz_read (fp->xfp, &out, 1) != 1) return r;
 
-    /* decode single byte */
-    ECoderStatus status;
-    SizeT inLeft = xfp->inLen - xfp->inPos;
-    SizeT outLeft = 1;
-    res = XzUnpacker_Code (&xfp->state, &out, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
-    if (inLeft == 0 && outLeft == 0) return r;
-    xfp->inPos += inLeft;
-    xfp->inProcessed += inLeft;
-    if (res != SZ_OK) return r;
-    xfp->outProcessed++;
+    r = (int) out;
+  }
+  else if (fp->zfp)
+  {
+    u8 out;
+
+    if (zstd_read (fp->zfp, &out, 1) != 1) return r;
+
     r = (int) out;
   }
 
@@ -927,51 +1150,54 @@ char *hc_fgets (char *buf, int len, HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    r = gzgets (fp->gfp, buf, len);
-  }
-  else if (fp->ufp)
-  {
-    if (unzReadCurrentFile (fp->ufp, buf, len) > 0) r = buf;
+    r = fp->gfp->z->gzgets (fp->gfp->fp, buf, len);
   }
   else if (fp->xfp)
   {
-    Byte *outBuf = (Byte *) buf;
-    SizeT outLen = (SizeT) len - 1;
-    SRes res = SZ_OK;
-    xzfile_t *xfp = fp->xfp;
+    u8 *outBuf = (u8 *) buf;
+
+    int outLen = len - 1;
+
+    // One byte at a time, because the line ending is the thing being looked for and a byte past it
+    // belongs to the next line. r stays NULL unless a line ending was reached, which is what this
+    // reader has always done: a last line with nothing after it is reported as no line at all.
 
     while (outLen > 0)
     {
-      /* fill buffer if needed */
-      if (xfp->inLen == xfp->inPos && !xfp->inEof)
-      {
-        xfp->inPos = 0;
-        xfp->inLen = HCFILE_BUFFER_SIZE;
-        res = ISeekInStream_Read (&xfp->inStream.vt, xfp->inBuf, &xfp->inLen);
-        if (res != SZ_OK || xfp->inLen == 0) xfp->inEof = true;
-      }
+      if (xz_read (fp->xfp, outBuf, 1) != 1) break;
 
-      /* decode single byte */
-      ECoderStatus status;
-      SizeT inLeft = xfp->inLen - xfp->inPos;
-      SizeT outLeft = 1;
-      res = XzUnpacker_Code (&xfp->state, outBuf, &outLeft, xfp->inBuf + xfp->inPos, &inLeft, inLeft == 0, CODER_FINISH_ANY, &status);
-      if (inLeft == 0 && outLeft == 0) break;
-      xfp->inPos += inLeft;
-      xfp->inProcessed += inLeft;
-      if (res != SZ_OK) break;
-      xfp->outProcessed++;
       if (*outBuf++ == '\n')
       {
-        /* success */
         r = buf;
+
         break;
       }
 
       outLen--;
     }
 
-    /* always NULL terminate */
+    *outBuf = 0;
+  }
+  else if (fp->zfp)
+  {
+    u8 *outBuf = (u8 *) buf;
+
+    int outLen = len - 1;
+
+    while (outLen > 0)
+    {
+      if (zstd_read (fp->zfp, outBuf, 1) != 1) break;
+
+      if (*outBuf++ == '\n')
+      {
+        r = buf;
+
+        break;
+      }
+
+      outLen--;
+    }
+
     *outBuf = 0;
   }
 
@@ -990,7 +1216,7 @@ int hc_vfprintf (HCFILE *fp, const char *format, va_list ap)
   }
   else if (fp->gfp)
   {
-    r = gzvprintf (fp->gfp, format, ap);
+    if (fp->gfp->z->gzvprintf) r = fp->gfp->z->gzvprintf (fp->gfp->fp, format, ap);
   }
 
   return r;
@@ -1012,7 +1238,7 @@ int hc_fprintf (HCFILE *fp, const char *format, ...)
   }
   else if (fp->gfp)
   {
-    r = gzvprintf (fp->gfp, format, ap);
+    if (fp->gfp->z->gzvprintf) r = fp->gfp->z->gzvprintf (fp->gfp->fp, format, ap);
   }
 
   va_end (ap);
@@ -1057,16 +1283,23 @@ int hc_feof (HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    r = gzeof (fp->gfp);
-  }
-  else if (fp->ufp)
-  {
-    r = unzeof (fp->ufp);
+    r = fp->gfp->z->gzeof (fp->gfp->fp);
   }
   else if (fp->xfp)
   {
     const xzfile_t *xfp = fp->xfp;
-    r = (xfp->inEof && xfp->inPos == xfp->inLen);
+
+    if (xfp->eof_out == true) return 1;
+
+    r = ((xfp->eof_in == true) && (xfp->strm.avail_in == 0));
+  }
+  else if (fp->zfp)
+  {
+    const zstdfile_t *zfp = fp->zfp;
+
+    if (zfp->eof_out == true) return 1;
+
+    r = ((zfp->eof_in == true) && (zfp->in.pos == zfp->in.size));
   }
 
   return r;
@@ -1082,7 +1315,7 @@ void hc_fflush (HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    gzflush (fp->gfp, Z_SYNC_FLUSH);
+    fp->gfp->z->gzflush (fp->gfp->fp, HC_Z_SYNC_FLUSH);
   }
 }
 
@@ -1118,33 +1351,42 @@ void hc_fclose (HCFILE *fp)
   }
   else if (fp->gfp)
   {
-    gzclose (fp->gfp);
-  }
-  else if (fp->ufp)
-  {
-    unzCloseCurrentFile (fp->ufp);
+    fp->gfp->z->gzclose (fp->gfp->fp);
 
-    unzClose (fp->ufp);
+    hcfree (fp->gfp);
+
+    // zlib opened its own handle, so this one is still ours to close
 
     close (fp->fd);
   }
   else if (fp->xfp)
   {
     xzfile_t *xfp = fp->xfp;
-    ISzAllocPtr alloc = &xfp->alloc.vt;
-    XzUnpacker_Free (&xfp->state);
-    Xzs_Free (&xfp->streams, alloc);
-    File_Close (&xfp->inStream.file);
-    ISzAlloc_Free (alloc, xfp->inBuf);
+
+    xfp->lz->lzma_end (&xfp->strm);
+
+    hcfree (xfp->inbuf);
     hcfree (xfp);
+
+    close (fp->fd);
+  }
+  else if (fp->zfp)
+  {
+    zstdfile_t *zfp = fp->zfp;
+
+    zfp->z->ZSTD_freeDStream (zfp->zds);
+
+    hcfree (zfp->inbuf);
+    hcfree (zfp);
+
     close (fp->fd);
   }
 
   fp->fd = -1;
   fp->pfp = NULL;
   fp->gfp = NULL;
-  fp->ufp = NULL;
   fp->xfp = NULL;
+  fp->zfp = NULL;
   fp->mfp = NULL;
 
   fp->path = NULL;
@@ -1155,8 +1397,8 @@ void hc_fclose (HCFILE *fp)
 // everything here is, and hc_fgetc () goes through four branches and a library call for each byte, with
 // that call taking the lock every time.
 //
-// The compressed backends keep the general path. gzgetc () does its own buffering, and the zip and xz
-// ones decode a byte at a time whatever is asked of them, so there is nothing to hoist out of those.
+// The compressed backends keep the general path. gzgetc () does its own buffering, and the xz one
+// decodes a byte at a time whatever is asked of it, so there is nothing to hoist out of those.
 
 #if defined (_WIN)
 #define hc_flockfile(f)     _lock_file (f)

@@ -64,6 +64,7 @@ The [docs](docs/) directory covers each feature. The ones people ask about most:
 * [Generic attack mode](docs/hashcat-generic-attack-mode.md) and [PCFG](docs/hashcat-pcfg.md)
 * [Brain](docs/hashcat-brain.md), [slow candidates](docs/slow-candidates-mode.md), [encrypted plains](docs/hashcat-encrypted-plains.md)
 * [Keyboard layout mapping](docs/keyboard-layout-mapping.md)
+* [Compression libraries](docs/hashcat-compression-libraries.md), for reading gzip, xz and zstd files
 * [Release notes for v7.1.0](docs/releases_notes_v7.1.0.md), and the full [changelog](docs/changes.txt)
 
 ### Contributing ###

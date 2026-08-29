@@ -73,7 +73,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   {
     if (hc_fopen (&out.fp, filename, "ab") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", filename, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", filename, hc_fopen_strerror ());
 
       hc_thread_mutex_unlock (outfile_ctx->mux_outfile);
 
@@ -98,7 +98,7 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
     fp->fd       = fileno (stdout);
     fp->pfp      = stdout;
     fp->gfp      = NULL;
-    fp->ufp      = NULL;
+    fp->zfp      = NULL;
     fp->bom_size = 0;
     fp->path     = NULL;
     fp->mode     = NULL;

@@ -298,32 +298,30 @@ void module_hook23 (hc_device_param_t *device_param, MAYBE_UNUSED const void *ho
 
     u8 *compressed_data = (u8 *) out_full;
 
-    SizeT compressed_data_len = aes_len;
+    size_t compressed_data_len = aes_len;
 
     // output buffers and length
 
     unsigned char *decompressed_data = (unsigned char *) seven_zip_hook_extra->unp[device_param->device_id];
 
-    SizeT decompressed_data_len = crc_len;
+    size_t decompressed_data_len = crc_len;
 
-    int ret;
+    bool ok;
 
     if (data_type == 1) // LZMA1
     {
-      ret = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      ok = hc_lzma1_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
-    else if (data_type == 7) // inflate using zlib (DEFLATE compression)
+    else if (data_type == 7) // DEFLATE
     {
-      const bool ok = hc_inflate_raw (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
-
-      ret = (ok == true) ? SZ_OK : SZ_ERROR_DATA;
+      ok = hc_inflate_raw (compressed_data, compressed_data_len, decompressed_data, decompressed_data_len);
     }
     else // we only support LZMA2 in addition to LZMA1
     {
-      ret = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
+      ok = hc_lzma2_decompress (compressed_data, &compressed_data_len, decompressed_data, &decompressed_data_len, coder_attributes);
     }
 
-    if (ret != SZ_OK)
+    if (ok == false)
     {
       hook_item->hook_success = 0;
 

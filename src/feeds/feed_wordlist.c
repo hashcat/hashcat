@@ -25,11 +25,19 @@
 #include "feed.h"
 #include "feed_wordlist.h"
 
+#include <fcntl.h>
+
 #if defined (_WIN)
 #include "mmap_windows.c"
 #else
 #include <sys/mman.h>
 #endif
+
+// seekdb.c walks a source to count its lines, and a compressed one is walked a window at a time,
+// so it needs the refill that source_open () below sets up.
+
+static bool source_fill (feed_thread_t *feed_thread);
+static bool source_is_compressed (const char *path);
 
 #include "seekdb.c"
 
@@ -169,17 +177,118 @@ static bool source_add_path (generic_global_ctx_t *global_ctx, const char *path)
   return true;
 }
 
+// How big a window of decompressed bytes a compressed source is read through, and how little may
+// be left in it before it is refilled. The low mark is what bounds a line: a line longer than it is
+// handed over cut short, which hashcat rejects for length anyway, and no wordlist line is near it.
+
+#define FEED_WIN_CAP (1024 * 1024)
+#define FEED_WIN_LOW (64 * 1024)
+
+// Whether a path is one of the compressed formats the file layer knows. The file layer decides this
+// by the same magic bytes when it opens the file, and this only has to decide it one step earlier,
+// because a compressed source is opened and read a different way from a mapped one.
+
+static bool source_is_compressed (const char *path)
+{
+  int fd = open (path, O_RDONLY);
+
+  if (fd == -1) return false;
+
+  u8 check[6];
+
+  const ssize_t nread = read (fd, check, sizeof (check));
+
+  close (fd);
+
+  if (nread < 4) return false;
+
+  if ((check[0] == 0x1f) && (check[1] == 0x8b) && (check[2] == 0x08)) return true;
+  if ((check[0] == 0x28) && (check[1] == 0xb5) && (check[2] == 0x2f) && (check[3] == 0xfd)) return true;
+
+  if (nread < 6) return false;
+
+  if ((check[0] == 0xfd) && (check[1] == 0x37) && (check[2] == 0x7a) && (check[3] == 0x58) && (check[4] == 0x5a) && (check[5] == 0x00)) return true;
+
+  return false;
+}
+
 static void source_close (feed_thread_t *feed_thread)
 {
   if (feed_thread->source_open == false) return;
 
-  munmap (feed_thread->fd_mem, feed_thread->fd_len);
+  if (feed_thread->compressed == true)
+  {
+    hcfree (feed_thread->win);
+
+    feed_thread->win = NULL;
+  }
+  else
+  {
+    munmap (feed_thread->fd_mem, feed_thread->fd_len);
+  }
 
   hc_fclose (&feed_thread->hcfile);
 
   feed_thread->source_open = false;
+  feed_thread->compressed  = false;
   feed_thread->fd_mem      = NULL;
   feed_thread->fd_len      = 0;
+  feed_thread->fd_off      = 0;
+}
+
+// Top the window up when it is running low, moving whatever is left of the current line to the
+// front first. Answers false only when the source could not be read at all.
+
+static bool source_fill (feed_thread_t *feed_thread)
+{
+  if (feed_thread->compressed == false) return true;
+
+  const size_t left = feed_thread->fd_len - feed_thread->fd_off;
+
+  if (left >= FEED_WIN_LOW) return true;
+  if (feed_thread->win_eof == true) return true;
+
+  if (left > 0) memmove (feed_thread->win, feed_thread->win + feed_thread->fd_off, left);
+
+  feed_thread->win_pos += feed_thread->fd_off;
+  feed_thread->fd_off   = 0;
+  feed_thread->fd_len   = left;
+
+  const size_t want = feed_thread->win_cap - left;
+
+  const size_t got = hc_fread (feed_thread->win + left, 1, want, &feed_thread->hcfile);
+
+  feed_thread->fd_len += got;
+
+  if (got < want) feed_thread->win_eof = true;
+
+  return true;
+}
+
+// Back to the first byte of the source, which for a compressed one means decoding it again from the
+// start. Only a seek backwards needs this, and a seek forwards never does.
+
+static bool source_restart (feed_thread_t *feed_thread)
+{
+  if (feed_thread->compressed == false)
+  {
+    feed_thread->fd_off  = 0;
+    feed_thread->fd_line = 0;
+
+    return true;
+  }
+
+  hc_rewind (&feed_thread->hcfile);
+
+  feed_thread->fd_off  = 0;
+  feed_thread->fd_len  = 0;
+  feed_thread->fd_line = 0;
+  feed_thread->win_pos = 0;
+  feed_thread->win_eof = false;
+
+  const bool rc = source_fill (feed_thread);
+
+  return rc;
 }
 
 static bool source_open (generic_thread_ctx_t *thread_ctx, feed_global_t *feed_global, const u64 idx)
@@ -192,16 +301,26 @@ static bool source_open (generic_thread_ctx_t *thread_ctx, feed_global_t *feed_g
 
   feed_source_t *source = &feed_global->sources[idx];
 
-  if (hc_fopen_raw (&feed_thread->hcfile, source->path, "rb") == false)
+  const bool compressed = source_is_compressed (source->path);
+
+  // A compressed source goes through hc_fopen (), which decompresses as it is read. An ordinary one
+  // goes through hc_fopen_raw () and is mapped, which is what it has always done and what keeps a
+  // read down to a pointer and an offset.
+
+  const bool opened = (compressed == true)
+                    ? hc_fopen     (&feed_thread->hcfile, source->path, "rb")
+                    : hc_fopen_raw (&feed_thread->hcfile, source->path, "rb");
+
+  if (opened == false)
   {
-    thread_error_set (thread_ctx, "%s: %s", source->path, strerror (errno));
+    thread_error_set (thread_ctx, "%s: %s", source->path, hc_fopen_strerror ());
 
     return false;
   }
 
   struct stat s;
 
-  if (hc_fstat (&feed_thread->hcfile, &s) == -1)
+  if (fstat (feed_thread->hcfile.fd, &s) == -1)
   {
     thread_error_set (thread_ctx, "%s: %s", source->path, strerror (errno));
 
@@ -210,31 +329,59 @@ static bool source_open (generic_thread_ctx_t *thread_ctx, feed_global_t *feed_g
     return false;
   }
 
-  void *fd_mem = mmap (NULL, s.st_size, PROT_READ, MAP_PRIVATE, feed_thread->hcfile.fd, 0);
+  feed_thread->compressed = compressed;
+  feed_thread->file_size  = (u64) s.st_size;
 
-  if (fd_mem == MAP_FAILED)
+  if (compressed == true)
   {
-    thread_error_set (thread_ctx, "%s: mmap failed", source->path);
+    feed_thread->win = (u8 *) hcmalloc (FEED_WIN_CAP);
 
-    hc_fclose (&feed_thread->hcfile);
+    if (feed_thread->win == NULL)
+    {
+      thread_error_set (thread_ctx, "%s: out of memory", source->path);
 
-    return false;
+      hc_fclose (&feed_thread->hcfile);
+
+      return false;
+    }
+
+    feed_thread->win_cap = FEED_WIN_CAP;
+    feed_thread->win_pos = 0;
+    feed_thread->win_eof = false;
+
+    feed_thread->fd_mem = feed_thread->win;
+    feed_thread->fd_len = 0;
+    feed_thread->fd_off = 0;
+
+    source_fill (feed_thread);
+  }
+  else
+  {
+    void *fd_mem = mmap (NULL, s.st_size, PROT_READ, MAP_PRIVATE, feed_thread->hcfile.fd, 0);
+
+    if (fd_mem == MAP_FAILED)
+    {
+      thread_error_set (thread_ctx, "%s: mmap failed", source->path);
+
+      hc_fclose (&feed_thread->hcfile);
+
+      return false;
+    }
+
+    feed_thread->fd_mem = fd_mem;
+    feed_thread->fd_len = s.st_size;
+    feed_thread->fd_off = 0;
+
+    #if !defined (_WIN)
+    #ifdef POSIX_MADV_SEQUENTIAL
+    posix_madvise (feed_thread->fd_mem, feed_thread->fd_len, POSIX_MADV_SEQUENTIAL);
+    #endif
+    #endif
   }
 
-  feed_thread->fd_mem      = fd_mem;
-  feed_thread->fd_len      = s.st_size;
-  feed_thread->fd_off      = 0;
   feed_thread->fd_line     = 0;
   feed_thread->source_idx  = idx;
   feed_thread->source_open = true;
-
-  // kernel advice
-
-  #if !defined (_WIN)
-  #ifdef POSIX_MADV_SEQUENTIAL
-  posix_madvise (feed_thread->fd_mem, feed_thread->fd_len, POSIX_MADV_SEQUENTIAL);
-  #endif
-  #endif
 
   return true;
 }
@@ -479,6 +626,15 @@ bool thread_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   feed_thread->source_idx  = 0;
   feed_thread->source_open = false;
+  feed_thread->compressed  = false;
+  feed_thread->win         = NULL;
+  feed_thread->win_cap     = 0;
+  feed_thread->win_pos     = 0;
+  feed_thread->win_eof     = false;
+  feed_thread->fd_mem      = NULL;
+  feed_thread->fd_len      = 0;
+  feed_thread->fd_off      = 0;
+  feed_thread->fd_line     = 0;
 
   thread_ctx->thrdata = feed_thread;
 
@@ -532,6 +688,12 @@ int thread_next (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED gen
 {
   feed_thread_t *feed_thread = thread_ctx->thrdata;
 
+  // A mapped source always has the whole file in front of it. A compressed one has a window, and
+  // this is where it is topped up, so that running out of window is not mistaken for running out of
+  // source below.
+
+  if (feed_thread->compressed == true) source_fill (feed_thread);
+
   const u8      *fd_mem = feed_thread->fd_mem;
   const size_t   fd_len = feed_thread->fd_len;
   const size_t   fd_off = feed_thread->fd_off;
@@ -577,12 +739,61 @@ bool thread_seek (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
   feed_thread_t *feed_thread = thread_ctx->thrdata;
   feed_source_t *source      = &feed_global->sources[idx];
 
-  const u8      *fd_mem = feed_thread->fd_mem;
-  const size_t   fd_len = feed_thread->fd_len;
-
   // the offset within this source, now that the source is known
 
   const u64 local = offset - source->first_line;
+
+  // A compressed source has no byte to jump to. Going forwards is decoding and discarding, which
+  // costs what it would have cost to read those lines anyway. Going backwards means starting the
+  // file again, so the checkpoints below are of no use here and are not consulted.
+
+  if (feed_thread->compressed == true)
+  {
+    if (feed_thread->fd_line > local)
+    {
+      if (source_restart (feed_thread) == false)
+      {
+        thread_error_set (thread_ctx, "%s: could not restart source", feed_global->sources[idx].path);
+
+        return false;
+      }
+    }
+
+    while (feed_thread->fd_line < local)
+    {
+      source_fill (feed_thread);
+
+      const size_t avail = feed_thread->fd_len - feed_thread->fd_off;
+
+      if (avail == 0)
+      {
+        thread_error_set (thread_ctx, "Seek past EOF");
+
+        return false;
+      }
+
+      const u8 *pos = (const u8 *) feed_thread->fd_mem + feed_thread->fd_off;
+
+      const u8 *next = memchr (pos, '\n', avail);
+
+      if (next == NULL)
+      {
+        // no line ending in what is in hand, so the line runs on into the next window
+
+        feed_thread->fd_off += avail;
+
+        continue;
+      }
+
+      feed_thread->fd_off += (size_t) (next - pos) + 1;
+      feed_thread->fd_line++;
+    }
+
+    return true;
+  }
+
+  const u8      *fd_mem = feed_thread->fd_mem;
+  const size_t   fd_len = feed_thread->fd_len;
 
   // The checkpoints land on every seek_step'th line, so the nearest one at or before the target gets
   // the scan down to at most that many lines. The step comes from the database rather than from

@@ -54,6 +54,9 @@
 #include "user_options.h"
 #include "wordlist.h"
 #include "hashcat.h"
+#include "ext_zlib.h"
+#include "ext_lzma.h"
+#include "ext_zstd.h"
 #include "usage.h"
 
 #ifdef WITH_BRAIN
@@ -1502,6 +1505,14 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->user_options_extra = (user_options_extra_t *)  hcmalloc (sizeof (user_options_extra_t));
   hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (sizeof (user_options_t));
 
+  // The compression libraries are located here, while there is still one thread, and each one is
+  // optional: a box without it runs everything that does not ask for that format. Whoever does ask
+  // is the one told, and is told which file names were tried.
+
+  hc_zlib_boot ();
+  hc_lzma_boot ();
+  hc_zstd_boot ();
+
   return 0;
 }
 
@@ -1537,6 +1548,10 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->tuning_db);
   hcfree (hashcat_ctx->user_options_extra);
   hcfree (hashcat_ctx->user_options);
+
+  hc_zlib_shutdown ();
+  hc_lzma_shutdown ();
+  hc_zstd_shutdown ();
 
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }

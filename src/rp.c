@@ -918,7 +918,7 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
     if (hc_fopen (&fp, rp_file, "rb") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", rp_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", rp_file, hc_fopen_strerror ());
 
       for (u32 j = 0; j < i; j++)
       {

@@ -14,6 +14,7 @@
 #include "event.h"
 
 #include <math.h>
+#include <limits.h>
 #include <inttypes.h>
 // The prefetch workers, on both platforms hashcat builds for.
 //

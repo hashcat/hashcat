@@ -1578,7 +1578,7 @@ int save_hash (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_fopen (&fp, new_hashfile, "wb") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", new_hashfile, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", new_hashfile, hc_fopen_strerror ());
 
     hcfree (new_hashfile);
     hcfree (old_hashfile);
@@ -2698,8 +2698,8 @@ static bool hashlist_reader_open (hashlist_reader_t *reader, HCFILE *fp, const i
 
   if (fp->pfp  == NULL) return false;
   if (fp->gfp  != NULL) return false;
-  if (fp->ufp  != NULL) return false;
   if (fp->xfp  != NULL) return false;
+  if (fp->zfp  != NULL) return false;
   if (fp->mfp  != NULL) return false;
   if (fp->path == NULL) return false;
 
@@ -3316,7 +3316,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_fopen (&fp, hashfile, "rb") == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", hashfile, hc_fopen_strerror ());
 
         return -1;
       }
@@ -3833,7 +3833,7 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
       if (hc_fopen (&fp, hashfile, "rb") == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", hashfile, strerror (errno));
+        event_log_error (hashcat_ctx, "%s: %s", hashfile, hc_fopen_strerror ());
 
         return -1;
       }

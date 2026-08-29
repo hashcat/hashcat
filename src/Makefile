@@ -34,8 +34,6 @@ ENABLE_LTO              ?= 0
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
 ENABLE_UNRAR            ?= 1
-USE_SYSTEM_LZMA         ?= 0
-USE_SYSTEM_ZLIB         ?= 0
 USE_SYSTEM_OPENCL       ?= 0
 USE_SYSTEM_XXHASH       ?= 0
 ## do not change, requires some hacks
@@ -72,7 +70,7 @@ endif
 ## The core is one shared library and everything else links against it: the frontend, the 593
 ## modules, the bridges and the feeds. Statically it is copied into each of them instead, and a
 ## module that calls input_tokenizer drags in the tokenizer, the file handling under it, and from
-## there the whole of LZMA, zlib and minizip, none of which a module ever calls. That is 90 percent
+## there the file handling under it, none of which a module ever calls. That is 90 percent
 ## of what the release ships, the same core 603 times over.
 ##
 ## SHARED=0 builds the static arrangement instead. It is kept because it needs nothing from the
@@ -337,18 +335,6 @@ LIBRARY_DEV_FOLDER      ?= $(LIBRARY_DEV_ROOT_FOLDER)/hashcat
 ## Dependencies paths
 ##
 
-ifeq ($(USE_SYSTEM_LZMA),0)
-DEPS_LZMA_PATH          := deps/LZMA-SDK/C
-else
-DEPS_LZMA_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)
-endif
-
-ifeq ($(USE_SYSTEM_ZLIB),0)
-DEPS_ZLIB_PATH          := deps/zlib
-else
-DEPS_ZLIB_PATH          := $(LIBRARY_DEV_ROOT_FOLDER)
-endif
-
 ifeq ($(USE_SYSTEM_OPENCL),0)
 DEPS_OPENCL_PATH        := deps/OpenCL-Headers
 else
@@ -509,29 +495,6 @@ CFLAGS                  += -Wall
 CFLAGS                  += -Wextra
 endif
 
-## because LZMA SDK
-ifeq ($(or $(filter 1,$(CC_NATIVE_CLANG)),$(filter cc,$(CC))),1)
-CFLAGS                  += -Wno-typedef-redefinition
-endif
-
-ifeq ($(USE_SYSTEM_LZMA),0)
-CFLAGS_LZMA             += -D_7ZIP_ST
-ifeq ($(CC_NATIVE_CLANG),0)
-CFLAGS_LZMA             += -Wno-misleading-indentation
-endif
-endif
-
-## because ZLIB
-ifeq ($(USE_SYSTEM_ZLIB),0)
-CFLAGS_ZLIB             += -Wno-implicit-fallthrough
-CFLAGS_ZLIB             += -Wno-implicit-function-declaration
-CFLAGS_ZLIB             += -Wno-unused-parameter
-CFLAGS_ZLIB             += -DIOAPI_NO_64
-CFLAGS_ZLIB             += -DUNZ_BUFSIZE=262144
-ifeq ($(CC_NATIVE_CLANG),1)
-CFLAGS_ZLIB             += -Wno-deprecated-non-prototype -Wno-unknown-warning-option
-endif
-endif
 
 ## because UNRAR
 ifeq ($(ENABLE_UNRAR),1)
@@ -617,18 +580,6 @@ endif
 endif
 
 CFLAGS                  += -pipe -Iinclude/ -IOpenCL/
-
-# LZMA
-CFLAGS                  += -I$(DEPS_LZMA_PATH)
-ifeq ($(USE_SYSTEM_LZMA),1)
-LFLAGS                  += -llzmasdk
-endif
-
-# ZLIB
-CFLAGS                  += -I$(DEPS_ZLIB_PATH) -I$(DEPS_ZLIB_PATH)/contrib
-ifeq ($(USE_SYSTEM_ZLIB),1)
-LFLAGS                  += -lz -lminizip
-endif
 
 # OpenCL
 CFLAGS                  += -I$(DEPS_OPENCL_PATH)
@@ -852,8 +803,8 @@ CFLAGS_PIC_NATIVE       := -fpic
 ## each, with HC_API or HC_PLUGIN_API out of include/export.h, and nowhere else.
 ## -fvisibility=hidden is what makes that true rather than decorative: a name is private unless its
 ## declaration says otherwise, so a plugin that reaches for anything else does not link and the error
-## names the symbol. The vendored dependencies are compiled the same way, which is why LZMA, zlib,
-## minizip, xxHash and unrar are inside the core and are not part of what it offers.
+## names the symbol. The vendored dependencies are compiled the same way, which is why xxHash and
+## unrar are inside the core and are not part of what it offers.
 ##
 ## Two names get out that nobody declared, _ZTI8RAR_EXIT and _ZTS8RAR_EXIT, so the library's table
 ## holds 1,035. They are the C++ type description of the value UnRAR throws and catches inside
@@ -1229,21 +1180,13 @@ $(foreach P,$(PLATFORMS),$(eval CFLAGS_PLUGIN_$(P) += -fvisibility=hidden))
 ## platform that needs more says so.
 ##
 
-CFLAGS_LZMA_NATIVE      := $(CFLAGS_LZMA)
-CFLAGS_ZLIB_NATIVE      := $(CFLAGS_ZLIB)
 CFLAGS_UNRAR_NATIVE     := $(CFLAGS_UNRAR)
 
-CFLAGS_LZMA_LINUX       := $(CFLAGS_LZMA)
-CFLAGS_ZLIB_LINUX       := $(CFLAGS_ZLIB)
 CFLAGS_UNRAR_LINUX      := $(CFLAGS_UNRAR)
 
-CFLAGS_LZMA_WIN         := $(CFLAGS_LZMA)
-CFLAGS_ZLIB_WIN         := $(CFLAGS_ZLIB)
 CFLAGS_UNRAR_WIN        := $(CFLAGS_UNRAR)
 
 ifeq ($(UNAME),Darwin)
-CFLAGS_LZMA_WIN         += -Wno-misleading-indentation
-
 CFLAGS_UNRAR_WIN        += -Wno-misleading-indentation
 CFLAGS_UNRAR_WIN        += -Wno-class-memaccess
 endif
@@ -1353,7 +1296,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma ext_zlib feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -1367,22 +1310,6 @@ ifeq ($(UNAME),Darwin)
 OBJS_METAL              := ext_metal ext_iokit
 
 CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_METAL),obj/$(OBJ).METAL.NATIVE.o)
-endif
-
-ifeq ($(USE_SYSTEM_LZMA),0)
-OBJS_LZMA               := 7zCrc 7zCrcOpt 7zFile 7zStream Alloc Bra Bra86 BraIA64 CpuArch Delta LzmaDec Lzma2Dec MtDec Sha256 Sha256Opt Threads Xz XzCrc64 XzCrc64Opt XzDec XzIn
-
-CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LZMA.NATIVE.o)
-CORE_OBJS_LINUX         += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LZMA.LINUX.o)
-CORE_OBJS_WIN           += $(foreach OBJ,$(OBJS_LZMA),obj/$(OBJ).LZMA.WIN.o)
-endif
-
-ifeq ($(USE_SYSTEM_ZLIB),0)
-OBJS_ZLIB               := adler32 crc32 deflate inflate inffast inftrees trees gzread gzwrite gzclose zutil gzlib contrib/minizip/unzip contrib/minizip/ioapi
-
-CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).ZLIB.NATIVE.o)
-CORE_OBJS_LINUX         += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).ZLIB.LINUX.o)
-CORE_OBJS_WIN           += $(foreach OBJ,$(OBJS_ZLIB),obj/$(OBJ).ZLIB.WIN.o)
 endif
 
 # the brain is the only thing in the core that hashes with xxhash, so it is compiled in beside it.
@@ -1540,15 +1467,14 @@ API_INCLUDES             = $(shell $(CC_NATIVE) $(CCFLAGS) $(CFLAGS_NATIVE) $(CF
 
 API_HEADERS              = $(sort $(filter include/%.h,$(API_INCLUDES)))
 
-# The vendored headers the set reaches are installed with it. types.h names an LZMA type and a zlib
-# handle, so a plugin that includes it needs the SDK's header and zlib's, and an install that leaves
-# them out is one nothing can be built against. Which headers those are is not a decision either: it
-# is the same dependency output. They are laid out under one directory the way the include paths in
-# this file lay them out, so a plugin build points at that directory and finds all of it.
+# The vendored headers the set reaches are installed with it, and an install that leaves them out is
+# one nothing can be built against. Which headers those are is not a decision either: it is the same
+# dependency output. They are laid out under one directory the way the include paths in this file
+# lay them out, so a plugin build points at that directory and finds all of it.
 
 API_DEP_HEADERS          = $(sort $(filter deps/%.h,$(API_INCLUDES)))
 
-API_DEP_ROOTS           := $(DEPS_ZLIB_PATH)/contrib $(DEPS_LZMA_PATH) $(DEPS_ZLIB_PATH) $(DEPS_OPENCL_PATH) $(DEPS_XXHASH_PATH)
+API_DEP_ROOTS           := $(DEPS_OPENCL_PATH) $(DEPS_XXHASH_PATH)
 
 obj/api.c: $(API_HEADER_ROOTS)
 	printf '#include "common.h"\n#include "types.h"\n' > $@
@@ -1592,16 +1518,6 @@ define CORE_RULES
 obj/%.$(1).o: src/%.c obj/arrangement
 	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
 
-ifeq ($(USE_SYSTEM_LZMA),0)
-obj/%.LZMA.$(1).o: $$(DEPS_LZMA_PATH)/%.c obj/arrangement
-	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(CFLAGS_LZMA_$(1)) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
-endif
-
-ifeq ($(USE_SYSTEM_ZLIB),0)
-obj/%.ZLIB.$(1).o: $$(DEPS_ZLIB_PATH)/%.c obj/arrangement
-	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(CFLAGS_ZLIB_$(1)) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
-endif
-
 ifeq ($(USE_SYSTEM_XXHASH),0)
 obj/%.XXHASH.$(1).o: $$(DEPS_XXHASH_PATH)/%.c obj/arrangement
 	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
@@ -1636,11 +1552,11 @@ endif
 ## belongs to the command line program is inside the library.
 ##
 ## -z,defs makes a symbol the library cannot resolve a link error here rather than a dlopen failure
-## on a user's machine. It found nine undefined unz* symbols on the first attempt, from the minizip
-## objects in a subdirectory that the archive had been swallowing without a word. A DLL is refused
-## for an undefined symbol whatever is asked, so Windows gets the same check for free, and it found
-## the same minizip objects and then iconv. An archive hands out only what is asked for, so the
-## iconv the wordlist reader calls had been left to the frontend to supply. The library carries it.
+## on a user's machine. A vendored object sitting in a subdirectory that the archive had been
+## swallowing without a word is the case it catches. A DLL is refused for an undefined symbol
+## whatever is asked, so Windows gets the same check for free, and it found iconv as well. An
+## archive hands out only what is asked for, so the iconv the wordlist reader calls had been left
+## to the frontend to supply. The library carries it.
 ##
 ## The install_name is @rpath rather than the directory make install would write to, so the library
 ## is found beside the frontend in an unpacked tree and through the install prefix after an install,

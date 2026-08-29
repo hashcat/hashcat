@@ -942,7 +942,7 @@ static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_
 
     if (hc_fopen (&fp, kernel_file, "wb") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", kernel_file, hc_fopen_strerror ());
 
       return false;
     }

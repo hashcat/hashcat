@@ -41,6 +41,14 @@ typedef struct feed_global
 // Opening all of them at once would cost a mapping per file per device for no gain, because a
 // thread only ever reads one place at a time.
 
+// A source is read one of two ways. An ordinary wordlist is mapped, and fd_mem is the mapping with
+// fd_off an offset into the whole file. A compressed one cannot be mapped, so fd_mem is a window of
+// decompressed bytes instead and fd_off is an offset into that window: the same three fields, read
+// the same way, refilled underneath when the window runs low.
+//
+// win_pos is how many uncompressed bytes came before the window, so win_pos + fd_off is the
+// position in the decompressed stream, which is what an offset means for a compressed source.
+
 typedef struct feed_thread
 {
   HCFILE hcfile;
@@ -49,6 +57,15 @@ typedef struct feed_thread
   size_t fd_len;
   void  *fd_mem;
   u64    fd_line;
+
+  bool   compressed;
+
+  u8    *win;
+  size_t win_cap;
+  u64    win_pos;
+  bool   win_eof;
+
+  u64    file_size;
 
   u64    source_idx;
   bool   source_open;

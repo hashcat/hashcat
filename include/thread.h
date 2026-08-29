@@ -7,6 +7,7 @@
 #define HC_THREAD_H
 
 #include <signal.h>
+#include <limits.h>
 
 #if defined (_WIN)
 #include <windows.h>

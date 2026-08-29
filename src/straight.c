@@ -183,7 +183,7 @@ static u64 straight_ctx_round_words (hashcat_ctx_t *hashcat_ctx, const char *dic
 
     if (hc_fopen (&fp, dict, "rb") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", dict, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", dict, hc_fopen_strerror ());
 
       return GENERIC_KEYSPACE_ERROR;
     }

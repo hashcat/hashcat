@@ -11,6 +11,7 @@
 #include "path.h"
 #include "folder.h"
 #include <libgen.h>
+#include <limits.h>
 
 #if defined (__APPLE__)
 #include "event.h"

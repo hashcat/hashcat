@@ -200,7 +200,7 @@ int potfile_read_open (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_fopen (&potfile_ctx->fp, potfile_ctx->filename, "rb") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, hc_fopen_strerror ());
 
     return -1;
   }
@@ -231,7 +231,7 @@ int potfile_write_open (hashcat_ctx_t *hashcat_ctx)
 
   if (hc_fopen (&potfile_ctx->fp, potfile_ctx->filename, "ab") == false)
   {
-    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, strerror (errno));
+    event_log_error (hashcat_ctx, "%s: %s", potfile_ctx->filename, hc_fopen_strerror ());
 
     return -1;
   }

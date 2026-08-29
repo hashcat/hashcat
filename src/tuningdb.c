@@ -100,7 +100,7 @@ int tuning_db_init (hashcat_ctx_t *hashcat_ctx)
 
     if (hc_fopen (&fp, tuning_db_file, "rb") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, strerror (errno));
+      event_log_error (hashcat_ctx, "%s: %s", tuning_db_file, hc_fopen_strerror ());
 
       for (int j = 0; tuning_db_files[j] != NULL; j++) hcfree (tuning_db_files[j]);
 

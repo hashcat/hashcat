@@ -18,6 +18,13 @@ int _wopen (const char *path, int oflag, ...);
 HC_PLUGIN_API bool   hc_fopen     (HCFILE *fp, const char *path, const char *mode);
 HC_PLUGIN_API bool   hc_fopen_raw (HCFILE *fp, const char *path, const char *mode);
 HC_PLUGIN_API bool   hc_fopen_mem (HCFILE *fp, const u8 *buf, const size_t len);
+
+// Why the last open in this thread failed. A compression library that is not installed is a
+// reason errno cannot express: the file is fine and nothing about it is a system error, so
+// reporting strerror () there names the wrong problem. Everywhere else this is strerror (errno),
+// so a caller can use it in place of one without changing what it prints.
+
+HC_PLUGIN_API const char *hc_fopen_strerror (void);
 HC_PLUGIN_API int    hc_fscanf    (HCFILE *fp, const char *format, void *ptr);
 HC_PLUGIN_API int    hc_fprintf   (HCFILE *fp, const char *format, ...);
 HC_PLUGIN_API int    hc_vfprintf  (HCFILE *fp, const char *format, va_list ap);
