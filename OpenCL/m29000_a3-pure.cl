@@ -78,9 +78,20 @@ KERNEL_FQ KERNEL_FA void m29000_mxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t)
 
     w[0] = w0lr;
 
+    // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+    // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+    // by byte. Put the words back in native order for it.
+
+    u32 c[64] = { 0 };
+
+    for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+    {
+      c[idx] = hc_swap32_S (w[idx]);
+    }
+
     sha1_ctx_t ctx1 = ctx2;
 
-    sha1_update_utf16beN (&ctx1, w, pw_len);
+    sha1_update_utf16le_swap (&ctx1, c, pw_len);
 
     sha1_final (&ctx1);
 
@@ -187,9 +198,20 @@ KERNEL_FQ KERNEL_FA void m29000_sxx (KERN_ATTR_VECTOR_ESALT (sha1_double_salt_t)
 
     w[0] = w0lr;
 
+    // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+    // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+    // by byte. Put the words back in native order for it.
+
+    u32 c[64] = { 0 };
+
+    for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+    {
+      c[idx] = hc_swap32_S (w[idx]);
+    }
+
     sha1_ctx_t ctx1 = ctx2;
 
-    sha1_update_utf16beN (&ctx1, w, pw_len);
+    sha1_update_utf16le_swap (&ctx1, c, pw_len);
 
     sha1_final (&ctx1);
 

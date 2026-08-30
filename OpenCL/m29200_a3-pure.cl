@@ -146,9 +146,20 @@ KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
 
     // add password to the user name (and colon, included):
 
+    // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+    // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+    // by byte. Put the words back in native order for it.
+
+    u32 c[64] = { 0 };
+
+    for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+    {
+      c[idx] = hc_swap32_S (w[idx]);
+    }
+
     sha1_ctx_t c0 = ctx0;
 
-    sha1_update_utf16beN (&c0, w, pw_len);
+    sha1_update_utf16le_swap (&c0, c, pw_len);
 
     sha1_final (&c0);
 
@@ -427,9 +438,20 @@ KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
 
     // add password to the user name (and colon, included):
 
+    // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+    // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+    // by byte. Put the words back in native order for it.
+
+    u32 c[64] = { 0 };
+
+    for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+    {
+      c[idx] = hc_swap32_S (w[idx]);
+    }
+
     sha1_ctx_t c0 = ctx0;
 
-    sha1_update_utf16beN (&c0, w, pw_len);
+    sha1_update_utf16le_swap (&c0, c, pw_len);
 
     sha1_final (&c0);
 
