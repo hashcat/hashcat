@@ -8,7 +8,8 @@
 use strict;
 use warnings;
 
-use Authen::Passphrase::NTHash;
+use Digest::MD4 qw (md4);
+use Encode qw (decode encode);
 use Digest::MD5 qw (md5);
 use Crypt::ECB;
 
@@ -127,7 +128,10 @@ sub module_generate_hash
 
   my $ntresp;
 
-  my $nthash = Authen::Passphrase::NTHash->new (passphrase => $word)->hash . "\x00" x 5;
+  # md4 of the UTF-16LE password, which is what the NT hash is. Authen::Passphrase::NTHash
+  # cannot be used here: it gets the encoding wrong for a character outside the BMP, an
+  # emoji for instance, and the kernel does not.
+  my $nthash = md4 (encode ("UTF-16LE", decode ("utf-8", $word))) . "\x00" x 5;
 
   $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash,  0, 7)), "DES", $challenge, "none");
   $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash,  7, 7)), "DES", $challenge, "none");

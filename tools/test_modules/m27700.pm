@@ -27,7 +27,7 @@ sub module_generate_hash
   my $iv   = shift // random_bytes (16);
   my $data = shift;
 
-  my $word_utf16be = encode ('UTF-16BE', $word);
+  my $word_utf16be = encode ('UTF-16BE', decode ('utf-8', $word));
 
   my $key = scrypt_raw ($word_utf16be, $salt, $SCRYPT_N, $SCRYPT_R, $SCRYPT_P, 32);
 

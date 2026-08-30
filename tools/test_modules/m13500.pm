@@ -35,7 +35,7 @@ sub module_generate_hash
     $salt = get_pstoken_salt ();
   }
 
-  my $hash_buf = sha1_hex (pack ("H*", $salt) . encode ("UTF-16LE", $word));
+  my $hash_buf = sha1_hex (pack ("H*", $salt) . encode ("UTF-16LE", decode ("utf-8", $word)));
 
   my $hash = sprintf ("%s:%s", $hash_buf, $salt);
 

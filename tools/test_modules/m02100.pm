@@ -30,7 +30,7 @@ sub module_generate_hash
     salt_len   => length ($salt_bin),
   );
 
-  my $digest = unpack ("H*", $pbkdf2->PBKDF2 ($salt_bin, md4 (md4 (encode ("UTF-16LE", $word)) . $salt_bin)));
+  my $digest = unpack ("H*", $pbkdf2->PBKDF2 ($salt_bin, md4 (md4 (encode ("UTF-16LE", decode ("utf-8", $word))) . $salt_bin)));
 
   my $hash = sprintf ("\$DCC2\$%i#%s#%s", $iterations, $salt, $digest);
 

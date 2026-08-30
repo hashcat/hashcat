@@ -176,7 +176,7 @@ sub module_generate_hash
 
   # key generation (KDF):
 
-  my $word_utf16le = encode ("UTF-16LE", $word);
+  my $word_utf16le = encode ("UTF-16LE", decode ("utf-8", $word));
 
   my $pass_hash = sha256 (sha256 ($word_utf16le));
 

@@ -19,7 +19,7 @@ sub module_generate_hash
   my $salt = shift;
   my $user = shift // random_mixedcase_string (random_number (0, 256 / 2));
 
-  my $word_utf16le = encode ("UTF-16LE", $word);
+  my $word_utf16le = encode ("UTF-16LE", decode ("utf-8", $word));
   my $user_utf16le = encode ("UTF-16LE", $user);
 
   my $digest = sha1_hex ($salt . sha1 ($user_utf16le . ':' . $word_utf16le));

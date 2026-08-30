@@ -18,7 +18,7 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
 
-  my $digest = md5_hex (encode ("UTF-16LE", $word) . $salt);
+  my $digest = md5_hex (encode ("UTF-16LE", decode ("utf-8", $word)) . $salt);
 
   my $hash = sprintf ("%s:%s", $digest, $salt);
 
