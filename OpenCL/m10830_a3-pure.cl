@@ -61,6 +61,31 @@ KERNEL_FQ KERNEL_FA void m10830_mxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
+    #if VECT_SIZE == 1
+
+    // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+    // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+    // by byte. Put the words back in native order for it.
+
+    u32 c[64] = { 0 };
+
+    for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+    {
+      c[idx] = hc_swap32_S (w[idx]);
+    }
+
+    sha384_ctx_t ctx;
+
+    sha384_init (&ctx);
+
+    sha384_update_utf16le_swap (&ctx, c, pw_len);
+
+    sha384_update (&ctx, s, salt_len);
+
+    sha384_final (&ctx);
+
+    #else
+
     sha384_ctx_vector_t ctx;
 
     sha384_init_vector (&ctx);
@@ -70,6 +95,8 @@ KERNEL_FQ KERNEL_FA void m10830_mxx (KERN_ATTR_VECTOR ())
     sha384_update_vector (&ctx, s, salt_len);
 
     sha384_final_vector (&ctx);
+
+    #endif
 
     const u32x r0 = l32_from_64 (ctx.h[3]);
     const u32x r1 = h32_from_64 (ctx.h[3]);
@@ -139,6 +166,31 @@ KERNEL_FQ KERNEL_FA void m10830_sxx (KERN_ATTR_VECTOR ())
 
     w[0] = w0;
 
+    #if VECT_SIZE == 1
+
+    // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+    // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+    // by byte. Put the words back in native order for it.
+
+    u32 c[64] = { 0 };
+
+    for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
+    {
+      c[idx] = hc_swap32_S (w[idx]);
+    }
+
+    sha384_ctx_t ctx;
+
+    sha384_init (&ctx);
+
+    sha384_update_utf16le_swap (&ctx, c, pw_len);
+
+    sha384_update (&ctx, s, salt_len);
+
+    sha384_final (&ctx);
+
+    #else
+
     sha384_ctx_vector_t ctx;
 
     sha384_init_vector (&ctx);
@@ -148,6 +200,8 @@ KERNEL_FQ KERNEL_FA void m10830_sxx (KERN_ATTR_VECTOR ())
     sha384_update_vector (&ctx, s, salt_len);
 
     sha384_final_vector (&ctx);
+
+    #endif
 
     const u32x r0 = l32_from_64 (ctx.h[3]);
     const u32x r1 = h32_from_64 (ctx.h[3]);
