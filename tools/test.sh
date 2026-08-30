@@ -112,9 +112,13 @@ TC_TESTS_DIR="${TDIR}/tc_tests"
 VC_TESTS_DIR="${TDIR}/vc_tests"
 LUKS_TESTS_DIR="${TDIR}/luks_tests"
 
-# The password every generated container is built with, and the one the shipped
-# containers already use.
+# The password every generated container is built with, and the one the shipped containers
+# already use. With -g the containers are built by this run, so the password is picked at
+# random instead: a test that only passes because 'hashcat' is baked into both the container
+# and the mask is not testing anything. CONTAINER_MASK is the same string with the last
+# character replaced by ?l, which is what gives the mask attacks a keyspace to search.
 CONTAINER_PASSWORD="hashcat"
+CONTAINER_MASK="hashca?l"
 
 # Cryptoloop mode which have test containers
 CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 14543 14551 14552 14553"
@@ -3324,7 +3328,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha1_aes_${keySize}.img\" --hash sha1 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha1_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3333,7 +3337,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha1_serpent_${keySize}.img\" --hash sha1 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha1_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3342,7 +3346,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha1_twofish_${keySize}.img\" --hash sha1 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha1_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha1_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3351,7 +3355,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha256_aes_${keySize}.img\" --hash sha256 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha256_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3360,7 +3364,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha256_serpent_${keySize}.img\" --hash sha256 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha256_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3369,7 +3373,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha256_twofish_${keySize}.img\" --hash sha256 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha256_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha256_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3378,7 +3382,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha512_aes_${keySize}.img\" --hash sha512 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha512_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3387,7 +3391,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha512_serpent_${keySize}.img\" --hash sha512 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha512_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3396,7 +3400,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_sha512_twofish_${keySize}.img\" --hash sha512 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_sha512_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_sha512_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3405,7 +3409,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_ripemd160_aes_${keySize}.img\" --hash ripemd160 --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_ripemd160_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3414,7 +3418,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_ripemd160_serpent_${keySize}.img\" --hash ripemd160 --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_ripemd160_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3423,7 +3427,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_ripemd160_twofish_${keySize}.img\" --hash ripemd160 --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_ripemd160_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_ripemd160_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3432,7 +3436,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_whirlpool_aes_${keySize}.img\" --hash whirlpool --cipher aes --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_aes_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_aes_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_aes_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3441,7 +3445,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py\" --source \"${TDIR}/cl_tests/hashcat_whirlpool_serpent_${keySize}.img\" --hash whirlpool --cipher serpent --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_serpent_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_serpent_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_serpent_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3450,7 +3454,7 @@ function cryptoloop_test()
       case $keySize in
         128|192|256)
           eval \"${TDIR}/cryptoloop2hashcat.py --source ${TDIR}/cl_tests/hashcat_whirlpool_twofish_${keySize}.img\" --hash whirlpool --cipher twofish --keysize ${keySize} > ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 14500 ${OUTD}/cl_tests/hashcat_whirlpool_twofish_${keySize}.hash ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3531,6 +3535,22 @@ function cryptoloop_test()
 #
 # VERACRYPT_BIN, TCPLAY_BIN and CRYPTSETUP_BIN override the binaries if they
 # live somewhere else.
+
+function random_container_password()
+{
+  # Seven lowercase letters, the shape 'hashcat' had. build_container_cmd() and CONTAINER_MASK
+  # both turn the last character into ?l, so the last character has to be a lowercase letter,
+  # and the length is what the -a 6 and -a 7 splits in build_container_cmd() are written for.
+  local rp_chars="abcdefghijklmnopqrstuvwxyz"
+  local rp_out=""
+  local rp_i
+
+  for rp_i in $(seq 1 7); do
+    rp_out="${rp_out}${rp_chars:$((RANDOM % 26)):1}"
+  done
+
+  printf '%s' "${rp_out}"
+}
 
 function utf8_split_point()
 {
@@ -3979,13 +3999,13 @@ function truecrypt_test()
     6211)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_aes.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6211 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -3993,13 +4013,13 @@ function truecrypt_test()
     6212)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6212 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4007,10 +4027,10 @@ function truecrypt_test()
     6213)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-twofish-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6213 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-twofish-aes.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4018,13 +4038,13 @@ function truecrypt_test()
     6221)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_aes.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_serpent.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6221 '${TC_TESTS_DIR}/hashcat_sha512_twofish.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4032,13 +4052,13 @@ function truecrypt_test()
     6222)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_aes-twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_aes-twofish.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_serpent-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_serpent-aes.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6222 '${TC_TESTS_DIR}/hashcat_sha512_twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4046,10 +4066,10 @@ function truecrypt_test()
     6223)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TC_TESTS_DIR}/hashcat_sha512_aes-twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TC_TESTS_DIR}/hashcat_sha512_aes-twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TC_TESTS_DIR}/hashcat_sha512_serpent-twofish-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6223 '${TC_TESTS_DIR}/hashcat_sha512_serpent-twofish-aes.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4057,13 +4077,13 @@ function truecrypt_test()
     6231)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_aes.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6231 '${TC_TESTS_DIR}/hashcat_whirlpool_twofish.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4071,13 +4091,13 @@ function truecrypt_test()
     6232)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent-aes.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6232 '${TC_TESTS_DIR}/hashcat_whirlpool_twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4085,10 +4105,10 @@ function truecrypt_test()
     6233)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish-serpent.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish-serpent.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent-twofish-aes.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6233 '${TC_TESTS_DIR}/hashcat_whirlpool_serpent-twofish-aes.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4096,13 +4116,13 @@ function truecrypt_test()
     6241)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_aes_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_aes_boot.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent_boot.tc' ${CONTAINER_MASK}"
           ;;
         2)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6241 '${TC_TESTS_DIR}/hashcat_ripemd160_twofish_boot.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4110,10 +4130,10 @@ function truecrypt_test()
     6242)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish_boot.tc' ${CONTAINER_MASK}"
           ;;
         1)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6242 '${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes_boot.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4121,7 +4141,7 @@ function truecrypt_test()
     6243)
       case $tcMode in
         0)
-          CMD="./${BIN} ${OPTS} -a 3 -m 6243 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent_boot.tc' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 6243 '${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent_boot.tc' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4130,15 +4150,15 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_aes.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_aes.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_serpent.hash' ${CONTAINER_MASK}"
           ;;
         2)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29311 '${OUTD}/tc_tests/hashcat_ripemd160_twofish.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4147,15 +4167,15 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes.hash' ${CONTAINER_MASK}"
           ;;
         2)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29312 '${OUTD}/tc_tests/hashcat_ripemd160_twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4164,11 +4184,11 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29313 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-twofish-aes.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4177,15 +4197,15 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_aes.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_aes.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_serpent.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_serpent.hash' ${CONTAINER_MASK}"
           ;;
         2)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_twofish.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29321 '${OUTD}/tc_tests/hashcat_sha512_twofish.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4194,15 +4214,15 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_serpent-aes.hash' ${CONTAINER_MASK}"
           ;;
         2)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29322 '${OUTD}/tc_tests/hashcat_sha512_twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4211,11 +4231,11 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_aes-twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_sha512_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29323 '${OUTD}/tc_tests/hashcat_sha512_serpent-twofish-aes.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4224,15 +4244,15 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_aes.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_aes.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_serpent.hash' ${CONTAINER_MASK}"
           ;;
         2)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29331 '${OUTD}/tc_tests/hashcat_whirlpool_twofish.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4241,15 +4261,15 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_serpent-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-aes.hash' ${CONTAINER_MASK}"
           ;;
         2)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29332 '${OUTD}/tc_tests/hashcat_whirlpool_twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4258,11 +4278,11 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_aes-twofish-serpent.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_aes-twofish-serpent.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_whirlpool_serpent-twofish-aes.tc\" > ${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29333 '${OUTD}/tc_tests/hashcat_whirlpool_serpent-twofish-aes.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4271,15 +4291,15 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_aes_boot.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_serpent_boot.hash' ${CONTAINER_MASK}"
           ;;
         2)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29341 '${OUTD}/tc_tests/hashcat_ripemd160_twofish_boot.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4288,11 +4308,11 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish_boot.hash' ${CONTAINER_MASK}"
           ;;
         1)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_serpent-aes_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29342 '${OUTD}/tc_tests/hashcat_ripemd160_serpent-aes_boot.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -4301,7 +4321,7 @@ function truecrypt_test()
       case $tcMode in
         0)
           eval \"${TDIR}/truecrypt2hashcat.py\" \"${TC_TESTS_DIR}/hashcat_ripemd160_aes-twofish-serpent_boot.tc\" > ${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash
-          CMD="./${BIN} ${OPTS} -a 3 -m 29343 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash' hashca?l"
+          CMD="./${BIN} ${OPTS} -a 3 -m 29343 '${OUTD}/tc_tests/hashcat_ripemd160_aes-twofish-serpent_boot.hash' ${CONTAINER_MASK}"
           ;;
       esac
       ;;
@@ -5109,7 +5129,7 @@ function pkzip_test()
     return
   fi
 
-  local password="hashcat"
+  local password="${CONTAINER_PASSWORD}"
   local zdir="${OUTD}/pkzip_tests"
   local sdir="${zdir}/src"
   mkdir -p "${sdir}"
@@ -5180,7 +5200,7 @@ function gpg_test()
     record_note "${hashType}" "${GPG1_BIN} (GnuPG 1.x) not found, so the classic S2K variants and the AES-128 (aux1) path are skipped; set GPG1_BIN=... if installed elsewhere"
   fi
 
-  local password="hashcat"
+  local password="${CONTAINER_PASSWORD}"
   local gdir="${OUTD}/gpg_tests"
   mkdir -p "${gdir}"
 
@@ -5346,7 +5366,7 @@ function rar_test()
       ;;
   esac
 
-  local password="hashcat"
+  local password="${CONTAINER_PASSWORD}"
   local rdir="${OUTD}/rar_tests"   # generated per run, nothing checked in
   local sdir="${rdir}/src"
   mkdir -p "${sdir}"
@@ -5414,7 +5434,7 @@ function sevenzip_test()
     return
   fi
 
-  local password="hashcat"
+  local password="${CONTAINER_PASSWORD}"
   local sdir="${OUTD}/7z_tests"
 
   mkdir -p "${sdir}"
@@ -5519,7 +5539,7 @@ function pdf_gen_test()
     return
   fi
 
-  local password="hashcat"
+  local password="${CONTAINER_PASSWORD}"
   local pdir="${OUTD}/pdf_gen_tests"
 
   mkdir -p "${pdir}"
@@ -5616,7 +5636,7 @@ function ssh_test()
     return
   fi
 
-  local password="hashcat"
+  local password="${CONTAINER_PASSWORD}"
   local kdir="${OUTD}/ssh_tests"
 
   mkdir -p "${kdir}"
@@ -6139,6 +6159,14 @@ fi
 
 if [[ "${GENERATE_CONTAINERS}" -eq 1 ]] && [ "${HT_GIVEN}" -eq 0 ]; then
   HT=65535
+fi
+
+# The containers this run builds get a password of their own. The ones shipped in the tree or
+# fetched from hashcat.net were built with 'hashcat' and keep it.
+
+if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+  CONTAINER_PASSWORD="$(random_container_password)"
+  CONTAINER_MASK="${CONTAINER_PASSWORD:0:$((${#CONTAINER_PASSWORD} - 1))}?l"
 fi
 
 # handle Apple Silicon
