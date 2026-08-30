@@ -119,6 +119,8 @@ LUKS_TESTS_DIR="${TDIR}/luks_tests"
 # character replaced by ?l, which is what gives the mask attacks a keyspace to search.
 CONTAINER_PASSWORD="hashcat"
 CONTAINER_MASK="hashca?l"
+# The VeraCrypt tests put the ?l in the middle instead of at the end.
+CONTAINER_MASK_MID="hashc?lt"
 
 # Cryptoloop mode which have test containers
 CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 14543 14551 14552 14553"
@@ -4421,7 +4423,7 @@ function veracrypt_test()
 
   case "${hash_type:0:3}" in
     137)
-      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${filename}' hashc?lt"
+      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${filename}' ${CONTAINER_MASK_MID}"
       ;;
 
     294)
@@ -4429,7 +4431,7 @@ function veracrypt_test()
       chmod u+x "${TDIR}/veracrypt2hashcat.py"
 
       eval \"${TDIR}/veracrypt2hashcat.py\" \"${VC_TESTS_DIR}/hashcat_${hash_function}_${cipher_cascade}.vc\" > ${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash
-      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash' hashc?lt"
+      CMD="./${BIN} ${OPTS} -a 3 -m ${hash_type} '${OUTD}/vc_tests/hashcat_${hash_function}_${cipher_cascade}.hash' ${CONTAINER_MASK_MID}"
       ;;
   esac
 
@@ -4596,31 +4598,31 @@ function luks_test()
           CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${LUKS_TESTS_DIR}/pw'"
           ;;
         1)
-          luksPassPart1Len=$((${#LUKS_PASSWORD} / 2))
+          luksPassPart1Len=$((${#CONTAINER_PASSWORD} / 2))
           luksPassPart2Start=$((luksPassPart1Len + 1))
 
-          echo "${LUKS_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
-          echo "${LUKS_PASSWORD}" | cut -c${luksPassPart2Start}- > "${luksPassPartFile2}" 2>/dev/null
+          echo "${CONTAINER_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
+          echo "${CONTAINER_PASSWORD}" | cut -c${luksPassPart2Start}- > "${luksPassPartFile2}" 2>/dev/null
 
           CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksPassPartFile2}"
           ;;
         3)
-          luksMaskFixedLen=$((${#LUKS_PASSWORD} - 1))
+          luksMaskFixedLen=$((${#CONTAINER_PASSWORD} - 1))
 
-          luksMask="$(echo "${LUKS_PASSWORD}" | cut -c-${luksMaskFixedLen} 2>/dev/null)"
+          luksMask="$(echo "${CONTAINER_PASSWORD}" | cut -c-${luksMaskFixedLen} 2>/dev/null)"
           luksMask="${luksMask}${luksMainMask}"
 
           CMD="./${BIN} ${OPTS} -a 3 -m ${hashType} '${luksHashFile}' ${luksMask}"
           ;;
         6)
-          luksPassPart1Len=$((${#LUKS_PASSWORD} - 1))
+          luksPassPart1Len=$((${#CONTAINER_PASSWORD} - 1))
 
-          echo "${LUKS_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
+          echo "${CONTAINER_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
 
           CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksMask}"
           ;;
         7)
-          echo "${LUKS_PASSWORD}" | cut -c2- > "${luksPassPartFile1}" 2>/dev/null
+          echo "${CONTAINER_PASSWORD}" | cut -c2- > "${luksPassPartFile1}" 2>/dev/null
 
           CMD="./${BIN} ${OPTS} -a 7 -m ${hashType} '${luksHashFile}' ${luksMask} ${luksPassPartFile1}"
           ;;
@@ -4700,7 +4702,6 @@ function luks_legacy_test()
   LUKS_CIPHER_MODES="cbc-essiv cbc-plain64 xts-plain64"
   LUKS_KEYSIZES="128 256 512"
 
-  LUKS_PASSWORD=$(cat "${LUKS_TESTS_DIR}/pw" 2>/dev/null)
 
   for luks_h in ${LUKS_HASHES}; do
     for luks_c in ${LUKS_CIPHERS}; do
@@ -4755,31 +4756,31 @@ function luks_legacy_test()
               CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luks_file}' '${LUKS_TESTS_DIR}/pw'"
               ;;
             1)
-              luks_pass_part1_len=$((${#LUKS_PASSWORD} / 2))
+              luks_pass_part1_len=$((${#CONTAINER_PASSWORD} / 2))
               luks_pass_part2_start=$((luks_pass_part1_len + 1))
 
-              echo "${LUKS_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
-              echo "${LUKS_PASSWORD}" | cut -c${luks_pass_part2_start}- > "${luks_pass_part_file2}" 2>/dev/null
+              echo "${CONTAINER_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
+              echo "${CONTAINER_PASSWORD}" | cut -c${luks_pass_part2_start}- > "${luks_pass_part_file2}" 2>/dev/null
 
               CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luks_file}' ${luks_pass_part_file1} ${luks_pass_part_file2}"
               ;;
             3)
-              luks_mask_fixed_len=$((${#LUKS_PASSWORD} - 1))
+              luks_mask_fixed_len=$((${#CONTAINER_PASSWORD} - 1))
 
-              luks_mask="$(echo "${LUKS_PASSWORD}" | cut -c-${luks_mask_fixed_len} 2>/dev/null)"
+              luks_mask="$(echo "${CONTAINER_PASSWORD}" | cut -c-${luks_mask_fixed_len} 2>/dev/null)"
               luks_mask="${luks_mask}${luks_main_mask}"
 
               CMD="./${BIN} ${OPTS} -a 3 -m ${hashType} '${luks_file}' ${luks_mask}"
               ;;
             6)
-              luks_pass_part1_len=$((${#LUKS_PASSWORD} - 1))
+              luks_pass_part1_len=$((${#CONTAINER_PASSWORD} - 1))
 
-              echo "${LUKS_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
+              echo "${CONTAINER_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
 
               CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luks_file}' ${luks_pass_part_file1} ${luks_mask}"
               ;;
             7)
-              echo "${LUKS_PASSWORD}" | cut -c2- > "${luks_pass_part_file1}" 2>/dev/null
+              echo "${CONTAINER_PASSWORD}" | cut -c2- > "${luks_pass_part_file1}" 2>/dev/null
 
               CMD="./${BIN} ${OPTS} -a 7 -m ${hashType} '${luks_file}' ${luks_mask} ${luks_pass_part_file1}"
               ;;
@@ -4834,7 +4835,7 @@ function luks_legacy_test()
 
 function luks2_test()
 {
-  local LUKS2_PASSWORD=$(cat "${TDIR}/luks2_tests/pw" 2>/dev/null)
+  local LUKS2_PASSWORD="${CONTAINER_PASSWORD}"
 
   hashType=$1
   attackType=$2
@@ -6167,6 +6168,7 @@ fi
 if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
   CONTAINER_PASSWORD="$(random_container_password)"
   CONTAINER_MASK="${CONTAINER_PASSWORD:0:$((${#CONTAINER_PASSWORD} - 1))}?l"
+  CONTAINER_MASK_MID="${CONTAINER_PASSWORD:0:5}?l${CONTAINER_PASSWORD:6}"
 fi
 
 # handle Apple Silicon
