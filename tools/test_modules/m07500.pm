@@ -56,7 +56,7 @@ sub module_generate_hash
 
   my $clear_data = $salt_arr[4];
 
-  my $k = md4 (encode ("UTF-16LE", $word_buf));
+  my $k = md4 (encode ("UTF-16LE", decode ("utf-8", $word_buf)));
 
   my $k1 = hmac_md5 ("\x01\x00\x00\x00", $k);
 

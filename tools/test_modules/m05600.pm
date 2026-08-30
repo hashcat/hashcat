@@ -8,10 +8,10 @@
 use strict;
 use warnings;
 
-use Authen::Passphrase::NTHash;
+use Digest::MD4  qw (md4);
 use Digest::HMAC qw (hmac hmac_hex);
 use Digest::MD5  qw (md5);
-use Encode       qw (encode);
+use Encode       qw (encode decode);
 
 sub module_constraints { [[0, 127], [0, 55], [0, 27], [0, 27], [-1, -1]] } # room for improvement in pure kernel mode
 
@@ -30,7 +30,10 @@ sub module_generate_hash
   my $b_srv_ch = pack ('H*', $srv_ch);
   my $b_cli_ch = pack ('H*', $cli_ch);
 
-  my $nthash   = Authen::Passphrase::NTHash->new (passphrase => $word)->hash;
+  # md4 of the UTF-16LE password, which is what the NT hash is. Authen::Passphrase::NTHash
+  # cannot be used here: it gets the encoding wrong for a character outside the BMP, an
+  # emoji for instance, and the kernel does not.
+  my $nthash   = md4 (encode ("UTF-16LE", decode ("utf-8", $word)));
   my $identity = encode ('UTF-16LE', uc ($user) . $domain);
   my $digest   = hmac_hex ($b_srv_ch . $b_cli_ch, hmac ($identity, $nthash, \&md5, 64), \&md5, 64);
 

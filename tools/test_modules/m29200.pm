@@ -35,7 +35,7 @@ sub module_generate_hash
     $user = encode ('UTF16-LE', $user);
   }
 
-  my $word_utf16 = encode ("UTF-16LE", $word);
+  my $word_utf16 = encode ("UTF-16LE", decode ("utf-8", $word));
 
   my $exponent = sha1_hex ($salt . sha1 ($user . ":" . $word_utf16));
 

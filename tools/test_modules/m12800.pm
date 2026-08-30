@@ -20,7 +20,7 @@ sub module_generate_hash
   my $salt = shift;
   my $iter = shift // 100;
 
-  my $nt = md4_hex (encode ("UTF-16LE", $word));
+  my $nt = md4_hex (encode ("UTF-16LE", decode ("utf-8", $word)));
 
   my $pbkdf2 = Crypt::PBKDF2->new
   (

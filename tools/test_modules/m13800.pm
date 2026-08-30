@@ -18,7 +18,7 @@ sub module_generate_hash
   my $word = shift;
   my $salt = shift;
 
-  my $word_utf16le = encode ("UTF-16LE", $word);
+  my $word_utf16le = encode ("UTF-16LE", decode ("utf-8", $word));
 
   my $salt_bin = pack ("H*", $salt);
 

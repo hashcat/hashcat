@@ -133,7 +133,7 @@ sub module_generate_hash
 
   my $SIDenc = encode ("UTF-16LE", $SID);
 
-  my $NTLMhash = md4 (encode ("UTF-16LE", $word_buf));
+  my $NTLMhash = md4 (encode ("UTF-16LE", decode ("utf-8", $word_buf)));
 
   my $hasher = Crypt::PBKDF2->hasher_from_algorithm ('HMACSHA2', 256);
 

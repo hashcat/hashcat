@@ -23,7 +23,7 @@ sub module_generate_hash
 
   my $salt_bin = pack ("H*", $salt);
 
-  my $tmp = sha1 ($salt_bin . encode ("UTF-16LE", $word));
+  my $tmp = sha1 ($salt_bin . encode ("UTF-16LE", decode ("utf-8", $word)));
 
   for (my $i = 0; $i < $iter; $i++)
   {

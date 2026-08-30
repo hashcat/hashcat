@@ -58,7 +58,7 @@ sub module_generate_hash
   my $block1 = shift;
   my $block2 = shift;
 
-  my $word_utf16be = encode ('UTF-16BE', $word);
+  my $word_utf16be = encode ('UTF-16BE', decode ('utf-8', $word));
 
   my $key = scrypt_raw ($word_utf16be, $FIXED_SALT, $SCRYPT_N, $SCRYPT_R, $SCRYPT_P, 32);
 

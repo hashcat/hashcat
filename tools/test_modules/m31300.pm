@@ -21,7 +21,7 @@ sub module_generate_hash
 
   my $salt_bin = pack ("H*", $salt);
 
-  my $utf16le = encode("UTF-16LE", $word);
+  my $utf16le = encode ("UTF-16LE", decode ("utf-8", $word));
 
   my $digest = md5_hex (md4 ($utf16le) . $salt_bin);
 

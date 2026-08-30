@@ -19,7 +19,7 @@ sub module_generate_hash
 {
   my $word = shift;
 
-  my $unicode_word = encode ("UTF-16LE", $word);
+  my $unicode_word = encode ("UTF-16LE", decode ("utf-8", $word));
 
   my $digest = hmac ($unicode_word, $unicode_word, \&sha1, 64);
 

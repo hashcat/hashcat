@@ -64,7 +64,7 @@ sub module_generate_hash
   # 2 ^ NumCyclesPower "iterations" of SHA256 (only one final SHA256)
   #
 
-  $word_buf = encode ("UTF-16LE", $word_buf);
+  $word_buf = encode ("UTF-16LE", decode ("utf-8", $word_buf));
 
   my $rounds = 1 << $num_cycle_power;
 
