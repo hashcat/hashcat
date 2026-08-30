@@ -6299,6 +6299,12 @@ fi
 
 export IS_OPTIMIZED=${OPTIMIZED}
 
+# The LUKS oracles in tools/test_modules build a 20 MiB container to get a hash out of
+# it. Left to themselves they put it, its mount point and their log in /tmp, and never
+# clean up, so a full run leaves gigabytes behind. Point them at this run instead.
+export HCTEST_SCRATCH_DIR="${OUTD}/luks_scratch"
+export HCTEST_MOUNT_DIR="${OUTD}/luks_mnt"
+
 if [ "${OPTIMIZED}" -eq 1 ]; then
   OPTS="${OPTS} -O"
 fi
