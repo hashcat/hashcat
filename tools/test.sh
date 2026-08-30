@@ -7,6 +7,12 @@
 
 OPTS="--quiet --potfile-disable --logfile-disable"
 
+# The generated passwords can carry multi byte UTF-8, and hashcat counts a password in bytes.
+# In the C locale so does bash: ${#pass} is a byte count, ${pass:n:1} is one byte and cut -c
+# is cut -b. Under a UTF-8 locale those would count characters instead and the lengths the
+# suite computes would stop matching the lengths the kernels see.
+export LC_ALL=C
+
 FORCE=0
 RUNTIME=400
 
@@ -538,6 +544,11 @@ function init()
           p1=${pass_len}
           p0=$((p1 - 1))
         fi
+
+        # both halves have to be valid UTF-8 on their own, see utf8_split_point()
+
+        p0=$(utf8_split_point "${pass}" ${p0})
+        p1=$((p0 + 1))
 
         # add splitted password to dicts
         echo "${pass}" | cut -c -${p0} >> "${OUTD}/${hash_type}_dict1"
@@ -1495,7 +1506,9 @@ function attack_3()
           mask="${mask}?d"
         done
 
-        mask="${mask}${pass_part_2}"
+        # the mask covers the first ${i} bytes, the rest of the password follows it literally
+
+        mask="$(mask_literalize "${mask}" "${pass:0:${i}}")${pass_part_2}"
       fi
 
       if [ "${hash_type}" -eq 20510 ]; then # special case for PKZIP Master Key
@@ -2131,7 +2144,12 @@ function attack_6()
           continue
         fi
 
-        echo "${pass}" | cut -b -$((${#pass} - i)) >> "${dict1_a6}"
+        # the mask covers the last ${i} bytes, or a little more when that offset falls inside a
+        # multi byte character, see utf8_split_point()
+
+        a6_split=$(utf8_split_point "${pass}" $((${#pass} - i)))
+
+        printf '%s\n' "${pass:0:${a6_split}}" >> "${dict1_a6}"
 
         # the block below is just a fancy way to do a "shuf" (or sort -R) because macOS doesn't really support it natively
         # we do not really need a shuf, but it's actually better for testing purposes
@@ -2165,9 +2183,11 @@ function attack_6()
 
         mask=""
 
-        for j in $(seq 1 ${i}); do
+        for j in $(seq 1 $((${#pass} - a6_split))); do
           mask="${mask}?d"
         done
+
+        mask="$(mask_literalize "${mask}" "${pass:${a6_split}}")"
 
         CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} '${hash}' ${dict1_a6} ${mask}"
 
@@ -2603,6 +2623,11 @@ function attack_7()
           dict2=${OUTD}/${hash_type}_dict2_custom
         fi
 
+        # -a 7 is mask + dict and dict2 holds the tail of the password, so the mask spells the
+        # head, which is what dict1 holds
+
+        mask="$(mask_literalize "${mask}" "$(sed -n ${line_nr}p "${dict1}")")"
+
         CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} '${hash}' ${mask} ${dict2}"
 
         echo -n "[ len $i ] " >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
@@ -2957,7 +2982,6 @@ function attack_12()
         fi
 
         head_len=$((mask_len / 2))
-        tail_len=$((mask_len - head_len))
 
         word_len=$((pass_len - mask_len))
 
@@ -2966,27 +2990,22 @@ function attack_12()
           continue
         fi
 
-        mask_head=""
-        mask_tail=""
-        mask_full=""
-
-        for j in $(seq 1 ${head_len}); do
-          mask_head="${mask_head}?d"
-        done
-
-        for j in $(seq 1 ${tail_len}); do
-          mask_tail="${mask_tail}?d"
-        done
-
-        for j in $(seq 1 ${mask_len}); do
-          mask_full="${mask_full}?d"
-        done
-
         # The dictionary is a copy of dict1 with the word appended, so the run has to find the word
         # among others rather than being handed a one line file.
 
         dict1_a12=${OUTD}/${hash_type}_dict1_a12
         dict2_a12=${OUTD}/${hash_type}_dict2_a12
+
+        # ?w, ?q and each mask piece are uploaded as buffers of their own and the UTF-16 modes
+        # convert every one of them separately, so a join has to sit on a UTF-8 character
+        # boundary, and a mask position has to spell the byte that belongs there rather than a
+        # '?d' that cannot produce it. See utf8_split_point() and mask_literalize().
+
+        head_end=$(utf8_split_point "${pass}" ${head_len})
+        tail_start=$(utf8_split_point "${pass}" $((head_len + word_len)))
+
+        mask_head="$(mask_literalize "$(mask_dots ${head_end})" "${pass:0:${head_end}}")"
+        mask_tail="$(mask_literalize "$(mask_dots $((pass_len - tail_start)))" "${pass:${tail_start}}")"
 
         for shape in first last middle q; do
 
@@ -2997,19 +3016,23 @@ function attack_12()
           case "${shape}" in
 
             first)
-              word=$(echo "${pass}" | cut -b -${word_len})
-              mask="?w${mask_full}"
+              word_end=$(utf8_split_point "${pass}" ${word_len})
+
+              word="${pass:0:${word_end}}"
+              mask="?w$(mask_literalize "$(mask_dots $((pass_len - word_end)))" "${pass:${word_end}}")"
               dicts="${dict1_a12}"
               ;;
 
             last)
-              word=$(echo "${pass}" | cut -b $((mask_len + 1))-)
-              mask="${mask_full}?w"
+              mask_start=$(utf8_split_point "${pass}" ${mask_len})
+
+              word="${pass:${mask_start}}"
+              mask="$(mask_literalize "$(mask_dots ${mask_start})" "${pass:0:${mask_start}}")?w"
               dicts="${dict1_a12}"
               ;;
 
             middle)
-              word=$(echo "${pass}" | cut -b $((head_len + 1))-$((head_len + word_len)))
+              word="${pass:${head_end}:$((tail_start - head_end))}"
               mask="${mask_head}?w${mask_tail}"
               dicts="${dict1_a12}"
               ;;
@@ -3017,14 +3040,14 @@ function attack_12()
             q)
               # the word itself is cut in two, so that ?w and ?q each carry one half
 
-              q_len=$((word_len / 2))
+              q_end=$(utf8_split_point "${pass}" $((head_end + (tail_start - head_end) / 2)))
 
-              if [ "${q_len}" -lt 1 ]; then
+              if [ "${q_end}" -le "${head_end}" ] || [ "${q_end}" -ge "${tail_start}" ]; then
                 continue
               fi
 
-              word=$(echo "${pass}" | cut -b $((head_len + 1))-$((head_len + q_len)))
-              word_q=$(echo "${pass}" | cut -b $((head_len + q_len + 1))-$((head_len + word_len)))
+              word="${pass:${head_end}:$((q_end - head_end))}"
+              word_q="${pass:${q_end}:$((tail_start - q_end))}"
 
               echo "${word_q}" > "${dict2_a12}"
 
@@ -3508,6 +3531,108 @@ function cryptoloop_test()
 #
 # VERACRYPT_BIN, TCPLAY_BIN and CRYPTSETUP_BIN override the binaries if they
 # live somewhere else.
+
+function utf8_split_point()
+{
+  # Move a split offset back until it lands on a UTF-8 character boundary, and print the
+  # result. -a 1, -a 6 and -a 7 hand the word and the mask to the kernel as two buffers and
+  # the UTF-16 modes convert each of them on its own, so a character cut in half is two
+  # invalid fragments and the candidate is dropped. Both halves have to be valid UTF-8 by
+  # themselves for those attacks to spell a multi byte password at all.
+  #
+  # $1 = the password, $2 = the wanted offset in bytes, counting from 0
+
+  local up_text="$1"
+  local up_off="$2"
+
+  while [ "${up_off}" -gt 0 ]; do
+    case "${up_text:${up_off}:1}" in
+      # 0x80 to 0xbf is a continuation byte, so the offset sits inside a character
+      [$'\x80'-$'\xbf']) up_off=$((up_off - 1)) ;;
+      *)                 break ;;
+    esac
+  done
+
+  printf '%s' "${up_off}"
+}
+
+function mask_dots()
+{
+  # A mask of <count> '?d' groups, the shape the suite has always used for a run of digits.
+
+  local md_count="$1"
+  local md_out=""
+  local md_i
+
+  for ((md_i = 0; md_i < md_count; md_i++)); do
+    md_out="${md_out}?d"
+  done
+
+  printf '%s' "${md_out}"
+}
+
+function mask_literalize()
+{
+  # Rewrite a mask so that every position it covers spells the byte that belongs there. The
+  # generated passwords used to be digits from end to end, which is what makes a mask of '?d'
+  # groups work; tools/test.pl can now seed them with multi byte UTF-8, and no '?d' produces a
+  # byte above 0x7f. Those positions become literals, which costs the attack keyspace it was
+  # never searching anyway.
+  #
+  # $1 = the mask, $2 = the exact bytes the mask has to spell. The mask is returned untouched
+  # unless it covers exactly that many bytes, so a caller that hands over the wrong slice, a
+  # mode with its own mask layout for instance, changes nothing.
+
+  local ml_mask="$1"
+  local ml_text="$2"
+
+  local ml_len=${#ml_mask}
+  local ml_pos=0
+  local ml_cnt=0
+  local ml_out=""
+  local ml_tok
+  local ml_byte
+
+  # count the positions first, a '?x' group covers one byte and anything else covers one byte
+
+  while [ ${ml_pos} -lt ${ml_len} ]; do
+    if [ "${ml_mask:${ml_pos}:1}" = "?" ]; then
+      ml_pos=$((ml_pos + 2))
+    else
+      ml_pos=$((ml_pos + 1))
+    fi
+
+    ml_cnt=$((ml_cnt + 1))
+  done
+
+  if [ ${ml_cnt} -ne ${#ml_text} ]; then
+    printf '%s' "${ml_mask}"
+    return
+  fi
+
+  ml_pos=0
+  ml_cnt=0
+
+  while [ ${ml_pos} -lt ${ml_len} ]; do
+    if [ "${ml_mask:${ml_pos}:1}" = "?" ]; then
+      ml_tok="${ml_mask:${ml_pos}:2}"
+      ml_pos=$((ml_pos + 2))
+    else
+      ml_tok="${ml_mask:${ml_pos}:1}"
+      ml_pos=$((ml_pos + 1))
+    fi
+
+    ml_byte="${ml_text:${ml_cnt}:1}"
+    ml_cnt=$((ml_cnt + 1))
+
+    case "${ml_byte}" in
+      [0-9]) ml_out="${ml_out}${ml_tok}"  ;;
+      *)     ml_out="${ml_out}${ml_byte}" ;;
+    esac
+  done
+
+  printf '%s' "${ml_out}"
+}
 
 function container_gen_dir()
 {
