@@ -367,6 +367,14 @@ int yescrypt_hash_decode (u32 *digest, salt_t *salt, u32 *flags_out, u32 *t_out,
 
   if (r < 1) return (PARSER_SALT_VALUE);
 
+  // r had no upper bound, and 128 * r * N is a u64 that a large r wraps to exactly zero. The tuning
+  // block then divides the available memory by it. The first limit is what upstream yescrypt allows
+  // for r times p, which is r alone here because this parser forces p to 1.
+
+  if (r >= (1 << 30)) return (PARSER_SALT_VALUE);
+
+  if ((u64) r > (0xffffffffffffffffULL / 128 / N)) return (PARSER_SALT_VALUE);
+
   u32 p = 1;
   u32 t = 0;
   u32 g = 0;

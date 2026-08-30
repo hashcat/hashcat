@@ -212,17 +212,15 @@ void hex_to_binary (const char *source, int len, char* out)
   }
 }
 
-int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
+// The body below walks the line with strtok_r, which needs a writable copy, and it leaves on more
+// than 20 different parser errors. Holding the copy in the caller means each of those returns can
+// stay as it is and the copy is still released exactly once.
+
+static int pkzip_decode_input (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, char *input)
 {
   pkzip_t *pkzip = (pkzip_t *) esalt_buf;
 
   u32 *digest = (u32 *) digest_buf;
-
-  char *input = (char *) hcmalloc (line_len + 1);
-  if (!input) return PARSER_HAVE_ERRNO;
-
-  memcpy (input, line_buf, line_len);
-  input[line_len] = '\0';
 
   char *saveptr = NULL;
 
@@ -339,9 +337,24 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   digest[2] = 0;
   digest[3] = 0;
 
+  return (PARSER_OK);
+}
+
+int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED void *digest_buf, MAYBE_UNUSED salt_t *salt, MAYBE_UNUSED void *esalt_buf, MAYBE_UNUSED void *hook_salt_buf, MAYBE_UNUSED hashinfo_t *hash_info, const char *line_buf, MAYBE_UNUSED const int line_len)
+{
+  char *input = (char *) hcmalloc (line_len + 1);
+
+  if (input == NULL) return (PARSER_HAVE_ERRNO);
+
+  memcpy (input, line_buf, line_len);
+
+  input[line_len] = 0;
+
+  const int rc = pkzip_decode_input (hashconfig, digest_buf, salt, esalt_buf, hook_salt_buf, hash_info, input);
+
   hcfree (input);
 
-  return (PARSER_OK);
+  return rc;
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)

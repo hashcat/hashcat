@@ -212,7 +212,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   uppercase (tmp_buf, tmp_len);
 
-  char tmp_salt[SALT_MAX * 2] = { 0 };
+  char tmp_salt[(SALT_MAX * 2) + 1] = { 0 };
 
   const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
 

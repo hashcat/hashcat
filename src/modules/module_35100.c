@@ -346,7 +346,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   sm3crypt_encode ((const unsigned char *) digest_buf, (unsigned char *) ptr_plain);
 
-  char tmp_salt[SALT_MAX * 2];
+  char tmp_salt[(SALT_MAX * 2) + 1];
 
   const int salt_len = generic_salt_encode (hashconfig, (const u8 *) salt->salt_buf, (const int) salt->salt_len, (u8 *) tmp_salt);
 

@@ -543,6 +543,10 @@ u64 brain_compute_attack_wordlist (const char *filename)
 
     const size_t nread = hc_fread (buf, 1, FBUFSZ, &fp);
 
+    // a decode error is (size_t) -1, and handing that to XXH64_update reads the whole address space
+
+    if (nread == (size_t) -1) break;
+
     XXH64_update (state, buf, nread);
   }
 
@@ -1171,6 +1175,10 @@ bool brain_client_lookup (hc_device_param_t *device_param, const status_ctx_t *s
   if (brain_send (brain_link_client_fd, sendbuf,              out_size, SEND_FLAGS, device_param, status_ctx) == false) return false;
 
   if (brain_recv (brain_link_client_fd, &in_size,     sizeof (in_size),          0, device_param, status_ctx) == false) return false;
+
+  // the same signed length, in the direction where the server is the one sending it
+
+  if (in_size <= 0) return false;
 
   if (in_size > (int) device_param->size_brain_link_in) return false;
 
@@ -1821,6 +1829,16 @@ bool brain_server_read_hash_dumps (brain_server_dbs_t *brain_server_dbs, const c
 
     const u32 brain_session = byte_swap_32 (hex_to_u32 ((const u8 *) file + 6));
 
+    // hash_buf holds BRAIN_SERVER_SESSIONS_MAX entries and the loop that fills it from the dump
+    // directory was not bounded, unlike the one a connecting client goes through
+
+    if (brain_server_dbs->hash_cnt >= BRAIN_SERVER_SESSIONS_MAX)
+    {
+      brain_logging (stderr, 0, "More than %d session dumps found, the rest are ignored\n", BRAIN_SERVER_SESSIONS_MAX);
+
+      break;
+    }
+
     brain_server_db_hash_t *brain_server_db_hash = &brain_server_dbs->hash_buf[brain_server_dbs->hash_cnt];
 
     brain_server_db_hash_init (brain_server_db_hash, brain_session);
@@ -2112,6 +2130,13 @@ bool brain_server_read_attack_dumps (brain_server_dbs_t *brain_server_dbs, const
     if (file[18] != 'p') continue;
 
     const u32 brain_attack = byte_swap_32 (hex_to_u32 ((const u8 *) file + 6));
+
+    if (brain_server_dbs->attack_cnt >= BRAIN_SERVER_ATTACKS_MAX)
+    {
+      brain_logging (stderr, 0, "More than %d attack dumps found, the rest are ignored\n", BRAIN_SERVER_ATTACKS_MAX);
+
+      break;
+    }
 
     brain_server_db_attack_t *brain_server_db_attack = &brain_server_dbs->attack_buf[brain_server_dbs->attack_cnt];
 
@@ -2542,9 +2567,12 @@ HC_API_CALL void *brain_server_handle_client (void *p)
     return 0;
   }
 
-  if (passwords_max >= BRAIN_LINK_CANDIDATES_MAX)
+  // passwords_max is signed and decides the size of three allocations. A negative one turns each of
+  // them into an enormous request.
+
+  if ((passwords_max <= 0) || (passwords_max >= BRAIN_LINK_CANDIDATES_MAX))
   {
-    brain_logging (stderr, client_idx, "Too large candidate allocation buffer size\n");
+    brain_logging (stderr, client_idx, "Invalid candidate allocation buffer size\n");
 
     brain_server_dbs->client_slots[client_idx] = 0;
 
@@ -2939,9 +2967,13 @@ HC_API_CALL void *brain_server_handle_client (void *p)
 
       if (brain_recv (client_fd, &in_size, sizeof (in_size), 0, NULL, NULL) == false) break;
 
-      if (in_size == 0)
+      // in_size comes from the peer and is signed. A negative one is below the upper bound rather
+      // than above it, and becomes an enormous size_t at the recv below, which then writes as much
+      // as the peer cares to send past the end of recv_buf.
+
+      if (in_size <= 0)
       {
-        brain_logging (stderr, client_idx, "Zero in_size value\n");
+        brain_logging (stderr, client_idx, "Invalid in_size value\n");
 
         break;
       }
@@ -3642,17 +3674,34 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     char *saveptr = NULL;
 
+    // The loop used to test its condition after the body, so a whitelist of nothing but separators
+    // reached hc_strtoul with a null pointer, and the count was not bounded against the array it
+    // indexes.
+
     char *next = strtok_r (sessions, ",", &saveptr);
 
-    do
+    while (next != NULL)
     {
+      if (session_whitelist_cnt == BRAIN_SERVER_SESSIONS_MAX)
+      {
+        brain_logging (stderr, 0, "The session whitelist holds more than %d sessions\n", BRAIN_SERVER_SESSIONS_MAX);
+
+        hcfree (sessions);
+        hcfree (session_whitelist_buf);
+
+        if (brain_password == NULL) hcfree (auth_password);
+
+        return -1;
+      }
+
       const int session = (const int) hc_strtoul (next, NULL, 16);
 
       session_whitelist_buf[session_whitelist_cnt] = session;
 
       session_whitelist_cnt++;
 
-    } while ((next = strtok_r ((char *) NULL, ",", &saveptr)) != NULL);
+      next = strtok_r ((char *) NULL, ",", &saveptr);
+    }
 
     hcfree (sessions);
   }

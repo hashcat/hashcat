@@ -61,11 +61,8 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
       return false;
     }
 
-    memcpy (&keyboard_layout_mapping[maps_cnt].src_char, token.buf[0], token.len[0]);
-    memcpy (&keyboard_layout_mapping[maps_cnt].dst_char, token.buf[1], token.len[1]);
-
-    keyboard_layout_mapping[maps_cnt].src_len = token.len[0];
-    keyboard_layout_mapping[maps_cnt].dst_len = token.len[1];
+    // The array every caller passes holds 256 entries, and the check for a full one came after the
+    // writes, so a mapping file with 257 lines filled element 256 before giving up.
 
     if (maps_cnt == 256)
     {
@@ -75,6 +72,12 @@ bool initialize_keyboard_layout_mapping (const char *filename, keyboard_layout_m
 
       return false;
     }
+
+    memcpy (&keyboard_layout_mapping[maps_cnt].src_char, token.buf[0], token.len[0]);
+    memcpy (&keyboard_layout_mapping[maps_cnt].dst_char, token.buf[1], token.len[1]);
+
+    keyboard_layout_mapping[maps_cnt].src_len = token.len[0];
+    keyboard_layout_mapping[maps_cnt].dst_len = token.len[1];
 
     maps_cnt++;
   }
@@ -152,6 +155,17 @@ int execute_keyboard_layout_mapping (u32 plain_buf[64], const int plain_len, con
       u32 dst_char = s_keyboard_layout_mapping[idx].dst_char;
       int dst_len  = s_keyboard_layout_mapping[idx].dst_len;
 
+      // A mapping entry may be longer than the character it replaces, so the output grows, and the
+      // only thing that ever leaves this function is the 64 bytes copied back at the end. Ending the
+      // walk here keeps the writes inside out_buf and loses nothing that was ever returned.
+
+      if ((out_len + dst_len) > (int) sizeof (out_buf))
+      {
+        plain_pos = plain_len;
+
+        break;
+      }
+
       switch (dst_len)
       {
         case 1:
@@ -183,6 +197,8 @@ int execute_keyboard_layout_mapping (u32 plain_buf[64], const int plain_len, con
 
     if (src_len == 0)
     {
+      if ((out_len + 1) > (int) sizeof (out_buf)) break;
+
       out_ptr[out_len] = plain_ptr[plain_pos];
 
       out_len++;

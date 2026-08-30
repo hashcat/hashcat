@@ -119,6 +119,11 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // here we have in line_hash_buf: PMK*essid:password
   // but we don't care about the password
 
+  // The 8 reads below take a fixed 64 characters out of the line, and the check that the separator
+  // sits at offset 64 comes after them. A shorter potfile line is read past its end.
+
+  if (line_len < 64) return (PARSER_HASH_LENGTH);
+
   // PMK
 
   wpa_pmk_tmp->out[0] = hex_to_u32 ((const u8 *) line_buf +  0);

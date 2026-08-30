@@ -111,6 +111,13 @@ KERNEL_FQ KERNEL_FA void m28700_mxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
 
     const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but w_t
+    // holds 256 bytes and carries a 4 byte prefix. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if ((c_len + 4) > 256) continue;
+
     u32 w_t[64];
 
     w_t[0] = 0x41575334;
@@ -357,6 +364,13 @@ KERNEL_FQ KERNEL_FA void m28700_sxx (KERN_ATTR_RULES_ESALT (aws4_sig_v4_t))
     // does the plain two piece case the other attack modes need as well.
 
     const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
+
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but w_t
+    // holds 256 bytes and carries a 4 byte prefix. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if ((c_len + 4) > 256) continue;
 
     u32 w_t[64];
 

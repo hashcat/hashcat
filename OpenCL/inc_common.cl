@@ -3024,6 +3024,17 @@ DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw
       u32 dst_char = s_keyboard_layout_mapping_buf[idx].dst_char;
       int dst_len  = s_keyboard_layout_mapping_buf[idx].dst_len;
 
+      // A mapping entry may be longer than the character it replaces, so the output grows, and the
+      // only thing that ever leaves this function is the 128 bytes copied back at the end. Ending
+      // the walk here keeps the writes inside out_buf and loses nothing that was ever returned.
+
+      if ((out_len + dst_len) > (int) sizeof (out_buf))
+      {
+        pw_pos = pw_len;
+
+        break;
+      }
+
       switch (dst_len)
       {
         case 1:
@@ -3055,6 +3066,8 @@ DECLSPEC int hc_execute_keyboard_layout_mapping (PRIVATE_AS u32 *w, const int pw
 
     if (src_len == 0)
     {
+      if ((out_len + 1) > (int) sizeof (out_buf)) break;
+
       out_ptr[out_len] = w_ptr[pw_pos];
 
       out_len++;

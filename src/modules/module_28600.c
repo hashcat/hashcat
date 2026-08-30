@@ -266,18 +266,29 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  u32 salt_buf[8] = { 0 }; // make the buffer large enough for base64_encode ()
+  // module_hash_decode accepts a salt of up to 64 bytes and stores all of it, so the copy here and
+  // the base64 of it both have to be sized for 64 bytes and not for 32
 
-  salt_buf[0] = byte_swap_32 (postgres_sha256->salt[0]);
-  salt_buf[1] = byte_swap_32 (postgres_sha256->salt[1]);
-  salt_buf[2] = byte_swap_32 (postgres_sha256->salt[2]);
-  salt_buf[3] = byte_swap_32 (postgres_sha256->salt[3]);
-  salt_buf[4] = byte_swap_32 (postgres_sha256->salt[4]);
-  salt_buf[5] = byte_swap_32 (postgres_sha256->salt[5]);
-  salt_buf[6] = byte_swap_32 (postgres_sha256->salt[6]);
-  salt_buf[7] = byte_swap_32 (postgres_sha256->salt[7]);
+  u32 salt_buf[16] = { 0 };
 
-  u8 salt_base64[64] = { 0 };
+  salt_buf[ 0] = byte_swap_32 (postgres_sha256->salt[ 0]);
+  salt_buf[ 1] = byte_swap_32 (postgres_sha256->salt[ 1]);
+  salt_buf[ 2] = byte_swap_32 (postgres_sha256->salt[ 2]);
+  salt_buf[ 3] = byte_swap_32 (postgres_sha256->salt[ 3]);
+  salt_buf[ 4] = byte_swap_32 (postgres_sha256->salt[ 4]);
+  salt_buf[ 5] = byte_swap_32 (postgres_sha256->salt[ 5]);
+  salt_buf[ 6] = byte_swap_32 (postgres_sha256->salt[ 6]);
+  salt_buf[ 7] = byte_swap_32 (postgres_sha256->salt[ 7]);
+  salt_buf[ 8] = byte_swap_32 (postgres_sha256->salt[ 8]);
+  salt_buf[ 9] = byte_swap_32 (postgres_sha256->salt[ 9]);
+  salt_buf[10] = byte_swap_32 (postgres_sha256->salt[10]);
+  salt_buf[11] = byte_swap_32 (postgres_sha256->salt[11]);
+  salt_buf[12] = byte_swap_32 (postgres_sha256->salt[12]);
+  salt_buf[13] = byte_swap_32 (postgres_sha256->salt[13]);
+  salt_buf[14] = byte_swap_32 (postgres_sha256->salt[14]);
+  salt_buf[15] = byte_swap_32 (postgres_sha256->salt[15]);
+
+  u8 salt_base64[128] = { 0 };
 
   base64_encode (int_to_base64, (const u8 *) salt_buf, salt->salt_len, salt_base64);
 

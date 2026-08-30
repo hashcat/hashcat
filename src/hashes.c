@@ -1552,6 +1552,15 @@ int hash_encode (const user_options_t *user_options, const hashconfig_t *hashcon
     );
   }
 
+  // Every caller writes a terminator at the length this returns. A module that built its line with
+  // snprintf returns what it would have written rather than what it did, so a hash whose re-encoded
+  // form is longer than the buffer sent that terminator past the end. Clamping here makes it land
+  // inside the buffer whatever the module reported, and the line is truncated either way.
+
+  if (line_len < 0) line_len = 0;
+
+  if (line_len >= out_size) line_len = out_size - 1;
+
   return line_len;
 }
 
@@ -1964,6 +1973,13 @@ int check_hash (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pla
       HCBUFSIZ_LARGE,
       tmps
     );
+
+    // The same clamp hash_encode applies, because this call does not go through it and the module
+    // may report a length longer than the buffer it was given.
+
+    if (out_len < 0) out_len = 0;
+
+    if (out_len >= HCBUFSIZ_LARGE) out_len = HCBUFSIZ_LARGE - 1;
 
     out_buf[out_len] = 0;
   }
@@ -3655,7 +3671,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (user_buf != NULL)
             {
-              user_ptr->user_name = hcstrdup (user_buf);
+              // user_len counts every byte of the line before the separator, and a NUL among them
+              // is one of those bytes. hcstrdup stops at the first NUL, so the buffer and the
+              // length recorded beside it disagreed, and every reader of the pair trusts the
+              // length: potfile_handle_show and potfile_handle_left write a terminator at
+              // user_name[user_len] and outfile_write copies user_len bytes out.
+
+              user_ptr->user_name = (char *) hcmalloc (user_len + 1);
+
+              memcpy (user_ptr->user_name, user_buf, user_len);
+
+              user_ptr->user_name[user_len] = 0;
             }
             else
             {
@@ -3864,7 +3890,13 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
         if (line_len == 0) continue;
 
-        if (hashes_avail == hashes_cnt)
+        // A split hash makes two entries out of one line, so the room for both has to be there
+        // before the line is parsed. Testing for one left the array one entry short of what the
+        // line could add.
+
+        const u64 hashes_need = (hashconfig->opts_type & OPTS_TYPE_HASH_SPLIT) ? 2 : 1;
+
+        if ((hashes_avail - hashes_cnt) < hashes_need)
         {
           event_log_warning (hashcat_ctx, "Hashfile '%s' on line %u: File changed during runtime. Skipping new data.", hashes->hashfile, line_num);
 
@@ -3927,7 +3959,17 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
 
             if (user_buf != NULL)
             {
-              user_ptr->user_name = hcstrdup (user_buf);
+              // user_len counts every byte of the line before the separator, and a NUL among them
+              // is one of those bytes. hcstrdup stops at the first NUL, so the buffer and the
+              // length recorded beside it disagreed, and every reader of the pair trusts the
+              // length: potfile_handle_show and potfile_handle_left write a terminator at
+              // user_name[user_len] and outfile_write copies user_len bytes out.
+
+              user_ptr->user_name = (char *) hcmalloc (user_len + 1);
+
+              memcpy (user_ptr->user_name, user_buf, user_len);
+
+              user_ptr->user_name[user_len] = 0;
             }
             else
             {
@@ -5107,7 +5149,13 @@ int hashes_init_stage5 (hashcat_ctx_t *hashcat_ctx)
 
     if ((extra_tmp_size & (1ULL << 62)) || (extra_tmp_size & (1ULL << 63)))
     {
-      const u64 salt_pos = extra_tmp_size & 0xffffffff;
+      u64 salt_pos = extra_tmp_size & 0xffffffff;
+
+      // The module packs a salt index into the low bits of what it returns and hash_encode indexes
+      // salts_buf with it. A hash that makes the module report an index it does not have read past
+      // that array, and what came back was printed in the message below.
+
+      if (salt_pos >= hashes->salts_cnt) salt_pos = 0;
 
       char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 

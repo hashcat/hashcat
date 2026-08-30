@@ -116,6 +116,12 @@ KERNEL_FQ KERNEL_FA void m34211_mxx (KERN_ATTR_BASIC ())
       combs_copy_bytes (combined_buf, pws[gid].pw_len, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
     }
 
+    // combined_buf holds 256 bytes. The two words are each bounded at 256 on their own and nothing
+    // bounds their sum, so a long pair left comb_len past the end of the buffer that the hash below
+    // then reads. The copies above are clamped, so only the length was ever wrong.
+
+    if (comb_len > 256) continue;
+
     u32 hash = MurmurHash64A_truncated (comb_ptr, comb_len);
 
     const u32 z = 0;
@@ -185,6 +191,12 @@ KERNEL_FQ KERNEL_FA void m34211_sxx (KERN_ATTR_BASIC ())
     {
       combs_copy_bytes (combined_buf, pws[gid].pw_len, combs_buf[il_pos].i, combs_buf[il_pos].pw_len);
     }
+
+    // combined_buf holds 256 bytes. The two words are each bounded at 256 on their own and nothing
+    // bounds their sum, so a long pair left comb_len past the end of the buffer that the hash below
+    // then reads. The copies above are clamped, so only the length was ever wrong.
+
+    if (comb_len > 256) continue;
 
     u32 hash = MurmurHash64A_truncated (comb_ptr, comb_len);
 

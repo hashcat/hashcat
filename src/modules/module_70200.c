@@ -119,6 +119,23 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   salt->scrypt_r = hc_strtoul ((const char *) r_pos, NULL, 10);
   salt->scrypt_p = hc_strtoul ((const char *) p_pos, NULL, 10);
 
+  // The per candidate scratch buffer is a fixed 128 * SCRYPT_R_MAX * SCRYPT_P_MAX bytes, and the
+  // bridge walks it as 128 * r * p using the numbers on the hash line. Neither was checked against
+  // that size, so a hash asking for a larger r or p ran the mixer off the end of the buffer. An N of
+  // 0 passes the modulo below and then underflows the block counter inside the mixer.
+
+  if (salt->scrypt_N < 1) return (PARSER_SALT_VALUE);
+  if (salt->scrypt_r < 1) return (PARSER_SALT_VALUE);
+  if (salt->scrypt_p < 1) return (PARSER_SALT_VALUE);
+
+  if (salt->scrypt_r > SCRYPT_R_MAX) return (PARSER_SALT_VALUE);
+  if (salt->scrypt_p > SCRYPT_P_MAX) return (PARSER_SALT_VALUE);
+
+  // salt_iter below is a u32 and is the product of these three, so refuse an N that cannot be
+  // multiplied out rather than storing a wrapped iteration count.
+
+  if (salt->scrypt_N > (0xffffffff / (2 * salt->scrypt_p))) return (PARSER_SALT_VALUE);
+
   salt->salt_iter = 1;
 
   if (salt->scrypt_N % 1024) return (PARSER_SALT_VALUE); // we set loop count to 1024 fixed
@@ -145,7 +162,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int digest_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
-  // digest_len should be safe because of 88 limit
+  // the token is allowed 88 base64 characters, and 88 of them without padding decode to 66 bytes,
+  // which is 2 more than the digest holds. The length the decode produced is what has to be checked.
+
+  if (digest_len > (int) DGST_SIZE) return (PARSER_HASH_LENGTH);
 
   memcpy (digest, tmp_buf, digest_len);
 

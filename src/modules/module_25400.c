@@ -397,8 +397,15 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   pdf->R = R;
   pdf->P = P;
 
-  memcpy ( pdf->u_pass_buf, u_pass_buf_pos, 32);
-  pdf->u_pass_len = strlen ((char *) pdf->u_pass_buf);
+  // the user password is the last token and may be anything from 0 to 32 characters, so copying a
+  // fixed 32 reads past the end of the line and puts whatever followed it into the esalt, which
+  // module_hash_encode then prints back out
+
+  const int u_pass_len = token.len[12];
+
+  memcpy (pdf->u_pass_buf, u_pass_buf_pos, u_pass_len);
+
+  pdf->u_pass_len = u_pass_len;
 
   pdf->enc_md = enc_md;
 
@@ -577,9 +584,9 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (pdf->id_len == 32)
   {
-    const char *line_format = "$pdf$%d*%d*%d*%u*%d*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s";
+    const char *line_format = "$pdf$%d*%d*%d*%u*%d*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%.*s";
 
-    if (pdf->P_minus == 1) line_format = "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s";
+    if (pdf->P_minus == 1) line_format = "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%.*s";
 
     line_len = snprintf (line_buf, line_size, line_format,
       pdf->V,
@@ -614,14 +621,19 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       byte_swap_32 (pdf->o_buf[5]),
       byte_swap_32 (pdf->o_buf[6]),
       byte_swap_32 (pdf->o_buf[7]),
+      // u_pass_buf is 32 bytes and the parser accepts a user password of exactly 32, which fills it
+      // with no terminator, so %s read the byte after the array and printed it into the line. The
+      // length the parser measured is printed instead.
+
+      pdf->u_pass_len,
       (const char *) pdf->u_pass_buf // TODO just prints the old hash now, we don't edit the hash to add a recovered user-password to it (yet)
     );
   }
   else
   {
-    const char *line_format = "$pdf$%d*%d*%d*%u*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s";
+    const char *line_format = "$pdf$%d*%d*%d*%u*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%.*s";
 
-    if (pdf->P_minus == 1) line_format = "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%s";
+    if (pdf->P_minus == 1) line_format = "$pdf$%d*%d*%d*%d*%d*%d*%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x*%d*%08x%08x%08x%08x%08x%08x%08x%08x%.*s";
 
     line_len = snprintf (line_buf, line_size, line_format,
       pdf->V,
@@ -652,6 +664,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
       byte_swap_32 (pdf->o_buf[5]),
       byte_swap_32 (pdf->o_buf[6]),
       byte_swap_32 (pdf->o_buf[7]),
+      // u_pass_buf is 32 bytes and the parser accepts a user password of exactly 32, which fills it
+      // with no terminator, so %s read the byte after the array and printed it into the line. The
+      // length the parser measured is printed instead.
+
+      pdf->u_pass_len,
       (const char *) pdf->u_pass_buf // TODO just prints the old hash now, we don't edit the hash to add a recovered user-password to it (yet)
     );
   }

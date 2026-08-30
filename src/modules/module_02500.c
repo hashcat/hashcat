@@ -11,6 +11,7 @@
 #include "shared.h"
 #include "filehandling.h"
 #include "memory.h"
+#include "limits.h"
 
 #define DGST_ELEM 4
 
@@ -250,6 +251,11 @@ int module_hash_decode_potfile (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
   // here we have in line_hash_buf: PMK*essid:password
   // but we don't care about the password
 
+  // The 8 reads below take a fixed 64 characters out of the line, and the check that the separator
+  // sits at offset 64 comes after them. A shorter potfile line is read past its end.
+
+  if (line_len < 64) return (PARSER_HASH_LENGTH);
+
   // PMK
 
   wpa_pbkdf2_tmp->out[0] = hex_to_u32 ((const u8 *) line_buf +  0);
@@ -467,11 +473,35 @@ int module_hash_binary_parse (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
 
 int module_hash_binary_count (MAYBE_UNUSED const hashes_t *hashes)
 {
-  struct stat st;
+  // stat () measures the file on disk, and hc_fopen () transparently decompresses gzip, xz and zstd.
+  // A compressed hash file therefore holds far more records than its size on disk suggests, and the
+  // count decides how many hash entries are allocated for module_hash_binary_parse () to fill.
+  // Counting the records the same way the parse reads them keeps the two in step.
 
-  if (stat (hashes->hashfile, &st) == -1) return (PARSER_HAVE_ERRNO);
+  HCFILE fp;
 
-  return st.st_size / sizeof (hccapx_t);
+  if (hc_fopen (&fp, hashes->hashfile, "rb") == false) return (PARSER_HAVE_ERRNO);
+
+  char *in = (char *) hcmalloc (sizeof (hccapx_t));
+
+  u64 count = 0;
+
+  while (hc_feof (&fp) == false)
+  {
+    const size_t nread = hc_fread (in, sizeof (hccapx_t), 1, &fp);
+
+    if (nread == 0) break;
+
+    count++;
+
+    if (count == INT_MAX) break;
+  }
+
+  hcfree (in);
+
+  hc_fclose (&fp);
+
+  return (int) count;
 }
 
 u32 module_deep_comp_kernel (MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const u32 salt_pos, MAYBE_UNUSED const u32 digest_pos)
@@ -602,6 +632,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   wpa_eapol_t *wpa_eapol = (wpa_eapol_t *) esalt_buf;
 
   // the *wpa was partially initialized beforehand, we can not simply memset it to zero
+
+  // module_hash_binary_parse is the only caller today and it always hands over a full record, but
+  // the copy takes a fixed size out of the line either way, so the length is checked here rather
+  // than assumed
+
+  if (line_len < (int) sizeof (hccapx_t)) return (PARSER_HASH_LENGTH);
 
   hccapx_t in;
 

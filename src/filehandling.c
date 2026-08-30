@@ -1510,6 +1510,13 @@ u64 count_lines (HCFILE *fp)
   {
     const size_t nread = hc_fread (buf, sizeof (char), HCBUFSIZ_LARGE, fp);
 
+    // A decode error is reported as (size_t) -1, which is not a length. The scan below would take it
+    // as one and walk the whole address space looking for a line ending, and a corrupt .gz is enough
+    // to get here. What was counted so far is what the file holds up to the point it stopped
+    // decoding, which is the same answer every other reader gives for that file.
+
+    if (nread == (size_t) -1) break;
+
     if (nread < 1) continue;
 
     any = true;
@@ -1731,9 +1738,26 @@ char *file_to_buffer (const char *filename)
 
     char *buffer = malloc (st.st_size + 1);
 
+    if (buffer == NULL)
+    {
+      hc_fclose (&fp);
+
+      return NULL;
+    }
+
     const size_t nread = hc_fread (buffer, 1, st.st_size, &fp);
 
     hc_fclose (&fp);
+
+    // (size_t) -1 is a decode error rather than a length, and using it as one writes the terminator
+    // at the end of the address space
+
+    if (nread == (size_t) -1)
+    {
+      free (buffer);
+
+      return NULL;
+    }
 
     buffer[nread] = 0;
 

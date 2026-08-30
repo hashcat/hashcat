@@ -141,7 +141,10 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int digest_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
 
-  // digest_len should be safe because of 88 limit
+  // the token is allowed 88 base64 characters, and 88 of them without padding decode to 66 bytes,
+  // which is 2 more than the digest holds. The length the decode produced is what has to be checked.
+
+  if (digest_len > (int) DGST_SIZE) return (PARSER_HASH_LENGTH);
 
   memcpy (digest, tmp_buf, digest_len);
 

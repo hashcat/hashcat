@@ -105,6 +105,13 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_BASIC ())
 
       const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
+
       u32 otp_code0;
 
       _totp_calculate (&otp_code0, c, c_len, s, 8);
@@ -123,6 +130,13 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_BASIC ())
       // does the plain two piece case the other attack modes need as well.
 
       const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
+
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
 
       u32 otp_code0, otp_code1;
 
@@ -144,6 +158,13 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_BASIC ())
 
       const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
+
       u32 otp_code0, otp_code1, otp_code2;
 
       _totp_calculate (&otp_code0, c, c_len, s +  0, 8);
@@ -164,6 +185,13 @@ KERNEL_FQ KERNEL_FA void m18100_mxx (KERN_ATTR_BASIC ())
       // does the plain two piece case the other attack modes need as well.
 
       const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
+
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
 
       u32 otp_code0, otp_code1, otp_code2, otp_code3;
 
@@ -239,6 +267,13 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_BASIC ())
 
       const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
+
       u32 otp_code0;
 
       _totp_calculate (&otp_code0, c, c_len, s, 8);
@@ -257,6 +292,13 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_BASIC ())
       // does the plain two piece case the other attack modes need as well.
 
       const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
+
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
 
       u32 otp_code0, otp_code1;
 
@@ -281,6 +323,13 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_BASIC ())
       // does the plain two piece case the other attack modes need as well.
 
       const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
+
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
 
       u32 otp_code0, otp_code1, otp_code2;
 
@@ -310,6 +359,13 @@ KERNEL_FQ KERNEL_FA void m18100_sxx (KERN_ATTR_BASIC ())
       // does the plain two piece case the other attack modes need as well.
 
       const u32 c_len = combs_assemble_1x64_be_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
+
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
 
       u32 otp_code0, otp_code1, otp_code2, otp_code3;
 

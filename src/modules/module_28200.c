@@ -169,6 +169,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
 
+  // module_hash_encode stages the salt in 32 bytes on the stack and asks base64_encode for salt_len
+  // of them, so a salt longer than that is read out of the end of that array. 44 base64 characters
+  // decode to 32 bytes with padding and to 33 without it.
+
+  if (tmp_len > 32) return (PARSER_SALT_LENGTH);
+
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
 
   //for (int i = 0; i < 8; i++) salt->salt_buf[i] = byte_swap_32 (salt->salt_buf[i]);
@@ -185,6 +191,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_len = base64_decode (base64_to_int, iv_pos, iv_len, tmp_buf);
 
+  if (tmp_len > (int) sizeof (exodus->iv)) return (PARSER_HASH_LENGTH);
+
   memcpy (exodus->iv, tmp_buf, tmp_len);
 
   for (int i = 0; i < 4; i++) exodus->iv[i] = byte_swap_32 (exodus->iv[i]);
@@ -198,6 +206,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   tmp_len = base64_decode (base64_to_int, data_pos, data_len, tmp_buf);
 
+  // base64 without padding decodes longer than base64 with it, so the length the decode produced
+  // is what has to be checked and not the length of the token
+
+  if (tmp_len > (int) sizeof (exodus->data)) return (PARSER_HASH_LENGTH);
+
   memcpy (exodus->data, tmp_buf, tmp_len);
 
   for (int i = 0; i < 8; i++) exodus->data[i] = byte_swap_32 (exodus->data[i]);
@@ -210,6 +223,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memset (tmp_buf, 0, sizeof (tmp_buf));
 
   tmp_len = base64_decode (base64_to_int, tag_pos, tag_len, tmp_buf);
+
+  if (tmp_len > (int) sizeof (exodus->tag)) return (PARSER_HASH_LENGTH);
 
   memcpy (exodus->tag, tmp_buf, tmp_len);
 

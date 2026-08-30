@@ -674,7 +674,7 @@ static int mp_gen_css (hashcat_ctx_t *hashcat_ctx, char *mask_buf, size_t mask_l
   return 0;
 }
 
-static int mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, const size_t mask_len, const u32 len, char *new_mask_buf)
+static int mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask_buf, const size_t mask_len, const u32 len, char *new_mask_buf, const size_t new_mask_sz)
 {
   const hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
@@ -685,6 +685,16 @@ static int mp_get_truncated_mask (hashcat_ctx_t *hashcat_ctx, const char *mask_b
   for (mask_pos = 0, css_pos = 0; mask_pos < mask_len; mask_pos++, css_pos++)
   {
     if (css_pos == len) break;
+
+    // the mask comes from a mask file and its length is not checked against the buffer anywhere on
+    // the way here, and the two character forms below write at mask_pos + 1 as well
+
+    if ((mask_pos + 2) > new_mask_sz)
+    {
+      event_log_error (hashcat_ctx, "Mask is too long: %s", mask_buf);
+
+      return -1;
+    }
 
     char p0 = mask_buf[mask_pos];
 
@@ -784,6 +794,19 @@ static int mp_setup_usr (hashcat_ctx_t *hashcat_ctx, cs_t *mp_sys, cs_t *mp_usr,
     char mp_file[1024];
 
     const size_t nread = hc_fread (mp_file, 1, sizeof (mp_file) - 1, &fp);
+
+    // (size_t) -1 is a decode error rather than a length, and mp_file[nread] below would write the
+    // terminator at the end of the address space. hc_feof happens to catch this today, because a
+    // stream that stopped decoding is not at its end, but the terminator does not depend on that.
+
+    if (nread == (size_t) -1)
+    {
+      event_log_error (hashcat_ctx, "%s: Custom charset file could not be read.", buf);
+
+      hc_fclose (&fp);
+
+      return -1;
+    }
 
     if (!hc_feof (&fp))
     {
@@ -1698,7 +1721,11 @@ static char* reverseMask (const char *mask, const char *prepend)
   u32 maskLength = strlen (mask);
   u32 prependLength = strlen (prepend);
 
-  char *tmp_buf = (char *) hcmalloc (256);
+  // The buffer was a fixed 256 bytes while both loops below index by the lengths of the two strings
+  // they are given, and a mask file line can carry more than that. The prepend copy writes
+  // prependLength + 1 bytes and the reversal writes maskLength, so the buffer holds both.
+
+  char *tmp_buf = (char *) hcmalloc (maskLength + prependLength + 2);
 
   u32 i = 0;
 
@@ -1754,7 +1781,10 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
 
     for (u32 increment_len = increment_min; increment_len <= increment_max; increment_len++)
     {
-      char *mask_truncated = (char *) hcmalloc (256);
+      // 256 usable bytes and one more for a terminator. mp_get_truncated_mask fills the usable part
+      // and the callers below run strlen over the result, so the last byte has to stay zero.
+
+      char *mask_truncated = (char *) hcmalloc (256 + 1);
 
       char *mask_truncated_next = mask_truncated;
 
@@ -1762,12 +1792,26 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
       {
         // this happens with maskfiles only
 
-        mask_truncated_next += snprintf (mask_truncated, 256, "%s,", prepend);
+        // snprintf returns what it would have written, so a long prefix from a mask file moved the
+        // cursor past the end of the buffer before anything else was written into it
+
+        const int prepend_len = snprintf (mask_truncated, 256, "%s,", prepend);
+
+        if ((prepend_len < 0) || (prepend_len >= 256))
+        {
+          event_log_error (hashcat_ctx, "Mask is too long: %s", mask);
+
+          hcfree (mask_truncated);
+
+          break;
+        }
+
+        mask_truncated_next += prepend_len;
       }
 
       if (user_options->increment == INCREMENT_INVERSED)
       {
-        if (mp_get_truncated_mask (hashcat_ctx, reverseMask (mask, ""), strlen (mask), increment_len, mask_truncated_next) == -1)
+        if (mp_get_truncated_mask (hashcat_ctx, reverseMask (mask, ""), strlen (mask), increment_len, mask_truncated_next, 256 - (size_t) (mask_truncated_next - mask_truncated)) == -1)
         {
           hcfree (mask_truncated);
 
@@ -1785,7 +1829,7 @@ static int mask_append (hashcat_ctx_t *hashcat_ctx, const char *mask, const char
       }
       else
       {
-        if (mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len, mask_truncated_next) == -1)
+        if (mp_get_truncated_mask (hashcat_ctx, mask, strlen (mask), increment_len, mask_truncated_next, 256 - (size_t) (mask_truncated_next - mask_truncated)) == -1)
         {
           hcfree (mask_truncated);
 
@@ -3213,6 +3257,17 @@ int mask_ctx_parse_maskfile (hashcat_ctx_t *hashcat_ctx)
   for (size_t i = 0; i < mask_len; i++)
   {
     mf_t *mf = mfs_buf + mfs_cnt;
+
+    // mf_len is the int that sits directly after mf_buf in the same struct, so a write past the end
+    // of the buffer lands on the index itself and every write after that goes wherever those bytes
+    // say. The room for the terminator written after the loop is kept as well.
+
+    if (mf->mf_len >= (int) (sizeof (mf->mf_buf) - 1))
+    {
+      event_log_error (hashcat_ctx, "Invalid line '%s' in maskfile.", mask_buf);
+
+      return -1;
+    }
 
     if (escaped == true)
     {

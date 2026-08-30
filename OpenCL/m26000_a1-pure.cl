@@ -121,6 +121,13 @@ KERNEL_FQ KERNEL_FA void m26000_mxx (KERN_ATTR_ESALT (mozilla_3des_t))
 
     const u32 c_len = combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
 
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
+
     // my $hp = sha1 ($global_salt_bin . $word);
 
     sha1_ctx_t ctx0;
@@ -485,6 +492,13 @@ KERNEL_FQ KERNEL_FA void m26000_sxx (KERN_ATTR_ESALT (mozilla_3des_t))
     // does the plain two piece case the other attack modes need as well.
 
     const u32 c_len = combs_assemble_1x64_le_S (combs_buf, il_pos, COMBS_MODE, w, pw_len, c);
+
+    // Each of the two words is bounded at 256 bytes on its own and nothing bounds their sum, but c
+    // holds 256 bytes. A pair longer than that cannot be represented here in any case, because
+    // switch_buffer_by_offset_1x64_le_S matches no case past the end and the second word would land
+    // at offset 0, so the candidate is skipped rather than clamped.
+
+    if (c_len > 256) continue;
 
     // my $hp = sha1 ($global_salt_bin . $word);
 

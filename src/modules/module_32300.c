@@ -161,6 +161,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   const u8 *empire_salt2 = (const u8 *) "d)i.g^o-d";
   const u32 empire_salt2_len = strlen ((const char *) empire_salt2);
 
+  // both salts come out of the line and the token framework lets either reach SALT_MAX, so appending
+  // a fixed string to one and prefixing the other runs past the member unless there is room
+
+  if ((md5_triple_salt->salt2_len + empire_salt1_len) > sizeof (md5_triple_salt->salt2_buf)) return (PARSER_SALT_LENGTH);
+  if ((empire_salt2_len + md5_triple_salt->salt1_len) > sizeof (md5_triple_salt->salt3_buf)) return (PARSER_SALT_LENGTH);
+
   memcpy ((u8 *) md5_triple_salt->salt2_buf + md5_triple_salt->salt2_len, empire_salt1, empire_salt1_len);
 
   md5_triple_salt->salt2_len += empire_salt1_len;

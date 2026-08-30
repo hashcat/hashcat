@@ -214,7 +214,11 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   const int md5_max_len = 4 * 64;
 
-  if (md5_len >= md5_max_len) return (PARSER_SALT_LENGTH);
+  // the concatenation below writes one separator after URI_resource that md5_len does not count,
+  // and hc_strncat writes a terminator after the last byte it copied, so the buffer has to hold
+  // md5_len + 2
+
+  if ((md5_len + 2) > md5_max_len) return (PARSER_SALT_LENGTH);
 
   u32 tmp_md5_buf[64] = { 0 };
 

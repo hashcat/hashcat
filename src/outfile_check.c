@@ -177,7 +177,10 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
       hc_fseek (&fp, out_info[j].seek, SEEK_SET);
 
-      char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
+      // one byte more than fgetl will ever fill, so the fake separator written after the line still
+      // leaves room for a terminator
+
+      char *line_buf = (char *) hcmalloc (HCBUFSIZ_LARGE + 1);
 
       // large portion of the following code is the same as in potfile_remove_parse
       // maybe subject of a future optimization
@@ -193,6 +196,11 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
         line_buf[line_len] = separator;
 
         line_len++;
+
+        // strrchr below walks to a terminator, and the separator has just taken the place where
+        // fgetl left one. The buffer carries a spare byte for this.
+
+        line_buf[line_len] = 0;
 
         for (int tries = 0; tries < PW_MAX; tries++)
         {

@@ -106,6 +106,11 @@ const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN
 
 #define PCFG_MAXTOK   24
 #define PCFG_MAXSLOT  (PCFG_MAXTOK * 2)
+
+// How many distinct terminal lists one ruleset may bring. The cache that maps a (type, length) key
+// to a loaded list is indexed by the list number, so the two have to agree.
+
+#define PCFG_LIST_CACHE 4096
 #define PCFG_COSTCAP  64
 
 #define PCFG_MAXROOT  16
@@ -361,15 +366,20 @@ typedef struct
 
   u32 devstart;
 
+  // These are indexed by the token number, and a structure's token count is bounded by its slot
+  // count rather than by PCFG_MAXTOK: a token of one slot gives one token per slot, so a structure
+  // at the PCFG_MAXSLOT limit has that many tokens. Sizing them for slots costs a few hundred bytes
+  // per thread and removes the mismatch.
+
   u32  tcnt;
-  u32  tslot[PCFG_MAXTOK];
-  u32  tba[PCFG_MAXTOK];
-  u32  tbm[PCFG_MAXTOK];
-  u32  trem[PCFG_MAXTOK];
-  u32  tcap[PCFG_MAXTOK];
-  u32  tfcap[PCFG_MAXTOK];
-  bool tdev[PCFG_MAXTOK];
-  u64  te[PCFG_MAXTOK];
+  u32  tslot[PCFG_MAXSLOT];
+  u32  tba[PCFG_MAXSLOT];
+  u32  tbm[PCFG_MAXSLOT];
+  u32  trem[PCFG_MAXSLOT];
+  u32  tcap[PCFG_MAXSLOT];
+  u32  tfcap[PCFG_MAXSLOT];
+  bool tdev[PCFG_MAXSLOT];
+  u64  te[PCFG_MAXSLOT];
 
   struct pcfg_pf *pf;
 
@@ -1478,6 +1488,23 @@ static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale,
 
     const u32 vlen = m->ent[i].len;
 
+    // Every offset into a terminal list is a u32, here and in the reordered copy further down and in
+    // the bucket tables built from it, while the backing buffer is sized from a u64. A ruleset whose
+    // kept terminals sum past 4 GiB wrapped the running offset, so the reordered buffer was sized
+    // from the remainder and the copy into it walked far past the allocation.
+
+    if (vlen > (0xffffffff - t->off[t->cnt]))
+    {
+      hcfree (cost);
+      hcfree (t->off);
+      hcfree (t->buf);
+
+      t->off = NULL;
+      t->buf = NULL;
+
+      return -1;
+    }
+
     memcpy (t->buf + t->off[t->cnt], m->buf + m->ent[i].off, vlen);
 
     cost[t->cnt] = (u32) c;
@@ -1775,6 +1802,10 @@ static int list_get (pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroo
 
   snprintf (rel, sizeof (rel), "%s/%u.txt", dir, type_is_flat (t) ? 1 : len);
 
+  // cache holds PCFG_LIST_CACHE entries and is indexed by lists_cnt, which grows with the ruleset
+
+  if (pg->lists_cnt >= PCFG_LIST_CACHE) return -1;
+
   pcfg_tlist_t tmp;
 
   memset (&tmp, 0, sizeof (tmp));
@@ -1991,9 +2022,9 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   if (nroots > 1) merge_sort (&gm);
 
-  int *cache = (int *) hcmalloc (4096 * sizeof (int));
+  int *cache = (int *) hcmalloc (PCFG_LIST_CACHE * sizeof (int));
 
-  for (int i = 0; i < 4096; i++) cache[i] = -1;
+  for (int i = 0; i < PCFG_LIST_CACHE; i++) cache[i] = -1;
 
   size_t cap = 1024;
 

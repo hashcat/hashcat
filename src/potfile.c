@@ -780,36 +780,49 @@ int potfile_handle_show (hashcat_ctx_t *hashcat_ctx)
 
         tmp_buf[0] = 0;
 
+        // The two halves of a split hash are joined here. Both lengths come out of the potfile and
+        // neither is clamped on the way in, so each copy takes only the room that is left. A half
+        // hashcat wrote is at most 7 characters and MASKED_PLAIN is 10, so 20 is exactly enough for
+        // anything a clean run produces and nothing legitimate is shortened.
+
         u8 mixed_buf[20] = { 0 };
 
-        u8 mixed_len = 0;
+        size_t mixed_len = 0;
 
         if (digests_shown[hashes_idx] == 1)
         {
-          memcpy (mixed_buf + mixed_len, hash1->pw_buf, hash1->pw_len);
+          const size_t take = MIN ((size_t) hash1->pw_len, sizeof (mixed_buf) - mixed_len);
 
-          mixed_len += hash1->pw_len;
+          memcpy (mixed_buf + mixed_len, hash1->pw_buf, take);
+
+          mixed_len += take;
         }
         else
         {
-          memcpy (mixed_buf + mixed_len, MASKED_PLAIN, strlen (MASKED_PLAIN));
+          const size_t take = MIN (strlen (MASKED_PLAIN), sizeof (mixed_buf) - mixed_len);
 
-          mixed_len += strlen (MASKED_PLAIN);
+          memcpy (mixed_buf + mixed_len, MASKED_PLAIN, take);
+
+          mixed_len += take;
         }
 
         if (hash2)
         {
           if (digests_shown[split_neighbor] == 1)
           {
-            memcpy (mixed_buf + mixed_len, hash2->pw_buf, hash2->pw_len);
+            const size_t take = MIN ((size_t) hash2->pw_len, sizeof (mixed_buf) - mixed_len);
 
-            mixed_len += hash2->pw_len;
+            memcpy (mixed_buf + mixed_len, hash2->pw_buf, take);
+
+            mixed_len += take;
           }
           else
           {
-            memcpy (mixed_buf + mixed_len, MASKED_PLAIN, strlen (MASKED_PLAIN));
+            const size_t take = MIN (strlen (MASKED_PLAIN), sizeof (mixed_buf) - mixed_len);
 
-            mixed_len += strlen (MASKED_PLAIN);
+            memcpy (mixed_buf + mixed_len, MASKED_PLAIN, take);
+
+            mixed_len += take;
           }
         }
 

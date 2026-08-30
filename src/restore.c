@@ -343,7 +343,11 @@ static int read_restore (hashcat_ctx_t *hashcat_ctx, const bool with_argv, const
     return -1;
   }
 
-  rd->argv = (char **) hccalloc (rd->argc, sizeof (char *));
+  // One more than argc, left as the NULL the C runtime puts at argv[argc] for main. Code that walks
+  // this array reads that element when there are no positional arguments left, and a restore file
+  // can say there are none.
+
+  rd->argv = (char **) hccalloc (rd->argc + 1, sizeof (char *));
 
   char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 

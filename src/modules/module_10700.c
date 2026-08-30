@@ -339,6 +339,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   if (u_len < 40) return (PARSER_SALT_VALUE);
 
+  // u_len is a field of its own and says nothing about how long the token that follows it is. The
+  // check and the loop below both read a fixed 80 characters out of that token, which the token
+  // framework allows to be as short as nothing, so its own length is what has to be checked.
+
+  if (token.len[9] < 80) return (PARSER_SALT_LENGTH);
+
   if (is_valid_hex_string (u_buf_pos, 80) == false) return (PARSER_SALT_ENCODING);
 
   for (int i = 0, j = 0; i < 8 + 2; i += 1, j += 8)

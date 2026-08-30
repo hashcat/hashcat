@@ -1520,11 +1520,18 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
 
       case RULE_OP_REJECT_EQUAL_FIRST:
         NEXT_RULEPOS (rule_pos);
+
+        // a candidate an earlier function reduced to nothing has no first and no last character,
+        // so both rejects turn it away. out[out_len - 1] reads the byte before the buffer, and
+        // out[0] reads a byte memcpy never wrote.
+
+        if (out_len == 0) return (RULE_RC_REJECT_ERROR);
         if (out[0] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
         break;
 
       case RULE_OP_REJECT_EQUAL_LAST:
         NEXT_RULEPOS (rule_pos);
+        if (out_len == 0) return (RULE_RC_REJECT_ERROR);
         if (out[out_len - 1] != rule_new[rule_pos]) return (RULE_RC_REJECT_ERROR);
         break;
 
@@ -1689,6 +1696,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
             if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
+            if (out_len == 0) return (RULE_RC_REJECT_ERROR);
             switch (rule_new[rule_pos])
             {
               case '?':
@@ -1729,6 +1737,7 @@ int _old_apply_rule (const char *rule, int rule_len, char in[RP_PASSWORD_SIZE], 
             if (rule_new[rule_pos] != '?') return (RULE_RC_SYNTAX_ERROR);
 
             NEXT_RULEPOS (rule_pos);
+            if (out_len == 0) return (RULE_RC_REJECT_ERROR);
             switch (rule_new[rule_pos])
             {
               case '?':

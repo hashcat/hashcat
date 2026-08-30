@@ -287,7 +287,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // salt
 
-  char tmp_salt[SALT_MAX * 2];
+  char tmp_salt[(SALT_MAX * 2) + 1];
 
   memcpy (tmp_salt, salt->salt_buf, salt->salt_len);
 

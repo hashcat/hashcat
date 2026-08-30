@@ -303,7 +303,11 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   u32 engineID_len = snmpv3->engineID_len;
 
-  while (engineID_buf_tmp[engineID_len] == 0x00) engineID_len--;
+  // engineID_buf is zeroed and only engineID_len bytes are written into it, so the byte at
+  // engineID_len is always zero and the walk always takes at least one step. An engine ID that is
+  // all zero bytes walks the unsigned index below zero and reads 4 GB past the esalt.
+
+  while ((engineID_len > 0) && (engineID_buf_tmp[engineID_len] == 0x00)) engineID_len--;
 
   engineID_len++;
 

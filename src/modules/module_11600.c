@@ -623,9 +623,27 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   seven_zip->crc = crc;
 
+  // The data field is stored as u32 words of 8 hex characters each. Its length is only checked
+  // against data_len, which makes it even but not a multiple of 8, so a short last word left
+  // hex_to_u32 reading the characters that follow the token. The tail is padded instead. Real 7-Zip
+  // data is a whole number of AES blocks, so no hash that parses today reaches the second branch.
+
   for (int i = 0, j = 0; j < data_buf_len; i += 1, j += 8)
   {
-    seven_zip->data_buf[i] = hex_to_u32 (data_buf_pos + j);
+    const int rem = data_buf_len - j;
+
+    if (rem >= 8)
+    {
+      seven_zip->data_buf[i] = hex_to_u32 (data_buf_pos + j);
+
+      continue;
+    }
+
+    u8 tmp_buf[8] = { '0', '0', '0', '0', '0', '0', '0', '0' };
+
+    memcpy (tmp_buf, data_buf_pos + j, rem);
+
+    seven_zip->data_buf[i] = hex_to_u32 (tmp_buf);
   }
 
   seven_zip->data_len = data_len;

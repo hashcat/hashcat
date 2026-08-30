@@ -178,9 +178,20 @@ bool is_hexify (const u8 *buf, const size_t len)
 
 size_t exec_unhexify (const u8 *in_buf, const size_t in_len, u8 *out_buf, const size_t out_sz)
 {
+  // out_sz says how much room there is and was used only for the memset below. Two hex characters
+  // become one byte, so a $HEX[] run longer than twice the destination wrote past it, and the
+  // memset then took a negative remainder as an enormous length.
+
+  if (in_len < 6)
+  {
+    memset (out_buf, 0, out_sz);
+
+    return 0;
+  }
+
   size_t i, j;
 
-  for (i = 0, j = 5; j < in_len - 1; i += 1, j += 2)
+  for (i = 0, j = 5; (j < (in_len - 1)) && (i < out_sz); i += 1, j += 2)
   {
     const u8 c = hex_to_u8 (&in_buf[j]);
 

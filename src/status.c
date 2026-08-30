@@ -391,7 +391,15 @@ char *status_get_hash_target (const hashcat_ctx_t *hashcat_ctx)
     {
       char *tmp_buf = (char *) hcmalloc (HCBUFSIZ_LARGE);
 
-      const int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, hashes->hook_salts_buf, NULL, tmp_buf, HCBUFSIZ_LARGE);
+      int tmp_len = module_ctx->module_hash_encode_status (hashconfig, hashes->digests_buf, hashes->salts_buf, hashes->esalts_buf, hashes->hook_salts_buf, NULL, tmp_buf, HCBUFSIZ_LARGE);
+
+      // A module that builds its line with snprintf returns what it would have written rather than
+      // what it did. hash_encode clamps that for the callers that go through it, and this arm does
+      // not, so the length is clamped to the buffer here as well.
+
+      if (tmp_len < 0) tmp_len = 0;
+
+      if (tmp_len >= HCBUFSIZ_LARGE) tmp_len = HCBUFSIZ_LARGE - 1;
 
       char *tmp_buf2 = (char *) hcmalloc (tmp_len + 1);
 

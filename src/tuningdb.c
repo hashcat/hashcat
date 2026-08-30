@@ -211,6 +211,11 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
 
   while ((next = strtok_r ((char *) NULL, "\t ", &saveptr)) != NULL)
   {
+    // a line with more fields than the table holds is none of the shapes below, and storing the
+    // extra pointers walks off the end of the array
+
+    if (token_cnt == (int) (sizeof (token_ptr) / sizeof (token_ptr[0]))) break;
+
     token_ptr[token_cnt] = next;
 
     token_cnt++;

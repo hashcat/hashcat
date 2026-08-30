@@ -849,16 +849,29 @@ bool thread_seek (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   while (feed_thread->fd_line < local)
   {
-    size_t remaining = fd_len - feed_thread->fd_off;
-
-    if (remaining == 0)
+    if (feed_thread->fd_off >= fd_len)
     {
       thread_error_set (thread_ctx, "Seek past EOF");
 
       return false;
     }
 
-    size_t step = hc_memchr (fd_mem + feed_thread->fd_off, '\n', remaining);
+    const size_t remaining = fd_len - feed_thread->fd_off;
+
+    const size_t step = hc_memchr (fd_mem + feed_thread->fd_off, '\n', remaining);
+
+    // hc_memchr answers with the length it was given when there is no line ending left, so the file
+    // holds no further line to move to. The line count a seek database carries is never checked
+    // against the file it describes, and one that claims more lines than the file has walked past
+    // the end of the mapping here: fd_off went one byte past fd_len and the subtraction above
+    // wrapped to an enormous length, which the old empty check could not see.
+
+    if (step == remaining)
+    {
+      thread_error_set (thread_ctx, "Seek past EOF");
+
+      return false;
+    }
 
     feed_thread->fd_off += step + 1; // +1 for '\n'
     feed_thread->fd_line++;

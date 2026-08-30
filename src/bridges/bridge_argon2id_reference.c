@@ -232,6 +232,11 @@ bool salt_prepare (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, void *platform_conte
     unit_t *unit_buf = &bridge_argon2id->units_buf[unit_idx];
 
     unit_buf->memory = hcmalloc_bridge_aligned ((largest_m * 1024), 32); // because AVX2
+
+    // m comes from the hash file and reaches 4294967295, which asks for 4 TiB here and fails. The
+    // result was never checked, so argon2_ctx wrote its first block through the null pointer.
+
+    if (unit_buf->memory == NULL) return false;
   }
 
   return true;

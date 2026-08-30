@@ -285,6 +285,21 @@ u64 scrypt_module_extra_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, M
     }
   }
 
+  // The size below is returned on the same u64 as the two error sentinels above, so a hash file
+  // whose r and p carry the product up to bit 62 or 63 was read back as a configuration error that
+  // nothing had actually detected. Both are far above any real scrypt parameter, so bounding them
+  // here refuses no hash that works, and one above the bound still meets the existing "not enough
+  // allocatable device memory" refusal rather than a silent wrong answer.
+
+  // The value handed back is also used to build the kernel, so it has to stay a number a kernel can
+  // be compiled with. 2^40 is far past anything a device can allocate, which is the refusal the user
+  // should see, and far below the two sentinel bits.
+
+  const u64 tmp_size_max = 1ULL << 40;
+
+  if (scrypt_r > 0xffff) return tmp_size_max;
+  if (scrypt_p > 0xffff) return tmp_size_max;
+
   // this is what we call SCRYPT_SZ in kernel
 
   u64 tmp_size = 128ULL * scrypt_r * scrypt_p;
@@ -304,7 +319,11 @@ char *scrypt_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconf
   const u32 scrypt_r = (hashes->salts_buf[0].scrypt_r == 0) ? hashes->st_salts_buf[0].scrypt_r : hashes->salts_buf[0].scrypt_r;
   const u32 scrypt_p = (hashes->salts_buf[0].scrypt_p == 0) ? hashes->st_salts_buf[0].scrypt_p : hashes->salts_buf[0].scrypt_p;
 
-  u64 tmp_size = 128ULL * scrypt_r * scrypt_p;
+  // The same bound scrypt_module_extra_tmp_size applies. This value becomes SCRYPT_TMP_ELEM in the
+  // kernel source, so without it an r and p out of a hash file ask for an array no compiler will
+  // accept and the user is shown a JIT failure instead of an honest refusal.
+
+  u64 tmp_size = (scrypt_r > 0xffff) || (scrypt_p > 0xffff) ? (1ULL << 40) : 128ULL * scrypt_r * scrypt_p;
 
   tmp_size *= 2; // see scrypt_module_extra_tmp_size for details
 

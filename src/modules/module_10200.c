@@ -131,6 +131,12 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 
   // store username for host only (output hash if cracked)
 
+  // module_hash_encode reads user back with %s, so it needs room for a terminator as well as for
+  // the name itself. base64 without padding decodes longer than base64 with it, which is how a
+  // name longer than the member gets here.
+
+  if (user_len >= sizeof (cram_md5->user)) return (PARSER_SALT_LENGTH);
+
   memset (cram_md5->user, 0, sizeof (cram_md5->user));
   memcpy (cram_md5->user, tmp_buf, user_len);
 
