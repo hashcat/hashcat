@@ -3,16 +3,13 @@
  * License.....: MIT
  */
 
-// A feed hashes a wordlist to name the seek database that belongs to it. That is the feed's own
-// business and not something the core promises, so xxHash is compiled into this plugin rather than
-// resolved out of the library.
-
-#define XXH_INLINE_ALL
-
-#include "xxhash.h"
+// A feed hashes a wordlist to name the seek database that belongs to it. paw64 is part of what the
+// core offers a plugin, so the feed calls the one in the library rather than carrying a copy of its
+// own.
 
 #include "common.h"
 #include "types.h"
+#include "paw64.h"
 #include "memory.h"
 #include "convert.h"
 #include "filehandling.h"
@@ -541,7 +538,7 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
     // the same files in a different order come out different. They are different: a keyspace position
     // means a different word.
 
-    global_ctx->source_ident = XXH64 (&source_ident, sizeof (source_ident), global_ctx->source_ident);
+    global_ctx->source_ident = paw64 (&source_ident, sizeof (source_ident), global_ctx->source_ident);
 
     source->seek_db = seekdb_load (seekdb_file, &source->seek_count, &source->line_count, &source->size, &source->seek_step, source_ident, source_size);
 

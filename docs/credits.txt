@@ -63,12 +63,20 @@ Other contributors to hashcat
 
 # hashcat relies on some libraries, including:
 
-* xxHash by Yann Collet (@Cyan4973)
-* LZMA-SDK by Igor Pavlov
-* zlib by Jean-loup Gailly and Mark Adler
+* liblzma by Lasse Collin and Igor Pavlov (loaded at runtime)
+* zlib by Jean-loup Gailly and Mark Adler (loaded at runtime)
+* zstd by Yann Collet (@Cyan4973) (loaded at runtime)
 * win-iconv by Yukihiro Nakadaira
 * micro-ecc by Ken MacKay (used as reference for some secp256k1 operations)
 * UnRAR by Alexander Roshal
+
+# hashcat implements the following algorithms designed by others:
+
+* xxHash by Yann Collet (@Cyan4973)
+  paw64, hashcat's own 64 bit identity hash, carries no xxHash code and produces
+  different digests, but it follows the ground xxHash broke: that a short input
+  deserves a different shape from a long one, and that a multiply, a fold and a
+  strong final avalanche are enough.
 
 # Furthermore the following persons helped the project:
 

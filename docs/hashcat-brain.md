@@ -8,7 +8,7 @@ Put simply, the hashcat brain persistently remembers the attacks you've executed
 
 Hashcat will check each password candidate against the "brain" to find out if that candidate was already checked in the past and then accept it or reject it. The brain will check each candidate for existence in both the long-term and short-term memory areas. The nice thing is that it does not matter which attack-mode originally was used - it can be straight attack, mask attack, the PCFG attack of `-a 4`, or any feed run under `-a 8`.
 
-The brain computes a hash (a very fast one called xxHash) of every password candidate and store it in the short-term memory first. Hashcat then starts cracking the usual way. Once it's done cracking, it sends a "commit" signal to the hashcat brain, which then moves the candidates from the short-term memory into the long-term memory.
+The brain computes a hash (a very fast one called paw64) of every password candidate and store it in the short-term memory first. Hashcat then starts cracking the usual way. Once it's done cracking, it sends a "commit" signal to the hashcat brain, which then moves the candidates from the short-term memory into the long-term memory.
 
 The hashcat brain feature uses a client/server architecture. That means that the hashcat brain itself is actually a network server. I know, I know - you don't want any network sockets in your hashcat process? No problem, then disable the feature in the __makefile__ by setting `ENABLE_BRAIN=0` and it will be gone forever.
 
@@ -233,7 +233,7 @@ If multiple clients use the same attack on the same hashcat brain (which is a cl
 
 Since each password candidate is creating a hash of 8 bytes, some serious network upstream traffic can be generated from your client. I'll explain later.
 
-The use of xxHash as hash is not required; we can exchange it with whatever hash we want. However so far it's doing a great job.
+The use of paw64 as hash is not required; we can exchange it with whatever hash we want. However so far it's doing a great job.
 The status view was updated to give you some real-time statistics about the network usage:
 
 ```

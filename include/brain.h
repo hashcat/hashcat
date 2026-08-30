@@ -57,8 +57,6 @@
 #endif
 #endif
 
-#include "xxhash.h"
-
 static const int BRAIN_CLIENT_CONNECT_TIMEOUT     = 5;
 static const int BRAIN_SERVER_TIMER               = 5 * 60;
 static const int BRAIN_SERVER_SESSIONS_MAX        = 64;
@@ -66,8 +64,16 @@ static const int BRAIN_SERVER_ATTACKS_MAX         = 64 * 1024;
 static const int BRAIN_SERVER_CLIENTS_MAX         = 256;
 static const int BRAIN_SERVER_REALLOC_ATTACK_SIZE = 1024;
 static const int BRAIN_HASH_SIZE                  = 2 * sizeof (u32);
-static const int BRAIN_LINK_VERSION_CUR           = 1;
-static const int BRAIN_LINK_VERSION_MIN           = 1;
+// The wire format changed when brain_auth_hash moved from a checksum to SHA-256, so a client and
+// a server from either side of that change cannot authenticate to each other. Raising both numbers
+// makes the mismatch a clear rejection at the handshake rather than a silent authentication
+// failure that looks like a wrong password.
+
+#define BRAIN_AUTH_ITERATIONS 100000
+#define BRAIN_AUTH_BUFSZ      256
+
+static const int BRAIN_LINK_VERSION_CUR           = 2;
+static const int BRAIN_LINK_VERSION_MIN           = 2;
 static const int BRAIN_LINK_CHUNK_SIZE            = 4 * 1024;
 static const int BRAIN_LINK_CANDIDATES_MAX        = 128 * 1024 * 256; // units * threads * accel
 

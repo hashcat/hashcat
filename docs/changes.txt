@@ -124,6 +124,25 @@ then ignored ever since. A command line carrying -c or --segment-size now fails 
 option rather than being accepted and having no effect. The letter c is retired rather than reused,
 so that an old script does not one day mean something new.
 
+16. Brain: a client and a server from different releases can no longer talk to each other
+
+The brain link version moved from 1 to 2. The candidate identities the brain stores are computed by
+a different hash than before, and the authentication handshake now stretches with SHA-256 instead of
+a checksum, so a mixed pair could neither agree on what a candidate is nor authenticate. Both ends
+must be upgraded together. A mismatch is refused at the handshake with both versions named rather
+than failing later as a wrong password.
+
+An existing brain server database is not converted. Its stored candidate hashes were computed by the
+old function and mean nothing to the new one. The files are named after a session id that also
+changes, so an old database is left alone on disk rather than misread, and a session that pinned
+--brain-session starts its deduplication from empty.
+
+17. Seek databases: every cached seek database is rebuilt once
+
+A seek database is named after a hash of the wordlist it describes, and that hash changed, so the
+first run against a given wordlist builds a new one. The old files are not found again and can be
+deleted. No shipped hashcat wrote one: they arrived after v7.1.2.
+
 ##
 ## New Algorithms
 ##
@@ -216,6 +235,10 @@ so that an old script does not one day mean something new.
 - Rust Bridge: Bridge parameters are now passed to the plugin
 - Rust Bridge: Both bridges now share one hashcat-sys crate for their bindings
 - Rust: Added a GitHub action that checks and tests the Rust code
+- Plugins: Every helper in the OpenCL hash headers that takes a buffer and a length reads only the
+  words that length covers, the HMAC key readers included, so a kernel no longer has to hand them a
+  buffer rounded up to the block size with every byte after the data zeroed. Both rules are gone
+  from the plugin development guide, and a buffer that still meets them behaves exactly as before
 - Documentation: Added docs/hashcat-rust-plugin-quickstart.md
 - Documentation: Added a usage and advice notice to every module
 - Documentation: Added module numbers and extraction advice to the 2hashcat scripts
@@ -285,6 +308,15 @@ so that an old script does not one day mean something new.
   libraries made that reachable because Windows ships none of them, so every earlier
   directory in the search order missed. Supplying one the documented way, beside hashcat.exe,
   is unaffected
+- Windows: Fixed the RAR3 module 23800 not loading in a build made on MSYS2. UnRAR is the only C++
+  in the tree, so under SHARED=0 that one file imported libstdc++-6.dll and libgcc_s_seh-1.dll while
+  no other file in the package imported either, and both were found only because MSYS2 keeps them on
+  PATH. The C++ runtime is now linked into the binary that needs it, the way the cross build already
+  did it, so no file in the package depends on a runtime DLL being found
+- Windows: Fixed the reason a plugin failed to load being reported as "The operation completed
+  successfully". The check that reads which plugin interface a file was built against runs between
+  the failed load and the report of why it failed, and reading that file cleared the loader's error
+  first. Modules, bridges and feeds all report through that path
 - Fixed chained rule files corrupting memory. When 4 or more -r files are given and the chain
   runs past the 31 function limit, the counter for discarded chains was advanced once per
   dropped function instead of once per dropped chain. It then outran the chain index, and the
@@ -456,6 +488,15 @@ so that an old script does not one day mean something new.
   driven through HIP, where the scratch buffer backing their spilled private memory was never
   budgeted, so the launch was refused outright on larger cards and lost 58 percent of its
   throughput on smaller ones
+- Fixed 6 VeraCrypt hash modes hanging forever on the password they had just found. Modes 13723,
+  13733, 13751, 13753, 13761 and 13763 never finished their self test, so hashcat refused to start
+  them, and a run started with --self-test-disable cracked at full speed and then hung at the moment
+  the password matched, without printing it. Each check_header helper inlined its cipher cascades
+  into one function of about half a megabyte, and a branch that far cannot be reached directly, so
+  the compiler rewrote it into an indirect jump built in the register pair that holds the function's
+  own return address. The 15 XTS header helpers are now kept out of line, which keeps every one of
+  those functions small enough that no branch in it is rewritten. TrueCrypt, DiskCryptor and LUKS
+  share the same header code and were never affected
 
 ##
 ## Other changes

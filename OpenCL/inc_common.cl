@@ -18,6 +18,97 @@
 // times per block, which is 2370 scratch operations in mode 6100 where shifting and casting costs
 // 2. Every other backend keeps the union.
 
+// One word of a message block, bounded by how many of its bytes are really inside len. A word the
+// caller never supplied is not read at all. That is what lets a caller pass a buffer sized to its
+// own data rather than to the block, and stop zero padding the remainder.
+//
+// The mask follows the byte order of the words the caller handed over. A caller that supplies
+// little endian words keeps the low avail bytes, and one that supplies big endian words keeps the
+// high avail bytes, because there the first character of a word sits in its top byte. The shift is
+// written over (4 - avail) rather than over avail so that it stays inside 0 to 24 for every avail
+// that reaches it.
+
+DECLSPEC u32 hc_bounded_word_le_S (PRIVATE_AS const u32 *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32 v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32 r = v & (0xffffffffU >> ((4 - avail) * 8));
+
+  return r;
+}
+
+DECLSPEC u32 hc_bounded_word_be_S (PRIVATE_AS const u32 *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32 v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32 r = v & (0xffffffffU << ((4 - avail) * 8));
+
+  return r;
+}
+
+DECLSPEC u32 hc_bounded_word_global_le_S (GLOBAL_AS const u32 *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32 v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32 r = v & (0xffffffffU >> ((4 - avail) * 8));
+
+  return r;
+}
+
+DECLSPEC u32 hc_bounded_word_global_be_S (GLOBAL_AS const u32 *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32 v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32 r = v & (0xffffffffU << ((4 - avail) * 8));
+
+  return r;
+}
+
+// avail comes from len, which is scalar, so every lane of the vector is bounded the same way and
+// the mask stays a scalar.
+
+DECLSPEC u32x hc_bounded_word_le (PRIVATE_AS const u32x *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32x v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32x r = v & (0xffffffffU >> ((4 - avail) * 8));
+
+  return r;
+}
+
+DECLSPEC u32x hc_bounded_word_be (PRIVATE_AS const u32x *w, const int idx, const int avail)
+{
+  if (avail <= 0) return 0;
+
+  const u32x v = w[idx];
+
+  if (avail >= 4) return v;
+
+  const u32x r = v & (0xffffffffU << ((4 - avail) * 8));
+
+  return r;
+}
+
 DECLSPEC u8 v8a_from_v32_S (const u32 v32)
 {
   #ifdef IS_OPENCL

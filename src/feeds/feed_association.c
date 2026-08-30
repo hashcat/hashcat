@@ -3,18 +3,15 @@
  * License.....: MIT
  */
 
-// A feed hashes the account names it was given to name the seek database that belongs to them. That
-// is the feed's own business and not something the core promises, so xxHash is compiled into this
-// plugin rather than resolved out of the library.
-
-#define XXH_INLINE_ALL
-
-#include "xxhash.h"
+// A feed hashes the account names it was given to name the seek database that belongs to them.
+// paw64 is part of what the core offers a plugin, so the feed calls the one in the library rather
+// than carrying a copy of its own.
 
 #include <stdarg.h>
 
 #include "common.h"
 #include "types.h"
+#include "paw64.h"
 #include "memory.h"
 #include "shared.h"
 #include "feed.h"
@@ -126,7 +123,7 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
     if (user == NULL) continue;
 
-    global_ctx->source_ident = XXH64 (user->user_name, user->user_len, global_ctx->source_ident);
+    global_ctx->source_ident = paw64 (user->user_name, user->user_len, global_ctx->source_ident);
   }
 
   // Say what the candidates are and where they came from. "Feed (wordlist.txt)" is enough for a feed

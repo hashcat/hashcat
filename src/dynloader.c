@@ -276,12 +276,28 @@ void hc_once (hc_once_t *once, void (*init) (void))
 // which reads as a broken install rather than as a plugin that needs rebuilding.
 //
 // Returns the version the file was built against, or -1 when the file says nothing.
+//
+// Every caller runs this between a load that failed and the report of why it failed. Reading a file
+// is a call that succeeds, and on Windows a call that succeeds clears the thread's last error, which
+// is where hc_dlerror () reads the reason from. The last error is put back on the way out, so a
+// caller reports what the loader said instead of reporting that the operation completed successfully.
 
 int hc_dlplugin_abi (const char *path)
 {
+  #ifdef _WIN
+  const DWORD last_error = GetLastError ();
+  #endif
+
   FILE *fp = fopen (path, "rb");
 
-  if (fp == NULL) return -1;
+  if (fp == NULL)
+  {
+    #ifdef _WIN
+    SetLastError (last_error);
+    #endif
+
+    return -1;
+  }
 
   const char marker[] = "HASHCAT_PLUGIN_";
 
@@ -341,6 +357,10 @@ int hc_dlplugin_abi (const char *path)
   }
 
   fclose (fp);
+
+  #ifdef _WIN
+  SetLastError (last_error);
+  #endif
 
   return version;
 }

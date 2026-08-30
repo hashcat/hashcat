@@ -6,6 +6,8 @@
 #include "common.h"
 #include "types.h"
 #include "bitops.h"
+#include "paw64.h"
+#include "emu_inc_hash_sha256.h"
 #include "timer.h"
 #include "memory.h"
 #include "thread.h"
@@ -109,9 +111,9 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 
   const u64 seed = (const u64) hashconfig->hash_mode;
 
-  XXH64_state_t *state = XXH64_createState ();
+  paw64_ctx_t state;
 
-  XXH64_reset (state, seed);
+  paw64_init (&state, seed);
 
   if (hashconfig->opts_type & OPTS_TYPE_BINARY_HASHFILE)
   {
@@ -120,7 +122,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
     u32  digests_cnt = hashes->digests_cnt;
     u32 *digests_buf = (u32 *) hashes->digests_buf;
 
-    XXH64_update (state, digests_buf, (u64) digests_cnt * hashconfig->dgst_size);
+    paw64_update (&state, digests_buf, (u64) digests_cnt * hashconfig->dgst_size);
 
     // salt
 
@@ -131,8 +133,8 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
     {
       salt_t *salt = salts_buf + salts_idx;
 
-      XXH64_update (state, &salt->salt_iter, sizeof (salt->salt_iter));
-      XXH64_update (state,  salt->salt_buf,  sizeof (salt->salt_buf));
+      paw64_update (&state, &salt->salt_iter, sizeof (salt->salt_iter));
+      paw64_update (&state,  salt->salt_buf,  sizeof (salt->salt_buf));
     }
 
     // esalt
@@ -141,7 +143,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
     {
       void *esalts_buf = hashes->esalts_buf;
 
-      XXH64_update (state, esalts_buf, digests_cnt * hashconfig->esalt_size);
+      paw64_update (&state, esalts_buf, digests_cnt * hashconfig->esalt_size);
     }
   }
   else
@@ -181,7 +183,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
 
     for (int i = 0; i < string_sized_cnt; i++)
     {
-      XXH64_update (state, string_sized_buf[i].buf, string_sized_buf[i].len);
+      paw64_update (&state, string_sized_buf[i].buf, string_sized_buf[i].len);
 
       hcfree (string_sized_buf[i].buf);
     }
@@ -189,9 +191,7 @@ u32 brain_compute_session (hashcat_ctx_t *hashcat_ctx)
     hcfree (string_sized_buf);
   }
 
-  const u32 session = (const u32) XXH64_digest (state);
-
-  XXH64_freeState (state);
+  const u32 session = (const u32) paw64_final (&state);
 
   return session;
 }
@@ -204,15 +204,15 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
   const user_options_t       *user_options       = hashcat_ctx->user_options;
   const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
-  XXH64_state_t *state = XXH64_createState ();
+  paw64_ctx_t state;
 
-  XXH64_reset (state, user_options->brain_session);
+  paw64_init (&state, user_options->brain_session);
 
   const int hash_mode   = hashconfig->hash_mode;
   const int attack_mode = user_options->attack_mode;
 
-  XXH64_update (state, &hash_mode,   sizeof (hash_mode));
-  XXH64_update (state, &attack_mode, sizeof (attack_mode));
+  paw64_update (&state, &hash_mode,   sizeof (hash_mode));
+  paw64_update (&state, &attack_mode, sizeof (attack_mode));
 
   // The attack identity is what the "attacks" feature is keyed on, and that feature trades in ranges:
   // a client reserves a start and a length, and the brain answers with how much of that an earlier
@@ -237,36 +237,36 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
   const int skip  = user_options->skip;
   const int limit = user_options->limit;
 
-  XXH64_update (state, &skip,  sizeof (skip));
-  XXH64_update (state, &limit, sizeof (limit));
+  paw64_update (&state, &skip,  sizeof (skip));
+  paw64_update (&state, &limit, sizeof (limit));
 
   const int hex_salt = user_options->hex_salt;
 
-  XXH64_update (state, &hex_salt, sizeof (hex_salt));
+  paw64_update (&state, &hex_salt, sizeof (hex_salt));
 
   const u32 opti_type = hashconfig->opti_type;
 
-  XXH64_update (state, &opti_type, sizeof (opti_type));
+  paw64_update (&state, &opti_type, sizeof (opti_type));
 
   const u64 opts_type = hashconfig->opts_type;
 
-  XXH64_update (state, &opts_type, sizeof (opts_type));
+  paw64_update (&state, &opts_type, sizeof (opts_type));
 
   const int hccapx_message_pair = user_options->hccapx_message_pair;
 
-  XXH64_update (state, &hccapx_message_pair, sizeof (hccapx_message_pair));
+  paw64_update (&state, &hccapx_message_pair, sizeof (hccapx_message_pair));
 
   const int nonce_error_corrections = user_options->nonce_error_corrections;
 
-  XXH64_update (state, &nonce_error_corrections, sizeof (nonce_error_corrections));
+  paw64_update (&state, &nonce_error_corrections, sizeof (nonce_error_corrections));
 
   const int veracrypt_pim_start = user_options->veracrypt_pim_start;
 
-  XXH64_update (state, &veracrypt_pim_start, sizeof (veracrypt_pim_start));
+  paw64_update (&state, &veracrypt_pim_start, sizeof (veracrypt_pim_start));
 
   const int veracrypt_pim_stop = user_options->veracrypt_pim_stop;
 
-  XXH64_update (state, &veracrypt_pim_stop, sizeof (veracrypt_pim_stop));
+  paw64_update (&state, &veracrypt_pim_stop, sizeof (veracrypt_pim_stop));
 
   if (user_options_extra->base_source == BASE_SOURCE_FEED)
   {
@@ -295,7 +295,7 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
       {
         const char *workv = generic_ctx->workv[i];
 
-        XXH64_update (state, workv, strlen (workv) + 1);
+        paw64_update (&state, workv, strlen (workv) + 1);
       }
 
       // A feed that reads a file is a different attack once that file changes, and its path does not
@@ -303,43 +303,43 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
       // wordlist feed already works one out to name the seek database it caches, from the file's size,
       // its modification time and both of its ends.
 
-      XXH64_update (state, &generic_ctx->global_ctx.source_ident, sizeof (generic_ctx->global_ctx.source_ident));
+      paw64_update (&state, &generic_ctx->global_ctx.source_ident, sizeof (generic_ctx->global_ctx.source_ident));
     }
 
     const int wordlist_autohex = user_options->wordlist_autohex;
 
-    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
+    paw64_update (&state, &wordlist_autohex, sizeof (wordlist_autohex));
 
     if (user_options->encoding_from)
     {
       const char *encoding_from = user_options->encoding_from;
 
-      XXH64_update (state, encoding_from, strlen (encoding_from));
+      paw64_update (&state, encoding_from, strlen (encoding_from));
     }
 
     if (user_options->encoding_to)
     {
       const char *encoding_to = user_options->encoding_to;
 
-      XXH64_update (state, encoding_to, strlen (encoding_to));
+      paw64_update (&state, encoding_to, strlen (encoding_to));
     }
 
     if (user_options->rule_buf_l)
     {
       const char *rule_buf_l = user_options->rule_buf_l;
 
-      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
+      paw64_update (&state, rule_buf_l, strlen (rule_buf_l));
     }
 
     const int loopback = user_options->loopback;
 
-    XXH64_update (state, &loopback, sizeof (loopback));
+    paw64_update (&state, &loopback, sizeof (loopback));
 
     // The rules are part of the attack, not a detail of it. Two runs over the same feed with
     // different rules produce different candidates, so leaving these out makes the brain call them
     // the same attack and refuse the second one as already done.
 
-    XXH64_update (state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
+    paw64_update (&state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
   }
   else if (user_options->attack_mode == ATTACK_MODE_STRAIGHT)
   {
@@ -347,132 +347,132 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
     {
       const u64 wordlist_hash = brain_compute_attack_wordlist (straight_ctx->dict);
 
-      XXH64_update (state, &wordlist_hash, sizeof (wordlist_hash));
+      paw64_update (&state, &wordlist_hash, sizeof (wordlist_hash));
     }
 
     const int hex_wordlist = user_options->hex_wordlist;
 
-    XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
+    paw64_update (&state, &hex_wordlist, sizeof (hex_wordlist));
 
     const int wordlist_autohex = user_options->wordlist_autohex;
 
-    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
+    paw64_update (&state, &wordlist_autohex, sizeof (wordlist_autohex));
 
     if (user_options->encoding_from)
     {
       const char *encoding_from = user_options->encoding_from;
 
-      XXH64_update (state, encoding_from, strlen (encoding_from));
+      paw64_update (&state, encoding_from, strlen (encoding_from));
     }
 
     if (user_options->encoding_to)
     {
       const char *encoding_to = user_options->encoding_to;
 
-      XXH64_update (state, encoding_to, strlen (encoding_to));
+      paw64_update (&state, encoding_to, strlen (encoding_to));
     }
 
     if (user_options->rule_buf_l)
     {
       const char *rule_buf_l = user_options->rule_buf_l;
 
-      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
+      paw64_update (&state, rule_buf_l, strlen (rule_buf_l));
     }
 
     if (user_options->rule_buf_r)
     {
       const char *rule_buf_r = user_options->rule_buf_r;
 
-      XXH64_update (state, rule_buf_r, strlen (rule_buf_r));
+      paw64_update (&state, rule_buf_r, strlen (rule_buf_r));
     }
 
     const int loopback = user_options->loopback;
 
-    XXH64_update (state, &loopback, sizeof (loopback));
+    paw64_update (&state, &loopback, sizeof (loopback));
 
-    XXH64_update (state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
+    paw64_update (&state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
   }
   else if (user_options->attack_mode == ATTACK_MODE_BF)
   {
     const char *mask = mask_ctx->mask;
 
-    XXH64_update (state, mask, strlen (mask));
+    paw64_update (&state, mask, strlen (mask));
 
     const int hex_charset = user_options->hex_charset;
 
-    XXH64_update (state, &hex_charset, sizeof (hex_charset));
+    paw64_update (&state, &hex_charset, sizeof (hex_charset));
 
     const int markov_classic   = user_options->markov_classic;
     const int markov           = user_options->markov;
     const int markov_inverse   = user_options->markov_inverse;
     const int markov_threshold = user_options->markov_threshold;
 
-    XXH64_update (state, &markov_classic,   sizeof (markov_classic));
-    XXH64_update (state, &markov,           sizeof (markov));
-    XXH64_update (state, &markov_inverse,   sizeof (markov_inverse));
-    XXH64_update (state, &markov_threshold, sizeof (markov_threshold));
+    paw64_update (&state, &markov_classic,   sizeof (markov_classic));
+    paw64_update (&state, &markov,           sizeof (markov));
+    paw64_update (&state, &markov_inverse,   sizeof (markov_inverse));
+    paw64_update (&state, &markov_threshold, sizeof (markov_threshold));
 
     if (user_options->markov_hcstat2)
     {
       const char *markov_hcstat2 = filename_from_filepath (user_options->markov_hcstat2);
 
-      XXH64_update (state, markov_hcstat2, strlen (markov_hcstat2));
+      paw64_update (&state, markov_hcstat2, strlen (markov_hcstat2));
     }
 
     if (user_options->custom_charset_1)
     {
       const char *custom_charset_1 = user_options->custom_charset_1;
 
-      XXH64_update (state, custom_charset_1, strlen (custom_charset_1));
+      paw64_update (&state, custom_charset_1, strlen (custom_charset_1));
     }
 
     if (user_options->custom_charset_2)
     {
       const char *custom_charset_2 = user_options->custom_charset_2;
 
-      XXH64_update (state, custom_charset_2, strlen (custom_charset_2));
+      paw64_update (&state, custom_charset_2, strlen (custom_charset_2));
     }
 
     if (user_options->custom_charset_3)
     {
       const char *custom_charset_3 = user_options->custom_charset_3;
 
-      XXH64_update (state, custom_charset_3, strlen (custom_charset_3));
+      paw64_update (&state, custom_charset_3, strlen (custom_charset_3));
     }
 
     if (user_options->custom_charset_4)
     {
       const char *custom_charset_4 = user_options->custom_charset_4;
 
-      XXH64_update (state, custom_charset_4, strlen (custom_charset_4));
+      paw64_update (&state, custom_charset_4, strlen (custom_charset_4));
     }
 
     if (user_options->custom_charset_5)
     {
       const char *custom_charset_5 = user_options->custom_charset_5;
 
-      XXH64_update (state, custom_charset_5, strlen (custom_charset_5));
+      paw64_update (&state, custom_charset_5, strlen (custom_charset_5));
     }
 
     if (user_options->custom_charset_6)
     {
       const char *custom_charset_6 = user_options->custom_charset_6;
 
-      XXH64_update (state, custom_charset_6, strlen (custom_charset_6));
+      paw64_update (&state, custom_charset_6, strlen (custom_charset_6));
     }
 
     if (user_options->custom_charset_7)
     {
       const char *custom_charset_7 = user_options->custom_charset_7;
 
-      XXH64_update (state, custom_charset_7, strlen (custom_charset_7));
+      paw64_update (&state, custom_charset_7, strlen (custom_charset_7));
     }
 
     if (user_options->custom_charset_8)
     {
       const char *custom_charset_8 = user_options->custom_charset_8;
 
-      XXH64_update (state, custom_charset_8, strlen (custom_charset_8));
+      paw64_update (&state, custom_charset_8, strlen (custom_charset_8));
     }
   }
   else if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
@@ -481,53 +481,51 @@ u32 brain_compute_attack (hashcat_ctx_t *hashcat_ctx)
     {
       const u64 wordlist_hash = brain_compute_attack_wordlist (straight_ctx->dict);
 
-      XXH64_update (state, &wordlist_hash, sizeof (wordlist_hash));
+      paw64_update (&state, &wordlist_hash, sizeof (wordlist_hash));
     }
 
     const int hex_wordlist = user_options->hex_wordlist;
 
-    XXH64_update (state, &hex_wordlist, sizeof (hex_wordlist));
+    paw64_update (&state, &hex_wordlist, sizeof (hex_wordlist));
 
     const int wordlist_autohex = user_options->wordlist_autohex;
 
-    XXH64_update (state, &wordlist_autohex, sizeof (wordlist_autohex));
+    paw64_update (&state, &wordlist_autohex, sizeof (wordlist_autohex));
 
     if (user_options->encoding_from)
     {
       const char *encoding_from = user_options->encoding_from;
 
-      XXH64_update (state, encoding_from, strlen (encoding_from));
+      paw64_update (&state, encoding_from, strlen (encoding_from));
     }
 
     if (user_options->encoding_to)
     {
       const char *encoding_to = user_options->encoding_to;
 
-      XXH64_update (state, encoding_to, strlen (encoding_to));
+      paw64_update (&state, encoding_to, strlen (encoding_to));
     }
 
     if (user_options->rule_buf_l)
     {
       const char *rule_buf_l = user_options->rule_buf_l;
 
-      XXH64_update (state, rule_buf_l, strlen (rule_buf_l));
+      paw64_update (&state, rule_buf_l, strlen (rule_buf_l));
     }
 
-    XXH64_update (state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
+    paw64_update (&state, straight_ctx->kernel_rules_buf, straight_ctx->kernel_rules_cnt * sizeof (kernel_rule_t));
   }
 
-  const u32 brain_attack = (const u32) XXH64_digest (state);
-
-  XXH64_freeState (state);
+  const u32 brain_attack = (const u32) paw64_final (&state);
 
   return brain_attack;
 }
 
 u64 brain_compute_attack_wordlist (const char *filename)
 {
-  XXH64_state_t *state = XXH64_createState ();
+  paw64_ctx_t state;
 
-  XXH64_reset (state, 0);
+  paw64_init (&state, 0);
 
   #define FBUFSZ 8192
 
@@ -543,32 +541,62 @@ u64 brain_compute_attack_wordlist (const char *filename)
 
     const size_t nread = hc_fread (buf, 1, FBUFSZ, &fp);
 
-    // a decode error is (size_t) -1, and handing that to XXH64_update reads the whole address space
+    // a decode error is (size_t) -1, and handing that to paw64_update reads the whole address space
 
     if (nread == (size_t) -1) break;
 
-    XXH64_update (state, buf, nread);
+    paw64_update (&state, buf, nread);
   }
 
   hc_fclose (&fp);
 
-  const u64 hash = XXH64_digest (state);
-
-  XXH64_freeState (state);
+  const u64 hash = paw64_final (&state);
 
   return hash;
 }
 
 u64 brain_auth_hash (const u32 challenge, const char *pw_buf, const int pw_len)
 {
-  // nothing for production but good enough for testing
+  // This is a password stretch, not an identity, so it deliberately does not use paw64.
+  //
+  // paw64 is fast because every other caller wants it to be, and speed is exactly the wrong
+  // property here. A party that observes one handshake can attack the brain password offline, and
+  // every halving of the cost per guess halves their cost too. Replacing the checksum with SHA-256
+  // makes each of the iterations below roughly 20 times dearer for them at no cost to the honest
+  // client, which pays for one handshake and not for billions.
+  //
+  // The construction is SHA-256 applied once to the challenge followed by the password, then
+  // iterated over its own digest. It is still not a password hashing function: it has no memory
+  // hardness and the only salt is the challenge. SECURITY.md says so and that has not changed.
 
-  u64 response = XXH64 (pw_buf, pw_len, challenge);
+  u8 buf[BRAIN_AUTH_BUFSZ];
 
-  for (int i = 0; i < 100000; i++)
+  memset (buf, 0, sizeof (buf));
+
+  memcpy (buf, &challenge, sizeof (challenge));
+
+  const int pw_cpy = MIN (pw_len, (const int) (BRAIN_AUTH_BUFSZ - sizeof (challenge)));
+
+  memcpy (buf + sizeof (challenge), pw_buf, pw_cpy);
+
+  sha256_ctx_t ctx;
+
+  sha256_init        (&ctx);
+  sha256_update_swap (&ctx, (const u32 *) buf, (const int) sizeof (challenge) + pw_cpy);
+  sha256_final       (&ctx);
+
+  for (int i = 0; i < BRAIN_AUTH_ITERATIONS; i++)
   {
-    response = XXH64 (&response, 8, 0);
+    u32 d[8];
+
+    for (int j = 0; j < 8; j++) d[j] = byte_swap_32 (ctx.h[j]);
+
+    sha256_init        (&ctx);
+    sha256_update_swap (&ctx, d, (const int) sizeof (d));
+    sha256_final       (&ctx);
   }
+
+  const u64 response = ((u64) ctx.h[0] << 32) | (u64) ctx.h[1];
 
   return response;
 }
@@ -1191,7 +1219,7 @@ void brain_client_generate_hash (u64 *hash, const char *line_buf, const size_t l
 {
   const u64 seed = 0;
 
-  hash[0] = XXH64 (line_buf, line_len, seed);
+  hash[0] = paw64 (line_buf, line_len, seed);
 }
 
 // Which shard a hash belongs to. The sort order compares hash[1] first, so taking the top bits of

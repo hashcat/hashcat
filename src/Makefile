@@ -35,7 +35,6 @@ ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
 ENABLE_UNRAR            ?= 1
 USE_SYSTEM_OPENCL       ?= 0
-USE_SYSTEM_XXHASH       ?= 0
 ## do not change, requires some hacks
 USE_SYSTEM_UNRAR        ?= 0
 MAINTAINER_MODE         ?= 0
@@ -341,12 +340,6 @@ else
 DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
-ifeq ($(USE_SYSTEM_XXHASH),0)
-DEPS_XXHASH_PATH        := deps/xxHash
-else
-DEPS_XXHASH_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
-endif
-
 ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)
 DEPS_UNRAR_PATH         := deps/unrar
@@ -589,17 +582,6 @@ ifeq ($(ENABLE_BRAIN),1)
 CFLAGS                  += -DWITH_BRAIN
 endif
 
-# xxHash. The two feeds that hash with it include it inline and need only the header. The brain is
-# the one part of the core that calls the library, so the library is asked for when the brain is
-# built and not otherwise, which is the same condition the vendored object is compiled under.
-
-CFLAGS                  += -I$(DEPS_XXHASH_PATH)
-ifeq ($(ENABLE_BRAIN),1)
-ifeq ($(USE_SYSTEM_XXHASH),1)
-LFLAGS                  += -lxxhash
-endif
-endif
-
 # CUDA binary cache
 ifeq ($(ENABLE_CUBIN),1)
 CFLAGS                  += -DWITH_CUBIN
@@ -788,6 +770,25 @@ LFLAGS_NATIVE           += -lpsapi
 LFLAGS_NATIVE           += -liconv
 LFLAGS_NATIVE           += -lws2_32
 LFLAGS_NATIVE           += -lpowrprof
+
+# The C++ runtime goes INTO the binary that needs it, for the same reason the cross build below does
+# the same thing: no runtime DLL is shipped beside these binaries. Under SHARED=0 the unrar objects
+# are pulled out of the core archive into module_23800.dll, so that one file imported libstdc++-6.dll
+# and libgcc_s_seh-1.dll while no other file in the package imported either. MSYS2 keeps both on PATH,
+# so the module still loaded here and nowhere else, and it stopped loading here too once the working
+# directory came out of the library search order, because PATH is not part of what is left.
+#
+# The archive is named directly rather than asking for -static-libstdc++. That flag only governs the
+# libstdc++ a driver adds by itself, so it cannot override the explicit -lstdc++ the unrar block puts
+# on the line, and that explicit one has to come back off first. Naming the archive while it is still
+# there links both, and then every symbol in libsupc++ is defined twice.
+#
+# -static-libgcc is the other half. The unwinder that carries a C++ exception out of unrar lives in
+# libgcc, so a binary linked with the static libstdc++ alone still imports libgcc_s_seh-1.dll.
+
+LFLAGS_NATIVE           := $(filter-out -lstdc++,$(LFLAGS_NATIVE))
+LFLAGS_NATIVE           += -l:libstdc++.a
+LFLAGS_NATIVE           += -static-libgcc
 endif # MSYS2
 
 # A core object is linked into shared objects, so it is compiled position independent. The two cross
@@ -803,8 +804,8 @@ CFLAGS_PIC_NATIVE       := -fpic
 ## each, with HC_API or HC_PLUGIN_API out of include/export.h, and nowhere else.
 ## -fvisibility=hidden is what makes that true rather than decorative: a name is private unless its
 ## declaration says otherwise, so a plugin that reaches for anything else does not link and the error
-## names the symbol. The vendored dependencies are compiled the same way, which is why xxHash and
-## unrar are inside the core and are not part of what it offers.
+## names the symbol. The vendored dependencies are compiled the same way, which is why unrar is
+## inside the core and is not part of what it offers.
 ##
 ## Two names get out that nobody declared, _ZTI8RAR_EXIT and _ZTS8RAR_EXIT, so the library's table
 ## holds 1,035. They are the C++ type description of the value UnRAR throws and catches inside
@@ -1296,7 +1297,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -1310,20 +1311,6 @@ ifeq ($(UNAME),Darwin)
 OBJS_METAL              := ext_metal ext_iokit
 
 CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_METAL),obj/$(OBJ).METAL.NATIVE.o)
-endif
-
-# the brain is the only thing in the core that hashes with xxhash, so it is compiled in beside it.
-# The two feeds that hash with it compile their own copy, because a feed is a plugin and xxhash is
-# not something the core promises a plugin.
-
-ifeq ($(ENABLE_BRAIN),1)
-ifeq ($(USE_SYSTEM_XXHASH),0)
-OBJS_XXHASH             := xxhash
-
-CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).XXHASH.NATIVE.o)
-CORE_OBJS_LINUX         += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).XXHASH.LINUX.o)
-CORE_OBJS_WIN           += $(foreach OBJ,$(OBJS_XXHASH),obj/$(OBJ).XXHASH.WIN.o)
-endif
 endif
 
 ifeq ($(ENABLE_UNRAR),1)
@@ -1474,7 +1461,7 @@ API_HEADERS              = $(sort $(filter include/%.h,$(API_INCLUDES)))
 
 API_DEP_HEADERS          = $(sort $(filter deps/%.h,$(API_INCLUDES)))
 
-API_DEP_ROOTS           := $(DEPS_OPENCL_PATH) $(DEPS_XXHASH_PATH)
+API_DEP_ROOTS           := $(DEPS_OPENCL_PATH)
 
 obj/api.c: $(API_HEADER_ROOTS)
 	printf '#include "common.h"\n#include "types.h"\n' > $@
@@ -1517,11 +1504,6 @@ define CORE_RULES
 
 obj/%.$(1).o: src/%.c obj/arrangement
 	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
-
-ifeq ($(USE_SYSTEM_XXHASH),0)
-obj/%.XXHASH.$(1).o: $$(DEPS_XXHASH_PATH)/%.c obj/arrangement
-	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
-endif
 
 ifeq ($(ENABLE_UNRAR),1)
 ifeq ($(USE_SYSTEM_UNRAR),0)

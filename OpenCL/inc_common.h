@@ -433,4 +433,11 @@ DECLSPEC void append_0x80_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIV
 DECLSPEC void append_0x2d_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
 DECLSPEC void append_0x3a_4x4_VV (PRIVATE_AS u32x *w0, PRIVATE_AS u32x *w1, PRIVATE_AS u32x *w2, PRIVATE_AS u32x *w3, const u32x offset);
 
+DECLSPEC u32 hc_bounded_word_le_S (PRIVATE_AS const u32 *w, const int idx, const int avail);
+DECLSPEC u32 hc_bounded_word_be_S (PRIVATE_AS const u32 *w, const int idx, const int avail);
+DECLSPEC u32 hc_bounded_word_global_le_S (GLOBAL_AS const u32 *w, const int idx, const int avail);
+DECLSPEC u32 hc_bounded_word_global_be_S (GLOBAL_AS const u32 *w, const int idx, const int avail);
+DECLSPEC u32x hc_bounded_word_le (PRIVATE_AS const u32x *w, const int idx, const int avail);
+DECLSPEC u32x hc_bounded_word_be (PRIVATE_AS const u32x *w, const int idx, const int avail);
+
 #endif // INC_COMMON_H

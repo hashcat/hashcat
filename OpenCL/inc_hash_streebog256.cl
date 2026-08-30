@@ -912,22 +912,43 @@ DECLSPEC void streebog256_update (PRIVATE_AS streebog256_ctx_t *ctx, PRIVATE_AS 
 
   if (len > 0)
   {
-    w0[0] = w[off +  0];
-    w0[1] = w[off +  1];
-    w0[2] = w[off +  2];
-    w0[3] = w[off +  3];
-    w1[0] = w[off +  4];
-    w1[1] = w[off +  5];
-    w1[2] = w[off +  6];
-    w1[3] = w[off +  7];
-    w2[0] = w[off +  8];
-    w2[1] = w[off +  9];
-    w2[2] = w[off + 10];
-    w2[3] = w[off + 11];
-    w3[0] = w[off + 12];
-    w3[1] = w[off + 13];
-    w3[2] = w[off + 14];
-    w3[3] = w[off + 15];
+    const int tail = len;
+
+    u32 t[16];
+
+    t[ 0] = hc_bounded_word_be_S (w, off +  0, tail -   0);
+    t[ 1] = hc_bounded_word_be_S (w, off +  1, tail -   4);
+    t[ 2] = hc_bounded_word_be_S (w, off +  2, tail -   8);
+    t[ 3] = hc_bounded_word_be_S (w, off +  3, tail -  12);
+    t[ 4] = hc_bounded_word_be_S (w, off +  4, tail -  16);
+    t[ 5] = hc_bounded_word_be_S (w, off +  5, tail -  20);
+    t[ 6] = hc_bounded_word_be_S (w, off +  6, tail -  24);
+    t[ 7] = hc_bounded_word_be_S (w, off +  7, tail -  28);
+    t[ 8] = hc_bounded_word_be_S (w, off +  8, tail -  32);
+    t[ 9] = hc_bounded_word_be_S (w, off +  9, tail -  36);
+    t[10] = hc_bounded_word_be_S (w, off + 10, tail -  40);
+    t[11] = hc_bounded_word_be_S (w, off + 11, tail -  44);
+    t[12] = hc_bounded_word_be_S (w, off + 12, tail -  48);
+    t[13] = hc_bounded_word_be_S (w, off + 13, tail -  52);
+    t[14] = hc_bounded_word_be_S (w, off + 14, tail -  56);
+    t[15] = hc_bounded_word_be_S (w, off + 15, tail -  60);
+
+    w0[0] = t[ 0];
+    w0[1] = t[ 1];
+    w0[2] = t[ 2];
+    w0[3] = t[ 3];
+    w1[0] = t[ 4];
+    w1[1] = t[ 5];
+    w1[2] = t[ 6];
+    w1[3] = t[ 7];
+    w2[0] = t[ 8];
+    w2[1] = t[ 9];
+    w2[2] = t[10];
+    w2[3] = t[11];
+    w3[0] = t[12];
+    w3[1] = t[13];
+    w3[2] = t[14];
+    w3[3] = t[15];
 
     streebog256_update_64 (ctx, w0, w1, w2, w3, len);
   }
@@ -969,22 +990,43 @@ DECLSPEC void streebog256_update_swap (PRIVATE_AS streebog256_ctx_t *ctx, PRIVAT
 
   if (len > 0)
   {
-    w0[0] = hc_swap32_S (w[off +  0]);
-    w0[1] = hc_swap32_S (w[off +  1]);
-    w0[2] = hc_swap32_S (w[off +  2]);
-    w0[3] = hc_swap32_S (w[off +  3]);
-    w1[0] = hc_swap32_S (w[off +  4]);
-    w1[1] = hc_swap32_S (w[off +  5]);
-    w1[2] = hc_swap32_S (w[off +  6]);
-    w1[3] = hc_swap32_S (w[off +  7]);
-    w2[0] = hc_swap32_S (w[off +  8]);
-    w2[1] = hc_swap32_S (w[off +  9]);
-    w2[2] = hc_swap32_S (w[off + 10]);
-    w2[3] = hc_swap32_S (w[off + 11]);
-    w3[0] = hc_swap32_S (w[off + 12]);
-    w3[1] = hc_swap32_S (w[off + 13]);
-    w3[2] = hc_swap32_S (w[off + 14]);
-    w3[3] = hc_swap32_S (w[off + 15]);
+    const int tail = len;
+
+    u32 t[16];
+
+    t[ 0] = hc_bounded_word_le_S (w, off +  0, tail -   0);
+    t[ 1] = hc_bounded_word_le_S (w, off +  1, tail -   4);
+    t[ 2] = hc_bounded_word_le_S (w, off +  2, tail -   8);
+    t[ 3] = hc_bounded_word_le_S (w, off +  3, tail -  12);
+    t[ 4] = hc_bounded_word_le_S (w, off +  4, tail -  16);
+    t[ 5] = hc_bounded_word_le_S (w, off +  5, tail -  20);
+    t[ 6] = hc_bounded_word_le_S (w, off +  6, tail -  24);
+    t[ 7] = hc_bounded_word_le_S (w, off +  7, tail -  28);
+    t[ 8] = hc_bounded_word_le_S (w, off +  8, tail -  32);
+    t[ 9] = hc_bounded_word_le_S (w, off +  9, tail -  36);
+    t[10] = hc_bounded_word_le_S (w, off + 10, tail -  40);
+    t[11] = hc_bounded_word_le_S (w, off + 11, tail -  44);
+    t[12] = hc_bounded_word_le_S (w, off + 12, tail -  48);
+    t[13] = hc_bounded_word_le_S (w, off + 13, tail -  52);
+    t[14] = hc_bounded_word_le_S (w, off + 14, tail -  56);
+    t[15] = hc_bounded_word_le_S (w, off + 15, tail -  60);
+
+    w0[0] = hc_swap32_S (t[ 0]);
+    w0[1] = hc_swap32_S (t[ 1]);
+    w0[2] = hc_swap32_S (t[ 2]);
+    w0[3] = hc_swap32_S (t[ 3]);
+    w1[0] = hc_swap32_S (t[ 4]);
+    w1[1] = hc_swap32_S (t[ 5]);
+    w1[2] = hc_swap32_S (t[ 6]);
+    w1[3] = hc_swap32_S (t[ 7]);
+    w2[0] = hc_swap32_S (t[ 8]);
+    w2[1] = hc_swap32_S (t[ 9]);
+    w2[2] = hc_swap32_S (t[10]);
+    w2[3] = hc_swap32_S (t[11]);
+    w3[0] = hc_swap32_S (t[12]);
+    w3[1] = hc_swap32_S (t[13]);
+    w3[2] = hc_swap32_S (t[14]);
+    w3[3] = hc_swap32_S (t[15]);
 
     streebog256_update_64 (ctx, w0, w1, w2, w3, len);
   }
@@ -1026,22 +1068,43 @@ DECLSPEC void streebog256_update_global_swap (PRIVATE_AS streebog256_ctx_t *ctx,
 
   if (len > 0)
   {
-    w0[0] = hc_swap32_S (w[off +  0]);
-    w0[1] = hc_swap32_S (w[off +  1]);
-    w0[2] = hc_swap32_S (w[off +  2]);
-    w0[3] = hc_swap32_S (w[off +  3]);
-    w1[0] = hc_swap32_S (w[off +  4]);
-    w1[1] = hc_swap32_S (w[off +  5]);
-    w1[2] = hc_swap32_S (w[off +  6]);
-    w1[3] = hc_swap32_S (w[off +  7]);
-    w2[0] = hc_swap32_S (w[off +  8]);
-    w2[1] = hc_swap32_S (w[off +  9]);
-    w2[2] = hc_swap32_S (w[off + 10]);
-    w2[3] = hc_swap32_S (w[off + 11]);
-    w3[0] = hc_swap32_S (w[off + 12]);
-    w3[1] = hc_swap32_S (w[off + 13]);
-    w3[2] = hc_swap32_S (w[off + 14]);
-    w3[3] = hc_swap32_S (w[off + 15]);
+    const int tail = len;
+
+    u32 t[16];
+
+    t[ 0] = hc_bounded_word_global_le_S (w, off +  0, tail -   0);
+    t[ 1] = hc_bounded_word_global_le_S (w, off +  1, tail -   4);
+    t[ 2] = hc_bounded_word_global_le_S (w, off +  2, tail -   8);
+    t[ 3] = hc_bounded_word_global_le_S (w, off +  3, tail -  12);
+    t[ 4] = hc_bounded_word_global_le_S (w, off +  4, tail -  16);
+    t[ 5] = hc_bounded_word_global_le_S (w, off +  5, tail -  20);
+    t[ 6] = hc_bounded_word_global_le_S (w, off +  6, tail -  24);
+    t[ 7] = hc_bounded_word_global_le_S (w, off +  7, tail -  28);
+    t[ 8] = hc_bounded_word_global_le_S (w, off +  8, tail -  32);
+    t[ 9] = hc_bounded_word_global_le_S (w, off +  9, tail -  36);
+    t[10] = hc_bounded_word_global_le_S (w, off + 10, tail -  40);
+    t[11] = hc_bounded_word_global_le_S (w, off + 11, tail -  44);
+    t[12] = hc_bounded_word_global_le_S (w, off + 12, tail -  48);
+    t[13] = hc_bounded_word_global_le_S (w, off + 13, tail -  52);
+    t[14] = hc_bounded_word_global_le_S (w, off + 14, tail -  56);
+    t[15] = hc_bounded_word_global_le_S (w, off + 15, tail -  60);
+
+    w0[0] = hc_swap32_S (t[ 0]);
+    w0[1] = hc_swap32_S (t[ 1]);
+    w0[2] = hc_swap32_S (t[ 2]);
+    w0[3] = hc_swap32_S (t[ 3]);
+    w1[0] = hc_swap32_S (t[ 4]);
+    w1[1] = hc_swap32_S (t[ 5]);
+    w1[2] = hc_swap32_S (t[ 6]);
+    w1[3] = hc_swap32_S (t[ 7]);
+    w2[0] = hc_swap32_S (t[ 8]);
+    w2[1] = hc_swap32_S (t[ 9]);
+    w2[2] = hc_swap32_S (t[10]);
+    w2[3] = hc_swap32_S (t[11]);
+    w3[0] = hc_swap32_S (t[12]);
+    w3[1] = hc_swap32_S (t[13]);
+    w3[2] = hc_swap32_S (t[14]);
+    w3[3] = hc_swap32_S (t[15]);
 
     streebog256_update_64 (ctx, w0, w1, w2, w3, len);
   }
@@ -1618,22 +1681,43 @@ DECLSPEC void streebog256_update_vector (PRIVATE_AS streebog256_ctx_vector_t *ct
 
   if (len > 0)
   {
-    w0[0] = w[off +  0];
-    w0[1] = w[off +  1];
-    w0[2] = w[off +  2];
-    w0[3] = w[off +  3];
-    w1[0] = w[off +  4];
-    w1[1] = w[off +  5];
-    w1[2] = w[off +  6];
-    w1[3] = w[off +  7];
-    w2[0] = w[off +  8];
-    w2[1] = w[off +  9];
-    w2[2] = w[off + 10];
-    w2[3] = w[off + 11];
-    w3[0] = w[off + 12];
-    w3[1] = w[off + 13];
-    w3[2] = w[off + 14];
-    w3[3] = w[off + 15];
+    const int tail = len;
+
+    u32x t[16];
+
+    t[ 0] = hc_bounded_word_be (w, off +  0, tail -   0);
+    t[ 1] = hc_bounded_word_be (w, off +  1, tail -   4);
+    t[ 2] = hc_bounded_word_be (w, off +  2, tail -   8);
+    t[ 3] = hc_bounded_word_be (w, off +  3, tail -  12);
+    t[ 4] = hc_bounded_word_be (w, off +  4, tail -  16);
+    t[ 5] = hc_bounded_word_be (w, off +  5, tail -  20);
+    t[ 6] = hc_bounded_word_be (w, off +  6, tail -  24);
+    t[ 7] = hc_bounded_word_be (w, off +  7, tail -  28);
+    t[ 8] = hc_bounded_word_be (w, off +  8, tail -  32);
+    t[ 9] = hc_bounded_word_be (w, off +  9, tail -  36);
+    t[10] = hc_bounded_word_be (w, off + 10, tail -  40);
+    t[11] = hc_bounded_word_be (w, off + 11, tail -  44);
+    t[12] = hc_bounded_word_be (w, off + 12, tail -  48);
+    t[13] = hc_bounded_word_be (w, off + 13, tail -  52);
+    t[14] = hc_bounded_word_be (w, off + 14, tail -  56);
+    t[15] = hc_bounded_word_be (w, off + 15, tail -  60);
+
+    w0[0] = t[ 0];
+    w0[1] = t[ 1];
+    w0[2] = t[ 2];
+    w0[3] = t[ 3];
+    w1[0] = t[ 4];
+    w1[1] = t[ 5];
+    w1[2] = t[ 6];
+    w1[3] = t[ 7];
+    w2[0] = t[ 8];
+    w2[1] = t[ 9];
+    w2[2] = t[10];
+    w2[3] = t[11];
+    w3[0] = t[12];
+    w3[1] = t[13];
+    w3[2] = t[14];
+    w3[3] = t[15];
 
     streebog256_update_vector_64 (ctx, w0, w1, w2, w3, len);
   }
@@ -1675,22 +1759,43 @@ DECLSPEC void streebog256_update_vector_swap (PRIVATE_AS streebog256_ctx_vector_
 
   if (len > 0)
   {
-    w0[0] = hc_swap32 (w[off +  0]);
-    w0[1] = hc_swap32 (w[off +  1]);
-    w0[2] = hc_swap32 (w[off +  2]);
-    w0[3] = hc_swap32 (w[off +  3]);
-    w1[0] = hc_swap32 (w[off +  4]);
-    w1[1] = hc_swap32 (w[off +  5]);
-    w1[2] = hc_swap32 (w[off +  6]);
-    w1[3] = hc_swap32 (w[off +  7]);
-    w2[0] = hc_swap32 (w[off +  8]);
-    w2[1] = hc_swap32 (w[off +  9]);
-    w2[2] = hc_swap32 (w[off + 10]);
-    w2[3] = hc_swap32 (w[off + 11]);
-    w3[0] = hc_swap32 (w[off + 12]);
-    w3[1] = hc_swap32 (w[off + 13]);
-    w3[2] = hc_swap32 (w[off + 14]);
-    w3[3] = hc_swap32 (w[off + 15]);
+    const int tail = len;
+
+    u32x t[16];
+
+    t[ 0] = hc_bounded_word_le (w, off +  0, tail -   0);
+    t[ 1] = hc_bounded_word_le (w, off +  1, tail -   4);
+    t[ 2] = hc_bounded_word_le (w, off +  2, tail -   8);
+    t[ 3] = hc_bounded_word_le (w, off +  3, tail -  12);
+    t[ 4] = hc_bounded_word_le (w, off +  4, tail -  16);
+    t[ 5] = hc_bounded_word_le (w, off +  5, tail -  20);
+    t[ 6] = hc_bounded_word_le (w, off +  6, tail -  24);
+    t[ 7] = hc_bounded_word_le (w, off +  7, tail -  28);
+    t[ 8] = hc_bounded_word_le (w, off +  8, tail -  32);
+    t[ 9] = hc_bounded_word_le (w, off +  9, tail -  36);
+    t[10] = hc_bounded_word_le (w, off + 10, tail -  40);
+    t[11] = hc_bounded_word_le (w, off + 11, tail -  44);
+    t[12] = hc_bounded_word_le (w, off + 12, tail -  48);
+    t[13] = hc_bounded_word_le (w, off + 13, tail -  52);
+    t[14] = hc_bounded_word_le (w, off + 14, tail -  56);
+    t[15] = hc_bounded_word_le (w, off + 15, tail -  60);
+
+    w0[0] = hc_swap32 (t[ 0]);
+    w0[1] = hc_swap32 (t[ 1]);
+    w0[2] = hc_swap32 (t[ 2]);
+    w0[3] = hc_swap32 (t[ 3]);
+    w1[0] = hc_swap32 (t[ 4]);
+    w1[1] = hc_swap32 (t[ 5]);
+    w1[2] = hc_swap32 (t[ 6]);
+    w1[3] = hc_swap32 (t[ 7]);
+    w2[0] = hc_swap32 (t[ 8]);
+    w2[1] = hc_swap32 (t[ 9]);
+    w2[2] = hc_swap32 (t[10]);
+    w2[3] = hc_swap32 (t[11]);
+    w3[0] = hc_swap32 (t[12]);
+    w3[1] = hc_swap32 (t[13]);
+    w3[2] = hc_swap32 (t[14]);
+    w3[3] = hc_swap32 (t[15]);
 
     streebog256_update_vector_64 (ctx, w0, w1, w2, w3, len);
   }

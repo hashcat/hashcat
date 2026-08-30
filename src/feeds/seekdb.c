@@ -128,11 +128,11 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
     return NULL;
   }
 
-  XXH64_state_t *state = XXH64_createState ();
+  paw64_ctx_t state;
 
-  XXH64_reset (state, 0);
+  paw64_init (&state, 0);
 
-  XXH64_update (state, &st.st_size, sizeof (st.st_size));
+  paw64_update (&state, &st.st_size, sizeof (st.st_size));
 
   u8 *buf = (u8 *) hcmalloc (SAMPLE_SIZE);
 
@@ -156,14 +156,14 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
       if (nread == 0) break;
       if (nread == (size_t) -1) break;
 
-      XXH64_update (state, buf, nread);
+      paw64_update (&state, buf, nread);
     }
   }
   else
   {
     const size_t nread1 = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
 
-    if (nread1 != (size_t) -1) XXH64_update (state, buf, nread1);
+    if (nread1 != (size_t) -1) paw64_update (&state, buf, nread1);
 
     const size_t file_len = (size_t) st.st_size;
 
@@ -173,7 +173,7 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 
       const size_t nread2 = hc_fread (buf, 1, SAMPLE_SIZE, &fp);
 
-      if (nread2 != (size_t) -1) XXH64_update (state, buf, nread2);
+      if (nread2 != (size_t) -1) paw64_update (&state, buf, nread2);
     }
   }
 
@@ -181,9 +181,7 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 
   hc_fclose (&fp);
 
-  const u64 hash = XXH64_digest (state);
-
-  XXH64_freeState (state);
+  const u64 hash = paw64_final (&state);
 
   char *seekdb_path = NULL;
 
@@ -513,9 +511,9 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
 
   tmp[checkpoints++] = 0;
 
-  XXH64_state_t *xstate = XXH64_createState ();
+  paw64_ctx_t xstate;
 
-  XXH64_reset (xstate, 0);
+  paw64_init (&xstate, 0);
 
   hc_timer_t start;
 
@@ -549,7 +547,7 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
 
     if (n == 0) break;
 
-    XXH64_update (xstate, buf, n);
+    paw64_update (&xstate, buf, n);
 
     size_t i = 0;
 
@@ -630,9 +628,7 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
   *size       = feed_thread->file_size;
   *step       = SEEKDB_STEP;
 
-  const u64 content = XXH64_digest (xstate);
-
-  XXH64_freeState (xstate);
+  const u64 content = paw64_final (&xstate);
 
   seekdb_save (seekdb_path, wordlist, *line_count, db, *count, feed_thread->file_size, ident, content, SEEKDB_STEP);
 
