@@ -111,6 +111,7 @@ LUKS_MODES="${LUKS1_MODES} ${LUKS2_MODES}"
 TC_TESTS_DIR="${TDIR}/tc_tests"
 VC_TESTS_DIR="${TDIR}/vc_tests"
 LUKS_TESTS_DIR="${TDIR}/luks_tests"
+LUKS2_TESTS_DIR="${TDIR}/luks2_tests"
 
 # The password every generated container is built with, and the one the shipped containers
 # already use. With -g the containers are built by this run, so the password is picked at
@@ -418,7 +419,7 @@ function init()
 
   #LUKS2
   if is_in_array "$hash_type" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]]; then
-    luks2_tests_folder="${TDIR}/luks2_tests/"
+    luks2_tests_folder="${LUKS2_TESTS_DIR}/"
 
     if [ ! -d "${luks2_tests_folder}" ]; then
       mkdir -p "${luks2_tests_folder}"
@@ -3968,6 +3969,110 @@ function luks1_generate()
   return 0
 }
 
+function luks2_generate()
+{
+  # $1 = cipher mode, $2 = key size, $3 = target file
+  local l2_mode="$1"
+  local l2_keysize="$2"
+  local l2_file="$3"
+
+  local CRYPTSETUP_BIN="${CRYPTSETUP_BIN:-cryptsetup}"
+
+  if ! command -v "${CRYPTSETUP_BIN}" >/dev/null 2>&1; then
+    record_skip "${hash_type}" "cryptsetup not found, so no LUKS2 container can be generated"
+    return 1
+  fi
+
+  # cbc-essiv is written cbc-essiv:sha256 in a cryptsetup cipher spec
+  local l2_chain="${l2_mode}"
+
+  if [ "${l2_mode}" = "cbc-essiv" ]; then
+    l2_chain="cbc-essiv:sha256"
+  fi
+
+  local l2_name="luks2gen$$_${l2_keysize}"
+
+  rm -f "${l2_file}"
+
+  # LUKS2 keeps a 16 MiB metadata area of its own, so the file has to be larger
+  # than the 20 MiB a LUKS1 container gets or there is no room for a filesystem
+  truncate -s 48M "${l2_file}" 2>/dev/null
+
+  # t=4, m=16 MiB, p=1: the smallest argon2id the format is still itself at, and
+  # the same shape as the luks2-aes-argon2id-t4-m16-p1 container hashcat.net
+  # ships. The point is to test the format rather than to wait for a KDF.
+  if ! sudo "${CRYPTSETUP_BIN}" luksFormat \
+      --batch-mode \
+      --type luks2 \
+      --cipher "aes-${l2_chain}" \
+      --key-size "${l2_keysize}" \
+      --hash sha256 \
+      --pbkdf argon2id \
+      --pbkdf-force-iterations 4 \
+      --pbkdf-memory 16384 \
+      --pbkdf-parallel 1 \
+      "${l2_file}" <<< "${CONTAINER_PASSWORD}" >/dev/null 2>&1; then
+    rm -f "${l2_file}"
+
+    record_skip "${hash_type}" "cryptsetup refused aes-${l2_chain} at ${l2_keysize} bits for LUKS2"
+    return 1
+  fi
+
+  # hashcat recognizes a correct LUKS password by the filesystem it uncovers, so
+  # the payload has to be a filesystem and not just bytes
+  if ! sudo "${CRYPTSETUP_BIN}" open "${l2_file}" "${l2_name}" <<< "${CONTAINER_PASSWORD}" >/dev/null 2>&1; then
+    rm -f "${l2_file}"
+
+    record_skip "${hash_type}" "could not open the generated aes-${l2_chain} LUKS2 container (device-mapper needs sudo)"
+    return 1
+  fi
+
+  sudo mkfs.ext4 -q "/dev/mapper/${l2_name}" >/dev/null 2>&1
+
+  sudo "${CRYPTSETUP_BIN}" close "${l2_name}" >/dev/null 2>&1
+
+  if [ ! -s "${l2_file}" ]; then
+    record_skip "${hash_type}" "the generated aes-${l2_chain} LUKS2 container came out empty"
+    return 1
+  fi
+
+  # luks2_test reads the password out of a file named pw next to the containers,
+  # the same way the downloaded set ships one
+  echo "${CONTAINER_PASSWORD}" > "$(dirname "${l2_file}")/pw"
+
+  return 0
+}
+
+function luks2_generate_set()
+{
+  # The combinations mode 34100 accepts: aes only, and a key size the chain mode
+  # can carry. xts splits the key in two, so it needs twice the bits.
+  local l2_mode
+  local l2_keysize
+  local l2_file
+
+  for l2_mode in cbc-essiv cbc-plain64 xts-plain64; do
+    for l2_keysize in 128 256 512; do
+
+      case "${l2_mode}" in
+        cbc-essiv|cbc-plain64)
+          [ "${l2_keysize}" -eq 512 ] && continue
+          ;;
+        xts-plain64)
+          [ "${l2_keysize}" -eq 128 ] && continue
+          ;;
+      esac
+
+      l2_file="${LUKS2_TESTS_DIR}/luks2-aes-argon2id-t4-m16-p1-${l2_mode}-${l2_keysize}.img"
+
+      [ -f "${l2_file}" ] && continue
+
+      luks2_generate "${l2_mode}" "${l2_keysize}" "${l2_file}"
+
+    done
+  done
+}
+
 function truecrypt_test()
 {
   hashType=$1
@@ -4849,7 +4954,13 @@ function luks2_test()
 
   chmod u+x "${TDIR}/luks2hashcat.py"
 
-  for luks2File in $(ls ${TDIR}/luks2_tests | grep "img$"); do
+  mkdir -p "${LUKS2_TESTS_DIR}"
+
+  if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+    luks2_generate_set
+  fi
+
+  for luks2File in $(ls "${LUKS2_TESTS_DIR}" 2>/dev/null | grep "img$"); do
     luksMainMask="?l"
     luksMask="${luksMainMask}"
 
@@ -4857,14 +4968,14 @@ function luks2_test()
     luksPassPartFile1="${OUTD}/${hashType}_dict1"
     luksPassPartFile2="${OUTD}/${hashType}_dict2"
 
-    luksContainer="${TDIR}/luks2_tests/${luks2File}"
+    luksContainer="${LUKS2_TESTS_DIR}/${luks2File}"
 
     mkdir -p "${OUTD}/luks2_tests"
     luksHashFile="${OUTD}/luks2_tests/${luks2File}.hash"
 
     case $attackType in
       0)
-        CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${TDIR}/luks2_tests/pw'"
+        CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${LUKS2_TESTS_DIR}/pw'"
         ;;
       1)
         luksPassPart1Len=$((${#LUKS2_PASSWORD} / 2))
@@ -4904,7 +5015,7 @@ function luks2_test()
     if [ -n "${CMD}" ] && [ ${#CMD} -gt 5 ]; then
       echo "> Testing hash type ${hashType} with attack mode ${attackType}, markov ${MARKOV}, single hash, Device-Type ${DEVICE_TYPE}, Kernel-Type ${KERNEL_TYPE}, Vector-Width ${VECTOR}, LUKS2-mode ${luksMode}" >> "${OUTD}/logfull.txt" 2>> "${OUTD}/logfull.txt"
 
-      if [ -f "${luks2_first_test_file}" ]; then
+      if [ -f "${luksContainer}" ]; then
         output=$(eval ${CMD} 2>&1)
         ret=${?}
 
@@ -6390,6 +6501,7 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       TC_TESTS_DIR="$(container_gen_dir tc_tests_gen)"
       VC_TESTS_DIR="$(container_gen_dir vc_tests_gen)"
       LUKS_TESTS_DIR="$(container_gen_dir luks_tests_gen)"
+      LUKS2_TESTS_DIR="$(container_gen_dir luks2_tests_gen)"
     fi
 
     # generate random test entry
@@ -6643,6 +6755,11 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
                 else
                   luks_test "${hash_type}" ${ATTACK}
                 fi
+              fi
+
+              if is_in_array "${hash_type}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
+                # generate + test real LUKS2 containers
+                luks2_test "${hash_type}" ${ATTACK}
               fi
 
               if is_in_array "${hash_type}" ${PM_MODES}; then
