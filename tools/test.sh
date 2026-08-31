@@ -13,6 +13,34 @@ OPTS="--quiet --potfile-disable --logfile-disable"
 # suite computes would stop matching the lengths the kernels see.
 export LC_ALL=C
 
+# ... but not for every child. veracrypt reads its password through wxWidgets, which decodes
+# argv using the locale, and tcplay is driven through expect, whose Tcl does the same. Under
+# LC_ALL=C both read a UTF-8 password as Latin-1 and re-encode it, so the container ends up
+# built with bytes nobody chose: hand veracrypt '7<U+0939>60778768' under LC_ALL=C and the
+# volume answers to '7<U+00E0><U+00A4><U+00B9>60778768' instead. hashcat is not involved, it
+# gets the bytes it was given.
+#
+#   veracrypt --text --create /tmp/v.vc --volume-type=normal --size=15M --encryption=AES \
+#     --hash=SHA-512 --filesystem=none --pim=0 --keyfiles= --random-source=/dev/urandom \
+#     --password="$(printf '7\xe0\xa4\xb960778768')"
+#   printf '7\xe0\xa4\xb960778768\n' > /tmp/v.txt
+#   ./hashcat -a 0 -m 13721 /tmp/v.vc /tmp/v.txt
+#
+#     created under LC_ALL=C      rc=1, not cracked
+#     created under LC_ALL=C.utf8 rc=0, cracked
+#
+# So those two get a UTF-8 locale, and everything else keeps LC_ALL=C, which is what makes
+# ${#pass} and cut -c count bytes.
+
+UTF8_LOCALE=""
+
+for utf8_candidate in C.UTF-8 C.utf8 en_US.UTF-8 en_US.utf8; do
+  if locale -a 2>/dev/null | grep -qix "${utf8_candidate}"; then
+    UTF8_LOCALE="${utf8_candidate}"
+    break
+  fi
+done
+
 FORCE=0
 RUNTIME=400
 
@@ -122,6 +150,7 @@ CONTAINER_PASSWORD="hashcat"
 CONTAINER_MASK="hashca?l"
 # The VeraCrypt tests put the ?l in the middle instead of at the end.
 CONTAINER_MASK_MID="hashc?lt"
+
 
 # Cryptoloop mode which have test containers
 CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 14543 14551 14552 14553"
@@ -2633,7 +2662,12 @@ function attack_7()
         # -a 7 is mask + dict and dict2 holds the tail of the password, so the mask spells the
         # head, which is what dict1 holds
 
-        mask="$(mask_literalize "${mask}" "$(sed -n ${line_nr}p "${dict1}")")"
+        # Built from what dict1 actually holds rather than from mask_7[], because a split that
+        # moved to a character boundary makes dict1 a different length than the array assumed,
+        # and a mask that does not line up with it cannot spell the password.
+
+        dict1_line="$(sed -n ${line_nr}p "${dict1}")"
+        mask="$(mask_literalize "$(mask_dots ${#dict1_line})" "${dict1_line}")"
 
         CMD="./${BIN} ${OPTS} -a 7 -m ${hash_type} '${hash}' ${mask} ${dict2}"
 
@@ -3600,16 +3634,36 @@ function utf8_split_point()
 
   local up_text="$1"
   local up_off="$2"
+  local up_back="${up_off}"
+  local up_len=${#up_text}
 
-  while [ "${up_off}" -gt 0 ]; do
-    case "${up_text:${up_off}:1}" in
+  while [ "${up_back}" -gt 0 ]; do
+    case "${up_text:${up_back}:1}" in
       # 0x80 to 0xbf is a continuation byte, so the offset sits inside a character
-      [$'\x80'-$'\xbf']) up_off=$((up_off - 1)) ;;
-      *)                 break ;;
+      [$'\x80'-$'\xbf']) up_back=$((up_back - 1)) ;;
+      *)                  break ;;
     esac
   done
 
-  printf '%s' "${up_off}"
+  # Moving back is the right answer unless it lands on 0 while the caller asked for a real
+  # split, which happens when a character sits at the very start of the password. An empty
+  # half is not a candidate the combinator and hybrid attacks can use, so go the other way
+  # and take the first boundary after the offset instead.
+
+  if [ "${up_back}" -eq 0 ] && [ "${up_off}" -gt 0 ]; then
+    while [ "${up_off}" -lt "${up_len}" ]; do
+      case "${up_text:${up_off}:1}" in
+        [$'\x80'-$'\xbf']) up_off=$((up_off + 1)) ;;
+        *)                  break ;;
+      esac
+    done
+
+    printf '%s' "${up_off}"
+
+    return
+  fi
+
+  printf '%s' "${up_back}"
 }
 
 function mask_dots()
@@ -3760,7 +3814,7 @@ function veracrypt_generate()
 
   # 1 MiB is over VeraCrypt's minimum and keeps generation to a moment; hashcat
   # only ever reads the header.
-  "${VERACRYPT_BIN}" --text --create "${vg_file}" \
+  LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${VERACRYPT_BIN}" --text --create "${vg_file}" \
     --size=1M \
     --password="${CONTAINER_PASSWORD}" \
     --volume-type=normal \
@@ -3916,7 +3970,7 @@ EXPECT_EOF
     return 1
   fi
 
-  sudo expect "${tg_expect}" "${tg_loop}" "${CONTAINER_PASSWORD}" "${tg_prf_name}" "${tg_cipher}" "${TCPLAY_BIN}" >/dev/null 2>&1
+  sudo LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" expect "${tg_expect}" "${tg_loop}" "${CONTAINER_PASSWORD}" "${tg_prf_name}" "${tg_cipher}" "${TCPLAY_BIN}" >/dev/null 2>&1
 
   local tg_rc=$?
 
@@ -5319,11 +5373,11 @@ function pkzip_test()
   rm -f "${zf}"
 
   case ${hashType} in
-    17200) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
-    17210) "${ZIP_BIN}" -0 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
-    17220) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" >/dev/null 2>&1 ;;
-    17225) "${ZIP_BIN}" -e    -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/rand.bin" "${sdir}/t2.txt" >/dev/null 2>&1 ;;
-    17230) "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" "${sdir}/t4.txt" >/dev/null 2>&1; j2jflag="-c" ;;
+    17200) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
+    17210) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -0 -e -P "${password}" "${zf}" "${sdir}/t1.txt" >/dev/null 2>&1 ;;
+    17220) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" >/dev/null 2>&1 ;;
+    17225) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -e    -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/rand.bin" "${sdir}/t2.txt" >/dev/null 2>&1 ;;
+    17230) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${ZIP_BIN}" -9 -e -P "${password}" "${zf}" "${sdir}/t1.txt" "${sdir}/t2.txt" "${sdir}/t3.txt" "${sdir}/t4.txt" >/dev/null 2>&1; j2jflag="-c" ;;
     *) record_skip "${hashType}" "unsupported PKZIP mode for -g"; return ;;
   esac
 
@@ -5404,9 +5458,9 @@ EOF
     command -v "${GPG2_BIN}" >/dev/null 2>&1 || return
     local label="$1"; shift
     local H; H="$(mktemp -d)"
-    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" "$@" --quick-generate-key "${label} <${label}@hashcat.test>" rsa1024 sign 0 >/dev/null 2>&1
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" "$@" --quick-generate-key "${label} <${label}@hashcat.test>" rsa1024 sign 0 >/dev/null 2>&1
     local sk="${gdir}/${hashType}_${label}.sk.gpg"
-    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --export-secret-keys 2>/dev/null > "${sk}"
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --export-secret-keys 2>/dev/null > "${sk}"
     local hf="${gdir}/${hashType}_${label}.hash"
     "${GPG2JOHN}" "${sk}" 2>/dev/null | sed -E 's/^[^:]*://' | grep -oE '^\$gpg\$[^:]*' | head -1 > "${hf}"
     rm -rf "${H}"
@@ -5422,7 +5476,7 @@ EOF
     local label="$1"
     local keytype="$2"
     local H; H="$(mktemp -d)"
-    "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --quick-generate-key "${label} <${label}@hashcat.test>" "${keytype}" sign 0 >/dev/null 2>&1
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${GPG2_BIN}" --homedir "${H}" --batch --pinentry-mode loopback --passphrase "${password}" --quick-generate-key "${label} <${label}@hashcat.test>" "${keytype}" sign 0 >/dev/null 2>&1
     local kf; kf="$(ls "${H}"/private-keys-v1.d/*.key 2>/dev/null | head -1)"
     local hf="${gdir}/${hashType}_${label}.hash"
     if [ -n "${kf}" ] && grep -aq 'openpgp-s2k3-ocb-aes' "${kf}" 2>/dev/null; then
@@ -5553,10 +5607,10 @@ function rar_test()
   rm -f "${arc}"
 
   case ${hashType} in
-    12500) "${RAR_BIN}" a -ma4 -m3 -hp"${password}" -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-hp" ;;
-    23700) "${RAR_BIN}" a -ma4 -m0 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-store" ;;
-    23800) "${RAR_BIN}" a -ma4 -m3 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-compressed" ;;
-    13000) "${RAR_BIN}" a       -p"${password}"     -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar5"; sig='\$rar5\$' ;;
+    12500) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${RAR_BIN}" a -ma4 -m3 -hp"${password}" -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-hp" ;;
+    23700) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${RAR_BIN}" a -ma4 -m0 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-store" ;;
+    23800) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${RAR_BIN}" a -ma4 -m3 -p"${password}"  -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar3-p-compressed" ;;
+    13000) LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${RAR_BIN}" a       -p"${password}"     -inul "${arc}" "${sdir}/payload.txt" >/dev/null 2>&1; label="rar5"; sig='\$rar5\$' ;;
     *) record_skip "${hashType}" "unsupported RAR mode for -g"; return ;;
   esac
 
@@ -5663,13 +5717,13 @@ function sevenzip_test()
     if [ "${hashType}" -eq 13600 ]; then
       archive="${archive}.zip"
 
-      "${SEVENZIP_BIN}" a -tzip ${opts} -p"${password}" "${archive}" "${sdir}/payload.txt" >/dev/null 2>&1
+      LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${SEVENZIP_BIN}" a -tzip ${opts} -p"${password}" "${archive}" "${sdir}/payload.txt" >/dev/null 2>&1
 
       "${ZIP2JOHN}" "${archive}" 2>/dev/null | grep -oE '^[^:]*:\$zip2\$[^:]*' | sed -E 's/^[^:]*://' | head -1 > "${hashFile}"
     else
       archive="${archive}.7z"
 
-      "${SEVENZIP_BIN}" a ${opts} -p"${password}" "${archive}" "${sdir}/payload.txt" >/dev/null 2>&1
+      LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${SEVENZIP_BIN}" a ${opts} -p"${password}" "${archive}" "${sdir}/payload.txt" >/dev/null 2>&1
 
       perl "${SEVENZIP2JOHN}" "${archive}" 2>/dev/null | grep -oE '\$7z\$[^:]*' | head -1 > "${hashFile}"
     fi
@@ -5758,7 +5812,7 @@ function pdf_gen_test()
 
     rm -f "${doc}"
 
-    "${QPDF_BIN}" ${opts} "${plain}" "${doc}" >/dev/null 2>&1
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${QPDF_BIN}" ${opts} "${plain}" "${doc}" >/dev/null 2>&1
 
     if [ ! -s "${doc}" ]; then
       record_skip "${hashType}" "qpdf could not write a ${label} document"
@@ -5822,7 +5876,7 @@ function ssh_test()
 
     rm -f "${key}" "${key}.pub"
 
-    "${SSHKEYGEN_BIN}" -q -m PEM -t "${keytype}" -N "${password}" -C hashcat -f "${key}" >/dev/null 2>&1
+    LC_ALL="${UTF8_LOCALE:-C}" LANG="${UTF8_LOCALE:-C}" "${SSHKEYGEN_BIN}" -q -m PEM -t "${keytype}" -N "${password}" -C hashcat -f "${key}" >/dev/null 2>&1
 
     if [ ! -s "${key}" ]; then
       record_skip "${hashType}" "ssh-keygen would not write a PEM ${keytype} key"
