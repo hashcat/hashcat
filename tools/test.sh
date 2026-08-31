@@ -679,6 +679,11 @@ function init()
 
       while read -r -u 9 pass; do
 
+        # both halves have to be valid UTF-8 on their own, see utf8_split_point()
+
+        p0=$(utf8_split_point "${pass}" ${p0})
+        p1=$((p0 + 1))
+
         # add splitted password to dicts
         echo "${pass}" | cut -c -${p0} >> "${OUTD}/${hash_type}_dict1_multi_${i}"
         echo "${pass}" | cut -c ${p1}- >> "${OUTD}/${hash_type}_dict2_multi_${i}"
@@ -1716,11 +1721,25 @@ function attack_3()
       need_hcmask=1
     fi
 
+    # This is one run with --increment over passwords of many lengths at once, and a password
+    # can carry a multi byte character wherever tools/test.pl put it, so no single '?d' mask
+    # spells all of them. The hcmask path below already gives hashcat one mask per line, which
+    # is exactly one mask per password, so take it whenever a character is in play and write a
+    # mask per password rather than searching a mask per length.
+
+    if grep -qP '[^\x00-\x7F]' "${OUTD}/${hash_type}_passwords.txt" 2>/dev/null; then
+      need_hcmask=2
+    fi
+
     if [ "${tail_hashes}" -lt 1 ]; then
       need_hcmask=1
     fi
 
-    if [ ${need_hcmask} -eq 0 ]; then
+    if [ ${need_hcmask} -eq 2 ]; then
+      tail_hashes=$(wc -l < "${OUTD}/${hash_type}_passwords.txt")
+
+      cp "${OUTD}/${hash_type}_hashes.txt" "${hash_file}"
+    elif [ ${need_hcmask} -eq 0 ]; then
       head -n "${head_hashes}" "${OUTD}/${hash_type}_hashes.txt" | tail -n "${tail_hashes}" > "${hash_file}"
     else
       tail_hashes=$(awk "length >= ${increment_min}" "${OUTD}/${hash_type}_passwords.txt" | wc -l)
@@ -1741,7 +1760,17 @@ function attack_3()
     mask=""
     cracks_offset=0
 
-    if [ ${need_hcmask} -eq 0 ]; then
+    if [ ${need_hcmask} -eq 2 ]; then
+      cracks_offset=0
+
+      mask="${OUTD}/${hash_type}_multi_a3.hcmask"
+
+      : > "${mask}"
+
+      while IFS= read -r a3_pass; do
+        printf '%s\n' "$(mask_literalize "$(mask_dots ${#a3_pass})" "${a3_pass}")" >> "${mask}"
+      done < "${OUTD}/${hash_type}_passwords.txt"
+    elif [ ${need_hcmask} -eq 0 ]; then
       cracks_offset=$((head_hashes - tail_hashes))
 
       mask=${mask_3[${mask_pos}]}
@@ -2384,7 +2413,15 @@ function attack_6()
 
       fi
 
-      mask=${mask_6[$i]}
+      # The eight passwords of a length share this mask, which is why tools/test.pl gives them
+      # their characters in the same places: the layout is seeded from the length. A '?d' over
+      # one of those bytes cannot produce it, so the mask spells it instead. Any of the eight
+      # will do as the model.
+
+      multi_model="$(head -1 "${OUTD}/${hash_type}_passwords_multi_${i}.txt" 2>/dev/null)"
+      multi_head="$(head -1 "${OUTD}/${hash_type}_dict1_multi_${i}" 2>/dev/null)"
+      multi_tail="${multi_model:${#multi_head}}"
+      mask="$(mask_literalize "$(mask_dots ${#multi_tail})" "${multi_tail}")"
 
       CMD="./${BIN} ${OPTS} -a 6 -m ${hash_type} ${hash_file} ${OUTD}/${hash_type}_dict1_multi_${i} ${mask}"
 
@@ -2550,7 +2587,15 @@ function attack_7()
 
         fi
 
-        mask=${mask_7[$i]}
+        # The eight passwords of a length share this mask, which is why tools/test.pl gives them
+        # their characters in the same places: the layout is seeded from the length. A '?d' over
+        # one of those bytes cannot produce it, so the mask spells it instead. Any of the eight
+        # will do as the model.
+
+        multi_model="$(head -1 "${OUTD}/${hash_type}_passwords_multi_${i}.txt" 2>/dev/null)"
+        multi_head="$(head -1 "${OUTD}/${hash_type}_dict1_multi_${i}" 2>/dev/null)"
+        multi_tail="${multi_model:${#multi_head}}"
+        mask="$(mask_literalize "$(mask_dots ${#multi_head})" "${multi_head}")"
 
         # adjust mask if needed
 
@@ -2810,12 +2855,20 @@ function attack_7()
       hash_file=${OUTD}/${hash_type}_hashes_multi_${i}.txt
       dict_file=${OUTD}/${hash_type}_dict2_multi_${i}
 
+      # The eight passwords of a length share this mask, which is why tools/test.pl gives them
+      # their characters in the same places. It has to spell the half that dict2 does not hold,
+      # and the split moved to a character boundary, so it comes from what dict1 holds rather
+      # than from mask_7[], which was sized for a split on a byte.
+
+      multi_model="$(head -1 "${OUTD}/${hash_type}_passwords_multi_${i}.txt" 2>/dev/null)"
+      multi_head="$(head -1 "${OUTD}/${hash_type}_dict1_multi_${i}" 2>/dev/null)"
+
       if [ "${hash_type}" -eq 40001 ]; then
         mask=${mask_7[((i+10))]}
       elif [ "${hash_type}" -eq 40002 ]; then
         mask=${mask_7[((i+10))]}
       else
-        mask=${mask_7[$i]}
+        mask="$(mask_literalize "$(mask_dots ${#multi_head})" "${multi_head}")"
       fi
 
       # if file_only -> decode all base64 "hashes" and put them in the temporary file
@@ -3268,14 +3321,18 @@ function attack_12()
       # of the mask with the first half and behind it with the second. That is what -a 6 and -a 7 do
       # from the same files, and here one attack mode does both.
 
+      multi_model="$(head -1 "${OUTD}/${hash_type}_passwords_multi_${i}.txt" 2>/dev/null)"
+      multi_head="$(head -1 "${OUTD}/${hash_type}_dict1_multi_${i}" 2>/dev/null)"
+      multi_tail="${multi_model:${#multi_head}}"
+
       for shape in first last; do
 
         if [ "${shape}" = "first" ]; then
           dict=${OUTD}/${hash_type}_dict1_multi_${i}
-          mask="?w${mask_6[$i]}"
+          mask="?w$(mask_literalize "$(mask_dots ${#multi_tail})" "${multi_tail}")"
         else
           dict=${OUTD}/${hash_type}_dict2_multi_${i}
-          mask="${mask_7[$i]}?w"
+          mask="$(mask_literalize "$(mask_dots ${#multi_head})" "${multi_head}")?w"
         fi
 
         CMD="./${BIN} ${OPTS} -a 12 -m ${hash_type} ${hash_file} ${mask} ${dict}"
@@ -3664,6 +3721,27 @@ function utf8_split_point()
   fi
 
   printf '%s' "${up_back}"
+}
+
+function mask_positions()
+{
+  # How many password bytes a mask covers. A '?x' group is one, any other character is one.
+
+  local mp_mask="$1"
+  local mp_i=0
+  local mp_n=0
+
+  while [ ${mp_i} -lt ${#mp_mask} ]; do
+    if [ "${mp_mask:${mp_i}:1}" = "?" ]; then
+      mp_i=$((mp_i + 2))
+    else
+      mp_i=$((mp_i + 1))
+    fi
+
+    mp_n=$((mp_n + 1))
+  done
+
+  printf '%s' "${mp_n}"
 }
 
 function mask_dots()

@@ -82,6 +82,14 @@ my @NON_ASCII_CHARS =
 
 my $NON_ASCII_SKIP_BYTES = 0;
 
+# A character is only written where the password keeps at least one byte outside it. -a 1, -a 6,
+# -a 7 and -a 12 cut the password in two and both halves have to land on a character boundary,
+# so a password that is nothing but one character cannot be cut at all and leaves one of the two
+# dictionaries empty. This is the smallest rule that avoids it: it costs nothing above 4 bytes,
+# where the old flat minimum of 6 cost every password of 4 and 5 bytes as well.
+
+my $NON_ASCII_MIN_SPARE = 1;
+
 # Roughly how often an eligible position is turned into a multi byte character. Low enough
 # that a generated set still holds plain ASCII passwords, high enough that a set of 8 almost
 # always holds at least one that is not.
@@ -1035,7 +1043,7 @@ sub sprinkle_non_ascii
 
     my $char_len = length $char;
 
-    if ((($pos + $char_len) <= $len) && ($rand->() < $NON_ASCII_RATE))
+    if ((($pos + $char_len) <= ($len - $NON_ASCII_MIN_SPARE + ($pos > 0 ? 1 : 0))) && ($rand->() < $NON_ASCII_RATE))
     {
       substr ($string, $pos, $char_len) = $char;
 
