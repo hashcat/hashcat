@@ -23,7 +23,7 @@ Tested on Windows 11 23H2 x64
 
      ```sh
      export _GW="mingw-w64-x86_64"
-     pacman -S --needed git make gcc libiconv-devel python3 $_GW-clang $_GW-rustup $_GW-toolchain $_GW-llvm $_GW-lld
+     pacman -S --needed git make gcc python3 $_GW-clang $_GW-rustup $_GW-toolchain $_GW-llvm $_GW-lld
      ```
 
 5. **Ensure MinGW toolchain is first on PATH for this session:**
@@ -73,12 +73,15 @@ Tested on Windows 11 23H2 x64
 
 ### Running outside the MSYS2 shell (portable setup)
 
-Copy the dependent DLLs next to `hashcat.exe`. Two common ones are:
+Copy the dependent DLLs next to `hashcat.exe`. The common one is:
 
-* `msys-iconv-2.dll`
 * `msys-2.0.dll`
 
-(these can be found in `msys64/usr/bin`)
+(it can be found in `msys64/usr/bin`)
+
+`--encoding-from` and `--encoding-to` need `msys-iconv-2.dll` from the same folder. hashcat opens it
+at runtime and only when one of those two options asks for a conversion, so every other run works
+without it.
 
 To verify which dependencies are missing:
 

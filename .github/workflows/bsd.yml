@@ -94,7 +94,7 @@ jobs:
             pkg_add pkgin
             pkgin -y update
             pkgin -y full-upgrade
-            pkgin -y install bash git gcc14 gmake gsed python313 llvm libiconv clang openmp
+            pkgin -y install bash git gcc14 gmake gsed python313 llvm clang openmp
           run: |
             export PATH="/usr/pkg/gcc14/bin:$PATH"
             export TERM=xterm

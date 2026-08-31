@@ -6,6 +6,8 @@
 #ifndef HC_WORDLIST_H
 #define HC_WORDLIST_H
 
+#include "ext_iconv.h"
+
 #include <time.h>
 #include <inttypes.h>
 
@@ -36,10 +38,14 @@ typedef struct pw_transform
   const char *rule_buf;
 
   // An iconv descriptor carries conversion state, so one belongs to one thread and never to two.
+  // The library is held here as well, because it is loaded at runtime and asking for it again is a
+  // once-check this would otherwise do for every candidate.
 
-  bool    iconv_enabled;
-  iconv_t iconv_ctx;
-  char   *iconv_tmp;
+  bool       iconv_enabled;
+  hc_iconv_t iconv_ctx;
+  char      *iconv_tmp;
+
+  const hc_iconv_lib_t *iconv_lib;
 
 } pw_transform_t;
 

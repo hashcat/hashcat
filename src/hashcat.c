@@ -57,6 +57,7 @@
 #include "ext_zlib.h"
 #include "ext_lzma.h"
 #include "ext_zstd.h"
+#include "ext_iconv.h"
 #include "usage.h"
 
 #ifdef WITH_BRAIN
@@ -1507,11 +1508,13 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
 
   // The compression libraries are located here, while there is still one thread, and each one is
   // optional: a box without it runs everything that does not ask for that format. Whoever does ask
-  // is the one told, and is told which file names were tried.
+  // is the one told, and is told which file names were tried. iconv is located the same way and is
+  // optional in the same sense: only --encoding-from and --encoding-to need it.
 
   hc_zlib_boot ();
   hc_lzma_boot ();
   hc_zstd_boot ();
+  hc_iconv_boot ();
 
   return 0;
 }
@@ -1552,6 +1555,7 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hc_zlib_shutdown ();
   hc_lzma_shutdown ();
   hc_zstd_shutdown ();
+  hc_iconv_shutdown ();
 
   memset (hashcat_ctx, 0, sizeof (hashcat_ctx_t));
 }

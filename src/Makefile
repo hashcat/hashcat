@@ -257,8 +257,7 @@ CC_WIN                  := x86_64-w64-mingw32-gcc
 CXX_WIN                 := x86_64-w64-mingw32-g++
 AR_WIN                  := x86_64-w64-mingw32-ar
 
-# See BUILD_WSL.md to make these
-WIN_ICONV               := /opt/win-iconv-64
+# See BUILD_WSL.md to make this
 WIN_PYTHON              := /opt/win-python
 
 endif
@@ -660,7 +659,6 @@ LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -ldl
 LFLAGS_NATIVE           += -lrt
 LFLAGS_NATIVE           += -lm
-LFLAGS_NATIVE           += -liconv
 LFLAGS_NATIVE           += -L$(PREFIX)/lib
 $(info Android environment detected.)
 else ifeq ($(UNAME),Linux)
@@ -683,7 +681,6 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -L /usr/local/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
-LFLAGS_NATIVE           += -liconv
 endif
 endif # FreeBSD
 
@@ -697,7 +694,6 @@ LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -L /usr/local/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
-LFLAGS_NATIVE           += -liconv
 endif
 endif # OpenBSD
 
@@ -709,12 +705,12 @@ LFLAGS_NATIVE           += -L /usr/pkg/lib
 # -L is where the linker looks, and the runtime loader does not read it. On the other systems here the
 # prefix the packages live in is already on the loader's own path, so the two questions never came
 # apart. NetBSD keeps packages under /usr/pkg and that is not a path the loader searches, so a build
-# that linked cleanly produced a binary that stopped at "Shared object libiconv.so.2 not found" before
-# reaching main. The rpath records the same directory for the loader.
+# that linked cleanly produced a binary that stopped before reaching main on a shared object it could
+# not find. The rpath records the same directory for the loader, which covers both what is linked
+# from there and what hashcat opens by name at runtime.
 LFLAGS_NATIVE           += -Wl,-rpath,/usr/pkg/lib
 LFLAGS_NATIVE           += -lpthread
 LFLAGS_NATIVE           += -lm
-LFLAGS_NATIVE           += -liconv
 endif # NetBSD
 
 ifeq ($(UNAME),Darwin)
@@ -734,7 +730,6 @@ LFLAGS_NATIVE           += -framework IOKit
 LFLAGS_NATIVE           += -framework Metal
 LFLAGS_NATIVE           += -lIOReport
 LFLAGS_NATIVE           += -lpthread
-LFLAGS_NATIVE           += -liconv
 
 ifeq ($(MACOS_UNIVERSAL_BINARY),1)
 ifeq ($(IS_APPLE_SILICON),1)
@@ -759,7 +754,6 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
-LFLAGS_NATIVE           += -liconv
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
@@ -767,27 +761,30 @@ CFLAGS_NATIVE           := $(CFLAGS)
 CFLAGS_NATIVE           += -DWITH_HWMON
 LFLAGS_NATIVE           := $(LFLAGS)
 LFLAGS_NATIVE           += -lpsapi
-LFLAGS_NATIVE           += -liconv
 LFLAGS_NATIVE           += -lws2_32
 LFLAGS_NATIVE           += -lpowrprof
 
-# The C++ runtime goes INTO the binary that needs it, for the same reason the cross build below does
-# the same thing: no runtime DLL is shipped beside these binaries. Under SHARED=0 the unrar objects
-# are pulled out of the core archive into module_23800.dll, so that one file imported libstdc++-6.dll
-# and libgcc_s_seh-1.dll while no other file in the package imported either. MSYS2 keeps both on PATH,
-# so the module still loaded here and nowhere else, and it stopped loading here too once the working
-# directory came out of the library search order, because PATH is not part of what is left.
+# Every library that is not part of Windows goes INTO the binary that needs it, because no runtime
+# DLL is shipped beside these binaries and the working directory is no longer searched for one. A
+# plugin is loaded by path, but the libraries that plugin imports are still looked up, and the only
+# places left to look are the directory hashcat.exe lives in and the system directory. Anything the
+# toolchain would otherwise resolve out of MSYS2's own bin directory is therefore linked statically.
 #
-# The archive is named directly rather than asking for -static-libstdc++. That flag only governs the
-# libstdc++ a driver adds by itself, so it cannot override the explicit -lstdc++ the unrar block puts
-# on the line, and that explicit one has to come back off first. Naming the archive while it is still
-# there links both, and then every symbol in libsupc++ is defined twice.
+# Under SHARED=0 the unrar objects are pulled out of the core archive into module_23800.dll, which
+# is what made that one module the only file in the package importing a MinGW runtime library.
 #
-# -static-libgcc is the other half. The unwinder that carries a C++ exception out of unrar lives in
-# libgcc, so a binary linked with the static libstdc++ alone still imports libgcc_s_seh-1.dll.
+# Each archive is named directly rather than asking for -static-libstdc++. That flag only governs
+# the libstdc++ a driver adds by itself, so it cannot override the explicit -lstdc++ the unrar block
+# puts on the line, and that explicit one has to come back off first. Naming the archive while it is
+# still there links both, and then every symbol in libsupc++ is defined twice.
+#
+# libstdc++ alone is not enough. The unwinder that carries a C++ exception out of unrar lives in
+# libgcc, and MSYS2 builds libstdc++ against posix threads, so the static archive still reaches for
+# libwinpthread.
 
 LFLAGS_NATIVE           := $(filter-out -lstdc++,$(LFLAGS_NATIVE))
 LFLAGS_NATIVE           += -l:libstdc++.a
+LFLAGS_NATIVE           += -l:libwinpthread.a
 LFLAGS_NATIVE           += -static-libgcc
 endif # MSYS2
 
@@ -858,7 +855,6 @@ endif
 
 CFLAGS_WIN              := $(filter-out $(CFLAGS_HOST_ONLY),$(CFLAGS))
 CFLAGS_WIN              += -fPIC
-CFLAGS_WIN              += -I$(WIN_ICONV)/include/
 CFLAGS_WIN              += -DWITH_HWMON
 
 # clang is one compiler for every target and has to be told which one it is building for. A cross gcc
@@ -1297,7 +1293,7 @@ EMU_OBJS_ALL            += emu_inc_hash_md4 emu_inc_hash_md5 emu_inc_hash_ripemd
 EMU_OBJS_ALL            += emu_inc_cipher_aes emu_inc_cipher_camellia emu_inc_cipher_des emu_inc_cipher_kuznyechik emu_inc_cipher_serpent emu_inc_cipher_twofish
 EMU_OBJS_ALL            += emu_inc_hash_base58
 
-OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
+OBJS_ALL                := affinity autotune backend benchmark bitmap bitops bridges combinator common convert cpt cpu_crc32 cpu_features debugfile dispatch dynamicx dynloader event ext_ADL ext_cuda ext_hip ext_nvapi ext_nvml ext_nvrtc ext_hiprtc ext_OpenCL ext_openssl ext_sysfs_amdgpu ext_sysfs_intelgpu ext_sysfs_cpu ext_iconv ext_lzma ext_zlib ext_zstd feed filehandling folder hashcat hashes hlfmt hwmon induct interface keyboard_layout locking logfile loopback memchr memory monitor mpsp outfile_check outfile parser path paw64 pidfile plugin_abi potfile pubkey pwpipe restore rp rp_cpu selftest slow_candidates shared status stdout straight generic system terminal thread timer tuningdb usage user_options wordlist $(EMU_OBJS_ALL)
 
 ifeq ($(ENABLE_BRAIN),1)
 OBJS_ALL                += brain
@@ -1536,9 +1532,7 @@ endif
 ## -z,defs makes a symbol the library cannot resolve a link error here rather than a dlopen failure
 ## on a user's machine. A vendored object sitting in a subdirectory that the archive had been
 ## swallowing without a word is the case it catches. A DLL is refused for an undefined symbol
-## whatever is asked, so Windows gets the same check for free, and it found iconv as well. An
-## archive hands out only what is asked for, so the iconv the wordlist reader calls had been left
-## to the frontend to supply. The library carries it.
+## whatever is asked, so Windows gets the same check for free.
 ##
 ## The install_name is @rpath rather than the directory make install would write to, so the library
 ## is found beside the frontend in an unpacked tree and through the install prefix after an install,
@@ -1598,10 +1592,6 @@ LIBRARY_LFLAGS_LINUX    += -Wl,-Bsymbolic-functions
 
 LIBRARY_LFLAGS_WIN      += $(TARGET_WIN)
 
-ifneq (,$(filter LINUX,$(PLATFORMS)))
-LIBRARY_INPUTS_WIN      := $(WIN_ICONV)/lib/libiconv.a
-endif
-
 ##
 ## The plugin interface version, and how a stale plugin is refused
 ##
@@ -1625,8 +1615,8 @@ endif
 
 define LIBRARY_RULES
 
-$$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) obj/arrangement
-	$$(CXX_$(1)) $$(CORE_OBJS_$(1)) $$(LIBRARY_INPUTS_$(1)) -o $$@ $$(filter-out $$(LFLAGS_$(1)_LIBRARY_FILTER),$$(LFLAGS_$(1))) $$(LIBRARY_LFLAGS_$(1))
+$$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) obj/arrangement
+	$$(CXX_$(1)) $$(CORE_OBJS_$(1)) -o $$@ $$(filter-out $$(LFLAGS_$(1)_LIBRARY_FILTER),$$(LFLAGS_$(1))) $$(LIBRARY_LFLAGS_$(1))
 
 endef
 
@@ -1806,11 +1796,8 @@ endif
 hashcat.bin: src/main.c $(CORE_LINUX) obj/arrangement
 	$(call frontend_link,LINUX,obj/main.LINUX.d,,)
 
-# the frontend keeps iconv on its own link line for the arrangement where there is no library to
-# carry it, and links nothing extra out of it when there is
-
-hashcat.exe: src/main.c $(CORE_WIN) $(WIN_ICONV)/lib/libiconv.a obj/arrangement
-	$(call frontend_link,WIN,obj/main.WIN.d,$(WIN_ICONV)/lib/libiconv.a,)
+hashcat.exe: src/main.c $(CORE_WIN) obj/arrangement
+	$(call frontend_link,WIN,obj/main.WIN.d,,)
 
 endif
 

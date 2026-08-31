@@ -90,9 +90,23 @@ int pw_transform_init (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, co
 
   if (strcmp (user_options->encoding_from, user_options->encoding_to) == 0) return 0;
 
-  transform->iconv_ctx = iconv_open (user_options->encoding_to, user_options->encoding_from);
+  // iconv is loaded at runtime and only this path needs it, so a machine without one runs every
+  // attack that does not change encoding and hears about the library the first time one does.
 
-  if (transform->iconv_ctx == (iconv_t) -1)
+  const hc_iconv_lib_t *iconv_lib = hc_iconv ();
+
+  if (iconv_lib == NULL)
+  {
+    event_log_error (hashcat_ctx, "iconv support is unavailable: %s. To fix this, %s", hc_iconv_error (), hc_iconv_hint ());
+
+    return -1;
+  }
+
+  transform->iconv_lib = iconv_lib;
+
+  transform->iconv_ctx = iconv_lib->iconv_open (user_options->encoding_to, user_options->encoding_from);
+
+  if (transform->iconv_ctx == HC_ICONV_ERR)
   {
     event_log_error (hashcat_ctx, "iconv_open: %s", strerror (errno));
 
@@ -112,13 +126,14 @@ void pw_transform_term (pw_transform_t *transform)
 {
   if (transform->iconv_enabled == false) return;
 
-  iconv_close (transform->iconv_ctx);
+  transform->iconv_lib->iconv_close (transform->iconv_ctx);
 
   hcfree (transform->iconv_tmp);
 
   transform->iconv_enabled = false;
   transform->iconv_ctx     = NULL;
   transform->iconv_tmp     = NULL;
+  transform->iconv_lib     = NULL;
 }
 
 // Whether a candidate can come out shorter than it arrived. Only these three can do that, and without
@@ -189,7 +204,7 @@ int pw_transform_apply (const pw_transform_t *transform, u8 *buf, const int len,
     char  *in_buf = (char *) buf;
     size_t in_len = (size_t) out_len;
 
-    if (iconv (transform->iconv_ctx, &in_buf, &in_len, &iconv_ptr, &iconv_sz) == (size_t) -1) return -1;
+    if (transform->iconv_lib->iconv (transform->iconv_ctx, &in_buf, &in_len, &iconv_ptr, &iconv_sz) == (size_t) -1) return -1;
 
     const size_t iconv_left = HCBUFSIZ_TINY - iconv_sz;
 

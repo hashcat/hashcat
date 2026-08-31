@@ -20,12 +20,6 @@
 #include <math.h>
 
 #if defined (_WIN)
-#define WINICONV_CONST
-#endif
-
-#include <iconv.h>
-
-#if defined (_WIN)
 #include <windows.h>
 #if defined (_BASETSD_H)
 #else

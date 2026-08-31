@@ -143,6 +143,17 @@ A seek database is named after a hash of the wordlist it describes, and that has
 first run against a given wordlist builds a new one. The old files are not found again and can be
 deleted. No shipped hashcat wrote one: they arrived after v7.1.2.
 
+18. Encoding: iconv is loaded from the system rather than linked
+
+hashcat linked an iconv library on every platform. It is now opened the first time --encoding-from
+and --encoding-to ask for a conversion, the way the compression libraries are, so a run that does
+not change encoding needs no iconv at all. Machines using the GNU C library or musl need nothing
+installed, because iconv is part of the C library there and hashcat reads it out of the running
+process. macOS and the BSDs carry it in a library of their own that they already ship. Windows ships
+none, so --encoding-from and --encoding-to there need libiconv-2.dll beside hashcat.exe, and the
+Windows binaries no longer carry a copy of it. Where it is missing, hashcat names the file names it
+looked for and what to install.
+
 ##
 ## New Algorithms
 ##
@@ -508,6 +519,9 @@ deleted. No shipped hashcat wrote one: they arrived after v7.1.2.
 - Added SECURITY.md, which states which inputs are treated as coming from other people and
   how a report is handled
 - Removed deps/zlib and deps/LZMA-SDK, 410 files and 128252 lines, in favour of the system libraries
+- The Camellia kernel was written from RFC 3713 and carries the tree's own license header. It was
+  the one file in hashcat that asserted a copyright and stated no terms. The 16 modes that use it,
+  the VeraCrypt legacy cascades and BestCrypt, compute exactly what they computed before
 - tools/test_package.sh now reads a compressed wordlist back, so every platform CI builds for checks
   that the compression libraries load and decode rather than only that hashcat compiles
 

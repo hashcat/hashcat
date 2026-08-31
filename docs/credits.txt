@@ -66,7 +66,6 @@ Other contributors to hashcat
 * liblzma by Lasse Collin and Igor Pavlov (loaded at runtime)
 * zlib by Jean-loup Gailly and Mark Adler (loaded at runtime)
 * zstd by Yann Collet (@Cyan4973) (loaded at runtime)
-* win-iconv by Yukihiro Nakadaira
 * micro-ecc by Ken MacKay (used as reference for some secp256k1 operations)
 * UnRAR by Alexander Roshal
 
