@@ -21,7 +21,9 @@ static const u32   DGST_SIZE      = DGST_SIZE_4_4;
 static const u32   HASH_CATEGORY  = HASH_CATEGORY_OS;
 static const char *HASH_NAME      = "RACF KDFAES";
 static const u64   KERN_TYPE      = 14200;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP
+                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP2;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_ST_UPPER
                                   | OPTS_TYPE_HASH_COPY
@@ -57,16 +59,6 @@ typedef struct pbkdf2_sha256_tmp
 
 } pbkdf2_sha256_tmp_t;
 
-typedef struct pbkdf2_sha256_tmpx
-{
-  u32x  ipad[8];
-  u32x  opad[8];
-
-  u32x  dgst[32];
-  u32x  out[32];
-
-} pbkdf2_sha256_tmpx_t;
-
 typedef struct racf_kdfaes_tmp
 {
   u32  key[16];
@@ -101,20 +93,6 @@ u32 module_kernel_accel_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_
   const u32 kernel_accel_max = 128;
 
   return kernel_accel_max;
-}
-
-u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_loops_min = 8;
-
-  return kernel_loops_min;
-}
-
-u32 module_kernel_loops_max (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
-{
-  const u32 kernel_loops_max = 8;
-
-  return kernel_loops_max;
 }
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
@@ -298,8 +276,8 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   memcpy (salt->salt_buf, tmp_buf, tmp_len);
   salt->salt_len = tmp_len;
 
-  salt->salt_iter = racf_kdfaes->mem_fac;
-  salt->salt_iter2 = rep_fac*100 - 1;
+  salt->salt_iter = racf_kdfaes->mem_fac * rep_fac * 100 - 1;
+  salt->salt_iter2 = rep_fac * 100 - 1;
 
   // hash
 
@@ -377,8 +355,8 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = module_kernel_accel_max;
   module_ctx->module_kernel_accel_min         = module_kernel_accel_min;
-  module_ctx->module_kernel_loops_max         = module_kernel_loops_max;
-  module_ctx->module_kernel_loops_min         = module_kernel_loops_min;
+  module_ctx->module_kernel_loops_max         = MODULE_DEFAULT;
+  module_ctx->module_kernel_loops_min         = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_max       = MODULE_DEFAULT;
   module_ctx->module_kernel_threads_min       = MODULE_DEFAULT;
   module_ctx->module_kern_type                = module_kern_type;
