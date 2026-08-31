@@ -12,7 +12,7 @@ use File::Basename;
 use FindBin;
 use List::Util 'shuffle';
 
-my $TYPES = [ 'edge', 'single', 'passthrough', 'potthrough', 'verify' ];
+my $TYPES = [ 'edge', 'single', 'password', 'passthrough', 'potthrough', 'verify' ];
 
 my $TYPE = shift @ARGV;
 my $MODE = shift @ARGV;
@@ -71,12 +71,16 @@ my @NON_ASCII_CHARS =
   "\xf0\x9f\x98\x80",  # U+1F600 grinning face
 );
 
-# The first bytes of a password are left as digits. tools/test.sh builds the -a 3, -a 6 and
-# -a 7 masks out of '?d' groups, and the multi hash tests share one such mask across every
-# password of a given length, which only works while those bytes are digits. Multi hash
-# passwords are 2 to 8 bytes long, so a password of 8 bytes or less stays pure ASCII.
+# Where the characters may land. Anywhere, including the first byte: tools/test.sh rewrites
+# the '?d' at a position whose byte is not a digit into that byte, so a mask can spell one
+# wherever it turns up.
+#
+# The multi hash tests are the reason the layout is not drawn from rand(). They share one mask
+# across every password of a given length, so the characters have to sit in the same places in
+# all of them. The generator below is seeded from the length alone, which makes the shape of a
+# password a function of its length while the digits around it stay random per password.
 
-my $NON_ASCII_SKIP_BYTES = 8;
+my $NON_ASCII_SKIP_BYTES = 0;
 
 # Roughly how often an eligible position is turned into a multi byte character. Low enough
 # that a generated set still holds plain ASCII passwords, high enough that a set of 8 almost
@@ -95,6 +99,12 @@ if ($TYPE eq 'edge')
 elsif ($TYPE eq 'single')
 {
   single (@ARGV);
+}
+elsif ($TYPE eq 'password')
+{
+  usage_exit () if scalar @ARGV > 1;
+
+  password (@ARGV);
 }
 elsif ($TYPE eq 'passthrough')
 {
@@ -543,6 +553,21 @@ sub single
   }
 }
 
+sub password
+{
+  # One password for this mode, on stdout, nothing else. tools/test.sh builds its -g containers
+  # with it, so a container gets the same multi byte characters the oracle passwords get, and
+  # the same per mode gate decides whether it gets any.
+
+  my $count = shift // 12;
+
+  return unless is_count ($count);
+
+  my $string = random_non_ascii_string ($count) // "";
+
+  print "$string\n";
+}
+
 sub passthrough
 {
   my $option = shift || '';
@@ -989,15 +1014,28 @@ sub sprinkle_non_ascii
 
   my $len = length $string;
 
+  # Seeded from the length, so every password of a given length comes out with its characters
+  # in the same places. A plain rand() here would give each of the eight multi hash passwords
+  # of a length a different shape, and no single mask could spell all eight.
+
+  my $seed = ($len * 2654435761) % 4294967291;
+
+  my $rand = sub
+  {
+    $seed = ($seed * 1103515245 + 12345) % 2147483648;
+
+    return $seed / 2147483648;
+  };
+
   my $pos = $NON_ASCII_SKIP_BYTES;
 
   while ($pos < $len)
   {
-    my $char = $NON_ASCII_CHARS[rand @NON_ASCII_CHARS];
+    my $char = $NON_ASCII_CHARS[int ($rand->() * scalar @NON_ASCII_CHARS)];
 
     my $char_len = length $char;
 
-    if ((($pos + $char_len) <= $len) && (rand () < $NON_ASCII_RATE))
+    if ((($pos + $char_len) <= $len) && ($rand->() < $NON_ASCII_RATE))
     {
       substr ($string, $pos, $char_len) = $char;
 

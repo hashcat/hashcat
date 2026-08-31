@@ -3539,20 +3539,53 @@ function cryptoloop_test()
 # VERACRYPT_BIN, TCPLAY_BIN and CRYPTSETUP_BIN override the binaries if they
 # live somewhere else.
 
-function random_container_password()
+function container_password()
 {
-  # Seven lowercase letters, the shape 'hashcat' had. build_container_cmd() and CONTAINER_MASK
-  # both turn the last character into ?l, so the last character has to be a lowercase letter,
-  # and the length is what the -a 6 and -a 7 splits in build_container_cmd() are written for.
-  local rp_chars="abcdefghijklmnopqrstuvwxyz"
-  local rp_out=""
-  local rp_i
+  # The password every -g container is built with, from tools/test.pl, which is the same
+  # generator the oracle passwords come from. So a container carries a euro sign, kana or a CJK
+  # character too, and cracking one proves the whole path end to end against a real volume
+  # rather than against a hash test.pl computed itself.
+  #
+  # Mode 0 is asked for it rather than the mode under test, because one -g run covers many
+  # modes and builds its containers with one password. 0 pins no charset and does no UTF-16, so
+  # the generator is free to substitute. Twelve bytes because a multi byte character needs room,
+  # and seven, the length of 'hashcat', does not leave any.
 
-  for rp_i in $(seq 1 7); do
-    rp_out="${rp_out}${rp_chars:$((RANDOM % 26)):1}"
-  done
+  perl "${TDIR}/test.pl" password 0 12 2>/dev/null
+}
 
-  printf '%s' "${rp_out}"
+function container_mask_from_password()
+{
+  # The mask the container tests search: the password with one digit replaced by ?d, so the run
+  # has ten candidates to walk rather than being handed the answer. Every other byte goes in as
+  # a literal, which is what lets a multi byte character sit anywhere in the password.
+  #
+  # $1 = the password, $2 = 'last' or 'first', which digit to give up. The TrueCrypt and LUKS
+  # tests want it near the end and the VeraCrypt tests want it near the start, which is what
+  # 'hashca?l' and 'hashc?lt' used to say.
+
+  local cm_pw="$1"
+  local cm_where="${2:-last}"
+  local cm_len=${#cm_pw}
+  local cm_i
+
+  if [ "${cm_where}" = "first" ]; then
+    for ((cm_i = 0; cm_i < cm_len; cm_i++)); do
+      case "${cm_pw:${cm_i}:1}" in
+        [0-9]) printf '%s?d%s' "${cm_pw:0:${cm_i}}" "${cm_pw:$((cm_i + 1))}"; return ;;
+      esac
+    done
+  else
+    for ((cm_i = cm_len - 1; cm_i >= 0; cm_i--)); do
+      case "${cm_pw:${cm_i}:1}" in
+        [0-9]) printf '%s?d%s' "${cm_pw:0:${cm_i}}" "${cm_pw:$((cm_i + 1))}"; return ;;
+      esac
+    done
+  fi
+
+  # no digit at all, so nothing to search: hand back the password and let the run confirm it
+
+  printf '%s' "${cm_pw}"
 }
 
 function utf8_split_point()
@@ -4703,31 +4736,34 @@ function luks_test()
           CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${LUKS_TESTS_DIR}/pw'"
           ;;
         1)
-          luksPassPart1Len=$((${#CONTAINER_PASSWORD} / 2))
-          luksPassPart2Start=$((luksPassPart1Len + 1))
+          luksSplit=$(utf8_split_point "${CONTAINER_PASSWORD}" $((${#CONTAINER_PASSWORD} / 2)))
 
-          echo "${CONTAINER_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
-          echo "${CONTAINER_PASSWORD}" | cut -c${luksPassPart2Start}- > "${luksPassPartFile2}" 2>/dev/null
+          printf '%s\n' "${CONTAINER_PASSWORD:0:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+          printf '%s\n' "${CONTAINER_PASSWORD:${luksSplit}}"   > "${luksPassPartFile2}" 2>/dev/null
 
           CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksPassPartFile2}"
           ;;
         3)
-          luksMaskFixedLen=$((${#CONTAINER_PASSWORD} - 1))
-
-          luksMask="$(echo "${CONTAINER_PASSWORD}" | cut -c-${luksMaskFixedLen} 2>/dev/null)"
-          luksMask="${luksMask}${luksMainMask}"
+          luksMask="$(container_mask_from_password "${CONTAINER_PASSWORD}" last)"
 
           CMD="./${BIN} ${OPTS} -a 3 -m ${hashType} '${luksHashFile}' ${luksMask}"
           ;;
         6)
-          luksPassPart1Len=$((${#CONTAINER_PASSWORD} - 1))
+          luksSplit=$(utf8_split_point "${CONTAINER_PASSWORD}" $((${#CONTAINER_PASSWORD} - 1)))
 
-          echo "${CONTAINER_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
+          printf '%s\n' "${CONTAINER_PASSWORD:0:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+
+          luksMask="$(container_mask_from_password "${CONTAINER_PASSWORD:${luksSplit}}" last)"
 
           CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksMask}"
           ;;
         7)
-          echo "${CONTAINER_PASSWORD}" | cut -c2- > "${luksPassPartFile1}" 2>/dev/null
+          luksSplit=$(utf8_split_point "${CONTAINER_PASSWORD}" 1)
+          luksSplit=$((luksSplit > 0 ? luksSplit : 1))
+
+          printf '%s\n' "${CONTAINER_PASSWORD:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+
+          luksMask="$(container_mask_from_password "${CONTAINER_PASSWORD:0:${luksSplit}}" first)"
 
           CMD="./${BIN} ${OPTS} -a 7 -m ${hashType} '${luksHashFile}' ${luksMask} ${luksPassPartFile1}"
           ;;
@@ -4861,31 +4897,34 @@ function luks_legacy_test()
               CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luks_file}' '${LUKS_TESTS_DIR}/pw'"
               ;;
             1)
-              luks_pass_part1_len=$((${#CONTAINER_PASSWORD} / 2))
-              luks_pass_part2_start=$((luks_pass_part1_len + 1))
+              luks_split=$(utf8_split_point "${CONTAINER_PASSWORD}" $((${#CONTAINER_PASSWORD} / 2)))
 
-              echo "${CONTAINER_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
-              echo "${CONTAINER_PASSWORD}" | cut -c${luks_pass_part2_start}- > "${luks_pass_part_file2}" 2>/dev/null
+              printf '%s\n' "${CONTAINER_PASSWORD:0:${luks_split}}" > "${luks_pass_part_file1}" 2>/dev/null
+              printf '%s\n' "${CONTAINER_PASSWORD:${luks_split}}"   > "${luks_pass_part_file2}" 2>/dev/null
 
               CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luks_file}' ${luks_pass_part_file1} ${luks_pass_part_file2}"
               ;;
             3)
-              luks_mask_fixed_len=$((${#CONTAINER_PASSWORD} - 1))
-
-              luks_mask="$(echo "${CONTAINER_PASSWORD}" | cut -c-${luks_mask_fixed_len} 2>/dev/null)"
-              luks_mask="${luks_mask}${luks_main_mask}"
+              luks_mask="$(container_mask_from_password "${CONTAINER_PASSWORD}" last)"
 
               CMD="./${BIN} ${OPTS} -a 3 -m ${hashType} '${luks_file}' ${luks_mask}"
               ;;
             6)
-              luks_pass_part1_len=$((${#CONTAINER_PASSWORD} - 1))
+              luks_split=$(utf8_split_point "${CONTAINER_PASSWORD}" $((${#CONTAINER_PASSWORD} - 1)))
 
-              echo "${CONTAINER_PASSWORD}" | cut -c-${luks_pass_part1_len} > "${luks_pass_part_file1}" 2>/dev/null
+              printf '%s\n' "${CONTAINER_PASSWORD:0:${luks_split}}" > "${luks_pass_part_file1}" 2>/dev/null
+
+              luks_mask="$(container_mask_from_password "${CONTAINER_PASSWORD:${luks_split}}" last)"
 
               CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luks_file}' ${luks_pass_part_file1} ${luks_mask}"
               ;;
             7)
-              echo "${CONTAINER_PASSWORD}" | cut -c2- > "${luks_pass_part_file1}" 2>/dev/null
+              luks_split=$(utf8_split_point "${CONTAINER_PASSWORD}" 1)
+          luks_split=$((luks_split > 0 ? luks_split : 1))
+
+          printf '%s\n' "${CONTAINER_PASSWORD:${luks_split}}" > "${luks_pass_part_file1}" 2>/dev/null
+
+          luks_mask="$(container_mask_from_password "${CONTAINER_PASSWORD:0:${luks_split}}" first)"
 
               CMD="./${BIN} ${OPTS} -a 7 -m ${hashType} '${luks_file}' ${luks_mask} ${luks_pass_part_file1}"
               ;;
@@ -4978,31 +5017,34 @@ function luks2_test()
         CMD="./${BIN} ${OPTS} -a 0 -m ${hashType} '${luksHashFile}' '${LUKS2_TESTS_DIR}/pw'"
         ;;
       1)
-        luksPassPart1Len=$((${#LUKS2_PASSWORD} / 2))
-        luksPassPart2Start=$((luksPassPart1Len + 1))
+        luksSplit=$(utf8_split_point "${LUKS2_PASSWORD}" $((${#LUKS2_PASSWORD} / 2)))
 
-        echo "${LUKS2_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
-        echo "${LUKS2_PASSWORD}" | cut -c${luksPassPart2Start}- > "${luksPassPartFile2}" 2>/dev/null
+        printf '%s\n' "${LUKS2_PASSWORD:0:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+        printf '%s\n' "${LUKS2_PASSWORD:${luksSplit}}"   > "${luksPassPartFile2}" 2>/dev/null
 
         CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksPassPartFile2}"
         ;;
       3)
-        luksMaskFixedLen=$((${#LUKS2_PASSWORD} - 1))
-
-        luksMask="$(echo "${LUKS2_PASSWORD}" | cut -c-${luksMaskFixedLen} 2>/dev/null)"
-        luksMask="${luksMask}${luksMainMask}"
+        luksMask="$(container_mask_from_password "${LUKS2_PASSWORD}" last)"
 
         CMD="./${BIN} ${OPTS} -a 3 -m ${hashType} '${luksHashFile}' ${luksMask}"
         ;;
       6)
-        luksPassPart1Len=$((${#LUKS2_PASSWORD} - 1))
+        luksSplit=$(utf8_split_point "${LUKS2_PASSWORD}" $((${#LUKS2_PASSWORD} - 1)))
 
-        echo "${LUKS2_PASSWORD}" | cut -c-${luksPassPart1Len} > "${luksPassPartFile1}" 2>/dev/null
+        printf '%s\n' "${LUKS2_PASSWORD:0:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+
+        luksMask="$(container_mask_from_password "${LUKS2_PASSWORD:${luksSplit}}" last)"
 
         CMD="./${BIN} ${OPTS} -a 6 -m ${hashType} '${luksHashFile}' ${luksPassPartFile1} ${luksMask}"
         ;;
       7)
-        echo "${LUKS2_PASSWORD}" | cut -c2- > "${luksPassPartFile1}" 2>/dev/null
+        luksSplit=$(utf8_split_point "${LUKS2_PASSWORD}" 1)
+        luksSplit=$((luksSplit > 0 ? luksSplit : 1))
+
+        printf '%s\n' "${LUKS2_PASSWORD:${luksSplit}}" > "${luksPassPartFile1}" 2>/dev/null
+
+        luksMask="$(container_mask_from_password "${LUKS2_PASSWORD:0:${luksSplit}}" first)"
 
         CMD="./${BIN} ${OPTS} -a 7 -m ${hashType} '${luksHashFile}' ${luksMask} ${luksPassPartFile1}"
         ;;
@@ -5169,8 +5211,17 @@ function build_container_cmd()
 
   local dictFile1="${OUTD}/${bc_hashType}_cont_dict1"
   local dictFile2="${OUTD}/${bc_hashType}_cont_dict2"
-  local mainMask="?l"
-  local mask="${mainMask}"
+
+  # The password can carry a multi byte character now, so a split has to land on a character
+  # boundary, see utf8_split_point(), and a mask position over a byte that is not a digit has
+  # to spell that byte rather than hold a '?d'. The masks below give up exactly one digit, so
+  # every attack still has ten candidates to search.
+
+  local bc_len=${#bc_password}
+  local mask
+  local head
+  local tail
+  local split
 
   CONTAINER_CMD=""
 
@@ -5180,31 +5231,41 @@ function build_container_cmd()
       CONTAINER_CMD="./${BIN} ${OPTS} -a 0 -m ${bc_hashType} '${bc_hashFile}' ${dictFile1}"
       ;;
     1)
-      local part1Len=$((${#bc_password} / 2))
-      local part2Start=$((part1Len + 1))
+      split=$(utf8_split_point "${bc_password}" $((bc_len / 2)))
 
-      echo "${bc_password}" | cut -c-${part1Len}    > "${dictFile1}" 2>/dev/null
-      echo "${bc_password}" | cut -c${part2Start}-  > "${dictFile2}" 2>/dev/null
+      printf '%s\n' "${bc_password:0:${split}}" > "${dictFile1}" 2>/dev/null
+      printf '%s\n' "${bc_password:${split}}"   > "${dictFile2}" 2>/dev/null
 
       CONTAINER_CMD="./${BIN} ${OPTS} -a 1 -m ${bc_hashType} '${bc_hashFile}' ${dictFile1} ${dictFile2}"
       ;;
     3)
-      local maskFixedLen=$((${#bc_password} - 1))
-
-      mask="$(echo "${bc_password}" | cut -c-${maskFixedLen} 2>/dev/null)"
-      mask="${mask}${mainMask}"
+      mask="$(container_mask_from_password "${bc_password}" last)"
 
       CONTAINER_CMD="./${BIN} ${OPTS} -a 3 -m ${bc_hashType} '${bc_hashFile}' ${mask}"
       ;;
     6)
-      local part1Len=$((${#bc_password} - 1))
+      # dict + mask, so the mask has to cover a tail that starts on a character boundary and
+      # holds at least one digit to give up
 
-      echo "${bc_password}" | cut -c-${part1Len} > "${dictFile1}" 2>/dev/null
+      split=$(utf8_split_point "${bc_password}" $((bc_len - 1)))
+      head="${bc_password:0:${split}}"
+      tail="${bc_password:${split}}"
+      mask="$(container_mask_from_password "${tail}" last)"
+
+      printf '%s\n' "${head}" > "${dictFile1}" 2>/dev/null
 
       CONTAINER_CMD="./${BIN} ${OPTS} -a 6 -m ${bc_hashType} '${bc_hashFile}' ${dictFile1} ${mask}"
       ;;
     7)
-      echo "${bc_password}" | cut -c2- > "${dictFile1}" 2>/dev/null
+      # mask + dict, the mirror image of -a 6
+
+      split=$(utf8_split_point "${bc_password}" 1)
+      split=$((split > 0 ? split : 1))
+      head="${bc_password:0:${split}}"
+      tail="${bc_password:${split}}"
+      mask="$(container_mask_from_password "${head}" first)"
+
+      printf '%s\n' "${tail}" > "${dictFile1}" 2>/dev/null
 
       CONTAINER_CMD="./${BIN} ${OPTS} -a 7 -m ${bc_hashType} '${bc_hashFile}' ${mask} ${dictFile1}"
       ;;
@@ -6277,9 +6338,9 @@ fi
 # fetched from hashcat.net were built with 'hashcat' and keep it.
 
 if [[ "${GENERATE_CONTAINERS}" -eq 1 ]]; then
-  CONTAINER_PASSWORD="$(random_container_password)"
-  CONTAINER_MASK="${CONTAINER_PASSWORD:0:$((${#CONTAINER_PASSWORD} - 1))}?l"
-  CONTAINER_MASK_MID="${CONTAINER_PASSWORD:0:5}?l${CONTAINER_PASSWORD:6}"
+  CONTAINER_PASSWORD="$(container_password)"
+  CONTAINER_MASK="$(container_mask_from_password "${CONTAINER_PASSWORD}" last)"
+  CONTAINER_MASK_MID="$(container_mask_from_password "${CONTAINER_PASSWORD}" first)"
 fi
 
 # handle Apple Silicon
