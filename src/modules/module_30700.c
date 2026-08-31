@@ -186,7 +186,7 @@ int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
   u32_to_hex (tmp[6], out_buf + out_len); out_len += 8;
   u32_to_hex (tmp[7], out_buf + out_len); out_len += 8;
 
-  out_buf[out_len] = hashconfig->separator;
+  out_buf[out_len] = ':';
 
   out_len += 1;
 
