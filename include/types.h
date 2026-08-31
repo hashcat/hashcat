@@ -205,6 +205,33 @@ typedef enum vendor_id
 
 } vendor_id_t;
 
+// Where device_available_mem came from. The difference that matters is whether it was measured or
+// guessed: a guess has to be padded against desktop activity, a measurement must not be, because
+// padding a good number throws away a third of the card for nothing.
+
+// Private memory per work item beyond which a kernel is treated as spill-heavy and given the native
+// thread count. Measured on an RTX 4090 across the 481 shipped modules that report a figure: 392 of
+// them stay under 1024 bytes, and the largest that is not spill-heavy is BestCrypt v4 at 6336. Above
+// the cut are yescrypt at 8800, gost-yescrypt at 10032, MD6 at 16400, Electrum salt-type 5 at 46696,
+// and the 3 PKZIP inflate kernels at 77688. Nothing measures between 6336 and 8800, so the cut sits
+// in an empty range and does not depend on where exactly it falls.
+//
+// The guard reaches 2 of those 7. The PKZIP modules ask for the native thread count themselves, and
+// the 2 yescrypt modes pin a thread count the guard leaves alone.
+
+#define SPILL_HEAVY_PRIVATE_BYTES 8192
+
+typedef enum mem_source
+{
+  MEM_SOURCE_UNKNOWN   = 0,   // nothing asked; derived from the physical size
+  MEM_SOURCE_RUNTIME   = 1,   // cuMemGetInfo () / hipMemGetInfo ()
+  MEM_SOURCE_ALIAS     = 2,   // copied from the CUDA or HIP view of the same device
+  MEM_SOURCE_EXTENSION = 3,   // CL_DEVICE_GLOBAL_FREE_MEMORY_AMD
+  MEM_SOURCE_HWMON     = 4,   // the hardware monitor's used-memory reading
+  MEM_SOURCE_PROBE     = 5,   // measured by allocating until it fails
+
+} mem_source_t;
+
 typedef enum st_status_rc
 {
   ST_STATUS_PASSED        = 0,
@@ -781,7 +808,6 @@ typedef enum user_options_defaults
   AUTODETECT               = false,
   BACKEND_DEVICES_VIRTMULTI = 1,
   BACKEND_DEVICES_VIRTHOST = 1,
-  BACKEND_DEVICES_KEEPFREE = 0,
   BENCHMARK_ALL            = false,
   BENCHMARK_MAX            = 99999,
   BENCHMARK_MIN            = 0,
@@ -894,7 +920,6 @@ typedef enum user_options_map
   IDX_BACKEND_DEVICES           = 'd',
   IDX_BACKEND_DEVICES_VIRTMULTI = 'Y',
   IDX_BACKEND_DEVICES_VIRTHOST  = 'R',
-  IDX_BACKEND_DEVICES_KEEPFREE  = 0xff60,
   IDX_BACKEND_IGNORE_CUDA       = 0xff01,
   IDX_BACKEND_IGNORE_HIP        = 0xff02,
   IDX_BACKEND_IGNORE_METAL      = 0xff03,
@@ -2112,6 +2137,14 @@ typedef struct hc_device_param
   u32               opencl_platform_id;
   cl_uint           opencl_platform_vendor_id;
 
+  // Whether the device answers cl_amd_device_attribute_query, which is where the only OpenCL query
+  // for free device memory lives. Recorded at enumeration because the extension string is not kept.
+  // Vendor id is not a substitute: Mesa's rusticl reports VENDOR_ID_AMD and answers none of these.
+
+  bool              has_amd_device_attribute_query;
+
+  mem_source_t      device_available_mem_source;
+
   cl_device_id      opencl_device;
   cl_context        opencl_context;
   cl_command_queue  opencl_command_queue;
@@ -2246,7 +2279,6 @@ typedef struct backend_ctx
   int                 backend_devices_cnt;
   int                 backend_devices_virtmulti;
   int                 backend_devices_virthost;
-  int                 backend_devices_keepfree;
   int                 backend_devices_active;
 
   // The machine as the runtimes reported it, recorded before virtualization rewrites the device list.
@@ -2836,7 +2868,6 @@ typedef struct user_options
 
   u32          backend_devices_virtmulti;
   u32          backend_devices_virthost;
-  u32          backend_devices_keepfree;
   u32          backend_info;
   u32          benchmark_max;
   u32          benchmark_min;

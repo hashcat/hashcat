@@ -108,7 +108,7 @@ int pw_transform_init (pw_transform_t *transform, hashcat_ctx_t *hashcat_ctx, co
 
   if (transform->iconv_ctx == HC_ICONV_ERR)
   {
-    event_log_error (hashcat_ctx, "iconv_open: %s", strerror (errno));
+    event_log_error (hashcat_ctx, "Cannot convert from encoding '%s' to '%s': %s", user_options->encoding_from, user_options->encoding_to, strerror (errno));
 
     transform->iconv_ctx = NULL;
 

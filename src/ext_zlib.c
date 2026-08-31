@@ -31,9 +31,9 @@ static const char *const ZLIB_SONAMES[] =
 };
 
 // The oldest zlib this loads against is 1.2.3.3, from 2010, which is what gzseek64 and gztell64 need.
-// That floor is deliberately low: the zlib project publishes no Windows build of its own, so the
-// zlib1.dll on a Windows machine is whatever some other program left there and asking for a recent
-// one would refuse a library that can do everything hashcat wants. gzread and gzwrite are used
+// That floor is deliberately low: the Windows package ships a known zlib1.dll, but everywhere else
+// the zlib1.dll on a Windows machine is whatever some other program left there, and asking for a
+// recent one would refuse a library that can do everything hashcat wants. gzread and gzwrite are used
 // rather than gzfread and gzfwrite for the same reason, those two being 1.2.9 and later.
 //
 // gzbuffer only sets a buffer size and gzvprintf is only reached when writing a gzip file, which
@@ -140,13 +140,14 @@ const char *hc_zlib_error (void)
   return "zlib was not loaded";
 }
 
-// zlib is the one of the three whose project publishes no Windows build of its own, so there is no
-// address to send anyone to. Saying that plainly is more use than a link that does not exist.
+// The Windows package ships a zlib1.dll built from a pinned source. zlib is still the one of the
+// three whose project publishes no Windows build of its own, so anyone building hashcat themselves
+// has no address to be sent to. Saying that plainly is more use than a link that does not exist.
 
 const char *hc_zlib_hint (void)
 {
   #if   defined (_WIN) || defined (__CYGWIN__)
-  return "the zlib project publishes no Windows build, so hashcat uses a zlib1.dll only if one is already present; recompress as .xz or .zst instead, both of which the projects do publish for Windows";
+  return "put zlib1.dll next to hashcat.exe. The Windows package ships one. The zlib project publishes no Windows build, so a build of your own needs a zlib1.dll from elsewhere, or the file recompressed as .xz or .zst";
   #elif defined (__APPLE__)
   return "install zlib, for example with: brew install zlib";
   #else

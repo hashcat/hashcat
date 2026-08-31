@@ -109,7 +109,7 @@ const char *hc_zstd_error (void)
 const char *hc_zstd_hint (void)
 {
   #if   defined (_WIN) || defined (__CYGWIN__)
-  return "take libzstd.dll from the dll folder of the win64 zip at https://github.com/facebook/zstd/releases and put it next to hashcat.exe";
+  return "put libzstd.dll next to hashcat.exe. The Windows package ships one. A build of your own takes it from the dll folder of the win64 zip at https://github.com/facebook/zstd/releases";
   #elif defined (__APPLE__)
   return "install zstd, for example with: brew install zstd";
   #else

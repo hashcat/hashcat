@@ -826,6 +826,13 @@ int hc_hipInit (void *hashcat_ctx, unsigned int Flags)
 
   if (HIP_err != hipSuccess)
   {
+    // A machine carrying the HIP runtime with no AMD GPU in it reports this on every run, and an
+    // NVIDIA machine with ROCm installed is the ordinary case for it. The caller closes the runtime
+    // and moves on to the next backend, so nothing is wrong and nothing needs saying. Every other
+    // failure still gets named.
+
+    if (HIP_err == hipErrorNoDevice) return -1;
+
     const char *pStr = NULL;
 
     if (hip->hipGetErrorString (HIP_err, &pStr) == hipSuccess)

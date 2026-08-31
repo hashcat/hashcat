@@ -23,3 +23,7 @@ SOFTWARE.
 
 hashcat uses some third party software and libraries whose license terms and
 license holders can be found in the docs/license_libs/ folder.
+
+The Windows package additionally redistributes compiled copies of zlib, liblzma
+and libzstd, because Windows provides none of them and hashcat cannot read its
+own compressed files without them. Their license terms are in the same folder.

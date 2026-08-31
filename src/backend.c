@@ -223,26 +223,19 @@ static CUfunction cuda_function_with_id (hc_device_param_t *device_param, const 
 }
 
 #if defined (__APPLE__)
-int metal_query_max_local_size_bytes (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
+// Every other backend answers this with the private memory a single work item holds:
+// CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES on CUDA, HIP_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES on HIP,
+// CL_KERNEL_PRIVATE_MEM_SIZE on OpenCL. Metal has no equivalent. It offers
+// staticThreadgroupMemoryLength, which is the memory shared by a whole threadgroup - a different
+// quantity, and one that callers here multiply by a per-work-item count.
+//
+// Reporting it anyway made a kernel with 8 KiB of ordinary threadgroup memory look like a kernel
+// spilling 8 KiB per work item. Answer 0, which every caller already treats as "not known", rather
+// than a number that happens to have the same units.
+
+int metal_query_max_local_size_bytes (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED hc_device_param_t *device_param)
 {
-  size_t max_local_size_bytes = 0;
-
-  for (int kern_run_idx = 0; kern_run_idx < kern_run_cnt; kern_run_idx++)
-  {
-    mtl_pipeline pipeline = metal_pipeline_with_id (device_param, kern_run_all[kern_run_idx]);
-
-    if (pipeline == NULL) continue;
-
-    size_t local_size_bytes = 0;
-
-    if (hc_mtlGetStaticThreadgroupMemoryLength (hashcat_ctx, pipeline, (unsigned int *) &local_size_bytes) == -1) return -1;
-
-    if (local_size_bytes == 0) continue;
-
-    max_local_size_bytes = MAX (max_local_size_bytes, local_size_bytes);
-  }
-
-  return (int) max_local_size_bytes;
+  return 0;
 }
 #endif
 
@@ -437,6 +430,147 @@ static int backend_ctx_find_alias_devices (hashcat_ctx_t *hashcat_ctx)
   }
 
   return -1;
+}
+
+// Set HASHCAT_NO_AMD_FREE_MEM to ignore CL_DEVICE_GLOBAL_FREE_MEMORY_AMD and fall back to the older
+// estimate. Exists to A/B the query against what the OpenCL path used to assume, which was the whole
+// card, and as an escape hatch if a driver is ever found that answers it wrongly.
+
+static bool amd_free_mem_disabled (void)
+{
+  static int cache = -1;
+
+  return hc_env_flag ("HASHCAT_NO_AMD_FREE_MEM", &cache);
+}
+
+static bool is_gpu_device (const hc_device_param_t *device_param)
+{
+  if (device_param->is_cuda   == true) return true;
+  if (device_param->is_hip    == true) return true;
+
+  #if defined (__APPLE__)
+  if (device_param->is_metal  == true) return true;
+  #endif
+
+  if (device_param->is_opencl == true)
+  {
+    return (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) != 0;
+  }
+
+  return false;
+}
+
+// An integrated GPU sits on the CPU package and shares the memory controller with the host. Next to
+// a discrete card it is worth about one percent of the combined speed, and it costs a good deal more
+// than that to keep. It is a second architecture, so every kernel is compiled a second time, and on
+// a cold cache that compile is the larger part of startup - two identical discrete cards share one
+// compiled binary, an integrated GPU never shares with anything. It is also autotuned like any other
+// device, and autotune is measured work: on a slow hash a single compute unit turns that into
+// seconds, on every run, long after the compile is cached.
+//
+// So leave it out when a discrete GPU is there to do the work instead. When it is the only GPU -
+// an APU box, or Apple silicon, where the GPU is always unified memory - have_discrete stays false
+// and nothing is skipped, so those machines are unaffected. An explicit -d is the user naming
+// devices by hand and always wins over this.
+
+static void backend_ctx_devices_skip_integrated (hashcat_ctx_t *hashcat_ctx)
+{
+  backend_ctx_t        *backend_ctx  = hashcat_ctx->backend_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->backend_devices != NULL) return;
+
+  bool have_discrete = false;
+
+  for (int backend_devices_pos = 0; backend_devices_pos < backend_ctx->backend_devices_cnt; backend_devices_pos++)
+  {
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_pos];
+
+    if (device_param->skipped         == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    if (is_gpu_device (device_param) == false) continue;
+
+    if (device_param->device_host_unified_memory == 1) continue;
+
+    have_discrete = true;
+
+    break;
+  }
+
+  if (have_discrete == false) return;
+
+  int skipped_cnt = 0;
+
+  bool skipped_here[DEVICES_MAX];
+
+  for (int backend_devices_pos = 0; backend_devices_pos < backend_ctx->backend_devices_cnt; backend_devices_pos++)
+  {
+    skipped_here[backend_devices_pos] = false;
+  }
+
+  for (int backend_devices_pos = 0; backend_devices_pos < backend_ctx->backend_devices_cnt; backend_devices_pos++)
+  {
+    hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_pos];
+
+    if (device_param->skipped         == true) continue;
+    if (device_param->skipped_warning == true) continue;
+
+    if (is_gpu_device (device_param) == false) continue;
+
+    if (device_param->device_host_unified_memory == 0) continue;
+
+    device_param->skipped = true;
+
+    if      (device_param->is_cuda   == true) backend_ctx->cuda_devices_active--;
+    else if (device_param->is_hip    == true) backend_ctx->hip_devices_active--;
+    #if defined (__APPLE__)
+    else if (device_param->is_metal  == true) backend_ctx->metal_devices_active--;
+    #endif
+    else if (device_param->is_opencl == true) backend_ctx->opencl_devices_active--;
+
+    backend_ctx->backend_devices_active--;
+
+    skipped_here[backend_devices_pos] = true;
+
+    skipped_cnt++;
+  }
+
+  if (skipped_cnt == 0) return;
+
+  const bool say = (user_options->quiet == false) && (user_options->backend_info == 0);
+
+  if (say == false) return;
+
+  // -d names every device the run may use, so a list holding only the integrated GPU would drop the
+  // discrete one along with it and leave the machine slower than it was. The list is what is running
+  // now plus what was just disabled, in device order.
+
+  char devices_list[(DEVICES_MAX * 4) + 1];
+
+  int devices_list_len = 0;
+
+  devices_list[0] = 0;
+
+  for (int backend_devices_pos = 0; backend_devices_pos < backend_ctx->backend_devices_cnt; backend_devices_pos++)
+  {
+    const hc_device_param_t *device_param = &backend_ctx->devices_param[backend_devices_pos];
+
+    if (skipped_here[backend_devices_pos] == false)
+    {
+      if (device_param->skipped         == true) continue;
+      if (device_param->skipped_warning == true) continue;
+    }
+
+    const char *sep = (devices_list_len == 0) ? "" : ",";
+
+    devices_list_len += snprintf (devices_list + devices_list_len, sizeof (devices_list) - devices_list_len, "%s%d", sep, device_param->device_id + 1);
+  }
+
+  event_log_warning (hashcat_ctx, "An integrated GPU was found alongside a discrete GPU and has been disabled.");
+  event_log_warning (hashcat_ctx, "It adds an architecture to compile for and a device to autotune, and returns very little speed for it.");
+  event_log_warning (hashcat_ctx, "Use -d %s to enable it as well.", devices_list);
+  event_log_warning (hashcat_ctx, NULL);
 }
 
 static bool is_same_device_type (const hc_device_param_t *src, const hc_device_param_t *dst)
@@ -7209,7 +7343,9 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
         continue;
       }
 
-      device_param->device_available_mem = ((u64) free * (100 - user_options->backend_devices_keepfree)) / 100;
+      device_param->device_available_mem = (u64) free;
+
+      device_param->device_available_mem_source = MEM_SOURCE_RUNTIME;
 
       if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1)
       {
@@ -7757,7 +7893,9 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
         continue;
       }
 
-      device_param->device_available_mem = ((u64) free * (100 - user_options->backend_devices_keepfree)) / 100;
+      device_param->device_available_mem = (u64) free;
+
+      device_param->device_available_mem_source = MEM_SOURCE_RUNTIME;
 
       #if defined (__linux__)
       if (strchr (folder_config->cpath_real, ' ') != NULL)
@@ -8863,6 +9001,11 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
         // GPUs but answers none of the AMD or Intel specific queries below, so without this the
         // address stays at 0000:00:00.0 and every temperature, fan and clock read fails.
 
+        // cl_amd_device_attribute_query carries CL_DEVICE_GLOBAL_FREE_MEMORY_AMD, the one OpenCL
+        // query that reports free device memory. Recorded here because device_extensions is local.
+
+        device_param->has_amd_device_attribute_query = (strstr (device_extensions, "cl_amd_device_attribute_query") != NULL);
+
         if (strstr (device_extensions, "cl_khr_pci_bus_info") != NULL)
         {
           // ext_OpenCL.h includes CL/cl.h and not CL/cl_ext.h, so the extension is spelled out here
@@ -9504,15 +9647,20 @@ static void backend_ctx_devices_init_opencl (hashcat_ctx_t *hashcat_ctx, int *vi
 
                   if ((backend_ctx->rc_cuda_init == 0) && (backend_ctx->rc_nvrtc_init == -1))
                   {
+                    // This build is a Windows binary, so the machine reading this is running Windows
+                    // rather than WSL2, where a Linux build would be running instead. The Windows
+                    // toolkit is therefore the answer, and WSL2 is a second route rather than the
+                    // first one to name.
+
                     #if defined (_WIN)
-                    event_log_warning (hashcat_ctx, "If you are using WSL2 you can use CUDA instead of OpenCL.");
-                    event_log_warning (hashcat_ctx, "Users must not install any NVIDIA GPU Linux driver within WSL 2");
-                    event_log_warning (hashcat_ctx, "For all details: https://docs.nvidia.com/cuda/wsl-user-guide/index.html");
+                    event_log_warning (hashcat_ctx, "The NVIDIA RTC library that hashcat compiles its kernels with comes with the CUDA Toolkit.");
+                    event_log_warning (hashcat_ctx, "Install the Windows build of it from https://developer.nvidia.com/cuda-downloads, choosing");
+                    event_log_warning (hashcat_ctx, "Windows and the version of it you are on. The GPU driver on its own does not carry it.");
                     event_log_warning (hashcat_ctx, NULL);
 
-                    event_log_warning (hashcat_ctx, "TLDR; go to https://developer.nvidia.com/cuda-downloads and follow this path:");
-                    event_log_warning (hashcat_ctx, "  Linux -> Architecture -> Distribution -> Version -> deb (local)");
-                    event_log_warning (hashcat_ctx, "Follow the installation Instructions on the website.");
+                    event_log_warning (hashcat_ctx, "Running hashcat inside WSL2 reaches CUDA as well, using the Linux build of hashcat and the");
+                    event_log_warning (hashcat_ctx, "Linux CUDA Toolkit installed inside it. No NVIDIA GPU driver is installed inside WSL2 itself.");
+                    event_log_warning (hashcat_ctx, "For all details: https://docs.nvidia.com/cuda/wsl-user-guide/index.html");
                     event_log_warning (hashcat_ctx, NULL);
 
                     #endif
@@ -9982,38 +10130,26 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         // Since we can't match OpenCL with Metal devices (missing PCI ID etc.) and at the same time we have better OpenCL support than Metal support,
         // we disable all Metal devices by default. The user can reactivate them with -d.
+        //
+        // backend_ctx_devices_init_metal () has already skipped every device the user filtered out, so
+        // a device still alive here is either running by default or one that -d named on purpose. Only
+        // the first kind is ours to disable, which makes an explicit -d the way back to Metal.
 
-        if (device_param->skipped == false)
+        if (device_param->skipped == true) continue;
+
+        if (user_options->backend_devices != NULL) continue;
+
+        if ((user_options->quiet == false) && (user_options->backend_info == 0))
         {
-          if (backend_ctx->backend_devices_filter[device_param->device_id] == 1)
-          {
-            if ((user_options->quiet == false) && (user_options->backend_info == 0))
-            {
-              event_log_warning (hashcat_ctx, "The device #%d has been disabled as it most likely also exists as an OpenCL device, but it is not possible to automatically map it.", device_param->device_id + 1);
-              event_log_warning (hashcat_ctx, "You can use -d %d to use Metal API instead of OpenCL API. In some rare cases this is more stable.", device_param->device_id + 1);
-              event_log_warning (hashcat_ctx, NULL);
-            }
-
-            device_param->skipped = true;
-          }
-          else
-          {
-            if (backend_ctx->backend_devices_filter[device_param->device_id])
-            {
-              // ok
-            }
-            else
-            {
-              device_param->skipped = true;
-            }
-          }
-
-          if (device_param->skipped == true)
-          {
-            backend_ctx->metal_devices_active--;
-            backend_ctx->backend_devices_active--;
-          }
+          event_log_warning (hashcat_ctx, "The device #%d has been disabled as it most likely also exists as an OpenCL device, but it is not possible to automatically map it.", device_param->device_id + 1);
+          event_log_warning (hashcat_ctx, "You can use -d %d to use Metal API instead of OpenCL API. In some rare cases this is more stable.", device_param->device_id + 1);
+          event_log_warning (hashcat_ctx, NULL);
         }
+
+        device_param->skipped = true;
+
+        backend_ctx->metal_devices_active--;
+        backend_ctx->backend_devices_active--;
       }
     }
   }
@@ -10029,6 +10165,10 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     //if (user_options->force == false)
     //{
     backend_ctx_find_alias_devices (hashcat_ctx);
+
+  // an integrated GPU is not worth its startup cost when a discrete GPU is present
+
+  backend_ctx_devices_skip_integrated (hashcat_ctx);
     //{
   //}
 
@@ -10184,13 +10324,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
       device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-      if (user_options->backend_devices_keepfree < 100)
-      {
-        device_param->device_available_mem = (device_param->device_global_mem * (100 - user_options->backend_devices_keepfree)) / 100;
-      }
-      // this section is creating more problems than it solves, so lets use a fixed multiplier instead
-      // users can override with --backend-devices-keepfree=100
-      else if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
+      // Metal reports no free memory of its own and there is no hardware monitor branch for it, so
+      // walking allocations until one fails is the only measurement available here. Anything else is
+      // the physical size with a guess subtracted.
+
+      if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
       {
         // following the same logic as for OpenCL, explained later
 
@@ -10228,6 +10366,8 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           device_param->device_available_mem *= c;
         }
 
+        device_param->device_available_mem_source = MEM_SOURCE_PROBE;
+
         // clean up
 
         for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
@@ -10243,10 +10383,18 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
         hcfree (tmp_device);
       }
 
-      if (device_param->device_host_unified_memory == 1)
-      {
-        // so, we actually have only half the memory because we need the same buffers on host side
+      // A unified-memory device shares one pool with the host, so the host-side buffers have to come
+      // out of the same figure. For a GPU that is charged exactly further down, against the host total
+      // this run actually needs, rather than by halving here: the two are not the same size. -m 8900
+      // on a 24 GB card wants 24143 MiB on the device and 513 MiB on the host, so halving gave away
+      // eleven gigabytes to cover half of one.
+      //
+      // A CPU device is different and keeps the halving. Its CL_DEVICE_GLOBAL_MEM_SIZE is the total
+      // size of system RAM rather than any measure of what is free, so half of it is standing in for
+      // the rest of the machine, not for the host-side buffers.
 
+      if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
+      {
         device_param->device_available_mem /= 2;
       }
     }
@@ -10455,8 +10603,9 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (is_same_device (device_param, tmp_device_param))
               {
-                device_param->device_available_mem = tmp_device_param->device_available_mem;
-                updated_device_available_mem       = true;
+                device_param->device_available_mem        = tmp_device_param->device_available_mem;
+                device_param->device_available_mem_source = MEM_SOURCE_ALIAS;
+                updated_device_available_mem              = true;
                 break;
               }
             }
@@ -10474,11 +10623,39 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               if (is_same_device (device_param, tmp_device_param))
               {
-                device_param->device_available_mem = tmp_device_param->device_available_mem;
-                updated_device_available_mem       = true;
+                device_param->device_available_mem        = tmp_device_param->device_available_mem;
+                device_param->device_available_mem_source = MEM_SOURCE_ALIAS;
+                updated_device_available_mem              = true;
                 break;
               }
             }
+          }
+        }
+      }
+
+      // Still nothing? AMD answers for itself. CL_DEVICE_GLOBAL_FREE_MEMORY_AMD returns two
+      // cl_ulong in KILOBYTES - total free, then the largest free block - and it tracks other
+      // processes: measured falling by 8 GB while a separate process held 8 GB, and recovering when
+      // that process exited. It agrees with hipMemGetInfo to the megabyte on both a consumer XTX and
+      // a workstation W7800, across two ROCm versions.
+      //
+      // Gated on the extension and never on the vendor id, because Mesa's rusticl reports
+      // VENDOR_ID_AMD while answering none of the AMD queries.
+
+      if ((updated_device_available_mem == false) && (device_param->has_amd_device_attribute_query == true) && (amd_free_mem_disabled () == false))
+      {
+        #define CL_DEVICE_GLOBAL_FREE_MEMORY_AMD 0x4039
+
+        cl_ulong free_mem_kb[2] = { 0, 0 };
+
+        if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_GLOBAL_FREE_MEMORY_AMD, sizeof (free_mem_kb), &free_mem_kb, NULL) != -1)
+        {
+          if (free_mem_kb[0] > 0)
+          {
+            device_param->device_available_mem        = (u64) free_mem_kb[0] * 1024;
+            device_param->device_available_mem_source = MEM_SOURCE_EXTENSION;
+
+            updated_device_available_mem = true;
           }
         }
       }
@@ -10498,13 +10675,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
           device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
 
-          if (user_options->backend_devices_keepfree < 100)
-          {
-            device_param->device_available_mem = (device_param->device_global_mem * (100 - user_options->backend_devices_keepfree)) / 100;
-          }
-          // this section is creating more problems than it solves, so lets use a fixed multiplier instead
-          // users can override with --backend-devices-keepfree=100
-          else if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
+          // Reached only when neither a CUDA/HIP twin nor the AMD extension could answer, so the
+          // runtime genuinely does not report free memory. Walking allocations until one fails is a
+          // measurement; the physical size minus a percentage is not.
+
+          if ((device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) && (device_param->device_host_unified_memory == 0))
           {
             // OK, so the problem here is the following:
             // There's just CL_DEVICE_GLOBAL_MEM_SIZE to ask OpenCL about the total memory on the device,
@@ -10520,6 +10695,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
             cl_mem *tmp_device = (cl_mem *) hccalloc (MAX_ALLOC_CHECKS_CNT, sizeof (cl_mem));
 
+            // Set when the walk stops on a limit hashcat imposed rather than on the device refusing.
+            // What it found then is that limit, not the free memory, so it is not a measurement.
+
+            bool stopped_at_own_ceiling = false;
+
             u64 c;
 
             for (c = 0; c < MAX_ALLOC_CHECKS_CNT; c++)
@@ -10534,11 +10714,17 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               //  Version.: OpenCL 1.2 (Apr 18 2025 21:45:30)
               //  Driver.Version.: 1.2 (Apr 22 2025 20:11:41)
 
+              // The same 2 GiB kernel-access limit: walking past it here would report memory the
+              // device cannot actually be asked to use.
+
               if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->is_metal == false))
               {
-                const size_t undocumented_single_allocation_apple = 0x7fffffff;
+                if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= 0x7fffffff)
+                {
+                  stopped_at_own_ceiling = true;
 
-                if (((c + 1 + 1) * MAX_ALLOC_CHECKS_SIZE) >= undocumented_single_allocation_apple) break;
+                  break;
+                }
               }
 
               cl_int CL_err;
@@ -10572,6 +10758,15 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
               device_param->device_available_mem *= c;
             }
 
+            if (stopped_at_own_ceiling == false)
+            {
+              device_param->device_available_mem_source = MEM_SOURCE_PROBE;
+            }
+            else
+            {
+              device_param->device_available_mem = device_param->device_global_mem - MAX_ALLOC_CHECKS_SIZE;
+            }
+
             // clean up
 
             int r = 0;
@@ -10596,10 +10791,11 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
           }
         }
 
-        if (device_param->device_host_unified_memory == 1)
-        {
-          // so, we actually have only half the memory because we need the same buffers on host side
+        // Charged against the real host total further down instead of halved here, except on a CPU
+        // device whose global memory figure is the size of system RAM; see the note on the Metal path.
 
+        if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
+        {
           device_param->device_available_mem /= 2;
         }
       }
@@ -15421,7 +15617,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           event_log_warning (hashcat_ctx, "             Performance is capped at %.2f%%", ((double) new_left / device_param->device_global_mem) * 100);
         }
 
-        device_param->device_available_mem = MIN (device_param->device_available_mem, new_left);
+        device_param->device_available_mem        = MIN (device_param->device_available_mem, new_left);
+        device_param->device_available_mem_source = MEM_SOURCE_HWMON;
       }
       else
       {
@@ -15430,12 +15627,22 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
           if (user_options->machine_readable == false)
           {
             event_log_warning (hashcat_ctx, "* Device #%u: The hardware monitor was disabled, but it is the only reliable method to query actual free memory.", device_id + 1);
-            event_log_warning (hashcat_ctx, "             Falling back to --backend-devices-keepfree method.");
+            event_log_warning (hashcat_ctx, "             Falling back to an estimate based on the physical device size.");
             event_log_warning (hashcat_ctx, NULL);
           }
         }
 
-        if (user_options->backend_devices_keepfree == 0)
+        // The hardware monitor is not the only thing that can answer this. cuMemGetInfo (), hipMemGetInfo ()
+        // and CL_DEVICE_GLOBAL_FREE_MEMORY_AMD all report free memory directly, and all of them track
+        // other processes. Where one of those produced the figure there is nothing to guess at, and
+        // padding it throws away a third of the card: on a memory-bound argon2 that is a third of the
+        // speed, measured, and on an unpadded 1 GiB-per-lane LUKS2 attack it is a third of the lanes.
+        //
+        // So the reserve now applies only when the figure really is an estimate.
+
+        const bool mem_is_measured = (device_param->device_available_mem_source != MEM_SOURCE_UNKNOWN);
+
+        if (mem_is_measured == false)
         {
           const u64 device_available_mem_sav = device_param->device_available_mem;
 
@@ -15443,10 +15650,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
           if (user_options->machine_readable == false)
           {
-            event_log_warning (hashcat_ctx, "* Device #%u: This system does not offer any reliable method to query actual free memory. Estimated base: %" PRIu64, device_id + 1, device_available_mem_sav);
-            event_log_warning (hashcat_ctx, "             Assuming normal desktop activity, reducing estimate by 34%%: %" PRIu64, device_available_mem_new);
+            const u64 MiB = 1024 * 1024;
+
+            event_log_warning (hashcat_ctx, "* Device #%u: This system does not offer any reliable method to query actual free memory. Estimated base: %" PRIu64 " MiB", device_id + 1, device_available_mem_sav / MiB);
+            event_log_warning (hashcat_ctx, "             Assuming normal desktop activity, reducing estimate by 34%%: %" PRIu64 " MiB", device_available_mem_new / MiB);
             event_log_warning (hashcat_ctx, "             This can hurt performance drastically, especially on memory-heavy algorithms.");
-            event_log_warning (hashcat_ctx, "             You can adjust this percentage using --backend-devices-keepfree");
+            event_log_warning (hashcat_ctx, "             Install a hardware monitor, or use a runtime that reports free memory, to avoid the estimate.");
             event_log_warning (hashcat_ctx, NULL);
           }
 
@@ -16197,6 +16406,39 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (module_ctx->module_extra_buffer_size != MODULE_DEFAULT)
     {
+      // The split below hands the work items four ways and gives the remainder to the first chunks, so
+      // a remainder makes those chunks larger than four equal ones. A module sizes its total against
+      // four equal chunks - it can do nothing else, since it cannot see the split - so any remainder
+      // pushes the largest chunk past the limit the module was budgeting for.
+      //
+      // It only shows when the largest allocation is close to a quarter of the budget. -m 8900 through
+      // Apple OpenCL asked for 4096 MiB in a chunk against a 4092 MiB limit and was refused, with three
+      // hundred megabytes still free on the card: 62 work items split 15/15/15/15 with 2 left over, and
+      // the two chunks that took one each grew by 256 MiB.
+      //
+      // Take the work item count down to a multiple of four so the split is exact and every chunk is
+      // the size the module sized it for. It costs at most three work items.
+
+      {
+        const u64 mp_multi = (hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors;
+
+        // Below four work items the split gives each chunk one and there is nothing to balance, so
+        // leave those alone. The minimum comes down with the maximum when a tuning database entry
+        // pinned the two together, which is the usual case for the modes that use extra buffers.
+
+        while ((device_param->kernel_accel_max > 1)
+            && ((mp_multi * device_param->kernel_accel_max) >= 4)
+            && (((mp_multi * device_param->kernel_accel_max) % 4) != 0))
+        {
+          device_param->kernel_accel_max--;
+        }
+
+        if (device_param->kernel_accel_min > device_param->kernel_accel_max)
+        {
+          device_param->kernel_accel_min = device_param->kernel_accel_max;
+        }
+      }
+
       const u64 extra_buffer_size = module_ctx->module_extra_buffer_size (hashconfig, user_options, user_options_extra, hashes, device_param);
 
       if (extra_buffer_size == (u64) -1)
@@ -18261,6 +18503,18 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       threads_per_block = device_param->kernel_preferred_wgs_multiple;
     }
 
+    u32 local_size_bytes = 0;
+
+    if ((device_param->is_cuda == true) || (device_param->is_hip == true) || (device_param->is_opencl == true))
+    {
+      if (device_param->is_cuda   == true) local_size_bytes = cuda_query_max_local_size_bytes   (hashcat_ctx, device_param);
+      if (device_param->is_hip    == true) local_size_bytes = hip_query_max_local_size_bytes    (hashcat_ctx, device_param);
+      if (device_param->is_opencl == true) local_size_bytes = opencl_query_max_local_size_bytes (hashcat_ctx, device_param);
+      #if defined (__APPLE__)
+      if (device_param->is_metal  == true) local_size_bytes = metal_query_max_local_size_bytes  (hashcat_ctx, device_param);
+      #endif
+    }
+
     if (user_options->kernel_threads_chgd == true)
     {
       if (threads_per_block < user_options->kernel_threads)
@@ -18281,6 +18535,50 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       //printf ("auto thread min: %d\n", threads_per_block_p2f);
       device_param->kernel_threads_min = threads_per_block_p2f;
+    }
+
+    // A kernel that keeps a lot of private memory per work item cannot fill a wide workgroup: the
+    // private memory is what caps occupancy, so widening the group buys nothing and the spilled
+    // scratch grows until it stops fitting. PKZIP's inflate kernels are the case in hand at 77,688
+    // bytes per work item, where a typical kernel sits under a kilobyte, and the difference between a
+    // wide group and the native width is 2.5x on an RTX 4090 and 3.2x on an RX 7900 XTX.
+    //
+    // A module that knows this says so with OPTS_TYPE_NATIVE_THREADS, and the ones shipped here do.
+    // This is the safety net for the modules nobody here can see: a third-party plugin whose author
+    // never measured it still gets a launch the hardware can hold, rather than one that spills until
+    // the memory check starts refusing it.
+    //
+    // Both bounds are pinned, not just the maximum. Lowering only the maximum leaves the minimum at
+    // whatever threads_per_block_p2f produced, which is 1 for a power-of-two width, and autotune then
+    // walks below the native count: measured 1205 MH/s at 16 threads against 1779 at 32.
+
+    // GPUs only. A CPU runtime reports private memory on a different scale entirely - Intel's answers
+    // 4864 bytes for MD5 and 10112 for argon2 where a GPU says 288 - so the threshold below means
+    // nothing there, and a CPU device is running one work item per core regardless.
+
+    const bool spill_guard_applies = (device_param->opencl_device_type & CL_DEVICE_TYPE_GPU) != 0;
+
+    if ((local_size_bytes >= SPILL_HEAVY_PRIVATE_BYTES)
+     && (spill_guard_applies == true)
+     && ((hashconfig->opts_type & OPTS_TYPE_NATIVE_THREADS) == 0)
+     && ((hashconfig->opts_type & OPTS_TYPE_MAXIMUM_THREADS) == 0)
+     && (user_options->kernel_threads_chgd == false)
+     && (device_param->kernel_preferred_wgs_multiple > 0))
+    {
+      const u32 native_threads = device_param->kernel_preferred_wgs_multiple;
+
+      if ((native_threads < device_param->kernel_threads_max) && (native_threads > 0))
+      {
+        if ((user_options->quiet == false) && (user_options->machine_readable == false))
+        {
+          event_log_warning (hashcat_ctx, "* Device #%u: Kernel uses %u bytes of private memory per work item, too much to fill a workgroup of %u.", device_id + 1, local_size_bytes, device_param->kernel_threads_max);
+          event_log_warning (hashcat_ctx, "             Using the native thread count %u instead. A module can state this itself with OPTS_TYPE_NATIVE_THREADS.", native_threads);
+          event_log_warning (hashcat_ctx, NULL);
+        }
+
+        device_param->kernel_threads_min = native_threads;
+        device_param->kernel_threads_max = native_threads;
+      }
     }
 
     // this is required because inside the kernels there is this:
@@ -18348,14 +18646,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      if (user_options->backend_devices_keepfree)
-      {
-        accel_limit_host = ((u64) accel_limit_host * (100 - user_options->backend_devices_keepfree)) / 100;
-      }
-      else
-      {
-        accel_limit_host = accel_limit_host - (accel_limit_host * 0.34);
-      }
+      // Host memory is shared with the OS, the page cache and whatever else is running, and unlike
+      // device memory it can be taken away after the budget is set. The margin stays.
+
+      accel_limit_host = accel_limit_host - (accel_limit_host * 0.34);
 
       accel_limit_host /= backend_ctx->backend_devices_active;
 
@@ -18394,18 +18688,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     u64 size_brain_link_out = 4;
     #endif
 
-    u32 local_size_bytes = 0;
-
-    if ((device_param->is_cuda == true) || (device_param->is_hip == true) || (device_param->is_opencl == true))
-    {
-      if (device_param->is_cuda   == true) local_size_bytes = cuda_query_max_local_size_bytes   (hashcat_ctx, device_param);
-      if (device_param->is_hip    == true) local_size_bytes = hip_query_max_local_size_bytes    (hashcat_ctx, device_param);
-      if (device_param->is_opencl == true) local_size_bytes = opencl_query_max_local_size_bytes (hashcat_ctx, device_param);
-      #if defined (__APPLE__)
-      if (device_param->is_metal  == true) local_size_bytes = metal_query_max_local_size_bytes  (hashcat_ctx, device_param);
-      #endif
-    }
-
     const u64 size_device_extra1234 = size_extra_buffer1 + size_extra_buffer2 + size_extra_buffer3 + size_extra_buffer4;
 
     // Still not 100% sure about the 64MiB here
@@ -18433,6 +18715,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     int memory_limit_hit = 0;
 
     const u32 kernel_accel_max_sav = kernel_accel_max;
+
+    u64 size_total_last = 0, size_spilling_last = 0, size_tmps_last = 0, size_pws_last = 0;
+
+    // Which check refused, so a failure can name itself instead of being bisected by hand.
+
+    const char *memory_limit_reason = "none";
 
     while ((kernel_accel_max >= kernel_accel_min) || (kernel_threads_max >= kernel_threads_min))
     {
@@ -18469,11 +18757,33 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // This reserves room for the private memory a kernel spills to global memory under register
       // pressure. A bridge has no such kernel: it replaces the loop kernel, which is the hot one, and
       // what remains runs once per batch and does almost nothing. The reserve still has to be paid per
-      // work item, and a CPU runtime asks for far more of it than a GPU does. PoCL reports 1024 bytes
-      // against 16 on a discrete GPU, which is 31 MiB per unit on a bridge batch, for kernels that
-      // cannot spill.
+      // work item, and a CPU runtime asks for far more of it than a GPU does.
+      //
+      // Measured 2026-08-31 rather than estimated: a discrete GPU reports 272 to 288 bytes for -m 0
+      // and 1408 at the top of the range across every shipped module, Intel's CPU runtime reports
+      // 4864 for the same kernel and 10112 for argon2, and PoCL reports 0 for everything. The figure
+      // is not comparable between a CPU and a GPU runtime, which is why the spill-heavy thread guard
+      // above only looks at it on a GPU.
 
-      const u64 size_spilling = (device_is_bridged == true) ? 0 : kernel_power_max * local_size_bytes;
+      // The runtime does not size its spill scratch from the grid we ask for. It sizes it for the work
+      // items the device can keep resident at once and reuses that across the launch, so charging for
+      // every work item of the launch over-reserves by the launch-to-residency ratio.
+      //
+      // Measured on a 4090 running PKZIP: driver scratch was 14,776 MiB at accel 298 and 14,778 MiB at
+      // accel 6, flat across a fifty-fold change in launch size, and within 1.5% of the residency
+      // figure both times. scrypt's own memory model reaches the same conclusion independently, from
+      // its own testing - see the comment above spill_mem in scrypt_common.c.
+      //
+      // Only CUDA and HIP report threads per processor. Everywhere else the widest workgroup is the
+      // closest bound available, which is the figure scrypt uses for the same purpose.
+
+      const u64 device_residency = (device_param->device_processor_threads > 0)
+                                 ? (u64) device_param->device_processors * device_param->device_processor_threads
+                                 : (u64) device_param->device_processors * device_param->device_maxworkgroup_size;
+
+      const u64 spill_workitems = MIN (kernel_power_max, device_residency);
+
+      const u64 size_spilling = (device_is_bridged == true) ? 0 : spill_workitems * local_size_bytes;
 
       // size_pws
 
@@ -18546,9 +18856,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       // let's see if we still need this now that we have low-level API to report free memory
       // we don't want these get too big. if a plugin requires really a lot of memory, the extra buffer should be used instead.
 
-      if (size_pws   > device_param->device_maxmem_alloc / 4) memory_limit_hit = 1;
-      if (size_tmps  > device_param->device_maxmem_alloc / 4) memory_limit_hit = 1;
-      if (size_hooks > device_param->device_maxmem_alloc / 4) memory_limit_hit = 1;
+      if (size_pws   > device_param->device_maxmem_alloc / 4) { memory_limit_hit = 1; memory_limit_reason = "size_pws vs maxmem_alloc/4"; }
+      if (size_tmps  > device_param->device_maxmem_alloc / 4) { memory_limit_hit = 1; memory_limit_reason = "size_tmps vs maxmem_alloc/4"; }
+      if (size_hooks > device_param->device_maxmem_alloc / 4) { memory_limit_hit = 1; memory_limit_reason = "size_hooks vs maxmem_alloc/4"; }
 
       // AMD backs spilled private memory with a scratch buffer that has to live inside the private
       // aperture. A dispatch asking for more is rejected with HSA_STATUS_ERROR_OUT_OF_RESOURCES, and
@@ -18572,49 +18882,53 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         const u64 size_scratch = scratch_workitems * local_size_bytes;
 
-        if (size_scratch > private_aperture) memory_limit_hit = 1;
+        if (size_scratch > private_aperture) { memory_limit_hit = 1; memory_limit_reason = "scratch vs private aperture"; }
       }
 
-      // work around, for some reason apple opencl can't have buffers larger 2^31
-      // typically runs into trap 6
-      // maybe 32/64 bit problem affecting size_t?
-      // this is really ugly, and still in place 2025/06/09
-      //  Version.: OpenCL 1.2 (Apr 18 2025 21:45:30)
-      //  Driver.Version.: 1.2 (Apr 22 2025 20:11:41)
+      // Apple's OpenCL traps when a kernel runs against much more than 2^31 bytes. Retested on macOS
+      // 26.6.2, driver OpenCL 1.2 (Jul 31 2026), W5700X, and the limit is still there in 2026.
+      //
+      // It is easy to test the wrong thing here. Allocating a single 3584 MB buffer succeeds, and
+      // writing and reading its far end from the host succeeds, so allocation and host transfers both
+      // look fine well past 2 GiB. The trap comes when a kernel uses the memory: -m 8900 runs at 1024
+      // MiB of total extra buffer and dies with "Abort trap: 6" at 2048 MiB, whatever the split.
+      //
+      // So the limit is on the total a kernel touches, not on one buffer, which is what the original
+      // note meant by "affects global memory as well". Do not retire this without running a kernel.
 
       if ((device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE) && (device_param->is_metal == false))
       {
         const size_t undocumented_single_allocation_apple = 0x7fffffff;
 
-        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_bfs                > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_combs              > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_combs_c            > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_digests            > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_esalts             > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_hooks              > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_markov_css         > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_plains             > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_pws                > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_pws_amp            > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_pws_comp           > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_pws_idx            > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_results            > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_root_css           > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_rules              > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_rules_c            > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_salts              > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_extra_buffer1      > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_extra_buffer2      > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_extra_buffer3      > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_extra_buffer4      > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_shown              > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_tm                 > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_tmps               > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_st_digests         > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_st_salts           > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_st_esalts          > undocumented_single_allocation_apple) memory_limit_hit = 1;
-        if (size_kernel_params      > undocumented_single_allocation_apple) memory_limit_hit = 1;
+        if (bitmap_ctx->bitmap_size > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "bitmap_ctx->bitmap_size exceeds maxmem_alloc"; }
+        if (size_bfs > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_bfs exceeds maxmem_alloc"; }
+        if (size_combs > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_combs exceeds maxmem_alloc"; }
+        if (size_combs_c > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_combs_c exceeds maxmem_alloc"; }
+        if (size_digests > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_digests exceeds maxmem_alloc"; }
+        if (size_esalts > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_esalts exceeds maxmem_alloc"; }
+        if (size_hooks > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_hooks exceeds maxmem_alloc"; }
+        if (size_markov_css > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_markov_css exceeds maxmem_alloc"; }
+        if (size_plains > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_plains exceeds maxmem_alloc"; }
+        if (size_pws > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_pws exceeds maxmem_alloc"; }
+        if (size_pws_amp > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_pws_amp exceeds maxmem_alloc"; }
+        if (size_pws_comp > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_pws_comp exceeds maxmem_alloc"; }
+        if (size_pws_idx > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_pws_idx exceeds maxmem_alloc"; }
+        if (size_results > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_results exceeds maxmem_alloc"; }
+        if (size_root_css > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_root_css exceeds maxmem_alloc"; }
+        if (size_rules > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_rules exceeds maxmem_alloc"; }
+        if (size_rules_c > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_rules_c exceeds maxmem_alloc"; }
+        if (size_salts > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_salts exceeds maxmem_alloc"; }
+        if (size_extra_buffer1 > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_extra_buffer1 exceeds maxmem_alloc"; }
+        if (size_extra_buffer2 > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_extra_buffer2 exceeds maxmem_alloc"; }
+        if (size_extra_buffer3 > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_extra_buffer3 exceeds maxmem_alloc"; }
+        if (size_extra_buffer4 > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_extra_buffer4 exceeds maxmem_alloc"; }
+        if (size_shown > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_shown exceeds maxmem_alloc"; }
+        if (size_tm > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_tm exceeds maxmem_alloc"; }
+        if (size_tmps > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_tmps exceeds maxmem_alloc"; }
+        if (size_st_digests > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_st_digests exceeds maxmem_alloc"; }
+        if (size_st_salts > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_st_salts exceeds maxmem_alloc"; }
+        if (size_st_esalts > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_st_esalts exceeds maxmem_alloc"; }
+        if (size_kernel_params > undocumented_single_allocation_apple) { memory_limit_hit = 1; memory_limit_reason = "size_kernel_params exceeds maxmem_alloc"; }
       }
 
       const u64 size_total
@@ -18656,8 +18970,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + size_kernel_params
         + size_spilling;
 
-      if (size_total > device_available_mem_share) memory_limit_hit = 1;
-
       const u64 size_host_extra = (512 * 1024 * 1024) / backend_ctx->backend_devices_active;
 
       // the staging buffers are allocated once per pipeline slot, because the next batch is built
@@ -18677,7 +18989,23 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         + (size_pcfg_wmap * PW_PIPE_SLOTS)
         + size_host_extra;
 
-      if (size_total_host > accel_limit_host) memory_limit_hit = 1;
+      if (size_total_host > accel_limit_host) { memory_limit_hit = 1; memory_limit_reason = "size_total_host vs accel_limit_host"; }
+
+      // On a unified-memory device the device buffers and the host buffers are the same RAM, so they
+      // are charged together. Everywhere else the device pool is its own.
+
+      const u64 size_total_device_side = (device_param->device_host_unified_memory == 1)
+                                       ? size_total + size_total_host
+                                       : size_total;
+
+      if (size_total_device_side > device_available_mem_share) { memory_limit_hit = 1; memory_limit_reason = "size_total vs device_available_mem_share"; }
+
+      // keep the last iteration's terms so the failure path can say which one did not fit
+
+      size_total_last    = size_total;
+      size_spilling_last = size_spilling;
+      size_tmps_last     = size_tmps;
+      size_pws_last      = size_pws;
 
       //printf ("%zu %zu %d %d\n", size_total, device_param->device_available_mem, kernel_accel_max, kernel_threads_max);
 
@@ -18712,7 +19040,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
         event_log_info (hashcat_ctx, "* Device #%u: memory budget, %u device(s) share this physical device", device_id + 1, device_sharers);
         event_log_info (hashcat_ctx, "  accel %u, threads %u, kernel_power %" PRIu64, kernel_accel_max, (u32) kernel_threads, kernel_power_max);
-        event_log_info (hashcat_ctx, "  device_available_mem %" PRIu64 " MiB, share %" PRIu64 " MiB", device_param->device_available_mem / MiB, device_available_mem_share / MiB);
+        const char *mem_source_name[] = { "unknown/guessed", "runtime", "alias", "amd-extension", "hwmon", "probe" };
+
+        event_log_info (hashcat_ctx, "  device_available_mem %" PRIu64 " MiB, share %" PRIu64 " MiB, source %s", device_param->device_available_mem / MiB, device_available_mem_share / MiB, mem_source_name[device_param->device_available_mem_source]);
         event_log_info (hashcat_ctx, "  size_total           %" PRIu64 " MiB", size_total / MiB);
         event_log_info (hashcat_ctx, "    pws                %" PRIu64 " MiB", size_pws / MiB);
         event_log_info (hashcat_ctx, "    pws_amp            %" PRIu64 " MiB", size_pws_amp / MiB);
@@ -18721,7 +19051,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         event_log_info (hashcat_ctx, "    tmps               %" PRIu64 " MiB", size_tmps / MiB);
         event_log_info (hashcat_ctx, "    hooks              %" PRIu64 " MiB", size_hooks / MiB);
         event_log_info (hashcat_ctx, "    bitmaps            %" PRIu64 " MiB", (bitmap_ctx->bitmap_size * 8) / MiB);
-        event_log_info (hashcat_ctx, "    spilling           %" PRIu64 " MiB (%u bytes per work item)", size_spilling / MiB, local_size_bytes);
+        event_log_info (hashcat_ctx, "    spilling           %" PRIu64 " MiB (%u bytes per work item over %" PRIu64 " resident)", size_spilling / MiB, local_size_bytes, spill_workitems);
         event_log_info (hashcat_ctx, "    device_extra       %" PRIu64 " MiB (reserve, not allocated)", size_device_extra / MiB);
 
         // Everything the lines above do not name, so the breakdown always adds up to size_total and a
@@ -18756,6 +19086,27 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     if (memory_limit_hit == 1)
     {
       event_log_error (hashcat_ctx, "* Device #%u: Not enough allocatable device memory or free host memory for mapping.", device_id + 1);
+
+      // The budget breakdown is only printed when the loop succeeds, which is exactly when it is not
+      // needed. Print it here too, so a device that cannot be fitted says what it could not fit.
+
+      if (memory_debug_enabled () == true)
+      {
+        const u64 MiB = 1024 * 1024;
+
+        event_log_info (hashcat_ctx, "* Device #%u: could not fit, at accel %u threads %u", device_id + 1, kernel_accel_max, kernel_threads_max);
+        event_log_info (hashcat_ctx, "  device_available_mem %" PRIu64 " MiB", device_param->device_available_mem / MiB);
+        event_log_info (hashcat_ctx, "  size_device_extra    %" PRIu64 " MiB (fixed before this loop, and already allocated)", size_device_extra / MiB);
+        event_log_info (hashcat_ctx, "  extra_buffer_size    %" PRIu64 " MiB at the accel it was sized for", device_param->extra_buffer_size / MiB);
+        event_log_info (hashcat_ctx, "  accel it was sized for %u", device_param->kernel_accel_max);
+        event_log_info (hashcat_ctx, "  last size_total      %" PRIu64 " MiB", size_total_last / MiB);
+        event_log_info (hashcat_ctx, "    spilling           %" PRIu64 " MiB (%u bytes per work item)", size_spilling_last / MiB, local_size_bytes);
+        event_log_info (hashcat_ctx, "    tmps               %" PRIu64 " MiB", size_tmps_last / MiB);
+        event_log_info (hashcat_ctx, "    pws                %" PRIu64 " MiB", size_pws_last / MiB);
+        event_log_info (hashcat_ctx, "  refused by           %s", memory_limit_reason);
+        event_log_info (hashcat_ctx, "  device_maxmem_alloc  %" PRIu64 " MiB", device_param->device_maxmem_alloc / MiB);
+        event_log_info (hashcat_ctx, "  size_extra_buffer1   %" PRIu64 " MiB", size_extra_buffer1 / MiB);
+      }
 
       backend_memory_hit_warnings++;
 

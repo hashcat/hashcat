@@ -13,33 +13,48 @@
 #include "memory.h"
 #include "argon2_common.h"
 
+// The blocks one hash of the attack needs, taken over the hashes actually loaded. The self-test hash
+// is deliberately not part of this: it is charged separately, because it costs a fixed amount rather
+// than an amount per accel. See get_selftest_memory_block_count ().
+
 u64 get_largest_memory_block_count (MAYBE_UNUSED const hashconfig_t *hashconfig, const hashes_t *hashes)
 {
-  merged_options_t *merged_options    = (merged_options_t *) hashes->esalts_buf;
-  merged_options_t *merged_options_st = (merged_options_t *) hashes->st_esalts_buf;
-
-  argon2_options_t *argon2_options    = &merged_options->argon2_options;
-  argon2_options_t *argon2_options_st = &merged_options_st->argon2_options;
+  merged_options_t *merged_options = (merged_options_t *) hashes->esalts_buf;
 
   u64 largest_memory_block_count = 0;
 
-  if (((hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) == 0) && (argon2_options_st != NULL))
-  {
-    largest_memory_block_count = argon2_options_st->memory_block_count;
-  }
-  else
-  {
-    largest_memory_block_count = argon2_options->memory_block_count;
-  }
-
   for (u32 i = 0; i < hashes->salts_cnt; i++)
   {
-    argon2_options = &merged_options[i].argon2_options;
+    argon2_options_t *argon2_options = &merged_options[i].argon2_options;
 
     largest_memory_block_count = MAX (largest_memory_block_count, argon2_options->memory_block_count);
   }
 
+  // Nothing loaded yet, which happens when the tuning block is consulted before the hashes are.
+  // Falling back to the self-test hash keeps the old behaviour for that case rather than dividing
+  // by zero further down.
+
+  if (largest_memory_block_count == 0) largest_memory_block_count = get_selftest_memory_block_count (hashconfig, hashes);
+
   return largest_memory_block_count;
+}
+
+// The self-test runs a single work item - selftest.c calls run_kernel () with num_elements 1 - so it
+// needs one hash worth of the extra buffer and no more. It used to be folded into the figure above,
+// which then multiplied it by kernel_accel: attacking a 16 MiB argon2 reserved as though every lane
+// were the self-test's 64 MiB, taking accel 355 where 1024 was affordable and 22.7 GB where 16.4 GB
+// was needed. On a card too small to hold accel lanes of the self-test's size, that is the difference
+// between running and not.
+
+u64 get_selftest_memory_block_count (MAYBE_UNUSED const hashconfig_t *hashconfig, const hashes_t *hashes)
+{
+  if (hashconfig->opts_type & OPTS_TYPE_SELF_TEST_DISABLE) return 0;
+
+  if (hashes->st_esalts_buf == NULL) return 0;
+
+  const merged_options_t *merged_options_st = (const merged_options_t *) hashes->st_esalts_buf;
+
+  return merged_options_st->argon2_options.memory_block_count;
 }
 
 const char *argon2_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, const backend_ctx_t *backend_ctx, MAYBE_UNUSED const hashes_t *hashes, const u32 device_id, const u32 kernel_accel_user)
@@ -108,7 +123,11 @@ u64 argon2_module_extra_buffer_size (MAYBE_UNUSED const hashconfig_t *hashconfig
 
   const u64 size_argon2 = device_param->kernel_accel_max * size_per_accel;
 
-  return size_argon2;
+  // and room for the self-test, which is one work item of whatever the self-test hash asks for
+
+  const u64 size_selftest = ARGON2_BLOCK_SIZE * get_selftest_memory_block_count (hashconfig, hashes);
+
+  return MAX (size_argon2, size_selftest);
 }
 
 char *argon2_module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)

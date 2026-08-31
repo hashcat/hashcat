@@ -114,7 +114,7 @@ const char *hc_lzma_error (void)
 const char *hc_lzma_hint (void)
 {
   #if   defined (_WIN) || defined (__CYGWIN__)
-  return "take liblzma.dll from the bin_x86-64 folder of the windows zip at https://github.com/tukaani-project/xz/releases and put it next to hashcat.exe";
+  return "put liblzma.dll next to hashcat.exe. The Windows package ships one. A build of your own takes it from the bin_x86-64 folder of the windows zip at https://github.com/tukaani-project/xz/releases";
   #elif defined (__APPLE__)
   return "install xz, for example with: brew install xz";
   #else

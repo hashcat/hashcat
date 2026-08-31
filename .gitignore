@@ -57,6 +57,12 @@ test_edge*
 # tools/test_modules/ and hide every new test module from git.
 /test_[0-9]*/
 
+# ROCm's compiler writes its scratch tree into the current working directory rather than a temp
+# dir, and leaves it behind when a JIT compile is aborted, along with the preprocessed kernel it
+# was given. Running hashcat from the repository root is enough to collect them.
+comgr-*/
+*.hipi
+
 Rust/feeds/*/target
 Rust/bridges/*/target
 

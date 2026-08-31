@@ -967,6 +967,30 @@ static int sp_setup_tbl (hashcat_ctx_t *hashcat_ctx)
 
   const char props = 0x1c; // lzma properties constant, retrieved with 7z2hashcat
 
+  // The table is 128 MiB expanded and 235 KiB on disk, so it ships compressed and there is no version
+  // that does not need a decompressor. When liblzma is missing every mask attack fails here, and
+  // "Could not uncompress data" sends the user looking at the file rather than at the library. Say
+  // which it is, and how to fix it, because the answer differs per platform.
+
+  if (hc_lzma () == NULL)
+  {
+    event_log_error (hashcat_ctx, "%s: xz support is unavailable: %s.", hcstat, hc_lzma_error ());
+
+    event_log_warning (hashcat_ctx, "This file is compressed and hashcat cannot read it without that library.");
+    event_log_warning (hashcat_ctx, "Attack modes that use Markov statistics cannot run until it is present.");
+    event_log_warning (hashcat_ctx, "To fix this, %s", hc_lzma_hint ());
+    event_log_warning (hashcat_ctx, NULL);
+
+    hcfree (inbuf);
+    hcfree (outbuf);
+
+    hcfree (root_stats_buf);
+    hcfree (markov_stats_buf);
+    hcfree (markov_stats_buf_by_key);
+
+    return -1;
+  }
+
   const bool res = hc_lzma2_decompress (inbuf, &inlen, outbuf, &outlen, &props);
 
   if (res == false)

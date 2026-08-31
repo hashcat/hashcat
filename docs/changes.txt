@@ -104,10 +104,12 @@ argument list is shown instead.
 hashcat carried its own copy of both. They are gone, and the library the machine already has is
 loaded the first time a compressed file is opened. Nothing links against them, so hashcat starts and
 runs normally where none of them is present, and only reading a compressed file needs one. Linux and
-the BSDs have all three in almost every case, and on macOS they come from brew. Windows ships none of
-them: liblzma.dll and libzstd.dll are published by the xz and Zstandard projects, while .gz there
-works only if a zlib1.dll is already on the machine, because the zlib project publishes no Windows
-build at all. Where one is missing, hashcat names the file names it looked for and what to install.
+the BSDs have all three in almost every case, and on macOS they come from brew. Windows provides none
+of them, so the Windows package carries all three beside hashcat.exe, built from pinned upstream
+sources. A hashcat built from source on Windows has none of them: liblzma.dll and libzstd.dll are
+published by the xz and Zstandard projects, while .gz there works only if a zlib1.dll is already on
+the machine, because the zlib project publishes no Windows build at all. Where one is missing,
+hashcat names the file names it looked for and what to install.
 See docs/hashcat-compression-libraries.md.
 
 14. Compression: zip files are no longer read

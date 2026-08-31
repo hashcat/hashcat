@@ -209,6 +209,13 @@ int hc_cuInit (void *hashcat_ctx, unsigned int Flags)
 
   if (CU_err != CUDA_SUCCESS)
   {
+    // A machine carrying the CUDA runtime with no NVIDIA GPU in it reports this on every run, and
+    // an AMD or Intel machine with the toolkit installed is the ordinary case for it. The caller
+    // closes the runtime and moves on to the next backend, so nothing is wrong and nothing needs
+    // saying. Every other failure still gets named.
+
+    if (CU_err == CUDA_ERROR_NO_DEVICE) return -1;
+
     const char *pStr = NULL;
 
     if (cuda->cuGetErrorString (CU_err, &pStr) == CUDA_SUCCESS)

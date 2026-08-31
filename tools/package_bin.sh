@@ -48,6 +48,32 @@ cp    $IN/hashcat.hcstat2               $OUT/
 cp    $IN/libhashcat.so.$MAJOR          $OUT/
 cp    $IN/hashcat.dll                   $OUT/
 
+# The compressors, for the Windows package only. hashcat loads these at runtime, and a Linux or macOS
+# box gets them from the system, but Windows provides none of them. Without liblzma the package
+# cannot read its own hashcat.hcstat2 and every mask attack fails, so it is not optional there.
+#
+# WIN_DLL_DIR is set by the build image, which compiles them from pinned upstream tags. A build
+# outside that image simply has nothing to copy, which is the case on a developer's machine. Where
+# the image did set it, a missing compressor is treated the way a missing binary is above: an archive
+# that packed without one would look ordinary and fail on the first mask attack.
+
+if [ -n "$WIN_DLL_DIR" ]; then
+
+  for compressor in liblzma.dll zlib1.dll libzstd.dll; do
+
+    if [ -f "$WIN_DLL_DIR/$compressor" ]; then
+      continue
+    fi
+
+    echo "! $compressor was not built. The Windows package cannot read its own hashcat.hcstat2 without it, so nothing is packed."
+    exit 1
+
+  done
+
+  cp $WIN_DLL_DIR/*.dll $OUT/
+
+fi
+
 cp -r $IN/docs                          $OUT/
 cp -r $IN/charsets                      $OUT/
 cp -r $IN/layouts                       $OUT/
