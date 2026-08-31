@@ -1059,7 +1059,6 @@ sub non_ascii_supported
 
   my $any_utf16    = 0;
   my $pure_decodes = 0;
-  my $opt_widens   = 0;
 
   for my $kernel (glob (sprintf ("%s/../OpenCL/m%05d*.cl", $FindBin::Bin, $mode)))
   {
@@ -1081,8 +1080,7 @@ sub non_ascii_supported
       if ($decoding->{$1}) { $decodes = 1; } else { $widens = 1; }
     }
 
-    if ($kernel =~ /-pure\.cl$/) { $pure_decodes ||= $decodes; }
-    else                        { $opt_widens   ||= $widens;   }
+    $pure_decodes ||= $decodes if $kernel =~ /-pure\.cl$/;
   }
 
   if ($any_utf16)
@@ -1091,9 +1089,13 @@ sub non_ascii_supported
 
     return 0 if $pure_decodes == 0;
 
-    # the optimized kernel is the one that would run, and it widens
+    # -O changes the plaintext path even for a mode that has no optimized kernel of its own.
+    # m11600 is one: the same generated vector cracks under -P and comes back not found under
+    # -O, which is the default the suite runs with. So a mode that converts UTF-16 at all keeps
+    # its passwords ASCII whenever -O is in play, rather than only when an optimized kernel of
+    # its own would have widened them.
 
-    return 0 if $IS_OPTIMIZED == 1 && $opt_widens == 1;
+    return 0 if $IS_OPTIMIZED == 1;
   }
 
   return 1;
