@@ -94,6 +94,7 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --benchmark-min            |      | Set benchmark min hash-mode (requires -b)            | --benchmark-min=100",
   "     --benchmark-max            |      | Set benchmark max hash-mode (requires -b)            | --benchmark-max=1000",
   "     --speed-only               |      | Return expected speed of the attack, then quit       |",
+  "     --length-sort-disable      |      | Disable pw-length candidate sort (on by default)     |",
   "     --progress-only            |      | Return ideal progress step size and time to process  |",
   "     --bitmap-min               | Num  | Sets minimum bits allowed for bitmaps to X           | --bitmap-min=24",
   "     --bitmap-max               | Num  | Sets maximum bits allowed for bitmaps to X           | --bitmap-max=24",

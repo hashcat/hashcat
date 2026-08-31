@@ -156,6 +156,7 @@ static const struct option long_options[] =
   {"skip",                      required_argument, NULL, IDX_SKIP},
   {"slow-candidates",           no_argument,       NULL, IDX_SLOW_CANDIDATES},
   {"speed-only",                no_argument,       NULL, IDX_SPEED_ONLY},
+  {"length-sort-disable",       no_argument,       NULL, IDX_LENGTH_SORT_DISABLE},
   {"spin-damp",                 required_argument, NULL, IDX_SPIN_DAMP},
   {"status",                    no_argument,       NULL, IDX_STATUS},
   {"status-json",               no_argument,       NULL, IDX_STATUS_JSON},
@@ -330,6 +331,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->skip                      = SKIP;
   user_options->slow_candidates           = SLOW_CANDIDATES;
   user_options->speed_only                = SPEED_ONLY;
+  user_options->length_sort_disable       = LENGTH_SORT_DISABLE;
   user_options->spin_damp                 = SPIN_DAMP;
   user_options->status                    = STATUS;
   user_options->status_json               = STATUS_JSON;
@@ -518,6 +520,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
                                           user_options->stdin_timeout_abort_chgd  = true;                            break;
       case IDX_IDENTIFY:                  user_options->identify                  = true;                            break;
       case IDX_SPEED_ONLY:                user_options->speed_only                = true;                            break;
+      case IDX_LENGTH_SORT_DISABLE:       user_options->length_sort_disable       = true;                            break;
       case IDX_PROGRESS_ONLY:             user_options->progress_only             = true;                            break;
       case IDX_RESTORE_DISABLE:           user_options->restore_enable            = false;                           break;
       case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
@@ -4780,6 +4783,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);
   logfile_top_uint   (user_options->speed_only);
+  logfile_top_uint   (user_options->length_sort_disable);
   logfile_top_uint   (user_options->spin_damp);
   logfile_top_uint   (user_options->status);
   logfile_top_uint   (user_options->status_json);

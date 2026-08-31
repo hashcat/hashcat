@@ -43,6 +43,28 @@ static const u32 full01 = 0x01010101;
 static const u32 full06 = 0x06060606;
 static const u32 full80 = 0x80808080;
 
+static int pw_idx_len_cmp (const void *a, const void *b)
+{
+  const pw_idx_t *pa = (const pw_idx_t *) a;
+  const pw_idx_t *pb = (const pw_idx_t *) b;
+
+  if (pa->len < pb->len) return -1;
+  if (pa->len > pb->len) return 1;
+  return 0;
+}
+
+static void sort_pws_idx_by_len (hc_device_param_t *device_param, const u64 pws_cnt)
+{
+  // Simple length sort: no kernel-specific constants or cost model.
+  if (pws_cnt < 2) return;
+
+  pw_idx_t *pws_idx = device_param->pws_idx;
+
+  if (pws_idx == NULL) return;
+
+  qsort (pws_idx, pws_cnt, sizeof (pw_idx_t), pw_idx_len_cmp);
+}
+
 static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
 
 HC_ALIGN(16)
@@ -4252,6 +4274,15 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
     hc_timer_set (&device_param->timer_speed);
   }
   #endif
+
+  // Cluster equal-length candidates per warp for modes that re-hash the password
+  // length-dependently every iteration (length divergence otherwise stalls warps).
+  // Which modes benefit is declared by the module via module_length_sort(), not
+  // hard-coded here, so third-party plugins can opt in too.
+  if ((user_options->length_sort_disable == false) && (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) && (hashconfig->length_sort == true))
+  {
+    sort_pws_idx_by_len (device_param, pws_cnt);
+  }
 
   // The cells go up with the base words they belong to. There is one per base word and the two arrays
   // are filled in step, so the same count covers both.

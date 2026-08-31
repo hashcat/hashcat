@@ -144,8 +144,12 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (rc_load == false) return -1;
 
-  module_ctx->module_usage_notice = MODULE_DEFAULT; // set all module to have usage_notice by empty default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
-  module_ctx->module_advice_notice = MODULE_DEFAULT; // set all module to have advice_notice empty by default; such that this property doesn't have to be declared explicitly by all modules (such that we don't break private plugins without this options)
+  // set all module to have these options by empty default;
+  //  such that this property doesn't have to be declared explicitly by all modules .
+  //  such that we don't break private plugins without this options.
+  module_ctx->module_usage_notice = MODULE_DEFAULT;
+  module_ctx->module_advice_notice = MODULE_DEFAULT;
+  module_ctx->module_length_sort = MODULE_DEFAULT;
   module_ctx->module_init (module_ctx);
 
   // The two optional fields are the only ones not covered by CHECK_DEFINED below, so a module that
@@ -155,6 +159,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
   if (module_ctx->module_usage_notice  == NULL) module_ctx->module_usage_notice  = MODULE_DEFAULT;
   if (module_ctx->module_advice_notice == NULL) module_ctx->module_advice_notice = MODULE_DEFAULT;
+  if (module_ctx->module_length_sort   == NULL) module_ctx->module_length_sort   = MODULE_DEFAULT;
 
   if (module_ctx->module_context_size != MODULE_CONTEXT_SIZE_CURRENT)
   {
@@ -475,6 +480,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
   if (module_ctx->module_hashes_count_min         != MODULE_DEFAULT) hashconfig->hashes_count_min        = module_ctx->module_hashes_count_min         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hashes_count_max         != MODULE_DEFAULT) hashconfig->hashes_count_max        = module_ctx->module_hashes_count_max         (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hlfmt_disable            != MODULE_DEFAULT) hashconfig->hlfmt_disable           = module_ctx->module_hlfmt_disable            (hashconfig, user_options, user_options_extra);
+  if (module_ctx->module_length_sort              != MODULE_DEFAULT) hashconfig->length_sort            = module_ctx->module_length_sort              (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_extra_param_size    != MODULE_DEFAULT) hashconfig->hook_extra_param_size   = module_ctx->module_hook_extra_param_size    (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_salt_size           != MODULE_DEFAULT) hashconfig->hook_salt_size          = module_ctx->module_hook_salt_size           (hashconfig, user_options, user_options_extra);
   if (module_ctx->module_hook_size                != MODULE_DEFAULT) hashconfig->hook_size               = module_ctx->module_hook_size                (hashconfig, user_options, user_options_extra);
