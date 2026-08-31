@@ -190,6 +190,14 @@ ALIAS_INTEL                                     3       23700   2       A       
 ALIAS_INTEL                                     3       24700   2       A       A
 ALIAS_INTEL                                     3       99999   4       A       A
 
+ALIAS_Apple_M                                   3       0       2       A       A
+ALIAS_Apple_M                                   3       11      2       A       A
+ALIAS_Apple_M                                   3       22      2       A       A
+ALIAS_Apple_M                                   3       900     2       A       A
+ALIAS_Apple_M                                   3       1000    2       A       A
+ALIAS_Apple_M                                   3       1100    2       A       A
+ALIAS_Apple_M                                   3       18700   2       A       A
+
 ##
 ## CryptoAPI
 ##
