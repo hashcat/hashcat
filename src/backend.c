@@ -11405,6 +11405,20 @@ static int get_opencl_kernel_wgs (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
     kernel_threads = cwgs_total;
   }
 
+  // Most likely just 3 dimensions, but let's support more since the API permits that
+  cl_uint max_dimensions = 0;
+
+  if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, sizeof (max_dimensions), &max_dimensions, NULL) == -1) return -1;
+
+  if (max_dimensions > 16) return -1; // Should never happen
+
+  size_t work_item_sizes[16] = { 0 };
+
+  if (hc_clGetDeviceInfo (hashcat_ctx, device_param->opencl_device, CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof (work_item_sizes[0]) * max_dimensions, work_item_sizes, NULL) == -1) return -1;
+
+  // Clamp because the first dimension is not guaranteed to be smaller than total work group size
+  kernel_threads = (u32) MIN (kernel_threads, work_item_sizes[0]);
+
   *result = kernel_threads;
 
   return 0;
