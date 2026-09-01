@@ -135,31 +135,30 @@ KERNEL_FQ KERNEL_FA void m29200_mxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
 
   u32x w0l = w[0];
 
+  // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+  // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+  // by byte. Put the words back in native order for it. Only w[0] changes from one
+  // candidate to the next, so everything above it is swapped once here and the loop is
+  // left with the single word it rewrites.
+
+  for (u32 i = 4, idx = 1; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (w[idx]);
+  }
+
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
 
-    w[0] = w0;
-
+    w[0] = hc_swap32_S (w0);
 
     // add password to the user name (and colon, included):
 
-    // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
-    // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
-    // by byte. Put the words back in native order for it.
-
-    u32 c[64] = { 0 };
-
-    for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-    {
-      c[idx] = hc_swap32_S (w[idx]);
-    }
-
     sha1_ctx_t c0 = ctx0;
 
-    sha1_update_utf16le_swap (&c0, c, pw_len);
+    sha1_update_utf16le_swap (&c0, w, pw_len);
 
     sha1_final (&c0);
 
@@ -427,31 +426,30 @@ KERNEL_FQ KERNEL_FA void m29200_sxx (KERN_ATTR_VECTOR_ESALT (radmin3_t))
 
   u32x w0l = w[0];
 
+  // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
+  // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
+  // by byte. Put the words back in native order for it. Only w[0] changes from one
+  // candidate to the next, so everything above it is swapped once here and the loop is
+  // left with the single word it rewrites.
+
+  for (u32 i = 4, idx = 1; i < pw_len; i += 4, idx += 1)
+  {
+    w[idx] = hc_swap32_S (w[idx]);
+  }
+
   for (u32 il_pos = 0; il_pos < IL_CNT; il_pos += VECT_SIZE)
   {
     const u32x w0r = words_buf_r[il_pos / VECT_SIZE];
 
     const u32x w0 = w0l | w0r;
 
-    w[0] = w0;
-
+    w[0] = hc_swap32_S (w0);
 
     // add password to the user name (and colon, included):
 
-    // The mask processor hands a OPTS_TYPE_PT_GENERATE_BE mode its candidates in big endian
-    // word order (markov_be.cl), which hc_enc_next() cannot read: it decodes the UTF-8 byte
-    // by byte. Put the words back in native order for it.
-
-    u32 c[64] = { 0 };
-
-    for (u32 i = 0, idx = 0; i < pw_len; i += 4, idx += 1)
-    {
-      c[idx] = hc_swap32_S (w[idx]);
-    }
-
     sha1_ctx_t c0 = ctx0;
 
-    sha1_update_utf16le_swap (&c0, c, pw_len);
+    sha1_update_utf16le_swap (&c0, w, pw_len);
 
     sha1_final (&c0);
 
