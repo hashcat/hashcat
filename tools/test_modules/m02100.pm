@@ -12,6 +12,20 @@ use Digest::MD4 qw (md4);
 use Crypt::PBKDF2;
 use Encode;
 
+# The optimized kernels widen each byte instead of decoding the UTF-8, and
+# module_01000.c:58 documents that as deliberate rather than as a bug, so the two
+# kernel families really do disagree on a multi byte password. The oracle follows
+# whichever one test.sh is about to run: decoding as latin1 reproduces the
+# widening byte for byte, decoding as utf-8 is the conversion the pure kernels do.
+# test.sh exports IS_OPTIMIZED from the same value it uses to decide on -O.
+
+my $PW_CHARSET = "latin1";
+
+if (exists $ENV{"IS_OPTIMIZED"} && defined $ENV{"IS_OPTIMIZED"} && $ENV{"IS_OPTIMIZED"} == 0)
+{
+  $PW_CHARSET = "utf-8";
+}
+
 sub module_constraints { [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]] }
 
 sub module_generate_hash
@@ -30,7 +44,7 @@ sub module_generate_hash
     salt_len   => length ($salt_bin),
   );
 
-  my $digest = unpack ("H*", $pbkdf2->PBKDF2 ($salt_bin, md4 (md4 (encode ("UTF-16LE", decode ("utf-8", $word))) . $salt_bin)));
+  my $digest = unpack ("H*", $pbkdf2->PBKDF2 ($salt_bin, md4 (md4 (encode ("UTF-16LE", decode ($PW_CHARSET, $word))) . $salt_bin)));
 
   my $hash = sprintf ("\$DCC2\$%i#%s#%s", $iterations, $salt, $digest);
 

@@ -1135,13 +1135,11 @@ sub non_ascii_supported
 
     return 0 if $pure_decodes == 0;
 
-    # -O changes the plaintext path even for a mode that has no optimized kernel of its own.
-    # m11600 is one: the same generated vector cracks under -P and comes back not found under
-    # -O, which is the default the suite runs with. So a mode that converts UTF-16 at all keeps
-    # its passwords ASCII whenever -O is in play, rather than only when an optimized kernel of
-    # its own would have widened them.
-
-    return 0 if $IS_OPTIMIZED == 1;
+    # -O leaves OPTS_TYPE_PT_UTF16LE set, so interface.c has the host widen the candidate
+    # before the kernel ever sees it, whatever the kernel itself would have done. That is why
+    # a mode with no optimized kernel of its own, m11600 for one, still behaves the optimized
+    # way under -O. The oracles follow the same split through $PW_CHARSET, so both families
+    # get non-ASCII passwords and each is checked against what it actually does.
   }
 
   return 1;

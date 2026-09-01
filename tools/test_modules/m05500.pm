@@ -13,6 +13,20 @@ use Encode qw (decode encode);
 use Digest::MD5 qw (md5);
 use Crypt::ECB;
 
+# The optimized kernels widen each byte instead of decoding the UTF-8, and
+# module_01000.c:58 documents that as deliberate rather than as a bug, so the two
+# kernel families really do disagree on a multi byte password. The oracle follows
+# whichever one test.sh is about to run: decoding as latin1 reproduces the
+# widening byte for byte, decoding as utf-8 is the conversion the pure kernels do.
+# test.sh exports IS_OPTIMIZED from the same value it uses to decide on -O.
+
+my $PW_CHARSET = "latin1";
+
+if (exists $ENV{"IS_OPTIMIZED"} && defined $ENV{"IS_OPTIMIZED"} && $ENV{"IS_OPTIMIZED"} == 0)
+{
+  $PW_CHARSET = "utf-8";
+}
+
 sub setup_des_key
 {
   my @key_56 = split (//, shift);
@@ -131,7 +145,7 @@ sub module_generate_hash
   # md4 of the UTF-16LE password, which is what the NT hash is. Authen::Passphrase::NTHash
   # cannot be used here: it gets the encoding wrong for a character outside the BMP, an
   # emoji for instance, and the kernel does not.
-  my $nthash = md4 (encode ("UTF-16LE", decode ("utf-8", $word))) . "\x00" x 5;
+  my $nthash = md4 (encode ("UTF-16LE", decode ($PW_CHARSET, $word))) . "\x00" x 5;
 
   $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash,  0, 7)), "DES", $challenge, "none");
   $ntresp .= Crypt::ECB::encrypt (setup_des_key (substr ($nthash,  7, 7)), "DES", $challenge, "none");
