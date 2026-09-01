@@ -15654,34 +15654,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       vector_width = 1;
     }
 
-    // Same reason as the pure kernel case above: UTF-8 to UTF-16 is a variable length
-    // conversion, so the password length after it is not known in advance and differs between
-    // the lanes. hc_enc_next() decodes one candidate at a time and there is no vector form of
-    // it, so the vectorized conversions in inc_hash_*.cl widen the bytes instead, which turns
-    // a euro sign into three characters and never matches. The scalar path is the only one
-    // that gets a non-ASCII password right.
-    //
-    // hashconfig->opts_type cannot answer this: interface.c clears OPTS_TYPE_PT_UTF16LE and
-    // OPTS_TYPE_PT_UTF16BE whenever the optimized kernel is not used, and the pure kernels
-    // are exactly the ones that do the conversion themselves. Ask the module instead.
-
-    // Only the pure kernels, which is the same condition as the block above. An optimized
-    // kernel widens the bytes whatever the vector width is, so it cannot crack a multi byte
-    // password either way and there is nothing to buy by giving up its SIMD.
-
-    if ((hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) == 0)
-    {
-      if (module_ctx->module_opts_type != MODULE_DEFAULT)
-      {
-        const u64 module_opts_type = module_ctx->module_opts_type (hashconfig, user_options, user_options_extra);
-
-        if (module_opts_type & (OPTS_TYPE_PT_UTF16LE | OPTS_TYPE_PT_UTF16BE))
-        {
-          vector_width = 1;
-        }
-      }
-    }
-
     if (vector_width > 16) vector_width = 16;
 
     device_param->vector_width = vector_width;
