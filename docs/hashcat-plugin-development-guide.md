@@ -529,6 +529,8 @@ It is unclear to hashcat if this buffer will be handled in a thread-safe fashion
 
 The module developer does not have to care about managing the multiple instances but has to provide the size of the buffer to be allocated. For this, they have to use the module_hook_extra_param_size() function. The buffer in *hook_extra_param is zeroed and ready to be written when module_hook_extra_param_init() is called. On startup, hashcat will call module_hook_extra_param_init() that many times as there are hook threads each time providing the module function with a new buffer. The same logic applies to module_hook_extra_param_term() on shutdown. Hashcat will also free the memory on shutdown.
 
+Both functions take a `hashcat_ctx_t *` as their first parameter, so a module can call `event_log_warning()` and the other logging functions from them. That is how a module reports something it learned while running but can only sum up at the end, and it is also how an init failure says what went wrong instead of only returning false. `module_hook_extra_param_term()` is called once per hook thread, so a module that wants a single line has to gather its per thread numbers and report on the last call.
+
 A good example for this is: `src/modules/module_11600.c` and `src/modules/module_23800.c`
 
 ### module_benchmark_mask() ###

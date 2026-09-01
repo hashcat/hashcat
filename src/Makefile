@@ -33,10 +33,7 @@ MACOS_UNIVERSAL_BINARY  ?= 0
 ENABLE_LTO              ?= 0
 ENABLE_CUBIN            ?= 1
 ENABLE_BRAIN            ?= 1
-ENABLE_UNRAR            ?= 1
 USE_SYSTEM_OPENCL       ?= 0
-## do not change, requires some hacks
-USE_SYSTEM_UNRAR        ?= 0
 MAINTAINER_MODE         ?= 0
 
 ##
@@ -339,14 +336,6 @@ else
 DEPS_OPENCL_PATH        := $(LIBRARY_DEV_ROOT_FOLDER)
 endif
 
-ifeq ($(ENABLE_UNRAR),1)
-ifeq ($(USE_SYSTEM_UNRAR),0)
-DEPS_UNRAR_PATH         := deps/unrar
-else
-DEPS_UNRAR_PATH         := $(LIBRARY_DEV_ROOT_FOLDER)
-endif
-endif
-
 DEPS_SSE2NEON           := deps/sse2neon
 
 ##
@@ -488,52 +477,6 @@ CFLAGS                  += -Wextra
 endif
 
 
-## because UNRAR
-ifeq ($(ENABLE_UNRAR),1)
-ifeq ($(USE_SYSTEM_UNRAR),0)
-ifeq ($(UNAME),Darwin)
-CFLAGS_UNRAR            += -std=c++14
-endif
-ifeq ($(CC_NATIVE_CLANG),0)
-ifeq ($(filter FreeBSD OpenBSD,$(UNAME)),)
-CFLAGS_UNRAR            += -Wno-class-memaccess
-endif
-CFLAGS_UNRAR            += -Wno-misleading-indentation
-ifneq ($(UNAME),OpenBSD)
-CFLAGS_UNRAR            += -Wno-format-overflow
-endif
-else
-ifeq ($(IS_APPLE_SILICON),0)
-ifneq ($(filter $(UNAME),FreeBSD OpenBSD NetBSD DragonFly),$(UNAME))
-## -Wno-nontrivial-memcall names a warning that older clang does not have, and an unknown -Wno- name
-## is itself a warning, once per file compiled. The two travel together so that naming a warning the
-## compiler may not know costs nothing.
-CFLAGS_UNRAR            += -Wno-unknown-warning-option
-CFLAGS_UNRAR            += -Wno-nontrivial-memcall
-endif
-endif
-endif
-CFLAGS_UNRAR            += -Wno-missing-braces
-CFLAGS_UNRAR            += -Wno-unused-variable
-CFLAGS_UNRAR            += -Wno-unused-parameter
-CFLAGS_UNRAR            += -Wno-unused-function
-CFLAGS_UNRAR            += -Wno-sign-compare
-CFLAGS_UNRAR            += -Wno-dangling-else
-CFLAGS_UNRAR            += -Wno-switch
-CFLAGS_UNRAR            += -Wno-parentheses
-CFLAGS_UNRAR            += -Wno-implicit-fallthrough
-CFLAGS_UNRAR            += -Wno-extra
-CFLAGS_UNRAR            += -Wno-unknown-pragmas
-CFLAGS_UNRAR            += -Wno-unused-but-set-variable
-CFLAGS_UNRAR            += -Wno-deprecated-declarations
-#Not supported on macOS 12.3
-#CFLAGS_UNRAR            += -Wno-format-overflow
-#Added hashcat 7.0.0
-#CFLAGS_UNRAR            += -Wno-class-memaccess
-CFLAGS_UNRAR            += -Wno-misleading-indentation
-endif
-endif
-
 ifeq ($(DEBUG),0)
 CFLAGS                  += -O2 -fomit-frame-pointer
 
@@ -563,9 +506,8 @@ else
 CFLAGS                  += -DDEBUG -O0 -ggdb
 endif
 CFLAGS                  += -fsanitize=address -fno-omit-frame-pointer
-# ASan must reach the link too, otherwise every target that links the C++ deps
-# (deps/unrar) fails with undefined __asan_* references. CFLAGS alone is not
-# enough for the shared-library layout.
+# ASan must reach the link too, otherwise every target fails with undefined
+# __asan_* references. CFLAGS alone is not enough for the shared-library layout.
 LFLAGS                  += -fsanitize=address
 endif
 endif
@@ -586,53 +528,6 @@ ifeq ($(ENABLE_CUBIN),1)
 CFLAGS                  += -DWITH_CUBIN
 endif
 
-# unrar
-ifeq ($(ENABLE_UNRAR),1)
-CFLAGS                  += -I$(DEPS_UNRAR_PATH)
-# UnRAR is C++ and everything that links it needs the runtime named, which is the C++ standard library
-# the system's own compiler uses: libc++ where clang is the system compiler and libstdc++ where gcc is.
-# FreeBSD, NetBSD and DragonFly fell through this without naming one, so on those systems the single
-# module that calls UnRAR, 23800, was linked short of what it needs. Nothing said so until a plugin was
-# actually loaded, because a lazily bound symbol nobody calls costs nothing.
-
-ifeq ($(UNAME),OpenBSD)
-LFLAGS                  += -lc++
-else
-ifeq ($(UNAME),FreeBSD)
-LFLAGS                  += -lc++
-else
-ifeq ($(UNAME),DragonFly)
-# DragonFly sits with the clang systems by name only. Its base compiler is gcc and its c++ is that
-# gcc, so the runtime it wants is libstdc++, and naming libc++ ended the link at "cannot find -lc++"
-# whichever compiler drove it, because the image carries no libc++ to find. When a clang from a
-# package drives the build instead, CC_NATIVE_CLANG says so and libc++ is the right name again. The
-# rule this block states is that the runtime follows the compiler, so here it asks the compiler.
-ifeq ($(CC_NATIVE_CLANG),1)
-LFLAGS                  += -lc++
-else
-LFLAGS                  += -lstdc++
-endif
-else
-ifeq ($(UNAME),NetBSD)
-LFLAGS                  += -lstdc++
-else
-ifeq ($(UNAME),Darwin)
-LFLAGS                  += -lstdc++
-else
-ifeq ($(UNAME),MSYS2)
-LFLAGS                  += -lstdc++
-else
-ifeq ($(UNAME),Linux)
-LFLAGS                  += -lstdc++
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-
 # Under SHARED=0 the core is copied into each artifact and nothing crosses a library boundary, so the
 # export macros in include/export.h are empty there. This is on the shared flags rather than on the
 # core's, because a plugin reads the same headers and has to read them the same way.
@@ -643,9 +538,6 @@ endif
 
 # CCFLAGS only for C compiler
 CCFLAGS                 := -std=gnu99
-
-# CXXFLAGS only for C++ compiler
-CXXFLAGS                :=
 
 ##
 ## Flags of the NATIVE platform
@@ -769,23 +661,6 @@ LFLAGS_NATIVE           += -lpowrprof
 # plugin is loaded by path, but the libraries that plugin imports are still looked up, and the only
 # places left to look are the directory hashcat.exe lives in and the system directory. Anything the
 # toolchain would otherwise resolve out of MSYS2's own bin directory is therefore linked statically.
-#
-# Under SHARED=0 the unrar objects are pulled out of the core archive into module_23800.dll, which
-# is what made that one module the only file in the package importing a MinGW runtime library.
-#
-# Each archive is named directly rather than asking for -static-libstdc++. That flag only governs
-# the libstdc++ a driver adds by itself, so it cannot override the explicit -lstdc++ the unrar block
-# puts on the line, and that explicit one has to come back off first. Naming the archive while it is
-# still there links both, and then every symbol in libsupc++ is defined twice.
-#
-# libstdc++ alone is not enough. The unwinder that carries a C++ exception out of unrar lives in
-# libgcc, and MSYS2 builds libstdc++ against posix threads, so the static archive still reaches for
-# libwinpthread.
-
-LFLAGS_NATIVE           := $(filter-out -lstdc++,$(LFLAGS_NATIVE))
-LFLAGS_NATIVE           += -l:libstdc++.a
-LFLAGS_NATIVE           += -l:libwinpthread.a
-LFLAGS_NATIVE           += -static-libgcc
 endif # MSYS2
 
 # A core object is linked into shared objects, so it is compiled position independent. The two cross
@@ -801,9 +676,8 @@ CFLAGS_PIC_NATIVE       := -fpic
 ## each, with HC_API or HC_PLUGIN_API out of include/export.h, and nowhere else.
 ## -fvisibility=hidden is what makes that true rather than decorative: a name is private unless its
 ## declaration says otherwise, so a plugin that reaches for anything else does not link and the error
-## names the symbol. The vendored dependencies are compiled the same way, which is why unrar is
-## inside the core and is not part of what it offers.
-##
+## names the symbol. The vendored dependencies are compiled the same way, so they sit inside the core
+## and are not part of what it offers.
 ## Two names get out that nobody declared, _ZTI8RAR_EXIT and _ZTS8RAR_EXIT, so the library's table
 ## holds 1,035. They are the C++ type description of the value UnRAR throws and catches inside
 ## itself, and the compiler gives the type description of a thrown type default visibility whatever
@@ -887,20 +761,6 @@ LFLAGS_LINUX            += -ldl
 LFLAGS_LINUX            += -lm
 LFLAGS_LINUX            += -static-libgcc
 
-# The C++ runtime goes INTO the library, for the same reason it goes into the Windows binaries and by
-# the same means. The archive is named directly because -static-libstdc++ only governs the libstdc++
-# the driver adds by itself, and the unrar block above puts an explicit -lstdc++ on the line. Without
-# this the released tree needs a libstdc++.so.6 on the target machine, which it never did before: the
-# C++ in unrar used to sit in module_23800 alone, and now it sits in the core everything links to.
-
-ifeq ($(CC_LINUX_CLANG),1)
-LFLAGS_LINUX            += -stdlib=libc++
-else
-LFLAGS_LINUX            := $(filter-out -lstdc++,$(LFLAGS_LINUX))
-LFLAGS_LINUX            += -l:libstdc++.a
-LFLAGS_LINUX            += -static-libstdc++
-endif
-
 ifeq ($(ENABLE_LTO),1)
 ifeq ($(CC_LINUX_CLANG),1)
 LFLAGS_LINUX            += -fuse-ld=lld
@@ -910,24 +770,6 @@ endif
 endif
 
 LFLAGS_WIN              := $(filter-out $(LFLAGS_HOST_ONLY),$(LFLAGS))
-
-# The C++ runtime goes INTO the binary that needs it, because no runtime DLL is shipped beside them.
-# Only module_23800 references any C++ at all, through unrar, so it was the one binary in the package
-# importing libstdc++-6.dll, and LoadLibrary failed on every Windows machine that did not happen to
-# have one on the search path. A module that references no C++ links nothing extra and does not grow.
-#
-# The static archive is named directly rather than asking for -static-libstdc++. That flag only governs
-# the libstdc++ a driver adds by itself, so it cannot override an explicit -lstdc++, and clang reports
-# it as an unused argument and links the import library anyway.
-#
-# The explicit one arrives here in LFLAGS, from the unrar block, so it has to be taken back out. Naming
-# the archive while it is still on the line links both, and then every symbol in libsupc++ is defined
-# twice and lld stops.
-
-ifneq ($(UNAME),Darwin)
-LFLAGS_WIN              := $(filter-out -lstdc++,$(LFLAGS_WIN))
-LFLAGS_WIN              += -l:libstdc++.a
-endif
 
 LFLAGS_WIN              += -lpsapi
 LFLAGS_WIN              += -lws2_32
@@ -1177,17 +1019,6 @@ $(foreach P,$(PLATFORMS),$(eval CFLAGS_PLUGIN_$(P) += -fvisibility=hidden))
 ## platform that needs more says so.
 ##
 
-CFLAGS_UNRAR_NATIVE     := $(CFLAGS_UNRAR)
-
-CFLAGS_UNRAR_LINUX      := $(CFLAGS_UNRAR)
-
-CFLAGS_UNRAR_WIN        := $(CFLAGS_UNRAR)
-
-ifeq ($(UNAME),Darwin)
-CFLAGS_UNRAR_WIN        += -Wno-misleading-indentation
-CFLAGS_UNRAR_WIN        += -Wno-class-memaccess
-endif
-
 ##
 ## The instruction set a plugin may use
 ##
@@ -1309,16 +1140,6 @@ OBJS_METAL              := ext_metal ext_iokit
 CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_METAL),obj/$(OBJ).METAL.NATIVE.o)
 endif
 
-ifeq ($(ENABLE_UNRAR),1)
-ifeq ($(USE_SYSTEM_UNRAR),0)
-OBJS_UNRAR              := strlist strfn pathfn smallfn global file filefn filcreat archive arcread unicode system isnt crypt crc rawread encname resource match timefn rdwrfn consio options errhnd rarvm secpassword rijndael getbits sha1 sha256 blake2s hash extinfo extract volume list find unpack headers threadpool rs16 cmddata ui filestr recvol rs scantree qopen hc_decompress_rar
-
-CORE_OBJS_NATIVE        += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).UNRAR.NATIVE.o)
-CORE_OBJS_LINUX         += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).UNRAR.LINUX.o)
-CORE_OBJS_WIN           += $(foreach OBJ,$(OBJS_UNRAR),obj/$(OBJ).UNRAR.WIN.o)
-endif
-endif
-
 ##
 ## Plugin sources
 ##
@@ -1337,12 +1158,6 @@ BRIDGES_ALL             := $(patsubst src/bridges/%.c,%,$(BRIDGES_SRC))
 MODULES_DISABLE         ?=
 BRIDGES_DISABLE         ?=
 FEEDS_DISABLE           ?=
-
-ifeq ($(ENABLE_UNRAR),0)
-MODULES_SRC             := $(filter-out src/modules/module_23800.c,$(MODULES_SRC))
-MODULES_DISABLE         += modules/module_23800.so
-MODULES_DISABLE         += modules/module_23800.dll
-endif
 
 $(MODULES_DISABLE): ;
 $(BRIDGES_DISABLE): ;
@@ -1501,13 +1316,6 @@ define CORE_RULES
 obj/%.$(1).o: src/%.c obj/arrangement
 	$$(CC_$(1)) $$(CCFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
 
-ifeq ($(ENABLE_UNRAR),1)
-ifeq ($(USE_SYSTEM_UNRAR),0)
-obj/%.UNRAR.$(1).o: $$(DEPS_UNRAR_PATH)/%.cpp obj/arrangement
-	$$(CXX_$(1)) $$(CXXFLAGS) $$(CFLAGS_$(1)) $$(CFLAGS_CORE) $$(CFLAGS_UNRAR_$(1)) $$(DEPFLAGS) -c -o $$@ $$< $$(CFLAGS_PIC_$(1))
-endif
-endif
-
 obj/combined.$(1).a: $$(CORE_OBJS_$(1))
 	$$(ARCHIVE_CLEAN_$(1))
 	$$(AR_$(1)) rcs $$@ $$(CORE_OBJS_$(1))
@@ -1545,11 +1353,6 @@ LIBRARY_LFLAGS_LINUX    := -shared
 LIBRARY_LFLAGS_WIN      := -shared
 
 ifeq ($(FORMAT_NATIVE),MACHO)
-## the library is linked with the C++ driver because UnRAR is C++, and that driver names the C++
-## runtime itself. Naming it a second time is a duplicate the linker reports on every build. It is
-## taken out of the flags the library link uses and left in the ones the frontend and the plugins
-## use, because those are linked with the C driver and do need it named.
-LFLAGS_NATIVE_LIBRARY_FILTER := -lstdc++
 LIBRARY_LFLAGS_NATIVE   += -install_name @rpath/$(HASHCAT_LIBRARY_NATIVE)
 LIBRARY_LFLAGS_NATIVE   += -current_version $(VERSION_PURE)
 LIBRARY_LFLAGS_NATIVE   += -compatibility_version $(VERSION_MAJOR)
@@ -1616,7 +1419,7 @@ LIBRARY_LFLAGS_WIN      += $(TARGET_WIN)
 define LIBRARY_RULES
 
 $$(HASHCAT_LIBRARY_$(1)): $$(CORE_OBJS_$(1)) obj/arrangement
-	$$(CXX_$(1)) $$(CORE_OBJS_$(1)) -o $$@ $$(filter-out $$(LFLAGS_$(1)_LIBRARY_FILTER),$$(LFLAGS_$(1))) $$(LIBRARY_LFLAGS_$(1))
+	$$(CC_$(1)) $$(CORE_OBJS_$(1)) -o $$@ $$(LFLAGS_$(1)) $$(LIBRARY_LFLAGS_$(1))
 
 endef
 

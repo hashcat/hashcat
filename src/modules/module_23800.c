@@ -3,6 +3,7 @@
  * License.....: MIT
  */
 
+#include <inttypes.h>
 #include "common.h"
 #include "types.h"
 #include "modules.h"
@@ -11,7 +12,12 @@
 #include "shared.h"
 #include "parser.h"
 #include "memory.h"
-#include "ext_unrar.h"
+#include "event.h"
+#include "emu_inc_cipher_aes.h"
+
+// hashcat's own RAR3 decoder, included the way scrypt_common.c is: one translation unit, nothing exported.
+
+#include "rar3_decode.c"
 
 static const u32   ATTACK_EXEC    = ATTACK_EXEC_OUTSIDE_KERNEL;
 static const u32   DGST_POS0      = 0;
@@ -76,7 +82,9 @@ typedef struct rar3_hook
 
   u32 first_block_decrypted[4];
 
-  u32 unpack_failed;
+  // One of the HC_RAR3_UNPACK_* values. The kernel compares crc32 only when it is HC_RAR3_UNPACK_OK.
+
+  u32 unpack_status;
 
   u32 crc32;
 
@@ -95,12 +103,25 @@ typedef struct rar3_hook_salt
 
 typedef struct rar3_hook_extra
 {
+  // The decoder's buffers, one set per backend device. Nothing is allocated per candidate.
+
   void **win;
-  void **inp;
-  void **vm;
+  void **stream;
+  void **filter;
+  void **scratch;
   void **ppm;
+  void **blocks;
+
+  // Candidates this hook thread could not test, one counter per thread.
+
+  u64 unsupported_cnt;
 
 } rar3_hook_extra_t;
+
+// This runs once per hook thread from a single thread, so the counts are reported on the last call.
+
+static u64 rar3_unsupported_total = 0;
+static int rar3_term_calls        = 0;
 
 static const int   ROUNDS_RAR3    = 262144;
 static const char *SIGNATURE_RAR3 = "$RAR3$";
@@ -220,29 +241,33 @@ bool module_unstable_warning (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE
   return false;
 }
 
-bool module_hook_extra_param_init (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
+bool module_hook_extra_param_init (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
 {
   rar3_hook_extra_t *rar3_hook_extra = (rar3_hook_extra_t *) hook_extra_param;
-
-  #define WINSIZE 0x100000
-  #define INPSIZE 0x50000
-  #define PPMSIZE 216 * 1024 * 1024
 
   rar3_hook_extra->win = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
 
   if (rar3_hook_extra->win == NULL) return false;
 
-  rar3_hook_extra->inp = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
+  rar3_hook_extra->stream = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
 
-  if (rar3_hook_extra->inp == NULL) return false;
+  if (rar3_hook_extra->stream == NULL) return false;
 
-  rar3_hook_extra->vm  = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
+  rar3_hook_extra->filter = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
 
-  if (rar3_hook_extra->vm  == NULL) return false;
+  if (rar3_hook_extra->filter == NULL) return false;
+
+  rar3_hook_extra->scratch = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
+
+  if (rar3_hook_extra->scratch == NULL) return false;
 
   rar3_hook_extra->ppm = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
 
   if (rar3_hook_extra->ppm == NULL) return false;
+
+  rar3_hook_extra->blocks = hccalloc (backend_ctx->backend_devices_cnt, sizeof (void *));
+
+  if (rar3_hook_extra->blocks == NULL) return false;
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
@@ -250,27 +275,35 @@ bool module_hook_extra_param_init (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
     if (device_param->skipped == true) continue;
 
-    rar3_hook_extra->win[backend_devices_idx] = hcmalloc (WINSIZE);
+    rar3_hook_extra->win[backend_devices_idx] = hcmalloc (RAR3_WIN_SIZE);
 
     if (rar3_hook_extra->win[backend_devices_idx] == NULL) return false;
 
-    rar3_hook_extra->inp[backend_devices_idx] = hcmalloc (INPSIZE);
+    rar3_hook_extra->stream[backend_devices_idx] = hcmalloc (RAR3_PACK_MAX);
 
-    if (rar3_hook_extra->inp[backend_devices_idx] == NULL) return false;
+    if (rar3_hook_extra->stream[backend_devices_idx] == NULL) return false;
 
-    rar3_hook_extra->vm [backend_devices_idx] = hcmalloc (INPSIZE);
+    rar3_hook_extra->filter[backend_devices_idx] = hcmalloc (RAR3_FILTER_SIZE);
 
-    if (rar3_hook_extra->vm [backend_devices_idx] == NULL) return false;
+    if (rar3_hook_extra->filter[backend_devices_idx] == NULL) return false;
 
-    rar3_hook_extra->ppm[backend_devices_idx] = hcmalloc (PPMSIZE);
+    rar3_hook_extra->scratch[backend_devices_idx] = hcmalloc (2 * RAR3_FILTER_SIZE);
+
+    if (rar3_hook_extra->scratch[backend_devices_idx] == NULL) return false;
+
+    rar3_hook_extra->ppm[backend_devices_idx] = hcmalloc (RAR3_PPM_ARENA);
 
     if (rar3_hook_extra->ppm[backend_devices_idx] == NULL) return false;
+
+    rar3_hook_extra->blocks[backend_devices_idx] = hcmalloc (RAR3_BLOCKS_BYTES);
+
+    if (rar3_hook_extra->blocks[backend_devices_idx] == NULL) return false;
   }
 
   return true;
 }
 
-bool module_hook_extra_param_term (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
+bool module_hook_extra_param_term (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const folder_config_t *folder_config, MAYBE_UNUSED const backend_ctx_t *backend_ctx, void *hook_extra_param)
 {
   rar3_hook_extra_t *rar3_hook_extra = (rar3_hook_extra_t *) hook_extra_param;
 
@@ -280,16 +313,40 @@ bool module_hook_extra_param_term (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 
     if (device_param->skipped == true) continue;
 
+    hcfree (rar3_hook_extra->blocks[backend_devices_idx]);
     hcfree (rar3_hook_extra->ppm[backend_devices_idx]);
     hcfree (rar3_hook_extra->win[backend_devices_idx]);
-    hcfree (rar3_hook_extra->inp[backend_devices_idx]);
-    hcfree (rar3_hook_extra->vm [backend_devices_idx]);
+    hcfree (rar3_hook_extra->stream[backend_devices_idx]);
+    hcfree (rar3_hook_extra->filter[backend_devices_idx]);
+    hcfree (rar3_hook_extra->scratch[backend_devices_idx]);
   }
 
+  hcfree (rar3_hook_extra->blocks);
   hcfree (rar3_hook_extra->ppm);
   hcfree (rar3_hook_extra->win);
-  hcfree (rar3_hook_extra->inp);
-  hcfree (rar3_hook_extra->vm);
+  hcfree (rar3_hook_extra->stream);
+  hcfree (rar3_hook_extra->filter);
+  hcfree (rar3_hook_extra->scratch);
+
+  rar3_unsupported_total += rar3_hook_extra->unsupported_cnt;
+
+  rar3_term_calls++;
+
+  if (rar3_term_calls < (int) user_options->hook_threads) return true;
+
+  // These never produced a CRC32 to compare, and saying nothing would look like Exhausted.
+
+  if (rar3_unsupported_total)
+  {
+    event_log_warning (hashcat_ctx, "hashcat could not decode part of a RAR3 stream in this run.");
+    event_log_warning (hashcat_ctx, "Candidates that reached it and could not be tested: %" PRIu64, rar3_unsupported_total);
+    event_log_warning (hashcat_ctx, "A correct password among them would not have been reported, so this result is");
+    event_log_warning (hashcat_ctx, "incomplete rather than negative.");
+    event_log_warning (hashcat_ctx, NULL);
+  }
+
+  rar3_unsupported_total = 0;
+  rar3_term_calls        = 0;
 
   return true;
 }
@@ -302,20 +359,23 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
   const rar3_hook_salt_t *rar3s = (const rar3_hook_salt_t *) hook_salts_buf;
   const rar3_hook_salt_t *rar3  = &rar3s[salt_pos];
 
-  const rar3_hook_extra_t *rar3_hook_extra = (const rar3_hook_extra_t *) hook_extra_param;
+  // The interface hands this over as const, but it belongs to this module and this hook thread.
+
+  rar3_hook_extra_t *rar3_hook_extra = (rar3_hook_extra_t *) hook_extra_param;
 
   const unsigned int pack_size   = (const unsigned int) rar3->pack_size;
   const unsigned int unpack_size = (const unsigned int) rar3->unpack_size;
 
   const u8 *first_block_decrypted = (const u8 *) hook_item->first_block_decrypted;
 
-  /* Early rejection */
+  // Nothing clears the hook buffer between candidates, so every path out of here writes a status.
+
   if (first_block_decrypted[0] & 0x80)
   {
-    // PPM checks here.
-    if (((first_block_decrypted[0] & 0x20) == 0)      // Reset bit must be set
-     ||  (first_block_decrypted[1] & 0x80))           // MaxMB must be < 128
+    if (rar3_ppm_header_ok (first_block_decrypted) == 0)
     {
+      hook_item->unpack_status = HC_RAR3_UNPACK_REJECTED_PPM;
+
       return;
     }
   }
@@ -325,6 +385,8 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
     if ((first_block_decrypted[0] & 0x40)             // KeepOldTable can't be set
      || (check_huffman (first_block_decrypted)) == 0) // Huffman table check
     {
+      hook_item->unpack_status = HC_RAR3_UNPACK_REJECTED_LZ;
+
       return;
     }
   }
@@ -334,11 +396,77 @@ void module_hook23 (hc_device_param_t *device_param, const void *hook_extra_para
   const u8 *key = (u8 *) hook_item->key;
   const u8 *iv  = (u8 *) hook_item->iv;
 
-  hook_item->unpack_failed = 1;
+  // Set before the call, so an unpack that does not return normally still leaves an unusable status.
 
-  const u32 crc32 = hc_decompress_rar (rar3_hook_extra->win[device_param->device_id], rar3_hook_extra->inp[device_param->device_id], rar3_hook_extra->vm[device_param->device_id], rar3_hook_extra->ppm[device_param->device_id], unpack_size, data, pack_size, unpack_size, key, iv, &hook_item->unpack_failed);
+  hook_item->unpack_status = HC_RAR3_UNPACK_SHORT_OUTPUT;
+
+  // The decoder is handed plain bytes, so the cipher is here rather than inside it.
+
+  u32 *stream = (u32 *) rar3_hook_extra->stream[device_param->device_id];
+
+  // RAR3 encrypts with AES-128 in CBC. These words are already in the order aes128_ wants.
+
+  AES_KEY aes_key;
+
+  memset (&aes_key, 0, sizeof (aes_key));
+
+  aes128_set_decrypt_key (aes_key.rdk, (const u32 *) key, (u32 *) te0, (u32 *) te1, (u32 *) te2, (u32 *) te3, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3);
+
+  u32 chain[4];
+
+  chain[0] = ((const u32 *) iv)[0];
+  chain[1] = ((const u32 *) iv)[1];
+  chain[2] = ((const u32 *) iv)[2];
+  chain[3] = ((const u32 *) iv)[3];
+
+  const u32 *in = (const u32 *) data;
+
+  // The first pass is given RAR3_FIRST_CHUNK bytes, and only a decode that wanted more gets the rest.
+
+  u32 done = 0;
+
+  u32 crc32 = 0;
+
+  int ran_off_the_end = 0;
+
+  for (u32 pass = 0; pass < 2; pass++)
+  {
+    const u32 want = (pass == 0) ? MIN (pack_size, RAR3_FIRST_CHUNK) : pack_size;
+
+    for (u32 j = done / 4; done < want; done += 16, j += 4)
+    {
+      u32 block[4];
+
+      block[0] = in[j + 0];
+      block[1] = in[j + 1];
+      block[2] = in[j + 2];
+      block[3] = in[j + 3];
+
+      u32 out[4];
+
+      aes128_decrypt (aes_key.rdk, block, out, (u32 *) td0, (u32 *) td1, (u32 *) td2, (u32 *) td3, (u32 *) td4);
+
+      stream[j + 0] = out[0] ^ chain[0];
+      stream[j + 1] = out[1] ^ chain[1];
+      stream[j + 2] = out[2] ^ chain[2];
+      stream[j + 3] = out[3] ^ chain[3];
+
+      chain[0] = block[0];
+      chain[1] = block[1];
+      chain[2] = block[2];
+      chain[3] = block[3];
+    }
+
+    crc32 = rar3_decode (rar3_hook_extra->win[device_param->device_id], rar3_hook_extra->filter[device_param->device_id], rar3_hook_extra->scratch[device_param->device_id], rar3_hook_extra->ppm[device_param->device_id], rar3_hook_extra->blocks[device_param->device_id], (const u8 *) stream, done, unpack_size, &hook_item->unpack_status, &ran_off_the_end);
+
+    if (ran_off_the_end == 0) break;
+
+    if (done >= pack_size) break;
+  }
 
   hook_item->crc32 = crc32;
+
+  if (hook_item->unpack_status == HC_RAR3_UNPACK_UNSUPPORTED) rar3_hook_extra->unsupported_cnt++;
 }
 
 u64 module_hook_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -381,6 +509,38 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
   u64 esalt_size = (u64) sizeof (rar3_t);
 
   return esalt_size;
+}
+
+// The loop count is pinned: the loop kernel takes 1 byte of the 16 byte RAR3 IV per call, so there are
+// exactly 16 calls. The thread count is set from the device rather than tuned, because one launch is
+// 16384 SHA-1 iterations however many threads run it, so autotune settles far below the knee.
+//
+//   device             threads   -w 1 before   -w 1 after   -w 2 before   -w 2 after
+//   -----------------  -------   -----------   ----------   -----------   ----------
+//   RX 9070 XT           512      1173 H/s     77099 H/s     8926 H/s     60923 H/s
+//   integrated Radeon    512        72 H/s      2022 H/s      287 H/s      2021 H/s
+//   Ryzen 9 9900X          1      1200 H/s      1181 H/s     1308 H/s      1305 H/s
+//
+// The CPU row is why the count is not 512 everywhere: there it buys 10 percent and takes the launch
+// from 2 milliseconds to 570. A work item is 16384 dependent rounds against a block in the private
+// segment, so threads buy a GPU the concurrency that hides that latency, and a CPU has none to hide.
+
+#define RAR3_THREADS_GPU 512
+#define RAR3_THREADS_CPU 1
+
+char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
+{
+  // FORCED_THREAD_COUNT sets the minimum and maximum together, so leaving it out is what lets -T through.
+
+  if (user_options->kernel_threads_chgd == true) return NULL;
+
+  const u32 threads = (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU) ? RAR3_THREADS_CPU : RAR3_THREADS_GPU;
+
+  char *jit_build_options = NULL;
+
+  hc_asprintf (&jit_build_options, "-D FORCED_THREAD_COUNT=%u", threads);
+
+  return jit_build_options;
 }
 
 u32 module_kernel_loops_min (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
@@ -651,7 +811,7 @@ void module_init (module_ctx_t *module_ctx)
   module_ctx->module_hook23                   = module_hook23;
   module_ctx->module_hook_salt_size           = module_hook_salt_size;
   module_ctx->module_hook_size                = module_hook_size;
-  module_ctx->module_jit_build_options        = MODULE_DEFAULT;
+  module_ctx->module_jit_build_options        = module_jit_build_options;
   module_ctx->module_jit_cache_disable        = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_max         = MODULE_DEFAULT;
   module_ctx->module_kernel_accel_min         = MODULE_DEFAULT;
