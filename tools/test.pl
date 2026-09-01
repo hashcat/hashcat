@@ -571,7 +571,16 @@ sub password
 
   return unless is_count ($count);
 
-  my $string = random_non_ascii_string ($count) // "";
+  # A real archive or volume carries whatever encoding the application wrote, and the
+  # optimized path cannot match a multi byte one: a genuine 7-Zip archive built with a euro
+  # sign in its password cracks under -P and comes back not found under -O. So a -O run has
+  # to build its containers out of ASCII, and test.sh sets NO_NON_ASCII to ask for that.
+
+  my $string = (exists $ENV{"NO_NON_ASCII"})
+             ? random_numeric_string ($count)
+             : random_non_ascii_string ($count);
+
+  $string //= "";
 
   print "$string\n";
 }

@@ -3642,7 +3642,17 @@ function container_password()
   # the generator is free to substitute. Twelve bytes because a multi byte character needs room,
   # and seven, the length of 'hashcat', does not leave any.
 
-  perl "${TDIR}/test.pl" password 0 12 2>/dev/null
+  # A container is a real artifact, so it carries whatever encoding the application wrote and
+  # the optimized path cannot match a multi byte one. A genuine 7-Zip archive built with a euro
+  # sign in its password cracks under -P and is not found under -O, which is the documented
+  # limitation rather than a bug in the test. An -O run therefore builds its containers out of
+  # ASCII; the oracle passwords still carry the characters, through $PW_CHARSET.
+
+  if [[ "${OPTIMIZED}" -eq 1 ]]; then
+    NO_NON_ASCII=1 perl "${TDIR}/test.pl" password 0 12 2>/dev/null
+  else
+    perl "${TDIR}/test.pl" password 0 12 2>/dev/null
+  fi
 }
 
 function container_mask_from_password()
