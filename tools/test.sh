@@ -160,6 +160,40 @@ CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 1454
 # instead of in place of it, so the dispatch has to know which modes still have
 # an oracle left to run.
 PM_MODES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/' | tr '\n' ' ')
+
+# -y swaps the oracle engine for tools/test.py, and with it the set of modes that have an oracle
+# at all: a mode is written in one language or the other, never both. Recomputed after the option
+# loop, which is where the flag is known.
+
+PYTHON_ENGINE=0
+
+# Modes whose oracle reported that this run's kernel family does not exist for them. They are
+# recorded as a Skip and then left out, so the run does not go on to report 0/0 on them, which
+# reads as a failure rather than as a mode that was never applicable.
+
+NOT_APPLICABLE_MODES=""
+
+function oracle_modes()
+{
+  if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.py/\1/' | tr '\n' ' '
+  else
+    ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/' | tr '\n' ' '
+  fi
+}
+
+function run_oracle()
+{
+  # Generate with whichever engine this run uses. test.py exits 2 to say the mode has no kernel
+  # for the family the run asked for, which is not a failure and not a pass; the caller turns it
+  # into a Skip.
+
+  if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+    python3 "${TDIR}/test.py" "$@"
+  else
+    perl "${TDIR}/test.pl" "$@"
+  fi
+}
 HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${SELFTEST_MODES}"
 HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
@@ -648,12 +682,12 @@ function init()
 
       if [ "${fixed_len}" -ne 0 ]; then
         if [ "${fixed_len}" -eq "${i}" ]; then
-          perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+          run_oracle single "${hash_type}" ${i} > "${cmd_file}"
         else
-          perl tools/test.pl single "${hash_type}" ${fixed_len} > "${cmd_file}"
+          run_oracle single "${hash_type}" ${fixed_len} > "${cmd_file}"
         fi
       else
-        perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+        run_oracle single "${hash_type}" ${i} > "${cmd_file}"
       fi
 
       sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
@@ -6215,6 +6249,10 @@ OPTIONS:
         '3'         => FPGA, DSP, Co-Processor
         (int)[,int] => multiple comma separated device types from the list above
 
+  -y    Use the python oracle engine, tools/test.py, instead of tools/test.pl. This also
+        restricts the run to the modes that have a tools/test_modules/mNNNNN.py, since a mode
+        has an oracle in one language or the other.
+
   -O    Use optimized kernels (default : -O)
 
   -P    Use pure kernels instead of optimized kernels (default : -O)
@@ -6282,7 +6320,7 @@ SELFTEST_ALL=0
 RUNTIME_SET=0
 HT_SET=0
 
-while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gS" opt; do
+while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gSy" opt; do
 
   case ${opt} in
     "V")
@@ -6430,6 +6468,10 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gS" opt; do
       RUNTIME_SET=1
       ;;
 
+    "y")
+      PYTHON_ENGINE=1
+      ;;
+
     "S")
       SELFTEST_ALL=1
       ;;
@@ -6448,6 +6490,20 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gS" opt; do
   esac
 
 done
+
+
+# -y swaps the module list with the engine, so the run covers exactly the modes that have a
+# python oracle and nothing else. PM_MODES and HASH_TYPES are assigned near the top of this file,
+# long before the option loop, so they are recomputed here.
+#
+# HASH_TYPES is only PM_MODES, not the union the perl side builds. The container families are
+# tested by test.sh itself against a real artifact and use no oracle at all, so running them under
+# -y would spend hours on TrueCrypt and VeraCrypt volumes to exercise an engine they never call.
+
+if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+  PM_MODES=$(oracle_modes)
+  HASH_TYPES=$(echo -n "${PM_MODES}" | tr ' ' '\n' | grep -v '^$' | sort -u -n | tr '\n' ' ')
+fi
 
 # test.sh is not a thing to run under sudo. Where a generator needs root it asks
 # for it per command, and only for that command. Running the whole script as root
@@ -6730,7 +6786,13 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
         if is_in_array "${TMP_HT}" ${PM_MODES}; then
           if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
             if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              run_oracle single "${TMP_HT}" >> "${OUTD}/all.sh"
+
+              if [ $? -eq 2 ]; then
+                record_skip "${TMP_HT}" "no ${KERNEL_TYPE} kernel for this mode"
+
+                NOT_APPLICABLE_MODES="${NOT_APPLICABLE_MODES} ${TMP_HT}"
+              fi
             fi
           fi
         fi
@@ -6755,7 +6817,13 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
         if is_in_array "${TMP_HT}" ${PM_MODES}; then
           if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
             if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              run_oracle single "${TMP_HT}" >> "${OUTD}/all.sh"
+
+              if [ $? -eq 2 ]; then
+                record_skip "${TMP_HT}" "no ${KERNEL_TYPE} kernel for this mode"
+
+                NOT_APPLICABLE_MODES="${NOT_APPLICABLE_MODES} ${TMP_HT}"
+              fi
             fi
           fi
         fi
@@ -6858,6 +6926,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       # should we check only the pass?
       pass_only=0
       is_in_array "${hash_type}"  ${PASS_ONLY} && pass_only=1
+
+      if is_in_array "${hash_type}" ${NOT_APPLICABLE_MODES}; then
+        continue
+      fi
 
       IS_SLOW=0
       is_in_array "${hash_type}" ${SLOW_ALGOS} && IS_SLOW=1
