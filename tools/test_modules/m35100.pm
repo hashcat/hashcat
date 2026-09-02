@@ -10,7 +10,12 @@ use warnings;
 
 use MIME::Base64 qw (encode_base64 decode_base64);
 
-sub module_constraints { [[0, 256], [0, 20], [0, 15], [0, 20], [-1, -1]] }
+# There is no pure kernel: OpenCL/ carries only m35100-optimized.cl, so hashcat
+# falls back to it even under -P and module_pw_max() then caps the password at 15.
+# Declaring a pure range here made test.pl generate up to 256 bytes against a
+# kernel that cannot take them, and every long candidate was skipped as too long.
+
+sub module_constraints { [[-1, -1], [-1, -1], [0, 15], [0, 20], [-1, -1]] }
 
 sub module_generate_hash
 {
