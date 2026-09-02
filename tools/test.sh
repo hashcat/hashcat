@@ -59,8 +59,8 @@ RAR_GEN_MODES="12500 13000 23700 23800"
 # in. See selftest_vector_test(), and -S to run this over every mode.
 #
 # 23800 (RAR3-p, compressed) is the case that needs it: an oracle would have to
-# reproduce RAR's compressor, since module_23800 includes the unRAR engine and
-# calls hc_decompress_rar(). Before this it could only be reached with -g.
+# reproduce RAR's compressor, since module_23800 unpacks the archive itself.
+# Before this it could only be reached with -g.
 SELFTEST_MODES="23800"
 
 # 7-Zip and WinZip AES modes generated on-the-fly with -g. Both come out of the

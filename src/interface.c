@@ -537,7 +537,7 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
 
     for (int i = 0; i < hook_threads; i++)
     {
-      const bool rc_hook_extra_param_init = module_ctx->module_hook_extra_param_init (hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
+      const bool rc_hook_extra_param_init = module_ctx->module_hook_extra_param_init (hashcat_ctx, hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
 
       if (rc_hook_extra_param_init == false) return -1;
     }
@@ -603,7 +603,7 @@ void hashconfig_destroy (hashcat_ctx_t *hashcat_ctx)
 
     for (int i = 0; i < hook_threads; i++)
     {
-      module_ctx->module_hook_extra_param_term (hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
+      module_ctx->module_hook_extra_param_term (hashcat_ctx, hashconfig, user_options, user_options_extra, folder_config, backend_ctx, module_ctx->hook_extra_params[i]);
     }
   }
 

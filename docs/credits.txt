@@ -56,6 +56,10 @@ Jeremi "epixoip" Gosney <jgosney@terahash.com> (@jmgosney)
 * Moderating the hashcat forum
 * Helping tons of new users find their way into the hashcat universe
 
+magnum
+
+* RAR3 Huffman validity check in the -m 23800 kernel module
+
 Other contributors to hashcat
 
 * A full list and their commits can be found here:
@@ -67,7 +71,7 @@ Other contributors to hashcat
 * zlib by Jean-loup Gailly and Mark Adler (loaded at runtime)
 * zstd by Yann Collet (@Cyan4973) (loaded at runtime)
 * micro-ecc by Ken MacKay (used as reference for some secp256k1 operations)
-* UnRAR by Alexander Roshal
+* PPMd var.H by Dmitry Shkarin and Dmitry Subbotin, in Igor Pavlov's 7-Zip implementation (vendored)
 
 # hashcat implements the following algorithms designed by others:
 

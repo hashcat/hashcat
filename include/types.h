@@ -4044,8 +4044,8 @@ typedef struct module_ctx
   int         (*module_hash_init_selftest)      (const hashconfig_t *, hash_t *);
 
   u64         (*module_hook_extra_param_size)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *);
-  bool        (*module_hook_extra_param_init)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const folder_config_t *, const backend_ctx_t *, void *);
-  bool        (*module_hook_extra_param_term)   (const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const folder_config_t *, const backend_ctx_t *, void *);
+  bool        (*module_hook_extra_param_init)   (hashcat_ctx_t *, const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const folder_config_t *, const backend_ctx_t *, void *);
+  bool        (*module_hook_extra_param_term)   (hashcat_ctx_t *, const hashconfig_t *, const user_options_t *, const user_options_extra_t *, const folder_config_t *, const backend_ctx_t *, void *);
 
   void        (*module_hook12)                  (hc_device_param_t *, const void *, const void *, const u32, const u64);
   void        (*module_hook23)                  (hc_device_param_t *, const void *, const void *, const u32, const u64);

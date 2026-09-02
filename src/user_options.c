@@ -2790,7 +2790,12 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->show                = false;
     user_options->status              = false;
     user_options->status_timer        = 0;
-    if (user_options->speed_only == false)
+    // A measuring run has to build the bitmap the real attack would build. Without it every
+    // candidate falls through to the hash table search and the measurement describes an attack
+    // nobody is going to launch. progress_only is only promoted to speed_only further down, so
+    // testing speed_only alone leaves it clamped.
+
+    if ((user_options->speed_only == false) && (user_options->progress_only == false))
     {
       user_options->bitmap_min          = 1;
       user_options->bitmap_max          = 1;
