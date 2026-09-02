@@ -10,7 +10,7 @@ use warnings;
 
 use Digest::SHA1 qw (sha1);
 use Digest::HMAC qw (hmac);
-use Encode       qw (encode);
+use Encode       qw (encode decode);
 use MIME::Base64 qw (encode_base64);
 
 # The optimized kernels widen each byte instead of decoding the UTF-8, and
