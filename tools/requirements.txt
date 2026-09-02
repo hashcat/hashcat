@@ -1,0 +1,11 @@
+# Python packages the test modules under tools/test_modules need.
+# tools/install_modules.sh installs from this file.
+
+pycryptodome
+cryptography
+argon2-cffi
+git+https://github.com/matrix/pygost
+
+# pycryptoplus on PyPI was last released in 2015 and imports pkg_resources at module scope, which
+# setuptools 82 removed. This fork imports packaging instead.
+git+https://github.com/matrix/pycryptoplus

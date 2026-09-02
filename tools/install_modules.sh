@@ -238,23 +238,10 @@ else
 
   echo "> Installing python3 deps ..."
 
-  pip3 install git+https://github.com/matrix/pygost
-  ERRORS=$((ERRORS+$?))
+  # One file lists what the test modules import, so a contributor writing a module has one place
+  # to read and one place to add to.
 
-  # pycryptoplus on PyPI was last released in 2015 and imports pkg_resources at module scope.
-  # setuptools 82 removed pkg_resources, so on a python that never carried an older setuptools,
-  # "import CryptoPlus" raises. The DiskCryptor modules read stdout only, so they then emit a hash
-  # with no ciphertext in it rather than failing. The fork imports packaging instead.
-  pip3 install git+https://github.com/matrix/pycryptoplus
-  ERRORS=$((ERRORS+$?))
-
-  pip3 install pycryptodome
-  ERRORS=$((ERRORS+$?))
-
-  pip3 install cryptography
-  ERRORS=$((ERRORS+$?))
-
-  pip3 install argon2-cffi
+  pip3 install -r "${TOOLS_DIR}/requirements.txt"
   ERRORS=$((ERRORS+$?))
 
   # A python import that fails inside a test module is invisible from here. The module shells out
@@ -295,6 +282,14 @@ fi
 # the case where the perl environment itself is unusable, which makes the suite report
 # "Error : 0/0 not found" on every mode and reads as hashcat failing rather than as a setup
 # problem.
+
+if ! python3 "${TOOLS_DIR}/test.py" single 1000 2> /dev/null | grep -q hashcat; then
+
+  echo "[ WARN ] tools/test.py cannot generate hashes. Only the modes with a .py oracle are"
+  echo "         affected, and only under test.sh -y."
+  echo
+
+fi
 
 if perl "${TOOLS_DIR}/test.pl" single 0 2> /dev/null | grep -q hashcat; then
 
