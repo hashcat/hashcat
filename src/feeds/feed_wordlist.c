@@ -22,19 +22,18 @@
 #include "feed.h"
 #include "feed_wordlist.h"
 
-#include <fcntl.h>
-
 #if defined (_WIN)
 #include "mmap_windows.c"
 #else
 #include <sys/mman.h>
 #endif
 
-// seekdb.c walks a source to count its lines, and a compressed one is walked a window at a time,
-// so it needs the refill that source_open () below sets up.
+// seekdb.c walks a source to count its lines, and a compressed one is walked a window at a time, so
+// it needs the refill that source_open () below sets up. It rereads the front of a compressed source
+// once it is watching for frame boundaries, which is what the restart is for.
 
-static bool source_fill (feed_thread_t *feed_thread);
-static bool source_is_compressed (const char *path);
+static bool source_fill    (feed_thread_t *feed_thread);
+static bool source_restart (feed_thread_t *feed_thread);
 
 #include "seekdb.c"
 
@@ -122,12 +121,14 @@ static bool source_add (generic_global_ctx_t *global_ctx, const char *path)
 
   feed_source_t *source = &feed_global->sources[feed_global->sources_cnt];
 
-  source->path       = hcstrdup (path);
-  source->seek_db    = NULL;
-  source->seek_count = 0;
-  source->line_count = 0;
-  source->size       = 0;
-  source->first_line = 0;
+  source->path        = hcstrdup (path);
+  source->seek_db     = NULL;
+  source->seek_count  = 0;
+  source->line_count  = 0;
+  source->size        = 0;
+  source->frame_db    = NULL;
+  source->frame_count = 0;
+  source->first_line  = 0;
 
   feed_global->sources_cnt++;
 
@@ -180,34 +181,6 @@ static bool source_add_path (generic_global_ctx_t *global_ctx, const char *path)
 
 #define FEED_WIN_CAP (1024 * 1024)
 #define FEED_WIN_LOW (64 * 1024)
-
-// Whether a path is one of the compressed formats the file layer knows. The file layer decides this
-// by the same magic bytes when it opens the file, and this only has to decide it one step earlier,
-// because a compressed source is opened and read a different way from a mapped one.
-
-static bool source_is_compressed (const char *path)
-{
-  int fd = open (path, O_RDONLY);
-
-  if (fd == -1) return false;
-
-  u8 check[6];
-
-  const ssize_t nread = read (fd, check, sizeof (check));
-
-  close (fd);
-
-  if (nread < 4) return false;
-
-  if ((check[0] == 0x1f) && (check[1] == 0x8b) && (check[2] == 0x08)) return true;
-  if ((check[0] == 0x28) && (check[1] == 0xb5) && (check[2] == 0x2f) && (check[3] == 0xfd)) return true;
-
-  if (nread < 6) return false;
-
-  if ((check[0] == 0xfd) && (check[1] == 0x37) && (check[2] == 0x7a) && (check[3] == 0x58) && (check[4] == 0x5a) && (check[5] == 0x00)) return true;
-
-  return false;
-}
 
 static void source_close (feed_thread_t *feed_thread)
 {
@@ -300,6 +273,89 @@ static bool source_restart (feed_thread_t *feed_thread)
   return rc;
 }
 
+// Start reading a compressed source again at one of its frames, left sitting on the first whole line
+// inside it.
+//
+// The entry says where the frame begins in the file on disk and how many decompressed bytes came
+// before it. What a decoder started there finds first is usually the tail of a line that began in
+// the frame before, and entry[2] is how many bytes of tail there are. Reading those and dropping
+// them leaves the reader at the start of the line entry[3] names.
+
+static bool source_seek_frame (feed_thread_t *feed_thread, const u64 *entry)
+{
+  const u64 comp_off   = entry[0];
+  const u64 uncomp_off = entry[1];
+  const u64 line_off   = entry[2];
+  const u64 first_line = entry[3];
+
+  // The first frame begins where the file begins, and going back to that is a rewind. A compressed
+  // format with no frames of its own is described by that one entry and nothing else, so it lands
+  // here too and behaves as it always did.
+
+  if (comp_off == 0)
+  {
+    if (source_restart (feed_thread) == false) return false;
+  }
+  else
+  {
+    if (hc_frame_restart (&feed_thread->hcfile, comp_off, uncomp_off) == false) return false;
+
+    feed_thread->fd_off  = 0;
+    feed_thread->fd_len  = 0;
+    feed_thread->fd_line = 0;
+    feed_thread->win_pos = uncomp_off;
+    feed_thread->win_eof = false;
+
+    if (source_fill (feed_thread) == false) return false;
+  }
+
+  u64 left = line_off;
+
+  while (left > 0)
+  {
+    if (source_fill (feed_thread) == false) return false;
+
+    const size_t avail = feed_thread->fd_len - feed_thread->fd_off;
+
+    if (avail == 0) return false;
+
+    const size_t take = (size_t) MIN ((u64) avail, left);
+
+    feed_thread->fd_off += take;
+
+    left -= take;
+  }
+
+  feed_thread->fd_line = first_line;
+
+  return true;
+}
+
+// Which frame of a compressed source holds a line. The frames are in file order and the line each
+// one starts at only increases, so this is the search source_of_offset () does over the sources.
+
+static u64 frame_of_line (const feed_source_t *source, const u64 local)
+{
+  u64 lo = 0;
+  u64 hi = source->frame_count - 1;
+
+  while (lo < hi)
+  {
+    const u64 mid = lo + ((hi - lo + 1) / 2);
+
+    if (source->frame_db[(mid * SEEKDB_FRAME_WORDS) + 3] > local)
+    {
+      hi = mid - 1;
+    }
+    else
+    {
+      lo = mid;
+    }
+  }
+
+  return lo;
+}
+
 static bool source_open (generic_thread_ctx_t *thread_ctx, feed_global_t *feed_global, const u64 idx)
 {
   feed_thread_t *feed_thread = thread_ctx->thrdata;
@@ -310,7 +366,7 @@ static bool source_open (generic_thread_ctx_t *thread_ctx, feed_global_t *feed_g
 
   feed_source_t *source = &feed_global->sources[idx];
 
-  const bool compressed = source_is_compressed (source->path);
+  const bool compressed = hc_path_is_compressed (source->path);
 
   // A compressed source goes through hc_fopen (), which decompresses as it is read. An ordinary one
   // goes through hc_fopen_raw () and is mapped, which is what it has always done and what keeps a
@@ -486,6 +542,7 @@ void global_term (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
   {
     hcfree (feed_global->sources[i].path);
     hcfree (feed_global->sources[i].seek_db);
+    hcfree (feed_global->sources[i].frame_db);
   }
 
   hcfree (feed_global->sources);
@@ -540,7 +597,24 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
     global_ctx->source_ident = paw64 (&source_ident, sizeof (source_ident), global_ctx->source_ident);
 
-    source->seek_db = seekdb_load (seekdb_file, &source->seek_count, &source->line_count, &source->size, &source->seek_step, source_ident, source_size);
+    bool frames_known = false;
+
+    source->seek_db = seekdb_load (seekdb_file, &source->seek_count, &source->line_count, &source->size, &source->seek_step, &source->frame_db, &source->frame_count, &frames_known, source_ident, source_size);
+
+    // A compressed source whose database was built before the frame index existed is rebuilt rather
+    // than used. What is on disk is not wrong, it is only the slow description: with no frames there
+    // is no byte in the file to seek to, so every seek backwards decodes the file again from the
+    // start and every device pays for it. One more pass over the file buys that back.
+
+    if ((source->seek_db != NULL) && (frames_known == false) && (hc_path_is_compressed (source->path) == true))
+    {
+      hcfree (source->seek_db);
+      hcfree (source->frame_db);
+
+      source->seek_db     = NULL;
+      source->frame_db    = NULL;
+      source->frame_count = 0;
+    }
 
     if (source->seek_db)
     {
@@ -577,7 +651,7 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
     hc_timer_set (&start);
 
-    source->seek_db = seekdb_build (feed_thread, seekdb_file, source->path, &source->seek_count, &source->line_count, &source->size, &source->seek_step, source_ident, hashcat_ctx);
+    source->seek_db = seekdb_build (feed_thread, seekdb_file, source->path, &source->seek_count, &source->line_count, &source->size, &source->seek_step, &source->frame_db, &source->frame_count, source_ident, hashcat_ctx);
 
     cache_generate_t cache_generate;
 
@@ -752,17 +826,37 @@ bool thread_seek (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   const u64 local = offset - source->first_line;
 
-  // A compressed source has no byte to jump to. Going forwards is decoding and discarding, which
-  // costs what it would have cost to read those lines anyway. Going backwards means starting the
-  // file again, so the checkpoints below are of no use here and are not consulted.
+  // A compressed source is seeked by its frames rather than by the checkpoints below, because a
+  // checkpoint is an offset into the decompressed bytes and there is no such place in the file on
+  // disk. A frame is a place in the file on disk, and starting the decoder at one of them is what
+  // gets the reader near the target without decoding everything in front of it.
 
   if (feed_thread->compressed == true)
   {
-    if (feed_thread->fd_line > local)
+    if (source->frame_count > 0)
+    {
+      const u64 *entry = &source->frame_db[frame_of_line (source, local) * SEEKDB_FRAME_WORDS];
+
+      const u64 frame_line = entry[3];
+
+      // Only where it saves work. A reader already sitting between that frame and the target reaches
+      // the target by reading on, and restarting the frame would decode those lines a second time.
+
+      if ((feed_thread->fd_line > local) || (feed_thread->fd_line < frame_line))
+      {
+        if (source_seek_frame (feed_thread, entry) == false)
+        {
+          thread_error_set (thread_ctx, "%s: could not seek to frame", source->path);
+
+          return false;
+        }
+      }
+    }
+    else if (feed_thread->fd_line > local)
     {
       if (source_restart (feed_thread) == false)
       {
-        thread_error_set (thread_ctx, "%s: could not restart source", feed_global->sources[idx].path);
+        thread_error_set (thread_ctx, "%s: could not restart source", source->path);
 
         return false;
       }

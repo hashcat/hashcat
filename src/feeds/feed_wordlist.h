@@ -14,6 +14,12 @@
 // file is offset line_count-of-the-first. first_line is where that source starts in the global
 // numbering, which is what turns a global offset back into a file and a line inside it.
 
+// frame_db is what makes a compressed source seekable, and it is empty for every other kind. Each
+// frame of the file gets one entry of SEEKDB_FRAME_WORDS numbers, which say where that frame starts
+// in the file on disk, how many decompressed bytes came before it, how far into it the first whole
+// line starts, and which line that is. A seek reads the entry, restarts the decoder there and walks
+// forward from that line, instead of decoding the whole file up to the line it wants.
+
 typedef struct feed_source
 {
   char *path;
@@ -23,6 +29,9 @@ typedef struct feed_source
   u64   seek_step;
   u64   line_count;
   u64   size;
+
+  u64  *frame_db;
+  u64   frame_count;
 
   u64   first_line;
 

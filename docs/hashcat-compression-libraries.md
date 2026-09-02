@@ -16,6 +16,37 @@ Only the format you actually use needs its library. Opening a `.zst` on a machin
 libzstd fails with a message naming every file name it tried and what to install. Nothing else
 about that run is affected.
 
+## Seeking inside a compressed wordlist
+
+hashcat does not read a wordlist from one end to the other. Every device works its own stretch of
+the keyspace at once, and a session that is resumed or started with `--skip` begins in the middle,
+so hashcat asks the wordlist for a line by its number and expects to be put there.
+
+A plain wordlist answers that by jumping to a byte. A compressed one has no byte to jump to. What
+is at a given place in the file depends on everything in front of it, so the only way to reach line
+ten million is to decode the nine million nine hundred thousand before it and throw them away. Every
+device pays that separately, and a run over 8 GPUs decodes the file 8 times before the first
+candidate is tried.
+
+The way out is a wordlist compressed in independent pieces. A `.zst` file is a run of frames, and a
+frame decodes without any of the frames before it, so hashcat can start reading at the frame that
+holds the line it wants and walk forward from there. It records where those frames are the first
+time it reads the file, in the same seek database it already builds for the line count, and every
+run after that uses it.
+
+`zstd` writes one frame for the whole file, even with `-T0`. `pzstd`, which ships with Zstandard,
+writes one frame per chunk:
+
+    pzstd -p 8 wordlist
+
+The chunk size follows the compression level rather than the thread count, so a wordlist of any size
+comes out with frames every few megabytes and `-p` only decides how fast it is written. hashcat says
+so when it meets a large compressed wordlist that has no frames in it.
+
+Nothing about the file is specific to hashcat. `zstd -d` decompresses it, and so does anything else
+that reads `.zst`. `.gz` and `.xz` are read as they always were, from the start, and a wordlist in
+either of those formats is worth converting if the run seeks at all.
+
 ## Linux and the BSDs
 
 These are almost always installed already, because other programs on the system use them. If one

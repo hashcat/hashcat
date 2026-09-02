@@ -48,6 +48,30 @@ HC_PLUGIN_API u64    count_lines  (HCFILE *fp);
 HC_PLUGIN_API size_t in_superchop (char *buf);
 HC_PLUGIN_API size_t superchop_with_length (char *buf, const size_t len);
 
+// Whether a path holds one of the compressed formats hc_fopen () decodes, decided by the same magic
+// bytes hc_fopen () decides it by. A caller that has to know one step earlier, because a compressed
+// file is read a different way from a plain one, asks here instead of keeping its own copy of the
+// magic table.
+
+HC_PLUGIN_API bool hc_path_is_compressed (const char *path);
+
+// Reading a compressed file from somewhere other than its start.
+//
+// Only .zst works this way today. A .zst is a run of independent frames and each of them decodes
+// without the ones before it, while a .gz or an .xz has to be walked from the beginning. Both calls
+// do nothing on a container that has no frames, so a caller does not have to know which it has.
+//
+// hc_frame_notify () asks to be told about every frame boundary the reader crosses from here on, and
+// a NULL callback stops that again. The boundaries arrive in the order they are read, so a caller
+// that reads the whole file once learns where all of them are.
+//
+// hc_frame_restart () goes back to one of them. comp_off and uncomp_off are what the callback
+// reported for that boundary, and the file reads on from there as if it had been opened at that
+// frame. Answers false when the container has no frames or the descriptor could not be moved.
+
+HC_PLUGIN_API void hc_frame_notify  (HCFILE *fp, hc_frame_cb_t cb, void *userdata);
+HC_PLUGIN_API bool hc_frame_restart (HCFILE *fp, const u64 comp_off, const u64 uncomp_off);
+
 HC_PLUGIN_API bool  hc_path_has_bom (const char *path);
 HC_PLUGIN_API bool  hc_same_files   (char *file1, char *file2);
 HC_PLUGIN_API char *file_to_buffer  (const char *filename);

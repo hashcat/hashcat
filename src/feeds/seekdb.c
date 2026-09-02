@@ -6,6 +6,18 @@
 static const size_t SEEKDB_STEP = 8192;
 static const size_t SAMPLE_SIZE = 65536;
 
+// How many numbers one frame of a compressed source takes in the database: where the frame starts in
+// the file on disk, how many decompressed bytes came before it, how far into it the first whole line
+// starts, and which line that is.
+
+#define SEEKDB_FRAME_WORDS 4
+
+// How many bytes a compressed wordlist has to decode to before hashcat says anything about it not
+// being seekable. It is the decompressed size that decides, because that is what a seek has to walk
+// through, and below this walking through all of it is quicker than reading the advice.
+
+#define SEEKDB_ADVICE_SIZE (64 * 1024 * 1024)
+
 // A macro rather than a const, because it sizes the header buffers and a const size_t would make
 // those variable length arrays.
 
@@ -147,7 +159,7 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
   // read than the one it protects, because the whole point of the file is that it is smaller than
   // what it carries.
 
-  if (source_is_compressed (wordlist) == true)
+  if (hc_path_is_compressed (wordlist) == true)
   {
     while (true)
     {
@@ -241,7 +253,62 @@ static bool seekdb_header_u64 (const char *header, const char *name, const char 
   return true;
 }
 
-static bool seekdb_save (const char *path, const char *wordlist, const u64 line_count, const u64 *db, const u64 count, const u64 size, const u64 ident, const u64 content, const u64 step)
+// The frames of a compressed source, while they are still being collected.
+//
+// The file layer reports a boundary as soon as it reads past one, which is before the bytes of that
+// frame have been walked for line endings, so an entry arrives knowing where it is and not yet which
+// line it belongs to. resolved is how many of them the walk has caught up with. Everything from
+// there on is waiting for the next line ending to say what it points at.
+
+typedef struct seekdb_frames
+{
+  u64 *buf;
+  u64  count;
+  u64  alloc;
+  u64  resolved;
+
+} seekdb_frames_t;
+
+static void seekdb_frame_seen (void *userdata, const u64 comp_off, const u64 uncomp_off)
+{
+  seekdb_frames_t *frames = (seekdb_frames_t *) userdata;
+
+  // Two boundaries at the same decompressed offset are one place to a reader. A file that puts a
+  // skippable frame in front of every compressed one, which is what pzstd writes, hands over such a
+  // pair for every chunk it wrote. Keeping the later of the two leaves the reader less to walk past.
+
+  if (frames->count > 0)
+  {
+    u64 *last = &frames->buf[(frames->count - 1) * SEEKDB_FRAME_WORDS];
+
+    if (last[1] == uncomp_off)
+    {
+      last[0] = comp_off;
+
+      return;
+    }
+  }
+
+  if (frames->count == frames->alloc)
+  {
+    const size_t alloc_sz = (size_t) frames->alloc * SEEKDB_FRAME_WORDS * sizeof (u64);
+
+    frames->buf = (u64 *) hcrealloc (frames->buf, alloc_sz, alloc_sz);
+
+    frames->alloc *= 2;
+  }
+
+  u64 *entry = &frames->buf[frames->count * SEEKDB_FRAME_WORDS];
+
+  entry[0] = comp_off;
+  entry[1] = uncomp_off;
+  entry[2] = 0;
+  entry[3] = 0;
+
+  frames->count++;
+}
+
+static bool seekdb_save (const char *path, const char *wordlist, const u64 line_count, const u64 *db, const u64 count, const u64 *frame_db, const u64 frame_count, const u64 size, const u64 ident, const u64 content, const u64 step)
 {
   char source[192];
 
@@ -259,9 +326,10 @@ static bool seekdb_save (const char *path, const char *wordlist, const u64 line_
     "bytes %" PRIu64 "\n"
     "ident %016" PRIx64 "\n"
     "content %016" PRIx64 "\n"
+    "frames %" PRIu64 "\n"
     "built %" PRIu64 "\n"
     "source %s\n",
-    SEEKDB_VERSION, seekdb_endian (), step, line_count, size, ident, content, built, source);
+    SEEKDB_VERSION, seekdb_endian (), step, line_count, size, ident, content, frame_count, built, source);
 
   if (header_len < 0) return false;
 
@@ -296,6 +364,18 @@ static bool seekdb_save (const char *path, const char *wordlist, const u64 line_
     return false;
   }
 
+  const size_t frame_words = (size_t) frame_count * SEEKDB_FRAME_WORDS;
+
+  if (frame_words > 0)
+  {
+    if (hc_fwrite (frame_db, sizeof (u64), frame_words, &fp) != frame_words)
+    {
+      hc_fclose (&fp);
+
+      return false;
+    }
+  }
+
   hc_fclose (&fp);
 
   return true;
@@ -307,7 +387,7 @@ static bool seekdb_save (const char *path, const char *wordlist, const u64 line_
 // Every check here is cheap on purpose: this runs before anything has been cracked and a wrong answer
 // is worse than a rebuild.
 
-static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *size, u64 *step, const u64 want_ident, const u64 want_size)
+static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *size, u64 *step, u64 **frame_db, u64 *frame_count, bool *frames_known, const u64 want_ident, const u64 want_size)
 {
   HCFILE fp;
 
@@ -456,9 +536,31 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
     return NULL;
   }
 
+  // How much of the body is the frame index, which is written after the line checkpoints.
+  //
+  // A database built before the frame index existed carries no such field. Its body cannot be told
+  // apart from one that has frames in it, so the answer handed back is that there is no answer
+  // rather than that there are no frames. A compressed source acts on the difference: it rebuilds,
+  // because the file it has is one that predates its being seekable at all.
+
+  u64 header_frames = 0;
+
+  const bool has_frames = seekdb_header_u64 (header, "frames", "%" SCNu64, &header_frames);
+
   const size_t rem = ((size_t) st.st_size - SEEKDB_HEADER_SIZE) / sizeof (u64);
 
-  u64 *db = (u64 *) hcmalloc (rem * sizeof (u64));
+  const size_t frame_words = (size_t) header_frames * SEEKDB_FRAME_WORDS;
+
+  if (frame_words > rem)
+  {
+    hc_fclose (&fp);
+
+    return NULL;
+  }
+
+  const size_t db_words = rem - frame_words;
+
+  u64 *db = (u64 *) hcmalloc (db_words * sizeof (u64));
 
   if (db == NULL)
   {
@@ -467,7 +569,7 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
     return NULL;
   }
 
-  if (hc_fread (db, sizeof (u64), rem, &fp) != rem)
+  if (hc_fread (db, sizeof (u64), db_words, &fp) != db_words)
   {
     hc_fclose (&fp);
 
@@ -476,12 +578,41 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
     return NULL;
   }
 
+  u64 *frames = NULL;
+
+  if (frame_words > 0)
+  {
+    frames = (u64 *) hcmalloc (frame_words * sizeof (u64));
+
+    if (frames == NULL)
+    {
+      hc_fclose (&fp);
+
+      hcfree (db);
+
+      return NULL;
+    }
+
+    if (hc_fread (frames, sizeof (u64), frame_words, &fp) != frame_words)
+    {
+      hc_fclose (&fp);
+
+      hcfree (frames);
+      hcfree (db);
+
+      return NULL;
+    }
+  }
+
   hc_fclose (&fp);
 
-  *count      = rem;
-  *line_count = header_lines;
-  *size       = header_bytes;
-  *step       = header_step;
+  *count        = db_words;
+  *line_count   = header_lines;
+  *size         = header_bytes;
+  *step         = header_step;
+  *frame_db     = frames;
+  *frame_count  = header_frames;
+  *frames_known = has_frames;
 
   return db;
 }
@@ -493,11 +624,13 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
 // counted wherever it turns up, so a line lying across two windows is still one line.
 //
 // The offsets recorded are into the decompressed bytes. For a compressed source nothing can seek to
-// one of them yet, so they are written for the line count they come with rather than for
-// themselves. The size written to the header is the size of the file on disk either way, because
-// that is what the header is checked against when it is read back.
+// one of them, so they are written for the line count they come with rather than for themselves.
+// What a compressed source is seeked with is the frame index built alongside them, which records
+// the places in the file on disk that a decoder can be started at. The size written to the header is
+// the size of the file on disk either way, because that is what the header is checked against when
+// it is read back.
 
-static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, const char *wordlist, u64 *count, u64 *line_count, u64 *size, u64 *step, const u64 ident, hashcat_ctx_t *hashcat_ctx)
+static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, const char *wordlist, u64 *count, u64 *line_count, u64 *size, u64 *step, u64 **frame_db, u64 *frame_count, const u64 ident, hashcat_ctx_t *hashcat_ctx)
 {
   u64 lines       = 0;
   u64 pos         = 0;
@@ -510,6 +643,36 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
   u64 checkpoints = 0;
 
   tmp[checkpoints++] = 0;
+
+  seekdb_frames_t frames;
+
+  frames.buf      = NULL;
+  frames.count    = 0;
+  frames.alloc    = 0;
+  frames.resolved = 0;
+
+  if (feed_thread->compressed == true)
+  {
+    frames.alloc = 1024;
+    frames.buf   = (u64 *) hcmalloc (frames.alloc * SEEKDB_FRAME_WORDS * sizeof (u64));
+
+    // The first frame begins where the file does. Nothing reports that boundary, because a boundary
+    // is only reported once the frame in front of it has been decoded, so it is put in by hand. It
+    // needs no line to complete it either: there is nothing in front of the first line, so a reader
+    // sent here drops no bytes and arrives at line zero.
+
+    seekdb_frame_seen (&frames, 0, 0);
+
+    frames.resolved = 1;
+
+    // source_open () decoded the front of the file already, to fill the window it handed over, and
+    // any boundary in there went past before there was anywhere to report it to. Reading that window
+    // again with the callback in place costs one window of decoding and is the only way to see them.
+
+    hc_frame_notify (&feed_thread->hcfile, seekdb_frame_seen, &frames);
+
+    source_restart (feed_thread);
+  }
 
   paw64_ctx_t xstate;
 
@@ -571,6 +734,27 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
 
       last_nl_end = pos;
 
+      // A frame boundary lands wherever the compressor put it, which is almost never on a line
+      // ending, so what a reader restarting there finds first is the tail of a line that began in
+      // the frame before. A line ending has just gone past, which makes pos the start of a line and
+      // lines its number, and that is the first whole line after every boundary still waiting. The
+      // check has to be here rather than anywhere else in this loop, because this is the only point
+      // where pos is known to be the start of a line: a window ends wherever it fills up, which is
+      // usually in the middle of one. Nothing waits for the whole of a plain wordlist, so what this
+      // costs there is one comparison per line.
+
+      while (frames.resolved < frames.count)
+      {
+        u64 *entry = &frames.buf[frames.resolved * SEEKDB_FRAME_WORDS];
+
+        if (entry[1] > pos) break;
+
+        entry[2] = pos - entry[1];
+        entry[3] = lines;
+
+        frames.resolved++;
+      }
+
       if ((lines % SEEKDB_STEP) == 0)
       {
         if (checkpoints == alloc)
@@ -615,22 +799,65 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
     }
   }
 
+  hc_frame_notify (&feed_thread->hcfile, NULL, NULL);
+
+  // A boundary with no whole line after it is the tail end of the file, and there is nothing there
+  // to seek to.
+
+  frames.count = frames.resolved;
+
   // bytes after the last line ending are a line with nothing after it
 
   if (pos > last_nl_end) lines++;
+
+  // A file whose last line ends exactly where the file does leaves a boundary naming the line after
+  // it, which is a line the file does not have. Nothing can seek there, so it goes rather than sit
+  // in the search.
+
+  while (frames.count > 0)
+  {
+    if (frames.buf[((frames.count - 1) * SEEKDB_FRAME_WORDS) + 3] < lines) break;
+
+    frames.count--;
+  }
 
   u64 *db = (u64 *) hccalloc (checkpoints, sizeof (u64));
 
   memcpy (db, tmp, checkpoints * sizeof (u64));
 
-  *count      = checkpoints;
-  *line_count = lines;
-  *size       = feed_thread->file_size;
-  *step       = SEEKDB_STEP;
+  u64 *frame_out = NULL;
+
+  if (frames.count > 0)
+  {
+    frame_out = (u64 *) hccalloc (frames.count * SEEKDB_FRAME_WORDS, sizeof (u64));
+
+    memcpy (frame_out, frames.buf, frames.count * SEEKDB_FRAME_WORDS * sizeof (u64));
+  }
+
+  *count       = checkpoints;
+  *line_count  = lines;
+  *size        = feed_thread->file_size;
+  *step        = SEEKDB_STEP;
+  *frame_db    = frame_out;
+  *frame_count = frames.count;
+
+  // A compressed wordlist that was written in one piece has no boundary to seek to but its own
+  // start, so every seek backwards decodes it again from there and every device pays for that
+  // separately. Saying so once, while the index is being built, is the only moment where the fact is
+  // both known and still worth acting on. Small files are left alone: decoding one of those from the
+  // start costs nothing worth a line of advice.
+
+  if ((feed_thread->compressed == true) && (frames.count < 2) && (pos >= SEEKDB_ADVICE_SIZE))
+  {
+    feed_say (hashcat_ctx, "%s: compressed in one piece, so seeking into it means decoding it from the start.", wordlist);
+    feed_say (hashcat_ctx, "%s: compressing it with pzstd instead gives hashcat frames it can seek to.", wordlist);
+  }
 
   const u64 content = paw64_final (&xstate);
 
-  seekdb_save (seekdb_path, wordlist, *line_count, db, *count, feed_thread->file_size, ident, content, SEEKDB_STEP);
+  seekdb_save (seekdb_path, wordlist, *line_count, db, *count, frame_out, frames.count, feed_thread->file_size, ident, content, SEEKDB_STEP);
+
+  hcfree (frames.buf);
 
   hcfree (tmp);
 

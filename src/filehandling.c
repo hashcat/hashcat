@@ -51,6 +51,31 @@ static const u8 XZ_SIG[] = { 0xfd, '7', 'z', 'X', 'Z', 0x00 };
 
 static const u8 ZSTD_SIG[] = { 0x28, 0xb5, 0x2f, 0xfd };
 
+// Whether these bytes open a .zst file.
+//
+// A .zst does not have to begin with a compressed frame. It may begin with a skippable frame, which
+// carries no compressed data and which every decoder walks straight past, and a file that starts
+// with one is still a .zst. pzstd writes exactly that: one skippable frame holding the length of the
+// compressed frame that follows it, repeated for every chunk it compressed in parallel. Sixteen
+// magic numbers are reserved for skippable frames and a writer picks one of them with the low
+// nibble, so the check is on the other 28 bits.
+//
+// Reading fewer than 4 bytes is not this function's problem: the caller hands over a buffer it has
+// already zeroed, and zero bytes match neither magic.
+
+static bool zstd_magic (const u8 *check)
+{
+  if (memcmp (check, ZSTD_SIG, sizeof (ZSTD_SIG)) == 0) return true;
+
+  if (check[1] != 0x2a) return false;
+  if (check[2] != 0x4d) return false;
+  if (check[3] != 0x18) return false;
+
+  if ((check[0] >= 0x50) && (check[0] <= 0x5f)) return true;
+
+  return false;
+}
+
 // An .xz reader over the descriptor hc_fopen already opened, so there is one handle for the file
 // rather than the two the previous reader kept.
 //
@@ -161,6 +186,16 @@ struct zstdfile
   bool  eof_out;
 
   u64   out_pos;
+
+  // Where inbuf[0] came from in the file. A frame boundary is found as a position inside that
+  // buffer, and what a caller can come back to is a position in the file, so one has to be turned
+  // into the other.
+
+  u64   in_base;
+
+  hc_frame_cb_t frame_cb;
+
+  void *frame_ud;
 };
 
 static size_t zstd_read (zstdfile_t *zfp, u8 *out, const size_t out_len)
@@ -177,6 +212,11 @@ static size_t zstd_read (zstdfile_t *zfp, u8 *out, const size_t out_len)
   {
     if ((zfp->in.pos == zfp->in.size) && (zfp->eof_in == false))
     {
+      // Everything already buffered has been handed to the decoder, so the next byte read comes
+      // straight after the buffer that is being replaced.
+
+      zfp->in_base += zfp->in.size;
+
       const ssize_t nread = read (zfp->fd, zfp->inbuf, HCFILE_BUFFER_SIZE);
 
       if (nread > 0)
@@ -204,6 +244,16 @@ static size_t zstd_read (zstdfile_t *zfp, u8 *out, const size_t out_len)
     const size_t rc = z->ZSTD_decompressStream (zfp->zds, &outbuf, &zfp->in);
 
     if (z->ZSTD_isError (rc)) break;
+
+    // Zero is libzstd saying a frame ended exactly here and nothing of it is still owed. What
+    // follows is the first byte of the next frame, and a reader handed that offset decodes from it
+    // without having read a byte of what came before.
+
+    if (rc != 0) continue;
+
+    if (zfp->frame_cb == NULL) continue;
+
+    zfp->frame_cb (zfp->frame_ud, zfp->in_base + zfp->in.pos, zfp->out_pos + outbuf.pos);
   }
 
   zfp->out_pos += outbuf.pos;
@@ -372,7 +422,7 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
       {
         if (check[0] == 0x1f && check[1] == 0x8b && check[2] == 0x08) is_gzip = true;
         if (memcmp (check, XZ_SIG, sizeof (XZ_SIG)) == 0)            is_xz   = true;
-        if (memcmp (check, ZSTD_SIG, sizeof (ZSTD_SIG)) == 0)        is_zstd = true;
+        if (zstd_magic (check) == true)                              is_zstd = true;
 
         // compressed files with BOM will be undetected!
 
@@ -967,6 +1017,7 @@ void hc_rewind (HCFILE *fp)
     zfp->in.src  = zfp->inbuf;
     zfp->in.size = 0;
     zfp->in.pos  = 0;
+    zfp->in_base = 0;
 
     zfp->eof_in  = false;
     zfp->eof_out = false;
@@ -974,6 +1025,49 @@ void hc_rewind (HCFILE *fp)
 
     zfp->z->ZSTD_initDStream (zfp->zds);
   }
+}
+
+void hc_frame_notify (HCFILE *fp, hc_frame_cb_t cb, void *userdata)
+{
+  if (fp == NULL) return;
+
+  if (fp->zfp == NULL) return;
+
+  zstdfile_t *zfp = fp->zfp;
+
+  zfp->frame_cb = cb;
+  zfp->frame_ud = userdata;
+}
+
+// Start reading again at a frame boundary somewhere in the middle of the file.
+//
+// The decoder is thrown away and made again rather than told to move, because a frame owes nothing
+// to the frames before it and a fresh decoder is what a reader that had opened the file here would
+// have had. uncomp_off is not used to decode anything. It is what hc_ftell () goes on answering
+// with, which would otherwise say that the file had been read from its beginning to here.
+
+bool hc_frame_restart (HCFILE *fp, const u64 comp_off, const u64 uncomp_off)
+{
+  if (fp == NULL) return false;
+
+  if (fp->zfp == NULL) return false;
+
+  zstdfile_t *zfp = fp->zfp;
+
+  if (lseek (zfp->fd, (off_t) comp_off, SEEK_SET) == (off_t) -1) return false;
+
+  zfp->in.src  = zfp->inbuf;
+  zfp->in.size = 0;
+  zfp->in.pos  = 0;
+  zfp->in_base = comp_off;
+
+  zfp->eof_in  = false;
+  zfp->eof_out = false;
+  zfp->out_pos = uncomp_off;
+
+  if (zfp->z->ZSTD_isError (zfp->z->ZSTD_initDStream (zfp->zds))) return false;
+
+  return true;
 }
 
 int hc_fstat (HCFILE *fp, struct stat *buf)
@@ -1605,6 +1699,38 @@ size_t superchop_with_length (char *buf, const size_t len)
   }
 
   return new_len;
+}
+
+// Whether a path holds one of the compressed formats this file layer decodes.
+//
+// hc_fopen () decides that by the magic bytes at the front of the file when it opens it, and this
+// answers the same question one step earlier for a caller that has to know before it opens
+// anything. A compressed file is read a different way from a plain one, and a caller that has to
+// arrange for that would otherwise keep a second copy of the magic table and drift from this one.
+
+bool hc_path_is_compressed (const char *path)
+{
+  u8 check[8] = { 0 };
+
+  const int fd = open (path, O_RDONLY);
+
+  if (fd == -1) return false;
+
+  const ssize_t nread = read (fd, check, sizeof (check));
+
+  close (fd);
+
+  if (nread < 4) return false;
+
+  if ((check[0] == 0x1f) && (check[1] == 0x8b) && (check[2] == 0x08)) return true;
+
+  if (zstd_magic (check) == true) return true;
+
+  if (nread < (ssize_t) sizeof (XZ_SIG)) return false;
+
+  if (memcmp (check, XZ_SIG, sizeof (XZ_SIG)) == 0) return true;
+
+  return false;
 }
 
 bool hc_path_has_bom (const char *path)

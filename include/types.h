@@ -1395,6 +1395,18 @@ typedef struct zstdfile zstdfile_t;
 
 typedef struct memfile memfile_t;
 
+// Where one frame of a compressed file ends and the next one begins.
+//
+// A container built out of independent frames can be read from any of those boundaries rather than
+// only from the start, which is what lets a compressed wordlist be seeked into. Only the file layer
+// knows where the boundaries of a given container are, so it reports them as they go past and a
+// caller that wants to come back later writes them down.
+//
+// comp_off is where the next frame starts in the file on disk. uncomp_off is how many decompressed
+// bytes came before it, so the two together say what a restart there would land on.
+
+typedef void (*hc_frame_cb_t) (void *userdata, const u64 comp_off, const u64 uncomp_off);
+
 typedef struct hc_fp
 {
   int         fd;
