@@ -180,6 +180,84 @@ function clean_cache()
 export LC_CTYPE=C
 export LANG=C
 
+function mask_dots()
+{
+  # A mask of <count> '?d' groups, the shape the suite has always used for a run of digits.
+
+  local md_count="$1"
+  local md_out=""
+  local md_i
+
+  for ((md_i = 0; md_i < md_count; md_i++)); do
+    md_out="${md_out}?d"
+  done
+
+  printf '%s' "${md_out}"
+}
+
+function mask_literalize()
+{
+  # Rewrite a mask so that every position it covers spells the byte that belongs there. The
+  # generated passwords used to be digits from end to end, which is what makes a mask of '?d'
+  # groups work; tools/test.pl can now seed them with multi byte UTF-8, and no '?d' produces a
+  # byte above 0x7f. Those positions become literals, which costs the attack keyspace it was
+  # never searching anyway. Same function as the one in tools/test.sh.
+  #
+  # $1 = the mask, $2 = the exact bytes the mask has to spell. The mask is returned untouched
+  # unless it covers exactly that many bytes, so a caller that hands over the wrong slice, a
+  # mode with its own mask layout for instance, changes nothing.
+
+  local ml_mask="$1"
+  local ml_text="$2"
+
+  local ml_len=${#ml_mask}
+  local ml_pos=0
+  local ml_cnt=0
+  local ml_out=""
+  local ml_tok
+  local ml_byte
+
+  # count the positions first, a '?x' group covers one byte and anything else covers one byte
+
+  while [ ${ml_pos} -lt ${ml_len} ]; do
+    if [ "${ml_mask:${ml_pos}:1}" = "?" ]; then
+      ml_pos=$((ml_pos + 2))
+    else
+      ml_pos=$((ml_pos + 1))
+    fi
+
+    ml_cnt=$((ml_cnt + 1))
+  done
+
+  if [ ${ml_cnt} -ne ${#ml_text} ]; then
+    printf '%s' "${ml_mask}"
+    return
+  fi
+
+  ml_pos=0
+  ml_cnt=0
+
+  while [ ${ml_pos} -lt ${ml_len} ]; do
+    if [ "${ml_mask:${ml_pos}:1}" = "?" ]; then
+      ml_tok="${ml_mask:${ml_pos}:2}"
+      ml_pos=$((ml_pos + 2))
+    else
+      ml_tok="${ml_mask:${ml_pos}:1}"
+      ml_pos=$((ml_pos + 1))
+    fi
+
+    ml_byte="${ml_text:${ml_cnt}:1}"
+    ml_cnt=$((ml_cnt + 1))
+
+    case "${ml_byte}" in
+      [0-9]) ml_out="${ml_out}${ml_tok}"  ;;
+      *)     ml_out="${ml_out}${ml_byte}" ;;
+    esac
+  done
+
+  printf '%s' "${ml_out}"
+}
+
 OUTD="test_edge_$(date +%s)"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -1009,6 +1087,13 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                     word_1="${word%???}"
                     mask_1="?d?d?d"
                   fi
+
+                  # No '?d' produces a byte above 0x7f, so a mask ending in one cannot spell a
+                  # password that tools/test.pl seeded with a multi byte character. Spell those
+                  # positions instead. The word and the mask are one string here, so a split that
+                  # lands inside a character still reassembles to the right bytes.
+
+                  mask_1="$(mask_literalize "${mask_1}" "${word#"${word_1}"}")"
                 fi
 
                 CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 3 ${word_1}${mask_1}"
@@ -1384,6 +1469,13 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                     word_1="${word%???}"
                     mask_1="?d?d?d"
                   fi
+
+                  # No '?d' produces a byte above 0x7f, so a mask ending in one cannot spell a
+                  # password that tools/test.pl seeded with a multi byte character. Spell those
+                  # positions instead. The word and the mask are one string here, so a split that
+                  # lands inside a character still reassembles to the right bytes.
+
+                  mask_1="$(mask_literalize "${mask_1}" "${word#"${word_1}"}")"
                 fi
 
                 echo -n ${word_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words.masks
