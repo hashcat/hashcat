@@ -135,12 +135,12 @@ sub sm3crypts
 
   my $python_code = <<'END_CODE';
 
-from sm3utils import sm3
+import hashlib
 import base64
 
 data_raw = base64.b64decode (sm3_data)
 
-m = sm3 ()
+m = hashlib.new ("sm3")
 m.update (data_raw)
 r = m.hexdigest ()
 
@@ -191,12 +191,12 @@ END_CODE
 
   $python_code = <<'END_CODE';
 
-from sm3utils import sm3
+import hashlib
 import base64
 
 data_raw = base64.b64decode (sm3_data)
 
-m = sm3 ()
+m = hashlib.new ("sm3")
 m.update (data_raw)
 r = m.hexdigest ()
 
@@ -228,12 +228,12 @@ END_CODE
 
   $python_code = <<'END_CODE';
 
-from sm3utils import sm3
+import hashlib
 import base64
 
 data_raw = base64.b64decode (sm3_data)
 
-m = sm3 ()
+m = hashlib.new ("sm3")
 m.update (data_raw)
 r = m.hexdigest ()
 
@@ -281,12 +281,12 @@ END_CODE
 
   $python_code = <<'END_CODE';
 
-from sm3utils import sm3
+import hashlib
 import base64
 
 data_raw = base64.b64decode (sm3_data)
 
-m = sm3 ()
+m = hashlib.new ("sm3")
 m.update (data_raw)
 r = m.hexdigest ()
 
@@ -330,7 +330,7 @@ END_CODE
   my $s_base64 = encode_base64 ($s, "");
 
   $python_code = <<'END_CODE';
-from sm3utils import sm3
+import hashlib
 import base64
 
 tmp = base64.b64decode (tmp_data)
@@ -358,7 +358,7 @@ while i < loops:
   else:
     tmp += p
 
-  m = sm3 ()
+  m = hashlib.new ("sm3")
   m.update (tmp)
   c = m.digest ()
 
