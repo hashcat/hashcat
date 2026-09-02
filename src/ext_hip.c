@@ -88,39 +88,55 @@ int hip_init (void *hashcat_ctx)
   }
 
   #else
-  hip->lib = hc_dlopen ("libamdhip64.so");
-
-  // The unversioned name is a link that only the -dev package ships, so on a distro that splits its
-  // packages the runtime is installed and this still fails. Fall back to the sonames, newest first,
-  // the way the CUDA and NVRTC loaders already do. The range is walked rather than hardcoded so a
-  // later ROCm does not need another edit here.
-
-  if (hip->lib == NULL)
-  {
-    char soname[64];
-
-    for (int major = 9; major >= 4; major--)
-    {
-      snprintf (soname, sizeof (soname), "libamdhip64.so.%d", major);
-
-      hip->lib = hc_dlopen (soname);
-
-      if (hip->lib) break;
-    }
-  }
-
-  // Hygon DTK 25.04.2 exposes the HIP runtime through libgalaxyhip.so and uses
-  // a legacy ABI. Try it only after the ROCm sonames, and remember which runtime
-  // was loaded so the attribute values and device property layout can be chosen
-  // accordingly.
+  // Hygon DTK exposes the HIP runtime through libgalaxyhip.so and uses a legacy
+  // ABI. Its libamdhip64.so is also a symlink to libgalaxyhip.so, so trying the
+  // AMD name first would hide the DTK ABI. Look for libgalaxyhip first. The
+  // unversioned name may only be present in a development package, so also try
+  // the versioned sonames.
 
   if (hip->lib == NULL)
   {
     hip->lib = hc_dlopen ("libgalaxyhip.so");
 
-    if (hip->lib)
+    if (hip->lib == NULL)
     {
-      hip->is_dtk = true;
+      char soname[64];
+
+      for (int major = 9; major >= 4; major--)
+      {
+        snprintf (soname, sizeof (soname), "libgalaxyhip.so.%d", major);
+
+        hip->lib = hc_dlopen (soname);
+
+        if (hip->lib) break;
+      }
+    }
+
+    if (hip->lib) hip->is_dtk = true;
+  }
+
+  // The unversioned AMD name is a link that only the -dev package ships, so on a
+  // distro that splits its packages the runtime is installed and this still
+  // fails. Fall back to the sonames, newest first, the way the CUDA and NVRTC
+  // loaders already do. The range is walked rather than hardcoded so a later
+  // ROCm does not need another edit here.
+
+  if (hip->lib == NULL)
+  {
+    hip->lib = hc_dlopen ("libamdhip64.so");
+
+    if (hip->lib == NULL)
+    {
+      char soname[64];
+
+      for (int major = 9; major >= 4; major--)
+      {
+        snprintf (soname, sizeof (soname), "libamdhip64.so.%d", major);
+
+        hip->lib = hc_dlopen (soname);
+
+        if (hip->lib) break;
+      }
     }
   }
   #endif
@@ -217,8 +233,8 @@ int hip_init (void *hashcat_ctx)
   HC_LOAD_FUNC_HIP_FALLBACK (hip, hipGetDeviceProperties,    hipGetDevicePropertiesR0600,  hipGetDeviceProperties, HIP_HIPGETDEVICEPROPERTIES,     HIP, 1);
   HC_LOAD_FUNC_HIP (hip, hipModuleOccupancyMaxActiveBlocksPerMultiprocessor, hipModuleOccupancyMaxActiveBlocksPerMultiprocessor, HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR, HIP, 1);
 
-  // hipGetDeviceProperties is the same symbol in both ABIs; keep a second,
-  // layout-correct pointer for the Hygon DTK legacy hipDevicePropDTK_t.
+  // Both ABIs export the same symbol with the same calling convention. Only
+  // the output structure layout differs, so keep a layout-correct DTK pointer.
   hip->hipGetDevicePropertiesDTK = (HIP_HIPGETDEVICEPROPERTIES_DTK) hip->hipGetDeviceProperties;
 
   return 0;
@@ -1582,7 +1598,8 @@ int hc_hipGetDeviceProperties (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevi
     // Map the legacy DTK layout into the ROCm layout hashcat expects elsewhere.
     memset (prop, 0, sizeof (*prop));
 
-    strncpy (prop->name, dprop.name, sizeof (prop->name) - 1);
+    memcpy (prop->name, dprop.name, sizeof (prop->name) - 1);
+    prop->name[sizeof (prop->name) - 1] = 0;
     prop->totalGlobalMem       = dprop.totalGlobalMem;
     prop->sharedMemPerBlock    = dprop.sharedMemPerBlock;
     prop->regsPerBlock         = dprop.regsPerBlock;
@@ -1607,7 +1624,8 @@ int hc_hipGetDeviceProperties (void *hashcat_ctx, hipDeviceProp_t *prop, hipDevi
     prop->maxSharedMemoryPerMultiProcessor = dprop.maxSharedMemoryPerMultiProcessor;
     prop->isMultiGpuBoard      = dprop.isMultiGpuBoard;
     prop->canMapHostMemory     = dprop.canMapHostMemory;
-    strncpy (prop->gcnArchName, dprop.gcnArchName, sizeof (prop->gcnArchName) - 1);
+    memcpy (prop->gcnArchName, dprop.gcnArchName, sizeof (prop->gcnArchName) - 1);
+    prop->gcnArchName[sizeof (prop->gcnArchName) - 1] = 0;
     prop->integrated           = dprop.integrated;
     prop->cooperativeLaunch    = dprop.cooperativeLaunch;
     prop->cooperativeMultiDeviceLaunch = dprop.cooperativeMultiDeviceLaunch;
