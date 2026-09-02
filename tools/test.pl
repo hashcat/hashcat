@@ -12,7 +12,7 @@ use File::Basename;
 use FindBin;
 use List::Util 'shuffle';
 
-my $TYPES = [ 'edge', 'single', 'passthrough', 'potthrough', 'verify' ];
+my $TYPES = [ 'edge', 'single', 'password', 'passthrough', 'potthrough', 'verify' ];
 
 my $TYPE = shift @ARGV;
 my $MODE = shift @ARGV;
@@ -50,6 +50,54 @@ my $single_outputs = 8;
 
 my $constraints = get_module_constraints ();
 
+# Multi byte UTF-8 characters the generated passwords are seeded with. Every entry is a raw
+# byte string, and together they cover the lead bytes a kernel has to get right: a euro sign,
+# hiragana, katakana, CJK, hangul, devanagari, fullwidth latin and one 4 byte character.
+# Passwords made only of digits never leave the ASCII path, so a mode that mangles anything
+# above 0x7f used to pass the suite unnoticed.
+
+my @NON_ASCII_CHARS =
+(
+  "\xe0\xa4\xb9",      # U+0939  devanagari letter ha
+  "\xe2\x82\xac",      # U+20AC  euro sign
+  "\xe3\x81\x8b",      # U+304B  hiragana letter ka
+  "\xe3\x82\xab",      # U+30AB  katakana letter ka
+  "\xe4\xb8\xad",      # U+4E2D  cjk ideograph 'middle'
+  "\xe6\x96\x87",      # U+6587  cjk ideograph 'script'
+  "\xe7\xa0\x81",      # U+7801  cjk ideograph 'code'
+  "\xe9\xbe\x8d",      # U+9F8D  cjk ideograph 'dragon'
+  "\xea\xb0\x80",      # U+AC00  hangul syllable ga
+  "\xef\xbc\xa1",      # U+FF21  fullwidth latin capital a
+  "\xf0\x9f\x98\x80",  # U+1F600 grinning face
+);
+
+# Where the characters may land. Anywhere, including the first byte: tools/test.sh rewrites
+# the '?d' at a position whose byte is not a digit into that byte, so a mask can spell one
+# wherever it turns up.
+#
+# The multi hash tests are the reason the layout is not drawn from rand(). They share one mask
+# across every password of a given length, so the characters have to sit in the same places in
+# all of them. The generator below is seeded from the length alone, which makes the shape of a
+# password a function of its length while the digits around it stay random per password.
+
+my $NON_ASCII_SKIP_BYTES = 0;
+
+# A character is only written where the password keeps at least one byte outside it. -a 1, -a 6,
+# -a 7 and -a 12 cut the password in two and both halves have to land on a character boundary,
+# so a password that is nothing but one character cannot be cut at all and leaves one of the two
+# dictionaries empty. This is the smallest rule that avoids it: it costs nothing above 4 bytes,
+# where the old flat minimum of 6 cost every password of 4 and 5 bytes as well.
+
+my $NON_ASCII_MIN_SPARE = 1;
+
+# Roughly how often an eligible position is turned into a multi byte character. Low enough
+# that a generated set still holds plain ASCII passwords, high enough that a set of 8 almost
+# always holds at least one that is not.
+
+my $NON_ASCII_RATE = 0.34;
+
+my $NON_ASCII_OK = non_ascii_supported ($MODE);
+
 if ($TYPE eq 'edge')
 {
   usage_exit () if scalar @ARGV > 2;
@@ -59,6 +107,12 @@ if ($TYPE eq 'edge')
 elsif ($TYPE eq 'single')
 {
   single (@ARGV);
+}
+elsif ($TYPE eq 'password')
+{
+  usage_exit () if scalar @ARGV > 1;
+
+  password (@ARGV);
 }
 elsif ($TYPE eq 'passthrough')
 {
@@ -101,7 +155,7 @@ sub edge_format
 
   do
   {
-    $word = random_numeric_string ($word_len) // "";
+    $word = random_non_ascii_string ($word_len) // "";
     $salt = random_numeric_string ($salt_len) // "";
 
     if (exists &{module_get_random_password}) # if hash mode requires special format of passwords
@@ -466,7 +520,7 @@ sub single
       }
     }
 
-    my $word = random_numeric_string ($word_len) // "";
+    my $word = random_non_ascii_string ($word_len) // "";
     my $salt = random_numeric_string ($salt_len) // "";
 
     if (exists &{module_get_random_password}) # if hash mode requires special format of passwords
@@ -505,6 +559,30 @@ sub single
       printf ($format, $word, $MODE, $hash);
     }
   }
+}
+
+sub password
+{
+  # One password for this mode, on stdout, nothing else. tools/test.sh builds its -g containers
+  # with it, so a container gets the same multi byte characters the oracle passwords get, and
+  # the same per mode gate decides whether it gets any.
+
+  my $count = shift // 12;
+
+  return unless is_count ($count);
+
+  # A real archive or volume carries whatever encoding the application wrote, and the
+  # optimized path cannot match a multi byte one: a genuine 7-Zip archive built with a euro
+  # sign in its password cracks under -P and comes back not found under -O. So a -O run has
+  # to build its containers out of ASCII, and test.sh sets NO_NON_ASCII to ask for that.
+
+  my $string = (exists $ENV{"NO_NON_ASCII"})
+             ? random_numeric_string ($count)
+             : random_non_ascii_string ($count);
+
+  $string //= "";
+
+  print "$string\n";
 }
 
 sub passthrough
@@ -916,6 +994,195 @@ sub random_numeric_string
   $string .= $chars[rand @chars] for (1 .. $count);
 
   return $string;
+}
+
+sub random_non_ascii_string
+{
+  # A password for a mode that can take one that is not 7 bit ASCII: digits with a euro sign,
+  # kana or a CJK character substituted into them, which is what proves the kernel decodes
+  # UTF-8 rather than widening the bytes. Comes back as plain digits for a mode that cannot
+  # take one, and for a password too short to hold one, so a caller gets a valid password
+  # either way and never has to ask which.
+  #
+  # Salts, site keys and challenge characters keep calling random_numeric_string(). A salt is
+  # a different thing: its length is often counted in characters by the module, it can end up
+  # hex encoded or compared against a username, and none of that has anything to do with the
+  # kernel's UTF-8 handling.
+
+  my $count = shift;
+
+  my $string = random_numeric_string ($count);
+
+  return if ! defined $string;
+
+  return sprinkle_non_ascii ($string);
+}
+
+sub sprinkle_non_ascii
+{
+  # Replace some of the digits with multi byte UTF-8 characters, in place, so the byte length
+  # of the password does not change and it still fits whatever Pwd.Len.Max the mode declares.
+  # A character is only ever written at a position where a whole one fits, and the scan then
+  # steps over it, so the result is always valid UTF-8.
+
+  my $string = shift;
+
+  return $string if $NON_ASCII_OK == 0;
+
+  my $len = length $string;
+
+  # Seeded from the length, so every password of a given length comes out with its characters
+  # in the same places. A plain rand() here would give each of the eight multi hash passwords
+  # of a length a different shape, and no single mask could spell all eight.
+
+  my $seed = ($len * 2654435761) % 4294967291;
+
+  my $rand = sub
+  {
+    $seed = ($seed * 1103515245 + 12345) % 2147483648;
+
+    return $seed / 2147483648;
+  };
+
+  my $pos = $NON_ASCII_SKIP_BYTES;
+
+  while ($pos < $len)
+  {
+    my $char = $NON_ASCII_CHARS[int ($rand->() * scalar @NON_ASCII_CHARS)];
+
+    my $char_len = length $char;
+
+    if ((($pos + $char_len) <= ($len - $NON_ASCII_MIN_SPARE + ($pos > 0 ? 1 : 0))) && ($rand->() < $NON_ASCII_RATE))
+    {
+      substr ($string, $pos, $char_len) = $char;
+
+      $pos += $char_len;
+    }
+    else
+    {
+      $pos += 1;
+    }
+  }
+
+  return $string;
+}
+
+sub non_ascii_supported
+{
+  # Decide whether this mode can be handed a password that is not 7 bit ASCII. hashcat has no
+  # single flag for it, so the module source is read for the option bits that pin the
+  # plaintext to a charset, the same way tools/test.sh reads OPTS_TYPE_SUGGEST_KG and friends
+  # straight out of src/modules.
+
+  my $mode = shift;
+
+  return 0 if exists $ENV{"NO_NON_ASCII"};
+
+  # a module that builds the password out of the generated string, a bitcoin seed or a
+  # NetNTLM response for instance, needs that string in the format it expects
+
+  return 0 if exists &{module_get_random_password};
+
+  my $module_file = sprintf ("%s/../src/modules/module_%05d.c", $FindBin::Bin, $mode);
+
+  open (my $fh, "<", $module_file) or return 0;
+
+  my $src = do { local $/; <$fh> };
+
+  close ($fh);
+
+  # OPTS_TYPE_PT_ALWAYS_ASCII says the plaintext is ASCII by definition, PT_LM and PT_UPPER
+  # case fold it, which the kernels only do for ASCII, and PT_HEX, PT_BASE58 and
+  # PT_ALWAYS_HEXIFY spell the password in an alphabet of their own.
+
+  for my $opt (qw (OPTS_TYPE_PT_ALWAYS_ASCII
+                   OPTS_TYPE_PT_ALWAYS_HEXIFY
+                   OPTS_TYPE_PT_BASE58
+                   OPTS_TYPE_PT_HEX
+                   OPTS_TYPE_PT_LM
+                   OPTS_TYPE_PT_LOWER
+                   OPTS_TYPE_PT_UPPER))
+  {
+    return 0 if $src =~ /\Q$opt\E/;
+  }
+
+  # A kernel that needs UTF-16 either decodes the UTF-8 with hc_enc or widens the bytes, and a
+  # password above 0x7f only survives the first kind. module_01000.c says as much in its own
+  # advice notice. Inject only where the kernel that is going to run is the decoding one.
+
+  my $decoding = utf16_decoding_helpers ();
+
+  my $any_utf16    = 0;
+  my $pure_decodes = 0;
+
+  for my $kernel (glob (sprintf ("%s/../OpenCL/m%05d*.cl", $FindBin::Bin, $mode)))
+  {
+    open (my $kh, "<", $kernel) or next;
+
+    my $ksrc = do { local $/; <$kh> };
+
+    close ($kh);
+
+    my $decodes = ($ksrc =~ /\bhc_enc_next\s*\(/) ? 1 : 0;
+    my $widens  = ($ksrc =~ /\bmake_utf16/)       ? 1 : 0;
+
+    $any_utf16 = 1 if $widens;
+
+    while ($ksrc =~ /\b(\w+_utf16\w*)\s*\(/g)
+    {
+      $any_utf16 = 1;
+
+      if ($decoding->{$1}) { $decodes = 1; } else { $widens = 1; }
+    }
+
+    $pure_decodes ||= $decodes if $kernel =~ /-pure\.cl$/;
+  }
+
+  if ($any_utf16)
+  {
+    # nothing in this mode ever decodes, UTF-16BE for instance has no hc_enc path at all
+
+    return 0 if $pure_decodes == 0;
+
+    # -O leaves OPTS_TYPE_PT_UTF16LE set, so interface.c has the host widen the candidate
+    # before the kernel ever sees it, whatever the kernel itself would have done. That is why
+    # a mode with no optimized kernel of its own, m11600 for one, still behaves the optimized
+    # way under -O. The oracles follow the same split through $PW_CHARSET, so both families
+    # get non-ASCII passwords and each is checked against what it actually does.
+  }
+
+  return 1;
+}
+
+sub utf16_decoding_helpers
+{
+  # Split the inc_hash_* conversion helpers into the ones that decode UTF-8 through hc_enc and
+  # the ones that only widen the bytes. The scalar UTF-16LE variants decode; the vector ones,
+  # the HMAC ones and every UTF-16BE variant do not.
+
+  my %decoding;
+
+  for my $inc (glob (sprintf ("%s/../OpenCL/inc_hash_*.cl", $FindBin::Bin)))
+  {
+    open (my $ih, "<", $inc) or next;
+
+    my $isrc = do { local $/; <$ih> };
+
+    close ($ih);
+
+    for my $chunk (split (/\nDECLSPEC /, $isrc))
+    {
+      next unless $chunk =~ /^\w[\w ]*?\s(\w+)\s*\(/;
+
+      my $fn = $1;
+
+      next unless $fn =~ /utf16/;
+
+      $decoding{$fn} = 1 if $chunk =~ /hc_enc_next/;
+    }
+  }
+
+  return \%decoding;
 }
 
 sub random_string

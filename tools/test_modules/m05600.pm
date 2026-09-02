@@ -8,10 +8,24 @@
 use strict;
 use warnings;
 
-use Authen::Passphrase::NTHash;
+use Digest::MD4  qw (md4);
 use Digest::HMAC qw (hmac hmac_hex);
 use Digest::MD5  qw (md5);
-use Encode       qw (encode);
+use Encode       qw (encode decode);
+
+# The optimized kernels widen each byte instead of decoding the UTF-8, and
+# module_01000.c:58 documents that as deliberate rather than as a bug, so the two
+# kernel families really do disagree on a multi byte password. The oracle follows
+# whichever one test.sh is about to run: decoding as latin1 reproduces the
+# widening byte for byte, decoding as utf-8 is the conversion the pure kernels do.
+# test.sh exports IS_OPTIMIZED from the same value it uses to decide on -O.
+
+my $PW_CHARSET = "latin1";
+
+if (exists $ENV{"IS_OPTIMIZED"} && defined $ENV{"IS_OPTIMIZED"} && $ENV{"IS_OPTIMIZED"} == 0)
+{
+  $PW_CHARSET = "utf-8";
+}
 
 sub module_constraints { [[0, 127], [0, 55], [0, 27], [0, 27], [-1, -1]] } # room for improvement in pure kernel mode
 
@@ -30,7 +44,10 @@ sub module_generate_hash
   my $b_srv_ch = pack ('H*', $srv_ch);
   my $b_cli_ch = pack ('H*', $cli_ch);
 
-  my $nthash   = Authen::Passphrase::NTHash->new (passphrase => $word)->hash;
+  # md4 of the UTF-16LE password, which is what the NT hash is. Authen::Passphrase::NTHash
+  # cannot be used here: it gets the encoding wrong for a character outside the BMP, an
+  # emoji for instance, and the kernel does not.
+  my $nthash   = md4 (encode ("UTF-16LE", decode ($PW_CHARSET, $word)));
   my $identity = encode ('UTF-16LE', uc ($user) . $domain);
   my $digest   = hmac_hex ($b_srv_ch . $b_cli_ch, hmac ($identity, $nthash, \&md5, 64), \&md5, 64);
 
