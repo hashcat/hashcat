@@ -10,7 +10,12 @@ use warnings;
 
 use MIME::Base64 qw (encode_base64 decode_base64);
 
-sub module_constraints { [[0, 256], [0, 20], [0, 15], [0, 20], [-1, -1]] }
+# There is no pure kernel: OpenCL/ carries only m35100-optimized.cl, so hashcat
+# falls back to it even under -P and module_pw_max() then caps the password at 15.
+# Declaring a pure range here made test.pl generate up to 256 bytes against a
+# kernel that cannot take them, and every long candidate was skipped as too long.
+
+sub module_constraints { [[-1, -1], [-1, -1], [0, 15], [0, 20], [-1, -1]] }
 
 sub module_generate_hash
 {
@@ -135,12 +140,12 @@ sub sm3crypts
 
   my $python_code = <<'END_CODE';
 
-from sm3utils import sm3
+import hashlib
 import base64
 
 data_raw = base64.b64decode (sm3_data)
 
-m = sm3 ()
+m = hashlib.new ("sm3")
 m.update (data_raw)
 r = m.hexdigest ()
 
@@ -191,12 +196,12 @@ END_CODE
 
   $python_code = <<'END_CODE';
 
-from sm3utils import sm3
+import hashlib
 import base64
 
 data_raw = base64.b64decode (sm3_data)
 
-m = sm3 ()
+m = hashlib.new ("sm3")
 m.update (data_raw)
 r = m.hexdigest ()
 
@@ -228,12 +233,12 @@ END_CODE
 
   $python_code = <<'END_CODE';
 
-from sm3utils import sm3
+import hashlib
 import base64
 
 data_raw = base64.b64decode (sm3_data)
 
-m = sm3 ()
+m = hashlib.new ("sm3")
 m.update (data_raw)
 r = m.hexdigest ()
 
@@ -281,12 +286,12 @@ END_CODE
 
   $python_code = <<'END_CODE';
 
-from sm3utils import sm3
+import hashlib
 import base64
 
 data_raw = base64.b64decode (sm3_data)
 
-m = sm3 ()
+m = hashlib.new ("sm3")
 m.update (data_raw)
 r = m.hexdigest ()
 
@@ -330,7 +335,7 @@ END_CODE
   my $s_base64 = encode_base64 ($s, "");
 
   $python_code = <<'END_CODE';
-from sm3utils import sm3
+import hashlib
 import base64
 
 tmp = base64.b64decode (tmp_data)
@@ -358,7 +363,7 @@ while i < loops:
   else:
     tmp += p
 
-  m = sm3 ()
+  m = hashlib.new ("sm3")
   m.update (tmp)
   c = m.digest ()
 

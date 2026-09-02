@@ -10,28 +10,44 @@ use warnings;
 
 sub module_constraints { [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]] }
 
-sub module_generate_hash
-{
-  my $word = shift;
-  my $salt = shift;
-  my $python_code = <<"END_CODE";
+# The password goes over argv as hex. It is arbitrary bytes, and a Python b"..."
+# literal can only hold ASCII, so interpolating it into the source turns every
+# candidate above 0x7f into a SyntaxError.
 
+my $PY = <<'PYCODE';
 import binascii
 import hmac
 import sys
 from pygost import gost34112012256
-key    = b"$word"
-msg    = b"$salt"
+key    = bytes.fromhex (sys.argv[1])
+msg    = bytes.fromhex (sys.argv[2])
 digest = hmac.new (key, msg, gost34112012256).digest ()
 print (binascii.hexlify (digest[::-1]).decode (), end = "")
+PYCODE
 
-END_CODE
+sub _run
+{
+  my @args = @_;
 
-  my $digest = `python3 -c '$python_code'`;
+  open (my $fh, "-|", "python3", "-c", $PY, @args) or return undef;
 
-  my $hash = sprintf ("%s:%s", $digest, $salt);
+  local $/;
+  my $out = <$fh>;
+  close ($fh);
 
-  return $hash;
+  return $out;
+}
+
+sub module_generate_hash
+{
+  my $word = shift;
+  my $salt = shift;
+
+  my $digest = _run (unpack ("H*", $word), unpack ("H*", $salt));
+
+  return unless defined $digest;
+
+  return sprintf ("%s:%s", $digest, $salt);
 }
 
 sub module_verify_hash

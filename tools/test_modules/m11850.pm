@@ -10,29 +10,44 @@ use warnings;
 
 sub module_constraints { [[0, 256], [0, 256], [-1, -1], [-1, -1], [-1, -1]] }
 
+# The password goes over argv as hex. It is arbitrary bytes, and a Python b"..."
+# literal can only hold ASCII, so interpolating it into the source turns every
+# candidate above 0x7f into a SyntaxError.
+
+my $PY = <<'PYCODE';
+import binascii
+import hmac
+import sys
+from pygost import gost34112012512
+key    = bytes.fromhex (sys.argv[1])
+msg    = bytes.fromhex (sys.argv[2])
+digest = hmac.new (key, msg, gost34112012512).digest ()
+print (binascii.hexlify (digest[::-1]).decode (), end = "")
+PYCODE
+
+sub _run
+{
+  my @args = @_;
+
+  open (my $fh, "-|", "python3", "-c", $PY, @args) or return undef;
+
+  local $/;
+  my $out = <$fh>;
+  close ($fh);
+
+  return $out;
+}
+
 sub module_generate_hash
 {
   my $word = shift;
   my $salt = shift;
 
-  my $python_code = <<"END_CODE";
+  my $digest = _run (unpack ("H*", $word), unpack ("H*", $salt));
 
-import binascii
-import hmac
-import sys
-from pygost import gost34112012512
-key    = b"$word"
-msg    = b"$salt"
-digest = hmac.new (key, msg, gost34112012512).digest ()
-print (binascii.hexlify (digest[::-1]).decode (), end = "")
+  return unless defined $digest;
 
-END_CODE
-
-  my $digest = `python3 -c '$python_code'`;
-
-  my $hash = sprintf ("%s:%s", $digest, $salt);
-
-  return $hash;
+  return sprintf ("%s:%s", $digest, $salt);
 }
 
 sub module_verify_hash

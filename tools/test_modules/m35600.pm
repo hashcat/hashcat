@@ -10,19 +10,12 @@ use warnings;
 
 sub module_constraints { [[0, 256], [0, 16], [-1, -1], [-1, -1], [-1, -1]] }
 
-sub module_generate_hash
-{
-  my $word = shift;
-  my $salt = shift;
-  my $iter = shift;
+# The password goes over argv as hex. It is arbitrary bytes, and a Python b"..."
+# literal can only hold ASCII, so interpolating it into the source turns every
+# candidate above 0x7f into a SyntaxError.
 
-  if (!defined $iter)
-  {
-    $iter = "";
-  }
-
-  my $python_code = <<"END_CODE";
-
+my $PY = <<'PYCODE';
+import sys
 from pygost import gost34112012512
 
 _c_digest_offsets = (
@@ -111,25 +104,41 @@ def gost12_512_crypt(pwd: bytes, salt: str, rounds: int) -> str:
 def crypt(pw, salt, rounds):
     hash = gost12_512_crypt(pw, salt, rounds)
     if rounds == DEFAULT_ROUNDS:
-        return '\\\$gost12512hash\\\${}\\\${}'.format(salt, hash)
+        return '$gost12512hash${}${}'.format(salt, hash)
     else:
-        return '\\\$gost12512hash\\\$rounds={}\\\${}\\\${}'.format(rounds, salt, hash)
+        return '$gost12512hash$rounds={}${}${}'.format(rounds, salt, hash)
 
-rounds = "$iter"
+rounds = sys.argv[3]
 if not rounds:
     rounds = DEFAULT_ROUNDS
 else:
     rounds = int(rounds)
-print(crypt(b"$word", "$salt", rounds), end = "")
+print(crypt(bytes.fromhex(sys.argv[1]), sys.argv[2], rounds), end = "")
 
-END_CODE
+PYCODE
 
-  my $hash = `python3 - <<END_CODE
-$python_code
-END_CODE
-`;
+sub _run
+{
+  my @args = @_;
 
-  return $hash;
+  open (my $fh, "-|", "python3", "-c", $PY, @args) or return undef;
+
+  local $/;
+  my $out = <$fh>;
+  close ($fh);
+
+  return $out;
+}
+
+sub module_generate_hash
+{
+  my $word = shift;
+  my $salt = shift;
+  my $iter = shift;
+
+  $iter = "" unless defined $iter;
+
+  return _run (unpack ("H*", $word), $salt, $iter);
 }
 
 sub module_verify_hash
