@@ -519,7 +519,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
 // later word onto the previous hash, and there is nothing to put in its place. The run stops instead
 // and says which word it was.
 
-static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_batch_t *batch, u64 *words_extra, const u64 word_pos)
+static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_batch_t *batch, u64 *words_extra, const u64 word_pos, const u32 rect)
 {
   if (reject_fatal == true)
   {
@@ -530,6 +530,14 @@ static int fill_reject (hashcat_ctx_t *hashcat_ctx, const bool reject_fatal, pw_
   }
 
   batch->words_extra++;
+
+  // A refused word of a feed that amplifies stood for a whole cell rather than one candidate.
+  // reject_amplifier is set for ATTACK_KERN_STRAIGHT and ATTACK_KERN_COMBI only, so for the device
+  // engine it stays zero and the cell was booked nowhere: neither hashed nor rejected, it went
+  // missing out of both counters at once. The rectangle is passed in because the caller has it while
+  // the cell is still this word's.
+
+  if (batch->pcfg_cells != NULL) batch->words_extra_amp += (rect > 0) ? rect : 1;
 
   words_extra[0]++;
 
@@ -733,9 +741,18 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       int pw_len;
 
+      // The cell is read straight after the feed writes it, because a rejected word does not advance
+      // pws_cnt and the next word then overwrites it at the same index.
+
+      u32 cell_rect = 0;
+
       if (gf->amp == true)
       {
+        batch->pcfg_cells[batch->pws_cnt].rect = 0;
+
         pw_len = generic_thread_next_dev (hashcat_ctx, GENERIC_ROLE_BASE, device_param->device_id, pw_buf, PW_MAX, &batch->pcfg_cells[batch->pws_cnt]);
+
+        cell_rect = batch->pcfg_cells[batch->pws_cnt].rect;
       }
       else
       {
@@ -768,7 +785,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
       {
         if (gf->can_shrink == false)
         {
-          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
           continue;
         }
@@ -791,7 +808,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
         if (pw_len > gf->scratch_size)
         {
-          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
           continue;
         }
@@ -805,7 +822,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (pw_len < 0)
       {
-        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
         continue;
       }
@@ -816,7 +833,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
       if (pw_len > PW_MAX)
       {
-        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+        if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
         continue;
       }
@@ -830,7 +847,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
         if ((too_short == true) || (too_long == true))
         {
-          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur) == -1) return -1;
+          if (fill_reject (hashcat_ctx, gf->reject_fatal, batch, &words_extra, words_off + work_cur, cell_rect) == -1) return -1;
 
           continue;
         }
@@ -898,13 +915,21 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
     if (batch == NULL) break;
 
-    if ((reject_amplifier > 0) && (batch->words_extra > 0))
+    // A feed that amplifies counted its own rejects as they happened, cell by cell, because a
+    // rejected cell is gone by the time the batch gets here. Everyone else multiplies by the one
+    // amplifier the whole run shares.
+
+    const u64 rejected = (batch->words_extra_amp > 0)
+                       ? batch->words_extra_amp
+                       : ((reject_amplifier > 0) ? (batch->words_extra * reject_amplifier) : 0);
+
+    if (rejected > 0)
     {
       hc_thread_mutex_lock (status_ctx->mux_counter);
 
       for (u32 salt_pos = 0; salt_pos < hashes->salts_cnt; salt_pos++)
       {
-        status_ctx->words_progress_rejected[salt_pos] += batch->words_extra * reject_amplifier;
+        status_ctx->words_progress_rejected[salt_pos] += rejected;
       }
 
       hc_thread_mutex_unlock (status_ctx->mux_counter);
