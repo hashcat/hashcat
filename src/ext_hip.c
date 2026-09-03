@@ -88,34 +88,14 @@ int hip_init (void *hashcat_ctx)
   }
 
   #else
-  // Hygon DTK exposes the HIP runtime through libgalaxyhip.so and uses a legacy
-  // ABI. Its libamdhip64.so is also a symlink to libgalaxyhip.so, so trying the
-  // AMD name first would hide the DTK ABI. Look for libgalaxyhip first. The
-  // unversioned name may only be present in a development package, so also try
-  // the versioned sonames.
+  // Hygon DTK ships libamdhip64.so as an alias for libgalaxyhip.so, so the DTK
+  // runtime is reached through the standard AMD name. Keep libamdhip64 first and
+  // identify the runtime from an exported symbol once the library is open, rather
+  // than from the order in which the names were tried.
 
-  if (hip->lib == NULL)
-  {
-    hip->lib = hc_dlopen ("libgalaxyhip.so");
+  hip->lib = hc_dlopen ("libamdhip64.so");
 
-    if (hip->lib == NULL)
-    {
-      char soname[64];
-
-      for (int major = 9; major >= 4; major--)
-      {
-        snprintf (soname, sizeof (soname), "libgalaxyhip.so.%d", major);
-
-        hip->lib = hc_dlopen (soname);
-
-        if (hip->lib) break;
-      }
-    }
-
-    if (hip->lib) hip->is_dtk = true;
-  }
-
-  // The unversioned AMD name is a link that only the -dev package ships, so on a
+  // The unversioned name is a link that only the -dev package ships, so on a
   // distro that splits its packages the runtime is installed and this still
   // fails. Fall back to the sonames, newest first, the way the CUDA and NVRTC
   // loaders already do. The range is walked rather than hardcoded so a later
@@ -123,25 +103,25 @@ int hip_init (void *hashcat_ctx)
 
   if (hip->lib == NULL)
   {
-    hip->lib = hc_dlopen ("libamdhip64.so");
+    char soname[64];
 
-    if (hip->lib == NULL)
+    for (int major = 9; major >= 4; major--)
     {
-      char soname[64];
+      snprintf (soname, sizeof (soname), "libamdhip64.so.%d", major);
 
-      for (int major = 9; major >= 4; major--)
-      {
-        snprintf (soname, sizeof (soname), "libamdhip64.so.%d", major);
+      hip->lib = hc_dlopen (soname);
 
-        hip->lib = hc_dlopen (soname);
-
-        if (hip->lib) break;
-      }
+      if (hip->lib) break;
     }
   }
   #endif
 
   if (hip->lib == NULL) return -1;
+
+  // DTK's libamdhip64.so is libgalaxyhip.so and exports hipExtGetNearstCPU,
+  // which the ROCm library does not. Ask the opened library which runtime it is
+  // instead of relying on the name it was found under.
+  hip->is_dtk = (hc_dlsym (hip->lib, "hipExtGetNearstCPU") != NULL);
 
   // finding the right symbol is a PITA,
   #define HC_LOAD_FUNC_HIP(ptr,name,hipname,type,libname,noerr) \
