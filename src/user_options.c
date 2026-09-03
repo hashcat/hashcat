@@ -4117,36 +4117,44 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     // The first argument is a plugin name and only falls back to being a path, so it is checked
     // against the shipped feeds first. A name that matches neither is reported as the path it would
     // have been, because that is the form the user typed.
+    //
+    // There may be no argument at all. --backend-info and --hash-info answer without running an
+    // attack, so they leave hc_workv null whatever else is on the command line, and reading
+    // hc_workv[0] read through it. --benchmark leaves it null for the same reason but refuses -a
+    // before reaching here, so it cannot get this far today.
 
-    char *plugin_name = user_options_extra->hc_workv[0];
-
-    bool by_name = false;
-
-    char *library_filename = generic_resolve (folder_config, plugin_name, &by_name);
-
-    hcfree (library_filename);
-
-    if (by_name == false)
+    if (user_options_extra->hc_workc > 0)
     {
-      if (hc_path_exist (plugin_name) == false)
+      char *plugin_name = user_options_extra->hc_workv[0];
+
+      bool by_name = false;
+
+      char *library_filename = generic_resolve (folder_config, plugin_name, &by_name);
+
+      hcfree (library_filename);
+
+      if (by_name == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
+        if (hc_path_exist (plugin_name) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
-        return -1;
-      }
+          return -1;
+        }
 
-      if (hc_path_is_directory (plugin_name) == true)
-      {
-        event_log_error (hashcat_ctx, "%s: A directory cannot be used as first plugin argument.", plugin_name);
+        if (hc_path_is_directory (plugin_name) == true)
+        {
+          event_log_error (hashcat_ctx, "%s: A directory cannot be used as first plugin argument.", plugin_name);
 
-        return -1;
-      }
+          return -1;
+        }
 
-      if (hc_path_read (plugin_name) == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
+        if (hc_path_read (plugin_name) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
-        return -1;
+          return -1;
+        }
       }
     }
 
