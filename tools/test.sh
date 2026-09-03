@@ -6665,14 +6665,45 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
     # validate filter
 
-    if ! is_in_array "${HT_MIN}" ${HASH_TYPES}; then
-      echo "! invalid hash type selected ..."
-      usage
-    fi
+    # Naming what is wrong and stopping is more use than the whole option list, which the reader
+    # has not asked for and which buries the one line that matters. -h still prints it.
+    #
+    # A range only has to contain something. The loops below already skip a mode that is not in
+    # HASH_TYPES, so a range may span gaps, and requiring its two endpoints to be modes in their
+    # own right rejected ranges the run would have handled. Under -y that was almost every range,
+    # there being two modes in the list.
 
-    if ! is_in_array "${HT_MAX}" ${HASH_TYPES}; then
-      echo "! invalid hash type selected ..."
-      usage
+    if [ "${HT_MIN}" -eq "${HT_MAX}" ]; then
+      if ! is_in_array "${HT_MIN}" ${HASH_TYPES}; then
+        if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+          echo "! hash type ${HT_MIN} has no tools/test_modules/m$(printf '%05d' "${HT_MIN}").py, so -y cannot run it"
+          echo "! modes with a python oracle: ${PM_MODES}"
+        else
+          echo "! invalid hash type selected: ${HT_MIN}"
+        fi
+
+        exit 1
+      fi
+    else
+      HT_ANY=0
+
+      for HT_CHECK in ${HASH_TYPES}; do
+        if [ "${HT_CHECK}" -ge "${HT_MIN}" ] && [ "${HT_CHECK}" -le "${HT_MAX}" ]; then
+          HT_ANY=1
+          break
+        fi
+      done
+
+      if [ "${HT_ANY}" -eq 0 ]; then
+        if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+          echo "! no hash type between ${HT_MIN} and ${HT_MAX} has a .py oracle, so -y cannot run any of them"
+          echo "! modes with a python oracle: ${PM_MODES}"
+        else
+          echo "! no valid hash type between ${HT_MIN} and ${HT_MAX}"
+        fi
+
+        exit 1
+      fi
     fi
   fi
 
