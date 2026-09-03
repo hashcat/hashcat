@@ -37,46 +37,46 @@ TAIL_LEN           = 288
 
 
 def module_constraints():
-    return [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
+  return [[0, 256], [64, 64], [-1, -1], [-1, -1], [-1, -1]]
 
 
 def _psafe3(word, salt_raw, iterations, tail):
-    stretched = hashlib.sha256(word + salt_raw).digest()
+  stretched = hashlib.sha256(word + salt_raw).digest()
 
-    for _ in range(iterations):
-        stretched = hashlib.sha256(stretched).digest()
+  for _ in range(iterations):
+    stretched = hashlib.sha256(stretched).digest()
 
-    header = b"PWS3" + salt_raw + struct.pack("<I", iterations) + hashlib.sha256(stretched).digest()
+  header = b"PWS3" + salt_raw + struct.pack("<I", iterations) + hashlib.sha256(stretched).digest()
 
-    return base64.b64encode(header + tail).decode("ascii")
+  return base64.b64encode(header + tail).decode("ascii")
 
 
 def module_generate_hash(word, salt, iterations=None):
-    if not iterations or iterations <= 0:
-        iterations = ITERATIONS_DEFAULT
+  if not iterations or iterations <= 0:
+    iterations = ITERATIONS_DEFAULT
 
-    return _psafe3(word, bytes.fromhex(salt), iterations, os.urandom(TAIL_LEN))
+  return _psafe3(word, bytes.fromhex(salt), iterations, os.urandom(TAIL_LEN))
 
 
 def module_verify_hash(line):
-    idx = line.find(b":")
+  idx = line.find(b":")
 
-    if idx < 1:
-        return None
+  if idx < 1:
+    return None
 
-    hash_in, word = line[:idx], line[idx + 1:]
+  hash_in, word = line[:idx], line[idx + 1:]
 
-    try:
-        raw = base64.b64decode(hash_in)
-    except Exception:
-        return None
+  try:
+    raw = base64.b64decode(hash_in)
+  except Exception:
+    return None
 
-    if len(raw) < 72 or raw[:4] != b"PWS3":
-        return None
+  if len(raw) < 72 or raw[:4] != b"PWS3":
+    return None
 
-    salt_raw   = raw[4:36]
-    iterations = struct.unpack("<I", raw[36:40])[0]
+  salt_raw   = raw[4:36]
+  iterations = struct.unpack("<I", raw[36:40])[0]
 
-    # the tail is whatever the artifact carried, so the hash rebuilds byte for byte
+  # the tail is whatever the artifact carried, so the hash rebuilds byte for byte
 
-    return (_psafe3(word, salt_raw, iterations, raw[72:]), word)
+  return (_psafe3(word, salt_raw, iterations, raw[72:]), word)

@@ -15,19 +15,19 @@ import random
 
 
 def random_number(minimum, maximum):
-    if minimum > maximum:
-        return None
+  if minimum > maximum:
+    return None
 
-    return random.randint(minimum, maximum)
+  return random.randint(minimum, maximum)
 
 
 def random_numeric_string(count):
-    return "".join(random.choice("0123456789") for _ in range(count))
+  return "".join(random.choice("0123456789") for _ in range(count))
 
 
 def random_hex_string(count):
-    return "".join(random.choice("0123456789abcdef") for _ in range(count))
+  return "".join(random.choice("0123456789abcdef") for _ in range(count))
 
 
 def random_bytes(count):
-    return bytes(random.randrange(256) for _ in range(count))
+  return bytes(random.randrange(256) for _ in range(count))
