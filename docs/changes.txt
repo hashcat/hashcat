@@ -179,6 +179,8 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Added hash-mode: yescrypt
 - Added hash-mode: gost-yescrypt
 - Added hash-mode: scryptcrypt, scrypt (Unix)
+- Added hash-mode: KDE KWallet 4.13+ (PBKDF2-HMAC-SHA512, Blowfish)
+- Added hash-mode: KDE KWallet < 4.13 (SHA-1, Blowfish)
 
 ##
 ## New Attack modes and changed Attack modes
@@ -215,7 +217,7 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - New option --lookup: Report where an attack reaches one given candidate, then quit. A candidate no shell can pass is written as $HEX[...]
 - Added --encrypt-with-pubkey, which encrypts recovered plains with an RSA public key
 - Encrypted plains mean the cracking host never sees them, see docs/hashcat-encrypted-plains.md
-- Wordlists, hash lists and rule files may now be zstd compressed, alongside gzip and xz. A .zst wordlist written in several frames, which is what pzstd writes, is seeked into rather than decoded from the start
+- Wordlists, hash lists and rule files may now be zstd compressed, alongside gzip and xz
 - -m 23800 unpacks the archive with hashcat's own RAR3 decoder, which runs all 6 RAR3 filters, so every archive that cracked before cracks now
 - Added tools/rar32hashcat.py, which writes -m 23800 hash lines from a password protected RAR3 archive
 - -m 23800 now reports at the end of a run how many candidates reached a RAR3 construct it could not decode
@@ -224,7 +226,6 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 ## Improvements
 ##
 
-- An .xz wordlist written in blocks, which is what xz -T0 writes, is seeked into rather than decoded from the start
 - Autotune: Set the thread count of -m 23800 from the device, which the lower workload profiles tuned far too low
 - Docker: Added hashcat-toolchain
 - Docker: Added Ubuntu 26.04 runtime images for CUDA and AMD
