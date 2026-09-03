@@ -180,6 +180,151 @@ function clean_cache()
 export LC_CTYPE=C
 export LANG=C
 
+function mask_dots()
+{
+  # A mask of <count> '?d' groups, the shape the suite has always used for a run of digits.
+
+  local md_count="$1"
+  local md_out=""
+  local md_i
+
+  for ((md_i = 0; md_i < md_count; md_i++)); do
+    md_out="${md_out}?d"
+  done
+
+  printf '%s' "${md_out}"
+}
+
+function utf8_split_point()
+{
+  # Move a split offset back until it lands on a UTF-8 character boundary, and print the
+  # result. -a 1, -a 6 and -a 7 hand the word and the mask to the kernel as two buffers and
+  # the UTF-16 modes convert each of them on its own, so a character cut in half is two
+  # invalid fragments and the candidate is dropped. Both halves have to be valid UTF-8 by
+  # themselves for those attacks to spell a multi byte password at all.
+  #
+  # $1 = the password, $2 = the wanted offset in bytes, counting from 0
+
+  local up_text="$1"
+  local up_off="$2"
+  local up_back="${up_off}"
+  local up_len=${#up_text}
+
+  while [ "${up_back}" -gt 0 ]; do
+    case "${up_text:${up_back}:1}" in
+      # 0x80 to 0xbf is a continuation byte, so the offset sits inside a character
+      [$'\x80'-$'\xbf']) up_back=$((up_back - 1)) ;;
+      *)                  break ;;
+    esac
+  done
+
+  # Moving back is the right answer unless it lands on 0 while the caller asked for a real
+  # split, which happens when a character sits at the very start of the password. An empty
+  # half is not a candidate the combinator and hybrid attacks can use, so go the other way
+  # and take the first boundary after the offset instead.
+
+  if [ "${up_back}" -eq 0 ] && [ "${up_off}" -gt 0 ]; then
+    while [ "${up_off}" -lt "${up_len}" ]; do
+      case "${up_text:${up_off}:1}" in
+        [$'\x80'-$'\xbf']) up_off=$((up_off + 1)) ;;
+        *)                  break ;;
+      esac
+    done
+
+    printf '%s' "${up_off}"
+
+    return
+  fi
+
+  printf '%s' "${up_back}"
+}
+function mask_for()
+{
+  # A mask covering exactly the bytes of $2, built out of the token $1. A '?d' cannot produce a
+  # byte above 0x7f, so for that token the positions that are not digits are written as literals.
+  # The hex and base58 charsets already cover their own alphabets and are left alone.
+
+  local mf_tok="$1"
+  local mf_text="$2"
+  local mf_out=""
+  local mf_i
+
+  for ((mf_i = 0; mf_i < ${#mf_text}; mf_i++)); do
+    mf_out="${mf_out}${mf_tok}"
+  done
+
+  if [ "${mf_tok}" = "?d" ]; then
+    mask_literalize "${mf_out}" "${mf_text}"
+
+    return
+  fi
+
+  printf '%s' "${mf_out}"
+}
+
+function mask_literalize()
+{
+  # Rewrite a mask so that every position it covers spells the byte that belongs there. The
+  # generated passwords used to be digits from end to end, which is what makes a mask of '?d'
+  # groups work; tools/test.pl can now seed them with multi byte UTF-8, and no '?d' produces a
+  # byte above 0x7f. Those positions become literals, which costs the attack keyspace it was
+  # never searching anyway. Same function as the one in tools/test.sh.
+  #
+  # $1 = the mask, $2 = the exact bytes the mask has to spell. The mask is returned untouched
+  # unless it covers exactly that many bytes, so a caller that hands over the wrong slice, a
+  # mode with its own mask layout for instance, changes nothing.
+
+  local ml_mask="$1"
+  local ml_text="$2"
+
+  local ml_len=${#ml_mask}
+  local ml_pos=0
+  local ml_cnt=0
+  local ml_out=""
+  local ml_tok
+  local ml_byte
+
+  # count the positions first, a '?x' group covers one byte and anything else covers one byte
+
+  while [ ${ml_pos} -lt ${ml_len} ]; do
+    if [ "${ml_mask:${ml_pos}:1}" = "?" ]; then
+      ml_pos=$((ml_pos + 2))
+    else
+      ml_pos=$((ml_pos + 1))
+    fi
+
+    ml_cnt=$((ml_cnt + 1))
+  done
+
+  if [ ${ml_cnt} -ne ${#ml_text} ]; then
+    printf '%s' "${ml_mask}"
+    return
+  fi
+
+  ml_pos=0
+  ml_cnt=0
+
+  while [ ${ml_pos} -lt ${ml_len} ]; do
+    if [ "${ml_mask:${ml_pos}:1}" = "?" ]; then
+      ml_tok="${ml_mask:${ml_pos}:2}"
+      ml_pos=$((ml_pos + 2))
+    else
+      ml_tok="${ml_mask:${ml_pos}:1}"
+      ml_pos=$((ml_pos + 1))
+    fi
+
+    ml_byte="${ml_text:${ml_cnt}:1}"
+    ml_cnt=$((ml_cnt + 1))
+
+    case "${ml_byte}" in
+      [0-9]) ml_out="${ml_out}${ml_tok}"  ;;
+      *)     ml_out="${ml_out}${ml_byte}" ;;
+    esac
+  done
+
+  printf '%s' "${ml_out}"
+}
+
 OUTD="test_edge_$(date +%s)"
 
 TDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -973,18 +1118,13 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               elif [ "${attack_type}" -eq 1 ]; then
                 word=$(eval $x)
 
-                if [ "${word_len}" -eq 2 ]; then
-                  word_1=$(echo $word | cut -c -1)
-                  word_2=$(echo $word | cut -c 2-)
-                elif [ "${word_len}" -gt 2 ]; then
-                  word_1_cnt=$((word_len/2))
+                # Both halves reach the kernel as a buffer of their own, and a UTF-16 mode converts
+                # each on its own, so a character cut in half is two invalid fragments rather than
+                # one character. Split on a boundary.
 
-                  word_1=$(echo $word | cut -c -${word_1_cnt})
-
-                  ((word_1_cnt++))
-
-                  word_2=$(echo $word | cut -c ${word_1_cnt}-)
-                fi
+                word_1_cnt=$(utf8_split_point "${word}" $((word_len / 2)))
+                word_1="${word:0:${word_1_cnt}}"
+                word_2="${word:${word_1_cnt}}"
 
                 echo ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.1.word
                 echo ${word_2} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}.2.word
@@ -1009,6 +1149,13 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                     word_1="${word%???}"
                     mask_1="?d?d?d"
                   fi
+
+                  # No '?d' produces a byte above 0x7f, so a mask ending in one cannot spell a
+                  # password that tools/test.pl seeded with a multi byte character. Spell those
+                  # positions instead. The word and the mask are one string here, so a split that
+                  # lands inside a character still reassembles to the right bytes.
+
+                  mask_1="$(mask_literalize "${mask_1}" "${word#"${word_1}"}")"
                 fi
 
                 CMD="./hashcat ${CUR_OPTS_V} -m ${hash_type} ${hash} -a 3 ${word_1}${mask_1}"
@@ -1022,12 +1169,17 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   mask_1="?a?a"
                 else
                   if [ "${word_len}" -eq 2 ] || [ "${slow_hash}" -eq 1 ]; then
-                    word_1="${word%?}"
-                    mask_1="?d"
+                    tail_len=1
                   else
-                    word_1="${word%??}"
-                    mask_1="?d?d"
+                    tail_len=2
                   fi
+
+                  # The word and the mask are two separate buffers here, so the word has to end on
+                  # a character boundary and the mask has to spell whatever that leaves it.
+
+                  split=$(utf8_split_point "${word}" $(( ${#word} - tail_len )))
+                  word_1="${word:0:${split}}"
+                  mask_1="$(mask_for "?d" "${word:${split}}")"
                 fi
 
                 echo -n ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_1.word
@@ -1043,12 +1195,17 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   mask_1="?a?a"
                 else
                   if [ "${word_len}" -eq 2 ] || [ "${slow_hash}" -eq 1 ]; then
-                    word_1="${word#?}"
-                    mask_1="?d"
+                    head_len=1
                   else
-                    word_1="${word#??}"
-                    mask_1="?d?d"
+                    head_len=2
                   fi
+
+                  # As -a 6, from the other end: the mask covers the head, so the head has to end
+                  # on a character boundary and the mask has to spell it.
+
+                  split=$(utf8_split_point "${word}" ${head_len})
+                  word_1="${word:${split}}"
+                  mask_1="$(mask_for "?d" "${word:0:${split}}")"
                 fi
 
                 echo -n ${word_1} > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_2.word
@@ -1078,14 +1235,36 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   both_sides=0
                 fi
 
-                mid_len=$((${#word} - cut_len - cut_len))
+                # The word and each side of the mask are separate buffers, so the word has to
+                # start and end on a character boundary and a '?d' side has to spell what it now
+                # covers. The hex and base58 charsets keep their single token shape.
+
+                left=${cut_len}
+                right=$(( ${#word} - cut_len ))
+
+                if [ "${mask_c}" = "?d" ]; then
+                  left=$(utf8_split_point "${word}" ${left})
+                  right=$(utf8_split_point "${word}" ${right})
+                fi
+
+                mid_len=$(( right - left ))
 
                 if [ ${both_sides} -eq 1 ] && [ ${mid_len} -ge 1 ]; then
-                  word_1="${word:${cut_len}:${mid_len}}"
-                  mask_1="${mask_c}?w${mask_c}"
+                  word_1="${word:${left}:${mid_len}}"
+
+                  if [ "${mask_c}" = "?d" ]; then
+                    mask_1="$(mask_for "?d" "${word:0:${left}}")?w$(mask_for "?d" "${word:${right}}")"
+                  else
+                    mask_1="${mask_c}?w${mask_c}"
+                  fi
                 else
-                  word_1="${word:${cut_len}}"
-                  mask_1="${mask_c}?w"
+                  word_1="${word:${left}}"
+
+                  if [ "${mask_c}" = "?d" ]; then
+                    mask_1="$(mask_for "?d" "${word:0:${left}}")?w"
+                  else
+                    mask_1="${mask_c}?w"
+                  fi
                 fi
 
                 echo -n "${word_1}" > ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${i}_12.word
@@ -1350,15 +1529,13 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
               elif [ "${attack_type}" -eq 1 ]; then
                 ((hash_cnt++))
 
-                if [ "${word_len}" -eq 2 ]; then
-                  word_1=$(echo $word | cut -c -1)
-                  word_2=$(echo $word | cut -c 2-)
-                elif [ "${word_len}" -gt 2 ]; then
-                  word_1_cnt=$((word_len/2))
-                  word_1=$(echo $word | cut -c -${word_1_cnt})
-                 ((word_1_cnt++))
-                 word_2=$(echo $word | cut -c ${word_1_cnt}-)
-                fi
+                # Both halves reach the kernel as a buffer of their own, and a UTF-16 mode converts
+                # each on its own, so a character cut in half is two invalid fragments rather than
+                # one character. Split on a boundary.
+
+                word_1_cnt=$(utf8_split_point "${word}" $((word_len / 2)))
+                word_1="${word:0:${word_1_cnt}}"
+                word_2="${word:${word_1_cnt}}"
 
                 echo ${word_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words
                 echo ${word_2} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.words
@@ -1384,6 +1561,13 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                     word_1="${word%???}"
                     mask_1="?d?d?d"
                   fi
+
+                  # No '?d' produces a byte above 0x7f, so a mask ending in one cannot spell a
+                  # password that tools/test.pl seeded with a multi byte character. Spell those
+                  # positions instead. The word and the mask are one string here, so a split that
+                  # lands inside a character still reassembles to the right bytes.
+
+                  mask_1="$(mask_literalize "${mask_1}" "${word#"${word_1}"}")"
                 fi
 
                 echo -n ${word_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words.masks
@@ -1401,12 +1585,17 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   mask_1="?a?a"
                 else
                   if [ "${word_len}" -eq 2 ] || [ "${slow_hash}" -eq 1 ]; then
-                    word_1="${word%?}"
-                    mask_1="?d"
+                    tail_len=1
                   else
-                    word_1="${word%??}"
-                    mask_1="?d?d"
+                    tail_len=2
                   fi
+
+                  # The word and the mask are two separate buffers here, so the word has to end on
+                  # a character boundary and the mask has to spell whatever that leaves it.
+
+                  split=$(utf8_split_point "${word}" $(( ${#word} - tail_len )))
+                  word_1="${word:0:${split}}"
+                  mask_1="$(mask_for "?d" "${word:${split}}")"
                 fi
 
                 echo ${word_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.1.words
@@ -1424,12 +1613,17 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   mask_1="?a?a"
                 else
                   if [ "${word_len}" -eq 2 ] || [ "${slow_hash}" -eq 1 ]; then
-                    word_1="${word#?}"
-                    mask_1="?d"
+                    head_len=1
                   else
-                    word_1="${word#??}"
-                    mask_1="?d?d"
+                    head_len=2
                   fi
+
+                  # As -a 6, from the other end: the mask covers the head, so the head has to end
+                  # on a character boundary and the mask has to spell it.
+
+                  split=$(utf8_split_point "${word}" ${head_len})
+                  word_1="${word:${split}}"
+                  mask_1="$(mask_for "?d" "${word:0:${split}}")"
                 fi
 
                 echo ${word_1} >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}.2.words
@@ -1458,14 +1652,36 @@ for hash_type in $(ls tools/test_modules/*.pm | cut -d'm' -f3 | cut -d'.' -f1 | 
                   both_sides=0
                 fi
 
-                mid_len=$((${#word} - cut_len - cut_len))
+                # The word and each side of the mask are separate buffers, so the word has to
+                # start and end on a character boundary and a '?d' side has to spell what it now
+                # covers. The hex and base58 charsets keep their single token shape.
+
+                left=${cut_len}
+                right=$(( ${#word} - cut_len ))
+
+                if [ "${mask_c}" = "?d" ]; then
+                  left=$(utf8_split_point "${word}" ${left})
+                  right=$(utf8_split_point "${word}" ${right})
+                fi
+
+                mid_len=$(( right - left ))
 
                 if [ ${both_sides} -eq 1 ] && [ ${mid_len} -ge 1 ]; then
-                  word_1="${word:${cut_len}:${mid_len}}"
-                  mask_1="${mask_c}?w${mask_c}"
+                  word_1="${word:${left}:${mid_len}}"
+
+                  if [ "${mask_c}" = "?d" ]; then
+                    mask_1="$(mask_for "?d" "${word:0:${left}}")?w$(mask_for "?d" "${word:${right}}")"
+                  else
+                    mask_1="${mask_c}?w${mask_c}"
+                  fi
                 else
-                  word_1="${word:${cut_len}}"
-                  mask_1="${mask_c}?w"
+                  word_1="${word:${left}}"
+
+                  if [ "${mask_c}" = "?d" ]; then
+                    mask_1="$(mask_for "?d" "${word:0:${left}}")?w"
+                  else
+                    mask_1="${mask_c}?w"
+                  fi
                 fi
 
                 echo "${word_1}" >> ${OUTD}/test_${hash_type}_${kernel_type}_${attack_type}_${vector_width}.12.words
