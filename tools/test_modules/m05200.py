@@ -10,8 +10,6 @@ import hashlib
 import os
 import struct
 
-from test_helpers import pack_if_HEX_notation
-
 # Password Safe v3. The mode is OPTS_TYPE_BINARY_HASHFILE: hashcat is handed a
 # .psafe3 file rather than a hash string, and test.sh rebuilds that file by
 # base64-decoding what the oracle prints, so what is printed here is the file
@@ -78,8 +76,6 @@ def module_verify_hash(line):
 
     salt_raw   = raw[4:36]
     iterations = struct.unpack("<I", raw[36:40])[0]
-
-    word = pack_if_HEX_notation(word)
 
     # the tail is whatever the artifact carried, so the hash rebuilds byte for byte
 

@@ -9,8 +9,6 @@ import os
 
 from Crypto.Hash import MD4
 
-from test_helpers import pack_if_HEX_notation
-
 # The optimized kernels widen each byte instead of decoding the UTF-8, and
 # module_01000.c:58 documents that as deliberate rather than as a bug, so the two
 # kernel families really do disagree on a multi byte password. The oracle follows
@@ -44,7 +42,5 @@ def module_verify_hash(line):
         return None
 
     hash_in, word = line[:idx], line[idx + 1:]
-
-    word = pack_if_HEX_notation(word)
 
     return (module_generate_hash(word, None), word)

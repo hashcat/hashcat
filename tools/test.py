@@ -9,7 +9,7 @@
 # time and call the hooks it defines. tools/test.sh reaches it with -y.
 #
 # A module deals in bytes for the password and str for everything else. A password really is an
-# arbitrary byte string: it carries multi byte UTF-8, and after pack_if_HEX_notation it can be
+# arbitrary byte string: it carries multi byte UTF-8, and once $HEX[...] is unwrapped it can be
 # bytes that are not text at all. A hash and a salt are text. The password is never interpolated
 # into source, a command line or a format string, so a quote, a dollar or a percent in it means
 # nothing anywhere on the path.
@@ -17,6 +17,7 @@
 import importlib
 import os
 import random
+import re
 import sys
 
 TDIR = os.path.dirname(os.path.abspath(__file__))
@@ -34,6 +35,25 @@ GIVEUP_AT      = 1000000
 IS_OPTIMIZED = os.environ.get("IS_OPTIMIZED", "1") != "0"
 
 
+
+# hashcat writes a password it cannot print as $HEX[...]. It is the password, and the password is
+# the last field of a crack line, so the engine can unwrap it without knowing any module's hash
+# format. Doing it here rather than in every module is a deliberate break from the .pm layout,
+# where 490 of the 511 modules carry a pack_if_HEX_notation call and 21 do not, which is a
+# per module detail nobody can keep right by hand.
+
+HEX_NOTATION = re.compile(rb"\$HEX\[([0-9a-fA-F]*)\]$")
+
+
+def unhexify(line):
+    match = HEX_NOTATION.search(line)
+
+    if match is None:
+        return line
+
+    return line[:match.start()] + bytes.fromhex(match.group(1).decode("ascii"))
+
+
 def usage_exit():
     name = os.path.basename(sys.argv[0])
 
@@ -42,8 +62,9 @@ def usage_exit():
         " {0} single      <mode> [length]\n"
         " {0} passthrough <mode> [iter]\n"
         " {0} potthrough  <mode> [iter]\n"
+        " {0} verify      <mode> <hashfile> <cracksfile> <outfile>\n"
         "\n"
-        "edge, password and verify are not implemented in test.py yet, use tools/test.pl.\n"
+        "edge and password are not implemented in test.py yet, use tools/test.pl.\n"
         "\n".format(name))
 
     sys.exit(1)
@@ -225,6 +246,39 @@ def passthrough(mod, iterations, with_plain):
         sys.stdout.buffer.write(line + b"\n")
 
 
+
+def verify(mod, hashes_file, cracks_file, out_file):
+    with open(hashes_file, "rb") as handle:
+        hashlist = set(line.rstrip(b"\r\n") for line in handle)
+
+    with open(cracks_file, "rb") as handle, open(out_file, "wb") as out:
+        for raw in handle:
+            raw = raw.rstrip(b"\r\n")
+
+            # the module is handed a line whose password is already the bytes it stands for
+
+            line = unhexify(raw)
+
+            parsed = mod.module_verify_hash(line)
+
+            # possible if the hash:password pair does not match
+
+            if parsed is None:
+                continue
+
+            digest, word = parsed
+
+            if line != digest.encode("utf-8") + b":" + word:
+                continue
+
+            # possible if the hash is in the cracks file but not in the hash file
+
+            if digest.encode("utf-8") not in hashlist:
+                continue
+
+            out.write(raw + b"\n")
+
+
 def main():
     argv = sys.argv[1:]
 
@@ -233,10 +287,10 @@ def main():
 
     kind, mode = argv[0], argv[1]
 
-    if kind in ("edge", "password", "verify"):
+    if kind in ("edge", "password"):
         sys.exit("%s is not implemented in test.py yet, use tools/test.pl\n" % kind)
 
-    if kind not in ("single", "passthrough", "potthrough"):
+    if kind not in ("single", "passthrough", "potthrough", "verify"):
         usage_exit()
 
     if not mode.isdigit():
@@ -248,6 +302,14 @@ def main():
     for hook in ("module_constraints", "module_generate_hash", "module_verify_hash"):
         if not hasattr(mod, hook):
             sys.exit("Module function '%s' not found\n" % hook)
+
+    if kind == "verify":
+        if len(argv) != 5:
+            usage_exit()
+
+        verify(mod, argv[2], argv[3], argv[4])
+
+        return
 
     extra = argv[2] if len(argv) > 2 else None
 

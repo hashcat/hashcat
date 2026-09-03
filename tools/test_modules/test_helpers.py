@@ -6,26 +6,12 @@
 ##
 
 # What tools/test.py gives a test module. tools/test.pl hands its own subs to a .pm for free,
-# because require loads them into the same namespace, which is why m05200.pm can call
-# pack_if_HEX_notation with nothing declaring it. Here a module says what it wants.
+# because require loads them into the same namespace; here a module says what it wants.
+#
+# $HEX[...] is not here on purpose. test.py unwraps it before a module ever sees the line, so no
+# module carries that call.
 
 import random
-import re
-
-HEX_NOTATION = re.compile(rb"^\$HEX\[([0-9a-fA-F]*)\]$")
-
-
-def pack_if_HEX_notation(word):
-    # hashcat writes a password it cannot print as $HEX[...]. Give back the bytes it stands for.
-    # Call this as soon as a password has been parsed out of a crack line, or the tests fail on
-    # every password hashcat chose to escape.
-
-    match = HEX_NOTATION.match(word)
-
-    if match is None:
-        return word
-
-    return bytes.fromhex(match.group(1).decode("ascii"))
 
 
 def random_number(minimum, maximum):
