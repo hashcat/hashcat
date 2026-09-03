@@ -47,32 +47,6 @@ void event_call (const u32 id, hashcat_ctx_t *hashcat_ctx, const void *buf, cons
     hc_thread_mutex_unlock (event_ctx->mux_event);
   }
 
-  // add more back logs in case user wants to access them
-
-  if (is_log == false)
-  {
-    for (int i = MAX_OLD_EVENTS - 1; i >= 1; i--)
-    {
-      memcpy (event_ctx->old_buf[i], event_ctx->old_buf[i - 1], event_ctx->old_len[i - 1]);
-
-      event_ctx->old_len[i] = event_ctx->old_len[i - 1];
-    }
-
-    size_t copy_len = 0;
-
-    if (buf)
-    {
-      // truncate the whole buffer if needed (such that it fits into the old_buf):
-
-      const size_t max_buf_len = sizeof (event_ctx->old_buf[0]);
-
-      copy_len = MIN (len, max_buf_len - 1);
-
-      memcpy (event_ctx->old_buf[0], buf, copy_len);
-    }
-
-    event_ctx->old_len[0] = copy_len;
-  }
 }
 
 __attribute__ ((format (__MINGW_PRINTF_FORMAT, 1, 0)))

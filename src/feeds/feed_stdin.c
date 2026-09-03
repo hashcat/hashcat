@@ -415,7 +415,12 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   global_ctx->gbldata = stdin_global;
 
-  hc_thread_create (stdin_global->reader, stdin_reader, stdin_global);
+  if (hc_thread_create_ok (stdin_global->reader, stdin_reader, stdin_global) == false)
+  {
+    stdin_global->reader_live = false;
+
+    return false;
+  }
 
   stdin_global->reader_live = true;
 

@@ -118,11 +118,30 @@ int induct_ctx_init (hashcat_ctx_t *hashcat_ctx)
   return 0;
 }
 
+// scan_directory() allocates one string per file plus the array holding them, so a rescan has to
+// give back the previous scan's strings and not only its array
+
+static void induct_ctx_dictionaries_free (induct_ctx_t *induct_ctx)
+{
+  if (induct_ctx->induction_dictionaries == NULL) return;
+
+  for (int d = 0; induct_ctx->induction_dictionaries[d] != NULL; d++)
+  {
+    hcfree (induct_ctx->induction_dictionaries[d]);
+  }
+
+  hcfree (induct_ctx->induction_dictionaries);
+
+  induct_ctx->induction_dictionaries = NULL;
+}
+
 void induct_ctx_scan (hashcat_ctx_t *hashcat_ctx)
 {
   induct_ctx_t *induct_ctx = hashcat_ctx->induct_ctx;
 
   if (induct_ctx->enabled == false) return;
+
+  induct_ctx_dictionaries_free (induct_ctx);
 
   induct_ctx->induction_dictionaries = scan_directory (induct_ctx->root_directory);
 
@@ -154,6 +173,8 @@ void induct_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
       //return -1;
     }
   }
+
+  induct_ctx_dictionaries_free (induct_ctx);
 
   hcfree (induct_ctx->root_directory);
 

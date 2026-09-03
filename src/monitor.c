@@ -133,7 +133,17 @@ static int monitor (hashcat_ctx_t *hashcat_ctx)
 
   while (status_ctx->shutdown_inner == false)
   {
-    sleep (sleep_time);
+    // the loop body below counts iterations as seconds, so the cadence stays one second. Only the
+    // waiting is broken up, so a quit is noticed in 100ms instead of up to a full second.
+
+    for (u32 slice = 0; slice < sleep_time * 10; slice++)
+    {
+      if (status_ctx->shutdown_inner == true) break;
+
+      usleep (100000);
+    }
+
+    if (status_ctx->shutdown_inner == true) break;
 
     if (status_ctx->devices_status == STATUS_INIT) continue;
 

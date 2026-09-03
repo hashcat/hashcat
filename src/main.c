@@ -162,14 +162,21 @@ static void main_log_advice (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUS
   main_log (hashcat_ctx, stdout, LOGLEVEL_ADVICE);
 }
 
+// under --stdout the candidate stream owns stdout, so a diagnostic written there would land in
+// the middle of the candidates and be read back as one
+
 static void main_log_info (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  main_log (hashcat_ctx, stdout, LOGLEVEL_INFO);
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  main_log (hashcat_ctx, (user_options->stdout_flag == true) ? stderr : stdout, LOGLEVEL_INFO);
 }
 
 static void main_log_warning (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
 {
-  main_log (hashcat_ctx, stdout, LOGLEVEL_WARNING);
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  main_log (hashcat_ctx, (user_options->stdout_flag == true) ? stderr : stdout, LOGLEVEL_WARNING);
 }
 
 static void main_log_error (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const void *buf, MAYBE_UNUSED const size_t len)
@@ -207,9 +214,17 @@ static void main_outerloop_starting (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, MA
   {
     // see thread_keypress() how to access status information
 
-    hc_thread_create (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx);
+    // only a thread that actually started goes into the count the wait later walks
 
-    hashcat_user->outer_threads_cnt++;
+    if (hc_thread_create_ok (hashcat_user->outer_threads[hashcat_user->outer_threads_cnt], thread_keypress, hashcat_ctx) == true)
+    {
+      hashcat_user->outer_threads_cnt++;
+    }
+    else
+    {
+      event_log_warning (hashcat_ctx, "Could not start the keypress thread, interactive commands are unavailable.");
+      event_log_warning (hashcat_ctx, NULL);
+    }
   }
 }
 

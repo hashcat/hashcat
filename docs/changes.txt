@@ -298,6 +298,16 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Bridges: Hardware power is derived from the unit width, so kernel_accel counts waves and the status line reports Accel instead of Batch
 - Build: bridge_scrypt_jane takes the SSE2 intrinsics path on ARM through sse2neon
 - Build: A DEBUG=2 build links with -fsanitize=address instead of failing at the link
+- Rule engine: A rule file is read into a buffer that grows geometrically instead of by a fixed 10000 rules, so a 4.9 million rule file loads in 1.7 seconds instead of 30
+- Rule engine: One -r file is handed to the amplifier as it stands, instead of being copied into a second array of the same size, taking about 630 MB off the peak for a large ruleset
+- Memory: Removed a 160 MiB event backlog that every event was copied into and nothing ever read
+- Startup: A module that turns off the JiT kernel cache no longer turns it off for the shared, markov and amplifier kernels as well, which every other hash mode on the device shares
+- Startup: The host candidate staging buffers are no longer zeroed on every round, since the producer fills every entry it hands over
+- Hash lists: A run of digests whose top two words are equal is finished with a second radix pass instead of a single threaded qsort, which is the whole list on modes 200, 3000, 5100, 16000, 18700, 24700, 34201 and 34211
+- Potfile: --show and --left no longer build, sort and free a copy of every selected line when -o is given, where hashcat has already written the line and nothing reads the copy
+- --stdout: The candidate batch is no longer written to the device and read straight back, and the output buffer holds 64 KB instead of 8 KB
+- Interface: Quit is noticed within 100 milliseconds instead of up to a second, without changing the once per second cadence the monitor counts in
+- Build: MAINTAINER_MODE=1 now also reaches the Rust feeds and bridges and the Raspberry Pi flags, which were still built for the processor doing the building
 
 ##
 ## Bugs
@@ -406,6 +416,16 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Fixed --speed-only measuring with the bitmap flattened to a single entry, which misreported the speed for a list holding many hashes
 - Fixed the PKZIP modes 17220 and 17225 overrunning the 4 GiB private aperture on AMD GPUs under HIP, which refused the launch on larger cards and cost 58 percent of throughput on smaller ones
 - Fixed the VeraCrypt modes 13723, 13733, 13751, 13753, 13761 and 13763 failing their self test, and hanging on the password they had just found under --self-test-disable. The 15 XTS header helpers are now kept out of line, and TrueCrypt, DiskCryptor and LUKS were never affected
+- Windows: Fixed a thread handle being leaked on every join, which for a hash mode with a host side hook is one handle per hook thread per kernel launch and grew by about 40 handles a second on -m 11600
+- Fixed hashcat carrying on after a thread it needed failed to start, where the join that followed ran against a handle that was never set. A worker that will not start now does its own chunk on the calling thread, and a cracking, monitor or outfile-check thread that will not start is reported
+- Fixed diagnostics being written to standard output under --stdout, where they landed in the middle of the candidate stream and were read back as candidates
+- Fixed the seek database builder dereferencing a null pointer at four allocation sites, and never reporting a failed build to its caller
+- Fixed the scanned induction dictionary paths being leaked on every rescan, which accumulates for the life of a --loopback run
+- Fixed the backend session being left open when it failed to start outside a benchmark
+- Fixed a failed --stdout write being silent, so a full disk or a closed pipe lost candidates without an error
+- Fixed the available memory calculation underflowing on a u64 in the yescrypt, scrypt and argon2 modules when a device reports less memory than the reserve, which asked for far more memory than the device has
+- Fixed the CUDA context created for each device being left on the main thread's context stack, since cuCtxCreate makes it current as well as creating it
+- Fixed the per file rule buffers being leaked when a ruleset loaded, and bounded the class selector lookahead in the rule compiler
 
 ##
 ## Other changes

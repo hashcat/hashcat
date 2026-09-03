@@ -112,4 +112,7 @@ Costin Enache <costin@detack.de>
 * IBM AS400 DES and SSHA1 modules
 * Cisco-ISE Hashed Password (SHA256) module
 
+Shooter3k
+* Several long-standing bugfix ideas (rule file loading, --show and --left, --stdout output)
+
 !!! All the package maintainers of hashcat !!!

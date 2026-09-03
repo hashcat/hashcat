@@ -671,7 +671,12 @@ const char *yescrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_
 
   const u64 fixed_mem = (128 * 1024 * 1024); // some storage we need for pws[], tmps[], and others
 
-  const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - fixed_mem;
+  const u64 usable_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4));
+
+  // a device that reports less than the reserve would underflow this on a u64, and the accel
+  // computed from the wrapped value asks for far more memory than the device has
+
+  const u64 available_mem = (usable_mem > fixed_mem) ? usable_mem - fixed_mem : 0;
 
   u32 kernel_accel_new;
 

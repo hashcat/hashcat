@@ -20,7 +20,12 @@ static void out_flush (out_t *out)
 {
   if (out->len == 0) return;
 
-  hc_fwrite (out->buf, 1, out->len, &out->fp);
+  // a short write here means candidates were lost, and losing them silently is worse than the
+  // write failing, because the run still reports success
+
+  const size_t nwrite = hc_fwrite (out->buf, 1, (size_t) out->len, &out->fp);
+
+  if (nwrite != (size_t) out->len) out->write_failed = true;
 
   out->len = 0;
 }
@@ -46,7 +51,7 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
 
   #endif
 
-  if (out->len >= HCBUFSIZ_SMALL - 300)
+  if (out->len >= STDOUT_BUFSIZ - 300)
   {
     out_flush (out);
   }
@@ -68,6 +73,8 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   char *filename = outfile_ctx->filename;
 
   out_t out;
+
+  out.write_failed = false;
 
   if (filename)
   {
@@ -192,9 +199,20 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
       u64 remain  = pws_cnt - gidvid_blk;
       u64 blk_cnt = MIN (remain, blk_cnt_max);
 
-      rc = copy_pws_idx (hashcat_ctx, device_param, gidvid_blk, blk_cnt, pws_idx_blk);
+      // Under --stdout no hash kernel runs, so nothing on the device has touched d_pws_idx or
+      // d_pws_comp since run_copy () uploaded them from these very host buffers. pws_idx_blk and
+      // pws_comp_blk are those host buffers, so reading the device back writes the same bytes where
+      // they already are. Only the first block can skip it: a later one would have to be moved to
+      // the front of the buffer, which is what the copy is for.
 
-      if (rc == -1) break;
+      const bool pws_already_on_host = (gidvid_blk == 0);
+
+      if (pws_already_on_host == false)
+      {
+        rc = copy_pws_idx (hashcat_ctx, device_param, gidvid_blk, blk_cnt, pws_idx_blk);
+
+        if (rc == -1) break;
+      }
 
       const u32 off_blk = (blk_cnt > 0) ? pws_idx_blk[0].off : 0;
 
@@ -205,9 +223,12 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       u32 copy_cnt = (pw_idx_last->off + pw_idx_last->cnt) - pws_idx_blk->off;
 
-      rc = copy_pws_comp (hashcat_ctx, device_param, off_blk, copy_cnt, pws_comp_blk);
+      if (pws_already_on_host == false)
+      {
+        rc = copy_pws_comp (hashcat_ctx, device_param, off_blk, copy_cnt, pws_comp_blk);
 
-      if (rc == -1) break;
+        if (rc == -1) break;
+      }
 
       if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
       {
@@ -281,6 +302,13 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
   }
 
   out_flush (&out);
+
+  if (out.write_failed == true)
+  {
+    event_log_error (hashcat_ctx, "Could not write all candidates to the output stream.");
+
+    rc = -1;
+  }
 
   if (filename)
   {

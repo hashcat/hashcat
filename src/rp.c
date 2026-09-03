@@ -509,6 +509,11 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_CLASS_BASED: // ~
+        // the class operation is the only one that reads its selector before INCR_POS has moved
+        // onto it, so it needs the length test the macro would otherwise have made
+
+        if ((rule_pos + 1) >= rule_len) return -1;
+
         switch (rule_buf[rule_pos+1])
         {
           case RULE_OP_MANGLE_REPLACE: // ~s?CY
@@ -966,11 +971,13 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
       if (kernel_rules_avail == kernel_rules_cnt)
       {
-        kernel_rules_buf = (kernel_rule_t *) hcrealloc (kernel_rules_buf, kernel_rules_avail * sizeof (kernel_rule_t), INCR_RULES * sizeof (kernel_rule_t));
-
         const u32 kernel_rules_avail_old = kernel_rules_avail;
 
-        kernel_rules_avail += INCR_RULES;
+        u32 kernel_rules_incr = kernel_rules_avail / 2;
+
+        kernel_rules_incr = MAX (kernel_rules_incr, INCR_RULES);
+
+        kernel_rules_avail += kernel_rules_incr;
 
         if (kernel_rules_avail < kernel_rules_avail_old) // u32 overflow
         {
@@ -992,6 +999,8 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
           return -1;
         }
+
+        kernel_rules_buf = (kernel_rule_t *) hcrealloc (kernel_rules_buf, kernel_rules_avail_old * sizeof (kernel_rule_t), kernel_rules_incr * sizeof (kernel_rule_t));
       }
 
       char in[RP_PASSWORD_SIZE];
@@ -1054,6 +1063,35 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
 
   hcfree (rule_buf);
 
+  // One rule file is already the finished array. Chaining it with nothing copies every chain into a
+  // second array of the same size, which for a large ruleset is hundreds of MiB allocated, filled
+  // and then freed to arrive back at what we already had. The chain-overflow check cannot fire with
+  // one file either, because cpu_rule_to_kernel_rule caps a rule at MAX_KERNEL_RULES commands.
+
+  if (user_options->rp_files_cnt == 1)
+  {
+    kernel_rule_t *kernel_rules_buf = all_kernel_rules_buf[0];
+
+    const u32 kernel_rules_cnt = all_kernel_rules_cnt[0];
+
+    hcfree (all_kernel_rules_cnt);
+    hcfree (all_kernel_rules_buf);
+
+    if (kernel_rules_cnt == 0)
+    {
+      event_log_error (hashcat_ctx, "No valid rules left.");
+
+      hcfree (kernel_rules_buf);
+
+      return -1;
+    }
+
+    *out_cnt = kernel_rules_cnt;
+    *out_buf = kernel_rules_buf;
+
+    return 0;
+  }
+
   /**
    * merge rules
    */
@@ -1093,6 +1131,11 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   if (kernel_rules_buf == NULL)
   {
     event_log_error (hashcat_ctx, "Not enough allocatable memory (RAM) for this ruleset.");
+
+    for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+    {
+      hcfree (all_kernel_rules_buf[j]);
+    }
 
     hcfree (all_kernel_rules_cnt);
     hcfree (all_kernel_rules_buf);
@@ -1168,6 +1211,11 @@ int kernel_rules_load (hashcat_ctx_t *hashcat_ctx, kernel_rule_t **out_buf, u32 
   hcfree (repeats);
 
   kernel_rules_cnt -= invalid_cnt;
+
+  for (u32 j = 0; j < user_options->rp_files_cnt; j++)
+  {
+    hcfree (all_kernel_rules_buf[j]);
+  }
 
   hcfree (all_kernel_rules_cnt);
   hcfree (all_kernel_rules_buf);

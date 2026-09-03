@@ -80,3 +80,32 @@
 #define RULE_OP_REJECT_EQUAL_LAST_CLASS  0x07 // reject plains that do not contain chars in class C at last pos, ~)?C
 #define RULE_OP_REJECT_EQUAL_AT_CLASS    0x08 // reject plains that do not contain chars in class C at pos N, ~=N?C
 #define RULE_OP_REJECT_CONTAINS_CLASS    0x09 // reject plains that contain chars in class C less than N times, ~%N?C
+
+/* writing a byte that is not typeable, including any character outside ASCII */
+
+Any rule operand that takes a character accepts \xHH in place of that character, so a rule can
+emit a byte the keyboard cannot produce. Two hex digits, lower or upper case.
+
+  $\x41          append 'A'
+  ^\x41          prepend 'A'
+  i2\x41         insert 'A' at position 2
+  o0\x41         overwrite position 0 with 'A'
+  s\x41\x42      replace every 'A' with 'B'
+
+A character outside ASCII is more than one byte in UTF-8, so it is written one \xHH per byte.
+Appending U+2116, which is e2 84 96, is three append operations:
+
+  $\xe2$\x84$\x96
+
+Order matters and it is not the same for every operation. Append, insert and overwrite take the
+bytes left to right. Prepend does not: '^' puts its byte at position 0, so each byte lands in
+front of the one before it and the bytes have to be written back to front. Prepending U+00E9,
+which is c3 a9, is:
+
+  ^\xa9^\xc3
+
+The rule engine works on bytes throughout, and this does not change that. Rules that match or
+count rather than emit stay byte oriented, so '@', 's', 'e' and the reject rules test single
+bytes and will happily split a multi-byte character. Position arguments such as those of 'D',
+'x' and 'O' are byte positions, and the length used by '<' and '>' is a byte length, so a word
+of 6 non-ASCII characters can be 12 bytes long as far as those rules are concerned.

@@ -3787,7 +3787,12 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
   hc_thread_t dump_thr;
 
-  hc_thread_create (dump_thr, brain_server_handle_dumps, &brain_server_dumper_options);
+  if (hc_thread_create_ok (dump_thr, brain_server_handle_dumps, &brain_server_dumper_options) == false)
+  {
+    brain_logging (stderr, 0, "Could not start the brain server dump thread: %s\n", strerror (errno));
+
+    return false;
+  }
 
   while (keep_running == true)
   {
@@ -3834,9 +3839,9 @@ int brain_server (const char *listen_host, const int listen_port, const char *br
 
     hc_thread_t client_thr;
 
-    hc_thread_create (client_thr, brain_server_handle_client, &brain_server_client_options[client_idx]);
+    // comparing the handle against 0 only works where pthread_t is a scalar, so ask the platform
 
-    if (client_thr == 0)
+    if (hc_thread_create_ok (client_thr, brain_server_handle_client, &brain_server_client_options[client_idx]) == false)
     {
       brain_logging (stderr, 0, "pthread_create: %s\n", strerror (errno));
 

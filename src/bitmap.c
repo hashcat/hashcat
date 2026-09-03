@@ -467,14 +467,27 @@ static void generate_bitmaps_run (bitmap_fill_t *params, hc_thread_t *threads, c
 {
   for (int t = 0; t < threads_cnt; t++) params[t].phase = phase;
 
+  int threads_live = 0;
+
   for (int t = 1; t < threads_cnt; t++)
   {
-    hc_thread_create (threads[t], generate_bitmaps_thread, &params[t]);
+    // a failed create leaves the handle unset, and joining that is a crash rather than a
+    // slow run. Do the chunk here instead, and keep the handles that did start packed at the
+    // front so the join below has no gaps to step over.
+
+    if (hc_thread_create_ok (threads[threads_live], generate_bitmaps_thread, &params[t]) == true)
+    {
+      threads_live++;
+    }
+    else
+    {
+      generate_bitmaps_thread (&params[t]);
+    }
   }
 
   generate_bitmaps_thread (&params[0]);
 
-  for (int t = 1; t < threads_cnt; t++)
+  for (int t = 0; t < threads_live; t++)
   {
     hc_thread_join (threads[t]);
   }

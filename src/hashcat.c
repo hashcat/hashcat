@@ -107,9 +107,17 @@ static int inner2_autotune (hashcat_ctx_t *hashcat_ctx, thread_param_t *threads_
     thread_param->hashcat_ctx = hashcat_ctx;
     thread_param->tid         = backend_devices_idx;
 
-    hc_thread_create (c_threads[autotune_cnt], thread_autotune, thread_param);
+    // autotune is bounded work, so a device whose thread will not start is tuned on this thread
+    // rather than left untuned. Only a real thread goes into the wait below.
 
-    autotune_cnt++;
+    if (hc_thread_create_ok (c_threads[autotune_cnt], thread_autotune, thread_param) == true)
+    {
+      autotune_cnt++;
+    }
+    else
+    {
+      thread_autotune (thread_param);
+    }
   }
 
   hc_thread_wait (autotune_cnt, c_threads);
@@ -462,6 +470,8 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   hc_thread_t *c_threads = (hc_thread_t *) hccalloc (backend_ctx->backend_devices_cnt, sizeof (hc_thread_t));
 
+  int calc_threads_live = 0;
+
   /**
    * create autotune threads
    */
@@ -555,10 +565,23 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
     thread_param->hashcat_ctx = hashcat_ctx;
     thread_param->tid         = backend_devices_idx;
 
-    hc_thread_create (c_threads[backend_devices_idx], thread_calc, thread_param);
+    // A cracking thread cannot be run inline, it is the whole attack for that device. Keep the
+    // handles that started packed at the front so the wait has no unset handle to join, and tell
+    // the user, because a device that never starts means keyspace this run does not cover.
+
+    if (hc_thread_create_ok (c_threads[calc_threads_live], thread_calc, thread_param) == true)
+    {
+      calc_threads_live++;
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "Could not start the cracking thread for device #%d.", backend_devices_idx + 1);
+
+      backend_ctx->devices_param[backend_devices_idx].skipped = true;
+    }
   }
 
-  hc_thread_wait (backend_ctx->backend_devices_cnt, c_threads);
+  hc_thread_wait (calc_threads_live, c_threads);
 
   hcfree (c_threads);
 
@@ -715,7 +738,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
         unlink (induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos]);
       }
 
-      hcfree (induct_ctx->induction_dictionaries);
+      // induct_ctx_scan () owns the previous scan now, strings included
 
       induct_ctx_scan (hashcat_ctx);
     }
@@ -1235,6 +1258,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
       }
     }
 
+    backend_session_destroy (hashcat_ctx);
+
     return -1;
   }
 
@@ -1252,6 +1277,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
     hc_thread_t *selftest_threads = (hc_thread_t *) hccalloc (backend_ctx->backend_devices_cnt, sizeof (hc_thread_t));
 
+    int selftest_threads_live = 0;
+
     status_ctx->devices_status = STATUS_SELFTEST;
 
     for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
@@ -1261,10 +1288,17 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
       thread_param->hashcat_ctx = hashcat_ctx;
       thread_param->tid         = backend_devices_idx;
 
-      hc_thread_create (selftest_threads[backend_devices_idx], thread_selftest, thread_param);
+      if (hc_thread_create_ok (selftest_threads[selftest_threads_live], thread_selftest, thread_param) == true)
+      {
+        selftest_threads_live++;
+      }
+      else
+      {
+        thread_selftest (thread_param);
+      }
     }
 
-    hc_thread_wait (backend_ctx->backend_devices_cnt, selftest_threads);
+    hc_thread_wait (selftest_threads_live, selftest_threads);
 
     hcfree (threads_param);
 
@@ -1321,15 +1355,29 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   if (user_options->keyspace == false && user_options->stdout_flag == false && user_options->speed_only == false)
   {
-    hc_thread_create (inner_threads[inner_threads_cnt], thread_monitor, hashcat_ctx);
+    if (hc_thread_create_ok (inner_threads[inner_threads_cnt], thread_monitor, hashcat_ctx) == true)
+    {
+      inner_threads_cnt++;
+    }
+    else
+    {
+      event_log_error (hashcat_ctx, "Could not start the monitor thread.");
 
-    inner_threads_cnt++;
+      return -1;
+    }
 
     if (outcheck_ctx->enabled == true)
     {
-      hc_thread_create (inner_threads[inner_threads_cnt], thread_outfile_remove, hashcat_ctx);
+      if (hc_thread_create_ok (inner_threads[inner_threads_cnt], thread_outfile_remove, hashcat_ctx) == true)
+      {
+        inner_threads_cnt++;
+      }
+      else
+      {
+        event_log_error (hashcat_ctx, "Could not start the outfile-check thread.");
 
-      inner_threads_cnt++;
+        return -1;
+      }
     }
 
     if (module_ctx->module_advice_notice != MODULE_DEFAULT && user_options->quiet == false)

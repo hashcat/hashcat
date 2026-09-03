@@ -1848,6 +1848,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
         hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hcmalloc (hook_threads * sizeof (hook_thread_param_t));
         hc_thread_t         *c_threads          = (hc_thread_t *)         hcmalloc (hook_threads * sizeof (hc_thread_t));
 
+        int hook_threads_live = 0;
+
         for (int i = 0; i < hook_threads; i++)
         {
           hook_thread_param_t *hook_thread_param = hook_threads_param + i;
@@ -1870,10 +1872,21 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
           hook_thread_param->pws_cnt = pws_cnt;
 
-          hc_thread_create (c_threads[i], hook12_thread, hook_thread_param);
+          // this runs on every kernel launch for a mode with a hook, so a failed create must not
+          // leave an unset handle for hc_thread_wait () to join. Run the hook here and keep the
+          // handles that started packed at the front.
+
+          if (hc_thread_create_ok (c_threads[hook_threads_live], hook12_thread, hook_thread_param) == true)
+          {
+            hook_threads_live++;
+          }
+          else
+          {
+            hook12_thread (hook_thread_param);
+          }
         }
 
-        hc_thread_wait (hook_threads, c_threads);
+        hc_thread_wait (hook_threads_live, c_threads);
 
         hcfree (c_threads);
         hcfree (hook_threads_param);
@@ -2034,6 +2047,8 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
             hook_thread_param_t *hook_threads_param = (hook_thread_param_t *) hcmalloc (hook_threads * sizeof (hook_thread_param_t));
             hc_thread_t         *c_threads          = (hc_thread_t *)         hcmalloc (hook_threads * sizeof (hc_thread_t));
 
+            int hook_threads_live = 0;
+
             for (int i = 0; i < hook_threads; i++)
             {
               hook_thread_param_t *hook_thread_param = hook_threads_param + i;
@@ -2056,10 +2071,21 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
               hook_thread_param->pws_cnt = pws_cnt;
 
-              hc_thread_create (c_threads[i], hook23_thread, hook_thread_param);
+              // this runs on every kernel launch for a mode with a hook, so a failed create must
+              // not leave an unset handle for hc_thread_wait () to join. Run the hook here and
+              // keep the handles that started packed at the front.
+
+              if (hc_thread_create_ok (c_threads[hook_threads_live], hook23_thread, hook_thread_param) == true)
+              {
+                hook_threads_live++;
+              }
+              else
+              {
+                hook23_thread (hook_thread_param);
+              }
             }
 
-            hc_thread_wait (hook_threads, c_threads);
+            hc_thread_wait (hook_threads_live, c_threads);
 
             hcfree (c_threads);
             hcfree (hook_threads_param);
@@ -7318,6 +7344,20 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
       // one-time init cuda context
 
       if (hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1)
+      {
+        device_param->skipped = true;
+
+        continue;
+      }
+
+      // cuCtxCreate () makes the new context current on this thread as well as creating it, so it
+      // has to come back off before the next device pushes its own. Without this the main thread
+      // finishes enumeration carrying one stale entry per device on its context stack, and every
+      // later push and pop is balanced against that instead of against an empty stack.
+
+      CUcontext cuda_context_unused;
+
+      if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_unused) == -1)
       {
         device_param->skipped = true;
 
@@ -16717,14 +16757,26 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
     }
 
+    // A module can only speak for its own kernel. The shared, mp and amp kernels are built from the
+    // general build options and their cache names carry no module input, so every other hash mode on
+    // this device writes and reads the same three binaries. Letting one module's flag throw those
+    // away rebuilds them on every start, and shared.cl carries inc_common.cl, which is the expensive
+    // half of a cold build. The device decision above is a property of the device and stays.
+
+    bool cache_disable_main = cache_disable;
+
     if (module_ctx->module_jit_cache_disable != MODULE_DEFAULT)
     {
-      cache_disable = module_ctx->module_jit_cache_disable (hashconfig, user_options, user_options_extra, hashes, device_param);
+      if (module_ctx->module_jit_cache_disable (hashconfig, user_options, user_options_extra, hashes, device_param) == true)
+      {
+        cache_disable_main = true;
+      }
     }
 
     #if defined (DEBUG)
     // https://github.com/hashcat/hashcat/issues/2750
-    cache_disable = true;
+    cache_disable      = true;
+    cache_disable_main = true;
     #endif
 
     /**
@@ -16960,9 +17012,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->opencl_program = opencl_program_borrow (hashcat_ctx, device_param, backend_devices_idx, PROGRAM_SLOT_MAIN);
 
       #if defined (__APPLE__)
-      const bool rc_load_kernel = (device_param->opencl_program != NULL) ? true : load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable, &device_param->opencl_program, &device_param->cuda_module, &device_param->hip_module, &device_param->metal_library);
+      const bool rc_load_kernel = (device_param->opencl_program != NULL) ? true : load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable_main, &device_param->opencl_program, &device_param->cuda_module, &device_param->hip_module, &device_param->metal_library);
       #else
-      const bool rc_load_kernel = (device_param->opencl_program != NULL) ? true : load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable, &device_param->opencl_program, &device_param->cuda_module, &device_param->hip_module, NULL);
+      const bool rc_load_kernel = (device_param->opencl_program != NULL) ? true : load_kernel (hashcat_ctx, device_param, "main_kernel", source_file, cached_file, build_options_module_buf, cache_disable_main, &device_param->opencl_program, &device_param->cuda_module, &device_param->hip_module, NULL);
       #endif
 
       if (rc_load_kernel == false)
@@ -20089,8 +20141,10 @@ void backend_session_reset (hashcat_ctx_t *hashcat_ctx)
 
     // some more resets:
 
-    if (device_param->pws_comp) memset (device_param->pws_comp, 0, device_param->size_pws_comp);
-    if (device_param->pws_idx)  memset (device_param->pws_idx,  0, device_param->size_pws_idx);
+    // pws_comp and pws_idx are staging buffers: the producer writes every entry it is going to hand
+    // over and pws_cnt says how many that is, so nothing downstream reads a slot the producer did
+    // not fill. Zeroing them costs one full pass over the host staging allocation on every round,
+    // which on a large multi-device session is the single biggest memset in the reset path.
 
     device_param->pws_cnt = 0;
 

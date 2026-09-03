@@ -20,14 +20,27 @@
 #endif // __APPLE__
 #endif // _WIN
 
+// The two platforms disagree on what a failed create looks like: CreateThread () answers with a NULL
+// handle and pthread_create () with an errno, so a caller that wants to know has to spell the test
+// twice. hc_thread_create_ok () gives both one answer. A caller that does not check it goes on to
+// wait on a thread that does not exist, which on glibc is a join against a zeroed pthread_t.
+
 #if defined (_WIN)
 
 #define hc_thread_create(t,f,a)     t = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE) &f, a, 0, NULL)
-#define hc_thread_wait(n,a)         for (int i = 0; i < n; i++) WaitForSingleObject ((a)[i], INFINITE)
+#define hc_thread_create_ok(t,f,a)  (((t) = CreateThread (NULL, 0, (LPTHREAD_START_ROUTINE) &f, a, 0, NULL)) != NULL)
+
+// WaitForSingleObject () waits on the thread, it does not release it. CreateThread () hands back a
+// handle the caller owns, and the thread object and its slot in the process handle table stay alive
+// until that handle is closed. So every worker we join leaks one handle. It is bounded for the pools
+// that run once per session, but choose_kernel () spawns and joins a hook thread on every kernel
+// launch, so a long run on a hook mode leaks steadily for as long as it runs.
+
+#define hc_thread_wait(n,a)         do { for (int i = 0; i < n; i++) { WaitForSingleObject ((a)[i], INFINITE); CloseHandle ((a)[i]); } } while (0)
 #define hc_thread_exit(t)           ExitThread (t)
 #define hc_thread_detach(t)         CloseHandle (t)
 #define hc_thread_self()            GetCurrentThreadId ()
-#define hc_thread_join(t)           WaitForSingleObject (t, INFINITE)
+#define hc_thread_join(t)           do { WaitForSingleObject (t, INFINITE); CloseHandle (t); } while (0)
 
 #define hc_thread_mutex_init(m)     InitializeCriticalSection (&m)
 #define hc_thread_mutex_lock(m)     EnterCriticalSection      (&m)
@@ -55,7 +68,8 @@
 #else
 
 #define hc_thread_create(t,f,a)     pthread_create (&t, NULL, f, a)
-#define hc_thread_wait(n,a)         for (int i = 0; i < n; i++) pthread_join ((a)[i], NULL)
+#define hc_thread_create_ok(t,f,a)  (pthread_create (&t, NULL, f, a) == 0)
+#define hc_thread_wait(n,a)         do { for (int i = 0; i < n; i++) pthread_join ((a)[i], NULL); } while (0)
 #define hc_thread_exit(t)           pthread_exit (&t)
 #define hc_thread_detach(t)         pthread_detach (t)
 #define hc_thread_self()            pthread_self ()

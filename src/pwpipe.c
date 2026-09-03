@@ -115,7 +115,12 @@ int pw_pipe_start (pw_pipe_t *pipe, hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   for (int i = 0; i < PW_PIPE_SLOTS; i++) hc_thread_sem_post (pipe->sem_free);
 
-  hc_thread_create (pipe->thread, pw_pipe_thread, pipe);
+  if (hc_thread_create_ok (pipe->thread, pw_pipe_thread, pipe) == false)
+  {
+    pipe->thread_live = false;
+
+    return -1;
+  }
 
   pipe->thread_live = true;
 

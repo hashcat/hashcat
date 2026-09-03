@@ -740,6 +740,13 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
     source->seek_db = seekdb_build (feed_thread, seekdb_file, source->path, &source->seek_count, &source->line_count, &source->size, &source->seek_step, &source->frame_db, &source->frame_count, source_ident, hashcat_ctx);
 
+    if (source->seek_db == NULL)
+    {
+      event_log_error (hashcat_ctx, "%s: could not build the seek index for this wordlist.", source->path);
+
+      return -1;
+    }
+
     cache_generate_t cache_generate;
 
     cache_generate.dictfile    = source->path;

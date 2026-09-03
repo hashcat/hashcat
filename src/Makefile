@@ -457,13 +457,13 @@ else
 CFLAGS_HOST_ONLY        += $(MARCH_NATIVE)
 endif
 endif
-endif
 
 ifeq ($(UNAME),Linux)
 IS_RPI                  := $(shell grep -q Raspberry /proc/cpuinfo && echo 1 || echo 0)
 
 ifeq ($(IS_RPI),1)
 CFLAGS_HOST_ONLY        += -mcpu=cortex-a72
+endif
 endif
 endif
 

@@ -77,7 +77,12 @@ const char *argon2_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   const u64 spill_mem = 2048 * device_processors * device_maxworkgroup_size; // 1600 according to ptxas
 
-  const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - (fixed_mem + spill_mem);
+  const u64 usable_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4));
+
+  // a device that reports less than the reserve would underflow this on a u64, and the accel
+  // computed from the wrapped value asks for far more memory than the device has
+
+  const u64 available_mem = (usable_mem > (fixed_mem + spill_mem)) ? usable_mem - (fixed_mem + spill_mem) : 0;
 
   const u32 kernel_accel_max = (device_param->device_host_unified_memory == true) ? (available_mem / 2) / size_per_accel : available_mem / size_per_accel;
 

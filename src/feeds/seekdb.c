@@ -289,6 +289,12 @@ typedef struct seekdb_frames
   u64  alloc;
   u64  resolved;
 
+  // the file layer calls the notifier through a void callback, so a failed grow has nowhere to
+  // return to. It records itself here and seekdb_build () gives up on the index instead of writing
+  // one that is missing frames.
+
+  bool failed;
+
 } seekdb_frames_t;
 
 static void seekdb_frame_seen (void *userdata, const u64 comp_off, const u64 uncomp_off)
@@ -315,7 +321,16 @@ static void seekdb_frame_seen (void *userdata, const u64 comp_off, const u64 unc
   {
     const size_t alloc_sz = (size_t) frames->alloc * SEEKDB_FRAME_WORDS * sizeof (u64);
 
-    frames->buf = (u64 *) hcrealloc (frames->buf, alloc_sz, alloc_sz);
+    u64 *frames_buf_new = (u64 *) hcrealloc (frames->buf, alloc_sz, alloc_sz);
+
+    if (frames_buf_new == NULL)
+    {
+      frames->failed = true;
+
+      return;
+    }
+
+    frames->buf = frames_buf_new;
 
     frames->alloc *= 2;
   }
@@ -745,6 +760,8 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
 
   u64 *tmp = (u64 *) hcmalloc (alloc * sizeof (u64));
 
+  if (tmp == NULL) return NULL;
+
   u64 checkpoints = 0;
 
   tmp[checkpoints++] = 0;
@@ -752,6 +769,7 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
   seekdb_frames_t frames;
 
   frames.buf      = NULL;
+  frames.failed   = false;
   frames.count    = 0;
   frames.alloc    = 0;
   frames.resolved = 0;
@@ -760,6 +778,13 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
   {
     frames.alloc = 1024;
     frames.buf   = (u64 *) hcmalloc (frames.alloc * SEEKDB_FRAME_WORDS * sizeof (u64));
+
+    if (frames.buf == NULL)
+    {
+      hcfree (tmp);
+
+      return NULL;
+    }
 
     // The first frame begins where the file does. Nothing reports that boundary, because a boundary
     // is only reported once the frame in front of it has been decoded, so it is put in by hand. It
@@ -864,7 +889,17 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
       {
         if (checkpoints == alloc)
         {
-          tmp = (u64 *) hcrealloc (tmp, alloc * sizeof (u64), alloc * sizeof (u64));
+          u64 *tmp_new = (u64 *) hcrealloc (tmp, alloc * sizeof (u64), alloc * sizeof (u64));
+
+          if (tmp_new == NULL)
+          {
+            hcfree (tmp);
+            hcfree (frames.buf);
+
+            return NULL;
+          }
+
+          tmp = tmp_new;
 
           alloc *= 2;
         }
@@ -926,7 +961,23 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
     frames.count--;
   }
 
+  if (frames.failed == true)
+  {
+    hcfree (tmp);
+    hcfree (frames.buf);
+
+    return NULL;
+  }
+
   u64 *db = (u64 *) hccalloc (checkpoints, sizeof (u64));
+
+  if (db == NULL)
+  {
+    hcfree (tmp);
+    hcfree (frames.buf);
+
+    return NULL;
+  }
 
   memcpy (db, tmp, checkpoints * sizeof (u64));
 

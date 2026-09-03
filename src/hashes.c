@@ -404,14 +404,27 @@ static void apply_permutation_run (const hash_gather_t *tmpl, const u32 count)
     params[t].idx_to   = (u32) idx_to;
   }
 
+  u64 threads_live = 0;
+
   for (u64 t = 1; t < threads_cnt; t++)
   {
-    hc_thread_create (threads[t], apply_permutation_thread, &params[t]);
+    // a failed create leaves the handle unset, and joining that is a crash rather than a
+    // slow run. Do the chunk here instead, and keep the handles that did start packed at the
+    // front so the join below has no gaps to step over.
+
+    if (hc_thread_create_ok (threads[threads_live], apply_permutation_thread, &params[t]) == true)
+    {
+      threads_live++;
+    }
+    else
+    {
+      apply_permutation_thread (&params[t]);
+    }
   }
 
   apply_permutation_thread (&params[0]);
 
-  for (u64 t = 1; t < threads_cnt; t++)
+  for (u64 t = 0; t < threads_live; t++)
   {
     hc_thread_join (threads[t]);
   }
@@ -539,14 +552,27 @@ static void radix_sort_run (radix_part_t *params, hc_thread_t *threads, const in
 {
   for (int t = 0; t < threads_cnt; t++) params[t].phase = phase;
 
+  int threads_live = 0;
+
   for (int t = 1; t < threads_cnt; t++)
   {
-    hc_thread_create (threads[t], radix_sort_thread, &params[t]);
+    // a failed create leaves the handle unset, and joining that is a crash rather than a
+    // slow run. Do the chunk here instead, and keep the handles that did start packed at the
+    // front so the join below has no gaps to step over.
+
+    if (hc_thread_create_ok (threads[threads_live], radix_sort_thread, &params[t]) == true)
+    {
+      threads_live++;
+    }
+    else
+    {
+      radix_sort_thread (&params[t]);
+    }
   }
 
   radix_sort_thread (&params[0]);
 
-  for (int t = 1; t < threads_cnt; t++)
+  for (int t = 0; t < threads_live; t++)
   {
     hc_thread_join (threads[t]);
   }
@@ -951,13 +977,35 @@ static int hc_radix_sort_by_digest (hash_t **hashes_buf_ptr, u32 *hashes_cnt_ptr
 
     if (j - i > RADIX_TIE_QSORT_THRESHOLD)
     {
-      // large tied run (dgst_pos3/dgst_pos2 constant across many hashes):
-      // insertion sort would be O(m^2), fall back to qsort on the index slice.
-      // keys[i..j) are all equal here, so only indices[] need reordering.
+      // A large tied run means dgst_pos3 and dgst_pos2 are constant across it, which on a mode that
+      // leaves those two words zero is the whole list. qsort there is one core doing N log N
+      // comparisons with two dependent loads each, over a working set far larger than L3. Sort the
+      // run the way the first pass sorted the list instead: build the lower key and radix sort it
+      // beside the index slice. keys[i..j) are all equal here, so only indices[] need reordering.
 
-      radix_tie_ctx_t ctx = { hashes_buf, dgst_pos0, dgst_pos1 };
+      const u32 run_cnt = j - i;
 
-      hc_qsort_r (&indices[i], j - i, sizeof (u32), sort_by_digest_idx_p1p0, &ctx);
+      u64 *sub_keys = (u64 *) hcmalloc (run_cnt * sizeof (u64));
+
+      if (sub_keys != NULL)
+      {
+        for (u32 a = 0; a < run_cnt; a++)
+        {
+          const u32 *d = (const u32 *) hashes_buf[indices[i + a]].digest;
+
+          sub_keys[a] = ((u64) d[dgst_pos1] << 32) | (u64) d[dgst_pos0];
+        }
+
+        msd_radix_sort_u64 (sub_keys, &indices[i], run_cnt, 7);
+
+        hcfree (sub_keys);
+      }
+      else
+      {
+        radix_tie_ctx_t ctx = { hashes_buf, dgst_pos0, dgst_pos1 };
+
+        hc_qsort_r (&indices[i], run_cnt, sizeof (u32), sort_by_digest_idx_p1p0, &ctx);
+      }
     }
     else if (j - i > 1)
     {
@@ -1318,14 +1366,27 @@ static void salt_sort_run (salt_sort_t *params, hc_thread_t *threads, const int 
 {
   for (int t = 0; t < threads_cnt; t++) params[t].phase = phase;
 
+  int threads_live = 0;
+
   for (int t = 1; t < threads_cnt; t++)
   {
-    hc_thread_create (threads[t], salt_sort_thread, &params[t]);
+    // a failed create leaves the handle unset, and joining that is a crash rather than a
+    // slow run. Do the chunk here instead, and keep the handles that did start packed at the
+    // front so the join below has no gaps to step over.
+
+    if (hc_thread_create_ok (threads[threads_live], salt_sort_thread, &params[t]) == true)
+    {
+      threads_live++;
+    }
+    else
+    {
+      salt_sort_thread (&params[t]);
+    }
   }
 
   salt_sort_thread (&params[0]);
 
-  for (int t = 1; t < threads_cnt; t++)
+  for (int t = 0; t < threads_live; t++)
   {
     hc_thread_join (threads[t]);
   }
@@ -2683,14 +2744,27 @@ static void hashlist_chunks_run (hashlist_chunk_t *chunks, hc_thread_t *threads,
 {
   for (int i = 0; i < chunks_cnt; i++) chunks[i].phase = phase;
 
+  int threads_live = 0;
+
   for (int i = 1; i < chunks_cnt; i++)
   {
-    hc_thread_create (threads[i], hashlist_parse_thread, &chunks[i]);
+    // a failed create leaves the handle unset, and joining that is a crash rather than a slow
+    // run. Do the chunk here instead, and keep the handles that did start packed at the front so
+    // the join below has no gaps to step over.
+
+    if (hc_thread_create_ok (threads[threads_live], hashlist_parse_thread, &chunks[i]) == true)
+    {
+      threads_live++;
+    }
+    else
+    {
+      hashlist_parse_thread (&chunks[i]);
+    }
   }
 
   hashlist_parse_thread (&chunks[0]);
 
-  for (int i = 1; i < chunks_cnt; i++)
+  for (int i = 0; i < threads_live; i++)
   {
     hc_thread_join (threads[i]);
   }
@@ -4703,14 +4777,27 @@ static void hashes_group_run (const hashes_group_t *tmpl, const u32 count, const
     params[t].idx_to   = (u32) idx_to;
   }
 
+  u64 threads_live = 0;
+
   for (u64 t = 1; t < threads_cnt; t++)
   {
-    hc_thread_create (threads[t], hashes_group_thread, &params[t]);
+    // a failed create leaves the handle unset, and joining that is a crash rather than a
+    // slow run. Do the chunk here instead, and keep the handles that did start packed at the
+    // front so the join below has no gaps to step over.
+
+    if (hc_thread_create_ok (threads[threads_live], hashes_group_thread, &params[t]) == true)
+    {
+      threads_live++;
+    }
+    else
+    {
+      hashes_group_thread (&params[t]);
+    }
   }
 
   hashes_group_thread (&params[0]);
 
-  for (u64 t = 1; t < threads_cnt; t++)
+  for (u64 t = 0; t < threads_live; t++)
   {
     hc_thread_join (threads[t]);
   }

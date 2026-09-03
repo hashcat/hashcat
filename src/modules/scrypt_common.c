@@ -87,7 +87,12 @@ const char *scrypt_module_extra_tuningdb_block (MAYBE_UNUSED const hashconfig_t 
 
   const u64 spill_mem = 3 * ((128ULL * scrypt_r) * device_processors * device_maxworkgroup_size);
 
-  const u64 available_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4)) - (fixed_mem + spill_mem);
+  const u64 usable_mem = MIN (device_param->device_available_mem, (device_param->device_maxmem_alloc * 4));
+
+  // a device that reports less than the reserve would underflow this on a u64, and the accel
+  // computed from the wrapped value asks for far more memory than the device has
+
+  const u64 available_mem = (usable_mem > (fixed_mem + spill_mem)) ? usable_mem - (fixed_mem + spill_mem) : 0;
 
   tmto = 0;
 

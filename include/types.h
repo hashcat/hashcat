@@ -2675,12 +2675,19 @@ typedef struct pidfile_ctx
 
 } pidfile_ctx_t;
 
+// --stdout writes one syscall per full buffer, and at HCBUFSIZ_SMALL that is a write() every few
+// hundred candidates. The buffer is a local in process_stdout (), so this stays a size a thread
+// stack carries comfortably.
+
+#define STDOUT_BUFSIZ 0x10000
+
 typedef struct out
 {
   HCFILE fp;
 
-  char   buf[HCBUFSIZ_SMALL];
+  char   buf[STDOUT_BUFSIZ];
   int    len;
+  bool   write_failed;
 
 } out_t;
 
@@ -3806,14 +3813,8 @@ typedef struct hashlist_parse
 
 } hashlist_parse_t;
 
-#define MAX_OLD_EVENTS 10
-
 typedef struct event_ctx
 {
-  char   old_buf[MAX_OLD_EVENTS][HCBUFSIZ_LARGE];
-  size_t old_len[MAX_OLD_EVENTS];
-  int    old_cnt;
-
   char   msg_buf[HCBUFSIZ_LARGE];
   size_t msg_len;
   bool   msg_newline;

@@ -56,12 +56,14 @@ endif
 # target-cpu=native describes the machine running the build, so it goes to whichever of the two file
 # names belongs to that machine and not to the one built for a release
 
+ifeq ($(MAINTAINER_MODE),0)
 ifeq ($(PLUGIN_PLATFORM_so),NATIVE)
 RUSTFLAGS_SO    += -C target-cpu=native
 endif
 
 ifeq ($(PLUGIN_PLATFORM_dll),NATIVE)
 RUSTFLAGS_DLL   += -C target-cpu=native
+endif
 endif
 
 # MAKEFLAGS is cleared for cargo. make advertises its jobserver in MAKEFLAGS to every recipe, but it
