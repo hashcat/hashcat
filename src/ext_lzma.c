@@ -26,10 +26,11 @@ static const char *const LZMA_SONAMES[] =
   #endif
 };
 
-// The three index names are optional. They arrived in xz 5.2.6 and Ubuntu 22.04 still ships
-// 5.2.5, so requiring them would refuse a library that decompresses perfectly well. Without
-// them the uncompressed size of an .xz file is simply not known, which is a case the file layer
-// already had to handle.
+// The index and block names are optional. lzma_file_info_decoder and the two index size calls
+// arrived in xz 5.2.6 and Ubuntu 22.04 still ships 5.2.5, so requiring them would refuse a library
+// that decompresses perfectly well. Without them the uncompressed size of an .xz file is simply not
+// known, and the blocks it is made of cannot be walked, which are both cases the file layer already
+// had to handle: such a file is read from its beginning, as every .xz was before.
 
 static const hc_dynlib_sym_t LZMA_SYMS[] =
 {
@@ -41,6 +42,12 @@ static const hc_dynlib_sym_t LZMA_SYMS[] =
   HC_DYNLIB_SYM (hc_lzma_lib_t, lzma_file_info_decoder,       false),
   HC_DYNLIB_SYM (hc_lzma_lib_t, lzma_index_uncompressed_size, false),
   HC_DYNLIB_SYM (hc_lzma_lib_t, lzma_index_end,               false),
+  HC_DYNLIB_SYM (hc_lzma_lib_t, lzma_index_iter_init,         false),
+  HC_DYNLIB_SYM (hc_lzma_lib_t, lzma_index_iter_next,         false),
+  HC_DYNLIB_SYM (hc_lzma_lib_t, lzma_index_iter_locate,       false),
+  HC_DYNLIB_SYM (hc_lzma_lib_t, lzma_block_header_decode,     false),
+  HC_DYNLIB_SYM (hc_lzma_lib_t, lzma_block_decoder,           false),
+  HC_DYNLIB_SYM (hc_lzma_lib_t, lzma_filters_free,            false),
   HC_DYNLIB_SYM_LAST
 };
 

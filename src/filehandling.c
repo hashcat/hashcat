@@ -99,20 +99,59 @@ struct xzfile
   u64   out_pos;
   u64   out_size;
   bool  out_size_known;
+
+  // The stream index, kept rather than read once and dropped, because it is the thing that says
+  // where the blocks of this file begin and a seek has nowhere to go without it.
+
+  void *index;
+
+  // Reading one block at a time, which is what this file does once it has been restarted somewhere
+  // other than its beginning. A block owes nothing to the blocks in front of it, so it decodes on
+  // its own, and the index says where the next one starts.
+
+  bool  block_mode;
+
+  hc_lzma_index_iter iter;
+  hc_lzma_block      block;
+  hc_lzma_filter     filters[HC_LZMA_FILTERS_MAX + 1];
+
+  hc_frame_cb_t frame_cb;
+
+  void *frame_ud;
 };
 
-// Walk the stream index to the uncompressed size. liblzma asks to be seeked rather than reading
-// the file itself, which is what LZMA_SEEK_NEEDED means.
+// Whether this liblzma can be asked where the blocks of an .xz are. Everything the block reader
+// needs is optional in the loader, so one missing name means an .xz is read from its beginning, the
+// way every .xz was read before.
 
-static bool xz_read_index_size (const hc_lzma_lib_t *lz, const int fd, u64 *out_size)
+static bool xz_blocks_usable (const hc_lzma_lib_t *lz)
 {
-  if (lz->lzma_file_info_decoder == NULL) return false;
-  if (lz->lzma_index_uncompressed_size == NULL) return false;
-  if (lz->lzma_index_end == NULL) return false;
+  if (lz->lzma_index_iter_init     == NULL) return false;
+  if (lz->lzma_index_iter_next     == NULL) return false;
+  if (lz->lzma_index_iter_locate   == NULL) return false;
+  if (lz->lzma_block_header_decode == NULL) return false;
+  if (lz->lzma_block_decoder       == NULL) return false;
+  if (lz->lzma_filters_free        == NULL) return false;
+
+  return true;
+}
+
+// Read the stream index, which is the map of the file: every block in it, where that block begins on
+// disk and how many decompressed bytes come before it. liblzma asks to be seeked rather than reading
+// the file itself, which is what LZMA_SEEK_NEEDED means.
+//
+// The index is handed back rather than consumed here. The uncompressed size hc_fstat () answers with
+// is one question to ask it, and where to restart the decoder is the other.
+
+static void *xz_read_index (const hc_lzma_lib_t *lz, const int fd)
+{
+  if (lz->lzma_file_info_decoder == NULL) return NULL;
+  if (lz->lzma_index_uncompressed_size == NULL) return NULL;
+  if (lz->lzma_index_end == NULL) return NULL;
 
   struct stat st;
 
-  if (fstat (fd, &st) == -1) return false;
+  if (fstat (fd, &st) == -1) return NULL;
 
   hc_lzma_stream strm;
 
@@ -120,7 +159,7 @@ static bool xz_read_index_size (const hc_lzma_lib_t *lz, const int fd, u64 *out_
 
   void *index = NULL;
 
-  if (lz->lzma_file_info_decoder (&strm, &index, HC_LZMA_MEMLIMIT_NONE, (u64) st.st_size) != HC_LZMA_OK) return false;
+  if (lz->lzma_file_info_decoder (&strm, &index, HC_LZMA_MEMLIMIT_NONE, (u64) st.st_size) != HC_LZMA_OK) return NULL;
 
   u8 buf[HCFILE_BUFFER_SIZE];
 
@@ -159,13 +198,116 @@ static bool xz_read_index_size (const hc_lzma_lib_t *lz, const int fd, u64 *out_
     if (rc != HC_LZMA_OK) break;
   }
 
-  if (ok == true) *out_size = lz->lzma_index_uncompressed_size (index);
+  lz->lzma_end (&strm);
+
+  if (ok == true) return index;
 
   if (index) lz->lzma_index_end (index, NULL);
 
-  lz->lzma_end (&strm);
+  return NULL;
+}
 
-  return ok;
+// An empty filter chain, which is one holding nothing but its terminator.
+//
+// liblzma walks a chain to that terminator when it frees one, and an array of zero bytes does not
+// have it: the id it would stop at is not zero. Every path that can lead to a free therefore leaves
+// the array in this state rather than in that one.
+
+static void xz_filters_reset (xzfile_t *xfp)
+{
+  memset (xfp->filters, 0, sizeof (xfp->filters));
+
+  xfp->filters[0].id = HC_LZMA_VLI_UNKNOWN;
+}
+
+// The filter options liblzma allocated while decoding a block header, given back. One block's worth
+// leaks otherwise, and a read that walks a whole file walks every block in it.
+
+static void xz_block_release (xzfile_t *xfp)
+{
+  // A liblzma without this name never built a chain to free, because nothing here reads a block
+  // header without it. Every .xz reaches this on the way to being closed, so the check is not
+  // optional.
+
+  if (xfp->lz->lzma_filters_free == NULL) return;
+
+  xfp->lz->lzma_filters_free (xfp->filters, NULL);
+
+  xz_filters_reset (xfp);
+}
+
+// Set the reader up on the block the iterator points at, positioned to decode it from its first
+// byte.
+//
+// A block header does not say which integrity check the block carries. That belongs to the stream
+// the block sits in, and it is the low 4 bits of the second of the 2 flag bytes in the 12 byte
+// header that stream begins with. The index says where that stream begins, so both reads are a seek
+// to a known offset.
+
+static bool xz_block_begin (xzfile_t *xfp)
+{
+  const hc_lzma_lib_t *lz = xfp->lz;
+
+  u8 stream_header[12];
+
+  if (lseek (xfp->fd, (off_t) xfp->iter.stream.compressed_offset, SEEK_SET) == (off_t) -1) return false;
+
+  if (read (xfp->fd, stream_header, sizeof (stream_header)) != (ssize_t) sizeof (stream_header)) return false;
+
+  u8 header[HC_LZMA_BLOCK_HEADER_SIZE_MAX];
+
+  if (lseek (xfp->fd, (off_t) xfp->iter.block.compressed_file_offset, SEEK_SET) == (off_t) -1) return false;
+
+  if (read (xfp->fd, header, 1) != 1) return false;
+
+  // A first byte of zero marks where the blocks end and the index begins, so it is not a block and
+  // the index should never have pointed here.
+
+  if (header[0] == 0) return false;
+
+  const u32 header_size = HC_LZMA_BLOCK_HEADER_SIZE (header[0]);
+
+  if (read (xfp->fd, header + 1, header_size - 1) != (ssize_t) (header_size - 1)) return false;
+
+  memset (&xfp->block, 0, sizeof (xfp->block));
+
+  xz_filters_reset (xfp);
+
+  xfp->block.version     = 0;
+  xfp->block.check       = stream_header[7] & 0x0f;
+  xfp->block.header_size = header_size;
+  xfp->block.filters     = xfp->filters;
+
+  if (lz->lzma_block_header_decode (&xfp->block, NULL, header) != HC_LZMA_OK) return false;
+
+  lz->lzma_end (&xfp->strm);
+
+  memset (&xfp->strm, 0, sizeof (xfp->strm));
+
+  if (lz->lzma_block_decoder (&xfp->strm, &xfp->block) != HC_LZMA_OK)
+  {
+    xz_block_release (xfp);
+
+    return false;
+  }
+
+  xfp->eof_in = false;
+
+  return true;
+}
+
+// On to the block after this one. Answers false at the last block of the file, which is the end of
+// it.
+
+static bool xz_block_next (xzfile_t *xfp)
+{
+  xz_block_release (xfp);
+
+  if (xfp->lz->lzma_index_iter_next (&xfp->iter, HC_LZMA_INDEX_ITER_BLOCK) != 0) return false;
+
+  const bool rc = xz_block_begin (xfp);
+
+  return rc;
 }
 
 // A .zst reader, shaped the same way as the xz one above and over the same descriptor.
@@ -294,9 +436,39 @@ static size_t xz_read (xzfile_t *xfp, u8 *out, const size_t out_len)
 
     if (rc == HC_LZMA_STREAM_END)
     {
-      xfp->eof_out = true;
+      // Reading the whole file, this is the end of it. Reading it a block at a time, it is only the
+      // end of this block, and the index says where the next one starts.
 
-      break;
+      if (xfp->block_mode == false)
+      {
+        xfp->eof_out = true;
+
+        break;
+      }
+
+      // Moving on means a new decoder, and a new decoder knows nothing of the caller's buffer: the
+      // stream it is set up in is zeroed, which takes where to write and how much room is left with
+      // it. Both are put back afterwards, on the failing path as well, because the length this
+      // function reports is what is left of avail_out and a zero there would claim the whole buffer
+      // had been filled.
+
+      u8 *next_out = xfp->strm.next_out;
+
+      const size_t avail_out = xfp->strm.avail_out;
+
+      const bool advanced = xz_block_next (xfp);
+
+      xfp->strm.next_out  = next_out;
+      xfp->strm.avail_out = avail_out;
+
+      if (advanced == false)
+      {
+        xfp->eof_out = true;
+
+        break;
+      }
+
+      continue;
     }
 
     if (rc != HC_LZMA_OK) break;
@@ -527,10 +699,20 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
     // at the beginning. A liblzma too old to have the call leaves the size unknown, which is a
     // question hc_fstat () is allowed to decline.
 
-    xfp->out_size_known = xz_read_index_size (lz, fp->fd, &xfp->out_size);
+    xz_filters_reset (xfp);
+
+    xfp->index = xz_read_index (lz, fp->fd);
+
+    if (xfp->index != NULL)
+    {
+      xfp->out_size       = lz->lzma_index_uncompressed_size (xfp->index);
+      xfp->out_size_known = true;
+    }
 
     if (lseek (fp->fd, 0, SEEK_SET) == (off_t) -1)
     {
+      if (xfp->index) lz->lzma_index_end (xfp->index, NULL);
+
       hcfree (xfp->inbuf);
       hcfree (xfp);
 
@@ -541,6 +723,8 @@ bool hc_fopen (HCFILE *fp, const char *path, const char *mode)
 
     if (lz->lzma_stream_decoder (&xfp->strm, HC_LZMA_MEMLIMIT_NONE, HC_LZMA_CONCATENATED) != HC_LZMA_OK)
     {
+      if (xfp->index) lz->lzma_index_end (xfp->index, NULL);
+
       hcfree (xfp->inbuf);
       hcfree (xfp);
 
@@ -996,6 +1180,13 @@ void hc_rewind (HCFILE *fp)
   {
     xzfile_t *xfp = fp->xfp;
 
+    // Back to reading the whole file rather than one block of it, which is what a rewind means for
+    // a reader that had been restarted in the middle.
+
+    xz_block_release (xfp);
+
+    xfp->block_mode = false;
+
     xfp->lz->lzma_end (&xfp->strm);
 
     memset (&xfp->strm, 0, sizeof (xfp->strm));
@@ -1027,16 +1218,58 @@ void hc_rewind (HCFILE *fp)
   }
 }
 
+const char *hc_container_name (HCFILE *fp)
+{
+  if (fp == NULL) return "";
+
+  if (fp->gfp) return "gzip";
+  if (fp->xfp) return "xz";
+  if (fp->zfp) return "zstd";
+
+  return "";
+}
+
 void hc_frame_notify (HCFILE *fp, hc_frame_cb_t cb, void *userdata)
 {
   if (fp == NULL) return;
 
-  if (fp->zfp == NULL) return;
+  if (fp->zfp)
+  {
+    zstdfile_t *zfp = fp->zfp;
 
-  zstdfile_t *zfp = fp->zfp;
+    zfp->frame_cb = cb;
+    zfp->frame_ud = userdata;
 
-  zfp->frame_cb = cb;
-  zfp->frame_ud = userdata;
+    return;
+  }
+
+  if (fp->xfp == NULL) return;
+
+  xzfile_t *xfp = fp->xfp;
+
+  xfp->frame_cb = cb;
+  xfp->frame_ud = userdata;
+
+  if (cb == NULL) return;
+
+  if (xfp->index == NULL) return;
+
+  if (xz_blocks_usable (xfp->lz) == false) return;
+
+  // An .xz says where its blocks are in an index at the end of the file, so unlike a .zst there is
+  // nothing to decode to find them and nothing to wait for. Every one of them is reported here and
+  // now, in file order, which is the order a caller writing them down needs them in.
+
+  const hc_lzma_lib_t *lz = xfp->lz;
+
+  hc_lzma_index_iter iter;
+
+  lz->lzma_index_iter_init (&iter, xfp->index);
+
+  while (lz->lzma_index_iter_next (&iter, HC_LZMA_INDEX_ITER_BLOCK) == 0)
+  {
+    cb (userdata, iter.block.compressed_file_offset, iter.block.uncompressed_file_offset);
+  }
 }
 
 // Start reading again at a frame boundary somewhere in the middle of the file.
@@ -1049,6 +1282,38 @@ void hc_frame_notify (HCFILE *fp, hc_frame_cb_t cb, void *userdata)
 bool hc_frame_restart (HCFILE *fp, const u64 comp_off, const u64 uncomp_off)
 {
   if (fp == NULL) return false;
+
+  if (fp->xfp)
+  {
+    xzfile_t *xfp = fp->xfp;
+
+    if (xfp->index == NULL) return false;
+
+    if (xz_blocks_usable (xfp->lz) == false) return false;
+
+    // The index is searched by decompressed offset, because that is the half of a boundary that
+    // says which block holds the wanted line. Where that block turns out to begin on disk has to be
+    // the offset the caller was given, or the index and the caller are describing different files.
+
+    xz_block_release (xfp);
+
+    // The iterator has to be bound to the index before it can be asked anything, and it is bound
+    // again on every seek rather than once, because locating walks it from wherever it was left.
+
+    xfp->lz->lzma_index_iter_init (&xfp->iter, xfp->index);
+
+    if (xfp->lz->lzma_index_iter_locate (&xfp->iter, uncomp_off) != 0) return false;
+
+    if (xfp->iter.block.compressed_file_offset != comp_off) return false;
+
+    if (xz_block_begin (xfp) == false) return false;
+
+    xfp->block_mode = true;
+    xfp->eof_out    = false;
+    xfp->out_pos    = uncomp_off;
+
+    return true;
+  }
 
   if (fp->zfp == NULL) return false;
 
@@ -1457,7 +1722,11 @@ void hc_fclose (HCFILE *fp)
   {
     xzfile_t *xfp = fp->xfp;
 
+    xz_block_release (xfp);
+
     xfp->lz->lzma_end (&xfp->strm);
+
+    if (xfp->index) xfp->lz->lzma_index_end (xfp->index, NULL);
 
     hcfree (xfp->inbuf);
     hcfree (xfp);

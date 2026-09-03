@@ -12,6 +12,28 @@ static const size_t SAMPLE_SIZE = 65536;
 
 #define SEEKDB_FRAME_WORDS 4
 
+// Which rules the frame index in a database was built under.
+//
+// A database is a cache that outlives the hashcat that wrote it, is shared between hosts, and is
+// only ever thrown away when the wordlist changes. That leaves no way to retire an index built by
+// code that chose its boundaries differently, and there is already one such change: the first
+// version recorded frames for .zst alone, so an .xz indexed by it carries one useless entry and
+// would keep it forever. A compressed source whose database was built under a different generation
+// is rebuilt. Raise this whenever what goes into the index changes.
+
+#define SEEKDB_FRAME_GEN 2
+
+// Which process is writing, so that two of them sharing a seek database directory do not pick the
+// same temporary name.
+
+#if defined (_WIN)
+#include <process.h>
+#define SEEKDB_GETPID _getpid
+#else
+#include <unistd.h>
+#define SEEKDB_GETPID getpid
+#endif
+
 // How many bytes a compressed wordlist has to decode to before hashcat says anything about it not
 // being seekable. It is the decompressed size that decides, because that is what a seek has to walk
 // through, and below this walking through all of it is quicker than reading the advice.
@@ -308,6 +330,16 @@ static void seekdb_frame_seen (void *userdata, const u64 comp_off, const u64 unc
   frames->count++;
 }
 
+// A database is written under a name nobody looks for and renamed into place.
+//
+// The directory is shared on purpose: --seekdb-path points a whole cluster at one of them, and every
+// host builds the same database for the same wordlist. Writing it in place means one host can read
+// what another host is halfway through writing, and a half written database is worse than none: the
+// header describes the wordlist correctly, so it passes every check, and the body it hands over is
+// whatever had been flushed. A rename is atomic on every filesystem this runs on, so a reader sees
+// either the old file or the whole new one. feed_gpu_cache_write () in src/feed.c avoids the same
+// race the same way for the same reason.
+
 static bool seekdb_save (const char *path, const char *wordlist, const u64 line_count, const u64 *db, const u64 count, const u64 *frame_db, const u64 frame_count, const u64 size, const u64 ident, const u64 content, const u64 step)
 {
   char source[192];
@@ -327,9 +359,10 @@ static bool seekdb_save (const char *path, const char *wordlist, const u64 line_
     "ident %016" PRIx64 "\n"
     "content %016" PRIx64 "\n"
     "frames %" PRIu64 "\n"
+    "framegen %d\n"
     "built %" PRIu64 "\n"
     "source %s\n",
-    SEEKDB_VERSION, seekdb_endian (), step, line_count, size, ident, content, frame_count, built, source);
+    SEEKDB_VERSION, seekdb_endian (), step, line_count, size, ident, content, frame_count, SEEKDB_FRAME_GEN, built, source);
 
   if (header_len < 0) return false;
 
@@ -343,40 +376,52 @@ static bool seekdb_save (const char *path, const char *wordlist, const u64 line_
 
   for (size_t i = (size_t) header_len; i < (size_t) SEEKDB_HEADER_SIZE; i++) header[i] = '\n';
 
+  char tmp[1024];
+
+  snprintf (tmp, sizeof (tmp), "%s.tmp.%d", path, (int) SEEKDB_GETPID ());
+
   HCFILE fp;
 
-  if (hc_fopen (&fp, path, "wb") == false)
+  if (hc_fopen (&fp, tmp, "wb") == false)
   {
     return false;
   }
 
-  if (hc_fwrite (header, sizeof (char), (size_t) SEEKDB_HEADER_SIZE, &fp) != (size_t) SEEKDB_HEADER_SIZE)
-  {
-    hc_fclose (&fp);
+  bool ok = true;
 
-    return false;
-  }
+  if (hc_fwrite (header, sizeof (char), (size_t) SEEKDB_HEADER_SIZE, &fp) != (size_t) SEEKDB_HEADER_SIZE) ok = false;
 
-  if (hc_fwrite (db, sizeof (u64), count, &fp) != count)
-  {
-    hc_fclose (&fp);
-
-    return false;
-  }
+  if ((ok == true) && (hc_fwrite (db, sizeof (u64), count, &fp) != count)) ok = false;
 
   const size_t frame_words = (size_t) frame_count * SEEKDB_FRAME_WORDS;
 
-  if (frame_words > 0)
+  if ((ok == true) && (frame_words > 0))
   {
-    if (hc_fwrite (frame_db, sizeof (u64), frame_words, &fp) != frame_words)
-    {
-      hc_fclose (&fp);
-
-      return false;
-    }
+    if (hc_fwrite (frame_db, sizeof (u64), frame_words, &fp) != frame_words) ok = false;
   }
 
+  hc_fflush (&fp);
   hc_fclose (&fp);
+
+  if (ok == false)
+  {
+    remove (tmp);
+
+    return false;
+  }
+
+  // rename () refuses an existing target on Windows, where POSIX replaces it silently.
+
+  #if defined (_WIN)
+  remove (path);
+  #endif
+
+  if (rename (tmp, path) != 0)
+  {
+    remove (tmp);
+
+    return false;
+  }
 
   return true;
 }
@@ -387,7 +432,45 @@ static bool seekdb_save (const char *path, const char *wordlist, const u64 line_
 // Every check here is cheap on purpose: this runs before anything has been cracked and a wrong answer
 // is worse than a rebuild.
 
-static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *size, u64 *step, u64 **frame_db, u64 *frame_count, bool *frames_known, const u64 want_ident, const u64 want_size)
+// Whether a frame index could have come from the file it was loaded for.
+//
+// A database is stored under a hash of the wordlist, so one found at all is almost certainly the
+// right one. What that does not cover is the database's own contents. A file damaged after it was
+// written passes every check on the header and then hands thread_seek () offsets that point nowhere,
+// and a seek to the wrong byte is a candidate never tried. These are the properties any real index
+// has, and checking them costs one walk of the array.
+
+static bool seekdb_frames_sane (const u64 *frames, const u64 count, const u64 file_size, const u64 line_count)
+{
+  u64 prev_comp   = 0;
+  u64 prev_uncomp = 0;
+  u64 prev_line   = 0;
+
+  for (u64 i = 0; i < count; i++)
+  {
+    const u64 *entry = &frames[i * SEEKDB_FRAME_WORDS];
+
+    // a frame begins inside the file it belongs to, and names a line that file has
+
+    if (entry[0] >= file_size) return false;
+    if (entry[3] >= line_count) return false;
+
+    // and the frames are in file order, which is the order a search over them assumes. Two frames
+    // may name the same line, because a frame need not hold a whole one.
+
+    if (entry[0] < prev_comp) return false;
+    if (entry[1] < prev_uncomp) return false;
+    if (entry[3] < prev_line) return false;
+
+    prev_comp   = entry[0];
+    prev_uncomp = entry[1];
+    prev_line   = entry[3];
+  }
+
+  return true;
+}
+
+static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *size, u64 *step, u64 **frame_db, u64 *frame_count, u64 *frame_gen, const u64 want_ident, const u64 want_size)
 {
   HCFILE fp;
 
@@ -538,25 +621,37 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
 
   // How much of the body is the frame index, which is written after the line checkpoints.
   //
-  // A database built before the frame index existed carries no such field. Its body cannot be told
-  // apart from one that has frames in it, so the answer handed back is that there is no answer
-  // rather than that there are no frames. A compressed source acts on the difference: it rebuilds,
-  // because the file it has is one that predates its being seekable at all.
+  // A database built before the frame index existed carries neither field, and its body cannot be
+  // told apart from one that has frames in it. Such a file reads as generation 0, which is not the
+  // generation this hashcat writes, and a compressed source rebuilds on that difference: the file it
+  // has predates its being seekable at all. The same difference retires an index whose rules have
+  // changed since, which is what the generation is really for.
 
   u64 header_frames = 0;
 
   const bool has_frames = seekdb_header_u64 (header, "frames", "%" SCNu64, &header_frames);
 
+  u64 header_gen = 0;
+
+  if (has_frames == false) header_frames = 0;
+
+  if (seekdb_header_u64 (header, "framegen", "%" SCNu64, &header_gen) == false) header_gen = 0;
+
   const size_t rem = ((size_t) st.st_size - SEEKDB_HEADER_SIZE) / sizeof (u64);
 
-  const size_t frame_words = (size_t) header_frames * SEEKDB_FRAME_WORDS;
+  // The count came out of a file, and multiplying it by the width of an entry is where a large one
+  // stops meaning anything. The product wraps, a bound written as a product passes, and the count
+  // itself is kept and used to index an array of a few entries. Dividing the room by the width says
+  // the same thing and cannot wrap.
 
-  if (frame_words > rem)
+  if (header_frames > (rem / SEEKDB_FRAME_WORDS))
   {
     hc_fclose (&fp);
 
     return NULL;
   }
+
+  const size_t frame_words = (size_t) header_frames * SEEKDB_FRAME_WORDS;
 
   const size_t db_words = rem - frame_words;
 
@@ -602,6 +697,16 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
 
       return NULL;
     }
+
+    if (seekdb_frames_sane (frames, header_frames, header_bytes, header_lines) == false)
+    {
+      hc_fclose (&fp);
+
+      hcfree (frames);
+      hcfree (db);
+
+      return NULL;
+    }
   }
 
   hc_fclose (&fp);
@@ -612,7 +717,7 @@ static u64 *seekdb_load (const char *path, u64 *count, u64 *line_count, u64 *siz
   *step         = header_step;
   *frame_db     = frames;
   *frame_count  = header_frames;
-  *frames_known = has_frames;
+  *frame_gen    = header_gen;
 
   return db;
 }
@@ -849,8 +954,19 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
 
   if ((feed_thread->compressed == true) && (frames.count < 2) && (pos >= SEEKDB_ADVICE_SIZE))
   {
+    // What to write it with instead depends on what it is. The stock xz already writes blocks when
+    // it is asked to use every core, so an .xz needs one more switch and not another format. A .zst
+    // needs pzstd, because zstd itself writes the whole file as one frame however it is called.
+
+    const char *advice = "compressing it with pzstd instead gives hashcat frames it can seek to";
+
+    if (strcmp (hc_container_name (&feed_thread->hcfile), "xz") == 0)
+    {
+      advice = "compressing it with xz -T0 instead gives hashcat blocks it can seek to";
+    }
+
     feed_say (hashcat_ctx, "%s: compressed in one piece, so seeking into it means decoding it from the start.", wordlist);
-    feed_say (hashcat_ctx, "%s: compressing it with pzstd instead gives hashcat frames it can seek to.", wordlist);
+    feed_say (hashcat_ctx, "%s: %s.", wordlist, advice);
   }
 
   const u64 content = paw64_final (&xstate);

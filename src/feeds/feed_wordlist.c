@@ -96,6 +96,79 @@ static size_t process_word (const u8 *buf, const size_t max_len, u8 *out_buf, co
 
 static int thread_next_source (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size);
 
+// How many line ending characters sit at the end of these bytes.
+//
+// A line ending may be "\r\n", and the "\r" belongs to the ending rather than to the word. Counting
+// them is separate from finding them because a line read a window at a time can end with the "\r" in
+// one window and the "\n" in the next, and by then the "\r" is bytes the reader has already passed.
+
+static size_t trailing_cr (const u8 *buf, const size_t len)
+{
+  size_t n = 0;
+
+  while ((n < len) && (buf[len - 1 - n] == '\r')) n++;
+
+  return n;
+}
+
+// Read and drop the rest of a line that ran past the end of the window, and answer with the whole
+// length of it.
+//
+// A compressed source is read through a window, so a line longer than the window has no line ending
+// in what is in hand. The line is still one line. Handing over the part that fits and calling the
+// rest a second word would give hashcat a candidate that is not in the wordlist, and would leave
+// this thread one line further on than the seek database says, so every later seek into this source
+// would land a line short. A mapped source never gets here: it has the whole file in front of it, so
+// a line with no ending after it really is the last one.
+//
+// head is what the caller already took, which it must have taken before this runs: topping the
+// window up moves what is left of it to the front, and that is where head points.
+
+static size_t source_finish_line (feed_thread_t *feed_thread, const u8 *head, const size_t head_len)
+{
+  hc_memchr_t hc_memchr = hc_memchr_get ();
+
+  size_t len = head_len;
+  size_t cr  = trailing_cr (head, head_len);
+
+  while (true)
+  {
+    if (source_fill (feed_thread) == false) break;
+
+    const size_t avail = feed_thread->fd_len - feed_thread->fd_off;
+
+    if (avail == 0) break;
+
+    const u8 *pos = (const u8 *) feed_thread->fd_mem + feed_thread->fd_off;
+
+    // hc_memchr answers with the length it was given when there is no line ending in it, which is
+    // this line running on into the window after this one.
+
+    const size_t take = hc_memchr (pos, '\n', avail);
+
+    const size_t tail = trailing_cr (pos, take);
+
+    cr = (tail == take) ? (cr + tail) : tail;
+
+    len += take;
+
+    if (take == avail)
+    {
+      feed_thread->fd_off += take;
+
+      continue;
+    }
+
+    feed_thread->fd_off += take + 1;
+
+    break;
+  }
+
+  const size_t line_len = len - cr;
+
+  return line_len;
+}
+
 /**
  * sources
  */
@@ -298,7 +371,20 @@ static bool source_seek_frame (feed_thread_t *feed_thread, const u64 *entry)
   }
   else
   {
-    if (hc_frame_restart (&feed_thread->hcfile, comp_off, uncomp_off) == false) return false;
+    // The database says where the pieces of this file are, and this build cannot always start a
+    // decoder at one of them. A database is named after the wordlist and nothing else, so one
+    // written on a host whose liblzma has the block calls is found and used on a host whose liblzma
+    // does not, and --seekdb-path exists so that a cluster shares exactly that directory. Reading
+    // the file from its beginning still reaches the line, at the cost the index was there to save,
+    // which is what every compressed wordlist did before there was an index. The index is an
+    // optimisation and never a requirement.
+
+    if (hc_frame_restart (&feed_thread->hcfile, comp_off, uncomp_off) == false)
+    {
+      const bool rc = source_restart (feed_thread);
+
+      return rc;
+    }
 
     feed_thread->fd_off  = 0;
     feed_thread->fd_len  = 0;
@@ -597,16 +683,17 @@ u64 global_keyspace (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED
 
     global_ctx->source_ident = paw64 (&source_ident, sizeof (source_ident), global_ctx->source_ident);
 
-    bool frames_known = false;
+    u64 frame_gen = 0;
 
-    source->seek_db = seekdb_load (seekdb_file, &source->seek_count, &source->line_count, &source->size, &source->seek_step, &source->frame_db, &source->frame_count, &frames_known, source_ident, source_size);
+    source->seek_db = seekdb_load (seekdb_file, &source->seek_count, &source->line_count, &source->size, &source->seek_step, &source->frame_db, &source->frame_count, &frame_gen, source_ident, source_size);
 
-    // A compressed source whose database was built before the frame index existed is rebuilt rather
-    // than used. What is on disk is not wrong, it is only the slow description: with no frames there
-    // is no byte in the file to seek to, so every seek backwards decodes the file again from the
-    // start and every device pays for it. One more pass over the file buys that back.
+    // A compressed source whose database carries an older frame index is rebuilt rather than used.
+    // What is on disk is not wrong, it is only a poorer description of the same file: an index built
+    // before .zst was seekable has no frames at all, and one built before .xz was has a single
+    // useless entry for an .xz. Either way every seek backwards decodes the file from the start and
+    // every device pays for it. One more pass over the file buys that back, once.
 
-    if ((source->seek_db != NULL) && (frames_known == false) && (hc_path_is_compressed (source->path) == true))
+    if ((source->seek_db != NULL) && (frame_gen != SEEKDB_FRAME_GEN) && (hc_path_is_compressed (source->path) == true))
     {
       hcfree (source->seek_db);
       hcfree (source->frame_db);
@@ -796,10 +883,28 @@ int thread_next (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED gen
 
   const size_t step = process_word (fd_mem + fd_off, remaining, out_buf, out_size, &word_len);
 
-  // a word with no line ending after it is the last one in the file, and it runs to the end
+  if (step < remaining)
+  {
+    feed_thread->fd_off += step + 1;
+  }
+  else
+  {
+    // No line ending in what is in hand. For a mapped source that is the last word in the file, and
+    // it runs to the end. For a compressed source the window simply ran out, and the rest of the
+    // line is read here so that the line is handed over once.
 
-  feed_thread->fd_off += (step < remaining) ? (step + 1) : remaining;
+    feed_thread->fd_off += remaining;
+
+    if (feed_thread->compressed == true) word_len = source_finish_line (feed_thread, fd_mem + fd_off, remaining);
+  }
+
   feed_thread->fd_line++;
+
+  // The length goes back as an int, and a line long enough to overflow one would come back negative,
+  // which is how this interface says end of file. Nothing that long is a candidate, so the ceiling
+  // is as true as the caller needs and cannot be read as a code.
+
+  if (word_len > INT_MAX) word_len = INT_MAX;
 
   return (int) word_len;
 }

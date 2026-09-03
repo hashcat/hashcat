@@ -28,11 +28,30 @@ ten million is to decode the nine million nine hundred thousand before it and th
 device pays that separately, and a run over 8 GPUs decodes the file 8 times before the first
 candidate is tried.
 
-The way out is a wordlist compressed in independent pieces. A `.zst` file is a run of frames, and a
-frame decodes without any of the frames before it, so hashcat can start reading at the frame that
-holds the line it wants and walk forward from there. It records where those frames are the first
-time it reads the file, in the same seek database it already builds for the line count, and every
-run after that uses it.
+The way out is a wordlist compressed in independent pieces. A `.zst` file is a run of frames and an
+`.xz` file is a run of blocks, and either one decodes without the pieces in front of it, so hashcat
+can start reading at the piece that holds the line it wants and walk forward from there. It records
+where those pieces are the first time it reads the file, in the same seek database it already builds
+for the line count, and every run after that uses it.
+
+### xz
+
+`xz` writes the whole file as one block on its own, and writes one block per chunk as soon as it is
+asked to use more than one core:
+
+    xz -T0 wordlist
+
+That is the same switch most people already use for the speed, so an `.xz` written the ordinary way
+on a machine with several cores is usually seekable already. `--block-size` sets the granularity
+directly, and a smaller block means less to walk through after a seek:
+
+    xz -T0 --block-size=8MiB wordlist
+
+An `.xz` carries an index of its blocks at the end of the file, so hashcat reads where they are
+rather than working it out. Concatenated `.xz` files are handled too: the index covers every block in
+the file, whichever stream it belongs to.
+
+### zstd
 
 `zstd` writes one frame for the whole file, even with `-T0`. `pzstd`, which ships with Zstandard,
 writes one frame per chunk:
@@ -40,12 +59,21 @@ writes one frame per chunk:
     pzstd -p 8 wordlist
 
 The chunk size follows the compression level rather than the thread count, so a wordlist of any size
-comes out with frames every few megabytes and `-p` only decides how fast it is written. hashcat says
-so when it meets a large compressed wordlist that has no frames in it.
+comes out with frames every few megabytes and `-p` only decides how fast it is written. Concatenating
+`.zst` files with `cat` works as well.
 
-Nothing about the file is specific to hashcat. `zstd -d` decompresses it, and so does anything else
-that reads `.zst`. `.gz` and `.xz` are read as they always were, from the start, and a wordlist in
-either of those formats is worth converting if the run seeks at all.
+### gzip
+
+A `.gz` has no independent pieces, so it is read from the start as it always was. A wordlist in that
+format is worth rewriting as `.xz` or `.zst` if the run seeks at all.
+
+### What hashcat says
+
+hashcat reports it once, while building the index, when it meets a large compressed wordlist with
+nothing in it to seek to, and it names the tool that would change that.
+
+Nothing about any of these files is specific to hashcat. `unxz` and `zstd -d` decompress them, and so
+does anything else that reads the format.
 
 ## Linux and the BSDs
 
