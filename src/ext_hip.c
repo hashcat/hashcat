@@ -118,10 +118,17 @@ int hip_init (void *hashcat_ctx)
 
   if (hip->lib == NULL) return -1;
 
-  // DTK's libamdhip64.so is libgalaxyhip.so and exports hipExtGetNearstCPU,
-  // which the ROCm library does not. Ask the opened library which runtime it is
-  // instead of relying on the name it was found under.
-  hip->is_dtk = (hc_dlsym (hip->lib, "hipExtGetNearstCPU") != NULL);
+  // DTK's libamdhip64.so is libgalaxyhip.so. Identify the runtime from a symbol
+  // the ROCm library does not export. Hygon currently ships the misspelled
+  // hipExtGetNearstCPU, so probe the correct spelling too in case a later DTK
+  // fixes it.
+  hip->is_dtk = (hc_dlsym (hip->lib, "hipExtGetNearstCPU") != NULL)
+             || (hc_dlsym (hip->lib, "hipExtGetNearestCPU") != NULL);
+
+  if (hip->is_dtk == true)
+  {
+    event_log_info (hashcat_ctx, "Hygon DTK HIP runtime detected, selecting the DTK ABI.");
+  }
 
   // finding the right symbol is a PITA,
   #define HC_LOAD_FUNC_HIP(ptr,name,hipname,type,libname,noerr) \
