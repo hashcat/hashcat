@@ -1120,6 +1120,83 @@ DECLSPEC void sha1_update_global (PRIVATE_AS sha1_ctx_t *ctx, GLOBAL_AS const u3
   sha1_update_64 (ctx, w0, w1, w2, w3, len - pos1);
 }
 
+// The caller holds its words with the low byte first, and wants them fed to the transform
+// without a swap. Only the tail differs from sha1_update_global: the bytes past the end of
+// the message sit at the high end of the last word, so the mask has to come from that side.
+
+DECLSPEC void sha1_update_global_le (PRIVATE_AS sha1_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
+{
+  u32 w0[4];
+  u32 w1[4];
+  u32 w2[4];
+  u32 w3[4];
+
+  int pos1;
+  int pos4;
+
+  for (pos1 = 0, pos4 = 0; pos1 < len - 64; pos1 += 64, pos4 += 16)
+  {
+    w0[0] = w[pos4 +  0];
+    w0[1] = w[pos4 +  1];
+    w0[2] = w[pos4 +  2];
+    w0[3] = w[pos4 +  3];
+    w1[0] = w[pos4 +  4];
+    w1[1] = w[pos4 +  5];
+    w1[2] = w[pos4 +  6];
+    w1[3] = w[pos4 +  7];
+    w2[0] = w[pos4 +  8];
+    w2[1] = w[pos4 +  9];
+    w2[2] = w[pos4 + 10];
+    w2[3] = w[pos4 + 11];
+    w3[0] = w[pos4 + 12];
+    w3[1] = w[pos4 + 13];
+    w3[2] = w[pos4 + 14];
+    w3[3] = w[pos4 + 15];
+
+    sha1_update_64 (ctx, w0, w1, w2, w3, 64);
+  }
+
+  const int tail = len - pos1;
+
+  u32 t[16];
+
+  t[ 0] = hc_bounded_word_global_le_S (w, pos4 +  0, tail -   0);
+  t[ 1] = hc_bounded_word_global_le_S (w, pos4 +  1, tail -   4);
+  t[ 2] = hc_bounded_word_global_le_S (w, pos4 +  2, tail -   8);
+  t[ 3] = hc_bounded_word_global_le_S (w, pos4 +  3, tail -  12);
+  t[ 4] = hc_bounded_word_global_le_S (w, pos4 +  4, tail -  16);
+  t[ 5] = hc_bounded_word_global_le_S (w, pos4 +  5, tail -  20);
+  t[ 6] = hc_bounded_word_global_le_S (w, pos4 +  6, tail -  24);
+  t[ 7] = hc_bounded_word_global_le_S (w, pos4 +  7, tail -  28);
+  t[ 8] = hc_bounded_word_global_le_S (w, pos4 +  8, tail -  32);
+  t[ 9] = hc_bounded_word_global_le_S (w, pos4 +  9, tail -  36);
+  t[10] = hc_bounded_word_global_le_S (w, pos4 + 10, tail -  40);
+  t[11] = hc_bounded_word_global_le_S (w, pos4 + 11, tail -  44);
+  t[12] = hc_bounded_word_global_le_S (w, pos4 + 12, tail -  48);
+  t[13] = hc_bounded_word_global_le_S (w, pos4 + 13, tail -  52);
+  t[14] = hc_bounded_word_global_le_S (w, pos4 + 14, tail -  56);
+  t[15] = hc_bounded_word_global_le_S (w, pos4 + 15, tail -  60);
+
+  w0[0] = t[ 0];
+  w0[1] = t[ 1];
+  w0[2] = t[ 2];
+  w0[3] = t[ 3];
+  w1[0] = t[ 4];
+  w1[1] = t[ 5];
+  w1[2] = t[ 6];
+  w1[3] = t[ 7];
+  w2[0] = t[ 8];
+  w2[1] = t[ 9];
+  w2[2] = t[10];
+  w2[3] = t[11];
+  w3[0] = t[12];
+  w3[1] = t[13];
+  w3[2] = t[14];
+  w3[3] = t[15];
+
+  sha1_update_64 (ctx, w0, w1, w2, w3, len - pos1);
+}
+
 DECLSPEC void sha1_update_global_swap (PRIVATE_AS sha1_ctx_t *ctx, GLOBAL_AS const u32 *w, const int len)
 {
   u32 w0[4];

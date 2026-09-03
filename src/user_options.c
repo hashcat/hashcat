@@ -136,7 +136,6 @@ static const struct option long_options[] =
   {"quiet",                     no_argument,       NULL, IDX_QUIET},
   {"remove",                    no_argument,       NULL, IDX_REMOVE},
   {"remove-timer",              required_argument, NULL, IDX_REMOVE_TIMER},
-  {"restore-auto",              no_argument,       NULL, IDX_RESTORE_AUTO},
   {"restore-disable",           no_argument,       NULL, IDX_RESTORE_DISABLE},
   {"restore-file-path",         required_argument, NULL, IDX_RESTORE_FILE_PATH},
   {"restore-position",          no_argument,       NULL, IDX_RESTORE_POSITION},
@@ -308,7 +307,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->restore_enable            = RESTORE_ENABLE;
   user_options->restore_file_path         = NULL;
   user_options->restore                   = RESTORE;
-  user_options->restore_auto              = RESTORE_AUTO;
   user_options->restore_position          = RESTORE_POSITION;
   user_options->restore_timer             = RESTORE_TIMER;
   user_options->rp_gen_func_max           = RP_GEN_FUNC_MAX;
@@ -476,7 +474,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_HELP:                      user_options->usage++;                                                     break;
       case IDX_VERSION:                   user_options->version                   = true;                            break;
       case IDX_RESTORE:                   user_options->restore                   = true;                            break;
-      case IDX_RESTORE_AUTO:              user_options->restore_auto              = true;                            break;
       case IDX_RESTORE_POSITION:          user_options->restore_position          = true;                            break;
       case IDX_QUIET:                     user_options->quiet                     = true;                            break;
       case IDX_SHOW:                      user_options->show                      = true;                            break;
@@ -1892,8 +1889,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   // --restore prints the command line the restore file holds and stops. --restore-position is what
   // that printed command line carries, and it takes only the position out of the file. The two are
-  // the two halves of one resume and cannot be given together. --restore-auto is the way back to
-  // resuming in one step, so it only means anything alongside --restore.
+  // the two halves of one resume and cannot be given together.
 
   if ((user_options->restore == true) && (user_options->restore_position == true))
   {
@@ -1901,13 +1897,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
     event_log_warning (hashcat_ctx, "--restore prints the command line to run. --restore-position belongs to that printed command line.");
     event_log_warning (hashcat_ctx, NULL);
-
-    return -1;
-  }
-
-  if ((user_options->restore_auto == true) && (user_options->restore == false))
-  {
-    event_log_error (hashcat_ctx, "Option --restore-auto only works together with --restore.");
 
     return -1;
   }
@@ -4758,7 +4747,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->remove);
   logfile_top_uint   (user_options->remove_timer);
   logfile_top_uint   (user_options->restore);
-  logfile_top_uint   (user_options->restore_auto);
   logfile_top_uint   (user_options->restore_enable);
   logfile_top_uint   (user_options->restore_position);
   logfile_top_uint   (user_options->restore_timer);

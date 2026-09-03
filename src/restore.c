@@ -264,7 +264,6 @@ static size_t restore_cmd_append (char *dst, const size_t dst_sz, size_t dst_len
 static bool restore_arg_is_ours (const char *arg)
 {
   if (strcmp (arg, "--restore")           == 0) return true;
-  if (strcmp (arg, "--restore-auto")      == 0) return true;
   if (strcmp (arg, "--restore-position")  == 0) return true;
   if (strcmp (arg, "--restore-file-path") == 0) return true;
 
@@ -603,8 +602,9 @@ void unlink_restore (hashcat_ctx_t *hashcat_ctx)
 // That cannot be filtered. An --outfile in the file is there because one was given when the session
 // started, so refusing it would break the feature the file exists for. So the file stops being a
 // command line instead: --restore prints what it holds and stops, and the printed line carries
-// --restore-position, under which hashcat takes the position out of the file and nothing else. After
-// that no argv is ever parsed out of a file unless --restore-auto asks for the old behaviour.
+// --restore-position, under which hashcat takes the position out of the file and nothing else. No
+// argv is parsed out of a file on any path, so there is no option that turns the old behaviour back
+// on.
 
 static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, char **argv)
 {
@@ -757,41 +757,6 @@ static void print_restore_command (hashcat_ctx_t *hashcat_ctx, const u32 argc, c
   event_log_warning (hashcat_ctx, NULL);
 }
 
-// --restore-auto keeps the old one step resume for anything that drives hashcat without a person
-// watching. The command line still comes out of the file there, so it is at least shown before it is
-// used. Warnings are not silenced by --quiet, and whoever hands out a restore file also hands out the
-// command used to run it.
-
-#define RESTORE_ARG_DISPLAY_MAX 1024
-
-static void show_restore_argv (hashcat_ctx_t *hashcat_ctx, const u32 argc, char **argv)
-{
-  event_log_warning (hashcat_ctx, "Restoring this command line out of the restore file:");
-  event_log_warning (hashcat_ctx, NULL);
-
-  for (u32 i = 1; i < argc; i++)
-  {
-    char *arg = restore_str_escape (argv[i]);
-
-    const size_t arg_len = strlen (arg);
-
-    if (arg_len > RESTORE_ARG_DISPLAY_MAX)
-    {
-      arg[RESTORE_ARG_DISPLAY_MAX] = 0;
-
-      event_log_warning (hashcat_ctx, "  %s [%" PRIu64 " more characters not shown]", arg, (u64) (arg_len - RESTORE_ARG_DISPLAY_MAX));
-    }
-    else
-    {
-      event_log_warning (hashcat_ctx, "  %s", arg);
-    }
-
-    hcfree (arg);
-  }
-
-  event_log_warning (hashcat_ctx, NULL);
-}
-
 int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
@@ -845,7 +810,7 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
     // so the recorded directory is printed rather than entered.
 
     const bool with_argv  = (user_options->restore == true);
-    const bool with_chdir = (user_options->restore == false) || (user_options->restore_auto == true);
+    const bool with_chdir = (user_options->restore == false);
 
     if (read_restore (hashcat_ctx, with_argv, with_chdir) == -1) return -1;
 
@@ -860,16 +825,6 @@ int restore_ctx_init (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
 
     if (user_options->restore == false)
     {
-      restore_ctx->restore_execute = true;
-    }
-    else if (user_options->restore_auto == true)
-    {
-      show_restore_argv (hashcat_ctx, rd->argc, rd->argv);
-
-      user_options_init (hashcat_ctx);
-
-      if (user_options_getopt (hashcat_ctx, rd->argc, rd->argv) == -1) return -1;
-
       restore_ctx->restore_execute = true;
     }
     else

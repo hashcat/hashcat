@@ -54,7 +54,6 @@ static const char *const USAGE_BIG_PRE_HASHMODES[] =
   "     --runtime                  | Num  | Abort session after X seconds of runtime             | --runtime=10",
   "     --session                  | Str  | Define specific session name                         | --session=mysession",
   "     --restore                  |      | Show the command line to resume --session, then stop  |",
-  "     --restore-auto             |      | Resume in one step instead, without showing it first  |",
   "     --restore-disable          |      | Do not write restore file                            |",
   "     --restore-file-path        | File | Specific path to restore file                        | --restore-file-path=x.restore",
   "     --restore-position         |      | Take only the position from the restore file         |",

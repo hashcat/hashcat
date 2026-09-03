@@ -883,7 +883,6 @@ typedef enum user_options_defaults
   REMOVE_TIMER             = 60,
   RESTORE_ENABLE           = true,
   RESTORE                  = false,
-  RESTORE_AUTO             = false,
   RESTORE_POSITION         = false,
   RESTORE_TIMER            = 1,
   RP_GEN                   = 0,
@@ -1019,7 +1018,6 @@ typedef enum user_options_map
   IDX_REMOVE                    = 0xff3a,
   IDX_REMOVE_TIMER              = 0xff3b,
   IDX_RESTORE                   = 0xff3c,
-  IDX_RESTORE_AUTO              = 0xff86,
   IDX_RESTORE_DISABLE           = 0xff3d,
   IDX_RESTORE_FILE_PATH         = 0xff3e,
   IDX_RESTORE_POSITION          = 0xff87,
@@ -2814,7 +2812,6 @@ typedef struct user_options
   bool         quiet;
   bool         remove;
   bool         restore;
-  bool         restore_auto;
   bool         restore_enable;
   bool         restore_position;
   bool         self_test;

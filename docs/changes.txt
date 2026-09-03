@@ -88,11 +88,11 @@ The file holds the command line of the session it belongs to, and hashcat used t
 run it, so anyone able to write the file could choose the arguments. --restore now prints the command
 line it holds and stops.
 
-11. Restore: --restore-position and --restore-auto
+11. Restore: --restore-position
 
 --restore-position takes only the resume position from the file and uses the command line you actually
-ran, so no argv is parsed out of a file at all. --restore-auto keeps the old one step resume for
-anything driving hashcat unattended, and prints the command line before using it.
+ran, so no argv is parsed out of a file at all. It is what the line printed by --restore carries, and
+it is the only way to resume.
 
 12. Restore: the printed command line is shell quoted
 
