@@ -293,7 +293,10 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
   tmp_buf[tmp_len] = 0;
 
-  hc_lockfile (&potfile_ctx->fp);
+  if (hc_lockfile (&potfile_ctx->fp))
+  {
+    event_log_warning (hashcat_ctx, "%s: Failed to lock file.", potfile_ctx->filename);
+  }
 
   hc_fprintf (&potfile_ctx->fp, "%s" EOL, tmp_buf);
 
@@ -301,7 +304,7 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
   if (hc_unlockfile (&potfile_ctx->fp))
   {
-    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
+    event_log_warning (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
   }
 }
 
