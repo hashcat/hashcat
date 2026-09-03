@@ -211,6 +211,19 @@ def single(mod, mode, length):
     if digest is None:
       continue
 
+    # Check the module against itself before printing. module_verify_hash is what a consumer that
+    # accepts submitted hashes calls to decide whether one is valid, so it is not test only
+    # plumbing, and a hook nothing ever runs is a hook nobody knows is broken. Every vector the
+    # suite generates now goes back through it.
+
+    line = digest.encode("utf-8") + b":" + word_bytes
+
+    checked = mod.module_verify_hash(line)
+
+    if checked is None or checked[0].encode("utf-8") + b":" + checked[1] != line:
+      sys.exit("module_verify_hash did not round trip module_generate_hash for mode %d\n  %r\n"
+               % (mode, line))
+
     sys.stdout.buffer.write(b"echo %-31s | ./hashcat ${OPTS} -a 0 -m %d '%s'\n"
                 % (word_bytes, mode, digest.encode("utf-8")))
 
