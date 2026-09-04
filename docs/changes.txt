@@ -226,7 +226,7 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 ## Improvements
 ##
 
-- An .xz wordlist written in blocks, which is what xz -T0 writes, is seeked into rather than decoded from the star
+- An .xz wordlist written in blocks, which is what xz -T0 writes, is seeked into rather than decoded from the start
 - Autotune: Set the thread count of -m 23800 from the device, which the lower workload profiles tuned far too low
 - Docker: Added hashcat-toolchain
 - Docker: Added Ubuntu 26.04 runtime images for CUDA and AMD
