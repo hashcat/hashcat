@@ -1,0 +1,58 @@
+/**
+ * Author......: See docs/credits.txt
+ * License.....: MIT
+ */
+
+// What hashcat.exe carries in its resource section. Two things live here.
+//
+// The manifest is the reason this file exists. It declares the process code page as UTF-8, which is
+// what makes a path, a mask file name or any other byte string mean the same thing on Windows as it
+// does everywhere else. Nothing else can set that: there is no runtime call for it, so a program
+// either says it here before it starts or spends the rest of its life converting at every call.
+//
+// The version block is what Explorer shows under Properties and what inventory and endpoint tooling
+// reads. Leaving it empty tells those tools nothing about a binary they are being asked to trust.
+//
+// HC_VERSION_NUM and HC_VERSION_STR come from the Makefile, so the block cannot drift from the
+// version the binary reports.
+
+#include <winresrc.h>
+
+1 RT_MANIFEST "hashcat.manifest"
+
+#ifndef HC_VERSION_NUM
+#define HC_VERSION_NUM 0,0,0,0
+#endif
+
+#ifndef HC_VERSION_STR
+#define HC_VERSION_STR "unknown"
+#endif
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     HC_VERSION_NUM
+PRODUCTVERSION  HC_VERSION_NUM
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "CompanyName",      "hashcat"
+      VALUE "FileDescription",  "hashcat advanced password recovery"
+      VALUE "FileVersion",      HC_VERSION_STR
+      VALUE "InternalName",     "hashcat"
+      VALUE "LegalCopyright",   "MIT licensed. See docs/license.txt"
+      VALUE "OriginalFilename", "hashcat.exe"
+      VALUE "ProductName",      "hashcat"
+      VALUE "ProductVersion",   HC_VERSION_STR
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

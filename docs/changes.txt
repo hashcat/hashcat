@@ -220,6 +220,8 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Added tools/rar32hashcat.py, which writes -m 23800 hash lines from a password protected RAR3 archive
 - -m 23800 now reports at the end of a run how many candidates reached a RAR3 construct it could not decode
 
+- Rules: A character outside ASCII can be written directly in the operand of the five rule operations that emit bytes, $ ^ i v o, instead of one \xHH per byte
+- Windows: The binary now carries an application manifest and a version block. The manifest declares the process code page as UTF-8, which is what makes a path or an argument holding any character mean the same thing it means on every other platform, and it also opts into long paths
 ##
 ## Improvements
 ##
@@ -426,6 +428,10 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Fixed the available memory calculation underflowing on a u64 in the yescrypt, scrypt and argon2 modules when a device reports less memory than the reserve, which asked for far more memory than the device has
 - Fixed the CUDA context created for each device being left on the main thread's context stack, since cuCtxCreate makes it current as well as creating it
 - Fixed the per file rule buffers being leaked when a ruleset loaded, and bounded the class selector lookahead in the rule compiler
+- Windows: Fixed hashcat failing to run from a folder whose name holds a character the system code page cannot represent, where its own pid, tuning and potfile paths were rejected as an invalid argument
+- Windows: Fixed a mask, a rule or any other argument holding such a character arriving as a question mark, which for a mask silently ran a different keyspace because ? is the mask metacharacter
+- Windows: Fixed a message printed to a console being rendered through the console code page rather than as UTF-8, which showed any such character as mojibake unless the user had run chcp 65001 first
+- Windows: Fixed the colour of a message written to stderr being applied to whatever console stdout pointed at, and the terminal test answering for stdout no matter which stream was being written
 
 ##
 ## Other changes

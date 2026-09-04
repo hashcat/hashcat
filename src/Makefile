@@ -241,6 +241,7 @@ endif
 # command line. Under the platform name they are what every rule below asks for.
 
 CC_NATIVE               := $(CC)
+WINDRES_NATIVE          := windres
 CXX_NATIVE              := $(CXX)
 AR_NATIVE               := $(AR)
 
@@ -251,6 +252,7 @@ CXX_LINUX               := g++
 AR_LINUX                := ar
 
 CC_WIN                  := x86_64-w64-mingw32-gcc
+WINDRES_WIN             := x86_64-w64-mingw32-windres
 CXX_WIN                 := x86_64-w64-mingw32-g++
 AR_WIN                  := x86_64-w64-mingw32-ar
 
@@ -306,6 +308,12 @@ ifeq ($(PRODUCTION),1)
 VERSION_TAG             := $(PRODUCTION_VERSION)
 else
 VERSION_TAG             := $(shell git describe --tags --dirty=+ || echo $(PRODUCTION_VERSION))
+
+# A Windows version resource is four numbers. VERSION_TAG is a git description, so the release is
+# taken from the front of it and the commit count becomes the fourth field. Both forms work:
+# v7.1.2 gives 7,1,2,0 and v7.1.2-40-gabc1234 gives 7,1,2,40.
+
+VERSION_NUM             := $(shell echo "$(VERSION_TAG)" | sed -e 's/^v//' -e 's/+$$//' -e 's/-g[0-9a-f]*$$//' -e 's/-/./' | awk -F. '{printf "%d,%d,%d,%d", $$1+0, $$2+0, $$3+0, $$4+0}')
 endif # PRODUCTION
 
 VERSION_PURE            := $(shell echo "$(VERSION_TAG)" | $(SED) 's/.*v\([\.0-9]*\).*/\1/')
@@ -375,11 +383,13 @@ endif # Darwin
 ifeq ($(UNAME),CYGWIN)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY_NATIVE  := hashcat.dll
+RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
 endif # CYGWIN
 
 ifeq ($(UNAME),MSYS2)
 HASHCAT_FRONTEND        := hashcat.exe
 HASHCAT_LIBRARY_NATIVE  := hashcat.dll
+RESOURCE_NATIVE         := obj/hashcat.res.NATIVE.o
 endif # MSYS2
 
 # make install and make uninstall run on this machine and touch nothing a cross build wrote
@@ -1442,8 +1452,28 @@ FRONTEND_DEFINES_WIN    := $(FRONTEND_DEFINES)
 
 frontend_link = $(CC_$(1)) $(CCFLAGS) $(CFLAGS_$(1)) $(HARDEN_FRONTEND_$(1)) $(DEPFLAGS) -MF $(2) src/main.c $(CORE_$(1)) $(3) -o $@ $(LFLAGS_$(1)) $(if $(filter $(1),$(SHARED_PLATFORMS)),$(LFLAGS_FRONTEND_$(1))) $(4) $(FRONTEND_DEFINES_$(1))
 
-$(HASHCAT_FRONTEND): src/main.c $(CORE_NATIVE) obj/arrangement
-	$(call frontend_link,NATIVE,obj/main.NATIVE.d,,)
+##
+## Rules: the Windows resource section
+##
+## src/hashcat.rc carries the application manifest and the version block. The manifest is the part
+## that matters: it declares the process code page as UTF-8, which is the only way to set it, and
+## without it every narrow filesystem call on Windows reads a path through the legacy code page.
+## Only the two Windows frontends link this. Everything else has no resource section at all.
+##
+
+resource_compile = $(WINDRES_$(1)) -I src -DHC_VERSION_NUM=$(VERSION_NUM) -DHC_VERSION_STR='\"$(VERSION_TAG)\"' src/hashcat.rc -o $@
+
+obj/hashcat.res.WIN.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
+	$(call resource_compile,WIN)
+
+obj/hashcat.res.NATIVE.o: src/hashcat.rc src/hashcat.manifest obj/arrangement
+	$(call resource_compile,NATIVE)
+
+# A native build is a Windows one on MSYS2 and CYGWIN, and those get the resource section too. On
+# every other platform RESOURCE_NATIVE is empty and the link is unchanged.
+
+$(HASHCAT_FRONTEND): src/main.c $(CORE_NATIVE) $(RESOURCE_NATIVE) obj/arrangement
+	$(call frontend_link,NATIVE,obj/main.NATIVE.d,$(RESOURCE_NATIVE),)
 
 ##
 ## Rules: the plugins
@@ -1599,8 +1629,8 @@ endif
 hashcat.bin: src/main.c $(CORE_LINUX) obj/arrangement
 	$(call frontend_link,LINUX,obj/main.LINUX.d,,)
 
-hashcat.exe: src/main.c $(CORE_WIN) obj/arrangement
-	$(call frontend_link,WIN,obj/main.WIN.d,,)
+hashcat.exe: src/main.c $(CORE_WIN) obj/hashcat.res.WIN.o obj/arrangement
+	$(call frontend_link,WIN,obj/main.WIN.d,obj/hashcat.res.WIN.o,)
 
 endif
 

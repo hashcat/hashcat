@@ -268,6 +268,36 @@ bool is_hex_notation (const char *rule_buf, u32 rule_len, u32 rule_pos)
   return true;
 }
 
+// How many bytes the rule operand at this position occupies. More than one only when the bytes there
+// are a well formed UTF-8 sequence with every continuation byte present inside the rule, so a rule
+// holding raw bytes or a lone high byte keeps exactly the meaning it has today.
+//
+// The rule engine stays byte oriented. A multibyte operand is sugar for the byte operations a user
+// would otherwise write out by hand, one per byte, and it compiles to exactly those. That is what
+// keeps the host and the device in step: both run the same commands, including at the length limit,
+// where each byte is dropped or kept on its own just as three separate operations would be.
+
+u32 rule_utf8_len (const char *rule_buf, const u32 rule_len, const u32 rule_pos)
+{
+  const u8 c = (u8) rule_buf[rule_pos];
+
+  u32 need = 0;
+
+  if      ((c & 0xe0) == 0xc0) need = 1;
+  else if ((c & 0xf0) == 0xe0) need = 2;
+  else if ((c & 0xf8) == 0xf0) need = 3;
+  else                         return 1;
+
+  if ((rule_pos + need) >= rule_len) return 1;
+
+  for (u32 i = 1; i <= need; i++)
+  {
+    if (((u8) rule_buf[rule_pos + i] & 0xc0) != 0x80) return 1;
+  }
+
+  return need + 1;
+}
+
 int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
 {
   u32 rule_pos;
@@ -340,14 +370,55 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_APPEND:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 1);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_APPEND & 0xff) | ((rule_buf[rule_pos + 1 + i] & 0xff) << 8);
+          }
+
+          rule_pos += mb;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME (rule, rule_buf[rule_pos]);
         SET_P0   (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_PREPEND:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 1);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          // each prepend puts its byte in front of the one before it, so the bytes go in backwards
+          // for the character to come out forwards
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_PREPEND & 0xff) | ((rule_buf[rule_pos + mb - i] & 0xff) << 8);
+          }
+
+          rule_pos += mb;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME (rule, rule_buf[rule_pos]);
         SET_P0   (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_DELETE_FIRST:
         SET_NAME (rule, rule_buf[rule_pos]);
@@ -375,22 +446,103 @@ int cpu_rule_to_kernel_rule (char *rule_buf, u32 rule_len, kernel_rule_t *rule)
         break;
 
       case RULE_OP_MANGLE_INSERT:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 2);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          const int p0 = conv_ctoi (rule_buf[rule_pos + 1]);
+
+          if (p0 == -1) return -1;
+
+          // each byte goes one place further along than the one before it, so the character lands whole
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_INSERT & 0xff)
+                                     | (((p0 + (int) i) & 0xff) << 8)
+                                     | ((rule_buf[rule_pos + 2 + i] & 0xff) << 16);
+          }
+
+          rule_pos += mb + 1;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME    (rule, rule_buf[rule_pos]);
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         SET_P1      (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_INSERT_EVERY:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 2);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          const int p0 = conv_ctoi (rule_buf[rule_pos + 1]);
+
+          if (p0 == -1) return -1;
+
+          // the interval grows by one per byte, which is exactly what keeps the bytes together as the string grows under them
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_INSERT_EVERY & 0xff)
+                                     | (((p0 + (int) i) & 0xff) << 8)
+                                     | ((rule_buf[rule_pos + 2 + i] & 0xff) << 16);
+          }
+
+          rule_pos += mb + 1;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME    (rule, rule_buf[rule_pos]);
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         SET_P1      (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_OVERSTRIKE:
+      {
+        const u32 mb = rule_utf8_len (rule_buf, rule_len, rule_pos + 2);
+
+        if (mb > 1)
+        {
+          if ((rule_cnt + mb) > MAX_KERNEL_RULES) return -1;
+
+          const int p0 = conv_ctoi (rule_buf[rule_pos + 1]);
+
+          if (p0 == -1) return -1;
+
+          // consecutive positions, so a character of this many bytes replaces that many bytes
+
+          for (u32 i = 0; i < mb; i++)
+          {
+            rule->cmds[rule_cnt + i] = (RULE_OP_MANGLE_OVERSTRIKE & 0xff)
+                                     | (((p0 + (int) i) & 0xff) << 8)
+                                     | ((rule_buf[rule_pos + 2 + i] & 0xff) << 16);
+          }
+
+          rule_pos += mb + 1;
+          rule_cnt += mb - 1;
+
+          break;
+        }
+
         SET_NAME    (rule, rule_buf[rule_pos]);
         SET_P0_CONV (rule, rule_buf[rule_pos]);
         SET_P1      (rule, rule_buf[rule_pos]);
         break;
+      }
 
       case RULE_OP_MANGLE_TRUNCATE_AT:
         SET_NAME    (rule, rule_buf[rule_pos]);

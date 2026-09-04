@@ -31,6 +31,99 @@
 int _dowildcard = -1;
 #endif
 
+#if defined (_WIN)
+
+// The console handle behind this stream, or INVALID_HANDLE_VALUE when the stream is not a console.
+// GetConsoleMode () is what tells the two apart: _isatty () answers yes for any character device, a
+// pipe included, and asking for STD_OUTPUT_HANDLE answers for stdout no matter which stream is being
+// written.
+
+static HANDLE main_log_console (FILE *fp)
+{
+  const int fd = _fileno (fp);
+
+  if (fd < 0) return INVALID_HANDLE_VALUE;
+
+  const HANDLE h = (HANDLE) _get_osfhandle (fd);
+
+  if (h == INVALID_HANDLE_VALUE) return INVALID_HANDLE_VALUE;
+
+  DWORD mode;
+
+  if (GetConsoleMode (h, &mode) == 0) return INVALID_HANDLE_VALUE;
+
+  return h;
+}
+
+// Windows renders what a program writes to a console through the console output code page, which is
+// not the process code page and is rarely UTF-8. Our messages are UTF-8, so any character outside
+// that code page arrives as mojibake, and telling the user to run chcp 65001 first is a worse answer
+// than writing the console the way it wants. WriteConsoleW takes UTF-16 and skips the code page
+// entirely.
+//
+// Only a real console comes through here. Redirected output keeps its raw UTF-8 bytes, because that
+// is what a script reading it expects, and candidate data must never be converted at all.
+//
+// Returns false and writes nothing when the message is not valid UTF-8, so the caller can fall back
+// to the byte write it would have done anyway.
+
+static bool main_log_console_write (HANDLE h, const char *buf, const int len)
+{
+  if (len <= 0) return true;
+
+  const int wide_len = MultiByteToWideChar (CP_UTF8, MB_ERR_INVALID_CHARS, buf, len, NULL, 0);
+
+  if (wide_len <= 0) return false;
+
+  wchar_t *wide_buf = (wchar_t *) hcmalloc ((size_t) wide_len * sizeof (wchar_t));
+
+  if (wide_buf == NULL) return false;
+
+  if (MultiByteToWideChar (CP_UTF8, MB_ERR_INVALID_CHARS, buf, len, wide_buf, wide_len) != wide_len)
+  {
+    hcfree (wide_buf);
+
+    return false;
+  }
+
+  bool ok = true;
+
+  int off = 0;
+
+  while (off < wide_len)
+  {
+    int chunk = MIN (wide_len - off, 16384);
+
+    // a character outside the basic plane is two units, and half of one means nothing to the console
+
+    if ((chunk < (wide_len - off)) && (wide_buf[off + chunk - 1] >= 0xd800) && (wide_buf[off + chunk - 1] <= 0xdbff)) chunk--;
+
+    DWORD written = 0;
+
+    if (WriteConsoleW (h, wide_buf + off, (DWORD) chunk, &written, NULL) == 0)
+    {
+      ok = false;
+
+      break;
+    }
+
+    if (written == 0)
+    {
+      ok = false;
+
+      break;
+    }
+
+    off += (int) written;
+  }
+
+  hcfree (wide_buf);
+
+  return ok;
+}
+
+#endif
+
 static void main_log_clear_line (MAYBE_UNUSED const size_t prev_len, MAYBE_UNUSED FILE *fp)
 {
   if (!is_stdout_terminal ()) return;
@@ -74,17 +167,29 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
   }
 
   #if defined (_WIN)
-  HANDLE hConsole = GetStdHandle (STD_OUTPUT_HANDLE);
 
-  CONSOLE_SCREEN_BUFFER_INFO con_info;
+  // the stream being written, which is stderr for an error, not whatever stdout happens to be
 
-  GetConsoleScreenBufferInfo (hConsole, &con_info);
+  HANDLE hConsole = main_log_console (fp);
 
-  const int orig = con_info.wAttributes;
+  const bool is_console = (hConsole != INVALID_HANDLE_VALUE);
+
+  int orig = 0;
+
+  if (is_console == true)
+  {
+    CONSOLE_SCREEN_BUFFER_INFO con_info;
+
+    if (GetConsoleScreenBufferInfo (hConsole, &con_info) != 0) orig = con_info.wAttributes;
+  }
   #endif
 
   // color stuff pre
+  #if defined (_WIN)
+  if (is_console == true)
+  #else
   if (is_stdout_terminal ())
+  #endif
   {
   #if defined (_WIN)
     switch (loglevel)
@@ -112,10 +217,34 @@ static void main_log (hashcat_ctx_t *hashcat_ctx, FILE *fp, const int loglevel)
 
   // finally, print
 
+  #if defined (_WIN)
+
+  bool printed = false;
+
+  if (is_console == true)
+  {
+    // the clear line above and the colour calls go through two different paths to the same console,
+    // one buffered by the C runtime and one not, so the stream has to be drained before this writes
+
+    fflush (fp);
+
+    printed = main_log_console_write (hConsole, msg_buf, (int) msg_len);
+  }
+
+  if (printed == false) fwrite (msg_buf, msg_len, 1, fp);
+
+  #else
+
   fwrite (msg_buf, msg_len, 1, fp);
 
+  #endif
+
   // color stuff post
+  #if defined (_WIN)
+  if (is_console == true)
+  #else
   if (is_stdout_terminal ())
+  #endif
   {
   #if defined (_WIN)
     switch (loglevel)

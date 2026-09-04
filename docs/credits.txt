@@ -114,5 +114,6 @@ Costin Enache <costin@detack.de>
 
 Shooter3k
 * Several long-standing bugfix ideas (rule file loading, --show and --left, --stdout output)
+* Windows UTF-8 console output, and multibyte characters written directly in rule operands
 
 !!! All the package maintainers of hashcat !!!
