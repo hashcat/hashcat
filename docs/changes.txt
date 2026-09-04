@@ -179,6 +179,8 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Added hash-mode: yescrypt
 - Added hash-mode: gost-yescrypt
 - Added hash-mode: scryptcrypt, scrypt (Unix)
+- Added hash-mode: KDE KWallet 4.13+ (PBKDF2-HMAC-SHA512, Blowfish)
+- Added hash-mode: KDE KWallet < 4.13 (SHA-1, Blowfish)
 
 ##
 ## New Attack modes and changed Attack modes
