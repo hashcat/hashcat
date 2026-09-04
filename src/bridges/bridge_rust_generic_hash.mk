@@ -73,12 +73,12 @@ endif
 # its own parallelism, and the alternative of marking the recipe as recursive would also make it run
 # during a dry run.
 $(RUST_SUBS_DIR)/%.so: $(RUST_SCAN_DIR)/%/Cargo.toml
-	MAKEFLAGS= RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $^
+	MAKEFLAGS= RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --target-dir Rust/bridges/$*/target --manifest-path $^
 	cp Rust/bridges/$*/target/$(RUST_BUILD_MODE)/lib$*.$(RUST_LIB_EXT) $@
 ifeq ($(RUSTUP_PRESENT),true)
 $(RUST_SUBS_DIR)/%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml
 	$(RUST_RUSTUP) --quiet target add x86_64-pc-windows-gnu
-	MAKEFLAGS= RUSTFLAGS="$(RUSTFLAGS_DLL)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $^ --target x86_64-pc-windows-gnu
+	MAKEFLAGS= RUSTFLAGS="$(RUSTFLAGS_DLL)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --target-dir Rust/bridges/$*/target --manifest-path $^ --target x86_64-pc-windows-gnu
 	cp Rust/bridges/$*/target/x86_64-pc-windows-gnu/$(RUST_BUILD_MODE)/$*.dll $@
 else
 $(RUST_SUBS_DIR)/%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml

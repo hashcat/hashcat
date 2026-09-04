@@ -71,12 +71,12 @@ FORCE:
 # during a dry run.
 
 feeds/rust_%.so: $(RUST_SCAN_DIR)/%/Cargo.toml FORCE
-	MAKEFLAGS= FEEDS_INTERFACE_VERSION_CURRENT="$(FEEDS_INTERFACE_VERSION)" RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $<
+	MAKEFLAGS= FEEDS_INTERFACE_VERSION_CURRENT="$(FEEDS_INTERFACE_VERSION)" RUSTFLAGS="$(RUSTFLAGS_SO)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --target-dir Rust/feeds/$*/target --manifest-path $<
 	@cmp -s Rust/feeds/$*/target/$(RUST_BUILD_MODE)/lib$*.$(RUST_LIB_EXT) $@ 2>/dev/null || cp Rust/feeds/$*/target/$(RUST_BUILD_MODE)/lib$*.$(RUST_LIB_EXT) $@
 ifeq ($(RUSTUP_PRESENT),true)
 feeds/rust_%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml FORCE
 	$(RUST_RUSTUP) --quiet target add x86_64-pc-windows-gnu
-	MAKEFLAGS= FEEDS_INTERFACE_VERSION_CURRENT="$(FEEDS_INTERFACE_VERSION)" RUSTFLAGS="$(RUSTFLAGS_DLL)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --manifest-path $< --target x86_64-pc-windows-gnu
+	MAKEFLAGS= FEEDS_INTERFACE_VERSION_CURRENT="$(FEEDS_INTERFACE_VERSION)" RUSTFLAGS="$(RUSTFLAGS_DLL)" $(RUST_CARGO) build --quiet $(RUST_MODE_FLAG) --target-dir Rust/feeds/$*/target --manifest-path $< --target x86_64-pc-windows-gnu
 	@cmp -s Rust/feeds/$*/target/x86_64-pc-windows-gnu/$(RUST_BUILD_MODE)/$*.dll $@ 2>/dev/null || cp Rust/feeds/$*/target/x86_64-pc-windows-gnu/$(RUST_BUILD_MODE)/$*.dll $@
 else
 feeds/rust_%.dll: $(RUST_SCAN_DIR)/%/Cargo.toml

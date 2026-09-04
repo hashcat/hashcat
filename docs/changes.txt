@@ -426,6 +426,7 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Fixed the available memory calculation underflowing on a u64 in the yescrypt, scrypt and argon2 modules when a device reports less memory than the reserve, which asked for far more memory than the device has
 - Fixed the CUDA context created for each device being left on the main thread's context stack, since cuCtxCreate makes it current as well as creating it
 - Fixed the per file rule buffers being leaked when a ruleset loaded, and bounded the class selector lookahead in the rule compiler
+- Fixed make failing to locate Rust libraries when CARGO_TARGET_DIR is set in the environment
 
 ##
 ## Other changes
