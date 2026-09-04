@@ -86,12 +86,11 @@ DECLSPEC bool pcfg_hash (MAYBE_UNUSED PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIV
 
 DECLSPEC bool pcfg_hash_global (MAYBE_UNUSED PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS const u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
 {
-  dgst[0] = MurmurHash64A_truncated (w, len);
-  dgst[1] = 0;
-  dgst[2] = 0;
-  dgst[3] = 0;
+  u32 t[64];
 
-  return true;
+  for (u32 i = 0; i < 64; i++) t[i] = w[i];
+
+  return pcfg_hash (hc, t, len, dgst);
 }
 
 #define PCFG_KERNEL_MXX m34211_mxx
