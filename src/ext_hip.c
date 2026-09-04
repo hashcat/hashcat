@@ -44,6 +44,7 @@ char *hipDllPath (char *hipSDKPath)
 int hip_init (void *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = ((hashcat_ctx_t *) hashcat_ctx)->backend_ctx;
+  user_options_t *user_options = ((hashcat_ctx_t *) hashcat_ctx)->user_options;
 
   HIP_PTR *hip = (HIP_PTR *) backend_ctx->hip;
 
@@ -127,7 +128,10 @@ int hip_init (void *hashcat_ctx)
 
   if (hip->is_dtk == true)
   {
-    event_log_info (hashcat_ctx, "Hygon DTK HIP runtime detected, selecting the DTK ABI.");
+    if (user_options->quiet == false)
+    {
+      event_log_info (hashcat_ctx, "Hygon DTK HIP runtime detected, selecting the DTK ABI.");
+    }
   }
 
   // finding the right symbol is a PITA,
