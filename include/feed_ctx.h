@@ -62,6 +62,7 @@ int  generic_thread_seek     (hashcat_ctx_t *hashcat_ctx, const generic_role_t r
 int  generic_association_in_sync   (hashcat_ctx_t *hashcat_ctx, const generic_ctx_t *generic_ctx);
 
 int  generic_ctx_base_round  (hashcat_ctx_t *hashcat_ctx, const char *path);
+void generic_ctx_base_close  (hashcat_ctx_t *hashcat_ctx);
 int  generic_ctx_base_discard (hashcat_ctx_t *hashcat_ctx, const int device_id, const u64 count);
 
 int  generic_ctx_word_index  (hashcat_ctx_t *hashcat_ctx, const generic_role_t role, const u8 *cand, const u32 cand_len, u64 *out_index, u64 *out_more, u64 *out_words);

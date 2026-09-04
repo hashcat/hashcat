@@ -2546,6 +2546,12 @@ typedef struct pubkey_ctx
 
 typedef struct outfile_ctx
 {
+  // How many batches are open. check_cracked () takes one for the whole of a launch's results, so
+  // the file is opened and locked once instead of once per cracked hash. Zero means the old
+  // behaviour, one open per write, which every other caller still gets.
+
+  int batch_depth;
+
   HCFILE  fp;
 
   u32     outfile_format;
@@ -2570,6 +2576,8 @@ typedef struct pot
 
 typedef struct potfile_ctx
 {
+  int batch_depth;
+
   HCFILE   fp;
 
   bool     enabled;
@@ -3690,6 +3698,16 @@ typedef struct status_ctx
   bool shutdown_outer;
 
   bool checkpoint_shutdown;
+
+  // Set once a cracking thread has actually left its loop for the checkpoint. A thread that has gone
+  // cannot be brought back, so from that point the checkpoint is happening whether or not the user
+  // changes their mind, and the run has to be ended as a checkpoint rather than as an exhausted
+  // round. Without this a cancel that lands too late cleared checkpoint_shutdown, the wait returned
+  // with the status still RUNNING, and the round was booked as EXHAUSTED: the rest of the dictionary
+  // was never dispatched and the restore file was deleted.
+
+  bool checkpoint_taken;
+
   bool finish_shutdown;
 
   hc_thread_mutex_t mux_dispatcher;

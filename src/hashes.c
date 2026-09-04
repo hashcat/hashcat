@@ -2202,6 +2202,14 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 
   hc_thread_mutex_lock (status_ctx->mux_display);
 
+  // One launch against a large list can return tens of thousands of results, and every one of them
+  // was opening, locking, writing, flushing and closing both files. Hold each open for the whole of
+  // this loop instead. The batch ends before the mutex is given up, on every path out of the loop,
+  // so the outfile is closed and the potfile flushed once per launch and both remain live streams.
+
+  outfile_batch_begin (hashcat_ctx);
+  potfile_batch_begin (hashcat_ctx);
+
   for (u32 i = 0; i < num_cracked; i++)
   {
     const u32 hash_pos = cracked[i].hash_pos;
@@ -2290,6 +2298,11 @@ int check_cracked (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
       }
     }
   }
+
+  // every path out of the loop above, the break included, lands here
+
+  potfile_batch_end (hashcat_ctx);
+  outfile_batch_end (hashcat_ctx);
 
   hc_thread_mutex_unlock (status_ctx->mux_display);
 

@@ -320,6 +320,7 @@ int bypass (hashcat_ctx_t *hashcat_ctx)
   status_ctx->run_thread_level2 = false;
 
   status_ctx->checkpoint_shutdown = false;
+  status_ctx->checkpoint_taken    = false;
   status_ctx->finish_shutdown     = false;
 
   return 0;
@@ -382,6 +383,19 @@ int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
+    // A cancel is only a cancel while every device is still running. Once one has left its loop for
+    // the checkpoint it cannot be restarted, and clearing the flags here would leave the run looking
+    // like an ordinary exhausted round: the rest of the dictionary would never be dispatched and the
+    // restore file would be deleted with it. Say so instead of pretending.
+
+    if (status_ctx->checkpoint_taken == true)
+    {
+      event_log_warning (hashcat_ctx, "Checkpoint has already been reached on at least one device and cannot be cancelled.");
+      event_log_warning (hashcat_ctx, NULL);
+
+      return -1;
+    }
+
     status_ctx->checkpoint_shutdown = false;
 
     status_ctx->run_main_level1   = true;

@@ -113,7 +113,8 @@ Costin Enache <costin@detack.de>
 * Cisco-ISE Hashed Password (SHA256) module
 
 Shooter3k
-* Several long-standing bugfix ideas (rule file loading, --show and --left, --stdout output)
-* Windows UTF-8 console output, and multibyte characters written directly in rule operands
+* Multibyte characters written directly in rule operands, and UTF-8 console output on Windows
+* Narrowing the potfile search and batching the cracked result writes
+* Long-standing bugfix ideas in rule file loading, --show and --left, --loopback, and checkpointing
 
 !!! All the package maintainers of hashcat !!!

@@ -696,6 +696,19 @@ int generic_ctx_base_round (hashcat_ctx_t *hashcat_ctx, const char *path)
   return rc;
 }
 
+// Give the base word instance up before its round would normally replace it.
+//
+// An induction round reads a dictionary hashcat wrote itself and deletes it once it is consumed. The
+// instance that read it is otherwise held until the next round opens over the top, and on Windows a
+// file that is still open cannot be deleted, so the delete failed, the scan found the same file
+// again, and the run never moved on. Closing here costs nothing anywhere else: the next round opens
+// its own instance regardless.
+
+void generic_ctx_base_close (hashcat_ctx_t *hashcat_ctx)
+{
+  generic_instance_destroy (hashcat_ctx, &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE]);
+}
+
 // Read and throw away the first count base words, so that a source which cannot be seeked still
 // starts where --skip or --restore says.
 //

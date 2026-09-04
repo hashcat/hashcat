@@ -310,6 +310,8 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - --stdout: The candidate batch is no longer written to the device and read straight back, and the output buffer holds 64 KB instead of 8 KB
 - Interface: Quit is noticed within 100 milliseconds instead of up to a second, without changing the once per second cadence the monitor counts in
 - Build: MAINTAINER_MODE=1 now also reaches the Rust feeds and bridges and the Raspberry Pi flags, which were still built for the processor doing the building
+- Potfile: A hash list is bucketed by its leading digest word before the potfile is matched against it, so each potfile line is looked up inside a narrow window instead of binary searching the whole list. The word is chosen from the first one that varies, because several unsalted modes leave the sorting word zero for every hash
+- Cracked results: The outfile and the potfile are opened, locked and flushed once per launch rather than once per cracked hash. On a launch returning 50000 results that is 59000 system calls instead of 308000
 
 ##
 ## Bugs
@@ -432,6 +434,8 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Windows: Fixed a mask, a rule or any other argument holding such a character arriving as a question mark, which for a mask silently ran a different keyspace because ? is the mask metacharacter
 - Windows: Fixed a message printed to a console being rendered through the console code page rather than as UTF-8, which showed any such character as mojibake unless the user had run chcp 65001 first
 - Windows: Fixed the colour of a message written to stderr being applied to whatever console stdout pointed at, and the terminal test answering for stdout no matter which stream was being written
+- Windows: Fixed --loopback and --induction-dir never finishing, where the dictionary a round had just consumed was still open when hashcat tried to delete it. Windows refuses to delete an open file, so the next scan found it again and read it forever
+- Fixed a checkpoint that had already stopped a device being cancellable, which cleared the flag the run needed to end as a checkpoint. The round was then booked as exhausted with its remaining keyspace never dispatched, and the restore file was deleted with it
 
 ##
 ## Other changes

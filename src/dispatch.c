@@ -1030,6 +1030,15 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     if (status_ctx->run_thread_level1 == false) break;
   }
 
+  // Every way out of the loop above lands here. Leaving it while a checkpoint is being taken is the
+  // point of no return for this device: a later cancel can set the flags back but cannot restart a
+  // thread that has already gone.
+
+  if ((status_ctx->run_thread_level1 == false) && (status_ctx->checkpoint_shutdown == true))
+  {
+    status_ctx->checkpoint_taken = true;
+  }
+
   pw_pipe_stop (pipe);
 
   if (pw_pipe_failed (pipe) == true) rc_final = -1;

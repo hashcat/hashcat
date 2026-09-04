@@ -587,7 +587,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (threads_param);
 
-  if ((status_ctx->devices_status == STATUS_RUNNING) && (status_ctx->checkpoint_shutdown == true))
+  // checkpoint_taken covers the race the flag alone cannot: a cancel that arrived after a device had
+  // already stopped used to clear checkpoint_shutdown here, and the round then fell through to
+  // EXHAUSTED with its remaining keyspace never dispatched.
+
+  if ((status_ctx->devices_status == STATUS_RUNNING) && ((status_ctx->checkpoint_shutdown == true) || (status_ctx->checkpoint_taken == true)))
   {
     myabort_checkpoint (hashcat_ctx);
   }
@@ -724,7 +728,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   {
     induct_ctx_scan (hashcat_ctx);
 
-    while (induct_ctx->induction_dictionaries_cnt)
+    bool induct_stop = false;
+
+    while ((induct_ctx->induction_dictionaries_cnt) && (induct_stop == false))
     {
       for (induct_ctx->induction_dictionaries_pos = 0; induct_ctx->induction_dictionaries_pos < induct_ctx->induction_dictionaries_cnt; induct_ctx->induction_dictionaries_pos++)
       {
@@ -735,8 +741,29 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
           if (status_ctx->run_main_level3 == false) break;
         }
 
-        unlink (induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos]);
+        // the round that just finished still holds this file open, and Windows will not delete a
+        // file that is open. Give the instance up first, then delete.
+
+        generic_ctx_base_close (hashcat_ctx);
+
+        const char *consumed = induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos];
+
+        if (unlink (consumed) == -1)
+        {
+          // a dictionary that cannot be deleted would be found again by the next scan and read
+          // forever, so stop inducting rather than spin. Whatever has been cracked so far stands.
+
+          event_log_warning (hashcat_ctx, "%s: %s", consumed, strerror (errno));
+          event_log_warning (hashcat_ctx, "Induction is stopping because that file would otherwise be read again.");
+          event_log_warning (hashcat_ctx, NULL);
+
+          induct_stop = true;
+
+          break;
+        }
       }
+
+      if (induct_stop == true) break;
 
       // induct_ctx_scan () owns the previous scan now, strings included
 
