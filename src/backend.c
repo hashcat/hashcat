@@ -18541,7 +18541,27 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     else if (device_param->is_metal == true)
     {
+      // Ask the pipeline what it will take, the way the other three runtimes are asked.
+      // kernel_preferred_wgs_multiple is the width of a wave, not the ceiling of a threadgroup, and
+      // this becomes kernel_threads_max below. It stays as the answer where the pipeline has none,
+      // and as the whole answer off Apple, where there is no Metal to ask.
+
       threads_per_block = device_param->kernel_preferred_wgs_multiple;
+
+      #if defined (__APPLE__)
+
+      const int kern_run = find_tuning_function (hashcat_ctx, device_param);
+
+      mtl_pipeline pipeline = metal_pipeline_with_id (device_param, kern_run);
+
+      u32 wgs = 0;
+
+      if ((pipeline != NULL) && (get_metal_kernel_wgs (hashcat_ctx, pipeline, &wgs) == 0) && (wgs > 0))
+      {
+        threads_per_block = wgs;
+      }
+
+      #endif
     }
 
     u32 local_size_bytes = 0;
