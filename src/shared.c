@@ -113,8 +113,15 @@ bool is_power_of_2 (const u32 v)
   return (v && !(v & (v - 1)));
 }
 
+// The odd part of v, which is v with every trailing zero bit shifted out. Zero has no odd part, and
+// the lowest set bit of zero is zero, so the division has to be guarded rather than attempted. A
+// caller reaches this with zero by overflowing an iteration count: a salt holding UINT32_MAX passes
+// a plain non-zero test, and one more than it is zero.
+
 u32 smallest_repeat_double (const u32 v)
 {
+  if (v == 0) return 0;
+
   return (v / (v & -v));
 }
 

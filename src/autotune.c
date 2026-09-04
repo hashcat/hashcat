@@ -706,7 +706,14 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     float threads_eff_prev = 0;
     u32   threads_cnt_prev = 0;
 
-    for (u32 kernel_threads_test = kernel_threads; kernel_threads_test <= kernel_threads_max; kernel_threads_test = (kernel_threads_test < device_param->kernel_preferred_wgs_multiple) ? kernel_threads_test << 1 : kernel_threads_test + device_param->kernel_preferred_wgs_multiple)
+    // Below one wavefront the count is doubled, and from one wavefront up it is raised a whole
+    // wavefront at a time. The step that crosses between the two has to land ON a wavefront, or every
+    // rung above it inherits the offset it crossed with and none of them is a whole number of
+    // wavefronts again. A device reporting a minimum of 3 threads and a wavefront of 32 walks
+    // 3, 6, 12, 24 and then doubles to 48, so 48, 80, 112 and everything above leave half a wavefront
+    // of every block idle for the rest of the session.
+
+    for (u32 kernel_threads_test = kernel_threads; kernel_threads_test <= kernel_threads_max; kernel_threads_test = (kernel_threads_test < device_param->kernel_preferred_wgs_multiple) ? MIN (kernel_threads_test << 1, device_param->kernel_preferred_wgs_multiple) : kernel_threads_test + device_param->kernel_preferred_wgs_multiple)
     {
       double exec_msec = try_run_times (hashcat_ctx, device_param, kernel_accel, kernel_loops, kernel_threads_test, 2);
 
@@ -813,26 +820,36 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
       float res[2] = { 0 };
 
+      u32 acc[2] = { 0 };
+
       for (int i = 0; i < 2; i++)
       {
         const u32 kernel_threads_test = fun[i];
-        const u32 kernel_accel_test =  kernel_accel * fact[i];
 
-        if (kernel_accel_test == 0) continue;
+        // a thread count of 1 halves to 0, and dividing by that left fact[i] infinite
+
         if (kernel_threads_test == 0) continue;
 
         if (kernel_threads_test > device_param->device_maxworkgroup_size) continue;
 
+        const u32 kernel_accel_test = (u32) ((float) kernel_accel * fact[i]);
+
+        if (kernel_accel_test == 0) continue;
+
         const float ms = try_run_times (hashcat_ctx, device_param, kernel_accel_test, kernel_loops, kernel_threads_test, 2);
 
+        if (ms <= 0) continue;
+
         res[i] = ms_prev / ms;
+
+        acc[i] = kernel_accel_test;
       }
 
       const int sel = (res[0] > res[1]) ? 0 : 1;
 
       if (res[sel] > 1.01)
       {
-        const u32 kernel_accel_new = kernel_accel * fact[sel];
+        const u32 kernel_accel_new = acc[sel];
         const u32 kernel_threads_new = fun[sel];
 
         if ((kernel_accel_new >= kernel_accel_min) && (kernel_accel_new <= kernel_accel_max))
