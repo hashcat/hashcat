@@ -274,9 +274,10 @@ void pw_batch_reset (pw_batch_t *batch)
   batch->pws_base_cnt = 0;
   batch->pcfg_waves   = 0;
 
-  batch->words_off   = 0;
-  batch->words_fin   = 0;
-  batch->words_extra = 0;
+  batch->words_off       = 0;
+  batch->words_fin       = 0;
+  batch->words_extra     = 0;
+  batch->words_extra_amp = 0;
 
   batch->pws_idx[0].off = 0;
   batch->pws_idx[0].cnt = 0;

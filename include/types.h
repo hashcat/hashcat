@@ -1355,6 +1355,13 @@ typedef struct pw_batch
   u64 words_fin;
   u64 words_extra;
 
+  // A rejected word of a feed that amplifies cost a whole cell rather than one candidate, and this
+  // holds what those cells came to, in candidates. The cell itself does not survive the rejection,
+  // because pws_cnt does not advance over a refused word and the next one is written at the same
+  // index, so the count is made where the word is refused rather than from a multiplier at the end.
+
+  u64 words_extra_amp;
+
 } pw_batch_t;
 
 typedef struct cpt
