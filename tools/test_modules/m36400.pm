@@ -74,7 +74,11 @@ sub module_generate_hash
 
   my $cbc = Crypt::Mode::CBC->new ('Blowfish', 0);
 
-  my $ct_sw = substr ($plain, 0, 8) . $cbc->encrypt (substr ($plain, 8, 56), $key, substr ($plain, 0, 8));
+  # the IV has to live in a plain scalar, CryptX rejects the lvalue substr returns
+
+  my $iv = substr ($plain, 0, 8);
+
+  my $ct_sw = $iv . $cbc->encrypt (substr ($plain, 8, 56), $key, $iv);
 
   my $ct = kwallet_alter_endianity ($ct_sw);
 
@@ -130,7 +134,9 @@ sub module_verify_hash
 
   my $cbc = Crypt::Mode::CBC->new ('Blowfish', 0);
 
-  my $plain = substr ($ct_sw, 0, 8) . $cbc->decrypt (substr ($ct_sw, 8, 56), $key, substr ($ct_sw, 0, 8));
+  my $iv = substr ($ct_sw, 0, 8);
+
+  my $plain = $iv . $cbc->decrypt (substr ($ct_sw, 8, 56), $key, $iv);
 
   my $new_hash = module_generate_hash ($word_packed, $salt, $iter, $ct_len, unpack ("H*", $plain));
 
