@@ -62,7 +62,7 @@ typedef enum generic_plugin_options
 } generic_plugin_options_t;
 
 // What a feed hands the core. A feed is the one plugin the core still resolves by name rather than
-// through a context it was given, so this is the list, and it is ten names instead of one. They are
+// through a context it was given, so this is the list, and it is nine names instead of one. They are
 // declared here so that a feed and the loader read the same shapes out of one file, and so that a
 // built feed exports these and nothing else.
 //
@@ -105,15 +105,7 @@ HC_PLUGIN_ENTRY bool thread_seek     (generic_global_ctx_t *global_ctx, generic_
 // tune a launch that never runs and nothing downstream can tell.
 
 HC_PLUGIN_ENTRY bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *pool_size, u32 *il_cnt, u32 *avg, u32 *maxword, u32 *front, u32 *step, u32 *varlen, pcfg_cell_t *probe);
-
 HC_PLUGIN_ENTRY int  thread_next_dev (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size, pcfg_cell_t *cell);
-
-// A third one beside those two, and the only one a feed may leave out once it has said it runs on
-// the device: how many candidates lie between two base words, which is what a run bounded by --skip
-// and --limit is measured against. A feed that does not export it is measured against the mean cell
-// instead, and a mean is short wherever the window is not an average one.
-
-HC_PLUGIN_ENTRY u64  global_dev_span (generic_global_ctx_t *global_ctx, const u64 from, const u64 upto);
 
 // ---------------------------------------------------------------------------------------------
 // what the device is doing while a feed runs

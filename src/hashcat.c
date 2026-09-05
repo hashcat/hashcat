@@ -438,23 +438,7 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    // What --skip stood for, in candidates. The amplifier is a mean, so a feed that can count its
-    // own window is asked instead, and this agrees with the two figures the status line subtracts
-    // it from.
-
-    u64 progress_restored = status_ctx->words_off * amplifier_cnt;
-
-    if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
-    {
-      const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
-
-      if (generic_ctx->global_dev_span != NULL)
-      {
-        const u64 span = generic_ctx->global_dev_span ((generic_global_ctx_t *) &generic_ctx->global_ctx, 0, status_ctx->words_off);
-
-        if (span > 0) progress_restored = span;
-      }
-    }
+    const u64 progress_restored = status_ctx->words_off * amplifier_cnt;
 
     for (u32 i = 0; i < hashes->salts_cnt; i++)
     {

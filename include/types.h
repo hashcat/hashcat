@@ -3466,7 +3466,6 @@ typedef int  (*GENERIC_THREAD_NEXT)     (generic_global_ctx_t *, generic_thread_
 typedef int  (*GENERIC_THREAD_NEXT_DEV) (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int, pcfg_cell_t *);
 typedef bool (*GENERIC_THREAD_SEEK)     (generic_global_ctx_t *, generic_thread_ctx_t *, const u64);
 typedef bool (*GENERIC_GLOBAL_DEV_INIT) (generic_global_ctx_t *, const u32 **, u64 *, u32 *, u32 *, u32 *, u32 *, u32 *, u32 *, pcfg_cell_t *);
-typedef u64  (*GENERIC_GLOBAL_DEV_SPAN) (generic_global_ctx_t *, const u64, const u64);
 
 // What a live feed instance is for. A run can hold one of each, and that is what lets -a 1 be
 // expressed without a second reader: its amplifier is a wordlist too, so the number of amplifier
@@ -3530,11 +3529,6 @@ typedef struct generic_ctx
 
   GENERIC_GLOBAL_DEV_INIT  global_dev_init;
   GENERIC_THREAD_NEXT_DEV  thread_next_dev;
-
-  // Optional beside those two: how many candidates lie in a window of base words. A feed that does
-  // not have it leaves this NULL, and a window is measured against the mean cell instead.
-
-  GENERIC_GLOBAL_DEV_SPAN  global_dev_span;
 
   bool autohex_enable;
   bool iconv_enable;
