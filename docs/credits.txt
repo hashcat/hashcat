@@ -115,6 +115,7 @@ Costin Enache <costin@detack.de>
 Shooter3k
 * Multibyte characters written directly in rule operands, and UTF-8 console output on Windows
 * Narrowing the potfile search and batching the cracked result writes
+* A breakdown of where a run's wall clock goes, and the pipeline instrument as an option
 * Long-standing bugfix ideas in rule file loading, --show and --left, --loopback, and checkpointing
 
 !!! All the package maintainers of hashcat !!!

@@ -1220,6 +1220,35 @@ int status_get_salts_done (const hashcat_ctx_t *hashcat_ctx)
   return hashes->salts_done;
 }
 
+// How many amplifiers the run applies to each base word, and how many iterations the current salt
+// costs. Both are what the per device positions on the Restore.Sub line count towards, so the line
+// above prints them and the rows underneath stay short.
+
+u64 status_get_amplifier_cnt (const hashcat_ctx_t *hashcat_ctx)
+{
+  const combinator_ctx_t     *combinator_ctx     = hashcat_ctx->combinator_ctx;
+  const mask_ctx_t           *mask_ctx           = hashcat_ctx->mask_ctx;
+  const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) return straight_ctx->kernel_rules_cnt;
+  if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    return combinator_ctx->combs_cnt;
+  if (user_options_extra->attack_kern == ATTACK_KERN_BF)       return mask_ctx->bfs_cnt;
+
+  return 1;
+}
+
+u32 status_get_iteration_cnt (const hashcat_ctx_t *hashcat_ctx, const int salt_pos)
+{
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  if (hashes->salts_buf == NULL) return 0;
+  if (salt_pos < 0) return 0;
+  if (salt_pos >= (int) hashes->salts_cnt) return 0;
+
+  return hashes->salts_buf[salt_pos].salt_iter;
+}
+
 int status_get_salts_cnt (const hashcat_ctx_t *hashcat_ctx)
 {
   const hashes_t *hashes = hashcat_ctx->hashes;

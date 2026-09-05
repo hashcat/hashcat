@@ -990,7 +990,9 @@ HC_API_CALL void *thread_autotune (void *p)
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return 0;
+    CUcontext cuda_context_popped;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return 0;
   }
 
   return 0;

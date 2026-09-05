@@ -224,6 +224,8 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 
 - Rules: A character outside ASCII can be written directly in the operand of the five rule operations that emit bytes, $ ^ i v o, instead of one \xHH per byte
 - Windows: The binary now carries an application manifest and a version block. The manifest declares the process code page as UTF-8, which is what makes a path or an argument holding any character mean the same thing it means on every other platform, and it also opts into long paths
+- Added option --task-time-breakdown, which reports where a run's wall clock went, split into session initialization, attack preparation, the attack itself and cleanup, with each section naming what it could not account for
+- Added option --pipeline-stats, which reports where each launch's time goes, split into feeding, copying, init, transfer, the loop itself and comp, per device and with an effective hash rate. Adding --machine-readable prints the same thing as JSON. It replaces the HASHCAT_PIPE environment variable, which still works
 ##
 ## Improvements
 ##
@@ -314,6 +316,12 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Build: MAINTAINER_MODE=1 now also reaches the Rust feeds and bridges and the Raspberry Pi flags, which were still built for the processor doing the building
 - Potfile: A hash list is bucketed by its leading digest word before the potfile is matched against it, so each potfile line is looked up inside a narrow window instead of binary searching the whole list. The word is chosen from the first one that varies, because several unsalted modes leave the sorting word zero for every hash
 - Cracked results: The outfile and the potfile are opened, locked and flushed once per launch rather than once per cracked hash. On a launch returning 50000 results that is 59000 system calls instead of 308000
+- Interface: A paused run notices resume within 100 milliseconds instead of up to a second. The six loops that wait out a pause polled once a second, so a device could sit idle for most of a second after the key was pressed
+- Interface: The status screen no longer prints one Restore.Sub row per device. What each device's position counts towards is the same on all of them, so the salt, the amplifier count and the iteration count moved up to Restore.Point, each shown only when there is more than one of it. What is left is where each device's amplifier and iteration start, three devices to a line, and which three is drawn again on every status so a few updates show them all
+- Interface: The status screen no longer prints one Candidates row per device. One device's window is shown, and which device that is is drawn again on every status, so a few updates show them all. The windows cannot be folded into a single range because the devices do not take the keyspace in device id order, which would make the range run backwards
+- The kernel cache is keyed with paw64 instead of one truncated word of an MD5, which gives the key its full 64 bits and drops the block padding that hashing with MD5 required. Existing cached kernels are rebuilt once on the first run after this
+- Devices that would compile the same kernel now agree on one of them to do it. The cache file name already identifies which devices produce identical output, so it is what they agree on. Nothing changes while devices are set up one at a time, and it is what keeps them from all compiling the same kernel at once when they are not
+- The task time breakdown now ends with the peak resident memory of the run
 
 ##
 ## Bugs
@@ -438,6 +446,12 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Windows: Fixed the colour of a message written to stderr being applied to whatever console stdout pointed at, and the terminal test answering for stdout no matter which stream was being written
 - Windows: Fixed --loopback and --induction-dir never finishing, where the dictionary a round had just consumed was still open when hashcat tried to delete it. Windows refuses to delete an open file, so the next scan found it again and read it forever
 - Fixed a checkpoint that had already stopped a device being cancellable, which cleared the flag the run needed to end as a checkpoint. The round was then booked as exhausted with its remaining keyspace never dispatched, and the restore file was deleted with it
+- Interface: Fixed quitting with q taking up to a second longer than it needed to. The thread that reads the keyboard waited a full second for input and only noticed the shutdown between waits, and the main thread joins it on the way out
+- Fixed about 0.7 seconds being added to the end of every run by the outfile check thread, which waited a flat second between checks and was joined at shutdown. It runs by default, so this was not limited to runs using --outfile-check-dir
+- Fixed a compiled kernel being readable while it was still being written. The cache directory belongs to the user rather than to one run, so two hashcat processes share it, and the writer truncated the file before taking its lock while the reader took no lock at all. A second process could load a truncated kernel. We now write the kernel under a temporary name and rename it into place, which is atomic
+- Fixed messages from different threads overwriting each other. Every message is formatted into one buffer shared by the whole run, and a log event deliberately does not take the event mutex, because handlers that already hold it log from inside. Autotune, self-test, the device threads and the monitor all log, one thread per device for the first three, so two devices reporting at the same moment could produce a truncated or mixed line. The buffer now has a lock of its own
+- CUDA: Fixed the main thread making driver calls with no context current. Creating a context also makes it current, so the loop that recreates them between benchmark rounds left one stale entry per device on the main thread's stack every round, and releasing a session afterwards ran about fifty free and destroy calls against whatever was on top. Each of those discards its return, so the failures were silent. The main thread now pushes the device context around that work and pops it again, and every pop reads into a local rather than back into the handle a device thread writes from its own thread
+- Fixed the pipeline instrument adding every device together. Its six buckets were one set of counters written by every device thread at once, so a multi device run reported their sum and raced while producing it. Each device now books its own launches and reports them under its own number
 
 ##
 ## Other changes

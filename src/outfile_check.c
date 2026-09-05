@@ -82,7 +82,20 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
   while (status_ctx->shutdown_inner == false)
   {
-    sleep (1);
+    // the loop body below counts iterations as seconds, so the cadence stays one second. Only the
+    // waiting is broken up, so a shutdown is noticed in 100ms instead of up to a full second. The
+    // monitor thread waits the same way, and this thread is joined beside it: leaving it on a flat
+    // sleep put most of a second into every run's shutdown, whether or not --outfile-check-dir was
+    // ever used, because this thread runs by default.
+
+    for (u32 slice = 0; slice < 10; slice++)
+    {
+      if (status_ctx->shutdown_inner == true) break;
+
+      usleep (100000);
+    }
+
+    if (status_ctx->shutdown_inner == true) break;
 
     if (status_ctx->devices_status != STATUS_RUNNING) continue;
 

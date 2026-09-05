@@ -503,7 +503,7 @@ static int fill_slow (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_para
     }
   }
 
-  pipe_acc (PIPE_FEED, &timer_feed);
+  pipe_acc (device_param, PIPE_FEED, &timer_feed);
 
   return 0;
 }
@@ -878,7 +878,7 @@ static int fill_generic (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
     if (status_ctx->run_thread_level1 == false) break;
   }
 
-  pipe_acc (PIPE_FEED, &timer_feed);
+  pipe_acc (device_param, PIPE_FEED, &timer_feed);
 
   return 0;
 }
@@ -983,7 +983,7 @@ static int pipe_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
         break;
       }
 
-      if (slow == false) pipe_acc (PIPE_COPY, &timer_copy);
+      if (slow == false) pipe_acc (device_param, PIPE_COPY, &timer_copy);
 
       const u64 pws_pos = (slow == true) ? (u64) -1 : words_off;
 
@@ -1393,7 +1393,9 @@ HC_API_CALL void *thread_calc (void *p)
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return 0;
+    CUcontext cuda_context_popped;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return 0;
   }
 
   if (bridge_ctx->enabled == true)

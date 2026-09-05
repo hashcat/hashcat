@@ -18,6 +18,7 @@
 #include "filehandling.h"
 #include "wordlist.h"
 #include "shared.h"
+#include "paw64.h"
 #include "system.h"
 #include "path.h"
 #include "folder.h"
@@ -992,7 +993,7 @@ bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, si
 // A kernel source includes nothing but inc_ files besides itself, so a digest of the file being
 // compiled plus a digest of everything else in the kernel directory covers all of it.
 
-static u32 kernel_file_chksum (const char *kernel_file)
+static u64 kernel_file_chksum (const char *kernel_file)
 {
   HCFILE fp;
 
@@ -1009,10 +1010,7 @@ static u32 kernel_file_chksum (const char *kernel_file)
 
   const size_t klen = st.st_size;
 
-  // md5_update reads a whole 64 byte block for the tail whatever length it was given, so the buffer
-  // needs room for one
-
-  char *buf = (char *) hccalloc (klen + 64, sizeof (char));
+  char *buf = (char *) hccalloc (klen + 1, sizeof (char));
 
   const size_t num_read = hc_fread (buf, sizeof (char), klen, &fp);
 
@@ -1025,26 +1023,20 @@ static u32 kernel_file_chksum (const char *kernel_file)
     return 0;
   }
 
-  md5_ctx_t md5_ctx;
-
-  md5_init   (&md5_ctx);
-  md5_update (&md5_ctx, (u32 *) buf, (int) klen);
-  md5_final  (&md5_ctx);
+  const u64 chksum = paw64 (buf, klen, 0);
 
   hcfree (buf);
-
-  const u32 chksum = md5_ctx.h[0];
 
   return chksum;
 }
 
-static u32 kernel_shared_chksum (const char *kernel_dir)
+static u64 kernel_shared_chksum (const char *kernel_dir)
 {
   char **files = scan_directory (kernel_dir);
 
   if (files == NULL) return 0;
 
-  u32 chksum = 0;
+  u64 chksum = 0;
 
   for (int i = 0; files[i] != NULL; i++)
   {
@@ -1068,42 +1060,61 @@ static u32 kernel_shared_chksum (const char *kernel_dir)
   return chksum;
 }
 
+// The cache directory belongs to the user, not to one run, so two hashcat processes on the same host
+// share it. Writing the kernel in place gave a reader a window in which to see it half written: the
+// "wb" open truncates before any lock is taken, and read_kernel_binary () takes no lock at all, so a
+// second process could stat a partial size and load a truncated binary.
+//
+// We write to a name of our own and rename it into place instead. A rename is atomic, so a reader
+// sees either the whole previous file or the whole new one, and no lock is needed on either side.
+
 static bool write_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, char *binary, size_t binary_size)
 {
   if (binary_size > 0)
   {
+    char tmp_file[256];
+
+    snprintf (tmp_file, sizeof (tmp_file), "%s.tmp.%d", kernel_file, (int) HC_GETPID ());
+
     HCFILE fp;
 
-    if (hc_fopen (&fp, kernel_file, "wb") == false)
+    if (hc_fopen (&fp, tmp_file, "wb") == false)
     {
-      event_log_error (hashcat_ctx, "%s: %s", kernel_file, hc_fopen_strerror ());
+      event_log_error (hashcat_ctx, "%s: %s", tmp_file, hc_fopen_strerror ());
 
       return false;
     }
 
-    if (hc_lockfile (&fp) == -1)
-    {
-      hc_fclose (&fp);
-
-      event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
-
-      return false;
-    }
-
-    hc_fwrite (binary, sizeof (char), binary_size, &fp);
+    const size_t put = hc_fwrite (binary, sizeof (char), binary_size, &fp);
 
     hc_fflush (&fp);
 
-    if (hc_unlockfile (&fp) == -1)
+    hc_fclose (&fp);
+
+    if (put != binary_size)
     {
-      hc_fclose (&fp);
+      remove (tmp_file);
+
+      event_log_error (hashcat_ctx, "%s: %s", tmp_file, strerror (errno));
+
+      return false;
+    }
+
+    // rename () refuses an existing target on Windows, where POSIX replaces it silently. The gap
+    // this opens only makes a reader miss the cache and build for itself, which is safe.
+
+    #if defined (_WIN)
+    remove (kernel_file);
+    #endif
+
+    if (rename (tmp_file, kernel_file) != 0)
+    {
+      remove (tmp_file);
 
       event_log_error (hashcat_ctx, "%s: %s", kernel_file, strerror (errno));
 
       return false;
     }
-
-    hc_fclose (&fp);
   }
 
   return true;
@@ -1405,7 +1416,9 @@ int gidd_to_pw_t (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, c
 
   if (device_param->is_cuda == true)
   {
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+    CUcontext cuda_context_popped;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return -1;
   }
 
   return 0;
@@ -1421,7 +1434,9 @@ int copy_pws_idx (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, u
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
 
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+    CUcontext cuda_context_popped;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return -1;
   }
 
   if (device_param->is_hip == true)
@@ -1459,7 +1474,9 @@ int copy_pws_comp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return -1;
 
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+    CUcontext cuda_context_popped;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return -1;
   }
 
   if (device_param->is_hip == true)
@@ -1494,13 +1511,25 @@ int copy_pws_comp (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
 // Diagnostic only: the buckets are shared by every device thread without a lock, so a run with more
 // than one unit adds their times together instead of separating them.
 
-static double g_pipe_msec[PIPE_SLOTS];
-static u64    g_pipe_launches;
-static u64    g_pipe_cands;
+
+// Set once from --pipeline-stats when the backend starts, so the accounting below stays callable
+// from the device paths, which carry a device rather than the whole context. HASHCAT_PIPE still
+// works, because it was the only way in before there was a flag.
+
+static bool g_pipe_flag = false;
+static bool g_pipe_json = false;
+
+void pipe_enable (const bool enabled, const bool json)
+{
+  g_pipe_flag = enabled;
+  g_pipe_json = json;
+}
 
 static bool pipe_enabled (void)
 {
   static int cache = -1;
+
+  if (g_pipe_flag == true) return true;
 
   return hc_env_flag ("HASHCAT_PIPE", &cache);
 }
@@ -1540,23 +1569,23 @@ void pipe_mark (hc_timer_t *timer)
   hc_timer_set (timer);
 }
 
-void pipe_acc (const pipe_slot_t slot, hc_timer_t *timer)
+void pipe_acc (hc_device_param_t *device_param, const pipe_slot_t slot, hc_timer_t *timer)
 {
   if (pipe_enabled () == false) return;
 
-  g_pipe_msec[slot] += hc_timer_get (*timer);
+  device_param->pipe_msec[slot] += hc_timer_get (*timer);
 
   hc_timer_set (timer);
 }
 
-void pipe_launch_done (const u64 cands)
+void pipe_launch_done (hc_device_param_t *device_param, const u64 cands)
 {
   if (pipe_enabled () == false) return;
 
-  g_pipe_launches++;
-  g_pipe_cands += cands;
+  device_param->pipe_launches++;
+  device_param->pipe_cands += cands;
 
-  if ((g_pipe_launches % pipe_every ()) != 0) return;
+  if ((device_param->pipe_launches % pipe_every ()) != 0) return;
 
   static const char *names[PIPE_SLOTS] = { "feed", "copy", "init", "xfer", "launch", "comp" };
 
@@ -1565,18 +1594,52 @@ void pipe_launch_done (const u64 cands)
 
   double total = 0;
 
-  for (int i = PIPE_COPY; i < PIPE_SLOTS; i++) total += g_pipe_msec[i];
+  for (int i = PIPE_COPY; i < PIPE_SLOTS; i++) total += device_param->pipe_msec[i];
 
   if (total <= 0.0) return;
 
-  fprintf (stderr, "[host] %" PRIu64 " launches, %.0f ms total", g_pipe_launches, total);
+  if (g_pipe_json == true)
+  {
+    fprintf (stderr, "{ \"device\": %u, \"launches\": %" PRIu64 ", \"total_ms\": %.3f, \"stages\": {", device_param->device_id + 1, device_param->pipe_launches, total);
+
+    for (int i = 0; i < PIPE_SLOTS; i++)
+    {
+      // feed is not in the total, because it runs ahead of the launch rather than inside it, so it
+      // has no share of the critical path to quote. Its time and its per launch cost still matter.
+
+      if (i == PIPE_FEED)
+      {
+        fprintf (stderr, " \"%s\": { \"ms\": %.3f, \"per_launch_ms\": %.4f, \"in_critical_path\": false }", names[i], device_param->pipe_msec[i], device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+
+        continue;
+      }
+
+      fprintf (stderr, ", \"%s\": { \"ms\": %.3f, \"percent\": %.2f, \"per_launch_ms\": %.4f }", names[i], device_param->pipe_msec[i], 100.0 * device_param->pipe_msec[i] / total, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+    }
+
+    fprintf (stderr, " }, \"effective_hs\": %.0f, \"peak_rss\": %" PRIu64 " }\n", (double) device_param->pipe_cands / (total / 1000.0), hc_peak_rss ());
+
+    return;
+  }
+
+  fprintf (stderr, "[host] device #%u, %" PRIu64 " launches, %.0f ms total", device_param->device_id + 1, device_param->pipe_launches, total);
 
   for (int i = 0; i < PIPE_SLOTS; i++)
   {
-    fprintf (stderr, ", %s %.0f (%.1f%%, %.2f ms)", names[i], g_pipe_msec[i], 100.0 * g_pipe_msec[i] / total, g_pipe_msec[i] / (double) g_pipe_launches);
+    // feed sits outside the total for the same reason it sits outside the critical path, so quoting
+    // it a share of that total is how it ended up reading as more than all of it.
+
+    if (i == PIPE_FEED)
+    {
+      fprintf (stderr, ", %s %.0f (ahead, %.2f ms)", names[i], device_param->pipe_msec[i], device_param->pipe_msec[i] / (double) device_param->pipe_launches);
+
+      continue;
+    }
+
+    fprintf (stderr, ", %s %.0f (%.1f%%, %.2f ms)", names[i], device_param->pipe_msec[i], 100.0 * device_param->pipe_msec[i] / total, device_param->pipe_msec[i] / (double) device_param->pipe_launches);
   }
 
-  fprintf (stderr, ", effective %.0f H/s\n", (double) g_pipe_cands / (total / 1000.0));
+  fprintf (stderr, ", effective %.0f H/s, peak %.0f MB\n", (double) device_param->pipe_cands / (total / 1000.0), (double) hc_peak_rss () / (1024 * 1024));
 }
 
 int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 highest_pw_len, const u64 pws_pos, const u64 pws_cnt, const u32 fast_iteration, const u32 salt_pos, const bool is_autotune)
@@ -1683,9 +1746,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       if (run_kernel (hashcat_ctx, device_param, KERN_RUN_4, pws_pos, pws_cnt, true, fast_iteration, is_autotune) == -1) return -1;
     }
 
-    pipe_acc (PIPE_LAUNCH, &timer_fast);
+    pipe_acc (device_param, PIPE_LAUNCH, &timer_fast);
 
-    pipe_launch_done (pws_cnt);
+    pipe_launch_done (device_param, pws_cnt);
   }
   else
   {
@@ -1915,7 +1978,7 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
     }
 
-    pipe_acc (PIPE_INIT, &timer_stage);
+    pipe_acc (device_param, PIPE_INIT, &timer_stage);
 
     if (true)
     {
@@ -2333,9 +2396,9 @@ int choose_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, 
       }
     }
 
-    pipe_acc (PIPE_COMP, &timer_stage);
+    pipe_acc (device_param, PIPE_COMP, &timer_stage);
 
-    pipe_launch_done (pws_cnt);
+    pipe_launch_done (device_param, pws_cnt);
 
     /*
      * maybe we should add this zero of temporary buffers
@@ -3801,11 +3864,11 @@ int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
 
   hc_timer_t timer_stage = timer_bridge;
 
-  pipe_acc (PIPE_XFER, &timer_stage);
+  pipe_acc (device_param, PIPE_XFER, &timer_stage);
 
   if (bridge_ctx->launch_loop (hashcat_ctx, bridge_ctx->platform_context, device_param, hashconfig, hashes, salt_pos, pws_cnt) == false) return -1;
 
-  pipe_acc (PIPE_LAUNCH, &timer_stage);
+  pipe_acc (device_param, PIPE_LAUNCH, &timer_stage);
 
   if (device_param->is_cuda == true)
   {
@@ -3834,7 +3897,7 @@ int run_bridge_loop (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_tmps, CL_TRUE, 0, pws_cnt * hashconfig->tmp_size, device_param->h_tmps, 0, NULL, NULL) == -1) return -1;
   }
 
-  pipe_acc (PIPE_XFER, &timer_stage);
+  pipe_acc (device_param, PIPE_XFER, &timer_stage);
 
   const double exec_msec = hc_timer_get (timer_bridge);
 
@@ -5491,6 +5554,19 @@ static int amp_prepare (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_pa
 // The salt loop outside the amplifier loop, which is the order hashcat has always used. Every attack
 // runs this unless the salt inner order below is switched on for a slow hash.
 
+// A paused run is waiting on a keypress. Polling the flag once a second means a device can sit idle
+// for most of a second after the user presses resume, and a quit taken while paused waits the same
+// way. Reading the flag costs nothing, so poll it ten times a second, which is what the monitor and
+// the outfile check thread already do.
+
+static void wait_while_paused (const status_ctx_t *status_ctx)
+{
+  while (status_ctx->devices_status == STATUS_PAUSED)
+  {
+    usleep (100000);
+  }
+}
+
 static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_pos, const u64 pws_cnt, const u32 highest_pw_len, const pw_transform_t *transform)
 {
   combinator_ctx_t      *combinator_ctx     = hashcat_ctx->combinator_ctx;
@@ -5515,7 +5591,7 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 
   for (u32 salt_pos = 0; salt_pos < salts_cnt; salt_pos++)
   {
-    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+    wait_while_paused (status_ctx);
 
     salt_t *salt_buf = &hashes->salts_buf[salt_pos];
 
@@ -5585,7 +5661,7 @@ static int run_cracker_salt_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t
 
     for (u64 innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
     {
-      while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+      wait_while_paused (status_ctx);
 
       u32 fast_iteration = 0;
 
@@ -5874,7 +5950,7 @@ static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
 
   for (u64 innerloop_pos = 0; innerloop_pos < innerloop_cnt; innerloop_pos += innerloop_step)
   {
-    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+    wait_while_paused (status_ctx);
 
     u32 fast_iteration = 0;
 
@@ -5947,7 +6023,7 @@ static int run_cracker_amp_major (hashcat_ctx_t *hashcat_ctx, hc_device_param_t 
 
     for (u32 live_pos = 0; live_pos < live_cnt; live_pos++)
     {
-      while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+      wait_while_paused (status_ctx);
 
       const u32 salt_pos = live_salts[live_pos];
 
@@ -6125,6 +6201,17 @@ int run_cracker (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, co
 int backend_ctx_init (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t  *backend_ctx  = hashcat_ctx->backend_ctx;
+
+  pipe_enable (hashcat_ctx->user_options->pipeline_stats, hashcat_ctx->user_options->machine_readable);
+
+  // Sized for the worst case, every device needing its own four kernels, so a claim never has to
+  // grow the table while another thread is walking it.
+
+  backend_ctx->kernel_builds     = (kernel_build_t *) hccalloc (DEVICES_MAX * KERNEL_BUILDS_PER_DEVICE, sizeof (kernel_build_t));
+  backend_ctx->kernel_builds_cnt = 0;
+
+  hc_thread_mutex_init (backend_ctx->mux_kernel_build);
+  hc_thread_cond_init  (backend_ctx->cond_kernel_build);
   user_options_t *user_options = hashcat_ctx->user_options;
 
   backend_ctx->enabled = false;
@@ -6851,6 +6938,14 @@ void backend_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
 
+  hc_thread_cond_delete  (backend_ctx->cond_kernel_build);
+  hc_thread_mutex_delete (backend_ctx->mux_kernel_build);
+
+  hcfree (backend_ctx->kernel_builds);
+
+  backend_ctx->kernel_builds     = NULL;
+  backend_ctx->kernel_builds_cnt = 0;
+
   if (backend_ctx->enabled == false) return;
 
   hcfree (backend_ctx->devices_param);
@@ -7387,7 +7482,9 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
 
       device_param->device_available_mem_source = MEM_SOURCE_RUNTIME;
 
-      if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1)
+      CUcontext cuda_context_popped;
+
+      if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1)
       {
         device_param->skipped = true;
 
@@ -11545,10 +11642,122 @@ static cl_program opencl_program_borrow (hashcat_ctx_t *hashcat_ctx, hc_device_p
   return NULL;
 }
 
+// The one test for whether a build is needed, so the wrapper below and the body agree.
+
+static bool kernel_is_cached (const char *cached_file, const bool cache_disable)
+{
+  if (cache_disable == true) return false;
+
+  if (hc_path_read (cached_file) == false) return false;
+
+  if (hc_path_is_empty (cached_file) == true) return false;
+
+  return true;
+}
+
+// Which device compiles a given kernel binary, and what the others do meanwhile.
+//
+// Devices that derive the same cache file name are the same class: the name carries the device, the
+// driver, the attack and a digest of the source, so they would compile byte identical output. Only
+// one of them needs to. The first to arrive claims the name and builds it; any other that arrives
+// while it is still building waits, and then loads what the builder wrote.
+//
+// While device setup runs on one thread this claim is always uncontended, because the builder has
+// finished and written the file before the next device looks for it, so the next device finds a
+// cache hit and never reaches here. The wait exists for when that loop is threaded, where every
+// device of a class reaches the build decision at once. Without it they would all compile the same
+// kernel and all write one file at once.
+
+static kernel_build_t *kernel_build_find (backend_ctx_t *backend_ctx, const char *cached_file)
+{
+  for (int i = 0; i < backend_ctx->kernel_builds_cnt; i++)
+  {
+    kernel_build_t *build = &backend_ctx->kernel_builds[i];
+
+    if (strcmp (build->cached_file, cached_file) == 0) return build;
+  }
+
+  return NULL;
+}
+
+// Returns true when this device is the one that has to build. A false return means another device
+// has already finished it, and out_failed says whether that attempt succeeded.
+
+static bool kernel_build_claim (hashcat_ctx_t *hashcat_ctx, const char *cached_file, bool *out_failed)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  *out_failed = false;
+
+  if (backend_ctx->kernel_builds == NULL) return true;
+
+  hc_thread_mutex_lock (backend_ctx->mux_kernel_build);
+
+  kernel_build_t *build = kernel_build_find (backend_ctx, cached_file);
+
+  if (build == NULL)
+  {
+    if (backend_ctx->kernel_builds_cnt == (DEVICES_MAX * KERNEL_BUILDS_PER_DEVICE))
+    {
+      // more distinct kernels than the table was sized for. Building it here is always correct, it
+      // only costs a duplicate compile, so this is a bound on the sharing and not on the run.
+
+      hc_thread_mutex_unlock (backend_ctx->mux_kernel_build);
+
+      return true;
+    }
+
+    build = &backend_ctx->kernel_builds[backend_ctx->kernel_builds_cnt];
+
+    backend_ctx->kernel_builds_cnt++;
+
+    snprintf (build->cached_file, sizeof (build->cached_file), "%s", cached_file);
+
+    build->done   = false;
+    build->failed = false;
+
+    hc_thread_mutex_unlock (backend_ctx->mux_kernel_build);
+
+    return true;
+  }
+
+  while (build->done == false)
+  {
+    hc_thread_cond_wait (backend_ctx->cond_kernel_build, backend_ctx->mux_kernel_build);
+  }
+
+  *out_failed = build->failed;
+
+  hc_thread_mutex_unlock (backend_ctx->mux_kernel_build);
+
+  return false;
+}
+
+static void kernel_build_finish (hashcat_ctx_t *hashcat_ctx, const char *cached_file, const bool ok)
+{
+  backend_ctx_t *backend_ctx = hashcat_ctx->backend_ctx;
+
+  if (backend_ctx->kernel_builds == NULL) return;
+
+  hc_thread_mutex_lock (backend_ctx->mux_kernel_build);
+
+  kernel_build_t *build = kernel_build_find (backend_ctx, cached_file);
+
+  if (build != NULL)
+  {
+    build->done   = true;
+    build->failed = (ok == false);
+  }
+
+  hc_thread_cond_broadcast (backend_ctx->cond_kernel_build);
+
+  hc_thread_mutex_unlock (backend_ctx->mux_kernel_build);
+}
+
 #if defined (__APPLE__)
-static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, hipModule_t *hip_module, mtl_library *metal_library)
+static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, hipModule_t *hip_module, mtl_library *metal_library)
 #else
-static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, hipModule_t *hip_module, MAYBE_UNUSED void *metal_library)
+static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, hipModule_t *hip_module, MAYBE_UNUSED void *metal_library)
 #endif
 {
   const backend_ctx_t   *backend_ctx   = hashcat_ctx->backend_ctx;
@@ -11556,22 +11765,7 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
   const user_options_t  *user_options  = hashcat_ctx->user_options;
   const folder_config_t *folder_config = hashcat_ctx->folder_config;
 
-  bool cached = true;
-
-  if (cache_disable == true)
-  {
-    cached = false;
-  }
-
-  if (hc_path_read (cached_file) == false)
-  {
-    cached = false;
-  }
-
-  if (hc_path_is_empty (cached_file) == true)
-  {
-    cached = false;
-  }
+  const bool cached = kernel_is_cached (cached_file, cache_disable);
 
   /**
    * kernel compile or load
@@ -11587,6 +11781,11 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
   if (cached == false)
   {
+    // Building is the slow half of a cold start and it is cached, so it is worth telling apart
+    // from loading that cache. --task-time-breakdown is what reads these.
+
+    EVENT (EVENT_KERNEL_BUILD_PRE);
+
     #if defined (DEBUG)
     if (user_options->quiet == false) event_log_warning (hashcat_ctx, "* Device #%u: Kernel %s not found in cache. Please be patient...", device_param->device_id + 1, filename_from_filepath (cached_file));
     #endif
@@ -12102,6 +12301,8 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
         hcfree (binary);
       }
     }
+    EVENT (EVENT_KERNEL_BUILD_POST);
+
   }
   else
   {
@@ -12241,6 +12442,45 @@ static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_p
 
   return true;
 }
+
+// The election sits here rather than inside the body above, because that body leaves by more than
+// thirty different returns and every one of them has to release whoever is waiting.
+
+#if defined (__APPLE__)
+static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, hipModule_t *hip_module, mtl_library *metal_library)
+#else
+static bool load_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const char *kernel_name, char *source_file, char *cached_file, const char *build_options_buf, const bool cache_disable, cl_program *opencl_program, CUmodule *cuda_module, hipModule_t *hip_module, MAYBE_UNUSED void *metal_library)
+#endif
+{
+  // A cache hit writes nothing, so those devices cannot collide with each other and are not made to
+  // queue behind one another.
+
+  if (kernel_is_cached (cached_file, cache_disable) == true)
+  {
+    return load_kernel_build (hashcat_ctx, device_param, kernel_name, source_file, cached_file, build_options_buf, cache_disable, opencl_program, cuda_module, hip_module, metal_library);
+  }
+
+  bool builder_failed = false;
+
+  const bool is_builder = kernel_build_claim (hashcat_ctx, cached_file, &builder_failed);
+
+  if (is_builder == false)
+  {
+    // another device of this class built it while we waited. Its failure is ours too, because we
+    // would be compiling the same source with the same options for the same device.
+
+    if (builder_failed == true) return false;
+
+    return load_kernel_build (hashcat_ctx, device_param, kernel_name, source_file, cached_file, build_options_buf, cache_disable, opencl_program, cuda_module, hip_module, metal_library);
+  }
+
+  const bool rc = load_kernel_build (hashcat_ctx, device_param, kernel_name, source_file, cached_file, build_options_buf, cache_disable, opencl_program, cuda_module, hip_module, metal_library);
+
+  kernel_build_finish (hashcat_ctx, cached_file, rc);
+
+  return rc;
+}
+
 
 static int backend_session_setup_cuda_kernel_shared (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param)
 {
@@ -15420,7 +15660,15 @@ void backend_session_context_reset (hashcat_ctx_t *hashcat_ctx)
     {
       hc_cuCtxDestroy (hashcat_ctx, device_param->cuda_context);
 
-      hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device);
+      if (hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1) continue;
+
+      // Same reason as in enumeration: the new context is current on this thread as well as created,
+      // so it has to come back off. This runs once per outer loop iteration, so leaving it on would
+      // add a device's worth of stale entries to the main thread's stack every round.
+
+      CUcontext cuda_context_unused;
+
+      hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_unused);
     }
   }
 }
@@ -16698,7 +16946,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     // name, so one key serves all three, and none of them is a per hash-mode kernel. The shared digest
     // therefore covers every source they are built from.
 
-    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%08x-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u",
+    const size_t dnclen_amp_mp = snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%u-%u",
       backend_ctx->comptime,
       backend_ctx->kernel_shared_chksum,
       backend_ctx->cuda_driver_version,
@@ -16715,19 +16963,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max,
       get_current_arch());
 
-    md5_ctx_t md5_ctx;
+    const u64 chksum_amp_mp = paw64 (device_name_chksum_amp_mp, dnclen_amp_mp, 0);
 
-    md5_init   (&md5_ctx);
-    md5_update (&md5_ctx, (u32 *) device_name_chksum_amp_mp, dnclen_amp_mp);
-    md5_final  (&md5_ctx);
-
-    snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
+    snprintf (device_name_chksum_amp_mp, HCBUFSIZ_TINY, "%016" PRIx64, chksum_amp_mp);
 
     // The same eight hex digits, written again rather than copied across. A copy is a "%s" out of a
     // HCBUFSIZ_TINY buffer into a 16 byte one, and the compiler has to assume the whole 4096 bytes
     // could be live even though the line above just wrote eight digits into it.
 
-    snprintf (device_param->opencl_chksum_amp_mp, sizeof (device_param->opencl_chksum_amp_mp), "%08x", md5_ctx.h[0]);
+    snprintf (device_param->opencl_chksum_amp_mp, sizeof (device_param->opencl_chksum_amp_mp), "%016" PRIx64, chksum_amp_mp);
 
     /**
      * kernel cache
@@ -16953,9 +17197,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         return -1;
       }
 
-      const u32 source_chksum = kernel_file_chksum (source_file);
+      const u64 source_chksum = kernel_file_chksum (source_file);
 
-      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%08x-%08x-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
+      const size_t dnclen = snprintf (device_name_chksum, HCBUFSIZ_TINY, "%d-%016" PRIx64 "-%016" PRIx64 "-%d-%d-%u-%u-%u-%s-%d-%u-%s-%s-%s-%d-%u-%u-%u-%u-%s",
         backend_ctx->comptime,
         backend_ctx->kernel_shared_chksum,
         source_chksum,
@@ -16977,14 +17221,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
         get_current_arch(),
         build_options_module_buf);
 
-      memset     (&md5_ctx, 0, sizeof (md5_ctx_t));
-      md5_init   (&md5_ctx);
-      md5_update (&md5_ctx, (u32 *) device_name_chksum, dnclen);
-      md5_final  (&md5_ctx);
+      const u64 chksum_main = paw64 (device_name_chksum, dnclen, 0);
 
-      snprintf (device_name_chksum, HCBUFSIZ_TINY, "%08x", md5_ctx.h[0]);
+      snprintf (device_name_chksum, HCBUFSIZ_TINY, "%016" PRIx64, chksum_main);
 
-      snprintf (device_param->opencl_chksum, sizeof (device_param->opencl_chksum), "%08x", md5_ctx.h[0]);
+      snprintf (device_param->opencl_chksum, sizeof (device_param->opencl_chksum), "%016" PRIx64, chksum_main);
 
       /**
        * kernel cached filename
@@ -19669,7 +19910,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_cuda == true)
     {
-      if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1)
+      CUcontext cuda_context_popped;
+
+      if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1)
       {
         device_param->skipped = true;
 
@@ -19758,6 +20001,13 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
     if (device_param->is_cuda == true)
     {
+      // Everything below is a driver call against this device, and this is the main thread, which
+      // carries no context of its own now that enumeration balances its own stack. Without the push
+      // these free the wrong device or nothing at all, and they would not say so: every one of them
+      // discards its return.
+
+      if (hc_cuCtxPushCurrent (hashcat_ctx, device_param->cuda_context) == -1) continue;
+
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_buf);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_amp_buf);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pcfg_cells);
@@ -19841,6 +20091,13 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
 
       //if (device_param->cuda_context)         hc_cuCtxDestroy (hashcat_ctx, device_param->cuda_context);
       //device_param->cuda_context              = NULL;
+
+      // The pop goes into a local. device_param->cuda_context is written by thread_calc () from its
+      // own thread, so a second writer here would be two threads racing on hashcat's own handle.
+
+      CUcontext cuda_context_unused;
+
+      hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_unused);
     }
 
     if (device_param->is_hip == true)
@@ -20249,7 +20506,9 @@ int backend_session_update_mp (hashcat_ctx_t *hashcat_ctx)
       if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_root_css_buf,   mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) return -1;
       if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_markov_css_buf, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) return -1;
 
-      if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+      CUcontext cuda_context_popped;
+
+      if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return -1;
     }
 
     if (device_param->is_hip == true)
@@ -20312,7 +20571,9 @@ int backend_session_update_mp_rl (hashcat_ctx_t *hashcat_ctx, const u32 css_cnt_
       if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_root_css_buf,   mask_ctx->root_css_buf,   device_param->size_root_css)   == -1) return -1;
       if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_markov_css_buf, mask_ctx->markov_css_buf, device_param->size_markov_css) == -1) return -1;
 
-      if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return -1;
+      CUcontext cuda_context_popped;
+
+      if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return -1;
     }
 
     if (device_param->is_hip == true)
@@ -20358,7 +20619,7 @@ HC_API_CALL void *hook12_thread (void *p)
 
   for (u64 pw_pos = tid; pw_pos < pws_cnt; pw_pos += tsz)
   {
-    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+    wait_while_paused (status_ctx);
 
     if (status_ctx->devices_status == STATUS_RUNNING)
     {
@@ -20388,7 +20649,7 @@ HC_API_CALL void *hook23_thread (void *p)
 
   for (u64 pw_pos = tid; pw_pos < pws_cnt; pw_pos += tsz)
   {
-    while (status_ctx->devices_status == STATUS_PAUSED) sleep (1);
+    wait_while_paused (status_ctx);
 
     if (status_ctx->devices_status == STATUS_RUNNING)
     {

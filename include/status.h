@@ -51,6 +51,8 @@ double      status_get_digests_percent                (const hashcat_ctx_t *hash
 double      status_get_digests_percent_new            (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_salts_done                     (const hashcat_ctx_t *hashcat_ctx);
 int         status_get_salts_cnt                      (const hashcat_ctx_t *hashcat_ctx);
+u64         status_get_amplifier_cnt                  (const hashcat_ctx_t *hashcat_ctx);
+u32         status_get_iteration_cnt                  (const hashcat_ctx_t *hashcat_ctx, const int salt_pos);
 double      status_get_salts_percent                  (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_msec_running                   (const hashcat_ctx_t *hashcat_ctx);
 double      status_get_msec_paused                    (const hashcat_ctx_t *hashcat_ctx);

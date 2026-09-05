@@ -95,4 +95,6 @@ int hc_append_chr    (char *buf, const int len, const int buf_sz, const char c);
 
 HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u32 il_pos, u32 *w, const int base_len);
 
+HC_API u64 hc_peak_rss (void);
+
 #endif // HC_SHARED_H

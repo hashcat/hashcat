@@ -929,7 +929,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    * load hashes, stage 1
    */
 
-  if (hashes_init_stage1 (hashcat_ctx) == -1) return -1;
+  EVENT (EVENT_HASHLIST_PARSE_INPUT_PRE);
+
+  const int hashes_stage1_rc = hashes_init_stage1 (hashcat_ctx);
+
+  EVENT (EVENT_HASHLIST_PARSE_INPUT_POST);
+
+  if (hashes_stage1_rc == -1) return -1;
 
   if ((user_options->keyspace == false) && (user_options->stdout_flag == false))
   {
@@ -1135,6 +1141,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     return 0;
   }
 
+  EVENT (EVENT_CANDIDATE_SOURCE_PRE);
+
   /**
    * straight mode init
    */
@@ -1157,6 +1165,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    */
 
   if (mask_ctx_init (hashcat_ctx) == -1) return -1;
+
+  EVENT (EVENT_CANDIDATE_SOURCE_POST);
 
   /**
    * prevent the user from using --skip/--limit together with multiple word lists

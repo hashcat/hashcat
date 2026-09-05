@@ -11,6 +11,7 @@
 #include "thread.h"
 #include "status.h"
 #include "shared.h"
+#include "system.h"
 #include "path.h"
 #include "hwmon.h"
 #include "bridges.h"
@@ -23,6 +24,63 @@
 static const size_t MAXIMUM_EXAMPLE_HASH_LENGTH = 200;
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
+
+// Draw up to want of the active devices at random and leave them ordered by device id. Returns the
+// number of active devices, so the caller can say how many of them it is showing.
+//
+// Each device is taken with the probability that leaves every one equally likely, which gets an
+// unbiased sample in one pass and in id order, with no sort and no second pass.
+
+static int status_sample_devices (const hashcat_status_t *hashcat_status, int *shown, int *shown_cnt, const int want)
+{
+  int active[DEVICES_MAX];
+  int active_cnt = 0;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
+
+    if (device_info->guess_candidates_dev == NULL) continue;
+
+    active[active_cnt] = device_id;
+
+    active_cnt++;
+  }
+
+  *shown_cnt = 0;
+
+  const int take = MIN (active_cnt, want);
+
+  for (int i = 0; i < active_cnt; i++)
+  {
+    const int left_to_take = take - *shown_cnt;
+    const int left_to_see  = active_cnt - i;
+
+    if (left_to_take == 0) break;
+
+    if ((int) get_random_num (0, (u32) (left_to_see - 1)) < left_to_take)
+    {
+      shown[*shown_cnt] = active[i];
+
+      (*shown_cnt)++;
+    }
+  }
+
+  return active_cnt;
+}
+
+// How many device windows to show for Candidates. A window is a pair of candidates and either can
+// be long, so one row is all that fits.
+
+#define CANDIDATES_DEVICES_MAX 1
+
+// How many devices fit on one Restore.Sub line, worst case an amplifier near 1 million and an
+// iteration near 10 million on a two digit device id.
+
+#define RESTORE_SUB_DEVICES_MAX 3
 
 static const char *const PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
 static const char *const PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
@@ -472,6 +530,13 @@ void SetConsoleWindowSize (const int x)
 }
 #endif
 
+// How long tty_getchar () waits for a keypress before giving up and returning empty handed. The
+// keypress loop rechecks shutdown_outer between calls, so this is also how long a quit takes to be
+// noticed, and the main thread joins this thread on its way out. A full second here put most of a
+// second into the end of every interactive run.
+
+#define TTY_GETCHAR_WAIT_MS 100
+
 #if defined (__OpenBSD__)   || (__FreeBSD__)       || defined (__NetBSD__) || \
     defined (__DragonFly__) || defined (__linux__) || defined (__CYGWIN__)
 static struct termios savemodes;
@@ -503,8 +568,8 @@ int tty_getchar (void)
 
   struct timeval tv;
 
-  tv.tv_sec  = 1;
-  tv.tv_usec = 0;
+  tv.tv_sec  = 0;
+  tv.tv_usec = TTY_GETCHAR_WAIT_MS * 1000;
 
   int retval = select (1, &rfds, NULL, NULL, &tv);
 
@@ -552,8 +617,8 @@ int tty_getchar (void)
 
   struct timeval tv;
 
-  tv.tv_sec  = 1;
-  tv.tv_usec = 0;
+  tv.tv_sec  = 0;
+  tv.tv_usec = TTY_GETCHAR_WAIT_MS * 1000;
 
   int retval = select (1, &rfds, NULL, NULL, &tv);
 
@@ -588,7 +653,7 @@ int tty_getchar (void)
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
-  DWORD rc = WaitForSingleObject (stdinHandle, 1000);
+  DWORD rc = WaitForSingleObject (stdinHandle, TTY_GETCHAR_WAIT_MS);
 
   if (rc == WAIT_TIMEOUT)   return  0;
   if (rc == WAIT_ABANDONED) return -1;
@@ -4164,6 +4229,55 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
+  // Every device works the same salt, so it belongs on the line that is printed once rather than
+  // repeated on every per device row underneath.
+
+  int salt_pos = 0;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
+
+    salt_pos = device_info->salt_pos_dev;
+
+    break;
+  }
+
+  // What the per device positions on the Restore.Sub line below count towards. Each is left out when
+  // there is only one of it, the same way the salt counts are left off Recovered on a single salt
+  // run, so an ordinary fast hash prints the line it always printed.
+
+  char totals_buf[HCBUFSIZ_TINY];
+
+  int totals_len = 0;
+
+  totals_buf[0] = 0;
+
+  if (hashcat_status->salts_cnt > 1)
+  {
+    totals_len += snprintf (totals_buf + totals_len, sizeof (totals_buf) - totals_len,
+      ", Salt:%d/%d", salt_pos + 1, hashcat_status->salts_cnt);
+  }
+
+  const u64 amplifier_cnt = status_get_amplifier_cnt (hashcat_ctx);
+
+  if (amplifier_cnt > 1)
+  {
+    totals_len += snprintf (totals_buf + totals_len, sizeof (totals_buf) - totals_len,
+      ", Amplifier:%" PRIu64, amplifier_cnt);
+  }
+
+  const u32 iteration_cnt = status_get_iteration_cnt (hashcat_ctx, salt_pos);
+
+  if (iteration_cnt > 1)
+  {
+    totals_len += snprintf (totals_buf + totals_len, sizeof (totals_buf) - totals_len,
+      ", Iterations:%u", iteration_cnt);
+  }
+
   if (pubkey_ctx->enabled == true)
   {
     event_log_info (hashcat_ctx, "Restore.Point....: [Protected]");
@@ -4175,65 +4289,65 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       case PROGRESS_MODE_KEYSPACE_KNOWN:
 
         event_log_info (hashcat_ctx,
-          "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)%s",
           hashcat_status->restore_point,
           hashcat_status->restore_total,
-          hashcat_status->restore_percent);
+          hashcat_status->restore_percent,
+          totals_buf);
 
         break;
 
       case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
         event_log_info (hashcat_ctx,
-          "Restore.Point....: %" PRIu64,
-          hashcat_status->restore_point);
+          "Restore.Point....: %" PRIu64 "%s",
+          hashcat_status->restore_point,
+          totals_buf);
 
         break;
     }
   }
 
-  if (bridge_ctx->enabled == true)
-  {
-    const device_info_t *device_info = hashcat_status->device_info_buf + 0;
+  // One row per device is one line per device on every status update, and on a twelve device box
+  // that buried everything under it. The salt moved up to Restore.Point because it is the same
+  // everywhere, and the amplifier and iteration ranges have the same width on every device, so only
+  // where each one starts differs. That fits several devices on one line.
+  //
+  // More devices than fit are not dropped, they are rotated: which ones are shown is drawn fresh on
+  // every status, so watching a few updates shows all of them. They stay ordered by device id, so
+  // the line reads the same way each time.
 
-    if (pubkey_ctx->enabled == true)
-    {
-      event_log_info (hashcat_ctx, "Restore.Sub.#%02u..: [Protected]", 0 + 1);
-    }
-    else
-    {
-      event_log_info (hashcat_ctx,
-        "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", 0 + 1,
-        device_info->salt_pos_dev,
-        device_info->innerloop_pos_dev,
-        device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
-        device_info->iteration_pos_dev,
-        device_info->iteration_pos_dev + device_info->iteration_left_dev);
-    }
+  if (pubkey_ctx->enabled == true)
+  {
+    event_log_info (hashcat_ctx, "Restore.Sub......: [Protected]");
   }
   else
   {
-    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    int shown[RESTORE_SUB_DEVICES_MAX];
+    int shown_cnt = 0;
+
+    status_sample_devices (hashcat_status, shown, &shown_cnt, RESTORE_SUB_DEVICES_MAX);
+
+    if (shown_cnt > 0)
     {
-      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+      char sub_buf[HCBUFSIZ_TINY];
 
-      if (device_info->skipped_dev == true) continue;
-      if (device_info->skipped_warning_dev == true) continue;
+      int sub_len = 0;
 
-      if (pubkey_ctx->enabled == true)
+      for (int i = 0; i < shown_cnt; i++)
       {
-        event_log_info (hashcat_ctx, "Restore.Sub.#%02u..: [Protected]", device_id + 1);
+        const device_info_t *device_info = hashcat_status->device_info_buf + shown[i];
 
-        continue;
+        sub_len += snprintf (sub_buf + sub_len, sizeof (sub_buf) - sub_len, "%s#%02u:%" PRIu64 "/%d",
+          (i == 0) ? "" : " ",
+          shown[i] + 1,
+          device_info->innerloop_pos_dev,
+          device_info->iteration_pos_dev);
+
+        if (sub_len >= (int) sizeof (sub_buf)) break;
       }
 
-      event_log_info (hashcat_ctx,
-        "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", device_id + 1,
-        device_info->salt_pos_dev,
-        device_info->innerloop_pos_dev,
-        device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
-        device_info->iteration_pos_dev,
-        device_info->iteration_pos_dev + device_info->iteration_left_dev);
+      event_log_info (hashcat_ctx, "Restore.Sub......: %s", sub_buf);
     }
   }
 
@@ -4266,30 +4380,34 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
   }
 
-  if (bridge_ctx->enabled == true)
+  // One line per device again, and the devices are working one contiguous keyspace between them, so
+  // the interesting thing is where the run as a whole has reached: the first word the lowest device
+  // is on, through to the last word the highest device is on. Each device's own string is already a
+  // range, so the two halves come from the two ends.
+  //
+  // A device that is not producing a range says so instead, [Generating] or [Copying] and the like,
+  // and one of those cannot supply a half. Where that leaves nothing to join, the first device's
+  // string is printed as it is.
+
+  // One row per device again. These cannot be folded into a span the way the progress rows can: the
+  // devices do not take the keyspace in device id order, so the lowest numbered device is often not
+  // the one furthest behind, and joining the first device's start to the last device's end produces
+  // a range that runs backwards. One device's window is shown instead, drawn again on every status,
+  // so watching a few updates covers them all. Which device it is stays in the label, so the row
+  // still says whose window this is.
+
   {
-    const device_info_t *device_info = hashcat_status->device_info_buf + 0;
+    int shown[CANDIDATES_DEVICES_MAX];
+    int shown_cnt = 0;
 
-    if (device_info->guess_candidates_dev)
+    status_sample_devices (hashcat_status, shown, &shown_cnt, CANDIDATES_DEVICES_MAX);
+
+    for (int i = 0; i < shown_cnt; i++)
     {
-      event_log_info (hashcat_ctx,
-        "Candidates.#%02u...: %s", 0 + 1,
-        device_info->guess_candidates_dev);
-    }
-  }
-  else
-  {
-    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
-    {
-      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
-
-      if (device_info->skipped_dev == true) continue;
-      if (device_info->skipped_warning_dev == true) continue;
-
-      if (device_info->guess_candidates_dev == NULL) continue;
+      const device_info_t *device_info = hashcat_status->device_info_buf + shown[i];
 
       event_log_info (hashcat_ctx,
-        "Candidates.#%02u...: %s", device_id + 1,
+        "Candidates.#%02u...: %s", shown[i] + 1,
         device_info->guess_candidates_dev);
     }
   }

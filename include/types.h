@@ -110,6 +110,8 @@ typedef enum event_identifier
   EVENT_BITMAP_FINAL_OVERFLOW     = 0x00000012,
   EVENT_BRIDGES_INIT_POST         = 0x00000120,
   EVENT_BRIDGES_INIT_PRE          = 0x00000121,
+  EVENT_CANDIDATE_SOURCE_POST     = 0x00000142,
+  EVENT_CANDIDATE_SOURCE_PRE      = 0x00000143,
   EVENT_BRIDGES_SALT_POST         = 0x00000122,
   EVENT_BRIDGES_SALT_PRE          = 0x00000123,
   EVENT_CALCULATED_WORDS_BASE     = 0x00000020,
@@ -125,6 +127,10 @@ typedef enum event_identifier
   EVENT_HASHLIST_COUNT_LINES_POST = 0x00000050,
   EVENT_HASHLIST_COUNT_LINES_PRE  = 0x00000051,
   EVENT_HASHLIST_PARSE_HASH       = 0x00000052,
+  EVENT_HASHLIST_PARSE_INPUT_POST = 0x00000059,
+  EVENT_HASHLIST_PARSE_INPUT_PRE  = 0x0000005a,
+  EVENT_KERNEL_BUILD_POST         = 0x00000144,
+  EVENT_KERNEL_BUILD_PRE          = 0x00000145,
   EVENT_HASHLIST_SORT_HASH_POST   = 0x00000053,
   EVENT_HASHLIST_SORT_HASH_PRE    = 0x00000054,
   EVENT_HASHLIST_SORT_SALT_POST   = 0x00000055,
@@ -899,6 +905,8 @@ typedef enum user_options_defaults
   SPIN_DAMP                = 0,
   STATUS                   = false,
   STATUS_JSON              = false,
+  PIPELINE_STATS           = false,
+  TASK_TIME_BREAKDOWN      = false,
   STATUS_TIMER             = 10,
   STDIN_TIMEOUT_ABORT      = 120,
   STDOUT_FLAG              = false,
@@ -993,6 +1001,8 @@ typedef enum user_options_map
   IDX_LIMIT                     = 'l',
   IDX_LOGFILE_DISABLE           = 0xff28,
   IDX_LOOKUP                    = 0xff89,
+  IDX_PIPELINE_STATS            = 0xff8b,
+  IDX_TASK_TIME_BREAKDOWN       = 0xff8a,
   IDX_LOOPBACK                  = 0xff29,
   IDX_MACHINE_READABLE          = 0xff2a,
   IDX_MARKOV_CLASSIC            = 0xff2b,
@@ -1439,8 +1449,33 @@ typedef struct hc_fp
 #include "ext_OpenCL.h"
 #include "ext_metal.h"
 
+// Where a launch's wall clock goes, split by the stage that spent it. A launch is a chain of host
+// steps around one device step, and the steps live in different files, so every stage books its time
+// into the device it belongs to.
+
+typedef enum pipe_slot
+{
+  PIPE_FEED   = 0,  // building the candidate batch on the host, off the critical path
+  PIPE_COPY   = 1,  // uploading it and running the decompress kernel
+  PIPE_INIT   = 2,  // amplifier, utf16 conversion and the init kernel
+  PIPE_XFER   = 3,  // tmps out to the host and back
+  PIPE_LAUNCH = 4,  // the loop itself, kernel or bridge
+  PIPE_COMP   = 5,  // the comp kernel
+
+  PIPE_SLOTS  = 6,
+
+} pipe_slot_t;
+
 typedef struct hc_device_param
 {
+  // Per device, because a device thread books only its own launches. These used to be one set of
+  // globals written by every device thread at once, which added the devices together and raced
+  // doing it.
+
+  double    pipe_msec[PIPE_SLOTS];
+  u64       pipe_launches;
+  u64       pipe_cands;
+
   int     device_id;
 
   // this occurs if the same device (pci address) is used by multiple backend API
@@ -2257,13 +2292,36 @@ typedef struct hc_device_param
   // What makes two builds interchangeable. hashcat already computes these to name the kernel cache
   // file, and a clone that agrees on both can use the program a previous clone built.
 
-  char              opencl_chksum[16];
-  char              opencl_chksum_amp_mp[16];
+  char              opencl_chksum[24];
+  char              opencl_chksum_amp_mp[24];
 
 } hc_device_param_t;
 
+// One entry per kernel binary a run has to produce. Devices that would build the same file are the
+// same class, and the file name is the class: it already carries the device, the driver, the attack
+// and a digest of the source, so two devices sharing a name would compile identical output.
+
+// shared, main, mp and amp: the four kernel binaries a device can need
+
+#define KERNEL_BUILDS_PER_DEVICE 4
+
+typedef struct kernel_build
+{
+  char cached_file[256];
+
+  bool done;
+  bool failed;
+
+} kernel_build_t;
+
 typedef struct backend_ctx
 {
+  kernel_build_t     *kernel_builds;
+  int                 kernel_builds_cnt;
+
+  hc_thread_mutex_t   mux_kernel_build;
+  hc_thread_cond_t    cond_kernel_build;
+
   bool                enabled;
 
   // global rc
@@ -2347,7 +2405,7 @@ typedef struct backend_ctx
   // digest of every kernel source that is shared by all kernels, read once because it does not depend
   // on the device or on the hash mode
 
-  u32                 kernel_shared_chksum;
+  u64                 kernel_shared_chksum;
 
   int                 force_jit_compilation;
 
@@ -2835,6 +2893,8 @@ typedef struct user_options
   bool         speed_only;
   bool         status;
   bool         status_json;
+  bool         pipeline_stats;
+  bool         task_time_breakdown;
   bool         stdout_flag;
   bool         stdin_timeout_abort_chgd;
   bool         username;
@@ -3852,6 +3912,13 @@ typedef struct event_ctx
   bool   log_blank;
 
   hc_thread_mutex_t mux_event;
+
+  // msg_buf below is one buffer shared by every caller, and a log event deliberately does not take
+  // mux_event: handlers that run with mux_event held log from inside it, so reusing that lock would
+  // deadlock. This one covers the buffer and the emission that reads it, and nothing held while it
+  // is taken ever waits on it, so the two cannot form a cycle.
+
+  hc_thread_mutex_t mux_log;
 
 } event_ctx_t;
 
