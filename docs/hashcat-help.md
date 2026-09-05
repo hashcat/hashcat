@@ -19,6 +19,8 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
      --hex-wordlist             |      | Assume words in wordlist are given in hex            |
      --force                    |      | Ignore warnings                                      |
      --deprecated-check-disable |      | Enable deprecated plugins                            |
+     --pipeline-stats          |      | Show where each launch's time goes, per device       |
+     --task-time-breakdown     |      | Show where the run's wall clock went, by stage       |
      --status                   |      | Enable automatic update of the status screen         |
      --status-json              |      | Enable JSON format for status output                 |
      --status-timer             | Num  | Sets seconds between status screen updates to X      | --status-timer=1
