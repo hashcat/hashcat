@@ -4476,13 +4476,6 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   }
   #endif
 
-  // Under --stdout nothing on the device is ever read. choose_kernel () hands straight over to
-  // process_stdout () before any kernel runs, and process_stdout () builds its candidates out of the
-  // very host buffers this function was about to upload from. Everything below is a copy whose result
-  // nobody looks at, plus a decompress kernel run over it.
-
-  if (user_options->stdout_flag == true) return 0;
-
   // The cells go up with the base words they belong to. There is one per base word and the two arrays
   // are filled in step, so the same count covers both.
 
@@ -10745,6 +10738,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               hc_device_param_t *tmp_device_param = backend_ctx->devices_param + tmp_backend_devices_idx;
 
+
+                // A device that was skipped never measured its free memory, so it has nothing to
+                // lend. Inheriting from it would hand this device a figure of zero and size its
+                // buffers against that.
+
+                if (tmp_device_param->skipped == true) continue;
               if (is_same_device (device_param, tmp_device_param))
               {
                 device_param->device_available_mem        = tmp_device_param->device_available_mem;
@@ -10765,6 +10764,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               hc_device_param_t *tmp_device_param = backend_ctx->devices_param + tmp_backend_devices_idx;
 
+
+                // A device that was skipped never measured its free memory, so it has nothing to
+                // lend. Inheriting from it would hand this device a figure of zero and size its
+                // buffers against that.
+
+                if (tmp_device_param->skipped == true) continue;
               if (is_same_device (device_param, tmp_device_param))
               {
                 device_param->device_available_mem        = tmp_device_param->device_available_mem;

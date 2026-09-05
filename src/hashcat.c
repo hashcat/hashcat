@@ -1101,8 +1101,23 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
 
   if (status_ctx->devices_status == STATUS_CRACKED)
   {
-    event_log_info (hashcat_ctx, "INFO: All hashes were already found in the outfile check directory.");
-    event_log_info (hashcat_ctx, NULL);
+    // --remove rewrites the hash file with what is left, and a run that ends here has to do that the
+    // same way the potfile path above does. Ending early is not a reason to leave the file describing
+    // hashes that are now accounted for.
+
+    if ((user_options->remove == true) && ((hashes->hashlist_mode == HL_MODE_FILE_PLAIN) || (hashes->hashlist_mode == HL_MODE_FILE_BINARY)))
+    {
+      if (hashes->digests_saved != hashes->digests_done)
+      {
+        if (save_hash (hashcat_ctx) == -1) return -1;
+      }
+    }
+
+    if (user_options->quiet == false)
+    {
+      event_log_info (hashcat_ctx, "INFO: All hashes were already found in the outfile check directory.");
+      event_log_info (hashcat_ctx, NULL);
+    }
 
     return 0;
   }

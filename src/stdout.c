@@ -397,9 +397,27 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
                 live++;
               }
 
-              for (u32 t = 0; t < live; t++) hc_thread_create (tids[t], stdout_rule_worker, &jobs[t]);
+              // A thread that could not be created must not leave its range unwritten. The drain below
+              // cannot tell an empty range from a missing one, and a run that quietly emits fewer
+              // candidates than it was asked for is the outcome out_flush () above exists to prevent.
+              // So a refused thread has its range run here instead, and only the threads that started
+              // are joined.
 
-              hc_thread_wait ((int) live, tids);
+              u32 started = 0;
+
+              for (u32 t = 0; t < live; t++)
+              {
+                if (hc_thread_create_ok (tids[started], stdout_rule_worker, &jobs[t]) == true)
+                {
+                  started++;
+                }
+                else
+                {
+                  stdout_rule_worker (&jobs[t]);
+                }
+              }
+
+              hc_thread_wait ((int) started, tids);
 
               // drained in range order, so the bytes land in the order the serial loop would produce
 

@@ -412,7 +412,10 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
         }
         else
         {
-          const u64 words_base = status_ctx->words_base;
+          // the same end the dispatcher stops at, so a percentage means a fraction of what will
+          // actually be tried rather than of a keyspace --limit has already cut down
+
+          const u64 words_base = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
 
           const size_t answer_len = strlen (answer);
 

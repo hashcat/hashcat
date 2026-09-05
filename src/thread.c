@@ -358,7 +358,14 @@ int bypass_seek (hashcat_ctx_t *hashcat_ctx, const u64 target)
     return -1;
   }
 
-  if (target >= status_ctx->words_base) return -1;
+  // The run does not end at words_base when --limit is set. get_work () stops at the smaller of the
+  // two and so does the progress end, so a seek bounded on words_base alone can put words_off past
+  // where the dispatcher will ever reach, which ends the run as exhausted and leaves the counters
+  // describing a keyspace that was never tried.
+
+  const u64 words_end = (status_ctx->words_limit == 0) ? status_ctx->words_base : MIN (status_ctx->words_limit, status_ctx->words_base);
+
+  if (target >= words_end) return -1;
 
   if (seek_words_off (hashcat_ctx, target) == false) return -1;
 
