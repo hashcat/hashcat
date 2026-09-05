@@ -246,6 +246,13 @@ static HC_API_CALL void *stdin_reader (void *p)
   char  *carry     = (char *) hcmalloc (STDIN_BLOCK_SIZE);
   size_t carry_len = 0;
 
+  // Set once a line longer than a block has been cut. What follows the cut is the rest of that
+  // same line, not a line of its own, so it is dropped up to the next line ending. Without this the
+  // tail of an overlong line is published as an ordinary candidate, and hashcat tries a password
+  // that never appeared in the input as a line.
+
+  bool dropping_overlong = false;
+
   while (1)
   {
     hc_thread_mutex_lock (stdin_global->mux);
@@ -360,6 +367,38 @@ static HC_API_CALL void *stdin_reader (void *p)
       break;
     }
 
+    // The tail of a line that was already cut is not a line. Drop it, and everything after it up to
+    // the line ending that finally closes it, before any of the publishing below sees the block.
+
+    if (dropping_overlong == true)
+    {
+      size_t skip = 0;
+
+      while ((skip < have) && (buf[skip] != '\n')) skip++;
+
+      if (skip == have)
+      {
+        // still inside the same line, so the whole block goes
+
+        hc_thread_mutex_lock (stdin_global->mux);
+
+        stdin_global->free_list[stdin_global->free_cnt] = blk;
+        stdin_global->free_cnt++;
+
+        hc_thread_mutex_unlock (stdin_global->mux);
+
+        continue;
+      }
+
+      skip++;
+
+      have -= skip;
+
+      memmove (buf, buf + skip, have);
+
+      dropping_overlong = false;
+    }
+
     // Publish the whole lines and keep the rest. A full block with no line ending anywhere in it holds
     // a line longer than a block, which is cut here rather than grown into. A short read with no line
     // ending is only an incomplete line and has to be carried into the next read.
@@ -373,6 +412,8 @@ static HC_API_CALL void *stdin_reader (void *p)
       if (have == STDIN_BLOCK_SIZE)
       {
         whole = have;
+
+        dropping_overlong = true;
       }
       else
       {

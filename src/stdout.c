@@ -14,6 +14,8 @@
 #include "shared.h"
 #include "filehandling.h"
 #include "thread.h"
+#include "memory.h"
+#include "system.h"
 #include "stdout.h"
 
 static void out_flush (out_t *out)
@@ -55,6 +57,101 @@ static void out_push (out_t *out, const u8 *pw_buf, const int pw_len)
   {
     out_flush (out);
   }
+}
+
+// Applying rules under --stdout is pure host work. One core assembles candidates while the rest of
+// the machine sits idle, and because process_stdout () holds mux_outfile for the whole loop a second
+// device does not help either: it waits instead of working.
+//
+// The output is word major and rule minor, so numbering every (word, rule) combination in that order
+// gives an index space where a contiguous range is also contiguous in the output. Workers take one
+// range each and are drained in range order, which means the bytes come out in exactly the order the
+// serial loop produced them, whatever order the threads finish in.
+//
+// Work is done a round at a time so the buffers stay bounded. Each round is sized to a fixed byte
+// budget from the longest candidate the mode can produce, so each worker can be given a buffer that
+// its range cannot overrun and there is no growing to do while a rule is being applied.
+
+#define STDOUT_RULE_THREADS_MAX  64
+#define STDOUT_RULE_ROUND_BYTES  (128 * 1024 * 1024)
+#define STDOUT_RULE_PARALLEL_MIN 65536
+
+typedef struct stdout_rule_job
+{
+  const pw_idx_t      *pw_idx_base;
+  const u32           *pws_comp_blk;
+  u32                  off_blk;
+
+  u64                  pair_first;
+  u64                  pair_cnt;
+
+  u32                  il_cnt;
+  u64                  innerloop_pos;
+
+  const kernel_rule_t *rules;
+  bool                 optimized;
+  u32                  pw_max;
+
+  char                *buf;
+  size_t               len;
+
+} stdout_rule_job_t;
+
+static HC_API_CALL void *stdout_rule_worker (void *p)
+{
+  stdout_rule_job_t *job = (stdout_rule_job_t *) p;
+
+  u32 plain_buf[PW_MAX / sizeof (u32)];
+
+  u8 *const plain_ptr = (u8 *) plain_buf;
+
+  for (u64 i = 0; i < job->pair_cnt; i++)
+  {
+    const u64 pair = job->pair_first + i;
+
+    const u64 word_idx = pair / job->il_cnt;
+    const u32 il_pos   = (u32) (pair % job->il_cnt);
+
+    const pw_idx_t *pw_idx = job->pw_idx_base + word_idx;
+
+    const u32 *pw = job->pws_comp_blk + (pw_idx->off - job->off_blk);
+
+    memset (plain_buf, 0, sizeof (plain_buf));
+
+    for (u32 k = 0; k < pw_idx->cnt; k++) plain_buf[k] = pw[k];
+
+    const u64 off = job->innerloop_pos + il_pos;
+
+    int plain_len;
+
+    if (job->optimized == true)
+    {
+      plain_len = apply_rules_optimized (job->rules[off].cmds, &plain_buf[0], &plain_buf[4], pw_idx->len);
+    }
+    else
+    {
+      plain_len = apply_rules (job->rules[off].cmds, plain_buf, pw_idx->len);
+    }
+
+    if (plain_len > (int) job->pw_max) plain_len = (int) job->pw_max;
+
+    memcpy (job->buf + job->len, plain_ptr, (size_t) plain_len);
+
+    job->len += (size_t) plain_len;
+
+    #if defined (_WIN)
+    job->buf[job->len + 0] = '\r';
+    job->buf[job->len + 1] = '\n';
+
+    job->len += 2;
+    #else
+    job->buf[job->len] = '\n';
+
+    job->len += 1;
+    #endif
+  }
+
+  return NULL;
 }
 
 int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 pws_cnt)
@@ -232,7 +329,99 @@ int process_stdout (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
       if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
       {
-        while (pw_idx <= pw_idx_last)
+        bool done_parallel = false;
+
+        const u64 word_cnt = (u64) (pw_idx_last - pw_idx) + 1;
+        const u64 pair_cnt = word_cnt * il_cnt;
+
+        u32 threads = hc_get_processor_count ();
+
+        if (threads > STDOUT_RULE_THREADS_MAX) threads = STDOUT_RULE_THREADS_MAX;
+
+        if (pair_cnt < STDOUT_RULE_PARALLEL_MIN) threads = 1;
+        if ((u64) threads > pair_cnt)            threads = (u32) pair_cnt;
+
+        if (threads > 1)
+        {
+          const size_t cand_max = (size_t) hashconfig->pw_max + 2;
+
+          u64 pairs_per_round = STDOUT_RULE_ROUND_BYTES / cand_max;
+
+          if (pairs_per_round < threads)  pairs_per_round = threads;
+
+          // a short run must not reserve the whole budget for work it does not have
+
+          if (pairs_per_round > pair_cnt)  pairs_per_round = pair_cnt;
+
+          const u64    per_worker_max = CEILDIV (pairs_per_round, threads);
+          const size_t worker_buf_sz  = (size_t) per_worker_max * cand_max;
+
+          stdout_rule_job_t *jobs = (stdout_rule_job_t *) hcmalloc (threads * sizeof (stdout_rule_job_t));
+          hc_thread_t       *tids = (hc_thread_t *)       hcmalloc (threads * sizeof (hc_thread_t));
+
+          char *pool = (char *) hcmalloc ((size_t) threads * worker_buf_sz);
+
+          if ((jobs != NULL) && (tids != NULL) && (pool != NULL))
+          {
+            // anything already buffered goes out first, or the workers' bytes would overtake it
+
+            out_flush (&out);
+
+            for (u64 base = 0; base < pair_cnt; base += pairs_per_round)
+            {
+              const u64 round_cnt = MIN (pairs_per_round, pair_cnt - base);
+              const u64 round_end = base + round_cnt;
+              const u64 per       = CEILDIV (round_cnt, threads);
+
+              u32 live = 0;
+
+              for (u32 t = 0; t < threads; t++)
+              {
+                const u64 first = base + ((u64) t * per);
+
+                if (first >= round_end) break;
+
+                jobs[t].pw_idx_base   = pw_idx;
+                jobs[t].pws_comp_blk  = pws_comp_blk;
+                jobs[t].off_blk       = off_blk;
+                jobs[t].pair_first    = first;
+                jobs[t].pair_cnt      = MIN (per, round_end - first);
+                jobs[t].il_cnt        = il_cnt;
+                jobs[t].innerloop_pos = device_param->innerloop_pos;
+                jobs[t].rules         = straight_ctx->kernel_rules_buf;
+                jobs[t].optimized     = (hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL) ? true : false;
+                jobs[t].pw_max        = hashconfig->pw_max;
+                jobs[t].buf           = pool + ((size_t) t * worker_buf_sz);
+                jobs[t].len           = 0;
+
+                live++;
+              }
+
+              for (u32 t = 0; t < live; t++) hc_thread_create (tids[t], stdout_rule_worker, &jobs[t]);
+
+              hc_thread_wait ((int) live, tids);
+
+              // drained in range order, so the bytes land in the order the serial loop would produce
+
+              for (u32 t = 0; t < live; t++)
+              {
+                if (jobs[t].len == 0) continue;
+
+                const size_t nwrite = hc_fwrite (jobs[t].buf, 1, jobs[t].len, &out.fp);
+
+                if (nwrite != jobs[t].len) out.write_failed = true;
+              }
+            }
+
+            done_parallel = true;
+          }
+
+          hcfree (pool);
+          hcfree (tids);
+          hcfree (jobs);
+        }
+
+        while ((done_parallel == false) && (pw_idx <= pw_idx_last))
         {
           u32 *pw = pws_comp_blk + (pw_idx->off - off_blk);
 

@@ -9,39 +9,28 @@
 
 #ifdef _WIN
 
-#ifndef LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
-#define LOAD_LIBRARY_SEARCH_DEFAULT_DIRS 0x00001000
-#endif
-
 // Take the working directory out of the library search order.
 //
-// LoadLibrary () given a bare file name searches the directory hashcat.exe lives in, then the system
-// directories, and then the working directory. A library that is present in none of the earlier ones
-// is therefore loaded from wherever hashcat happens to be started, and a file dropped next to a
+// LoadLibrary () given a bare file name searches the directory hashcat.exe lives in, the system
+// directories, PATH, and the working directory. A library that is present in none of the others is
+// therefore loaded from wherever hashcat happens to be started, and a file dropped next to a
 // wordlist is a library hashcat will run. The libraries this matters most for are the compression
-// ones, because Windows ships none of them, so for those the earlier directories always miss.
+// ones, because Windows ships none of them.
 //
-// LOAD_LIBRARY_SEARCH_DEFAULT_DIRS keeps the application directory, the system directory and
-// anything added with AddDllDirectory (), and drops the working directory. Supplying a library the
-// documented way, beside hashcat.exe, is the application directory and is unaffected. A library that
-// only ever resolved out of the working directory stops being found, which is the point.
+// SetDllDirectory () given an empty string removes the working directory from that order and leaves
+// the rest of it alone. We used SetDefaultDllDirectories (LOAD_LIBRARY_SEARCH_DEFAULT_DIRS) before,
+// which drops PATH as well. A CUDA toolkit puts nvrtc on PATH and nowhere else, so hashcat stopped
+// finding the toolkit it had just reported as present, said none was installed, and fell back to
+// OpenCL on every Windows machine that had one.
 //
-// The entry point is resolved rather than linked, so an older SDK still builds this and a Windows
-// without it still runs. A plugin is loaded by path and never went through this search order at all.
+// Supplying a library the documented way, beside hashcat.exe, is the application directory and is
+// unaffected either way. A library that only ever resolved out of the working directory stops being
+// found, which is the point. A plugin is loaded by path and never went through this search order at
+// all.
 
 void hc_dynlib_harden_search_path (void)
 {
-  const HMODULE kernel32 = GetModuleHandleA ("kernel32.dll");
-
-  if (kernel32 == NULL) return;
-
-  typedef BOOL (WINAPI *set_default_dll_directories_t) (DWORD);
-
-  const set_default_dll_directories_t set_default_dll_directories = (set_default_dll_directories_t) (void *) GetProcAddress (kernel32, "SetDefaultDllDirectories");
-
-  if (set_default_dll_directories == NULL) return;
-
-  set_default_dll_directories (LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
+  SetDllDirectoryA ("");
 }
 
 hc_dynlib_t hc_dlopen (LPCSTR lpLibFileName)

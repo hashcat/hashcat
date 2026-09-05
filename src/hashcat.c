@@ -1090,6 +1090,24 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   hashes_logger (hashcat_ctx);
 
   /**
+   * outfile check preflight
+   */
+
+  // Results another run has already written are worth reading before the expensive setup rather than
+  // only during the attack. Everything below this point costs time and device memory, and a hash list
+  // the check directory already accounts for needs none of it.
+
+  if (outcheck_preflight (hashcat_ctx) == -1) return -1;
+
+  if (status_ctx->devices_status == STATUS_CRACKED)
+  {
+    event_log_info (hashcat_ctx, "INFO: All hashes were already found in the outfile check directory.");
+    event_log_info (hashcat_ctx, NULL);
+
+    return 0;
+  }
+
+  /**
    * bitmaps
    */
 
@@ -1591,6 +1609,13 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->user_options_extra = (user_options_extra_t *)  hcmalloc (sizeof (user_options_extra_t));
   hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (sizeof (user_options_t));
 
+  // The event context is set up here rather than with the session, because the banner is printed
+  // before a session exists and printing it takes the log mutex. A mutex that has only been zeroed
+  // is a usable pthread mutex, so this reads as working on Linux, but it is not a usable Windows
+  // CRITICAL_SECTION and entering one faults.
+
+  if (event_ctx_init (hashcat_ctx) == -1) return -1;
+
   // The compression libraries are located here, while there is still one thread, and each one is
   // optional: a box without it runs everything that does not ask for that format. Whoever does ask
   // is the one told, and is told which file names were tried. iconv is located the same way and is
@@ -1612,6 +1637,8 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->combinator_ctx);
   hcfree (hashcat_ctx->cpt_ctx);
   hcfree (hashcat_ctx->debugfile_ctx);
+  event_ctx_destroy (hashcat_ctx);
+
   hcfree (hashcat_ctx->event_ctx);
   hcfree (hashcat_ctx->folder_config);
   hcfree (hashcat_ctx->generic_ctx);
@@ -1659,7 +1686,6 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * event init (needed for logging so should be first)
    */
 
-  if (event_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * status init
@@ -2489,7 +2515,6 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   user_options_destroy        (hashcat_ctx);
   user_options_extra_destroy  (hashcat_ctx);
   status_ctx_destroy          (hashcat_ctx);
-  event_ctx_destroy           (hashcat_ctx);
 
   return 0;
 }

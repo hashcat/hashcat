@@ -127,6 +127,8 @@ int myabort_finish (hashcat_ctx_t *hashcat_ctx);
 int myabort (hashcat_ctx_t *hashcat_ctx);
 int myquit (hashcat_ctx_t *hashcat_ctx);
 int bypass (hashcat_ctx_t *hashcat_ctx);
+int bypass_seek (hashcat_ctx_t *hashcat_ctx, const u64 target);
+int runtime_adjust (hashcat_ctx_t *hashcat_ctx, const int seconds);
 int SuspendThreads (hashcat_ctx_t *hashcat_ctx);
 int ResumeThreads (hashcat_ctx_t *hashcat_ctx);
 int stop_at_checkpoint (hashcat_ctx_t *hashcat_ctx);

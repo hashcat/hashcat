@@ -20,7 +20,7 @@ static int sort_by_salt_buf (const void *v1, const void *v2, MAYBE_UNUSED void *
   return sort_by_salt (v1, v2);
 }
 
-static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
+static int outfile_remove (hashcat_ctx_t *hashcat_ctx, const bool once)
 {
   // some hash-dependent constants
 
@@ -80,30 +80,45 @@ static int outfile_remove (hashcat_ctx_t *hashcat_ctx)
 
   u32 check_left = 1; // or outfile_check_timer if we want to check it after the --outfile-check-timer delay
 
+  // A preflight pass runs before the attack exists, so it waits for nothing, does not ask whether
+  // devices are running, and goes round exactly once. The body below leaves by continue in a dozen
+  // places, so one pass is enforced at the top rather than at the bottom where those would skip it.
+
+  bool first_pass = true;
+
   while (status_ctx->shutdown_inner == false)
   {
-    // the loop body below counts iterations as seconds, so the cadence stays one second. Only the
-    // waiting is broken up, so a shutdown is noticed in 100ms instead of up to a full second. The
-    // monitor thread waits the same way, and this thread is joined beside it: leaving it on a flat
-    // sleep put most of a second into every run's shutdown, whether or not --outfile-check-dir was
-    // ever used, because this thread runs by default.
-
-    for (u32 slice = 0; slice < 10; slice++)
+    if (once == true)
     {
+      if (first_pass == false) break;
+
+      first_pass = false;
+    }
+    else
+    {
+      // the loop body below counts iterations as seconds, so the cadence stays one second. Only the
+      // waiting is broken up, so a shutdown is noticed in 100ms instead of up to a full second. The
+      // monitor thread waits the same way, and this thread is joined beside it: leaving it on a flat
+      // sleep put most of a second into every run's shutdown, whether or not --outfile-check-dir was
+      // ever used, because this thread runs by default.
+
+      for (u32 slice = 0; slice < 10; slice++)
+      {
+        if (status_ctx->shutdown_inner == true) break;
+
+        usleep (100000);
+      }
+
       if (status_ctx->shutdown_inner == true) break;
 
-      usleep (100000);
+      if (status_ctx->devices_status != STATUS_RUNNING) continue;
+
+      check_left--;
+
+      if (check_left != 0) continue;
+
+      check_left = outfile_check_timer;
     }
-
-    if (status_ctx->shutdown_inner == true) break;
-
-    if (status_ctx->devices_status != STATUS_RUNNING) continue;
-
-    check_left--;
-
-    if (check_left != 0) continue;
-
-    check_left = outfile_check_timer;
 
     if (hc_path_exist (root_directory) == false) continue;
 
@@ -356,9 +371,27 @@ HC_API_CALL void *thread_outfile_remove (void *p)
 
   if (outcheck_ctx->enabled == false) return 0;
 
-  outfile_remove (hashcat_ctx);
+  outfile_remove (hashcat_ctx, false);
 
   return 0;
+}
+
+// Compare the hashes we just loaded against results another run has already written, before any of
+// the expensive setup happens. Bitmaps, the candidate source, kernel building, device buffers and
+// autotune all come after this, and a list the directory already accounts for needs none of them.
+
+int outcheck_preflight (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
+  const outcheck_ctx_t *outcheck_ctx = hashcat_ctx->outcheck_ctx;
+
+  if (hashconfig->outfile_check_disable == true) return 0;
+
+  if (outcheck_ctx->enabled == false) return 0;
+
+  const int rc = outfile_remove (hashcat_ctx, true);
+
+  return rc;
 }
 
 int outcheck_ctx_init (hashcat_ctx_t *hashcat_ctx)

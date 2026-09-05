@@ -17,6 +17,7 @@ HC_API_CALL DWORD thread_outfile_remove (void *p);
 HC_API_CALL void *thread_outfile_remove (void *p);
 #endif
 
+int  outcheck_preflight   (hashcat_ctx_t *hashcat_ctx);
 int  outcheck_ctx_init    (hashcat_ctx_t *hashcat_ctx);
 void outcheck_ctx_destroy (hashcat_ctx_t *hashcat_ctx);
 

@@ -198,7 +198,15 @@ static int win_to_utf16 (const win_enc_t *enc, const char *in, const size_t in_l
     {
       if (in_len == 0) return 0;
 
-      return MultiByteToWideChar (enc->cp, MB_ERR_INVALID_CHARS, in, (int) in_len, w, w_cap);
+      const int n = MultiByteToWideChar (enc->cp, MB_ERR_INVALID_CHARS, in, (int) in_len, w, w_cap);
+
+      // A Win32 conversion reports failure as 0 and never as a negative number. The input was not
+      // empty, so 0 here is a failed conversion and not an empty one, and it has to be told apart
+      // from a real result or the caller books an undecodable line as a zero length candidate.
+
+      if (n == 0) return -1;
+
+      return n;
     }
 
     case WIN_ENC_UTF16LE:
@@ -276,7 +284,13 @@ static int win_from_utf16 (const win_enc_t *enc, const wchar_t *w, const int w_l
     {
       if (w_len == 0) return 0;
 
-      return WideCharToMultiByte (enc->cp, 0, w, w_len, out, (int) out_cap, NULL, NULL);
+      const int n = WideCharToMultiByte (enc->cp, 0, w, w_len, out, (int) out_cap, NULL, NULL);
+
+      // Same again. 0 with a non empty input is a failure, most often a buffer too small.
+
+      if (n == 0) return -1;
+
+      return n;
     }
 
     case WIN_ENC_UTF16LE:

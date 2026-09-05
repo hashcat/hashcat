@@ -3835,6 +3835,11 @@ typedef struct status_ctx
    */
 
   time_t runtime_start;
+
+  // Signed, so one key covers both directions. Added to the --runtime deadline the same way the
+  // paused time is, and written by the key thread while the monitor reads it.
+
+  int    runtime_adjust_sec;
   time_t runtime_stop;
 
   time_t timer_bypass_start;

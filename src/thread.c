@@ -242,20 +242,17 @@ int myquit (hashcat_ctx_t *hashcat_ctx)
 // Returns false when there is nothing to move to, and then the caller bypasses the way it always did.
 // That covers a single source, the last source, and every attack mode not reading from a feed.
 
-static bool bypass_to_next_source (hashcat_ctx_t *hashcat_ctx)
+// Move the dispatcher forward to an absolute word offset and account for what that skipped.
+//
+// The words in between are booked as rejected. Progress counts everything that has been decided,
+// not only what was hashed, and without booking them the run can never reach its keyspace and never
+// ends. Both the next source jump and an explicit seek land here, so there is one place where that
+// accounting can be wrong rather than two.
+//
+// Returns false when the target is not ahead of where the run already is.
+
+static bool seek_words_off (hashcat_ctx_t *hashcat_ctx, const u64 target)
 {
-  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
-
-  if (user_options_extra->base_source != BASE_SOURCE_FEED) return false;
-
-  const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
-
-  if (generic_ctx->enabled == false) return false;
-
-  const generic_global_ctx_t *global_ctx = &generic_ctx->global_ctx;
-
-  if (global_ctx->segments_cnt < 2) return false;
-
   hashes_t     *hashes     = hashcat_ctx->hashes;
   status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
 
@@ -263,31 +260,16 @@ static bool bypass_to_next_source (hashcat_ctx_t *hashcat_ctx)
 
   const u64 words_off = status_ctx->words_off;
 
-  bool found = false;
-
-  u64 next_first = 0;
-
-  for (u64 i = 0; i < global_ctx->segments_cnt; i++)
-  {
-    if (global_ctx->segment_first[i] <= words_off) continue;
-
-    next_first = global_ctx->segment_first[i];
-
-    found = true;
-
-    break;
-  }
-
-  if (found == false)
+  if (target <= words_off)
   {
     hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
     return false;
   }
 
-  const u64 skipped = next_first - words_off;
+  const u64 skipped = target - words_off;
 
-  status_ctx->words_off = next_first;
+  status_ctx->words_off = target;
 
   hc_thread_mutex_unlock (status_ctx->mux_dispatcher);
 
@@ -303,6 +285,101 @@ static bool bypass_to_next_source (hashcat_ctx_t *hashcat_ctx)
   hc_thread_mutex_unlock (status_ctx->mux_counter);
 
   return true;
+}
+
+// A feed can hold several sources behind one keyspace, and bypassing to the next one is what the
+// key means and is what a user reported. The offsets of the sources are already known, because the
+// status display uses them to say which one the run has reached.
+//
+// Returns false when there is nothing to move to, and then the caller bypasses the way it always
+// did. That covers a single source, the last source, and every attack mode not reading from a feed.
+
+static bool bypass_to_next_source (hashcat_ctx_t *hashcat_ctx)
+{
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
+  if (user_options_extra->base_source != BASE_SOURCE_FEED) return false;
+
+  const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+  if (generic_ctx->enabled == false) return false;
+
+  const generic_global_ctx_t *global_ctx = &generic_ctx->global_ctx;
+
+  if (global_ctx->segments_cnt < 2) return false;
+
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  const u64 words_off = status_ctx->words_off;
+
+  u64 next_first = 0;
+
+  bool found = false;
+
+  for (u64 i = 0; i < global_ctx->segments_cnt; i++)
+  {
+    if (global_ctx->segment_first[i] <= words_off) continue;
+
+    next_first = global_ctx->segment_first[i];
+
+    found = true;
+
+    break;
+  }
+
+  if (found == false) return false;
+
+  const bool moved = seek_words_off (hashcat_ctx, next_first);
+
+  return moved;
+}
+
+// An explicit seek, which is the same jump the bypass key already makes with the target chosen by
+// the user instead of by the next source boundary.
+//
+// A target beyond the keyspace is refused rather than clamped. Clamping would end the run and call
+// it a seek, and the user asking for a position past the end has made a mistake worth telling them
+// about.
+
+int bypass_seek (hashcat_ctx_t *hashcat_ctx, const u64 target)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  if (status_ctx->devices_status == STATUS_RUNNING)
+  {
+    // nothing
+  }
+  else if (status_ctx->devices_status == STATUS_PAUSED)
+  {
+    // nothing
+  }
+  else
+  {
+    return -1;
+  }
+
+  if (target >= status_ctx->words_base) return -1;
+
+  if (seek_words_off (hashcat_ctx, target) == false) return -1;
+
+  return 0;
+}
+
+// Change how much time a --runtime deadline has left. The monitor reads this alongside the paused
+// time it already folds in, so the deadline moves by exactly what was asked for and the user is
+// told the new figure rather than having to watch the clock to find out.
+
+int runtime_adjust (hashcat_ctx_t *hashcat_ctx, const int seconds)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->runtime == 0) return -1;
+
+  status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  status_ctx->runtime_adjust_sec += seconds;
+
+  return 0;
 }
 
 int bypass (hashcat_ctx_t *hashcat_ctx)

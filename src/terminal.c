@@ -18,6 +18,7 @@
 #include "interface.h"
 #include "hashcat.h"
 #include "timer.h"
+#include "monitor.h"
 #include "terminal.h"
 #include "user_options.h"
 
@@ -82,8 +83,95 @@ static int status_sample_devices (const hashcat_status_t *hashcat_status, int *s
 
 #define RESTORE_SUB_DEVICES_MAX 3
 
-static const char *const PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
-static const char *const PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_ACTIVE    = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_PAUSED    = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+
+// The runtime keys are only offered when there is a deadline to move, so a run without --runtime
+// keeps the line it always had.
+
+static const char *const PROMPT_ACTIVE_RT = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [e]xtend [q]uit => ";
+static const char *const PROMPT_PAUSED_RT = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [e]xtend [q]uit => ";
+
+static const char *terminal_prompt (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const bool paused = (status_ctx->devices_status == STATUS_PAUSED) ? true : false;
+
+  if (user_options->runtime > 0)
+  {
+    if (paused == true) return PROMPT_PAUSED_RT;
+
+    return PROMPT_ACTIVE_RT;
+  }
+
+  if (paused == true) return PROMPT_PAUSED;
+
+  return PROMPT_ACTIVE;
+}
+
+// Ask for a line in the middle of a run. The key thread holds the terminal with ICANON off so that a
+// single keypress arrives without a newline, which is what every other key here wants. Reading a
+// whole line wants the opposite, so canonical mode goes back on for the duration and comes off again
+// afterwards.
+//
+// Returns false when the user typed nothing, which is how a caller tells a bare Enter from an answer.
+
+static bool prompt_line (const char *prompt, char *buf, const size_t buf_sz)
+{
+  tty_fix ();
+
+  fprintf (stdout, "%s", prompt);
+
+  fflush (stdout);
+
+  char *line = fgets (buf, (int) buf_sz, stdin);
+
+  bool complete = false;
+
+  if (line != NULL)
+  {
+    const size_t len = strlen (buf);
+
+    if ((len > 0) && (buf[len - 1] == '\n')) complete = true;
+  }
+
+  // an answer longer than the buffer would otherwise arrive as keypresses once raw mode is back
+
+  if ((line != NULL) && (complete == false))
+  {
+    int c = 0;
+
+    while ((c = getchar ()) != EOF)
+    {
+      if (c == '\n') break;
+    }
+  }
+
+  tty_break ();
+
+  if (line == NULL) return false;
+
+  size_t len = strlen (buf);
+
+  while ((len > 0) && ((buf[len - 1] == '\n') || (buf[len - 1] == '\r') || (buf[len - 1] == ' ') || (buf[len - 1] == '\t')))
+  {
+    buf[len - 1] = 0;
+
+    len--;
+  }
+
+  size_t start = 0;
+
+  while ((buf[start] == ' ') || (buf[start] == '\t')) start++;
+
+  if (start > 0) memmove (buf, buf + start, (len - start) + 1);
+
+  if (buf[0] == 0) return false;
+
+  return true;
+}
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
@@ -242,34 +330,14 @@ int setup_console (void)
 
 void send_prompt (hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-  if (status_ctx->devices_status == STATUS_PAUSED)
-  {
-    fprintf (stdout, "%s", PROMPT_PAUSED);
-  }
-  else
-  {
-    fprintf (stdout, "%s", PROMPT_ACTIVE);
-  }
+  fprintf (stdout, "%s", terminal_prompt (hashcat_ctx));
 
   fflush (stdout);
 }
 
 void clear_prompt (hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-  size_t prompt_sz = 0;
-
-  if (status_ctx->devices_status == STATUS_PAUSED)
-  {
-    prompt_sz = strlen (PROMPT_PAUSED);
-  }
-  else
-  {
-    prompt_sz = strlen (PROMPT_ACTIVE);
-  }
+  const size_t prompt_sz = strlen (terminal_prompt (hashcat_ctx));
 
   fputc ('\r', stdout);
 
@@ -329,18 +397,120 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
         break;
 
       case 'b':
-
+      {
         event_log_info (hashcat_ctx, NULL);
 
-        bypass (hashcat_ctx);
+        char answer[64];
 
-        event_log_info (hashcat_ctx, "Next dictionary / mask in queue selected. Bypassing current one.");
+        const bool answered = prompt_line ("Seek to a position, or a percentage such as 25%, or blank for the next dictionary or mask => ", answer, sizeof (answer));
+
+        if (answered == false)
+        {
+          bypass (hashcat_ctx);
+
+          event_log_info (hashcat_ctx, "Next dictionary / mask in queue selected. Bypassing current one.");
+        }
+        else
+        {
+          const u64 words_base = status_ctx->words_base;
+
+          const size_t answer_len = strlen (answer);
+
+          u64 target = 0;
+
+          bool parsed = false;
+
+          char *end = NULL;
+
+          if (answer[answer_len - 1] == '%')
+          {
+            answer[answer_len - 1] = 0;
+
+            const double pct = strtod (answer, &end);
+
+            if ((end[0] == 0) && (pct >= 0) && (pct < 100))
+            {
+              target = (u64) (((double) words_base) * (pct / 100));
+
+              parsed = true;
+            }
+          }
+          else
+          {
+            const unsigned long long value = strtoull (answer, &end, 10);
+
+            if (end[0] == 0)
+            {
+              target = (u64) value;
+
+              parsed = true;
+            }
+          }
+
+          if (parsed == false)
+          {
+            event_log_info (hashcat_ctx, "Not a position: %s", answer);
+          }
+          else if (bypass_seek (hashcat_ctx, target) == -1)
+          {
+            event_log_info (hashcat_ctx, "Cannot seek to %" PRIu64 ". The keyspace is %" PRIu64 " and the run has reached %" PRIu64 ".", target, words_base, status_ctx->words_off);
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "Seeking to %" PRIu64 " of %" PRIu64 ". The words in between are counted as rejected.", target, words_base);
+          }
+        }
 
         event_log_info (hashcat_ctx, NULL);
 
         if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
+      }
+
+      case 'e':
+      {
+        if (user_options->runtime == 0) break;
+
+        event_log_info (hashcat_ctx, NULL);
+
+        char answer[64];
+
+        const bool answered = prompt_line ("Seconds to add to the runtime limit, negative to shorten => ", answer, sizeof (answer));
+
+        if (answered == true)
+        {
+          char *end = NULL;
+
+          const long seconds = strtol (answer, &end, 10);
+
+          if ((end[0] == 0) && (seconds > INT_MIN) && (seconds < INT_MAX))
+          {
+            runtime_adjust (hashcat_ctx, (int) seconds);
+
+            const int runtime_left = get_runtime_left (hashcat_ctx);
+
+            if (runtime_left > 0)
+            {
+              event_log_info (hashcat_ctx, "Runtime limit moved by %d seconds, %d seconds left.", (int) seconds, runtime_left);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "Runtime limit moved by %d seconds, which is already past. The run will stop.", (int) seconds);
+            }
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "Not a number of seconds: %s", answer);
+          }
+        }
+
+        event_log_info (hashcat_ctx, NULL);
+
+        if (quiet == false) send_prompt (hashcat_ctx);
+
+        break;
+      }
 
       case 'p':
 

@@ -4476,6 +4476,13 @@ int run_copy (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const
   }
   #endif
 
+  // Under --stdout nothing on the device is ever read. choose_kernel () hands straight over to
+  // process_stdout () before any kernel runs, and process_stdout () builds its candidates out of the
+  // very host buffers this function was about to upload from. Everything below is a copy whose result
+  // nobody looks at, plus a decompress kernel run over it.
+
+  if (user_options->stdout_flag == true) return 0;
+
   // The cells go up with the base words they belong to. There is one per base word and the two arrays
   // are filled in step, so the same count covers both.
 
@@ -7435,6 +7442,17 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
       device_param->has_mov64 = (sm >= 10) ? true : false;
       device_param->has_prmt  = (sm >= 20) ? true : false;
       device_param->has_shfw  = (sm >= 70) ? true : true; // still faster
+
+      // A device that has already been ruled out gets no context. Creating one costs as much as
+      // creating one for a device that will be used, and it reserves memory on a card this run is
+      // never going to touch. CUDA is the only backend that builds a context while enumerating, so
+      // it is the only one that pays this: a box of 8 cards running one agent per card with -d
+      // builds 8 contexts per agent and uses 1 of them.
+      //
+      // The context exists here to answer cuMemGetInfo () below, and the only caller that wants that
+      // figure for a device it will not run on is backend_info, which exists to report it.
+
+      if ((device_param->skipped == true) && (user_options->backend_info == 0)) continue;
 
       // one-time init cuda context
 
@@ -11158,6 +11176,16 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
   // Clamped for the same reason the pass below clamps. kernel_accel_max is not a property of the
   // hardware, it is what survived that device's own memory sizing, and launching over buffers that
   // were allocated for a smaller number is an out of bounds launch rather than an uneven one.
+  //
+  // The thread count is clamped against the member's own ceiling for exactly that reason as well.
+  // Two devices can be the same class and still size differently, because is_same_device_type ()
+  // deliberately ignores memory, and a card driving a display has less of it. Where the sizing loop
+  // could not fit even the minimum accelerator it lowered that device's kernel_threads_max, so the
+  // leader's higher count would launch over buffers shaped for fewer threads.
+  //
+  // kernel_loops needs no clamp. Nothing in the memory sizing touches kernel_loops_max, and its other
+  // inputs are -u and a tuning database entry keyed on the device name and type, both of which are
+  // part of what makes two devices the same class in the first place.
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
@@ -11175,7 +11203,7 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 
     device_param->kernel_accel   = MIN (leader_param->kernel_accel, device_param->kernel_accel_max);
     device_param->kernel_loops   = leader_param->kernel_loops;
-    device_param->kernel_threads = leader_param->kernel_threads;
+    device_param->kernel_threads = MIN (leader_param->kernel_threads, device_param->kernel_threads_max);
 
     device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                                  : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
@@ -11226,11 +11254,13 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       // and, on a bridge, as a send of more candidates than were ever staged.
       //
       // So clamp. A unit held below its siblings is not identical to them in any way that matters, and
-      // an uneven batch size is a far better outcome than an out of bounds launch.
+      // an uneven batch size is a far better outcome than an out of bounds launch. kernel_threads_max
+      // comes out of the same sizing and is clamped for the same reason. kernel_loops is not, because
+      // nothing in the sizing lowers kernel_loops_max.
 
       device_param_dst->kernel_accel   = MIN (device_param_src->kernel_accel, device_param_dst->kernel_accel_max);
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
-      device_param_dst->kernel_threads = device_param_src->kernel_threads;
+      device_param_dst->kernel_threads = MIN (device_param_src->kernel_threads, device_param_dst->kernel_threads_max);
 
       const u32 hardware_power = bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param_dst->bridge_link_device)
                                : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param_dst->device_processors)
