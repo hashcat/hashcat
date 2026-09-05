@@ -1722,13 +1722,42 @@ u64 status_get_progress_end (const hashcat_ctx_t *hashcat_ctx)
       // as they do for every other mode. Without this the total stayed in base words while the
       // progress counted candidates, so --limit 200000 reported 208122% done.
       //
-      // dev_avg is the mean cell over the whole keyspace, which is what the unlimited total uses too,
-      // so the two agree. It is still only a mean: the cheap cost levels a run starts in hold cells
-      // several times wider than that, so a limit near the front of the stream reads high. Counting it
-      // exactly needs the feed to say how many candidates lie before a given base word, which the
-      // level index could answer and does not expose.
+      // dev_avg is the mean cell over the whole keyspace, which is what the unlimited total uses
+      // too, so the two agree. It is still only a mean: the cheap cost levels a run starts in hold
+      // cells several times wider than that, so a limit near the front of the stream reads high. A
+      // feed that can say how many candidates lie before a given base word is asked instead, and
+      // the mean is what is left when it cannot.
 
-      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)     progress_end  *= hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_avg;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+      {
+        const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+        u64 span = 0;
+
+        if (generic_ctx->global_dev_span != NULL)
+        {
+          // --limit is where the run stops, not how far it goes, so --skip 500000 --limit 20000 is
+          // an empty window. Never behind where the run starts, or the subtraction the status line
+          // makes goes under.
+
+          u64 upto = MIN (status_ctx->words_limit, status_ctx->words_base);
+
+          if (upto < status_ctx->words_skip) upto = status_ctx->words_skip;
+
+          span = generic_ctx->global_dev_span ((generic_global_ctx_t *) &generic_ctx->global_ctx, 0, upto);
+        }
+
+        if (span > 0)
+        {
+          progress_end = span;
+
+          if (user_options->attack_mode != ATTACK_MODE_ASSOCIATION) progress_end *= hashes->salts_cnt;
+        }
+        else
+        {
+          progress_end *= generic_ctx->dev_avg;
+        }
+      }
     }
   }
 
@@ -1789,6 +1818,28 @@ u64 status_get_progress_skip (const hashcat_ctx_t *hashcat_ctx)
       if      (user_options_extra->attack_kern == ATTACK_KERN_STRAIGHT) progress_skip *= straight_ctx->kernel_rules_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_COMBI)    progress_skip *= combinator_ctx->combs_cnt;
       else if (user_options_extra->attack_kern == ATTACK_KERN_BF)       progress_skip *= mask_ctx->bfs_cnt;
+      else if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+      {
+        // This one had no branch at all, so a count in base words was taken off a count in
+        // candidates.
+
+        const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+        u64 span = 0;
+
+        // From the word count: the salts were multiplied in above, and this asks for a position in
+        // base words.
+
+        const u64 words = MIN (status_ctx->words_skip, status_ctx->words_base);
+
+        if (generic_ctx->global_dev_span != NULL)
+        {
+          span = generic_ctx->global_dev_span ((generic_global_ctx_t *) &generic_ctx->global_ctx, 0, words);
+        }
+
+        if (span > 0) progress_skip = span * ((user_options->attack_mode == ATTACK_MODE_ASSOCIATION) ? 1 : hashes->salts_cnt);
+        else          progress_skip *= generic_ctx->dev_avg;
+      }
     }
   }
 

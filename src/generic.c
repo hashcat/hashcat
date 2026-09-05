@@ -342,6 +342,10 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   {
     HC_LOAD_FUNC_GENERIC (generic_ctx, global_dev_init, GENERIC_GLOBAL_DEV_INIT);
     HC_LOAD_FUNC_GENERIC (generic_ctx, thread_next_dev, GENERIC_THREAD_NEXT_DEV);
+
+    // Looked up rather than demanded: a feed without it is still a working device feed.
+
+    generic_ctx->global_dev_span = (GENERIC_GLOBAL_DEV_SPAN) hc_dlsym (generic_ctx->lib, "global_dev_span");
   }
 
   // Whether the device engine is going to be used, settled here and nowhere else.

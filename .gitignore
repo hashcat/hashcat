@@ -21,6 +21,7 @@ hashcat.dll
 *.su
 kernels/**
 seekdbs/**
+pcfgdbs/**
 lib/*.a
 bridges/*.dll
 bridges/*.so
