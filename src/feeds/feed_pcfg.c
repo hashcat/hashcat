@@ -13,93 +13,15 @@
 #include "system.h"
 #include "feed.h"
 #include "event.h"
+#include "folder.h"
+#include "paw64.h"
 
 #include <math.h>
 #include <limits.h>
 #include <inttypes.h>
-// The prefetch workers, on both platforms hashcat builds for.
-//
-// A feed is a plugin and links against nothing but the core, and the core reaches Windows threads
-// through its own macros in a header a plugin does not include. Windows also has no pthread unless a
-// runtime DLL is shipped beside the binary, which hashcat deliberately does not do. So the handful of
-// primitives used here are named once and mapped to whichever platform this is built for.
 
-#if defined (_WIN) || defined (__CYGWIN__)
-
-#include <windows.h>
-
-typedef CRITICAL_SECTION   pcfg_mux_t;
-typedef CONDITION_VARIABLE pcfg_cv_t;
-typedef HANDLE             pcfg_os_thread_t;
-
-#define pcfg_mux_init(m)     InitializeCriticalSection (m)
-#define pcfg_mux_destroy(m)  DeleteCriticalSection (m)
-#define pcfg_mux_lock(m)     EnterCriticalSection (m)
-#define pcfg_mux_unlock(m)   LeaveCriticalSection (m)
-
-#define pcfg_cv_init(c)      InitializeConditionVariable (c)
-#define pcfg_cv_destroy(c)   ((void) (c))
-#define pcfg_cv_wait(c,m)    SleepConditionVariableCS (c, m, INFINITE)
-#define pcfg_cv_broadcast(c) WakeAllConditionVariable (c)
-
-#define pcfg_thread_ret           DWORD WINAPI
-#define pcfg_thread_done          0
-
-#define pcfg_thread_create(t,f,a) (((t) = CreateThread (NULL, 0, f, a, 0, NULL)) != NULL)
-#define pcfg_thread_join(t)       do { WaitForSingleObject ((t), INFINITE); CloseHandle (t); } while (0)
-
-#else
-
-#include <pthread.h>
-#include <unistd.h>
-
-typedef pthread_mutex_t pcfg_mux_t;
-typedef pthread_cond_t  pcfg_cv_t;
-typedef pthread_t       pcfg_os_thread_t;
-
-#define pcfg_mux_init(m)     pthread_mutex_init (m, NULL)
-#define pcfg_mux_destroy(m)  pthread_mutex_destroy (m)
-#define pcfg_mux_lock(m)     pthread_mutex_lock (m)
-#define pcfg_mux_unlock(m)   pthread_mutex_unlock (m)
-
-#define pcfg_cv_init(c)      pthread_cond_init (c, NULL)
-#define pcfg_cv_destroy(c)   pthread_cond_destroy (c)
-#define pcfg_cv_wait(c,m)    pthread_cond_wait (c, m)
-#define pcfg_cv_broadcast(c) pthread_cond_broadcast (c)
-
-#define pcfg_thread_ret           void *
-#define pcfg_thread_done          NULL
-
-#define pcfg_thread_create(t,f,a) (pthread_create (&(t), NULL, f, a) == 0)
-#define pcfg_thread_join(t)       pthread_join ((t), NULL)
-
-#endif
-
-// How many threads are worth starting. A caller caps this against its own work, so what is wanted
-// here is the machine and not a policy.
-
-static u32 pcfg_cpu_online (void)
-{
-#if defined (_WIN) || defined (__CYGWIN__)
-
-  SYSTEM_INFO si;
-
-  GetSystemInfo (&si);
-
-  const u32 n = (u32) si.dwNumberOfProcessors;
-
-#else
-
-  const long got = sysconf (_SC_NPROCESSORS_ONLN);
-
-  const u32 n = (got > 0) ? (u32) got : 1;
-
-#endif
-
-  if (n == 0) return 1;
-
-  return n;
-}
+#include "thread.h"
+#include "timer.h"
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN_OPTIONS_DEVICE;
@@ -112,6 +34,12 @@ const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN
 
 #define PCFG_LIST_CACHE 4096
 #define PCFG_COSTCAP  64
+
+// The highest cost a run can carry, which is the costmax parameter times scale. Both cap at
+// PCFG_COSTCAP, so anything sized for one cost level per unit of costmax alone is short at any scale
+// above one, and a span reaches this.
+
+#define PCFG_SPANCAP  ((PCFG_COSTCAP * PCFG_COSTCAP) + 1)
 
 #define PCFG_MAXROOT  16
 
@@ -146,6 +74,11 @@ typedef struct
   u32  fixed_len;
   u32  max_len;
 
+  // Whether b_cost never decreases. It comes from the order of lines in the terminal file, which
+  // nothing here controls, and the unit table build can only stop early on a list where it holds.
+
+  bool cost_asc;
+
   // What the grammar called this list, kept only so that a structure can be written back out the way
   // its line in grammar.txt read it. Nothing in the enumeration reads them.
 
@@ -164,14 +97,17 @@ typedef enum
 typedef struct
 {
   u32 nslot;
-  u8  kind[PCFG_MAXSLOT];
-  int list[PCFG_MAXSLOT];
+
+  // Sized to the slots the structure has rather than to PCFG_MAXSLOT, out of one arena.
+
+  u8  *kind;
+  u16 *list;
 
   // Characters this slot contributes, which is the number the structure's token carried. The list
   // handle alone cannot say it: a flat X or Y token of any length shares one list, and a candidate
   // cannot be cut back into segments without knowing where the cuts go.
 
-  u16 tlen[PCFG_MAXSLOT];
+  u16 *tlen;
 
   u32 cost;
   u32 cmin;
@@ -187,6 +123,12 @@ typedef struct
   u32 total_len;
 
 } pcfg_struct_t;
+
+// The probe works on this many structures when the ruleset holds more. It ranks configurations and
+// produces nothing, and grammar.txt is most probable first, so the head ranks them as the whole
+// would.
+
+#define PCFG_PROBE_STRUCTS  250000
 
 #define PCFG_OMEN_MAXLVL   10
 #define PCFG_OMEN_MAXNGRAM 8
@@ -247,6 +189,20 @@ typedef struct
 
 } pcfg_omen_lvl_t;
 
+// Slot storage comes in blocks. A block is never grown, only followed by another, so a pointer
+// handed out of one stays valid for the life of the ruleset.
+
+typedef struct pcfg_slotarena
+{
+  struct pcfg_slotarena *next;
+
+  size_t used;
+  size_t size;
+
+  u8 base[];
+
+} pcfg_slotarena_t;
+
 typedef struct
 {
   pcfg_tlist_t *lists;
@@ -254,6 +210,28 @@ typedef struct
 
   pcfg_struct_t *structs;
   u32            structs_cnt;
+
+  pcfg_slotarena_t *slots;
+
+  // The cost the ladder stopped at, and zero when it ran to the end.
+
+  u32 lvl_stop;
+
+  // Structures the probe works on. Zero means all, which is what the final build uses. probing says
+  // a round is the probe's rather than the build's, which probe_n cannot: a grammar small enough not
+  // to be sampled leaves it zero throughout.
+
+  u32  probe_n;
+  bool probing;
+
+  // Whether the tables in hand came out of the cache, so the run knows there is nothing to write
+  // back.
+
+  bool cache_hit;
+
+  // Whether the tables in hand cover every structure, so a cache miss can keep them.
+
+  bool tables_final;
 
   pcfg_omen_t     *omen;
   u32              omen_cnt;
@@ -287,6 +265,8 @@ typedef struct
   u32 kbits;
   u32 threads;
   bool walk;
+
+  char named[192];
 
   u32 maxword;
   u32 maxbyte;
@@ -322,6 +302,23 @@ typedef struct
   u32 **uls_struct;
   u64 **uls_pref;
   u32  *uls_cnt;
+
+  // The same two prefixes counted in candidates. A cell holds a varying number of them, so what
+  // lies before a base word cannot be had by multiplying, and the host index counts a different
+  // set.
+
+
+  // When list_get () last reported. Here rather than in a static, so it restarts for the next
+  // ruleset.
+
+  hc_timer_t say_lists;
+  bool       say_lists_on;
+
+  // What the ruleset is, for the cache below. Zero when it could not be worked out, which turns the
+  // cache off rather than risking the wrong answer. cache_ok is what cache= asked for.
+
+  u64  ident;
+  bool cache_ok;
 
   u64  units;
 
@@ -381,9 +378,58 @@ typedef struct
   bool tdev[PCFG_MAXSLOT];
   u64  te[PCFG_MAXSLOT];
 
+  // Where the host half of a folded token's bucket begins. A bucket that folds holds the device
+  // partitions first and the host entries behind them, and this is the boundary between the two.
+
+  u64  tdblk[PCFG_MAXSLOT];
+
   struct pcfg_pf *pf;
 
+  // Only row zero of a structure's suffix table is kept. The rows below it are rebuilt here for the
+  // one structure this thread is taking apart.
+
+  u64 *sufrows;
+  u32  sufrows_si;
+  u32  sufrows_cap;
+
+  // The unit tables, the same way.
+
+  u64 *urows_u;
+  u64 *urows_d;
+  u32  urows_si;
+  u32  urows_cap;
+  u32  urows_capnb;
+
 } pcfg_thread_t;
+
+// The rows above are rebuilt onto whichever thread did the walking, so every place that lets one of
+// these go has to give them back first. Freeing the thread alone leaves the largest thing it held.
+
+static void thread_scratch_free (pcfg_thread_t *th)
+{
+  hcfree (th->sufrows);
+  hcfree (th->urows_u);
+  hcfree (th->urows_d);
+
+  th->sufrows = NULL;
+  th->urows_u = NULL;
+  th->urows_d = NULL;
+}
+
+// Under a minute the milliseconds are kept, so a quick step does not read as zero.
+
+static const char *pcfg_duration (const double sec, char *out, const size_t n)
+{
+  const double s = (sec < 0.0) ? 0.0 : sec;
+
+  const long t = (long) s;
+
+  if (s >= 3600.0) snprintf (out, n, "%ldh %02ldm", t / 3600, (t % 3600) / 60);
+  else if (s >= 60.0) snprintf (out, n, "%ldm %02lds", t / 60, t % 60);
+  else snprintf (out, n, "%lds %03ldms", t, (long) ((s - (double) t) * 1000.0));
+
+  return out;
+}
 
 static void pmsg (const pcfg_global_t *pg, const char *fmt, ...)
 {
@@ -438,11 +484,14 @@ static u64 sat_mul (const u64 a, const u64 b)
 
 static u64 sat_add (const u64 a, const u64 b)
 {
-  if (a > (UINT64_MAX - b)) return UINT64_MAX - 1;
+  // The carry test without a branch. This is the innermost loop of the unit tables, and a branch
+  // there is what stops the compiler doing several lanes at once.
 
   const u64 r = a + b;
 
-  return r;
+  const u64 v = (r < a) ? (UINT64_MAX - 1) : r;
+
+  return v;
 }
 
 static bool pcfg_fopen (HCFILE *fp, const char *path)
@@ -502,15 +551,59 @@ static u64 tar_octal (const char *s, const u32 n)
   return v;
 }
 
+static void *slots_alloc (pcfg_global_t *pg, const size_t want)
+{
+  const size_t need = (want + 7) & ~(size_t) 7;
+
+  if ((pg->slots == NULL) || ((pg->slots->used + need) > pg->slots->size))
+  {
+    const size_t blk = (need > (1u << 20)) ? need : (1u << 20);
+
+    pcfg_slotarena_t *a = (pcfg_slotarena_t *) hcmalloc (sizeof (pcfg_slotarena_t) + blk);
+
+    if (a == NULL) return NULL;
+
+    a->next = pg->slots;
+    a->used = 0;
+    a->size = blk;
+
+    pg->slots = a;
+  }
+
+  void *p = pg->slots->base + pg->slots->used;
+
+  pg->slots->used += need;
+
+  return p;
+}
+
+static void slots_free (pcfg_global_t *pg)
+{
+  pcfg_slotarena_t *a = pg->slots;
+
+  while (a != NULL)
+  {
+    pcfg_slotarena_t *n = a->next;
+
+    hcfree (a);
+
+    a = n;
+  }
+
+  pg->slots = NULL;
+}
+
+static const char *PCFG_RULESET_DIRS[] = { "Grammar", "Alpha", "Capitalization", "Digits", "Other", "Keyboard", "Context", "Years", "Omen" };
+
+#define PCFG_RULESET_DIRS_CNT (sizeof (PCFG_RULESET_DIRS) / sizeof (PCFG_RULESET_DIRS[0]))
+
 static bool arc_is_ruleset_dir (const char *s, const size_t n)
 {
-  static const char *own[] = { "Grammar", "Alpha", "Capitalization", "Digits", "Other", "Keyboard", "Context", "Years", "Omen" };
-
-  for (u32 i = 0; i < (sizeof (own) / sizeof (own[0])); i++)
+  for (u32 i = 0; i < PCFG_RULESET_DIRS_CNT; i++)
   {
-    if (strlen (own[i]) != n) continue;
+    if (strlen (PCFG_RULESET_DIRS[i]) != n) continue;
 
-    if (strncmp (s, own[i], n) == 0) return true;
+    if (strncmp (s, PCFG_RULESET_DIRS[i], n) == 0) return true;
   }
 
   return false;
@@ -1088,6 +1181,86 @@ static void roots_free (pcfg_root_t *roots, const u32 nroots)
   }
 }
 
+// What a ruleset is, for naming a cache after it: each file's size and both of its ends, the way
+// seekdb.c does it. The modification time is left out on purpose, because no ordinary transport
+// preserves it and every machine would rebuild what a copy already holds. The per file answers are
+// added rather than chained, so the order a directory hands its entries over cannot reach them.
+
+// The files directly inside one directory. scan_directory () keeps only the entries it cannot open
+// as a directory, so this never sees a subdirectory and cannot walk into one. The caller names them.
+
+// A ruleset is its top level files and the directories it is made of, which are the ones named in
+// PCFG_RULESET_DIRS: everything the feed reads lives in one of them. Grammar has to be there, or
+// this is not a ruleset and there is nothing to name a cache after.
+//
+// A directory left out of the sum in silence would be a cache that stays valid while what it
+// describes has changed, which is the one failure a cache must not have.
+
+// What the unit tables are a function of, hashed as it was parsed rather than as it sits on disk.
+//
+// The tables count candidates, and a count is decided by the buckets a terminal list was cut into and
+// by the structures that draw on them. Hashing that answers the only question a cache key has to
+// answer: an edit that moves an entry to another cost bucket changes it, and an edit that leaves the
+// buckets alone does not, because the tables it would rebuild are the ones already on disk. The
+// terminal text is left out for that reason: the pool is read fresh every run and the counts do not
+// depend on it.
+//
+// The order the rulesets were named in reaches this through the structure order, which is the order
+// they were read in.
+
+static u64 pcfg_ident_tables (const pcfg_global_t *pg)
+{
+  paw64_ctx_t st;
+
+  paw64_init (&st, 0);
+
+  paw64_update (&st, &pg->costmax,    sizeof (pg->costmax));
+  paw64_update (&st, &pg->scale,      sizeof (pg->scale));
+  paw64_update (&st, &pg->lists_cnt,  sizeof (pg->lists_cnt));
+  paw64_update (&st, &pg->structs_cnt, sizeof (pg->structs_cnt));
+
+  for (u32 i = 0; i < pg->lists_cnt; i++)
+  {
+    const pcfg_tlist_t *t = &pg->lists[i];
+
+    paw64_update (&st, &t->ty,        sizeof (t->ty));
+    paw64_update (&st, &t->ln,        sizeof (t->ln));
+    paw64_update (&st, &t->cnt,       sizeof (t->cnt));
+    paw64_update (&st, &t->nb,        sizeof (t->nb));
+    paw64_update (&st, &t->fixed_len, sizeof (t->fixed_len));
+    paw64_update (&st, &t->max_len,   sizeof (t->max_len));
+    paw64_update (&st, &t->cost_asc,  sizeof (t->cost_asc));
+
+    if (t->b_cost  != NULL) paw64_update (&st, t->b_cost,  (size_t) t->nb * sizeof (u32));
+    if (t->b_start != NULL) paw64_update (&st, t->b_start, (size_t) t->nb * sizeof (u32));
+    if (t->b_cnt   != NULL) paw64_update (&st, t->b_cnt,   (size_t) t->nb * sizeof (u32));
+    if (t->b_len   != NULL) paw64_update (&st, t->b_len,   (size_t) t->nb * sizeof (u32));
+
+    // The lengths of the entries, which is what a bucket's width and a candidate's shape rest on.
+
+    if (t->off != NULL) paw64_update (&st, t->off, ((size_t) t->cnt + 1) * sizeof (u32));
+  }
+
+  for (u32 i = 0; i < pg->structs_cnt; i++)
+  {
+    const pcfg_struct_t *s = &pg->structs[i];
+
+    paw64_update (&st, &s->cost,      sizeof (s->cost));
+    paw64_update (&st, &s->cmin,      sizeof (s->cmin));
+    paw64_update (&st, &s->cmax,      sizeof (s->cmax));
+    paw64_update (&st, &s->nslot,     sizeof (s->nslot));
+    paw64_update (&st, &s->total_len, sizeof (s->total_len));
+
+    if (s->kind != NULL) paw64_update (&st, s->kind, (size_t) s->nslot * sizeof (u8));
+    if (s->list != NULL) paw64_update (&st, s->list, (size_t) s->nslot * sizeof (u16));
+    if (s->tlen != NULL) paw64_update (&st, s->tlen, (size_t) s->nslot * sizeof (u16));
+  }
+
+  const u64 h = paw64_final (&st);
+
+  return (h != 0) ? h : 1;
+}
+
 static bool root_open (const pcfg_root_t *r, const char *rel, HCFILE *fp)
 {
   if (r->arc != NULL)
@@ -1421,35 +1594,6 @@ static bool root_weights (generic_global_ctx_t *global_ctx, pcfg_root_t *roots, 
   return true;
 }
 
-typedef struct
-{
-  const u32 *off;
-  const u32 *seat;
-
-} tlist_sort_t;
-
-static int tlist_cmp_len (const void *p1, const void *p2, void *arg)
-{
-  const tlist_sort_t *c = (const tlist_sort_t *) arg;
-
-  const u32 ia = ((const u32 *) p1)[0];
-  const u32 ib = ((const u32 *) p2)[0];
-
-  const u32 la = c->off[ia + 1] - c->off[ia];
-  const u32 lb = c->off[ib + 1] - c->off[ib];
-
-  if (la != lb)
-  {
-    if (c->seat[la] > c->seat[lb]) return  1;
-    if (c->seat[la] < c->seat[lb]) return -1;
-  }
-
-  if (ia > ib) return  1;
-  if (ia < ib) return -1;
-
-  return 0;
-}
-
 static int pcfg_lensplit_state = -1;
 
 static bool pcfg_lensplit (void)
@@ -1462,6 +1606,34 @@ static bool pcfg_lensplit (void)
   }
 
   return (pcfg_lensplit_state != 0);
+}
+
+// The bucket cap, worked out on the first call and kept. It re-cuts every terminal list, so the unit
+// tables are a function of it and the cache key has to carry it. Settled on one thread before the
+// preload workers exist, for the reason pcfg_lensplit () is.
+
+static int pcfg_bucketcap_state = -1;
+
+static u32 pcfg_bucketcap (void)
+{
+  if (pcfg_bucketcap_state < 0)
+  {
+    const char *env = getenv ("PCFG_BUCKETCAP");
+
+    pcfg_bucketcap_state = (env != NULL) ? (int) strtoul (env, NULL, 10) : 0;
+  }
+
+  return (u32) pcfg_bucketcap_state;
+}
+
+static void tlist_mark_order (pcfg_tlist_t *t)
+{
+  t->cost_asc = true;
+
+  for (u32 b = 1; b < t->nb; b++)
+  {
+    if (t->b_cost[b] < t->b_cost[b - 1]) { t->cost_asc = false; return; }
+  }
 }
 
 static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale, const u64 costmax, const bool want_upper)
@@ -1542,10 +1714,15 @@ static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale,
 
     u32 *seat = (u32 *) hcmalloc ((widest + 1) * sizeof (u32));
 
-    tlist_sort_t ctx;
+    // The order inside a run of equal cost: entries grouped by length, the groups in the order
+    // their first entry appears, and the entries inside a group in the order they came in. Two
+    // linear passes give it, where a comparison sort over the whole run gave the same thing far
+    // more slowly.
 
-    ctx.off  = t->off;
-    ctx.seat = seat;
+    u32 *gcnt = (u32 *) hcmalloc ((widest + 1) * sizeof (u32));
+    u32 *gat  = (u32 *) hcmalloc ((widest + 1) * sizeof (u32));
+
+    for (u32 k = 0; k <= widest; k++) seat[k] = 0xffffffff;
 
     u32 i = 0;
 
@@ -1557,21 +1734,50 @@ static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale,
 
       if ((j - i) > 1)
       {
-        for (u32 k = 0; k <= widest; k++) seat[k] = 0xffffffff;
+        u32 ngrp = 0;
 
         for (u32 k = i; k < j; k++)
         {
           const u32 len = t->off[k + 1] - t->off[k];
 
-          if (seat[len] == 0xffffffff) seat[len] = k;
+          if (seat[len] == 0xffffffff)
+          {
+            seat[len]  = ngrp;
+            gcnt[ngrp] = 0;
+
+            ngrp++;
+          }
+
+          gcnt[seat[len]]++;
         }
 
-        hc_qsort_r (ord + i, j - i, sizeof (u32), tlist_cmp_len, &ctx);
+        u32 at = i;
+
+        for (u32 g = 0; g < ngrp; g++)
+        {
+          gat[g] = at;
+
+          at += gcnt[g];
+        }
+
+        for (u32 k = i; k < j; k++)
+        {
+          const u32 len = t->off[k + 1] - t->off[k];
+
+          ord[gat[seat[len]]++] = k;
+        }
+
+        // Only the lengths this run used go back to unseen, so the reset costs the run and not the
+        // widest entry the list holds.
+
+        for (u32 k = i; k < j; k++) seat[t->off[k + 1] - t->off[k]] = 0xffffffff;
       }
 
       i = j;
     }
 
+    hcfree (gat);
+    hcfree (gcnt);
     hcfree (seat);
 
     const u32 total = t->off[t->cnt];
@@ -1612,9 +1818,7 @@ static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale,
 
   const bool lensplit = pcfg_lensplit ();
 
-  const char *capenv = getenv ("PCFG_BUCKETCAP");
-
-  const u32 bcap = (capenv != NULL) ? (u32) strtoul (capenv, NULL, 10) : 0;
+  const u32 bcap = pcfg_bucketcap ();
 
   for (u32 i = 0; i < t->cnt; i++)
   {
@@ -1638,6 +1842,8 @@ static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale,
       t->nb++;
     }
   }
+
+  tlist_mark_order (t);
 
   t->fixed_len = t->off[1] - t->off[0];
   t->max_len   = t->off[1] - t->off[0];
@@ -1735,6 +1941,8 @@ static void tlist_split_bylen (pcfg_tlist_t *t)
     }
   }
 
+  tlist_mark_order (t);
+
   hcfree (o_cost);
   hcfree (o_start);
   hcfree (o_cnt);
@@ -1788,11 +1996,30 @@ static bool type_is_flat (const char t)
   return (t == 'X' || t == 'Y');
 }
 
-static int list_get (pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroots, const char t, const u32 len, int *cache)
+// Resolving a token to a list handle ran once per token over every list already loaded, which on a
+// large grammar is quadratic in all but name. This map makes it a lookup.
+//
+// Lengths above 255 keep the old search: the key packs the type in the high byte and the length in
+// the low one, so it cannot tell those apart.
+
+#define LIST_LUT_LEN 256
+
+static int list_get (const generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroots, const char t, const u32 len, int *cache, int *lut)
 {
   const int key = ((int) (u8) t << 8) | (int) len;
 
-  for (u32 i = 0; i < pg->lists_cnt; i++) if (cache[i] == key) return (int) i;
+  const bool mapped = (lut != NULL) && ((u8) t < 128) && (len < LIST_LUT_LEN);
+
+  if (mapped == true)
+  {
+    const int hit = lut[((u32) (u8) t * LIST_LUT_LEN) + len];
+
+    if (hit >= 0) return hit;
+  }
+  else
+  {
+    for (u32 i = 0; i < pg->lists_cnt; i++) if (cache[i] == key) return (int) i;
+  }
 
   const char *dir = type_dir (t);
 
@@ -1815,29 +2042,88 @@ static int list_get (pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroo
   tmp.ty = (u8) t;
   tmp.ln = len;
 
+  // Reading a list happens inside the grammar loop, so without this the loop looks stopped while
+  // gigabytes of terminals are read.
+
+  if ((global_ctx->quiet == false) && ((pg->say_lists_on == false) || (hc_timer_get (pg->say_lists) >= 2000.0)))
+  {
+    hc_timer_set (&pg->say_lists);
+
+    pg->say_lists_on = true;
+
+    pmsg (pg, "pcfg: loading terminal lists, %u so far, %s/%u.txt", pg->lists_cnt + 1, dir, type_is_flat (t) ? 1 : len);
+  }
+
   pg->lists = (pcfg_tlist_t *) hcrealloc (pg->lists, pg->lists_cnt * sizeof (pcfg_tlist_t), (pg->lists_cnt + 1) * sizeof (pcfg_tlist_t));
 
   pg->lists[pg->lists_cnt] = tmp;
 
   cache[pg->lists_cnt] = key;
 
+  if (mapped == true) lut[((u32) (u8) t * LIST_LUT_LEN) + len] = (int) pg->lists_cnt;
+
   return (int) pg->lists_cnt++;
 }
 
-static void build_suffix (pcfg_global_t *pg, pcfg_struct_t *s)
+// One set of working buffers per worker, allocated with it. Per structure instead, the sweep spends
+// its time contending on the allocator.
+
+typedef struct
+{
+  // For build_suffix ().
+
+  u64 *suf;
+  u32  suf_cap;
+
+  // For build_unit_suffix (), through unit_scratch ().
+
+  u64 *unit_up;
+  u64 *unit_dn;
+  u32  unit_cap;
+  u32  unit_nb;
+
+} pcfg_scratch_t;
+
+static void scratch_free (pcfg_scratch_t *sc)
+{
+  hcfree (sc->suf);
+  hcfree (sc->unit_up);
+  hcfree (sc->unit_dn);
+
+  memset (sc, 0, sizeof (pcfg_scratch_t));
+}
+
+static void build_suffix (pcfg_global_t *pg, pcfg_struct_t *s, pcfg_scratch_t *sc)
 {
   const u32 span = pg->costmax - s->cost + 1;
 
-  s->suf = (u64 *) hccalloc ((size_t) (s->nslot + 1) * span, sizeof (u64));
+  // The whole table is needed to compute row zero, and only row zero is kept.
 
-  s->suf[(size_t) s->nslot * span + 0] = 1;
+  const u32 need = (s->nslot + 1) * span;
+
+  if (sc->suf_cap < need)
+  {
+    hcfree (sc->suf);
+
+    sc->suf = (u64 *) hcmalloc ((size_t) need * sizeof (u64));
+
+    if (sc->suf == NULL) { sc->suf_cap = 0; return; }
+
+    sc->suf_cap = need;
+  }
+
+  u64 *full = sc->suf;
+
+  memset (full, 0, (size_t) need * sizeof (u64));
+
+  full[(size_t) s->nslot * span + 0] = 1;
 
   for (int j = (int) s->nslot - 1; j >= 0; j--)
   {
     const pcfg_tlist_t *t = &pg->lists[s->list[j]];
 
-    u64 *dst = s->suf + (size_t) j * span;
-    u64 *src = s->suf + (size_t) (j + 1) * span;
+    u64 *dst = full + (size_t) j * span;
+    u64 *src = full + (size_t) (j + 1) * span;
 
     for (u32 b = 0; b < t->nb; b++)
     {
@@ -1853,6 +2139,12 @@ static void build_suffix (pcfg_global_t *pg, pcfg_struct_t *s)
       }
     }
   }
+
+  s->suf = (u64 *) hcmalloc ((size_t) span * sizeof (u64));
+
+  if (s->suf == NULL) return;
+
+  memcpy (s->suf, full, (size_t) span * sizeof (u64));
 
   s->cmin = 0;
   s->cmax = 0;
@@ -1879,7 +2171,7 @@ static void build_suffix (pcfg_global_t *pg, pcfg_struct_t *s)
 #define PCFG_BUILD_MAXW  32
 #define PCFG_BUILD_CHUNK 128
 
-typedef void (*pcfg_struct_fn) (pcfg_global_t *pg, pcfg_struct_t *s);
+typedef void (*pcfg_struct_fn) (pcfg_global_t *pg, pcfg_struct_t *s, pcfg_scratch_t *sc);
 
 typedef struct
 {
@@ -1887,51 +2179,151 @@ typedef struct
 
   pcfg_struct_fn fn;
 
-  pcfg_mux_t mux;
+  hc_thread_mutex_t mux;
 
   u32 next;
 
 } pcfg_sweep_t;
 
-static pcfg_thread_ret sweep_worker (void *arg)
+typedef struct
 {
-  pcfg_sweep_t *sw = (pcfg_sweep_t *) arg;
+  pcfg_sweep_t *sw;
+
+  pcfg_scratch_t sc;
+
+} pcfg_sweep_arg_t;
+
+// The tokens already say which lists a grammar wants, so one cheap pass collects them and they are
+// read together, rather than one at a time on one core from inside the parse.
+
+typedef struct
+{
+  char t;
+  u32  len;
+
+} pcfg_need_t;
+
+typedef struct
+{
+  pcfg_global_t      *pg;
+  const pcfg_root_t  *roots;
+  u32                 nroots;
+  const pcfg_need_t  *need;
+  bool               *ok;
+  u32                 cnt;
+  u32                 next;
+  hc_thread_mutex_t   mux;
+
+} pcfg_preload_t;
+
+#if defined (_WIN)
+static HC_API_CALL DWORD preload_worker (void *arg)
+#else
+static HC_API_CALL void *preload_worker (void *arg)
+#endif
+{
+  pcfg_preload_t *pl = (pcfg_preload_t *) arg;
+
+  while (true)
+  {
+    hc_thread_mutex_lock (pl->mux);
+
+    const u32 i = pl->next++;
+
+    hc_thread_mutex_unlock (pl->mux);
+
+    if (i >= pl->cnt) break;
+
+    const char t   = pl->need[i].t;
+    const u32  len = pl->need[i].len;
+
+    const char *dir = type_dir (t);
+
+    if (dir == NULL) continue;
+
+    char rel[64];
+
+    snprintf (rel, sizeof (rel), "%s/%u.txt", dir, type_is_flat (t) ? 1 : len);
+
+    pcfg_tlist_t tmp;
+
+    memset (&tmp, 0, sizeof (tmp));
+
+    // Each worker owns its own slot, so nothing here is shared but the file system.
+
+    if (tlist_load (&tmp, pl->roots, pl->nroots, rel, pl->pg->scale, pl->pg->costmax, (t == 'A')) == -1) continue;
+
+    tmp.ty = (u8) t;
+    tmp.ln = len;
+
+    pl->pg->lists[i] = tmp;
+    pl->ok[i]        = true;
+  }
+
+  return 0;
+}
+
+#if defined (_WIN)
+static HC_API_CALL DWORD sweep_worker (void *arg)
+#else
+static HC_API_CALL void *sweep_worker (void *arg)
+#endif
+{
+  pcfg_sweep_arg_t *a = (pcfg_sweep_arg_t *) arg;
+
+  pcfg_sweep_t *sw = a->sw;
 
   pcfg_global_t *pg = sw->pg;
 
   while (true)
   {
-    pcfg_mux_lock (&sw->mux);
+    hc_thread_mutex_lock (sw->mux);
 
     const u32 from = sw->next;
 
     sw->next = from + PCFG_BUILD_CHUNK;
 
-    pcfg_mux_unlock (&sw->mux);
+    hc_thread_mutex_unlock (sw->mux);
 
-    if (from >= pg->structs_cnt) break;
+    const u32 upto_all = (pg->probe_n != 0) ? pg->probe_n : pg->structs_cnt;
+
+    if (from >= upto_all) break;
 
     u32 upto = from + PCFG_BUILD_CHUNK;
 
-    if (upto > pg->structs_cnt) upto = pg->structs_cnt;
+    if (upto > upto_all) upto = upto_all;
 
-    for (u32 i = from; i < upto; i++) sw->fn (pg, &pg->structs[i]);
+    for (u32 i = from; i < upto; i++) sw->fn (pg, &pg->structs[i], &a->sc);
   }
 
-  return pcfg_thread_done;
+  return 0;
+}
+
+// How many workers a parallel step starts. That is one less than the threads it runs on, because
+// every step also runs the work on the calling thread, and PCFG_BUILD_THREADS names threads: one
+// means the calling thread alone. The count is floored first, because hc_get_processor_count () can
+// fail and sysconf returns -1 when it does.
+
+static u32 pcfg_workers (void)
+{
+  const int cpus = hc_get_processor_count ();
+
+  u64 threads = (cpus > 1) ? (u64) cpus : 1;
+
+  const char *env = getenv ("PCFG_BUILD_THREADS");
+
+  if (env != NULL) threads = strtoull (env, NULL, 10);
+
+  u32 n = (threads > 1) ? (u32) (threads - 1) : 0;
+
+  if (n > PCFG_BUILD_MAXW) n = PCFG_BUILD_MAXW;
+
+  return n;
 }
 
 static void structs_sweep (pcfg_global_t *pg, pcfg_struct_fn fn)
 {
-  // One less than the machine has, because the calling thread takes chunks too.
-
-  u32 nworker = pcfg_cpu_online () - 1;
-
-  const char *env = getenv ("PCFG_BUILD_THREADS");
-
-  if (env != NULL) nworker = (u32) strtoul (env, NULL, 10);
-
-  if (nworker > PCFG_BUILD_MAXW) nworker = PCFG_BUILD_MAXW;
+  const u32 nworker = pcfg_workers ();
 
   pcfg_sweep_t sw;
 
@@ -1939,27 +2331,38 @@ static void structs_sweep (pcfg_global_t *pg, pcfg_struct_fn fn)
   sw.fn   = fn;
   sw.next = 0;
 
-  pcfg_mux_init (&sw.mux);
+  hc_thread_mutex_init (sw.mux);
 
-  pcfg_os_thread_t worker[PCFG_BUILD_MAXW];
+  hc_thread_t worker[PCFG_BUILD_MAXW];
 
-  u32 started = 0;
+  // Each worker gets an argument, and the calling thread gets one more because it takes chunks too.
+
+  pcfg_sweep_arg_t *args = (pcfg_sweep_arg_t *) hccalloc (nworker + 1, sizeof (pcfg_sweep_arg_t));
+
+  for (u32 i = 0; i <= nworker; i++) args[i].sw = &sw;
+
+  // A thread that did not start must not be joined: its handle is never set, and the join would
+  // be against a zeroed pthread_t. Keep the ones that did start packed at the front.
+
+  u32 live = 0;
 
   for (u32 i = 0; i < nworker; i++)
   {
-    if (pcfg_thread_create (worker[started], sweep_worker, &sw) == false) continue;
-
-    started++;
+    if (hc_thread_create_ok (worker[live], sweep_worker, &args[i]) == true) live++;
   }
 
   // The calling thread takes chunks as well. That is one more core on the work, and it is also what
   // makes a machine that would not give out a single thread still finish the sweep.
 
-  sweep_worker (&sw);
+  sweep_worker (&args[nworker]);
 
-  for (u32 i = 0; i < started; i++) pcfg_thread_join (worker[i]);
+  for (u32 i = 0; i < live; i++) hc_thread_join (worker[i]);
 
-  pcfg_mux_destroy (&sw.mux);
+  for (u32 i = 0; i <= nworker; i++) scratch_free (&args[i].sc);
+
+  hcfree (args);
+
+  hc_thread_mutex_delete (sw.mux);
 }
 
 static void pcfg_pick_varlen (pcfg_global_t *pg)
@@ -2022,7 +2425,28 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   if (nroots > 1) merge_sort (&gm);
 
+  // grammar.txt is most probable first, so stopping after N keeps the head of the distribution and
+  // drops its tail.
+
+  u32 max_structs = 0;
+
+  const char *env = getenv ("PCFG_MAX_STRUCTS");
+
+  if (env != NULL) max_structs = (u32) strtoul (env, NULL, 10);
+
+  hc_timer_t t_parse;
+
+  hc_timer_set (&t_parse);
+
+  double last_say = 0.0;
+
   int *cache = (int *) hcmalloc (PCFG_LIST_CACHE * sizeof (int));
+
+  int *lut = (int *) hcmalloc (128 * LIST_LUT_LEN * sizeof (int));
+
+  if (lut != NULL) memset (lut, 0xff, 128 * LIST_LUT_LEN * sizeof (int));
+
+  // A key no token can produce, so a slot whose list failed to load never matches by accident.
 
   for (int i = 0; i < PCFG_LIST_CACHE; i++) cache[i] = -1;
 
@@ -2034,6 +2458,167 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   u32 dropped_m = 0;
   u32 dropped_t = 0;
+  u32 dropped_c = 0;
+
+  // pcfg_lensplit () keeps its answer in a file scope int and works it out on the first call. The
+  // preload workers below all reach it through tlist_build (), so it is settled here, on one thread,
+  // before any of them exists.
+
+  (void) pcfg_lensplit ();
+  (void) pcfg_bucketcap ();
+
+  int *seen = (int *) hcmalloc (128 * LIST_LUT_LEN * sizeof (int));
+
+  pcfg_need_t *need = (pcfg_need_t *) hcmalloc ((size_t) PCFG_LIST_CACHE * sizeof (pcfg_need_t));
+
+  if ((seen != NULL) && (need != NULL))
+  {
+    memset (seen, 0, 128 * LIST_LUT_LEN * sizeof (int));
+
+    u32 ncnt = 0;
+
+    for (u32 e = 0; e < gm.cnt; e++)
+    {
+      const u32 vl = gm.ent[e].len;
+
+      if ((vl == 0) || (vl >= (u32) HCBUFSIZ_LARGE)) continue;
+
+      const u8 *line = gm.buf + gm.ent[e].off;
+
+      u32 at = 0;
+
+      while (at < vl)
+      {
+        const char ty = (char) line[at];
+
+        at++;
+
+        u32 ln = 0;
+
+        while ((at < vl) && (line[at] >= '0') && (line[at] <= '9'))
+        {
+          ln = (ln * 10) + (u32) (line[at] - '0');
+
+          at++;
+        }
+
+        if ((ln == 0) || (ln >= LIST_LUT_LEN)) continue;
+        if ((u8) ty >= 128) continue;
+        if (type_dir (ty) == NULL) continue;
+
+        // This path fills the same cache list_get () fills, so it checks the same bound.
+
+        if (ncnt >= PCFG_LIST_CACHE) break;
+
+        if (seen[((u32) (u8) ty * LIST_LUT_LEN) + ln] == 0)
+        {
+          seen[((u32) (u8) ty * LIST_LUT_LEN) + ln] = 1;
+
+          need[ncnt].t = ty; need[ncnt].len = ln; ncnt++;
+        }
+
+        // An alpha slot always brings its case mask along with it.
+
+        if ((ty == 'A') && (ncnt < PCFG_LIST_CACHE) && (seen[((u32) 'C' * LIST_LUT_LEN) + ln] == 0))
+        {
+          seen[((u32) 'C' * LIST_LUT_LEN) + ln] = 1;
+
+          need[ncnt].t = 'C'; need[ncnt].len = ln; ncnt++;
+        }
+      }
+    }
+
+    if (ncnt > 0)
+    {
+      if (global_ctx->quiet == false) pmsg (pg, "pcfg: loading %u terminal lists", ncnt);
+
+      hc_timer_t t_pre;
+
+      hc_timer_set (&t_pre);
+
+      bool *okv = (bool *) hcmalloc ((size_t) ncnt * sizeof (bool));
+
+      pg->lists = (pcfg_tlist_t *) hcrealloc (pg->lists, 0, (size_t) ncnt * sizeof (pcfg_tlist_t));
+
+      if ((okv != NULL) && (pg->lists != NULL))
+      {
+        memset (okv, 0, (size_t) ncnt * sizeof (bool));
+        memset (pg->lists, 0, (size_t) ncnt * sizeof (pcfg_tlist_t));
+
+        pcfg_preload_t pl;
+
+        pl.pg = pg; pl.roots = roots; pl.nroots = nroots;
+        pl.need = need; pl.ok = okv; pl.cnt = ncnt; pl.next = 0;
+
+        hc_thread_mutex_init (pl.mux);
+
+        const u32 nworker = pcfg_workers ();
+
+        hc_thread_t worker[PCFG_BUILD_MAXW];
+
+        // A thread that did not start must not be joined: its handle is never set, and the join
+        // would be against a zeroed pthread_t. Keep the ones that did start packed at the front.
+
+        u32 live = 0;
+
+        for (u32 i = 0; i < nworker; i++)
+        {
+          if (hc_thread_create_ok (worker[live], preload_worker, &pl) == true) live++;
+        }
+
+        preload_worker (&pl);
+
+        for (u32 i = 0; i < live; i++) hc_thread_join (worker[i]);
+
+        hc_thread_mutex_delete (pl.mux);
+
+        // Only a list that loaded gets a name, so the structures naming a failed one are dropped.
+
+        pg->lists_cnt = ncnt;
+
+        for (u32 i = 0; i < ncnt; i++)
+        {
+          if (okv[i] == false) continue;
+
+          const u32 slot = ((u32) (u8) need[i].t * LIST_LUT_LEN) + need[i].len;
+
+          if (lut != NULL) lut[slot] = (int) i;
+
+          cache[i] = ((int) (u8) need[i].t << 8) | (int) need[i].len;
+        }
+
+        // A slot whose list did not load stays unnamed, but it is still one of lists_cnt, and the
+        // pool layout walks every list there is rather than every list with a name. Left zeroed it
+        // hands that walk a null offset table, so it gets an empty list instead: off holds the
+        // single zero off[cnt] asks for, and it contributes nothing to the pool.
+
+        for (u32 i = 0; i < ncnt; i++)
+        {
+          if (okv[i] == true) continue;
+
+          pcfg_tlist_t *t = &pg->lists[i];
+
+          if (t->off != NULL) continue;
+
+          t->off = (u32 *) hccalloc (1, sizeof (u32));
+          t->buf = (u8 *)  hccalloc (1, sizeof (u8));
+        }
+
+        char display[32];
+
+        if (global_ctx->quiet == false) pmsg (pg, "pcfg: terminal lists loaded in %s", pcfg_duration ((hc_timer_get (t_pre) / 1000.0), display, sizeof (display)));
+      }
+
+      hcfree (okv);
+    }
+  }
+
+  hcfree (seen);
+  hcfree (need);
+
+  hc_timer_t t_gr;
+
+  hc_timer_set (&t_gr);
 
   for (u32 e = 0; e < gm.cnt; e++)
   {
@@ -2054,13 +2639,21 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
     memset (&s, 0, sizeof (s));
 
+    u8  kbuf[PCFG_MAXSLOT];
+    u16 lbuf[PCFG_MAXSLOT];
+    u16 tbuf[PCFG_MAXSLOT];
+
+    s.kind = kbuf;
+    s.list = lbuf;
+    s.tlen = tbuf;
+
     const double q = -log2 (p) * (double) pg->scale;
 
     if (q < 0.0) continue;
 
     s.cost = (u32) (q + 0.5);
 
-    if (s.cost > pg->costmax) continue;
+    if (s.cost > pg->costmax) { dropped_c++; continue; }
 
     bool ok = true;
 
@@ -2074,12 +2667,12 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
       if (len == 0 || len > 0xffff || s.nslot + 2 > PCFG_MAXSLOT) { ok = false; break; }
 
-      const int li = list_get (pg, roots, nroots, ty, len, cache);
+      const int li = list_get (global_ctx, pg, roots, nroots, ty, len, cache, lut);
 
       if (li == -1) { ok = false; break; }
 
       s.kind[s.nslot] = PCFG_SLOT_TERM;
-      s.list[s.nslot] = li;
+      s.list[s.nslot] = (u16) li;
 
       // Zero for a flat token, whose entries vary in length so the structure cannot say how many
       // characters this slot contributes. Everything that reads tlen tells the two apart by it.
@@ -2092,18 +2685,49 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
       if (ty == 'A')
       {
-        const int ci = list_get (pg, roots, nroots, 'C', len, cache);
+        const int ci = list_get (global_ctx, pg, roots, nroots, 'C', len, cache, lut);
 
         if (ci == -1) { ok = false; break; }
 
         s.kind[s.nslot] = PCFG_SLOT_MASK;
-        s.list[s.nslot] = ci;
+        s.list[s.nslot] = (u16) ci;
         s.tlen[s.nslot] = (u16) len;
         s.nslot++;
       }
     }
 
     if (ok == false) { dropped_t++; continue; }
+
+    // A long read that says nothing cannot be told from a hang.
+
+    if ((global_ctx->quiet == false) && ((pg->structs_cnt & 0xffff) == 0))
+    {
+      const double elapsed = hc_timer_get (t_parse) / 1000.0;
+
+      if ((elapsed - last_say) >= 2.0)
+      {
+        last_say = elapsed;
+
+        const double frac = (gm.cnt > 0) ? ((double) e / (double) gm.cnt) : 0.0;
+
+        // A short elapsed time divided by a fraction close to zero is worse than no estimate at
+        // all.
+
+        if (frac >= 0.01)
+        {
+          char display_eta[32];
+
+          pcfg_duration ((elapsed / frac) - elapsed, display_eta, sizeof (display_eta));
+
+          pmsg (pg, "pcfg: reading grammar, %.0f%% of %u lines, %u structures, ETA %s",
+            frac * 100.0, gm.cnt, pg->structs_cnt, display_eta);
+        }
+        else
+        {
+          pmsg (pg, "pcfg: reading grammar, %u of %u lines, %u structures", e, gm.cnt, pg->structs_cnt);
+        }
+      }
+    }
 
     if (pg->structs_cnt == cap)
     {
@@ -2116,12 +2740,41 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
       memset (pg->structs + old, 0, (cap - old) * sizeof (pcfg_struct_t));
     }
 
+    // Into the arena, at the size this structure turned out to need.
+
+    u8 *sk = (u8 *) slots_alloc (pg, (size_t) s.nslot * sizeof (u8));
+    u16 *sl = (u16 *) slots_alloc (pg, (size_t) s.nslot * sizeof (u16));
+    u16 *st = (u16 *) slots_alloc (pg, (size_t) s.nslot * sizeof (u16));
+
+    if ((sk == NULL) || (sl == NULL) || (st == NULL)) { dropped_t++; continue; }
+
+    memcpy (sk, kbuf, (size_t) s.nslot * sizeof (u8));
+    memcpy (sl, lbuf, (size_t) s.nslot * sizeof (u16));
+    memcpy (st, tbuf, (size_t) s.nslot * sizeof (u16));
+
+    s.kind = sk;
+    s.list = sl;
+    s.tlen = st;
+
     pg->structs[pg->structs_cnt++] = s;
+
+    if ((max_structs != 0) && (pg->structs_cnt >= max_structs)) break;
   }
+
+  char display[32];
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: grammar read in %s, %u structures", pcfg_duration ((hc_timer_get (t_gr) / 1000.0), display, sizeof (display)), pg->structs_cnt);
 
   merge_free (&gm);
 
   hcfree (cache);
+
+  hcfree (lut);
+
+  // Structures and M lines are two ways for a grammar to carry mass, so it is empty only when it
+  // has neither, and a ruleset trained without coverage is all M line. A grammar whose structures
+  // were all dropped is a different thing: a ruleset that could not be read, which has to say so
+  // rather than quietly run on the escape alone.
 
   if (pg->structs_cnt == 0)
   {
@@ -2129,14 +2782,48 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
     roots_join (named, sizeof (named), roots, nroots);
 
-    gerr (global_ctx, "%s: no usable structures", named);
+    if (dropped_t > 0)
+    {
+      gerr (global_ctx, "%s: all %u structures were dropped, most likely a terminal list that could not be read", named, dropped_t);
 
-    return -1;
+      return -1;
+    }
+
+    // Every structure priced above the cap is a grammar the run cannot use, whatever the escape
+    // holds, and master refuses it. The M line exemption below is for a grammar that never had
+    // structures, not for one whose structures were all put out of reach.
+
+    if (dropped_c > 0)
+    {
+      gerr (global_ctx, "%s: all %u structures cost more than costmax %" PRIu64 ", nothing is reachable", named, dropped_c, pg->costmax);
+
+      return -1;
+    }
+
+    if (dropped_m == 0)
+    {
+      gerr (global_ctx, "%s: nothing to enumerate, no structures and no M lines", named);
+
+      return -1;
+    }
   }
 
   pcfg_pick_varlen (pg);
 
+  // Here, and not before the files are read: the key describes the tables, and the tables are not
+  // decided until the lists have been cut into buckets and the structures resolved against them.
+
+  pg->ident = pcfg_ident_tables (pg);
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: building suffix tables for %u structures", pg->structs_cnt);
+
+  hc_timer_t t_sweep;
+
+  hc_timer_set (&t_sweep);
+
   structs_sweep (pg, build_suffix);
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: suffix tables built in %s", pcfg_duration ((hc_timer_get (t_sweep) / 1000.0), display, sizeof (display)));
 
   pg->m_lines = dropped_m;
 
@@ -2147,6 +2834,8 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     extra[0] = 0;
 
     if (dropped_t) snprintf (extra + strlen (extra), sizeof (extra) - strlen (extra), ", %u unusable dropped", dropped_t);
+
+    if ((max_structs != 0) && (pg->structs_cnt >= max_structs)) snprintf (extra + strlen (extra), sizeof (extra) - strlen (extra), ", stopped at PCFG_MAX_STRUCTS");
 
     pmsg (pg, "pcfg: %u structures, %u terminal lists%s", pg->structs_cnt, pg->lists_cnt, extra);
   }
@@ -2349,7 +3038,7 @@ typedef struct
 
 } pcfg_omen_raw_t;
 
-static int omen_load_one (generic_global_ctx_t *global_ctx, pcfg_omen_t *om, const pcfg_root_t *r)
+static int omen_load_one (generic_global_ctx_t *global_ctx, const pcfg_global_t *pg, pcfg_omen_t *om, const pcfg_root_t *r)
 {
   char path[HCBUFSIZ_TINY];
   char line[HCBUFSIZ_TINY];
@@ -2416,6 +3105,10 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, pcfg_omen_t *om, con
 
   pcfg_omen_raw_t *raw = (pcfg_omen_raw_t *) hcmalloc (rcap * sizeof (pcfg_omen_raw_t));
 
+  hc_timer_t t_cp;
+
+  hc_timer_set (&t_cp);
+
   rel = "Omen/CP.level";
 
   snprintf (path, sizeof (path), "%s/%s", r->dir, rel);
@@ -2465,6 +3158,14 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, pcfg_omen_t *om, con
   }
 
   hc_fclose (&fp);
+
+  char display[32];
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: CP.level read in %s, %" PRIu64 " n-grams", pcfg_duration ((hc_timer_get (t_cp) / 1000.0), display, sizeof (display)), (u64) rcnt);
+
+  hc_timer_t t_ip;
+
+  hc_timer_set (&t_ip);
 
   rel = "Omen/IP.level";
 
@@ -2565,6 +3266,10 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, pcfg_omen_t *om, con
 
       const u32 k = length - om->clen;
 
+      // PCFG_OMEN_MAXK sizes the walk's own state on both sides, so a longer length has nowhere to
+      // be walked and both engines lose the same ones. What is lost is coverage, and nothing says
+      // so.
+
       if (k > PCFG_OMEN_MAXK) continue;
 
       if ((v < 0) || (v > PCFG_OMEN_MAXLVL)) continue;
@@ -2591,6 +3296,11 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, pcfg_omen_t *om, con
 
   u32 bmax = 0;
 
+  // Level 0 is a level like any other, so whether the file named one cannot be read off bmax:
+  // a model whose only level is 0 has bmax 0, which is also what an empty file leaves behind.
+
+  bool anylvl = false;
+
   if (root_open (r, rel, &fp) == true)
   {
     while (hc_fgets (line, sizeof (line), &fp) != NULL)
@@ -2609,6 +3319,8 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, pcfg_omen_t *om, con
 
       prob[t] = p;
 
+      anylvl = true;
+
       if (t > bmax) bmax = t;
     }
 
@@ -2621,7 +3333,7 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, pcfg_omen_t *om, con
 
   intern_free (&ctxi);
 
-  if ((bmax == 0) || (om->kmax == 0) || (nip == 0) || (rcnt == 0))
+  if ((anylvl == false) || (om->kmax == 0) || (nip == 0) || (rcnt == 0))
   {
     hcfree (raw);
     hcfree (ip_ctx);
@@ -2795,7 +3507,9 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, pcfg_omen_t *om, con
   om->tprob = (double *) hccalloc (om->bmax + 1, sizeof (double));
   om->tcnt  = (u64 *)    hccalloc (om->bmax + 1, sizeof (u64));
 
-  for (u32 t = 1; t <= om->bmax; t++)
+  // From 0. A model can put the length, the prefix and every transition at zero.
+
+  for (u32 t = 0; t <= om->bmax; t++)
   {
     if (prob[t] <= 0.0) continue;
 
@@ -2819,6 +3533,8 @@ static int omen_load_one (generic_global_ctx_t *global_ctx, pcfg_omen_t *om, con
     om->tprob[t] = prob[t];
     om->tcnt[t]  = cnt;
   }
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: rest of OMEN in %s", pcfg_duration ((hc_timer_get (t_ip) / 1000.0), display, sizeof (display)));
 
   return 0;
 }
@@ -2896,7 +3612,11 @@ static double omen_mass_pct (const pcfg_root_t *roots, const u32 nroots)
 
 static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroots)
 {
-  if (global_ctx->dev_enable == true)
+  // The escape is dropped for the device engine because that engine cannot walk a trellis. A grammar
+  // with no structures gives it no base word either, so the run moves to the host engine and the
+  // escape is the only thing left to carry: dropping it here would leave that run nothing to do.
+
+  if ((global_ctx->dev_enable == true) && (pg->structs_cnt > 0))
   {
     if ((pg->m_lines > 0) && (global_ctx->quiet == false))
     {
@@ -2924,7 +3644,7 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
   {
     pcfg_omen_t *om = &pg->omen[pg->omen_cnt];
 
-    const int rc = omen_load_one (global_ctx, om, &roots[i]);
+    const int rc = omen_load_one (global_ctx, pg, om, &roots[i]);
 
     if (rc == -1) return false;
 
@@ -2943,11 +3663,17 @@ static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, cons
       continue;
     }
 
-    for (u32 t = 1; t <= om->bmax; t++)
+    // From 0, for the same reason the count above does: a level the file names is a level to carry.
+
+    for (u32 t = 0; t <= om->bmax; t++)
     {
       if (om->tcnt[t] == 0) continue;
 
       const double q = -log2 (mass * om->tprob[t]) * (double) pg->scale;
+
+      // A cost below zero means mass * tprob came out above one, which a well formed ruleset cannot
+      // produce: root_weights () normalises the weights and both files hold probabilities. Dropped,
+      // the same way the two tests on the grammar side drop theirs.
 
       if (q < 0.0) continue;
 
@@ -3205,6 +3931,108 @@ static bool omen_next (const pcfg_global_t *pg, pcfg_thread_t *th)
   return false;
 }
 
+// One level of the host index. A level is answered without looking at any other, so they are taken
+// in parallel.
+
+typedef struct
+{
+  pcfg_global_t *pg;
+
+  hc_thread_mutex_t mux;
+
+  u32 next;
+
+} pcfg_idx_t;
+
+static void idx_one (pcfg_global_t *pg, const u32 li)
+{
+  const u32 c = pg->lvl_cost[li];
+
+  u32 n = 0;
+
+  for (u32 i = 0; i < pg->structs_cnt; i++)
+  {
+    const pcfg_struct_t *s = &pg->structs[i];
+
+    if (c < s->cost || c > s->cmax) continue;
+    if (s->suf[c - s->cost] == 0)   continue;
+
+    n++;
+  }
+
+  for (u32 i = 0; i < pg->omen_lvl_cnt; i++)
+  {
+    if (pg->omen_lvl[i].cost != c) continue;
+    if (pg->omen_lvl[i].cnt == 0)  continue;
+
+    n++;
+  }
+
+  pg->ls_struct[li] = (u32 *) hcmalloc (n * sizeof (u32));
+  pg->ls_pref[li]   = (u64 *) hcmalloc (n * sizeof (u64));
+  pg->ls_cnt[li]    = n;
+
+  u32 k = 0;
+  u64 acc = 0;
+
+  for (u32 i = 0; i < pg->structs_cnt; i++)
+  {
+    const pcfg_struct_t *s = &pg->structs[i];
+
+    if (c < s->cost || c > s->cmax) continue;
+
+    const u64 w = s->suf[c - s->cost];
+
+    if (w == 0) continue;
+
+    pg->ls_struct[li][k] = i;
+    pg->ls_pref[li][k]   = acc;
+
+    acc = sat_add (acc, w);
+
+    k++;
+  }
+
+  for (u32 i = 0; i < pg->omen_lvl_cnt; i++)
+  {
+    if (pg->omen_lvl[i].cost != c) continue;
+    if (pg->omen_lvl[i].cnt == 0)  continue;
+
+    pg->ls_struct[li][k] = pg->structs_cnt + i;
+    pg->ls_pref[li][k]   = acc;
+
+    acc = sat_add (acc, pg->omen_lvl[i].cnt);
+
+    k++;
+  }
+}
+
+#if defined (_WIN)
+static HC_API_CALL DWORD idx_worker (void *arg)
+#else
+static HC_API_CALL void *idx_worker (void *arg)
+#endif
+{
+  pcfg_idx_t *iw = (pcfg_idx_t *) arg;
+
+  pcfg_global_t *pg = iw->pg;
+
+  while (true)
+  {
+    hc_thread_mutex_lock (iw->mux);
+
+    const u32 li = iw->next++;
+
+    hc_thread_mutex_unlock (iw->mux);
+
+    if (li >= pg->lvl_cnt) break;
+
+    idx_one (pg, li);
+  }
+
+  return 0;
+}
+
 static void build_index (pcfg_global_t *pg)
 {
   u32 cmax = 0;
@@ -3244,7 +4072,16 @@ static void build_index (pcfg_global_t *pg)
     {
       if (tot[c] == 0) continue;
 
-      if (tot[c] >= safe || acc > safe - tot[c]) break;
+      // A position past a saturated total cannot be addressed, so nothing after this cost is
+      // reachable. That is a bound rather than a fault, and lvl_stop carries the cost so the caller
+      // can say so.
+
+      if (tot[c] >= safe || acc > safe - tot[c])
+      {
+        pg->lvl_stop = c;
+
+        break;
+      }
 
       acc += tot[c];
 
@@ -3263,74 +4100,12 @@ static void build_index (pcfg_global_t *pg)
   u32 li  = 0;
   u64 run = 0;
 
-  const u64 safe = (u64) 1 << 62;
-
-  for (u32 c = 0; c <= cmax; c++)
+  for (u32 c = 0; (c <= cmax) && (li < pg->lvl_cnt); c++)
   {
     if (tot[c] == 0) continue;
 
-    if (tot[c] >= safe || run > safe - tot[c]) break;
-
     pg->lvl_cost[li] = c;
     pg->lvl_pref[li] = run;
-
-    u32 n = 0;
-
-    for (u32 i = 0; i < pg->structs_cnt; i++)
-    {
-      const pcfg_struct_t *s = &pg->structs[i];
-
-      if (c < s->cost || c > s->cmax) continue;
-      if (s->suf[c - s->cost] == 0)   continue;
-
-      n++;
-    }
-
-    for (u32 i = 0; i < pg->omen_lvl_cnt; i++)
-    {
-      if (pg->omen_lvl[i].cost != c) continue;
-      if (pg->omen_lvl[i].cnt == 0)  continue;
-
-      n++;
-    }
-
-    pg->ls_struct[li] = (u32 *) hcmalloc (n * sizeof (u32));
-    pg->ls_pref[li]   = (u64 *) hcmalloc (n * sizeof (u64));
-    pg->ls_cnt[li]    = n;
-
-    u32 k = 0;
-    u64 acc = 0;
-
-    for (u32 i = 0; i < pg->structs_cnt; i++)
-    {
-      const pcfg_struct_t *s = &pg->structs[i];
-
-      if (c < s->cost || c > s->cmax) continue;
-
-      const u64 w = s->suf[c - s->cost];
-
-      if (w == 0) continue;
-
-      pg->ls_struct[li][k] = i;
-      pg->ls_pref[li][k]   = acc;
-
-      acc = sat_add (acc, w);
-
-      k++;
-    }
-
-    for (u32 i = 0; i < pg->omen_lvl_cnt; i++)
-    {
-      if (pg->omen_lvl[i].cost != c) continue;
-      if (pg->omen_lvl[i].cnt == 0)  continue;
-
-      pg->ls_struct[li][k] = pg->structs_cnt + i;
-      pg->ls_pref[li][k]   = acc;
-
-      acc = sat_add (acc, pg->omen_lvl[i].cnt);
-
-      k++;
-    }
 
     run = sat_add (run, tot[c]);
 
@@ -3340,7 +4115,89 @@ static void build_index (pcfg_global_t *pg)
   pg->lvl_pref[pg->lvl_cnt] = run;
   pg->keyspace = run;
 
+  u32 nworker = pcfg_workers ();
+
+  if (nworker > pg->lvl_cnt) nworker = pg->lvl_cnt;
+
+  pcfg_idx_t iw;
+
+  iw.pg   = pg;
+  iw.next = 0;
+
+  hc_thread_mutex_init (iw.mux);
+
+  hc_thread_t worker[PCFG_BUILD_MAXW];
+
+  u32 live = 0;
+
+  for (u32 i = 0; i < nworker; i++)
+  {
+    if (hc_thread_create_ok (worker[live], idx_worker, &iw) == true) live++;
+  }
+
+  idx_worker (&iw);
+
+  for (u32 i = 0; i < live; i++) hc_thread_join (worker[i]);
+
+  hc_thread_mutex_delete (iw.mux);
+
   hcfree (tot);
+}
+
+// The rows below row zero, rebuilt only when the caller moves to a different structure. Positions
+// within a structure are contiguous, so that is once per structure and not once per candidate.
+
+static const u64 *suf_rows (const pcfg_global_t *pg, u64 **scratch, u32 *scratch_cap, u32 *cached_si, const u32 si)
+{
+  const pcfg_struct_t *s = &pg->structs[si];
+
+  const u32 span = pg->costmax - s->cost + 1;
+  const u32 need = (s->nslot + 1) * span;
+
+  if ((*cached_si == si) && (*scratch != NULL)) return *scratch;
+
+  if (*scratch_cap < need)
+  {
+    hcfree (*scratch);
+
+    *scratch = (u64 *) hcmalloc ((size_t) need * sizeof (u64));
+
+    if (*scratch == NULL) { *scratch_cap = 0; *cached_si = 0xffffffff; return NULL; }
+
+    *scratch_cap = need;
+  }
+
+  u64 *full = *scratch;
+
+  memset (full, 0, (size_t) need * sizeof (u64));
+
+  full[(size_t) s->nslot * span + 0] = 1;
+
+  for (int j = (int) s->nslot - 1; j >= 0; j--)
+  {
+    const pcfg_tlist_t *t = &pg->lists[s->list[j]];
+
+    u64 *dst = full + (size_t) j * span;
+    u64 *src = full + (size_t) (j + 1) * span;
+
+    for (u32 b = 0; b < t->nb; b++)
+    {
+      const u32 cb = t->b_cost[b];
+
+      if (cb >= span) continue;
+
+      for (u32 r = 0; r + cb < span; r++)
+      {
+        if (src[r] == 0) continue;
+
+        dst[r + cb] = sat_add (dst[r + cb], sat_mul (t->b_cnt[b], src[r]));
+      }
+    }
+  }
+
+  *cached_si = si;
+
+  return full;
 }
 
 static bool unrank (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
@@ -3396,12 +4253,16 @@ static bool unrank (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
 
   const u32 span = pg->costmax - s->cost + 1;
 
+  const u64 *rows = suf_rows (pg, &th->sufrows, &th->sufrows_cap, &th->sufrows_si, si);
+
+  if (rows == NULL) return false;
+
   u32 r = c - s->cost;
 
   for (u32 j = 0; j < s->nslot; j++)
   {
     const pcfg_tlist_t *t = &pg->lists[s->list[j]];
-    const u64 *nxt = s->suf + (size_t) (j + 1) * span;
+    const u64 *nxt = rows + (size_t) (j + 1) * span;
 
     bool placed = false;
 
@@ -3562,19 +4423,29 @@ static bool pcfg_rank (const pcfg_global_t *pg, const u32 si, const u32 *idx, u6
 
   u32 r = (u32) c - s->cost;
 
+  // Not the hot path: this runs on resume, not per candidate.
+
+  u64 *scratch = NULL;
+  u32  cap     = 0;
+  u32  cached  = 0xffffffff;
+
+  const u64 *rows = suf_rows (pg, &scratch, &cap, &cached, si);
+
+  if (rows == NULL) { hcfree (scratch); return false; }
+
   for (u32 j = 0; j < s->nslot; j++)
   {
     const pcfg_tlist_t *t = &pg->lists[s->list[j]];
-    const u64 *nxt = s->suf + (size_t) (j + 1) * span;
+    const u64 *nxt = rows + (size_t) (j + 1) * span;
 
     const u32 hit = tlist_bucket_of (t, idx[j]);
     const u32 cb  = t->b_cost[hit];
 
-    if (cb > r) return false;
+    if (cb > r) { hcfree (scratch); return false; }
 
     const u64 w = nxt[r - cb];
 
-    if (w == 0) return false;
+    if (w == 0) { hcfree (scratch); return false; }
 
     for (u32 b = 0; b < hit; b++)
     {
@@ -3594,11 +4465,13 @@ static bool pcfg_rank (const pcfg_global_t *pg, const u32 si, const u32 *idx, u6
     r = r - cb;
   }
 
-  if (r != 0) return false;
+  if (r != 0) { hcfree (scratch); return false; }
 
-  if (n >= pg->keyspace) return false;
+  if (n >= pg->keyspace) { hcfree (scratch); return false; }
 
   *out_pos = n;
+
+  hcfree (scratch);
 
   return true;
 }
@@ -3969,7 +4842,7 @@ static u32 pcfg_parse (pcfg_global_t *pg, const u8 *pw, const u32 pw_len, u32 *o
       {
         // A flat token's entries vary in length, so the structure does not say how much of the
         // password this slot takes and every entry that prefixes the rest has to be tried. X and Y
-        // are the small lists in a ruleset, so this stays a scan; it also keeps the candidates in
+        // are the small lists in a ruleset, so this stays a scan. It also keeps the candidates in
         // list order, which is the order they rank in.
 
         const u32 room = pw_len - spos[j];
@@ -4231,8 +5104,10 @@ static bool pcfg_omen_tail (const pcfg_omen_t *om, const u8 *pw, const u32 *off,
 // (its lvl and cost describe the hit), out_idx the index inside that level, out_pos the global
 // candidate position.
 //
-// Nothing here has a device engine counterpart on purpose: omen_load () 2836 drops the escape when
-// dev_enable is set, so omen_lvl_cnt is zero and the very first test refuses.
+// Nothing here has a device engine counterpart on purpose. A grammar that engine can amplify has
+// structures, and omen_load () drops the escape for it, so omen_lvl_cnt is zero and the very first
+// test refuses. A grammar without structures keeps the escape, but it offers that engine no base
+// word either, so the run reaches this from the host engine after the core has turned it off.
 
 static bool pcfg_omen_lookup (const pcfg_global_t *pg, const u8 *pw, const u32 pw_len, u32 *out_oi, u64 *out_idx, u64 *out_pos)
 {
@@ -4396,11 +5271,15 @@ static u32 token_len (const pcfg_struct_t *s, const u32 j)
   return 1;
 }
 
+// The smallest b with 2^b at or above x, which is the width a bucket of x entries needs on the
+// device. It is the innermost thing the walk does. Shifting a one along also runs past 64 for
+// anything above 2^63, which sat_mul () can hand it because it saturates.
+
 static u32 bitlen (const u64 x)
 {
-  u32 b = 0;
+  if (x <= 1) return 0;
 
-  while ((((u64) 1) << b) < x) b++;
+  const u32 b = (u32) (64 - __builtin_clzll (x - 1));
 
   return b;
 }
@@ -4446,17 +5325,20 @@ static void choose_cut (const pcfg_global_t *pg, pcfg_struct_t *s)
   s->cut = cut;
 }
 
-static void build_unit_suffix (pcfg_global_t *pg, pcfg_struct_t *s)
+// Only the first row of the plain table is read from outside the unranking, so only that is kept.
+// Keeping both tables whole for every structure is more than a large grammar leaves room for.
+
+static void build_unit_rows (const pcfg_global_t *pg, const pcfg_struct_t *s, u64 *usuf, u64 *udev)
 {
   const u32 span = pg->costmax - s->cost + 1;
   const u32 nb   = pg->kbits + 1;
 
-  s->usuf = (u64 *) hccalloc ((size_t) (s->nslot + 1) * span, sizeof (u64));
-  s->udev = (u64 *) hccalloc ((size_t) (s->nslot + 1) * span * nb, sizeof (u64));
+  memset (usuf, 0, (size_t) (s->nslot + 1) * span * sizeof (u64));
+  memset (udev, 0, (size_t) (s->nslot + 1) * span * nb * sizeof (u64));
 
-  s->usuf[(size_t) s->nslot * span + 0] = 1;
+  usuf[(size_t) s->nslot * span + 0] = 1;
 
-  for (u32 b = 0; b < nb; b++) s->udev[((size_t) s->nslot * span + 0) * nb + b] = 1;
+  for (u32 b = 0; b < nb; b++) udev[((size_t) s->nslot * span + 0) * nb + b] = 1;
 
   for (int j = (int) s->nslot - 1; j >= 0; j--)
   {
@@ -4468,23 +5350,41 @@ static void build_unit_suffix (pcfg_global_t *pg, pcfg_struct_t *s)
     const pcfg_tlist_t *ta = &pg->lists[s->list[j]];
     const pcfg_tlist_t *tm = (len == 2) ? &pg->lists[s->list[j + 1]] : NULL;
 
-    u64 *tdst = s->usuf + (size_t) j * span;
-    u64 *ddst = s->udev + (size_t) j * span * nb;
+    u64 *tdst = usuf + (size_t) j * span;
+    u64 *ddst = udev + (size_t) j * span * nb;
 
-    const u64 *tsrc = s->usuf + (size_t) nxt * span;
-    const u64 *dsrc = s->udev + (size_t) nxt * span * nb;
+    const u64 *tsrc = usuf + (size_t) nxt * span;
+    const u64 *dsrc = udev + (size_t) nxt * span * nb;
 
     const bool may = ((u32) j >= s->cut);
 
+    // The row this reads from is mostly zeros, so the few costs that are reachable are gathered
+    // once per slot instead of being searched for again inside every pair of bucket loops.
+
+    u32 nz[PCFG_SPANCAP];
+    u32 nzc = 0;
+
+    for (u32 r = 0; r < span; r++) if (tsrc[r] != 0) nz[nzc++] = r;
+
+    // Where the bucket costs never decrease, a pair that costs more than the span means every pair
+    // after it does too and the search can stop. That is the order of the terminal file and nothing
+    // enforces it, so a list that does not have it is walked to the end as before.
+
+    const bool asc = (ta->cost_asc == true) && ((len != 2) || (tm->cost_asc == true));
+
     for (u32 ba = 0; ba < ta->nb; ba++)
     {
+      const u32 ca = ta->b_cost[ba];
+
+      if (ca >= span) { if (asc == true) break; else continue; }
+
       const u32 nbm = (len == 2) ? tm->nb : 1;
 
       for (u32 bm = 0; bm < nbm; bm++)
       {
-        const u32 cb = ta->b_cost[ba] + ((len == 2) ? tm->b_cost[bm] : 0);
+        const u32 cb = ca + ((len == 2) ? tm->b_cost[bm] : 0);
 
-        if (cb >= span) continue;
+        if (cb >= span) { if (asc == true) break; else continue; }
 
         const u64 prod = sat_mul (ta->b_cnt[ba], (len == 2) ? tm->b_cnt[bm] : 1);
 
@@ -4496,11 +5396,13 @@ static void build_unit_suffix (pcfg_global_t *pg, pcfg_struct_t *s)
 
         const bool dev = (may == true) && (uni == true) && (bl <= pg->kbits);
 
-        for (u32 r = 0; r + cb < span; r++)
+        for (u32 x = 0; x < nzc; x++)
         {
-          const u64 t = tsrc[r];
+          const u32 r = nz[x];
 
-          if (t == 0) continue;
+          if (r + cb >= span) break;
+
+          const u64 t = tsrc[r];
 
           if (dev == true)
           {
@@ -4524,20 +5426,93 @@ static void build_unit_suffix (pcfg_global_t *pg, pcfg_struct_t *s)
   }
 }
 
+// The scratch is sized for any structure's unit tables, one buffer per thread.
+
+static bool unit_scratch (const pcfg_global_t *pg, const pcfg_struct_t *s, u64 **su, u64 **sd, u32 *cap, u32 *capnb)
+{
+  const u32 span = pg->costmax - s->cost + 1;
+  const u32 nb   = pg->kbits + 1;
+
+  const u32 need = (s->nslot + 1) * span;
+
+  // Both dimensions decide, not just the first. The device table is need*nb long, and nb is
+  // kbits+1, which the probe raises as it goes, so a buffer sized when kbits was smaller is long
+  // enough in one dimension and short in the other.
+
+  if ((*cap < need) || (*capnb < nb))
+  {
+    hcfree (*su);
+    hcfree (*sd);
+
+    *su = (u64 *) hcmalloc ((size_t) need * sizeof (u64));
+    *sd = (u64 *) hcmalloc ((size_t) need * nb * sizeof (u64));
+
+    if ((*su == NULL) || (*sd == NULL)) { *cap = 0; *capnb = 0; return false; }
+
+    *cap   = need;
+    *capnb = nb;
+  }
+
+  return true;
+}
+
+// The full unit tables, rebuilt only when the caller moves to a different structure.
+
+static bool unit_rows (const pcfg_global_t *pg, const u32 si, u64 **su, u64 **sd, u32 *cap, u32 *capnb, u32 *cached)
+{
+  const pcfg_struct_t *s = &pg->structs[si];
+
+  // The cached rows are only good while kbits is what it was when they were built: the probe
+  // changes it, and the device half of the table changes shape with it.
+
+  if ((*cached == si) && (*su != NULL) && (*capnb == (pg->kbits + 1))) return true;
+
+  if (unit_scratch (pg, s, su, sd, cap, capnb) == false) { *cached = 0xffffffff; return false; }
+
+  build_unit_rows (pg, s, *su, *sd);
+
+  *cached = si;
+
+  return true;
+}
+
+static void build_unit_suffix (pcfg_global_t *pg, pcfg_struct_t *s, pcfg_scratch_t *sc)
+{
+  const u32 span = pg->costmax - s->cost + 1;
+
+  if (unit_scratch (pg, s, &sc->unit_up, &sc->unit_dn, &sc->unit_cap, &sc->unit_nb) == false) return;
+
+  build_unit_rows (pg, s, sc->unit_up, sc->unit_dn);
+
+  // Row zero is what everything outside the unranking asks for.
+
+  s->usuf = (u64 *) hcmalloc ((size_t) span * sizeof (u64));
+
+  if (s->usuf == NULL) return;
+
+  memcpy (s->usuf, sc->unit_up, (size_t) span * sizeof (u64));
+
+  s->udev = NULL;
+}
+
 static u64 count_units (const pcfg_global_t *pg)
 {
   u64 run = 0;
+
+  const u32 upto = (pg->probe_n != 0) ? pg->probe_n : pg->structs_cnt;
 
   for (u32 li = 0; li < pg->lvl_cnt; li++)
   {
     const u32 c = pg->lvl_cost[li];
 
-    for (u32 i = 0; i < pg->structs_cnt; i++)
+    for (u32 i = 0; i < upto; i++)
     {
       const pcfg_struct_t *s = &pg->structs[i];
 
       if (c < s->cost) continue;
       if (c > s->cmax) continue;
+
+      if (s->usuf == NULL) continue;
 
       run = sat_add (run, s->usuf[c - s->cost]);
     }
@@ -4561,6 +5536,10 @@ static u64 front_rect (const pcfg_global_t *pg, const u64 want)
 
       if (c < s->cost) continue;
       if (c > s->cmax) continue;
+
+      // The probe builds a sample, so a structure outside it has no row to read.
+
+      if (s->usuf == NULL) continue;
 
       units = sat_add (units, s->usuf[c - s->cost]);
       cands = sat_add (cands, s->suf[c - s->cost]);
@@ -4588,26 +5567,459 @@ static void unit_suffix_free (pcfg_global_t *pg)
   pg->built = false;
 }
 
+// The unit tables are a function of the ruleset and of four numbers, so the second run can read
+// what the first worked out. A wrong answer here does not fail, it enumerates something else, so
+// the name is a hash of the ruleset and the header carries the rest.
+
+#define PCFG_CACHE_MAGIC   0x54494e5547464350ULL
+
+// The buffer the file is written and read through, and the most one row can take: every count of a
+// span, each a position and a value written as varints, plus the count of them.
+
+#define PCFG_CACHE_ROW     ((PCFG_SPANCAP * 12) + 3)
+#define PCFG_CACHE_BUF     (1 << 20)
+#define PCFG_CACHE_VERSION 5
+
+// One varint out of the buffer, and false when the file ended inside it. A value that stops half way
+// would otherwise read as a smaller number with nothing to say so.
+
+static bool cache_varint (const u8 *buf, u32 *at, const u32 len, u64 *out)
+{
+  u64 v  = 0;
+  u32 sh = 0;
+
+  while (at[0] < len)
+  {
+    const u8 c = buf[at[0]++];
+
+    v |= ((u64) (c & 0x7f)) << sh;
+
+    if ((c & 0x80) == 0) { out[0] = v; return true; }
+
+    sh += 7;
+
+    if (sh > 63) return false;
+  }
+
+  return false;
+}
+
+static u32 cache_putvar (u8 *buf, u64 v)
+{
+  u32 n = 0;
+
+  while (v >= 0x80) { buf[n++] = (u8) (v | 0x80); v >>= 7; }
+
+  buf[n++] = (u8) v;
+
+  return n;
+}
+
+typedef struct
+{
+  u64 magic;
+  u64 version;
+  u64 ident;
+  u64 scale;
+  u64 costmax;
+  u64 bytes;
+
+  u32 maxword;
+  u32 kbits;
+  u32 structs_cnt;
+  u32 varlen;
+
+  // Both re-cut the terminal lists, which is what the unit tables are summed over, so tables built
+  // under one value do not describe a run under another.
+
+  u32 bucketcap;
+  u32 lensplit;
+
+  // Last and on its own, because it can only be checked once the rows have been read. A byte that
+  // changes inside a value leaves the shape of the file intact.
+
+  u64 sum;
+
+} pcfg_cache_head_t;
+
+static void pcfg_cache_head (const pcfg_global_t *pg, pcfg_cache_head_t *h, const u64 bytes)
+{
+  memset (h, 0, sizeof (pcfg_cache_head_t));
+
+  h->magic       = PCFG_CACHE_MAGIC;
+  h->version     = PCFG_CACHE_VERSION;
+  h->ident       = pg->ident;
+  h->scale       = pg->scale;
+  h->costmax     = pg->costmax;
+  h->bytes       = bytes;
+  h->maxword     = pg->maxword;
+  h->kbits       = pg->kbits;
+  h->structs_cnt = pg->structs_cnt;
+  h->varlen      = (pg->varlen == true) ? 1 : 0;
+  h->bucketcap   = pcfg_bucketcap ();
+  h->lensplit    = (pcfg_lensplit () == true) ? 1 : 0;
+}
+
+// Two configurations of one ruleset are two files, not one that keeps being overwritten.
+
+// make says where a name goes: a load only reads, and creating the folder for it leaves an empty one
+// behind on every run that never writes anything.
+
+static char *pcfg_cache_path (const generic_global_ctx_t *global_ctx, const pcfg_global_t *pg, const bool make)
+{
+  if (pg->cache_ok == false) return NULL;
+  if (global_ctx->cache_dir == NULL) return NULL;
+  if (pg->ident == 0) return NULL;
+
+  char *dir = NULL;
+
+  // Named the way seekdb.c names its own: a build that runs from its own tree has that tree as its
+  // cache directory, so the folder cannot be called "pcfg", which already holds the shipped
+  // ruleset.
+
+  hc_asprintf (&dir, "%s/pcfgdbs", global_ctx->cache_dir);
+
+  if (dir == NULL) return NULL;
+
+  if (make == true) hc_mkdir (dir, 0700);
+
+  char *path = NULL;
+
+  hc_asprintf (&path, "%s/%016" PRIx64 "-%" PRIu64 "-%" PRIu64 "-%u-%u-%u-%u.unit", dir, pg->ident, pg->scale, pg->costmax, pg->maxword, pg->kbits, pcfg_bucketcap (), (pcfg_lensplit () == true) ? 1 : 0);
+
+  hcfree (dir);
+
+  return path;
+}
+
+static u64 pcfg_cache_bytes (const pcfg_global_t *pg)
+{
+  u64 bytes = 0;
+
+  for (u32 i = 0; i < pg->structs_cnt; i++)
+  {
+    const u64 span = pg->costmax - pg->structs[i].cost + 1;
+
+    bytes += span * sizeof (u64);
+  }
+
+  return bytes;
+}
+
+static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
+{
+  char *path = pcfg_cache_path (global_ctx, pg, false);
+
+  if (path == NULL) return false;
+
+  HCFILE fp;
+
+  const bool open = hc_fopen_raw (&fp, path, "rb");
+
+  hcfree (path);
+
+  if (open == false) return false;
+
+  pcfg_cache_head_t want;
+  pcfg_cache_head_t have;
+
+  pcfg_cache_head (pg, &want, pcfg_cache_bytes (pg));
+
+  if (hc_fread (&have, sizeof (have), 1, &fp) != 1) { hc_fclose (&fp); return false; }
+
+  // A file found under the right name is not yet the right file.
+
+  if (memcmp (&want, &have, offsetof (pcfg_cache_head_t, sum)) != 0) { hc_fclose (&fp); return false; }
+
+  // Only here, where the file is known to describe this run and the rows below will fill them. A
+  // header that does not match leaves whatever the caller had, so the caller can keep it.
+
+  unit_suffix_free (pg);
+
+  // A megabyte does not belong on the stack: a worker thread gets far less than that.
+
+  u8 *buf = (u8 *) hcmalloc (PCFG_CACHE_BUF);
+
+  if (buf == NULL) { hc_fclose (&fp); return false; }
+
+  u32 at  = 0;
+  u32 len = 0;
+
+  paw64_ctx_t sum;
+
+  paw64_init (&sum, 0);
+
+  for (u32 i = 0; i < pg->structs_cnt; i++)
+  {
+    pcfg_struct_t *s = &pg->structs[i];
+
+    const u32 span = pg->costmax - s->cost + 1;
+
+    s->usuf = (u64 *) hccalloc (span, sizeof (u64));
+
+    // What was read is given back before saying no, or the sweep would allocate over it.
+
+    bool row = (s->usuf != NULL);
+
+    // Topped up whenever less than one row's reserve is left, rather than at every byte.
+
+    if ((row == true) && ((len - at) < PCFG_CACHE_ROW))
+    {
+      memmove (buf, buf + at, len - at);
+
+      len -= at;
+      at   = 0;
+
+      const size_t got = hc_fread (buf + len, 1, PCFG_CACHE_BUF - len, &fp);
+
+      if (got != (size_t) -1)
+      {
+        paw64_update (&sum, buf + len, got);
+
+        len += (u32) got;
+      }
+    }
+
+    if ((row == true) && (at < len))
+    {
+      // A span reaches PCFG_SPANCAP, so neither the count nor a position fits in a byte. Both are
+      // varints, and a truncated one is what cache_varint () refuses.
+
+      u64 cnt = 0;
+
+      // Not a break: this sits in an if, so it would leave the structure loop and skip the row
+      // check below. cnt stays zero, so the loop under it runs no times and the check is reached.
+
+      if (cache_varint (buf, &at, len, &cnt) == false) row = false;
+
+      for (u64 k = 0; (k < cnt) && (row == true); k++)
+      {
+        u64 r = 0;
+
+        if (cache_varint (buf, &at, len, &r) == false) { row = false; break; }
+
+        if (r >= span) { row = false; break; }
+
+        u64 v = 0;
+
+        if (cache_varint (buf, &at, len, &v) == false) { row = false; break; }
+
+        s->usuf[r] = v;
+      }
+    }
+    else
+    {
+      row = false;
+    }
+
+    if (row == false)
+    {
+      hcfree (buf);
+
+      hc_fclose (&fp);
+
+      unit_suffix_free (pg);
+
+      return false;
+    }
+
+    s->udev = NULL;
+  }
+
+  hcfree (buf);
+
+  hc_fclose (&fp);
+
+  // Checked last, so a bad file costs the reading of it and no row is believed on shape alone.
+
+  if (paw64_final (&sum) != have.sum)
+  {
+    unit_suffix_free (pg);
+
+    return false;
+  }
+
+  return true;
+}
+
+static void pcfg_cache_save (const generic_global_ctx_t *global_ctx, const pcfg_global_t *pg)
+{
+  char *path = pcfg_cache_path (global_ctx, pg, true);
+
+  if (path == NULL) return;
+
+  // Written beside the name and moved onto it, so a run that dies leaves no file the next would
+  // trust. The temporary carries the process, or two runs on one ruleset write the same one over
+  // each other.
+
+  char *tmp = NULL;
+
+  hc_asprintf (&tmp, "%s.%d.tmp", path, (int) getpid ());
+
+  if (tmp == NULL) { hcfree (path); return; }
+
+  HCFILE fp;
+
+  if (hc_fopen_raw (&fp, tmp, "wb") == false) { hcfree (tmp); hcfree (path); return; }
+
+  pcfg_cache_head_t h;
+
+  pcfg_cache_head (pg, &h, pcfg_cache_bytes (pg));
+
+  // Written once to hold the place and again at the end, because the sum is only known then.
+
+  bool ok = (hc_fwrite (&h, sizeof (h), 1, &fp) == 1);
+
+  paw64_ctx_t sum;
+
+  paw64_init (&sum, 0);
+
+  // A row is nearly all zeros and the counts are mostly small, so what goes down is how many a row
+  // has and then each as a position and a value in the bytes it needs, rather than the row whole.
+
+  u8 *buf = (u8 *) hcmalloc (PCFG_CACHE_BUF);
+
+  if (buf == NULL) { hc_fclose (&fp); unlink (tmp); hcfree (tmp); hcfree (path); return; }
+
+  u32 at = 0;
+
+  for (u32 i = 0; (i < pg->structs_cnt) && (ok == true); i++)
+  {
+    const pcfg_struct_t *s = &pg->structs[i];
+
+    const u32 span = pg->costmax - s->cost + 1;
+
+    if (s->usuf == NULL) { ok = false; break; }
+
+    u32 cnt = 0;
+
+    for (u32 r = 0; r < span; r++) if (s->usuf[r] != 0) cnt++;
+
+    // A row cannot reach the reserve kept here: PCFG_CACHE_ROW is a whole span of positions and
+    // values at their widest.
+
+    if ((at + PCFG_CACHE_ROW) > PCFG_CACHE_BUF)
+    {
+      ok = (hc_fwrite (buf, 1, at, &fp) == at);
+
+      paw64_update (&sum, buf, at);
+
+      at = 0;
+    }
+
+    at += cache_putvar (buf + at, cnt);
+
+    for (u32 r = 0; r < span; r++)
+    {
+      const u64 v = s->usuf[r];
+
+      if (v == 0) continue;
+
+      at += cache_putvar (buf + at, r);
+      at += cache_putvar (buf + at, v);
+    }
+  }
+
+  if ((ok == true) && (at > 0))
+  {
+    ok = (hc_fwrite (buf, 1, at, &fp) == at);
+
+    paw64_update (&sum, buf, at);
+  }
+
+  hcfree (buf);
+
+  if (ok == true)
+  {
+    h.sum = paw64_final (&sum);
+
+    ok = (hc_fseek (&fp, 0, SEEK_SET) == 0) && (hc_fwrite (&h, sizeof (h), 1, &fp) == 1);
+  }
+
+  hc_fclose (&fp);
+
+  // unlink first: rename refuses an existing target on Windows.
+
+  if (ok == true)
+  {
+    unlink (path);
+
+    if (rename (tmp, path) != 0) unlink (tmp);
+  }
+  else
+  {
+    unlink (tmp);
+  }
+
+  hcfree (tmp);
+  hcfree (path);
+}
+
 // Building the suffix arrays is the most expensive thing the device engine does at startup, so what
 // a call leaves behind is kept rather than thrown away. The next call frees it, and a caller that
 // wants the pair already in hand skips the work entirely.
 
-static void unit_suffix_build (pcfg_global_t *pg)
+static void unit_suffix_build (const generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 {
   if ((pg->built == true) && (pg->built_maxword == pg->maxword) && (pg->built_kbits == pg->kbits)) return;
 
-  unit_suffix_free (pg);
-
   for (u32 i = 0; i < pg->structs_cnt; i++) choose_cut (pg, &pg->structs[i]);
 
+  hc_timer_t t_us;
+
+  hc_timer_set (&t_us);
+
+  // Only the final build is cached. probe_n is zero for a grammar too small to be sampled, so it
+  // cannot tell a probe round from the build that follows it. probing does.
+
+  const bool cacheable = (pg->probing == false);
+
+  char display[32];
+
+  if ((cacheable == true) && (pcfg_cache_load (global_ctx, pg) == true))
+  {
+    if (global_ctx->quiet == false) pmsg (pg, "pcfg: unit tables read from cache in %s", pcfg_duration ((hc_timer_get (t_us) / 1000.0), display, sizeof (display)));
+
+    pg->built         = true;
+    pg->built_maxword = pg->maxword;
+    pg->built_kbits   = pg->kbits;
+    pg->cache_hit     = true;
+
+    return;
+  }
+
+  // The cache had nothing, but a grammar too small to be sampled comes here with the tables the last
+  // probe round left, and those already cover every structure at this maxword and kbits. Building
+  // them again would produce the same numbers.
+
+  if (pg->tables_final == true)
+  {
+    pg->built         = true;
+    pg->built_maxword = pg->maxword;
+    pg->built_kbits   = pg->kbits;
+    pg->cache_hit     = false;
+
+    return;
+  }
+
+  unit_suffix_free (pg);
+
+  // The count named is what the sweep will walk, not the whole grammar the probe is sampling.
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: building unit tables for %u structures, maxword %u, kbits %u", (pg->probe_n != 0) ? pg->probe_n : pg->structs_cnt, pg->maxword, pg->kbits);
+
   structs_sweep (pg, build_unit_suffix);
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: unit tables built in %s", pcfg_duration ((hc_timer_get (t_us) / 1000.0), display, sizeof (display)));
+
+  pg->cache_hit = false;
 
   pg->built         = true;
   pg->built_maxword = pg->maxword;
   pg->built_kbits   = pg->kbits;
 }
 
-static u64 cut_and_count (pcfg_global_t *pg, const u32 maxword, const u32 kbits)
+static u64 cut_and_count (const generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const u32 maxword, const u32 kbits)
 {
   pg->maxword = maxword;
   pg->maxbyte = (maxword * 4) - 1;
@@ -4615,13 +6027,103 @@ static u64 cut_and_count (pcfg_global_t *pg, const u32 maxword, const u32 kbits)
   pg->kbits  = kbits;
   pg->il_cnt = (u32) 1 << kbits;
 
-  unit_suffix_build (pg);
+  unit_suffix_build (global_ctx, pg);
 
   const u64 units = count_units (pg);
 
   pg->front_rect = front_rect (pg, PCFG_FRONT_UNITS);
 
   return units;
+}
+
+// One level of the device index. A level is answered without looking at any other, so the levels
+// are taken in parallel and only the running total across them is left to a second pass.
+
+typedef struct
+{
+  pcfg_global_t *pg;
+
+  hc_thread_mutex_t mux;
+
+  u32 next;
+
+  u64 *acc;
+
+} pcfg_lvl_t;
+
+static void lvl_one (pcfg_global_t *pg, const u32 li, u64 *acc_out)
+{
+  const u32 c = pg->lvl_cost[li];
+
+  pg->ulvl_cost[li] = c;
+
+  u32 n = 0;
+
+  for (u32 i = 0; i < pg->structs_cnt; i++)
+  {
+    const pcfg_struct_t *s = &pg->structs[i];
+
+    if (c < s->cost || c > s->cmax) continue;
+    if (s->usuf == NULL)            continue;
+    if (s->usuf[c - s->cost] == 0)  continue;
+
+    n++;
+  }
+
+  pg->uls_struct[li] = (u32 *) hcmalloc (n * sizeof (u32));
+  pg->uls_pref[li]   = (u64 *) hcmalloc (n * sizeof (u64));
+  pg->uls_cnt[li]    = n;
+
+  u32 k = 0;
+  u64 acc = 0;
+
+  for (u32 i = 0; i < pg->structs_cnt; i++)
+  {
+    const pcfg_struct_t *s = &pg->structs[i];
+
+    if (c < s->cost || c > s->cmax) continue;
+
+    if (s->usuf == NULL) continue;
+
+    const u64 w = s->usuf[c - s->cost];
+
+    if (w == 0) continue;
+
+    pg->uls_struct[li][k] = i;
+    pg->uls_pref[li][k]   = acc;
+
+    acc = sat_add (acc, w);
+
+    k++;
+  }
+
+  acc_out[0] = acc;
+}
+
+#if defined (_WIN)
+static HC_API_CALL DWORD lvl_worker (void *arg)
+#else
+static HC_API_CALL void *lvl_worker (void *arg)
+#endif
+{
+  pcfg_lvl_t *lw = (pcfg_lvl_t *) arg;
+
+  pcfg_global_t *pg = lw->pg;
+
+  while (true)
+  {
+    hc_thread_mutex_lock (lw->mux);
+
+    const u32 li = lw->next++;
+
+    hc_thread_mutex_unlock (lw->mux);
+
+    if (li >= pg->ulvl_cnt) break;
+
+    lvl_one (pg, li, &lw->acc[li]);
+  }
+
+  return 0;
 }
 
 static void build_unit_index (pcfg_global_t *pg)
@@ -4635,56 +6137,51 @@ static void build_unit_index (pcfg_global_t *pg)
   pg->uls_pref   = (u64 **) hcmalloc (pg->ulvl_cnt * sizeof (u64 *));
   pg->uls_cnt    = (u32 *)  hcmalloc (pg->ulvl_cnt * sizeof (u32));
 
-  u64 run = 0;
+  // Two per level: the base words the level holds, and the candidates they come to.
+
+  u64 *acc = (u64 *) hccalloc ((size_t) pg->ulvl_cnt, sizeof (u64));
+
+  u32 nworker = pcfg_workers ();
+
+  if (nworker > pg->ulvl_cnt) nworker = pg->ulvl_cnt;
+
+  pcfg_lvl_t lw;
+
+  lw.pg   = pg;
+  lw.next = 0;
+  lw.acc  = acc;
+
+  hc_thread_mutex_init (lw.mux);
+
+  hc_thread_t worker[PCFG_BUILD_MAXW];
+
+  u32 live = 0;
+
+  for (u32 i = 0; i < nworker; i++)
+  {
+    if (hc_thread_create_ok (worker[live], lvl_worker, &lw) == true) live++;
+  }
+
+  lvl_worker (&lw);
+
+  for (u32 i = 0; i < live; i++) hc_thread_join (worker[i]);
+
+  hc_thread_mutex_delete (lw.mux);
+
+  // The running total across the levels, which is the only part a level cannot work out on its own.
+
+  u64 run  = 0;
 
   for (u32 li = 0; li < pg->ulvl_cnt; li++)
   {
-    const u32 c = pg->lvl_cost[li];
+    pg->ulvl_pref[li]  = run;
 
-    pg->ulvl_cost[li] = c;
-    pg->ulvl_pref[li] = run;
-
-    u32 n = 0;
-
-    for (u32 i = 0; i < pg->structs_cnt; i++)
-    {
-      const pcfg_struct_t *s = &pg->structs[i];
-
-      if (c < s->cost || c > s->cmax) continue;
-      if (s->usuf[c - s->cost] == 0)  continue;
-
-      n++;
-    }
-
-    pg->uls_struct[li] = (u32 *) hcmalloc (n * sizeof (u32));
-    pg->uls_pref[li]   = (u64 *) hcmalloc (n * sizeof (u64));
-    pg->uls_cnt[li]    = n;
-
-    u32 k = 0;
-    u64 acc = 0;
-
-    for (u32 i = 0; i < pg->structs_cnt; i++)
-    {
-      const pcfg_struct_t *s = &pg->structs[i];
-
-      if (c < s->cost || c > s->cmax) continue;
-
-      const u64 w = s->usuf[c - s->cost];
-
-      if (w == 0) continue;
-
-      pg->uls_struct[li][k] = i;
-      pg->uls_pref[li][k]   = acc;
-
-      acc = sat_add (acc, w);
-
-      k++;
-    }
-
-    run = sat_add (run, acc);
+    run = sat_add (run, acc[li]);
   }
 
-  pg->ulvl_pref[pg->ulvl_cnt] = run;
+  hcfree (acc);
+
+  pg->ulvl_pref[pg->ulvl_cnt]  = run;
   pg->units = run;
 }
 
@@ -4708,59 +6205,12 @@ static u32 fcap_behind (const u32 fcap, const u32 bl)
   return fcap - bl;
 }
 
-static bool unrank_unit (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
+// Placing the tokens of a structure from one slot onward. The chain records what each token took,
+// so the walk can be picked up again: unrank_unit () enters at the first slot with the whole rank,
+// and the carry in advance_unit () enters part way down with a rank of zero.
+
+static bool place_from (pcfg_global_t *pg, pcfg_thread_t *th, const pcfg_struct_t *s, const u64 *urw_u, const u64 *urw_d, const u32 span, const u32 nb, u32 j, u32 r, u32 bcap, u32 fcap, bool devmode, u64 n, u32 ba0, u32 bm0)
 {
-  if (n >= pg->units) return false;
-
-  u32 lo = 0;
-  u32 hi = pg->ulvl_cnt - 1;
-
-  while (lo < hi)
-  {
-    const u32 mid = (lo + hi + 1) / 2;
-
-    if (pg->ulvl_pref[mid] <= n) lo = mid; else hi = mid - 1;
-  }
-
-  const u32 li = lo;
-  const u32 c  = pg->ulvl_cost[li];
-
-  n -= pg->ulvl_pref[li];
-
-  const u32 *ss = pg->uls_struct[li];
-  const u64 *sp = pg->uls_pref[li];
-
-  lo = 0;
-  hi = pg->uls_cnt[li] - 1;
-
-  while (lo < hi)
-  {
-    const u32 mid = (lo + hi + 1) / 2;
-
-    if (sp[mid] <= n) lo = mid; else hi = mid - 1;
-  }
-
-  const u32 si = ss[lo];
-
-  n -= sp[lo];
-
-  pcfg_struct_t *s = &pg->structs[si];
-
-  const u32 span = pg->costmax - s->cost + 1;
-  const u32 nb   = pg->kbits + 1;
-
-  u32 r = c - s->cost;
-
-  bool devmode = false;
-
-  u32 bcap = pg->kbits;
-  u32 fcap = PCFG_NOFCAP;
-
-  th->devstart = s->nslot;
-  th->tcnt     = 0;
-
-  u32 j = 0;
-
   while (j < s->nslot)
   {
     const u32 len = token_len (s, j);
@@ -4778,18 +6228,18 @@ static bool unrank_unit (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
     const pcfg_tlist_t *ta = &pg->lists[s->list[j]];
     const pcfg_tlist_t *tm = (len == 2) ? &pg->lists[s->list[j + 1]] : NULL;
 
-    const u64 *tsrc = s->usuf + (size_t) nxt * span;
-    const u64 *dsrc = s->udev + (size_t) nxt * span * nb;
+    const u64 *tsrc = urw_u + (size_t) nxt * span;
+    const u64 *dsrc = urw_d + (size_t) nxt * span * nb;
 
     const bool may = (j >= s->cut);
 
     bool placed = false;
 
-    for (u32 ba = 0; ba < ta->nb && placed == false; ba++)
+    for (u32 ba = ba0; ba < ta->nb && placed == false; ba++)
     {
       const u32 nbm = (len == 2) ? tm->nb : 1;
 
-      for (u32 bm = 0; bm < nbm; bm++)
+      for (u32 bm = (ba == ba0) ? bm0 : 0; bm < nbm; bm++)
       {
         const u32 cb = ta->b_cost[ba] + ((len == 2) ? tm->b_cost[bm] : 0);
 
@@ -4852,6 +6302,8 @@ static bool unrank_unit (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
           devmode = true;
 
           th->devstart = j;
+
+          th->tdblk[ti] = dblk;
         }
 
         th->tdev[ti] = devmode;
@@ -4896,8 +6348,74 @@ static bool unrank_unit (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
 
     if (placed == false) return false;
 
+    // Only the token the carry re-entered on starts part way along its buckets.
+
+    ba0 = 0;
+    bm0 = 0;
+
     j = nxt;
   }
+
+  return true;
+}
+
+static bool unrank_unit (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
+{
+  if (n >= pg->units) return false;
+
+  u32 lo = 0;
+  u32 hi = pg->ulvl_cnt - 1;
+
+  while (lo < hi)
+  {
+    const u32 mid = (lo + hi + 1) / 2;
+
+    if (pg->ulvl_pref[mid] <= n) lo = mid; else hi = mid - 1;
+  }
+
+  const u32 li = lo;
+  const u32 c  = pg->ulvl_cost[li];
+
+  n -= pg->ulvl_pref[li];
+
+  const u32 *ss = pg->uls_struct[li];
+  const u64 *sp = pg->uls_pref[li];
+
+  lo = 0;
+  hi = pg->uls_cnt[li] - 1;
+
+  while (lo < hi)
+  {
+    const u32 mid = (lo + hi + 1) / 2;
+
+    if (sp[mid] <= n) lo = mid; else hi = mid - 1;
+  }
+
+  const u32 si = ss[lo];
+
+  n -= sp[lo];
+
+  pcfg_struct_t *s = &pg->structs[si];
+
+  const u32 span = pg->costmax - s->cost + 1;
+  const u32 nb   = pg->kbits + 1;
+
+  const u32 r = c - s->cost;
+
+  const bool devmode = false;
+
+  const u32 bcap = pg->kbits;
+  const u32 fcap = PCFG_NOFCAP;
+
+  th->devstart = s->nslot;
+  th->tcnt     = 0;
+
+  if (unit_rows (pg, si, &th->urows_u, &th->urows_d, &th->urows_cap, &th->urows_capnb, &th->urows_si) == false) return false;
+
+  const u64 *urw_u = th->urows_u;
+  const u64 *urw_d = th->urows_d;
+
+  if (place_from (pg, th, s, urw_u, urw_d, span, nb, 0, r, bcap, fcap, devmode, n, 0, 0) == false) return false;
 
   th->si    = si;
   th->cost  = c;
@@ -4944,7 +6462,7 @@ static bool unrank_unit (pcfg_global_t *pg, u64 n, pcfg_thread_t *th)
 // its own uls_struct, structures only, filtered on s->usuf (4623-4643). The level search does carry
 // over, because build_unit_index () copies lvl_cost into ulvl_cost one for one (4592, 4604).
 
-static bool pcfg_rank_unit (const pcfg_global_t *pg, const u32 si, const u32 *idx, u64 *out_unit)
+static bool rank_unit_walk (const pcfg_global_t *pg, const u32 si, const u32 *idx, u64 *out_unit, const u64 *urw_u, const u64 *urw_d)
 {
   if (si >= pg->structs_cnt) return false;
 
@@ -4955,7 +6473,6 @@ static bool pcfg_rank_unit (const pcfg_global_t *pg, const u32 si, const u32 *id
   const pcfg_struct_t *s = &pg->structs[si];
 
   if (s->usuf == NULL) return false;
-  if (s->udev == NULL) return false;
 
   // The bucket every slot picked, the cost that makes, and where the tokens start.
 
@@ -5064,8 +6581,8 @@ static bool pcfg_rank_unit (const pcfg_global_t *pg, const u32 si, const u32 *id
     const pcfg_tlist_t *ta = &pg->lists[s->list[j]];
     const pcfg_tlist_t *tm = (len == 2) ? &pg->lists[s->list[j + 1]] : NULL;
 
-    const u64 *tsrc = s->usuf + (size_t) nxt * span;
-    const u64 *dsrc = s->udev + (size_t) nxt * span * nb;
+    const u64 *tsrc = urw_u + (size_t) nxt * span;
+    const u64 *dsrc = urw_d + (size_t) nxt * span * nb;
 
     const bool may = (j >= s->cut);
 
@@ -5204,51 +6721,138 @@ static bool pcfg_rank_unit (const pcfg_global_t *pg, const u32 si, const u32 *id
   return true;
 }
 
+// Built and let go here, so the walk can leave by any of its many exits. Not the hot path.
+
+static bool pcfg_rank_unit (const pcfg_global_t *pg, const u32 si, const u32 *idx, u64 *out_unit)
+{
+  u64 *urw_u = NULL;
+  u64 *urw_d = NULL;
+  u32  ucap  = 0;
+  u32  ucapn = 0;
+  u32  usi   = 0xffffffff;
+
+  // unit_scratch () takes the two in turn, so one can be live when it reports failure.
+
+  if (unit_rows (pg, si, &urw_u, &urw_d, &ucap, &ucapn, &usi) == false)
+  {
+    hcfree (urw_u);
+    hcfree (urw_d);
+
+    return false;
+  }
+
+  const bool ok = rank_unit_walk (pg, si, idx, out_unit, urw_u, urw_d);
+
+  hcfree (urw_u);
+  hcfree (urw_d);
+
+  return ok;
+}
+
+// Moving the walk on by one without unranking it again: the last token that can move is stepped and
+// everything behind it is laid out afresh. Without the carry almost every candidate on the device
+// engine would be unranked from the start, because its last token seldom has a successor that fits.
+
 static bool advance_unit (pcfg_global_t *pg, pcfg_thread_t *th)
 {
   if (th->tcnt == 0) return false;
 
   const pcfg_struct_t *s = &pg->structs[th->si];
 
-  const u32 ti = th->tcnt - 1;
-  const u32 j  = th->tslot[ti];
+  const u32 span = pg->costmax - s->cost + 1;
+  const u32 nb   = pg->kbits + 1;
 
-  const u32 len = token_len (s, j);
+  if (unit_rows (pg, th->si, &th->urows_u, &th->urows_d, &th->urows_cap, &th->urows_capnb, &th->urows_si) == false) return false;
 
-  const pcfg_tlist_t *ta = &pg->lists[s->list[j]];
-  const pcfg_tlist_t *tm = (len == 2) ? &pg->lists[s->list[j + 1]] : NULL;
+  const u64 *urw_u = th->urows_u;
+  const u64 *urw_d = th->urows_d;
 
-  const u32 mcnt = (len == 2) ? tm->b_cnt[th->tbm[ti]] : 1;
-
-  if (th->tdev[ti] == false)
+  for (u32 ti = th->tcnt; ti-- > 0; )
   {
-    const u64 prod = sat_mul (ta->b_cnt[th->tba[ti]], mcnt);
+    const u32 j   = th->tslot[ti];
+    const u32 len = token_len (s, j);
+    const u32 nxt = j + len;
 
-    if ((th->te[ti] + 1) < prod)
+    const pcfg_tlist_t *ta = &pg->lists[s->list[j]];
+    const pcfg_tlist_t *tm = (len == 2) ? &pg->lists[s->list[j + 1]] : NULL;
+
+    const u32 rem  = th->trem[ti];
+    const u32 cap  = th->tcap[ti];
+    const u32 fcap = th->tfcap[ti];
+
+    // devmode never closes once open, so this token was placed under what the one before it was
+    // left in.
+
+    const bool dm_in = (ti > 0) ? th->tdev[ti - 1] : false;
+
+    // The next terminal inside the bucket the token took is the cheapest move there is.
+
+    if (th->tdev[ti] == false)
     {
-      th->te[ti]++;
+      const u32 ba = th->tba[ti];
+      const u32 bm = th->tbm[ti];
 
-      const u64 e = th->te[ti];
+      const u32 mcnt = (len == 2) ? tm->b_cnt[bm] : 1;
 
-      th->idx[j] = ta->b_start[th->tba[ti]] + (u32) (e / mcnt);
+      const u64 prod = sat_mul (ta->b_cnt[ba], mcnt);
 
-      if (len == 2) th->idx[j + 1] = tm->b_start[th->tbm[ti]] + (u32) (e % mcnt);
+      if ((th->te[ti] + 1) < prod)
+      {
+        th->te[ti]++;
 
-      return true;
+        const u64 e = th->te[ti];
+
+        th->idx[j] = ta->b_start[ba] + (u32) (e / mcnt);
+
+        if (len == 2) th->idx[j + 1] = tm->b_start[bm] + (u32) (e % mcnt);
+
+        if (nxt >= s->nslot) return true;
+
+        // What the tokens behind this one were placed under. The terminal that moved does not
+        // change any of it: the bucket is the same, so the budget it takes and the room it leaves
+        // are too.
+
+        const u32 cb = ta->b_cost[ba] + ((len == 2) ? tm->b_cost[bm] : 0);
+
+        bool uni = bucket_uni (pg, ta, ba);
+
+        if (len == 2) uni = uni && bucket_uni (pg, tm, bm);
+
+        const u32 bl = bitlen (prod);
+
+        const bool may = (j >= s->cut);
+
+        const bool dev = (may == true) && (uni == true) && (bl <= cap);
+
+        th->tcnt     = ti + 1;
+        th->devstart = s->nslot;
+
+        const u32 nfcap = (dev == true) ? (pg->kbits - bl) : PCFG_NOFCAP;
+
+        return place_from (pg, th, s, urw_u, urw_d, span, nb, nxt, rem - cb, cap, nfcap, false, 0, 0, 0);
+      }
     }
 
-    return false;
-  }
+    // A bucket that folds holds the device partitions first and the host entries behind them, and
+    // the token that opened devmode sits in the first of the two. When those are spent the host half
+    // of the same bucket comes next, at the rank it begins at and with devmode closed. Only after
+    // that does the bucket itself move on. Without this the host half is never enumerated and the
+    // cells already emitted are emitted again.
 
-  const u32 rem  = th->trem[ti];
-  const u32 cap  = th->tcap[ti];
-  const u32 fcap = th->tfcap[ti];
+    if ((th->tdev[ti] == true) && (dm_in == false))
+    {
+      th->tcnt     = ti;
+      th->devstart = s->nslot;
 
-  u32 ba = th->tba[ti];
-  u32 bm = th->tbm[ti];
+      if (place_from (pg, th, s, urw_u, urw_d, span, nb, j, rem, cap, fcap, false, th->tdblk[ti], th->tba[ti], th->tbm[ti]) == true) return true;
+    }
 
-  for (;;)
-  {
+    // The terminals are spent, so the token takes its next bucket: the same search place_from ()
+    // makes, started one bucket further along.
+
+    u32 ba = th->tba[ti];
+    u32 bm = th->tbm[ti];
+
     if (len == 2)
     {
       bm++;
@@ -5260,40 +6864,19 @@ static bool advance_unit (pcfg_global_t *pg, pcfg_thread_t *th)
       ba++;
     }
 
-    if (ba >= ta->nb) return false;
-
-    const u32 cb = ta->b_cost[ba] + ((len == 2) ? tm->b_cost[bm] : 0);
-
-    if (cb != rem) continue;
-
-    if (bucket_uni (pg, ta, ba) == false) return false;
-
-    if (len == 2)
+    if (ba < ta->nb)
     {
-      if (bucket_uni (pg, tm, bm) == false) return false;
+      th->tcnt = ti;
+
+      if (dm_in == false) th->devstart = s->nslot;
+
+      if (place_from (pg, th, s, urw_u, urw_d, span, nb, j, rem, cap, fcap, dm_in, 0, ba, bm) == true) return true;
     }
 
-    const u64 prod = sat_mul (ta->b_cnt[ba], (len == 2) ? tm->b_cnt[bm] : 1);
-
-    const u32 bl = bitlen (prod);
-
-    if (bl > cap) return false;
-
-    if ((fcap != PCFG_NOFCAP) && (bl <= fcap)) continue;
-
-    th->tba[ti] = ba;
-    th->tbm[ti] = bm;
-
-    th->buck[j] = ba;
-
-    if (len == 2) th->buck[j + 1] = bm;
-
-    th->idx[j] = ta->b_start[ba];
-
-    if (len == 2) th->idx[j + 1] = tm->b_start[bm];
-
-    return true;
+    // Nothing left here either, so carry into the token before it.
   }
+
+  return false;
 }
 
 static int unit_emit (pcfg_global_t *pg, pcfg_thread_t *th, u8 *out_buf, const int out_size, pcfg_cell_t *cell)
@@ -5442,8 +7025,8 @@ typedef struct pcfg_pf
 {
   pcfg_global_t *pg;
 
-  pcfg_mux_t mux;
-  pcfg_cv_t  cv;
+  hc_thread_mutex_t mux;
+  hc_thread_cond_t  cv;
 
   u64  assign;
   u64  take;
@@ -5455,8 +7038,8 @@ typedef struct pcfg_pf
 
   u32 slots;
 
-  u32       nworker;
-  pcfg_os_thread_t worker[PCFG_PF_MAXW];
+  u32         nworker;
+  hc_thread_t worker[PCFG_PF_MAXW];
 
   bool amp;
 
@@ -5465,7 +7048,11 @@ typedef struct pcfg_pf
 
 } pcfg_pf_t;
 
-static pcfg_thread_ret pf_worker (void *arg)
+#if defined (_WIN)
+static HC_API_CALL DWORD pf_worker (void *arg)
+#else
+static HC_API_CALL void *pf_worker (void *arg)
+#endif
 {
   pcfg_pf_t *pf = (pcfg_pf_t *) arg;
 
@@ -5474,7 +7061,7 @@ static pcfg_thread_ret pf_worker (void *arg)
 
   pcfg_thread_t *th = (pcfg_thread_t *) hccalloc (1, sizeof (pcfg_thread_t));
 
-  pcfg_mux_lock (&pf->mux);
+  hc_thread_mutex_lock (pf->mux);
 
   while (pf->stop == false)
   {
@@ -5484,7 +7071,7 @@ static pcfg_thread_ret pf_worker (void *arg)
 
     if (sl->state != PCFG_PF_EMPTY)
     {
-      pcfg_cv_wait (&pf->cv, &pf->mux);
+      hc_thread_cond_wait (pf->cv, pf->mux);
 
       continue;
     }
@@ -5497,7 +7084,7 @@ static pcfg_thread_ret pf_worker (void *arg)
     sl->seq   = seq;
     sl->gen   = gen;
 
-    pcfg_mux_unlock (&pf->mux);
+    hc_thread_mutex_unlock (pf->mux);
 
     th->pos   = pos;
     th->valid = false;
@@ -5525,25 +7112,27 @@ static pcfg_thread_ret pf_worker (void *arg)
       used += (len < PCFG_PF_WLEN) ? (u32) len : PCFG_PF_WLEN;
     }
 
-    pcfg_mux_lock (&pf->mux);
+    hc_thread_mutex_lock (pf->mux);
 
     sl->cnt = n;
 
     sl->state = (sl->gen == pf->gen) ? PCFG_PF_READY : PCFG_PF_EMPTY;
 
-    pcfg_cv_broadcast (&pf->cv);
+    hc_thread_cond_broadcast (pf->cv);
   }
 
-  pcfg_mux_unlock (&pf->mux);
+  hc_thread_mutex_unlock (pf->mux);
+
+  thread_scratch_free (th);
 
   hcfree (th);
 
-  return pcfg_thread_done;
+  return 0;
 }
 
 static void pf_reset (pcfg_pf_t *pf, const u64 pos)
 {
-  pcfg_mux_lock (&pf->mux);
+  hc_thread_mutex_lock (pf->mux);
 
   if (pf->held >= 0)
   {
@@ -5562,8 +7151,8 @@ static void pf_reset (pcfg_pf_t *pf, const u64 pos)
   pf->assign = 0;
   pf->take   = 0;
 
-  pcfg_cv_broadcast (&pf->cv);
-  pcfg_mux_unlock (&pf->mux);
+  hc_thread_cond_broadcast (pf->cv);
+  hc_thread_mutex_unlock (pf->mux);
 }
 
 static bool pcfg_pf_early (void)
@@ -5597,8 +7186,8 @@ static pcfg_pf_t *pf_start (pcfg_global_t *pg, const u32 nworker, const bool amp
   if (pf->slots < nworker + 1)     pf->slots = nworker + 1;
   if (pf->slots > PCFG_PF_SLOTS_MAX) pf->slots = PCFG_PF_SLOTS_MAX;
 
-  pcfg_mux_init (&pf->mux);
-  pcfg_cv_init  (&pf->cv);
+  hc_thread_mutex_init (pf->mux);
+  hc_thread_cond_init (pf->cv);
 
   for (u32 i = 0; i < pf->slots; i++)
   {
@@ -5616,9 +7205,7 @@ static pcfg_pf_t *pf_start (pcfg_global_t *pg, const u32 nworker, const bool amp
 
   for (u32 i = 0; i < nworker; i++)
   {
-    if (pcfg_thread_create (pf->worker[pf->nworker], pf_worker, pf) == false) continue;
-
-    pf->nworker++;
+    if (hc_thread_create_ok (pf->worker[pf->nworker], pf_worker, pf) == true) pf->nworker++;
   }
 
   return pf;
@@ -5626,14 +7213,14 @@ static pcfg_pf_t *pf_start (pcfg_global_t *pg, const u32 nworker, const bool amp
 
 static void pf_stop (pcfg_pf_t *pf)
 {
-  pcfg_mux_lock (&pf->mux);
+  hc_thread_mutex_lock (pf->mux);
 
   pf->stop = true;
 
-  pcfg_cv_broadcast (&pf->cv);
-  pcfg_mux_unlock (&pf->mux);
+  hc_thread_cond_broadcast (pf->cv);
+  hc_thread_mutex_unlock (pf->mux);
 
-  for (u32 i = 0; i < pf->nworker; i++) pcfg_thread_join (pf->worker[i]);
+  for (u32 i = 0; i < pf->nworker; i++) hc_thread_join (pf->worker[i]);
 
   for (u32 i = 0; i < pf->slots; i++)
   {
@@ -5643,8 +7230,8 @@ static void pf_stop (pcfg_pf_t *pf)
     hcfree (pf->slot[i].cell);
   }
 
-  pcfg_mux_destroy (&pf->mux);
-  pcfg_cv_destroy  (&pf->cv);
+  hc_thread_mutex_delete (pf->mux);
+  hc_thread_cond_delete (pf->cv);
 
   hcfree (pf);
 }
@@ -5653,34 +7240,34 @@ static int pf_next (pcfg_pf_t *pf, u8 *out_buf, const int out_size, pcfg_cell_t 
 {
   if (pf->held < 0)
   {
-    pcfg_mux_lock (&pf->mux);
+    hc_thread_mutex_lock (pf->mux);
 
     const u32 si = (u32) (pf->take % pf->slots);
 
     while ((pf->slot[si].state != PCFG_PF_READY) || (pf->slot[si].seq != pf->take))
     {
-      pcfg_cv_wait (&pf->cv, &pf->mux);
+      hc_thread_cond_wait (pf->cv, pf->mux);
     }
 
     pf->held    = (int) si;
     pf->held_at = 0;
 
-    pcfg_mux_unlock (&pf->mux);
+    hc_thread_mutex_unlock (pf->mux);
   }
 
   pcfg_pf_slot_t *sl = &pf->slot[pf->held];
 
   if (pf->held_at >= sl->cnt)
   {
-    pcfg_mux_lock (&pf->mux);
+    hc_thread_mutex_lock (pf->mux);
 
     sl->state = PCFG_PF_EMPTY;
 
     pf->held = -1;
     pf->take++;
 
-    pcfg_cv_broadcast (&pf->cv);
-    pcfg_mux_unlock (&pf->mux);
+    hc_thread_cond_broadcast (pf->cv);
+    hc_thread_mutex_unlock (pf->mux);
 
     return pf_next (pf, out_buf, out_size, cell, pos);
   }
@@ -5886,7 +7473,7 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
   const bool dev = global_ctx->dev_enable;
 
-  pmsg (pg, "lookup: '%s'", pg->lookup);
+  event_log_info (pg->hcctx, "lookup: '%s'", pg->lookup);
 
   // A candidate is bytes, and a grammar trained on real passwords derives words no shell can pass.
   // $HEX[...] is how the potfile and --show write such a word, and how -a 0 and -a 3 already take
@@ -5907,7 +7494,7 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
   {
     if (((arg_len - 6) / 2) > PW_MAX)
     {
-      pmsg (pg, "lookup: that decodes to more than %d bytes, which is longer than any candidate", PW_MAX);
+      event_log_info (pg->hcctx, "lookup: that decodes to more than %d bytes, which is longer than any candidate", PW_MAX);
 
       return;
     }
@@ -5918,7 +7505,7 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
   {
     if (arg_len > PW_MAX)
     {
-      pmsg (pg, "lookup: that is longer than %d bytes, which is longer than any candidate", PW_MAX);
+      event_log_info (pg->hcctx, "lookup: that is longer than %d bytes, which is longer than any candidate", PW_MAX);
 
       return;
     }
@@ -5943,23 +7530,23 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     if ((pg->m_lines > 0) && (pg->omen_lvl_cnt == 0))
     {
-      pmsg (pg, "lookup: no structure in this grammar derives it, so the OMEN escape is the only route to it");
+      event_log_info (pg->hcctx, "lookup: no structure in this grammar derives it, so the OMEN escape is the only route to it");
 
       if (dev == true)
       {
-        pmsg (pg, "lookup: and this run drops the escape, because the device engine cannot walk a trellis");
-        pmsg (pg, "lookup: so this attack never tries this password. no -s reaches it and no runtime finds it");
-        pmsg (pg, "lookup: -S runs the same grammar on the host engine, which carries the escape. ask again with it for the offset");
+        event_log_info (pg->hcctx, "lookup: and this run drops the escape, because the device engine cannot walk a trellis");
+        event_log_info (pg->hcctx, "lookup: so this attack never tries this password. no -s reaches it and no runtime finds it");
+        event_log_info (pg->hcctx, "lookup: -S runs the same grammar on the host engine, which carries the escape. ask again with it for the offset");
       }
       else if (pg->omen_want == false)
       {
-        pmsg (pg, "lookup: and this run drops the escape, because omen=0 was given");
-        pmsg (pg, "lookup: so this attack never tries this password. ask again without omen=0 for the offset");
+        event_log_info (pg->hcctx, "lookup: and this run drops the escape, because omen=0 was given");
+        event_log_info (pg->hcctx, "lookup: so this attack never tries this password. ask again without omen=0 for the offset");
       }
       else
       {
-        pmsg (pg, "lookup: and this run has no escape to carry, for the reason given above");
-        pmsg (pg, "lookup: so this attack never tries this password");
+        event_log_info (pg->hcctx, "lookup: and this run has no escape to carry, for the reason given above");
+        event_log_info (pg->hcctx, "lookup: so this attack never tries this password");
       }
 
       return;
@@ -5967,8 +7554,8 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     // Not derivable at all. Every structure was tried and so was the escape, where one is carried.
 
-    pmsg (pg, "lookup: not derivable. nothing in this grammar produces it, at any cost and at any -s");
-    pmsg (pg, "lookup: it needs a ruleset trained on its parts, named alongside this one to merge the two");
+    event_log_info (pg->hcctx, "lookup: not derivable. nothing in this grammar produces it, at any cost and at any -s");
+    event_log_info (pg->hcctx, "lookup: it needs a ruleset trained on its parts, named alongside this one to merge the two");
 
     return;
   }
@@ -5984,9 +7571,9 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     const u32 want = (u32) ((hit.cost + pg->scale - 1) / pg->scale);
 
-    pmsg (pg, "lookup: structure %s derives it, at cost %u, and this run stops at costmax %" PRIu64, name, hit.cost, pg->costmax);
-    pmsg (pg, "lookup: so it is past the end of the run, whatever -s and whatever the runtime");
-    pmsg (pg, "lookup: costmax=%u reaches it, and every level below it as well, which is a much larger keyspace", want);
+    event_log_info (pg->hcctx, "lookup: structure %s derives it, at cost %u, and this run stops at costmax %" PRIu64, name, hit.cost, pg->costmax);
+    event_log_info (pg->hcctx, "lookup: so it is past the end of the run, whatever -s and whatever the runtime");
+    event_log_info (pg->hcctx, "lookup: costmax=%u reaches it, and every level below it as well, which is a much larger keyspace", want);
 
     return;
   }
@@ -6000,14 +7587,14 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     lookup_slots (pg, &hit, slots, sizeof (slots));
 
-    pmsg (pg, "lookup: derived by structure %s, at cost %u of costmax %" PRIu64, name, hit.cost, pg->costmax);
-    pmsg (pg, "lookup: %s", slots);
+    event_log_info (pg->hcctx, "lookup: derived by structure %s, at cost %u of costmax %" PRIu64, name, hit.cost, pg->costmax);
+    event_log_info (pg->hcctx, "lookup: %s", slots);
   }
   else
   {
     // Case 2. No structure spells it, the escape does, and this run carries the escape.
 
-    pmsg (pg, "lookup: no structure derives it, the OMEN escape does, at level %u and cost %u of costmax %" PRIu64,
+    event_log_info (pg->hcctx, "lookup: no structure derives it, the OMEN escape does, at level %u and cost %u of costmax %" PRIu64,
       pg->omen_lvl[hit.oi].lvl, hit.cost, pg->costmax);
   }
 
@@ -6018,18 +7605,18 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
 
     if (hit.has_unit == false)
     {
-      pmsg (pg, "lookup: this run reaches it, but its base word could not be placed in the device index");
+      event_log_info (pg->hcctx, "lookup: this run reaches it, but its base word could not be placed in the device index");
 
       return;
     }
 
     const double pct = (pg->units > 0) ? ((double) hit.unit * 100.0 / (double) pg->units) : 0.0;
 
-    pmsg (pg, "lookup: base word %" PRIu64 " of %" PRIu64 ", %.4f%% into the run, which is candidate %" PRIu64 " of %" PRIu64,
+    event_log_info (pg->hcctx, "lookup: base word %" PRIu64 " of %" PRIu64 ", %.4f%% into the run, which is candidate %" PRIu64 " of %" PRIu64,
       hit.unit, pg->units, pct, hit.pos, pg->keyspace);
 
-    pmsg (pg, "lookup: this run reaches it at -s %" PRIu64 ", because the device engine counts -s in base words", hit.unit);
-    pmsg (pg, "lookup: -s %" PRIu64 " -l 1 runs the one cell that holds it", hit.unit);
+    event_log_info (pg->hcctx, "lookup: this run reaches it at -s %" PRIu64 ", because the device engine counts -s in base words", hit.unit);
+    event_log_info (pg->hcctx, "lookup: -s %" PRIu64 " -l 1 runs the one cell that holds it", hit.unit);
 
     return;
   }
@@ -6038,11 +7625,29 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
   {
     const double pct = (pg->keyspace > 0) ? ((double) hit.pos * 100.0 / (double) pg->keyspace) : 0.0;
 
-    pmsg (pg, "lookup: candidate %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", hit.pos, pg->keyspace, pct);
+    event_log_info (pg->hcctx, "lookup: candidate %" PRIu64 " of %" PRIu64 ", %.4f%% into the run", hit.pos, pg->keyspace, pct);
 
-    pmsg (pg, "lookup: this run reaches it at -s %" PRIu64 ", because the host engine counts -s in candidates", hit.pos);
-    pmsg (pg, "lookup: -s %" PRIu64 " -l 1 runs that one candidate and nothing else", hit.pos);
+    event_log_info (pg->hcctx, "lookup: this run reaches it at -s %" PRIu64 ", because the host engine counts -s in candidates", hit.pos);
+    event_log_info (pg->hcctx, "lookup: -s %" PRIu64 " -l 1 runs that one candidate and nothing else", hit.pos);
   }
+}
+
+// How many threads build base words when this run generates them here. The device engine settles
+// the count for itself further down, so this is the host engine answer, and the fallback in
+// global_dev_init () asks for it again once it knows the run is coming back here.
+
+static void pcfg_pick_workers (pcfg_global_t *pg)
+{
+  if (pg->threads != PCFG_PF_WORKERS_AUTO) return;
+
+  const int cpus = hc_get_processor_count ();
+
+  u32 want = PCFG_PF_WORKERS_PLAIN;
+
+  if ((cpus > 1) && ((u32) cpus < (want * 2))) want = (u32) (cpus / 2);
+  if (want < 1) want = 1;
+
+  pg->threads = want;
 }
 
 bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
@@ -6066,7 +7671,8 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   u64 threads = PCFG_PF_WORKERS_AUTO;
   u64 walk    = 1;
 
-  u64 omen = 1;
+  u64 omen  = 1;
+  u64 cache = 1;
 
   u64    maxword = 0;
   double maxgain = 1.5;
@@ -6081,7 +7687,8 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     { "kbits",   FEED_PARAM_TYPE_U64, &kbits,   0, PCFG_DEV_KBITS_MAX, "bits of inner loop one cell may span, 0 to pick from the ruleset" },
     { "threads", FEED_PARAM_TYPE_U64, &threads, 0, PCFG_PF_MAXW, "cores that generate base words, 0 to generate inline, unset to pick from the rectangle" },
     { "walk",    FEED_PARAM_TYPE_U64, &walk,    0, 1, "step the last token instead of unranking it where the ordering allows" },
-    { "omen",    FEED_PARAM_TYPE_U64, &omen,    0, 1, "carry the OMEN escape where the attack allows, which is every hash the device engine is off for" },
+    { "omen",    FEED_PARAM_TYPE_U64, &omen,    0, 1, "carry the OMEN escape where the attack allows, which is every hash the device engine is off for and every grammar it has no base word for" },
+    { "cache",   FEED_PARAM_TYPE_U64, &cache,   0, 1, "keep the unit tables under the cache directory, which trades disk for the longest step of the start" },
     { "maxword", FEED_PARAM_TYPE_U64, &maxword, 0, PCFG_DEV_MAXWORD_HI, "words the kernel gives a candidate, 0 to pick from the ruleset" },
     { "maxgain", FEED_PARAM_TYPE_DBL, &maxgain, 1.0, 64.0, "how much wider the rectangle must get before the larger array is taken" },
     { "weights", FEED_PARAM_TYPE_STR, &weights, 0, 0, "share of the grammar each ruleset carries, colon separated, one per ruleset" },
@@ -6111,6 +7718,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   pg->maxgain = maxgain;
   pg->walk    = (walk != 0);
   pg->omen_want = (omen != 0);
+  pg->cache_ok  = (cache != 0);
   pg->lookup    = lookup;
 
   pcfg_root_t roots[PCFG_MAXROOT];
@@ -6221,6 +7829,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     }
   }
 
+
   if ((global_ctx->quiet == false) && (nroots > 1))
   {
     char line[HCBUFSIZ_TINY];
@@ -6257,6 +7866,10 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     }
   }
 
+  hc_timer_t t_omen;
+
+  hc_timer_set (&t_omen);
+
   if (omen_load (global_ctx, pg, roots, nroots) == false)
   {
     roots_free (roots, nroots);
@@ -6264,7 +7877,47 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     return false;
   }
 
+  // The M line that let a grammar with no structures load was counted before the escape was read,
+  // so it could not tell whether the escape survives. omen=0 drops it, and so does a Grammar that
+  // names an M line beside no Omen directory, and either way nothing is left to enumerate.
+
+  if ((pg->structs_cnt == 0) && (pg->omen_lvl_cnt == 0))
+  {
+    char named[256];
+
+    roots_join (named, sizeof (named), roots, nroots);
+
+    gerr (global_ctx, "%s: nothing to enumerate, no structures and the escape is not carried", named);
+
+    roots_free (roots, nroots);
+
+    return false;
+  }
+
+  char display[32];
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: OMEN tables loaded in %s", pcfg_duration ((hc_timer_get (t_omen) / 1000.0), display, sizeof (display)));
+
+  hc_timer_t t_ix;
+
+  hc_timer_set (&t_ix);
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: building the level index");
+
   build_index (pg);
+
+  if (global_ctx->quiet == false)
+  {
+    if (pg->lvl_stop != 0)
+    {
+      pmsg (pg, "pcfg: level index built in %s, %u levels, stopped at cost %u where the counts stop fitting the order",
+        pcfg_duration ((hc_timer_get (t_ix) / 1000.0), display, sizeof (display)), pg->lvl_cnt, pg->lvl_stop);
+    }
+    else
+    {
+      pmsg (pg, "pcfg: level index built in %s, %u levels", pcfg_duration ((hc_timer_get (t_ix) / 1000.0), display, sizeof (display)), pg->lvl_cnt);
+    }
+  }
 
   // lookup= is answered here and not earlier, because it reads the grammar grammar_load () parsed,
   // the terminal lists list_get () pulled in behind it, the suffix counts build_suffix () left, the
@@ -6273,28 +7926,16 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   if ((pg->lookup != NULL) && (global_ctx->dev_enable == false)) lookup_report (global_ctx, pg);
 
-  if ((global_ctx->dev_enable == false) && (pg->threads == PCFG_PF_WORKERS_AUTO))
-  {
-    const int cpus = hc_get_processor_count ();
-
-    u32 want = PCFG_PF_WORKERS_PLAIN;
-
-    if ((cpus > 1) && ((u32) cpus < (want * 2))) want = (u32) (cpus / 2);
-    if (want < 1) want = 1;
-
-    pg->threads = want;
-  }
+  if (global_ctx->dev_enable == false) pcfg_pick_workers (pg);
 
   const char *half = "host";
 
   if (global_ctx->dev_enable  == true) half = "device";
   else if (pg->omen_lvl_cnt   >  0)    half = "host, OMEN";
 
-  char named[192];
+  roots_join (pg->named, sizeof (pg->named), roots, nroots);
 
-  roots_join (named, sizeof (named), roots, nroots);
-
-  snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", named, scale, half);
+  snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named, scale, half);
 
   roots_free (roots, nroots);
 
@@ -6316,6 +7957,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   return true;
 }
+
 
 void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
@@ -6360,6 +8002,8 @@ void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   hcfree (pg->omen);
   hcfree (pg->omen_lvl);
+
+  slots_free (pg);
 
   hcfree (pg->structs);
 
@@ -6425,6 +8069,8 @@ void thread_term (MAYBE_UNUSED generic_global_ctx_t *global_ctx, generic_thread_
   if (th != NULL)
   {
     if (th->pf != NULL) pf_stop (th->pf);
+
+    thread_scratch_free (th);
   }
 
   hcfree (thread_ctx->thrdata);
@@ -6485,12 +8131,10 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     need = (need + 3) & ~((u64) 3);
   }
 
-  if (need == 4)
-  {
-    gerr (global_ctx, "no terminals, nothing to amplify");
-
-    return false;
-  }
+  // No terminal entries at all means there is nothing for this engine to amplify, and that is the
+  // same grammar the empty index below describes: one whose mass sits on the escape. It is not
+  // refused here, because the index comes out empty and answers it the same way, so the host engine
+  // takes the run rather than the load failing.
 
   pg->ent_base = (u32 *) hccalloc (pg->lists_cnt, sizeof (u32));
 
@@ -6507,6 +8151,10 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
       need += ((u64) pg->lists[i].cnt + 1) * 4;
     }
   }
+
+  hc_timer_t t_pack;
+
+  hc_timer_set (&t_pack);
 
   pg->pool_size = need + 8;
   pg->pool      = (u32 *) hccalloc (pg->pool_size / 4, sizeof (u32));
@@ -6542,16 +8190,29 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     }
   }
 
+  char display[32];
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: device pool packed in %s, %" PRIu64 " MiB", pcfg_duration ((hc_timer_get (t_pack) / 1000.0), display, sizeof (display)), pg->pool_size / (1024 * 1024));
+
   const bool auto_maxword = (pg->maxword == 0);
   const bool auto_kbits   = (pg->kbits == 0);
+
+  // Each round of the probe rebuilds the unit tables, which on a large grammar is the most
+  // expensive thing the start does, and it runs several times. grammar.txt is most probable first,
+  // so the head ranks the configurations the way the whole would. The final build below runs on
+  // everything.
+
+  if (pg->structs_cnt > PCFG_PROBE_STRUCTS) pg->probe_n = PCFG_PROBE_STRUCTS;
+
+  pg->probing = true;
 
   if (auto_maxword == true)
   {
 
     const u32 probe = (auto_kbits == false) ? pg->kbits : PCFG_DEV_KBITS_PROBE;
 
-    const u64 lo = cut_and_count (pg, PCFG_DEV_MAXWORD_LO, probe);
-    const u64 hi = cut_and_count (pg, PCFG_DEV_MAXWORD_HI, probe);
+    const u64 lo = cut_and_count (global_ctx, pg, PCFG_DEV_MAXWORD_LO, probe);
+    const u64 hi = cut_and_count (global_ctx, pg, PCFG_DEV_MAXWORD_HI, probe);
 
     const double gain = (hi > 0) ? ((double) lo / (double) hi) : 1.0;
 
@@ -6577,7 +8238,7 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     {
       for (u32 k = PCFG_DEV_KBITS_MIN; k <= PCFG_DEV_KBITS_MAX; k++)
       {
-        cut_and_count (pg, pg->maxword, k);
+        cut_and_count (global_ctx, pg, pg->maxword, k);
 
         fprintf (stderr, "kbits=%u front_rect=%" PRIu64 "\n", k, pg->front_rect);
       }
@@ -6589,7 +8250,7 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     // setting and one measurement has just found it. That is also the ruleset where a measurement
     // costs the most, so the case that used to be the slowest is now the cheapest.
 
-    cut_and_count (pg, pg->maxword, PCFG_DEV_KBITS_MAX);
+    cut_and_count (global_ctx, pg, pg->maxword, PCFG_DEV_KBITS_MAX);
 
     if (pg->front_rect >= PCFG_DEV_RECT_WANT)
     {
@@ -6600,7 +8261,7 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
       {
         const u32 mid = lo + ((hi - lo) / 2);
 
-        cut_and_count (pg, pg->maxword, mid);
+        cut_and_count (global_ctx, pg, pg->maxword, mid);
 
         if (pg->front_rect >= PCFG_DEV_RECT_WANT) hi = mid;
         else                                      lo = mid + 1;
@@ -6611,9 +8272,12 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
     pg->kbits = best;
 
+    // front_rect is left over from the last kbits the search tried, so the figure is taken again at
+    // the one it settled on. That is a rebuild, worth doing only when there is a line to put it in.
+
     if (global_ctx->quiet == false)
     {
-      cut_and_count (pg, pg->maxword, pg->kbits);
+      cut_and_count (global_ctx, pg, pg->maxword, pg->kbits);
 
       pmsg (pg, "pcfg: inner loop %u bits, %u candidates to a cell at the front of the run", pg->kbits, (u32) pg->front_rect);
     }
@@ -6625,7 +8289,34 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
   if (pg->varlen == true) global_ctx->source_ident ^= 0x5ecf6a1d3b2c9e77ULL;
 
-  unit_suffix_build (pg);
+  // The probe is over and maxword and kbits are settled, which is the first moment the cache can be
+  // asked for anything: its name carries both. So whatever tables are in hand are dropped, a sample
+  // covering part of the grammar or a small grammar's whole one, and the build below either reads
+  // the file or makes them again.
+
+  const bool sampled = (pg->probe_n != 0);
+
+  pg->probe_n = 0;
+  pg->probing = false;
+
+  // Invalidated so that the cache is asked, which is only possible now that maxword and kbits are
+  // settled. What the probe left still covers every structure when it never sampled, and that is
+  // what lets a miss keep it rather than build it again.
+
+  // Only true when tables actually exist and were built at this maxword and kbits: with both pinned
+  // no probe runs, so there is nothing in hand to keep and the build below has to happen.
+
+  pg->tables_final = (sampled == false) && (pg->built == true) && (pg->built_maxword == pg->maxword) && (pg->built_kbits == pg->kbits);
+
+  pg->built        = false;
+
+  unit_suffix_build (global_ctx, pg);
+
+  // Written here rather than inside the build, because a grammar too small to be sampled reaches
+  // this with the tables the last probe round left, which are already the ones the run will use: the
+  // build has nothing to do and would have nothing to write.
+
+  if (pg->cache_hit == false) pcfg_cache_save (global_ctx, pg);
 
   if (getenv ("PCFG_BUCKET_STATS") != NULL)
   {
@@ -6680,7 +8371,13 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     fprintf (stderr, "cut stats: structs=%u amplified=%u none=%u (blen_refused=%u too_wide=%u)\n", pg->structs_cnt, some, none, blen, wide);
   }
 
+  hc_timer_t t_ui;
+
+  hc_timer_set (&t_ui);
+
   build_unit_index (pg);
+
+  if (global_ctx->quiet == false) pmsg (pg, "pcfg: device index built in %s, %u levels", pcfg_duration ((hc_timer_get (t_ui) / 1000.0), display, sizeof (display)), pg->ulvl_cnt);
 
   // Not a failure. Nothing here is a base word this engine can carry, which is what a grammar whose
   // mass sits on the escape looks like from the device side, and the host engine still enumerates it.
@@ -6690,6 +8387,18 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   if (pg->units == 0)
   {
     if (global_ctx->quiet == false) pmsg (pg, "pcfg: no base words for the device engine, the host engine takes the run");
+
+    // Three answers further up were settled from dev_enable while it was still true: how many
+    // threads build base words, the half the status line names, and lookup=. The run is going to
+    // the host engine, so they are given again here, where that is known.
+
+    global_ctx->dev_enable = false;
+
+    pcfg_pick_workers (pg);
+
+    snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
+
+    if (pg->lookup != NULL) lookup_report (global_ctx, pg);
 
     pool[0]      = pg->pool;
     pool_size[0] = pg->pool_size;
@@ -6761,6 +8470,8 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
     seen++;
   }
+
+  thread_scratch_free (pth);
 
   hcfree (pth);
 
@@ -6891,6 +8602,8 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
       lsum += nwave * PCFG_DEV_WARP;
     }
+
+    thread_scratch_free (rp);
 
     hcfree (rp);
 
