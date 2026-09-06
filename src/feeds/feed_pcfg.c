@@ -6682,11 +6682,27 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
   build_unit_index (pg);
 
+  // Not a failure. Nothing here is a base word this engine can carry, which is what a grammar whose
+  // mass sits on the escape looks like from the device side, and the host engine still enumerates it.
+  // Reported as an empty inner loop so the core can move the run there, the way it already does when
+  // the kernel for this mode is missing.
+
   if (pg->units == 0)
   {
-    gerr (global_ctx, "device engine index is empty");
+    if (global_ctx->quiet == false) pmsg (pg, "pcfg: no base words for the device engine, the host engine takes the run");
 
-    return false;
+    pool[0]      = pg->pool;
+    pool_size[0] = pg->pool_size;
+    il_cnt[0]    = 0;
+    maxword[0]   = pg->maxword;
+    avg[0]       = 1;
+    front[0]     = 1;
+    step[0]      = 1;
+    varlen[0]    = (pg->varlen == true) ? 1 : 0;
+
+    memset (probe, 0, sizeof (pcfg_cell_t));
+
+    return true;
   }
 
   // The device engine's half of lookup=, answered here rather than beside the host engine's. A base
