@@ -1,6 +1,6 @@
 
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
-#Name                                           Mode    Type    Width   Accel   Loops
+#Name                                           Kern    Type    Width   Accel   Loops
 
 DEVICE_TYPE_CPU                                 *       6100    1       A       A
 DEVICE_TYPE_CPU                                 *       6231    1       A       A
@@ -11,7 +11,7 @@ DEVICE_TYPE_CPU                                 *       13732   1       A       
 DEVICE_TYPE_CPU                                 *       13733   1       A       A
 
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
-#Name                                           Mode    Type    Width   Accel   Loops
+#Name                                           Kern    Type    Width   Accel   Loops
 
 ALIAS_nv_real_simd                              3       0       2       A       A
 ALIAS_nv_real_simd                              3       10      2       A       A
@@ -196,3 +196,23 @@ ALIAS_INTEL                                     3       99999   4       A       
 
 DEVICE_TYPE_CPU                                 *       14500   1       A       A
 DEVICE_TYPE_GPU                                 *       14500   1       A       A
+# Measured kernel_accel. Every other row in this file leaves accel on automatic, and on these modes the
+# autotuner lands far enough from the optimum that the difference is worth naming. One value per vendor,
+# taken on a reference card and checked against a second card of the same vendor.
+
+#Device                                         Attack  Hash    Vector  Kernel  Kernel
+#Name                                           Kern    Type    Width   Accel   Loops
+
+ALIAS_AMD                                       3       15910   N       256     A
+ALIAS_NV                                        3       15910   N       128     A
+ALIAS_INTEL                                     0       16501   N       32      A
+ALIAS_INTEL                                     1       16501   N       32      A
+ALIAS_INTEL                                     3       16501   N       64      A
+ALIAS_AMD                                       0       17200   N       32      A
+ALIAS_AMD                                       1       17200   N       32      A
+ALIAS_NV                                        1       17200   N       1024    A
+ALIAS_AMD                                       3       17200   N       32      A
+ALIAS_NV                                        3       17200   N       1024    A
+ALIAS_INTEL                                     0       18100   N       1024    A
+ALIAS_INTEL                                     1       18100   N       128     A
+ALIAS_INTEL                                     3       29421   N       1024    A

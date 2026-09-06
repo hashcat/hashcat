@@ -7436,6 +7436,17 @@ static void backend_ctx_devices_init_cuda (hashcat_ctx_t *hashcat_ctx, int *virt
       device_param->has_prmt  = (sm >= 20) ? true : false;
       device_param->has_shfw  = (sm >= 70) ? true : true; // still faster
 
+      // A device that has already been ruled out gets no context. Creating one costs as much as
+      // creating one for a device that will be used, and it reserves memory on a card this run is
+      // never going to touch. CUDA is the only backend that builds a context while enumerating, so
+      // it is the only one that pays this: a box of 8 cards running one agent per card with -d
+      // builds 8 contexts per agent and uses 1 of them.
+      //
+      // The context exists here to answer cuMemGetInfo () below, and the only caller that wants that
+      // figure for a device it will not run on is backend_info, which exists to report it.
+
+      if ((device_param->skipped == true) && (user_options->backend_info == 0)) continue;
+
       // one-time init cuda context
 
       if (hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1)
@@ -10727,6 +10738,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               hc_device_param_t *tmp_device_param = backend_ctx->devices_param + tmp_backend_devices_idx;
 
+
+                // A device that was skipped never measured its free memory, so it has nothing to
+                // lend. Inheriting from it would hand this device a figure of zero and size its
+                // buffers against that.
+
+                if (tmp_device_param->skipped == true) continue;
               if (is_same_device (device_param, tmp_device_param))
               {
                 device_param->device_available_mem        = tmp_device_param->device_available_mem;
@@ -10747,6 +10764,12 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
               hc_device_param_t *tmp_device_param = backend_ctx->devices_param + tmp_backend_devices_idx;
 
+
+                // A device that was skipped never measured its free memory, so it has nothing to
+                // lend. Inheriting from it would hand this device a figure of zero and size its
+                // buffers against that.
+
+                if (tmp_device_param->skipped == true) continue;
               if (is_same_device (device_param, tmp_device_param))
               {
                 device_param->device_available_mem        = tmp_device_param->device_available_mem;
@@ -11158,6 +11181,16 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
   // Clamped for the same reason the pass below clamps. kernel_accel_max is not a property of the
   // hardware, it is what survived that device's own memory sizing, and launching over buffers that
   // were allocated for a smaller number is an out of bounds launch rather than an uneven one.
+  //
+  // The thread count is clamped against the member's own ceiling for exactly that reason as well.
+  // Two devices can be the same class and still size differently, because is_same_device_type ()
+  // deliberately ignores memory, and a card driving a display has less of it. Where the sizing loop
+  // could not fit even the minimum accelerator it lowered that device's kernel_threads_max, so the
+  // leader's higher count would launch over buffers shaped for fewer threads.
+  //
+  // kernel_loops needs no clamp. Nothing in the memory sizing touches kernel_loops_max, and its other
+  // inputs are -u and a tuning database entry keyed on the device name and type, both of which are
+  // part of what makes two devices the same class in the first place.
 
   for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
   {
@@ -11175,7 +11208,7 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
 
     device_param->kernel_accel   = MIN (leader_param->kernel_accel, device_param->kernel_accel_max);
     device_param->kernel_loops   = leader_param->kernel_loops;
-    device_param->kernel_threads = leader_param->kernel_threads;
+    device_param->kernel_threads = MIN (leader_param->kernel_threads, device_param->kernel_threads_max);
 
     device_param->hardware_power = bridge_active (hashcat_ctx, device_param->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param->bridge_link_device)
                                  : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
@@ -11226,11 +11259,13 @@ void backend_ctx_devices_sync_tuning (hashcat_ctx_t *hashcat_ctx)
       // and, on a bridge, as a send of more candidates than were ever staged.
       //
       // So clamp. A unit held below its siblings is not identical to them in any way that matters, and
-      // an uneven batch size is a far better outcome than an out of bounds launch.
+      // an uneven batch size is a far better outcome than an out of bounds launch. kernel_threads_max
+      // comes out of the same sizing and is clamped for the same reason. kernel_loops is not, because
+      // nothing in the sizing lowers kernel_loops_max.
 
       device_param_dst->kernel_accel   = MIN (device_param_src->kernel_accel, device_param_dst->kernel_accel_max);
       device_param_dst->kernel_loops   = device_param_src->kernel_loops;
-      device_param_dst->kernel_threads = device_param_src->kernel_threads;
+      device_param_dst->kernel_threads = MIN (device_param_src->kernel_threads, device_param_dst->kernel_threads_max);
 
       const u32 hardware_power = bridge_active (hashcat_ctx, device_param_dst->bridge_link_device) ? bridge_workitem_multiple (hashcat_ctx, device_param_dst->bridge_link_device)
                                : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param_dst->device_processors)
@@ -15877,6 +15912,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * tuning db
      */
 
+    const cl_uint tuningdb_vendor_id = device_param->opencl_device_vendor_id;
+
     if (module_ctx->module_extra_tuningdb_block != MODULE_DEFAULT)
     {
       // We need this because we can't trust CUDA/HIP to give us the real free device memory
@@ -15948,7 +15985,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+        tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, tuningdb_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
 
         if (tuningdb_entry != NULL) _kernel_accel = tuningdb_entry->kernel_accel;
       }
@@ -16007,11 +16044,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options->slow_candidates == true)
       {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, 0, hashconfig->hash_mode);
+        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, tuningdb_vendor_id, ATTACK_KERN_STRAIGHT, hashconfig->hash_mode);
       }
       else
       {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, tuningdb_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
       }
 
       if (tuningdb_entry == NULL || tuningdb_entry->vector_width == -1)
@@ -16161,6 +16198,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       char *search_name = NULL;
 
+      // The first pass looks for a row a module generated for this one device, under a name no vendor
+      // alias can belong to. It passes no vendor id, so that pass cannot be answered by a vendor row
+      // and finish the search before the device's real name is ever tried.
+
+      cl_uint search_vendor_id = 0;
+
       if (i == 0)
       {
         hc_asprintf (&search_name, "MODULE_%02d_%s", device_param->device_id, device_param->device_name);
@@ -16168,15 +16211,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         search_name = device_param->device_name;
+
+        search_vendor_id = tuningdb_vendor_id;
       }
 
       if (user_options->slow_candidates == true)
       {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, 0, hashconfig->hash_mode);
+        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, search_vendor_id, ATTACK_KERN_STRAIGHT, hashconfig->hash_mode);
       }
       else
       {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, search_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
       }
 
       if (i == 0) hcfree (search_name);
@@ -19017,6 +19062,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     int memory_limit_hit = 0;
 
     const u32 kernel_accel_max_sav = kernel_accel_max;
+    const u32 kernel_accel_min_sav = kernel_accel_min;
 
     u64 size_total_last = 0, size_spilling_last = 0, size_tmps_last = 0, size_pws_last = 0;
 
@@ -19313,22 +19359,45 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (memory_limit_hit == 1)
       {
-        if (kernel_accel_max == kernel_accel_min)
+        if (kernel_accel_max > kernel_accel_min)
         {
-          if ((kernel_threads_max > kernel_threads_min) && (kernel_threads_max >= (device_param->kernel_preferred_wgs_multiple * 2)))
-          {
-            kernel_threads_max -= device_param->kernel_preferred_wgs_multiple;
+          kernel_accel_max--;
+        }
+        else if ((kernel_threads_max > kernel_threads_min) && (kernel_threads_max >= (device_param->kernel_preferred_wgs_multiple * 2)))
+        {
+          // Fewer threads may leave room for the accel this started with, so the accel range is put
+          // back the way it was. A pin has to be restored on both sides or the two come apart.
 
-            kernel_accel_max = kernel_accel_max_sav;
-          }
-          else
-          {
-            break;
-          }
+          kernel_threads_max -= device_param->kernel_preferred_wgs_multiple;
+
+          kernel_accel_min = kernel_accel_min_sav;
+          kernel_accel_max = kernel_accel_max_sav;
+        }
+        else if ((kernel_accel_min > hashconfig->kernel_accel_min) && (user_options->kernel_accel_chgd == false))
+        {
+          // A tuning database row pins accel by setting the minimum and the maximum to the same value,
+          // which leaves the ladder above nothing to walk. Every other way of fitting the launch has
+          // been tried by the time we get here, so rather than drop the device, which is what hashcat
+          // used to do, the row gives way. A row is one card's answer applied to every card of that
+          // vendor, and the device in front of us is the better authority on what it can hold.
+          //
+          // This comes after the thread ladder on purpose. A pinned accel that fits at a narrower
+          // launch is still the accel the row asked for, and honouring the row is worth more than
+          // holding on to the thread count.
+          //
+          // The floor is the MODULE's minimum. The loop's own minimum is the pinned value, and walking
+          // below the module's floor takes kernel_power_max to zero, which makes every size zero, which
+          // no check can refuse. That reads as a fit and the device runs on nothing.
+          //
+          // An explicit --kernel-accel is left alone. The user named that number, so a refusal tells
+          // them it does not fit, where a silent reduction would not.
+
+          kernel_accel_min--;
+          kernel_accel_max = kernel_accel_min;
         }
         else
         {
-          kernel_accel_max--;
+          break;
         }
 
         continue;

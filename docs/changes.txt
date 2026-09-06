@@ -209,6 +209,8 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 
 ##
 ## New Features
+- Added rewind and advance keys, on r and a, which move a running attack back or forward through the keyspace it walks. A single press is a small fixed step and holding the key accelerates, up to half a percent of the keyspace per press. The bypass key is unchanged and still moves on to the next wordlist or mask
+- Added a key to change a --runtime limit while a run is going. It asks for a number of seconds to add, and a negative number shortens the limit instead
 ##
 
 - Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seekdbs
@@ -228,6 +230,9 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Added option --pipeline-stats, which reports where each launch's time goes, split into feeding, copying, init, transfer, the loop itself and comp, per device and with an effective hash rate. Adding --machine-readable prints the same thing as JSON. It replaces the HASHCAT_PIPE environment variable, which still works
 ##
 ## Improvements
+- CUDA: Devices that a run has already excluded no longer get a context. One was created for every device the driver reported, only to read how much memory that device had free, so a box of 8 cards running one agent per card built 8 contexts in every agent and used 1. Each of the others cost about 36 ms and a reservation of card memory
+- Rule application for --stdout is spread across the host cores. It ran on one core while the rest of the machine idled, and a second device did not help because the outfile mutex is held for the whole generation loop. On a 24 thread box, 50,000 words against 30,000 rules falls from 34.0 to 7.6 seconds. Output is unchanged, byte for byte
+- The directory named by --outfile-check-dir is read once before the attack is built rather than only while it runs. A hash list another run has already finished no longer pays for bitmaps, kernel building, device buffers and autotune before anything notices there is nothing left to do
 ##
 
 - An .xz wordlist written in blocks, which is what xz -T0 writes, is seeked into rather than decoded from the start
@@ -452,6 +457,8 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Fixed messages from different threads overwriting each other. Every message is formatted into one buffer shared by the whole run, and a log event deliberately does not take the event mutex, because handlers that already hold it log from inside. Autotune, self-test, the device threads and the monitor all log, one thread per device for the first three, so two devices reporting at the same moment could produce a truncated or mixed line. The buffer now has a lock of its own
 - CUDA: Fixed the main thread making driver calls with no context current. Creating a context also makes it current, so the loop that recreates them between benchmark rounds left one stale entry per device on the main thread's stack every round, and releasing a session afterwards ran about fifty free and destroy calls against whatever was on top. Each of those discards its return, so the failures were silent. The main thread now pushes the device context around that work and pops it again, and every pop reads into a local rather than back into the handle a device thread writes from its own thread
 - Fixed the pipeline instrument adding every device together. Its six buckets were one set of counters written by every device thread at once, so a multi device run reported their sum and raced while producing it. Each device now books its own launches and reports them under its own number
+- Fixed a candidate being tried that was never a line of the input. A line longer than the buffer the stdin reader fills is cut, and the oversized piece is dropped later because no password is that long, but whatever followed the cut was published as a line of its own. Reading the same file as a wordlist skips the line instead, and the two now agree
+- Fixed identical devices being aligned to an accelerator and thread count their own buffers were not sized for. Devices of one class are given a single tuning so that neighbouring cards do not run visibly different batch sizes, but the test for a class deliberately ignores memory, and a card driving a display sizes its buffers for less. The shared values are now clamped against each device's own ceilings
 
 ##
 ## Other changes

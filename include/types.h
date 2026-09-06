@@ -388,8 +388,8 @@ typedef enum attack_kern
 {
   ATTACK_KERN_STRAIGHT  = 0,
   ATTACK_KERN_COMBI     = 1,
-  ATTACK_KERN_PCFG      = 2,
   ATTACK_KERN_BF        = 3,
+  ATTACK_KERN_PCFG      = 4,
   ATTACK_KERN_NONE      = 100
 
 } attack_kern_t;
@@ -2772,7 +2772,7 @@ typedef struct tuning_db_alias
 typedef struct tuning_db_entry
 {
   const char *device_name;
-  int         attack_mode;
+  int         attack_kern;
   int         hash_mode;
   int         workload_profile;
   int         vector_width;
@@ -3810,6 +3810,22 @@ typedef struct status_ctx
   u64  words_skip;
   u64  words_limit;
 
+  // Where a seek is taking the run, once the devices it stopped have wound down. Only the position is
+  // kept, because everything the run counts is a function of it and seek_apply () writes the rest
+  // from the position alone.
+
+  bool seek_pending;
+  u64  seek_target;
+
+  // How far the next press of a seek key moves, which way the run of presses is going, and when the
+  // last one arrived. A held key repeats and each repeat moves further than the last, so one press
+  // stays a nudge while a hold crosses the keyspace. The step is a real number because it starts well
+  // below a percent of a large keyspace and grows by a ratio.
+
+  double     seek_step;
+  int        seek_dir;
+  hc_timer_t seek_timer;
+
   /**
    * progress
    */
@@ -3835,6 +3851,11 @@ typedef struct status_ctx
    */
 
   time_t runtime_start;
+
+  // Signed, so one key covers both directions. Added to the --runtime deadline the same way the
+  // paused time is, and written by the key thread while the monitor reads it.
+
+  int    runtime_adjust_sec;
   time_t runtime_stop;
 
   time_t timer_bypass_start;

@@ -18,6 +18,7 @@
 #include "interface.h"
 #include "hashcat.h"
 #include "timer.h"
+#include "monitor.h"
 #include "terminal.h"
 #include "user_options.h"
 
@@ -82,8 +83,95 @@ static int status_sample_devices (const hashcat_status_t *hashcat_status, int *s
 
 #define RESTORE_SUB_DEVICES_MAX 3
 
-static const char *const PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
-static const char *const PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_ACTIVE    = "[s]tatus [p]ause [r]ewind [a]dvance [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_PAUSED    = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+
+// The runtime keys are only offered when there is a deadline to move, so a run without --runtime
+// keeps the line it always had.
+
+static const char *const PROMPT_ACTIVE_RT = "[s]tatus [p]ause [r]ewind [a]dvance [b]ypass [c]heckpoint [f]inish [e]xtend [q]uit => ";
+static const char *const PROMPT_PAUSED_RT = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [e]xtend [q]uit => ";
+
+static const char *terminal_prompt (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const bool paused = (status_ctx->devices_status == STATUS_PAUSED) ? true : false;
+
+  if (user_options->runtime > 0)
+  {
+    if (paused == true) return PROMPT_PAUSED_RT;
+
+    return PROMPT_ACTIVE_RT;
+  }
+
+  if (paused == true) return PROMPT_PAUSED;
+
+  return PROMPT_ACTIVE;
+}
+
+// Ask for a line in the middle of a run. The key thread holds the terminal with ICANON off so that a
+// single keypress arrives without a newline, which is what every other key here wants. Reading a
+// whole line wants the opposite, so canonical mode goes back on for the duration and comes off again
+// afterwards.
+//
+// Returns false when the user typed nothing, which is how a caller tells a bare Enter from an answer.
+
+static bool prompt_line (const char *prompt, char *buf, const size_t buf_sz)
+{
+  tty_fix ();
+
+  fprintf (stdout, "%s", prompt);
+
+  fflush (stdout);
+
+  char *line = fgets (buf, (int) buf_sz, stdin);
+
+  bool complete = false;
+
+  if (line != NULL)
+  {
+    const size_t len = strlen (buf);
+
+    if ((len > 0) && (buf[len - 1] == '\n')) complete = true;
+  }
+
+  // an answer longer than the buffer would otherwise arrive as keypresses once raw mode is back
+
+  if ((line != NULL) && (complete == false))
+  {
+    int c = 0;
+
+    while ((c = getchar ()) != EOF)
+    {
+      if (c == '\n') break;
+    }
+  }
+
+  tty_break ();
+
+  if (line == NULL) return false;
+
+  size_t len = strlen (buf);
+
+  while ((len > 0) && ((buf[len - 1] == '\n') || (buf[len - 1] == '\r') || (buf[len - 1] == ' ') || (buf[len - 1] == '\t')))
+  {
+    buf[len - 1] = 0;
+
+    len--;
+  }
+
+  size_t start = 0;
+
+  while ((buf[start] == ' ') || (buf[start] == '\t')) start++;
+
+  if (start > 0) memmove (buf, buf + start, (len - start) + 1);
+
+  if (buf[0] == 0) return false;
+
+  return true;
+}
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
@@ -242,34 +330,22 @@ int setup_console (void)
 
 void send_prompt (hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-  if (status_ctx->devices_status == STATUS_PAUSED)
-  {
-    fprintf (stdout, "%s", PROMPT_PAUSED);
-  }
-  else
-  {
-    fprintf (stdout, "%s", PROMPT_ACTIVE);
-  }
+  fprintf (stdout, "%s", terminal_prompt (hashcat_ctx));
 
   fflush (stdout);
 }
 
-void clear_prompt (hashcat_ctx_t *hashcat_ctx)
+void clear_prompt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  // The prompt on screen is not always the one this would build now. Pausing swaps a longer line for
+  // a shorter one, and clearing by the shorter length leaves the tail of the longer one behind, so
+  // what has to be blanked is the widest prompt there is rather than the current one.
 
-  size_t prompt_sz = 0;
+  size_t prompt_sz = strlen (PROMPT_ACTIVE);
 
-  if (status_ctx->devices_status == STATUS_PAUSED)
-  {
-    prompt_sz = strlen (PROMPT_PAUSED);
-  }
-  else
-  {
-    prompt_sz = strlen (PROMPT_ACTIVE);
-  }
+  prompt_sz = MAX (prompt_sz, strlen (PROMPT_PAUSED));
+  prompt_sz = MAX (prompt_sz, strlen (PROMPT_ACTIVE_RT));
+  prompt_sz = MAX (prompt_sz, strlen (PROMPT_PAUSED_RT));
 
   fputc ('\r', stdout);
 
@@ -281,6 +357,56 @@ void clear_prompt (hashcat_ctx_t *hashcat_ctx)
   fputc ('\r', stdout);
 
   fflush (stdout);
+}
+
+// Rewind and advance, which are the same move in the two directions. Both are offered on a letter and
+// on the keys a user reaches for without reading a prompt: the arrows, and the two characters that
+// point the same way.
+
+static void keypress_seek (hashcat_ctx_t *hashcat_ctx, const int direction, const bool quiet)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  const bool was_paused = (status_ctx->devices_status == STATUS_PAUSED);
+
+  const double percent_from = seek_percent (hashcat_ctx, seek_position (hashcat_ctx));
+
+  event_log_info (hashcat_ctx, NULL);
+
+  if (bypass_seek_step (hashcat_ctx, direction) == -1)
+  {
+    event_log_info (hashcat_ctx, "Keyspace: %.2f%%, which is as far %s as this run goes.", percent_from, (direction >= 0) ? "forward" : "back");
+  }
+  else
+  {
+    const double percent_to = seek_percent (hashcat_ctx, status_ctx->seek_target);
+
+    // Enough decimals to show the move. The first press of a run moves an absolute number of words,
+    // which on a large keyspace is a very small fraction of it, and two decimals would print the same
+    // number twice and say nothing.
+
+    double delta = percent_to - percent_from;
+
+    if (delta < 0) delta = -delta;
+
+    int    decimals = 2;
+    double scale    = 100;
+
+    while ((decimals < 8) && ((delta * scale) < 1))
+    {
+      scale *= 10;
+
+      decimals++;
+    }
+
+    event_log_info (hashcat_ctx, "Keyspace: %.*f%% -> %.*f%%", decimals, percent_from, decimals, percent_to);
+
+    if (was_paused == true) event_log_info (hashcat_ctx, "The run was paused and has been resumed to move.");
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+
+  if (quiet == false) send_prompt (hashcat_ctx);
 }
 
 static void keypress (hashcat_ctx_t *hashcat_ctx)
@@ -328,6 +454,24 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         break;
 
+      case 'a':
+      case '>':
+      case TTY_KEY_RIGHT:
+      case TTY_KEY_UP:
+
+        keypress_seek (hashcat_ctx, 1, quiet);
+
+        break;
+
+      case '<':
+      case TTY_KEY_LEFT:
+      case TTY_KEY_DOWN:
+
+        keypress_seek (hashcat_ctx, -1, quiet);
+
+        break;
+
+
       case 'b':
 
         event_log_info (hashcat_ctx, NULL);
@@ -341,6 +485,50 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
         if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
+
+      case 'e':
+      {
+        if (user_options->runtime == 0) break;
+
+        event_log_info (hashcat_ctx, NULL);
+
+        char answer[64];
+
+        const bool answered = prompt_line ("Seconds to add to the runtime limit, negative to shorten => ", answer, sizeof (answer));
+
+        if (answered == true)
+        {
+          char *end = NULL;
+
+          const long seconds = strtol (answer, &end, 10);
+
+          if ((end[0] == 0) && (seconds > INT_MIN) && (seconds < INT_MAX))
+          {
+            runtime_adjust (hashcat_ctx, (int) seconds);
+
+            const int runtime_left = get_runtime_left (hashcat_ctx);
+
+            if (runtime_left > 0)
+            {
+              event_log_info (hashcat_ctx, "Runtime limit moved by %d seconds, %d seconds left.", (int) seconds, runtime_left);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "Runtime limit moved by %d seconds, which is already past. The run will stop.", (int) seconds);
+            }
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "Not a number of seconds: %s", answer);
+          }
+        }
+
+        event_log_info (hashcat_ctx, NULL);
+
+        if (quiet == false) send_prompt (hashcat_ctx);
+
+        break;
+      }
 
       case 'p':
 
@@ -377,7 +565,16 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'r':
 
-        if (status_ctx->devices_status == STATUS_PAUSED)
+        // The prompt offers this key as resume while the run is paused and as rewind while it runs.
+        // Only one of the two can apply at a time, so the letter carries both.
+
+        if (status_ctx->devices_status != STATUS_PAUSED)
+        {
+          keypress_seek (hashcat_ctx, -1, quiet);
+
+          break;
+        }
+
         {
           event_log_info (hashcat_ctx, NULL);
 
@@ -537,6 +734,59 @@ void SetConsoleWindowSize (const int x)
 
 #define TTY_GETCHAR_WAIT_MS 100
 
+#if !defined (_WIN)
+
+// Finish an escape sequence that has already had its ESC read. An arrow is ESC [ D or ESC [ C, and
+// ESC on its own is a key a user can press on purpose, so the two bytes that would complete the
+// sequence are only taken when they are already waiting. A zero timeout answers that without
+// blocking, and anything else that follows ESC is left alone rather than half consumed.
+
+static int tty_escape_key (void)
+{
+  for (int i = 0; i < 2; i++)
+  {
+    fd_set rfds;
+
+    FD_ZERO (&rfds);
+
+    FD_SET (fileno (stdin), &rfds);
+
+    struct timeval tv;
+
+    tv.tv_sec  = 0;
+    tv.tv_usec = 0;
+
+    if (select (1, &rfds, NULL, NULL, &tv) != 1) return 0;
+
+    // read () rather than getchar (), because select () answers for the descriptor and stdio answers
+    // for its own buffer. getchar () would pull the whole sequence into that buffer on the first
+    // call and leave select () reporting nothing to read while the bytes were already in hand.
+
+    unsigned char b = 0;
+
+    if (read (fileno (stdin), &b, 1) != 1) return 0;
+
+    const int c = b;
+
+    if (i == 0)
+    {
+      if (c != '[') return 0;
+    }
+    else
+    {
+      if (c == 'D') return TTY_KEY_LEFT;
+      if (c == 'C') return TTY_KEY_RIGHT;
+      if (c == 'A') return TTY_KEY_UP;
+      if (c == 'B') return TTY_KEY_DOWN;
+    }
+  }
+
+  return 0;
+}
+
+#endif
+
+
 #if defined (__OpenBSD__)   || (__FreeBSD__)       || defined (__NetBSD__) || \
     defined (__DragonFly__) || defined (__linux__) || defined (__CYGWIN__)
 static struct termios savemodes;
@@ -576,7 +826,15 @@ int tty_getchar (void)
   if (retval ==  0) return  0;
   if (retval == -1) return -1;
 
-  return getchar ();
+  unsigned char b = 0;
+
+  if (read (fileno (stdin), &b, 1) != 1) return -1;
+
+  const int c = b;
+
+  if (c == 27) return tty_escape_key ();
+
+  return c;
 }
 
 int tty_fix (void)
@@ -625,7 +883,15 @@ int tty_getchar (void)
   if (retval ==  0) return  0;
   if (retval == -1) return -1;
 
-  return getchar ();
+  unsigned char b = 0;
+
+  if (read (fileno (stdin), &b, 1) != 1) return -1;
+
+  const int c = b;
+
+  if (c == 27) return tty_escape_key ();
+
+  return c;
 }
 
 int tty_fix ()
@@ -682,6 +948,13 @@ int tty_getchar (void)
     KEY_EVENT_RECORD KeyEvent = buf[i].Event.KeyEvent;
 
     if (KeyEvent.bKeyDown != TRUE) continue;
+
+    // an arrow leaves AsciiChar at 0, which this function already uses for "nothing was pressed"
+
+    if (KeyEvent.wVirtualKeyCode == VK_LEFT)  return TTY_KEY_LEFT;
+    if (KeyEvent.wVirtualKeyCode == VK_RIGHT) return TTY_KEY_RIGHT;
+    if (KeyEvent.wVirtualKeyCode == VK_UP)    return TTY_KEY_UP;
+    if (KeyEvent.wVirtualKeyCode == VK_DOWN)  return TTY_KEY_DOWN;
 
     return KeyEvent.uChar.AsciiChar;
   }
