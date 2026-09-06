@@ -11859,8 +11859,15 @@ static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *de
         nvrtc_options[nvrtc_options_idx++] = "--minimal";
       }
 
-      // untested on windows, but it should work
-      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+      #if defined (_WIN)
+      // cpath_real on _WIN uses forward slashes, but UNC paths (\\server\share)
+      // become //server/share after conversion. The leading // is interpreted as a
+      // C++ line comment when embedded in a -D preprocessor value, leaving
+      // INCLUDE_PATH empty. Instead pass shared_dir as an explicit -I search path
+      // and keep INCLUDE_PATH as the relative subdirectory name.
+      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-I%s", folder_config->shared_dir);
+      hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
+      #elif defined (__CYGWIN__) || defined (__MSYS__)
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
       #else
       hc_asprintf (&nvrtc_options[nvrtc_options_idx++], "-D INCLUDE_PATH=%s", folder_config->cpath_real);
@@ -12106,8 +12113,13 @@ static bool load_kernel_build (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *de
         hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "--gpu-max-threads-per-block=%d", (user_options->kernel_threads_chgd == true) ? user_options->kernel_threads : device_param->kernel_threads_max);
       }
 
-      // untested but it should work
-      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+      #if defined (_WIN)
+      // See NVRTC comment above: avoid embedding cpath_real in -D INCLUDE_PATH
+      // because UNC paths become // after forward-slash conversion and are then
+      // treated as C++ comments by the compiler preprocessor.
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-I%s", folder_config->shared_dir);
+      hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D INCLUDE_PATH=%s", "OpenCL");
+      #elif defined (__CYGWIN__) || defined (__MSYS__)
       hc_asprintf (&hiprtc_options[hiprtc_options_idx++], "-D INCLUDE_PATH=%s/OpenCL/", folder_config->cwd);
       // ugly, but required since HIPRTC is changing the current working folder to the temporary compile folder
       #else
@@ -16908,7 +16920,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     }
     else
     {
-      #if defined (_WIN) || defined (__CYGWIN__) || defined (__MSYS__)
+      #if defined (_WIN)
+      // See NVRTC comment above: cpath_real cannot be used as -D INCLUDE_PATH on
+      // _WIN because UNC paths produce a leading // that is treated as a C++ comment.
+      // Pass shared_dir as an explicit -I search path instead.
+      const char *win_opencl_include_fmt = (strchr (folder_config->shared_dir, ' ') != NULL) ? "-I \"%s\" " : "-I %s ";
+
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, win_opencl_include_fmt, folder_config->shared_dir);
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D INCLUDE_PATH=%s ", "OpenCL");
+      #elif defined (__CYGWIN__) || defined (__MSYS__)
       // workaround for AMD
       if (device_param->opencl_platform_vendor_id == VENDOR_ID_AMD && device_param->opencl_device_vendor_id == VENDOR_ID_AMD)
       {

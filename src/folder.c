@@ -40,9 +40,24 @@ static int get_exec_path (char *exec_path, const size_t exec_path_sz)
 
   #elif defined (_WIN)
 
-  memset (exec_path, 0, exec_path_sz);
+  wchar_t *wexec_path = (wchar_t *) hcmalloc (exec_path_sz * sizeof (wchar_t));
 
-  const int len = 0;
+  const DWORD wlen = GetModuleFileNameW (NULL, wexec_path, (DWORD) (exec_path_sz - 1));
+
+  if (wlen == 0)
+  {
+    hcfree (wexec_path);
+
+    return -1;
+  }
+
+  // Convert UTF-16 path to UTF-8. Pass wlen (not -1) so the returned byte
+  // count excludes the null terminator, matching what exec_path[len] = 0 expects.
+  const int len = WideCharToMultiByte (CP_UTF8, 0, wexec_path, (int) wlen, exec_path, (int) (exec_path_sz - 1), NULL, NULL);
+
+  hcfree (wexec_path);
+
+  if (len == 0) return -1;
 
   #elif defined (__APPLE__)
 
