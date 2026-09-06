@@ -229,6 +229,10 @@ typedef struct
 
   bool cache_hit;
 
+  // Whether the tables in hand cover every structure, so a cache miss can keep them.
+
+  bool tables_final;
+
   pcfg_omen_t     *omen;
   u32              omen_cnt;
 
@@ -301,8 +305,6 @@ typedef struct
   // lies before a base word cannot be had by multiplying, and the host index counts a different
   // set.
 
-  u64  *ulvl_cpref;
-  u64 **uls_cpref;
 
   // When list_get () last reported. Here rather than in a static, so it restarts for the next
   // ruleset.
@@ -1182,82 +1184,8 @@ static void roots_free (pcfg_root_t *roots, const u32 nroots)
 // preserves it and every machine would rebuild what a copy already holds. The per file answers are
 // added rather than chained, so the order a directory hands its entries over cannot reach them.
 
-#define PCFG_IDENT_ENDS 4096
-
-static u64 pcfg_ident_file (const char *path)
-{
-  HCFILE fp;
-
-  // Raw, because what names a ruleset is the bytes on disk. hc_fopen () decodes a compressed file,
-  // and a decoded stream cannot seek to its end, which is where the size comes from.
-
-  if (hc_fopen_raw (&fp, path, "rb") == false) return 0;
-
-  if (hc_fseek (&fp, 0, SEEK_END) != 0) { hc_fclose (&fp); return 0; }
-
-  const off_t len = hc_ftell (&fp);
-
-  if (len < 0) { hc_fclose (&fp); return 0; }
-
-  paw64_ctx_t st;
-
-  paw64_init (&st, 0);
-
-  const u64 sz = (u64) len;
-
-  paw64_update (&st, &sz, sizeof (sz));
-
-  u8 buf[PCFG_IDENT_ENDS];
-
-  hc_rewind (&fp);
-
-  size_t got = hc_fread (buf, 1, sizeof (buf), &fp);
-
-  if (got != (size_t) -1) paw64_update (&st, buf, got);
-
-  if (sz > sizeof (buf))
-  {
-    if (hc_fseek (&fp, (off_t) (sz - sizeof (buf)), SEEK_SET) == 0)
-    {
-      got = hc_fread (buf, 1, sizeof (buf), &fp);
-
-      if (got != (size_t) -1) paw64_update (&st, buf, got);
-    }
-  }
-
-  hc_fclose (&fp);
-
-  return paw64_final (&st);
-}
-
 // The files directly inside one directory. scan_directory () keeps only the entries it cannot open
 // as a directory, so this never sees a subdirectory and cannot walk into one. The caller names them.
-
-static bool pcfg_ident_files (const char *dir, u64 *sum)
-{
-  char **files = scan_directory (dir);
-
-  if (files == NULL) return false;
-
-  bool ok = true;
-
-  for (u32 i = 0; files[i] != NULL; i++)
-  {
-    if (ok == true)
-    {
-      const u64 one = pcfg_ident_file (files[i]);
-
-      if (one == 0) ok = false;
-      else          sum[0] += one;
-    }
-
-    hcfree (files[i]);
-  }
-
-  hcfree (files);
-
-  return ok;
-}
 
 // A ruleset is its top level files and the directories it is made of, which are the ones named in
 // PCFG_RULESET_DIRS: everything the feed reads lives in one of them. Grammar has to be there, or
@@ -1266,62 +1194,69 @@ static bool pcfg_ident_files (const char *dir, u64 *sum)
 // A directory left out of the sum in silence would be a cache that stays valid while what it
 // describes has changed, which is the one failure a cache must not have.
 
-static bool pcfg_ident_dir (const char *dir, u64 *sum)
+// What the unit tables are a function of, hashed as it was parsed rather than as it sits on disk.
+//
+// The tables count candidates, and a count is decided by the buckets a terminal list was cut into and
+// by the structures that draw on them. Hashing that answers the only question a cache key has to
+// answer: an edit that moves an entry to another cost bucket changes it, and an edit that leaves the
+// buckets alone does not, because the tables it would rebuild are the ones already on disk. The
+// terminal text is left out for that reason: the pool is read fresh every run and the counts do not
+// depend on it.
+//
+// The order the rulesets were named in reaches this through the structure order, which is the order
+// they were read in.
+
+static u64 pcfg_ident_tables (const pcfg_global_t *pg)
 {
-  if (pcfg_ident_files (dir, sum) == false) return false;
+  paw64_ctx_t st;
 
-  bool seen_grammar = false;
+  paw64_init (&st, 0);
 
-  for (u32 i = 0; i < PCFG_RULESET_DIRS_CNT; i++)
+  paw64_update (&st, &pg->costmax,    sizeof (pg->costmax));
+  paw64_update (&st, &pg->scale,      sizeof (pg->scale));
+  paw64_update (&st, &pg->lists_cnt,  sizeof (pg->lists_cnt));
+  paw64_update (&st, &pg->structs_cnt, sizeof (pg->structs_cnt));
+
+  for (u32 i = 0; i < pg->lists_cnt; i++)
   {
-    char *sub = NULL;
+    const pcfg_tlist_t *t = &pg->lists[i];
 
-    hc_asprintf (&sub, "%s/%s", dir, PCFG_RULESET_DIRS[i]);
+    paw64_update (&st, &t->ty,        sizeof (t->ty));
+    paw64_update (&st, &t->ln,        sizeof (t->ln));
+    paw64_update (&st, &t->cnt,       sizeof (t->cnt));
+    paw64_update (&st, &t->nb,        sizeof (t->nb));
+    paw64_update (&st, &t->fixed_len, sizeof (t->fixed_len));
+    paw64_update (&st, &t->max_len,   sizeof (t->max_len));
+    paw64_update (&st, &t->cost_asc,  sizeof (t->cost_asc));
 
-    if (sub == NULL) return false;
+    if (t->b_cost  != NULL) paw64_update (&st, t->b_cost,  (size_t) t->nb * sizeof (u32));
+    if (t->b_start != NULL) paw64_update (&st, t->b_start, (size_t) t->nb * sizeof (u32));
+    if (t->b_cnt   != NULL) paw64_update (&st, t->b_cnt,   (size_t) t->nb * sizeof (u32));
+    if (t->b_len   != NULL) paw64_update (&st, t->b_len,   (size_t) t->nb * sizeof (u32));
 
-    bool ok = true;
+    // The lengths of the entries, which is what a bucket's width and a candidate's shape rest on.
 
-    if (hc_path_is_directory (sub) == true)
-    {
-      ok = pcfg_ident_files (sub, sum);
-
-      if (strcmp (PCFG_RULESET_DIRS[i], "Grammar") == 0) seen_grammar = true;
-    }
-
-    hcfree (sub);
-
-    if (ok == false) return false;
+    if (t->off != NULL) paw64_update (&st, t->off, ((size_t) t->cnt + 1) * sizeof (u32));
   }
 
-  return seen_grammar;
-}
-
-static u64 pcfg_ident_roots (const pcfg_root_t *roots, const u32 nroots)
-{
-  u64 sum = 0;
-
-  for (u32 i = 0; i < nroots; i++)
+  for (u32 i = 0; i < pg->structs_cnt; i++)
   {
-    // An archive is one file, so it answers for the whole ruleset it holds. A directory is walked.
+    const pcfg_struct_t *s = &pg->structs[i];
 
-    u64 one = 0;
+    paw64_update (&st, &s->cost,      sizeof (s->cost));
+    paw64_update (&st, &s->cmin,      sizeof (s->cmin));
+    paw64_update (&st, &s->cmax,      sizeof (s->cmax));
+    paw64_update (&st, &s->nslot,     sizeof (s->nslot));
+    paw64_update (&st, &s->total_len, sizeof (s->total_len));
 
-    if (roots[i].arc != NULL) one = pcfg_ident_file (roots[i].dir);
-    else if (pcfg_ident_dir (roots[i].dir, &one) == false) one = 0;
-
-    if (one == 0) return 0;
-
-    paw64_ctx_t st;
-
-    paw64_init (&st, one);
-
-    paw64_update (&st, &roots[i].w, sizeof (roots[i].w));
-
-    sum += paw64_final (&st);
+    if (s->kind != NULL) paw64_update (&st, s->kind, (size_t) s->nslot * sizeof (u8));
+    if (s->list != NULL) paw64_update (&st, s->list, (size_t) s->nslot * sizeof (u16));
+    if (s->tlen != NULL) paw64_update (&st, s->tlen, (size_t) s->nslot * sizeof (u16));
   }
 
-  return sum;
+  const u64 h = paw64_final (&st);
+
+  return (h != 0) ? h : 1;
 }
 
 static bool root_open (const pcfg_root_t *r, const char *rel, HCFILE *fp)
@@ -1671,6 +1606,24 @@ static bool pcfg_lensplit (void)
   return (pcfg_lensplit_state != 0);
 }
 
+// The bucket cap, worked out on the first call and kept. It re-cuts every terminal list, so the unit
+// tables are a function of it and the cache key has to carry it. Settled on one thread before the
+// preload workers exist, for the reason pcfg_lensplit () is.
+
+static int pcfg_bucketcap_state = -1;
+
+static u32 pcfg_bucketcap (void)
+{
+  if (pcfg_bucketcap_state < 0)
+  {
+    const char *env = getenv ("PCFG_BUCKETCAP");
+
+    pcfg_bucketcap_state = (env != NULL) ? (int) strtoul (env, NULL, 10) : 0;
+  }
+
+  return (u32) pcfg_bucketcap_state;
+}
+
 static void tlist_mark_order (pcfg_tlist_t *t)
 {
   t->cost_asc = true;
@@ -1863,9 +1816,7 @@ static int tlist_build (pcfg_tlist_t *t, const pcfg_merge_t *m, const u64 scale,
 
   const bool lensplit = pcfg_lensplit ();
 
-  const char *capenv = getenv ("PCFG_BUCKETCAP");
-
-  const u32 bcap = (capenv != NULL) ? (u32) strtoul (capenv, NULL, 10) : 0;
+  const u32 bcap = pcfg_bucketcap ();
 
   for (u32 i = 0; i < t->cnt; i++)
   {
@@ -2505,12 +2456,14 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   u32 dropped_m = 0;
   u32 dropped_t = 0;
+  u32 dropped_c = 0;
 
   // pcfg_lensplit () keeps its answer in a file scope int and works it out on the first call. The
   // preload workers below all reach it through tlist_build (), so it is settled here, on one thread,
   // before any of them exists.
 
   (void) pcfg_lensplit ();
+  (void) pcfg_bucketcap ();
 
   int *seen = (int *) hcmalloc (128 * LIST_LUT_LEN * sizeof (int));
 
@@ -2698,7 +2651,7 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
     s.cost = (u32) (q + 0.5);
 
-    if (s.cost > pg->costmax) continue;
+    if (s.cost > pg->costmax) { dropped_c++; continue; }
 
     bool ok = true;
 
@@ -2834,6 +2787,17 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
       return -1;
     }
 
+    // Every structure priced above the cap is a grammar the run cannot use, whatever the escape
+    // holds, and master refuses it. The M line exemption below is for a grammar that never had
+    // structures, not for one whose structures were all put out of reach.
+
+    if (dropped_c > 0)
+    {
+      gerr (global_ctx, "%s: all %u structures cost more than costmax %" PRIu64 ", nothing is reachable", named, dropped_c, pg->costmax);
+
+      return -1;
+    }
+
     if (dropped_m == 0)
     {
       gerr (global_ctx, "%s: nothing to enumerate, no structures and no M lines", named);
@@ -2843,6 +2807,11 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
   }
 
   pcfg_pick_varlen (pg);
+
+  // Here, and not before the files are read: the key describes the tables, and the tables are not
+  // decided until the lists have been cut into buckets and the structures resolved against them.
+
+  pg->ident = pcfg_ident_tables (pg);
 
   if (global_ctx->quiet == false) pmsg (pg, "pcfg: building suffix tables for %u structures", pg->structs_cnt);
 
@@ -5601,7 +5570,7 @@ static void unit_suffix_free (pcfg_global_t *pg)
 
 #define PCFG_CACHE_ROW     ((PCFG_SPANCAP * 12) + 3)
 #define PCFG_CACHE_BUF     (1 << 20)
-#define PCFG_CACHE_VERSION 4
+#define PCFG_CACHE_VERSION 5
 
 // One varint out of the buffer, and false when the file ended inside it. A value that stops half way
 // would otherwise read as a smaller number with nothing to say so.
@@ -5652,6 +5621,12 @@ typedef struct
   u32 structs_cnt;
   u32 varlen;
 
+  // Both re-cut the terminal lists, which is what the unit tables are summed over, so tables built
+  // under one value do not describe a run under another.
+
+  u32 bucketcap;
+  u32 lensplit;
+
   // Last and on its own, because it can only be checked once the rows have been read. A byte that
   // changes inside a value leaves the shape of the file intact.
 
@@ -5673,6 +5648,8 @@ static void pcfg_cache_head (const pcfg_global_t *pg, pcfg_cache_head_t *h, cons
   h->kbits       = pg->kbits;
   h->structs_cnt = pg->structs_cnt;
   h->varlen      = (pg->varlen == true) ? 1 : 0;
+  h->bucketcap   = pcfg_bucketcap ();
+  h->lensplit    = (pcfg_lensplit () == true) ? 1 : 0;
 }
 
 // Two configurations of one ruleset are two files, not one that keeps being overwritten.
@@ -5700,7 +5677,7 @@ static char *pcfg_cache_path (const generic_global_ctx_t *global_ctx, const pcfg
 
   char *path = NULL;
 
-  hc_asprintf (&path, "%s/%016" PRIx64 "-%" PRIu64 "-%" PRIu64 "-%u-%u.unit", dir, pg->ident, pg->scale, pg->costmax, pg->maxword, pg->kbits);
+  hc_asprintf (&path, "%s/%016" PRIx64 "-%" PRIu64 "-%" PRIu64 "-%u-%u-%u-%u.unit", dir, pg->ident, pg->scale, pg->costmax, pg->maxword, pg->kbits, pcfg_bucketcap (), (pcfg_lensplit () == true) ? 1 : 0);
 
   hcfree (dir);
 
@@ -5745,6 +5722,11 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
   // A file found under the right name is not yet the right file.
 
   if (memcmp (&want, &have, offsetof (pcfg_cache_head_t, sum)) != 0) { hc_fclose (&fp); return false; }
+
+  // Only here, where the file is known to describe this run and the rows below will fill them. A
+  // header that does not match leaves whatever the caller had, so the caller can keep it.
+
+  unit_suffix_free (pg);
 
   // A megabyte does not belong on the stack: a worker thread gets far less than that.
 
@@ -5797,7 +5779,10 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
 
       u64 cnt = 0;
 
-      if (cache_varint (buf, &at, len, &cnt) == false) { row = false; break; }
+      // Not a break: this sits in an if, so it would leave the structure loop and skip the row
+      // check below. cnt stays zero, so the loop under it runs no times and the check is reached.
+
+      if (cache_varint (buf, &at, len, &cnt) == false) row = false;
 
       for (u64 k = 0; (k < cnt) && (row == true); k++)
       {
@@ -5970,8 +5955,6 @@ static void unit_suffix_build (const generic_global_ctx_t *global_ctx, pcfg_glob
 {
   if ((pg->built == true) && (pg->built_maxword == pg->maxword) && (pg->built_kbits == pg->kbits)) return;
 
-  unit_suffix_free (pg);
-
   for (u32 i = 0; i < pg->structs_cnt; i++) choose_cut (pg, &pg->structs[i]);
 
   hc_timer_t t_us;
@@ -5996,6 +5979,22 @@ static void unit_suffix_build (const generic_global_ctx_t *global_ctx, pcfg_glob
 
     return;
   }
+
+  // The cache had nothing, but a grammar too small to be sampled comes here with the tables the last
+  // probe round left, and those already cover every structure at this maxword and kbits. Building
+  // them again would produce the same numbers.
+
+  if (pg->tables_final == true)
+  {
+    pg->built         = true;
+    pg->built_maxword = pg->maxword;
+    pg->built_kbits   = pg->kbits;
+    pg->cache_hit     = false;
+
+    return;
+  }
+
+  unit_suffix_free (pg);
 
   // The count named is what the sweep will walk, not the whole grammar the probe is sampling.
 
@@ -6065,12 +6064,10 @@ static void lvl_one (pcfg_global_t *pg, const u32 li, u64 *acc_out)
 
   pg->uls_struct[li] = (u32 *) hcmalloc (n * sizeof (u32));
   pg->uls_pref[li]   = (u64 *) hcmalloc (n * sizeof (u64));
-  pg->uls_cpref[li]  = (u64 *) hcmalloc (n * sizeof (u64));
   pg->uls_cnt[li]    = n;
 
   u32 k = 0;
   u64 acc = 0;
-  u64 cac = 0;
 
   for (u32 i = 0; i < pg->structs_cnt; i++)
   {
@@ -6086,20 +6083,17 @@ static void lvl_one (pcfg_global_t *pg, const u32 li, u64 *acc_out)
 
     pg->uls_struct[li][k] = i;
     pg->uls_pref[li][k]   = acc;
-    pg->uls_cpref[li][k]  = cac;
 
     acc = sat_add (acc, w);
 
     // Every candidate of this structure at this cost is reachable from one of its cells, so the two
     // prefixes advance together.
 
-    cac = sat_add (cac, (s->suf != NULL) ? s->suf[c - s->cost] : 0);
 
     k++;
   }
 
   acc_out[0] = acc;
-  acc_out[1] = cac;
 }
 
 #if defined (_WIN)
@@ -6122,7 +6116,7 @@ static HC_API_CALL void *lvl_worker (void *arg)
 
     if (li >= pg->ulvl_cnt) break;
 
-    lvl_one (pg, li, &lw->acc[li * 2]);
+    lvl_one (pg, li, &lw->acc[li]);
   }
 
   return 0;
@@ -6137,13 +6131,11 @@ static void build_unit_index (pcfg_global_t *pg)
   pg->ulvl_pref  = (u64 *)  hcmalloc ((pg->ulvl_cnt + 1) * sizeof (u64));
   pg->uls_struct = (u32 **) hcmalloc (pg->ulvl_cnt * sizeof (u32 *));
   pg->uls_pref   = (u64 **) hcmalloc (pg->ulvl_cnt * sizeof (u64 *));
-  pg->uls_cpref  = (u64 **) hcmalloc (pg->ulvl_cnt * sizeof (u64 *));
   pg->uls_cnt    = (u32 *)  hcmalloc (pg->ulvl_cnt * sizeof (u32));
-  pg->ulvl_cpref = (u64 *)  hcmalloc ((pg->ulvl_cnt + 1) * sizeof (u64));
 
   // Two per level: the base words the level holds, and the candidates they come to.
 
-  u64 *acc = (u64 *) hccalloc ((size_t) pg->ulvl_cnt * 2, sizeof (u64));
+  u64 *acc = (u64 *) hccalloc ((size_t) pg->ulvl_cnt, sizeof (u64));
 
   u32 nworker = pcfg_workers ();
 
@@ -6175,21 +6167,17 @@ static void build_unit_index (pcfg_global_t *pg)
   // The running total across the levels, which is the only part a level cannot work out on its own.
 
   u64 run  = 0;
-  u64 crun = 0;
 
   for (u32 li = 0; li < pg->ulvl_cnt; li++)
   {
     pg->ulvl_pref[li]  = run;
-    pg->ulvl_cpref[li] = crun;
 
-    run  = sat_add (run,  acc[li * 2]);
-    crun = sat_add (crun, acc[(li * 2) + 1]);
+    run = sat_add (run, acc[li]);
   }
 
   hcfree (acc);
 
   pg->ulvl_pref[pg->ulvl_cnt]  = run;
-  pg->ulvl_cpref[pg->ulvl_cnt] = crun;
   pg->units = run;
 }
 
@@ -7819,12 +7807,6 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     }
   }
 
-  // Here, and not before the loop above: an archive answers for itself as one file, and it is only
-  // open at this point, and a root's weight is part of what its tables were built from and is only
-  // parsed by then. Still before the grammar is read, because the cache has to ask "is this the same
-  // ruleset" before it does the work it would save.
-
-  pg->ident = pcfg_ident_roots (roots, nroots);
 
   if ((global_ctx->quiet == false) && (nroots > 1))
   {
@@ -7977,16 +7959,13 @@ void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   {
     hcfree (pg->uls_struct[i]);
     hcfree (pg->uls_pref[i]);
-    hcfree (pg->uls_cpref[i]);
   }
 
   hcfree (pg->uls_struct);
   hcfree (pg->uls_pref);
-  hcfree (pg->uls_cpref);
   hcfree (pg->uls_cnt);
   hcfree (pg->ulvl_cost);
   hcfree (pg->ulvl_pref);
-  hcfree (pg->ulvl_cpref);
   hcfree (pg->pool);
   hcfree (pg->pool_base);
   hcfree (pg->pool_ubase);
@@ -8290,9 +8269,21 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   // covering part of the grammar or a small grammar's whole one, and the build below either reads
   // the file or makes them again.
 
+  const bool sampled = (pg->probe_n != 0);
+
   pg->probe_n = 0;
   pg->probing = false;
-  pg->built   = false;
+
+  // Invalidated so that the cache is asked, which is only possible now that maxword and kbits are
+  // settled. What the probe left still covers every structure when it never sampled, and that is
+  // what lets a miss keep it rather than build it again.
+
+  // Only true when tables actually exist and were built at this maxword and kbits: with both pinned
+  // no probe runs, so there is nothing in hand to keep and the build below has to happen.
+
+  pg->tables_final = (sampled == false) && (pg->built == true) && (pg->built_maxword == pg->maxword) && (pg->built_kbits == pg->kbits);
+
+  pg->built        = false;
 
   unit_suffix_build (global_ctx, pg);
 
