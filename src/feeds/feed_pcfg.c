@@ -3610,7 +3610,11 @@ static double omen_mass_pct (const pcfg_root_t *roots, const u32 nroots)
 
 static bool omen_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroots)
 {
-  if (global_ctx->dev_enable == true)
+  // The escape is dropped for the device engine because that engine cannot walk a trellis. A grammar
+  // with no structures gives it no base word either, so the run moves to the host engine and the
+  // escape is the only thing left to carry: dropping it here would leave that run nothing to do.
+
+  if ((global_ctx->dev_enable == true) && (pg->structs_cnt > 0))
   {
     if ((pg->m_lines > 0) && (global_ctx->quiet == false))
     {
@@ -8104,12 +8108,10 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     need = (need + 3) & ~((u64) 3);
   }
 
-  if (need == 4)
-  {
-    gerr (global_ctx, "no terminals, nothing to amplify");
-
-    return false;
-  }
+  // No terminal entries at all means there is nothing for this engine to amplify, and that is the
+  // same grammar the empty index below describes: one whose mass sits on the escape. It is not
+  // refused here, because the index comes out empty and answers it the same way, so the host engine
+  // takes the run rather than the load failing.
 
   pg->ent_base = (u32 *) hccalloc (pg->lists_cnt, sizeof (u32));
 
