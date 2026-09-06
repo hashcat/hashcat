@@ -7877,23 +7877,6 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     return false;
   }
 
-  // The M line that let a grammar with no structures load was counted before the escape was read,
-  // so it could not tell whether the escape survives. omen=0 drops it, and so does a Grammar that
-  // names an M line beside no Omen directory, and either way nothing is left to enumerate.
-
-  if ((pg->structs_cnt == 0) && (pg->omen_lvl_cnt == 0))
-  {
-    char named[256];
-
-    roots_join (named, sizeof (named), roots, nroots);
-
-    gerr (global_ctx, "%s: nothing to enumerate, no structures and the escape is not carried", named);
-
-    roots_free (roots, nroots);
-
-    return false;
-  }
-
   char display[32];
 
   if (global_ctx->quiet == false) pmsg (pg, "pcfg: OMEN tables loaded in %s", pcfg_duration ((hc_timer_get (t_omen) / 1000.0), display, sizeof (display)));
@@ -7917,6 +7900,32 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     {
       pmsg (pg, "pcfg: level index built in %s, %u levels", pcfg_duration ((hc_timer_get (t_ix) / 1000.0), display, sizeof (display)), pg->lvl_cnt);
     }
+  }
+
+  // build_index () counts the structures and the escape into the same ladder, so a keyspace of zero
+  // here is both of them empty: a grammar carrying no structures and no escape, or one whose
+  // structures are all priced out of reach. Either is a run with nothing to do, and reporting it as
+  // a success is worse than refusing, because a keyspace of zero is the number work is divided by
+  // and an Exhausted run at Progress 0 reads like one that ran and missed.
+
+  if (pg->keyspace == 0)
+  {
+    char named[256];
+
+    roots_join (named, sizeof (named), roots, nroots);
+
+    if (pg->structs_cnt == 0)
+    {
+      gerr (global_ctx, "%s: nothing to enumerate, no structures and the escape is not carried", named);
+    }
+    else
+    {
+      gerr (global_ctx, "%s: nothing to enumerate, no level of the index lands at or below costmax %" PRIu64 ", and the escape is not carried", named, pg->costmax);
+    }
+
+    roots_free (roots, nroots);
+
+    return false;
   }
 
   // lookup= is answered here and not earlier, because it reads the grammar grammar_load () parsed,
