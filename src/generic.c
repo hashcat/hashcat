@@ -555,7 +555,21 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
       return -1;
     }
 
-    user_options_extra->attack_kern = ATTACK_KERN_PCFG;
+    // An empty inner loop is the feed saying it has no base word for this engine. The run moves to
+    // the host engine, and source_ident carries the same mark the earlier fallbacks give it, so a
+    // restore point taken on the device engine is not handed to a host engine run.
+
+    if (generic_ctx->dev_il_cnt == 0)
+    {
+      generic_ctx->dev_enable            = false;
+      generic_ctx->global_ctx.dev_enable = false;
+
+      generic_ctx->global_ctx.source_ident ^= 0x50434647534c4f57ULL;
+    }
+    else
+    {
+      user_options_extra->attack_kern = ATTACK_KERN_PCFG;
+    }
 
   }
 
