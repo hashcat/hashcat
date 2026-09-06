@@ -209,7 +209,7 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 
 ##
 ## New Features
-- Added a seek to the bypass key. It now asks what to move to: blank bypasses to the next wordlist or mask as before, a number seeks to that word, and a percentage such as 25% seeks to that fraction of the keyspace
+- Added rewind and advance keys, on r and a, which move a running attack back or forward through the keyspace it walks. A single press is a small fixed step and holding the key accelerates, up to half a percent of the keyspace per press. The bypass key is unchanged and still moves on to the next wordlist or mask
 - Added a key to change a --runtime limit while a run is going. It asks for a number of seconds to add, and a negative number shortens the limit instead
 ##
 

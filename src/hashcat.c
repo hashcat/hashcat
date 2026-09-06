@@ -240,6 +240,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->words_off = 0;
   status_ctx->words_cur = 0;
 
+  status_ctx->seek_pending = false;
+  status_ctx->seek_target  = 0;
+  status_ctx->seek_step    = 0;
+  status_ctx->seek_dir     = 0;
+
   // Where the round starts is only settled below, once its own keyspace is known, because --skip is a
   // position in the whole queue of rounds and not in this one. A restored session is the exception:
   // its position came out of the restore file and is already this round's, so it is taken here and
@@ -558,30 +563,64 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->accessible = true;
 
-  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  // A seek stops every device and starts it again from the position it moved to. Everything set up
+  // above survives that, the autotune and the backend session the devices are holding included, so
+  // what repeats is the threads and the counters seek_apply () writes from the new position.
+
+  for (;;)
   {
-    thread_param_t *thread_param = threads_param + backend_devices_idx;
+    calc_threads_live = 0;
 
-    thread_param->hashcat_ctx = hashcat_ctx;
-    thread_param->tid         = backend_devices_idx;
-
-    // A cracking thread cannot be run inline, it is the whole attack for that device. Keep the
-    // handles that started packed at the front so the wait has no unset handle to join, and tell
-    // the user, because a device that never starts means keyspace this run does not cover.
-
-    if (hc_thread_create_ok (c_threads[calc_threads_live], thread_calc, thread_param) == true)
+    for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
     {
-      calc_threads_live++;
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "Could not start the cracking thread for device #%d.", backend_devices_idx + 1);
+      thread_param_t *thread_param = threads_param + backend_devices_idx;
 
-      backend_ctx->devices_param[backend_devices_idx].skipped = true;
+      thread_param->hashcat_ctx = hashcat_ctx;
+      thread_param->tid         = backend_devices_idx;
+
+      // A cracking thread cannot be run inline, it is the whole attack for that device. Keep the
+      // handles that started packed at the front so the wait has no unset handle to join, and tell
+      // the user, because a device that never starts means keyspace this run does not cover.
+
+      if (hc_thread_create_ok (c_threads[calc_threads_live], thread_calc, thread_param) == true)
+      {
+        calc_threads_live++;
+      }
+      else
+      {
+        event_log_error (hashcat_ctx, "Could not start the cracking thread for device #%d.", backend_devices_idx + 1);
+
+        backend_ctx->devices_param[backend_devices_idx].skipped = true;
+      }
     }
+
+    hc_thread_wait (calc_threads_live, c_threads);
+
+    if (status_ctx->seek_pending == false) break;
+
+    // A seek resumes a paused run before it arms anything, but the user can still pause again while
+    // the devices are winding down. Waiting for the resume here, rather than reading a paused run as
+    // a reason to end the round, is what keeps the pause meaning pause.
+
+    while (status_ctx->devices_status == STATUS_PAUSED)
+    {
+      usleep (100000);
+    }
+
+    // Only a run that is still going picks itself up again. A crack that finished the hash list, an
+    // abort and a quit all outrank a seek, and so does a checkpoint, which is a request to stop this
+    // round where it is.
+    //
+    // A finish is not. It asks for no round after this one and leaves the device threads running, so
+    // the seek is applied and the finish takes effect when the round ends on its own.
+
+    if (status_ctx->devices_status      != STATUS_RUNNING) break;
+    if (status_ctx->checkpoint_shutdown == true)           break;
+
+    seek_apply (hashcat_ctx);
   }
 
-  hc_thread_wait (calc_threads_live, c_threads);
+  status_ctx->seek_pending = false;
 
   hcfree (c_threads);
 

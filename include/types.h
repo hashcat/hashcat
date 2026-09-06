@@ -3810,6 +3810,22 @@ typedef struct status_ctx
   u64  words_skip;
   u64  words_limit;
 
+  // Where a seek is taking the run, once the devices it stopped have wound down. Only the position is
+  // kept, because everything the run counts is a function of it and seek_apply () writes the rest
+  // from the position alone.
+
+  bool seek_pending;
+  u64  seek_target;
+
+  // How far the next press of a seek key moves, which way the run of presses is going, and when the
+  // last one arrived. A held key repeats and each repeat moves further than the last, so one press
+  // stays a nudge while a hold crosses the keyspace. The step is a real number because it starts well
+  // below a percent of a large keyspace and grows by a ratio.
+
+  double     seek_step;
+  int        seek_dir;
+  hc_timer_t seek_timer;
+
   /**
    * progress
    */
