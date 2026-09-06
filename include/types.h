@@ -388,8 +388,8 @@ typedef enum attack_kern
 {
   ATTACK_KERN_STRAIGHT  = 0,
   ATTACK_KERN_COMBI     = 1,
-  ATTACK_KERN_PCFG      = 2,
   ATTACK_KERN_BF        = 3,
+  ATTACK_KERN_PCFG      = 4,
   ATTACK_KERN_NONE      = 100
 
 } attack_kern_t;
@@ -2772,7 +2772,7 @@ typedef struct tuning_db_alias
 typedef struct tuning_db_entry
 {
   const char *device_name;
-  int         attack_mode;
+  int         attack_kern;
   int         hash_mode;
   int         workload_profile;
   int         vector_width;

@@ -15912,6 +15912,8 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      * tuning db
      */
 
+    const cl_uint tuningdb_vendor_id = device_param->opencl_device_vendor_id;
+
     if (module_ctx->module_extra_tuningdb_block != MODULE_DEFAULT)
     {
       // We need this because we can't trust CUDA/HIP to give us the real free device memory
@@ -15983,7 +15985,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       }
       else
       {
-        tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+        tuning_db_entry_t *tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, tuningdb_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
 
         if (tuningdb_entry != NULL) _kernel_accel = tuningdb_entry->kernel_accel;
       }
@@ -16042,11 +16044,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options->slow_candidates == true)
       {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, 0, hashconfig->hash_mode);
+        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, tuningdb_vendor_id, ATTACK_KERN_STRAIGHT, hashconfig->hash_mode);
       }
       else
       {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+        tuningdb_entry = tuning_db_search (hashcat_ctx, device_param->device_name, device_param->opencl_device_type, tuningdb_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
       }
 
       if (tuningdb_entry == NULL || tuningdb_entry->vector_width == -1)
@@ -16196,6 +16198,12 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       char *search_name = NULL;
 
+      // The first pass looks for a row a module generated for this one device, under a name no vendor
+      // alias can belong to. It passes no vendor id, so that pass cannot be answered by a vendor row
+      // and finish the search before the device's real name is ever tried.
+
+      cl_uint search_vendor_id = 0;
+
       if (i == 0)
       {
         hc_asprintf (&search_name, "MODULE_%02d_%s", device_param->device_id, device_param->device_name);
@@ -16203,15 +16211,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       else
       {
         search_name = device_param->device_name;
+
+        search_vendor_id = tuningdb_vendor_id;
       }
 
       if (user_options->slow_candidates == true)
       {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, 0, hashconfig->hash_mode);
+        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, search_vendor_id, ATTACK_KERN_STRAIGHT, hashconfig->hash_mode);
       }
       else
       {
-        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, user_options->attack_mode, hashconfig->hash_mode);
+        tuningdb_entry = tuning_db_search (hashcat_ctx, search_name, device_param->opencl_device_type, search_vendor_id, user_options_extra->attack_kern, hashconfig->hash_mode);
       }
 
       if (i == 0) hcfree (search_name);
@@ -19052,6 +19062,7 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     int memory_limit_hit = 0;
 
     const u32 kernel_accel_max_sav = kernel_accel_max;
+    const u32 kernel_accel_min_sav = kernel_accel_min;
 
     u64 size_total_last = 0, size_spilling_last = 0, size_tmps_last = 0, size_pws_last = 0;
 
@@ -19348,22 +19359,45 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (memory_limit_hit == 1)
       {
-        if (kernel_accel_max == kernel_accel_min)
+        if (kernel_accel_max > kernel_accel_min)
         {
-          if ((kernel_threads_max > kernel_threads_min) && (kernel_threads_max >= (device_param->kernel_preferred_wgs_multiple * 2)))
-          {
-            kernel_threads_max -= device_param->kernel_preferred_wgs_multiple;
+          kernel_accel_max--;
+        }
+        else if ((kernel_threads_max > kernel_threads_min) && (kernel_threads_max >= (device_param->kernel_preferred_wgs_multiple * 2)))
+        {
+          // Fewer threads may leave room for the accel this started with, so the accel range is put
+          // back the way it was. A pin has to be restored on both sides or the two come apart.
 
-            kernel_accel_max = kernel_accel_max_sav;
-          }
-          else
-          {
-            break;
-          }
+          kernel_threads_max -= device_param->kernel_preferred_wgs_multiple;
+
+          kernel_accel_min = kernel_accel_min_sav;
+          kernel_accel_max = kernel_accel_max_sav;
+        }
+        else if ((kernel_accel_min > hashconfig->kernel_accel_min) && (user_options->kernel_accel_chgd == false))
+        {
+          // A tuning database row pins accel by setting the minimum and the maximum to the same value,
+          // which leaves the ladder above nothing to walk. Every other way of fitting the launch has
+          // been tried by the time we get here, so rather than drop the device, which is what hashcat
+          // used to do, the row gives way. A row is one card's answer applied to every card of that
+          // vendor, and the device in front of us is the better authority on what it can hold.
+          //
+          // This comes after the thread ladder on purpose. A pinned accel that fits at a narrower
+          // launch is still the accel the row asked for, and honouring the row is worth more than
+          // holding on to the thread count.
+          //
+          // The floor is the MODULE's minimum. The loop's own minimum is the pinned value, and walking
+          // below the module's floor takes kernel_power_max to zero, which makes every size zero, which
+          // no check can refuse. That reads as a fit and the device runs on nothing.
+          //
+          // An explicit --kernel-accel is left alone. The user named that number, so a refusal tells
+          // them it does not fit, where a silent reduction would not.
+
+          kernel_accel_min--;
+          kernel_accel_max = kernel_accel_min;
         }
         else
         {
-          kernel_accel_max--;
+          break;
         }
 
         continue;

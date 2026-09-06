@@ -24,6 +24,11 @@ int sort_by_tuning_db_alias (const void *v1, const void *v2)
   return 0;
 }
 
+// A device resolves to at most two aliases: the one the tuning file names for it, and the one derived
+// from its vendor.
+
+#define TUNING_DB_ALIAS_MAX 2
+
 int sort_by_tuning_db_entry (const void *v1, const void *v2)
 {
   const tuning_db_entry_t *t1 = (const tuning_db_entry_t *) v1;
@@ -33,8 +38,8 @@ int sort_by_tuning_db_entry (const void *v1, const void *v2)
 
   if (res1 != 0) return (res1);
 
-  const int res2 = t1->attack_mode
-                 - t2->attack_mode;
+  const int res2 = t1->attack_kern
+                 - t2->attack_kern;
 
   if (res2 != 0) return (res2);
 
@@ -238,10 +243,10 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
     if ((token_ptr[1][0] != '0') &&
         (token_ptr[1][0] != '1') &&
         (token_ptr[1][0] != '3') &&
-        (token_ptr[1][0] != '9') &&
+        (token_ptr[1][0] != '4') &&
         (token_ptr[1][0] != '*'))
     {
-      event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_mode '%c' in Line '%d'", token_ptr[1][0], line_num);
+      event_log_warning (hashcat_ctx, "Tuning-db: Invalid attack_kern '%c' in Line '%d'", token_ptr[1][0], line_num);
 
       hcfree (buf);
 
@@ -264,12 +269,15 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
     char *device_name = token_ptr[0];
 
     int hash_mode     = -1;
-    int attack_mode   = -1;
+    int attack_kern   = -1;
     int vector_width  = -1;
     int kernel_accel  = -1;
     int kernel_loops  = -1;
 
-    if (token_ptr[1][0] != '*') attack_mode   = (int) strtol (token_ptr[1], NULL, 10);
+    if (token_ptr[1][0] != '*') attack_kern   = (int) strtol (token_ptr[1], NULL, 10);
+
+    // The column is the attack kern type, which is also the kernel suffix and the -a value that
+    // reaches it: 0, 1, 3 and 4 are the _a0, _a1, _a3 and _a4 kernels. There is no _a2.
     if (token_ptr[2][0] != '*') hash_mode     = (int) strtol (token_ptr[2], NULL, 10);
     if (token_ptr[3][0] != 'N') vector_width  = (int) strtol (token_ptr[3], NULL, 10);
 
@@ -362,7 +370,7 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
     tuning_db_entry_t *entry = &tuning_db->entry_buf[tuning_db->entry_cnt];
 
     entry->device_name  = hcstrdup (device_name);
-    entry->attack_mode  = attack_mode;
+    entry->attack_kern  = attack_kern;
     entry->hash_mode    = hash_mode;
     entry->vector_width = vector_width;
     entry->kernel_accel = kernel_accel;
@@ -384,7 +392,44 @@ bool tuning_db_process_line (hashcat_ctx_t *hashcat_ctx, const char *line_buf, c
   return true;
 }
 
-static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
+// Which vendor's rows a device should fall back on, worked out from what the backend recorded rather
+// than from a list of card names. CUDA, HIP and Metal each hardcode their vendor id at enumeration and
+// an OpenCL device gets one mapped from its vendor string, so this one field answers for every backend.
+//
+// GPU only. The vendor rows were all measured on discrete cards, and an AMD or an Intel CPU reports its
+// maker's vendor id exactly as its GPUs do, so without this gate a Ryzen would start taking tuning
+// meant for a Radeon.
+//
+// Three ids are deliberately absent. VENDOR_ID_AMD_USE_INTEL is the string GenuineIntel, an Intel CPU
+// seen through AMD's runtime, so the name is the opposite of what it is. VENDOR_ID_MESA does not say
+// whose silicon is underneath. Metal reports VENDOR_ID_APPLE for every device it drives, including an
+// AMD card in an Intel Mac, so an Apple alias derived here could not tell those apart.
+
+static const char *tuning_db_vendor_alias (const cl_device_type device_type, const cl_uint device_vendor_id, const char *device_name)
+{
+  if ((device_type & CL_DEVICE_TYPE_GPU) == 0) return NULL;
+
+  switch (device_vendor_id)
+  {
+    case VENDOR_ID_NV:          return "ALIAS_NV";
+    case VENDOR_ID_AMD:         return "ALIAS_AMD";
+    case VENDOR_ID_AMD_USE_HIP: return "ALIAS_AMD";
+    case VENDOR_ID_INTEL_SDK:   return "ALIAS_INTEL";
+  }
+
+  // Two runtimes do not say whose silicon they are driving. Metal reports Apple for every device it
+  // has, including a Radeon in an Intel Mac, and Mesa reports itself. Both still put the vendor in the
+  // device name, and a handful of vendor prefixes is a far smaller thing to keep current than a list
+  // of every card that vendor ever shipped.
+
+  if (strncmp (device_name, "NVIDIA ", 7) == 0) return "ALIAS_NV";
+  if (strncmp (device_name, "AMD ",    4) == 0) return "ALIAS_AMD";
+  if (strncmp (device_name, "Intel",   5) == 0) return "ALIAS_INTEL";
+
+  return NULL;
+}
+
+static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, const char *vendor_alias, const int attack_kern, const int hash_mode)
 {
   tuning_db_t *tuning_db = hashcat_ctx->tuning_db;
 
@@ -411,7 +456,9 @@ static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, con
 
   a.device_name = device_name_nospace2;
 
-  char *alias_name = NULL;
+  char *alias_names[TUNING_DB_ALIAS_MAX];
+
+  int alias_cnt = 0;
 
   for (i = device_name_length; i >= 1; i--)
   {
@@ -421,26 +468,41 @@ static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, con
 
     if (alias == NULL) continue;
 
-    alias_name = alias->alias_name;
+    alias_names[alias_cnt] = alias->alias_name;
+
+    alias_cnt++;
 
     break;
   }
 
   hcfree (device_name_nospace2);
 
-  // attack-mode 6, 7 and 12 are attack-kern 1
-  // attack-mode 8 and 9 are attack-kern 0
+  // The tuning file cannot name a card that did not exist when it was written, and that is the one
+  // card most likely to be missing a tuning. The vendor alias is therefore derived rather than looked
+  // up, from what the backend already worked out at enumeration. It goes behind the file's own alias,
+  // so a row written for a narrower group still wins.
 
-  if (attack_mode ==  6) attack_mode = 1;
-  if (attack_mode ==  7) attack_mode = 1;
-  if (attack_mode == 12) attack_mode = 1;
-  if (attack_mode ==  8) attack_mode = 0;
-  if (attack_mode ==  9) attack_mode = 0;
+  if ((vendor_alias != NULL) && (alias_cnt < TUNING_DB_ALIAS_MAX))
+  {
+    bool have_it = false;
+
+    for (int j = 0; j < alias_cnt; j++)
+    {
+      if (strcmp (alias_names[j], vendor_alias) == 0) have_it = true;
+    }
+
+    if (have_it == false)
+    {
+      alias_names[alias_cnt] = (char *) vendor_alias;
+
+      alias_cnt++;
+    }
+  }
 
   // bsearch is not ideal but fast enough
 
   s.device_name = device_name_nospace;
-  s.attack_mode = attack_mode;
+  s.attack_kern = attack_kern;
   s.hash_mode   = hash_mode;
 
   tuning_db_entry_t *entry = NULL;
@@ -450,7 +512,7 @@ static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, con
   for (i = 0; i < 8; i++)
   {
     s.device_name = (i & 1) ? "*" : device_name_nospace;
-    s.attack_mode = (i & 2) ?  -1 : attack_mode;
+    s.attack_kern = (i & 2) ?  -1 : attack_kern;
     s.hash_mode   = (i & 4) ?  -1 : hash_mode;
 
     entry = (tuning_db_entry_t *) bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
@@ -463,14 +525,16 @@ static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, con
     {
       // in case we have an alias-name
 
-      if (alias_name != NULL)
+      for (int j = 0; j < alias_cnt; j++)
       {
-        s.device_name = alias_name;
+        s.device_name = alias_names[j];
 
         entry = (tuning_db_entry_t *) bsearch (&s, tuning_db->entry_buf, tuning_db->entry_cnt, sizeof (tuning_db_entry_t), sort_by_tuning_db_entry);
 
         if (entry != NULL) break;
       }
+
+      if (entry != NULL) break;
 
       // or by device type
 
@@ -496,15 +560,20 @@ static tuning_db_entry_t *tuning_db_search_real (hashcat_ctx_t *hashcat_ctx, con
   return entry;
 }
 
-tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, int attack_mode, const int hash_mode)
+tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *device_name, const cl_device_type device_type, const cl_uint device_vendor_id, const int attack_kern, const int hash_mode)
 {
+  // Worked out once, and from the name exactly as the device reported it, because the searches below
+  // retry with a vendor prefix stripped off the front and that prefix is one of the things it reads.
+
+  const char *vendor_alias = tuning_db_vendor_alias (device_type, device_vendor_id, device_name);
+
   tuning_db_entry_t *entry = NULL;
 
   const char *NV_prefix = (const char *) "NVIDIA ";
 
   if (strncmp (device_name, NV_prefix, strlen (NV_prefix)) == 0)
   {
-    entry = tuning_db_search_real (hashcat_ctx, device_name + strlen (NV_prefix), device_type, attack_mode, hash_mode);
+    entry = tuning_db_search_real (hashcat_ctx, device_name + strlen (NV_prefix), device_type, vendor_alias, attack_kern, hash_mode);
 
     if (entry) return entry;
   }
@@ -513,12 +582,12 @@ tuning_db_entry_t *tuning_db_search (hashcat_ctx_t *hashcat_ctx, const char *dev
 
   if (strncmp (device_name, AMD_prefix, strlen (AMD_prefix)) == 0)
   {
-    entry = tuning_db_search_real (hashcat_ctx, device_name + strlen (AMD_prefix), device_type, attack_mode, hash_mode);
+    entry = tuning_db_search_real (hashcat_ctx, device_name + strlen (AMD_prefix), device_type, vendor_alias, attack_kern, hash_mode);
 
     if (entry) return entry;
   }
 
-  entry = tuning_db_search_real (hashcat_ctx, device_name, device_type, attack_mode, hash_mode);
+  entry = tuning_db_search_real (hashcat_ctx, device_name, device_type, vendor_alias, attack_kern, hash_mode);
 
   if (entry) return entry;
 

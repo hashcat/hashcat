@@ -17,5 +17,5 @@
 # 4. To match the speed you have chosen to the correct value in the 'x' file, simply search for it in it. Then go up a little on the block where you found him. The value -n is the single value that begins before the block start. If you have multiple blocks at the same speed, choose the lowest value for -n
 
 #Device                                         Attack  Hash    Vector  Kernel  Kernel
-#Name                                           Mode    Type    Width   Accel   Loops
+#Name                                           Kern    Type    Width   Accel   Loops
 
