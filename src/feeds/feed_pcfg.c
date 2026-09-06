@@ -266,6 +266,8 @@ typedef struct
   u32 threads;
   bool walk;
 
+  char named[192];
+
   u32 maxword;
   u32 maxbyte;
 
@@ -5102,8 +5104,10 @@ static bool pcfg_omen_tail (const pcfg_omen_t *om, const u8 *pw, const u32 *off,
 // (its lvl and cost describe the hit), out_idx the index inside that level, out_pos the global
 // candidate position.
 //
-// Nothing here has a device engine counterpart on purpose: omen_load () 2836 drops the escape when
-// dev_enable is set, so omen_lvl_cnt is zero and the very first test refuses.
+// Nothing here has a device engine counterpart on purpose. A grammar that engine can amplify has
+// structures, and omen_load () drops the escape for it, so omen_lvl_cnt is zero and the very first
+// test refuses. A grammar without structures keeps the escape, but it offers that engine no base
+// word either, so the run reaches this from the host engine after the core has turned it off.
 
 static bool pcfg_omen_lookup (const pcfg_global_t *pg, const u8 *pw, const u32 pw_len, u32 *out_oi, u64 *out_idx, u64 *out_pos)
 {
@@ -6089,10 +6093,6 @@ static void lvl_one (pcfg_global_t *pg, const u32 li, u64 *acc_out)
     pg->uls_pref[li][k]   = acc;
 
     acc = sat_add (acc, w);
-
-    // Every candidate of this structure at this cost is reachable from one of its cells, so the two
-    // prefixes advance together.
-
 
     k++;
   }
@@ -7632,6 +7632,24 @@ static void lookup_report (generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
   }
 }
 
+// How many threads build base words when this run generates them here. The device engine settles
+// the count for itself further down, so this is the host engine answer, and the fallback in
+// global_dev_init () asks for it again once it knows the run is coming back here.
+
+static void pcfg_pick_workers (pcfg_global_t *pg)
+{
+  if (pg->threads != PCFG_PF_WORKERS_AUTO) return;
+
+  const int cpus = hc_get_processor_count ();
+
+  u32 want = PCFG_PF_WORKERS_PLAIN;
+
+  if ((cpus > 1) && ((u32) cpus < (want * 2))) want = (u32) (cpus / 2);
+  if (want < 1) want = 1;
+
+  pg->threads = want;
+}
+
 bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t **thread_ctx, MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
   if (global_ctx->workc < 1)
@@ -7669,7 +7687,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     { "kbits",   FEED_PARAM_TYPE_U64, &kbits,   0, PCFG_DEV_KBITS_MAX, "bits of inner loop one cell may span, 0 to pick from the ruleset" },
     { "threads", FEED_PARAM_TYPE_U64, &threads, 0, PCFG_PF_MAXW, "cores that generate base words, 0 to generate inline, unset to pick from the rectangle" },
     { "walk",    FEED_PARAM_TYPE_U64, &walk,    0, 1, "step the last token instead of unranking it where the ordering allows" },
-    { "omen",    FEED_PARAM_TYPE_U64, &omen,    0, 1, "carry the OMEN escape where the attack allows, which is every hash the device engine is off for" },
+    { "omen",    FEED_PARAM_TYPE_U64, &omen,    0, 1, "carry the OMEN escape where the attack allows, which is every hash the device engine is off for and every grammar it has no base word for" },
     { "cache",   FEED_PARAM_TYPE_U64, &cache,   0, 1, "keep the unit tables under the cache directory, which trades disk for the longest step of the start" },
     { "maxword", FEED_PARAM_TYPE_U64, &maxword, 0, PCFG_DEV_MAXWORD_HI, "words the kernel gives a candidate, 0 to pick from the ruleset" },
     { "maxgain", FEED_PARAM_TYPE_DBL, &maxgain, 1.0, 64.0, "how much wider the rectangle must get before the larger array is taken" },
@@ -7859,6 +7877,23 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
     return false;
   }
 
+  // The M line that let a grammar with no structures load was counted before the escape was read,
+  // so it could not tell whether the escape survives. omen=0 drops it, and so does a Grammar that
+  // names an M line beside no Omen directory, and either way nothing is left to enumerate.
+
+  if ((pg->structs_cnt == 0) && (pg->omen_lvl_cnt == 0))
+  {
+    char named[256];
+
+    roots_join (named, sizeof (named), roots, nroots);
+
+    gerr (global_ctx, "%s: nothing to enumerate, no structures and the escape is not carried", named);
+
+    roots_free (roots, nroots);
+
+    return false;
+  }
+
   char display[32];
 
   if (global_ctx->quiet == false) pmsg (pg, "pcfg: OMEN tables loaded in %s", pcfg_duration ((hc_timer_get (t_omen) / 1000.0), display, sizeof (display)));
@@ -7891,28 +7926,16 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   if ((pg->lookup != NULL) && (global_ctx->dev_enable == false)) lookup_report (global_ctx, pg);
 
-  if ((global_ctx->dev_enable == false) && (pg->threads == PCFG_PF_WORKERS_AUTO))
-  {
-    const int cpus = hc_get_processor_count ();
-
-    u32 want = PCFG_PF_WORKERS_PLAIN;
-
-    if ((cpus > 1) && ((u32) cpus < (want * 2))) want = (u32) (cpus / 2);
-    if (want < 1) want = 1;
-
-    pg->threads = want;
-  }
+  if (global_ctx->dev_enable == false) pcfg_pick_workers (pg);
 
   const char *half = "host";
 
   if (global_ctx->dev_enable  == true) half = "device";
   else if (pg->omen_lvl_cnt   >  0)    half = "host, OMEN";
 
-  char named[192];
+  roots_join (pg->named, sizeof (pg->named), roots, nroots);
 
-  roots_join (named, sizeof (named), roots, nroots);
-
-  snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", named, scale, half);
+  snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named, scale, half);
 
   roots_free (roots, nroots);
 
@@ -8364,6 +8387,18 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   if (pg->units == 0)
   {
     if (global_ctx->quiet == false) pmsg (pg, "pcfg: no base words for the device engine, the host engine takes the run");
+
+    // Three answers further up were settled from dev_enable while it was still true: how many
+    // threads build base words, the half the status line names, and lookup=. The run is going to
+    // the host engine, so they are given again here, where that is known.
+
+    global_ctx->dev_enable = false;
+
+    pcfg_pick_workers (pg);
+
+    snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
+
+    if (pg->lookup != NULL) lookup_report (global_ctx, pg);
 
     pool[0]      = pg->pool;
     pool_size[0] = pg->pool_size;
