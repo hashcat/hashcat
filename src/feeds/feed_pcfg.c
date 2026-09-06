@@ -4867,7 +4867,7 @@ static u32 pcfg_parse (pcfg_global_t *pg, const u8 *pw, const u32 pw_len, u32 *o
       {
         // A flat token's entries vary in length, so the structure does not say how much of the
         // password this slot takes and every entry that prefixes the rest has to be tried. X and Y
-        // are the small lists in a ruleset, so this stays a scan; it also keeps the candidates in
+        // are the small lists in a ruleset, so this stays a scan. It also keeps the candidates in
         // list order, which is the order they rank in.
 
         const u32 room = pw_len - spos[j];
