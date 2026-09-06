@@ -773,7 +773,16 @@ static void autotune2_solve (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *devi
   // A fit that could not separate the accel axis scores every accel alike, so greed below 1 would hand
   // the answer to the smallest and starve the launch whatever the profile asked for.
 
-  const double margin = (accel_fit == true) ? greed : 1.0;
+  // Frugality trades throughput for fewer candidates in flight, and that is worth paying for only
+  // where an abandoned launch is expensive. A mode whose work sits outside the attack kernel holds
+  // the device in its loop kernel for the whole budget, so a launch it has to give up costs the
+  // budget. A mode that hashes inside the attack kernel finishes a launch in milliseconds and has
+  // nothing worth saving, while its rate flattens as soon as accel * F passes A, so the margin
+  // hands it the smallest accel and starves the launch.
+
+  const bool margin_applies = (hashconfig->attack_exec == ATTACK_EXEC_OUTSIDE_KERNEL);
+
+  const double margin = ((accel_fit == true) && (margin_applies == true)) ? greed : 1.0;
 
   double best_rate  = 0;
   u32    best_accel = accel_min;
