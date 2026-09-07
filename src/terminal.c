@@ -11,12 +11,14 @@
 #include "thread.h"
 #include "status.h"
 #include "shared.h"
+#include "system.h"
 #include "path.h"
 #include "hwmon.h"
 #include "bridges.h"
 #include "interface.h"
 #include "hashcat.h"
 #include "timer.h"
+#include "monitor.h"
 #include "terminal.h"
 #include "user_options.h"
 
@@ -24,8 +26,152 @@ static const size_t MAXIMUM_EXAMPLE_HASH_LENGTH = 200;
 
 static const size_t TERMINAL_LINE_LENGTH = 79;
 
-static const char *const PROMPT_ACTIVE = "[s]tatus [p]ause [b]ypass [c]heckpoint [f]inish [q]uit => ";
-static const char *const PROMPT_PAUSED = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+// Draw up to want of the active devices at random and leave them ordered by device id. Returns the
+// number of active devices, so the caller can say how many of them it is showing.
+//
+// Each device is taken with the probability that leaves every one equally likely, which gets an
+// unbiased sample in one pass and in id order, with no sort and no second pass.
+
+static int status_sample_devices (const hashcat_status_t *hashcat_status, int *shown, int *shown_cnt, const int want)
+{
+  int active[DEVICES_MAX];
+  int active_cnt = 0;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
+
+    if (device_info->guess_candidates_dev == NULL) continue;
+
+    active[active_cnt] = device_id;
+
+    active_cnt++;
+  }
+
+  *shown_cnt = 0;
+
+  const int take = MIN (active_cnt, want);
+
+  for (int i = 0; i < active_cnt; i++)
+  {
+    const int left_to_take = take - *shown_cnt;
+    const int left_to_see  = active_cnt - i;
+
+    if (left_to_take == 0) break;
+
+    if ((int) get_random_num (0, (u32) (left_to_see - 1)) < left_to_take)
+    {
+      shown[*shown_cnt] = active[i];
+
+      (*shown_cnt)++;
+    }
+  }
+
+  return active_cnt;
+}
+
+// How many device windows to show for Candidates. A window is a pair of candidates and either can
+// be long, so one row is all that fits.
+
+#define CANDIDATES_DEVICES_MAX 1
+
+// How many devices fit on one Restore.Sub line, worst case an amplifier near 1 million and an
+// iteration near 10 million on a two digit device id.
+
+#define RESTORE_SUB_DEVICES_MAX 3
+
+static const char *const PROMPT_ACTIVE    = "[s]tatus [p]ause [r]ewind [a]dvance [b]ypass [c]heckpoint [f]inish [q]uit => ";
+static const char *const PROMPT_PAUSED    = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [q]uit => ";
+
+// The runtime keys are only offered when there is a deadline to move, so a run without --runtime
+// keeps the line it always had.
+
+static const char *const PROMPT_ACTIVE_RT = "[s]tatus [p]ause [r]ewind [a]dvance [b]ypass [c]heckpoint [f]inish [e]xtend [q]uit => ";
+static const char *const PROMPT_PAUSED_RT = "[s]tatus [r]esume [b]ypass [c]heckpoint [f]inish [e]xtend [q]uit => ";
+
+static const char *terminal_prompt (const hashcat_ctx_t *hashcat_ctx)
+{
+  const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  const bool paused = (status_ctx->devices_status == STATUS_PAUSED) ? true : false;
+
+  if (user_options->runtime > 0)
+  {
+    if (paused == true) return PROMPT_PAUSED_RT;
+
+    return PROMPT_ACTIVE_RT;
+  }
+
+  if (paused == true) return PROMPT_PAUSED;
+
+  return PROMPT_ACTIVE;
+}
+
+// Ask for a line in the middle of a run. The key thread holds the terminal with ICANON off so that a
+// single keypress arrives without a newline, which is what every other key here wants. Reading a
+// whole line wants the opposite, so canonical mode goes back on for the duration and comes off again
+// afterwards.
+//
+// Returns false when the user typed nothing, which is how a caller tells a bare Enter from an answer.
+
+static bool prompt_line (const char *prompt, char *buf, const size_t buf_sz)
+{
+  tty_fix ();
+
+  fprintf (stdout, "%s", prompt);
+
+  fflush (stdout);
+
+  char *line = fgets (buf, (int) buf_sz, stdin);
+
+  bool complete = false;
+
+  if (line != NULL)
+  {
+    const size_t len = strlen (buf);
+
+    if ((len > 0) && (buf[len - 1] == '\n')) complete = true;
+  }
+
+  // an answer longer than the buffer would otherwise arrive as keypresses once raw mode is back
+
+  if ((line != NULL) && (complete == false))
+  {
+    int c = 0;
+
+    while ((c = getchar ()) != EOF)
+    {
+      if (c == '\n') break;
+    }
+  }
+
+  tty_break ();
+
+  if (line == NULL) return false;
+
+  size_t len = strlen (buf);
+
+  while ((len > 0) && ((buf[len - 1] == '\n') || (buf[len - 1] == '\r') || (buf[len - 1] == ' ') || (buf[len - 1] == '\t')))
+  {
+    buf[len - 1] = 0;
+
+    len--;
+  }
+
+  size_t start = 0;
+
+  while ((buf[start] == ' ') || (buf[start] == '\t')) start++;
+
+  if (start > 0) memmove (buf, buf + start, (len - start) + 1);
+
+  if (buf[0] == 0) return false;
+
+  return true;
+}
 
 void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 {
@@ -184,34 +330,22 @@ int setup_console (void)
 
 void send_prompt (hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
-
-  if (status_ctx->devices_status == STATUS_PAUSED)
-  {
-    fprintf (stdout, "%s", PROMPT_PAUSED);
-  }
-  else
-  {
-    fprintf (stdout, "%s", PROMPT_ACTIVE);
-  }
+  fprintf (stdout, "%s", terminal_prompt (hashcat_ctx));
 
   fflush (stdout);
 }
 
-void clear_prompt (hashcat_ctx_t *hashcat_ctx)
+void clear_prompt (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx)
 {
-  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+  // The prompt on screen is not always the one this would build now. Pausing swaps a longer line for
+  // a shorter one, and clearing by the shorter length leaves the tail of the longer one behind, so
+  // what has to be blanked is the widest prompt there is rather than the current one.
 
-  size_t prompt_sz = 0;
+  size_t prompt_sz = strlen (PROMPT_ACTIVE);
 
-  if (status_ctx->devices_status == STATUS_PAUSED)
-  {
-    prompt_sz = strlen (PROMPT_PAUSED);
-  }
-  else
-  {
-    prompt_sz = strlen (PROMPT_ACTIVE);
-  }
+  prompt_sz = MAX (prompt_sz, strlen (PROMPT_PAUSED));
+  prompt_sz = MAX (prompt_sz, strlen (PROMPT_ACTIVE_RT));
+  prompt_sz = MAX (prompt_sz, strlen (PROMPT_PAUSED_RT));
 
   fputc ('\r', stdout);
 
@@ -223,6 +357,56 @@ void clear_prompt (hashcat_ctx_t *hashcat_ctx)
   fputc ('\r', stdout);
 
   fflush (stdout);
+}
+
+// Rewind and advance, which are the same move in the two directions. Both are offered on a letter and
+// on the keys a user reaches for without reading a prompt: the arrows, and the two characters that
+// point the same way.
+
+static void keypress_seek (hashcat_ctx_t *hashcat_ctx, const int direction, const bool quiet)
+{
+  const status_ctx_t *status_ctx = hashcat_ctx->status_ctx;
+
+  const bool was_paused = (status_ctx->devices_status == STATUS_PAUSED);
+
+  const double percent_from = seek_percent (hashcat_ctx, seek_position (hashcat_ctx));
+
+  event_log_info (hashcat_ctx, NULL);
+
+  if (bypass_seek_step (hashcat_ctx, direction) == -1)
+  {
+    event_log_info (hashcat_ctx, "Keyspace: %.2f%%, which is as far %s as this run goes.", percent_from, (direction >= 0) ? "forward" : "back");
+  }
+  else
+  {
+    const double percent_to = seek_percent (hashcat_ctx, status_ctx->seek_target);
+
+    // Enough decimals to show the move. The first press of a run moves an absolute number of words,
+    // which on a large keyspace is a very small fraction of it, and two decimals would print the same
+    // number twice and say nothing.
+
+    double delta = percent_to - percent_from;
+
+    if (delta < 0) delta = -delta;
+
+    int    decimals = 2;
+    double scale    = 100;
+
+    while ((decimals < 8) && ((delta * scale) < 1))
+    {
+      scale *= 10;
+
+      decimals++;
+    }
+
+    event_log_info (hashcat_ctx, "Keyspace: %.*f%% -> %.*f%%", decimals, percent_from, decimals, percent_to);
+
+    if (was_paused == true) event_log_info (hashcat_ctx, "The run was paused and has been resumed to move.");
+  }
+
+  event_log_info (hashcat_ctx, NULL);
+
+  if (quiet == false) send_prompt (hashcat_ctx);
 }
 
 static void keypress (hashcat_ctx_t *hashcat_ctx)
@@ -270,6 +454,24 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
         break;
 
+      case 'a':
+      case '>':
+      case TTY_KEY_RIGHT:
+      case TTY_KEY_UP:
+
+        keypress_seek (hashcat_ctx, 1, quiet);
+
+        break;
+
+      case '<':
+      case TTY_KEY_LEFT:
+      case TTY_KEY_DOWN:
+
+        keypress_seek (hashcat_ctx, -1, quiet);
+
+        break;
+
+
       case 'b':
 
         event_log_info (hashcat_ctx, NULL);
@@ -283,6 +485,50 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
         if (quiet == false) send_prompt (hashcat_ctx);
 
         break;
+
+      case 'e':
+      {
+        if (user_options->runtime == 0) break;
+
+        event_log_info (hashcat_ctx, NULL);
+
+        char answer[64];
+
+        const bool answered = prompt_line ("Seconds to add to the runtime limit, negative to shorten => ", answer, sizeof (answer));
+
+        if (answered == true)
+        {
+          char *end = NULL;
+
+          const long seconds = strtol (answer, &end, 10);
+
+          if ((end[0] == 0) && (seconds > INT_MIN) && (seconds < INT_MAX))
+          {
+            runtime_adjust (hashcat_ctx, (int) seconds);
+
+            const int runtime_left = get_runtime_left (hashcat_ctx);
+
+            if (runtime_left > 0)
+            {
+              event_log_info (hashcat_ctx, "Runtime limit moved by %d seconds, %d seconds left.", (int) seconds, runtime_left);
+            }
+            else
+            {
+              event_log_info (hashcat_ctx, "Runtime limit moved by %d seconds, which is already past. The run will stop.", (int) seconds);
+            }
+          }
+          else
+          {
+            event_log_info (hashcat_ctx, "Not a number of seconds: %s", answer);
+          }
+        }
+
+        event_log_info (hashcat_ctx, NULL);
+
+        if (quiet == false) send_prompt (hashcat_ctx);
+
+        break;
+      }
 
       case 'p':
 
@@ -319,7 +565,16 @@ static void keypress (hashcat_ctx_t *hashcat_ctx)
 
       case 'r':
 
-        if (status_ctx->devices_status == STATUS_PAUSED)
+        // The prompt offers this key as resume while the run is paused and as rewind while it runs.
+        // Only one of the two can apply at a time, so the letter carries both.
+
+        if (status_ctx->devices_status != STATUS_PAUSED)
+        {
+          keypress_seek (hashcat_ctx, -1, quiet);
+
+          break;
+        }
+
         {
           event_log_info (hashcat_ctx, NULL);
 
@@ -472,6 +727,66 @@ void SetConsoleWindowSize (const int x)
 }
 #endif
 
+// How long tty_getchar () waits for a keypress before giving up and returning empty handed. The
+// keypress loop rechecks shutdown_outer between calls, so this is also how long a quit takes to be
+// noticed, and the main thread joins this thread on its way out. A full second here put most of a
+// second into the end of every interactive run.
+
+#define TTY_GETCHAR_WAIT_MS 100
+
+#if !defined (_WIN)
+
+// Finish an escape sequence that has already had its ESC read. An arrow is ESC [ D or ESC [ C, and
+// ESC on its own is a key a user can press on purpose, so the two bytes that would complete the
+// sequence are only taken when they are already waiting. A zero timeout answers that without
+// blocking, and anything else that follows ESC is left alone rather than half consumed.
+
+static int tty_escape_key (void)
+{
+  for (int i = 0; i < 2; i++)
+  {
+    fd_set rfds;
+
+    FD_ZERO (&rfds);
+
+    FD_SET (fileno (stdin), &rfds);
+
+    struct timeval tv;
+
+    tv.tv_sec  = 0;
+    tv.tv_usec = 0;
+
+    if (select (1, &rfds, NULL, NULL, &tv) != 1) return 0;
+
+    // read () rather than getchar (), because select () answers for the descriptor and stdio answers
+    // for its own buffer. getchar () would pull the whole sequence into that buffer on the first
+    // call and leave select () reporting nothing to read while the bytes were already in hand.
+
+    unsigned char b = 0;
+
+    if (read (fileno (stdin), &b, 1) != 1) return 0;
+
+    const int c = b;
+
+    if (i == 0)
+    {
+      if (c != '[') return 0;
+    }
+    else
+    {
+      if (c == 'D') return TTY_KEY_LEFT;
+      if (c == 'C') return TTY_KEY_RIGHT;
+      if (c == 'A') return TTY_KEY_UP;
+      if (c == 'B') return TTY_KEY_DOWN;
+    }
+  }
+
+  return 0;
+}
+
+#endif
+
+
 #if defined (__OpenBSD__)   || (__FreeBSD__)       || defined (__NetBSD__) || \
     defined (__DragonFly__) || defined (__linux__) || defined (__CYGWIN__)
 static struct termios savemodes;
@@ -503,15 +818,23 @@ int tty_getchar (void)
 
   struct timeval tv;
 
-  tv.tv_sec  = 1;
-  tv.tv_usec = 0;
+  tv.tv_sec  = 0;
+  tv.tv_usec = TTY_GETCHAR_WAIT_MS * 1000;
 
   int retval = select (1, &rfds, NULL, NULL, &tv);
 
   if (retval ==  0) return  0;
   if (retval == -1) return -1;
 
-  return getchar ();
+  unsigned char b = 0;
+
+  if (read (fileno (stdin), &b, 1) != 1) return -1;
+
+  const int c = b;
+
+  if (c == 27) return tty_escape_key ();
+
+  return c;
 }
 
 int tty_fix (void)
@@ -552,15 +875,23 @@ int tty_getchar (void)
 
   struct timeval tv;
 
-  tv.tv_sec  = 1;
-  tv.tv_usec = 0;
+  tv.tv_sec  = 0;
+  tv.tv_usec = TTY_GETCHAR_WAIT_MS * 1000;
 
   int retval = select (1, &rfds, NULL, NULL, &tv);
 
   if (retval ==  0) return  0;
   if (retval == -1) return -1;
 
-  return getchar ();
+  unsigned char b = 0;
+
+  if (read (fileno (stdin), &b, 1) != 1) return -1;
+
+  const int c = b;
+
+  if (c == 27) return tty_escape_key ();
+
+  return c;
 }
 
 int tty_fix ()
@@ -588,7 +919,7 @@ int tty_getchar (void)
 {
   HANDLE stdinHandle = GetStdHandle (STD_INPUT_HANDLE);
 
-  DWORD rc = WaitForSingleObject (stdinHandle, 1000);
+  DWORD rc = WaitForSingleObject (stdinHandle, TTY_GETCHAR_WAIT_MS);
 
   if (rc == WAIT_TIMEOUT)   return  0;
   if (rc == WAIT_ABANDONED) return -1;
@@ -617,6 +948,13 @@ int tty_getchar (void)
     KEY_EVENT_RECORD KeyEvent = buf[i].Event.KeyEvent;
 
     if (KeyEvent.bKeyDown != TRUE) continue;
+
+    // an arrow leaves AsciiChar at 0, which this function already uses for "nothing was pressed"
+
+    if (KeyEvent.wVirtualKeyCode == VK_LEFT)  return TTY_KEY_LEFT;
+    if (KeyEvent.wVirtualKeyCode == VK_RIGHT) return TTY_KEY_RIGHT;
+    if (KeyEvent.wVirtualKeyCode == VK_UP)    return TTY_KEY_UP;
+    if (KeyEvent.wVirtualKeyCode == VK_DOWN)  return TTY_KEY_DOWN;
 
     return KeyEvent.uChar.AsciiChar;
   }
@@ -4164,6 +4502,55 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
   }
   #endif
 
+  // Every device works the same salt, so it belongs on the line that is printed once rather than
+  // repeated on every per device row underneath.
+
+  int salt_pos = 0;
+
+  for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+  {
+    const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+
+    if (device_info->skipped_dev == true) continue;
+    if (device_info->skipped_warning_dev == true) continue;
+
+    salt_pos = device_info->salt_pos_dev;
+
+    break;
+  }
+
+  // What the per device positions on the Restore.Sub line below count towards. Each is left out when
+  // there is only one of it, the same way the salt counts are left off Recovered on a single salt
+  // run, so an ordinary fast hash prints the line it always printed.
+
+  char totals_buf[HCBUFSIZ_TINY];
+
+  int totals_len = 0;
+
+  totals_buf[0] = 0;
+
+  if (hashcat_status->salts_cnt > 1)
+  {
+    totals_len += snprintf (totals_buf + totals_len, sizeof (totals_buf) - totals_len,
+      ", Salt:%d/%d", salt_pos + 1, hashcat_status->salts_cnt);
+  }
+
+  const u64 amplifier_cnt = status_get_amplifier_cnt (hashcat_ctx);
+
+  if (amplifier_cnt > 1)
+  {
+    totals_len += snprintf (totals_buf + totals_len, sizeof (totals_buf) - totals_len,
+      ", Amplifier:%" PRIu64, amplifier_cnt);
+  }
+
+  const u32 iteration_cnt = status_get_iteration_cnt (hashcat_ctx, salt_pos);
+
+  if (iteration_cnt > 1)
+  {
+    totals_len += snprintf (totals_buf + totals_len, sizeof (totals_buf) - totals_len,
+      ", Iterations:%u", iteration_cnt);
+  }
+
   if (pubkey_ctx->enabled == true)
   {
     event_log_info (hashcat_ctx, "Restore.Point....: [Protected]");
@@ -4175,65 +4562,65 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
       case PROGRESS_MODE_KEYSPACE_KNOWN:
 
         event_log_info (hashcat_ctx,
-          "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)",
+          "Restore.Point....: %" PRIu64 "/%" PRIu64 " (%.02f%%)%s",
           hashcat_status->restore_point,
           hashcat_status->restore_total,
-          hashcat_status->restore_percent);
+          hashcat_status->restore_percent,
+          totals_buf);
 
         break;
 
       case PROGRESS_MODE_KEYSPACE_UNKNOWN:
 
         event_log_info (hashcat_ctx,
-          "Restore.Point....: %" PRIu64,
-          hashcat_status->restore_point);
+          "Restore.Point....: %" PRIu64 "%s",
+          hashcat_status->restore_point,
+          totals_buf);
 
         break;
     }
   }
 
-  if (bridge_ctx->enabled == true)
-  {
-    const device_info_t *device_info = hashcat_status->device_info_buf + 0;
+  // One row per device is one line per device on every status update, and on a twelve device box
+  // that buried everything under it. The salt moved up to Restore.Point because it is the same
+  // everywhere, and the amplifier and iteration ranges have the same width on every device, so only
+  // where each one starts differs. That fits several devices on one line.
+  //
+  // More devices than fit are not dropped, they are rotated: which ones are shown is drawn fresh on
+  // every status, so watching a few updates shows all of them. They stay ordered by device id, so
+  // the line reads the same way each time.
 
-    if (pubkey_ctx->enabled == true)
-    {
-      event_log_info (hashcat_ctx, "Restore.Sub.#%02u..: [Protected]", 0 + 1);
-    }
-    else
-    {
-      event_log_info (hashcat_ctx,
-        "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", 0 + 1,
-        device_info->salt_pos_dev,
-        device_info->innerloop_pos_dev,
-        device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
-        device_info->iteration_pos_dev,
-        device_info->iteration_pos_dev + device_info->iteration_left_dev);
-    }
+  if (pubkey_ctx->enabled == true)
+  {
+    event_log_info (hashcat_ctx, "Restore.Sub......: [Protected]");
   }
   else
   {
-    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
+    int shown[RESTORE_SUB_DEVICES_MAX];
+    int shown_cnt = 0;
+
+    status_sample_devices (hashcat_status, shown, &shown_cnt, RESTORE_SUB_DEVICES_MAX);
+
+    if (shown_cnt > 0)
     {
-      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
+      char sub_buf[HCBUFSIZ_TINY];
 
-      if (device_info->skipped_dev == true) continue;
-      if (device_info->skipped_warning_dev == true) continue;
+      int sub_len = 0;
 
-      if (pubkey_ctx->enabled == true)
+      for (int i = 0; i < shown_cnt; i++)
       {
-        event_log_info (hashcat_ctx, "Restore.Sub.#%02u..: [Protected]", device_id + 1);
+        const device_info_t *device_info = hashcat_status->device_info_buf + shown[i];
 
-        continue;
+        sub_len += snprintf (sub_buf + sub_len, sizeof (sub_buf) - sub_len, "%s#%02u:%" PRIu64 "/%d",
+          (i == 0) ? "" : " ",
+          shown[i] + 1,
+          device_info->innerloop_pos_dev,
+          device_info->iteration_pos_dev);
+
+        if (sub_len >= (int) sizeof (sub_buf)) break;
       }
 
-      event_log_info (hashcat_ctx,
-        "Restore.Sub.#%02u..: Salt:%u Amplifier:%" PRIu64 "-%" PRIu64 " Iteration:%u-%u", device_id + 1,
-        device_info->salt_pos_dev,
-        device_info->innerloop_pos_dev,
-        device_info->innerloop_pos_dev + device_info->innerloop_left_dev,
-        device_info->iteration_pos_dev,
-        device_info->iteration_pos_dev + device_info->iteration_left_dev);
+      event_log_info (hashcat_ctx, "Restore.Sub......: %s", sub_buf);
     }
   }
 
@@ -4266,30 +4653,34 @@ void status_display (hashcat_ctx_t *hashcat_ctx)
     event_log_info (hashcat_ctx, "Candidate.Engine.: Host Generator + PCIe");
   }
 
-  if (bridge_ctx->enabled == true)
+  // One line per device again, and the devices are working one contiguous keyspace between them, so
+  // the interesting thing is where the run as a whole has reached: the first word the lowest device
+  // is on, through to the last word the highest device is on. Each device's own string is already a
+  // range, so the two halves come from the two ends.
+  //
+  // A device that is not producing a range says so instead, [Generating] or [Copying] and the like,
+  // and one of those cannot supply a half. Where that leaves nothing to join, the first device's
+  // string is printed as it is.
+
+  // One row per device again. These cannot be folded into a span the way the progress rows can: the
+  // devices do not take the keyspace in device id order, so the lowest numbered device is often not
+  // the one furthest behind, and joining the first device's start to the last device's end produces
+  // a range that runs backwards. One device's window is shown instead, drawn again on every status,
+  // so watching a few updates covers them all. Which device it is stays in the label, so the row
+  // still says whose window this is.
+
   {
-    const device_info_t *device_info = hashcat_status->device_info_buf + 0;
+    int shown[CANDIDATES_DEVICES_MAX];
+    int shown_cnt = 0;
 
-    if (device_info->guess_candidates_dev)
+    status_sample_devices (hashcat_status, shown, &shown_cnt, CANDIDATES_DEVICES_MAX);
+
+    for (int i = 0; i < shown_cnt; i++)
     {
-      event_log_info (hashcat_ctx,
-        "Candidates.#%02u...: %s", 0 + 1,
-        device_info->guess_candidates_dev);
-    }
-  }
-  else
-  {
-    for (int device_id = 0; device_id < hashcat_status->device_info_cnt; device_id++)
-    {
-      const device_info_t *device_info = hashcat_status->device_info_buf + device_id;
-
-      if (device_info->skipped_dev == true) continue;
-      if (device_info->skipped_warning_dev == true) continue;
-
-      if (device_info->guess_candidates_dev == NULL) continue;
+      const device_info_t *device_info = hashcat_status->device_info_buf + shown[i];
 
       event_log_info (hashcat_ctx,
-        "Candidates.#%02u...: %s", device_id + 1,
+        "Candidates.#%02u...: %s", shown[i] + 1,
         device_info->guess_candidates_dev);
     }
   }

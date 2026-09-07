@@ -68,6 +68,14 @@ int hiprtc_init (void *hashcat_ctx)
 
   memset (hiprtc, 0, sizeof (HIPRTC_PTR));
 
+  // HIPRTC is paired with the HIP runtime. If HIP selected the Hygon DTK legacy
+  // ABI, HIPRTC comes from the same DTK installation and needs the same
+  // never-unload behaviour on close.
+  if (backend_ctx->hip != NULL)
+  {
+    hiprtc->is_dtk = ((HIP_PTR *) backend_ctx->hip)->is_dtk;
+  }
+
   #if   defined (_WIN)
   char *hipSDKPath = getenv ("HIP_PATH");
 
@@ -139,7 +147,12 @@ void hiprtc_close (void *hashcat_ctx)
   {
     if (hiprtc->lib)
     {
-      hc_dlclose (hiprtc->lib);
+      // See hip_close(): DTK registers C++ exit handlers that call back into the
+      // HIPRTC DSO, so closing it would crash the process during exit.
+      if (hiprtc->is_dtk == false)
+      {
+        hc_dlclose (hiprtc->lib);
+      }
     }
 
     hcfree (backend_ctx->hiprtc);

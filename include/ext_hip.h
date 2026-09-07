@@ -453,6 +453,73 @@ typedef struct hipDeviceProp_t
 
 } hipDeviceProp_t;
 
+/*
+ * Hygon DTK 25.04.2 exposes a legacy HIP ABI through libgalaxyhip.so. Its
+ * hipDeviceProp_t comes from hip_runtime_defines.h and has a different,
+ * 792-byte layout than the ROCm layout above. Keep the two layouts in
+ * separate types so a single hashcat binary can select the right one at
+ * runtime based on the library it actually loaded.
+ */
+typedef struct hipDevicePropDTK_t
+{
+  char name[256];
+  size_t totalGlobalMem;
+  size_t sharedMemPerBlock;
+  int regsPerBlock;
+  int warpSize;
+  int maxThreadsPerBlock;
+  int maxThreadsDim[3];
+  u32 maxGridSize[3];
+  int clockRate;
+  int memoryClockRate;
+  int memoryBusWidth;
+  size_t totalConstMem;
+  int major;
+  int minor;
+  int multiProcessorCount;
+  int l2CacheSize;
+  int maxThreadsPerMultiProcessor;
+  int computeMode;
+  int clockInstructionRate;
+  hipDeviceArch_t arch;
+  int concurrentKernels;
+  int pciDomainID;
+  int pciBusID;
+  int pciDeviceID;
+  size_t maxSharedMemoryPerMultiProcessor;
+  int isMultiGpuBoard;
+  int canMapHostMemory;
+  int gcnArch;
+  char gcnArchName[256];
+  int integrated;
+  int cooperativeLaunch;
+  int cooperativeMultiDeviceLaunch;
+  int maxTexture1DLinear;
+  int maxTexture1D;
+  int maxTexture2D[2];
+  int maxTexture3D[3];
+  unsigned int *hdpMemFlushCntl;
+  unsigned int *hdpRegFlushCntl;
+  size_t memPitch;
+  size_t textureAlignment;
+  size_t texturePitchAlignment;
+  int kernelExecTimeoutEnabled;
+  int ECCEnabled;
+  int tccDriver;
+  int cooperativeMultiDeviceUnmatchedFunc;
+  int cooperativeMultiDeviceUnmatchedGridDim;
+  int cooperativeMultiDeviceUnmatchedBlockDim;
+  int cooperativeMultiDeviceUnmatchedSharedMem;
+  int isLargeBar;
+  int asicRevision;
+  int managedMemory;
+  int directManagedMemAccessFromHost;
+  int concurrentManagedAccess;
+  int pageableMemoryAccess;
+  int pageableMemoryAccessUsesHostPageTables;
+
+} hipDevicePropDTK_t;
+
 //Flags that can be used with hipStreamCreateWithFlags.
 /** Default stream creation flags. These are used with hipStreamCreate().*/
 #define hipStreamDefault 0x00
@@ -583,11 +650,13 @@ typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMCREATEWITHFLAGS)  (hipStream_t *,
 typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMDESTROY)          (hipStream_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPSTREAMSYNCHRONIZE)      (hipStream_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPGETDEVICEPROPERTIES)    (hipDeviceProp_t *, hipDevice_t);
+typedef hipError_t (HIP_API_CALL *HIP_HIPGETDEVICEPROPERTIES_DTK) (hipDevicePropDTK_t *, hipDevice_t);
 typedef hipError_t (HIP_API_CALL *HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR)  (int *, hipFunction_t, int, size_t);
 
 typedef struct hc_hip_lib
 {
   hc_dynlib_t lib;
+  bool is_dtk;
 
   // deprecated
   HIP_HIPCTXCREATE              hipCtxCreate;
@@ -643,6 +712,7 @@ typedef struct hc_hip_lib
   HIP_HIPSTREAMDESTROY          hipStreamDestroy;
   HIP_HIPSTREAMSYNCHRONIZE      hipStreamSynchronize;
   HIP_HIPGETDEVICEPROPERTIES    hipGetDeviceProperties;
+  HIP_HIPGETDEVICEPROPERTIES_DTK hipGetDevicePropertiesDTK;
   HIP_HIPMODULEOCCUPANCYMAXACTIVEBLOCKSPERMULTIPROCESSOR  hipModuleOccupancyMaxActiveBlocksPerMultiprocessor;
 
 } hc_hip_lib_t;

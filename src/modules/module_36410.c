@@ -16,19 +16,17 @@ static const u32   DGST_POS0      = 0;
 static const u32   DGST_POS1      = 1;
 static const u32   DGST_POS2      = 2;
 static const u32   DGST_POS3      = 3;
-static const u32   DGST_SIZE      = DGST_SIZE_4_64;
-static const u32   HASH_CATEGORY  = HASH_CATEGORY_GENERIC_KDF;
-static const char *HASH_NAME      = "PBKDF2-HMAC-SHA256";
-static const u64   KERN_TYPE      = 10900;
-static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE
-                                  | OPTI_TYPE_SLOW_HASH_SIMD_LOOP;
+static const u32   DGST_SIZE      = DGST_SIZE_4_4;
+static const u32   HASH_CATEGORY  = HASH_CATEGORY_PASSWORD_MANAGER;
+static const char *HASH_NAME      = "KDE KWallet < 4.13 (SHA-1, Blowfish)";
+static const u64   KERN_TYPE      = 36410;
+static const u32   OPTI_TYPE      = OPTI_TYPE_ZERO_BYTE;
 static const u64   OPTS_TYPE      = OPTS_TYPE_STOCK_MODULE
                                   | OPTS_TYPE_PT_GENERATE_LE
-                                  | OPTS_TYPE_ST_BASE64
-                                  | OPTS_TYPE_HASH_COPY;
+                                  | OPTS_TYPE_DYNAMIC_SHARED;
 static const u32   SALT_TYPE      = SALT_TYPE_EMBEDDED;
 static const char *ST_PASS        = "hashcat";
-static const char *ST_HASH        = "sha256:1000:NjI3MDM3:vVfavLQL9ZWjg8BUMq6/FB8FtpkIGWYk";
+static const char *ST_HASH        = "$kwallet$88$45975b748f882d01c2bf498e329f20000810fcf38c4803e0985006270fabde065b41363475a9753a54687fae112c326915658aad6901b32dff0f62b96346dd4e";
 
 u32         module_attack_exec    (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ATTACK_EXEC;     }
 u32         module_dgst_pos0      (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return DGST_POS0;       }
@@ -45,55 +43,108 @@ u32         module_salt_type      (MAYBE_UNUSED const hashconfig_t *hashconfig, 
 const char *module_st_hash        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_HASH;         }
 const char *module_st_pass        (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra) { return ST_PASS;         }
 
+typedef struct kwallet_legacy_tmp
+{
+  u32 dgst[4][5];
+
+  u32 nblocks;
+  u32 pw_len;
+
+} kwallet_legacy_tmp_t;
+
+typedef struct kwallet
+{
+  u32 ct[16];
+  u32 ct_len;
+
+} kwallet_t;
+
+static const char *SIGNATURE_KWALLET = "$kwallet$";
+
+// 2000 SHA-1 per 16 byte password chunk, the first one runs in the init kernel
+
+#define ROUNDS_KWALLET_LEGACY 2000
+
+#define KWALLET_CT_KEEP     64
+#define KWALLET_CT_KEEP_HEX (KWALLET_CT_KEEP * 2)
+
 const char *module_usage_notice (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  return "You can use https://github.com/hashcat/hashcat/blob/master/tools/gitea2hashcat.py to extract the hashes";
+  return "This is the wallet format written before KWallet 4.13, use -m 36400 for a newer one. You can use https://github.com/openwall/john/blob/bleeding-jumbo/run/kwallet2john.py to extract the hash. Only the first 64 byte of the ciphertext field are used, so a hash line from a large wallet can be cut down to that: keep the '$kwallet$<length>$' prefix as it is and shorten the hex that follows to 128 characters.";
 }
-
-typedef struct pbkdf2_sha256
-{
-  u32 salt_buf[64];
-
-} pbkdf2_sha256_t;
-
-typedef struct pbkdf2_sha256_tmp
-{
-  u32  ipad[8];
-  u32  opad[8];
-
-  u32  dgst[32];
-  u32  out[32];
-
-} pbkdf2_sha256_tmp_t;
-
-static const char *SIGNATURE_PBKDF2_SHA256 = "sha256";
 
 char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra, MAYBE_UNUSED const hashes_t *hashes, MAYBE_UNUSED const hc_device_param_t *device_param)
 {
   char *jit_build_options = NULL;
 
-  // Extra treatment for Apple systems
-  if (device_param->opencl_platform_vendor_id == VENDOR_ID_APPLE)
+  // the comp kernel keeps the blowfish sboxes in shared memory, one set per thread,
+  // so the local size it can run at follows from how much shared memory the device has
+
+  bool use_dynamic = false;
+
+  if (device_param->is_cuda == true)
   {
-    return jit_build_options;
+    use_dynamic = true;
   }
 
-  // NVIDIA GPU
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+  if (device_param->opencl_device_type & CL_DEVICE_TYPE_CPU)
   {
-    hc_asprintf (&jit_build_options, "-D _unroll");
+    hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u", 1);
   }
-
-  // HIP
-  if (device_param->opencl_device_vendor_id == VENDOR_ID_AMD_USE_HIP)
+  else
   {
-    hc_asprintf (&jit_build_options, "-D _unroll");
-  }
+    u32 overhead = 0;
 
-  // ROCM
-  if ((device_param->opencl_device_vendor_id == VENDOR_ID_AMD) && (device_param->has_vperm == true))
-  {
-    hc_asprintf (&jit_build_options, "-D _unroll");
+    if (device_param->opencl_device_vendor_id == VENDOR_ID_NV)
+    {
+      if (device_param->is_opencl == true)
+      {
+        overhead = 1;
+      }
+    }
+
+    if (user_options->kernel_threads_chgd == true)
+    {
+      u32 fixed_local_size = user_options->kernel_threads;
+
+      if (use_dynamic == true)
+      {
+        if ((fixed_local_size * 4096) > device_param->kernel_dynamic_local_mem_size_memset)
+        {
+          // otherwise out-of-bound reads
+
+          fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+        }
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        if ((fixed_local_size * 4096) > (device_param->device_local_mem_size - overhead))
+        {
+          // otherwise out-of-bound reads
+
+          fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+        }
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u", fixed_local_size);
+      }
+    }
+    else
+    {
+      if (use_dynamic == true)
+      {
+        const u32 fixed_local_size = device_param->kernel_dynamic_local_mem_size_memset / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u -D DYNAMIC_LOCAL", fixed_local_size);
+      }
+      else
+      {
+        const u32 fixed_local_size = (device_param->device_local_mem_size - overhead) / 4096;
+
+        hc_asprintf (&jit_build_options, "-D FIXED_LOCAL_SIZE_COMP=%u", fixed_local_size);
+      }
+    }
   }
 
   return jit_build_options;
@@ -101,14 +152,14 @@ char *module_jit_build_options (MAYBE_UNUSED const hashconfig_t *hashconfig, MAY
 
 u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 esalt_size = (const u64) sizeof (pbkdf2_sha256_t);
+  const u64 esalt_size = (const u64) sizeof (kwallet_t);
 
   return esalt_size;
 }
 
 u64 module_tmp_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const user_options_t *user_options, MAYBE_UNUSED const user_options_extra_t *user_options_extra)
 {
-  const u64 tmp_size = (const u64) sizeof (pbkdf2_sha256_tmp_t);
+  const u64 tmp_size = (const u64) sizeof (kwallet_legacy_tmp_t);
 
   return tmp_size;
 }
@@ -117,102 +168,101 @@ int module_hash_decode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSE
 {
   u32 *digest = (u32 *) digest_buf;
 
-  pbkdf2_sha256_t *pbkdf2_sha256 = (pbkdf2_sha256_t *) esalt_buf;
+  kwallet_t *kwallet = (kwallet_t *) esalt_buf;
 
   hc_token_t token;
 
   memset (&token, 0, sizeof (hc_token_t));
 
-  token.token_cnt  = 4;
+  token.token_cnt = 3;
 
   token.signatures_cnt    = 1;
-  token.signatures_buf[0] = SIGNATURE_PBKDF2_SHA256;
+  token.signatures_buf[0] = SIGNATURE_KWALLET;
 
-  token.sep[0]     = ':';
-  token.len[0]     = 6;
+  token.len[0]     = 9;
   token.attr[0]    = TOKEN_ATTR_FIXED_LENGTH
                    | TOKEN_ATTR_VERIFY_SIGNATURE;
 
-  token.sep[1]     = ':';
-  token.len_min[1] = 1;
+  token.sep[1]     = '$';
+  token.len_min[1] = 2;
   token.len_max[1] = 8;
   token.attr[1]    = TOKEN_ATTR_VERIFY_LENGTH
                    | TOKEN_ATTR_VERIFY_DIGIT;
 
-  token.sep[2]     = ':';
-  token.len_min[2] = ((SALT_MIN * 8) / 6) + 0;
-  token.len_max[2] = ((SALT_MAX * 8) / 6) + 3;
-  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
+  // last token, so it runs to the end of the line. the hex check is what keeps a
+  // modern $kwallet$...$1$...$ hash out of this module.
 
-  token.sep[3]     = ':';
-  token.len_min[3] = 16;
-  token.len_max[3] = 256;
-  token.attr[3]    = TOKEN_ATTR_VERIFY_LENGTH
-                   | TOKEN_ATTR_VERIFY_BASE64A;
+  token.len_min[2] = KWALLET_CT_KEEP_HEX;
+  token.len_max[2] = 0x1000000;
+  token.attr[2]    = TOKEN_ATTR_VERIFY_LENGTH
+                   | TOKEN_ATTR_VERIFY_HEX;
 
   const int rc_tokenizer = input_tokenizer ((const u8 *) line_buf, line_len, &token);
 
   if (rc_tokenizer != PARSER_OK) return (rc_tokenizer);
 
-  u8  tmp_buf[512];
-  int tmp_len;
+  const u32 ct_len = hc_strtoul ((const char *) token.buf[1], NULL, 10);
 
-  // iter
+  if (ct_len < 64) return (PARSER_CT_LENGTH);
+  if (ct_len > 0x1000000) return (PARSER_CT_LENGTH);
+  if (ct_len & 7) return (PARSER_CT_LENGTH);
 
-  const u8 *iter_pos = token.buf[1];
+  const u8 *ct_pos = token.buf[2];
+  const int ct_hex_len = token.len[2];
 
-  const u32 iter = hc_strtoul ((const char *) iter_pos, NULL, 10);
+  if (ct_hex_len & 1) return (PARSER_CT_LENGTH);
 
-  if (iter < 1) return (PARSER_SALT_ITERATION);
+  if ((ct_hex_len != (int) (ct_len * 2)) && (ct_hex_len != KWALLET_CT_KEEP_HEX) && (ct_hex_len != 130)) return (PARSER_CT_LENGTH);
 
-  salt->salt_iter = iter - 1;
+  /**
+   * store
+   */
 
-  // salt
+  hex_decode (ct_pos, KWALLET_CT_KEEP_HEX, (u8 *) kwallet->ct);
 
-  const u8 *salt_pos = token.buf[2];
-  const int salt_len = token.len[2];
+  for (int i = 0; i < 16; i++) kwallet->ct[i] = byte_swap_32 (kwallet->ct[i]);
 
-  memset (tmp_buf, 0, sizeof (tmp_buf));
+  kwallet->ct_len = ct_len;
 
-  tmp_len = base64_decode (base64_to_int, salt_pos, salt_len, tmp_buf);
+  // an old wallet has no salt at all. the header doubles as one so that hashcat keeps
+  // one salt per wallet, which is what the comp kernel needs to report through mark_hash().
 
-  if (tmp_len > SALT_MAX) return (PARSER_SALT_LENGTH);
+  salt->salt_buf[0] = kwallet->ct[0];
+  salt->salt_buf[1] = kwallet->ct[1];
+  salt->salt_buf[2] = kwallet->ct[2];
+  salt->salt_buf[3] = kwallet->ct[3];
 
-  memcpy (pbkdf2_sha256->salt_buf, tmp_buf, tmp_len);
+  salt->salt_len  = 16;
+  salt->salt_iter = ROUNDS_KWALLET_LEGACY - 1;
 
-  salt->salt_len = tmp_len;
-
-  salt->salt_buf[0] = pbkdf2_sha256->salt_buf[0];
-  salt->salt_buf[1] = pbkdf2_sha256->salt_buf[1];
-  salt->salt_buf[2] = pbkdf2_sha256->salt_buf[2];
-  salt->salt_buf[3] = pbkdf2_sha256->salt_buf[3];
-  salt->salt_buf[4] = salt->salt_iter;
-
-  // hash
-
-  const u8 *hash_pos = token.buf[3];
-  const int hash_len = token.len[3];
-
-  memset (tmp_buf, 0, sizeof (tmp_buf));
-
-  tmp_len = base64_decode (base64_to_int, hash_pos, hash_len, tmp_buf);
-
-  if (tmp_len < 16) return (PARSER_HASH_LENGTH);
-
-  memcpy (digest, tmp_buf, 16);
-
-  digest[0] = byte_swap_32 (digest[0]);
-  digest[1] = byte_swap_32 (digest[1]);
-  digest[2] = byte_swap_32 (digest[2]);
-  digest[3] = byte_swap_32 (digest[3]);
+  digest[0] = kwallet->ct[0];
+  digest[1] = kwallet->ct[1];
+  digest[2] = kwallet->ct[2];
+  digest[3] = kwallet->ct[3];
 
   return (PARSER_OK);
 }
 
 int module_hash_encode (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED const void *digest_buf, MAYBE_UNUSED const salt_t *salt, MAYBE_UNUSED const void *esalt_buf, MAYBE_UNUSED const void *hook_salt_buf, MAYBE_UNUSED const hashinfo_t *hash_info, char *line_buf, MAYBE_UNUSED const int line_size)
 {
-  return snprintf (line_buf, line_size, "%s", hash_info->orighash);
+  const kwallet_t *kwallet = (const kwallet_t *) esalt_buf;
+
+  u32 ct_tmp[16];
+
+  for (int i = 0; i < 16; i++) ct_tmp[i] = byte_swap_32 (kwallet->ct[i]);
+
+  u8 ct_hex[KWALLET_CT_KEEP_HEX + 1];
+
+  hex_encode ((const u8 *) ct_tmp, KWALLET_CT_KEEP, ct_hex);
+
+  ct_hex[KWALLET_CT_KEEP_HEX] = 0;
+
+  const int out_len = snprintf (line_buf, line_size, "%s%u$%s",
+    SIGNATURE_KWALLET,
+    kwallet->ct_len,
+    (char *) ct_hex);
+
+  return out_len;
 }
 
 void module_init (module_ctx_t *module_ctx)

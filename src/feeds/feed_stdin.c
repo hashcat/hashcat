@@ -63,6 +63,12 @@
 #include "thread.h"
 #include "feed.h"
 
+#include <errno.h>
+
+#if defined (_WIN)
+#include <io.h>
+#endif
+
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 
 // A pipe carries text lines, so everything hashcat can do to a wordlist line applies here too. The
@@ -149,6 +155,7 @@ typedef struct stdin_global
   int filled_cnt;
 
   bool eof;      // the reader has seen the end of the input
+  bool read_error;
   bool stop;     // the session is over and the reader should wind up
 
   hc_thread_t reader;
@@ -201,6 +208,23 @@ static void stdin_error (generic_thread_ctx_t *thread_ctx, const char *msg)
   snprintf (thread_ctx->error_msg, sizeof (thread_ctx->error_msg), "%s", msg);
 }
 
+static int stdin_read (char *buf, const size_t len)
+{
+  int rc_read;
+
+  do
+  {
+    #if defined (_WIN)
+    rc_read = _read (_fileno (stdin), buf, (unsigned int) len);
+    #else
+    rc_read = (int) read (fileno (stdin), buf, len);
+    #endif
+  }
+  while ((rc_read == -1) && (errno == EINTR));
+
+  return rc_read;
+}
+
 // The reader. It owns the descriptor and nothing else reads from it.
 //
 // A block is filled from what is left of the line before it plus whatever the next read returns, and
@@ -221,6 +245,13 @@ static HC_API_CALL void *stdin_reader (void *p)
 
   char  *carry     = (char *) hcmalloc (STDIN_BLOCK_SIZE);
   size_t carry_len = 0;
+
+  // Set once a line longer than a block has been cut. What follows the cut is the rest of that
+  // same line, not a line of its own, so it is dropped up to the next line ending. Without this the
+  // tail of an overlong line is published as an ordinary candidate, and hashcat tries a password
+  // that never appeared in the input as a line.
+
+  bool dropping_overlong = false;
 
   while (1)
   {
@@ -294,13 +325,14 @@ static HC_API_CALL void *stdin_reader (void *p)
       stdin_global->selects_returned++;
     }
 
+    // fread () can wait for the whole request on a pipe. read () returns what is available, so a producer
+    // that keeps the pipe open does not have to supply a full block before its complete lines are used.
 
-    const size_t rc_read = fread (buf + have, 1, STDIN_BLOCK_SIZE - have, stdin);
+    const int rc_read = stdin_read (buf + have, STDIN_BLOCK_SIZE - have);
 
+    if (rc_read > 0) have += (size_t) rc_read;
 
-    have += rc_read;
-
-    if (rc_read == 0)
+    if (rc_read <= 0)
     {
       // The end of the input. Anything held back is a last line with no line ending, and it is a
       // candidate like any other.
@@ -324,6 +356,8 @@ static HC_API_CALL void *stdin_reader (void *p)
         stdin_global->free_cnt++;
       }
 
+      if (rc_read == -1) stdin_global->read_error = true;
+
       stdin_global->eof = true;
 
       hc_thread_cond_broadcast (stdin_global->cond_filled);
@@ -333,8 +367,41 @@ static HC_API_CALL void *stdin_reader (void *p)
       break;
     }
 
-    // Publish the whole lines and keep the rest. A block with no line ending anywhere in it holds a
-    // line longer than a block, which is cut here rather than grown into.
+    // The tail of a line that was already cut is not a line. Drop it, and everything after it up to
+    // the line ending that finally closes it, before any of the publishing below sees the block.
+
+    if (dropping_overlong == true)
+    {
+      size_t skip = 0;
+
+      while ((skip < have) && (buf[skip] != '\n')) skip++;
+
+      if (skip == have)
+      {
+        // still inside the same line, so the whole block goes
+
+        hc_thread_mutex_lock (stdin_global->mux);
+
+        stdin_global->free_list[stdin_global->free_cnt] = blk;
+        stdin_global->free_cnt++;
+
+        hc_thread_mutex_unlock (stdin_global->mux);
+
+        continue;
+      }
+
+      skip++;
+
+      have -= skip;
+
+      memmove (buf, buf + skip, have);
+
+      dropping_overlong = false;
+    }
+
+    // Publish the whole lines and keep the rest. A full block with no line ending anywhere in it holds
+    // a line longer than a block, which is cut here rather than grown into. A short read with no line
+    // ending is only an incomplete line and has to be carried into the next read.
 
     size_t whole = have;
 
@@ -342,7 +409,28 @@ static HC_API_CALL void *stdin_reader (void *p)
 
     if (whole == 0)
     {
-      whole = have;
+      if (have == STDIN_BLOCK_SIZE)
+      {
+        whole = have;
+
+        dropping_overlong = true;
+      }
+      else
+      {
+        carry_len = have;
+
+        memcpy (carry, buf, carry_len);
+
+        hc_thread_mutex_lock (stdin_global->mux);
+
+        stdin_global->free_list[stdin_global->free_cnt] = blk;
+
+        stdin_global->free_cnt++;
+
+        hc_thread_mutex_unlock (stdin_global->mux);
+
+        continue;
+      }
     }
     else
     {
@@ -383,6 +471,7 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   stdin_global->hashcat_ctx      = hashcat_ctx;
   stdin_global->eof              = false;
+  stdin_global->read_error       = false;
   stdin_global->stop             = false;
   stdin_global->filled_head      = 0;
   stdin_global->filled_tail      = 0;
@@ -601,7 +690,11 @@ int thread_next (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_
 
   while (stdin_thread->off >= stdin_thread->len)
   {
-    if (stdin_block_next (stdin_global, stdin_thread) == false) return GENERIC_RC_EOF;
+    if (stdin_block_next (stdin_global, stdin_thread) == true) continue;
+
+    if (stdin_global->read_error == true) return GENERIC_RC_ERROR;
+
+    return GENERIC_RC_EOF;
   }
 
   const char *line = stdin_thread->buf + stdin_thread->off;

@@ -554,8 +554,6 @@ bool module_potfile_custom_check (MAYBE_UNUSED const hashconfig_t *hashconfig, M
   kernel_param_t kernel_param;
 
   kernel_param.bitmap_mask         = 0;
-  kernel_param.bitmap_shift1       = 0;
-  kernel_param.bitmap_shift2       = 0;
   kernel_param.salt_pos_host       = 0;
   kernel_param.loop_pos            = 0;
   kernel_param.loop_cnt            = 0;

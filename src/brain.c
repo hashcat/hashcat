@@ -3329,8 +3329,32 @@ HC_API_CALL void *brain_server_handle_client (void *p)
 // it is normally computed from the hash list, which a feeder does not have. hashcat prints it on the
 // status line of any brain run as Brain Session/Attack.
 
+// Winsock has to be started once per process before any socket call is made, and POSIX has no
+// equivalent step, so an entry point that opens a socket and forgets this works everywhere except
+// Windows. brain_feed () forgot, and every socket call it made failed with WSANOTINITIALISED.
+
+static int brain_sockets_boot (void)
+{
+  #if defined (_WIN)
+  WSADATA wsaData;
+
+  WORD wVersionRequested = MAKEWORD (2,2);
+
+  if (WSAStartup (wVersionRequested, &wsaData) != NO_ERROR)
+  {
+    fprintf (stderr, "WSAStartup: %s\n", strerror (errno));
+
+    return -1;
+  }
+  #endif
+
+  return 0;
+}
+
 int brain_feed (hashcat_ctx_t *hashcat_ctx)
 {
+  if (brain_sockets_boot () == -1) return -1;
+
   user_options_t *user_options = hashcat_ctx->user_options;
 
   hc_device_param_t device_param;
@@ -3478,18 +3502,7 @@ int brain_feed (hashcat_ctx_t *hashcat_ctx)
 
 int brain_server (const char *listen_host, const int listen_port, const char *brain_password, const char *brain_session_whitelist, const u32 brain_server_timer)
 {
-  #if defined (_WIN)
-  WSADATA wsaData;
-
-  WORD wVersionRequested = MAKEWORD (2,2);
-
-  if (WSAStartup (wVersionRequested, &wsaData) != NO_ERROR)
-  {
-    fprintf (stderr, "WSAStartup: %s\n", strerror (errno));
-
-    return -1;
-  }
-  #endif
+  if (brain_sockets_boot () == -1) return -1;
 
   hc_timer_set (&timer_logging);
 

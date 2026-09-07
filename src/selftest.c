@@ -1305,7 +1305,9 @@ HC_API_CALL void *thread_selftest (void *p)
   {
     if (hc_cuStreamSynchronize (hashcat_ctx, device_param->cuda_stream) == -1) return 0;
 
-    if (hc_cuCtxPopCurrent (hashcat_ctx, &device_param->cuda_context) == -1) return 0;
+    CUcontext cuda_context_popped;
+
+    if (hc_cuCtxPopCurrent (hashcat_ctx, &cuda_context_popped) == -1) return 0;
   }
 
   if (device_param->is_hip == true)

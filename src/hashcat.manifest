@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+
+  <assemblyIdentity type="win32" name="net.hashcat.hashcat" version="1.0.0.0" processorArchitecture="*"/>
+
+  <application xmlns="urn:schemas-microsoft-com:asm.v3">
+    <windowsSettings>
+
+      <!-- Every narrow Win32 entry point, and the C runtime wrappers over them, convert their char
+           argument with the process code page. Declaring it UTF-8 is what lets one byte string mean
+           the same file here as it does on every other platform hashcat runs on. Without this a path
+           holding anything outside the legacy code page cannot be opened at all, and a mask file
+           whose name holds one is silently read as a literal mask instead. -->
+
+      <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+
+      <!-- Wordlists and session files live wherever the user keeps them, which is often deeper than
+           the 260 character limit a program is held to until it says otherwise. -->
+
+      <longPathAware xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">true</longPathAware>
+
+    </windowsSettings>
+  </application>
+
+  <!-- A program that names no supported release is treated as pre Vista, and Windows then reports a
+       version of its own choosing rather than the real one. -->
+
+  <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
+    <application>
+      <supportedOS Id="{8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}"/>
+      <supportedOS Id="{1f676c76-80e1-4239-95bb-83d0f6d0da78}"/>
+      <supportedOS Id="{4a2f28e3-53b9-4441-ba9c-d69d4a4a6e38}"/>
+      <supportedOS Id="{35138b9a-5d96-4fbd-8e2d-a2440225f93a}"/>
+      <supportedOS Id="{e2011457-1546-43c5-a5fe-008deee3d3f0}"/>
+    </application>
+  </compatibility>
+
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
+</assembly>

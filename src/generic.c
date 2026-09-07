@@ -450,6 +450,37 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
   // land on has a device engine file, and so does the constant, so the two answers agree today. A
   // mode whose two answers disagreed would reach the missing file again.
 
+  // -O has to be answered before the kernel file is looked for, or the answer is never given.
+  //
+  // The name generated below is built from opti_type, so with -O it is the optimized kernel's name.
+  // The device engine ships only a pure kernel, so that file is never there, the lookup clears
+  // dev_enable, and a refusal placed after it never runs because it sits inside a dev_enable test.
+  // What the user gets instead is the host generator, silently: measured on -m 0, 21182.7 kH/s with
+  // -O against 221.0 MH/s without it, and nothing said that -O was the reason.
+  //
+  // The two cases have to be told apart before the lookup, because after it they look identical. A
+  // mode with no device engine kernel is meant to fall back and does. -O is meant to be refused.
+  //
+  // There was an optimized form of the device engine kernel. It kept the md5 block in registers and
+  // padded it once outside the inner loop, and at its own best lane count it measured 4 to 5 per cent
+  // ahead of the pure one. What it cost was 6 kernel bodies, a write path that had to name every word
+  // of the block at compile time, a password length capped at 55 instead of 256, and a candidate
+  // length fixed for the whole inner loop, which is exactly what a grammar with multi byte characters
+  // cannot promise. 5 per cent did not pay for that.
+  //
+  // -O is refused rather than ignored because hashconfig settled it long before the attack kernel was
+  // known, and the hashes were parsed under it on the way: a raw md5 digest has had the initial state
+  // subtracted out of it for a kernel that is now not going to run. Clearing the flag here leaves
+  // those digests wrong, which shows up as a self-test failure and, with the self-test disabled, as
+  // an attack that cracks nothing.
+
+  if ((generic_ctx->dev_enable == true) && (hashcat_ctx->hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL))
+  {
+    event_log_error (hashcat_ctx, "The device engine has no optimized kernel. Run this without -O.");
+
+    return -1;
+  }
+
   if (generic_ctx->dev_enable == true)
   {
     char source_file[256];
@@ -524,28 +555,20 @@ static int generic_instance_init (hashcat_ctx_t *hashcat_ctx, generic_ctx_t *gen
       return -1;
     }
 
-    user_options_extra->attack_kern = ATTACK_KERN_PCFG;
+    // An empty inner loop is the feed saying it has no base word for this engine. The run moves to
+    // the host engine, and source_ident carries the same mark the earlier fallbacks give it, so a
+    // restore point taken on the device engine is not handed to a host engine run.
 
-    // The device engine has one kernel and it is the pure one.
-    //
-    // There was an optimized form. It kept the md5 block in registers and padded it once outside the
-    // inner loop, and at its own best lane count it measured four to five per cent ahead of the pure
-    // one. What it cost was six kernel bodies, a write path that had to name every word of the block
-    // at compile time, a password length capped at fifty five instead of two hundred and fifty six,
-    // and a candidate length fixed for the whole inner loop, which is exactly what a grammar with
-    // multi byte characters cannot promise. Five per cent did not pay for that.
-    //
-    // -O is refused rather than ignored. hashconfig settled it long before the attack kernel was
-    // known, because the device engine only announces itself here, and the hashes were parsed under it on
-    // the way: a raw md5 digest has had the initial state subtracted out of it for a kernel that is
-    // now not going to run. Clearing the flag at this point leaves those digests wrong, which shows up
-    // as a self-test failure and, with the self-test disabled, as an attack that cracks nothing.
-
-    if (hashcat_ctx->hashconfig->opti_type & OPTI_TYPE_OPTIMIZED_KERNEL)
+    if (generic_ctx->dev_il_cnt == 0)
     {
-      event_log_error (hashcat_ctx, "The device engine has no optimized kernel. Run this without -O.");
+      generic_ctx->dev_enable            = false;
+      generic_ctx->global_ctx.dev_enable = false;
 
-      return -1;
+      generic_ctx->global_ctx.source_ident ^= 0x50434647534c4f57ULL;
+    }
+    else
+    {
+      user_options_extra->attack_kern = ATTACK_KERN_PCFG;
     }
 
   }
@@ -694,6 +717,19 @@ int generic_ctx_base_round (hashcat_ctx_t *hashcat_ctx, const char *path)
   const int rc = generic_instance_init (hashcat_ctx, generic_ctx, false);
 
   return rc;
+}
+
+// Give the base word instance up before its round would normally replace it.
+//
+// An induction round reads a dictionary hashcat wrote itself and deletes it once it is consumed. The
+// instance that read it is otherwise held until the next round opens over the top, and on Windows a
+// file that is still open cannot be deleted, so the delete failed, the scan found the same file
+// again, and the run never moved on. Closing here costs nothing anywhere else: the next round opens
+// its own instance regardless.
+
+void generic_ctx_base_close (hashcat_ctx_t *hashcat_ctx)
+{
+  generic_instance_destroy (hashcat_ctx, &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE]);
 }
 
 // Read and throw away the first count base words, so that a source which cannot be seeked still

@@ -179,12 +179,23 @@ static int hc_mtlBuildOptionsToDict (void *hashcat_ctx, const char *build_option
 
     if ([components count] != 2)
     {
+      // Every -D the rest of hashcat can emit without a value has to be named here, because a
+      // preprocessor macro reaches Metal as a dictionary entry and a dictionary entry needs one.
+      // A name missing from this list is dropped silently, so the kernel compiles as if the option
+      // had never been given.
+
       if ([key isEqualToString:@"KERNEL_STATIC"] ||
           [key isEqualToString:@"IS_APPLE_SILICON"] ||
           [key isEqualToString:@"DYNAMIC_LOCAL"] ||
           [key isEqualToString:@"_unroll"] ||
           [key isEqualToString:@"NO_UNROLL"] ||
-          [key isEqualToString:@"FORCE_DISABLE_SHM"])
+          [key isEqualToString:@"NO_INLINE"] ||
+          [key isEqualToString:@"FORCE_NO_INLINE"] ||
+          [key isEqualToString:@"NO_FUNNELSHIFT"] ||
+          [key isEqualToString:@"FORCE_DISABLE_SHM"] ||
+          [key isEqualToString:@"COOP_SBOX_LDS"] ||
+          [key isEqualToString:@"COOP_X_REGS"] ||
+          [key isEqualToString:@"COOP_X_GLOBAL"])
       {
         value = @"1";
       }

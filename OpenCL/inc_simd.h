@@ -33,9 +33,7 @@
   if (check (digest_tp0,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -93,9 +91,7 @@
   if (check (digest_tp0,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -113,9 +109,7 @@
   if (check (digest_tp1,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -193,9 +187,7 @@
   if (check (digest_tp0,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -213,9 +205,7 @@
   if (check (digest_tp1,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -233,9 +223,7 @@
   if (check (digest_tp2,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -253,9 +241,7 @@
   if (check (digest_tp3,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -376,9 +362,7 @@
   if (check (digest_tp0,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp0, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -396,9 +380,7 @@
   if (check (digest_tp1,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp1, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -416,9 +398,7 @@
   if (check (digest_tp2,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp2, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -436,9 +416,7 @@
   if (check (digest_tp3,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp3, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -455,9 +433,7 @@
   if (check (digest_tp4,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp4, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -475,9 +451,7 @@
   if (check (digest_tp5,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp5, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -495,9 +469,7 @@
   if (check (digest_tp6,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp6, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -515,9 +487,7 @@
   if (check (digest_tp7,                                                                                    \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp7, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);                \
                                                                                                             \
@@ -726,9 +696,7 @@
   if (check (digest_tp00,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp00, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -746,9 +714,7 @@
   if (check (digest_tp01,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp01, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -766,9 +732,7 @@
   if (check (digest_tp02,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp02, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -786,9 +750,7 @@
   if (check (digest_tp03,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp03, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -806,9 +768,7 @@
   if (check (digest_tp04,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp04, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -826,9 +786,7 @@
   if (check (digest_tp05,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp05, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -846,9 +804,7 @@
   if (check (digest_tp06,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp06, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -866,9 +822,7 @@
   if (check (digest_tp07,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp07, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -886,9 +840,7 @@
   if (check (digest_tp08,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp08, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -906,9 +858,7 @@
   if (check (digest_tp09,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp09, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -926,9 +876,7 @@
   if (check (digest_tp10,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp10, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -946,9 +894,7 @@
   if (check (digest_tp11,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp11, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -966,9 +912,7 @@
   if (check (digest_tp12,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp12, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -986,9 +930,7 @@
   if (check (digest_tp13,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp13, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -1006,9 +948,7 @@
   if (check (digest_tp14,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp14, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \
@@ -1026,9 +966,7 @@
   if (check (digest_tp15,                                                                                   \
              bitmaps_buf_s1_a, bitmaps_buf_s1_b, bitmaps_buf_s1_c, bitmaps_buf_s1_d,                        \
              bitmaps_buf_s2_a, bitmaps_buf_s2_b, bitmaps_buf_s2_c, bitmaps_buf_s2_d,                        \
-             BITMAP_MASK,                                                                                   \
-             BITMAP_SHIFT1,                                                                                 \
-             BITMAP_SHIFT2))                                                                                \
+             BITMAP_MASK))                                                                                  \
   {                                                                                                         \
     int digest_pos = find_hash (digest_tp15, DIGESTS_CNT, &digests_buf[DIGESTS_OFFSET_HOST]);               \
                                                                                                             \

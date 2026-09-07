@@ -164,6 +164,23 @@ own definition. Only two modules in this tree implement them, and nothing else i
 interface changed. The interface version is unchanged, because it already moved from 700 to 720 since
 v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 
+20. Bridges: every entry point takes hashcat_ctx first
+
+Each function in bridge_ctx_t gained a leading hashcat_ctx_t parameter, and platform_init takes
+nothing else. An out of tree bridge adds the parameter to its own entry points and rebuilds.
+
+21. Folders: $HOME/.hashcat is no longer used
+
+An installed hashcat reads its potfile, sessions and kernel cache from the XDG directories instead. A
+machine that already has a $HOME/.hashcat keeps it, and nothing moves the contents, so a session
+started before this release is not found by a run after it.
+
+22. --backend-devices-keepfree was removed
+
+Its 2 useful values did unrelated jobs. 0 applied the reserve that keeps a desktop responsive and 100
+walked past it, and neither is a fraction of anything. The reserve is now sized from what the runtime
+reports free, and -Y covers the case the option was reached for.
+
 ##
 ## New Algorithms
 ##
@@ -179,6 +196,8 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Added hash-mode: yescrypt
 - Added hash-mode: gost-yescrypt
 - Added hash-mode: scryptcrypt, scrypt (Unix)
+- Added hash-mode: KDE KWallet 4.13+ (PBKDF2-HMAC-SHA512, Blowfish)
+- Added hash-mode: KDE KWallet < 4.13 (SHA-1, Blowfish)
 
 ##
 ## New Attack modes and changed Attack modes
@@ -204,9 +223,12 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Attack-Mode 12: ?w?d?d is what -a 6 does and ?d?d?w is what -a 7 does, and mask on both sides is new
 - Attack-Mode 12: ?q marks a word from a second wordlist and has to come after ?w, so ?w?q is -a 1
 - Attack-Mode 12: Literals work anywhere in the mask, so Pass?w?d?d is a valid mask
+- Attack-Mode 9: A username is also split at separators and at case and digit boundaries, so j.smith also tries smith and JEdgarHoover also tries Edgar and Hoover
 
 ##
 ## New Features
+- Added rewind and advance keys, on r and a, which move a running attack back or forward through the keyspace it walks. A single press is a small fixed step and holding the key accelerates, up to half a percent of the keyspace per press. The bypass key is unchanged and still moves on to the next wordlist or mask
+- Added a key to change a --runtime limit while a run is going. It asks for a number of seconds to add, and a negative number shortens the limit instead
 ##
 
 - Dictionary cache was removed. Wordlist line counts, and offsets, are now in the new seekdbs
@@ -220,8 +242,20 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Added tools/rar32hashcat.py, which writes -m 23800 hash lines from a password protected RAR3 archive
 - -m 23800 now reports at the end of a run how many candidates reached a RAR3 construct it could not decode
 
+- Rules: A character outside ASCII can be written directly in the operand of the five rule operations that emit bytes, $ ^ i v o, instead of one \xHH per byte
+- Windows: The binary now carries an application manifest and a version block. The manifest declares the process code page as UTF-8, which is what makes a path or an argument holding any character mean the same thing it means on every other platform, and it also opts into long paths
+- Added option --task-time-breakdown, which reports where a run's wall clock went, split into session initialization, attack preparation, the attack itself and cleanup, with each section naming what it could not account for
+- Added option --pipeline-stats, which reports where each launch's time goes, split into feeding, copying, init, transfer, the loop itself and comp, per device and with an effective hash rate. Adding --machine-readable prints the same thing as JSON. It replaces the HASHCAT_PIPE environment variable, which still works
+- Added a dynamic hash plugin for -m 74000, selected by pointing --bridge-parameter1 at bridges/subs/dynamic_hash, which builds the hash from a description such as md5(sha1($pass).$salt) given in --bridge-parameter2. A combination of the built-in primitives no longer needs a Rust plugin written and compiled for it
+- Added tools/gpg-ocb-aes2hashcat.py, which writes -m 17050 hash lines from a GnuPG key file in private-keys-v1.d
+- Added --brain-feed, which reads candidates from stdin and stores them in a running brain server, so the session database picked with --brain-session can be extended without stopping the server
+- --dynamic-x now loads a hash written in John's $dynamic_N$ format instead of only stripping the tag. The number selects the hash-mode, covering 56 of John's built in formats, and --show, --left and --remove write the line back in John's own spelling
+- Potfile: --show and --left with --username or --dynamic-x no longer walk every copy of a hash once per potfile line naming it. A list of 200000 hashes against a potfile of 200000 lines took over a minute and was killed for memory, where it now takes about 0.1 seconds, and the message warning against the combination is gone
 ##
 ## Improvements
+- CUDA: Devices that a run has already excluded no longer get a context. One was created for every device the driver reported, only to read how much memory that device had free, so a box of 8 cards running one agent per card built 8 contexts in every agent and used 1. Each of the others cost about 36 ms and a reservation of card memory
+- Rule application for --stdout is spread across the host cores. It ran on one core while the rest of the machine idled, and a second device did not help because the outfile mutex is held for the whole generation loop. On a 24 thread box, 50,000 words against 30,000 rules falls from 34.0 to 7.6 seconds. Output is unchanged, byte for byte
+- The directory named by --outfile-check-dir is read once before the attack is built rather than only while it runs. A hash list another run has already finished no longer pays for bitmaps, kernel building, device buffers and autotune before anything notices there is nothing left to do
 ##
 
 - An .xz wordlist written in blocks, which is what xz -T0 writes, is seeked into rather than decoded from the start
@@ -308,6 +342,46 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - --stdout: The candidate batch is no longer written to the device and read straight back, and the output buffer holds 64 KB instead of 8 KB
 - Interface: Quit is noticed within 100 milliseconds instead of up to a second, without changing the once per second cadence the monitor counts in
 - Build: MAINTAINER_MODE=1 now also reaches the Rust feeds and bridges and the Raspberry Pi flags, which were still built for the processor doing the building
+- Potfile: A hash list is bucketed by its leading digest word before the potfile is matched against it, so each potfile line is looked up inside a narrow window instead of binary searching the whole list. The word is chosen from the first one that varies, because several unsalted modes leave the sorting word zero for every hash
+- Cracked results: The outfile and the potfile are opened, locked and flushed once per launch rather than once per cracked hash. On a launch returning 50000 results that is 59000 system calls instead of 308000
+- Interface: A paused run notices resume within 100 milliseconds instead of up to a second. The six loops that wait out a pause polled once a second, so a device could sit idle for most of a second after the key was pressed
+- Interface: The status screen no longer prints one Restore.Sub row per device. What each device's position counts towards is the same on all of them, so the salt, the amplifier count and the iteration count moved up to Restore.Point, each shown only when there is more than one of it. What is left is where each device's amplifier and iteration start, three devices to a line, and which three is drawn again on every status so a few updates show them all
+- Interface: The status screen no longer prints one Candidates row per device. One device's window is shown, and which device that is is drawn again on every status, so a few updates show them all. The windows cannot be folded into a single range because the devices do not take the keyspace in device id order, which would make the range run backwards
+- The kernel cache is keyed with paw64 instead of one truncated word of an MD5, which gives the key its full 64 bits and drops the block padding that hashing with MD5 required. Existing cached kernels are rebuilt once on the first run after this
+- Devices that would compile the same kernel now agree on one of them to do it. The cache file name already identifies which devices produce identical output, so it is what they agree on. Nothing changes while devices are set up one at a time, and it is what keeps them from all compiling the same kernel at once when they are not
+- The task time breakdown now ends with the peak resident memory of the run
+- Python Bridge: The hashcat context is dumped to a file that a plugin script reads back, instead of being printed for you to paste into the script by hand
+- Build: The hashcat binary is now compiled for the processor doing the building, which MAINTAINER_MODE=1 turns off for a build that has to run on other machines
+- Startup: The progress line shown while hashcat reads a wordlist for the first time, and the summary after it, now report a read speed in MiB/s
+- Modules: -m 34300 is now named KeePass Argon2 (KDBX v4), which tells it apart from -m 34301, the KDBX v4 AESKDF mode
+- Documentation: Added docs/packages.md, which tracks the downstream packages that ship hashcat and covers building one with MAINTAINER_MODE=1
+- Startup: A parse error on a hash taken from the command line now says so, which is the usual sign of a mistyped hash file name
+- Bridges: Autotune times the bridge itself rather than the empty placeholder left in place of the loop kernel it replaced, so -w and the status view now describe the unit doing the work
+- Bridges: A bridge reports the sensors of the hardware its units run on, so the status line and --hwmon-temp-abort cover that hardware instead of the device that only feeds it candidates
+- Candidates for the next batch are prepared on a thread of their own while the current batch runs on the device. The two used to take turns on one thread, so the device waited while the host built the next batch. A brain client keeps the serial path because its reserve, lookup and commit have to stay in order on one connection, and setting HASHCAT_PIPE_SYNC selects that path for every attack
+- Brain: The hash database of a session is split into 1024 shards, each with its own lock, so a commit costs the size of the batch rather than the size of the whole database. Against 300 million entries a commit falls from 923 to 12 ms, a lookup from 598 to 45 ms, and taking in 300 million candidates falls from 1113 to 56 seconds
+- Brain: The status screen, --machine-readable and --status-json now report Brain.Rejects, split into keyspace another client had already reserved and candidates the brain had already seen. The existing Rejected counter mixes both in with length and rule rejects, so it could not be read as what the brain saved
+- Backends: HIP is loaded from a versioned libamdhip64 or libhiprtc soname when the unversioned name is absent, so the runtime package alone is enough without the development package that ships the symlink. A failure now names what was looked for
+- Rule engine: A rule applied on the host no longer allocates and frees a copy of itself once per word
+- Tuning Database: Added vector width tunings for the NVIDIA GB10, the GPU in the DGX Spark
+- Kernels: A helper an OpenCL kernel never calls is no longer compiled into it, so a cold benchmark of -m 0 takes 8.2 seconds instead of 14.1 and --backend-info answers in 0.55 seconds instead of 1.84 on a Radeon RX 7900 XTX with ROCm 7.0.1
+- Backend: OpenCL C 1.2 is now the minimum. A platform or a device reporting 1.0 or 1.1 is skipped at startup with a message naming the version, instead of being compiled as OpenCL C 1.1 and failing much later in the kernel build
+- Kernels: The hand written byte swap and bit field extract assembly is gone, because the compiler produces the same or better code, for +0.4% to +0.7% on the byte swap heavy modes -m 0, -m 1700 and -m 10800 under HIP
+- Hash lists: The bitmap filter in front of the digest search is sized from the hash count and the memory hierarchy of the device instead of being pinned between 16 and 18 bits, and its probes mix all four digest words instead of slicing bits from one. 50 million NTLM hashes run at 58.3 GH/s instead of 1.1 on a GeForce RTX 4090 and at 24.9 GH/s instead of 1.0 on a Radeon RX 7900 XTX, and 1000 NTLM hashes on the RTX 4090 rise from 93.3 to 129.0 GH/s
+- Hash lists: A hash list is read, counted, parsed, sorted, deduplicated and turned into bitmaps on every core instead of one. On a 32 thread box, 50 million NTLM digests load in 1.7 seconds instead of 40.4, and a salted list of 5 million hashes in 1.2 seconds instead of 7.0
+- Autotune: The launch size is now fitted from a few measured points instead of searched by running the kernel at every accel and loop step, which takes 32% off the time autotune spends across a sweep of 2025 mode and device pairs. -w now also decides how much of a gain a larger launch has to show before the tuner takes it, so the two lower profiles keep the batch short and the two upper ones take every gain there is
+- Autotune: The tuning database now carries 13 measured kernel_accel rows, where no shipped row set that field before. PKZIP (-m 17200) rises from 1.3 to 16.7 GH/s on a GeForce RTX 4090 and by 87% on a Radeon RX 7900 XTX, and DPAPI masterkey file v2 (-m 15910) by 97% on the RX 7900 XTX and 19% on the RTX 4090
+- Tuning database: Vendor tuning rows are matched from the backend vendor id rather than a list of 75 AMD and Intel card names, so hardware the list never named receives them, which on DPAPI masterkey v2 is worth 28% on a Radeon Pro W5700X and 162% on the integrated GPU of a Ryzen 9 7950X
+- Fixed a device being dropped from the run when a tuning database row pinned the accelerator to a value that did not fit in its memory. The pinned value is now lowered, but only after every other fit has been tried and never below the minimum the hash-mode asks for, while an explicit --kernel-accel is still refused rather than quietly changed
+- Backend: Free device memory is now measured wherever the runtime reports it, AMD devices reached through OpenCL included, and the 34 percent desktop reserve is applied only where the figure had to be estimated. A measured figure used to lose a third of the card anyway, which on a memory bound hash mode is a third of the speed
+- Backend: The reserve for register spilling is sized from the work items a device keeps resident instead of from the whole launch, so a GeForce RTX 4090 running -m 0 holds back 51 MiB where it used to hold back 3774, leaving that memory for the attack
+- Autotune: The PKZIP modes 17200, 17220 and 17225 now run one warp on NVIDIA and one wavefront on AMD, because the 77688 bytes of private memory each work item holds for inflate cap occupancy no matter how wide the workgroup, for 2.5 times the speed on a GeForce RTX 4090 and 3.2 times on a Radeon RX 7900 XTX
+- Backend: An integrated GPU is disabled by default when a discrete GPU is also present, since it contributes about 1 percent of the combined speed while adding a second architecture to compile and another device to autotune. A cold -m 0 start on a Ryzen 9 7950X with 2 Radeon RX 7900 XTX cards drops from 6.28 to 4.62 seconds. A machine whose only GPU is integrated is unaffected, and -d overrides the rule
+- Fixed a machine with the CUDA runtime but no NVIDIA GPU, or the HIP runtime but no AMD GPU, reporting a backend initialization error on every run, where hashcat closes that runtime and continues with the next backend anyway
+- Encoding: An encoding name that hashcat cannot use is now reported by name, where a mistyped --encoding-from or --encoding-to used to end the run without printing anything
+- Autotune: The thread count ceiling on Metal now comes from the compiled pipeline, as it already does on CUDA, HIP and OpenCL, instead of from the 32 thread SIMD width that capped every kernel
+- Backend: HIP picks its ABI from the runtime it finds, so one binary drives both ROCm and the Hygon DTK runtime, where device initialization used to fail
+- Potfile: A password found in the potfile is stored once per hash and handed to every copy of that hash after the file is read, instead of a new buffer being allocated for every copy on every matching line. A list of 200000 copies of one hash, against a potfile naming it 200000 times, took 67 seconds and then ran out of memory, and now takes about 0.1 seconds. --show is allowed with --username and --dynamic-x again
 
 ##
 ## Bugs
@@ -427,6 +501,69 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Fixed the CUDA context created for each device being left on the main thread's context stack, since cuCtxCreate makes it current as well as creating it
 - Fixed the per file rule buffers being leaked when a ruleset loaded, and bounded the class selector lookahead in the rule compiler
 - Fixed make failing to locate Rust libraries when CARGO_TARGET_DIR is set in the environment
+- Windows: Fixed hashcat failing to run from a folder whose name holds a character the system code page cannot represent, where its own pid, tuning and potfile paths were rejected as an invalid argument
+- Windows: Fixed a mask, a rule or any other argument holding such a character arriving as a question mark, which for a mask silently ran a different keyspace because ? is the mask metacharacter
+- Windows: Fixed a message printed to a console being rendered through the console code page rather than as UTF-8, which showed any such character as mojibake unless the user had run chcp 65001 first
+- Windows: Fixed the colour of a message written to stderr being applied to whatever console stdout pointed at, and the terminal test answering for stdout no matter which stream was being written
+- Windows: Fixed --loopback and --induction-dir never finishing, where the dictionary a round had just consumed was still open when hashcat tried to delete it. Windows refuses to delete an open file, so the next scan found it again and read it forever
+- Fixed a checkpoint that had already stopped a device being cancellable, which cleared the flag the run needed to end as a checkpoint. The round was then booked as exhausted with its remaining keyspace never dispatched, and the restore file was deleted with it
+- Interface: Fixed quitting with q taking up to a second longer than it needed to. The thread that reads the keyboard waited a full second for input and only noticed the shutdown between waits, and the main thread joins it on the way out
+- Fixed about 0.7 seconds being added to the end of every run by the outfile check thread, which waited a flat second between checks and was joined at shutdown. It runs by default, so this was not limited to runs using --outfile-check-dir
+- Fixed a compiled kernel being readable while it was still being written. The cache directory belongs to the user rather than to one run, so two hashcat processes share it, and the writer truncated the file before taking its lock while the reader took no lock at all. A second process could load a truncated kernel. We now write the kernel under a temporary name and rename it into place, which is atomic
+- Fixed messages from different threads overwriting each other. Every message is formatted into one buffer shared by the whole run, and a log event deliberately does not take the event mutex, because handlers that already hold it log from inside. Autotune, self-test, the device threads and the monitor all log, one thread per device for the first three, so two devices reporting at the same moment could produce a truncated or mixed line. The buffer now has a lock of its own
+- CUDA: Fixed the main thread making driver calls with no context current. Creating a context also makes it current, so the loop that recreates them between benchmark rounds left one stale entry per device on the main thread's stack every round, and releasing a session afterwards ran about fifty free and destroy calls against whatever was on top. Each of those discards its return, so the failures were silent. The main thread now pushes the device context around that work and pops it again, and every pop reads into a local rather than back into the handle a device thread writes from its own thread
+- Fixed the pipeline instrument adding every device together. Its six buckets were one set of counters written by every device thread at once, so a multi device run reported their sum and raced while producing it. Each device now books its own launches and reports them under its own number
+- Fixed a candidate being tried that was never a line of the input. A line longer than the buffer the stdin reader fills is cut, and the oversized piece is dropped later because no password is that long, but whatever followed the cut was published as a line of its own. Reading the same file as a wordlist skips the line instead, and the two now agree
+- Fixed identical devices being aligned to an accelerator and thread count their own buffers were not sized for. Devices of one class are given a single tuning so that neighbouring cards do not run visibly different batch sizes, but the test for a class deliberately ignores memory, and a card driving a display sizes its buffers for less. The shared values are now clamped against each device's own ceilings
+- Fixed modules 01800, 08300, 10700 and 16600 declaring the Register-Limit optimizer, which capped their CUDA kernels at 128 registers where it does not pay
+- Fixed the example commands in --help and in docs/hashcat-brain.md naming rules/best64.rule, which hashcat has not shipped since the file was renamed to best66.rule, so copying one of them failed
+- Fixed the GPG modes 17010, 17020 and 17030 printing uninitialized bytes after the encrypted data field with --show, --left and in the outfile, where the hex encoded field was never terminated
+- Fixed a buffer overflow in the optimized kernels of module 32300, where a long salt plus the fixed string the module joins to it ran past the 256 bytes the kernel reserved. A salt too long for the optimized kernel is now refused
+- Fixed the hardware monitor printing a line for every virtual device, so a single card run with -Y 4 reported its temperature, fan and clocks four times
+- Fixed -n being accepted and then ignored in the bridged hash-modes, where the launch size was overwritten with the candidate count the bridge advertises
+- Fixed -u above 1024 being refused, where 1024 is only the default ceiling and several hash-modes allow far more, up to 131072
+- Fixed the module 74000 Rust bridge generic_hash.dll shipping with no Windows version information, which antivirus scanners report as a false positive
+- Fixed the argon2id and scrypt bridges failing to build where -march=native resolves to a processor the compiler then rejects, which happens on DragonFly BSD and under some hypervisors
+- Fixed both Python bridge makefiles defining two recipes for the same target, so make warned about an overriding recipe on every build made without the Python headers
+- Fixed module 01500 cracking nothing in -a 3 when a hash list holds more than one hash and all of them carry the same salt, where the multi hash kernel of the compile time salt path was an empty stub
+- Fixed module 17030 never cracking a GPG key protected with AES-128, where the AES key was read out of the SHA-256 state as though it held 64 bit words
+- Fixed a heap buffer overflow when building the outfile line, where a long username, hash or plaintext was copied in without a bound check
+- Fixed -d being ignored on bridged hash modes, where every bridge unit ran regardless of what was selected and an invalid device number was accepted without an error
+- Fixed a brain client that could not reach the server running its whole attack without deduplication, which is now an error naming the host and port
+- Fixed the brain server not writing its databases on SIGTERM, so kill, systemctl stop and a container stop lost the session that Ctrl-C would have saved
+- Fixed the brain server log not being flushed after each line, so a redirected log showed nothing until a block filled and lost its tail on a crash
+- Fixed a missing workgroup barrier in the module 22100 loop kernel, where a thread starting the next round could overwrite the shared precomputed salt data other threads were still reading, so a workgroup running out of lockstep could produce wrong results
+- Fixed -a 1, and -a 7 with a pure kernel, launching the full amplifier count after a chunk lost words to a reject, so the slots it did not fill were tried again with the previous chunk's words
+- Fixed an out-of-bounds write and a truncated SHA-1 message in the SAP CODVN F/G modes 7800 and 7801, where a long password and salt overran the 128 byte packing buffer and anything past byte 119 never reached the digest, so a matching candidate did not crack
+- Fixed the SNMPv3 modules 25000, 25100, 25200, 26700, 26800, 26900 and 27300 rejecting an engine ID shorter than 13 bytes, and modules 26900 and 27300 zero padding every engine ID to 17 bytes before localizing the password, so a shorter one never cracked
+- Fixed out-of-bounds reads in the hash parsers of modules 07100, 07900, 08500, 08501, 11600, 19600, 19700, 28800, 28900, 29100, 32100 and 32200, where a short or malformed hash line was read outside the line buffer, and bounded the module 10000 salt so its encoder leaves room for a terminator
+- Fixed a password holding a euro sign, Japanese kana or most other 3 byte characters being discarded by the 41 hash modes that convert UTF-8 to UTF-16 inside the kernel, where only 4 of the 16 valid 3 byte lead bytes and 3 of the 5 valid 4 byte lead bytes were recognized
+- Fixed modules 8500, 8501, 12400 and 14100 failing to build on OpenCL runtimes that report local memory as global
+- Fixed the PKZIP mode 17230 rejecting a candidate whose first deflate block is a stored block, under -a 1 and -a 3, which the same fix for the other PKZIP modes had missed
+- Fixed -a 3 never cracking a password outside ASCII in modules 00130, 00140, 00170, 01430, 01440, 01470, 01730, 01740, 01770, 10830, 10840, 10870, 13500, 13800, 29000 and 29200, where each UTF-8 byte was widened into a character of its own rather than decoded. On a CPU device this needs --backend-vector-width 1
+- Fixed the GPG modes 17010, 17020 and 17030 never cracking the correct password at some combinations of iteration count and password length, where up to 3 stale salt bytes were left past the end of the repeated salt and password stream the key is derived from
+- Fixed --progress-only measuring with the bitmap filter flattened to 1 bit, which understated the progress step for a list holding many hashes and left --bitmap-min and --bitmap-max with no effect
+- Fixed a Metal device being disabled even when -d named it alongside an OpenCL device, and the message naming -d as the way to use Metal instead of OpenCL never being printed
+- Fixed module 10900 crashing when the hash carried a zero salt iteration count, where the stored count underflowed to about 4 billion and choosing a kernel loop count from it divided by zero
+- Fixed a buffer overflow in the brain, where a signed lookup length received from a peer was never checked for a negative value and became an enormous length at the receive, letting a peer write past the receive buffer on the client and the server alike
+- Fixed the brain server reading more saved dumps at startup than its tables hold, where a working directory with more than 64 session dumps wrote past the end
+- Fixed a damaged gzip, xz or zip file making hash list line counting, the brain attack hash and the custom charset reader scan far past the end of their buffers, where the error a failed decode reports was taken as the number of bytes read
+- Fixed a heap buffer overflow in modules 22000 and 22001 with a gzip or xz compressed hccapx file, where the hash array was sized from the file size on disk but filled from the decompressed stream
+- Fixed buffer overflows in modules 08900, 21500, 21501, 28200, 70100 and 70200, where a base64 token missing its padding decoded to more bytes than the field it decodes into
+- Fixed a hash line longer than the buffer it is written into placing its terminator past the end, where the length snprintf reports it would have written was taken as the length it wrote. The outfile, --show, --left and the status display all encode a hash this way
+- Fixed a one byte stack buffer overflow in 40 modules, where the terminator after an encoded salt landed just past a buffer sized exactly for the longest salt generic_salt_encode can return
+- Fixed a module reporting an encoded hash longer than the buffer it was given, which made the caller write a terminating byte past the end of it. hash_encode() now clamps the length it returns, and the potfile and status display paths that do not go through it are bounded as well
+- Fixed --username allocating the name only up to a NUL byte inside the field while recording the length of the whole field, so writing the name out with --show or --left ran past the allocation and put unrelated heap contents in the output
+- Fixed a stack buffer overflow in --show for the split hash modes, where both halves of the plaintext were copied from the potfile into a 20 byte buffer without a length check
+- Fixed a write past the end of the hash list when an LM hash file grew while it was being read, where one line adds two entries but only one free slot was checked
+- Fixed a buffer overflow in modules 70100 and 70200, where an r or p taken from the hash walked the fixed 32 KiB scratch buffer out of bounds, and an N of 0 underflowed the block count
+- Fixed the yescrypt bridge sizing its two scratch buffers in 32 bit arithmetic, where a large N off the hash line wrapped and left a buffer the mixer then wrote past, and neither it nor the argon2 bridge noticing that an allocation had failed
+- Fixed the eight scrypt modules reporting an incompatible self-test or mixed configuration for a hash file holding a single hash, where a large r and p carried the buffer size derived from them into the values that report those errors. Such a hash is now refused for the memory it asks for instead
+- Fixed 33 combinator kernels reading past their 256 byte candidate buffer, where two words of up to 256 bytes each were assembled with no check on their combined length. Such a pair is now skipped
+- Fixed a buffer overflow in --keyboard-layout-mapping for the TrueCrypt and VeraCrypt modes, where a map entry longer than the character it replaces grew the password past the fixed buffer it is assembled in, in the kernels and on the host alike
+- Fixed a buffer overflow in the mask file parser, where a mask or custom charset longer than 1023 characters wrote past the buffer it is copied into and then over the length used to index it
+- Fixed an out-of-bounds read in the 4 rule rejection operators that test the first or last character, where an empty candidate has neither
+- Fixed module 25400 adding one stray byte after a PDF user password of the full 32 characters, which reached the hash line and the potfile
 
 ##
 ## Other changes
@@ -436,12 +573,14 @@ v7.1.2 and every out of tree plugin has to be rebuilt for this release anyway.
 - Wordlist keyspace is now the line count, so Progress counts every line and rejects the unusable
 - Brain attack identities now include --skip and --limit, so a partial run is its own attack
 - Added SECURITY.md, which states which inputs are treated as coming from other people and how a report is handled
+- Added CONTRIBUTING.md, which is what a reviewer holds a pull request against, and AGENTS.md, which is the part of it an AI coding agent needs. README.md was rewritten at the same time
 - Removed deps/zlib and deps/LZMA-SDK, 410 files and 128252 lines, in favour of the system libraries
 - Removed deps/unrar, 158 files, in favour of hashcat's own RAR3 decoder, and with it the ENABLE_UNRAR and USE_SYSTEM_UNRAR build switches
 - A build no longer needs a C++ compiler or a C++ runtime, because UnRAR was the only C++ in the tree
 - Removed the exported symbol hc_decompress_rar and the header include/ext_unrar.h that declared it, which nothing outside module_23800 called
 - The Camellia kernel was rewritten from RFC 3713 and carries the tree's own license header, replacing the one file in hashcat that asserted a copyright and stated no terms. The 16 modes that use it compute exactly what they computed before
 - tools/test_package.sh now reads a compressed wordlist back, so CI checks that the compression libraries load and decode rather than only that hashcat compiles
+- Rust bridge sources moved from Rust/generic_hash to Rust/bridges/generic_hash, and a packaged release loads the built plugin from bridges/subs
 
 * changes v7.1.1 -> v7.1.2
 

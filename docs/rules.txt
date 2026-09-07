@@ -92,10 +92,20 @@ emit a byte the keyboard cannot produce. Two hex digits, lower or upper case.
   o0\x41         overwrite position 0 with 'A'
   s\x41\x42      replace every 'A' with 'B'
 
-A character outside ASCII is more than one byte in UTF-8, so it is written one \xHH per byte.
-Appending U+2116, which is e2 84 96, is three append operations:
+A character outside ASCII is more than one byte in UTF-8. It can be written one \xHH per byte, and
+it can also be written as itself. These two rules are the same rule, and both append U+2116:
 
   $\xe2$\x84$\x96
+  $<the character>
+
+The five operations that emit bytes take a character written directly: '$', '^', 'i', 'v' and 'o'.
+A character there compiles to one byte operation per byte, which is what the first form spells out
+by hand, so nothing about the rule engine changes. It stays byte oriented, and the two forms cost
+the same number of the 31 operations a rule may hold: a 3 byte character costs 3, and a rule that
+would need more than 31 is rejected with a message naming it.
+
+Bytes that are not a complete UTF-8 sequence keep the meaning they have today, one byte, so a rule
+file holding raw bytes is unaffected.
 
 Order matters and it is not the same for every operation. Append, insert and overwrite take the
 bytes left to right. Prepend does not: '^' puts its byte at position 0, so each byte lands in

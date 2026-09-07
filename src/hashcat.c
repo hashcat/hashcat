@@ -240,6 +240,11 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   status_ctx->words_off = 0;
   status_ctx->words_cur = 0;
 
+  status_ctx->seek_pending = false;
+  status_ctx->seek_target  = 0;
+  status_ctx->seek_step    = 0;
+  status_ctx->seek_dir     = 0;
+
   // Where the round starts is only settled below, once its own keyspace is known, because --skip is a
   // position in the whole queue of rounds and not in this one. A restored session is the exception:
   // its position came out of the restore file and is already this round's, so it is taken here and
@@ -558,36 +563,74 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
 
   status_ctx->accessible = true;
 
-  for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
+  // A seek stops every device and starts it again from the position it moved to. Everything set up
+  // above survives that, the autotune and the backend session the devices are holding included, so
+  // what repeats is the threads and the counters seek_apply () writes from the new position.
+
+  for (;;)
   {
-    thread_param_t *thread_param = threads_param + backend_devices_idx;
+    calc_threads_live = 0;
 
-    thread_param->hashcat_ctx = hashcat_ctx;
-    thread_param->tid         = backend_devices_idx;
-
-    // A cracking thread cannot be run inline, it is the whole attack for that device. Keep the
-    // handles that started packed at the front so the wait has no unset handle to join, and tell
-    // the user, because a device that never starts means keyspace this run does not cover.
-
-    if (hc_thread_create_ok (c_threads[calc_threads_live], thread_calc, thread_param) == true)
+    for (int backend_devices_idx = 0; backend_devices_idx < backend_ctx->backend_devices_cnt; backend_devices_idx++)
     {
-      calc_threads_live++;
-    }
-    else
-    {
-      event_log_error (hashcat_ctx, "Could not start the cracking thread for device #%d.", backend_devices_idx + 1);
+      thread_param_t *thread_param = threads_param + backend_devices_idx;
 
-      backend_ctx->devices_param[backend_devices_idx].skipped = true;
+      thread_param->hashcat_ctx = hashcat_ctx;
+      thread_param->tid         = backend_devices_idx;
+
+      // A cracking thread cannot be run inline, it is the whole attack for that device. Keep the
+      // handles that started packed at the front so the wait has no unset handle to join, and tell
+      // the user, because a device that never starts means keyspace this run does not cover.
+
+      if (hc_thread_create_ok (c_threads[calc_threads_live], thread_calc, thread_param) == true)
+      {
+        calc_threads_live++;
+      }
+      else
+      {
+        event_log_error (hashcat_ctx, "Could not start the cracking thread for device #%d.", backend_devices_idx + 1);
+
+        backend_ctx->devices_param[backend_devices_idx].skipped = true;
+      }
     }
+
+    hc_thread_wait (calc_threads_live, c_threads);
+
+    if (status_ctx->seek_pending == false) break;
+
+    // A seek resumes a paused run before it arms anything, but the user can still pause again while
+    // the devices are winding down. Waiting for the resume here, rather than reading a paused run as
+    // a reason to end the round, is what keeps the pause meaning pause.
+
+    while (status_ctx->devices_status == STATUS_PAUSED)
+    {
+      usleep (100000);
+    }
+
+    // Only a run that is still going picks itself up again. A crack that finished the hash list, an
+    // abort and a quit all outrank a seek, and so does a checkpoint, which is a request to stop this
+    // round where it is.
+    //
+    // A finish is not. It asks for no round after this one and leaves the device threads running, so
+    // the seek is applied and the finish takes effect when the round ends on its own.
+
+    if (status_ctx->devices_status      != STATUS_RUNNING) break;
+    if (status_ctx->checkpoint_shutdown == true)           break;
+
+    seek_apply (hashcat_ctx);
   }
 
-  hc_thread_wait (calc_threads_live, c_threads);
+  status_ctx->seek_pending = false;
 
   hcfree (c_threads);
 
   hcfree (threads_param);
 
-  if ((status_ctx->devices_status == STATUS_RUNNING) && (status_ctx->checkpoint_shutdown == true))
+  // checkpoint_taken covers the race the flag alone cannot: a cancel that arrived after a device had
+  // already stopped used to clear checkpoint_shutdown here, and the round then fell through to
+  // EXHAUSTED with its remaining keyspace never dispatched.
+
+  if ((status_ctx->devices_status == STATUS_RUNNING) && ((status_ctx->checkpoint_shutdown == true) || (status_ctx->checkpoint_taken == true)))
   {
     myabort_checkpoint (hashcat_ctx);
   }
@@ -724,7 +767,9 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
   {
     induct_ctx_scan (hashcat_ctx);
 
-    while (induct_ctx->induction_dictionaries_cnt)
+    bool induct_stop = false;
+
+    while ((induct_ctx->induction_dictionaries_cnt) && (induct_stop == false))
     {
       for (induct_ctx->induction_dictionaries_pos = 0; induct_ctx->induction_dictionaries_pos < induct_ctx->induction_dictionaries_cnt; induct_ctx->induction_dictionaries_pos++)
       {
@@ -735,8 +780,29 @@ static int inner2_loop (hashcat_ctx_t *hashcat_ctx)
           if (status_ctx->run_main_level3 == false) break;
         }
 
-        unlink (induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos]);
+        // the round that just finished still holds this file open, and Windows will not delete a
+        // file that is open. Give the instance up first, then delete.
+
+        generic_ctx_base_close (hashcat_ctx);
+
+        const char *consumed = induct_ctx->induction_dictionaries[induct_ctx->induction_dictionaries_pos];
+
+        if (unlink (consumed) == -1)
+        {
+          // a dictionary that cannot be deleted would be found again by the next scan and read
+          // forever, so stop inducting rather than spin. Whatever has been cracked so far stands.
+
+          event_log_warning (hashcat_ctx, "%s: %s", consumed, strerror (errno));
+          event_log_warning (hashcat_ctx, "Induction is stopping because that file would otherwise be read again.");
+          event_log_warning (hashcat_ctx, NULL);
+
+          induct_stop = true;
+
+          break;
+        }
       }
+
+      if (induct_stop == true) break;
 
       // induct_ctx_scan () owns the previous scan now, strings included
 
@@ -902,7 +968,13 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    * load hashes, stage 1
    */
 
-  if (hashes_init_stage1 (hashcat_ctx) == -1) return -1;
+  EVENT (EVENT_HASHLIST_PARSE_INPUT_PRE);
+
+  const int hashes_stage1_rc = hashes_init_stage1 (hashcat_ctx);
+
+  EVENT (EVENT_HASHLIST_PARSE_INPUT_POST);
+
+  if (hashes_stage1_rc == -1) return -1;
 
   if ((user_options->keyspace == false) && (user_options->stdout_flag == false))
   {
@@ -1057,6 +1129,39 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
   hashes_logger (hashcat_ctx);
 
   /**
+   * outfile check preflight
+   */
+
+  // Results another run has already written are worth reading before the expensive setup rather than
+  // only during the attack. Everything below this point costs time and device memory, and a hash list
+  // the check directory already accounts for needs none of it.
+
+  if (outcheck_preflight (hashcat_ctx) == -1) return -1;
+
+  if (status_ctx->devices_status == STATUS_CRACKED)
+  {
+    // --remove rewrites the hash file with what is left, and a run that ends here has to do that the
+    // same way the potfile path above does. Ending early is not a reason to leave the file describing
+    // hashes that are now accounted for.
+
+    if ((user_options->remove == true) && ((hashes->hashlist_mode == HL_MODE_FILE_PLAIN) || (hashes->hashlist_mode == HL_MODE_FILE_BINARY)))
+    {
+      if (hashes->digests_saved != hashes->digests_done)
+      {
+        if (save_hash (hashcat_ctx) == -1) return -1;
+      }
+    }
+
+    if (user_options->quiet == false)
+    {
+      event_log_info (hashcat_ctx, "INFO: All hashes were already found in the outfile check directory.");
+      event_log_info (hashcat_ctx, NULL);
+    }
+
+    return 0;
+  }
+
+  /**
    * bitmaps
    */
 
@@ -1108,6 +1213,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
     return 0;
   }
 
+  EVENT (EVENT_CANDIDATE_SOURCE_PRE);
+
   /**
    * straight mode init
    */
@@ -1130,6 +1237,8 @@ static int outer_loop (hashcat_ctx_t *hashcat_ctx, const int iteration)
    */
 
   if (mask_ctx_init (hashcat_ctx) == -1) return -1;
+
+  EVENT (EVENT_CANDIDATE_SOURCE_POST);
 
   /**
    * prevent the user from using --skip/--limit together with multiple word lists
@@ -1554,6 +1663,13 @@ int hashcat_init (hashcat_ctx_t *hashcat_ctx, void (*event) (const u32, struct h
   hashcat_ctx->user_options_extra = (user_options_extra_t *)  hcmalloc (sizeof (user_options_extra_t));
   hashcat_ctx->user_options       = (user_options_t *)        hcmalloc (sizeof (user_options_t));
 
+  // The event context is set up here rather than with the session, because the banner is printed
+  // before a session exists and printing it takes the log mutex. A mutex that has only been zeroed
+  // is a usable pthread mutex, so this reads as working on Linux, but it is not a usable Windows
+  // CRITICAL_SECTION and entering one faults.
+
+  if (event_ctx_init (hashcat_ctx) == -1) return -1;
+
   // The compression libraries are located here, while there is still one thread, and each one is
   // optional: a box without it runs everything that does not ask for that format. Whoever does ask
   // is the one told, and is told which file names were tried. iconv is located the same way and is
@@ -1575,6 +1691,8 @@ void hashcat_destroy (hashcat_ctx_t *hashcat_ctx)
   hcfree (hashcat_ctx->combinator_ctx);
   hcfree (hashcat_ctx->cpt_ctx);
   hcfree (hashcat_ctx->debugfile_ctx);
+  event_ctx_destroy (hashcat_ctx);
+
   hcfree (hashcat_ctx->event_ctx);
   hcfree (hashcat_ctx->folder_config);
   hcfree (hashcat_ctx->generic_ctx);
@@ -1622,7 +1740,6 @@ int hashcat_session_init (hashcat_ctx_t *hashcat_ctx, const char *install_folder
    * event init (needed for logging so should be first)
    */
 
-  if (event_ctx_init (hashcat_ctx) == -1) return -1;
 
   /**
    * status init
@@ -2452,7 +2569,6 @@ int hashcat_session_destroy (hashcat_ctx_t *hashcat_ctx)
   user_options_destroy        (hashcat_ctx);
   user_options_extra_destroy  (hashcat_ctx);
   status_ctx_destroy          (hashcat_ctx);
-  event_ctx_destroy           (hashcat_ctx);
 
   return 0;
 }

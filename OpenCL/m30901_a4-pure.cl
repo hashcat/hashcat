@@ -3,6 +3,8 @@
  * License.....: MIT
  */
 
+#define SECP256K1_TMPS_TYPE PRIVATE_AS
+
 #ifdef KERNEL_STATIC
 #include M2S(INCLUDE_PATH/inc_vendor.h)
 #include M2S(INCLUDE_PATH/inc_types.h)

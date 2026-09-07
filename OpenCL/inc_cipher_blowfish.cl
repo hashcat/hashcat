@@ -392,6 +392,39 @@ DECLSPEC inline void SET_KEY32 (LOCAL_AS u32 *S, const u64 key, const u32 val)
   L ^= P[17];           \
 }
 
+// the inverse of BF_ENCRYPT: same rounds, P walked from 17 down to 0.
+// bcrypt never needs this, but modes that decrypt real ciphertext do.
+
+#define BF_DECRYPT(L,R) \
+{                       \
+  L ^= P[17];           \
+                        \
+  BF_ROUND (L, R, 16);  \
+  BF_ROUND (R, L, 15);  \
+  BF_ROUND (L, R, 14);  \
+  BF_ROUND (R, L, 13);  \
+  BF_ROUND (L, R, 12);  \
+  BF_ROUND (R, L, 11);  \
+  BF_ROUND (L, R, 10);  \
+  BF_ROUND (R, L,  9);  \
+  BF_ROUND (L, R,  8);  \
+  BF_ROUND (R, L,  7);  \
+  BF_ROUND (L, R,  6);  \
+  BF_ROUND (R, L,  5);  \
+  BF_ROUND (L, R,  4);  \
+  BF_ROUND (R, L,  3);  \
+  BF_ROUND (L, R,  2);  \
+  BF_ROUND (R, L,  1);  \
+                        \
+  u32 tmp;              \
+                        \
+  tmp = R;              \
+  R = L;                \
+  L = tmp;              \
+                        \
+  L ^= P[0];            \
+}
+
 #ifdef DYNAMIC_LOCAL
 extern __shared__ u32 S[];
 #endif

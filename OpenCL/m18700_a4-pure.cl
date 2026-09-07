@@ -80,14 +80,11 @@ DECLSPEC bool pcfg_hash (MAYBE_UNUSED PRIVATE_AS const pcfg_hash_ctx_t *hc, PRIV
 
 DECLSPEC bool pcfg_hash_global (MAYBE_UNUSED PRIVATE_AS const pcfg_hash_ctx_t *hc, GLOBAL_AS const u32 *w, const u32 len, PRIVATE_AS u32 *dgst)
 {
-  const u32 hash = hashCode (0, w, len);
+  u32 t[64];
 
-  dgst[0] = hash;
-  dgst[1] = 0;
-  dgst[2] = 0;
-  dgst[3] = 0;
+  for (u32 i = 0; i < 64; i++) t[i] = w[i];
 
-  return true;
+  return pcfg_hash (hc, t, len, dgst);
 }
 
 #define PCFG_KERNEL_MXX m18700_mxx

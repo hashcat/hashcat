@@ -293,9 +293,54 @@ void potfile_write_append (hashcat_ctx_t *hashcat_ctx, const char *out_buf, cons
 
   tmp_buf[tmp_len] = 0;
 
+  // inside a batch the lock is already held and the flush happens when the batch ends, so a launch
+  // that returns tens of thousands of results locks and flushes once rather than that many times
+
+  if (potfile_ctx->batch_depth > 0)
+  {
+    hc_fprintf (&potfile_ctx->fp, "%s" EOL, tmp_buf);
+
+    return;
+  }
+
   hc_lockfile (&potfile_ctx->fp);
 
   hc_fprintf (&potfile_ctx->fp, "%s" EOL, tmp_buf);
+
+  hc_fflush (&potfile_ctx->fp);
+
+  if (hc_unlockfile (&potfile_ctx->fp))
+  {
+    event_log_error (hashcat_ctx, "%s: Failed to unlock file.", potfile_ctx->filename);
+  }
+}
+
+void potfile_batch_begin (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t *hashconfig  = hashcat_ctx->hashconfig;
+  potfile_ctx_t      *potfile_ctx = hashcat_ctx->potfile_ctx;
+
+  if (potfile_ctx->enabled == false) return;
+  if (hashconfig->potfile_disable == true) return;
+
+  if (potfile_ctx->batch_depth == 0) hc_lockfile (&potfile_ctx->fp);
+
+  potfile_ctx->batch_depth++;
+}
+
+void potfile_batch_end (hashcat_ctx_t *hashcat_ctx)
+{
+  const hashconfig_t *hashconfig  = hashcat_ctx->hashconfig;
+  potfile_ctx_t      *potfile_ctx = hashcat_ctx->potfile_ctx;
+
+  if (potfile_ctx->enabled == false) return;
+  if (hashconfig->potfile_disable == true) return;
+
+  if (potfile_ctx->batch_depth == 0) return;
+
+  potfile_ctx->batch_depth--;
+
+  if (potfile_ctx->batch_depth > 0) return;
 
   hc_fflush (&potfile_ctx->fp);
 
@@ -403,6 +448,94 @@ static void potfile_apply_hashes (hashcat_ctx_t *hashcat_ctx, pot_tree_entry_t *
   }
 }
 
+// A potfile lookup is a binary search over the whole sorted digest array, once per potfile line. On
+// a list of tens of millions that is around 27 probes spread across gigabytes, and every one of them
+// is a cache miss. Bucketing the array by the top 16 bits of its leading digest word turns that into
+// a lookup plus around 11 probes inside a window of tens of kilobytes.
+//
+// Which word leads is not fixed. The array is sorted on dgst_pos3 first, but several unsalted modes
+// leave that word zero for every hash, 200, 3000, 5100, 16000 and 34211 among them, and those are
+// exactly the modes people run against hundred million line lists. Keying on a constant word would
+// put every hash in one bucket and buy nothing, so the first word that actually varies is used. The
+// array is sorted on the earlier words too, so it is still ordered by whichever word is picked.
+
+#define POTFILE_PREFIX_BITS    16
+#define POTFILE_PREFIX_BUCKETS (1 << POTFILE_PREFIX_BITS)
+#define POTFILE_PREFIX_MINIMUM (1 << 16)
+
+typedef struct potfile_prefix
+{
+  u32 *bounds;
+  u32  word;
+
+} potfile_prefix_t;
+
+static bool potfile_prefix_build (potfile_prefix_t *prefix, const hash_t *hashes_buf, const u32 hashes_cnt, const hashconfig_t *hashconfig)
+{
+  prefix->bounds = NULL;
+
+  if (hashconfig->is_salted == true) return false;
+  if (hashes_cnt < POTFILE_PREFIX_MINIMUM) return false;
+
+  const u32 *first = (const u32 *) hashes_buf[0].digest;
+  const u32 *last  = (const u32 *) hashes_buf[hashes_cnt - 1].digest;
+
+  const u32 order[4] = { hashconfig->dgst_pos3, hashconfig->dgst_pos2, hashconfig->dgst_pos1, hashconfig->dgst_pos0 };
+
+  u32 word = 0;
+
+  bool varies = false;
+
+  for (u32 i = 0; i < 4; i++)
+  {
+    if (first[order[i]] == last[order[i]]) continue;
+
+    word = order[i];
+
+    varies = true;
+
+    break;
+  }
+
+  // every hash carries the same digest, so there is nothing to narrow
+
+  if (varies == false) return false;
+
+  u32 *bounds = (u32 *) hccalloc (POTFILE_PREFIX_BUCKETS + 1, sizeof (u32));
+
+  if (bounds == NULL) return false;
+
+  // one pass, not one binary search per bucket
+
+  u32 bucket_pos = 0;
+
+  for (u32 i = 0; i < hashes_cnt; i++)
+  {
+    const u32 *digest = (const u32 *) hashes_buf[i].digest;
+
+    const u32 bucket = digest[word] >> (32 - POTFILE_PREFIX_BITS);
+
+    while (bucket_pos <= bucket)
+    {
+      bounds[bucket_pos] = i;
+
+      bucket_pos++;
+    }
+  }
+
+  while (bucket_pos <= POTFILE_PREFIX_BUCKETS)
+  {
+    bounds[bucket_pos] = hashes_cnt;
+
+    bucket_pos++;
+  }
+
+  prefix->bounds = bounds;
+  prefix->word   = word;
+
+  return true;
+}
+
 int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 {
   const hashconfig_t  *hashconfig   = hashcat_ctx->hashconfig;
@@ -422,6 +555,15 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
 
   hash_t *hashes_buf = hashes->hashes_buf;
   u32     hashes_cnt = hashes->hashes_cnt;
+
+  // only for the plain path below. A module with its own potfile decoder, and the keep-all-hashes
+  // mode, both take a different route and are left exactly as they were.
+
+  potfile_prefix_t prefix;
+
+  const bool prefix_ok = (module_ctx->module_hash_decode_potfile == MODULE_DEFAULT)
+                      && (hashconfig->potfile_keep_all_hashes == false)
+                      && (potfile_prefix_build (&prefix, hashes_buf, hashes_cnt, hashconfig) == true);
 
   // no solution for these special hash types (for instance because they use hashfile in output etc)
 
@@ -624,7 +766,20 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
         continue;
       }
 
-      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, hashes_buf, hashes_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
+      hash_t *search_buf = hashes_buf;
+      u32     search_cnt = hashes_cnt;
+
+      if (prefix_ok == true)
+      {
+        const u32 *digest = (const u32 *) hash_buf.digest;
+
+        const u32 bucket = digest[prefix.word] >> (32 - POTFILE_PREFIX_BITS);
+
+        search_buf = hashes_buf + prefix.bounds[bucket];
+        search_cnt = prefix.bounds[bucket + 1] - prefix.bounds[bucket];
+      }
+
+      hash_t *found = (hash_t *) hc_bsearch_r (&hash_buf, search_buf, search_cnt, sizeof (hash_t), sort_by_hash, (void *) hashconfig);
 
       potfile_update_hash (hashcat_ctx, found, line_pw_buf, (u32) line_pw_len);
     }
@@ -636,6 +791,8 @@ int potfile_remove_parse (hashcat_ctx_t *hashcat_ctx)
   {
     hcfree (tmps);
   }
+
+  if (prefix_ok == true) hcfree (prefix.bounds);
 
   potfile_read_close (hashcat_ctx);
 

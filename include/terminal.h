@@ -49,6 +49,16 @@ HC_API HC_API_CALL void *thread_keypress (void *p);
 void SetConsoleWindowSize (const int x);
 #endif
 
+// An arrow key is not a character. A POSIX terminal sends it as a three byte escape sequence and the
+// Windows console reports it as a virtual key code with a zero AsciiChar, which is also what a
+// timeout looks like. tty_getchar () turns both into one of these, chosen above the range any real
+// key can produce so the keypress switch can carry them like any other key.
+
+#define TTY_KEY_LEFT  0x100
+#define TTY_KEY_RIGHT 0x101
+#define TTY_KEY_UP    0x102
+#define TTY_KEY_DOWN  0x103
+
 int tty_break (void);
 int tty_getchar (void);
 int tty_fix (void);

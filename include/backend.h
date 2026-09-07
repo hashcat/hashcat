@@ -61,26 +61,10 @@ void generate_cached_kernel_amp_filename    (const u32 attack_kern, char *cache_
 
 bool read_kernel_binary (hashcat_ctx_t *hashcat_ctx, const char *kernel_file, size_t *kernel_lengths, char **kernel_sources);
 
-// Where a launch's wall clock goes, split by the stage that spent it. A launch is a chain of host
-// steps around one device step, and the steps live in different files, so the buckets are global and
-// printed together. HASHCAT_PIPE=1 turns it on, and nothing is measured or timed otherwise.
-
-typedef enum pipe_slot
-{
-  PIPE_FEED   = 0,  // building the candidate batch on the host, off the critical path
-  PIPE_COPY   = 1,  // uploading it and running the decompress kernel
-  PIPE_INIT   = 2,  // amplifier, utf16 conversion and the init kernel
-  PIPE_XFER   = 3,  // tmps out to the host and back
-  PIPE_LAUNCH = 4,  // the loop itself, kernel or bridge
-  PIPE_COMP   = 5,  // the comp kernel
-
-  PIPE_SLOTS  = 6,
-
-} pipe_slot_t;
-
+void pipe_enable                            (const bool enabled, const bool json);
 void pipe_mark                              (hc_timer_t *timer);
-void pipe_acc                               (const pipe_slot_t slot, hc_timer_t *timer);
-void pipe_launch_done                       (const u64 cands);
+void pipe_acc                               (hc_device_param_t *device_param, const pipe_slot_t slot, hc_timer_t *timer);
+void pipe_launch_done                       (hc_device_param_t *device_param, const u64 cands);
 
 int gidd_to_pw_t                            (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 gidd, pw_t *pw);
 

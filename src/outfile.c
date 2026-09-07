@@ -527,11 +527,44 @@ void outfile_destroy (hashcat_ctx_t *hashcat_ctx)
   memset (outfile_ctx, 0, sizeof (outfile_ctx_t));
 }
 
+// The file is opened and closed around every cracked hash so that a user can move the outfile while
+// hashcat runs. That costs an open, a lock, a close and an unlock per result, and a launch against a
+// large list can return tens of thousands of them, all inside the display mutex. A batch holds the
+// file open across one launch's worth of results and closes it when the launch is done, so the
+// outfile is still a live stream and can still be moved between launches rather than between hashes.
+
+void outfile_batch_begin (hashcat_ctx_t *hashcat_ctx)
+{
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+
+  if (outfile_ctx->batch_depth == 0)
+  {
+    if (outfile_write_open (hashcat_ctx) == -1) return;
+  }
+
+  outfile_ctx->batch_depth++;
+}
+
+void outfile_batch_end (hashcat_ctx_t *hashcat_ctx)
+{
+  outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
+
+  if (outfile_ctx->batch_depth == 0) return;
+
+  outfile_ctx->batch_depth--;
+
+  if (outfile_ctx->batch_depth == 0) outfile_write_close (hashcat_ctx);
+}
+
 int outfile_write_open (hashcat_ctx_t *hashcat_ctx)
 {
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
   if (outfile_ctx->filename == NULL) return 0;
+
+  // already held open by a batch
+
+  if ((outfile_ctx->batch_depth > 0) && (outfile_ctx->fp.pfp != NULL)) return 0;
 
   if (outfile_ctx->is_fifo == false || outfile_ctx->fp.pfp == NULL)
   {
@@ -560,6 +593,15 @@ void outfile_write_close (hashcat_ctx_t *hashcat_ctx)
   outfile_ctx_t *outfile_ctx = hashcat_ctx->outfile_ctx;
 
   if (outfile_ctx->fp.pfp == NULL) return;
+
+  // a batch closes it, not the write inside one
+
+  if (outfile_ctx->batch_depth > 0)
+  {
+    hc_fflush (&outfile_ctx->fp);
+
+    return;
+  }
 
   if (outfile_ctx->is_fifo == true)
   {

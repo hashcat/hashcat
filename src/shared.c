@@ -6,6 +6,12 @@
 #include "common.h"
 #include "types.h"
 #include "shared.h"
+
+#if defined (_WIN)
+#include <psapi.h>
+#else
+#include <sys/resource.h>
+#endif
 #include "memory.h"
 #include "convert.h"
 
@@ -113,8 +119,15 @@ bool is_power_of_2 (const u32 v)
   return (v && !(v & (v - 1)));
 }
 
+// The odd part of v, which is v with every trailing zero bit shifted out. Zero has no odd part, and
+// the lowest set bit of zero is zero, so the division has to be guarded rather than attempted. A
+// caller reaches this with zero by overflowing an iteration count: a salt holding UINT32_MAX passes
+// a plain non-zero test, and one more than it is zero.
+
 u32 smallest_repeat_double (const u32 v)
 {
+  if (v == 0) return 0;
+
   return (v / (v & -v));
 }
 
@@ -855,4 +868,34 @@ HC_PLUGIN_API int pcfg_expand (const pcfg_cell_t *cell, const u32 *pool, const u
   const int len = (int) pos;
 
   return len;
+}
+
+// Peak resident memory of this process, in bytes, or 0 where the platform will not say.
+//
+// The three platforms disagree about the unit as well as the call: ru_maxrss is kilobytes on Linux
+// and bytes on macOS, and Windows does not have getrusage at all.
+
+u64 hc_peak_rss (void)
+{
+  #if defined (_WIN)
+
+  PROCESS_MEMORY_COUNTERS pmc;
+
+  if (GetProcessMemoryInfo (GetCurrentProcess (), &pmc, sizeof (pmc)) == 0) return 0;
+
+  return (u64) pmc.PeakWorkingSetSize;
+
+  #else
+
+  struct rusage ru;
+
+  if (getrusage (RUSAGE_SELF, &ru) != 0) return 0;
+
+  #if defined (__APPLE__)
+  return (u64) ru.ru_maxrss;
+  #else
+  return (u64) ru.ru_maxrss * 1024;
+  #endif
+
+  #endif
 }

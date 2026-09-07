@@ -157,6 +157,8 @@ static const struct option long_options[] =
   {"spin-damp",                 required_argument, NULL, IDX_SPIN_DAMP},
   {"status",                    no_argument,       NULL, IDX_STATUS},
   {"status-json",               no_argument,       NULL, IDX_STATUS_JSON},
+  {"pipeline-stats",            no_argument,       NULL, IDX_PIPELINE_STATS},
+  {"task-time-breakdown",       no_argument,       NULL, IDX_TASK_TIME_BREAKDOWN},
   {"status-timer",              required_argument, NULL, IDX_STATUS_TIMER},
   {"stdout",                    no_argument,       NULL, IDX_STDOUT_FLAG},
   {"stdin-timeout-abort",       required_argument, NULL, IDX_STDIN_TIMEOUT_ABORT},
@@ -329,6 +331,8 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->spin_damp                 = SPIN_DAMP;
   user_options->status                    = STATUS;
   user_options->status_json               = STATUS_JSON;
+  user_options->pipeline_stats            = PIPELINE_STATS;
+  user_options->task_time_breakdown       = TASK_TIME_BREAKDOWN;
   user_options->status_timer              = STATUS_TIMER;
   user_options->stdin_timeout_abort       = STDIN_TIMEOUT_ABORT;
   user_options->stdout_flag               = STDOUT_FLAG;
@@ -518,6 +522,8 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_SEEKDB_PATH:               user_options->seekdb_path               = optarg;                          break;
       case IDX_STATUS:                    user_options->status                    = true;                            break;
       case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
+      case IDX_PIPELINE_STATS:            user_options->pipeline_stats            = true;                            break;
+      case IDX_TASK_TIME_BREAKDOWN:       user_options->task_time_breakdown       = true;                            break;
       case IDX_STATUS_TIMER:              user_options->status_timer              = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_MACHINE_READABLE:          user_options->machine_readable          = true;                            break;
       case IDX_LOOKUP:                    user_options->lookup                    = optarg;                          break;
@@ -4117,36 +4123,44 @@ int user_options_check_files (hashcat_ctx_t *hashcat_ctx)
     // The first argument is a plugin name and only falls back to being a path, so it is checked
     // against the shipped feeds first. A name that matches neither is reported as the path it would
     // have been, because that is the form the user typed.
+    //
+    // There may be no argument at all. --backend-info and --hash-info answer without running an
+    // attack, so they leave hc_workv null whatever else is on the command line, and reading
+    // hc_workv[0] read through it. --benchmark leaves it null for the same reason but refuses -a
+    // before reaching here, so it cannot get this far today.
 
-    char *plugin_name = user_options_extra->hc_workv[0];
-
-    bool by_name = false;
-
-    char *library_filename = generic_resolve (folder_config, plugin_name, &by_name);
-
-    hcfree (library_filename);
-
-    if (by_name == false)
+    if (user_options_extra->hc_workc > 0)
     {
-      if (hc_path_exist (plugin_name) == false)
+      char *plugin_name = user_options_extra->hc_workv[0];
+
+      bool by_name = false;
+
+      char *library_filename = generic_resolve (folder_config, plugin_name, &by_name);
+
+      hcfree (library_filename);
+
+      if (by_name == false)
       {
-        event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
+        if (hc_path_exist (plugin_name) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
-        return -1;
-      }
+          return -1;
+        }
 
-      if (hc_path_is_directory (plugin_name) == true)
-      {
-        event_log_error (hashcat_ctx, "%s: A directory cannot be used as first plugin argument.", plugin_name);
+        if (hc_path_is_directory (plugin_name) == true)
+        {
+          event_log_error (hashcat_ctx, "%s: A directory cannot be used as first plugin argument.", plugin_name);
 
-        return -1;
-      }
+          return -1;
+        }
 
-      if (hc_path_read (plugin_name) == false)
-      {
-        event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
+        if (hc_path_read (plugin_name) == false)
+        {
+          event_log_error (hashcat_ctx, "%s: %s", plugin_name, strerror (errno));
 
-        return -1;
+          return -1;
+        }
       }
     }
 

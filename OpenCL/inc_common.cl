@@ -2872,12 +2872,9 @@ DECLSPEC int asn1_check_int_tag (PRIVATE_AS const u32 *buf, const int len)
   if ((tab[ht & bitmap_mask] & m) != m) return (0);                         \
 }
 
-DECLSPEC u32 check (PRIVATE_AS const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask, const u32 bitmap_shift1, const u32 bitmap_shift2)
+DECLSPEC u32 check (PRIVATE_AS const u32 *digest, GLOBAL_AS const u32 *bitmap_s1_a, GLOBAL_AS const u32 *bitmap_s1_b, GLOBAL_AS const u32 *bitmap_s1_c, GLOBAL_AS const u32 *bitmap_s1_d, GLOBAL_AS const u32 *bitmap_s2_a, GLOBAL_AS const u32 *bitmap_s2_b, GLOBAL_AS const u32 *bitmap_s2_c, GLOBAL_AS const u32 *bitmap_s2_d, const u32 bitmap_mask)
 {
   // must match bitmap_set() in src/bitmap.c, a mismatch is a silent false negative
-
-  (void) bitmap_shift1;
-  (void) bitmap_shift2;
 
   const u32 a = digest[0] ^ hc_rotl32_S (digest[1], 11) ^ hc_rotl32_S (digest[2], 22) ^ hc_rotl32_S (digest[3],  5);
   const u32 b = digest[3] ^ hc_rotl32_S (digest[2],  7) ^ hc_rotl32_S (digest[1], 19) ^ hc_rotl32_S (digest[0], 27);

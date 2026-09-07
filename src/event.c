@@ -66,6 +66,8 @@ size_t event_log_advice_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
+  hc_thread_mutex_lock (event_ctx->mux_log);
+
   if (fmt == NULL)
   {
     event_ctx->msg_buf[0] = 0;
@@ -87,12 +89,18 @@ size_t event_log_advice_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_call (EVENT_LOG_ADVICE, hashcat_ctx, NULL, 0);
 
-  return event_ctx->msg_len;
+  const size_t msg_len = event_ctx->msg_len;
+
+  hc_thread_mutex_unlock (event_ctx->mux_log);
+
+  return msg_len;
 }
 
 size_t event_log_info_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  hc_thread_mutex_lock (event_ctx->mux_log);
 
   if (fmt == NULL)
   {
@@ -115,12 +123,18 @@ size_t event_log_info_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_call (EVENT_LOG_INFO, hashcat_ctx, NULL, 0);
 
-  return event_ctx->msg_len;
+  const size_t msg_len = event_ctx->msg_len;
+
+  hc_thread_mutex_unlock (event_ctx->mux_log);
+
+  return msg_len;
 }
 
 size_t event_log_warning_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  hc_thread_mutex_lock (event_ctx->mux_log);
 
   if (fmt == NULL)
   {
@@ -143,12 +157,18 @@ size_t event_log_warning_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_call (EVENT_LOG_WARNING, hashcat_ctx, NULL, 0);
 
-  return event_ctx->msg_len;
+  const size_t msg_len = event_ctx->msg_len;
+
+  hc_thread_mutex_unlock (event_ctx->mux_log);
+
+  return msg_len;
 }
 
 size_t event_log_error_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  hc_thread_mutex_lock (event_ctx->mux_log);
 
   if (fmt == NULL)
   {
@@ -171,12 +191,18 @@ size_t event_log_error_nn (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_call (EVENT_LOG_ERROR, hashcat_ctx, NULL, 0);
 
-  return event_ctx->msg_len;
+  const size_t msg_len = event_ctx->msg_len;
+
+  hc_thread_mutex_unlock (event_ctx->mux_log);
+
+  return msg_len;
 }
 
 size_t event_log_advice (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  hc_thread_mutex_lock (event_ctx->mux_log);
 
   if (fmt == NULL)
   {
@@ -199,12 +225,18 @@ size_t event_log_advice (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_call (EVENT_LOG_ADVICE, hashcat_ctx, NULL, 0);
 
-  return event_ctx->msg_len;
+  const size_t msg_len = event_ctx->msg_len;
+
+  hc_thread_mutex_unlock (event_ctx->mux_log);
+
+  return msg_len;
 }
 
 size_t event_log_info (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  hc_thread_mutex_lock (event_ctx->mux_log);
 
   if (fmt == NULL)
   {
@@ -227,12 +259,18 @@ size_t event_log_info (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_call (EVENT_LOG_INFO, hashcat_ctx, NULL, 0);
 
-  return event_ctx->msg_len;
+  const size_t msg_len = event_ctx->msg_len;
+
+  hc_thread_mutex_unlock (event_ctx->mux_log);
+
+  return msg_len;
 }
 
 size_t event_log_warning (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  hc_thread_mutex_lock (event_ctx->mux_log);
 
   if (fmt == NULL)
   {
@@ -255,12 +293,18 @@ size_t event_log_warning (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_call (EVENT_LOG_WARNING, hashcat_ctx, NULL, 0);
 
-  return event_ctx->msg_len;
+  const size_t msg_len = event_ctx->msg_len;
+
+  hc_thread_mutex_unlock (event_ctx->mux_log);
+
+  return msg_len;
 }
 
 size_t event_log_error (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
+
+  hc_thread_mutex_lock (event_ctx->mux_log);
 
   if (fmt == NULL)
   {
@@ -283,7 +327,11 @@ size_t event_log_error (hashcat_ctx_t *hashcat_ctx, const char *fmt, ...)
 
   event_call (EVENT_LOG_ERROR, hashcat_ctx, NULL, 0);
 
-  return event_ctx->msg_len;
+  const size_t msg_len = event_ctx->msg_len;
+
+  hc_thread_mutex_unlock (event_ctx->mux_log);
+
+  return msg_len;
 }
 
 int event_ctx_init (hashcat_ctx_t *hashcat_ctx)
@@ -293,6 +341,7 @@ int event_ctx_init (hashcat_ctx_t *hashcat_ctx)
   memset (event_ctx, 0, sizeof (event_ctx_t));
 
   hc_thread_mutex_init (event_ctx->mux_event);
+  hc_thread_mutex_init (event_ctx->mux_log);
 
   return 0;
 }
@@ -301,6 +350,7 @@ void event_ctx_destroy (hashcat_ctx_t *hashcat_ctx)
 {
   event_ctx_t *event_ctx = hashcat_ctx->event_ctx;
 
+  hc_thread_mutex_delete (event_ctx->mux_log);
   hc_thread_mutex_delete (event_ctx->mux_event);
 }
 
