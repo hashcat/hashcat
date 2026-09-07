@@ -17890,8 +17890,6 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      */
 
     device_param->kernel_param.bitmap_mask         = bitmap_ctx->bitmap_mask;
-    device_param->kernel_param.bitmap_shift1       = bitmap_ctx->bitmap_shift1;
-    device_param->kernel_param.bitmap_shift2       = bitmap_ctx->bitmap_shift2;
     device_param->kernel_param.salt_pos_host       = 0;
     device_param->kernel_param.loop_pos            = 0;
     device_param->kernel_param.loop_cnt            = 0;

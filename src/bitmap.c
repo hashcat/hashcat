@@ -702,8 +702,6 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
    * pick the table size
    */
 
-  const u32 bitmap_shift1 = 5;
-  const u32 bitmap_shift2 = 13;
 
   const u32 bitmap_min = user_options->bitmap_min;
   const u32 bitmap_max = user_options->bitmap_max;
@@ -760,8 +758,6 @@ int bitmap_ctx_init (hashcat_ctx_t *hashcat_ctx)
   bitmap_ctx->bitmap_nums   = bitmap_nums;
   bitmap_ctx->bitmap_size   = bitmap_size;
   bitmap_ctx->bitmap_mask   = bitmap_mask;
-  bitmap_ctx->bitmap_shift1 = bitmap_shift1;
-  bitmap_ctx->bitmap_shift2 = bitmap_shift2;
 
   bitmap_ctx->bitmap_s1_a   = bitmap_s1_a;
   bitmap_ctx->bitmap_s1_b   = bitmap_s1_b;

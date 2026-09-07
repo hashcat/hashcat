@@ -3079,8 +3079,6 @@ typedef struct bitmap_ctx
   u32   bitmap_nums;
   u32   bitmap_size;
   u32   bitmap_mask;
-  u32   bitmap_shift1;
-  u32   bitmap_shift2;
 
   u32  *bitmap_s1_a;
   u32  *bitmap_s1_b;

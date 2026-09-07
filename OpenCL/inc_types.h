@@ -8,8 +8,6 @@
 
 #if ATTACK_MODE == 9
 #define BITMAP_MASK         kernel_param->bitmap_mask
-#define BITMAP_SHIFT1       kernel_param->bitmap_shift1
-#define BITMAP_SHIFT2       kernel_param->bitmap_shift2
 #define SALT_POS_HOST       (kernel_param->pws_pos + gid)
 #define SALT_POS_HOST_BID   (kernel_param->pws_pos + bid)
 #define LOOP_POS            kernel_param->loop_pos
@@ -25,8 +23,6 @@
 #define PCFG_LANE_STRIDE    kernel_param->pcfg_lane_stride
 #else
 #define BITMAP_MASK         kernel_param->bitmap_mask
-#define BITMAP_SHIFT1       kernel_param->bitmap_shift1
-#define BITMAP_SHIFT2       kernel_param->bitmap_shift2
 #define SALT_POS_HOST       kernel_param->salt_pos_host
 #define SALT_POS_HOST_BID   SALT_POS_HOST
 #define LOOP_POS            kernel_param->loop_pos
@@ -2062,39 +2058,37 @@ typedef struct kernel_param
   // We can only move attributes into this struct which do not use special declarations like __global
 
   u32 bitmap_mask;          // 24
-  u32 bitmap_shift1;        // 25
-  u32 bitmap_shift2;        // 26
-  u32 salt_pos_host;        // 27
-  u64 loop_pos;             // 28
-  u64 loop_cnt;             // 29
-  u64 il_cnt;               // 30
-  u32 digests_cnt;          // 31
-  u32 digests_offset_host;  // 32
-  u32 combs_mode;           // 33
-  u32 salt_repeat;          // 34
-  u64 pws_pos;              // 35
-  u64 gid_max;              // 36
+  u32 salt_pos_host;        // 25
+  u64 loop_pos;             // 26
+  u64 loop_cnt;             // 27
+  u64 il_cnt;               // 28
+  u32 digests_cnt;          // 29
+  u32 digests_offset_host;  // 30
+  u32 combs_mode;           // 31
+  u32 salt_repeat;          // 32
+  u64 pws_pos;              // 33
+  u64 gid_max;              // 34
 
   // Bytes of mask that sit in front of the base word, so the position of ?w inside the mask. Zero
   // puts the word first, which is what every attack mode other than -a 12 does. It replaces
   // combs_mode for -a 12: zero is the -a 6 layout and a value equal to the mask length is -a 7.
 
-  u32 pre_len;              // 37
+  u32 pre_len;              // 35
 
   // The other two mask piece lengths and whether the mask has a ?q. All three are properties of the
   // mask and do not change from one amplifier item to the next, which is what lets an optimized
   // kernel shift by a scalar instead of by a per item length.
 
-  u32 mid_len;              // 38
-  u32 post_len;             // 39
-  u32 has_q;                // 40
+  u32 mid_len;              // 36
+  u32 post_len;             // 37
+  u32 has_q;                // 38
 
   // How many work items every cell gets, when the host has not laid the launch out. Zero means it has,
   // and then the wave map says which cell a wave belongs to. It is not zero for the self-test, which
   // runs the kernel before a cell exists at all, and the value is what the device engine gave every cell
   // before there was a layout to carry.
 
-  u64 pcfg_lane_stride;     // 41
+  u64 pcfg_lane_stride;     // 39
 
 } kernel_param_t;
 
