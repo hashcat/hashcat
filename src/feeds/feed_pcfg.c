@@ -2795,7 +2795,7 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
     if (dropped_c > 0)
     {
-      gerr (global_ctx, "%s: all %u structures cost more than costmax %" PRIu64 ", nothing is reachable", named, dropped_c, pg->costmax);
+      gerr (global_ctx, "%s: all %u structures cost more than costmax %" PRIu64 ", nothing is reachable", named, dropped_c, pg->costmax / pg->scale);
 
       return -1;
     }
@@ -7914,13 +7914,13 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
     roots_join (named, sizeof (named), roots, nroots);
 
-    if (pg->structs_cnt == 0)
+    if ((pg->omen_cnt == 0) && (pg->structs_cnt == 0))
     {
-      gerr (global_ctx, "%s: nothing to enumerate, no structures and the escape is not carried", named);
+      gerr (global_ctx, "%s: nothing to enumerate, no structures and no escape to carry", named);
     }
     else
     {
-      gerr (global_ctx, "%s: nothing to enumerate, no level of the index lands at or below costmax %" PRIu64 ", and the escape is not carried", named, pg->costmax);
+      gerr (global_ctx, "%s: nothing to enumerate, no level of the grammar or of the escape lands at or below costmax %" PRIu64, named, pg->costmax / pg->scale);
     }
 
     roots_free (roots, nroots);
