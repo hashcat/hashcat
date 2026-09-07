@@ -500,6 +500,7 @@ reports free, and -Y covers the case the option was reached for.
 - Fixed the available memory calculation underflowing on a u64 in the yescrypt, scrypt and argon2 modules when a device reports less memory than the reserve, which asked for far more memory than the device has
 - Fixed the CUDA context created for each device being left on the main thread's context stack, since cuCtxCreate makes it current as well as creating it
 - Fixed the per file rule buffers being leaked when a ruleset loaded, and bounded the class selector lookahead in the rule compiler
+- Fixed make failing to locate Rust libraries when CARGO_TARGET_DIR is set in the environment
 - Windows: Fixed hashcat failing to run from a folder whose name holds a character the system code page cannot represent, where its own pid, tuning and potfile paths were rejected as an invalid argument
 - Windows: Fixed a mask, a rule or any other argument holding such a character arriving as a question mark, which for a mask silently ran a different keyspace because ? is the mask metacharacter
 - Windows: Fixed a message printed to a console being rendered through the console code page rather than as UTF-8, which showed any such character as mojibake unless the user had run chcp 65001 first
