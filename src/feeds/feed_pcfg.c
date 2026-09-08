@@ -2437,6 +2437,13 @@ static void pcfg_pick_varlen (pcfg_global_t *pg)
   for (u32 i = 0; i < pg->lists_cnt; i++) tlist_split_bylen (&pg->lists[i]);
 }
 
+// The cache is defined further down, beside the unit tables it was written for. The suffix counts
+// are built up here, where the grammar has just been read and the lists cut, so it is reached by
+// name rather than moved: moving it would be four hundred lines of churn for two declarations.
+
+static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const bool unit);
+static void pcfg_cache_save (const generic_global_ctx_t *global_ctx, const pcfg_global_t *pg, const bool unit);
+
 static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const pcfg_root_t *roots, const u32 nroots)
 {
 
@@ -2847,15 +2854,28 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   pg->ident = pcfg_ident_tables (pg);
 
-  if (global_ctx->quiet == false) pmsg (pg, "pcfg: building suffix tables for %u structures", pg->structs_cnt);
-
   hc_timer_t t_sweep;
 
   hc_timer_set (&t_sweep);
 
-  structs_sweep (pg, build_suffix);
+  // Read rather than built where a run has left them. They are a function of the grammar and of how
+  // the lists were cut, both settled above, and on a large ruleset building them costs ten seconds
+  // against a file the same order as the unit tables already kept beside it.
 
-  if (global_ctx->quiet == false) pmsg (pg, "pcfg: suffix tables built in %s", pcfg_duration ((hc_timer_get (t_sweep) / 1000.0), display, sizeof (display)));
+  if (pcfg_cache_load (global_ctx, pg, false) == true)
+  {
+    if (global_ctx->quiet == false) pmsg (pg, "pcfg: suffix tables read from cache in %s", pcfg_duration ((hc_timer_get (t_sweep) / 1000.0), display, sizeof (display)));
+  }
+  else
+  {
+    if (global_ctx->quiet == false) pmsg (pg, "pcfg: building suffix tables for %u structures", pg->structs_cnt);
+
+    structs_sweep (pg, build_suffix);
+
+    if (global_ctx->quiet == false) pmsg (pg, "pcfg: suffix tables built in %s", pcfg_duration ((hc_timer_get (t_sweep) / 1000.0), display, sizeof (display)));
+
+    pcfg_cache_save (global_ctx, pg, false);
+  }
 
   pg->m_lines = dropped_m;
 
@@ -5599,9 +5619,14 @@ static void unit_suffix_free (pcfg_global_t *pg)
   pg->built = false;
 }
 
-// The unit tables are a function of the ruleset and of four numbers, so the second run can read
-// what the first worked out. A wrong answer here does not fail, it enumerates something else, so
-// the name is a hash of the ruleset and the header carries the rest.
+// Two artefacts of the ruleset are kept between runs, so the second run can read what the first
+// worked out: see the comment on pcfg_cache_head () for which, and for what each is a function of.
+// A wrong answer here does not fail, it enumerates something else, so the name is a hash of the
+// ruleset and the header carries the rest.
+
+// The magic spells PCFGUNIT because the unit tables were the first artefact kept, and it is left
+// alone rather than widened: changing it would throw away every file already on disk, and what tells
+// the two apart is the name and the header, not this.
 
 #define PCFG_CACHE_MAGIC   0x54494e5547464350ULL
 
@@ -5674,7 +5699,19 @@ typedef struct
 
 } pcfg_cache_head_t;
 
-static void pcfg_cache_head (const pcfg_global_t *pg, pcfg_cache_head_t *h, const u64 bytes)
+// Two artefacts share this machinery, told apart by "unit".
+//
+//   unit == true    the unit tables, usuf. They depend on maxword and kbits as well.
+//   unit == false   the suffix counts, suf. Built before either is settled, so both are left out of
+//                   the key, and a run that changes maxword reads the same file.
+//
+// Both are worth keeping for the same reason: nearly every row is zero, so what a row costs on disk
+// is only the entries that are not. Measured on a grammar of 21.8M structures and 738M rows, 4.7%
+// of them non zero, 5630 MiB in memory come to 138 MiB on disk for suf and 108 for usuf. Building
+// suf takes 9.1s where reading it back takes 1.0 on one machine, and 9.4 against 2.4 on another,
+// and it is the building that every run after the first stops paying.
+
+static void pcfg_cache_head (const pcfg_global_t *pg, pcfg_cache_head_t *h, const u64 bytes, const bool unit)
 {
   memset (h, 0, sizeof (pcfg_cache_head_t));
 
@@ -5684,8 +5721,8 @@ static void pcfg_cache_head (const pcfg_global_t *pg, pcfg_cache_head_t *h, cons
   h->scale       = pg->scale;
   h->costmax     = pg->costmax;
   h->bytes       = bytes;
-  h->maxword     = pg->maxword;
-  h->kbits       = pg->kbits;
+  h->maxword     = (unit == true) ? pg->maxword : 0;
+  h->kbits       = (unit == true) ? pg->kbits   : 0;
   h->structs_cnt = pg->structs_cnt;
   h->varlen      = (pg->varlen == true) ? 1 : 0;
   h->bucketcap   = pcfg_bucketcap ();
@@ -5697,7 +5734,7 @@ static void pcfg_cache_head (const pcfg_global_t *pg, pcfg_cache_head_t *h, cons
 // make says where a name goes: a load only reads, and creating the folder for it leaves an empty one
 // behind on every run that never writes anything.
 
-static char *pcfg_cache_path (const generic_global_ctx_t *global_ctx, const pcfg_global_t *pg, const bool make)
+static char *pcfg_cache_path (const generic_global_ctx_t *global_ctx, const pcfg_global_t *pg, const bool make, const bool unit)
 {
   if (pg->cache_ok == false) return NULL;
   if (global_ctx->cache_dir == NULL) return NULL;
@@ -5717,7 +5754,14 @@ static char *pcfg_cache_path (const generic_global_ctx_t *global_ctx, const pcfg
 
   char *path = NULL;
 
-  hc_asprintf (&path, "%s/%016" PRIx64 "-%" PRIu64 "-%" PRIu64 "-%u-%u-%u-%u.unit", dir, pg->ident, pg->scale, pg->costmax, pg->maxword, pg->kbits, pcfg_bucketcap (), (pcfg_lensplit () == true) ? 1 : 0);
+  if (unit == true)
+  {
+    hc_asprintf (&path, "%s/%016" PRIx64 "-%" PRIu64 "-%" PRIu64 "-%u-%u-%u-%u.unit", dir, pg->ident, pg->scale, pg->costmax, pg->maxword, pg->kbits, pcfg_bucketcap (), (pcfg_lensplit () == true) ? 1 : 0);
+  }
+  else
+  {
+    hc_asprintf (&path, "%s/%016" PRIx64 "-%" PRIu64 "-%" PRIu64 "-%u-%u.suf", dir, pg->ident, pg->scale, pg->costmax, pcfg_bucketcap (), (pcfg_lensplit () == true) ? 1 : 0);
+  }
 
   hcfree (dir);
 
@@ -5738,9 +5782,24 @@ static u64 pcfg_cache_bytes (const pcfg_global_t *pg)
   return bytes;
 }
 
-static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global_t *pg)
+// What a half read load gives back. The unit tables carry a second array beside them, the suffix
+// counts do not.
+
+static void cache_arrays_free (pcfg_global_t *pg, const bool unit)
 {
-  char *path = pcfg_cache_path (global_ctx, pg, false);
+  if (unit == true) { unit_suffix_free (pg); return; }
+
+  for (u32 i = 0; i < pg->structs_cnt; i++)
+  {
+    hcfree (pg->structs[i].suf);
+
+    pg->structs[i].suf = NULL;
+  }
+}
+
+static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global_t *pg, const bool unit)
+{
+  char *path = pcfg_cache_path (global_ctx, pg, false, unit);
 
   if (path == NULL) return false;
 
@@ -5755,7 +5814,7 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
   pcfg_cache_head_t want;
   pcfg_cache_head_t have;
 
-  pcfg_cache_head (pg, &want, pcfg_cache_bytes (pg));
+  pcfg_cache_head (pg, &want, pcfg_cache_bytes (pg), unit);
 
   if (hc_fread (&have, sizeof (have), 1, &fp) != 1) { hc_fclose (&fp); return false; }
 
@@ -5766,7 +5825,7 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
   // Only here, where the file is known to describe this run and the rows below will fill them. A
   // header that does not match leaves whatever the caller had, so the caller can keep it.
 
-  unit_suffix_free (pg);
+  cache_arrays_free (pg, unit);
 
   // A megabyte does not belong on the stack: a worker thread gets far less than that.
 
@@ -5787,11 +5846,13 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
 
     const u32 span = pg->costmax - s->cost + 1;
 
-    s->usuf = (u64 *) hccalloc (span, sizeof (u64));
+    u64 **dst = (unit == true) ? &s->usuf : &s->suf;
+
+    *dst = (u64 *) hccalloc (span, sizeof (u64));
 
     // What was read is given back before saying no, or the sweep would allocate over it.
 
-    bool row = (s->usuf != NULL);
+    bool row = (*dst != NULL);
 
     // Topped up whenever less than one row's reserve is left, rather than at every byte.
 
@@ -5836,7 +5897,7 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
 
         if (cache_varint (buf, &at, len, &v) == false) { row = false; break; }
 
-        s->usuf[r] = v;
+        (*dst)[r] = v;
       }
     }
     else
@@ -5850,12 +5911,42 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
 
       hc_fclose (&fp);
 
-      unit_suffix_free (pg);
+      cache_arrays_free (pg, unit);
 
       return false;
     }
 
-    s->udev = NULL;
+    if (unit == true)
+    {
+      s->udev = NULL;
+    }
+    else
+    {
+      // build_suffix () leaves three things behind, not one: the row, and the lowest and highest
+      // cost anything finishes at. Those two are a reading of the row, so they are taken again here
+      // rather than written to the file. Without them the level index finds nothing and the run
+      // stops with zero levels, which is what a cache that restored only the array did.
+      //
+      // It is a second pass over the whole row, which the loop above could have done while it wrote
+      // the entries. That is deliberate: this is the same loop build_suffix () ends with, character
+      // for character, which is what makes it obvious that the two paths agree. The pass costs about
+      // 0.3s of the 2.4 a read takes, against the 9.4 a build takes, and being able to see that it
+      // is the same loop is worth more than that.
+
+      s->cmin = 0;
+      s->cmax = 0;
+
+      bool seen = false;
+
+      for (u32 r = 0; r < span; r++)
+      {
+        if (s->suf[r] == 0) continue;
+
+        if (seen == false) { s->cmin = s->cost + r; seen = true; }
+
+        s->cmax = s->cost + r;
+      }
+    }
   }
 
   hcfree (buf);
@@ -5866,7 +5957,7 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
 
   if (paw64_final (&sum) != have.sum)
   {
-    unit_suffix_free (pg);
+    cache_arrays_free (pg, unit);
 
     return false;
   }
@@ -5874,9 +5965,9 @@ static bool pcfg_cache_load (const generic_global_ctx_t *global_ctx, pcfg_global
   return true;
 }
 
-static void pcfg_cache_save (const generic_global_ctx_t *global_ctx, const pcfg_global_t *pg)
+static void pcfg_cache_save (const generic_global_ctx_t *global_ctx, const pcfg_global_t *pg, const bool unit)
 {
-  char *path = pcfg_cache_path (global_ctx, pg, true);
+  char *path = pcfg_cache_path (global_ctx, pg, true, unit);
 
   if (path == NULL) return;
 
@@ -5896,7 +5987,7 @@ static void pcfg_cache_save (const generic_global_ctx_t *global_ctx, const pcfg_
 
   pcfg_cache_head_t h;
 
-  pcfg_cache_head (pg, &h, pcfg_cache_bytes (pg));
+  pcfg_cache_head (pg, &h, pcfg_cache_bytes (pg), unit);
 
   // Written once to hold the place and again at the end, because the sum is only known then.
 
@@ -5921,11 +6012,13 @@ static void pcfg_cache_save (const generic_global_ctx_t *global_ctx, const pcfg_
 
     const u32 span = pg->costmax - s->cost + 1;
 
-    if (s->usuf == NULL) { ok = false; break; }
+    const u64 *src = (unit == true) ? s->usuf : s->suf;
+
+    if (src == NULL) { ok = false; break; }
 
     u32 cnt = 0;
 
-    for (u32 r = 0; r < span; r++) if (s->usuf[r] != 0) cnt++;
+    for (u32 r = 0; r < span; r++) if (src[r] != 0) cnt++;
 
     // A row cannot reach the reserve kept here: PCFG_CACHE_ROW is a whole span of positions and
     // values at their widest.
@@ -5943,7 +6036,7 @@ static void pcfg_cache_save (const generic_global_ctx_t *global_ctx, const pcfg_
 
     for (u32 r = 0; r < span; r++)
     {
-      const u64 v = s->usuf[r];
+      const u64 v = src[r];
 
       if (v == 0) continue;
 
@@ -6008,7 +6101,7 @@ static void unit_suffix_build (const generic_global_ctx_t *global_ctx, pcfg_glob
 
   char display[32];
 
-  if ((cacheable == true) && (pcfg_cache_load (global_ctx, pg) == true))
+  if ((cacheable == true) && (pcfg_cache_load (global_ctx, pg, true) == true))
   {
     if (global_ctx->quiet == false) pmsg (pg, "pcfg: unit tables read from cache in %s", pcfg_duration ((hc_timer_get (t_us) / 1000.0), display, sizeof (display)));
 
@@ -8372,7 +8465,7 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   // this with the tables the last probe round left, which are already the ones the run will use: the
   // build has nothing to do and would have nothing to write.
 
-  if (pg->cache_hit == false) pcfg_cache_save (global_ctx, pg);
+  if (pg->cache_hit == false) pcfg_cache_save (global_ctx, pg, true);
 
   if (getenv ("PCFG_BUCKET_STATS") != NULL)
   {
