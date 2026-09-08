@@ -8,13 +8,18 @@
 
 #include <string.h>
 
-typedef size_t (*hc_memchr_t) (const u8 *ptr, int ch, size_t max_len);
+typedef size_t (*hc_memchr_t)   (const u8 *ptr, int ch, size_t max_len);
+typedef size_t (*hc_memcount_t) (const u8 *ptr, int ch, size_t max_len);
 
 HC_PLUGIN_API size_t hc_memchr_generic      (const u8 *ptr, int ch, size_t max_len);
 HC_PLUGIN_API size_t hc_memchr_avx2         (const u8 *ptr, int ch, size_t max_len);
 HC_PLUGIN_API size_t hc_memchr_avx512       (const u8 *ptr, int ch, size_t max_len);
 
-HC_PLUGIN_API hc_memchr_t hc_memchr_get     (void);
+HC_PLUGIN_API size_t hc_memcount_generic    (const u8 *ptr, int ch, size_t max_len);
+HC_PLUGIN_API size_t hc_memcount_avx2       (const u8 *ptr, int ch, size_t max_len);
+
+HC_PLUGIN_API hc_memchr_t   hc_memchr_get   (void);
+HC_PLUGIN_API hc_memcount_t hc_memcount_get (void);
 
 // Where the next line ends inside a buffer, and how long it is once the line ending is off.
 //
@@ -35,10 +40,12 @@ HC_PLUGIN_API hc_memchr_t hc_memchr_get     (void);
 // hashcat library cannot be inlined away. Measured on the stdin feed, that call cost 13 percent: at a
 // hundred million candidates a second there is no room for one that does this little.
 
-static inline size_t hc_line_next (const u8 *buf, const size_t max_len, size_t *out_len)
-{
-  hc_memchr_t hc_memchr = hc_memchr_get ();
+// A loop that walks every line of a block asks hc_memchr_get () once per line for an answer that cannot
+// change between two lines, and the fetch is a call into the hashcat library that no amount of inlining
+// here can remove. A caller that is in such a loop fetches the scanner once and passes it in.
 
+static inline size_t hc_line_next_with (const hc_memchr_t hc_memchr, const u8 *buf, const size_t max_len, size_t *out_len)
+{
   const size_t step = hc_memchr (buf, '\n', max_len);
 
   size_t line_len = step;
@@ -46,6 +53,15 @@ static inline size_t hc_line_next (const u8 *buf, const size_t max_len, size_t *
   while ((line_len > 0) && (buf[line_len - 1] == '\r')) line_len--;
 
   *out_len = line_len;
+
+  return step;
+}
+
+static inline size_t hc_line_next (const u8 *buf, const size_t max_len, size_t *out_len)
+{
+  hc_memchr_t hc_memchr = hc_memchr_get ();
+
+  const size_t step = hc_line_next_with (hc_memchr, buf, max_len, out_len);
 
   return step;
 }

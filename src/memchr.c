@@ -29,6 +29,34 @@ size_t hc_memchr_generic (const u8 *ptr, int ch, size_t max_len)
   return found ? (size_t)(found - ptr) : max_len;
 }
 
+// How many times a byte occurs in a buffer, which is a different question from where the first one is.
+//
+// Counting the lines of a file used to ask the first question once per line, and that walks a chain the
+// processor cannot get ahead of: the address the next scan starts at is the answer to the one before it.
+// Counting has no such chain, so the whole buffer goes through at load width and the per line cost
+// disappears.
+
+size_t hc_memcount_generic (const u8 *ptr, int ch, size_t max_len)
+{
+  size_t cnt = 0;
+
+  while (max_len > 0)
+  {
+    const u8 *found = memchr (ptr, ch, max_len);
+
+    if (found == NULL) break;
+
+    const size_t step = (size_t) (found - ptr) + 1;
+
+    cnt++;
+
+    ptr     += step;
+    max_len -= step;
+  }
+
+  return cnt;
+}
+
 #if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86) || defined (__aarch64__)
 #if !defined (__aarch64__)
 __attribute__((target("avx2")))
@@ -126,12 +154,57 @@ size_t hc_memchr_avx512 (const u8 *ptr, int ch, size_t max_len)
 
   return offset + tail;
 }
+
+#if !defined (__aarch64__)
+__attribute__((target("avx2")))
+#endif
+size_t hc_memcount_avx2 (const u8 *ptr, int ch, size_t max_len)
+{
+  size_t cnt = 0;
+
+  while (max_len >= 32)
+  {
+    #if defined (__aarch64__)
+
+    __m128i block1 = _mm_loadu_si128      ((const __m128i *)(ptr));
+    __m128i block2 = _mm_loadu_si128      ((const __m128i *)(ptr + 16));
+
+    __m128i nl     = _mm_set1_epi8        (ch);
+
+    int mask1      = _mm_movemask_epi8    (_mm_cmpeq_epi8 (block1, nl));
+    int mask2      = _mm_movemask_epi8    (_mm_cmpeq_epi8 (block2, nl));
+
+    cnt += (size_t) __builtin_popcount ((u32) mask1);
+    cnt += (size_t) __builtin_popcount ((u32) mask2);
+
+    #else
+
+    __m256i block  = _mm256_loadu_si256   ((const __m256i *) ptr);
+    __m256i nl     = _mm256_set1_epi8     (ch);
+    __m256i cmp    = _mm256_cmpeq_epi8    (block, nl);
+
+    int mask       = _mm256_movemask_epi8 (cmp);
+
+    cnt += (size_t) __builtin_popcount ((u32) mask);
+
+    #endif
+
+    ptr     += 32;
+    max_len -= 32;
+  }
+
+  cnt += hc_memcount_generic (ptr, ch, max_len);
+
+  return cnt;
+}
+
 #endif // __x86_64__ || _M_X64 || __i386__ || _M_IX86 || __aarch64__
 
-static hc_memchr_t hc_memchr_cached = hc_memchr_generic;
+static hc_memchr_t   hc_memchr_cached   = hc_memchr_generic;
+static hc_memcount_t hc_memcount_cached = hc_memcount_generic;
 
 __attribute__((constructor))
-static void hc_memchr_init (void)
+static void hc_mem_init (void)
 {
   #if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86)
 
@@ -149,13 +222,19 @@ static void hc_memchr_init (void)
   // one place where a weak libc would cost the whole feed. AVX2 is the same speed on the C library that
   // is good and faster than the ones that are not.
 
+  // Counting takes the same answer. It reads whole buffers rather than the first ten bytes of a
+  // password, so the argument against AVX-512 above is not the argument here, but at 32 bytes a load
+  // this already runs at memory speed and a wider load has nothing left to win.
+
   if (cpu_supports_avx2 ())
   {
-    hc_memchr_cached = hc_memchr_avx2;
+    hc_memchr_cached   = hc_memchr_avx2;
+    hc_memcount_cached = hc_memcount_avx2;
   }
   else
   {
-    hc_memchr_cached = hc_memchr_generic;
+    hc_memchr_cached   = hc_memchr_generic;
+    hc_memcount_cached = hc_memcount_generic;
   }
 
   #elif defined (__aarch64__)
@@ -164,11 +243,13 @@ static void hc_memchr_init (void)
   // hc_memchr_cached = hc_memchr_avx512;
 
   // Use 32-byte NEON-mapped function for Apple Silicon by default
-  hc_memchr_cached   = hc_memchr_avx2;
+  hc_memchr_cached     = hc_memchr_avx2;
+  hc_memcount_cached   = hc_memcount_avx2;
 
   #else
 
-  hc_memchr_cached   = hc_memchr_generic;
+  hc_memchr_cached     = hc_memchr_generic;
+  hc_memcount_cached   = hc_memcount_generic;
 
   #endif
 }
@@ -176,4 +257,9 @@ static void hc_memchr_init (void)
 hc_memchr_t hc_memchr_get (void)
 {
   return hc_memchr_cached;
+}
+
+hc_memcount_t hc_memcount_get (void)
+{
+  return hc_memcount_cached;
 }

@@ -2615,35 +2615,24 @@ static void *hashlist_parse_thread (void *p)
 
   if (chunk->phase == 3)
   {
-    hc_memchr_t hc_memchr = hc_memchr_get ();
+    hc_memcount_t hc_memcount = hc_memcount_get ();
 
-    u64 lines = 0;
-
-    while (pos < chunk->to)
-    {
-      const size_t step = hc_memchr ((const u8 *) buf + pos, '\n', chunk->to - pos);
-
-      if (step == (chunk->to - pos)) break;
-
-      lines++;
-
-      pos += step + 1;
-    }
-
-    chunk->lines_seen = lines;
+    chunk->lines_seen = hc_memcount ((const u8 *) buf + pos, '\n', chunk->to - pos);
 
     return NULL;
   }
 
   if (chunk->phase == 0)
   {
+    hc_memchr_t hc_memchr = hc_memchr_get ();
+
     u32 lines = 0;
 
     while (pos < chunk->to)
     {
       size_t line_len;
 
-      pos += hc_line_next ((const u8 *) buf + pos, chunk->to - pos, &line_len) + 1;
+      pos += hc_line_next_with (hc_memchr, (const u8 *) buf + pos, chunk->to - pos, &line_len) + 1;
 
       lines++;
     }
@@ -2667,11 +2656,13 @@ static void *hashlist_parse_thread (void *p)
   u32 slot     = chunk->slot;
   u32 budget   = chunk->budget;
 
+  hc_memchr_t hc_memchr = hc_memchr_get ();
+
   while ((pos < chunk->to) && (budget > 0))
   {
     size_t line_len;
 
-    const size_t step = hc_line_next ((const u8 *) buf + pos, chunk->to - pos, &line_len);
+    const size_t step = hc_line_next_with (hc_memchr, (const u8 *) buf + pos, chunk->to - pos, &line_len);
 
     char *line_buf = buf + pos;
 

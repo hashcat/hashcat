@@ -658,6 +658,8 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
   const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
+
   /**
    * In benchmark-mode, inform user which algorithm is checked
    */
@@ -761,6 +763,22 @@ static void main_outerloop_mainscreen (MAYBE_UNUSED hashcat_ctx_t *hashcat_ctx, 
     {
       event_log_advice (hashcat_ctx, "Consider using -o to save cracked passwords.");
     }
+
+    event_log_advice (hashcat_ctx, NULL);
+  }
+
+  // What this attack tries is not what the hash file literally holds, and the two ways it differs are
+  // both surprising enough to be worth saying once at the start. A password that never appears in the
+  // file reads as a wrong answer, and the same line behaving differently on its own than it does inside
+  // a large list reads as a bug.
+
+  if (user_options_extra->association_autosplit == true)
+  {
+    event_log_advice (hashcat_ctx, "This attack splits each account name into words and tries each word as a candidate.");
+    event_log_advice (hashcat_ctx, "An account with fewer words than the widest name in the file spends the rounds it has");
+    event_log_advice (hashcat_ctx, "left over on a small set of rules applied to its own words.");
+    event_log_advice (hashcat_ctx, "A cracked password therefore need not appear in the file, and one line on its own can");
+    event_log_advice (hashcat_ctx, "behave differently from the same line inside a larger list.");
 
     event_log_advice (hashcat_ctx, NULL);
   }

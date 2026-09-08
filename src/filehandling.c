@@ -1855,8 +1855,10 @@ size_t fgetl (HCFILE *fp, char *line_buf, const size_t line_sz)
 // How many lines a file holds, which is how many line endings it has plus a last line that has none.
 //
 // The blocks were always read whole, but the line endings inside them were counted a byte at a time,
-// and each step of that loop depended on the one before it so nothing could overlap. hc_memchr finds
-// them a vector at a time instead.
+// and each step of that loop depended on the one before it so nothing could overlap. Asking hc_memchr
+// for one line ending at a time has the same shape: the next scan cannot start until the last one
+// answered. Nothing here wants to know where the endings are, only how many there are, so the whole
+// block goes through hc_memcount in one pass with no chain to wait on.
 
 u64 count_lines (HCFILE *fp)
 {
@@ -1864,7 +1866,7 @@ u64 count_lines (HCFILE *fp)
 
   char *buf = (char *) hcmalloc (HCBUFSIZ_LARGE + 1);
 
-  hc_memchr_t hc_memchr = hc_memchr_get ();
+  hc_memcount_t hc_memcount = hc_memcount_get ();
 
   bool any  = false;
   char last = '\n';
@@ -1884,18 +1886,7 @@ u64 count_lines (HCFILE *fp)
 
     any = true;
 
-    size_t off = 0;
-
-    while (off < nread)
-    {
-      const size_t step = hc_memchr ((const u8 *) buf + off, '\n', nread - off);
-
-      if (step == (nread - off)) break;
-
-      cnt++;
-
-      off += step + 1;
-    }
+    cnt += hc_memcount ((const u8 *) buf, '\n', nread);
 
     last = buf[nread - 1];
   }

@@ -1261,6 +1261,38 @@ static u64 pcfg_ident_tables (const pcfg_global_t *pg)
   return (h != 0) ? h : 1;
 }
 
+// What the grammar spells, as against what its tables count.
+//
+// pcfg_ident_tables () leaves the terminal text out on purpose: it keys the unit table cache, and
+// those tables count candidates rather than spell them, so an edit that leaves the buckets alone
+// leaves the cached tables valid. A brain identity is the opposite question. Two grammars whose
+// buckets and entry lengths agree still send different candidates when the words differ, and a brain
+// that cannot tell them apart rejects the second run's work as already done.
+//
+// So the text goes in here, seeded with the table identity, and the cache key is left as it was. The
+// lists already hold the bytes, so this is one pass over memory that is resident either way.
+
+static u64 pcfg_ident_content (const pcfg_global_t *pg)
+{
+  paw64_ctx_t st;
+
+  paw64_init (&st, pg->ident);
+
+  for (u32 i = 0; i < pg->lists_cnt; i++)
+  {
+    const pcfg_tlist_t *t = &pg->lists[i];
+
+    if (t->buf == NULL) continue;
+    if (t->off == NULL) continue;
+
+    paw64_update (&st, t->buf, (size_t) t->off[t->cnt]);
+  }
+
+  const u64 h = paw64_final (&st);
+
+  return (h != 0) ? h : 1;
+}
+
 static bool root_open (const pcfg_root_t *r, const char *rel, HCFILE *fp)
 {
   if (r->arc != NULL)
@@ -7948,20 +7980,35 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
   roots_free (roots, nroots);
 
-  global_ctx->source_ident = pg->keyspace ^ ((u64) pg->structs_cnt << 32) ^ (scale * 1099511628211ULL) ^ (kbits * 14695981039346656037ULL);
+  // What a brain has to tell apart is one attack's candidates from another's, and the values this was
+  // built from are a summary of the grammar's shape rather than of its content. Keyspace, structure
+  // count, scale and the inner loop width can all agree between two grammars trained on different
+  // material, and then the second attack's candidates are rejected as ones the first already sent.
+  //
+  // grammar_load () has already reduced the parsed grammar to pg->ident, a paw64 over the terminal
+  // buckets and the structures that draw on them, so the content is in hand by the time we get here.
+  // The ruleset names go in with it, because two rulesets can parse to the same tables and still be
+  // different attacks to the person reading the status line.
+  //
+  // pcfg_ident_content () adds the terminal text to that, which pg->ident leaves out because it keys
+  // a cache rather than an attack. Without it two rulesets holding different words of the same
+  // lengths at the same costs would still collide here.
 
-  if (nroots > 1)
+  const u64 ident = pcfg_ident_content (pg);
+
+  global_ctx->source_ident = paw64 (&ident, sizeof (ident), 0);
+
+  global_ctx->source_ident = paw64 (pg->named, strlen (pg->named), global_ctx->source_ident);
+
+  global_ctx->source_ident = paw64 (&pg->keyspace, sizeof (pg->keyspace), global_ctx->source_ident);
+
+  global_ctx->source_ident = paw64 (&kbits, sizeof (kbits), global_ctx->source_ident);
+
+  global_ctx->source_ident = paw64 (&nroots, sizeof (nroots), global_ctx->source_ident);
+
+  for (u32 i = 0; i < nroots; i++)
   {
-    global_ctx->source_ident ^= (u64) nroots * 0x9e3779b97f4a7c15ULL;
-
-    for (u32 i = 0; i < nroots; i++)
-    {
-      u64 bits = 0;
-
-      memcpy (&bits, &roots[i].w, sizeof (bits));
-
-      global_ctx->source_ident ^= (bits + i) * 0x9e3779b97f4a7c15ULL;
-    }
+    global_ctx->source_ident = paw64 (&roots[i].w, sizeof (roots[i].w), global_ctx->source_ident);
   }
 
   return true;

@@ -56,10 +56,32 @@ int find_tuning_function (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED hc_device_par
   return -1;
 }
 
+// How many work items a launch may have.
+//
+// The association attack pairs each candidate with one hash, so the work item id is also the index
+// into the salt array: attack mode 9 defines SALT_POS_HOST as pws_pos plus the global id. A launch
+// with more work items than there are salts reads past the end of salt_bufs, which on a discrete GPU
+// is an illegal access rather than a wrong answer. Every launch autotune makes has to be trimmed,
+// not only the one that times the loop kernel.
+
+static u32 autotune_kernel_power (hashcat_ctx_t *hashcat_ctx, const u32 kernel_power)
+{
+  const user_options_t *user_options = hashcat_ctx->user_options;
+
+  if (user_options->attack_mode != ATTACK_MODE_ASSOCIATION) return kernel_power;
+
+  const hashes_t *hashes = hashcat_ctx->hashes;
+
+  const u32 salts_cnt = hashes->salts_cnt;
+
+  if (kernel_power > salts_cnt) return salts_cnt;
+
+  return kernel_power;
+}
+
 static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u32 kernel_accel, const u32 kernel_loops, const u32 kernel_threads)
 {
-  hashconfig_t   *hashconfig   = hashcat_ctx->hashconfig;
-  user_options_t *user_options = hashcat_ctx->user_options;
+  hashconfig_t *hashconfig = hashcat_ctx->hashconfig;
 
   device_param->kernel_param.loop_pos = 0;
   device_param->kernel_param.loop_cnt = kernel_loops; // not a bug, both need to be set
@@ -69,19 +91,7 @@ static double try_run (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_par
                            : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                            * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads);
 
-  u32 kernel_power_try = hardware_power * kernel_accel;
-
-  if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
-  {
-    hashes_t *hashes = hashcat_ctx->hashes;
-
-    const u32 salts_cnt = hashes->salts_cnt;
-
-    if (kernel_power_try > salts_cnt)
-    {
-      kernel_power_try = salts_cnt;
-    }
-  }
+  u32 kernel_power_try = autotune_kernel_power (hashcat_ctx, hardware_power * kernel_accel);
 
   // the count a bridge advertises is a maximum it cannot be asked to exceed, so a probe has to
   // respect it the same way the production launch does. the accel is derived by rounding that
@@ -377,8 +387,10 @@ static double autotune2_fixed_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
 
   const u32 threads_sav = device_param->kernel_threads;
 
-  const u32 kernel_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
-                         * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+  const u32 kernel_power_full = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
+                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+
+  const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
   device_param->kernel_threads = threads;
 
@@ -456,8 +468,10 @@ static void autotune2_run_init2 (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *
 
   const u32 threads_sav = device_param->kernel_threads;
 
-  const u32 kernel_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
-                         * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+  const u32 kernel_power_full = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
+                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+
+  const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
   device_param->kernel_threads = threads;
 
@@ -482,8 +496,10 @@ static double autotune2_loop2_msec (hashcat_ctx_t *hashcat_ctx, hc_device_param_
   device_param->kernel_param.loop_cnt = loops;
   device_param->kernel_param.il_cnt   = loops;
 
-  const u32 kernel_power = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
-                         * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+  const u32 kernel_power_full = ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE) ? 1 : device_param->device_processors)
+                              * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : threads) * accel;
+
+  const u32 kernel_power = autotune_kernel_power (hashcat_ctx, kernel_power_full);
 
   const u32    threads_sav   = device_param->kernel_threads;
   const double spin_damp_sav = device_param->spin_damp;
@@ -997,19 +1013,7 @@ static int autotune (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
                                  : ((hashconfig->opts_type & OPTS_TYPE_MP_MULTI_DISABLE)     ? 1 : device_param->device_processors)
                                  * ((hashconfig->opts_type & OPTS_TYPE_THREAD_MULTI_DISABLE) ? 1 : kernel_threads_max);
 
-    u32 kernel_power_max = hardware_power_max * kernel_accel_max;
-
-    if (user_options->attack_mode == ATTACK_MODE_ASSOCIATION)
-    {
-      hashes_t *hashes = hashcat_ctx->hashes;
-
-      const u32 salts_cnt = hashes->salts_cnt;
-
-      if (kernel_power_max > salts_cnt)
-      {
-        kernel_power_max = salts_cnt;
-      }
-    }
+    const u32 kernel_power_max = autotune_kernel_power (hashcat_ctx, hardware_power_max * kernel_accel_max);
 
     device_param->at_rc = -2;
 

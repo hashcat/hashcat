@@ -8,7 +8,7 @@
 ##
 ## Four kinds of thing come out of a build. The core, which is a shared library and holds everything
 ## hashcat knows how to do. The frontend, hashcat or hashcat.exe, which is a small program that calls
-## the core. The plugins, which are the 593 modules, the bridges and the feeds, each a shared object
+## the core. The plugins, which are the 595 modules, the bridges and the feeds, each a shared object
 ## that the core loads at runtime. And the kernels under OpenCL/, which are not compiled here at all,
 ## because the GPU driver compiles them when hashcat runs.
 ##
@@ -63,7 +63,7 @@ endif
 ##
 ## Arrangement of the core
 ##
-## The core is one shared library and everything else links against it: the frontend, the 593
+## The core is one shared library and everything else links against it: the frontend, the 595
 ## modules, the bridges and the feeds. Statically it is copied into each of them instead, and a
 ## module that calls input_tokenizer drags in the tokenizer, the file handling under it, and from
 ## there the file handling under it, none of which a module ever calls. That is 90 percent
@@ -1000,7 +1000,7 @@ $(foreach P,$(PLATFORMS),$(eval LFLAGS_$(P) += $(REPRO_LFLAGS_$(FORMAT_$(P)))))
 ## A plugin is glue. A module says what a hash mode looks like, decodes a hash line and hands every
 ## byte of real work to the core, and the two modules in the tree that carry a hook body spend it
 ## inside the core as well. So the flags that describe this machine buy a plugin nothing, and asking
-## the compiler to tune 593 shared objects for the host processor is close to a third of the build
+## the compiler to tune 595 shared objects for the host processor is close to a third of the build
 ## for code that is not in a loop.
 ##
 ## The core keeps them, because there they are worth something. The rule engine runs 5.90 s over
@@ -1090,7 +1090,7 @@ LFLAGS_FRONTEND_NATIVE  := -Wl,-rpath,'$$ORIGIN' -Wl,-rpath,$(LIBRARY_FOLDER) -W
 LFLAGS_PLUGIN_NATIVE    := -Wl,-rpath,'$$ORIGIN/..' -Wl,-rpath,$(LIBRARY_FOLDER) -Wl,-z,origin
 ## A plugin is a shared object too, so it meets the same wall the library does on OpenBSD, where the
 ## driver does not link libc into one and -z,defs then reads the whole of libc as undefined. Guarding
-## only the library left the library linking and all 593 plugins failing on abort. See the note beside
+## only the library left the library linking and all 595 plugins failing on abort. See the note beside
 ## LIBRARY_LFLAGS_NATIVE for why -lc is not the answer.
 ifneq ($(UNAME),OpenBSD)
 LFLAGS_PLUGIN_NATIVE    += -Wl,-z,defs
@@ -1243,7 +1243,7 @@ DEPS_ALL                := $(wildcard obj/*.d obj/*/*.d obj/*/*/*.d)
 ## Rules: the headers a plugin is built against
 ##
 ## The API is declared in headers, so the development install ships the headers it is declared in and
-## everything those include, rather than all 92. The set is asked of the compiler instead of written
+## everything those include, rather than all 99. The set is asked of the compiler instead of written
 ## down here, out of a translation unit that includes every header the API starts from.
 ##
 ## Three things start it. The headers that carry HC_API, HC_PLUGIN_API or HC_PLUGIN_ENTRY, which is
