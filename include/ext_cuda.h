@@ -707,6 +707,22 @@ typedef enum CUjit_option_enum
    */
   CU_JIT_GLOBAL_SYMBOL_COUNT,
 
+  CU_JIT_LTO = 20,                              /**< Link time optimization */
+  CU_JIT_FTZ = 21,                              /**< Flush denormal values to zero */
+  CU_JIT_PREC_DIV = 22,                         /**< Use IEEE division */
+  CU_JIT_PREC_SQRT = 23,                        /**< Use IEEE square root */
+  CU_JIT_FMA = 24,                              /**< Contract multiply and add */
+  CU_JIT_REFERENCED_KERNEL_NAMES = 25,          /**< Kernel names to keep */
+  CU_JIT_REFERENCED_KERNEL_COUNT = 26,          /**< How many kernel names */
+  CU_JIT_REFERENCED_VARIABLE_NAMES = 27,        /**< Variable names to keep */
+  CU_JIT_REFERENCED_VARIABLE_COUNT = 28,        /**< How many variable names */
+  CU_JIT_OPTIMIZE_UNUSED_DEVICE_VARIABLES = 29, /**< Remove unreferenced device variables */
+  CU_JIT_POSITION_INDEPENDENT_CODE = 30,        /**< Generate position independent code */
+  CU_JIT_MIN_CTA_PER_SM = 31,                   /**< Minimum blocks per multiprocessor */
+  CU_JIT_MAX_THREADS_PER_BLOCK = 32,            /**< Maximum threads per block */
+  CU_JIT_OVERRIDE_DIRECTIVE_VALUES = 33,        /**< Override directive values */
+  CU_JIT_SPLIT_COMPILE = 34,                    /**< Split compilation */
+  CU_JIT_BINARY_LOADER_THREAD_COUNT = 35,       /**< Threads the binary loader may use */
   CU_JIT_NUM_OPTIONS
 
 } CUjit_option;
@@ -864,6 +880,17 @@ typedef enum CUdevice_attribute_enum {
     CU_DEVICE_ATTRIBUTE_HOST_NUMA_VIRTUAL_MEMORY_MANAGEMENT_SUPPORTED = 141, /**< Device supports HOST_NUMA location with the virtual memory management APIs like ::cuMemCreate, ::cuMemMap and related APIs */
     CU_DEVICE_ATTRIBUTE_HOST_NUMA_MEMORY_POOLS_SUPPORTED = 142,              /**< Device supports HOST_NUMA location with the ::cuMemAllocAsync and ::cuMemPool family of APIs */
     CU_DEVICE_ATTRIBUTE_HOST_NUMA_MULTINODE_IPC_SUPPORTED = 143,             /**< Device supports HOST_NUMA location IPC between nodes in a multi-node system. */
+    CU_DEVICE_ATTRIBUTE_HOST_MEMORY_POOLS_SUPPORTED = 144,                   /**< Device supports HOST location with the cuMemAllocAsync and cuMemPool family of APIs */
+    CU_DEVICE_ATTRIBUTE_HOST_VIRTUAL_MEMORY_MANAGEMENT_SUPPORTED = 145,      /**< Device supports HOST location with the virtual memory management APIs */
+    CU_DEVICE_ATTRIBUTE_HOST_ALLOC_DMA_BUF_SUPPORTED = 146,                  /**< Device supports DMA buffer export of host allocations */
+    CU_DEVICE_ATTRIBUTE_ONLY_PARTIAL_HOST_NATIVE_ATOMIC_SUPPORTED = 147,     /**< Device supports only partial host native atomics */
+    CU_DEVICE_ATTRIBUTE_ATOMIC_REDUCTION_SUPPORTED = 148,                    /**< Device supports atomic reductions */
+    CU_DEVICE_ATTRIBUTE_D3D12_CIG_STREAMS_SUPPORTED = 151,                   /**< Device supports D3D12 CIG streams */
+    CU_DEVICE_ATTRIBUTE_DMA_BUF_MMAP_SUPPORTED = 152,                        /**< Device supports mmap of a DMA buffer */
+    CU_DEVICE_ATTRIBUTE_LOGICAL_ENDPOINT_UNICAST_SUPPORTED = 153,            /**< Device supports unicast logical endpoints */
+    CU_DEVICE_ATTRIBUTE_LOGICAL_ENDPOINT_MULTICAST_SUPPORTED = 154,          /**< Device supports multicast logical endpoints */
+    CU_DEVICE_ATTRIBUTE_LOGICAL_ENDPOINT_COUNTED_OPS_SUPPORTED = 155,        /**< Device supports counted operations on logical endpoints */
+    CU_DEVICE_ATTRIBUTE_LOGICAL_ENDPOINT_UNICAST_ACCESS_ON_OWNER_DEVICE_SUPPORTED = 156, /**< Device supports unicast access on the owner device */
     CU_DEVICE_ATTRIBUTE_MAX
 } CUdevice_attribute;
 
@@ -1048,6 +1075,7 @@ typedef enum CUfunction_attribute_enum {
      */
     CU_FUNC_ATTRIBUTE_CLUSTER_SCHEDULING_POLICY_PREFERENCE = 15,
 
+    CU_FUNC_ATTRIBUTE_DEVICE_NODE_UPDATE_SUPPORTED = 16,                     /**< Function can be updated in a device graph node */
     CU_FUNC_ATTRIBUTE_MAX
 } CUfunction_attribute;
 
@@ -1066,7 +1094,10 @@ typedef enum CUctx_flags_enum
   CU_CTX_SCHED_MASK          = 0x07,
   CU_CTX_MAP_HOST            = 0x08, /**< Support mapped pinned allocations */
   CU_CTX_LMEM_RESIZE_TO_MAX  = 0x10, /**< Keep local memory allocation after launch */
-  CU_CTX_FLAGS_MASK          = 0x1f
+  CU_CTX_COREDUMP_ENABLE      = 0x20, /**< Enable device core dumps */
+  CU_CTX_USER_COREDUMP_ENABLE = 0x40, /**< Enable user triggered device core dumps */
+  CU_CTX_SYNC_MEMOPS          = 0x80, /**< Make memory operations synchronous */
+  CU_CTX_FLAGS_MASK           = 0xff
 
 } CUctx_flags;
 
@@ -1124,6 +1155,7 @@ typedef enum CUjitInputType_enum
    */
   CU_JIT_INPUT_LIBRARY,
 
+  CU_JIT_INPUT_NVVM = 5,                        /**< NVVM IR */
   CU_JIT_NUM_INPUT_TYPES
 
 } CUjitInputType;

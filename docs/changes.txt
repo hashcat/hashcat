@@ -382,6 +382,8 @@ reports free, and -Y covers the case the option was reached for.
 - Autotune: The thread count ceiling on Metal now comes from the compiled pipeline, as it already does on CUDA, HIP and OpenCL, instead of from the 32 thread SIMD width that capped every kernel
 - Backend: HIP picks its ABI from the runtime it finds, so one binary drives both ROCm and the Hygon DTK runtime, where device initialization used to fail
 - Potfile: A password found in the potfile is stored once per hash and handed to every copy of that hash after the file is read, instead of a new buffer being allocated for every copy on every matching line. A list of 200000 copies of one hash, against a potfile naming it 200000 times, took 67 seconds and then ran out of memory, and now takes about 0.1 seconds. --show is allowed with --username and --dynamic-x again
+- Backend: hashcat no longer forces AMD_DIRECT_DISPATCH=0 on the HIP runtime. It was set to keep host CPU load down, but on ROCm 7 it changes neither the CPU load of a waiting host thread nor cracking speed, measured across several hash modes on a 7900 XTX, so the runtime default is used again
+- Backend: 2 environment variables hashcat used to set are gone, OCL_CODE_CACHE_ENABLE, which AMD removed from its OpenCL runtime and no shipping runtime reads, and a commented out CL_CONFIG_USE_VECTORIZER whose Intel CPU runtime workaround has not applied for years. CUDA_CACHE_DISABLE and POCL_KERNEL_CACHE stay, since a debug build still needs them
 
 ##
 ## Bugs
@@ -410,6 +412,9 @@ reports free, and -Y covers the case the option was reached for.
 - Fixed a one byte buffer overflow in fgetl() when a line was as long as the caller's buffer
 - Fixed an out-of-bounds read in the secp256k1 point_mul_xy() when the scalar is zero
 - Fixed the secp256k1 inv_mod() looping forever on a zero input, which hangs clFinish on CPU devices
+- Fixed the HIP blocking sync scheduler flag being applied to whichever device happened to be current instead of the device being initialized. hipSetDeviceFlags acts on the current device and hashcat called it before selecting one, so on a machine with several AMD GPUs only the first ever received the setting
+- Fixed the AMD instruction probe reading the wrong neighbour when it reuses a result. It indexed the enumeration total rather than the loop counter, so it compared against the last device found instead of the one before it, and could copy V_PERM_B32 support out of a device nothing had probed yet, leaving it switched off
+- Fixed the Metal backend leaking one buffer on every kernel launch. run_kernel creates a placeholder to bind into unused kernel arguments and never released it, so a long session grew without bound until allocation failed. run_kernel_amp already released its own and is what the fix follows
 - Fixed missing libclang dependencies for Rust bridges in Ubuntu 20.04 and Arch containers
 - Fixed the Windows Rust plugin failing to link in the Arch container because lld was missing
 - Fixed Windows Python plugins disappearing when the bundled Python version was not 3.12

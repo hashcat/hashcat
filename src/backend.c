@@ -3450,11 +3450,21 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       // allocate fake buffer if NULL
       if (device_param->kernel_params[i] == NULL)
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, mem.buf_ptr, NULL, 0) == -1) return -1;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, mem.buf_ptr, NULL, 0) == -1)
+        {
+          hc_mtlReleaseMemObject (hashcat_ctx, &mem);
+
+          return -1;
+        }
       }
       else
       {
-        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params[i], NULL, 0) == -1) return -1;
+        if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params[i], NULL, 0) == -1)
+        {
+          hc_mtlReleaseMemObject (hashcat_ctx, &mem);
+
+          return -1;
+        }
       }
     }
 
@@ -3540,18 +3550,33 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       hc_mtlEncodeComputeCommand (hashcat_ctx, metal_command_encoder, metal_command_buffer, work_dim, global_work_size, local_work_size, &ms);
 
       // hc_mtlEncodeComputeCommand_pre() must be called before every hc_mtlEncodeComputeCommand()
-      if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1) return -1;
+      if (hc_mtlEncodeComputeCommand_pre (hashcat_ctx, metal_pipeline, device_param->metal_command_queue, &metal_command_buffer, &metal_command_encoder) == -1)
+      {
+        hc_mtlReleaseMemObject (hashcat_ctx, &mem);
+
+        return -1;
+      }
 
       for (u32 i = 0; i <= kernel_params_max; i++)
       {
         // allocate fake buffer if NULL
         if (device_param->kernel_params[i] == NULL)
         {
-          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, mem.buf_ptr, NULL, 0) == -1) return -1;
+          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, mem.buf_ptr, NULL, 0) == -1)
+          {
+            hc_mtlReleaseMemObject (hashcat_ctx, &mem);
+
+            return -1;
+          }
         }
         else
         {
-          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params[i], NULL, 0) == -1) return -1;
+          if (hc_mtlSetCommandEncoderArg (hashcat_ctx, metal_command_encoder, 0, i, device_param->kernel_params[i], NULL, 0) == -1)
+          {
+            hc_mtlReleaseMemObject (hashcat_ctx, &mem);
+
+            return -1;
+          }
         }
       }
     }
@@ -3579,7 +3604,7 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
       }
     }
 
-    // release tmp_buf
+    hc_mtlReleaseMemObject (hashcat_ctx, &mem);
 
     if (rc_cc == -1) return -1;
   }
@@ -8003,15 +8028,19 @@ static void backend_ctx_devices_init_hip (hashcat_ctx_t *hashcat_ctx, int *virth
       device_param->has_shfw  = true; // always reports false : prop.arch.hasFunnelShift;
 
       // one-time init hip context
+      //
+      // the device has to be selected first. hipSetDeviceFlags applies to whichever device is
+      // current, so setting the flag before selecting one leaves every device after the first on
+      // the default schedule, which spins.
 
-      if (hc_hipSetDeviceFlags (hashcat_ctx, hipDeviceScheduleBlockingSync) == -1)
+      if (hc_hipSetDevice (hashcat_ctx, device_param->hip_device) == -1)
       {
         device_param->skipped = true;
 
         continue;
       }
 
-      if (hc_hipSetDevice (hashcat_ctx, device_param->hip_device) == -1)
+      if (hc_hipSetDeviceFlags (hashcat_ctx, hipDeviceScheduleBlockingSync) == -1)
       {
         device_param->skipped = true;
 
@@ -10657,9 +10686,13 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
 
         bool probe_vperm = true;
 
-        if (backend_devices_idx > 0)
+        // the device enumerated just before this one, which is the loop counter. backend_devices_idx
+        // is the enumeration total and by now points past the end, so it named the last device rather
+        // than the previous one, and copied an answer out of a slot nothing had probed yet
+
+        if (backend_devices_cnt > 0)
         {
-          hc_device_param_t *device_param_prev = &devices_param[backend_devices_idx - 1];
+          hc_device_param_t *device_param_prev = &devices_param[backend_devices_cnt - 1];
 
           if (is_same_device_type (device_param, device_param_prev) == true)
           {
@@ -15763,6 +15796,13 @@ static u32 backend_device_sharers (const backend_ctx_t *backend_ctx, const hc_de
       if (other_param->is_opencl == false) continue;
       if (other_param->opencl_device != device_param->opencl_device) continue;
     }
+    #if defined (__APPLE__)
+    else if (device_param->is_metal == true)
+    {
+      if (other_param->is_metal == false) continue;
+      if (other_param->metal_device != device_param->metal_device) continue;
+    }
+    #endif
     else
     {
       continue;
