@@ -5,11 +5,11 @@
 ## License.....: MIT
 ##
 
-# What tools/test.py gives a test module. tools/test.pl hands its own subs to a .pm for free,
-# because require loads them into the same namespace; here a module says what it wants.
+# What tools/test_module_runner.py gives a test module. tools/test.pl hands its own subs to a .pm
+# for free, because require loads them into the same namespace; here a module says what it wants.
 #
-# $HEX[...] is not here on purpose. test.py unwraps it before a module ever sees the line, so no
-# module carries that call.
+# $HEX[...] is not here on purpose. test_module_runner.py unwraps it before a module ever sees the
+# line, so no module carries that call.
 
 import random
 

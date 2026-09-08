@@ -6,7 +6,7 @@
 ##
 
 # The python counterpart to tools/test.pl. Same idea: load the module for one hash mode at run
-# time and call the hooks it defines. tools/test.sh reaches it with -y.
+# time and call the hooks it defines. tools/test.sh reaches it for any mode that has a .py.
 #
 # A module deals in bytes for the password and str for everything else. A password really is an
 # arbitrary byte string: it carries multi byte UTF-8, and once $HEX[...] is unwrapped it can be
@@ -64,7 +64,7 @@ def usage_exit():
     " {0} potthrough  <mode> [iter]\n"
     " {0} verify      <mode> <hashfile> <cracksfile> <outfile>\n"
     "\n"
-    "edge and password are not implemented in test.py yet, use tools/test.pl.\n"
+    "edge and password are not implemented in test_module_runner.py yet, use tools/test.pl.\n"
     "\n".format(name))
 
   sys.exit(1)
@@ -301,7 +301,7 @@ def main():
   kind, mode = argv[0], argv[1]
 
   if kind in ("edge", "password"):
-    sys.exit("%s is not implemented in test.py yet, use tools/test.pl\n" % kind)
+    sys.exit("%s is not implemented in test_module_runner.py yet, use tools/test.pl\n" % kind)
 
   if kind not in ("single", "passthrough", "potthrough", "verify"):
     usage_exit()

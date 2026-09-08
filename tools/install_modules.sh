@@ -283,10 +283,10 @@ fi
 # "Error : 0/0 not found" on every mode and reads as hashcat failing rather than as a setup
 # problem.
 
-if ! python3 "${TOOLS_DIR}/test.py" single 1000 2> /dev/null | grep -q hashcat; then
+if ! python3 "${TOOLS_DIR}/test_module_runner.py" single 1000 2> /dev/null | grep -q hashcat; then
 
-  echo "[ WARN ] tools/test.py cannot generate hashes. Only the modes with a .py oracle are"
-  echo "         affected, and only under test.sh -y."
+  echo "[ WARN ] tools/test_module_runner.py cannot generate hashes. Only the modes with a .py"
+  echo "         oracle are affected; test.sh runs each of those through it by default."
   echo
 
 fi

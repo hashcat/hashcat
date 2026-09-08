@@ -155,15 +155,17 @@ CONTAINER_MASK_MID="hashc?lt"
 # Cryptoloop mode which have test containers
 CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 14543 14551 14552 14553"
 
-# PM_MODES is the set of modes that have a test.pl oracle, kept separately from
+# PM_MODES is the set of modes that have an oracle, kept separately from
 # HASH_TYPES because -g now runs a real-container test in addition to the oracle
 # instead of in place of it, so the dispatch has to know which modes still have
-# an oracle left to run.
-PM_MODES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/' | tr '\n' ' ')
+# an oracle left to run. An oracle is a .pm or a .py: a mode is written in one
+# language or the other, never both, so the set is the union of the two.
+PM_MODES=$(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' | sort -u -n | tr '\n' ' ')
 
-# -y swaps the oracle engine for tools/test.py, and with it the set of modes that have an oracle
-# at all: a mode is written in one language or the other, never both. Recomputed after the option
-# loop, which is where the flag is known.
+# A default run routes each mode to whichever oracle file it has: python for a mode with a .py,
+# perl for a mode with a .pm. -y is the one restriction, cutting the run down to the modes that
+# have a .py so only the python oracle is exercised. It is recomputed after the option loop, which
+# is where the flag is known.
 
 PYTHON_ENGINE=0
 
@@ -178,18 +180,19 @@ function oracle_modes()
   if [ "${PYTHON_ENGINE}" -eq 1 ]; then
     ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.py/\1/' | tr '\n' ' '
   else
-    ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/' | tr '\n' ' '
+    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' | sort -u -n | tr '\n' ' '
   fi
 }
 
 function run_oracle()
 {
-  # Generate with whichever engine this run uses. test.py exits 2 to say the mode has no kernel
-  # for the family the run asked for, which is not a failure and not a pass; the caller turns it
-  # into a Skip.
+  # Generate with the engine the mode has a file for: python where a mNNNNN.py exists, perl
+  # otherwise. The mode is the second argument at every call site. test_module_runner.py exits 2
+  # to say the mode has no kernel for the family the run asked for, which is not a failure and not
+  # a pass; the caller turns it into a Skip.
 
-  if [ "${PYTHON_ENGINE}" -eq 1 ]; then
-    python3 "${TDIR}/test.py" "$@"
+  if [ -f "${TDIR}/test_modules/m$(printf '%05d' "$2").py" ]; then
+    python3 "${TDIR}/test_module_runner.py" "$@"
   else
     perl "${TDIR}/test.pl" "$@"
   fi
@@ -6249,9 +6252,9 @@ OPTIONS:
         '3'         => FPGA, DSP, Co-Processor
         (int)[,int] => multiple comma separated device types from the list above
 
-  -y    Use the python oracle engine, tools/test.py, instead of tools/test.pl. This also
-        restricts the run to the modes that have a tools/test_modules/mNNNNN.py, since a mode
-        has an oracle in one language or the other.
+  -y    Restrict the run to the modes that have a tools/test_modules/mNNNNN.py, so only the
+        python oracle (tools/test_module_runner.py) is exercised. Without -y every mode still
+        runs, each through the oracle it has: python for a .py, perl for a .pm.
 
   -O    Use optimized kernels (default : -O)
 
@@ -6492,11 +6495,11 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gSy" opt; do
 done
 
 
-# -y swaps the module list with the engine, so the run covers exactly the modes that have a
-# python oracle and nothing else. PM_MODES and HASH_TYPES are assigned near the top of this file,
-# long before the option loop, so they are recomputed here.
+# -y cuts the module list down to the modes that have a python oracle and nothing else. PM_MODES
+# and HASH_TYPES are assigned near the top of this file, long before the option loop, so they are
+# recomputed here.
 #
-# HASH_TYPES is only PM_MODES, not the union the perl side builds. The container families are
+# HASH_TYPES is only PM_MODES, not the union the default run builds. The container families are
 # tested by test.sh itself against a real artifact and use no oracle at all, so running them under
 # -y would spend hours on TrueCrypt and VeraCrypt volumes to exercise an engine they never call.
 
@@ -6810,10 +6813,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
-        # only a mode with a .pm has anything for test.pl to generate. That
-        # already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes, which
-        # are container-only. LUKS is the one family that has both, and it uses
-        # its .pm only when -g asks for containers to be generated.
+        # only a mode with an oracle, a .pm or a .py, has anything to generate.
+        # That already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes,
+        # which are container-only. LUKS is the one family that has both, and it
+        # uses its oracle only when -g asks for containers to be generated.
         if is_in_array "${TMP_HT}" ${PM_MODES}; then
           if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
             if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
@@ -6841,10 +6844,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
-        # only a mode with a .pm has anything for test.pl to generate. That
-        # already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes, which
-        # are container-only. LUKS is the one family that has both, and it uses
-        # its .pm only when -g asks for containers to be generated.
+        # only a mode with an oracle, a .pm or a .py, has anything to generate.
+        # That already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes,
+        # which are container-only. LUKS is the one family that has both, and it
+        # uses its oracle only when -g asks for containers to be generated.
         if is_in_array "${TMP_HT}" ${PM_MODES}; then
           if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
             if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
