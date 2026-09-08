@@ -168,7 +168,7 @@ Dictionary Attack
 Brute Force
 
 ```bash
-./hashcat -a 3 -m 0 hash.txt "?l?l?l?l?l?d?d?d" -w 3
+./hashcat -a 3 -m 0 hash.txt "?l?l?l?l?l?d?d?d"
 ```
 
 ---

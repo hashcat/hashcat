@@ -916,7 +916,6 @@ typedef enum user_options_defaults
   VERACRYPT_PIM_START      = 485,
   VERACRYPT_PIM_STOP       = 485,
   WORDLIST_AUTOHEX         = true,
-  WORKLOAD_PROFILE         = 2,
 
 } user_options_defaults_t;
 
@@ -2774,7 +2773,6 @@ typedef struct tuning_db_entry
   const char *device_name;
   int         attack_kern;
   int         hash_mode;
-  int         workload_profile;
   int         vector_width;
   int         kernel_accel;
   int         kernel_loops;
@@ -2836,7 +2834,6 @@ typedef struct user_options
   bool         rp_gen_seed_chgd;
   bool         runtime_chgd;
   bool         metal_compiler_runtime_chgd;
-  bool         workload_profile_chgd;
   bool         skip_chgd;
   bool         limit_chgd;
   bool         scrypt_tmto_chgd;
@@ -3005,7 +3002,6 @@ typedef struct user_options
   u32          usage;
   u32          veracrypt_pim_start;
   u32          veracrypt_pim_stop;
-  u32          workload_profile;
   u64          limit;
   u64          skip;
   bool         hash_copy;

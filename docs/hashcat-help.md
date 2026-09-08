@@ -99,7 +99,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
  -D, --opencl-device-types      | Str  | OpenCL device-types to use, separated with commas    | -D 1
  -O, --optimized-kernel-enable  |      | Enable optimized kernels (limits password length)    |
  -M, --multiply-accel-disable   |      | Disable multiply kernel-accel with processor count   |
- -w, --workload-profile         | Num  | Enable a specific workload profile, see pool below   | -w 3
  -n, --kernel-accel             | Num  | Manual workload tuning, set outerloop step size to X | -n 64
  -u, --kernel-loops             | Num  | Manual workload tuning, set innerloop step size to X | -u 256
  -T, --kernel-threads           | Num  | Manual workload tuning, set thread count to X        | -T 64
@@ -226,15 +225,6 @@ Usage: hashcat [options]... hash|hashfile|hccapxfile [dictionary|mask|directory]
   2 | GPU
 
 Hardware reached through an assimilation bridge is selected by the hash-mode, never by -D.
-
-- [ Workload Profiles ] -
-
-  # | Performance | Runtime | Power Consumption | Desktop Impact
- ===+=============+=========+===================+=================
-  1 | Low         |   2 ms  | Low               | Minimal
-  2 | Default     |  12 ms  | Economic          | Noticeable
-  3 | High        |  96 ms  | High              | Unresponsive
-  4 | Nightmare   | 480 ms  | Insane            | Headless
 
 - [ License ] -
 

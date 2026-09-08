@@ -985,13 +985,6 @@ static void main_monitor_performance_hint (MAYBE_UNUSED hashcat_ctx_t *hashcat_c
     }
   }
 
-  if (user_options->workload_profile < 3)
-  {
-    event_log_advice (hashcat_ctx, "* Append -w 3 to the commandline.");
-    event_log_advice (hashcat_ctx, "  This can cause your screen to lag.");
-    event_log_advice (hashcat_ctx, NULL);
-  }
-
   if (user_options->slow_candidates == false)
   {
     if ((user_options_extra->wordlist_mode == WL_MODE_MASK))

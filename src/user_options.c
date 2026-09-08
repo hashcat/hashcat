@@ -344,7 +344,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->veracrypt_pim_stop        = VERACRYPT_PIM_STOP;
   user_options->version                   = VERSION;
   user_options->wordlist_autohex          = WORDLIST_AUTOHEX;
-  user_options->workload_profile          = WORKLOAD_PROFILE;
   user_options->rp_files_cnt              = 0;
   user_options->rp_files                  = (char **) hccalloc (256, sizeof (char *));
   user_options->hc_bin                    = PROGNAME;
@@ -424,7 +423,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_BACKEND_VECTOR_WIDTH:
       case IDX_BYPASS_DELAY:
       case IDX_BYPASS_THRESHOLD:
-      case IDX_WORKLOAD_PROFILE:
       case IDX_KERNEL_ACCEL:
       case IDX_KERNEL_LOOPS:
       case IDX_KERNEL_THREADS:
@@ -562,6 +560,13 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_OUTFILE_AUTOHEX_DISABLE:   user_options->outfile_autohex           = false;                           break;
       case IDX_OUTFILE_CHECK_TIMER:       user_options->outfile_check_timer       = hc_strtoul (optarg, NULL, 10);   break;
       case IDX_WORDLIST_AUTOHEX_DISABLE:  user_options->wordlist_autohex          = false;                           break;
+
+      // -w chose one of four launch budgets and the frugality margin that went with it. There is one
+      // budget now, so there is nothing left for it to select. Every tutorial, wiki page and cracking
+      // front end in the world passes it, so it is still accepted and now does nothing. Warning about
+      // it would put a line on the screen of every one of those runs for no benefit.
+
+      case IDX_WORKLOAD_PROFILE:                                                                     break;
       case IDX_HEX_CHARSET:               user_options->hex_charset               = true;                            break;
       case IDX_HEX_SALT:                  user_options->hex_salt                  = true;                            break;
       case IDX_HEX_WORDLIST:              user_options->hex_wordlist              = true;                            break;
@@ -589,8 +594,6 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_OPENCL_DEVICE_TYPES:       user_options->opencl_device_types       = optarg;                          break;
       case IDX_OPTIMIZED_KERNEL_ENABLE:   user_options->optimized_kernel          = true;                            break;
       case IDX_MULTIPLY_ACCEL_DISABLE:    user_options->multiply_accel            = false;                           break;
-      case IDX_WORKLOAD_PROFILE:          user_options->workload_profile          = hc_strtoul (optarg, NULL, 10);
-                                          user_options->workload_profile_chgd     = true;                            break;
       case IDX_KERNEL_ACCEL:              user_options->kernel_accel              = hc_strtoul (optarg, NULL, 10);
                                           user_options->kernel_accel_chgd         = true;                            break;
       case IDX_KERNEL_LOOPS:              user_options->kernel_loops              = hc_strtoul (optarg, NULL, 10);
@@ -1223,7 +1226,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "The manual use of the -n option (or --kernel-accel) is outdated.");
 
-      event_log_warning (hashcat_ctx, "Please consider using the -w option instead.");
+      event_log_warning (hashcat_ctx, "Autotune sizes the launch itself.");
       event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
       event_log_warning (hashcat_ctx, NULL);
 
@@ -1260,7 +1263,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     {
       event_log_error (hashcat_ctx, "The manual use of the -u option (or --kernel-loops) is outdated.");
 
-      event_log_warning (hashcat_ctx, "Please consider using the -w option instead.");
+      event_log_warning (hashcat_ctx, "Autotune sizes the launch itself.");
       event_log_warning (hashcat_ctx, "You can use --force to override this, but do not report related errors.");
       event_log_warning (hashcat_ctx, NULL);
 
@@ -1305,13 +1308,6 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       return -1;
     }
-  }
-
-  if ((user_options->workload_profile < 1) || (user_options->workload_profile > 4))
-  {
-    event_log_error (hashcat_ctx, "workload-profile %u is not available.", user_options->workload_profile);
-
-    return -1;
   }
 
   if (user_options->backend_vector_width_chgd == true)
@@ -2824,11 +2820,7 @@ void user_options_preprocess (hashcat_ctx_t *hashcat_ctx)
     user_options->brain_client        = false;
     #endif
 
-    if (user_options->workload_profile_chgd == false)
-    {
-      user_options->optimized_kernel  = true;
-      user_options->workload_profile  = 3;
-    }
+    user_options->optimized_kernel    = true;
   }
 
   if (user_options->hash_info > 0)
@@ -3159,11 +3151,6 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "* --kernel-threads=%u", user_options->kernel_threads);
     }
 
-    if (user_options->workload_profile_chgd == true)
-    {
-      event_log_info (hashcat_ctx, "* --workload-profile=%u", user_options->workload_profile);
-    }
-
     event_log_info (hashcat_ctx, NULL);
   }
   else
@@ -3238,10 +3225,6 @@ void user_options_info (hashcat_ctx_t *hashcat_ctx)
       event_log_info (hashcat_ctx, "# option: --kernel-threads=%u", user_options->kernel_threads);
     }
 
-    if (user_options->workload_profile_chgd == true)
-    {
-      event_log_info (hashcat_ctx, "# option: --workload-profile=%u", user_options->workload_profile);
-    }
   }
 }
 
@@ -4786,7 +4769,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->veracrypt_pim_start);
   logfile_top_uint   (user_options->veracrypt_pim_stop);
   logfile_top_uint   (user_options->version);
-  logfile_top_uint   (user_options->workload_profile);
   #ifdef WITH_BRAIN
   logfile_top_uint   (user_options->brain_client);
   logfile_top_uint   (user_options->brain_client_features);

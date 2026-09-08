@@ -181,6 +181,19 @@ Its 2 useful values did unrelated jobs. 0 applied the reserve that keeps a deskt
 walked past it, and neither is a fraction of anything. The reserve is now sized from what the runtime
 reports free, and -Y covers the case the option was reached for.
 
+23. -w and --workload-profile no longer do anything
+
+The 4 profiles chose how long one launch was allowed to take, and the lower 2 also made autotune
+prefer a smaller launch. That was worth having when the old autotune produced launches long enough to
+freeze a desktop. The current one does not, so nobody who wanted speed had a reason to pick anything
+below 3, and the option mostly cost people throughput they did not know they were giving up. There is
+now a single launch budget, the one profile 3 used, and the preference for a smaller launch is gone.
+
+The option is still accepted and ignored, so a command line or script carrying it keeps working and
+says nothing. It is no longer listed in --help. A run that used to pass -w 1 or -w 2 will now use a
+larger launch, which is faster and less responsive on a machine you are sitting at. --benchmark also
+always uses optimized kernels now, where passing -w used to turn that off.
+
 ##
 ## New Algorithms
 ##

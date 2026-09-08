@@ -204,14 +204,10 @@ void welcome_screen (hashcat_ctx_t *hashcat_ctx, const char *version_tag)
 
       event_log_info (hashcat_ctx, NULL);
 
-      if (user_options->workload_profile_chgd == false)
-      {
-        event_log_advice (hashcat_ctx, "Benchmarking uses hand-optimized kernel code by default.");
-        event_log_advice (hashcat_ctx, "You can use it in your cracking session by setting the -O option.");
-        event_log_advice (hashcat_ctx, "Note: Using optimized kernel code limits the maximum supported password length.");
-        event_log_advice (hashcat_ctx, "To disable the optimized kernel code in benchmark mode, use the -w option.");
-        event_log_advice (hashcat_ctx, NULL);
-      }
+      event_log_advice (hashcat_ctx, "Benchmarking always uses hand-optimized kernel code.");
+      event_log_advice (hashcat_ctx, "You can use it in your cracking session by setting the -O option.");
+      event_log_advice (hashcat_ctx, "Note: Using optimized kernel code limits the maximum supported password length.");
+      event_log_advice (hashcat_ctx, NULL);
 
       if (user_options->benchmark_min != BENCHMARK_MIN || user_options->benchmark_max != BENCHMARK_MAX)
       {

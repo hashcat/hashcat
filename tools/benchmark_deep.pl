@@ -19,7 +19,6 @@ my $hashcat_path     = ".";
 my $kernels_cache    = "$hashcat_path/kernels";
 my $hashcat_bin      = "$hashcat_path/hashcat";
 my $device           = 1;
-my $workload_profile = 3;
 my $runtime          = 11;
 my $sleep_sec        = 13;
 my $default_mask     = "?a?a?a?a?a?a?a";
@@ -608,7 +607,6 @@ for my $hash_type (@hash_types)
     "--runtime", $runtime,
     "--machine-readable",
     "--optimized-kernel-enable",
-    "--workload-profile", $workload_profile,
     "--hash-type", $hash_type,
     "--attack-mode", 3,
     $mask

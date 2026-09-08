@@ -44,7 +44,12 @@ static const u32 full01 = 0x01010101;
 static const u32 full06 = 0x06060606;
 static const u32 full80 = 0x80808080;
 
-static double TARGET_MSEC_PROFILE[4] = { 2, 12, 96, 480 };
+// How long one launch is allowed to take. It was a table of four, selected by -w, and a user who
+// wanted speed had no reason to pick any of the lower three. The cost model does not produce the
+// long launches the search based tuner did, so the responsiveness those profiles bought is no
+// longer worth an option, and this is the value the old profile 3 used.
+
+static const double TARGET_MSEC = 96;
 
 HC_ALIGN(16)
 static const u32 bzeros[4] = { 0, 0, 0, 0 };
@@ -10994,7 +10999,7 @@ int backend_ctx_devices_init (hashcat_ctx_t *hashcat_ctx, const int comptime)
     return -1;
   }
 
-  backend_ctx->target_msec  = TARGET_MSEC_PROFILE[user_options->workload_profile - 1];
+  backend_ctx->target_msec  = TARGET_MSEC;
 
   backend_ctx->comptime = comptime;
 
@@ -16363,19 +16368,10 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     {
       if (tuningdb_entry != NULL)
       {
-        u32 _kernel_loops = tuningdb_entry->kernel_loops;
+        const u32 _kernel_loops = tuningdb_entry->kernel_loops;
 
         if (_kernel_loops)
         {
-          if (user_options->workload_profile == 1)
-          {
-            _kernel_loops = (_kernel_loops > 8) ? _kernel_loops / 8 : 1;
-          }
-          else if (user_options->workload_profile == 2)
-          {
-            _kernel_loops = (_kernel_loops > 4) ? _kernel_loops / 4 : 1;
-          }
-
           if ((_kernel_loops >= device_param->kernel_loops_min) && (_kernel_loops <= device_param->kernel_loops_max))
           {
             device_param->kernel_loops_min = _kernel_loops;

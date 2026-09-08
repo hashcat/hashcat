@@ -515,7 +515,7 @@ u64 module_esalt_size (MAYBE_UNUSED const hashconfig_t *hashconfig, MAYBE_UNUSED
 // exactly 16 calls. The thread count is set from the device rather than tuned, because one launch is
 // 16384 SHA-1 iterations however many threads run it, so autotune settles far below the knee.
 //
-//   device             threads   -w 1 before   -w 1 after   -w 2 before   -w 2 after
+//   device             threads   2 ms before   2 ms after   12 ms before  12 ms after
 //   -----------------  -------   -----------   ----------   -----------   ----------
 //   RX 9070 XT           512      1173 H/s     77099 H/s     8926 H/s     60923 H/s
 //   integrated Radeon    512        72 H/s      2022 H/s      287 H/s      2021 H/s
