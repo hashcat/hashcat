@@ -1489,6 +1489,12 @@ typedef struct hc_device_param
   bool    skipped;              // permanent
   bool    skipped_warning;      // iteration
 
+  // Why this device is not being used, for the summary printed once enumeration is over. A device
+  // the user excluded is not a loss and leaves this empty, so what remains here is a device that was
+  // asked for and did not come up.
+
+  char    skipped_reason[64];
+
   // Set on the other virtual devices sharing one physical device once any of them has been refused for
   // want of memory, so the rest are not set up at a cost that only deepens the shortage.
 

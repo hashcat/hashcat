@@ -5,7 +5,22 @@
 ## License.....: MIT
 ##
 
-export VERSION=7.1.2
+# The archive is named after the binary inside it. VERSION_TAG is what the build stamped into that
+# binary, so it is asked of the Makefile instead of being written out again here, where it said 7.1.2
+# whatever commit was actually built and an archive from any other commit carried the release name.
+# The leading v is dropped because the archive has never had one.
+
+VERSION_TAG=$(make -s version 2>/dev/null | tail -1)
+
+case "$VERSION_TAG" in
+  v[0-9]*) ;;
+  *)
+    echo "! the Makefile reported no version, so the archive cannot be named after the binary. It said: $VERSION_TAG"
+    exit 1
+    ;;
+esac
+
+export VERSION=${VERSION_TAG#v}
 export MAJOR=${VERSION%%.*}
 
 export IN=.

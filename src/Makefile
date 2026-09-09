@@ -1541,6 +1541,14 @@ $(foreach P,$(PLUGIN_PLATFORMS),$(foreach B,$(BRIDGES_ALL), \
 .PHONY: default
 default: $(HASHCAT_FRONTEND) modules bridges feeds
 
+# The version this build stamps into the binary. tools/package_bin.sh asks for it so an archive is
+# named after what it holds, rather than the release number being written out a second time where it
+# drifts the moment a package is built from anything but the release commit.
+
+.PHONY: version
+version:
+	@echo $(VERSION_TAG)
+
 .PHONY: clean
 clean:
 	$(RM) -f $(HASHCAT_FRONTEND)
