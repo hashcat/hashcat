@@ -15830,7 +15830,18 @@ void backend_session_context_reset (hashcat_ctx_t *hashcat_ctx)
     {
       hc_cuCtxDestroy (hashcat_ctx, device_param->cuda_context);
 
-      if (hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1) continue;
+      device_param->cuda_context = NULL;
+
+      // hc_cuCtxCreate () leaves the handle untouched when it fails, so it is cleared above rather
+      // than relied on here. The device also has to be skipped: the caller goes straight on to
+      // backend_session_begin (), which would otherwise push the context that was just destroyed.
+
+      if (hc_cuCtxCreate (hashcat_ctx, &device_param->cuda_context, CU_CTX_SCHED_BLOCKING_SYNC, device_param->cuda_device) == -1)
+      {
+        device_param->skipped = true;
+
+        continue;
+      }
 
       // Same reason as in enumeration: the new context is current on this thread as well as created,
       // so it has to come back off. This runs once per outer loop iteration, so leaving it on would
