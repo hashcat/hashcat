@@ -842,6 +842,61 @@ static u64 *seekdb_build (feed_thread_t *feed_thread, const char *seekdb_path, c
 
     paw64_update (&xstate, buf, n);
 
+    // A plain wordlist is one mapped buffer, so the walk does not have to find every line ending in
+    // order to reach the ones it records. hc_memnth travels to the next checkpoint in one pass at load
+    // width and looks inside only the load that carries it, where asking memchr line by line restarted
+    // the scan for every line in the file and paid a call to travel a handful of bytes.
+    // There is nothing else to do per line here: frames belong to a compressed source, and a plain
+    // file has no boundary but its own start.
+
+    if (feed_thread->compressed == false)
+    {
+      hc_memnth_t hc_memnth = hc_memnth_get ();
+
+      while (pos < n)
+      {
+        size_t seen = 0;
+
+        const size_t adv = hc_memnth (buf + pos, '\n', n - pos, SEEKDB_STEP, &seen);
+
+        lines += seen;
+
+        // fewer than a whole step left, so the file holds no further checkpoint
+
+        if (seen < SEEKDB_STEP) break;
+
+        pos += adv;
+
+        if (checkpoints == alloc)
+        {
+          u64 *tmp_new = (u64 *) hcrealloc (tmp, alloc * sizeof (u64), alloc * sizeof (u64));
+
+          if (tmp_new == NULL)
+          {
+            hcfree (tmp);
+            hcfree (frames.buf);
+
+            return NULL;
+          }
+
+          tmp = tmp_new;
+
+          alloc *= 2;
+        }
+
+        tmp[checkpoints++] = pos;
+      }
+
+      // All that the tail below wants from the walk is whether the file ends on a line ending, so that
+      // bytes after the last one count as a line. A mapped buffer answers that from its last byte,
+      // where the streaming loop has to carry the position of the last ending it saw.
+
+      pos         = n;
+      last_nl_end = (buf[n - 1] == '\n') ? n : 0;
+
+      break;
+    }
+
     size_t i = 0;
 
     while (i < n)

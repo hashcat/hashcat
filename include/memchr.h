@@ -10,6 +10,7 @@
 
 typedef size_t (*hc_memchr_t)   (const u8 *ptr, int ch, size_t max_len);
 typedef size_t (*hc_memcount_t) (const u8 *ptr, int ch, size_t max_len);
+typedef size_t (*hc_memnth_t)   (const u8 *ptr, int ch, size_t max_len, size_t nth, size_t *found);
 
 HC_PLUGIN_API size_t hc_memchr_generic      (const u8 *ptr, int ch, size_t max_len);
 HC_PLUGIN_API size_t hc_memchr_avx2         (const u8 *ptr, int ch, size_t max_len);
@@ -18,8 +19,12 @@ HC_PLUGIN_API size_t hc_memchr_avx512       (const u8 *ptr, int ch, size_t max_l
 HC_PLUGIN_API size_t hc_memcount_generic    (const u8 *ptr, int ch, size_t max_len);
 HC_PLUGIN_API size_t hc_memcount_avx2       (const u8 *ptr, int ch, size_t max_len);
 
+HC_PLUGIN_API size_t hc_memnth_generic      (const u8 *ptr, int ch, size_t max_len, size_t nth, size_t *found);
+HC_PLUGIN_API size_t hc_memnth_avx2         (const u8 *ptr, int ch, size_t max_len, size_t nth, size_t *found);
+
 HC_PLUGIN_API hc_memchr_t   hc_memchr_get   (void);
 HC_PLUGIN_API hc_memcount_t hc_memcount_get (void);
+HC_PLUGIN_API hc_memnth_t   hc_memnth_get   (void);
 
 // Where the next line ends inside a buffer, and how long it is once the line ending is off.
 //

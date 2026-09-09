@@ -57,6 +57,45 @@ size_t hc_memcount_generic (const u8 *ptr, int ch, size_t max_len)
   return cnt;
 }
 
+// How far past the nth occurrence of a byte a buffer runs.
+//
+// Walking to every nth occurrence with hc_memchr means one call per occurrence, and each of those
+// restarts the scan and pays a call to travel a handful of bytes. Counting the lines of a wordlist
+// asks this question over and over, once per checkpoint, and the occurrences in between are of no
+// interest at all: only how many there were.
+//
+// The answer is the offset just past the nth occurrence, or max_len when the buffer holds fewer than
+// n of them, which is what lets a caller walk a buffer with repeated calls and know when it is done.
+// found is how many there were either way, so a caller that ran out still learns what it passed.
+
+size_t hc_memnth_generic (const u8 *ptr, int ch, size_t max_len, size_t nth, size_t *found)
+{
+  size_t cnt = 0;
+  size_t off = 0;
+
+  while (off < max_len)
+  {
+    const u8 *hit = memchr (ptr + off, ch, max_len - off);
+
+    if (hit == NULL) break;
+
+    off = (size_t) (hit - ptr) + 1;
+
+    cnt++;
+
+    if (cnt == nth)
+    {
+      *found = cnt;
+
+      return off;
+    }
+  }
+
+  *found = cnt;
+
+  return max_len;
+}
+
 #if defined (__x86_64__) || defined (_M_X64) || defined (__i386__) || defined (_M_IX86) || defined (__aarch64__)
 #if !defined (__aarch64__)
 __attribute__((target("avx2")))
@@ -198,10 +237,83 @@ size_t hc_memcount_avx2 (const u8 *ptr, int ch, size_t max_len)
   return cnt;
 }
 
+
+#if !defined (__aarch64__)
+__attribute__((target("avx2")))
+#endif
+size_t hc_memnth_avx2 (const u8 *ptr, int ch, size_t max_len, size_t nth, size_t *found)
+{
+  size_t cnt = 0;
+  size_t off = 0;
+
+  while ((max_len - off) >= 32)
+  {
+    #if defined (__aarch64__)
+
+    __m128i block1 = _mm_loadu_si128      ((const __m128i *)(ptr + off));
+    __m128i block2 = _mm_loadu_si128      ((const __m128i *)(ptr + off + 16));
+
+    __m128i nl     = _mm_set1_epi8        (ch);
+
+    u32 mask       = (u32) _mm_movemask_epi8 (_mm_cmpeq_epi8 (block1, nl))
+                   | ((u32) _mm_movemask_epi8 (_mm_cmpeq_epi8 (block2, nl)) << 16);
+
+    #else
+
+    __m256i block  = _mm256_loadu_si256   ((const __m256i *) (ptr + off));
+    __m256i nl     = _mm256_set1_epi8     (ch);
+    __m256i cmp    = _mm256_cmpeq_epi8    (block, nl);
+
+    u32 mask       = (u32) _mm256_movemask_epi8 (cmp);
+
+    #endif
+
+    const size_t hits = (size_t) __builtin_popcount (mask);
+
+    // The load carries none of what is being looked for, or all of it and still not enough. Either way
+    // nothing in it has to be located, which is the case for every load but one in a whole step.
+
+    if ((cnt + hits) < nth)
+    {
+      cnt += hits;
+      off += 32;
+
+      continue;
+    }
+
+    while (mask != 0)
+    {
+      const u32 bit = (u32) __builtin_ctz (mask);
+
+      mask &= mask - 1;
+
+      cnt++;
+
+      if (cnt == nth)
+      {
+        *found = cnt;
+
+        return off + bit + 1;
+      }
+    }
+
+    off += 32;
+  }
+
+  size_t tail_cnt = 0;
+
+  const size_t tail_off = hc_memnth_generic (ptr + off, ch, max_len - off, nth - cnt, &tail_cnt);
+
+  *found = cnt + tail_cnt;
+
+  return off + tail_off;
+}
+
 #endif // __x86_64__ || _M_X64 || __i386__ || _M_IX86 || __aarch64__
 
 static hc_memchr_t   hc_memchr_cached   = hc_memchr_generic;
 static hc_memcount_t hc_memcount_cached = hc_memcount_generic;
+static hc_memnth_t   hc_memnth_cached   = hc_memnth_generic;
 
 __attribute__((constructor))
 static void hc_mem_init (void)
@@ -230,11 +342,13 @@ static void hc_mem_init (void)
   {
     hc_memchr_cached   = hc_memchr_avx2;
     hc_memcount_cached = hc_memcount_avx2;
+    hc_memnth_cached   = hc_memnth_avx2;
   }
   else
   {
     hc_memchr_cached   = hc_memchr_generic;
     hc_memcount_cached = hc_memcount_generic;
+    hc_memnth_cached   = hc_memnth_generic;
   }
 
   #elif defined (__aarch64__)
@@ -245,11 +359,13 @@ static void hc_mem_init (void)
   // Use 32-byte NEON-mapped function for Apple Silicon by default
   hc_memchr_cached     = hc_memchr_avx2;
   hc_memcount_cached   = hc_memcount_avx2;
+  hc_memnth_cached     = hc_memnth_avx2;
 
   #else
 
   hc_memchr_cached     = hc_memchr_generic;
   hc_memcount_cached   = hc_memcount_generic;
+  hc_memnth_cached     = hc_memnth_generic;
 
   #endif
 }
@@ -262,4 +378,9 @@ hc_memchr_t hc_memchr_get (void)
 hc_memcount_t hc_memcount_get (void)
 {
   return hc_memcount_cached;
+}
+
+hc_memnth_t hc_memnth_get (void)
+{
+  return hc_memnth_cached;
 }
