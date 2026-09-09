@@ -283,6 +283,14 @@ typedef struct
 
   u32 pwmin;
   u32 pwmax;
+
+  // Structures those bounds took out of the grammar, and whether any bucket is bounded at all. The
+  // first names the reason where a run ends up with nothing to enumerate. The second keeps a run the
+  // hash mode does not bound on exactly the path it was on before.
+
+  u32  out_of_range;
+  bool bounded;
+
   u32 kbits;
   u32 threads;
   bool walk;
@@ -2927,6 +2935,8 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
         memcpy (sc, cbuf, (size_t) s.nslot * sizeof (u16));
 
         s.cap = sc;
+
+        pg->bounded = true;
       }
 
       if (fbind == true)
@@ -2938,6 +2948,8 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
         memcpy (sf, fbuf, (size_t) s.nslot * sizeof (u16));
 
         s.flr = sf;
+
+        pg->bounded = true;
       }
     }
 
@@ -2967,19 +2979,24 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
     roots_join (named, sizeof (named), roots, nroots);
 
-    if (dropped_t > 0)
-    {
-      gerr (global_ctx, "%s: all %u structures were dropped, most likely a terminal list that could not be read", named, dropped_t);
-
-      return -1;
-    }
-
-    // A hash mode that excludes the whole grammar is not a broken ruleset, and saying so as one
-    // would send the user looking for a problem in the wrong place.
+    // The hash mode's own bounds took every structure. That is not a ruleset that cannot be read and
+    // not a grammar priced past costmax: the escape enumerates its own lengths, it may still hold
+    // some this mode accepts, and omen_load () has not run yet. So the run goes on. Where the escape
+    // has nothing in range either, the keyspace comes out zero and the attack is refused there, with
+    // the bounds named as the reason. It comes first because a ruleset carrying a few unusable
+    // structures is normal, and the shipped one does, so testing that first would answer every
+    // bounded run with a terminal list that could not be read.
 
     if (dropped_p > 0)
     {
-      gerr (global_ctx, "%s: all %u structures lie outside the %u to %u bytes this hash mode accepts", named, dropped_p, pg->pwmin, pg->pwmax);
+      if (global_ctx->quiet == false)
+      {
+        pmsg (pg, "pcfg: every structure lies outside the %u to %u bytes this hash mode accepts, so the escape is all that is left", pg->pwmin, pg->pwmax);
+      }
+    }
+    else if (dropped_t > 0)
+    {
+      gerr (global_ctx, "%s: all %u structures were dropped, most likely a terminal list that could not be read", named, dropped_t);
 
       return -1;
     }
@@ -2988,14 +3005,14 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
     // holds, and master refuses it. The M line exemption below is for a grammar that never had
     // structures, not for one whose structures were all put out of reach.
 
-    if (dropped_c > 0)
+    else if (dropped_c > 0)
     {
       gerr (global_ctx, "%s: all %u structures cost more than costmax %" PRIu64 ", nothing is reachable", named, dropped_c, pg->costmax / pg->scale);
 
       return -1;
     }
 
-    if (dropped_m == 0)
+    else if (dropped_m == 0)
     {
       gerr (global_ctx, "%s: nothing to enumerate, no structures and no M lines", named);
 
@@ -3020,7 +3037,8 @@ static int grammar_load (generic_global_ctx_t *global_ctx, pcfg_global_t *pg, co
 
   if (global_ctx->quiet == false) pmsg (pg, "pcfg: suffix tables built in %s", pcfg_duration ((hc_timer_get (t_sweep) / 1000.0), display, sizeof (display)));
 
-  pg->m_lines = dropped_m;
+  pg->m_lines      = dropped_m;
+  pg->out_of_range = dropped_p;
 
   if (global_ctx->quiet == false)
   {
@@ -8227,7 +8245,11 @@ bool global_init (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
 
     roots_join (named, sizeof (named), roots, nroots);
 
-    if ((pg->omen_cnt == 0) && (pg->structs_cnt == 0))
+    if ((pg->structs_cnt == 0) && (pg->out_of_range > 0))
+    {
+      gerr (global_ctx, "%s: nothing to enumerate, the %u to %u bytes this hash mode accepts leave the grammar empty and the escape holds no length in range", named, pg->pwmin, pg->pwmax);
+    }
+    else if ((pg->omen_cnt == 0) && (pg->structs_cnt == 0))
     {
       gerr (global_ctx, "%s: nothing to enumerate, no structures and no escape to carry", named);
     }
@@ -8844,17 +8866,50 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     u32 best_b = 0;
     u32 best_n = 0;
 
-    for (u32 i = 0; i < pg->lists_cnt; i++)
+    // Where the hash mode bounds the buckets, the widest one in the grammar can be one this run never
+    // walks, and a probe sized on it measures a cell the attack will not launch. So it is asked of the
+    // structures instead, through the same predicate the enumeration reads. The head of the grammar
+    // is enough for a sizing hint and it is the part the run starts on. Where nothing is bounded the
+    // lists are walked as before, and the probe comes out exactly as it did.
+
+    if (pg->bounded == true)
     {
-      const pcfg_tlist_t *t = &pg->lists[i];
+      const u32 upto = (pg->structs_cnt > PCFG_PROBE_STRUCTS) ? PCFG_PROBE_STRUCTS : pg->structs_cnt;
 
-      for (u32 b = 0; b < t->nb; b++)
+      for (u32 i = 0; i < upto; i++)
       {
-        if (t->b_cnt[b] <= best_n) continue;
+        const pcfg_struct_t *s = &pg->structs[i];
 
-        best_l = i;
-        best_b = b;
-        best_n = t->b_cnt[b];
+        for (u32 j = 0; j < s->nslot; j++)
+        {
+          const pcfg_tlist_t *t = &pg->lists[s->list[j]];
+
+          for (u32 b = 0; b < t->nb; b++)
+          {
+            if (bucket_out (s, j, t, b) == true) continue;
+            if (t->b_cnt[b] <= best_n) continue;
+
+            best_l = s->list[j];
+            best_b = b;
+            best_n = t->b_cnt[b];
+          }
+        }
+      }
+    }
+    else
+    {
+      for (u32 i = 0; i < pg->lists_cnt; i++)
+      {
+        const pcfg_tlist_t *t = &pg->lists[i];
+
+        for (u32 b = 0; b < t->nb; b++)
+        {
+          if (t->b_cnt[b] <= best_n) continue;
+
+          best_l = i;
+          best_b = b;
+          best_n = t->b_cnt[b];
+        }
       }
     }
 
