@@ -8280,6 +8280,41 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
     need = (need + 3) & ~((u64) 3);
   }
 
+  // Every offset into the terminals is a u32, in the cells the device reads and in the byte reads the
+  // kernel makes, while the pool is sized from a u64, so a grammar whose terminals sum past 4 GiB has
+  // the lists past that point packed on top of the ones at the start and read back from there, and
+  // the run then builds candidates out of the wrong bytes without saying anything. tlist_build ()
+  // guards the same quantity inside one list.
+  //
+  // Answered before the pool is packed, because none of that work can be used, and answered the way
+  // the empty index below answers it: the host engine reads the lists themselves and not the pool.
+
+  if (need > 0xffffffff)
+  {
+    if (global_ctx->quiet == false) pmsg (pg, "pcfg: the terminals reach %" PRIu64 " MiB and an offset into the pool stops at 4096 MiB, the host engine takes the run", need / (1024 * 1024));
+
+    global_ctx->dev_enable = false;
+
+    pcfg_pick_workers (pg);
+
+    snprintf (global_ctx->guess_base, sizeof (global_ctx->guess_base), "%s (scale %" PRIu64 ", %s)", pg->named, pg->scale, (pg->omen_lvl_cnt > 0) ? "host, OMEN" : "host");
+
+    if (pg->lookup != NULL) lookup_report (global_ctx, pg);
+
+    pool[0]      = NULL;
+    pool_size[0] = 0;
+    il_cnt[0]    = 0;
+    maxword[0]   = pg->maxword;
+    avg[0]       = 1;
+    front[0]     = 1;
+    step[0]      = 1;
+    varlen[0]    = (pg->varlen == true) ? 1 : 0;
+
+    memset (probe, 0, sizeof (pcfg_cell_t));
+
+    return true;
+  }
+
   // No terminal entries at all means there is nothing for this engine to amplify, and that is the
   // same grammar the empty index below describes: one whose mass sits on the escape. It is not
   // refused here, because the index comes out empty and answers it the same way, so the host engine
