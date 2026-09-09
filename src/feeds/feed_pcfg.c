@@ -8142,7 +8142,7 @@ void global_term (generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_
   hcfree (pg->uls_cnt);
   hcfree (pg->ulvl_cost);
   hcfree (pg->ulvl_pref);
-  hcfree (pg->pool);
+  hc_free_aligned ((void **) &pg->pool);
   hcfree (pg->pool_base);
   hcfree (pg->pool_ubase);
   hcfree (pg->ent_base);
@@ -8305,8 +8305,20 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
   hc_timer_set (&t_pack);
 
+  // Page aligned and a whole number of pages long, which is what Metal and OpenCL ask before they
+  // read these bytes instead of a copy. 64 KiB covers every page size hashcat runs on.
+
   pg->pool_size = need + 8;
-  pg->pool      = (u32 *) hccalloc (pg->pool_size / 4, sizeof (u32));
+  pg->pool_size = (pg->pool_size + (PCFG_POOL_ALIGN - 1)) & ~((u64) (PCFG_POOL_ALIGN - 1));
+
+  pg->pool = (u32 *) hc_alloc_aligned (PCFG_POOL_ALIGN, pg->pool_size);
+
+  if (pg->pool == NULL)
+  {
+    gerr (global_ctx, "the device pool wants %" PRIu64 " MiB and the host has none to give", pg->pool_size / (1024 * 1024));
+
+    return false;
+  }
 
   u8 *bytes = (u8 *) pg->pool;
 
@@ -8334,8 +8346,10 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
 
     if (global_ctx->quiet == false)
     {
+      // From need and not from pool_size, which also carries the guard word and the page rounding.
+
       pmsg (pg, "pcfg: per entry offsets, %" PRIu64 " KiB of table behind %" PRIu64 " KiB of terminals",
-        (pg->pool_size - 8 - ent_at) / 1024, ent_at / 1024);
+        (need - ent_at) / 1024, ent_at / 1024);
     }
   }
 

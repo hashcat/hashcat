@@ -949,18 +949,17 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
     // we are on Apple Silicon, nothing to do ;)
   }
 
-  if (ptr != NULL)
+  // newBufferWithBytesNoCopy () wants a Shared buffer, and the mode asked for above is not always the
+  // mode given. A device that takes Managed instead gets a buffer of its own and the caller puts the
+  // bytes there, rather than the call failing on it. buf_host says which of the two happened, so a
+  // caller handing a pointer over reads the answer instead of predicting it.
+
+  mem->buf_host = 0;
+
+  if ((ptr != NULL) && (bufferOptions == MTLResourceStorageModeShared))
   {
-    if (bufferOptions != MTLResourceStorageModeShared)
-    {
-      event_log_error (hashcat_ctx, "%s(): bufferOptions must be Shared when using unified memory", __func__);
-
-      return -1;
-    }
-
-    // using unified memory
-
-    mem->buf_ptr = [metal_device newBufferWithBytesNoCopy: ptr length: size options: bufferOptions deallocator: nil];
+    mem->buf_ptr  = [metal_device newBufferWithBytesNoCopy: ptr length: size options: bufferOptions deallocator: nil];
+    mem->buf_host = 1;
   }
   else
   {
@@ -969,7 +968,7 @@ int hc_mtlCreateBuffer (void *hashcat_ctx, mtl_device_id metal_device, size_t si
 
   if (mem->buf_ptr == nil)
   {
-    event_log_error (hashcat_ctx, "%s(): %s failed (size: %zu)", __func__, (ptr == NULL) ? "newBufferWithLength" : "newBufferWithBytesNoCopy", size);
+    event_log_error (hashcat_ctx, "%s(): %s failed (size: %zu)", __func__, (mem->buf_host == 1) ? "newBufferWithBytesNoCopy" : "newBufferWithLength", size);
 
     return -1;
   }

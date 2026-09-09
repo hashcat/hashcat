@@ -3461,10 +3461,11 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
 
     if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, sizeof (u8), NULL, &mem, metal_private_storageMode) == -1) return -1;
 
-    // kernel_params[24] is the last of the shared list, and the device engine adds three behind it: see
-    // the same bound on the OpenCL path below. Stopping at 24 left all three of them unbound.
+    // kernel_params[24] is the last of the shared list and the device engine adds the ones behind it,
+    // so this has to be counted the same way as the OpenCL path below. An encoder that stops short
+    // leaves an argument bound to nothing at all.
 
-    const u32 kernel_params_max = (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG) ? 27 : 24;
+    const u32 kernel_params_max = (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG) ? (26 + PCFG_POOL_PARTS) : 24;
 
     // all buffers must be allocated
     for (u32 i = 0; i <= kernel_params_max; i++)
@@ -3659,12 +3660,13 @@ int run_kernel (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, con
     // the only one whose extra arguments may be set. Setting them on any other kernel is an error from
     // the runtime, not a no-op.
 
-    // kernel_params[24] is the last of the shared list, and the device engine adds three: pcfg_cells at
-    // 25, pcfg_pool at 26 and pcfg_wmap at 27. Stopping at 26 left the wave map unbound, so an OpenCL
-    // device read whatever that argument slot happened to hold and every work item looked up the wrong
-    // cell. CUDA and HIP pass the whole array and were never affected, which is why it was not seen.
+    // kernel_params[24] is the last of the shared list, and the device engine adds the cells at 25, the
+    // pool in as many buffers as it took at 26, and the wave map after them. Stopping short leaves an
+    // argument unbound, so an OpenCL device reads whatever that slot happened to hold and every work
+    // item looks up the wrong cell. CUDA and HIP pass the whole array and were never affected, which
+    // is why it was not seen.
 
-    const u32 kernel_params_max = (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG) ? 27 : 24;
+    const u32 kernel_params_max = (hashcat_ctx->user_options_extra->attack_kern == ATTACK_KERN_PCFG) ? (26 + PCFG_POOL_PARTS) : 24;
 
     for (u32 i = 0; i <= kernel_params_max; i++)
     {
@@ -15918,6 +15920,198 @@ static u32 backend_device_sharers (const backend_ctx_t *backend_ctx, const hc_de
   return result;
 }
 
+// Whether the feed's bytes are worth offering to this device rather than copying them, through
+// newBufferWithBytesNoCopy on Metal and CL_MEM_USE_HOST_PTR on OpenCL. Both want the pointer page
+// aligned, which is why the feed aligns the pool.
+//
+// Offering is not the same as being taken. On Metal the storage mode asked for is not always the one
+// given, and hc_mtlCreateBuffer () answers in mem->buf_host which of the two it did, so the copy is
+// decided from that rather than from anything guessed here. What this answers is only whether there
+// is any point in offering, which is a property of the memory and not of the device.
+
+static bool pcfg_pool_shared (const hc_device_param_t *device_param)
+{
+  if (device_param->device_host_unified_memory == 0) return false;
+
+  if (device_param->is_metal  == true) return true;
+  if (device_param->is_opencl == true) return true;
+
+  return false;
+}
+
+// What one device can hold of the pool, and the largest piece it will take at a time. The two are
+// different bounds, and reading the second as if it were also the first splits a pool the device
+// would have taken whole.
+//
+// An eighth of the free memory is kept back rather than the launch floor, because what the run needs
+// beside the pool is elastic: measured on an RTX 4080 with the shipped ruleset, whose pool is 17 MiB,
+// the same attack held 264 MiB of device memory at an accel of 1 and 3970 MiB at the accel autotune
+// settled on. Leaving only the floor starts a run that crawls. Free memory is divided the way the
+// memory check further down divides it, because every device on one physical device allocates its own
+// copy of the pool.
+
+static u64 pcfg_pool_budget (const hc_device_param_t *device_param, const u32 sharers, u64 *part_max)
+{
+  u64 total = device_param->device_maxmem_alloc * PCFG_POOL_PARTS;
+
+  // The feed keeps its pool for the whole run, so a device that is not offered those bytes holds a
+  // second copy, and on unified memory that second copy comes out of this budget too. Offered and
+  // taken are not the same, and this runs before any buffer exists, so a device that is offered the
+  // pointer and declines it holds a copy this did not count.
+
+  const bool twice = (device_param->device_host_unified_memory == 1) && (pcfg_pool_shared (device_param) == false);
+
+  if (twice == true) total /= 2;
+
+  if (device_param->device_available_mem != 0)
+  {
+    const u64 avail = device_param->device_available_mem / sharers;
+
+    const u64 keep_launch = avail / 8;
+
+    const u64 keep_floor  = device_param->device_global_mem / 100;
+
+    const u64 keep = (keep_launch > keep_floor) ? keep_launch : keep_floor;
+
+    u64 free = (avail > keep) ? (avail - keep) : 0;
+
+    if (twice == true) free /= 2;
+
+    if (free < total) total = free;
+  }
+
+  u64 part = device_param->device_maxmem_alloc;
+
+  if (total < part) part = total;
+
+  // Whole pages, which is what both wrappers ask before they read the feed's bytes instead of a copy.
+  // Not powers of two: rounding down to one threw away up to half of what the device offered.
+
+  const u64 grain = PCFG_POOL_ALIGN;
+
+  *part_max = (part / grain) * grain;
+
+  u64 budget = (total / grain) * grain;
+
+  // A part is a whole number of pages, so on a device whose ceiling is not one the parts hold a page
+  // less than the raw budget. Reporting the raw one asks the split for a part more than there are.
+
+  const u64 fits = *part_max * PCFG_POOL_PARTS;
+
+  if (budget > fits) budget = fits;
+
+  return budget;
+}
+
+// Where a part's bytes already are, for a device that can read them there. Nothing for a device that
+// cannot, and nothing for the parts past the end of the pool, which are placeholders a kernel argument
+// needs rather than anything a read reaches.
+
+static void *pcfg_pool_part_host (const hashcat_ctx_t *hashcat_ctx, const hc_device_param_t *device_param, const u32 i)
+{
+  if (hashcat_ctx->user_options_extra->attack_kern != ATTACK_KERN_PCFG) return NULL;
+
+  if (pcfg_pool_shared (device_param) == false) return NULL;
+
+  if (i >= device_param->pcfg_pool_parts) return NULL;
+
+  const u8 *pool = (const u8 *) hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool;
+
+  if (pool == NULL) return NULL;
+
+  const u64 at = (u64) i * device_param->size_pcfg_pool_part;
+
+  const u8 *base = pool + at;
+
+  return (void *) base;
+}
+
+// How large the buffer for one part is. Every part is a kernel argument whether the pool reaches it
+// or not, and an argument has to be a buffer the device can read, so a part past the end is made as
+// small as one gets rather than left unallocated.
+
+static u64 pcfg_pool_part_size (const hc_device_param_t *device_param, const u64 size_pcfg_pool, const u32 i)
+{
+  if (i >= device_param->pcfg_pool_parts) return 4;
+
+  const u64 at = (u64) i * device_param->size_pcfg_pool_part;
+
+  const u64 left = size_pcfg_pool - at;
+
+  const u64 size = (left < device_param->size_pcfg_pool_part) ? left : device_param->size_pcfg_pool_part;
+
+  return size;
+}
+
+// How many buffers this device takes the pool in, and how large each is. Returns -1 where it cannot
+// take it at all, which the caller reads as one device out of the run rather than the end of it.
+
+static int pcfg_pool_split (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, const u64 size_pcfg_pool)
+{
+  u64 part_max = 0;
+
+  const u64 total = pcfg_pool_budget (device_param, backend_device_sharers (hashcat_ctx->backend_ctx, device_param), &part_max);
+
+  // A total of nothing is refused rather than exempted. It means the device has no room for the pool,
+  // which is what the message says, and there is no case where zero has to mean unknown.
+
+  if (size_pcfg_pool > total)
+  {
+    event_log_warning (hashcat_ctx, "* Device #%u: the pcfg pool needs %" PRIu64 " MiB and this device can spare %" PRIu64 " MiB.", device_param->device_id + 1, size_pcfg_pool / (1024 * 1024), total / (1024 * 1024));
+
+    return -1;
+  }
+
+  u64 part = (size_pcfg_pool > 0) ? size_pcfg_pool : 4;
+
+  if ((part_max != 0) && (part > part_max))
+  {
+    // As few parts as the ceiling on one allows, and then cut equal instead of filling each part to
+    // that ceiling. Equal parts leave no sliver at the end and stay under the ceiling either way.
+
+    const u64 n = (size_pcfg_pool + part_max - 1) / part_max;
+
+    part = (((size_pcfg_pool + n - 1) / n) + (PCFG_POOL_ALIGN - 1)) & ~((u64) (PCFG_POOL_ALIGN - 1));
+  }
+
+  device_param->size_pcfg_pool_part = part;
+  device_param->pcfg_pool_parts     = (u32) ((size_pcfg_pool + part - 1) / part);
+
+  if (device_param->pcfg_pool_parts == 0) device_param->pcfg_pool_parts = 1;
+
+  if (device_param->pcfg_pool_parts > PCFG_POOL_PARTS)
+  {
+    event_log_warning (hashcat_ctx, "* Device #%u: the pcfg pool needs %u buffers and this device allows %u.", device_param->device_id + 1, device_param->pcfg_pool_parts, PCFG_POOL_PARTS);
+
+    return -1;
+  }
+
+  // Say what the split came to where there is one, so that the size a device could not hold in one
+  // piece and the sizes it was cut into are both on the screen rather than inferred from the run not
+  // having failed. A single buffer holds the whole pool the feed already reported, so there is
+  // nothing there this would add.
+
+  if ((device_param->pcfg_pool_parts > 1) && (hashcat_ctx->user_options->quiet == false))
+  {
+    char sizes[128];
+
+    int sizes_len = 0;
+
+    for (u32 i = 0; i < device_param->pcfg_pool_parts; i++)
+    {
+      const u64 sz = pcfg_pool_part_size (device_param, size_pcfg_pool, i);
+
+      sizes_len += snprintf (sizes + sizes_len, sizeof (sizes) - sizes_len, "%s%" PRIu64 " MiB", (i > 0) ? ", " : "", sz / (1024 * 1024));
+
+      if (sizes_len >= (int) sizeof (sizes)) break;
+    }
+
+    event_log_info (hashcat_ctx, "* Device #%u: pcfg pool of %" PRIu64 " MiB in %u buffers of %s", device_param->device_id + 1, size_pcfg_pool / (1024 * 1024), device_param->pcfg_pool_parts, sizes);
+  }
+
+  return 0;
+}
+
 int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 {
   const bitmap_ctx_t         *bitmap_ctx          = hashcat_ctx->bitmap_ctx;
@@ -17013,6 +17207,22 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D PCFG_DEV_MAXWORD=%u ", hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_maxword);
       build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D PCFG_DEV_VARLEN=%u ",  hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_varlen);
 
+      // A device that cannot hold the pool is one device out of the run, the way a device that cannot
+      // hold its launch buffers is. Refusing the session here would take down with it the devices that
+      // can hold it, and the aggregate check at the end of this function is what decides whether
+      // nothing came up at all.
+
+      if (pcfg_pool_split (hashcat_ctx, device_param, hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool_size) == -1)
+      {
+        device_param->skipped_warning = true;
+
+        backend_memory_hit_warnings++;
+
+        continue;
+      }
+
+      build_options_len += snprintf (build_options_buf + build_options_len, build_options_sz - build_options_len, "-D PCFG_POOL_SPLIT=%u ",  (device_param->pcfg_pool_parts > 1) ? 1 : 0);
+
       // A mode that wants its candidate upper or lower cased has that done on the host for every other
       // attack, on the word a producer hands over. Here that word is only the base word and the rest is
       // built on the device, so the engine has to do it too. -m 130 and -m 131 share a kernel file and
@@ -17355,7 +17565,11 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       {
         extra_value += hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_maxword << 8;
         extra_value += hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_varlen  << 16;
-        extra_value += pcfg_pt_case (hashconfig)                               << 17;
+
+        // pcfg_pt_case answers 0, 1 or 2, so it spans bits 17 and 18 and the next flag starts at 19.
+
+        extra_value += pcfg_pt_case (hashconfig)                       << 17;
+        extra_value += ((device_param->pcfg_pool_parts > 1) ? 1u : 0u) << 19;
       }
 
       /**
@@ -18023,6 +18237,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
      */
 
     device_param->kernel_param.bitmap_mask         = bitmap_ctx->bitmap_mask;
+
+    // Where each part of the pcfg pool begins, in words. A part the run does not use is given a
+    // start no index can reach, so the search in the kernel stops at the last part there is: the
+    // start of a part beyond the last would not always fit the u32 it is carried in, and leaving
+    // it to be compared against anyway would be relying on the pool ending exactly where it does.
+
+    const u64 pool_at = device_param->size_pcfg_pool_part / 4;
+
+    device_param->kernel_param.pcfg_pool_at1       = (device_param->pcfg_pool_parts > 1) ? (u32) (pool_at * 1) : 0xffffffff;
+    device_param->kernel_param.pcfg_pool_at2       = (device_param->pcfg_pool_parts > 2) ? (u32) (pool_at * 2) : 0xffffffff;
+    device_param->kernel_param.pcfg_pool_at3       = (device_param->pcfg_pool_parts > 3) ? (u32) (pool_at * 3) : 0xffffffff;
     device_param->kernel_param.salt_pos_host       = 0;
     device_param->kernel_param.loop_pos            = 0;
     device_param->kernel_param.loop_cnt            = 0;
@@ -18064,8 +18289,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[23] = &device_param->cuda_d_extra3_buf;
       device_param->kernel_params[24] = &device_param->cuda_d_kernel_param;
       device_param->kernel_params[25] = &device_param->cuda_d_pcfg_cells;
-      device_param->kernel_params[26] = &device_param->cuda_d_pcfg_pool;
-      device_param->kernel_params[27] = &device_param->cuda_d_pcfg_wmap;
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++) device_param->kernel_params[26 + i] = &device_param->cuda_d_pcfg_pool[i];
+
+      device_param->kernel_params[26 + PCFG_POOL_PARTS] = &device_param->cuda_d_pcfg_wmap;
     }
 
     if (device_param->is_hip == true)
@@ -18096,8 +18322,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[23] = &device_param->hip_d_extra3_buf;
       device_param->kernel_params[24] = &device_param->hip_d_kernel_param;
       device_param->kernel_params[25] = &device_param->hip_d_pcfg_cells;
-      device_param->kernel_params[26] = &device_param->hip_d_pcfg_pool;
-      device_param->kernel_params[27] = &device_param->hip_d_pcfg_wmap;
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++) device_param->kernel_params[26 + i] = &device_param->hip_d_pcfg_pool[i];
+
+      device_param->kernel_params[26 + PCFG_POOL_PARTS] = &device_param->hip_d_pcfg_wmap;
     }
 
     #if defined (__APPLE__)
@@ -18129,8 +18356,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[23] = device_param->metal_d_extra3_buf.buf_ptr;
       device_param->kernel_params[24] = device_param->metal_d_kernel_param.buf_ptr;
       device_param->kernel_params[25] = device_param->metal_d_pcfg_cells.buf_ptr;
-      device_param->kernel_params[26] = device_param->metal_d_pcfg_pool.buf_ptr;
-      device_param->kernel_params[27] = device_param->metal_d_pcfg_wmap.buf_ptr;
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++) device_param->kernel_params[26 + i] = device_param->metal_d_pcfg_pool[i].buf_ptr;
+
+      device_param->kernel_params[26 + PCFG_POOL_PARTS] = device_param->metal_d_pcfg_wmap.buf_ptr;
     }
     #endif // __APPLE__
 
@@ -18162,8 +18390,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[23] = &device_param->opencl_d_extra3_buf;
       device_param->kernel_params[24] = &device_param->opencl_d_kernel_param;
       device_param->kernel_params[25] = &device_param->opencl_d_pcfg_cells;
-      device_param->kernel_params[26] = &device_param->opencl_d_pcfg_pool;
-      device_param->kernel_params[27] = &device_param->opencl_d_pcfg_wmap;
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++) device_param->kernel_params[26 + i] = &device_param->opencl_d_pcfg_pool[i];
+
+      device_param->kernel_params[26 + PCFG_POOL_PARTS] = &device_param->opencl_d_pcfg_wmap;
     }
 
     if (user_options->slow_candidates == true)
@@ -19166,6 +19395,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
     u64 size_brain_link_out = 4;
     #endif
 
+    // Every attack allocates the parts of the pcfg pool, because they are kernel arguments whichever
+    // attack runs, so an attack that has no pool still needs an answer here. The device engine
+    // settled its own above, where the kernel was built against it, and that answer is the one to
+    // keep.
+
+    if (user_options_extra->attack_kern != ATTACK_KERN_PCFG)
+    {
+      device_param->size_pcfg_pool_part = size_pcfg_pool;
+      device_param->pcfg_pool_parts     = 1;
+    }
+
     const u64 size_device_extra1234 = size_extra_buffer1 + size_extra_buffer2 + size_extra_buffer3 + size_extra_buffer4;
 
     // Still not 100% sure about the 64MiB here
@@ -19720,7 +19960,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_hooks,         device_param->size_hooks)    == -1) return -1;
 
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_pcfg_cells, size_pcfg_cells) == -1) return -1;
-      if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_pcfg_pool,  size_pcfg_pool)  == -1) return -1;
+
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++)
+      {
+        const u64 sz = pcfg_pool_part_size (device_param, size_pcfg_pool, i);
+
+        if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_pcfg_pool[i], sz) == -1) return -1;
+      }
+
       if (hc_cuMemAlloc (hashcat_ctx, &device_param->cuda_d_pcfg_wmap,  size_pcfg_wmap)  == -1) return -1;
 
       if (run_cuda_kernel_bzero (hashcat_ctx, device_param, device_param->cuda_d_pcfg_cells, size_pcfg_cells) == -1) return -1;
@@ -19728,7 +19975,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
       {
-        if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pcfg_pool, hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool, size_pcfg_pool) == -1) return -1;
+        for (u32 i = 0; i < device_param->pcfg_pool_parts; i++)
+        {
+          const u64 at = (u64) i * device_param->size_pcfg_pool_part;
+          const u64 sz = pcfg_pool_part_size (device_param, size_pcfg_pool, i);
+
+          const u8 *src = ((const u8 *) hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool) + at;
+
+          if (hc_cuMemcpyHtoD (hashcat_ctx, device_param->cuda_d_pcfg_pool[i], src, sz) == -1) return -1;
+        }
       }
     }
 
@@ -19749,7 +20004,14 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_hooks,         device_param->size_hooks)    == -1) return -1;
 
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_pcfg_cells, size_pcfg_cells) == -1) return -1;
-      if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_pcfg_pool,  size_pcfg_pool)  == -1) return -1;
+
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++)
+      {
+        const u64 sz = pcfg_pool_part_size (device_param, size_pcfg_pool, i);
+
+        if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_pcfg_pool[i], sz) == -1) return -1;
+      }
+
       if (hc_hipMemAlloc (hashcat_ctx, &device_param->hip_d_pcfg_wmap,  size_pcfg_wmap)  == -1) return -1;
 
       if (run_hip_kernel_bzero (hashcat_ctx, device_param, device_param->hip_d_pcfg_cells, size_pcfg_cells) == -1) return -1;
@@ -19757,7 +20019,15 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
       {
-        if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pcfg_pool, hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool, size_pcfg_pool) == -1) return -1;
+        for (u32 i = 0; i < device_param->pcfg_pool_parts; i++)
+        {
+          const u64 at = (u64) i * device_param->size_pcfg_pool_part;
+          const u64 sz = pcfg_pool_part_size (device_param, size_pcfg_pool, i);
+
+          const u8 *src = ((const u8 *) hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool) + at;
+
+          if (hc_hipMemcpyHtoD (hashcat_ctx, device_param->hip_d_pcfg_pool[i], src, sz) == -1) return -1;
+        }
       }
     }
 
@@ -19779,7 +20049,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (run_metal_kernel_bzero (hashcat_ctx, device_param, device_param->metal_d_hooks,         device_param->size_hooks)    == -1) return -1;
 
       HC_MTL_CREATEBUFFER(hashcat_ctx, size_pcfg_cells, NULL, pcfg_cells);
-      HC_MTL_CREATEBUFFER(hashcat_ctx, size_pcfg_pool,  NULL, pcfg_pool);
+
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++)
+      {
+        const u64 sz = pcfg_pool_part_size (device_param, size_pcfg_pool, i);
+
+        void *host = pcfg_pool_part_host (hashcat_ctx, device_param, i);
+
+        if (hc_mtlCreateBuffer (hashcat_ctx, device_param->metal_device, sz, host, &device_param->metal_d_pcfg_pool[i], metal_d_pcfg_pool_storageMode) == -1) return -1;
+      }
+
       HC_MTL_CREATEBUFFER(hashcat_ctx, size_pcfg_wmap,  NULL, pcfg_wmap);
 
       if (run_metal_kernel_bzero (hashcat_ctx, device_param, device_param->metal_d_pcfg_cells, size_pcfg_cells) == -1) return -1;
@@ -19787,7 +20066,20 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
 
       if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
       {
-        if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pcfg_pool, 0, hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool, size_pcfg_pool) == -1) return -1;
+        for (u32 i = 0; i < device_param->pcfg_pool_parts; i++)
+        {
+          // Where the buffer took the pointer there is nothing to send, and where it did not the
+          // bytes still have to get there. The buffer says which, so neither is assumed.
+
+          if (device_param->metal_d_pcfg_pool[i].buf_host == 1) continue;
+
+          const u64 at = (u64) i * device_param->size_pcfg_pool_part;
+          const u64 sz = pcfg_pool_part_size (device_param, size_pcfg_pool, i);
+
+          const u8 *src = ((const u8 *) hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool) + at;
+
+          if (hc_mtlMemcpyHtoD (hashcat_ctx, device_param->metal_device, device_param->metal_command_queue, device_param->metal_d_pcfg_pool[i], 0, src, sz) == -1) return -1;
+        }
       }
     }
     #endif
@@ -19799,7 +20091,16 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       HC_OCL_CREATEBUFFER(hashcat_ctx, size_pws_comp, NULL, pws_comp_buf);
       HC_OCL_CREATEBUFFER(hashcat_ctx, size_pws_idx,  NULL, pws_idx);
       HC_OCL_CREATEBUFFER(hashcat_ctx, size_pcfg_cells, NULL, pcfg_cells);
-      HC_OCL_CREATEBUFFER(hashcat_ctx, size_pcfg_pool,  NULL, pcfg_pool);
+
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++)
+      {
+        const u64 sz = pcfg_pool_part_size (device_param, size_pcfg_pool, i);
+
+        void *host = pcfg_pool_part_host (hashcat_ctx, device_param, i);
+
+        if (hc_clCreateBuffer_ext (hashcat_ctx, device_param->opencl_context, openclMemoryFlags[opencl_d_pcfg_pool_memoryFlags], sz, host, &device_param->opencl_d_pcfg_pool[i]) == -1) return -1;
+      }
+
       HC_OCL_CREATEBUFFER(hashcat_ctx, size_pcfg_wmap,  NULL, pcfg_wmap);
       HC_OCL_CREATEBUFFER(hashcat_ctx, size_tmps,     NULL, tmps);
       HC_OCL_CREATEBUFFER(hashcat_ctx, size_hooks,    NULL, hooks);
@@ -19811,9 +20112,17 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_pcfg_cells, size_pcfg_cells) == -1) return -1;
       if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_pcfg_wmap, size_pcfg_wmap) == -1) return -1;
 
-      if (user_options_extra->attack_kern == ATTACK_KERN_PCFG)
+      if ((user_options_extra->attack_kern == ATTACK_KERN_PCFG) && (pcfg_pool_shared (device_param) == false))
       {
-        if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pcfg_pool, CL_TRUE, 0, size_pcfg_pool, hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool, 0, NULL, NULL) == -1) return -1;
+        for (u32 i = 0; i < device_param->pcfg_pool_parts; i++)
+        {
+          const u64 at = (u64) i * device_param->size_pcfg_pool_part;
+          const u64 sz = pcfg_pool_part_size (device_param, size_pcfg_pool, i);
+
+          const u8 *src = ((const u8 *) hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE].dev_pool) + at;
+
+          if (hc_clEnqueueWriteBuffer (hashcat_ctx, device_param->opencl_command_queue, device_param->opencl_d_pcfg_pool[i], CL_TRUE, 0, sz, src, 0, NULL, NULL) == -1) return -1;
+        }
       }
       if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_tmps,          device_param->size_tmps)     == -1) return -1;
       if (run_opencl_kernel_bzero (hashcat_ctx, device_param, device_param->opencl_d_hooks,         device_param->size_hooks)    == -1) return -1;
@@ -19908,8 +20217,9 @@ int backend_session_begin (hashcat_ctx_t *hashcat_ctx)
       device_param->kernel_params[ 5] = device_param->metal_d_hooks.buf_ptr;
 
       device_param->kernel_params[25] = device_param->metal_d_pcfg_cells.buf_ptr;
-      device_param->kernel_params[26] = device_param->metal_d_pcfg_pool.buf_ptr;
-      device_param->kernel_params[27] = device_param->metal_d_pcfg_wmap.buf_ptr;
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++) device_param->kernel_params[26 + i] = device_param->metal_d_pcfg_pool[i].buf_ptr;
+
+      device_param->kernel_params[26 + PCFG_POOL_PARTS] = device_param->metal_d_pcfg_wmap.buf_ptr;
     }
     #endif
 
@@ -20211,7 +20521,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_buf);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_amp_buf);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pcfg_cells);
-      hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pcfg_pool);
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++) hc_cuMemFreePtr (hashcat_ctx, &device_param->cuda_d_pcfg_pool[i]);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pcfg_wmap);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_comp_buf);
       hc_cuMemFreePtr           (hashcat_ctx, &device_param->cuda_d_pws_idx);
@@ -20305,7 +20615,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pws_buf);
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pws_amp_buf);
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pcfg_cells);
-      hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pcfg_pool);
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++) hc_hipMemFreePtr (hashcat_ctx, &device_param->hip_d_pcfg_pool[i]);
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pcfg_wmap);
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pws_comp_buf);
       hc_hipMemFreePtr          (hashcat_ctx, &device_param->hip_d_pws_idx);
@@ -20390,7 +20700,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pws_buf);
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pws_amp_buf);
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pcfg_cells);
-      hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pcfg_pool);
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++) hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pcfg_pool[i]);
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pcfg_wmap);
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pws_comp_buf);
       hc_mtlReleaseMemObject (hashcat_ctx, &device_param->metal_d_pws_idx);
@@ -20472,7 +20782,7 @@ void backend_session_destroy (hashcat_ctx_t *hashcat_ctx)
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pws_buf);
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pws_amp_buf);
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pcfg_cells);
-      hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pcfg_pool);
+      for (u32 i = 0; i < PCFG_POOL_PARTS; i++) hc_clReleaseMemObjectPtr (hashcat_ctx, &device_param->opencl_d_pcfg_pool[i]);
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pcfg_wmap);
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pws_comp_buf);
       hc_clReleaseMemObjectPtr  (hashcat_ctx, &device_param->opencl_d_pws_idx);

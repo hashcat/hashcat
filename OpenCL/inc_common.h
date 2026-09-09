@@ -99,10 +99,16 @@
 #define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, void),  \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     void, void, e),     \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   GLOBAL_AS   const bf_t      *g_bfs_buf,     t,    void, e)
@@ -119,10 +125,16 @@
 #define _KERN_ATTR_PCFG()                  KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, void),  \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_PCFG_ESALT(e)           KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       void, void, e),     \
   MAYBE_UNUSED GLOBAL_AS const pcfg_cell_t *pcfg_cells,                                                                            \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool,                                                                            \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool1,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool2,                                                                           \
+  MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_pool3,                                                                           \
   MAYBE_UNUSED GLOBAL_AS const u32          *pcfg_wmap
 #define _KERN_ATTR_TMPS(t)                 KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, void)
 #define _KERN_ATTR_TMPS_ESALT(t,e)         KERN_ATTR (GLOBAL_AS,   CONSTANT_AS const bf_t      *bfs_buf,       t,    void, e)

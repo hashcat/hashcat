@@ -27,6 +27,12 @@ typedef struct mtl_mem
 
   unsigned int buf_mode;
 
+  // Whether the buffer reads the caller's own bytes or a copy of them. A host pointer is only taken
+  // on a Shared buffer, and the mode asked for is not always the mode given, so a caller that hands
+  // one over reads this afterwards rather than working out beforehand which it would be.
+
+  unsigned int buf_host;
+
 } mtl_mem_t;
 
 typedef enum metalResourceStorageMode
