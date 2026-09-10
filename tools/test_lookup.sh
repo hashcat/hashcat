@@ -5,27 +5,39 @@
 ## License.....: MIT
 ##
 
-# Tests --lookup for -a 0, with and without rules:
+# Tests --lookup for every attack mode that answers it: -a 0, -a 1, -a 3, -a 6 and -a 7.
 #
 #   tools/test_lookup.sh            # the checks that need no device
 #   tools/test_lookup.sh --crack    # and the ones that crack a hash
 #   tools/test_lookup.sh --help
 #
-# --lookup opens no device and reads no hashes, so everything except --crack
-# runs on a machine with no backend at all and is cheap enough for CI.
+# --lookup opens no device and reads no hashes, so everything except --crack runs on a machine with
+# no backend at all and is cheap enough for CI.
 #
-# The oracle is --stdout. It is the run's own candidate generator, so the Nth
-# line it writes is the Nth candidate the run tries, and for -a 0 with R rules
-# the candidate on line L comes from base word (L - 1) / R under rule
-# (L - 1) % R. --lookup has to name that word and that rule, for the FIRST line
-# equal to the candidate, since that is the first time the run tries it. The two
-# sides share no code: --stdout walks forwards through the dispatcher and the
-# kernel rule engine, --lookup searches the feed on its own.
+# The oracle is --stdout, and the two sides share no code: --lookup inverts the attack's arithmetic
+# to rank one candidate, --stdout walks the dispatcher and the kernels forwards to emit all of them.
 #
-# --crack adds the end to end check the oracle cannot make: that the offset
-# --lookup reports is one a real attack cracks the hash at, that the word before
-# it does not, and that --debug-mode names the same word and the same rule. It
-# needs a working backend, so pass anything that run needs through HC_OPTS:
+# What makes them comparable is that every report names the window its answer sits in:
+#
+#   lookup: -s 209 -l 1 runs the one cell of 676 candidates that holds it, where it is number 80
+#
+# So a check replays exactly that window. Run --stdout on the same attack with "-s 209 -l 1" and it
+# has to emit 676 candidates with the one asked about at position 80. That costs one cell rather than
+# a walk of the keyspace, it needs no arithmetic of the test's own, and it reads the same for every
+# mode. The window before it is replayed too and must NOT hold the candidate, which is what makes the
+# reported offset the first the run reaches rather than merely one that works.
+#
+# Two things --stdout cannot mirror, both handled where they come up:
+#
+#   - it forces -m 2000, and the hash mode feeds pw_max and the uppercase, UTF-16 and appended-salt
+#     options, which feed the -a 3 base word split and so the size of a cell. Every replayed check
+#     passes -m 2000 to --lookup as well, so both sides size the cell the same way.
+#   - it refuses -S, so the one branch of the -a 3 report that counts -s in candidates cannot be
+#     replayed. Its wording is checked instead.
+#
+# --crack adds the end to end check the oracle cannot make: that the offset --lookup reports is one a
+# real attack cracks the hash at, and that the offset before it is not. It needs a working backend,
+# so pass anything that run needs through HC_OPTS:
 #
 #   HC_OPTS="-D 1 --force" tools/test_lookup.sh --crack
 
@@ -36,12 +48,6 @@ ROOT="$( cd "${TDIR}/.." && pwd )"
 
 HC="${ROOT}/hashcat"
 DICT="${ROOT}/example.dict"
-RULES="${ROOT}/rules/best66.rule"
-
-# How much of example.dict the oracle runs on. The whole file would make the
-# oracle stream 8.5 million lines for no more coverage; this still puts the
-# answers thousands of words deep.
-DICT_LINES=20000
 
 CRACK=0
 HC_OPTS="${HC_OPTS:-}"
@@ -50,7 +56,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -c|--crack) CRACK=1 ;;
     -h|--help)
-      sed -n '8,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '8,42p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -61,7 +67,7 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-for f in "${HC}" "${DICT}" "${RULES}"; do
+for f in "${HC}" "${DICT}"; do
   if [ ! -r "${f}" ]; then
     echo "ERROR: cannot read ${f}"
     [ "${f}" = "${HC}" ] && echo "Run make first, this tests the hashcat in the repo root."
@@ -78,8 +84,8 @@ cleanup ()
 
 trap cleanup EXIT INT
 
-# A seekdb path of its own, a potfile and a logfile it does not write: a test
-# leaves nothing in the tree it ran from.
+# A seekdb path of its own, a potfile and a logfile it does not write: a test leaves nothing in the
+# tree it ran from.
 COMMON=( --potfile-disable --logfile-disable --seekdb-path="${WORK}/seekdb" )
 
 mkdir -p "${WORK}/seekdb"
@@ -87,15 +93,30 @@ mkdir -p "${WORK}/seekdb"
 PASS=0
 FAIL=0
 
-# Every check goes through these, so a failure says what was run, what was
-# expected of it and what came back instead.
+##
+## every check reports through these
+##
 
 LAST_CMD=""
 LAST_OUT=""
 
-run_lookup ()
+fail_out ()
 {
-  LAST_CMD="hashcat --lookup=$*"
+  local label="$1" want="$2"
+
+  FAIL=$((FAIL + 1))
+
+  echo "FAIL: ${label}"
+  echo "  ran     : ${LAST_CMD}"
+  echo "  expected: ${want}"
+  echo "  got     :"
+  printf '%s\n' "${LAST_OUT}" | sed 's/^/    /'
+  echo ""
+}
+
+lookup ()
+{
+  LAST_CMD="hashcat --lookup=$1 ${*:2}"
   LAST_OUT="$( "${HC}" --lookup="$1" "${COMMON[@]}" "${@:2}" 2>&1 )"
 }
 
@@ -108,14 +129,7 @@ check_has ()
     return 0
   fi
 
-  FAIL=$((FAIL + 1))
-
-  echo "FAIL: ${label}"
-  echo "  ran     : ${LAST_CMD}"
-  echo "  expected: a line holding '${needle}'"
-  echo "  got     :"
-  printf '%s\n' "${LAST_OUT}" | sed 's/^/    /'
-  echo ""
+  fail_out "${label}" "a line holding '${needle}'"
 
   return 1
 }
@@ -129,20 +143,10 @@ check_not ()
     return 0
   fi
 
-  FAIL=$((FAIL + 1))
-
-  echo "FAIL: ${label}"
-  echo "  ran     : ${LAST_CMD}"
-  echo "  expected: no line holding '${needle}'"
-  echo "  got     :"
-  printf '%s\n' "${LAST_OUT}" | sed 's/^/    /'
-  echo ""
+  fail_out "${label}" "no line holding '${needle}'"
 
   return 1
 }
-
-# The same two against an extended regular expression, for the checks that need
-# to anchor rather than match anywhere on the line.
 
 check_re ()
 {
@@ -153,23 +157,16 @@ check_re ()
     return 0
   fi
 
-  FAIL=$((FAIL + 1))
-
-  echo "FAIL: ${label}"
-  echo "  ran     : ${LAST_CMD}"
-  echo "  expected: a line matching /${pattern}/"
-  echo "  got     :"
-  printf '%s\n' "${LAST_OUT}" | sed 's/^/    /'
-  echo ""
+  fail_out "${label}" "a line matching /${pattern}/"
 
   return 1
 }
 
-check_re_not ()
+check_eq ()
 {
-  local label="$1" pattern="$2"
+  local label="$1" want="$2" got="$3"
 
-  if ! printf '%s\n' "${LAST_OUT}" | grep -qE -e "${pattern}"; then
+  if [ "${want}" = "${got}" ]; then
     PASS=$((PASS + 1))
     return 0
   fi
@@ -178,9 +175,8 @@ check_re_not ()
 
   echo "FAIL: ${label}"
   echo "  ran     : ${LAST_CMD}"
-  echo "  expected: no line matching /${pattern}/"
-  echo "  got     :"
-  printf '%s\n' "${LAST_OUT}" | sed 's/^/    /'
+  echo "  expected: ${want}"
+  echo "  got     : ${got}"
   echo ""
 
   return 1
@@ -192,273 +188,255 @@ note ()
 }
 
 ##
-## fixtures
-##
-
-# Real words at a real depth, for the oracle.
-head -n "${DICT_LINES}" "${DICT}" > "${WORK}/dict.txt"
-
-# Small and hand held, for the checks that are about what the report says rather
-# than about where it points. The duplicate is there for the without-rules path,
-# which counts repeats; the last word only differs from the first by case.
-printf 'alpha\nbravo\ncharlie\nalpha\nDelta\n' > "${WORK}/small.txt"
-
-# One rule per behaviour: keep the word, append, upper case, substitute, and one
-# built of several commands so the reported rule text has to hold all of them.
-printf ':\n$1\nu\nsa@\nc $2 $0 $2 $5\n' > "${WORK}/five.rule"
-
-printf '$9\n' > "${WORK}/one.rule"
-
-# Two rule files, to be stacked into a set neither of them holds.
-printf '$a\n$b\n' > "${WORK}/left.rule"
-printf 'u\nc\n'   > "${WORK}/right.rule"
-
-# A word no shell can pass and no terminal should be handed, so that both ends of
-# the $HEX[...] spelling are covered: the candidate goes in as one and the base
-# word comes back as one.
-printf 'a\x01b\nplain\n' > "${WORK}/binary.txt"
-
-# Several dictionaries laid end to end, which is the case where an index has to
-# name the file it landed in.
-mkdir -p "${WORK}/dir"
-printf 'one\ntwo\n'   > "${WORK}/dir/d1.txt"
-printf 'three\nfour\n' > "${WORK}/dir/d2.txt"
-
-##
 ## the oracle
 ##
 
-# Build the candidate stream of a run once, and answer every question about that
-# run from the file.
+# Replay the window a report names, and check the report against what comes out of it.
+#
+# Takes the candidate and then the attack, exactly as it would be typed after --lookup. Both sides
+# are given -m 2000, because --stdout forces that hash mode and the hash mode decides how a -a 3 base
+# word is split, which decides the size of the cell the two are comparing.
 
-STREAM=""
-STREAM_R=0
-
-build_stream ()
+replay ()
 {
-  local words="$1"; shift
+  local cand="$1"; shift
 
-  STREAM="${WORK}/stream.txt"
+  local label="-a ${2} '${cand}'"
 
-  "${HC}" --stdout "${COMMON[@]}" "$@" > "${STREAM}" 2>/dev/null
+  lookup "${cand}" -m 2000 "$@"
 
-  local lines
-  lines="$( wc -l < "${STREAM}" )"
+  # What the report says: the offset, the size of the cell it sits in, and where in that cell it is.
+  # Not every mode prints a cell. -a 0 has none, because one base word is one candidate there.
 
-  STREAM_R=$((lines / words))
+  local off cell pos
 
-  # The whole oracle rests on the run producing exactly R candidates for every
-  # base word, so it is checked rather than assumed. A length filter that drops
-  # a word, or a mode that adds one, breaks the arithmetic below and this says so
-  # instead of letting the checks assert against nonsense.
-  if [ $((STREAM_R * words)) -ne "${lines}" ]; then
-    echo "FAIL: the oracle stream is ${lines} lines, which is not a whole number of rules per word over ${words} words"
-    FAIL=$((FAIL + 1))
+  off="$(  printf '%s\n' "${LAST_OUT}" | sed -n 's/^lookup: this run reaches it at -s \([0-9]*\),.*/\1/p' )"
+  cell="$( printf '%s\n' "${LAST_OUT}" | sed -n 's/^lookup: -s [0-9]* -l 1 runs the one cell of \([0-9]*\) candidates.*/\1/p' )"
+  pos="$(  printf '%s\n' "${LAST_OUT}" | sed -n 's/^lookup: -s [0-9]* -l 1 runs the one cell of [0-9]* candidates that holds it, where it is number \([0-9]*\)$/\1/p' )"
+
+  if [ -z "${off}" ]; then
+    fail_out "${label}: an offset is reported" "a \"reaches it at -s N\" line"
+
     return 1
   fi
 
-  return 0
-}
+  # The window itself, from the run's own candidate generator.
 
-# The word and rule the stream says a candidate comes from, from the FIRST line
-# equal to it. Sets ORACLE_WORD and ORACLE_RULE.
+  local win="${WORK}/window.txt"
 
-ORACLE_WORD=0
-ORACLE_RULE=0
+  "${HC}" --stdout "${COMMON[@]}" "$@" -s "${off}" -l 1 > "${win}" 2>/dev/null
 
-oracle ()
-{
-  local cand="$1" line
+  LAST_CMD="hashcat --stdout ${*} -s ${off} -l 1"
+  LAST_OUT="$( printf 'the window holds %s candidates:\n' "$( wc -l < "${win}" )"; head -c 2000 "${win}" )"
 
-  line="$( grep -n -x -F -m1 -e "${cand}" "${STREAM}" | cut -d: -f1 )"
+  # Where the candidate actually is in it. grep counts from 1 and so does the report.
 
-  if [ -z "${line}" ]; then
-    echo "FAIL: the oracle stream does not hold '${cand}' at all"
-    FAIL=$((FAIL + 1))
-    return 1
+  local at
+  at="$( grep -n -x -F -m1 -e "${cand}" "${win}" | cut -d: -f1 )"
+
+  check_eq "${label}: the window holds it where the report says" "${pos:-1}" "${at:-absent}"
+
+  if [ -n "${cell}" ]; then
+    check_eq "${label}: the window is the size the report gives" "${cell}" "$( wc -l < "${win}" )"
   fi
 
-  ORACLE_WORD=$(( (line - 1) / STREAM_R ))
-  ORACLE_RULE=$(( (line - 1) % STREAM_R ))
+  # The window before it must not hold it, or the offset is not the first the run reaches it at.
 
-  return 0
+  if [ "${off}" -gt 0 ]; then
+    "${HC}" --stdout "${COMMON[@]}" "$@" -s $((off - 1)) -l 1 > "${win}" 2>/dev/null
+
+    LAST_CMD="hashcat --stdout ${*} -s $((off - 1)) -l 1"
+    LAST_OUT="$( head -c 2000 "${win}" )"
+
+    if grep -q -x -F -e "${cand}" "${win}"; then
+      fail_out "${label}: the window before it does not hold it" "'${cand}' absent from -s $((off - 1))"
+    else
+      PASS=$((PASS + 1))
+    fi
+  fi
 }
 
 ##
-## checks
+## fixtures
 ##
 
-note "the --stdout oracle, ${DICT_LINES} words of example.dict with $( basename "${RULES}" )"
+printf 'alpha\nbravo\ncharlie\n' > "${WORK}/w1.txt"
+printf 'one\ntwo\n'              > "${WORK}/w2.txt"
 
-if build_stream "${DICT_LINES}" -a 0 "${WORK}/dict.txt" -r "${RULES}"; then
+# Two dictionaries laid end to end, which is the case where an index has to name the file it landed
+# in rather than only its number.
+mkdir -p "${WORK}/dir"
+printf 'alpha\nbravo\n'   > "${WORK}/dir/d1.txt"
+printf 'charlie\ndelta\n' > "${WORK}/dir/d2.txt"
 
-  # Spread through the stream: the first two candidates, the last rule of the
-  # first word and the first of the second, one a few hundred words in, the
-  # middle of the run and its very last candidate.
-  STREAM_LINES=$(( DICT_LINES * STREAM_R ))
+# A word no shell can pass, for the $HEX[...] spelling on the way in.
+printf 'a\x01b\nplain\n' > "${WORK}/binary.txt"
 
-  for probe in 1 2 "${STREAM_R}" $((STREAM_R + 1)) 40000 $((STREAM_LINES / 2)) "${STREAM_LINES}"; do
+printf '$1\n' > "${WORK}/one.rule"
 
-    cand="$( sed -n "${probe}p" "${STREAM}" )"
+##
+## -a 3
+##
 
-    # Nothing here should produce one, but a candidate that is empty, that a
-    # length ceiling could have cut, or that holds a byte the shell cannot carry
-    # would be testing the harness rather than hashcat.
-    [ -z "${cand}" ]        && continue
-    [ "${#cand}" -ge 31 ]   && continue
+note "-a 3, a mask on its own"
 
-    case "${cand}" in *[![:print:]]*) continue ;; esac
+replay merche -a 3 '?l?l?l?l?l?l'
 
-    oracle "${cand}" || continue
+lookup merche -m 2000 -a 3 '?l?l?l?l?l?l'
+check_has "-a 3 names the mask that reaches it" "lookup: mask ?l?l?l?l?l?l reaches it"
+check_has "-a 3 counts -s in base words"        "because -a 3 counts -s in base words"
+check_re  "-a 3 gives a percentage"             "^lookup: base word [0-9]+ of [0-9]+, [0-9]+\.[0-9]{4}% into the run$"
 
-    run_lookup "${cand}" -a 0 "${WORK}/dict.txt" -r "${RULES}"
+note "-a 3, a queue of masks from --increment"
 
-    check_has "line ${probe}: '${cand}' is word ${ORACLE_WORD}"  "lookup: word ${ORACLE_WORD} of ${DICT_LINES}"
-    check_has "line ${probe}: '${cand}' is rule ${ORACLE_RULE}"  "and rule ${ORACLE_RULE} of ${STREAM_R} is what makes the candidate out of it"
-    check_has "line ${probe}: '${cand}' is reached at -s ${ORACLE_WORD}" "this run reaches it at -s ${ORACLE_WORD},"
-  done
-fi
+replay ab7 -a 3 '?l?l?d' -i --increment-min 2
 
-note "the same, with -O, which runs the other rule engine"
+lookup ab7 -m 2000 -a 3 '?l?l?d' -i --increment-min 2
+check_has "-a 3 names the round in a queue"     "lookup: round 2 of 2, mask ?l?l?d, reaches it"
 
-if build_stream "${DICT_LINES}" -a 0 "${WORK}/dict.txt" -r "${RULES}" -O; then
+# The first round holds candidates too, and its offsets are the low end of the same numbering.
+replay ab -a 3 '?l?l?d' -i --increment-min 2
 
-  STREAM_LINES=$(( DICT_LINES * STREAM_R ))
+note "-a 3, the three ways a mask can miss"
 
-  for probe in 1 "${STREAM_R}" 40000 $((STREAM_LINES / 2)); do
+lookup toolongforthismask -m 2000 -a 3 '?l?l?l'
+check_has "a candidate longer than every mask"  "no mask in this run is that many characters long"
+check_has "a length miss is still a miss"       "lookup: nothing in this run produces it"
 
-    cand="$( sed -n "${probe}p" "${STREAM}" )"
+lookup ABC -m 2000 -a 3 '?l?l?l'
+check_has "a byte the mask does not allow"      "mask ?l?l?l gets furthest: position 1 wants 'A' and that mask does not allow it there"
 
-    [ -z "${cand}" ]      && continue
-    [ "${#cand}" -ge 31 ] && continue
+lookup merche -m 2000 -a 3 '?l?l?l?l?l?l' -t 5
+check_has "a byte --markov-threshold dropped"   "which the mask allows and --markov-threshold 5 dropped from the table"
+check_has "and how to reach it after all"       "raise -t, or drop it, and that mask reaches it"
 
-    case "${cand}" in *[![:print:]]*) continue ;; esac
+note "-a 3, what the hash mode does to the question"
 
-    oracle "${cand}" || continue
+# A mode that hashes in upper case has had every charset folded, so a lower case candidate has to be
+# folded to match rather than reported as unreachable.
+lookup abc -m 3000 -a 3 '?l?l?l'
+check_has "an upper case mode folds the candidate" "this mode hashes in upper case, so every candidate in the run is, and this one was folded to match"
+check_has "and then reaches it"                    "reaches it"
 
-    run_lookup "${cand}" -a 0 "${WORK}/dict.txt" -r "${RULES}" -O
+# A mask outside the mode's password length is not part of the run at all.
+lookup ABCDEFGH -m 3000 -a 3 '?u?u?u?u?u?u?u?u?u?u'
+check_has "masks outside the length are counted out" "mask(s) were passed over for being outside this mode's password length"
 
-    check_has "-O line ${probe}: '${cand}' is word ${ORACLE_WORD}" "lookup: word ${ORACLE_WORD} of ${DICT_LINES}"
-    check_has "-O line ${probe}: '${cand}' is rule ${ORACLE_RULE}" "and rule ${ORACLE_RULE} of ${STREAM_R} is what makes the candidate out of it"
-  done
-fi
+note "-a 3, -S counts -s in candidates"
 
-note "what the report says"
+# --stdout refuses -S ("Slow candidates (-S) is not allowed in stdout mode"), so this is the one
+# offset in the suite that cannot be replayed. The wording is what is checked.
+lookup merche -m 2000 -a 3 '?l?l?l?l?l?l' -S
+check_has "-S is answered in candidates"        "because -S counts -s in candidates"
+check_has "-S runs one candidate per offset"    "-l 1 runs the one candidate"
+check_not "-S has no cell to report"            "runs the one cell of"
 
-# The rule that makes the candidate is named by its text, not only by its number,
-# and the text has to survive a rule of several commands.
-run_lookup "Alpha2025" -a 0 "${WORK}/small.txt" -r "${WORK}/five.rule"
-check_has "a multi command rule is spelled out" "rule 4 of 5 is what makes the candidate out of it: c \$2 \$0 \$2 \$5"
-check_has "the base word is named"              "that word is 'alpha'"
-check_has "the word index is the first alpha"   "lookup: word 0 of 5"
+note "-a 3, the window given on the command line"
 
-# The fourth word is 'alpha' again, so a candidate only that copy could make does
-# not exist. What this checks is that the search reports the FIRST word that
-# makes the candidate and not the last.
-run_lookup "alpha1" -a 0 "${WORK}/small.txt" -r "${WORK}/five.rule"
-check_has "a repeated word answers with its first copy" "lookup: word 0 of 5"
+lookup merche -m 2000 -a 3 '?l?l?l?l?l?l' -s 209 -l 1
+check_has "a window that covers the answer"     "the -s 209 -l 1 window given here covers it"
 
-# A rule set of one is a rule set, and reads as one.
-run_lookup "bravo9" -a 0 "${WORK}/small.txt" -r "${WORK}/one.rule"
-check_has "one rule is named as one rule"       "rule 0 of 1 is what makes the candidate out of it: \$9"
-check_has "one rule is not counted as 'all 1'"  "with the one rule applied to it"
+lookup merche -m 2000 -a 3 '?l?l?l?l?l?l' -s 0 -l 10
+check_has "a window that misses the answer"     "the -s 0 -l 10 window given here does not cover it"
 
-# Two -r files are one rule set of their product, and no rule in either file
-# makes this on its own.
-run_lookup "ALPHAB" -a 0 "${WORK}/small.txt" -r "${WORK}/left.rule" -r "${WORK}/right.rule"
-check_has "stacked rules are one set of 4"    "of 4 is what makes the candidate out of it"
-check_has "stacked rules report the stack"    "\$b u"
+##
+## -a 1, -a 6 and -a 7
+##
+## All three are rewritten to -a 12 before the report runs and share combi_ctx_lookup_report (), so
+## this is one code path reached three ways. Each way is still worth its own check, because what
+## differs is the mask built for it and which side the base word comes from.
+##
 
-note "a miss with rules is a proof"
+note "-a 1, wordlist plus wordlist"
 
-run_lookup "ZZnotpresentZZ" -a 0 "${WORK}/small.txt" -r "${WORK}/five.rule"
-check_has "a miss with rules is stated as one" "nothing in this run produces it. every one of the 5 words was tried with all 5 rules and none of them makes it"
-check_not "a miss with rules no longer hedges" "NOT checked"
-check_not "a miss with rules is not called unprovable" "not a proof"
+replay bravotwo -a 1 "${WORK}/w1.txt" "${WORK}/w2.txt"
 
-# The word itself is in the list, but no rule leaves it as it is, so the run
-# never tries it. This is the case the word-only search used to answer wrongly.
-run_lookup "charlie" -a 0 "${WORK}/small.txt" -r "${WORK}/one.rule"
-check_has "a word no rule leaves alone is a miss" "nothing in this run produces it"
+lookup bravotwo -m 2000 -a 1 "${WORK}/w1.txt" "${WORK}/w2.txt"
+check_has "-a 1 says where it cut the candidate" "cut as 5 bytes of the first wordlist and 3 of the second"
+check_has "-a 1 counts -s in base words"         "because it counts -s in base words"
 
-note "without rules, unchanged"
+# The wording here is the one combi_ctx_lookup_report () actually reaches for -a 1, not the one that
+# reads as if written for it. lookup->has_q is only assigned on the hit path, so a miss always takes
+# the branch that speaks of a mask. Pinned as observed rather than as it ought to read.
+lookup nosuchthing -m 2000 -a 1 "${WORK}/w1.txt" "${WORK}/w2.txt"
+check_has "-a 1 misses when no cut works"        "no way of cutting it leaves a word this wordlist holds and a mask value beside it"
 
-run_lookup "charlie" -a 0 "${WORK}/small.txt"
-check_has "a word with no rules is found"     "lookup: word 2 of 5"
-check_not "a word with no rules names no rule" "is what makes the candidate out of it"
+note "-a 6, wordlist plus mask"
 
-run_lookup "alpha" -a 0 "${WORK}/small.txt"
-check_has "a repeated word is counted"        "it is in this wordlist 1 more times"
+replay bravo42 -a 6 "${WORK}/w1.txt" '?d?d'
 
-run_lookup "ZZnotpresentZZ" -a 0 "${WORK}/small.txt"
-check_has "a miss with no rules is a proof"   "the wordlist does not hold it, and without rules the wordlist is the whole attack"
+lookup bravo42 -m 2000 -a 6 "${WORK}/w1.txt" '?d?d'
+check_has "-a 6 says where it cut the candidate" "cut as 5 bytes of the wordlist and the rest from the mask"
 
-note "candidates and words no shell can pass"
+lookup zzzzz42 -m 2000 -a 6 "${WORK}/w1.txt" '?d?d'
+check_has "-a 6 misses on the wordlist half"     "no way of cutting it leaves a word this wordlist holds and a mask value beside it"
 
-# In as $HEX[...], because the candidate holds a byte a command line cannot. The
-# bytes are a\x01b with a 1 appended, which is what the second of the five rules
-# makes of the first word.
-run_lookup '$HEX[61016231]' -a 0 "${WORK}/binary.txt" -r "${WORK}/five.rule"
-check_has "a \$HEX[] candidate is accepted"   "lookup: word 0 of 2"
-check_has "a \$HEX[] candidate names its rule" "rule 1 of 5 is what makes the candidate out of it: \$1"
+note "-a 7, mask plus wordlist"
 
-# And back out as $HEX[...], because the base word does too.
-printf '$z\n' > "${WORK}/z.rule"
-run_lookup '$HEX[6101627a]' -a 0 "${WORK}/binary.txt" -r "${WORK}/z.rule"
-check_has "a base word that needs hex is written as hex" "that word is '\$HEX[610162]'"
+replay 42bravo -a 7 '?d?d' "${WORK}/w1.txt"
 
-note "several dictionaries"
+lookup 42bravo -m 2000 -a 7 '?d?d' "${WORK}/w1.txt"
+check_has "-a 7 says which side is the base word" "cut as 2 bytes of the mask and 5 of the wordlist, and the mask is the base word here"
 
-run_lookup "four9" -a 0 "${WORK}/dir" -r "${WORK}/one.rule"
-check_has "an index in a folder names its file" "of 4, in ${WORK}/dir/d2.txt"
-check_has "an index in a folder is global"      "lookup: word 3 of 4"
+note "-a 6, several dictionaries laid end to end"
 
-note "the window, and where the answer sits in the run"
+replay charlie42 -a 6 "${WORK}/dir" '?d?d'
 
-run_lookup "four9" -a 0 "${WORK}/dir" -r "${WORK}/one.rule" -s 3 -l 1
-check_has "a window that covers the answer says so"     "the -s 3 -l 1 window given here covers it"
+lookup charlie42 -m 2000 -a 6 "${WORK}/dir" '?d?d'
+check_has "an index in a folder names its file"  ", in ${WORK}/dir/d2.txt,"
+check_has "an index in a folder is global"       "lookup: base word 2 of 4"
 
-run_lookup "four9" -a 0 "${WORK}/dir" -r "${WORK}/one.rule" -s 0 -l 2
-check_has "a window that misses the answer says so"     "the -s 0 -l 2 window given here does not cover it"
+note "-a 6, a queue of masks"
 
-run_lookup "four9" -a 0 "${WORK}/dir" -r "${WORK}/one.rule"
-check_has "the answer is given as a fraction of the run" "75.0000% into the run"
+replay bravo7 -a 6 "${WORK}/w1.txt" '?d?d' -i --increment-min 1
 
-note "generated rules"
+lookup bravo7 -m 2000 -a 6 "${WORK}/w1.txt" '?d?d' -i --increment-min 1
+check_re  "-a 6 names the round in a queue"      "^lookup: round 1 of 2, mask \?d, reaches it$"
 
-# -g leaves a slot empty where a rule it made did not convert, and an empty slot
-# is a rule that changes nothing. Whatever it lands on, the report must name a
-# word and a rule and must not print a rule as a blank.
-run_lookup "alpha" -a 0 "${WORK}/small.txt" -g 20 --generate-rules-seed 1
-check_has "-g answers with a word"       "lookup: word 0 of 5"
-check_has "-g answers with a rule"       "of 20 is what makes the candidate out of it"
-check_re_not "-g never prints a blank rule" "out of it: *$"
+##
+## -a 0
+##
 
-note "a word longer than the rule engine can hold"
+note "-a 0, the wordlist is the whole attack"
 
-# 35 bytes, which is past what -O keeps a candidate in.
-printf 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n' > "${WORK}/long.txt"
-printf ':\n'   > "${WORK}/noop.rule"
-printf '$1\n' > "${WORK}/append.rule"
+replay merche03 -a 0 "${DICT}"
 
-# What the run does with it, established rather than assumed: -O rejects a base
-# word that long before any rule touches it, so the run produces nothing at all
-# from this wordlist.
-produced="$( "${HC}" --stdout "${COMMON[@]}" -a 0 "${WORK}/long.txt" -r "${WORK}/noop.rule" -O 2>/dev/null | wc -l )"
+lookup merche03 -m 2000 -a 0 "${DICT}"
+check_has "-a 0 counts -s in words"              "because -a 0 counts -s in words"
+check_has "-a 0 runs one word per offset"        "-l 1 runs the one word"
+check_has "-a 0 names the word index"            "lookup: word 89999 of 128416"
 
-LAST_CMD="hashcat --stdout -a 0 long.txt -r noop.rule -O"
-LAST_OUT="${produced}"
-check_re "-O builds nothing from a 35 byte word" "^0$"
+lookup ZZnotpresentZZ -m 2000 -a 0 "${DICT}"
+check_has "a word not in the list is a proof"    "the wordlist does not hold it, and without rules the wordlist is the whole attack"
 
-# So there is nothing for --lookup to find either. Cutting the word to 31 bytes
-# to fit the engine would answer about a candidate the run never builds, and the
-# rule here is the one that keeps the word, so a cut would be reported as a hit.
-run_lookup "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" -a 0 "${WORK}/long.txt" -r "${WORK}/noop.rule" -O
-check_has "-O does not cut a long word to fit" "nothing in this run produces it"
+lookup '$HEX[610162]' -m 2000 -a 0 "${WORK}/binary.txt"
+check_has "a \$HEX[] candidate is accepted"      "lookup: word 0 of 2"
 
-# The same word without -O is inside what the pure engine holds, so it is found.
-run_lookup "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA1" -a 0 "${WORK}/long.txt" -r "${WORK}/append.rule"
-check_has "the pure engine holds the same word" "lookup: word 0 of 1"
+note "-a 0, several dictionaries laid end to end"
+
+lookup delta -m 2000 -a 0 "${WORK}/dir"
+check_has "-a 0 names the file the word is in"   "lookup: word 3 of 4, in ${WORK}/dir/d2.txt"
+
+##
+## rules
+##
+
+note "a rule set is refused, not answered about the base word"
+
+lookup merche03123 -a 0 "${DICT}" -r "${WORK}/one.rule"
+check_has "-r with --lookup is refused"          "Combining -r/--rules-file or -g/--rules-generate with --lookup is not allowed."
+check_has "and the refusal says why"             "A rule cannot be inverted"
+check_not "no offset is given for it"            "reaches it at -s"
+
+lookup merche03123 -a 0 "${DICT}" -g 20
+check_has "-g with --lookup is refused"          "Combining -r/--rules-file or -g/--rules-generate with --lookup is not allowed."
+
+# Refused before anything is opened, which is the point of doing it in the option check rather than
+# after a pass over the wordlist.
+LAST_CMD="hashcat --lookup=x -a 0 /nonexistent/wordlist -r /nonexistent/rules"
+LAST_OUT="$( "${HC}" --lookup=x "${COMMON[@]}" -a 0 /nonexistent/wordlist -r /nonexistent/rules 2>&1 )"
+check_has "refused before a file is opened"      "Combining -r/--rules-file or -g/--rules-generate with --lookup is not allowed."
+check_not "so no file error is reported"         "No such file"
 
 ##
 ## end to end
@@ -468,46 +446,54 @@ if [ "${CRACK}" -eq 1 ]; then
 
   note "cracking at the offset the lookup reports"
 
-  # A word deep in the dictionary, and a candidate some rule makes of it. Which
-  # rule is not chosen here: that is what --lookup is being asked.
-  WORD="$( sed -n '18000p' "${WORK}/dict.txt" )"
-  CAND="${WORD}123"
+  # A real attack takes the hash before the wordlist or the mask, which a lookup does not take at
+  # all, so the attack mode and the rest of the arguments are kept apart here.
 
-  printf '%s' "${CAND}" | md5sum | cut -d' ' -f1 > "${WORK}/hash.txt"
+  crack_at ()
+  {
+    local label="$1" cand="$2" mode="$3"; shift 3
 
-  run_lookup "${CAND}" -a 0 "${WORK}/dict.txt" -r "${RULES}"
+    local hash off rc
 
-  SKIP="$( printf '%s\n' "${LAST_OUT}" | sed -n 's/^lookup: this run reaches it at -s \([0-9]*\),.*/\1/p' )"
-  RULE="$( printf '%s\n' "${LAST_OUT}" | sed -n "s/^lookup: that word is '.*', and rule [0-9]* of [0-9]* is what makes the candidate out of it: //p" )"
+    hash="$( printf '%s' "${cand}" | md5sum | cut -d' ' -f1 )"
 
-  if [ -z "${SKIP}" ]; then
-    echo "FAIL: no offset was reported for '${CAND}', so there is nothing to crack at"
-    FAIL=$((FAIL + 1))
-  else
+    lookup "${cand}" -a "${mode}" "$@"
+
+    off="$( printf '%s\n' "${LAST_OUT}" | sed -n 's/^lookup: this run reaches it at -s \([0-9]*\),.*/\1/p' )"
+
+    if [ -z "${off}" ]; then
+      fail_out "${label}: an offset is reported" "a \"reaches it at -s N\" line"
+
+      return 1
+    fi
+
     # shellcheck disable=SC2086
-    "${HC}" -m 0 -a 0 -s "${SKIP}" -l 1 --quiet --debug-mode=4 --debug-file="${WORK}/debug.txt" \
-      "${COMMON[@]}" ${HC_OPTS} "${WORK}/hash.txt" "${WORK}/dict.txt" -r "${RULES}" > "${WORK}/crack.txt" 2>&1
+    LAST_OUT="$( "${HC}" -m 0 -a "${mode}" -s "${off}" -l 1 --quiet "${COMMON[@]}" ${HC_OPTS} "${hash}" "$@" 2>&1 )"
+    LAST_CMD="hashcat -m 0 -a ${mode} -s ${off} -l 1 ${hash} $*"
 
-    LAST_CMD="hashcat -m 0 -a 0 -s ${SKIP} -l 1 ... -r $( basename "${RULES}" )"
-    LAST_OUT="$( cat "${WORK}/crack.txt" "${WORK}/debug.txt" 2>/dev/null )"
+    check_has "${label}: -s ${off} -l 1 cracks it" "${cand}"
 
-    check_has "-s ${SKIP} -l 1 cracks it"                "${CAND}"
-    check_has "the debug file names the same base word"  "${WORD}:"
-    check_has "the debug file names the reported rule"   "${WORD}:${RULE}:${CAND}"
+    if [ "${off}" -gt 0 ]; then
+      # shellcheck disable=SC2086
+      "${HC}" -m 0 -a "${mode}" -s $((off - 1)) -l 1 --quiet "${COMMON[@]}" ${HC_OPTS} "${hash}" "$@" > "${WORK}/miss.txt" 2>&1
 
-    # One word earlier must not reach it, or the offset is not the first the run
-    # tries it at and --lookup has pointed too far in.
-    # shellcheck disable=SC2086
-    "${HC}" -m 0 -a 0 -s $((SKIP - 1)) -l 1 --quiet \
-      "${COMMON[@]}" ${HC_OPTS} "${WORK}/hash.txt" "${WORK}/dict.txt" -r "${RULES}" > "${WORK}/miss.txt" 2>&1
+      rc=$?
 
-    rc=$?
+      LAST_CMD="hashcat -m 0 -a ${mode} -s $((off - 1)) -l 1 ${hash} $*"
+      LAST_OUT="$( printf 'exit %d\n' "${rc}"; cat "${WORK}/miss.txt" )"
 
-    LAST_CMD="hashcat -m 0 -a 0 -s $((SKIP - 1)) -l 1 ..."
-    LAST_OUT="$( printf 'exit %d\n' "${rc}"; cat "${WORK}/miss.txt" )"
+      check_has "${label}: -s $((off - 1)) -l 1 exhausts" "exit 1"
+    fi
+  }
 
-    check_has "-s $((SKIP - 1)) -l 1 exhausts without cracking it" "exit 1"
-  fi
+  # A mask attack, where one offset is a cell of many candidates.
+  crack_at "-a 3" merche 3 '?l?l?l?l?l?l'
+
+  # A wordlist attack, where it is one word.
+  crack_at "-a 0" merche03 0 "${DICT}"
+
+  # A hybrid, where the cell is the mask side.
+  crack_at "-a 6" bravo42 6 "${WORK}/w1.txt" '?d?d'
 fi
 
 ##
