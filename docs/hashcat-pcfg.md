@@ -608,7 +608,22 @@ rather than of hashcat.
 
 Covered in section 5, and section 5.1 says how the merge works. `pcfg_cracker` takes one ruleset.
 
-## 7. Things that will confuse you once
+## 7. Seeing which terminals fired
+
+`--debug-mode` reports the rule that made a crack, and a grammar has no rules: it picks a terminal out of a list for each slot of a structure. `--debug-mode 6` asks the feed instead, and needs no `-r`:
+
+```
+$ hashcat -m 0 -a 4 hashes.txt --debug-mode 6 --debug-file fired.txt
+$ cat fired.txt
+password1:password/LLLLLLLL,1:password1
+a1234567:a/L,1234567:a1234567
+```
+
+The base word, the terminals the card picked, and the candidate. A capitalisation mask writes over the token in front of it rather than adding one of its own, so it is joined to that token with a slash.
+
+Only the slots the card expanded are named. The ones in front of them are already assembled into the base word, which is printed beside them.
+
+## 8. Things that will confuse you once
 
 * **`--stdout` shows you the host engine.** It never starts a kernel, so it gets the host generator,
   escape and all. There is nothing it could show you of the fast path, whose candidates only ever

@@ -421,9 +421,10 @@ int build_crackpos (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param,
 
 int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, plain_t *plain, u8 *debug_rule_buf, int *debug_rule_len, u8 *debug_plain_ptr, int *debug_plain_len)
 {
-  const debugfile_ctx_t *debugfile_ctx = hashcat_ctx->debugfile_ctx;
-  const straight_ctx_t  *straight_ctx  = hashcat_ctx->straight_ctx;
-  const user_options_t  *user_options  = hashcat_ctx->user_options;
+  const debugfile_ctx_t      *debugfile_ctx      = hashcat_ctx->debugfile_ctx;
+  const straight_ctx_t       *straight_ctx       = hashcat_ctx->straight_ctx;
+  const user_options_t       *user_options       = hashcat_ctx->user_options;
+  const user_options_extra_t *user_options_extra = hashcat_ctx->user_options_extra;
 
   const u64 gidvid = plain->gidvid;
   const u32 il_pos = plain->il_pos;
@@ -469,6 +470,36 @@ int build_debugdata (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param
     int plain_len = (int) pw.pw_len;
 
     const u64 off = device_param->innerloop_pos + il_pos;
+
+    // What the feed did, rather than what a rule did. The feed is handed the same four things
+    // pcfg_expand () rebuilds the candidate from, so it can name the choices it made.
+
+    if (debug_mode == DEBUG_MODE_FEED)
+    {
+      const generic_ctx_t *generic_ctx = &hashcat_ctx->generic_ctx[GENERIC_ROLE_BASE];
+
+      *debug_rule_len = 0;
+
+      if ((generic_ctx->explain_enable == true) && (generic_ctx->global_explain != NULL) && (user_options_extra->attack_kern == ATTACK_KERN_PCFG))
+      {
+        const int len = generic_ctx->global_explain (&((generic_ctx_t *) generic_ctx)->global_ctx, &device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, (const u8 *) pw.i, plain_len, il_pos, (char *) debug_rule_buf, RP_PASSWORD_SIZE - 1);
+
+        if (len > 0)
+        {
+          debug_rule_buf[len] = 0;
+
+          *debug_rule_len = len;
+        }
+      }
+
+      memcpy (debug_plain_ptr, (char *) pw.i, (size_t) plain_len);
+
+      debug_plain_ptr[plain_len] = 0;
+
+      *debug_plain_len = plain_len;
+
+      return 0;
+    }
 
     // save rule
     if ((debug_mode == 1) || (debug_mode == 3) || (debug_mode == 4) || (debug_mode == 5))

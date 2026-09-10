@@ -1645,6 +1645,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
+  if (user_options->debug_mode > DEBUG_MODE_FEED)
+  {
+    event_log_error (hashcat_ctx, "Invalid --debug-mode value specified.");
+
+    return -1;
+  }
+
   if (user_options->debug_mode > 0)
   {
     if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
@@ -1654,19 +1661,26 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       return -1;
     }
 
-    if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
+    // Modes 1 to 5 write the rule that made a candidate, so they want rules. Mode 6 writes what the
+    // feed did instead, which is the answer for an attack that has no rules at all: a table applies
+    // substitutions and a grammar picks terminals. Whether this feed can actually say is settled when
+    // it is loaded, because nothing here has opened it yet.
+
+    if (user_options->debug_mode == DEBUG_MODE_FEED)
+    {
+      if ((user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC))
+      {
+        event_log_error (hashcat_ctx, "Parameter --debug-mode %d is only allowed in an attack that has a feed, which is attack mode 4 (pcfg), 5 (table) and 8 (generic).", DEBUG_MODE_FEED);
+
+        return -1;
+      }
+    }
+    else if ((user_options->rp_files_cnt == 0) && (user_options->rp_gen == 0))
     {
       event_log_error (hashcat_ctx, "Use of --debug-mode requires -r/--rules-file or -g/--rules-generate.");
 
       return -1;
     }
-  }
-
-  if (user_options->debug_mode > 5)
-  {
-    event_log_error (hashcat_ctx, "Invalid --debug-mode value specified.");
-
-    return -1;
   }
 
   if (user_options->induction_dir != NULL)

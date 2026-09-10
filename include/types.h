@@ -829,6 +829,11 @@ typedef enum user_options_defaults
   #endif
   COLOR_CRACKED            = false,
   DEBUG_MODE               = 0,
+
+  // The highest --debug-mode value, and the one that asks the feed rather than the rules engine what
+  // made a candidate. 1 to 5 report a rule, which an attack with no rules has none of.
+
+  DEBUG_MODE_FEED          = 6,
   DEPRECATED_CHECK         = true,
   DYNAMIC_X                = false,
   FORCE                    = false,
@@ -3456,6 +3461,7 @@ typedef bool (*GENERIC_THREAD_INIT)     (generic_global_ctx_t *, generic_thread_
 typedef void (*GENERIC_THREAD_TERM)     (generic_global_ctx_t *, generic_thread_ctx_t *);
 typedef int  (*GENERIC_THREAD_NEXT)     (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int);
 typedef int  (*GENERIC_THREAD_NEXT_DEV) (generic_global_ctx_t *, generic_thread_ctx_t *, u8 *, const int, pcfg_cell_t *);
+typedef int  (*GENERIC_GLOBAL_EXPLAIN)   (generic_global_ctx_t *, const pcfg_cell_t *, const u32 *, const u8 *, const int, const u32, char *, const int);
 typedef bool (*GENERIC_THREAD_SEEK)     (generic_global_ctx_t *, generic_thread_ctx_t *, const u64);
 typedef bool (*GENERIC_GLOBAL_DEV_INIT) (generic_global_ctx_t *, const u32 **, u64 *, u32 *, u32 *, u32 *, u32 *, u32 *, u32 *, pcfg_cell_t *);
 
@@ -3521,11 +3527,13 @@ typedef struct generic_ctx
 
   GENERIC_GLOBAL_DEV_INIT  global_dev_init;
   GENERIC_THREAD_NEXT_DEV  thread_next_dev;
+  GENERIC_GLOBAL_EXPLAIN   global_explain;
 
   bool autohex_enable;
   bool iconv_enable;
   bool rules_enable;
   bool dev_enable;
+  bool explain_enable;
 
   // What global_dev_init () handed over: the terminal pool every cell indexes into, and how wide the
   // device side inner loop is. The pool is read only, and a device whose memory is the host's reads

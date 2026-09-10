@@ -111,7 +111,28 @@ People build a password around something they care about, and the thing itself i
 $ hashcat -m 0 -a 5 hashes.txt rockyou.txt tables/sports.table identity=0 template=1
 ```
 
-Two settings make it work. `identity=0` takes away the choice of leaving the word alone, because the original is already in the wordlist you gave and trying it again is wasted. `template=1` drops a word the table never matched, and that is what turns the wordlist into a set of patterns: without it, a word naming no sport is still worth one candidate, itself.
+Two settings make it work. `identity=0` takes away the choice of leaving the word alone, because the original is already in the wordlist you gave and trying it again is wasted. `template=1` says never hand a word back unchanged, which is what turns the wordlist into a set of patterns.
+
+`template=1` covers two things that are really one rule. A word the table never matched can only come out as itself, so it is dropped entirely. A word the table did match still had the candidate that changes nothing, and that goes too:
+
+```
+$ cat words.txt
+footballman
+$ cat t.table
+football	basketball
+man	woman
+$ hashcat -a 5 --stdout words.txt t.table
+footballman
+footballwoman
+basketballman
+basketballwoman
+$ hashcat -a 5 --stdout words.txt t.table template=1
+basketballwoman
+basketballman
+footballwoman
+```
+
+If you want a wordlist attack you can run `-a 0`, and that is the argument for it: over several tables against one wordlist you would otherwise pay for the wordlist once per table.
 
 The difference is the whole point. Over 400000 lines of rockyou with a 20 sport table:
 
@@ -201,7 +222,7 @@ Settings are `key=value` arguments and go after the tables.
 | setting | default | what it does |
 |---|---|---|
 | `maxperm` | 1048576 | how much of one word's cross product the host enumerates, 0 for no limit |
-| `template` | 0 | `1` drops a word no rule matched, which reads the wordlist as a set of patterns |
+| `template` | 0 | `1` never hands back a word of the wordlist unchanged, which reads it as a set of patterns |
 | `identity` | 1 | whether leaving a token alone is one of its choices, `identity=0` for a table that converts |
 
 ### maxperm
@@ -234,7 +255,26 @@ table: maxperm 1048576, 22158 words held to it, the widest wanting more than 2^6
 
 Two more lines appear when they apply. `table: identity off` says the unchanged choice was turned off, and `table: template on` counts the words that matched no rule and were dropped. A word left out for its length and a word left out for matching nothing are counted apart, because they are different things to be told.
 
-## 7. Notes
+## 7. Seeing which lines fired
+
+`--debug-mode` writes down how a candidate was made. It was built for rules, so its first five modes report the rule that made a crack, and a table attack has no rules. `--debug-mode 6` asks the feed instead, and for a table that is the lines that fired:
+
+```
+$ hashcat -m 0 -a 5 hashes.txt words.txt t.table --debug-mode 6 --debug-file fired.txt
+$ cat fired.txt
+footballman:football->basketball,man->woman:basketballwoman
+footballman:football->basketball:basketballman
+footballman:man->woman:footballwoman
+sunshine::sunshine
+```
+
+The base word, the rules that fired, and the candidate they produced. Only the rules that actually fired are named: a word carries a choice for every token the table covers, and listing the ones that changed nothing would bury the ones that did. A line with an empty middle is a candidate no rule changed.
+
+It needs no `-r`, which the other modes do. What it does need is the graphics card: the rules that fired are recovered from the cell the card was handed, so on a hash slow enough to run the host engine there is no cell to read and the middle stays empty.
+
+A table too wide for one cell has its leading substitutions made on the host and carried in the base word, so those do not appear in the middle either. The base word is printed beside them, so the two together still account for the candidate.
+
+## 8. Notes
 
 Rules given with `-r` work with the table attack. Stacking rules gives up the feed's own kernel for the attack mode 0 one, which costs the speed the table attack gets from expanding inside the hash kernel.
 

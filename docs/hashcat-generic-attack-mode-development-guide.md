@@ -164,6 +164,18 @@ This structure is always available.
 
 In global functions you receive the full array of thread structures. In thread functions you receive the structure of the current thread only.
 
+## Saying how a candidate was made
+
+`--debug-mode` writes down what turned a base word into a crack. Its first five modes name a rule, which a feed that generates candidates itself has none of. A feed that declares `GENERIC_PLUGIN_OPTIONS_EXPLAIN` also exports `global_explain ()`, and `--debug-mode 6` asks that instead.
+
+You are handed the same four things `pcfg_expand ()` rebuilds a candidate from: the cell the base word was given, the pool that cell points into, the base word, and which of the cell's candidates this was. Decompose `il_pos` into digits exactly as `pcfg_expand ()` does, or the two will disagree about which entry was used, and then write what those digits mean in your own terms. The table feed writes the substitutions that fired, `football->basketball,man->woman`. The pcfg feed writes the terminals it picked.
+
+It runs once per crack rather than once per candidate, so it may take its time: searching a few hundred buckets to map a slot back to what produced it is cheaper than carrying that mapping through the hot loop.
+
+Report only what a reader could not already see. A choice that left a token as it was says nothing, and naming it for every token the word happens to contain buries the ones that mattered.
+
+A feed that does not declare the option is refused for `--debug-mode 6` with a message, rather than being run and writing an empty file.
+
 You are free to design the contents. The default definition is:
 
 ```

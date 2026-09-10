@@ -24,7 +24,7 @@
 #include "timer.h"
 
 const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
-const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN_OPTIONS_DEVICE;
+const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_RULES | GENERIC_PLUGIN_OPTIONS_DEVICE | GENERIC_PLUGIN_OPTIONS_EXPLAIN;
 
 #define PCFG_MAXTOK   24
 #define PCFG_MAXSLOT  (PCFG_MAXTOK * 2)
@@ -9168,6 +9168,86 @@ bool global_dev_init (generic_global_ctx_t *global_ctx, const u32 **pool, u64 *p
   }
 
   return true;
+}
+
+// How this candidate was made, for --debug-mode. A grammar does not replace one token with another,
+// it picks a terminal out of a list for each slot of a structure, so what this reports is which
+// terminals were picked. A capitalisation slot writes over the token in front of it rather than
+// adding one of its own, so its mask is attached to that token with a slash.
+//
+// Only the part the card expanded is here. The slots in front of it are already assembled into the
+// base word, which --debug-mode prints beside this.
+
+int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, const u32 *pool, MAYBE_UNUSED const u8 *base, MAYBE_UNUSED const int base_len, const u32 il_pos, char *out_buf, const int out_size)
+{
+  if (pool == NULL) return -1;
+
+  const u32 slot_cnt = (cell->slot_cnt < PCFG_DEV_MAXSLOT) ? cell->slot_cnt : PCFG_DEV_MAXSLOT;
+
+  if (slot_cnt == 0) return 0;
+
+  // The same decomposition pcfg_expand () and the kernel make, so the digits name the same terminals.
+
+  const bool varlen = ((cell->flags & PCFG_CELL_VARLEN) != 0);
+
+  u32 digit[PCFG_DEV_MAXSLOT];
+
+  u64 carry = il_pos;
+
+  for (int j = (int) slot_cnt - 1; j >= 0; j--)
+  {
+    const u32 radix = cell->slots[j].radix;
+
+    if (radix == 0) return -1;
+
+    const u64 start = ((PCFG_SLOT_KIND (cell->slots[j].packed) == PCFG_SLOT_KIND_CASE) || (varlen == true)) ? 0 : (u64) cell->slots[j].digit;
+
+    const u64 t = start + carry;
+
+    digit[j] = (u32) (t % radix);
+
+    carry = t / radix;
+  }
+
+  if (carry != 0) return -1;
+
+  const u8 *pb = (const u8 *) pool;
+
+  int len = 0;
+
+  for (u32 j = 0; j < slot_cnt; j++)
+  {
+    const u32 packed = cell->slots[j].packed;
+
+    const u32 kind = PCFG_SLOT_KIND (packed);
+
+    const u32 ent_len = (varlen == true) ? (pool[cell->slots[j].pool_off + digit[j] + 1] - pool[cell->slots[j].pool_off + digit[j]]) : PCFG_SLOT_ENT_LEN (packed);
+    const u32 src     = (varlen == true) ? pool[cell->slots[j].pool_off + digit[j]]                                                 : cell->slots[j].pool_off + (digit[j] * ent_len);
+
+    // A mask belongs to the token in front of it, so it is joined to it rather than listed on its own.
+
+    const char sep = (kind == PCFG_SLOT_KIND_CASE) ? '/' : ',';
+
+    if (len > 0)
+    {
+      if (len >= out_size) break;
+
+      out_buf[len] = sep;
+
+      len++;
+    }
+
+    for (u32 k = 0; k < ent_len; k++)
+    {
+      if (len >= out_size) break;
+
+      out_buf[len] = (char) pb[src + k];
+
+      len++;
+    }
+  }
+
+  return len;
 }
 
 int thread_next_dev (generic_global_ctx_t *global_ctx, generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size, pcfg_cell_t *cell)

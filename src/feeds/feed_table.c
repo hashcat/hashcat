@@ -95,6 +95,13 @@ typedef struct table
 
   bool identity;
 
+  // Where that choice sits in a bucket. First by default, so the first candidate for a word is the
+  // word itself and an attack mode 5 run contains a straight wordlist run. Last under template=1,
+  // which is what lets the input word be dropped by counting one fewer rather than by skipping an
+  // index the kernel would have to be taught about.
+
+  bool identity_last;
+
   // What the merged table is, as one number. Everything that changes a candidate or its place in the
   // run goes into it: the sources and their replacements, in order, and whether a token is an
   // alternative to itself. It is what names the keyspace index on disk.
@@ -247,7 +254,7 @@ static u32 table_bucket_add (table_t *tb, const u8 *src, const u32 src_len)
 
   tb->bucket_cnt++;
 
-  if (tb->identity == true) table_ent_add (tb, idx, src, src_len);
+  if ((tb->identity == true) && (tb->identity_last == false)) table_ent_add (tb, idx, src, src_len);
 
   return idx;
 }
@@ -681,11 +688,12 @@ static void table_ident (table_t *tb)
   tb->ident = paw64_final (&state);
 }
 
-bool table_load (table_t *tb, char * const *paths, const int paths_cnt, const bool identity, char *err_buf, const size_t err_size)
+bool table_load (table_t *tb, char * const *paths, const int paths_cnt, const bool identity, const bool identity_last, char *err_buf, const size_t err_size)
 {
   memset (tb, 0, sizeof (table_t));
 
-  tb->identity = identity;
+  tb->identity      = identity;
+  tb->identity_last = identity_last;
 
   for (int i = 0; i < paths_cnt; i++)
   {
@@ -703,6 +711,26 @@ bool table_load (table_t *tb, char * const *paths, const int paths_cnt, const bo
     table_err (err_buf, err_size, "no rules in any table given, and a table line is a source and a replacement with one tab between them");
 
     return false;
+  }
+
+  // Appended once every table has been read, so it lands after the replacements rather than in front
+  // of them. The source bytes are copied out first because table_ent_add () may grow the arena, and
+  // a pointer into it does not survive that.
+
+  if ((tb->identity == true) && (tb->identity_last == true))
+  {
+    for (u32 i = 0; i < tb->bucket_cnt; i++)
+    {
+      const u32 src_len = tb->bucket[i].src_len;
+
+      u8 src[PW_MAX];
+
+      if (src_len > PW_MAX) continue;
+
+      for (u32 k = 0; k < src_len; k++) src[k] = tb->arena[tb->bucket[i].src_off + k];
+
+      table_ent_add (tb, i, src, src_len);
+    }
   }
 
   for (u32 i = 0; i < tb->bucket_cnt; i++)
@@ -878,7 +906,8 @@ const int GENERIC_PLUGIN_VERSION = FEEDS_INTERFACE_VERSION_CURRENT;
 
 const int GENERIC_PLUGIN_OPTIONS = GENERIC_PLUGIN_OPTIONS_ICONV
                                  | GENERIC_PLUGIN_OPTIONS_RULES
-                                 | GENERIC_PLUGIN_OPTIONS_DEVICE;
+                                 | GENERIC_PLUGIN_OPTIONS_DEVICE
+                                 | GENERIC_PLUGIN_OPTIONS_EXPLAIN;
 
 // How wide the inner loop may be, as a power of two. A cell never reaches further than this, and the
 // host enumerates whatever is left over, so it trades base words the CPU must produce against work
@@ -1049,6 +1078,13 @@ typedef struct table_thread
   // hash mode that would not take any candidate the word makes.
 
   bool unmatched;
+
+  // Whether the input word is one of this word's candidates and has to go. It is, when the unchanged
+  // choice is on and the word matched something, and template=1 asks for it to be dropped. Everything
+  // is arranged so that it is the LAST candidate of the word, which makes dropping it a smaller count
+  // rather than an index the enumeration has to step over.
+
+  bool drop_last;
 
   u64 dp[PW_MAX + 1][TABLE_WMAX + 1];
 
@@ -1272,6 +1308,15 @@ static void table_cell (const table_t *tb, const table_thread_t *tt, pcfg_cell_t
 
   cell->rect = (u32) tt->cell_rect;
 
+  // The word itself is the last candidate of the last base word under template=1, so that one base
+  // word hands the card a rectangle one shorter. The kernel already stops at the count it is given,
+  // which is why none of this needs the kernel to know about it.
+
+  if ((tt->drop_last == true) && (tt->cell_rect > 1) && (tt->rect > 0) && (tt->at == (tt->rect - 1)))
+  {
+    cell->rect = (u32) (tt->cell_rect - 1);
+  }
+
   if (tb->varlen == false)
   {
     cell->slot_cnt = tt->var_cnt - tt->nfront;
@@ -1460,11 +1505,30 @@ static void table_front_unrank (const table_global_t *tg, table_thread_t *tt, co
     return;
   }
 
-  for (u32 v = 0; v < tt->nfront; v++) tt->digit[v] = 0;
+  // Leaving a token as it was is digit 0 normally and the top digit when the unchanged choice sits
+  // last, which is what template=1 asks for.
+
+  for (u32 v = 0; v < tt->nfront; v++)
+  {
+    const u32 radix = table_radix (&tg->tb, &tt->tok[tt->var[v]]);
+
+    tt->digit[v] = (tg->tb.identity_last == true) ? (radix - 1) : 0;
+  }
 
   u64 rem = pos;
 
   u32 need = 0;
+
+  // Weight 0 is the one position that changes nothing, so it is the word itself. Under template=1 it
+  // is enumerated last rather than first, which puts the word at the very end of the run and lets it
+  // be dropped by counting one fewer. dp[0][0] is always 1, so that position is simply the last.
+
+  if (tt->drop_last == true)
+  {
+    if ((tt->front_units > 0) && (pos == (tt->front_units - 1))) return;
+
+    need = 1;
+  }
 
   while (need <= tt->wmax)
   {
@@ -1489,7 +1553,7 @@ static void table_front_unrank (const table_global_t *tg, table_thread_t *tt, co
 
     if ((per > 0) && (rem < with))
     {
-      tt->digit[i] = 1 + (u32) (rem / per);
+      tt->digit[i] = (tg->tb.identity_last == true) ? (u32) (rem / per) : 1 + (u32) (rem / per);
 
       rem = rem % per;
 
@@ -1542,6 +1606,11 @@ static void table_span (const table_global_t *tg, const table_thread_t *tt, u32 
   lo[0] = a;
   hi[0] = b;
 }
+
+// Defined below, and called from the end of table_split () to place the first candidate of a word
+// when template=1 moves it off position zero.
+
+static void table_unrank (const table_global_t *tg, table_thread_t *tt, const u64 pos);
 
 static void table_split (const table_global_t *tg, table_thread_t *tt)
 {
@@ -1678,8 +1747,28 @@ static void table_split (const table_global_t *tg, table_thread_t *tt)
   // A unit is a base word where the card expands one and a candidate where it does not, and the split
   // above is the same either way, so the two engines walk the same candidates in the same order.
 
-  tt->rect = (tg->dev == true) ? tt->front_units : table_sat_mul (tt->front_units, tt->cell_rect);
-  tt->at   = 0;
+  // The input word is one of this word's candidates whenever the unchanged choice is on and the word
+  // matched something, and template=1 says it should not be tried: it is the wordlist, which the user
+  // can run with -a 0. Everything above arranges for it to be the last candidate of the word, so it
+  // goes by counting one fewer. A cell with room loses its last entry and a cell of one loses the
+  // whole base word it sat in.
+
+  tt->drop_last = ((tg->template == true) && (tg->tb.identity == true) && (tt->var_cnt > 0));
+
+  if (tg->dev == true)
+  {
+    tt->rect = tt->front_units;
+
+    if ((tt->drop_last == true) && (tt->cell_rect <= 1) && (tt->rect > 0)) tt->rect--;
+  }
+  else
+  {
+    tt->rect = table_sat_mul (tt->front_units, tt->cell_rect);
+
+    if ((tt->drop_last == true) && (tt->rect > 0)) tt->rect--;
+  }
+
+  tt->at = 0;
 
   // A word no rule in the table matched is worth nothing under template=1. Every token of it is a
   // literal run, so the only candidate it could make is the word itself, and somebody reading a
@@ -1703,7 +1792,13 @@ static void table_split (const table_global_t *tg, table_thread_t *tt)
     if ((hi < tg->pwmin) || (lo > tg->pwmax)) tt->rect = 0;
   }
 
+  // Where the first candidate sits. All zeros is right for a plain odometer and for the weight plan
+  // as it normally runs, where position 0 is the word itself. Under template=1 the plan starts at one
+  // change instead, so the digits for position 0 have to be worked out rather than assumed.
+
   for (u32 v = 0; v < tt->var_cnt; v++) tt->digit[v] = 0;
+
+  if ((tt->drop_last == true) && (tt->rect > 0)) table_unrank (tg, tt, 0);
 }
 
 // One step of whichever odometer this engine is walking. On the host that is the cell's digits inside
@@ -1990,7 +2085,10 @@ bool global_init (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED ge
 
   char err[256];
 
-  if (table_load (&tg->tb, &global_ctx->workv[2], tables_cnt, identity, err, sizeof (err)) == false)
+  // The unchanged choice goes last exactly when it is going to be dropped, which is what makes the
+  // word the last candidate of a word rather than the first.
+
+  if (table_load (&tg->tb, &global_ctx->workv[2], tables_cnt, identity, (identity == true) && (template == true), err, sizeof (err)) == false)
   {
     error_set (global_ctx, "%s", err);
 
@@ -2624,7 +2722,13 @@ static bool table_keyspace_build (generic_global_ctx_t *global_ctx, table_global
     // rect is base words on the card and candidates on the host, so the cell is what turns one into
     // the other only on the card. Multiplying by it on both would count the cell twice.
 
-    const u64 full = (tg->dev == true) ? table_sat_mul (tt->rect, tt->cell_rect) : tt->rect;
+    u64 full = (tg->dev == true) ? table_sat_mul (tt->rect, tt->cell_rect) : tt->rect;
+
+    // On the card the base word count still holds every base word, and it is the last one's rectangle
+    // that is a candidate shorter. Where the rectangle is one, the base word went instead and rect is
+    // already right.
+
+    if ((tt->drop_last == true) && (tg->dev == true) && (tt->cell_rect > 1) && (full > 0)) full--;
 
     total = table_sat_add (total, full);
   }
@@ -2754,6 +2858,134 @@ int thread_next (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED gen
 
 // One base word and the cell that extends it. The base word carries the substitutions the host
 // enumerates and every byte the table said nothing about, and the cell carries the rest.
+
+// Which bucket a slot reads from. A slot names a pool offset rather than a bucket, because that is
+// what the kernel needs, so this walks back the other way. It runs once per crack and there are a few
+// hundred buckets, so a search costs nothing worth avoiding.
+
+static u32 table_bucket_of (const table_t *tb, const u32 pool_off)
+{
+  for (u32 i = 0; i < tb->bucket_cnt; i++)
+  {
+    if (tb->bucket[i].pool_off == pool_off) return i;
+  }
+
+  return 0xffffffff;
+}
+
+// How this candidate was made, for --debug-mode. The same four things pcfg_expand () rebuilds the
+// candidate from, walked the same way, reporting the choices rather than the bytes.
+//
+// Only the part the card expanded is here. A word too wide for one cell has its leading substitutions
+// made on the host and carried in the base word, and the base word is what --debug-mode prints beside
+// this, so what the two say together is still the whole story.
+
+int global_explain (MAYBE_UNUSED generic_global_ctx_t *global_ctx, const pcfg_cell_t *cell, MAYBE_UNUSED const u32 *pool, MAYBE_UNUSED const u8 *base, MAYBE_UNUSED const int base_len, const u32 il_pos, char *out_buf, const int out_size)
+{
+  const table_global_t *tg = global_ctx->gbldata;
+
+  if (tg == NULL) return -1;
+
+  const table_t *tb = &tg->tb;
+
+  const u32 slot_cnt = (cell->slot_cnt < PCFG_DEV_MAXSLOT) ? cell->slot_cnt : PCFG_DEV_MAXSLOT;
+
+  if (slot_cnt == 0) return 0;
+
+  // The same decomposition the kernel and pcfg_expand () make, so the digits name the same entries.
+
+  const bool varlen = ((cell->flags & PCFG_CELL_VARLEN) != 0);
+
+  u32 digit[PCFG_DEV_MAXSLOT];
+
+  u64 carry = il_pos;
+
+  for (int j = (int) slot_cnt - 1; j >= 0; j--)
+  {
+    const u32 radix = cell->slots[j].radix;
+
+    if (radix == 0) return -1;
+
+    const u64 start = (varlen == true) ? 0 : (u64) cell->slots[j].digit;
+
+    const u64 t = start + carry;
+
+    digit[j] = (u32) (t % radix);
+
+    carry = t / radix;
+  }
+
+  if (carry != 0) return -1;
+
+  int len = 0;
+
+  for (u32 j = 0; j < slot_cnt; j++)
+  {
+    // A run of the base word is not a substitution, it is the part the table said nothing about.
+
+    if (PCFG_SLOT_KIND (cell->slots[j].packed) == PCFG_SLOT_KIND_COPY) continue;
+
+    const u32 idx = table_bucket_of (tb, cell->slots[j].pool_off);
+
+    if (idx == 0xffffffff) continue;
+
+    const table_bucket_t *b = &tb->bucket[idx];
+
+    u32 ent_len = 0;
+
+    const u8 *ent = table_ent (tb, idx, digit[j], &ent_len);
+
+    // The choice that leaves a token alone says nothing, and printing it for every token the word
+    // happens to contain would bury the ones that fired. Compared byte for byte here rather than with
+    // table_span_eq (), which takes an offset into the arena where an entry lives in the pool.
+
+    bool same = (ent_len == b->src_len);
+
+    for (u32 k = 0; (same == true) && (k < ent_len); k++)
+    {
+      if (ent[k] != tb->arena[b->src_off + k]) same = false;
+    }
+
+    if (same == true) continue;
+
+    if (len > 0)
+    {
+      if (len >= out_size) break;
+
+      out_buf[len] = ',';
+
+      len++;
+    }
+
+    for (u32 k = 0; k < b->src_len; k++)
+    {
+      if (len >= out_size) break;
+
+      out_buf[len] = (char) tb->arena[b->src_off + k];
+
+      len++;
+    }
+
+    if ((len + 2) <= out_size)
+    {
+      out_buf[len + 0] = '-';
+      out_buf[len + 1] = '>';
+
+      len += 2;
+    }
+
+    for (u32 k = 0; k < ent_len; k++)
+    {
+      if (len >= out_size) break;
+
+      out_buf[len] = (char) ent[k];
+
+      len++;
+    }
+  }
+
+  return len;
+}
 
 int thread_next_dev (MAYBE_UNUSED generic_global_ctx_t *global_ctx, MAYBE_UNUSED generic_thread_ctx_t *thread_ctx, u8 *out_buf, const int out_size, pcfg_cell_t *cell)
 {
