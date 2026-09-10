@@ -2197,115 +2197,51 @@ DECLSPEC int hc_enc_has_next (PRIVATE_AS hc_enc_t *hc_enc, const int sz)
   return 0;
 }
 
-DECLSPEC int hc_enc_validate_utf8 (PRIVATE_AS const u32 *src_buf, const int src_pos, const int extraBytesToRead)
+DECLSPEC u32 hc_enc_seq_byte (const u32 w0, const u32 w1, const int p, const int j)
 {
-  PRIVATE_AS const u8 *src_ptr = (PRIVATE_AS const u8 *) src_buf;
+  const int k = p + j;
 
-  if (extraBytesToRead == 0)
-  {
-    const u8 c0 = src_ptr[src_pos + 0]; if (c0 >= 0x80) return 0;
-  }
-  else if (extraBytesToRead == 1)
-  {
-    const u8 c0 = src_ptr[src_pos + 0]; if ((c0 < 0xc2) || (c0 > 0xdf)) return 0;
-    const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-  }
-  else if (extraBytesToRead == 2)
-  {
-    const u8 c0 = src_ptr[src_pos + 0];
+  const u32 w = (k < 4) ? w0 : w1;
 
-    if ((c0 >= 0xe0) && (c0 <= 0xe0))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0xa0) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xe1) && (c0 <= 0xec))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xed) && (c0 <= 0xed))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0x9f)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xee) && (c0 <= 0xef))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-    }
-    else
-    {
-      return 0;
-    }
-  }
-  else if (extraBytesToRead == 3)
-  {
-    const u8 c0 = src_ptr[src_pos + 0];
-
-    if ((c0 >= 0xf0) && (c0 <= 0xf0))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x90) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xf1) && (c0 <= 0xf3))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
-    }
-    else if ((c0 >= 0xf4) && (c0 <= 0xf4))
-    {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
-    }
-    else
-    {
-      return 0;
-    }
-  }
-
-  return 1;
+  return (w >> ((k & 3) << 3)) & 0xff;
 }
 
-DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const int src_pos, const int extraBytesToRead)
+DECLSPEC int hc_enc_validate_utf8 (const u32 w0, const u32 w1, const int src_pos, const int extraBytesToRead)
 {
-  GLOBAL_AS const u8 *src_ptr = (GLOBAL_AS const u8 *) src_buf;
+  const int p = src_pos & 3;
 
   if (extraBytesToRead == 0)
   {
-    const u8 c0 = src_ptr[src_pos + 0]; if (c0 >= 0x80) return 0;
+    const u32 c0 = hc_enc_seq_byte (w0, w1, p, 0); if (c0 >= 0x80) return 0;
   }
   else if (extraBytesToRead == 1)
   {
-    const u8 c0 = src_ptr[src_pos + 0]; if ((c0 < 0xc2) || (c0 > 0xdf)) return 0;
-    const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+    const u32 c0 = hc_enc_seq_byte (w0, w1, p, 0); if ((c0 < 0xc2) || (c0 > 0xdf)) return 0;
+    const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
   }
   else if (extraBytesToRead == 2)
   {
-    const u8 c0 = src_ptr[src_pos + 0];
+    const u32 c0 = hc_enc_seq_byte (w0, w1, p, 0);
 
     if ((c0 >= 0xe0) && (c0 <= 0xe0))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0xa0) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0xa0) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xe1) && (c0 <= 0xec))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xed) && (c0 <= 0xed))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0x9f)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0x9f)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xee) && (c0 <= 0xef))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
     }
     else
     {
@@ -2314,25 +2250,25 @@ DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const in
   }
   else if (extraBytesToRead == 3)
   {
-    const u8 c0 = src_ptr[src_pos + 0];
+    const u32 c0 = hc_enc_seq_byte (w0, w1, p, 0);
 
     if ((c0 >= 0xf0) && (c0 <= 0xf0))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x90) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x90) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c3 = hc_enc_seq_byte (w0, w1, p, 3); if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xf1) && (c0 <= 0xf3))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c3 = hc_enc_seq_byte (w0, w1, p, 3); if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
     }
     else if ((c0 >= 0xf4) && (c0 <= 0xf4))
     {
-      const u8 c1 = src_ptr[src_pos + 1]; if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
-      const u8 c2 = src_ptr[src_pos + 2]; if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
-      const u8 c3 = src_ptr[src_pos + 3]; if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
+      const u32 c1 = hc_enc_seq_byte (w0, w1, p, 1); if ((c1 < 0x80) || (c1 > 0xbf)) return 0;
+      const u32 c2 = hc_enc_seq_byte (w0, w1, p, 2); if ((c2 < 0x80) || (c2 > 0xbf)) return 0;
+      const u32 c3 = hc_enc_seq_byte (w0, w1, p, 3); if ((c3 < 0x80) || (c3 > 0xbf)) return 0;
     }
     else
     {
@@ -2346,22 +2282,40 @@ DECLSPEC int hc_enc_validate_utf8_global (GLOBAL_AS const u32 *src_buf, const in
 // Input buffer and Output buffer size has to be multiple of 4 and at least of size 4.
 // The output buffer is not zero padded, so entire buffer has to be set all zero before entering this function or truncated afterwards.
 
+// All bytes of a utf8 sequence are extracted from a window of two consecutive u32 words that
+// is loaded once and passed to the validator by value, and the output is accumulated into
+// full u32 words before it is stored. This removes the u8 pointers casted from u32 buffers
+// with a variable index on both the read and the write side, which crash the AMDGPU back end
+// of Mesa rusticl (LLVM 21) while compiling gpu_utf8_to_utf16 - the process dies with SIGSEGV
+// inside libLLVM.
+
 DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src_buf, const int src_len, const int src_sz, PRIVATE_AS u32 *dst_buf, const int dst_sz)
 {
-  PRIVATE_AS const u8 *src_ptr = (PRIVATE_AS const u8 *) src_buf;
-  PRIVATE_AS       u8 *dst_ptr = (PRIVATE_AS       u8 *) dst_buf;
-
   int src_pos = hc_enc->pos;
   int dst_pos = hc_enc->clen;
 
+  int ret = 0;
+
   dst_buf[0] = hc_enc->cbuf;
+
+  // the low half of the current output word is pending whenever the output position is not aligned
+
+  u32 acc = 0;
+
+  if (hc_enc->clen == 2) acc = hc_enc->cbuf;
 
   hc_enc->clen = 0;
   hc_enc->cbuf = 0;
 
   while ((src_pos < src_len) && (dst_pos < dst_sz))
   {
-    const u8 c = src_ptr[src_pos];
+    const int idx = src_pos >> 2;
+
+    const u32 w0 = src_buf[idx];
+
+    const int p = src_pos & 3;
+
+    const u32 c = (w0 >> (p << 3)) & 0xff;
 
     int extraBytesToRead = -1;
 
@@ -2384,82 +2338,84 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
     if (extraBytesToRead == -1)
     {
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
     if ((src_pos + extraBytesToRead) >= src_sz)
     {
       // broken input
 
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
-    if (hc_enc_validate_utf8 (src_buf, src_pos, extraBytesToRead) == 0)
+    // the second word is loaded only if the sequence crosses the word boundary, because
+    // src_buf[idx + 1] can otherwise read out of bounds (for example word 64 of a u32[64])
+
+    u32 w1 = 0;
+
+    if ((p + extraBytesToRead) > 3)
+    {
+      w1 = src_buf[idx + 1];
+    }
+
+    if (hc_enc_validate_utf8 (w0, w1, src_pos, extraBytesToRead) == 0)
     {
       // broken input
 
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
     u32 ch = 0;
 
     switch (extraBytesToRead)
     {
-      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
-      /*
-      case 5:
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_5;
-        break;
-      case 4:
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_4;
-        break;
-      */
       case 3:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 2); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 3);
         ch -= offsetsFromUTF8_3;
         break;
       case 2:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 2);
         ch -= offsetsFromUTF8_2;
         break;
       case 1:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1);
         ch -= offsetsFromUTF8_1;
         break;
       case 0:
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0);
         ch -= offsetsFromUTF8_0;
         break;
     }
 
+    src_pos += extraBytesToRead + 1;
+
     /* Target is a character <= 0xFFFF */
     if (ch <= UNI_MAX_BMP)
     {
-      dst_ptr[dst_pos++] = (ch >> 0) & 0xff;
-      dst_ptr[dst_pos++] = (ch >> 8) & 0xff;
+      const u32 u = ch & 0xffff;
+
+      if ((dst_pos & 3) == 0)
+      {
+        acc = u;
+      }
+      else
+      {
+        dst_buf[dst_pos >> 2] = acc | (u << 16);
+      }
+
+      dst_pos += 2;
     }
     else
     {
@@ -2470,20 +2426,54 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
       if ((dst_pos + 2) == dst_sz)
       {
-        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+        if ((dst_pos & 3) == 0)
+        {
+          acc = a & 0xffff;
+        }
+        else
+        {
+          dst_buf[dst_pos >> 2] = acc | ((a & 0xffff) << 16);
+        }
+
+        dst_pos += 2;
 
         hc_enc->cbuf = b & 0xffff;
         hc_enc->clen = 2;
       }
       else
       {
-        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
-        dst_ptr[dst_pos++] = (b >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (b >> 8) & 0xff;
+        if ((dst_pos & 3) == 0)
+        {
+          dst_buf[dst_pos >> 2] = (a & 0xffff) | ((b & 0xffff) << 16);
+
+          dst_pos += 4;
+        }
+        else
+        {
+          dst_buf[dst_pos >> 2] = acc | ((a & 0xffff) << 16);
+
+          dst_pos += 2;
+
+          acc = b & 0xffff;
+
+          dst_pos += 2;
+        }
       }
     }
+  }
+
+  // store a pending low half word, the high half stays zero
+
+  if ((dst_pos & 3) == 2)
+  {
+    dst_buf[dst_pos >> 2] = acc;
+  }
+
+  if (ret == -1)
+  {
+    hc_enc->pos = src_len;
+
+    return -1;
   }
 
   hc_enc->pos = src_pos;
@@ -2493,20 +2483,31 @@ DECLSPEC int hc_enc_next (PRIVATE_AS hc_enc_t *hc_enc, PRIVATE_AS const u32 *src
 
 DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u32 *src_buf, const int src_len, const int src_sz, PRIVATE_AS u32 *dst_buf, const int dst_sz)
 {
-  GLOBAL_AS  const u8 *src_ptr = (GLOBAL_AS  const u8 *) src_buf;
-  PRIVATE_AS       u8 *dst_ptr = (PRIVATE_AS       u8 *) dst_buf;
-
   int src_pos = hc_enc->pos;
   int dst_pos = hc_enc->clen;
 
+  int ret = 0;
+
   dst_buf[0] = hc_enc->cbuf;
+
+  // the low half of the current output word is pending whenever the output position is not aligned
+
+  u32 acc = 0;
+
+  if (hc_enc->clen == 2) acc = hc_enc->cbuf;
 
   hc_enc->clen = 0;
   hc_enc->cbuf = 0;
 
   while ((src_pos < src_len) && (dst_pos < dst_sz))
   {
-    const u8 c = src_ptr[src_pos];
+    const int idx = src_pos >> 2;
+
+    const u32 w0 = src_buf[idx];
+
+    const int p = src_pos & 3;
+
+    const u32 c = (w0 >> (p << 3)) & 0xff;
 
     int extraBytesToRead = -1;
 
@@ -2529,82 +2530,84 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 
     if (extraBytesToRead == -1)
     {
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
     if ((src_pos + extraBytesToRead) >= src_sz)
     {
       // broken input
 
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
-    if (hc_enc_validate_utf8_global (src_buf, src_pos, extraBytesToRead) == 0)
+    // the second word is loaded only if the sequence crosses the word boundary, because
+    // src_buf[idx + 1] can otherwise read out of bounds (for example word 64 of a u32[64])
+
+    u32 w1 = 0;
+
+    if ((p + extraBytesToRead) > 3)
+    {
+      w1 = src_buf[idx + 1];
+    }
+
+    if (hc_enc_validate_utf8 (w0, w1, src_pos, extraBytesToRead) == 0)
     {
       // broken input
 
-      hc_enc->pos = src_len;
+      ret = -1;
 
-      return -1;
+      break;
     }
 
     u32 ch = 0;
 
     switch (extraBytesToRead)
     {
-      // old version, doesnt work with https://github.com/hashcat/hashcat/issues/3592
-      /*
-      case 5:
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_5;
-        break;
-      case 4:
-        ch += src_ptr[src_pos++]; ch <<= 6; // remember, illegal UTF-8
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
-        ch -= offsetsFromUTF8_4;
-        break;
-      */
       case 3:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 2); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 3);
         ch -= offsetsFromUTF8_3;
         break;
       case 2:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 2);
         ch -= offsetsFromUTF8_2;
         break;
       case 1:
-        ch += src_ptr[src_pos++]; ch <<= 6;
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0); ch <<= 6;
+        ch += hc_enc_seq_byte (w0, w1, p, 1);
         ch -= offsetsFromUTF8_1;
         break;
       case 0:
-        ch += src_ptr[src_pos++];
+        ch += hc_enc_seq_byte (w0, w1, p, 0);
         ch -= offsetsFromUTF8_0;
         break;
     }
 
+    src_pos += extraBytesToRead + 1;
+
     /* Target is a character <= 0xFFFF */
     if (ch <= UNI_MAX_BMP)
     {
-      dst_ptr[dst_pos++] = (ch >> 0) & 0xff;
-      dst_ptr[dst_pos++] = (ch >> 8) & 0xff;
+      const u32 u = ch & 0xffff;
+
+      if ((dst_pos & 3) == 0)
+      {
+        acc = u;
+      }
+      else
+      {
+        dst_buf[dst_pos >> 2] = acc | (u << 16);
+      }
+
+      dst_pos += 2;
     }
     else
     {
@@ -2615,20 +2618,54 @@ DECLSPEC int hc_enc_next_global (PRIVATE_AS hc_enc_t *hc_enc, GLOBAL_AS const u3
 
       if ((dst_pos + 2) == dst_sz)
       {
-        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
+        if ((dst_pos & 3) == 0)
+        {
+          acc = a & 0xffff;
+        }
+        else
+        {
+          dst_buf[dst_pos >> 2] = acc | ((a & 0xffff) << 16);
+        }
+
+        dst_pos += 2;
 
         hc_enc->cbuf = b & 0xffff;
         hc_enc->clen = 2;
       }
       else
       {
-        dst_ptr[dst_pos++] = (a >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (a >> 8) & 0xff;
-        dst_ptr[dst_pos++] = (b >> 0) & 0xff;
-        dst_ptr[dst_pos++] = (b >> 8) & 0xff;
+        if ((dst_pos & 3) == 0)
+        {
+          dst_buf[dst_pos >> 2] = (a & 0xffff) | ((b & 0xffff) << 16);
+
+          dst_pos += 4;
+        }
+        else
+        {
+          dst_buf[dst_pos >> 2] = acc | ((a & 0xffff) << 16);
+
+          dst_pos += 2;
+
+          acc = b & 0xffff;
+
+          dst_pos += 2;
+        }
       }
     }
+  }
+
+  // store a pending low half word, the high half stays zero
+
+  if ((dst_pos & 3) == 2)
+  {
+    dst_buf[dst_pos >> 2] = acc;
+  }
+
+  if (ret == -1)
+  {
+    hc_enc->pos = src_len;
+
+    return -1;
   }
 
   hc_enc->pos = src_pos;
