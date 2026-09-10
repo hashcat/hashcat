@@ -155,11 +155,48 @@ CONTAINER_MASK_MID="hashc?lt"
 # Cryptoloop mode which have test containers
 CL_MODES="14511 14512 14513 14521 14522 14523 14531 14532 14533 14541 14542 14543 14551 14552 14553"
 
-# PM_MODES is the set of modes that have a test.pl oracle, kept separately from
+# PM_MODES is the set of modes that have an oracle, kept separately from
 # HASH_TYPES because -g now runs a real-container test in addition to the oracle
 # instead of in place of it, so the dispatch has to know which modes still have
-# an oracle left to run.
-PM_MODES=$(ls "${TDIR}"/test_modules/*.pm | sed -E 's/.*m0*([0-9]+).pm/\1/' | tr '\n' ' ')
+# an oracle left to run. An oracle is a .pm or a .py: a mode is written in one
+# language or the other, never both, so the set is the union of the two.
+PM_MODES=$(ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' | sort -u -n | tr '\n' ' ')
+
+# A default run routes each mode to whichever oracle file it has: python for a mode with a .py,
+# perl for a mode with a .pm. -y is the one restriction, cutting the run down to the modes that
+# have a .py so only the python oracle is exercised. It is recomputed after the option loop, which
+# is where the flag is known.
+
+PYTHON_ENGINE=0
+
+# Modes whose oracle reported that this run's kernel family does not exist for them. They are
+# recorded as a Skip and then left out, so the run does not go on to report 0/0 on them, which
+# reads as a failure rather than as a mode that was never applicable.
+
+NOT_APPLICABLE_MODES=""
+
+function oracle_modes()
+{
+  if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.py/\1/' | tr '\n' ' '
+  else
+    ls "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].pm "${TDIR}"/test_modules/m[0-9][0-9][0-9][0-9][0-9].py 2>/dev/null | sed -E 's/.*m0*([0-9]+)\.(pm|py)/\1/' | sort -u -n | tr '\n' ' '
+  fi
+}
+
+function run_oracle()
+{
+  # Generate with the engine the mode has a file for: python where a mNNNNN.py exists, perl
+  # otherwise. The mode is the second argument at every call site. test_module_runner.py exits 2
+  # to say the mode has no kernel for the family the run asked for, which is not a failure and not
+  # a pass; the caller turns it into a Skip.
+
+  if [ -f "${TDIR}/test_modules/m$(printf '%05d' "$2").py" ]; then
+    python3 "${TDIR}/test_module_runner.py" "$@"
+  else
+    perl "${TDIR}/test.pl" "$@"
+  fi
+}
 HASH_TYPES="${PM_MODES} ${TC_MODES} ${VC_MODES} ${LUKS1_ALL_MODES} ${LUKS2_MODES} ${CL_MODES} ${SELFTEST_MODES}"
 HASH_TYPES=$(echo -n "${HASH_TYPES}" | tr ' ' '\n' | sort -u -n | tr '\n' ' ')
 
@@ -648,12 +685,12 @@ function init()
 
       if [ "${fixed_len}" -ne 0 ]; then
         if [ "${fixed_len}" -eq "${i}" ]; then
-          perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+          run_oracle single "${hash_type}" ${i} > "${cmd_file}"
         else
-          perl tools/test.pl single "${hash_type}" ${fixed_len} > "${cmd_file}"
+          run_oracle single "${hash_type}" ${fixed_len} > "${cmd_file}"
         fi
       else
-        perl tools/test.pl single "${hash_type}" ${i} > "${cmd_file}"
+        run_oracle single "${hash_type}" ${i} > "${cmd_file}"
       fi
 
       sed 's/^echo *|.*$//'       "${cmd_file}" | awk '{print $2}'                                                                    > "${OUTD}/${hash_type}_passwords_multi_${i}.txt"
@@ -6215,6 +6252,10 @@ OPTIONS:
         '3'         => FPGA, DSP, Co-Processor
         (int)[,int] => multiple comma separated device types from the list above
 
+  -y    Restrict the run to the modes that have a tools/test_modules/mNNNNN.py, so only the
+        python oracle (tools/test_module_runner.py) is exercised. Without -y every mode still
+        runs, each through the oracle it has: python for a .py, perl for a .pm.
+
   -O    Use optimized kernels (default : -O)
 
   -P    Use pure kernels instead of optimized kernels (default : -O)
@@ -6282,7 +6323,7 @@ SELFTEST_ALL=0
 RUNTIME_SET=0
 HT_SET=0
 
-while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gS" opt; do
+while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gSy" opt; do
 
   case ${opt} in
     "V")
@@ -6430,6 +6471,10 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gS" opt; do
       RUNTIME_SET=1
       ;;
 
+    "y")
+      PYTHON_ENGINE=1
+      ;;
+
     "S")
       SELFTEST_ALL=1
       ;;
@@ -6448,6 +6493,20 @@ while getopts "V:t:m:a:b:hcpd:x:o:d:D:F:POI:s:fr:gS" opt; do
   esac
 
 done
+
+
+# -y cuts the module list down to the modes that have a python oracle and nothing else. PM_MODES
+# and HASH_TYPES are assigned near the top of this file, long before the option loop, so they are
+# recomputed here.
+#
+# HASH_TYPES is only PM_MODES, not the union the default run builds. The container families are
+# tested by test.sh itself against a real artifact and use no oracle at all, so running them under
+# -y would spend hours on TrueCrypt and VeraCrypt volumes to exercise an engine they never call.
+
+if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+  PM_MODES=$(oracle_modes)
+  HASH_TYPES=$(echo -n "${PM_MODES}" | tr ' ' '\n' | grep -v '^$' | sort -u -n | tr '\n' ' ')
+fi
 
 # test.sh is not a thing to run under sudo. Where a generator needs root it asks
 # for it per command, and only for that command. Running the whole script as root
@@ -6609,14 +6668,45 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
 
     # validate filter
 
-    if ! is_in_array "${HT_MIN}" ${HASH_TYPES}; then
-      echo "! invalid hash type selected ..."
-      usage
-    fi
+    # Naming what is wrong and stopping is more use than the whole option list, which the reader
+    # has not asked for and which buries the one line that matters. -h still prints it.
+    #
+    # A range only has to contain something. The loops below already skip a mode that is not in
+    # HASH_TYPES, so a range may span gaps, and requiring its two endpoints to be modes in their
+    # own right rejected ranges the run would have handled. Under -y that was almost every range,
+    # there being two modes in the list.
 
-    if ! is_in_array "${HT_MAX}" ${HASH_TYPES}; then
-      echo "! invalid hash type selected ..."
-      usage
+    if [ "${HT_MIN}" -eq "${HT_MAX}" ]; then
+      if ! is_in_array "${HT_MIN}" ${HASH_TYPES}; then
+        if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+          echo "! hash type ${HT_MIN} has no tools/test_modules/m$(printf '%05d' "${HT_MIN}").py, so -y cannot run it"
+          echo "! modes with a python oracle: ${PM_MODES}"
+        else
+          echo "! invalid hash type selected: ${HT_MIN}"
+        fi
+
+        exit 1
+      fi
+    else
+      HT_ANY=0
+
+      for HT_CHECK in ${HASH_TYPES}; do
+        if [ "${HT_CHECK}" -ge "${HT_MIN}" ] && [ "${HT_CHECK}" -le "${HT_MAX}" ]; then
+          HT_ANY=1
+          break
+        fi
+      done
+
+      if [ "${HT_ANY}" -eq 0 ]; then
+        if [ "${PYTHON_ENGINE}" -eq 1 ]; then
+          echo "! no hash type between ${HT_MIN} and ${HT_MAX} has a .py oracle, so -y cannot run any of them"
+          echo "! modes with a python oracle: ${PM_MODES}"
+        else
+          echo "! no valid hash type between ${HT_MIN} and ${HT_MAX}"
+        fi
+
+        exit 1
+      fi
     fi
   fi
 
@@ -6723,14 +6813,20 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
-        # only a mode with a .pm has anything for test.pl to generate. That
-        # already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes, which
-        # are container-only. LUKS is the one family that has both, and it uses
-        # its .pm only when -g asks for containers to be generated.
+        # only a mode with an oracle, a .pm or a .py, has anything to generate.
+        # That already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes,
+        # which are container-only. LUKS is the one family that has both, and it
+        # uses its oracle only when -g asks for containers to be generated.
         if is_in_array "${TMP_HT}" ${PM_MODES}; then
           if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
             if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              run_oracle single "${TMP_HT}" >> "${OUTD}/all.sh"
+
+              if [ $? -eq 2 ]; then
+                record_skip "${TMP_HT}" "no ${KERNEL_TYPE} kernel for this mode"
+
+                NOT_APPLICABLE_MODES="${NOT_APPLICABLE_MODES} ${TMP_HT}"
+              fi
             fi
           fi
         fi
@@ -6748,14 +6844,20 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
           continue
         fi
 
-        # only a mode with a .pm has anything for test.pl to generate. That
-        # already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes, which
-        # are container-only. LUKS is the one family that has both, and it uses
-        # its .pm only when -g asks for containers to be generated.
+        # only a mode with an oracle, a .pm or a .py, has anything to generate.
+        # That already excludes the TrueCrypt, VeraCrypt and CryptoLoop modes,
+        # which are container-only. LUKS is the one family that has both, and it
+        # uses its oracle only when -g asks for containers to be generated.
         if is_in_array "${TMP_HT}" ${PM_MODES}; then
           if ! ( is_in_array "${TMP_HT}" ${LUKS1_ALL_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
             if ! ( is_in_array "${TMP_HT}" ${LUKS2_MODES} && [[ "${GENERATE_CONTAINERS}" -eq 0 ]] ); then
-              perl tools/test.pl single "${TMP_HT}" >> "${OUTD}/all.sh"
+              run_oracle single "${TMP_HT}" >> "${OUTD}/all.sh"
+
+              if [ $? -eq 2 ]; then
+                record_skip "${TMP_HT}" "no ${KERNEL_TYPE} kernel for this mode"
+
+                NOT_APPLICABLE_MODES="${NOT_APPLICABLE_MODES} ${TMP_HT}"
+              fi
             fi
           fi
         fi
@@ -6858,6 +6960,10 @@ if [ "${PACKAGE}" -eq 0 ] || [ -z "${PACKAGE_FOLDER}" ]; then
       # should we check only the pass?
       pass_only=0
       is_in_array "${hash_type}"  ${PASS_ONLY} && pass_only=1
+
+      if is_in_array "${hash_type}" ${NOT_APPLICABLE_MODES}; then
+        continue
+      fi
 
       IS_SLOW=0
       is_in_array "${hash_type}" ${SLOW_ALGOS} && IS_SLOW=1
