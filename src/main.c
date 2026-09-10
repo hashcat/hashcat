@@ -1145,9 +1145,21 @@ static void main_wordlist_cache_generate (MAYBE_UNUSED hashcat_ctx_t *hashcat_ct
 {
   const user_options_t *user_options = hashcat_ctx->user_options;
 
-  if (user_options->quiet == true) return;
-
   const cache_generate_t *cache_generate = (const cache_generate_t *) buf;
+
+  // --lookup sets quiet itself, to keep the startup out of an answer that is meant to be read on its
+  // own. What it cannot do is make the wait silent as well: a lookup over a wordlist with no seekdb
+  // yet counts the whole file before it can begin, and on a large one that is minutes with nothing
+  // on the screen. The progress is kept there, on a terminal, where someone is waiting for it, and
+  // only the progress: the finished summary below stays suppressed, because that is startup noise
+  // and the answer is what should be left on the screen.
+
+  if (user_options->quiet == true)
+  {
+    if (user_options->lookup == NULL)   return;
+    if (is_stdout_terminal () == false) return;
+    if (cache_generate->percent >= 100) return;
+  }
 
   if (cache_generate->percent < 100)
   {
