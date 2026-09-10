@@ -1679,11 +1679,18 @@ typedef struct hc_device_param
   u64  size_combs_c;
 
   // The device engine's two buffers. The cells are per work item and are rewritten every launch beside
-  // pws_buf; the pool is the terminal bytes every cell indexes into and is uploaded once.
+  // pws_buf. The pool is the terminal bytes every cell indexes into, and it is handed over once.
 
   u64  size_pcfg_cells;
   u64  size_pcfg_pool;
   u64  size_pcfg_wmap;
+
+  // One buffer where the device will allocate the pool in one, equal parts where it will not. A part
+  // is a whole number of pages, not a power of two: see pcfg_pool_budget ().
+
+  u64  size_pcfg_pool_part;
+  u32  pcfg_pool_parts;
+
   u64  size_rules;
   u64  size_rules_c;
   u64  size_root_css;
@@ -1936,7 +1943,7 @@ typedef struct hc_device_param
   CUdeviceptr       cuda_d_combs;
   CUdeviceptr       cuda_d_combs_c;
   CUdeviceptr       cuda_d_pcfg_cells;
-  CUdeviceptr       cuda_d_pcfg_pool;
+  CUdeviceptr       cuda_d_pcfg_pool[PCFG_POOL_PARTS];
   CUdeviceptr       cuda_d_pcfg_wmap;
   CUdeviceptr       cuda_d_bfs;
   CUdeviceptr       cuda_d_bfs_c;
@@ -2022,7 +2029,7 @@ typedef struct hc_device_param
   hipDeviceptr_t    hip_d_combs;
   hipDeviceptr_t    hip_d_combs_c;
   hipDeviceptr_t    hip_d_pcfg_cells;
-  hipDeviceptr_t    hip_d_pcfg_pool;
+  hipDeviceptr_t    hip_d_pcfg_pool[PCFG_POOL_PARTS];
   hipDeviceptr_t    hip_d_pcfg_wmap;
   hipDeviceptr_t    hip_d_bfs;
   hipDeviceptr_t    hip_d_bfs_c;
@@ -2146,7 +2153,7 @@ typedef struct hc_device_param
   mtl_mem_t         metal_d_combs;
   mtl_mem_t         metal_d_combs_c;
   mtl_mem_t         metal_d_pcfg_cells;
-  mtl_mem_t         metal_d_pcfg_pool;
+  mtl_mem_t         metal_d_pcfg_pool[PCFG_POOL_PARTS];
   mtl_mem_t         metal_d_pcfg_wmap;
   mtl_mem_t         metal_d_bfs;
   mtl_mem_t         metal_d_bfs_c;
@@ -2246,7 +2253,7 @@ typedef struct hc_device_param
   cl_mem            opencl_d_combs;
   cl_mem            opencl_d_combs_c;
   cl_mem            opencl_d_pcfg_cells;
-  cl_mem            opencl_d_pcfg_pool;
+  cl_mem            opencl_d_pcfg_pool[PCFG_POOL_PARTS];
   cl_mem            opencl_d_pcfg_wmap;
   cl_mem            opencl_d_bfs;
   cl_mem            opencl_d_bfs_c;
@@ -3536,7 +3543,8 @@ typedef struct generic_ctx
   bool dev_enable;
 
   // What global_dev_init () handed over: the terminal pool every cell indexes into, and how wide the
-  // device side inner loop is. The pool is read only and uploaded once per device.
+  // device side inner loop is. The pool is read only, and a device whose memory is the host's reads
+  // these bytes rather than a copy, so the buffers over it are released before the feed frees it.
 
   const u32 *dev_pool;
   u64        dev_pool_size;
