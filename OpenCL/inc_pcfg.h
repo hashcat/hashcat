@@ -8,6 +8,7 @@
 
 #include "inc_pcfg_pool.h"
 
+DECLSPEC u32  pcfg_base_byte (GLOBAL_AS const u32 *base, const u32 off);
 DECLSPEC u32  pcfg_get_byte  (PRIVATE_AS const u32 *w, const u32 off);
 DECLSPEC void pcfg_put_byte  (PRIVATE_AS u32 *w, const u32 off, const u32 b);
 
@@ -18,7 +19,7 @@ DECLSPEC u32  pcfg_ent_len    (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS,
 
 DECLSPEC bool pcfg_odo_seed   (LOCAL_AS const pcfg_cell_t *cell, const u32 il_pos, LOCAL_AS u32 *digit);
 DECLSPEC int  pcfg_odo_next   (LOCAL_AS const pcfg_cell_t *cell, LOCAL_AS u32 *digit);
-DECLSPEC u32  pcfg_write      (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, LOCAL_AS u32 *digit, PRIVATE_AS u32 *w);
-DECLSPEC u32  pcfg_write_from (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, LOCAL_AS u32 *digit, PRIVATE_AS u32 *w, const u32 from);
+DECLSPEC u32  pcfg_write      (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, GLOBAL_AS const u32 *base, LOCAL_AS u32 *digit, PRIVATE_AS u32 *w);
+DECLSPEC u32  pcfg_write_from (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, GLOBAL_AS const u32 *base, LOCAL_AS u32 *digit, PRIVATE_AS u32 *w, const u32 from);
 
 #endif

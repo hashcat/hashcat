@@ -119,7 +119,7 @@ static void seekdb_source_name (char *dst, const size_t dst_sz, const char *word
 // ident and file_size are where the answers go. Both are only written when a path could be built, so
 // a caller that got NULL has nothing to read.
 //
-// The directory is global_ctx->seekdb_dir when --seekdb-path named one, and a seekdbs folder inside
+// The directory is the wordlist feed's own folder inside
 // the cache directory otherwise. Nothing else changes: the name is still the hash, so a directory
 // shared between machines holds one database per wordlist rather than one per machine, and the
 // header checks below decide whether what is found there belongs to the file in hand.
@@ -128,19 +128,20 @@ static char *seekdb_path (generic_global_ctx_t *global_ctx, const char *wordlist
 {
   char *seekdb_dir = NULL;
 
-  if (global_ctx->seekdb_dir != NULL)
-  {
-    seekdb_dir = hcstrdup (global_ctx->seekdb_dir);
-  }
-  else
-  {
-    hc_asprintf (&seekdb_dir, "%s/seekdbs", global_ctx->cache_dir);
+  // A cache belongs to whoever built it, so it is named after the feed the way the plugin beside it
+  // is: feeds/feed_wordlist.so reads this. It is the wordlist reader's cache rather than one feed's,
+  // and the table feed uses the same reader.
 
-    // Only the directory hashcat owns is created. One the user named is checked at startup instead,
-    // and creating it here would turn a typo into a directory rather than an error.
+  hc_asprintf (&seekdb_dir, "%s/feeds/wordlist", global_ctx->cache_dir);
 
-    hc_mkdir (seekdb_dir, 0700);
-  }
+  // cache_dir is wherever --cache-path put it, so a cluster pointed at one shared directory builds a
+  // database once for all of it rather than once per host. The directory may be read only: a write is
+  // attempted only when the database was not already there, and a failed write leaves the run using
+  // what it just built in memory.
+  //
+  // Recursive because the feeds level above may not be there yet.
+
+  hc_mkdir_rec (seekdb_dir, 0700);
 
   HCFILE fp;
 
@@ -347,7 +348,7 @@ static void seekdb_frame_seen (void *userdata, const u64 comp_off, const u64 unc
 
 // A database is written under a name nobody looks for and renamed into place.
 //
-// The directory is shared on purpose: --seekdb-path points a whole cluster at one of them, and every
+// The directory is shared on purpose: --cache-path points a whole cluster at one of them, and every
 // host builds the same database for the same wordlist. Writing it in place means one host can read
 // what another host is halfway through writing, and a half written database is worse than none: the
 // header describes the wordlist correctly, so it passes every check, and the body it hands over is

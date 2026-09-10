@@ -333,6 +333,7 @@ char **scan_directory (const char *path)
 int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *install_folder, MAYBE_UNUSED const char *shared_folder)
 {
   folder_config_t *folder_config = hashcat_ctx->folder_config;
+  const user_options_t *user_options = hashcat_ctx->user_options;
 
   /**
    * There's some buggy OpenCL runtime that do not support -I.
@@ -460,7 +461,7 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
       event_log_warning (hashcat_ctx, "Found %s, which hashcat no longer uses.", legacy_dir);
       event_log_warning (hashcat_ctx, "It is left untouched. Everything hashcat keeps per user is now in");
       event_log_warning (hashcat_ctx, "  %s", profile_dir);
-      event_log_warning (hashcat_ctx, "and the kernel cache is in");
+      event_log_warning (hashcat_ctx, "and the files it rebuilds by itself, the compiled kernels among them, are under");
       event_log_warning (hashcat_ctx, "  %s", cache_dir);
       event_log_warning (hashcat_ctx, "That is potfiles and sessions, and anything else you were asked to put there.");
       event_log_warning (hashcat_ctx, "Move what you still want across, then delete the old directory.");
@@ -589,6 +590,31 @@ int folder_config_init (hashcat_ctx_t *hashcat_ctx, MAYBE_UNUSED const char *ins
   #endif
 
   /**
+   * everything hashcat can rebuild lives under one folder, and --cache-path moves the lot
+   */
+
+  char *cache_root = NULL;
+
+  if (user_options->cache_path != NULL)
+  {
+    // The user named this directory, so it is taken as given rather than extended. Startup has
+    // already checked that it is there, and creating it here would turn a typo into a directory.
+
+    cache_root = hcstrdup (user_options->cache_path);
+  }
+  else
+  {
+    hc_asprintf (&cache_root, "%s/%s", cache_dir, CACHE_FOLDER);
+
+    hc_mkdir_rec (cache_root, 0700);
+  }
+
+  // A name that could not be built leaves the directory as it was rather than a NULL every path below
+  // would be written against.
+
+  if (cache_root != NULL) cache_dir = cache_root;
+
+  /**
    * kernel cache, we need to make sure folder exist
    */
 
@@ -621,6 +647,11 @@ void folder_config_destroy (hashcat_ctx_t *hashcat_ctx)
 
   hcfree (folder_config->cpath_real);
   hcfree (folder_config->cwd);
+
+  // cache_dir is always its own allocation now, where it used to be install_dir under another name.
+
+  if (folder_config->cache_dir != folder_config->install_dir) hcfree (folder_config->cache_dir);
+
   hcfree (folder_config->install_dir);
 
   memset (folder_config, 0, sizeof (folder_config_t));

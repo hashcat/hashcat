@@ -141,7 +141,7 @@ So this, and nothing shorter:
     before: Recovered 0/1, Status Exhausted, rc=1
     after:  Recovered 1/1, Status Cracked,   rc=0
 
-Attack mode 3, with the password as a literal mask, is usually the shortest route because it needs no wordlist file. Say what else has to be true for the run to mean anything. `rm -rf kernels/` between two kernel versions is the usual one, because hashcat caches compiled kernels and will otherwise reuse the old binary.
+Attack mode 3, with the password as a literal mask, is usually the shortest route because it needs no wordlist file. Say what else has to be true for the run to mean anything. `rm -rf cache/kernels/` between two kernel versions is the usual one, because hashcat caches compiled kernels and will otherwise reuse the old binary.
 
 For step 4, run the suite yourself and paste what it printed:
 

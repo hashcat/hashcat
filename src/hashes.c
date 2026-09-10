@@ -4407,6 +4407,41 @@ int hashes_init_stage1 (hashcat_ctx_t *hashcat_ctx)
         if (hashes_parsed > 0)
         {
           hashes_cnt = hashes_parsed;
+
+          // The hook that runs after a hash is decoded runs here too. A module that parses its own
+          // binary file calls module_hash_decode () itself and the core never saw the decode, so it
+          // never ran the hook either, and anything the hook was carrying was silently dropped.
+          //
+          // --keyboard-layout-mapping is what that cost. It is loaded in the hook, so for the fifteen
+          // TrueCrypt and VeraCrypt modes that read a container the mapping was never loaded and the
+          // option did nothing at all: hashcat took the file, said nothing, and hashed the candidates
+          // exactly as they came. The modes that take a hash rather than a container were unaffected,
+          // which is why the option works for some of them and not others.
+          //
+          // A hash the hook rejects is reported and kept, which is what the hash given on the command
+          // line does a few lines below.
+          //
+          // It is not dropped, because dropping means closing the gap and the entries cannot simply be
+          // moved. Entry i's digest points into a slab at digests_buf + i * dgst_size, and
+          // apply_permutation_hash_inplace () later moves the struct and those slab bytes together on
+          // that assumption. Reordering the structs alone would leave a digest pointer and the digest
+          // it names in different slots, silently. Anyone adding a filter here has to compact the
+          // slabs with the structs, or leave the count alone as this does.
+
+          if (module_ctx->module_hash_decode_postprocess != MODULE_DEFAULT)
+          {
+            for (u32 hashes_pos = 0; hashes_pos < hashes_cnt; hashes_pos++)
+            {
+              hash_t *hash = &hashes_buf[hashes_pos];
+
+              const int postprocess_status = module_ctx->module_hash_decode_postprocess (hashconfig, hash->digest, hash->salt, hash->esalt, hash->hook_salt, hash->hash_info, user_options, user_options_extra);
+
+              if (postprocess_status < PARSER_GLOBAL_ZERO)
+              {
+                event_log_warning (hashcat_ctx, "Hashfile '%s': %s", hashes->hashfile, strparser (postprocess_status));
+              }
+            }
+          }
         }
         else if (hashes_parsed == 0)
         {

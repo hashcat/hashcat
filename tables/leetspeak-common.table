@@ -1,0 +1,38 @@
+# Leetspeak, common.
+#
+# The substitutions people actually make. Start here.
+#
+# The leetspeak tables are meant to be given together, as many as you want the run to cost:
+#
+#   hashcat -m 0 -a 5 hashes.txt words.txt tables/leetspeak-common.table
+#   hashcat -m 0 -a 5 hashes.txt words.txt tables/leetspeak-common.table tables/leetspeak-extended.table
+#
+# Tables given together are read into one set, so a letter named by more than one of them ends up
+# with the union of what they say. Combine these with tables/toggle.table for case as well.
+#
+# One rule to a line: the source token, a tab, then what to put in its place. Leaving a letter as
+# it was is always one of the choices, so there are no rules here mapping a letter to itself.
+
+a	4
+a	@
+e	3
+g	9
+i	1
+i	!
+l	1
+o	0
+s	$
+s	5
+t	7
+
+A	4
+A	@
+E	3
+G	9
+I	1
+I	!
+L	1
+O	0
+S	$
+S	5
+T	7

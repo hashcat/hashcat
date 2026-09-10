@@ -172,8 +172,8 @@ function clean_cache()
     fi
   fi
 
-  if [ -d "kernels" ]; then
-    rm -rf kernels/*
+  if [ -d "cache/kernels" ]; then
+    rm -rf cache/kernels/*
   fi
 }
 

@@ -41,6 +41,21 @@ for artifact in hashcat.bin hashcat.exe libhashcat.so.$MAJOR hashcat.dll; do
 
 done
 
+# and the folders it lays beside them. cp writes its complaint to stderr and carries on, so a folder
+# that was renamed in the tree left an archive missing it and said nothing that stopped the build.
+# layouts became tables/layouts and that is exactly what happened.
+
+for folder in docs charsets tables masks bridges feeds modules rules extra tunings pcfg OpenCL; do
+
+  if [ -d "$IN/$folder" ]; then
+    continue
+  fi
+
+  echo "! $folder is not in the tree, so it cannot be packed. Either it moved and this script has not been told, or the build is incomplete."
+  exit 1
+
+done
+
 rm -rf $OUT
 rm -rf $OUT.7z
 
@@ -91,7 +106,7 @@ fi
 
 cp -r $IN/docs                          $OUT/
 cp -r $IN/charsets                      $OUT/
-cp -r $IN/layouts                       $OUT/
+cp -r $IN/tables                        $OUT/
 cp -r $IN/masks                         $OUT/
 cp -r $IN/bridges                       $OUT/
 cp -r $IN/feeds                         $OUT/
@@ -131,7 +146,8 @@ for example in example[0123456789]*.sh; do
 
 done
 
-dos2unix $OUT/layouts/*.hckmap
+dos2unix $OUT/tables/*.table
+dos2unix $OUT/tables/layouts/*.table
 dos2unix $OUT/masks/*.hcmask
 dos2unix $OUT/rules/*.rule
 dos2unix $OUT/rules/hybrid/*.rule
@@ -141,7 +157,8 @@ dos2unix $OUT/example*
 dos2unix $OUT/tools/*
 dos2unix $OUT/tunings/*
 
-unix2dos $OUT/layouts/*.hckmap
+unix2dos $OUT/tables/*.table
+unix2dos $OUT/tables/layouts/*.table
 unix2dos $OUT/masks/*.hcmask
 unix2dos $OUT/rules/*.rule
 unix2dos $OUT/rules/hybrid/*.rule
@@ -164,8 +181,10 @@ chmod 755 $OUT/docs/license_libs
 chmod 644 $OUT/docs/license_libs/*
 chmod 755 $OUT/charsets
 chmod 755 $OUT/charsets/*
-chmod 755 $OUT/layouts
-chmod 644 $OUT/layouts/*
+chmod 755 $OUT/tables
+chmod 644 $OUT/tables/*
+chmod 755 $OUT/tables/layouts
+chmod 644 $OUT/tables/layouts/*
 chmod 755 $OUT/masks
 chmod 644 $OUT/masks/*
 chmod 755 $OUT/bridges

@@ -5989,15 +5989,17 @@ static char *pcfg_cache_path (const generic_global_ctx_t *global_ctx, const pcfg
 
   char *dir = NULL;
 
-  // Named the way seekdb.c names its own: a build that runs from its own tree has that tree as its
-  // cache directory, so the folder cannot be called "pcfg", which already holds the shipped
-  // ruleset.
+  // Named after the feed, the way the plugin beside it is: feeds/feed_pcfg.so writes this. The level
+  // above is what keeps it apart from the shipped pcfg folder, which a build running from its own
+  // tree would otherwise collide with.
 
-  hc_asprintf (&dir, "%s/pcfgdbs", global_ctx->cache_dir);
+  hc_asprintf (&dir, "%s/feeds/pcfg", global_ctx->cache_dir);
 
   if (dir == NULL) return NULL;
 
-  if (make == true) hc_mkdir (dir, 0700);
+  // Recursive because the feeds level above may not be there yet.
+
+  if (make == true) hc_mkdir_rec (dir, 0700);
 
   char *path = NULL;
 

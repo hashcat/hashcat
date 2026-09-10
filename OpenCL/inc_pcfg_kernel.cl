@@ -165,7 +165,7 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
 
   u32 cur_len = pw_len;
 
-  u32 nxt = (s_cells[wid].slot_cnt > 0) ? pcfg_write (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), s_digit[lid], w) : pw_len;
+  u32 nxt = (s_cells[wid].slot_cnt > 0) ? pcfg_write (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), pws[gid].i, s_digit[lid], w) : pw_len;
 
   for (u32 il_pos = beg; il_pos < end; il_pos++)
   {
@@ -194,12 +194,12 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
 
     if (from < 0) break;
 
-    nxt = pcfg_write_from (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), s_digit[lid], w, (u32) from);
+    nxt = pcfg_write_from (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), pws[gid].i, s_digit[lid], w, (u32) from);
   }
 
   #else
 
-  pcfg_write (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), s_digit[lid], w);
+  pcfg_write (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), pws[gid].i, s_digit[lid], w);
 
   for (u32 il_pos = beg; il_pos < end; il_pos++)
   {
@@ -223,7 +223,7 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_MXX (PCFG_KERN_ATTR)
 
     if (from < 0) break;
 
-    pcfg_write_from (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), s_digit[lid], w, (u32) from);
+    pcfg_write_from (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), pws[gid].i, s_digit[lid], w, (u32) from);
   }
 
   #endif
@@ -351,7 +351,7 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
 
   u32 cur_len = pw_len;
 
-  u32 nxt = (s_cells[wid].slot_cnt > 0) ? pcfg_write (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), s_digit[lid], w) : pw_len;
+  u32 nxt = (s_cells[wid].slot_cnt > 0) ? pcfg_write (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), pws[gid].i, s_digit[lid], w) : pw_len;
 
   for (u32 il_pos = beg; il_pos < end; il_pos++)
   {
@@ -380,12 +380,12 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
 
     if (from < 0) break;
 
-    nxt = pcfg_write_from (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), s_digit[lid], w, (u32) from);
+    nxt = pcfg_write_from (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), pws[gid].i, s_digit[lid], w, (u32) from);
   }
 
   #else
 
-  pcfg_write (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), s_digit[lid], w);
+  pcfg_write (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), pws[gid].i, s_digit[lid], w);
 
   for (u32 il_pos = beg; il_pos < end; il_pos++)
   {
@@ -409,7 +409,7 @@ KERNEL_FQ KERNEL_FA void PCFG_KERNEL_SXX (PCFG_KERN_ATTR)
 
     if (from < 0) break;
 
-    pcfg_write_from (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), s_digit[lid], w, (u32) from);
+    pcfg_write_from (&s_cells[wid], PCFG_POOL_REF (pcfg_pool_v), pws[gid].i, s_digit[lid], w, (u32) from);
   }
 
   #endif

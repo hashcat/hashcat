@@ -317,6 +317,41 @@ if [ -n "$LIBRARY" ]; then
   check_core_link feeds
 fi
 
+# Every folder the package is supposed to carry.
+#
+# cp writes its complaint to stderr and carries on, so a folder renamed in the tree leaves an archive
+# without it and nothing about the build says so. layouts became tables/layouts and that is what
+# happened: the archive built fine, listed every module, and had no table for -a 5 to read and no
+# mapping file for --keyboard-layout-mapping to find. A missing directory is what this file exists to
+# catch, so it is named here rather than left to the first user of the feature.
+
+MISSING_DIRS=""
+
+for folder in OpenCL Python Rust bridges charsets docs extra feeds masks modules pcfg rules tables tables/layouts tunings; do
+  [ -d "$folder" ] && continue
+  MISSING_DIRS="$MISSING_DIRS $folder"
+done
+
+if [ -z "$MISSING_DIRS" ]; then
+  pass "every shipped folder is in the package"
+else
+  fail "the package is missing:$MISSING_DIRS"
+fi
+
+# and a folder that is there but empty ships nothing, which reads the same to a user
+
+EMPTY_DIRS=""
+
+for folder in charsets feeds masks modules rules tables tables/layouts tunings; do
+  [ -d "$folder" ] || continue
+  [ -n "$(ls -A "$folder" 2>/dev/null)" ] && continue
+  EMPTY_DIRS="$EMPTY_DIRS $folder"
+done
+
+if [ -n "$EMPTY_DIRS" ]; then
+  fail "these folders are in the package and empty:$EMPTY_DIRS"
+fi
+
 # a package without example.dict starts, lists every module, and still cannot run the attack every
 # first time user runs. Whether the words come out the other end is asked further down, because
 # reading them means starting the candidate pipeline and that wants a backend platform.
@@ -373,7 +408,7 @@ check_compressed ()
   COMPRESSED_EXT="$1"
 
   if make_fixture "$COMPRESSED_EXT"; then
-    COMPRESSED_OUT="$("$HC" -a 0 --keyspace --seekdb-path "$WORK" "$WORK/example.dict.$COMPRESSED_EXT" 2>&1)"
+    COMPRESSED_OUT="$("$HC" -a 0 --keyspace --cache-path "$WORK" "$WORK/example.dict.$COMPRESSED_EXT" 2>&1)"
 
     case "$COMPRESSED_OUT" in
       *"support is unavailable"*)
@@ -396,7 +431,7 @@ check_compressed ()
 }
 
 if [ -f example.dict ]; then
-  PLAIN_KEYSPACE="$("$HC" -a 0 --keyspace --seekdb-path "$WORK" example.dict 2>/dev/null | tr -d '[:space:]')"
+  PLAIN_KEYSPACE="$("$HC" -a 0 --keyspace --cache-path "$WORK" example.dict 2>/dev/null | tr -d '[:space:]')"
 
   case "$PLAIN_KEYSPACE" in
     "" | *[!0-9]*)

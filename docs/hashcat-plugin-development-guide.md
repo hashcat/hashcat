@@ -563,7 +563,7 @@ An edited kernel is compiled again by itself. The cache key carries a digest of 
 If you want to clear the cache anyway, delete the folder:
 
 ```
-$ rm -rf kernels/
+$ rm -rf cache/kernels/
 ```
 
 Note: `make clean` also removes all cached kernels, but it makes the next `make` rebuild everything else as well, so deleting the folder is the cheaper way.
@@ -588,7 +588,7 @@ Additionally there is a couple of command line parameters that you want to use:
 Typically a developer command line for hashcat looks the following:
 
 ```
-$ rm -rf kernels $HOME/.nv; ./hashcat -m XXXXX hash.txt word.txt --potfile-disable --self-test-disable -n 1 -u 1 -T 1 --quiet --backend-vector-width 1 -d 1 --force
+$ rm -rf cache/kernels $HOME/.nv; ./hashcat -m XXXXX hash.txt word.txt --potfile-disable --self-test-disable -n 1 -u 1 -T 1 --quiet --backend-vector-width 1 -d 1 --force
 ```
 
 When adding print statements keep in mind that you need to manually add a conditional to branch on a specific loop position, otherwise every parallel execution of the kernel will execute the printf(), flooding your terminal. So you can use either:

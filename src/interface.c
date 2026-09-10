@@ -13,6 +13,7 @@
 #include "modules.h"
 #include "dynloader.h"
 #include "interface.h"
+#include "keyboard_layout.h"
 
 // The name that says which plugin interface this core implements is defined in src/plugin_abi.c. It
 // is the first thing a plugin has to get past, and the checks below are what catch a plugin that
@@ -321,6 +322,48 @@ int hashconfig_init (hashcat_ctx_t *hashcat_ctx)
       if (user_options->autodetect == false) event_log_error (hashcat_ctx, "Parameter --keyboard-layout-mapping not valid for hash-type %u", hashconfig->hash_mode);
 
       return -1;
+    }
+
+    // The file is read here as well as in the module that uses it, because this is the only place
+    // with somewhere to report it. A module loads the mapping into its own esalt from a hook whose
+    // result nothing looks at, so a file it could not use converted nothing and said nothing, which
+    // is the failure this check exists to prevent. Reading it twice costs one pass over a file of at
+    // most 256 lines, once per run.
+
+    keyboard_layout_mapping_t probe[256];
+
+    int probe_cnt = 0;
+
+    if (hc_path_read (user_options->keyboard_layout_mapping) == false)
+    {
+      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: %s", user_options->keyboard_layout_mapping, strerror (errno));
+
+      return -1;
+    }
+
+    if (initialize_keyboard_layout_mapping (user_options->keyboard_layout_mapping, probe, &probe_cnt) == false)
+    {
+      if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: no keyboard mappings in this file. A mapping is one source and one replacement separated by a single tab.", user_options->keyboard_layout_mapping);
+
+      return -1;
+    }
+
+    // A mapping converts each token to one other token, so a file that gives a token two replacements
+    // is not one. The table attack takes such a file and offers both, and the reverse layout tables
+    // are exactly that where two keys of one layout produce the same character on the other. Here the
+    // lookup would find whichever came first and convert the other away silently.
+
+    for (int i = 0; i < probe_cnt; i++)
+    {
+      for (int j = i + 1; j < probe_cnt; j++)
+      {
+        if (probe[i].src_len != probe[j].src_len) continue;
+        if (probe[i].src_char != probe[j].src_char) continue;
+
+        if (user_options->autodetect == false) event_log_error (hashcat_ctx, "%s: one source is given two replacements, so this is a table rather than a keyboard mapping. A mapping converts each token to exactly one other token.", user_options->keyboard_layout_mapping);
+
+        return -1;
+      }
     }
   }
 

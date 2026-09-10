@@ -75,6 +75,18 @@ Other contributors to hashcat
 
 # hashcat implements the following algorithms designed by others:
 
+* Probabilistic Context-Free Grammars for password guessing, by Matt Weir (@lakiw),
+  with Sudhir Aggarwal, Breno de Medeiros and Bill Glodek
+  The -a 4 attack is built on that model, and it reads the rulesets Matt Weir's
+  pcfg_cracker trains. hashcat carries none of its code and enumerates the grammar
+  its own way, but the attack is theirs.
+
+* OMEN, an ordered Markov enumerator for password guessing, by Markus Duermuth,
+  Fabian Angelstorf, Claude Castelluccia, Daniele Perito and Abdelberi Chaabane
+  A ruleset trained below full coverage puts the mass the grammar did not cover on
+  an escape, and OMEN is the model that fills it in. hashcat walks it on the host
+  engine, where a trellis can be walked, and says so when it cannot carry it.
+
 * xxHash by Yann Collet (@Cyan4973)
   paw64, hashcat's own 64 bit identity hash, carries no xxHash code and produces
   different digests, but it follows the ground xxHash broke: that a short input

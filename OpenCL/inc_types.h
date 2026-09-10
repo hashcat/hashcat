@@ -2322,6 +2322,20 @@ typedef struct pw_idx
 #define PCFG_SLOT_KIND_BYTES 0
 #define PCFG_SLOT_KIND_CASE  1
 
+// A run of the base word, copied rather than looked up.
+//
+// The pool holds what a grammar or a table can produce, which is a fixed set known before the run.
+// A feed whose candidate also contains stretches of the base word itself has nothing in the pool to
+// write them from, and cannot put them there because they are whatever word is in hand. Such a slot
+// names an offset into the base word in pool_off instead, and has a radix of one because a run of a
+// word is not a choice.
+//
+// It reads the base word out of global memory rather than out of w, because w is being rewritten as
+// the odometer walks and a slot that grew has already overwritten what a later one would read. A whole
+// warp shares one cell and therefore one base word, so the read is a broadcast.
+
+#define PCFG_SLOT_KIND_COPY  2
+
 #define PCFG_SLOT_ENT_LEN(p) (((p) >>  0) & 0xff)
 #define PCFG_SLOT_DST_OFF(p) (((p) >>  8) & 0xff)
 #define PCFG_SLOT_KIND(p)    (((p) >> 16) & 0xff)

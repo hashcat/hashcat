@@ -12,13 +12,13 @@ Contributions written with an AI coding agent are welcome. This file is the part
 
 With only `-m`, the suite covers every attack type, kernel type, target type and vector width for that mode. Add `-D 1 -f` on a machine with no GPU, where hashcat runs on the CPU backend and needs `--force`.
 
-Hashcat caches compiled kernels. `test_edge.sh` clears that cache itself. When you run hashcat directly after a change under `OpenCL/`, run `rm -rf kernels/` first, or you will measure the old binary and conclude the change did nothing.
+Hashcat caches compiled kernels. `test_edge.sh` clears that cache itself. When you run hashcat directly after a change under `OpenCL/`, run `rm -rf cache/kernels/` first, or you will measure the old binary and conclude the change did nothing.
 
 ## A build is not a result
 
 A kernel that compiles is not a kernel that works, and a self-test vector that passes is not a mode that cracks. A self-test vector is one input, often a degenerate one. It is entirely normal for it to pass while the mode is broken for everything else.
 
-Before you report a fix, run the reproduction command on both sides of the change, with `rm -rf kernels/` in between if a kernel moved, and read the exit code. Before you report that nothing regressed, run `test_edge.sh` for the modes you touched and for the modes that share the code you edited.
+Before you report a fix, run the reproduction command on both sides of the change, with `rm -rf cache/kernels/` in between if a kernel moved, and read the exit code. Before you report that nothing regressed, run `test_edge.sh` for the modes you touched and for the modes that share the code you edited.
 
 ## Never present output you did not run
 

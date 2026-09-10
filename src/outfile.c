@@ -179,7 +179,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
           // entries of more than one byte length. Reporting the base word's names a password that does
           // not hash to the digest that was cracked, exactly as reporting the base word itself would.
 
-          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, il_pos, plain_buf, (int) pw.pw_len);
+          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, pw.i, il_pos, plain_buf, (int) pw.pw_len);
 
           if (amp_len >= 0) plain_len = amp_len;
         }
@@ -223,7 +223,7 @@ int build_plain (hashcat_ctx_t *hashcat_ctx, hc_device_param_t *device_param, pl
           // entries of more than one byte length. Reporting the base word's names a password that does
           // not hash to the digest that was cracked, exactly as reporting the base word itself would.
 
-          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, il_pos, plain_buf, (int) pw.pw_len);
+          const int amp_len = pcfg_expand (&device_param->pcfg_cells_buf[gidvid], generic_ctx->dev_pool, pw.i, il_pos, plain_buf, (int) pw.pw_len);
 
           if (amp_len >= 0) plain_len = amp_len;
         }

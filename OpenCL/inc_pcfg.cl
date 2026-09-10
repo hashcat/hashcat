@@ -39,6 +39,15 @@ DECLSPEC u32 pcfg_pool_byte (PCFG_POOL_ARGS, const u32 off)
   #endif
 }
 
+DECLSPEC u32 pcfg_base_byte (GLOBAL_AS const u32 *base, const u32 off)
+{
+  GLOBAL_AS const u8 *bb = (GLOBAL_AS const u8 *) base;
+
+  const u32 b = bb[off];
+
+  return b;
+}
+
 DECLSPEC void pcfg_put_byte (PRIVATE_AS u32 *w, const u32 off, const u32 b)
 {
   PRIVATE_AS u8 *wb = (PRIVATE_AS u8 *) w;
@@ -326,7 +335,7 @@ DECLSPEC int pcfg_odo_next (LOCAL_AS const pcfg_cell_t *cell, LOCAL_AS u32 *digi
   return -1;
 }
 
-DECLSPEC u32 pcfg_write_from (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, LOCAL_AS u32 *digit, PRIVATE_AS u32 *w, const u32 from)
+DECLSPEC u32 pcfg_write_from (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, GLOBAL_AS const u32 *base, LOCAL_AS u32 *digit, PRIVATE_AS u32 *w, const u32 from)
 {
   const u32 slot_cnt = (cell->slot_cnt < PCFG_DEV_MAXSLOT) ? cell->slot_cnt : PCFG_DEV_MAXSLOT;
 
@@ -341,6 +350,33 @@ DECLSPEC u32 pcfg_write_from (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, 
     const u32 packed = cell->slots[j].packed;
 
     const u32 kind = PCFG_SLOT_KIND (packed);
+
+    if (kind == PCFG_SLOT_KIND_COPY)
+    {
+      const u32 ent_len = PCFG_SLOT_ENT_LEN (packed);
+      const u32 src     = cell->slots[j].pool_off;
+
+      #if PCFG_DEV_VARLEN
+
+      digit[j] = PCFG_ODO_PACK (PCFG_ODO_DIGIT (digit[j]), pos);
+
+      const u32 dst_off = pos;
+
+      pos += ent_len;
+
+      #else
+
+      const u32 dst_off = PCFG_SLOT_DST_OFF (packed);
+
+      #endif
+
+      for (u32 k = 0; k < ent_len; k++)
+      {
+        pcfg_put_byte (w, dst_off + k, pcfg_base_byte (base, src + k));
+      }
+
+      continue;
+    }
 
     if (kind == PCFG_SLOT_KIND_BYTES)
     {
@@ -380,9 +416,9 @@ DECLSPEC u32 pcfg_write_from (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, 
   #endif
 }
 
-DECLSPEC u32 pcfg_write (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, LOCAL_AS u32 *digit, PRIVATE_AS u32 *w)
+DECLSPEC u32 pcfg_write (LOCAL_AS const pcfg_cell_t *cell, PCFG_POOL_ARGS, GLOBAL_AS const u32 *base, LOCAL_AS u32 *digit, PRIVATE_AS u32 *w)
 {
-  const u32 len = pcfg_write_from (cell, PCFG_POOL_PASS, digit, w, 0);
+  const u32 len = pcfg_write_from (cell, PCFG_POOL_PASS, base, digit, w, 0);
 
   return len;
 }

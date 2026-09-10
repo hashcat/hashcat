@@ -62,6 +62,7 @@ static const struct option long_options[] =
   {"bridge-parameter2",         required_argument, NULL, IDX_BRIDGE_PARAMETER2},
   {"bridge-parameter3",         required_argument, NULL, IDX_BRIDGE_PARAMETER3},
   {"bridge-parameter4",         required_argument, NULL, IDX_BRIDGE_PARAMETER4},
+  {"cache-path",                required_argument, NULL, IDX_CACHE_PATH},
   {"cpu-affinity",              required_argument, NULL, IDX_CPU_AFFINITY},
   {"custom-charset1",           required_argument, NULL, IDX_CUSTOM_CHARSET_1},
   {"custom-charset2",           required_argument, NULL, IDX_CUSTOM_CHARSET_2},
@@ -145,7 +146,6 @@ static const struct option long_options[] =
   {"rules-file",                required_argument, NULL, IDX_RP_FILE},
   {"runtime",                   required_argument, NULL, IDX_RUNTIME},
   {"scrypt-tmto",               required_argument, NULL, IDX_SCRYPT_TMTO},
-  {"seekdb-path",               required_argument, NULL, IDX_SEEKDB_PATH},
   {"self-test-disable",         no_argument,       NULL, IDX_SELF_TEST_DISABLE},
   {"separator",                 required_argument, NULL, IDX_SEPARATOR},
   {"seperator",                 required_argument, NULL, IDX_SEPARATOR},
@@ -221,6 +221,7 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->benchmark                 = BENCHMARK;
   user_options->bitmap_max                = BITMAP_MAX;
   user_options->bitmap_min                = BITMAP_MIN;
+  user_options->cache_path                = NULL;
   #ifdef WITH_BRAIN
   user_options->brain_client              = BRAIN_CLIENT;
   user_options->brain_feed                = false;
@@ -320,7 +321,6 @@ int user_options_init (hashcat_ctx_t *hashcat_ctx)
   user_options->rule_buf_r                = RULE_BUF_R;
   user_options->runtime                   = RUNTIME;
   user_options->scrypt_tmto               = SCRYPT_TMTO;
-  user_options->seekdb_path               = NULL;
   user_options->self_test                 = SELF_TEST;
   user_options->separator                 = SEPARATOR;
   user_options->session                   = PROGNAME;
@@ -517,7 +517,7 @@ int user_options_getopt (hashcat_ctx_t *hashcat_ctx, int argc, char **argv)
       case IDX_PROGRESS_ONLY:             user_options->progress_only             = true;                            break;
       case IDX_RESTORE_DISABLE:           user_options->restore_enable            = false;                           break;
       case IDX_RESTORE_FILE_PATH:         user_options->restore_file_path         = optarg;                          break;
-      case IDX_SEEKDB_PATH:               user_options->seekdb_path               = optarg;                          break;
+      case IDX_CACHE_PATH:                user_options->cache_path                = optarg;                          break;
       case IDX_STATUS:                    user_options->status                    = true;                            break;
       case IDX_STATUS_JSON:               user_options->status_json               = true;                            break;
       case IDX_PIPELINE_STATS:            user_options->pipeline_stats            = true;                            break;
@@ -892,6 +892,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID)
      && (user_options->attack_mode != ATTACK_MODE_BF)
      && (user_options->attack_mode != ATTACK_MODE_PCFG)
+     && (user_options->attack_mode != ATTACK_MODE_TABLE)
      && (user_options->attack_mode != ATTACK_MODE_GENERIC))
     {
       event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified in slow-candidates mode.");
@@ -906,6 +907,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      && (user_options->attack_mode != ATTACK_MODE_COMBI)
      && (user_options->attack_mode != ATTACK_MODE_BF)
      && (user_options->attack_mode != ATTACK_MODE_PCFG)
+     && (user_options->attack_mode != ATTACK_MODE_TABLE)
      && (user_options->attack_mode != ATTACK_MODE_GENERIC))
     {
       event_log_error (hashcat_ctx, "Invalid attack mode (-a) value specified in brain-client mode.");
@@ -923,6 +925,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID2)
      && (user_options->attack_mode != ATTACK_MODE_HYBRID)
      && (user_options->attack_mode != ATTACK_MODE_PCFG)
+     && (user_options->attack_mode != ATTACK_MODE_TABLE)
      && (user_options->attack_mode != ATTACK_MODE_GENERIC)
      && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION)
      && (user_options->attack_mode != ATTACK_MODE_NONE))
@@ -1121,6 +1124,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     return -1;
   }
 
+  if ((user_options->increment != INCREMENT_NONE) && (user_options->attack_mode == ATTACK_MODE_TABLE))
+  {
+    event_log_error (hashcat_ctx, "Increment is not allowed in attack mode 5 (table).");
+
+    return -1;
+  }
+
   if ((user_options->increment != INCREMENT_NONE) && (user_options->attack_mode == ATTACK_MODE_PCFG))
   {
     event_log_error (hashcat_ctx, "Increment is not allowed in attack mode 4 (pcfg).");
@@ -1191,9 +1201,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0))
   {
-    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
     {
-      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate requires attack mode 0, 4, 8 or 9.");
+      event_log_error (hashcat_ctx, "Use of -r/--rules-file and -g/--rules-generate requires attack mode 0, 4, 5, 8 or 9.");
 
       return -1;
     }
@@ -1637,9 +1647,9 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->debug_mode > 0)
   {
-    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
+    if ((user_options->attack_mode != ATTACK_MODE_STRAIGHT) && (user_options->attack_mode != ATTACK_MODE_PCFG) && (user_options->attack_mode != ATTACK_MODE_TABLE) && (user_options->attack_mode != ATTACK_MODE_GENERIC) && (user_options->attack_mode != ATTACK_MODE_ASSOCIATION))
     {
-      event_log_error (hashcat_ctx, "Parameter --debug-mode option is only allowed in attack mode 0 (straight), 4 (pcfg), 8 (generic) or 9 (association).");
+      event_log_error (hashcat_ctx, "Parameter --debug-mode option is only allowed in attack mode 0 (straight), 4 (pcfg), 5 (table), 8 (generic) or 9 (association).");
 
       return -1;
     }
@@ -1881,7 +1891,7 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
   if (user_options->markov_threshold != 0) // is 0 by default
   {
-    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_PCFG) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
+    if ((user_options->attack_mode == ATTACK_MODE_STRAIGHT) || (user_options->attack_mode == ATTACK_MODE_COMBI) || (user_options->attack_mode == ATTACK_MODE_PCFG) || (user_options->attack_mode == ATTACK_MODE_TABLE) || (user_options->attack_mode == ATTACK_MODE_GENERIC) || (user_options->attack_mode == ATTACK_MODE_ASSOCIATION))
     {
       event_log_error (hashcat_ctx, "Option --markov-threshold is not allowed in combination with --attack mode %d", user_options->attack_mode);
 
@@ -1913,22 +1923,22 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     }
   }
 
-  if (user_options->seekdb_path != NULL)
+  if (user_options->cache_path != NULL)
   {
-    if (strlen (user_options->seekdb_path) == 0)
+    if (strlen (user_options->cache_path) == 0)
     {
-      event_log_error (hashcat_ctx, "Invalid --seekdb-path value - must not be empty.");
+      event_log_error (hashcat_ctx, "Invalid --cache-path value - must not be empty.");
 
       return -1;
     }
 
     // A directory that is not there is worth stopping for, because the alternative is a run that
-    // quietly rebuilds its seek database every time and never says why. Not being able to write to
-    // one is fine and deliberately not checked: a read only share is a normal way to use this.
+    // quietly rebuilds everything every time and never says why. Not being able to write to one is
+    // fine and deliberately not checked: a read only share is a normal way to use this.
 
-    if (hc_path_is_directory (user_options->seekdb_path) == false)
+    if (hc_path_is_directory (user_options->cache_path) == false)
     {
-      event_log_error (hashcat_ctx, "Invalid --seekdb-path value - must be an existing directory.");
+      event_log_error (hashcat_ctx, "Invalid --cache-path value - must be an existing directory.");
 
       return -1;
     }
@@ -2084,6 +2094,13 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
     if (user_options->attack_mode == ATTACK_MODE_COMBI)
     {
       event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 1 (combination).");
+
+      return -1;
+    }
+
+    if (user_options->attack_mode == ATTACK_MODE_TABLE)
+    {
+      event_log_error (hashcat_ctx, "Custom charsets are not supported in attack mode 5 (table).");
 
       return -1;
     }
@@ -2256,6 +2273,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
 
       show_error = false;
     }
+    else if (user_options->attack_mode == ATTACK_MODE_TABLE)
+    {
+      // at least one wordlist and the table, and settings after them
+
+      if (user_options->hc_argc >= 2)
+      {
+        show_error = false;
+      }
+    }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
       // at least one wordlist, and the mask
@@ -2328,6 +2354,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       // or a setting, which is what the feed reads either way.
 
       show_error = false;
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_TABLE)
+    {
+      // at least one wordlist and the table, and settings after them
+
+      if (user_options->hc_argc >= 2)
+      {
+        show_error = false;
+      }
     }
     else if (user_options->attack_mode == ATTACK_MODE_HYBRID1)
     {
@@ -2421,6 +2456,15 @@ int user_options_sanity (hashcat_ctx_t *hashcat_ctx)
       // Nothing after it runs the pair hashcat ships.
 
       if (user_options->hc_argc >= 1)
+      {
+        show_error = false;
+      }
+    }
+    else if (user_options->attack_mode == ATTACK_MODE_TABLE)
+    {
+      // the hash file, at least one wordlist, and the table
+
+      if (user_options->hc_argc >= 3)
       {
         show_error = false;
       }
@@ -2583,7 +2627,7 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
 
   const u32 attack_mode = user_options->attack_mode;
 
-  if ((attack_mode != ATTACK_MODE_COMBI) && (attack_mode != ATTACK_MODE_HYBRID1) && (attack_mode != ATTACK_MODE_HYBRID2) && (attack_mode != ATTACK_MODE_PCFG)) return;
+  if ((attack_mode != ATTACK_MODE_COMBI) && (attack_mode != ATTACK_MODE_HYBRID1) && (attack_mode != ATTACK_MODE_HYBRID2) && (attack_mode != ATTACK_MODE_PCFG) && (attack_mode != ATTACK_MODE_TABLE)) return;
 
   // The argument count was checked against the mode the user typed, so anything that did not pass
   // that check is left alone for the error to be reported the way it always was.
@@ -2669,11 +2713,11 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
   }
   else
   {
-    // -a 4 is a feed attack whose feed is already known, so the whole rewrite is the feed name in
-    // front of the work arguments. A ruleset directory is the first of them, and everything after it
-    // is a second ruleset or a setting, which is what the feed reads either way.
+    // -a 4 and -a 5 are feed attacks whose feed is already known, so the whole rewrite is the feed
+    // name in front of the work arguments. What follows it is what that feed reads either way: for
+    // pcfg a ruleset and settings, for table the wordlists, the table and settings.
 
-    hc_argv[hc_argc_new] = "pcfg";
+    hc_argv[hc_argc_new] = (attack_mode == ATTACK_MODE_PCFG) ? "pcfg" : "table";
 
     hc_argc_new++;
 
@@ -2692,7 +2736,7 @@ static void user_options_alias_attack_mode (hashcat_ctx_t *hashcat_ctx)
     // Appended last, so a lookup= the user typed themselves is the one further to the left and this
     // one wins, which is what a command line option should do against a positional setting.
 
-    if (user_options->lookup != NULL)
+    if ((user_options->lookup != NULL) && (attack_mode == ATTACK_MODE_PCFG))
     {
       hc_asprintf (&user_options->lookup_alias, "lookup=%s", user_options->lookup);
 
@@ -4656,6 +4700,7 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_string (user_options->bridge_parameter2);
   logfile_top_string (user_options->bridge_parameter3);
   logfile_top_string (user_options->bridge_parameter4);
+  logfile_top_string (user_options->cache_path);
   logfile_top_string (user_options->cpu_affinity);
   logfile_top_string (user_options->custom_charset_1);
   logfile_top_string (user_options->custom_charset_2);
@@ -4754,7 +4799,6 @@ void user_options_logger (hashcat_ctx_t *hashcat_ctx)
   logfile_top_uint   (user_options->rp_gen_seed);
   logfile_top_uint   (user_options->runtime);
   logfile_top_uint   (user_options->scrypt_tmto);
-  logfile_top_string (user_options->seekdb_path);
   logfile_top_uint   (user_options->self_test);
   logfile_top_uint   (user_options->slow_candidates);
   logfile_top_uint   (user_options->show);

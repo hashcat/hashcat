@@ -21,7 +21,7 @@ Examples of advanced generators include:
 
 When starting an attack-mode 8 session, the user must specify a plugin as first parameter. This is by design to provide flexibility. Attack-mode 8 itself does not assign numbers to specific generators but instead lets the user name a plugin. This makes it possible to have an unlimited number of plugins, including custom plugins that are not part of hashcat's base package.
 
-A feed that ships with hashcat can also be given an attack-mode number of its own. The PCFG feed has one: `-a 4 hashes.txt ruleset` is rewritten into `-a 8 hashes.txt pcfg ruleset` before anything downstream reads it, so the two spellings are the same attack. See `hashcat-pcfg.md` for that attack and the section on aliases in `hashcat-generic-attack-mode-development-guide.md` for how a feed gets a number.
+A feed that ships with hashcat can also be given an attack-mode number of its own. The PCFG feed has one: `-a 4 hashes.txt ruleset` is rewritten into `-a 8 hashes.txt pcfg ruleset` before anything downstream reads it, so the two spellings are the same attack. The table feed has `-a 5`, which was the number hashcat-legacy used for the same attack. See `hashcat-pcfg.md` and `hashcat-table.md` for those attacks, and the section on aliases in `hashcat-generic-attack-mode-development-guide.md` for how a feed gets a number.
 
 Since there are now multiple plugin types in hashcat, we need naming to distinguish them. Password generator plugins are called `feeds`, and the feeds we provide can be found in the "feeds" folder.
 
@@ -117,12 +117,12 @@ We expected a clear speed improvement compared to STDIN, but what we did not exp
 
 To prepare both modes, replace with any large wordlist locally.
 
-First clear caching databases for kernels and dictionary stats. Note the new `seekdbs` folder, used by feed_wordlist.so to enable fast seeks to specific offsets in the wordlist. It acts as a sparse line to byte offset database and also as a keyspace hint, similar to dictstat2.
+First clear caching databases for kernels and dictionary stats. Everything hashcat rebuilds by itself is under one `cache` folder, and a feed's own cache sits under `cache/feeds/<feed>` there. `cache/feeds/wordlist` is used by feed_wordlist.so to enable fast seeks to specific offsets in the wordlist. It acts as a sparse line to byte offset database and also as a keyspace hint, similar to dictstat2.
 
-The folder lives in the hashcat cache directory by default, so every host that reads the same wordlist builds its own copy of the same database, and each of those builds costs a full read of the file. `--seekdb-path` names a different directory instead, and pointing a cluster at one shared mount turns that into a single build for all of it. A database is named and checked by what the wordlist contains, so the directory holds one file per wordlist rather than one per host, and one that does not belong to the file in hand is refused rather than trusted. The mount may be read only: hashcat writes only when it did not find what it needed, and a write that fails leaves the run using the database it just built in memory.
+The folder lives in the hashcat cache directory by default, so every host that reads the same wordlist builds its own copy of the same database, and each of those builds costs a full read of the file. `--cache-path` names a different directory instead, and pointing a cluster at one shared mount turns that into a single build for all of it. A database is named and checked by what the wordlist contains, so the directory holds one file per wordlist rather than one per host, and one that does not belong to the file in hand is refused rather than trusted. A seek database tolerates a read only mount: hashcat writes only when it did not find what it needed, and a write that fails leaves the run using the database it just built in memory. The compiled kernels are under the same option and are stricter, so a shared mount wants to be writable all the same.
 
 ```
-rm -rf kernels hashcat.dictstat2 seekdbs
+rm -rf cache hashcat.dictstat2
 ```
 
 Next, rebuild the caching databases for both attack modes, creating a realistic environment:
