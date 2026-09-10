@@ -398,9 +398,9 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 //
 // -a 0 has no arithmetic to invert. Its base words are the lines of a file, in the order they are in
 // the file, so the answer is the line the word is on and the only work is finding it. That makes the
-// answer exact and the refusal a proof, on one condition: that no rule is in play. A rule turns one
-// base word into many candidates and nothing here inverts a rule, so a run with -r is answered about
-// the base word only, and the report says so rather than letting a miss read as a proof.
+// answer exact and a refusal a proof, and both rest on the wordlist being the whole attack. A rule
+// would turn one base word into many candidates and break that, so a rule with --lookup is refused
+// in user_options_sanity () and never reaches here.
 //
 // Read once through the feed rather than through the file, because the file is not necessarily one
 // file: a folder or several dictionaries are laid end to end into one keyspace and only the feed
@@ -409,7 +409,6 @@ int straight_ctx_update_loop (hashcat_ctx_t *hashcat_ctx)
 void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 {
   const status_ctx_t   *status_ctx   = hashcat_ctx->status_ctx;
-  const straight_ctx_t *straight_ctx = hashcat_ctx->straight_ctx;
   const user_options_t *user_options = hashcat_ctx->user_options;
 
   if (user_options->lookup == NULL) return;
@@ -441,24 +440,6 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 
   event_log_info (hashcat_ctx, "lookup: '%s'", user_options->lookup);
 
-  const u64 rules = straight_ctx->kernel_rules_cnt;
-
-  // Whether a rule is in play at all, which is not the same as more than one being in play. A rule
-  // file with a single line gives kernel_rules_cnt == 1, exactly as no rule file does, and testing
-  // the count would then claim "without rules the wordlist is the whole attack" while a rule is
-  // running. This is the test straight_ctx_init () already uses to decide whether to load any.
-
-  const bool ruled = ((user_options->rp_files_cnt > 0) || (user_options->rp_gen > 0));
-
-  // Two ways of naming the same rule set, because the two sentences below mean different things by
-  // it: a miss is about any one of them having made the candidate, and a hit runs all of them.
-
-  char rules_any[64];
-  char rules_all[64];
-
-  snprintf (rules_any, sizeof (rules_any), (rules == 1) ? "the one rule"  : "one of the %" PRIu64 " rules", rules);
-  snprintf (rules_all, sizeof (rules_all), (rules == 1) ? "the one rule"  : "all %" PRIu64 " rules",         rules);
-
   u64 index = 0;
   u64 more  = 0;
   u64 words = 0;
@@ -474,22 +455,10 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 
   if (rc == 0)
   {
-    // The wall this mode runs into, and the reason the wording differs from every other one. Without
-    // rules the wordlist is the whole attack and this is a proof. With rules it is not: the candidate
-    // could still be what some rule makes of some other word, and nothing here has looked.
+    // A proof, not a guess: the wordlist is the whole attack here, so a word it does not hold is a
+    // word the run never tries.
 
-    if (ruled == false)
-    {
-      event_log_info (hashcat_ctx, "lookup: nothing in this run produces it. the wordlist does not hold it, and without rules the wordlist is the whole attack");
-
-      return;
-    }
-
-    event_log_info (hashcat_ctx, "lookup: this wordlist does not hold it as a word, in any of its %" PRIu64 " lines", words);
-
-    event_log_info (hashcat_ctx, "lookup: whether %s makes it out of some other word was NOT checked, and is not something this can answer", rules_any);
-
-    event_log_info (hashcat_ctx, "lookup: so this is not a proof that the run misses it, only that the word itself is not there");
+    event_log_info (hashcat_ctx, "lookup: nothing in this run produces it. the wordlist does not hold it, and without rules the wordlist is the whole attack");
 
     return;
   }
@@ -516,16 +485,7 @@ void straight_ctx_lookup_report (hashcat_ctx_t *hashcat_ctx)
 
   event_log_info (hashcat_ctx, "lookup: this run reaches it at -s %" PRIu64 ", because -a 0 counts -s in words", index);
 
-  if (ruled == false)
-  {
-    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one word", index);
-  }
-  else
-  {
-    event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs that word with %s applied to it", index, rules_all);
-
-    event_log_info (hashcat_ctx, "lookup: an earlier -s may reach it too, through a rule on another word. that was not checked");
-  }
+  event_log_info (hashcat_ctx, "lookup: -s %" PRIu64 " -l 1 runs the one word", index);
 
   if ((user_options->skip != 0) || (user_options->limit != 0))
   {
