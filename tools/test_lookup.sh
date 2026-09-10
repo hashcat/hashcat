@@ -355,11 +355,12 @@ lookup bravotwo -m 2000 -a 1 "${WORK}/w1.txt" "${WORK}/w2.txt"
 check_has "-a 1 says where it cut the candidate" "cut as 5 bytes of the first wordlist and 3 of the second"
 check_has "-a 1 counts -s in base words"         "because it counts -s in base words"
 
-# The wording here is the one combi_ctx_lookup_report () actually reaches for -a 1, not the one that
-# reads as if written for it. lookup->has_q is only assigned on the hit path, so a miss always takes
-# the branch that speaks of a mask. Pinned as observed rather than as it ought to read.
+# A combinator miss is about two wordlists, and a hybrid miss about a wordlist and a mask. The two
+# sentences are chosen by lookup->has_q, which is why it is recorded where it is read rather than
+# only where a hit is.
 lookup nosuchthing -m 2000 -a 1 "${WORK}/w1.txt" "${WORK}/w2.txt"
-check_has "-a 1 misses when no cut works"        "no way of cutting it leaves a word this wordlist holds and a mask value beside it"
+check_has "-a 1 misses as two wordlists"         "no way of cutting it in two leaves a word in each wordlist"
+check_not "-a 1 does not miss as a mask"         "and a mask value beside it"
 
 note "-a 6, wordlist plus mask"
 
@@ -369,7 +370,18 @@ lookup bravo42 -m 2000 -a 6 "${WORK}/w1.txt" '?d?d'
 check_has "-a 6 says where it cut the candidate" "cut as 5 bytes of the wordlist and the rest from the mask"
 
 lookup zzzzz42 -m 2000 -a 6 "${WORK}/w1.txt" '?d?d'
-check_has "-a 6 misses on the wordlist half"     "no way of cutting it leaves a word this wordlist holds and a mask value beside it"
+check_has "-a 6 misses as a wordlist and a mask" "no way of cutting it leaves a word this wordlist holds and a mask value beside it"
+check_not "-a 6 does not miss as two wordlists"  "leaves a word in each wordlist"
+
+note "-a 12, a mask that says where both words go"
+
+replay 'bravo-two' -a 12 '?w-?q' "${WORK}/w1.txt" "${WORK}/w2.txt"
+
+lookup 'zzz-zzz' -m 2000 -a 12 '?w-?q' "${WORK}/w1.txt" "${WORK}/w2.txt"
+check_has "-a 12 with a ?q misses as two wordlists" "no way of cutting it in two leaves a word in each wordlist"
+
+lookup 'x' -m 2000 -a 12 '?w-?q' "${WORK}/w1.txt" "${WORK}/w2.txt"
+check_has "-a 12 names the mask it is too short for" "it is too short for the mask ?w-?q and a word on top of it"
 
 note "-a 7, mask plus wordlist"
 
